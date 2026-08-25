@@ -31,6 +31,7 @@ use App\Services\EventSearchService;
 use App\Services\PublicScheduleDiscoveryService;
 use App\Support\Auth\IntendedRedirect;
 use App\Support\Cache\SafeModelCache;
+use App\Support\Language\MalaysiaLanguageCatalog;
 use App\Support\Location\PublicGeolocationPermission;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -1484,17 +1485,9 @@ class Index extends Component implements HasForms
      */
     public function languageOptions(): array
     {
-        return cache()->remember('event_filter_languages_v2', 3600, function (): array {
-            $preferredOrder = ['ms', 'ar', 'en', 'id', 'zh', 'ta', 'jv'];
-            $preferredLabels = [
-                'ms' => 'Bahasa Melayu',
-                'ar' => 'Bahasa Arab',
-                'en' => 'Bahasa Inggeris',
-                'id' => 'Bahasa Indonesia',
-                'zh' => 'Bahasa Cina',
-                'ta' => 'Bahasa Tamil',
-                'jv' => 'Bahasa Jawa',
-            ];
+        return cache()->remember('event_filter_languages_v3', 3600, function (): array {
+            $preferredOrder = MalaysiaLanguageCatalog::codes();
+            $preferredLabels = MalaysiaLanguageCatalog::labels();
 
             return Language::query()
                 ->whereIn('code', $preferredOrder)

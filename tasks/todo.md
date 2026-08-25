@@ -798,3 +798,223 @@ Verification:
 - `./pest --parallel --compact tests/Browser/PlaywrightSmokeTest.php` — 1 passed (2 assertions).
 - Targeted PHPStan, Pint, Blade view cache, PHP syntax checks, and `git diff --check` passed.
 - Chrome MCP verified that changing the client-side event format state updated the progress value from 61% to 63% without a Livewire network request, and the client calculator reached 100% when all active required values were populated; the form was not submitted and the refreshed page had no JavaScript errors.
+
+# Follow-up: conditional topic-reference wizard step
+
+## Plan
+
+- [x] Make `Topik & Rujukan` visible only when `Agama & Kerohanian` is selected in `Topik / bidang`.
+- [x] Add regression coverage for religious, non-religious, and restored topic selections.
+- [x] Run focused tests, static checks, and review whether the visibility-only UI change needs Signals tracking.
+
+## Review
+
+The `Topik & Rujukan` wizard step now uses the canonical `agama_kerohanian` topic code and is hidden for other `Topik / bidang` selections. The existing Muslim-only audience field reuses the same predicate so the contextual controls remain consistent. No Signals event was added because this is a visibility-only adjustment without a new user-intent or completed workflow transition.
+
+Verification:
+
+- `vendor/bin/pest tests/Feature/SubmitEventAdaptiveFormTest.php --compact` — 12 passed (77 assertions).
+- Targeted PHPStan — no errors.
+- Targeted Pint, PHP syntax checks, and `git diff --check` — passed.
+
+# Follow-up: Malaysia-relevant language field options
+
+## Plan
+
+- [x] Trace the language catalog, submit form options, related filters, and cache behavior.
+- [x] Add a shared Malaysia-relevant language catalog using supported ISO 639-1 records.
+- [x] Reuse the catalog in the submit form, event language filter, and review preview.
+- [x] Add regression coverage for the complete curated option list.
+- [x] Run focused tests, static analysis, formatting, syntax, and diff checks.
+
+## Review
+
+The `/hantar-majlis` `Bahasa` field now offers 28 relevant languages: Malay, Arabic, English, Indonesian, Chinese, Tamil, Javanese, Punjabi, Hindi, Malayalam, Telugu, Bengali, Nepali, Thai, Myanmar, Vietnamese, Tagalog, Urdu, Sinhala, Khmer, Gujarati, Kannada, Odia, Sindhi, Persian, Sundanese, Japanese, and Korean. These use the existing commerce-support ISO 639-1 catalog, so no duplicate language records or migration are required.
+
+The shared `MalaysiaLanguageCatalog` keeps labels and ordering consistent across event submission, public event filtering, and the submission review preview. The event filter cache key was bumped to `v3` so existing cached seven-language payloads expire immediately. No Signals event was added because expanding select options does not create a new meaningful workflow transition.
+
+Verification:
+
+- `vendor/bin/pest --parallel --compact tests/Feature/SubmitEventLanguageTest.php` — 4 passed (19 assertions).
+- `vendor/bin/pest --parallel --compact tests/Feature/Laravel13CacheSerializationTest.php` — 4 passed (23 assertions).
+- `vendor/bin/pest --parallel --compact tests/Feature/SubmitEventAdaptiveFormTest.php` — 12 passed (77 assertions).
+- `vendor/bin/phpstan analyse --ansi` — no errors across 995 files.
+- Targeted Pint, PHP syntax checks, package-code availability check, and `git diff --check` — passed.
+
+# Follow-up: client-side age-group selection normalization
+
+## Plan
+
+- [x] Trace the existing `Kumpulan Umur` state logic and no-request form patterns.
+- [x] Collapse all four specific age groups into `Semua Peringkat Umur` in the browser.
+- [x] Remove `Semua Peringkat Umur` when another specific age group is selected afterward.
+- [x] Keep a server-side normalization fallback for submitted/programmatic state.
+- [x] Add regression coverage for the behavior and absence of live synchronization.
+- [x] Run focused tests, PHPStan, Pint, syntax, and diff checks.
+
+## Review
+
+The submit-event age field no longer uses `->live()`, so selecting age groups does not trigger a Livewire request. Its `afterStateUpdatedJs()` watcher compares `$state` with `$old`: selecting all four specific groups selects only `all_ages`; selecting a specific group after `all_ages` removes `all_ages`; and selecting `all_ages` keeps only that sentinel without clearing the field. The children toggle’s disabled state follows the same client-side state. Server-side normalization remains in place before submission as a defensive fallback.
+
+The browser watcher explicitly preserves `all_ages` when it is the only selected value. This prevents watcher re-entry from interpreting the normalized `[all_ages]` state as a request to remove the sentinel itself.
+
+Verification:
+
+- `vendor/bin/pest --parallel --compact tests/Feature/SubmitEventAgeGroupTest.php` — 5 passed (17 assertions).
+- `vendor/bin/pest --parallel --compact tests/Feature/SubmitEventAdaptiveFormTest.php` — 12 passed (77 assertions).
+- `vendor/bin/phpstan analyse --ansi` — no errors across 995 files.
+- Targeted Pint, PHP syntax checks, and `git diff --check` — passed.
+- Chrome verified that choosing `Semua Peringkat Umur` leaves that single selection visible, and choosing `Dewasa` afterward removes it.
+
+# Follow-up: audit remaining submit-form live bindings
+
+## Plan
+
+- [x] Inspect every `->live()` and `wire:model.live` binding in the submit-event form.
+- [x] Move pure browser state synchronization and conditional required/disabled behavior to `afterStateUpdatedJs()` and Alpine bindings.
+- [x] Preserve live bindings whose PHP callbacks provide database-backed lookup, contextual defaults, dynamic options, or server-driven schema.
+- [x] Defer the Turnstile token until submit because it is only consumed by the server during submission.
+- [x] Add regression coverage and review whether the UI behavior needs Signals tracking.
+
+## Review
+
+The organizer selectors, linked key-person repeater, guest contact requirement toggles, and Turnstile token no longer cause intermediate Livewire requests. Their server-side callbacks and validation rules remain as fallbacks/authorities for programmatic state and submission.
+
+The six remaining live fields are intentional: event category, title, country, event date, prayer time, and religious domain topic. Each drives PHP-side defaults, database-backed title lookup, country/date-dependent prayer options, or conditional schema and contextual religious behavior. No Signals event was added because this is a request/performance refactor without a new user-intent or completed workflow transition.
+
+Verification:
+
+- `vendor/bin/pest --parallel --compact tests/Feature/SubmitEventReactiveFieldTest.php` — 3 passed (38 assertions).
+- `vendor/bin/pest --parallel --compact tests/Feature/SubmitEventCaptchaTest.php` — 2 passed (9 assertions).
+- `vendor/bin/pest --parallel --compact tests/Feature/SubmitEventAdaptiveFormTest.php` — 12 passed (77 assertions).
+- `vendor/bin/pest --parallel --compact tests/Feature/SubmitEventOrganizerAutoSelectTest.php` — 3 passed (12 assertions).
+- `vendor/bin/phpstan analyse --ansi` — no errors across 995 files.
+- Targeted Pint, PHP syntax checks, and `git diff --check` — passed.
+- A broader `tests/Feature` run still has unrelated existing failures in fixtures/seeders, geography, prayer-option data, and other admin/public workflows; the focused submit-form suites above pass.
+
+# Follow-up: audit contribution forms and public majlis filters
+
+## Plan
+
+- [x] Trace the create/edit person and institution forms, their shared schemas, and the `/majlis` filter form.
+- [x] Reduce social-handle normalization from every keystroke to blur-only server synchronization.
+- [x] Preserve live bindings for address cascades, Google Maps normalization, dynamic social/contact fields, and server-side event filtering.
+- [x] Add regression coverage and review whether the interaction changes need Signals tracking.
+
+## Review
+
+The dedicated contribution page classes and Blade views already use deferred state; no unnecessary page-level `wire:model.live` bindings were found. Their shared schema still uses live state only where PHP must update dependent address options/visibility, normalize Google Maps input, or render dynamic social/contact fields. Social-media handle parsing now runs on blur instead of every keystroke.
+
+The `/majlis` page intentionally keeps its live bindings: search, location, date/time, taxonomy, audience, language, format, and availability controls all change the server-side event query. Search and radius already use debounce, and the PIC text search already updates on blur. No Signals event was added because this preserves existing filter behavior and only reduces redundant normalization requests.
+
+Verification:
+
+- `vendor/bin/pest --parallel --compact tests/Feature/ContributionReactiveFieldTest.php` — 1 passed (3 assertions).
+- `vendor/bin/pest --parallel --compact tests/Feature/PersonContributionOptimizationTest.php` — 6 passed (17 assertions).
+- `vendor/bin/pest --parallel --compact tests/Feature/InstitutionContributionLocationPickerTest.php` — 9 passed (56 assertions).
+- `vendor/bin/phpstan analyse --ansi` — no errors across 995 files.
+- Targeted Pint, PHP syntax checks, and `git diff --check` — passed.
+- `tests/Feature/EventSearchTest.php` — 90 passed, 1 unrelated existing fixture assertion failed (`Domain Hidden Filter Payload Test`).
+- `vendor/bin/pest --parallel --compact tests/Feature/ContributionPagesTest.php` — 65 passed, 1 unrelated existing assertion failed because the test expects initial speaker progress `0` while the current component returns `50`.
+
+# Follow-up: direct membership claiming from public profiles
+
+## Plan
+
+- [x] Trace the existing membership application route, claimability rules, and public speaker/institution page actions.
+- [x] Add the direct membership claim action to public institution pages using the canonical institution identifier.
+- [x] Extend regression coverage for unclaimed and already-managed institution profiles while preserving speaker behavior.
+- [x] Review responsive presentation, browser errors, and whether the new navigation action needs Signals tracking.
+
+## Review
+
+Public institution profiles now show the same membership claim card already used by speaker profiles when no admin member exists. The action opens the existing membership application form directly with the institution preselected; it does not send users through the general `/sumbangan` selector. Profiles with only non-admin members continue to show the claim action, while profiles with an admin member hide it.
+
+No Signals event was added: this is a navigational entry point into the existing claim workflow, while the membership application submission remains the meaningful server-confirmed outcome.
+
+Verification:
+
+- `vendor/bin/pest --parallel --compact tests/Feature/MembershipApplicationPagesTest.php` — 11 passed (61 assertions).
+- Chrome checked the institution profile at desktop and mobile widths: the direct claim URL rendered, the card remained responsive, and there was no horizontal overflow.
+- Chrome console check found no errors.
+- `vendor/bin/phpstan analyse --ansi` — no errors across 995 files.
+- Targeted Pint, Blade view caching, PHP syntax checks, and `git diff --check` — passed.
+
+# Follow-up: position profile membership CTAs after feedback
+
+## Plan
+
+- [x] Move the institution claim card after `Bantu Semak Maklumat Ini`.
+- [x] Move the speaker claim card after the same feedback section.
+- [x] Add order assertions for both public profile types and re-run verification.
+
+## Review
+
+Both public profile pages now present the information-feedback actions first and the “Tuntut Pengurusan” card immediately afterward. The existing direct claim routes and approved-member visibility guards are unchanged, and speaker profiles retain the claim CTA for unclaimed records.
+
+Verification:
+
+- `vendor/bin/pest --parallel --compact tests/Feature/MembershipApplicationPagesTest.php` — 11 passed (61 assertions).
+- Chrome confirmed the institution order at desktop and mobile widths, with no horizontal overflow or console errors.
+- `vendor/bin/phpstan analyse --ansi` — no errors across 995 files.
+- Targeted Pint, Blade view caching, and `git diff --check` — passed.
+
+# Follow-up: simplify membership claim submission
+
+## Plan
+
+- [x] Inspect the claim page navigation and evidence upload configuration.
+- [x] Remove the “Tuntutan Saya” action from the claim form page.
+- [x] Preserve and regression-test multi-file evidence uploads.
+- [x] Verify the focused membership tests, static checks, Blade compilation, and browser rendering.
+
+## Review
+
+The claim form now keeps only the submit action; claim history remains available through its separate authenticated route. The evidence field already used Filament's `multiple()` configuration, and the submission regression now uploads two valid files and verifies both are persisted in the `evidence` collection.
+
+Verification:
+
+- `vendor/bin/pest --parallel --compact tests/Feature/MembershipApplicationPagesTest.php` — 12 passed (67 assertions).
+- `vendor/bin/phpstan analyse --ansi` — no errors across 995 files.
+- Targeted Pint, PHP syntax checks, Blade view caching, and `git diff --check` — passed.
+- Chrome navigation to the protected URL correctly redirected the unauthenticated browser session to `/login`; authenticated Livewire coverage verified the form behavior.
+
+# Follow-up: institution claim-page parity
+
+## Plan
+
+- [x] Confirm the institution route uses the shared membership claim form.
+- [x] Add an institution-specific assertion that the claims-history button is absent.
+- [x] Re-run the focused membership tests and final checks.
+
+## Review
+
+Institution claims use the same Livewire component and evidence field as speaker claims, so the removed “Tuntutan Saya” action and multi-file upload behavior apply consistently to both subject types. The institution-specific page test now explicitly verifies the history button is absent.
+
+Verification:
+
+- `vendor/bin/pest --parallel --compact tests/Feature/MembershipApplicationPagesTest.php` — 13 passed (70 assertions).
+- `vendor/bin/phpstan analyse --ansi` — no errors across 995 files.
+- Targeted Pint, PHP syntax checks, and `git diff --check` — passed.
+
+# Follow-up: admin-role membership CTA visibility
+
+## Plan
+
+- [x] Trace the membership pivot role values and existing permission conventions.
+- [x] Show the claim CTA when only non-admin members exist.
+- [x] Hide the claim CTA when an admin member exists on either profile type.
+- [x] Verify focused tests, static checks, Blade compilation, and browser rendering.
+
+## Review
+
+The public institution and speaker profile guards now query the membership pivot for `MemberRole::Admin` instead of treating any member as a reason to hide the CTA. This keeps “Tuntut Pengurusan” available for profiles with no members or only non-admin members, while an existing admin can reliably invite and manage members without a duplicate claim entry point.
+
+No Signals event was added: this changes visibility of the existing navigation CTA; the membership application submission remains the meaningful server-confirmed outcome.
+
+Verification:
+
+- `vendor/bin/pest --parallel --compact tests/Feature/MembershipApplicationPagesTest.php` — 12 passed (67 assertions).
+- `vendor/bin/phpstan analyse --ansi` — no errors across 995 files.
+- Targeted Pint, PHP syntax checks, Blade view caching, and `git diff --check` — passed.
+- Chrome confirmed Kazim Elias shows the direct speaker claim link, the CTA follows the feedback section, there is no horizontal overflow, and no console errors.

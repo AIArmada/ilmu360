@@ -381,7 +381,7 @@
                         <p class="mb-3 text-xs text-slate-500">
                             {{ __('Sila sahkan anda bukan robot sebelum menghantar majlis.') }}
                         </p>
-                        <input id="submit-event-captcha-token" type="hidden" wire:model.live="data.captcha_token">
+                        <input id="submit-event-captcha-token" type="hidden" wire:model="data.captcha_token">
                         <div id="submit-event-turnstile" wire:ignore></div>
 
                         @error('data.captcha_token')

@@ -4,7 +4,6 @@ namespace App\Livewire\Pages\Contributions;
 
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Persons\Enums\Gender;
 use App\Actions\Contributions\SubmitStagedContributionCreateAction;
 use App\Enums\ContributionSubjectType;
 use App\Forms\PersonContributionFormSchema;
@@ -41,7 +40,6 @@ class SubmitPerson extends Component implements HasActions, HasForms
     {
         OwnerContext::withOwner(null, function (): void {
             $this->contributionForm()->fill([
-                'gender' => Gender::Male->value,
                 'address' => [
                     'country_id' => AddressCountry::query()->where('iso2', 'MY')->value('id'),
                     'state_id' => null,
@@ -123,5 +121,55 @@ class SubmitPerson extends Component implements HasActions, HasForms
     protected function contributionForm(): Schema
     {
         return $this->getForm('form') ?? throw new RuntimeException('Person contribution form is not available.');
+    }
+
+    public function formProgress(): int
+    {
+        $checks = $this->progressChecks();
+
+        if ($checks === []) {
+            return 0;
+        }
+
+        $completed = count(array_filter($checks));
+
+        return (int) round(($completed / count($checks)) * 100);
+    }
+
+    /**
+     * One completion check per required field currently relevant to the form.
+     * Mirrors the event submission progress: only genuinely required fields
+     * count, and repeater sub-fields are added only when a row exists.
+     *
+     * @return list<bool>
+     */
+    protected function progressChecks(): array
+    {
+        $data = $this->data ?? [];
+
+        $checks = [
+            filled($data['name'] ?? null),
+            filled($data['gender'] ?? null),
+        ];
+
+        foreach (($data['names'] ?? []) as $name) {
+            if (! is_array($name)) {
+                continue;
+            }
+
+            $checks[] = filled($name['name_type'] ?? null);
+            $checks[] = filled($name['full_name'] ?? null);
+            $checks[] = filled($name['language_code'] ?? null);
+        }
+
+        foreach (($data['institutions'] ?? []) as $institution) {
+            if (! is_array($institution)) {
+                continue;
+            }
+
+            $checks[] = filled($institution['institution_id'] ?? null);
+        }
+
+        return $checks;
     }
 }

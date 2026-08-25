@@ -104,8 +104,7 @@ it('preloads event category choices on the initial submit-event form', function 
         ->first(fn (mixed $field): bool => $field instanceof Select && $field->getName() === 'event_category_ids');
 
     expect($field)->toBeInstanceOf(Select::class)
-        ->and($field->isPreloaded())->toBeTrue()
-        ->and($field->getMaxItems())->toBe(1);
+        ->and($field->isPreloaded())->toBeTrue();
 });
 
 it('shows broad optional topics separately from the activity type', function () {
@@ -808,10 +807,10 @@ it('records guest submissions without a submitter id', function () {
         ->set('data.description', 'Test event description')
         ->set('data.event_date', now()->addDay()->toDateString())
         ->set('data.prayer_time', EventPrayerTime::SelepasMaghrib->value)
-        ->set('data.event_category_ids', [eventCategoryId('kuliah_ceramah')])
+        ->set('data.event_category_ids', eventCategoryId('kuliah_ceramah'))
         ->set('data.gender', EventGenderRestriction::All->value)
         ->set('data.age_group', [EventAgeGroup::AllAges->value])
-        ->set('data.domain_tags', [$domainTag->id])
+        ->set('data.domain_tags', $domainTag->id)
         ->set('data.discipline_tags', [$disciplineTag->id])
         ->set('data.persons', [$person->id])
         ->set('data.primary_organizer_kind', 'institution')

@@ -42,7 +42,7 @@ class SyncEventClassificationsAction
             ->get(['event_taxonomy_id', 'taxonomy_code', 'event_term_id']);
         $existingByTaxonomy = $existing->groupBy(fn ($classification): string => (string) $classification->taxonomy_code);
         $categoryValues = array_key_exists('event_category_ids', $validated)
-            ? $this->categoryCatalog->validateTermIds(is_array($validated['event_category_ids']) ? $validated['event_category_ids'] : [])
+            ? $this->categoryCatalog->validateTermIds($this->toList($validated['event_category_ids']))
             : $existingByTaxonomy->get(EventCategoryCatalog::TAXONOMY_CODE, collect())->pluck('event_term_id')->map(strval(...))->all();
 
         return $this->synchronizer->handle(
@@ -98,11 +98,30 @@ class SyncEventClassificationsAction
         };
 
         if (array_key_exists($key, $validated)) {
-            return is_array($validated[$key]) ? $validated[$key] : [];
+            return $this->toList($validated[$key]);
         }
 
         return $existingByTaxonomy instanceof Collection
             ? $existingByTaxonomy->get($taxonomyCode, collect())->pluck('event_term_id')->all()
             : [];
+    }
+
+    /**
+     * Normalize a taxonomy value into a list. Single-select fields submit a
+     * scalar; multi-select fields submit a list. Both are valid inputs.
+     *
+     * @return array<int, mixed>
+     */
+    private function toList(mixed $value): array
+    {
+        if ($value instanceof Collection) {
+            $value = $value->all();
+        }
+
+        if (! is_array($value)) {
+            return filled($value) ? [$value] : [];
+        }
+
+        return $value;
     }
 }

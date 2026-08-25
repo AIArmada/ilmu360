@@ -301,7 +301,7 @@ class SharedFormSchema
                     ->required()
                     ->maxLength(255)
                     ->placeholder(__('username / https://...'))
-                    ->live()
+                    ->live(onBlur: true)
                     ->afterStateUpdated(function (Get $get, Set $set, ?string $state): void {
                         if ($state === null || $state === '' || ! str_contains($state, '://')) {
                             return;
@@ -1403,7 +1403,8 @@ class SharedFormSchema
                 ->live()
                 ->required($requireCountryField)
                 ->default($defaultCountryId)
-                ->afterStateUpdatedJs(self::countryCascadeResetScript()),
+                ->afterStateUpdatedJs(self::countryCascadeResetScript())
+                ->native(false),
         ];
     }
 
@@ -1453,7 +1454,8 @@ class SharedFormSchema
                         'administrative_subdivision' => null,
                         'postal_locality' => null,
                     ]);
-                }),
+                })
+                ->native(false),
 
             TextInput::make('state')
                 ->label(__('State / Federal Territory'))
@@ -1488,7 +1490,8 @@ class SharedFormSchema
                     $includeCountryField ? $get('country_id') : $defaultCountryId,
                     $role,
                 ))
-                ->afterStateUpdatedJs(self::areaCascadeResetScript($role));
+                ->afterStateUpdatedJs(self::areaCascadeResetScript($role))
+                ->native(false);
         }
 
         $fields = array_merge($fields, [
@@ -1507,7 +1510,8 @@ class SharedFormSchema
                     defaultCountryId: $defaultCountryId,
                     isSelect: true,
                 ))
-                ->afterStateUpdatedJs(self::cityCascadeResetScript()),
+                ->afterStateUpdatedJs(self::cityCascadeResetScript())
+                ->native(false),
 
             TextInput::make('city')
                 ->label(__('City'))

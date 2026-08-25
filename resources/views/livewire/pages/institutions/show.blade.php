@@ -930,6 +930,29 @@
                     :share-links="$shareLinks"
                 />
 
+                @if(! $this->hasAdminMember)
+                    <section class="rounded-[1.5rem] border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-emerald-50/60 p-5 shadow-sm">
+                        <p class="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700">{{ __('Membership') }}</p>
+                        <h2 class="mt-1 font-heading text-xl font-bold text-emerald-950">{{ __('Claim Membership') }}</h2>
+                        <p class="mt-2 text-sm leading-6 text-slate-600">
+                            {{ __('Claim membership for this :subject', ['subject' => \Illuminate\Support\Str::lower(__('Institution'))]) }}
+                        </p>
+                        <p class="mt-3 text-xs leading-5 text-slate-500">
+                            {{ __('Your proof is reviewed first. Access is only added after an admin or moderator approves the claim.') }}
+                        </p>
+                        <a
+                            href="{{ route('membership-applications.create', ['subjectType' => \App\Enums\MemberSubjectType::Institution->publicRouteSegment(), 'subjectId' => $institution->getKey()]) }}"
+                            wire:navigate
+                            class="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-emerald-800 px-4 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/15"
+                        >
+                            {{ __('Claim Membership') }}
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-5-5 5 5-5 5" />
+                            </svg>
+                        </a>
+                    </section>
+                @endif
+
                 <x-sidebar-inspiration />
             </aside>
         </div>

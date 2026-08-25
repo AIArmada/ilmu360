@@ -6,6 +6,14 @@
     'shareLinks' => [],
 ])
 
+@php
+    $feedbackHeadingKey = match ($subjectType) {
+        'institusi' => 'Bantu Semak Institusi Ini',
+        'penceramah' => 'Bantu Semak Penceramah Ini',
+        default => 'Bantu Semak Maklumat Ini',
+    };
+@endphp
+
 <section id="{{ $sharePanelId }}" class="scroll-reveal reveal-right revealed">
     <x-dawah-share-panel
         :share-data="$shareData"
@@ -15,7 +23,7 @@
 
 <section class="scroll-reveal reveal-right revealed rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
     <p class="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">{{ __('Ketepatan Maklumat') }}</p>
-    <h2 class="mt-1 font-heading text-lg font-bold text-emerald-950">{{ __('Bantu Semak Maklumat Ini') }}</h2>
+    <h2 class="mt-1 font-heading text-lg font-bold text-emerald-950">{{ __($feedbackHeadingKey) }}</h2>
     <p class="mt-2 text-sm leading-6 text-slate-500">{{ __('Nampak maklumat yang tidak tepat atau meragukan? Bantu komuniti dengan memaklumkan kepada kami.') }}</p>
 
     <div class="mt-4 grid grid-cols-2 gap-2">

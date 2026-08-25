@@ -182,6 +182,22 @@ it('uses a stable random person order instead of alphabetical sorting', function
         ->and($expectedOrder)->not->toBe([$firstAlphabetical->id, $secondAlphabetical->id]);
 });
 
+it('sorts the directory alphabetically by given name when sort=name', function () {
+    $alpha = Person::factory()->create(['name' => 'Aminah Binti Yusof', 'status' => 'verified']);
+    $mid = Person::factory()->create(['name' => 'Mohd Faiz', 'status' => 'verified']);
+    $zed = Person::factory()->create(['name' => 'Zarith Sofea', 'status' => 'verified']);
+
+    $component = Livewire::test('pages.persons.index')->set('sort', 'name');
+
+    $ordered = collect($component->instance()->persons->items())
+        ->pluck('name')
+        ->filter(static fn (string $name): bool => in_array($name, [$alpha->name, $mid->name, $zed->name], true))
+        ->values()
+        ->all();
+
+    expect($ordered)->toBe([$alpha->name, $mid->name, $zed->name]);
+});
+
 it('filters the public directory by active speaker title', function () {
     $title = Title::query()->where('short_form', 'Ustazah')->firstOrFail();
     $matchingPerson = Person::factory()->create([
@@ -368,7 +384,7 @@ it('exposes directory status semantics and aligned loading skeleton markup', fun
         ->assertSee('aria-busy', false)
         ->assertSee('aria-pressed="true"', false)
         ->assertSee(__('Verified'))
-        ->assertSee(__('No upcoming majlis yet'))
+        ->assertSee(trans_choice('upcoming majlis|upcoming majlis', 0), false)
         ->assertSee('motion-safe:animate-pulse', false)
         ->assertSee('sm:aspect-[4/4.6]', false);
 });

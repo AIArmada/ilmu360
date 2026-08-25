@@ -41,6 +41,47 @@ class PersonContributionFormSchema
         $showCountryField ??= true;
         $defaultCountryId ??= AddressCountry::query()->where('iso2', 'MY')->value('id');
 
+        $titleFields = $useTitleMultiSelect ? [
+            Select::make('title_ids')
+                ->label(__('Titles'))
+                ->placeholder(__('Select honorifics'))
+                ->multiple()
+                ->searchable()
+                ->options(fn (): array => self::titleOptions())
+                ->preload()
+                ->getSearchResultsUsing(fn (string $search): array => self::titleSearchOptions($search))
+                ->getOptionLabelUsing(fn (string $value): ?string => self::titleLabels([$value])[$value] ?? null)
+                ->getOptionLabelsUsing(fn (array $values): array => self::titleLabels($values))
+                ->columnSpanFull()
+                ->native(false),
+        ] : [
+            Repeater::make('title_assignments')
+                ->label(__('Titles'))
+                ->schema([
+                    Hidden::make('id'),
+                    Select::make('title_id')
+                        ->label(__('Title'))
+                        ->options(self::titleOptions())
+                        ->searchable()
+                        ->preload()
+                        ->required()
+                        ->native(false),
+                    DatePicker::make('date_awarded')
+                        ->label(__('Date Awarded')),
+                    DatePicker::make('date_expired')
+                        ->label(__('Date Expired')),
+                    Select::make('status')
+                        ->options(AssignmentStatus::class)
+                        ->default(AssignmentStatus::Active->value)
+                        ->required()
+                        ->native(false),
+                ])
+                ->columns(2)
+                ->defaultItems(0)
+                ->addActionLabel(__('Add title'))
+                ->columnSpanFull(),
+        ];
+
         $profileCoreFields = [
             TextInput::make('name')
                 ->label(__('Speaker Name'))
@@ -58,8 +99,9 @@ class PersonContributionFormSchema
                 ->options(fn (): array => collect(Gender::cases())->mapWithKeys(
                     fn (Gender $gender): array => [$gender->value => __($gender->label())]
                 )->all())
-                ->default(Gender::Male->value)
-                ->required(),
+                ->required()
+                ->native(false),
+            ...($splitProfileSections ? $titleFields : []),
         ];
 
         $profileOptionalFields = [
@@ -70,7 +112,8 @@ class PersonContributionFormSchema
                         Hidden::make('id'),
                         Select::make('name_type')
                             ->options(PersonNameType::class)
-                            ->required(),
+                            ->required()
+                            ->native(false),
                         TextInput::make('full_name')
                             ->required()
                             ->maxLength(255),
@@ -79,7 +122,8 @@ class PersonContributionFormSchema
                             ->searchable()
                             ->preload()
                             ->required()
-                            ->default('ms'),
+                            ->default('ms')
+                            ->native(false),
                         Toggle::make('is_primary')
                             ->fixIndistinctState()
                             ->default(false),
@@ -89,43 +133,7 @@ class PersonContributionFormSchema
                     ->addActionLabel(__('Add name'))
                     ->columnSpanFull(),
             ] : []),
-            ...($useTitleMultiSelect ? [
-                Select::make('title_ids')
-                    ->label(__('Titles'))
-                    ->placeholder(__('Select honorifics'))
-                    ->multiple()
-                    ->searchable()
-                    ->options(fn (): array => self::titleOptions())
-                    ->preload()
-                    ->getSearchResultsUsing(fn (string $search): array => self::titleSearchOptions($search))
-                    ->getOptionLabelUsing(fn (string $value): ?string => self::titleLabels([$value])[$value] ?? null)
-                    ->getOptionLabelsUsing(fn (array $values): array => self::titleLabels($values))
-                    ->columnSpanFull(),
-            ] : [
-                Repeater::make('title_assignments')
-                    ->label(__('Titles'))
-                    ->schema([
-                        Hidden::make('id'),
-                        Select::make('title_id')
-                            ->label(__('Title'))
-                            ->options(self::titleOptions())
-                            ->searchable()
-                            ->preload()
-                            ->required(),
-                        DatePicker::make('date_awarded')
-                            ->label(__('Date Awarded')),
-                        DatePicker::make('date_expired')
-                            ->label(__('Date Expired')),
-                        Select::make('status')
-                            ->options(AssignmentStatus::class)
-                            ->default(AssignmentStatus::Active->value)
-                            ->required(),
-                    ])
-                    ->columns(2)
-                    ->defaultItems(0)
-                    ->addActionLabel(__('Add title'))
-                    ->columnSpanFull(),
-            ]),
+            ...($splitProfileSections ? [] : $titleFields),
             RichEditor::make('bio')
                 ->label(__('Biography'))
                 ->json()
@@ -136,7 +144,8 @@ class PersonContributionFormSchema
                 ->options(fn (): array => self::languageOptions('id'))
                 ->multiple()
                 ->searchable()
-                ->preload(),
+                ->preload()
+                ->native(false),
         ];
 
         $components = [
@@ -272,7 +281,8 @@ class PersonContributionFormSchema
                             ->getOptionLabelsUsing(fn (array $values): array => self::institutionLabels($values))
                             ->createOptionForm(fn (): array => InstitutionFormSchema::createOptionForm(includeLocationPicker: true))
                             ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => InstitutionFormSchema::createOptionUsing($data, $schema))
-                            ->required(),
+                            ->required()
+                            ->native(false),
                         TextInput::make('position')
                             ->label(__('Position'))
                             ->maxLength(255)
@@ -302,7 +312,8 @@ class PersonContributionFormSchema
                     ->live()
                     ->closeOnSelect()
                     ->createOptionForm(fn (): array => InstitutionFormSchema::createOptionForm(includeLocationPicker: true))
-                    ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => InstitutionFormSchema::createOptionUsing($data, $schema)),
+                    ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => InstitutionFormSchema::createOptionUsing($data, $schema))
+                    ->native(false),
                 TextInput::make('institution_position')
                     ->label(__('Position'))
                     ->maxLength(255)

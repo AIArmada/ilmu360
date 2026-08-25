@@ -720,7 +720,15 @@
                     </section>
                 @endif
 
-                @if(! $this->hasApprovedMember)
+                <x-public-record-feedback
+                    share-panel-id="person-share-panel"
+                    :subject-type="$personRouteSegment"
+                    :subject-id="$person->slug"
+                    :share-data="$shareData"
+                    :share-links="$shareLinks"
+                />
+
+                @if(! $this->hasAdminMember)
                     <section class="rounded-[1.5rem] border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-emerald-50/60 p-5 shadow-sm">
                         <p class="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700">{{ __('Membership') }}</p>
                         <h2 class="mt-1 font-heading text-xl font-bold text-emerald-950">{{ __('Claim Membership') }}</h2>
@@ -742,14 +750,6 @@
                         </a>
                     </section>
                 @endif
-
-                <x-public-record-feedback
-                    share-panel-id="person-share-panel"
-                    :subject-type="$personRouteSegment"
-                    :subject-id="$person->slug"
-                    :share-data="$shareData"
-                    :share-links="$shareLinks"
-                />
 
                 <x-sidebar-inspiration />
             </aside>

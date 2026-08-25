@@ -134,15 +134,7 @@
         ->all();
 
     $languageIds = $asList($get('languages'));
-    $preferredLanguageLabels = [
-        'ms' => 'Bahasa Melayu',
-        'ar' => 'Bahasa Arab',
-        'en' => 'Bahasa Inggeris',
-        'id' => 'Bahasa Indonesia',
-        'zh' => 'Bahasa Cina',
-        'ta' => 'Bahasa Tamil',
-        'jv' => 'Bahasa Jawa',
-    ];
+    $preferredLanguageLabels = \App\Support\Language\MalaysiaLanguageCatalog::labels();
     $languageMap = \App\Models\Language::query()
         ->whereIn('id', $languageIds)
         ->get(['id', 'code', 'name'])

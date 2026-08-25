@@ -36,16 +36,15 @@ it('defaults the driver selections and starts with sensible downstream values', 
     });
 
     $component->assertFormFieldExists('domain_tags', function (Select $field): bool {
-        expect($field->isRequired())->toBeTrue()
-            ->and($field->getMaxItems())->toBe(3);
+        expect($field->isRequired())->toBeTrue();
 
         return true;
     });
 
     expect($component->instance()->data)
         ->toMatchArray([
-            'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
-            'domain_tags' => [adaptiveSubmitEventTopicId('agama_kerohanian')],
+            'event_category_ids' => eventCategoryId('kuliah_ceramah'),
+            'domain_tags' => adaptiveSubmitEventTopicId('agama_kerohanian'),
             'event_format' => EventFormat::Physical->value,
             'visibility' => 'public',
             'gender' => 'all',
@@ -89,6 +88,21 @@ it('hides religion-specific questions and clears stale audience state outside re
         ->assertSet('data.is_muslim_only', false)
         ->assertSet('data.prayer_time', EventPrayerTime::LainWaktu->value)
         ->assertSet('data.custom_time', '20:00');
+});
+
+it('shows the topic and reference step only for the religious topic', function (): void {
+    app(EventTaxonomySeeder::class)->run();
+    app(EventTopicSeeder::class)->run();
+
+    $stepKey = 'topik-rujukan::data::wizard-step';
+    $component = Livewire::test(Create::class);
+
+    $component
+        ->assertSchemaComponentVisible($stepKey)
+        ->set('data.domain_tags', adaptiveSubmitEventTopicId('pendidikan'))
+        ->assertSchemaComponentHidden($stepKey)
+        ->set('data.domain_tags', adaptiveSubmitEventTopicId('agama_kerohanian'))
+        ->assertSchemaComponentVisible($stepKey);
 });
 
 it('preserves a user-entered custom time when the context becomes religious', function (): void {
@@ -164,8 +178,10 @@ it('adds custom time to the required progress fields only when selected', functi
     app(EventTopicSeeder::class)->run();
 
     $component = Livewire::test(Create::class)
-        ->set('data.event_category_ids', [eventCategoryId('aktiviti_keagamaan')])
-        ->set('data.domain_tags', [adaptiveSubmitEventTopicId('agama_kerohanian')]);
+        ->set('data.event_category_ids', eventCategoryId('aktiviti_keagamaan'))
+        ->set('data.domain_tags', adaptiveSubmitEventTopicId('agama_kerohanian'))
+        ->set('data.prayer_time', EventPrayerTime::SelepasMaghrib->value)
+        ->set('data.custom_time', null);
 
     $prayerDefaultProgress = $component->instance()->formProgress();
 

@@ -119,6 +119,29 @@ it('renders the dedicated person contribution page', function () {
         ->assertDontSee('lg:grid-cols-2', false);
 });
 
+it('tracks submission progress as speaker fields are completed', function () {
+    $component = Livewire::actingAs(User::factory()->create())
+        ->test(SubmitPerson::class);
+
+    expect($component->instance()->formProgress())->toBe(0);
+
+    $component
+        ->set('data.name', 'Ahmad Ali')
+        ->set('data.family_name', 'Ali')
+        ->set('data.gender', 'male')
+        ->set('data.title_ids', ['00000000-0000-0000-0000-0000000000a1'])
+        ->set('data.institutions', [['id' => null, 'institution_id' => '00000000-0000-0000-0000-0000000000b1', 'position' => 'Imam', 'is_primary' => true]])
+        ->set('data.address.state_id', '00000000-0000-0000-0000-0000000000c1')
+        ->set('data.address.city_id', '00000000-0000-0000-0000-0000000000d1')
+        ->set('data.address.area_assignments', [
+            'administrative_district' => '00000000-0000-0000-0000-0000000000e1',
+            'administrative_subdivision' => null,
+            'postal_locality' => null,
+        ]);
+
+    expect($component->instance()->formProgress())->toBe(100);
+});
+
 it('renders the person contribution page with translated copy when the locale changes', function () {
     $user = User::factory()->create();
 

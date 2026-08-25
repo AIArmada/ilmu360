@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Mcp\Methods;
 
+use App\Mcp\Methods\Concerns\BuildsToolJsonRpcResponse;
 use App\Mcp\Methods\Concerns\LogsMcpToolExecution;
 use App\Support\Mcp\MemberMcpDocumentationPreflight;
 use App\Support\Mcp\MemberVerifiedDocumentationCatalog;
@@ -21,6 +22,7 @@ use Throwable;
 
 class MemberCallToolWithDocumentationPreflight extends CallTool implements Errable, Method
 {
+    use BuildsToolJsonRpcResponse;
     use LogsMcpToolExecution;
 
     /**

@@ -7,6 +7,7 @@ use AIArmada\Addressing\Models\AddressAreaAssignment;
 use AIArmada\Addressing\Models\State;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Persons\Enums\AssignmentStatus;
 use App\Enums\DawahShareOutcomeType;
 use App\Enums\EventKeyPersonRole;
@@ -204,9 +205,11 @@ class Show extends Component
         return $this->eventPageData()['other'];
     }
 
-    public function getHasApprovedMemberProperty(): bool
+    public function getHasAdminMemberProperty(): bool
     {
-        return OwnerContext::withOwner(null, fn (): bool => $this->person->members()->exists());
+        return OwnerContext::withOwner(null, fn (): bool => $this->person->members()
+            ->wherePivot('role', MemberRole::Admin->value)
+            ->exists());
     }
 
     public function render(): View

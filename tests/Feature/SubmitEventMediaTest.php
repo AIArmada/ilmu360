@@ -27,7 +27,7 @@ function submitEventMediaFixtures(): array
 {
     return [
         'event_date' => now()->addDay()->toDateString(),
-        'domain_tag_ids' => [submitEventTerm('domain')->id, submitEventTerm('domain')->id],
+        'domain_tag_ids' => submitEventTerm('domain')->id,
         'discipline_tag_ids' => [submitEventTerm('discipline')->id],
         'person_ids' => Person::factory()->count(2)->create()->pluck('id')->all(),
         'institution_id' => Institution::factory()->create(['status' => 'verified'])->id,
@@ -45,7 +45,7 @@ function submitEventMediaFormData(array $fixtures, array $overrides = []): array
         'description' => 'Event description',
         'event_date' => $fixtures['event_date'],
         'prayer_time' => EventPrayerTime::SelepasMaghrib->value,
-        'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
+        'event_category_ids' => eventCategoryId('kuliah_ceramah'),
         'event_format' => EventFormat::Physical->value,
         'gender' => EventGenderRestriction::All->value,
         'age_group' => [EventAgeGroup::AllAges->value],
@@ -98,7 +98,7 @@ it('stores cover, poster, and gallery uploads when submitting an event', functio
     expect($event->getMedia('cover'))->toHaveCount(1);
     expect($event->getMedia('poster'))->toHaveCount(1);
     expect($event->getMedia('gallery'))->toHaveCount(2);
-    expect($event->classifications()->count())->toBe(4)
+    expect($event->classifications()->count())->toBe(3)
         ->and($event->slug)->toBe(sprintf(
             'test-event-media-upload-%s-%s',
             implode('-', $personSlugSegments),

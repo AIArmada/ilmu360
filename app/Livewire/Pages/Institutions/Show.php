@@ -6,6 +6,7 @@ use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressAreaAssignment;
 use AIArmada\Addressing\Models\State;
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Membership\Enums\MemberRole;
 use App\Enums\DawahShareOutcomeType;
 use App\Livewire\Concerns\LoadsEventPageData;
 use App\Models\Builders\EventBuilder;
@@ -122,6 +123,13 @@ class Show extends Component
     public function getPastTotalProperty(): int
     {
         return $this->eventPageData()['past_total'];
+    }
+
+    public function getHasAdminMemberProperty(): bool
+    {
+        return OwnerContext::withOwner(null, fn (): bool => $this->institution->members()
+            ->wherePivot('role', MemberRole::Admin->value)
+            ->exists());
     }
 
     private function eventQuery(): EventBuilder

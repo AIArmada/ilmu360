@@ -50,7 +50,7 @@ new
         private function applySort(Builder $query): Builder
         {
             return match ($this->sort) {
-                'name' => $query->orderBy('persons.family_name')->orderBy('persons.name'),
+                'name' => $query->orderBy('persons.name'),
                 default => $query->publicDirectoryOrder(),
             };
         }
@@ -446,10 +446,6 @@ new
                         {{ __('Find ustaz, ustazah, and preachers across Malaysia. Learn about their work, see upcoming majlis, and continue your learning journey.') }}
                     </p>
 
-                    <p class="mt-3 text-sm font-medium text-emerald-700">
-                        {{ __('Every public profile is reviewed before it is published.') }}
-                    </p>
-
                     <!-- Search Box - refined pill -->
                     <div class="mt-9 max-w-xl">
                         <div data-material="translucent-control" class="living-majlis-veil group relative rounded-[1.5rem] p-1.5 transition-all duration-300 focus-within:scale-[1.01] focus-within:border-emerald-300 focus-within:ring-4 focus-within:ring-emerald-600/10 focus-within:shadow-[0_28px_70px_-30px_rgba(6,78,59,0.50)]">
@@ -464,7 +460,6 @@ new
                                 <input
                                     type="search"
                                     id="person-search"
-                                    aria-describedby="person-search-hint"
                                     aria-controls="person-results"
                                     wire:model.live.debounce.300ms="search"
                                     wire:keydown.escape="clearSearch"
@@ -489,88 +484,9 @@ new
                                 @endif
                             </div>
                         </div>
-                        <p id="person-search-hint" class="mt-2 px-2 text-xs leading-5 text-slate-500">
-                            {{ __('Search by name, title, or alternate name.') }}
-                        </p>
                     </div>
 
-                    <details data-material="translucent-control" class="living-majlis-veil group mt-5 max-w-xl rounded-2xl p-4" @if($activeFilterCount > 0) open @endif>
-                        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-bold text-emerald-900 marker:hidden focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/10 [&::-webkit-details-marker]:hidden">
-                            <span class="inline-flex items-center gap-2">
-                                <svg class="h-4 w-4 text-emerald-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 5h18M6 12h12m-9 7h6" />
-                                </svg>
-                                {{ __('Filter directory') }}
-                                @if($activeFilterCount > 0)
-                                    <span class="inline-flex min-w-5 items-center justify-center rounded-full bg-emerald-800 px-1.5 py-0.5 text-[11px] font-bold text-white">{{ $activeFilterCount }}</span>
-                                @endif
-                            </span>
-                            <svg class="h-4 w-4 text-emerald-700 transition-transform duration-200 group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
-                            </svg>
-                        </summary>
 
-                        <div class="mt-4 grid gap-3 border-t border-emerald-900/10 pt-4 sm:grid-cols-3" role="group" aria-label="{{ __('Filter directory') }}">
-                            <div>
-                                <label for="person-title-filter" class="mb-1.5 block text-xs font-semibold text-slate-600">{{ __('Speaker title') }}</label>
-                                <flux:select
-                                    id="person-title-filter"
-                                    wire:model.live="title_id"
-                                    size="sm"
-                                    class="w-full rounded-xl border-slate-200 bg-white/80 text-sm text-slate-800 shadow-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
-                                >
-                                    <flux:select.option value="">{{ __('All titles') }}</flux:select.option>
-                                    @foreach($titles as $id => $label)
-                                        <flux:select.option value="{{ $id }}">{{ $label }}</flux:select.option>
-                                    @endforeach
-                                </flux:select>
-                            </div>
-
-                            <div>
-                                <label for="person-language-filter" class="mb-1.5 block text-xs font-semibold text-slate-600">{{ __('Language') }}</label>
-                                <flux:select
-                                    id="person-language-filter"
-                                    wire:model.live="language_id"
-                                    size="sm"
-                                    class="w-full rounded-xl border-slate-200 bg-white/80 text-sm text-slate-800 shadow-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
-                                >
-                                    <flux:select.option value="">{{ __('All languages') }}</flux:select.option>
-                                    @foreach($languages as $id => $label)
-                                        <flux:select.option value="{{ $id }}">{{ $label }}</flux:select.option>
-                                    @endforeach
-                                </flux:select>
-                            </div>
-
-                            <div>
-                                <label for="person-state-filter" class="mb-1.5 block text-xs font-semibold text-slate-600">{{ __('State') }}</label>
-                                <flux:select
-                                    id="person-state-filter"
-                                    wire:model.live="state_id"
-                                    size="sm"
-                                    class="w-full rounded-xl border-slate-200 bg-white/80 text-sm text-slate-800 shadow-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
-                                >
-                                    <flux:select.option value="">{{ __('All states') }}</flux:select.option>
-                                    @foreach($states as $id => $label)
-                                        <flux:select.option value="{{ $id }}">{{ $label }}</flux:select.option>
-                                    @endforeach
-                                </flux:select>
-                            </div>
-                        </div>
-
-                        @if($activeFilterCount > 0)
-                            <button
-                                type="button"
-                                wire:click="clearFilters"
-                                wire:loading.attr="disabled"
-                                class="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 transition hover:text-rose-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-rose-500/10 disabled:cursor-wait disabled:opacity-60"
-                            >
-                                <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                                    <path stroke-linecap="round" d="M6 6l8 8M14 6l-8 8" />
-                                </svg>
-                                {{ __('Clear filters') }}
-                            </button>
-                        @endif
-                    </details>
                 </div>
 
                 <aside class="relative hidden min-h-[22rem] lg:block" aria-label="{{ __('About the speaker directory') }}">
@@ -588,14 +504,6 @@ new
                             <p class="font-heading text-[10px] font-bold uppercase tracking-[0.2em] text-gold-300">{{ __('ilmu360° directory') }}</p>
                             <p class="mt-2 max-w-xs font-heading text-xl font-bold leading-tight">{{ __('Meet teachers. Find majlis.') }}</p>
                         </div>
-                    </div>
-                    <div class="absolute -bottom-3 -left-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-bold text-emerald-900 shadow-[0_16px_36px_-22px_rgba(6,78,59,0.55)]">
-                        <span class="grid h-6 w-6 place-items-center rounded-full bg-emerald-100 text-emerald-700" aria-hidden="true">
-                            <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.051l-7.5 9.75a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.897 3.896 6.976-9.07a.75.75 0 0 1 1.051-.142Z" clip-rule="evenodd" />
-                            </svg>
-                        </span>
-                        {{ __('Profile reviewed') }}
                     </div>
                 </aside>
             </div>
@@ -822,9 +730,6 @@ new
                                         {{ trans_choice('upcoming majlis|upcoming majlis', $person->events_count) }}
                                     </span>
                                 </div>
-                                <p class="mt-2 text-xs font-semibold {{ $person->events_count > 0 ? 'text-emerald-700' : 'text-slate-400' }}">
-                                    {{ $person->events_count > 0 ? __('Upcoming majlis available') : __('No upcoming majlis yet') }}
-                                </p>
 
                                 <div class="mt-auto pt-4">
                                     <span class="inline-flex items-center gap-2 text-xs font-bold text-emerald-700 transition-colors duration-200 group-hover:text-emerald-600 sm:text-sm">

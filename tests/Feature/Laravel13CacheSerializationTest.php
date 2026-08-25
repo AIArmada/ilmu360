@@ -8,6 +8,7 @@ use App\Models\Language;
 use App\Services\EventSearchService;
 use App\Services\PrayerTimeService;
 use Carbon\Carbon;
+use Filament\Forms\Components\Select;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
@@ -25,9 +26,9 @@ it('hydrates the events index language cache into the current safe payload forma
     Livewire::test(Index::class)
         ->assertSee('Cari Majlis Ilmu');
 
-    expect(Cache::get('event_filter_languages_v2'))
+    expect(Cache::get('event_filter_languages_v3'))
         ->toBeArray()
-        ->and(Cache::get('event_filter_languages_v2'))
+        ->and(Cache::get('event_filter_languages_v3'))
         ->toHaveKey('ms');
 });
 
@@ -39,10 +40,14 @@ it('hydrates the submit event safe option caches into the current payload format
 
     Livewire::test(Create::class)
         ->set('data.age_group', [EventAgeGroup::Children->value])
-        ->assertSet('data.age_group', [EventAgeGroup::Children->value]);
+        ->assertSet('data.age_group', [EventAgeGroup::Children->value])
+        ->assertFormFieldExists('languages', function (Select $field): bool {
+            expect($field->getOptions())->not->toBeEmpty();
 
-    expect(Cache::get('submit_languages_safe_v1'))->toBeArray()
-        ->and(Cache::get('submit_tags_domain_ms_safe_v1'))->toBeArray();
+            return true;
+        });
+
+    expect(Cache::get('submit_tags_domain_ms_safe_v2'))->toBeArray();
 });
 
 it('rehydrates the current default events search cache safely from the database cache store', function () {

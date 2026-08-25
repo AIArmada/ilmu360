@@ -44,6 +44,7 @@ use App\States\EventStatus\Cancelled;
 use App\States\EventStatus\EventStatus;
 use App\States\EventStatus\Pending;
 use App\Support\Cache\SelectionCatalogCache;
+use App\Support\Language\MalaysiaLanguageCatalog;
 use App\Support\Submission\EntitySubmissionAccess;
 use BackedEnum;
 use Carbon\CarbonInterface;
@@ -109,6 +110,8 @@ class Create extends Component implements HasActions, HasForms
     /** @var list<string> */
     private const array RELIGIOUS_TOPIC_CODES = ['agama_kerohanian'];
 
+    private const string AGAMA_KEROHANIAN_CODE = 'agama_kerohanian';
+
     public function render(): View
     {
         return view('components.pages.submit-event.create');
@@ -160,8 +163,8 @@ class Create extends Component implements HasActions, HasForms
         $state = [
             'submitter_name' => auth()->user()?->name,
             'submitter_email' => auth()->user()?->email,
-            'event_category_ids' => $defaultCategoryId !== null ? [$defaultCategoryId] : [],
-            'domain_tags' => $defaultDomainId !== null ? [$defaultDomainId] : [],
+            'event_category_ids' => $defaultCategoryId,
+            'domain_tags' => $defaultDomainId,
             'children_allowed' => true,
             'gender' => EventGenderRestriction::All->value,
             'age_group' => [EventAgeGroup::AllAges->value],
@@ -274,18 +277,10 @@ class Create extends Component implements HasActions, HasForms
      */
     protected function cachedSubmitLanguageOptions(): array
     {
-        $preferredOrder = ['ms', 'ar', 'en', 'id', 'zh', 'ta', 'jv'];
-        $preferredLabels = [
-            'ms' => 'Bahasa Melayu',
-            'ar' => 'Bahasa Arab',
-            'en' => 'Bahasa Inggeris',
-            'id' => 'Bahasa Indonesia',
-            'zh' => 'Bahasa Cina',
-            'ta' => 'Bahasa Tamil',
-            'jv' => 'Bahasa Jawa',
-        ];
-
-        return app(SelectionCatalogCache::class)->languageOptionsForCodes($preferredOrder, $preferredLabels);
+        return app(SelectionCatalogCache::class)->languageOptionsForCodes(
+            MalaysiaLanguageCatalog::codes(),
+            MalaysiaLanguageCatalog::labels(),
+        );
     }
 
     /**
@@ -515,9 +510,6 @@ class Create extends Component implements HasActions, HasForms
                 ->label(__('Jenis Majlis'))
                 ->placeholder(__('Pilih kategori…'))
                 ->required()
-                ->multiple()
-                ->maxItems(1)
-                ->closeOnSelect()
                 ->live()
                 ->afterStateUpdatedJs($this->progressUpdateJs())
                 ->afterStateUpdated(function (mixed $state, Set $set, Get $get): void {
@@ -528,13 +520,14 @@ class Create extends Component implements HasActions, HasForms
                     $this->applyContextualDefaults($get, $set);
                 })
                 ->options(app(EventCategoryCatalog::class)->options())
-                ->searchable()
                 ->preload()
+                ->native(false)
                 ->dynamicOptions(false),
 
             $this->domainTopicField(),
 
             Select::make('title')
+                ->native(false)
                 ->label(__('Tajuk Majlis'))
                 ->required()
                 ->searchable()
@@ -591,10 +584,10 @@ class Create extends Component implements HasActions, HasForms
 
                     $termsByTaxonomy = $existingEvent->classifications->groupBy('taxonomy_code');
 
-                    $set('event_category_ids', $termsByTaxonomy->get('event_category', collect())->pluck('event_term_id')->filter()->values()->all());
+                    $set('event_category_ids', $termsByTaxonomy->get('event_category', collect())->pluck('event_term_id')->filter()->values()->first());
 
                     if ($termsByTaxonomy->has(EventTaxonomyCode::Domain->value)) {
-                        $set('domain_tags', $termsByTaxonomy->get(EventTaxonomyCode::Domain->value)->pluck('event_term_id')->filter()->values()->all());
+                        $set('domain_tags', $termsByTaxonomy->get(EventTaxonomyCode::Domain->value)->pluck('event_term_id')->filter()->values()->first());
                     }
                     if ($termsByTaxonomy->has(EventTaxonomyCode::Discipline->value)) {
                         $set('discipline_tags', $termsByTaxonomy->get(EventTaxonomyCode::Discipline->value)->pluck('event_term_id')->filter()->values()->all());
@@ -629,6 +622,7 @@ class Create extends Component implements HasActions, HasForms
             Grid::make(['default' => 1, 'sm' => 2, 'md' => 8])
                 ->schema([
                     Select::make('submission_country_id')
+                        ->native(false)
                         ->label(__('Country'))
                         ->required()
                         ->options(fn (): array => app(SelectionCatalogCache::class)->rememberAddressOptions(
@@ -668,6 +662,7 @@ class Create extends Component implements HasActions, HasForms
                         ->columnSpan(['default' => 1, 'md' => 2]),
 
                     Select::make('prayer_time')
+                        ->native(false)
                         ->label(__('Waktu'))
                         ->required()
                         ->live()
@@ -873,6 +868,7 @@ class Create extends Component implements HasActions, HasForms
                         ->options(EventVisibility::class)
                         ->default(EventVisibility::Public)
                         ->afterStateUpdatedJs($this->progressUpdateJs())
+                        ->hidden()
                         ->inline(),
 
                     TextInput::make('event_url')
@@ -894,6 +890,7 @@ class Create extends Component implements HasActions, HasForms
             Grid::make(['default' => 1, 'sm' => 2])
                 ->schema([
                     Select::make('gender')
+                        ->native(false)
                         ->label(__('Jantina'))
                         ->required()
                         ->options(EventGenderRestriction::class)
@@ -901,32 +898,44 @@ class Create extends Component implements HasActions, HasForms
                         ->afterStateUpdatedJs($this->progressUpdateJs()),
 
                     Select::make('age_group')
+                        ->native(false)
                         ->label(__('Peringkat Umur'))
                         ->placeholder(__('Pilih peringkat umur'))
                         ->required()
                         ->options(EventAgeGroup::class)
                         ->closeOnSelect()
                         ->multiple()
-                        ->live()
                         ->afterStateUpdatedJs(<<<'JS'
-                                                    const ageGroups = $state || []
-                                                    if (ageGroups.includes('all_ages') && ageGroups.length > 1) {
-                                                        $set('age_group', ageGroups.filter((group) => group !== 'all_ages'))
-                                                        return
-                                                    }
-                                                    if (ageGroups.includes('children') || ageGroups.includes('all_ages')) {
-                                                        $set('children_allowed', true)
-                                                    }
-                                                    JS)
+                            const ageGroups = Array.isArray($state) ? $state : [];
+                            const previousAgeGroups = Array.isArray($old) ? $old : [];
+                            const allAges = 'all_ages';
+                            const specificAgeGroups = ['adults', 'youth', 'children', 'warga_emas'];
+                            let normalizedAgeGroups = ageGroups;
+
+                            if (ageGroups.length === 1 && ageGroups[0] === allAges) {
+                                normalizedAgeGroups = [allAges];
+                            } else if (ageGroups.includes(allAges) && ! previousAgeGroups.includes(allAges)) {
+                                normalizedAgeGroups = [allAges];
+                            } else if (ageGroups.includes(allAges)) {
+                                normalizedAgeGroups = ageGroups.filter((group) => group !== allAges);
+                            } else if (specificAgeGroups.every((group) => ageGroups.includes(group))) {
+                                normalizedAgeGroups = [allAges];
+                            }
+
+                            if (JSON.stringify(normalizedAgeGroups) !== JSON.stringify(ageGroups)) {
+                                $set('age_group', normalizedAgeGroups);
+                            }
+
+                            if (normalizedAgeGroups.includes('children') || normalizedAgeGroups.includes(allAges)) {
+                                $set('children_allowed', true);
+                            }
+                        JS)
                         ->afterStateUpdatedJs($this->progressUpdateJs())
                         ->afterStateUpdated(function (mixed $state, Set $set): void {
-                            $ageGroups = $this->normalizeAgeGroupState($state);
+                            $normalizedAgeGroups = $this->normalizeAgeGroupState($state);
+                            $ageGroups = $this->normalizeAgeGroupSelection($normalizedAgeGroups);
 
-                            if (in_array(EventAgeGroup::AllAges->value, $ageGroups, true) && count($ageGroups) > 1) {
-                                $ageGroups = array_values(array_filter(
-                                    $ageGroups,
-                                    fn (string $ageGroup): bool => $ageGroup !== EventAgeGroup::AllAges->value
-                                ));
+                            if ($ageGroups !== $normalizedAgeGroups) {
                                 $set('age_group', $ageGroups);
                             }
 
@@ -939,6 +948,7 @@ class Create extends Component implements HasActions, HasForms
                         }),
 
                     Select::make('languages')
+                        ->native(false)
                         ->label(__('Bahasa'))
                         ->helperText(__('Bahasa yang akan digunakan dalam majlis.'))
                         ->placeholder(__('Pilih bahasa'))
@@ -961,15 +971,17 @@ class Create extends Component implements HasActions, HasForms
                             return in_array(EventAgeGroup::Children->value, $ageGroups, true) ||
                                 in_array(EventAgeGroup::AllAges->value, $ageGroups, true);
                         })
+                        ->extraAlpineAttributes([
+                            'x-bind:disabled' => <<<'JS'
+                                ($get('age_group') || []).includes('children') || ($get('age_group') || []).includes('all_ages')
+                            JS,
+                        ])
                         ->dehydrated(),
 
                     Toggle::make('is_muslim_only')
                         ->label(__('Terbuka untuk Muslim Sahaja'))
                         ->helperText(__('Jika tidak ditanda, majlis dianggap terbuka kepada Muslim dan bukan Muslim.'))
-                        ->visible(fn (Get $get): bool => $this->isReligiousContext(
-                            $get('event_category_ids'),
-                            $get('domain_tags'),
-                        ))
+                        ->visible(fn (Get $get): bool => $this->hasAgamaKerohanianTopic($get('domain_tags')))
                         ->inline(false)
                         ->default(false),
                 ]),
@@ -980,6 +992,7 @@ class Create extends Component implements HasActions, HasForms
     {
         return Step::make(__('Topik & Rujukan'))
             ->icon('heroicon-o-tag')
+            ->visible(fn (Get $get): bool => $this->hasAgamaKerohanianTopic($get('domain_tags')))
             ->schema($this->getCategoryFields());
     }
 
@@ -988,10 +1001,7 @@ class Create extends Component implements HasActions, HasForms
         return Select::make('domain_tags')
             ->label(__('Topik / bidang'))
             ->helperText(__('Wajib dipilih. Bidang ini menentukan soalan tambahan yang akan dipaparkan.'))
-            ->closeOnSelect()
             ->placeholder(__('Pilih topik…'))
-            ->multiple()
-            ->maxItems(3)
             ->required()
             ->live()
             ->afterStateUpdatedJs($this->progressUpdateJs())
@@ -999,36 +1009,21 @@ class Create extends Component implements HasActions, HasForms
             ->preload()
             ->native(false)
             ->dynamicOptions(false)
-            ->getOptionLabelsUsing(function (array $values): array {
-                $labels = [];
-                $uuids = [];
-
-                foreach ($values as $value) {
-                    if (is_string($value) && ! Str::isUuid($value)) {
-                        $labels[$value] = $value;
-                    } else {
-                        $uuids[] = $value;
-                    }
+            ->getOptionLabelUsing(function ($value): ?string {
+                if (is_string($value) && ! Str::isUuid($value)) {
+                    return $value;
                 }
 
-                if ($uuids !== []) {
-                    $labels = array_merge($labels, EventTerm::whereIn('id', $uuids)->pluck('name', 'id')->all());
-                }
-
-                return $labels;
+                return EventTerm::where('id', $value)->value('name');
             })
             ->options(fn (): array => $this->cachedSubmitTagOptions(
                 type: EventTaxonomyCode::Domain,
                 cachePrefix: 'submit_tags_domain',
                 statuses: ['verified', 'pending'],
             ))
-            ->rules(['max:3'])
             ->afterStateUpdated(function (mixed $state, Set $set, Get $get): void {
                 $this->applyContextualDefaults($get, $set);
-            })
-            ->validationMessages([
-                'max' => __('Maksimum 3 topik sahaja.'),
-            ]);
+            });
     }
 
     /**
@@ -1040,6 +1035,7 @@ class Create extends Component implements HasActions, HasForms
             Grid::make(['default' => 1, 'sm' => 2])
                 ->schema([
                     Select::make('discipline_tags')
+                        ->native(false)
                         ->label(__('Topik lebih khusus'))
                         ->helperText(__('Optional. Contoh: Tafsir, Matematik, atau Machine Learning.'))
                         ->placeholder(__('Pilih atau taip untuk tambah bidang…'))
@@ -1140,6 +1136,7 @@ class Create extends Component implements HasActions, HasForms
                         )),
 
                     Select::make('issue_tags')
+                        ->native(false)
                         ->label(__('Tema / Isu'))
                         ->helperText(__('Pilih tema supaya mudah dicari.'))
                         ->placeholder(__('Pilih atau taip untuk tambah tema…'))
@@ -1225,6 +1222,7 @@ class Create extends Component implements HasActions, HasForms
                         ->maxLength(255)
                         ->placeholder(__('cth: Imam Nawawi, Imam Ghazali')),
                     Select::make('type')
+                        ->native(false)
                         ->label(__('Jenis'))
                         ->options(ReferenceType::class)
                         ->default(ReferenceType::Book->value),
@@ -1327,7 +1325,17 @@ class Create extends Component implements HasActions, HasForms
 
                         ])
                         ->default('institution')
-                        ->live()
+                        ->afterStateUpdatedJs(<<<'JS'
+                            if ($state !== 'institution') {
+                                $set('primary_organizer_institution_id', null)
+                            }
+
+                            if ($state !== 'person') {
+                                $set('primary_organizer_person_id', null)
+                            }
+
+                            $set('primary_organizer_id', null)
+                        JS)
                         ->afterStateUpdatedJs($this->progressUpdateJs())
                         ->inline()
                         ->visible(! $hasScopedInstitution)
@@ -1343,6 +1351,7 @@ class Create extends Component implements HasActions, HasForms
                         }),
 
                     Select::make('primary_organizer_institution_id')
+                        ->native(false)
                         ->label(__('Institusi'))
                         ->options(fn (): array => $this->availableInstitutionOptions())
                         ->searchable()
@@ -1350,7 +1359,20 @@ class Create extends Component implements HasActions, HasForms
                         ->disabled($hasScopedInstitution)
                         ->dehydrated()
                         ->visibleJs($hasScopedInstitutionJs." || \$get('primary_organizer_kind') === 'institution'")
-                        ->live()
+                        ->extraAlpineAttributes([
+                            'x-bind:required' => <<<'JS'
+                                $get('primary_organizer_kind') === 'institution' && ! $get('primary_organizer_id')
+                            JS,
+                        ])
+                        ->afterStateUpdatedJs(<<<'JS'
+                            const organizerId = $state || null;
+                            $set('primary_organizer_id', organizerId);
+
+                            if ($get('location_same_as_institution')) {
+                                $set('location_institution_id', organizerId);
+                                $set('location_venue_id', null);
+                            }
+                        JS)
                         ->afterStateUpdatedJs($this->progressUpdateJs())
                         ->required(fn (Get $get): bool => $this->selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')) === 'institution' && ! filled($get('primary_organizer_id')))
                         ->afterStateUpdated(function (Get $get, Set $set, mixed $state): void {
@@ -1367,17 +1389,24 @@ class Create extends Component implements HasActions, HasForms
                         ->createOptionUsing(fn (array $data, Schema $schema): string => InstitutionFormSchema::createOptionUsing($data, $schema)),
 
                     Select::make('primary_organizer_person_id')
+                        ->native(false)
                         ->label(__('Penceramah'))
                         ->options(fn (): array => $this->availablePersonOptions())
                         ->searchable()
                         ->preload()
                         ->visibleJs("! {$hasScopedInstitutionJs} && \$get('primary_organizer_kind') === 'person'")
-                        ->live()
+                        ->extraAlpineAttributes([
+                            'x-bind:required' => <<<'JS'
+                                $get('primary_organizer_kind') === 'person' && ! $get('primary_organizer_id')
+                            JS,
+                        ])
                         ->required(fn (Get $get): bool => $this->selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')) === 'person' && ! filled($get('primary_organizer_id')))
                         ->afterStateUpdated(function (Set $set, mixed $state): void {
                             $set('primary_organizer_id', is_scalar($state) && trim((string) $state) !== '' ? trim((string) $state) : null);
                         })
                         ->afterStateUpdatedJs(<<<'JS'
+                                                    $set('primary_organizer_id', $state || null)
+
                                                     if ($state) {
                                                         const currentPersons = $get('persons') || []
                                                         if (!currentPersons.includes($state)) {
@@ -1426,6 +1455,7 @@ class Create extends Component implements HasActions, HasForms
                         ->afterStateUpdatedJs($this->progressUpdateJs()),
 
                     Select::make('location_institution_id')
+                        ->native(false)
                         ->label(__('Institusi'))
                         ->options(fn (): array => $this->availableInstitutionOptions())
                         ->searchable()
@@ -1437,6 +1467,7 @@ class Create extends Component implements HasActions, HasForms
                         ->createOptionUsing(fn (array $data, Schema $schema): string => InstitutionFormSchema::createOptionUsing($data, $schema)),
 
                     Select::make('location_venue_id')
+                        ->native(false)
                         ->label(__('Lokasi'))
                         ->options(fn (): array => $this->cachedSubmitVenueOptions())
                         ->searchable()
@@ -1448,6 +1479,7 @@ class Create extends Component implements HasActions, HasForms
                         ->createOptionUsing(fn (array $data, Schema $schema): string => VenueFormSchema::createOptionUsing($data, $schema)),
 
                     Select::make('space_ids')
+                        ->native(false)
                         ->label(__('Ruang'))
                         ->helperText(__('Pilih satu atau lebih ruang (cth: Dewan Utama, Ruang Solat).'))
                         ->placeholder(__('Pilih ruang…'))
@@ -1505,6 +1537,7 @@ class Create extends Component implements HasActions, HasForms
             Section::make(__('Penceramah'))
                 ->schema([
                     Select::make('persons')
+                        ->native(false)
                         ->label(__('Pilih Penceramah'))
                         ->placeholder(__('Pilih Penceramah'))
                         ->required(fn (Get $get): bool => $this->categoriesRequirePersons($get('event_category_ids')))
@@ -1536,15 +1569,19 @@ class Create extends Component implements HasActions, HasForms
                                 ->options(EventKeyPersonRole::nonSpeakerOptions())
                                 ->native(false),
                             Select::make('involveable_id')
+                                ->native(false)
                                 ->label(__('Pautkan Profil Penceramah'))
                                 ->options(fn (): array => $this->availablePersonOptions())
                                 ->searchable()
                                 ->preload()
-                                ->live()
                                 ->afterStateUpdated(function (Set $set, mixed $state): void {
                                     $set('display_name', null);
                                     $set('involveable_type', filled($state) ? 'person' : null);
                                 })
+                                ->afterStateUpdatedJs(<<<'JS'
+                                                    $set('display_name', null)
+                                                    $set('involveable_type', $state ? 'person' : null)
+                                                    JS)
                                 ->getOptionLabelUsing(fn (mixed $value): ?string => Person::query()->find($value)?->formatted_name)
                                 ->createOptionForm(PersonFormSchema::createOptionForm())
                                 ->createOptionUsing(fn (array $data, Schema $schema): string => PersonFormSchema::createOptionUsing($data, $schema)),
@@ -1552,11 +1589,20 @@ class Create extends Component implements HasActions, HasForms
                             TextInput::make('display_name')
                                 ->label(__('Nama Paparan'))
                                 ->maxLength(255)
+                                ->extraAlpineAttributes([
+                                    'x-bind:disabled' => <<<'JS'
+                                        Boolean($get('involveable_id'))
+                                    JS,
+                                    'x-bind:required' => <<<'JS'
+                                        ! Boolean($get('involveable_id'))
+                                    JS,
+                                ])
                                 ->required(fn (Get $get): bool => blank($get('involveable_id')))
                                 ->disabled(fn (Get $get): bool => filled($get('involveable_id')))
                                 ->dehydrated(fn (Get $get): bool => blank($get('involveable_id')))
                                 ->helperText(__('Isi nama jika tiada profil penceramah dipautkan.')),
                             Select::make('visibility')
+                                ->native(false)
                                 ->label(__('Keterlihatan'))
                                 ->options(['public' => __('Awam'), 'private' => __('Peribadi')])
                                 ->default('public')
@@ -1652,7 +1698,11 @@ class Create extends Component implements HasActions, HasForms
                                     ->email()
                                     ->maxLength(255)
                                     ->afterStateUpdatedJs($this->progressUpdateJs())
-                                    ->live(onBlur: true)
+                                    ->extraAlpineAttributes([
+                                        'x-bind:required' => <<<'JS'
+                                            ! $get('submitter_phone')
+                                        JS,
+                                    ])
                                     ->required(fn (Get $get) => ! auth()->check() && empty($get('submitter_phone'))),
 
                                 TextInput::make('submitter_phone')
@@ -1660,7 +1710,11 @@ class Create extends Component implements HasActions, HasForms
                                     ->tel()
                                     ->maxLength(20)
                                     ->afterStateUpdatedJs($this->progressUpdateJs())
-                                    ->live(onBlur: true)
+                                    ->extraAlpineAttributes([
+                                        'x-bind:required' => <<<'JS'
+                                            ! $get('submitter_email')
+                                        JS,
+                                    ])
                                     ->required(fn (Get $get) => ! auth()->check() && empty($get('submitter_email'))),
                             ]),
                     ])
@@ -1689,6 +1743,17 @@ class Create extends Component implements HasActions, HasForms
     public function submit(): mixed
     {
         $state = $this->eventForm()->getState();
+        $state['age_group'] = $this->normalizeAgeGroupSelection(
+            $this->normalizeAgeGroupState($state['age_group'] ?? []),
+        );
+
+        if (
+            in_array(EventAgeGroup::Children->value, $state['age_group'], true) ||
+            in_array(EventAgeGroup::AllAges->value, $state['age_group'], true)
+        ) {
+            $state['children_allowed'] = true;
+        }
+
         $state['captcha_token'] = $this->data['captcha_token'] ?? null;
         $state['is_muslim_only'] = $this->isReligiousContext(
             $state['event_category_ids'] ?? [],
@@ -2231,6 +2296,31 @@ class Create extends Component implements HasActions, HasForms
             ->all();
     }
 
+    /**
+     * @param  array<int, string>  $ageGroups
+     * @return array<int, string>
+     */
+    protected function normalizeAgeGroupSelection(array $ageGroups): array
+    {
+        $ageGroups = array_values(array_unique($ageGroups));
+        $specificAgeGroups = [
+            EventAgeGroup::Adults->value,
+            EventAgeGroup::Youth->value,
+            EventAgeGroup::Children->value,
+            EventAgeGroup::Seniors->value,
+        ];
+
+        if (in_array(EventAgeGroup::AllAges->value, $ageGroups, true)) {
+            return [EventAgeGroup::AllAges->value];
+        }
+
+        if (count(array_intersect($specificAgeGroups, $ageGroups)) === count($specificAgeGroups)) {
+            return [EventAgeGroup::AllAges->value];
+        }
+
+        return $ageGroups;
+    }
+
     protected function submitterUser(): ?User
     {
         $user = auth()->user();
@@ -2462,6 +2552,15 @@ class Create extends Component implements HasActions, HasForms
             self::RELIGIOUS_TOPIC_CODES,
             $this->selectedTaxonomyCodes($topicIds, EventTaxonomyCode::Domain->value),
         ) !== []);
+    }
+
+    private function hasAgamaKerohanianTopic(mixed $topicIds): bool
+    {
+        return in_array(
+            self::AGAMA_KEROHANIAN_CODE,
+            $this->selectedTaxonomyCodes($topicIds, EventTaxonomyCode::Domain->value),
+            true,
+        );
     }
 
     /**

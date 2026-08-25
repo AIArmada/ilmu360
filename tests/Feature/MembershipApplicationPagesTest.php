@@ -2,6 +2,7 @@
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Enums\ApplicationStatus;
+use AIArmada\Membership\Enums\MemberRole;
 use App\Enums\MemberSubjectType;
 use App\Livewire\Pages\Contributions\Index as ContributionsIndex;
 use App\Livewire\Pages\MembershipApplications\Create as CreateMembershipApplicationPage;
@@ -44,6 +45,7 @@ it('lets authenticated users submit an institution claim with evidence', functio
             'justification' => 'I am part of the institution admin team.',
             'evidence' => [
                 UploadedFile::fake()->image('proof.png', 1200, 800),
+                UploadedFile::fake()->image('supporting-letter.png', 1200, 800),
             ],
         ])
         ->call('submit')
@@ -53,7 +55,7 @@ it('lets authenticated users submit an institution claim with evidence', functio
 
     expect($claim->subject_type)->toBe(MemberSubjectType::Institution)
         ->and($claim->status)->toBe(ApplicationStatus::Pending)
-        ->and($claim->getMedia('evidence'))->toHaveCount(1);
+        ->and($claim->getMedia('evidence'))->toHaveCount(2);
 });
 
 it('requires justification and evidence on the public claim form', function () {
@@ -94,7 +96,7 @@ it('renders the public membership claim page in Malay without a side-by-side lay
         ->assertSee('Menuntut akses untuk penceramah ini')
         ->assertSee('Sila sahkan bahawa ini ialah penceramah yang anda mahu tuntut sebelum menghantar.')
         ->assertSee('Hantar Tuntutan')
-        ->assertSee('Tuntutan Saya')
+        ->assertDontSee('Tuntutan Saya')
         ->assertSee('Nota semakan')
         ->assertSee('Tuntutan tidak memberi akses serta-merta')
         ->assertSee('Penyemak menentukan peranan akhir')
@@ -103,6 +105,22 @@ it('renders the public membership claim page in Malay without a side-by-side lay
         ->assertDontSee('Use this form when you belong to this record and need access to help maintain it. Claims are reviewed by moderators before membership is granted.')
         ->assertDontSee('Review notes')
         ->assertDontSee('lg:grid-cols-[1.1fr_0.9fr]', false);
+});
+
+it('does not show the claims history button on an institution membership claim page', function () {
+    $user = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified']);
+
+    app()->setLocale('ms');
+    $this->actingAs($user);
+
+    $this->get(route('membership-applications.create', [
+        'subjectType' => MemberSubjectType::Institution->publicRouteSegment(),
+        'subjectId' => $institution->getKey(),
+    ]))
+        ->assertOk()
+        ->assertSee('Hantar Tuntutan')
+        ->assertDontSee('Tuntutan Saya');
 });
 
 it('shows a speaker profile image on the membership claim page when available', function () {
@@ -162,7 +180,7 @@ it('starts a membership claim from the contributions page search form', function
         ]));
 });
 
-it('shows membership claim call to action on unclaimed public person pages', function () {
+it('shows membership claim call to action on unclaimed public institution and person pages', function () {
     $institution = Institution::factory()->create([
         'status' => 'verified',
     ]);
@@ -181,13 +199,34 @@ it('shows membership claim call to action on unclaimed public person pages', fun
 
     $this->get(route('institutions.show', $institution))
         ->assertSuccessful()
-        ->assertDontSee($institutionClaimUrl, false)
-        ->assertDontSee('Tuntut Pengurusan');
+        ->assertSee($institutionClaimUrl, false)
+        ->assertSeeInOrder(['Bantu Semak Institusi Ini', 'Tuntut Pengurusan']);
 
     $this->get(route('persons.show', $person))
         ->assertSuccessful()
         ->assertSee($personClaimUrl, false)
-        ->assertSee('Tuntut Pengurusan');
+        ->assertSeeInOrder(['Bantu Semak Penceramah Ini', 'Tuntut Pengurusan']);
+});
+
+it('hides membership claim call to action when an institution already has an admin member', function () {
+    $member = User::factory()->create();
+    $institution = Institution::factory()->create([
+        'status' => 'verified',
+    ]);
+
+    OwnerContext::withOwner(null, fn (): mixed => $institution->members()->syncWithoutDetaching([
+        $member->getKey() => ['role' => MemberRole::Admin->value],
+    ]));
+
+    $institutionClaimUrl = route('membership-applications.create', [
+        'subjectType' => MemberSubjectType::Institution->publicRouteSegment(),
+        'subjectId' => $institution->getKey(),
+    ]);
+
+    $this->get(route('institutions.show', $institution))
+        ->assertSuccessful()
+        ->assertDontSee($institutionClaimUrl, false)
+        ->assertDontSee('Tuntut Pengurusan');
 });
 
 it('keeps the person membership claim call to action visible while claims are unresolved', function () {
@@ -214,13 +253,15 @@ it('keeps the person membership claim call to action visible while claims are un
     }
 });
 
-it('hides the person membership claim call to action when a package member exists', function () {
+it('hides the person membership claim call to action when a speaker already has an admin member', function () {
     $member = User::factory()->create();
     $person = Person::factory()->create([
         'status' => 'verified',
     ]);
 
-    OwnerContext::withOwner(null, fn (): mixed => $person->members()->syncWithoutDetaching([$member->getKey()]));
+    OwnerContext::withOwner(null, fn (): mixed => $person->members()->syncWithoutDetaching([
+        $member->getKey() => ['role' => MemberRole::Admin->value],
+    ]));
 
     $personClaimUrl = route('membership-applications.create', [
         'subjectType' => MemberSubjectType::Person->publicRouteSegment(),
@@ -231,4 +272,42 @@ it('hides the person membership claim call to action when a package member exist
         ->assertSuccessful()
         ->assertDontSee($personClaimUrl, false)
         ->assertDontSee('Tuntut Pengurusan');
+});
+
+it('keeps membership claim call to action visible to other visitors when a profile already has a member', function () {
+    $member = User::factory()->create();
+    $institution = Institution::factory()->create([
+        'status' => 'verified',
+    ]);
+    $person = Person::factory()->create([
+        'status' => 'verified',
+    ]);
+
+    OwnerContext::withOwner(null, function () use ($institution, $person, $member): void {
+        $institution->members()->syncWithoutDetaching([
+            $member->getKey() => ['role' => MemberRole::Viewer->value],
+        ]);
+        $person->members()->syncWithoutDetaching([
+            $member->getKey() => ['role' => MemberRole::Viewer->value],
+        ]);
+    });
+
+    $institutionClaimUrl = route('membership-applications.create', [
+        'subjectType' => MemberSubjectType::Institution->publicRouteSegment(),
+        'subjectId' => $institution->getKey(),
+    ]);
+    $personClaimUrl = route('membership-applications.create', [
+        'subjectType' => MemberSubjectType::Person->publicRouteSegment(),
+        'subjectId' => $person->slug,
+    ]);
+
+    $this->get(route('institutions.show', $institution))
+        ->assertSuccessful()
+        ->assertSee($institutionClaimUrl, false)
+        ->assertSee('Tuntut Pengurusan');
+
+    $this->get(route('persons.show', $person))
+        ->assertSuccessful()
+        ->assertSee($personClaimUrl, false)
+        ->assertSee('Tuntut Pengurusan');
 });

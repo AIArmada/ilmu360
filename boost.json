@@ -22,7 +22,6 @@
     "sail": false,
     "skills": [
         "infer-conventions",
-        "ai-sdk-development",
         "fortify-development",
         "laravel-best-practices",
         "configuring-horizon",
@@ -32,6 +31,7 @@
         "scout-development",
         "socialite-development",
         "fluxui-development",
+        "ai-sdk-development",
         "pest-testing",
         "tailwindcss-development",
         "blaze-optimize",
