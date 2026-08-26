@@ -7,6 +7,7 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\Pivot;
@@ -45,6 +46,24 @@ final readonly class MemberPermissionGate
     public function canEvent(User $user, string $permission, Event $event): bool
     {
         return $this->memberCan($event, $user, $permission);
+    }
+
+    public function canEventThroughPerson(User $user, string $permission, Event $event): bool
+    {
+        $roles = $this->eligibleRoles($permission);
+        $membershipTable = (new Person)->membersTable();
+
+        if ($roles === []) {
+            return false;
+        }
+
+        return $event->persons()
+            ->whereHas('members', function (Builder $memberQuery) use ($membershipTable, $roles, $user): void {
+                $memberQuery
+                    ->whereKey($user->getKey())
+                    ->whereIn("{$membershipTable}.role", $roles);
+            })
+            ->exists();
     }
 
     public function canReference(User $user, string $permission, Reference $reference): bool

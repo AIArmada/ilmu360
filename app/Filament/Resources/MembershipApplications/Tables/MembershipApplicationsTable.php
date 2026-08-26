@@ -54,6 +54,10 @@ class MembershipApplicationsTable
                     ->label('Granted Role')
                     ->state(fn (MembershipApplication $record): string => MembershipApplicationPresenter::roleLabel($record))
                     ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('applied_role')
+                    ->label('Applied Role')
+                    ->state(fn (MembershipApplication $record): string => MembershipApplicationPresenter::appliedRoleLabel($record))
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('applicant.email')
                     ->label('Claimant')
                     ->searchable()
@@ -99,6 +103,7 @@ class MembershipApplicationsTable
                         Select::make('granted_role')
                             ->label('Granted Role')
                             ->options(MembershipApplicationPresenter::approvalRoleOptions($record))
+                            ->default($record->meta['applied_role'] ?? null)
                             ->required(),
                         Textarea::make('reviewer_note')
                             ->label('Reviewer Note')

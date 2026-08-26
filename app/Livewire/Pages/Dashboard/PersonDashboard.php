@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Livewire\Pages\Dashboard;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\FilamentEvents\Resources\EventResource;
 use AIArmada\Membership\Actions\ChangeMemberRoleAction;
 use AIArmada\Membership\Actions\RemoveMemberAction;
 use AIArmada\Membership\Actions\RevokeInvitationAction;
@@ -12,10 +13,15 @@ use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Membership\InviteSubjectMember;
 use App\Enums\MemberSubjectType;
 use App\Livewire\Concerns\InteractsWithToasts;
+use App\Models\Event;
+use App\Models\EventKeyPersonPivot;
 use App\Models\MemberInvitation;
 use App\Models\Person;
 use App\Models\User;
 use App\Support\Authz\MemberPermissionGate;
+use App\Support\Timezone\UserDateTimeFormatter;
+use BackedEnum;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -23,7 +29,9 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\Url;
 use Livewire\Component;
+use Livewire\WithPagination;
 use Throwable;
 
 #[Layout('layouts.app')]
@@ -31,8 +39,18 @@ use Throwable;
 final class PersonDashboard extends Component
 {
     use InteractsWithToasts;
+    use WithPagination;
 
     public string $personId = '';
+
+    #[Url(as: 'event_search', except: '')]
+    public string $eventSearch = '';
+
+    #[Url(as: 'event_status', except: 'all')]
+    public string $eventStatus = 'all';
+
+    #[Url(as: 'event_per_page', except: 8)]
+    public int $eventPerPage = 8;
 
     public string $inviteEmail = '';
 
@@ -54,6 +72,23 @@ final class PersonDashboard extends Component
         abort_unless(app(MemberPermissionGate::class)->canPerson($user, 'person.view', $person), 403);
 
         $this->personId = (string) $person->getKey();
+    }
+
+    public function updatedEventSearch(): void
+    {
+        $this->resetPage('person_events_page');
+    }
+
+    public function updatedEventStatus(string $value): void
+    {
+        $this->eventStatus = $this->normalizeEventStatus($value);
+        $this->resetPage('person_events_page');
+    }
+
+    public function updatedEventPerPage(int|string $value): void
+    {
+        $this->eventPerPage = $this->normalizeEventPerPage($value);
+        $this->resetPage('person_events_page');
     }
 
     public function invite(InviteSubjectMember $inviteSubjectMember): void
@@ -233,13 +268,148 @@ final class PersonDashboard extends Component
         return $this->currentUser()->can('update', $this->selectedPerson());
     }
 
+    /** @return array<string, string> */
+    public function eventStatusOptions(): array
+    {
+        return [
+            'all' => __('All statuses'),
+            'draft' => __('Draft'),
+            'pending' => __('Pending'),
+            'needs_changes' => __('Needs Changes'),
+            'approved' => __('Approved'),
+            'rejected' => __('Rejected'),
+            'cancelled' => __('Cancelled'),
+        ];
+    }
+
+    /** @return array{total:int,upcoming:int,needs_attention:int} */
+    public function eventStats(): array
+    {
+        $person = $this->selectedPerson();
+        $eventsTable = (new Event)->getTable();
+        $events = $person->personEvents();
+
+        return [
+            'total' => (clone $events)->count(),
+            'upcoming' => (clone $events)
+                ->whereNotNull("{$eventsTable}.starts_at")
+                ->where("{$eventsTable}.starts_at", '>=', now())
+                ->count(),
+            'needs_attention' => (clone $events)
+                ->whereIn("{$eventsTable}.status", ['draft', 'pending', 'needs_changes'])
+                ->count(),
+        ];
+    }
+
+    /** @return LengthAwarePaginator<int, Event&object{pivot: EventKeyPersonPivot}> */
+    public function events(): LengthAwarePaginator
+    {
+        $person = $this->selectedPerson();
+        $eventsTable = (new Event)->getTable();
+        $search = trim($this->eventSearch);
+
+        $query = $person->personEvents()
+            ->with([
+                'institution:id,name',
+                'primaryLocation.venueSpace:id,name',
+            ])
+            ->withCount(['registrations as dashboard_registrations_count']);
+
+        if ($search !== '') {
+            $like = '%'.$search.'%';
+
+            $query->where(function (Builder $eventQuery) use ($eventsTable, $like): void {
+                $eventQuery
+                    ->whereLike("{$eventsTable}.title", $like)
+                    ->orWhereHas('institution', fn (Builder $institutionQuery): Builder => $institutionQuery->whereLike('name', $like));
+            });
+        }
+
+        if ($this->eventStatus !== 'all') {
+            $query->where("{$eventsTable}.status", $this->eventStatus);
+        }
+
+        return $query
+            ->orderByRaw("CASE WHEN {$eventsTable}.status IN ('draft', 'pending', 'needs_changes') THEN 0 ELSE 1 END")
+            ->orderByDesc("{$eventsTable}.starts_at")
+            ->orderByDesc("{$eventsTable}.updated_at")
+            ->paginate(
+                perPage: $this->normalizeEventPerPage($this->eventPerPage),
+                pageName: 'person_events_page',
+            );
+    }
+
+    public function canManageEvents(): bool
+    {
+        return app(MemberPermissionGate::class)->canPerson(
+            $this->currentUser(),
+            'event.update',
+            $this->selectedPerson(),
+        );
+    }
+
+    public function canEditEvent(Event $event): bool
+    {
+        return $this->currentUser()->can('update', $event);
+    }
+
+    public function eventStatusLabel(mixed $status): string
+    {
+        if ($status instanceof BackedEnum) {
+            $status = $status->value;
+        }
+
+        if (! is_scalar($status)) {
+            return '';
+        }
+
+        $value = (string) $status;
+        $translated = __($value);
+
+        return $translated !== $value
+            ? $translated
+            : str($value)->replace('_', ' ')->headline()->toString();
+    }
+
+    public function formatEventSchedule(Event $event): string
+    {
+        if (! $event->starts_at) {
+            return __('TBC');
+        }
+
+        $date = UserDateTimeFormatter::translatedFormat($event->starts_at, 'd M Y');
+        $time = $event->isPrayerRelative()
+            ? (string) $event->timing_display
+            : UserDateTimeFormatter::translatedFormat($event->starts_at, 'h:i A');
+
+        return $date.', '.$time;
+    }
+
     public function render(): View
     {
         $person = $this->selectedPerson();
+        $events = $this->events();
+        $eventEditUrls = [];
+
+        foreach ($events->items() as $event) {
+            if (! $event instanceof Event || ! $this->canEditEvent($event)) {
+                continue;
+            }
+
+            $eventEditUrls[(string) $event->getKey()] = EventResource::getUrl(
+                'edit',
+                ['record' => $event],
+                panel: 'ahli',
+            );
+        }
 
         return view('livewire.pages.dashboard.person-dashboard', [
             'person' => $person,
             'personBio' => $this->localizedBio($person),
+            'events' => $events,
+            'eventStats' => $this->eventStats(),
+            'canManageEvents' => $this->canManageEvents(),
+            'eventEditUrls' => $eventEditUrls,
             'members' => $this->members(),
             'invitations' => $this->invitations(),
             'roleOptions' => $this->roleOptions(),
@@ -311,5 +481,19 @@ final class PersonDashboard extends Component
         return is_string($bio) && trim($bio) !== ''
             ? $bio
             : __('Manage this speaker profile and its trusted members.');
+    }
+
+    private function normalizeEventStatus(string $value): string
+    {
+        return array_key_exists($value, $this->eventStatusOptions())
+            ? $value
+            : 'all';
+    }
+
+    private function normalizeEventPerPage(int|string $value): int
+    {
+        $perPage = (int) $value;
+
+        return in_array($perPage, [8, 15, 25], true) ? $perPage : 8;
     }
 }

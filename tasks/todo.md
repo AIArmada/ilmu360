@@ -1108,3 +1108,23 @@ Verification:
 - `vendor/bin/pest --parallel --compact tests/Feature/MembershipApplicationPagesTest.php` — 14 passed (76 assertions).
 - PHPStan — no errors.
 - Pint, Blade cache, and `git diff --check` — passed.
+
+# Speaker workspace event management
+
+## Plan
+
+- [x] Add speaker-scoped event visibility and mutation authorization.
+- [x] Add event management cards, filters, and actions to the speaker workspace.
+- [x] Preselect the managed speaker in the existing event submission workflow.
+- [x] Add regression coverage for role boundaries, event scoping, and create context.
+- [x] Run focused tests, formatting, Blade compilation, static analysis, and diff checks.
+
+## Review
+
+Speaker members can now see events linked to their profile, while only owner/admin roles receive event edit/create controls under the existing event permission thresholds. Event policy and member API mutation/listing paths use the same speaker scope, and the event wizard preserves the originating speaker context with a validated preselected speaker.
+
+Verification:
+
+- `vendor/bin/pest --parallel --compact tests/Feature/ManagedWorkspacesTest.php` — 7 passed (47 assertions).
+- `vendor/bin/phpstan analyse --ansi` — no errors across 996 files.
+- `php artisan view:cache`, targeted Pint, and `git diff --check` — passed.

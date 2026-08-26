@@ -32,7 +32,7 @@ it('redirects guests to login for membership application routes', function () {
         ->assertRedirect(route('login'));
 });
 
-it('lets authenticated users submit an institution claim with evidence', function () {
+it('lets authenticated users submit a claim with applied role and relationship', function () {
     $user = User::factory()->create();
     $institution = Institution::factory()->create(['status' => 'verified']);
 
@@ -42,7 +42,8 @@ it('lets authenticated users submit an institution claim with evidence', functio
             'subjectId' => $institution->getKey(),
         ])
         ->fillForm([
-            'justification' => 'I am part of the institution admin team.',
+            'applied_role' => MemberRole::Editor->value,
+            'relationship' => 'representative',
             'evidence' => [
                 UploadedFile::fake()->image('proof.png', 1200, 800),
                 UploadedFile::fake()->image('supporting-letter.png', 1200, 800),
@@ -55,10 +56,38 @@ it('lets authenticated users submit an institution claim with evidence', functio
 
     expect($claim->subject_type)->toBe(MemberSubjectType::Institution)
         ->and($claim->status)->toBe(ApplicationStatus::Pending)
+        ->and($claim->meta['applied_role'])->toBe(MemberRole::Editor->value)
+        ->and($claim->meta['relationship'])->toBe('representative')
         ->and($claim->getMedia('evidence'))->toHaveCount(2);
 });
 
-it('requires justification and evidence on the public claim form', function () {
+it('saves a provided phone number to the applicant profile when missing', function () {
+    $user = User::factory()->emailOnly()->create();
+    $person = Person::factory()->create(['status' => 'verified']);
+
+    expect($user->phone)->toBeNull();
+
+    Livewire::actingAs($user)
+        ->test(CreateMembershipApplicationPage::class, [
+            'subjectType' => MemberSubjectType::Person->publicRouteSegment(),
+            'subjectId' => $person->slug,
+        ])
+        ->fillForm([
+            'applied_role' => MemberRole::Owner->value,
+            'phone' => '0123456789',
+        ])
+        ->call('submit')
+        ->assertRedirect(route('membership-applications.index'));
+
+    expect($user->fresh()->phone)->toBe('0123456789');
+
+    $claim = MembershipApplication::query()->where('applicant_id', $user->getKey())->firstOrFail();
+
+    expect($claim->meta['applied_role'])->toBe(MemberRole::Owner->value)
+        ->and($claim->meta['relationship'])->toBe('self');
+});
+
+it('requires applied role and relationship on the public claim form', function () {
     $user = User::factory()->create();
     $person = Person::factory()->create(['status' => 'verified']);
 
@@ -69,8 +98,7 @@ it('requires justification and evidence on the public claim form', function () {
         ])
         ->call('submit')
         ->assertHasErrors([
-            'data.justification',
-            'data.evidence',
+            'data.applied_role',
         ]);
 });
 
@@ -100,8 +128,10 @@ it('renders the public membership claim page in Malay without a side-by-side lay
         ->assertSee('Nota semakan')
         ->assertSee('Tuntutan tidak memberi akses serta-merta')
         ->assertSee('Penyemak menentukan peranan akhir')
-        ->assertSee('Mengapa anda patut ditambah?')
+        ->assertDontSee('Mengapa anda patut ditambah?')
         ->assertSee('Fail Bukti')
+        ->assertSee('Peranan yang anda mohon')
+        ->assertSee('Hubungan anda dengan Penceramah')
         ->assertDontSee('Use this form when you belong to this record and need access to help maintain it. Claims are reviewed by moderators before membership is granted.')
         ->assertDontSee('Review notes')
         ->assertDontSee('lg:grid-cols-[1.1fr_0.9fr]', false);

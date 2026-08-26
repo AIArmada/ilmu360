@@ -2,16 +2,24 @@
 
 declare(strict_types=1);
 
+use AIArmada\FilamentEvents\Resources\EventResource;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Membership\Services\MembershipRoleSyncService;
 use App\Enums\ContributionSubjectType;
+use App\Enums\EventKeyPersonRole;
+use App\Livewire\Pages\Dashboard\Events\CreateAdvanced;
 use App\Livewire\Pages\Dashboard\InstitutionDashboard;
 use App\Livewire\Pages\Dashboard\PersonDashboard;
+use App\Livewire\Pages\SubmitEvent\Create;
+use App\Models\Event;
+use App\Models\EventKeyPerson;
 use App\Models\Institution;
 use App\Models\MemberInvitation;
 use App\Models\Person;
 use App\Models\User;
 use App\Notifications\Membership\MemberInvitationNotification;
+use App\Support\Api\Member\MemberResourceRegistry;
+use App\Support\Authz\MemberPermissionGate;
 use App\Support\Authz\ScopedMemberRoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
@@ -80,6 +88,95 @@ it('lets speaker admins manage members while keeping viewers read only', functio
         ->assertOk()
         ->assertDontSee('Invite by email')
         ->assertDontSee('Edit speaker profile');
+});
+
+it('shows speaker events and authorizes event editing through the speaker membership', function (): void {
+    $admin = User::factory()->create();
+    $viewer = User::factory()->create();
+    $person = Person::factory()->create([
+        'name' => 'Speaker Event Workspace',
+        'status' => 'verified',
+    ]);
+    $institution = Institution::factory()->create(['name' => 'Event Institution']);
+
+    app(ScopedMemberRoleSeeder::class)->ensureForPerson();
+
+    $person->members()->syncWithoutDetaching([
+        $admin->id => ['role' => MemberRole::Admin->value],
+        $viewer->id => ['role' => MemberRole::Viewer->value],
+    ]);
+
+    $event = Event::factory()->create([
+        'title' => 'Speaker Managed Event',
+        'institution_id' => $institution->id,
+        'status' => 'approved',
+        'visibility' => 'private',
+    ]);
+    EventKeyPerson::query()->create([
+        'event_id' => $event->id,
+        'involveable_type' => 'person',
+        'involveable_id' => $person->id,
+        'role_code' => EventKeyPersonRole::Speaker->value,
+        'sort_order' => 1,
+        'visibility' => 'public',
+    ]);
+
+    $outsideEvent = Event::factory()->create(['title' => 'Outside Speaker Event']);
+    $editUrl = EventResource::getUrl('edit', ['record' => $event], panel: 'ahli');
+    $createUrl = route('dashboard.events.create-advanced', ['person' => $person->id]);
+
+    expect(app(MemberPermissionGate::class)->canEventThroughPerson($admin, 'event.update', $event))->toBeTrue()
+        ->and($admin->can('update', $event))->toBeTrue();
+
+    $this->actingAs($admin)
+        ->get(route('dashboard.persons', $person))
+        ->assertOk()
+        ->assertSee('Manage speaker events')
+        ->assertSee('Speaker Managed Event')
+        ->assertSee($editUrl, false)
+        ->assertSee($createUrl, false)
+        ->assertDontSee('Outside Speaker Event');
+
+    $memberResourceRegistry = app(MemberResourceRegistry::class);
+    $eventResource = $memberResourceRegistry->resolve('events');
+    $memberEventIds = $memberResourceRegistry->queryFor((string) $eventResource)->pluck('events.id')->all();
+
+    expect($memberEventIds)->toContain($event->id)->not->toContain($outsideEvent->id);
+
+    $this->actingAs($viewer)
+        ->get(route('dashboard.persons', $person))
+        ->assertOk()
+        ->assertSee('Speaker Managed Event')
+        ->assertDontSee($editUrl, false)
+        ->assertDontSee($createUrl, false);
+
+    expect($admin->can('update', $event))->toBeTrue()
+        ->and($viewer->can('update', $event))->toBeFalse()
+        ->and($outsideEvent->persons()->whereKey($person->id)->exists())->toBeFalse();
+});
+
+it('carries the speaker workspace context into the event submission wizard', function (): void {
+    $user = User::factory()->create();
+    $person = Person::factory()->create([
+        'name' => 'Prefilled Speaker',
+        'status' => 'verified',
+    ]);
+
+    Institution::factory()->create();
+    app(ScopedMemberRoleSeeder::class)->ensureForPerson();
+    $person->members()->syncWithoutDetaching([$user->id => ['role' => MemberRole::Admin->value]]);
+
+    Livewire::withQueryParams(['person' => $person->id])
+        ->actingAs($user)
+        ->test(CreateAdvanced::class)
+        ->assertSet('prefillPersonId', $person->id)
+        ->assertSee('Prefilled Speaker');
+
+    Livewire::withQueryParams(['person' => $person->id])
+        ->actingAs($user)
+        ->test(Create::class)
+        ->assertSet('prefillPersonId', $person->id)
+        ->assertSet('data.persons', [$person->id]);
 });
 
 it('lets speaker admins invite, change, and remove non-owner members', function (): void {

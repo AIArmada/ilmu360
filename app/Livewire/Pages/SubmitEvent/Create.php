@@ -132,6 +132,8 @@ class Create extends Component implements HasActions, HasForms
 
     public ?string $duplicateEventId = null;
 
+    public ?string $prefillPersonId = null;
+
     public ?string $scopedInstitutionId = null;
 
     public ?TemporaryUploadedFile $event_source_attachment = null;
@@ -149,6 +151,7 @@ class Create extends Component implements HasActions, HasForms
     {
         $this->eventId = request()->query('event');
         $this->duplicateEventId = request()->query('duplicate');
+        $this->prefillPersonId = $this->resolvePrefilledPersonId(request()->query('person'));
         $scopedInstitution = $this->resolveScopedInstitution(request()->query('institution'));
         $defaultLanguageId = Language::where('code', 'ms')->value('id');
         $defaultCategoryId = $this->defaultEventTermId(EventCategoryCatalog::TAXONOMY_CODE, 'kuliah_ceramah');
@@ -165,6 +168,7 @@ class Create extends Component implements HasActions, HasForms
             'submitter_email' => auth()->user()?->email,
             'event_category_ids' => $defaultCategoryId,
             'domain_tags' => $defaultDomainId,
+            'persons' => $this->prefillPersonId !== null ? [$this->prefillPersonId] : [],
             'children_allowed' => true,
             'gender' => EventGenderRestriction::All->value,
             'age_group' => [EventAgeGroup::AllAges->value],
@@ -196,6 +200,13 @@ class Create extends Component implements HasActions, HasForms
 
         if ($scopedInstitution instanceof Institution) {
             $state = array_replace($state, $this->scopedInstitutionDefaults($scopedInstitution));
+        }
+
+        if ($this->prefillPersonId !== null) {
+            $state['persons'] = collect([
+                ...((array) ($state['persons'] ?? [])),
+                $this->prefillPersonId,
+            ])->filter()->unique()->values()->all();
         }
 
         $this->eventForm()->fill($state);
@@ -2335,6 +2346,18 @@ class Create extends Component implements HasActions, HasForms
         $user = auth()->user();
 
         return $user instanceof User ? $user : null;
+    }
+
+    protected function resolvePrefilledPersonId(mixed $personId): ?string
+    {
+        if (! is_string($personId) || ! Str::isUuid($personId)) {
+            return null;
+        }
+
+        return app(EntitySubmissionAccess::class)->canUsePerson(
+            $this->submitterUser(),
+            $personId,
+        ) ? $personId : null;
     }
 
     public function formProgress(): int

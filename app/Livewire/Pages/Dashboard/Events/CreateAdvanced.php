@@ -16,6 +16,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use Throwable;
 
@@ -38,6 +39,9 @@ class CreateAdvanced extends Component
      */
     public array $personOptions = [];
 
+    #[Url(as: 'person', except: '')]
+    public string $prefillPersonId = '';
+
     public int $activeStep = 1;
 
     public function mount(): void
@@ -56,6 +60,11 @@ class CreateAdvanced extends Component
 
         $this->institutionOptions = $builderContext['institution_options'];
         $this->personOptions = $builderContext['person_options'];
+        $requestedPersonId = request()->query('person');
+        $this->prefillPersonId = is_string($requestedPersonId)
+            && array_key_exists($requestedPersonId, $this->personOptions)
+            ? $requestedPersonId
+            : '';
 
         abort_unless($this->hasBuilderAccess(), 403);
 
@@ -162,7 +171,13 @@ class CreateAdvanced extends Component
             return null;
         }
 
-        return redirect()->route('submit-event.create', ['event' => $event->id]);
+        $query = ['event' => $event->id];
+
+        if ($this->prefillPersonId !== '') {
+            $query['person'] = $this->prefillPersonId;
+        }
+
+        return redirect()->route('submit-event.create', $query);
     }
 
     /**
@@ -247,6 +262,7 @@ class CreateAdvanced extends Component
         return view('livewire.pages.dashboard.events.create-advanced', [
             'institutionOptions' => $this->institutionOptions,
             'personOptions' => $this->personOptions,
+            'prefillPersonLabel' => $this->personOptions[$this->prefillPersonId] ?? null,
             'selectedOrganizerType' => $this->selectedOrganizerType(),
             'eventCategoryOptions' => app(EventCategoryCatalog::class)->options(),
             'eventFormatOptions' => collect(EventFormat::cases())->mapWithKeys(fn (EventFormat $format): array => [$format->value => $format->label()])->all(),

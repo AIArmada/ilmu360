@@ -65,6 +65,41 @@ class MembershipApplicationPresenter
         return MemberRole::tryFrom($claim->granted_role)?->label() ?? $claim->granted_role;
     }
 
+    public static function appliedRoleLabel(MembershipApplication $claim): string
+    {
+        $role = $claim->meta['applied_role'] ?? null;
+
+        if (! is_string($role) || $role === '') {
+            return '-';
+        }
+
+        return MemberRole::tryFrom($role)?->label() ?? $role;
+    }
+
+    public static function relationshipLabel(MembershipApplication $claim): string
+    {
+        $relationship = $claim->meta['relationship'] ?? null;
+
+        if (! is_string($relationship) || $relationship === '') {
+            return '-';
+        }
+
+        return self::relationshipOptions()[$relationship] ?? $relationship;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function relationshipOptions(): array
+    {
+        return [
+            'self' => 'Diri Sendiri',
+            'personal_assistant' => 'Pembantu Peribadi',
+            'representative' => 'Wakil',
+            'team_member' => 'Ahli Pasukan',
+        ];
+    }
+
     public static function subjectTitle(MembershipApplication $claim): string
     {
         $presentation = self::subjectPresentation($claim);

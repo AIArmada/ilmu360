@@ -47,11 +47,22 @@ class MembershipApplicationInfolist
                                                     ->label('Granted Role')
                                                     ->state(fn (MembershipApplication $record): string => MembershipApplicationPresenter::roleLabel($record))
                                                     ->placeholder('-'),
+                                                TextEntry::make('applied_role')
+                                                    ->label('Applied Role')
+                                                    ->state(fn (MembershipApplication $record): string => MembershipApplicationPresenter::appliedRoleLabel($record))
+                                                    ->placeholder('-'),
+                                                TextEntry::make('relationship')
+                                                    ->label('Relationship')
+                                                    ->state(fn (MembershipApplication $record): string => MembershipApplicationPresenter::relationshipLabel($record))
+                                                    ->placeholder('-'),
                                                 TextEntry::make('applicant.name')
                                                     ->label('Applicant')
                                                     ->placeholder('-'),
                                                 TextEntry::make('applicant.email')
                                                     ->label('Applicant Email')
+                                                    ->placeholder('-'),
+                                                TextEntry::make('applicant.phone')
+                                                    ->label('Applicant Phone')
                                                     ->placeholder('-'),
                                                 TextEntry::make('reviewer.name')
                                                     ->label('Reviewer')

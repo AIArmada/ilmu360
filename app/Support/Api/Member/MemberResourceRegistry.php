@@ -406,6 +406,9 @@ class MemberResourceRegistry
             $eventQuery
                 ->whereIn('institution_id', $user->institutions()->select('institutions.id'))
                 ->orWhereIn('events.id', $user->memberEvents()->select('events.id'))
+                ->orWhereHas('persons', function (Builder $personQuery) use ($user): void {
+                    $personQuery->whereIn('persons.id', $user->persons()->select('persons.id'));
+                })
                 ->orWhereHas('involvements', function (Builder $involvementQuery) use ($user): void {
                     $involvementQuery
                         ->where('role_code', 'organizer')

@@ -77,6 +77,13 @@
 
                         <div class="space-y-8 px-6 py-6 sm:px-8 sm:py-8">
                             <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+                                @if($prefillPersonLabel)
+                                    <div class="xl:col-span-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950">
+                                        <span class="font-semibold">{{ __('Speaker context') }}:</span>
+                                        {{ __('The first session will be preselected for :speaker.', ['speaker' => $prefillPersonLabel]) }}
+                                    </div>
+                                @endif
+
                                 <div class="xl:col-span-6">
                                     <label class="mb-2 block text-sm font-semibold text-slate-800">{{ __('Event Title') }}</label>
                                     <input type="text" wire:model.defer="form.title" placeholder="{{ __('Example: Ramadan Knowledge Series 1447H') }}" class="h-14 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 shadow-inner shadow-slate-100 outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-4 focus:ring-emerald-100" />

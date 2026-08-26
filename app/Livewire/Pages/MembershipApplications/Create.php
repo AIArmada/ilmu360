@@ -3,6 +3,7 @@
 namespace App\Livewire\Pages\MembershipApplications;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Membership\SubmitMembershipApplicationAction;
 use App\Enums\MemberSubjectType;
 use App\Livewire\Concerns\InteractsWithToasts;
@@ -10,11 +11,15 @@ use App\Models\Institution;
 use App\Models\MembershipApplication;
 use App\Models\Person;
 use App\Models\User;
+use App\Support\Membership\MembershipApplicationPresenter;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
-use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -82,32 +87,54 @@ class Create extends Component implements HasForms
 
     public function form(Schema $schema): Schema
     {
+        $user = auth()->user();
+        $needsPhone = $user instanceof User && blank($user->phone);
+
         return $schema
             ->model(new MembershipApplication)
             ->statePath('data')
             ->components([
                 Section::make(__('Claim membership for this :subject', ['subject' => strtolower($this->context['subject_label'])]))
-                    ->description(__('Explain your connection to this record so moderators can verify it.'))
+                    ->description(__('Tell us how you are connected to this record so moderators can verify your claim.'))
                     ->schema([
-                        Textarea::make('justification')
-                            ->label(__('Why should you be added?'))
-                            ->rows(6)
+                        Select::make('applied_role')
+                            ->label('Peranan yang anda mohon')
+                            ->options([
+                                MemberRole::Owner->value => 'Pemilik',
+                                MemberRole::Admin->value => 'Pentadbir',
+                                MemberRole::Editor->value => 'Editor',
+                            ])
                             ->required()
-                            ->maxLength(2000)
-                            ->helperText(__('Describe your role, relationship, and any context that helps reviewers verify your claim.'))
+                            ->live()
+                            ->afterStateUpdated(function (Set $set, ?string $state): void {
+                                if ($state === MemberRole::Owner->value) {
+                                    $set('relationship', 'self');
+                                }
+                            }),
+                        Select::make('relationship')
+                            ->label('Hubungan anda dengan '.$this->context['subject_label'])
+                            ->options(MembershipApplicationPresenter::relationshipOptions())
+                            ->required()
+                            ->default('self')
+                            ->disabled(fn (Get $get): bool => $get('applied_role') === MemberRole::Owner->value),
+                        TextInput::make('phone')
+                            ->label(__('Phone Number'))
+                            ->tel()
+                            ->required()
+                            ->visible($needsPhone)
+                            ->helperText(__('We need a contact number to verify your claim. This is saved to your profile, not the application.'))
                             ->columnSpanFull(),
                         SpatieMediaLibraryFileUpload::make('evidence')
                             ->label(__('Evidence Files'))
                             ->collection('evidence')
                             ->multiple()
                             ->reorderable()
-                            ->required()
                             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
                             ->maxFiles(8)
                             ->conversion('thumb')
                             ->openable()
                             ->downloadable()
-                            ->helperText(__('Upload screenshots, letters, profile pages, or PDFs that support your claim.'))
+                            ->helperText(__('Optional. Upload screenshots, letters, profile pages, or PDFs that support your claim.'))
                             ->columnSpanFull(),
                     ]),
             ]);
@@ -124,11 +151,32 @@ class Create extends Component implements HasForms
 
         $state = $this->claimForm()->getState();
 
+        $appliedRole = $state['applied_role'] instanceof MemberRole
+            ? $state['applied_role']->value
+            : (string) ($state['applied_role'] ?? MemberRole::Editor->value);
+        $relationship = (string) ($state['relationship'] ?? 'self');
+
+        if (filled($state['phone'] ?? null) && blank($user->phone)) {
+            $user->update(['phone' => $state['phone']]);
+        }
+
+        $justification = sprintf(
+            'Applying as %s. Relationship: %s.',
+            MemberRole::from($appliedRole)->label(),
+            MembershipApplicationPresenter::relationshipOptions()[$relationship] ?? $relationship,
+        );
+
+        $meta = [
+            'applied_role' => $appliedRole,
+            'relationship' => $relationship,
+        ];
+
         try {
             $claim = $submitMembershipApplicationAction->handle(
                 $this->subject,
                 $user,
-                (string) ($state['justification'] ?? ''),
+                $justification,
+                $meta,
             );
         } catch (RuntimeException $exception) {
             match ($exception->getMessage()) {

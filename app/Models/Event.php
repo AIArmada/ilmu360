@@ -2360,6 +2360,10 @@ class Event extends PackageEvent implements AuditableContract
             return true;
         }
 
+        if ($memberPermissions->canEventThroughPerson($user, $permission, $this)) {
+            return true;
+        }
+
         if ($this->organizer instanceof Institution && $memberPermissions->canInstitution($user, $permission, $this->organizer)) {
             return true;
         }
