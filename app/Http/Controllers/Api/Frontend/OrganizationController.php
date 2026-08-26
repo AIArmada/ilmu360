@@ -7,14 +7,21 @@ namespace App\Http\Controllers\Api\Frontend;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Organizations\Actions\CreateOrganizationAction;
 use AIArmada\Organizations\Models\Organization;
+use Dedoc\Scramble\Attributes\Endpoint;
+use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
+#[Group('Organizations', 'Public organization discovery and authenticated organization workspace endpoints.')]
 final class OrganizationController extends FrontendController
 {
+    #[Endpoint(
+        title: 'List public organizations',
+        description: 'Returns active, public organizations with optional name search and pagination.',
+    )]
     public function index(Request $request): JsonResponse
     {
         $search = trim((string) $request->query('search', ''));
@@ -38,6 +45,10 @@ final class OrganizationController extends FrontendController
         ]);
     }
 
+    #[Endpoint(
+        title: 'Get a public organization',
+        description: 'Returns one active, public organization by its slug.',
+    )]
     public function show(string $organizationKey): JsonResponse
     {
         $organization = Organization::query()
@@ -48,6 +59,10 @@ final class OrganizationController extends FrontendController
         return response()->json(['data' => $this->publicPayload($organization)]);
     }
 
+    #[Endpoint(
+        title: 'Create an organization',
+        description: 'Creates an organization for the authenticated user and returns its initial workspace payload.',
+    )]
     public function store(Request $request, CreateOrganizationAction $createOrganization): JsonResponse
     {
         $actor = Auth::user();
@@ -61,6 +76,10 @@ final class OrganizationController extends FrontendController
         return response()->json(['data' => $this->workspacePayload($organization)], 201);
     }
 
+    #[Endpoint(
+        title: 'Get the organization workspace',
+        description: 'Returns the authenticated user\'s organization workspace, including accessible organizations, the selected organization, members, and role information.',
+    )]
     public function workspace(): JsonResponse
     {
         $actor = Auth::user();

@@ -20,6 +20,7 @@ class ProductionSeeder extends Seeder
             PermissionSeeder::class,
             RoleSeeder::class,
             ScopedMemberRolesSeeder::class,
+            LanguageSeeder::class,
             UserSeeder::class,
             FacilityTypeSeeder::class,
             VenueSpaceTypeSeeder::class,

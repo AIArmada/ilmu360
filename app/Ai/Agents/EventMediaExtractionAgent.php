@@ -153,7 +153,7 @@ TXT;
                 ->nullable(),
             'domain_tag_ids' => $schema->array()
                 ->items($domainTagIdType)
-                ->max(3)
+                ->max(1)
                 ->nullable(),
             'source_tag_ids' => $schema->array()
                 ->items($sourceTagIdType)

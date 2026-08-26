@@ -373,6 +373,8 @@ class Create extends Component implements HasActions, HasForms
         }
 
         $mergedState = array_replace($this->data ?? [], $extractedState);
+        $mergedState['event_category_ids'] = $this->firstSelection($mergedState['event_category_ids'] ?? null);
+        $mergedState['domain_tags'] = $this->firstSelection($mergedState['domain_tags'] ?? null);
         $mergedState['age_group'] = $this->normalizeAgeGroupState($mergedState['age_group'] ?? []);
 
         if (
@@ -1931,7 +1933,7 @@ class Create extends Component implements HasActions, HasForms
 
         $duplicateEvent = Event::query()
             ->with([
-                'tags:id,type,status',
+                'classifications',
                 'references:id,title',
                 'languages:id,code',
                 'persons',
@@ -2011,8 +2013,7 @@ class Create extends Component implements HasActions, HasForms
                 ->where('taxonomy_code', 'event_category')
                 ->pluck('event_term_id')
                 ->filter()
-                ->values()
-                ->all(),
+                ->first(),
             'event_format' => $eventFormat,
             'visibility' => $visibility,
             'gender' => $gender,
@@ -2024,8 +2025,7 @@ class Create extends Component implements HasActions, HasForms
             'domain_tags' => $duplicateEvent->classifications
                 ->where('taxonomy_code', EventTaxonomyCode::Domain->value)
                 ->pluck('event_term_id')
-                ->values()
-                ->all(),
+                ->first(),
             'discipline_tags' => $duplicateEvent->classifications
                 ->where('taxonomy_code', EventTaxonomyCode::Discipline->value)
                 ->pluck('event_term_id')
@@ -2294,6 +2294,15 @@ class Create extends Component implements HasActions, HasForms
             ->filter()
             ->values()
             ->all();
+    }
+
+    private function firstSelection(mixed $state): mixed
+    {
+        if ($state instanceof Collection) {
+            return $state->first();
+        }
+
+        return is_array($state) ? ($state[0] ?? null) : $state;
     }
 
     /**

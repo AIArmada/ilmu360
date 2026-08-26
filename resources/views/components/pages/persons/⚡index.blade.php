@@ -430,7 +430,7 @@ new
         <!-- Background layers -->
         <div data-material="hero-field" class="absolute inset-0 bg-[radial-gradient(ellipse_at_18%_28%,rgba(5,101,82,0.10)_0%,transparent_42%),radial-gradient(ellipse_at_82%_18%,rgba(217,119,6,0.06)_0%,transparent_36%),linear-gradient(178deg,#fafaf7_0%,#f4f1e8_54%,#e7eee8_100%)]"></div>
 
-        <div class="relative mx-auto grid max-w-7xl gap-12 px-5 py-14 sm:px-6 sm:py-20 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-center lg:px-8 lg:py-24">
+        <div class="relative mx-auto max-w-4xl px-5 py-14 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
             <div class="max-w-3xl">
                     <h1 class="mt-6 max-w-3xl font-heading text-4xl font-bold leading-[1.06] tracking-[-0.035em] text-emerald-950 sm:text-5xl lg:text-6xl">
                         {{ __('Meet speakers who are') }}
@@ -489,23 +489,6 @@ new
 
                 </div>
 
-                <aside class="relative hidden min-h-[22rem] lg:block" aria-label="{{ __('About the speaker directory') }}">
-                    <div data-testid="person-directory-folio" data-material="opaque-folio" class="living-majlis-folio absolute inset-x-0 top-1/2 -translate-y-1/2 overflow-hidden rounded-[1.5rem] bg-emerald-950">
-                        <div class="absolute inset-0 opacity-20" style="background-image: radial-gradient(circle at 1.5px 1.5px, rgba(255,255,255,.8) 1px, transparent 0); background-size: 18px 18px;"></div>
-                        <img
-                            src="{{ asset('images/speakers/speaker_avatar.png') }}"
-                            alt=""
-                            class="relative aspect-square w-full object-cover mix-blend-screen opacity-80"
-                            width="1024"
-                            height="1024"
-                            loading="eager"
-                        >
-                        <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-emerald-950 via-emerald-950/90 to-transparent px-6 pb-6 pt-20 text-white">
-                            <p class="font-heading text-[10px] font-bold uppercase tracking-[0.2em] text-gold-300">{{ __('ilmu360° directory') }}</p>
-                            <p class="mt-2 max-w-xs font-heading text-xl font-bold leading-tight">{{ __('Meet teachers. Find majlis.') }}</p>
-                        </div>
-                    </div>
-                </aside>
             </div>
         </div>
 

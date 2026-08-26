@@ -50,6 +50,27 @@ it('can search persons case-insensitively', function () {
         ->assertDontSee('Ahmad');
 });
 
+it('does not fuzzy-match a short query against a partial token like "al"', function () {
+    $searchService = app(PersonSearchService::class);
+
+    $alBakri = Person::factory()->create([
+        'name' => 'Zulkifli Mohamad Al-Bakri',
+        'status' => 'verified',
+    ]);
+    $searchService->syncPersonRecord($alBakri);
+
+    $binAli = Person::factory()->create([
+        'name' => 'Ahmad Bin Ali',
+        'status' => 'verified',
+    ]);
+    $searchService->syncPersonRecord($binAli);
+
+    get('/penceramah?search=ali')
+        ->assertSuccessful()
+        ->assertSee('Ahmad')
+        ->assertDontSee('Zulkifli');
+});
+
 it('can search persons by formatted honorific and prenominal titles', function () {
     $person = Person::factory()->create([
         'name' => 'Aisyah Binti Hassan',
@@ -373,12 +394,12 @@ it('exposes directory status semantics and aligned loading skeleton markup', fun
     get('/penceramah')
         ->assertSuccessful()
         ->assertSee('data-art-direction="living-majlis"', false)
-        ->assertSee('data-testid="person-directory-folio"', false)
+        ->assertDontSee('data-testid="person-directory-folio"', false)
         ->assertSee('data-material="translucent-control"', false)
-        ->assertSee('data-material="opaque-folio"', false)
+        ->assertDontSee('data-material="opaque-folio"', false)
         ->assertSee('data-material="opaque-card"', false)
         ->assertSee('living-majlis-field', false)
-        ->assertSee('living-majlis-folio', false)
+        ->assertDontSee('living-majlis-folio', false)
         ->assertSee('id="person-results"', false)
         ->assertSee('aria-live="polite"', false)
         ->assertSee('aria-busy', false)

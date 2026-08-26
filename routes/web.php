@@ -26,6 +26,7 @@ use App\Livewire\Pages\Dashboard\Organizations\CreateEvent as CreateOrganization
 use App\Livewire\Pages\Dashboard\Organizations\CreateOrganization;
 use App\Livewire\Pages\Dashboard\Organizations\Index as OrganizationsIndex;
 use App\Livewire\Pages\Dashboard\Organizations\Workspace as OrganizationWorkspace;
+use App\Livewire\Pages\Dashboard\PersonDashboard;
 use App\Livewire\Pages\Dashboard\UserDashboard;
 use App\Livewire\Pages\Membership\ShowInvitation as ShowMemberInvitation;
 use App\Livewire\Pages\MembershipApplications\Create as CreateMembershipApplicationPage;
@@ -108,6 +109,7 @@ Route::middleware('auth')->group(function () {
     Route::livewire('/dashboard/institusi', InstitutionDashboard::class)->name('dashboard.institutions');
     Route::livewire('/dashboard/institusi/senarai-majlis', InstitutionDashboard::class)->name('dashboard.institutions.events');
     Route::livewire('/dashboard/institusi/tambah-majlis', Create::class)->name('dashboard.institutions.submit-event');
+    Route::livewire('/dashboard/penceramah/{person:slug}', PersonDashboard::class)->name('dashboard.persons');
     Route::livewire('/dashboard/majlis/cipta-lanjutan', CreateAdvanced::class)->name('dashboard.events.create-advanced');
     Route::livewire('/dashboard/organisasi', OrganizationsIndex::class)->name('dashboard.organizations.index');
     Route::livewire('/dashboard/organisasi/cipta', CreateOrganization::class)->name('dashboard.organizations.create');

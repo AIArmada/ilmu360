@@ -899,7 +899,7 @@ class Event extends PackageEvent implements AuditableContract
                     continue;
                 }
 
-                EventLocation::create([
+                $location = EventLocation::create([
                     'event_id' => $this->id,
                     'event_occurrence_id' => null,
                     'event_session_id' => null,
@@ -916,6 +916,12 @@ class Event extends PackageEvent implements AuditableContract
                     'status' => 'active',
                     'sort_order' => $i,
                 ]);
+
+                if (array_key_exists($spaceId, $existingSnapshots)) {
+                    $location->updateQuietly([
+                        'space_name_snapshot' => $existingSnapshots[$spaceId],
+                    ]);
+                }
 
                 $first = false;
             }

@@ -312,7 +312,7 @@
             <div class="relative mx-auto w-full max-w-[360px] lg:mx-0 lg:justify-self-end">
                 @if($eventHasPoster && $eventPosterPreviewUrl)
                     <button type="button" @click="posterModalOpen = true" data-signal-event="engagement.poster_opened" data-signal-category="engagement" data-signal-component="event_detail_hero" data-signal-control="poster" data-signal-entity-type="event" data-signal-entity-id="{{ $event->id }}" class="group block w-full overflow-hidden rounded-2xl bg-[#f8f2e6] p-2 text-left shadow-2xl shadow-black/25 ring-1 ring-white/20 transition motion-safe:hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#f2c867]" aria-label="{{ __('Lihat poster penuh') }}">
-                        <div class="relative overflow-hidden rounded-xl {{ $posterAspectClass }} bg-slate-900"><img src="{{ $eventPosterPreviewUrl }}" alt="{{ $event->title }}" class="size-full object-contain" loading="eager"><span class="absolute bottom-3 right-3 rounded-full bg-[#173c34]/85 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-sm">{{ __('Lihat poster') }}</span></div>
+                        <div class="relative overflow-hidden rounded-xl {{ $posterAspectClass }} bg-slate-900" data-poster-aspect="{{ $eventPosterDisplayAspectRatio }}"><img src="{{ $eventPosterPreviewUrl }}" alt="{{ $event->title }}" class="size-full object-contain" loading="eager"><span class="absolute bottom-3 right-3 rounded-full bg-[#173c34]/85 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-sm">{{ __('Lihat poster') }}</span></div>
                     </button>
                 @else
                     <div class="relative overflow-hidden rounded-2xl border border-white/15 bg-white/[0.04] p-6">
@@ -601,6 +601,14 @@
             @if($organizer && (!$institutionSameAsLocation || $organizer->getKey() !== $locationEntity?->getKey()))
                 <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><p class="text-xs font-bold uppercase tracking-[0.2em] text-[#b27b1b]">{{ __('Host') }}</p>@if($organizerHref)<a href="{{ $organizerHref }}" class="mt-2 block font-heading text-xl font-semibold text-[#173c34] hover:text-[#b27b1b]">{{ $organizer->name }}</a>@else<p class="mt-2 font-heading text-xl font-semibold text-[#173c34]">{{ $organizer->name }}</p>@endif<p class="mt-2 text-sm leading-6 text-slate-600">{{ __('Penganjur majlis') }}</p></section>
             @endif
+
+            <x-public-record-feedback
+                share-panel-id="event-share-panel"
+                :subject-type="\App\Enums\ContributionSubjectType::Event->publicRouteSegment()"
+                :subject-id="$event->slug"
+                :share-data="$shareData"
+                :share-links="$this->shareLinks"
+            />
         </aside>
     </main>
 

@@ -12,6 +12,7 @@ use App\Livewire\Concerns\InteractsWithToasts;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\User;
+use App\Support\Authz\MemberPermissionGate;
 use App\Support\Spaces\SpaceLocationPresenter;
 use App\Support\Submission\EntitySubmissionAccess;
 use App\Support\Timezone\UserDateTimeFormatter;
@@ -225,7 +226,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
 
         $member = $this->findInstitutionMember($memberId);
 
-        if ($this->memberHasProtectedRole($member)) {
+        if ($this->memberHasProtectedRole($institution, $member)) {
             $this->errorToast(__('Owner roles can only be changed from the global roles screen.'));
 
             return;
@@ -252,7 +253,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
 
         $member = $this->findInstitutionMember($this->editingMemberId);
 
-        if ($this->memberHasProtectedRole($member)) {
+        if ($this->memberHasProtectedRole($institution, $member)) {
             $this->resetMemberEditor();
             $this->errorToast(__('Owner roles can only be changed from the global roles screen.'));
 
@@ -276,7 +277,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
 
         $member = $this->findInstitutionMember($memberId);
 
-        if ($this->memberIsOwner($member)) {
+        if ($this->memberIsOwner($institution, $member)) {
             $this->errorToast(__('Institution owners cannot be removed from this dashboard.'));
 
             return;
@@ -556,7 +557,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
 
         return $institution instanceof Institution
             && $user instanceof User
-            && $this->userHasInstitutionManagementRole($user);
+            && $this->userHasInstitutionManagementRole($user, $institution);
     }
 
     public function table(Table $table): Table
@@ -655,7 +656,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
                         ->filter(fn (mixed $title): bool => is_string($title) && trim($title) !== '')
                         ->map(fn (string $title): string => trim($title))
                         ->implode(', ') ?: null),
-                TextColumn::make('location_label')
+                TextColumn::make('primaryLocation.venueSpace.name')
                     ->label(__('Location'))
                     ->state(fn (Event $record): ?string => SpaceLocationPresenter::name($record->primaryLocation))
                     ->placeholder('-')
@@ -871,7 +872,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
     {
         $user = auth()->user();
 
-        abort_unless($user instanceof User && $this->userHasInstitutionManagementRole($user), 403);
+        abort_unless($user instanceof User && $this->userHasInstitutionManagementRole($user, $institution), 403);
     }
 
     protected function translateStatusLabel(mixed $status): string
@@ -1033,23 +1034,26 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
         return [MemberRole::tryFrom($roleSlug)?->label() ?? $roleSlug];
     }
 
-    protected function userHasInstitutionManagementRole(User $user): bool
+    protected function userHasInstitutionManagementRole(User $user, Institution $institution): bool
     {
-        return $user->institutions()
-            ->wherePivotIn('role', [MemberRole::Owner->value, MemberRole::Admin->value])
-            ->exists();
+        return app(MemberPermissionGate::class)->canInstitution(
+            $user,
+            'institution.manage-members',
+            $institution,
+        );
     }
 
-    protected function memberIsOwner(User $user): bool
+    protected function memberIsOwner(Institution $institution, User $user): bool
     {
-        return $user->institutions()
+        return $institution->members()
+            ->whereKey($user->getKey())
             ->wherePivot('role', MemberRole::Owner->value)
             ->exists();
     }
 
-    protected function memberHasProtectedRole(User $user): bool
+    protected function memberHasProtectedRole(Institution $institution, User $user): bool
     {
-        return $this->memberIsOwner($user);
+        return $this->memberIsOwner($institution, $user);
     }
 
     public function render(): View

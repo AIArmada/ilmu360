@@ -119,7 +119,7 @@ it('shows broad optional topics separately from the activity type', function () 
         ->and($field->getLabel())->toBe('Topik / bidang')
         ->and($field->getOptions())
         ->toContain('Agama & Kerohanian', 'Pendidikan', 'Sains & Matematik', 'Teknologi & IT')
-        ->and($field->isRequired())->toBeFalse();
+        ->and($field->isRequired())->toBeTrue();
 });
 
 it('places the broad topic directly after the activity type in the submit wizard', function (): void {

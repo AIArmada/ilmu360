@@ -274,6 +274,44 @@ it('hides the person membership claim call to action when a speaker already has 
         ->assertDontSee('Tuntut Pengurusan');
 });
 
+it('hides membership claim call to action when an institution or speaker already has an owner member', function () {
+    $member = User::factory()->create();
+    $institution = Institution::factory()->create([
+        'status' => 'verified',
+    ]);
+    $person = Person::factory()->create([
+        'status' => 'verified',
+    ]);
+
+    OwnerContext::withOwner(null, function () use ($institution, $person, $member): void {
+        $institution->members()->syncWithoutDetaching([
+            $member->getKey() => ['role' => MemberRole::Owner->value],
+        ]);
+        $person->members()->syncWithoutDetaching([
+            $member->getKey() => ['role' => MemberRole::Owner->value],
+        ]);
+    });
+
+    $institutionClaimUrl = route('membership-applications.create', [
+        'subjectType' => MemberSubjectType::Institution->publicRouteSegment(),
+        'subjectId' => $institution->getKey(),
+    ]);
+    $personClaimUrl = route('membership-applications.create', [
+        'subjectType' => MemberSubjectType::Person->publicRouteSegment(),
+        'subjectId' => $person->slug,
+    ]);
+
+    $this->get(route('institutions.show', $institution))
+        ->assertSuccessful()
+        ->assertDontSee($institutionClaimUrl, false)
+        ->assertDontSee('Tuntut Pengurusan');
+
+    $this->get(route('persons.show', $person))
+        ->assertSuccessful()
+        ->assertDontSee($personClaimUrl, false)
+        ->assertDontSee('Tuntut Pengurusan');
+});
+
 it('keeps membership claim call to action visible to other visitors when a profile already has a member', function () {
     $member = User::factory()->create();
     $institution = Institution::factory()->create([

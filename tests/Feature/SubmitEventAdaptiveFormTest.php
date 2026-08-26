@@ -2,12 +2,14 @@
 
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
+use App\Actions\Events\SyncEventClassificationsAction;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
 use App\Livewire\Pages\SubmitEvent\Create;
+use App\Models\Event;
 use Database\Seeders\AIArmada\EventTaxonomySeeder;
 use Database\Seeders\AIArmada\EventTopicSeeder;
 use Filament\Forms\Components\Select;
@@ -103,6 +105,31 @@ it('shows the topic and reference step only for the religious topic', function (
         ->assertSchemaComponentHidden($stepKey)
         ->set('data.domain_tags', adaptiveSubmitEventTopicId('agama_kerohanian'))
         ->assertSchemaComponentVisible($stepKey);
+});
+
+it('hydrates single-select taxonomy defaults when duplicating an event', function (): void {
+    app(EventTaxonomySeeder::class)->run();
+    app(EventTopicSeeder::class)->run();
+
+    $sourceEvent = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => EventVisibility::Public->value,
+        'published_at' => now(),
+        'starts_at' => now()->addDays(3),
+    ]);
+    $categoryId = eventCategoryId('kuliah_ceramah');
+    $topicId = adaptiveSubmitEventTopicId('agama_kerohanian');
+
+    app(SyncEventClassificationsAction::class)->handle($sourceEvent, [
+        'event_category_ids' => [$categoryId],
+        'domain_tags' => [$topicId],
+    ]);
+
+    $component = Livewire::withQueryParams(['duplicate' => $sourceEvent->getKey()])
+        ->test(Create::class);
+
+    expect($component->get('data.event_category_ids'))->toBe($categoryId)
+        ->and($component->get('data.domain_tags'))->toBe($topicId);
 });
 
 it('preserves a user-entered custom time when the context becomes religious', function (): void {

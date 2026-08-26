@@ -311,6 +311,10 @@ class PersonSearchService implements PublicDiscoveryAdapter
                     ));
 
                     foreach ($candidateTokens as $token) {
+                        if (! $this->fuzzyTokenPasses($token, $normalizedSearch)) {
+                            continue;
+                        }
+
                         $scoreCandidates[] = FuzzySearchPolicy::isComparable($normalizedSearch, $token)
                             ? StringSimilarity::score($normalizedSearch, $token)
                             : 0.0;
@@ -381,6 +385,10 @@ class PersonSearchService implements PublicDiscoveryAdapter
                 ));
 
                 foreach ($candidateTokens as $token) {
+                    if (! $this->fuzzyTokenPasses($token, $normalizedSearch)) {
+                        continue;
+                    }
+
                     $scoreCandidates[] = FuzzySearchPolicy::isComparable($normalizedSearch, $token)
                         ? StringSimilarity::score($normalizedSearch, $token)
                         : 0.0;
@@ -690,6 +698,19 @@ class PersonSearchService implements PublicDiscoveryAdapter
                     ->orWhereLike('family_name', "%{$token}%");
             }
         });
+    }
+
+    /**
+     * For short queries, a candidate token must contain the query as a substring.
+     * This prevents over-matching like "ali" against the token "al" (e.g. "Al-Bakri").
+     */
+    private function fuzzyTokenPasses(string $token, string $query): bool
+    {
+        if (mb_strlen($query) <= 3) {
+            return str_contains($token, $query);
+        }
+
+        return true;
     }
 
     private function personCandidateSearchableName(Person $person): string

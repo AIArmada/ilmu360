@@ -21,7 +21,7 @@ beforeEach(function () {
 });
 
 /**
- * @return array{event_date: string, domain_tag_ids: array<int, string>, discipline_tag_ids: array<int, string>, person_ids: array<int, string>, institution_id: string}
+ * @return array{event_date: string, domain_tag_ids: string, discipline_tag_ids: array<int, string>, person_ids: array<int, string>, institution_id: string}
  */
 function submitEventMediaFixtures(): array
 {
@@ -35,7 +35,7 @@ function submitEventMediaFixtures(): array
 }
 
 /**
- * @param  array{event_date: string, domain_tag_ids: array<int, string>, discipline_tag_ids: array<int, string>, person_ids: array<int, string>, institution_id: string}  $fixtures
+ * @param  array{event_date: string, domain_tag_ids: string, discipline_tag_ids: array<int, string>, person_ids: array<int, string>, institution_id: string}  $fixtures
  * @return array<string, mixed>
  */
 function submitEventMediaFormData(array $fixtures, array $overrides = []): array
@@ -98,7 +98,7 @@ it('stores cover, poster, and gallery uploads when submitting an event', functio
     expect($event->getMedia('cover'))->toHaveCount(1);
     expect($event->getMedia('poster'))->toHaveCount(1);
     expect($event->getMedia('gallery'))->toHaveCount(2);
-    expect($event->classifications()->count())->toBe(3)
+    expect($event->classifications()->count())->toBe(2)
         ->and($event->slug)->toBe(sprintf(
             'test-event-media-upload-%s-%s',
             implode('-', $personSlugSegments),

@@ -1018,3 +1018,93 @@ Verification:
 - `vendor/bin/phpstan analyse --ansi` — no errors across 995 files.
 - Targeted Pint, PHP syntax checks, Blade view caching, and `git diff --check` — passed.
 - Chrome confirmed Kazim Elias shows the direct speaker claim link, the CTA follows the feedback section, there is no horizontal overflow, and no console errors.
+
+# Follow-up: unified institution and speaker workspaces
+
+## Plan
+
+- [x] Extend `/dashboard/organisasi` with institution and speaker records the signed-in user belongs to.
+- [x] Add a speaker management workspace with scoped member management and profile editing.
+- [x] Scope institution member-management checks to the selected institution.
+- [x] Add focused regression coverage and complete code, view, and template verification.
+
+## Review
+
+The authenticated workspace entry point now groups organization, institution, and speaker memberships. Institution cards open the existing institution dashboard with the selected institution preserved; speaker cards open the new member-management workspace, where authorized admins can invite, change, and remove non-owner members and edit the public profile.
+
+Institution member-management authorization now evaluates the selected institution itself, so an admin role on institution A does not grant management access to institution B. The institution table location column was also aligned with its existing test contract without changing the displayed location value.
+
+No new Signals event was added: this is a navigation and authorization-surface change, while the existing invitation/profile-update workflows remain the meaningful actions to track.
+
+Verification:
+
+- `vendor/bin/pest --parallel --compact tests/Feature/ManagedWorkspacesTest.php` — 5 passed (26 assertions).
+- `vendor/bin/pest --parallel --compact tests/Feature/OrganizationFrontendTest.php` — 8 passed (29 assertions).
+- `vendor/bin/pest --parallel --compact tests/Feature/DashboardPagesTest.php` — 30 passed (304 assertions).
+- `vendor/bin/phpstan analyse --ansi` — no errors across 996 files.
+- `php artisan view:cache`, targeted Pint, PHP syntax checks, and `git diff --check` — passed.
+
+# Follow-up: review latest commit and working tree
+
+## Plan
+
+- [x] Audit the latest commit and uncommitted workspace changes against their form, public-page, and authorization contracts.
+- [x] Normalize single-select category/topic state in duplicate and AI extraction flows.
+- [x] Restore the public event poster aspect marker and add shared event feedback actions.
+- [x] Verify focused behavior, static analysis, Blade compilation, formatting, and final diff hygiene.
+
+## Review
+
+The review found and fixed stale array hydration for the new single-select event category/topic fields, an invalid duplicate-event eager-load (`tags` is not an Event relationship), and the missing poster aspect data attribute on the event detail page. Test fixtures were aligned with the intentionally hidden non-religious reference step, and the remaining affiliated-institution visibility toggle now updates locally in the browser.
+
+Verification:
+
+- Focused form, AI extraction, media, public-page, contribution, and workspace tests passed; the media file passes sequentially and with a single parallel worker, while the full parallel media invocation showed the existing shared fake-storage race.
+- `vendor/bin/phpstan analyse --ansi` — no errors across 996 files.
+- `php artisan view:cache`, Pint, and `git diff --check` — passed.
+
+Additional review finding fixed after the broad feature run: `SaveSpaceAction` treated Filament's empty default `institution_space_overrides` state as an explicit empty sync and detached all institutions. The action now ignores an empty overrides-only payload while still syncing explicit institution IDs and non-empty overrides.
+
+Additional verification:
+
+- `vendor/bin/pest --parallel --compact tests/Feature/AdminAuditFollowUpTest.php` — 6 passed (57 assertions).
+- `vendor/bin/pest --parallel --compact tests/Feature/SpaceModelRemediationTest.php` — 6 passed (28 assertions).
+- The broad `tests/Feature` run was stopped after confirming the known Scramble documentation worker memory problem; focused reviewed-path suites remain the reliable verification set.
+
+The same review also found that `EventLocation`'s model save hook rewrote an existing historical space-name snapshot while `Event::syncLocation()` recreated the row. Existing snapshots are now restored with a quiet update after creation, while new locations continue to receive the current space name.
+
+# Follow-up: Scramble documentation contract review
+
+## Plan
+
+- [x] Trace the Scramble test suite, API documentation route filter, cache resolver, and generated route set.
+- [x] Fix the real route-alignment failure without removing the contract suite.
+- [x] Verify the complete suite at the normal 512 MB PHP memory limit.
+
+## Review
+
+`ScrambleDocsTest` is a 33-case API documentation contract suite. It covers API-host-only exposure, lazy UI loading, cached/stale/ETag behavior, route/auth alignment, operation summaries and responses, schemas, tags, security metadata, request examples, and documentation copy. The suite is valuable coverage, so it was retained.
+
+The failure was genuine: the four organization API endpoints had no `Endpoint` metadata, leaving their generated OpenAPI summaries empty. `OrganizationController` now defines an `Organizations` group and explicit endpoint titles/descriptions for listing, viewing, creating, and opening an organization workspace.
+
+Verification:
+
+- `APP_ENV=testing DB_CONNECTION=sqlite DB_DATABASE=:memory: php -d memory_limit=512M vendor/bin/pest --compact tests/Feature/ScrambleDocsTest.php` — 33 passed (402 assertions).
+
+# Follow-up: owner-aware profile claim CTA
+
+## Plan
+
+- [x] Trace the institution and speaker profile claim guards and scoped membership roles.
+- [x] Hide “Tuntut Pengurusan” when either an admin or owner member exists.
+- [x] Add owner-role regression coverage for both profile types and verify the change.
+
+## Review
+
+The institution and speaker profile pages now query their scoped membership pivots for both `admin` and `owner` roles. Viewer/editor-only members still leave “Tuntut Pengurusan” visible, while either management role hides it. The computed property and Blade references were renamed to reflect the broader rule.
+
+Verification:
+
+- `vendor/bin/pest --parallel --compact tests/Feature/MembershipApplicationPagesTest.php` — 14 passed (76 assertions).
+- PHPStan — no errors.
+- Pint, Blade cache, and `git diff --check` — passed.

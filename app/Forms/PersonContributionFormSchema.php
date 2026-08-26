@@ -19,7 +19,6 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 
 class PersonContributionFormSchema
@@ -309,7 +308,6 @@ class PersonContributionFormSchema
                     ->getSearchResultsUsing(fn (string $search): array => self::institutionSearchOptions($search))
                     ->getOptionLabelUsing(fn (string $value): ?string => self::institutionLabels([$value])[$value] ?? null)
                     ->getOptionLabelsUsing(fn (array $values): array => self::institutionLabels($values))
-                    ->live()
                     ->closeOnSelect()
                     ->createOptionForm(fn (): array => InstitutionFormSchema::createOptionForm(includeLocationPicker: true))
                     ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => InstitutionFormSchema::createOptionUsing($data, $schema))
@@ -318,7 +316,7 @@ class PersonContributionFormSchema
                     ->label(__('Position'))
                     ->maxLength(255)
                     ->placeholder(__('e.g., Imam, Mudir, Committee Member'))
-                    ->visible(fn (Get $get): bool => filled($get('institution_id'))),
+                    ->visibleJs("Boolean(\$get('institution_id'))"),
             ];
 
         array_splice($components, 2, 0, [

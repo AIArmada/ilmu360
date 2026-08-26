@@ -69,7 +69,11 @@ final class SaveSpaceAction
         $this->ensureUniqueSlug($space, (string) $space->slug);
         $space->save();
 
-        if (array_key_exists('institutions', $data) || array_key_exists('institution_space_overrides', $data)) {
+        $hasInstitutionIds = array_key_exists('institutions', $data);
+        $hasInstitutionSpaceOverrides = array_key_exists('institution_space_overrides', $data)
+            && $data['institution_space_overrides'] !== [];
+
+        if ($hasInstitutionIds || $hasInstitutionSpaceOverrides) {
             $existingCapacities = $space->institutions()
                 ->get()
                 ->mapWithKeys(fn (Institution $institution): array => [
@@ -79,7 +83,7 @@ final class SaveSpaceAction
                 ])
                 ->all();
             $institutionIds = $this->normalizeInstitutionIds($data['institutions'] ?? []);
-            $overrides = array_key_exists('institution_space_overrides', $data)
+            $overrides = $hasInstitutionSpaceOverrides
                 ? $this->normalizeInstitutionSpaceOverrides($data['institution_space_overrides'])
                 : [];
 
@@ -95,18 +99,16 @@ final class SaveSpaceAction
                 ['institutions.id', 'institutions.name'],
             );
 
-            if (array_key_exists('institution_space_overrides', $data)) {
+            if ($hasInstitutionSpaceOverrides) {
                 $space->institutions()->sync(collect($institutionIds)->mapWithKeys(
                     fn (string $institutionId): array => [$institutionId => ['capacity' => $overrides[$institutionId] ?? null]],
                 )->all());
             } else {
-                foreach ($institutionIds as $institutionId) {
-                    if (array_key_exists($institutionId, $existingCapacities)) {
-                        $space->institutions()->updateExistingPivot($institutionId, [
-                            'capacity' => $existingCapacities[$institutionId],
-                        ]);
-                    }
-                }
+                $space->institutions()->sync(collect($institutionIds)->mapWithKeys(
+                    fn (string $institutionId): array => [$institutionId => [
+                        'capacity' => $existingCapacities[$institutionId] ?? null,
+                    ]],
+                )->all());
             }
         }
 

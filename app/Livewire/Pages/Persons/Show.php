@@ -205,10 +205,13 @@ class Show extends Component
         return $this->eventPageData()['other'];
     }
 
-    public function getHasAdminMemberProperty(): bool
+    public function getHasAdminOrOwnerMemberProperty(): bool
     {
         return OwnerContext::withOwner(null, fn (): bool => $this->person->members()
-            ->wherePivot('role', MemberRole::Admin->value)
+            ->wherePivotIn('role', [
+                MemberRole::Admin->value,
+                MemberRole::Owner->value,
+            ])
             ->exists());
     }
 

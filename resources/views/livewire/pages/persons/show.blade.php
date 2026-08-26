@@ -728,7 +728,7 @@
                     :share-links="$shareLinks"
                 />
 
-                @if(! $this->hasAdminMember)
+                @if(! $this->hasAdminOrOwnerMember)
                     <section class="rounded-[1.5rem] border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-emerald-50/60 p-5 shadow-sm">
                         <p class="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700">{{ __('Membership') }}</p>
                         <h2 class="mt-1 font-heading text-xl font-bold text-emerald-950">{{ __('Claim Membership') }}</h2>
