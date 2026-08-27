@@ -256,7 +256,7 @@ class ContributionController extends FrontendController
         title: 'Get editable contribution context',
         description: 'Returns the current editable state, presentation metadata, and permission flags for an existing subject. '
             .'Call this before submitting an update so you know whether the caller can edit directly, which sparse top-level fields are supported, and whether a pending request already exists. '
-            .'Only direct-edit media fields exposed in `direct_edit_media_fields` are uploadable, currently institution `cover`/`gallery`, person `avatar`/`cover`/`gallery`, and event `cover`/`poster`/`gallery`.',
+            .'Only direct-edit media fields exposed in `direct_edit_media_fields` are uploadable, currently institution `cover`/`gallery`, person `avatar`/`cover`/`gallery`, event `cover`/`poster`/`gallery`, and reference `front_cover`/`back_cover`/`gallery`.',
     )]
     public function suggestContext(
         string $subjectType,

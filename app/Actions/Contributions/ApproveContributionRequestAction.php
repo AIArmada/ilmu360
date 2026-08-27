@@ -14,6 +14,7 @@ use App\Models\ContributionRequest;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
+use App\Models\Reference;
 use App\Models\User;
 use App\Services\ContributionEntityMutationService;
 use App\Services\ModerationService;
@@ -115,7 +116,7 @@ class ApproveContributionRequestAction
             $this->moderationService->handleSensitiveChange($entity, $dirtyBeforeSave);
         }
 
-        if ($entity instanceof Event || $entity instanceof Institution || $entity instanceof Person) {
+        if ($entity instanceof Event || $entity instanceof Institution || $entity instanceof Person || $entity instanceof Reference) {
             $this->applyStagedMedia($request, $entity);
         }
     }
@@ -123,7 +124,7 @@ class ApproveContributionRequestAction
     /**
      * Apply media that a non-privileged contributor staged on the pending request.
      */
-    private function applyStagedMedia(ContributionRequest $request, Event|Institution|Person $entity): void
+    private function applyStagedMedia(ContributionRequest $request, Event|Institution|Person|Reference $entity): void
     {
         $staged = $request->getMedia('pending_media');
 

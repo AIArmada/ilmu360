@@ -151,7 +151,7 @@ class ContributionEntityMutationService
                     $this->field('social_media', 'array<object>'),
                 ],
                 'conditional_rules' => [],
-                'direct_edit_media_fields' => [],
+                'direct_edit_media_fields' => ['front_cover', 'back_cover', 'gallery'],
             ],
             $entity instanceof Event => [
                 'accepts_partial_updates' => true,

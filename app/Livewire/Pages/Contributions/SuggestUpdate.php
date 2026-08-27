@@ -282,7 +282,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
         return match (true) {
             $this->entity instanceof Institution => $this->institutionSubjectSchema(),
             $this->entity instanceof Person => $this->personSubjectSchema(),
-            $this->entity instanceof Reference => ReferenceContributionFormSchema::components(includeMedia: false),
+            $this->entity instanceof Reference => $this->referenceSubjectSchema(),
             default => $this->eventSubjectSchema(),
         };
     }
@@ -449,6 +449,79 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             includeLocationPicker: true,
             mediaFields: $this->directEditMediaFields,
         );
+    }
+
+    /**
+     * @return array<int, \Filament\Schemas\Components\Component>
+     */
+    private function referenceSubjectSchema(): array
+    {
+        $components = ReferenceContributionFormSchema::components(includeMedia: false);
+
+        if ($this->shouldShowDirectEditMediaSection()) {
+            $components[] = $this->referenceDirectEditMediaSection();
+        }
+
+        return $components;
+    }
+
+    private function referenceDirectEditMediaSection(): Section
+    {
+        $components = [];
+
+        $configureVisitorMedia = function (SpatieMediaLibraryFileUpload $component): SpatieMediaLibraryFileUpload {
+            if (! $this->canDirectEdit()) {
+                $component->saveRelationshipsUsing($this->visitorMediaRelationshipSaver())->saveUploadedFileUsing($this->visitorMediaFileSaver())->deletable(false);
+            }
+
+            return $component;
+        };
+
+        if (in_array('front_cover', $this->directEditMediaFields, true)) {
+            $components[] = $configureVisitorMedia(SpatieMediaLibraryFileUpload::make('front_cover')
+                ->label(__('Front Cover'))
+                ->collection('front_cover')
+                ->image()
+                ->imageEditor()
+                ->imageAspectRatio('3:4')
+                ->automaticallyOpenImageEditorForAspectRatio()
+                ->imageEditorAspectRatioOptions(['3:4'])
+                ->automaticallyCropImagesToAspectRatio()
+                ->responsiveImages()
+                ->conversion('thumb')
+                ->helperText(__('Front cover image of the reference, using a 3:4 ratio.')));
+        }
+
+        if (in_array('back_cover', $this->directEditMediaFields, true)) {
+            $components[] = $configureVisitorMedia(SpatieMediaLibraryFileUpload::make('back_cover')
+                ->label(__('Back Cover'))
+                ->collection('back_cover')
+                ->image()
+                ->imageEditor()
+                ->imageAspectRatio('3:4')
+                ->automaticallyOpenImageEditorForAspectRatio()
+                ->imageEditorAspectRatioOptions(['3:4'])
+                ->automaticallyCropImagesToAspectRatio()
+                ->responsiveImages()
+                ->conversion('thumb')
+                ->helperText(__('Back cover image of the reference, using a 3:4 ratio.')));
+        }
+
+        if (in_array('gallery', $this->directEditMediaFields, true)) {
+            $components[] = $configureVisitorMedia(SpatieMediaLibraryFileUpload::make('gallery')
+                ->label(__('Gallery'))
+                ->collection('gallery')
+                ->multiple()
+                ->reorderable()
+                ->image()
+                ->responsiveImages()
+                ->conversion('gallery_thumb')
+                ->helperText(__('Additional images related to the reference.')));
+        }
+
+        return Section::make(__('Reference Imagery'))
+            ->schema($components)
+            ->columns(['default' => 1, 'sm' => 2]);
     }
 
     private function shouldShowDirectEditMediaSection(): bool
@@ -621,10 +694,6 @@ class SuggestUpdate extends Component implements HasActions, HasForms
      */
     private function newMediaUuids(string $field): array
     {
-        if (! $this->entity instanceof Event && ! $this->entity instanceof Institution && ! $this->entity instanceof Person) {
-            return [];
-        }
-
         $current = Media::query()
             ->where('model_type', $this->entity->getMorphClass())
             ->where('model_id', $this->entity->getKey())
@@ -691,10 +760,6 @@ class SuggestUpdate extends Component implements HasActions, HasForms
      */
     private function currentDirectEditMediaState(string $field): array
     {
-        if (! $this->entity instanceof Event && ! $this->entity instanceof Institution && ! $this->entity instanceof Person) {
-            return [];
-        }
-
         return $this->entity
             ->loadMissing('media')
             ->getMedia($field)
@@ -739,10 +804,6 @@ class SuggestUpdate extends Component implements HasActions, HasForms
      */
     private function stageDirectEditMediaChanges(ContributionRequest $request): void
     {
-        if (! $this->entity instanceof Event && ! $this->entity instanceof Institution && ! $this->entity instanceof Person) {
-            return;
-        }
-
         foreach ($this->directEditMediaFields as $field) {
             $newUuids = $this->newMediaUuids($field);
 

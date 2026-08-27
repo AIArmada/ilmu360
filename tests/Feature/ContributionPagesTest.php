@@ -844,6 +844,74 @@ it('replaces the original person avatar when a visitor replacement is approved',
         ->and($request->fresh()->getMedia('pending_media'))->toHaveCount(0);
 });
 
+it('preserves the original reference front cover when a visitor replaces it and the request is rejected', function () {
+    Storage::fake('public');
+    config()->set('media-library.disk_name', 'public');
+
+    $visitor = User::factory()->create();
+    $reference = Reference::factory()->create(['status' => 'verified']);
+
+    $original = $reference->addMedia(fakeGeneratedImageUpload('original-front.jpg'))
+        ->toMediaCollection('front_cover');
+    $originalId = $original->getKey();
+
+    Livewire::actingAs($visitor)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Reference->publicRouteSegment(),
+            'subjectId' => $reference->slug,
+        ])
+        ->set('data.front_cover', [TemporaryUploadedFile::fake()->image('replacement-front.jpg', 300, 400)])
+        ->set('data.proposer_note', 'Sila tukar cover')
+        ->call('submit')
+        ->assertHasNoFormErrors()
+        ->assertRedirect(route('contributions.index'));
+
+    $request = ContributionRequest::query()->where('entity_id', $reference->getKey())->latest()->first();
+
+    expect($request)->not->toBeNull()
+        ->and($request->status)->toBe(ContributionRequestStatus::Pending)
+        ->and($request->getMedia('pending_media'))->toHaveCount(1)
+        ->and($reference->fresh()->getFirstMedia('front_cover')->getKey())->toBe($originalId);
+
+    $request->update(['status' => ContributionRequestStatus::Rejected]);
+
+    expect($reference->fresh()->getFirstMedia('front_cover')->getKey())->toBe($originalId)
+        ->and($reference->fresh()->getMedia('front_cover'))->toHaveCount(1);
+});
+
+it('replaces the original reference front cover when a visitor replacement is approved', function () {
+    Storage::fake('public');
+    config()->set('media-library.disk_name', 'public');
+
+    $reviewer = User::factory()->create();
+    $visitor = User::factory()->create();
+    $reference = Reference::factory()->create(['status' => 'verified']);
+
+    $original = $reference->addMedia(fakeGeneratedImageUpload('original-front.jpg'))
+        ->toMediaCollection('front_cover');
+    $originalUuid = $original->uuid;
+
+    Livewire::actingAs($visitor)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Reference->publicRouteSegment(),
+            'subjectId' => $reference->slug,
+        ])
+        ->set('data.front_cover', [TemporaryUploadedFile::fake()->image('replacement-front.jpg', 300, 400)])
+        ->set('data.proposer_note', 'Sila tukar cover')
+        ->call('submit')
+        ->assertHasNoFormErrors()
+        ->assertRedirect(route('contributions.index'));
+
+    $request = ContributionRequest::query()->where('entity_id', $reference->getKey())->latest()->first();
+
+    app(ApproveContributionRequestAction::class)->handle($request->fresh(), $reviewer);
+
+    expect($reference->fresh()->getMedia('front_cover'))->toHaveCount(1)
+        ->and($reference->fresh()->getFirstMedia('front_cover')->uuid)->not->toBe($originalUuid)
+        ->and(Media::where('uuid', $originalUuid)->exists())->toBeFalse()
+        ->and($request->fresh()->getMedia('pending_media'))->toHaveCount(0);
+});
+
 it('lets a visitor submit an event update without the normally required event fields', function () {
     $visitor = User::factory()->create();
     $institution = Institution::factory()->create([
