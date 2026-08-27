@@ -7,6 +7,7 @@ use AIArmada\Persons\Enums\AssignmentStatus;
 use AIArmada\Persons\Enums\PersonNameType;
 use AIArmada\Persons\Models\Title;
 use AIArmada\Signals\Models\SignalEvent;
+use App\Actions\Contributions\ApproveContributionRequestAction;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
@@ -38,7 +39,9 @@ use Filament\Forms\Components\Select;
 use Filament\Schemas\Components\Tabs;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\Livewire;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function () {
@@ -234,6 +237,8 @@ it('uses the corrected Malay labels and guidance on speaker and institution upda
     $institution = Institution::factory()->create([
         'status' => 'verified',
     ]);
+
+    assignPersonOwner($user, $person);
 
     app()->setLocale('ms');
     $this->actingAs($user);
@@ -670,8 +675,8 @@ it('shows the institution media uploads on the suggest update page only for main
     ]))
         ->assertOk()
         ->assertDontSee(__('View My Contributions'))
-        ->assertDontSee(__('Cover Image'))
-        ->assertDontSee(__('Gallery'));
+        ->assertSee(__('Cover Image'))
+        ->assertSee(__('Gallery'));
 
     assignInstitutionOwner($owner, $institution);
     $this->actingAs($owner);
@@ -707,8 +712,7 @@ it('uses the institution location picker on the suggest update page when google 
         ->assertSee(__('Search for an institution or address'));
 });
 
-it('shows the person media uploads on the suggest update page for public contributors', function () {
-    $owner = User::factory()->create();
+it('exposes person media upload fields to public contributors for moderated submission', function () {
     $visitor = User::factory()->create();
     $person = Person::factory()->create([
         'status' => 'verified',
@@ -726,19 +730,228 @@ it('shows the person media uploads on the suggest update page for public contrib
         ->assertSee(__('Profile avatar'))
         ->assertSee(__('Cover Image'))
         ->assertSee(__('Gallery'));
+});
 
-    assignPersonOwner($owner, $person);
-    $this->actingAs($owner);
+it('stages visitor person media on a pending contribution request and applies it on approval', function () {
+    Storage::fake('public');
+    config()->set('media-library.disk_name', 'public');
+
+    $reviewer = User::factory()->create();
+    $person = Person::factory()->create([
+        'status' => 'verified',
+    ]);
+
+    // The upload endpoint attaches the visitor's file to the entity, then submit
+    // stages it for moderation (mirrors SuggestUpdate::stageDirectEditMediaChanges).
+    $person->addMedia(fakeGeneratedImageUpload('visitor-cover.jpg'))
+        ->toMediaCollection('cover');
+    $cover = $person->getFirstMedia('cover');
+
+    $request = ContributionRequest::factory()->create([
+        'status' => ContributionRequestStatus::Pending,
+        'subject_type' => ContributionSubjectType::Person,
+        'entity_type' => $person->getMorphClass(),
+        'entity_id' => $person->getKey(),
+        'proposed_data' => ['biography' => 'Updated biography'],
+    ]);
+
+    $request->addMediaFromDisk($cover->getPathRelativeToRoot(), $cover->disk)
+        ->usingFileName($cover->file_name)
+        ->withCustomProperties([
+            'contribution_field' => 'cover',
+            'is_single' => true,
+        ])
+        ->toMediaCollection('pending_media');
+    $cover->delete();
+
+    expect($request->fresh()->getMedia('pending_media'))->toHaveCount(1)
+        ->and($person->fresh()->getFirstMedia('cover'))->toBeNull();
+
+    app(ApproveContributionRequestAction::class)->handle($request->fresh(), $reviewer);
+
+    expect($person->fresh()->getFirstMedia('cover'))
+        ->not->toBeNull()
+        ->and($person->fresh()->getFirstMedia('cover')->file_name)->toBe('visitor-cover.jpg')
+        ->and($request->fresh()->getMedia('pending_media'))->toHaveCount(0);
+});
+
+it('preserves the original person avatar when a visitor replaces it and the request is rejected', function () {
+    Storage::fake('public');
+    config()->set('media-library.disk_name', 'public');
+
+    $visitor = User::factory()->create();
+    $person = Person::factory()->create(['status' => 'verified']);
+
+    $original = $person->addMedia(fakeGeneratedImageUpload('original-avatar.jpg'))
+        ->toMediaCollection('avatar');
+    $originalId = $original->getKey();
+
+    Livewire::actingAs($visitor)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Person->publicRouteSegment(),
+            'subjectId' => $person->slug,
+        ])
+        ->set('data.avatar', [TemporaryUploadedFile::fake()->image('replacement-avatar.jpg', 300, 300)])
+        ->set('data.proposer_note', 'Sila tukar gambar')
+        ->call('submit')
+        ->assertHasNoFormErrors()
+        ->assertRedirect(route('contributions.index'));
+
+    $request = ContributionRequest::query()->where('entity_id', $person->getKey())->latest()->first();
+
+    expect($request)->not->toBeNull()
+        ->and($request->status)->toBe(ContributionRequestStatus::Pending)
+        ->and($request->getMedia('pending_media'))->toHaveCount(1)
+        // Original avatar must remain on the entity: a reject must not lose it.
+        ->and($person->fresh()->getFirstMedia('avatar')->getKey())->toBe($originalId);
+
+    $request->update(['status' => ContributionRequestStatus::Rejected]);
+
+    expect($person->fresh()->getFirstMedia('avatar')->getKey())->toBe($originalId)
+        ->and($person->fresh()->getMedia('avatar'))->toHaveCount(1);
+});
+
+it('replaces the original person avatar when a visitor replacement is approved', function () {
+    Storage::fake('public');
+    config()->set('media-library.disk_name', 'public');
+
+    $reviewer = User::factory()->create();
+    $visitor = User::factory()->create();
+    $person = Person::factory()->create(['status' => 'verified']);
+
+    $original = $person->addMedia(fakeGeneratedImageUpload('original-avatar.jpg'))
+        ->toMediaCollection('avatar');
+    $originalUuid = $original->uuid;
+
+    Livewire::actingAs($visitor)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Person->publicRouteSegment(),
+            'subjectId' => $person->slug,
+        ])
+        ->set('data.avatar', [TemporaryUploadedFile::fake()->image('replacement-avatar.jpg', 300, 300)])
+        ->set('data.proposer_note', 'Sila tukar gambar')
+        ->call('submit')
+        ->assertHasNoFormErrors()
+        ->assertRedirect(route('contributions.index'));
+
+    $request = ContributionRequest::query()->where('entity_id', $person->getKey())->latest()->first();
+
+    app(ApproveContributionRequestAction::class)->handle($request->fresh(), $reviewer);
+
+    expect($person->fresh()->getMedia('avatar'))->toHaveCount(1)
+        ->and($person->fresh()->getFirstMedia('avatar')->uuid)->not->toBe($originalUuid)
+        ->and(Media::where('uuid', $originalUuid)->exists())->toBeFalse()
+        ->and($request->fresh()->getMedia('pending_media'))->toHaveCount(0);
+});
+
+it('lets a visitor submit an event update without the normally required event fields', function () {
+    $visitor = User::factory()->create();
+    $institution = Institution::factory()->create([
+        'status' => 'verified',
+    ]);
+    $event = Event::factory()->for($institution)->create([
+        'title' => 'Majlis Kelonggaran Borang',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subMinute(),
+        'event_category_ids' => [eventCategoryId('komuniti_kebajikan')],
+        'institution_id' => $institution->id,
+        'description' => 'Original description',
+        'starts_at' => now()->addDays(3)->setTime(20, 0),
+    ]);
+    $event->setPrimaryOrganizer($institution);
+
+    Livewire::actingAs($visitor)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Event->publicRouteSegment(),
+            'subjectId' => $event->slug,
+        ])
+        ->set('data.description', 'Updated event description')
+        ->set('data.proposer_note', 'Saya mahu kemaskini penerangan')
+        ->call('submit')
+        ->assertHasNoFormErrors()
+        ->assertRedirect(route('contributions.index'));
+
+    expect(ContributionRequest::query()->where('entity_id', $event->getKey())->count())->toBe(1);
+});
+
+it('exposes event media upload fields to public contributors for moderated submission', function () {
+    $visitor = User::factory()->create();
+    $institution = Institution::factory()->create([
+        'status' => 'verified',
+    ]);
+    $event = Event::factory()->for($institution)->create([
+        'title' => 'Majlis Muat Naik Media',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subMinute(),
+        'event_category_ids' => [eventCategoryId('komuniti_kebajikan')],
+        'institution_id' => $institution->id,
+        'starts_at' => now()->addDays(3)->setTime(20, 0),
+    ]);
+    $event->setPrimaryOrganizer($institution);
+
+    $this->actingAs($visitor);
 
     $this->get(route('contributions.suggest-update', [
-        'subjectType' => ContributionSubjectType::Person->publicRouteSegment(),
-        'subjectId' => $person->slug,
+        'subjectType' => ContributionSubjectType::Event->publicRouteSegment(),
+        'subjectId' => $event->slug,
     ]))
         ->assertOk()
-        ->assertDontSee(__('View My Contributions'))
-        ->assertSee(__('Profile avatar'))
-        ->assertSee(__('Cover Image'))
-        ->assertSee(__('Gallery'));
+        ->assertSee(__('Gambar Cover Majlis'))
+        ->assertSee(__('Poster Hebahan'))
+        ->assertSee(__('Galeri'));
+});
+
+it('stages visitor event media on a pending contribution request and applies it on approval', function () {
+    Storage::fake('public');
+    config()->set('media-library.disk_name', 'public');
+
+    $reviewer = User::factory()->create();
+    $institution = Institution::factory()->create([
+        'status' => 'verified',
+    ]);
+    $event = Event::factory()->for($institution)->create([
+        'title' => 'Majlis Media Diluluskan',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subMinute(),
+        'event_category_ids' => [eventCategoryId('komuniti_kebajikan')],
+        'institution_id' => $institution->id,
+        'starts_at' => now()->addDays(3)->setTime(20, 0),
+    ]);
+    $event->setPrimaryOrganizer($institution);
+
+    $event->addMedia(fakeGeneratedImageUpload('visitor-event-cover.jpg'))
+        ->toMediaCollection('cover');
+    $cover = $event->getFirstMedia('cover');
+
+    $request = ContributionRequest::factory()->create([
+        'status' => ContributionRequestStatus::Pending,
+        'subject_type' => ContributionSubjectType::Event,
+        'entity_type' => $event->getMorphClass(),
+        'entity_id' => $event->getKey(),
+        'proposed_data' => ['description' => 'Updated'],
+    ]);
+
+    $request->addMediaFromDisk($cover->getPathRelativeToRoot(), $cover->disk)
+        ->usingFileName($cover->file_name)
+        ->withCustomProperties([
+            'contribution_field' => 'cover',
+            'is_single' => true,
+        ])
+        ->toMediaCollection('pending_media');
+    $cover->delete();
+
+    expect($request->fresh()->getMedia('pending_media'))->toHaveCount(1)
+        ->and($event->fresh()->getFirstMedia('cover'))->toBeNull();
+
+    app(ApproveContributionRequestAction::class)->handle($request->fresh(), $reviewer);
+
+    expect($event->fresh()->getFirstMedia('cover'))
+        ->not->toBeNull()
+        ->and($event->fresh()->getFirstMedia('cover')->file_name)->toBe('visitor-event-cover.jpg')
+        ->and($request->fresh()->getMedia('pending_media'))->toHaveCount(0);
 });
 
 it('hydrates the selected person institution label even when the institution is not public', function () {
@@ -946,7 +1159,7 @@ it('syncs person media collections when a maintainer updates them publicly', fun
         ->and(ContributionRequest::query()->count())->toBe(0);
 });
 
-it('allows public contributors to submit person media', function () {
+it('allows owner contributors to submit person media', function () {
     Storage::fake('public');
     config()->set('media-library.disk_name', 'public');
 
@@ -954,6 +1167,8 @@ it('allows public contributors to submit person media', function () {
     $person = Person::factory()->create([
         'status' => 'verified',
     ]);
+
+    assignPersonOwner($user, $person);
 
     Livewire::actingAs($user)
         ->test(SuggestUpdate::class, [

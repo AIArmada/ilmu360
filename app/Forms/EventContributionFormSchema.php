@@ -76,14 +76,14 @@ class EventContributionFormSchema
     /**
      * @return array<int, Component>
      */
-    public static function components(?string $fixedTimezone = null): array
+    public static function components(?string $fixedTimezone = null, bool $enforceRequired = true): array
     {
         return [
             Section::make(__('Maklumat Majlis'))
                 ->schema([
                     TextInput::make('title')
                         ->label(__('Tajuk Majlis'))
-                        ->required()
+                        ->required($enforceRequired)
                         ->maxLength(255),
                     Select::make('event_category_ids')
                         ->label(__('Jenis Majlis'))
@@ -93,7 +93,7 @@ class EventContributionFormSchema
                         ->closeOnSelect()
                         ->searchable()
                         ->live()
-                        ->required()
+                        ->required($enforceRequired)
                         ->columnSpanFull(),
                     RichEditor::make('description')
                         ->label(__('Keterangan'))
@@ -106,7 +106,7 @@ class EventContributionFormSchema
                         ->afterStateUpdated(function (Set $set): void {
                             $set('prayer_time', null);
                         })
-                        ->required(),
+                        ->required($enforceRequired),
                     Select::make('prayer_time')
                         ->label(__('Waktu'))
                         ->options(fn (Get $get): array => self::eventPrayerTimeOptions(
@@ -119,7 +119,7 @@ class EventContributionFormSchema
                                 $set('custom_time', null);
                             }
                         })
-                        ->required()
+                        ->required($enforceRequired)
                         ->live(),
                     TimePicker::make('custom_time')
                         ->label(__('Masa Mula'))
@@ -127,7 +127,7 @@ class EventContributionFormSchema
                         ->native()
                         ->seconds(false)
                         ->minutesStep(5)
-                        ->required(fn (Get $get): bool => $get('prayer_time') === EventPrayerTime::LainWaktu->value)
+                        ->required($enforceRequired ? fn (Get $get): bool => $get('prayer_time') === EventPrayerTime::LainWaktu->value : false)
                         ->visible(fn (Get $get): bool => $get('prayer_time') === EventPrayerTime::LainWaktu->value),
                     TimePicker::make('end_time')
                         ->label(__('Masa Akhir'))
@@ -135,16 +135,16 @@ class EventContributionFormSchema
                         ->native()
                         ->seconds(false)
                         ->minutesStep(5),
-                    self::timezoneField($fixedTimezone),
+                    self::timezoneField($fixedTimezone, $enforceRequired),
                     Select::make('event_format')
                         ->label(__('Format Majlis'))
                         ->options(EventFormat::class)
                         ->live()
-                        ->required(),
+                        ->required($enforceRequired),
                     Select::make('visibility')
                         ->label(__('Keterlihatan'))
                         ->options(EventVisibility::class)
-                        ->required(),
+                        ->required($enforceRequired),
                     TextInput::make('event_url')
                         ->label(__('Pautan Majlis'))
                         ->url()
@@ -164,7 +164,7 @@ class EventContributionFormSchema
                     Select::make('gender')
                         ->label(__('Jantina'))
                         ->options(EventGenderRestriction::class)
-                        ->required(),
+                        ->required($enforceRequired),
                     Select::make('age_group')
                         ->label(__('Peringkat Umur'))
                         ->placeholder(__('Pilih peringkat umur'))
@@ -188,7 +188,7 @@ class EventContributionFormSchema
                                 $set('children_allowed', true);
                             }
                         })
-                        ->required(),
+                        ->required($enforceRequired),
                     Toggle::make('children_allowed')
                         ->label(__('Kanak-kanak Dibenarkan'))
                         ->helperText(__('Adakah ibu bapa boleh membawa anak kecil ke majlis ini?'))
@@ -389,10 +389,10 @@ class EventContributionFormSchema
                                     $get('primary_organizer_kind'),
                                     $get('primary_organizer_id'),
                                 ) === 'institution')
-                                ->required(fn (Get $get): bool => self::selectedPrimaryOrganizerKind(
+                                ->required($enforceRequired ? fn (Get $get): bool => self::selectedPrimaryOrganizerKind(
                                     $get('primary_organizer_kind'),
                                     $get('primary_organizer_id'),
-                                ) === 'institution' && ! filled($get('primary_organizer_id')))
+                                ) === 'institution' && ! filled($get('primary_organizer_id')) : false)
                                 ->live()
                                 ->afterStateUpdated(function (Set $set, Get $get, mixed $state): void {
                                     $set('primary_organizer_id', self::normalizedString($state));
@@ -417,10 +417,10 @@ class EventContributionFormSchema
                                     $get('primary_organizer_kind'),
                                     $get('primary_organizer_id'),
                                 ) === 'person')
-                                ->required(fn (Get $get): bool => self::selectedPrimaryOrganizerKind(
+                                ->required($enforceRequired ? fn (Get $get): bool => self::selectedPrimaryOrganizerKind(
                                     $get('primary_organizer_kind'),
                                     $get('primary_organizer_id'),
-                                ) === 'person' && ! filled($get('primary_organizer_id')))
+                                ) === 'person' && ! filled($get('primary_organizer_id')) : false)
                                 ->afterStateUpdated(function (mixed $state, Get $get, Set $set): void {
                                     $set('primary_organizer_id', self::normalizedString($state));
                                     $set('location_same_as_institution', false);
@@ -483,10 +483,10 @@ class EventContributionFormSchema
                                     self::selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')),
                                     $get('location_same_as_institution'),
                                 ))
-                                ->required(fn (Get $get): bool => self::requiresSeparateLocationChoice(
+                                ->required($enforceRequired ? fn (Get $get): bool => self::requiresSeparateLocationChoice(
                                     self::selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')),
                                     $get('location_same_as_institution'),
-                                ))
+                                ) : false)
                                 ->live()
                                 ->afterStateUpdated(function (Set $set, mixed $state): void {
                                     if ($state === 'venue') {
@@ -513,14 +513,14 @@ class EventContributionFormSchema
                                     $get('location_same_as_institution'),
                                     $get('location_type'),
                                 ) === 'institution')
-                                ->required(fn (Get $get): bool => self::requiresSeparateLocationChoice(
+                                ->required($enforceRequired ? fn (Get $get): bool => self::requiresSeparateLocationChoice(
                                     self::selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')),
                                     $get('location_same_as_institution'),
                                 ) && self::resolvedLocationType(
                                     self::selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')),
                                     $get('location_same_as_institution'),
                                     $get('location_type'),
-                                ) === 'institution')
+                                ) === 'institution' : false)
                                 ->live()
                                 ->createOptionForm(InstitutionFormSchema::createOptionForm(includeLocationPicker: true))
                                 ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => InstitutionFormSchema::createOptionUsing($data, $schema)),
@@ -537,14 +537,14 @@ class EventContributionFormSchema
                                     $get('location_same_as_institution'),
                                     $get('location_type'),
                                 ) === 'venue')
-                                ->required(fn (Get $get): bool => self::requiresSeparateLocationChoice(
+                                ->required($enforceRequired ? fn (Get $get): bool => self::requiresSeparateLocationChoice(
                                     self::selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')),
                                     $get('location_same_as_institution'),
                                 ) && self::resolvedLocationType(
                                     self::selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')),
                                     $get('location_same_as_institution'),
                                     $get('location_type'),
-                                ) === 'venue')
+                                ) === 'venue' : false)
                                 ->createOptionForm(VenueFormSchema::createOptionForm(includeLocationPicker: true))
                                 ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => VenueFormSchema::createOptionUsing($data, $schema)),
                             Select::make('space_ids')
@@ -601,7 +601,7 @@ class EventContributionFormSchema
                         ->label(__('Pilih Penceramah'))
                         ->placeholder(__('Pilih Penceramah'))
                         ->options(fn (): array => self::personOptions())
-                        ->required(fn (Get $get): bool => self::requiresPersonsForCategories($get('event_category_ids')))
+                        ->required($enforceRequired ? fn (Get $get): bool => self::requiresPersonsForCategories($get('event_category_ids')) : false)
                         ->multiple()
                         ->closeOnSelect()
                         ->searchable()
@@ -619,7 +619,7 @@ class EventContributionFormSchema
                             Select::make('role_code')
                                 ->label(__('Peranan'))
                                 ->options(EventKeyPersonRole::nonSpeakerOptions())
-                                ->required(),
+                                ->required($enforceRequired),
                             Select::make('involveable_id')
                                 ->label(__('Pautkan Profil Penceramah'))
                                 ->options(fn (): array => self::personOptions())
@@ -635,7 +635,7 @@ class EventContributionFormSchema
                             Hidden::make('involveable_type'),
                             TextInput::make('display_name')
                                 ->label(__('Nama Paparan'))
-                                ->required(fn (Get $get): bool => blank($get('involveable_id')))
+                                ->required($enforceRequired ? fn (Get $get): bool => blank($get('involveable_id')) : false)
                                 ->disabled(fn (Get $get): bool => filled($get('involveable_id')))
                                 ->dehydrated(fn (Get $get): bool => blank($get('involveable_id')))
                                 ->helperText(__('Isi nama jika tiada profil penceramah dipautkan.'))
@@ -644,7 +644,7 @@ class EventContributionFormSchema
                                 ->label(__('Keterlihatan'))
                                 ->options(['public' => __('Awam'), 'private' => __('Peribadi')])
                                 ->default('public')
-                                ->required(),
+                                ->required($enforceRequired),
                             Textarea::make('notes')
                                 ->label(__('Nota Peranan'))
                                 ->rows(2)
@@ -658,18 +658,18 @@ class EventContributionFormSchema
         ];
     }
 
-    private static function timezoneField(?string $fixedTimezone): Component
+    private static function timezoneField(?string $fixedTimezone, bool $enforceRequired = true): Component
     {
         if (! is_string($fixedTimezone) || $fixedTimezone === '') {
             return TextInput::make('timezone')
                 ->label(__('Timezone'))
-                ->required()
+                ->required($enforceRequired)
                 ->maxLength(64);
         }
 
         return Hidden::make('timezone')
             ->default($fixedTimezone)
-            ->required()
+            ->required($enforceRequired)
             ->afterStateHydrated(static function (Hidden $component) use ($fixedTimezone): void {
                 $component->state($fixedTimezone);
             })
@@ -712,6 +712,7 @@ class EventContributionFormSchema
             ->toArray();
     }
 
+    /**
     /**
      * @return array<string, string>
      */

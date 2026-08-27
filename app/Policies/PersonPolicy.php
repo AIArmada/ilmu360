@@ -57,6 +57,11 @@ class PersonPolicy
             return true;
         }
 
+        // Owners, admins, and editors of the person record can update it directly.
+        if ($person->members()->whereKey($user->getKey())->wherePivotIn('role', ['owner', 'admin', 'editor'])->exists()) {
+            return true;
+        }
+
         return app(MemberPermissionGate::class)->canPerson($user, 'person.update', $person);
     }
 

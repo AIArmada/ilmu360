@@ -88,6 +88,38 @@ class ContributionRequestPresenter
         return $keys === [] ? '-' : implode(', ', $keys);
     }
 
+    public static function pendingMediaHtml(ContributionRequest $record): HtmlString
+    {
+        $staged = $record->getMedia('pending_media');
+
+        if ($staged->isEmpty()) {
+            return new HtmlString('<span class="text-gray-400">-</span>');
+        }
+
+        $grouped = $staged->groupBy(fn ($media): string => (string) $media->getCustomProperty('contribution_field', 'media'));
+
+        $html = '';
+
+        foreach ($grouped as $field => $medias) {
+            $label = Str::headline($field);
+
+            $html .= sprintf('<div class="mb-4"><div class="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-200">%s</div>', e($label));
+
+            foreach ($medias as $media) {
+                $url = $media->getUrl();
+                $html .= sprintf(
+                    '<img src="%s" alt="%s" style="height:96px;width:auto;border-radius:8px;margin:0 8px 8px 0;display:inline-block;object-fit:cover;" />',
+                    e($url),
+                    e($label),
+                );
+            }
+
+            $html .= '</div>';
+        }
+
+        return new HtmlString($html);
+    }
+
     public static function prettyJson(mixed $payload): HtmlString
     {
         if (is_string($payload) && $payload !== '') {

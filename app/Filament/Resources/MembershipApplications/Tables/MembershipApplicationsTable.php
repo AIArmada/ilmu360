@@ -18,10 +18,10 @@ use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
-use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\HtmlString;
 
 class MembershipApplicationsTable
 {
@@ -30,12 +30,10 @@ class MembershipApplicationsTable
         return $table
             ->defaultSort('created_at', 'desc')
             ->columns([
-                SpatieMediaLibraryImageColumn::make('evidence')
+                TextColumn::make('evidence')
                     ->label('Evidence')
-                    ->collection('evidence')
-                    ->conversion('thumb')
-                    ->square()
-                    ->size(52),
+                    ->html()
+                    ->state(fn (MembershipApplication $record): HtmlString => MembershipApplicationPresenter::evidencePreviewHtml($record, 12)),
                 TextColumn::make('subject_type')
                     ->label('Subject')
                     ->badge()

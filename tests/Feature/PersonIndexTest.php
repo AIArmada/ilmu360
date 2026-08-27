@@ -1,6 +1,7 @@
 <?php
 
 use AIArmada\Persons\Enums\AssignmentStatus;
+use AIArmada\Persons\Enums\Gender;
 use AIArmada\Persons\Enums\PersonNameType;
 use AIArmada\Persons\Models\PersonName;
 use AIArmada\Persons\Models\Title;
@@ -407,7 +408,7 @@ it('exposes directory status semantics and aligned loading skeleton markup', fun
         ->assertSee(__('Verified'))
         ->assertSee(trans_choice('upcoming majlis|upcoming majlis', 0), false)
         ->assertSee('motion-safe:animate-pulse', false)
-        ->assertSee('sm:aspect-[4/4.6]', false);
+        ->assertSee('sm:aspect-[3/4]', false);
 });
 
 it('translates the speaker directory heading for supported locales', function (string $locale, string $expectedHeading) {
@@ -775,6 +776,34 @@ it('counts only upcoming public events on the person index cards', function () {
         ->and((int) $listedPerson?->events_count)->toBe(1);
 });
 
+it('renders gender-aware placeholders for speakers without profile images', function (?Gender $gender, string $variant, ?string $asset) {
+    $person = Person::factory()->create([
+        'name' => 'No Image Speaker',
+        'gender' => $gender,
+        'status' => 'verified',
+    ]);
+
+    $response = get('/penceramah')
+        ->assertSuccessful()
+        ->assertSee($person->formatted_name)
+        ->assertSee('data-placeholder="speaker-image"', false)
+        ->assertSee('data-placeholder-variant="'.$variant.'"', false);
+
+    if ($asset !== null) {
+        $response
+            ->assertSee('src="'.asset($asset).'"', false)
+            ->assertSee('width="300"', false)
+            ->assertSee('height="400"', false);
+    } else {
+        $response->assertDontSee('src="'.asset('images/placeholders/person-male.png').'"', false)
+            ->assertDontSee('src="'.asset('images/placeholders/person-female.png').'"', false);
+    }
+})->with([
+    [Gender::Male, 'male', 'images/placeholders/person-male.png'],
+    [Gender::Female, 'female', 'images/placeholders/person-female.png'],
+    [null, 'neutral', null],
+]);
+
 it('renders profile-quality avatar URLs on the person index cards', function () {
     Storage::fake('public');
     config()->set('media-library.disk_name', 'public');
@@ -791,5 +820,6 @@ it('renders profile-quality avatar URLs on the person index cards', function () 
 
     get('/penceramah?search=kazim')
         ->assertSuccessful()
-        ->assertSee($person->public_main_url, false);
+        ->assertSee($person->public_main_url, false)
+        ->assertDontSee('data-placeholder="speaker-image"', false);
 });

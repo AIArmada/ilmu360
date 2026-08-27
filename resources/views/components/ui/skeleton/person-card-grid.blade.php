@@ -6,7 +6,7 @@
 <div {{ $attributes->class(['grid gap-5', $columns]) }} role="presentation" aria-hidden="true">
     @foreach(range(1, (int) $items) as $index)
         <div data-material="opaque-card" class="living-majlis-card motion-safe:animate-pulse flex min-h-[10rem] overflow-hidden rounded-[1.5rem] sm:block sm:min-h-0">
-            <div class="w-28 shrink-0 bg-gradient-to-br from-emerald-50 via-slate-50 to-gold-50 sm:aspect-[4/4.6] sm:w-full">
+            <div class="w-28 shrink-0 bg-gradient-to-br from-emerald-50 via-slate-50 to-gold-50 sm:aspect-[3/4] sm:w-full">
                 <div class="flex h-full items-start p-3">
                     <div class="h-5 w-16 rounded-full bg-emerald-100/80"></div>
                 </div>

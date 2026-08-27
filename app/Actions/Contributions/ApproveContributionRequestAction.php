@@ -114,6 +114,37 @@ class ApproveContributionRequestAction
         if ($entity instanceof Event && $dirtyBeforeSave !== []) {
             $this->moderationService->handleSensitiveChange($entity, $dirtyBeforeSave);
         }
+
+        if ($entity instanceof Event || $entity instanceof Institution || $entity instanceof Person) {
+            $this->applyStagedMedia($request, $entity);
+        }
+    }
+
+    /**
+     * Apply media that a non-privileged contributor staged on the pending request.
+     */
+    private function applyStagedMedia(ContributionRequest $request, Event|Institution|Person $entity): void
+    {
+        $staged = $request->getMedia('pending_media');
+
+        if ($staged->isEmpty()) {
+            return;
+        }
+
+        foreach ($staged as $media) {
+            $field = (string) $media->getCustomProperty('contribution_field', 'cover');
+            $isSingle = (bool) $media->getCustomProperty('is_single', true);
+
+            if ($isSingle) {
+                $entity->clearMediaCollection($field);
+            }
+
+            $entity->addMediaFromDisk($media->getPathRelativeToRoot(), $media->disk)
+                ->usingFileName($media->file_name)
+                ->toMediaCollection($field);
+
+            $media->delete();
+        }
     }
 
     /**

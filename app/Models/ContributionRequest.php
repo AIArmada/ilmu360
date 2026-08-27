@@ -13,11 +13,15 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Collections\MediaCollection;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
-class ContributionRequest extends Model implements AuditableContract
+class ContributionRequest extends Model implements AuditableContract, HasMedia
 {
     /** @use HasFactory<ContributionRequestFactory> */
-    use AuditsModelChanges, HasFactory, HasUuids;
+    use AuditsModelChanges, HasFactory, HasUuids, InteractsWithMedia;
 
     public $incrementing = false;
 
@@ -93,5 +97,18 @@ class ContributionRequest extends Model implements AuditableContract
     public function isPending(): bool
     {
         return $this->status === ContributionRequestStatus::Pending;
+    }
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('pending_media');
+    }
+
+    /**
+     * @return MediaCollection<int, Media>
+     */
+    public function getPendingMedia(): MediaCollection
+    {
+        return $this->getMedia('pending_media');
     }
 }

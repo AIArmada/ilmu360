@@ -25,6 +25,7 @@ use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
 use App\Support\Events\EventContributionUpdateStateMapper;
+use Closure;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
@@ -36,11 +37,16 @@ use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Database\Eloquent\Model;
+use League\Flysystem\UnableToCheckFileExistence;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
 use RuntimeException;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 #[Layout('layouts.app')]
 class SuggestUpdate extends Component implements HasActions, HasForms
@@ -63,6 +69,22 @@ class SuggestUpdate extends Component implements HasActions, HasForms
 
     /** @var list<string> */
     public array $directEditMediaFields = [];
+
+    /**
+     * Media UUIDs present on the entity when the form was mounted, used to detect
+     * newly uploaded media that must be staged for moderation.
+     *
+     * @var array<string, array<string, string>>
+     */
+    #[Locked]
+    public array $originalMediaUuids = [];
+
+    /**
+     * Visitors cannot apply media directly. Their uploads are held on a separate
+     * collection (not the displayed one) so the entity's existing media is never
+     * mutated or replaced until a reviewer approves the contribution.
+     */
+    private const VISITOR_MEDIA_HOLDING = 'contribution_staging';
 
     private ?bool $directEditPermission = null;
 
@@ -108,12 +130,14 @@ class SuggestUpdate extends Component implements HasActions, HasForms
 
             $canDirectEdit = $this->canDirectEdit();
 
-            $this->directEditMediaFields = $this->entity instanceof Person || $canDirectEdit
-                ? array_values(array_filter(
-                    $context['contract']['direct_edit_media_fields'] ?? [],
-                    static fn (string $field): bool => $field !== '',
-                ))
-                : [];
+            $this->directEditMediaFields = array_values(array_filter(
+                $context['contract']['direct_edit_media_fields'] ?? [],
+                static fn (string $field): bool => $field !== '',
+            ));
+
+            $this->originalMediaUuids = collect($this->directEditMediaFields)
+                ->mapWithKeys(fn (string $field): array => [$field => $this->currentDirectEditMediaState($field)])
+                ->all();
 
             if (! $user->canSubmitDirectoryFeedback()) {
                 abort(403, $user->directoryFeedbackBanMessage());
@@ -203,8 +227,9 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             $state = $this->normalizeSubmissionState($submissionState['state']);
             $changes = $resolveContributionChangedPayloadAction->handle($state, $this->originalData);
             $hasDirectEditMediaChange = $this->hasDirectEditMediaChange();
+            $hasNewMedia = $this->hasNewMedia();
 
-            if ($changes === [] && ! $hasDirectEditMediaChange) {
+            if ($changes === [] && ! $hasNewMedia && ! $hasDirectEditMediaChange) {
                 $this->addError('data', __('Make at least one change before continuing.'));
 
                 return;
@@ -224,24 +249,19 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 return;
             }
 
-            if ($hasDirectEditMediaChange) {
-                // Media uploads use the existing relationship save path. Ordinary
-                // profile fields still go through the pending contribution request.
-                $this->saveDirectEditMediaChanges();
-            }
-
-            if ($changes === []) {
-                $this->redirect($this->subjectPresentation['redirect_url'], navigate: true);
-
-                return;
-            }
-
-            $submitContributionUpdateRequestAction->handle(
+            $request = $submitContributionUpdateRequestAction->handle(
                 $this->entity,
                 $user,
                 $changes,
                 $submissionState['proposer_note'],
             );
+
+            if ($hasNewMedia) {
+                // Non-privileged contributors cannot apply media directly. Stage the
+                // uploaded media on the pending request so it is moderated like the
+                // rest of the proposed changes.
+                $this->stageDirectEditMediaChanges($request);
+            }
 
             $this->redirect(route('contributions.index'), navigate: true);
         });
@@ -272,7 +292,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
      */
     private function eventSubjectSchema(): array
     {
-        $components = EventContributionFormSchema::components($this->fixedEventTimezone());
+        $components = EventContributionFormSchema::components($this->fixedEventTimezone(), $this->canDirectEdit());
 
         if ($this->shouldShowDirectEditMediaSection()) {
             $components[] = $this->eventDirectEditMediaSection();
@@ -433,15 +453,27 @@ class SuggestUpdate extends Component implements HasActions, HasForms
 
     private function shouldShowDirectEditMediaSection(): bool
     {
-        return $this->directEditMediaFields !== [];
+        if ($this->directEditMediaFields === []) {
+            return false;
+        }
+
+        return true;
     }
 
     private function personDirectEditMediaSection(): Section
     {
         $components = [];
 
+        $configureVisitorMedia = function (SpatieMediaLibraryFileUpload $component): SpatieMediaLibraryFileUpload {
+            if (! $this->canDirectEdit()) {
+                $component->saveRelationshipsUsing($this->visitorMediaRelationshipSaver())->saveUploadedFileUsing($this->visitorMediaFileSaver())->deletable(false);
+            }
+
+            return $component;
+        };
+
         if (in_array('avatar', $this->directEditMediaFields, true)) {
-            $components[] = SpatieMediaLibraryFileUpload::make('avatar')
+            $components[] = $configureVisitorMedia(SpatieMediaLibraryFileUpload::make('avatar')
                 ->label(__('Profile avatar'))
                 ->collection('avatar')
                 ->image()
@@ -449,11 +481,11 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 ->circleCropper()
                 ->avatar()
                 ->conversion('thumb')
-                ->helperText(__('Use a clear square profile image for the main avatar, at least 400x400px.'));
+                ->helperText(__('Use a clear square profile image for the main avatar, at least 400x400px.')));
         }
 
         if (in_array('main', $this->directEditMediaFields, true)) {
-            $components[] = SpatieMediaLibraryFileUpload::make('main')
+            $components[] = $configureVisitorMedia(SpatieMediaLibraryFileUpload::make('main')
                 ->label(__('Main Photo'))
                 ->collection('main')
                 ->image()
@@ -464,11 +496,11 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 ->automaticallyCropImagesToAspectRatio()
                 ->responsiveImages()
                 ->conversion('thumb')
-                ->helperText(__('Primary speaker portrait for directory cards, using a 1:1 ratio.'));
+                ->helperText(__('Primary speaker portrait for directory cards, using a 1:1 ratio.')));
         }
 
         if (in_array('profile', $this->directEditMediaFields, true)) {
-            $components[] = SpatieMediaLibraryFileUpload::make('profile')
+            $components[] = $configureVisitorMedia(SpatieMediaLibraryFileUpload::make('profile')
                 ->label(__('Profile Photo'))
                 ->collection('profile')
                 ->image()
@@ -479,11 +511,11 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 ->automaticallyCropImagesToAspectRatio()
                 ->responsiveImages()
                 ->conversion('profile_thumb')
-                ->helperText(__('Vertical speaker portrait for the profile page, using a 3:4 ratio.'));
+                ->helperText(__('Vertical speaker portrait for the profile page, using a 3:4 ratio.')));
         }
 
         if (in_array('cover', $this->directEditMediaFields, true)) {
-            $components[] = SpatieMediaLibraryFileUpload::make('cover')
+            $components[] = $configureVisitorMedia(SpatieMediaLibraryFileUpload::make('cover')
                 ->label(__('Cover Image'))
                 ->collection('cover')
                 ->image()
@@ -494,11 +526,11 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 ->automaticallyCropImagesToAspectRatio()
                 ->responsiveImages()
                 ->conversion('banner')
-                ->helperText(__('Wide cover image for the speaker profile, using a 16:9 ratio.'));
+                ->helperText(__('Wide cover image for the speaker profile, using a 16:9 ratio.')));
         }
 
         if (in_array('gallery', $this->directEditMediaFields, true)) {
-            $components[] = SpatieMediaLibraryFileUpload::make('gallery')
+            $components[] = $configureVisitorMedia(SpatieMediaLibraryFileUpload::make('gallery')
                 ->label(__('Gallery'))
                 ->collection('gallery')
                 ->multiple()
@@ -506,7 +538,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 ->image()
                 ->responsiveImages()
                 ->conversion('gallery_thumb')
-                ->helperText(__('Additional photos related to the speaker.'));
+                ->helperText(__('Additional photos related to the speaker.')));
         }
 
         return Section::make(__('Profile Photo & Media'))
@@ -519,8 +551,16 @@ class SuggestUpdate extends Component implements HasActions, HasForms
     {
         $components = [];
 
+        $configureVisitorMedia = function (SpatieMediaLibraryFileUpload $component): SpatieMediaLibraryFileUpload {
+            if (! $this->canDirectEdit()) {
+                $component->saveRelationshipsUsing($this->visitorMediaRelationshipSaver())->saveUploadedFileUsing($this->visitorMediaFileSaver())->deletable(false);
+            }
+
+            return $component;
+        };
+
         if (in_array('cover', $this->directEditMediaFields, true)) {
-            $components[] = SpatieMediaLibraryFileUpload::make('cover')
+            $components[] = $configureVisitorMedia(SpatieMediaLibraryFileUpload::make('cover')
                 ->label(__('Gambar Cover Majlis'))
                 ->collection('cover')
                 ->image()
@@ -532,11 +572,11 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 ->conversion('thumb')
                 ->responsiveImages()
                 ->deletable(false)
-                ->helperText(__('Untuk paparan laman web dan aplikasi. Wajib 16:9, tanpa maklumat yang terlalu padat.'));
+                ->helperText(__('Untuk paparan laman web dan aplikasi. Wajib 16:9, tanpa maklumat yang terlalu padat.')));
         }
 
         if (in_array('poster', $this->directEditMediaFields, true)) {
-            $components[] = SpatieMediaLibraryFileUpload::make('poster')
+            $components[] = $configureVisitorMedia(SpatieMediaLibraryFileUpload::make('poster')
                 ->label(__('Poster Hebahan'))
                 ->collection('poster')
                 ->image()
@@ -549,11 +589,11 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 ->conversion('poster_thumb')
                 ->responsiveImages()
                 ->deletable(false)
-                ->helperText(__('Untuk hebahan WhatsApp, Instagram, Facebook, dan saluran luar. Wajib portrait 3:4 dan boleh mengandungi maklumat penuh.'));
+                ->helperText(__('Untuk hebahan WhatsApp, Instagram, Facebook, dan saluran luar. Wajib portrait 3:4 dan boleh mengandungi maklumat penuh.')));
         }
 
         if (in_array('gallery', $this->directEditMediaFields, true)) {
-            $components[] = SpatieMediaLibraryFileUpload::make('gallery')
+            $components[] = $configureVisitorMedia(SpatieMediaLibraryFileUpload::make('gallery')
                 ->label(__('Galeri'))
                 ->collection('gallery')
                 ->multiple()
@@ -563,7 +603,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 ->imageEditor()
                 ->conversion('gallery_thumb')
                 ->responsiveImages()
-                ->helperText(__('Gambar tambahan untuk galeri majlis.'));
+                ->helperText(__('Gambar tambahan untuk galeri majlis.')));
         }
 
         return Section::make(__('Media'))
@@ -574,6 +614,46 @@ class SuggestUpdate extends Component implements HasActions, HasForms
     private function hasDirectEditMediaChange(): bool
     {
         return array_any($this->directEditMediaFields, fn ($field) => $this->directEditMediaFieldChanged($field));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function newMediaUuids(string $field): array
+    {
+        if (! $this->entity instanceof Event && ! $this->entity instanceof Institution && ! $this->entity instanceof Person) {
+            return [];
+        }
+
+        $current = Media::query()
+            ->where('model_type', $this->entity->getMorphClass())
+            ->where('model_id', $this->entity->getKey())
+            ->where('collection_name', $field)
+            ->pluck('uuid')
+            ->all();
+
+        // Visitor uploads live on the holding collection, tagged with the target field,
+        // so they are detected as "new" without ever touching the displayed collection.
+        $staged = $this->entity
+            ->getMedia(self::VISITOR_MEDIA_HOLDING)
+            ->filter(static fn (Media $media): bool => ($media->custom_properties['contribution_field'] ?? null) === $field)
+            ->pluck('uuid')
+            ->all();
+
+        $original = array_keys($this->originalMediaUuids[$field] ?? []);
+
+        return array_values(array_unique([...array_diff($current, $original), ...$staged]));
+    }
+
+    private function hasNewMedia(): bool
+    {
+        foreach ($this->directEditMediaFields as $field) {
+            if ($this->newMediaUuids($field) !== []) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function directEditMediaFieldChanged(string $field): bool
@@ -630,6 +710,15 @@ class SuggestUpdate extends Component implements HasActions, HasForms
 
         $this->contributionForm()->model($this->entity)->saveRelationships();
 
+        // Direct editors (owners/managers) commit media changes immediately, including
+        // removals: any pre-existing entity media omitted from the submission is deleted.
+        // Visitors stage changes for review, so their originals must never be deleted
+        // here — only the newly uploaded media is staged (moved to pending_media), and
+        // the originals remain on the entity until a reviewer approves the request.
+        if (! $this->canDirectEdit()) {
+            return;
+        }
+
         foreach ($mediaIdsBeforeSave as $field => $mediaIds) {
             $mediaField = $this->directEditMediaField($field);
             if (! $mediaField instanceof SpatieMediaLibraryFileUpload) {
@@ -642,6 +731,94 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 ->filter(fn ($media): bool => isset($mediaIds[$media->uuid]) && ! in_array($media->uuid, $submittedIds, true))
                 ->each->delete();
         }
+    }
+
+    /**
+     * Move uploaded media from the entity onto the pending contribution request so
+     * it is applied only after a reviewer approves the request.
+     */
+    private function stageDirectEditMediaChanges(ContributionRequest $request): void
+    {
+        if (! $this->entity instanceof Event && ! $this->entity instanceof Institution && ! $this->entity instanceof Person) {
+            return;
+        }
+
+        foreach ($this->directEditMediaFields as $field) {
+            $newUuids = $this->newMediaUuids($field);
+
+            if ($newUuids === []) {
+                continue;
+            }
+
+            $newMedia = Media::query()->whereIn('uuid', $newUuids)->orderBy('order_column')->get();
+
+            foreach ($newMedia as $media) {
+                $request->addMediaFromDisk($media->getPathRelativeToRoot(), $media->disk)
+                    ->usingFileName($media->file_name)
+                    ->withCustomProperties([
+                        'contribution_field' => $field,
+                        'is_single' => $field !== 'gallery',
+                    ])
+                    ->toMediaCollection('pending_media');
+
+                $media->delete();
+            }
+        }
+    }
+
+    /**
+     * Visitor (non-direct-edit) uploads must never mutate the real entity's
+     * existing media. The default saver deletes "abandoned" files and a single-file
+     * collection replaces the previous media, either of which would destroy a
+     * pre-existing avatar/cover the moment a visitor uploads a replacement — if the
+     * request is later rejected the original is lost forever. This saver adds the
+     * upload but skips deleteAbandonedFiles(), and the file saver below diverts the
+     * upload to a holding collection so the displayed collection is untouched.
+     */
+    private function visitorMediaRelationshipSaver(): Closure
+    {
+        return static function (SpatieMediaLibraryFileUpload $component): void {
+            $component->saveUploadedFiles();
+        };
+    }
+
+    /**
+     * Saves a visitor upload to the holding collection (tagged with the target
+     * field) instead of the entity's displayed collection, so existing media is
+     * never replaced or deleted during the (unapproved) contribution.
+     */
+    private function visitorMediaFileSaver(): Closure
+    {
+        return function (SpatieMediaLibraryFileUpload $component, TemporaryUploadedFile $file, ?Model $record): ?string {
+            if ($record === null || ! method_exists($record, 'addMediaFromString')) {
+                return $file;
+            }
+
+            try {
+                if (! $file->exists()) {
+                    return null;
+                }
+            } catch (UnableToCheckFileExistence) {
+                return null;
+            }
+
+            /** @var Media $media */
+            $media = $record->addMediaFromString($file->get())
+                ->addCustomHeaders([['ContentType' => $file->getMimeType()], ...$component->getCustomHeaders()])
+                ->usingFileName($component->getUploadedFileNameForStorage($file))
+                ->usingName($component->getMediaName($file) ?? pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME))
+                ->storingConversionsOnDisk($component->getConversionsDisk() ?? '')
+                ->withCustomProperties(array_merge(
+                    $component->getCustomProperties($file),
+                    ['contribution_field' => $component->getCollection()],
+                ))
+                ->withManipulations($component->getManipulations())
+                ->withResponsiveImagesIf($component->hasResponsiveImages())
+                ->withProperties($component->getProperties())
+                ->toMediaCollection(self::VISITOR_MEDIA_HOLDING, $component->getDiskName());
+
+            return $media->getAttributeValue('uuid');
+        };
     }
 
     /**

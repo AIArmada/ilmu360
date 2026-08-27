@@ -32,6 +32,26 @@ use Ysfkaya\FilamentPhoneInput\Tables\PhoneColumn;
 class UserResource extends BaseUserResource
 {
     #[\Override]
+    protected static function hasAuthzDirectoryAccess(): bool
+    {
+        if (auth()->user()?->hasAnyRole(['super_admin', 'admin'])) {
+            return true;
+        }
+
+        return parent::hasAuthzDirectoryAccess();
+    }
+
+    #[\Override]
+    protected static function checkAbility(string $action): bool
+    {
+        if (auth()->user()?->hasAnyRole(['super_admin', 'admin'])) {
+            return true;
+        }
+
+        return parent::checkAbility($action);
+    }
+
+    #[\Override]
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([

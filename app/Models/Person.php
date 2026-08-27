@@ -46,6 +46,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property CarbonImmutable|null $rejected_at
  * @property string|null $verified_by
  * @property Carbon|null $updated_at
+ * @property SpeakerStatus $speaker_status
  */
 class Person extends \AIArmada\Persons\Models\Person implements AuditableContract, HasMedia
 {
@@ -137,7 +138,8 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
 
     public function shouldBeSearchable(): bool
     {
-        return in_array((string) $this->status, ['verified', 'pending'], true);
+        return in_array((string) $this->status, ['verified', 'pending'], true)
+            && $this->speaker_status === SpeakerStatus::Active;
     }
 
     public function searchIndexShouldBeUpdated(): bool
@@ -149,6 +151,7 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
             'slug',
             'status',
             'gender',
+            'speaker_status',
         ]);
     }
 
@@ -159,7 +162,8 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
     protected function makeAllSearchableUsing(Builder $query): Builder
     {
         return $query
-            ->whereIn('persons.status', ['verified', 'pending']);
+            ->whereIn('persons.status', ['verified', 'pending'])
+            ->where('persons.speaker_status', SpeakerStatus::Active->value);
     }
 
     /**
@@ -494,7 +498,7 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
     #[Scope]
     protected function speakers(Builder $query): void
     {
-        $query->whereNotNull('speaker_status');
+        $query->where('speaker_status', SpeakerStatus::Active->value);
     }
 
     /**

@@ -115,6 +115,18 @@ class ContributionRequestInfolist
                                             ->columnSpanFull(),
                                     ]),
                             ]),
+                        Tab::make('Proposed Media')
+                            ->icon('heroicon-m-photo')
+                            ->schema([
+                                Section::make('Staged Media (pending approval)')
+                                    ->schema([
+                                        TextEntry::make('pending_media')
+                                            ->label('')
+                                            ->state(fn (ContributionRequest $record) => ContributionRequestPresenter::pendingMediaHtml($record))
+                                            ->html()
+                                            ->columnSpanFull(),
+                                    ]),
+                            ]),
                     ]),
             ]);
     }

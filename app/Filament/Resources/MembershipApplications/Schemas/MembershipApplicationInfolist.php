@@ -2,15 +2,16 @@
 
 namespace App\Filament\Resources\MembershipApplications\Schemas;
 
+use App\Filament\Resources\Authz\UserResource;
 use App\Models\MembershipApplication;
 use App\Support\Membership\MembershipApplicationPresenter;
-use Filament\Infolists\Components\SpatieMediaLibraryImageEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
+use Illuminate\Support\HtmlString;
 
 class MembershipApplicationInfolist
 {
@@ -57,7 +58,11 @@ class MembershipApplicationInfolist
                                                     ->placeholder('-'),
                                                 TextEntry::make('applicant.name')
                                                     ->label('Applicant')
-                                                    ->placeholder('-'),
+                                                    ->placeholder('-')
+                                                    ->url(fn (MembershipApplication $record): ?string => $record->applicant
+                                                        ? UserResource::getUrl('view', ['record' => $record->applicant])
+                                                        : null)
+                                                    ->openUrlInNewTab(),
                                                 TextEntry::make('applicant.email')
                                                     ->label('Applicant Email')
                                                     ->placeholder('-'),
@@ -104,13 +109,10 @@ class MembershipApplicationInfolist
                             ->schema([
                                 Section::make('Evidence Files')
                                     ->schema([
-                                        SpatieMediaLibraryImageEntry::make('evidence')
+                                        TextEntry::make('evidence_preview')
                                             ->label('Evidence Preview')
-                                            ->collection('evidence')
-                                            ->conversion('thumb')
-                                            ->stacked()
-                                            ->limit(8)
-                                            ->limitedRemainingText(),
+                                            ->html()
+                                            ->state(fn (MembershipApplication $record): HtmlString => MembershipApplicationPresenter::evidencePreviewHtml($record, 16)),
                                         TextEntry::make('evidence_links')
                                             ->label('Files')
                                             ->state(fn (MembershipApplication $record) => MembershipApplicationPresenter::evidenceLinks($record))

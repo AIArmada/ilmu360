@@ -13,7 +13,9 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use UnitEnum;
 
 class MembershipApplicationResource extends Resource
@@ -26,7 +28,15 @@ class MembershipApplicationResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedIdentification;
 
-    protected static ?string $recordTitleAttribute = 'id';
+    #[\Override]
+    public static function getRecordTitle(?Model $record): string|Htmlable|null
+    {
+        if ($record === null) {
+            return null;
+        }
+
+        return $record->applicant?->name ?? (string) $record->getKey();
+    }
 
     protected static string|UnitEnum|null $navigationGroup = 'Moderation';
 

@@ -1,6 +1,7 @@
 <?php
 
 use AIArmada\Persons\Enums\AssignmentStatus;
+use AIArmada\Persons\Enums\Gender;
 use App\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
@@ -118,7 +119,7 @@ new
             return $this->applyDirectoryFilters(
                 Person::query()
                     ->speakers()
-                    ->where('status', 'verified'),
+                    ->whereIn('status', ['verified', 'pending']),
             )->with([
                 'media' => function (MorphMany $relation): void {
                     $relation->where('collection_name', 'profile');
@@ -596,14 +597,20 @@ new
                             class="living-majlis-card group relative flex min-h-[10rem] gap-0 overflow-hidden rounded-[1.5rem] transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-1.5 hover:border-emerald-300/80 hover:shadow-[0_22px_50px_-28px_rgba(6,78,59,0.40)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/15 focus-visible:ring-offset-2 sm:block sm:min-h-0"
                         >
                             <!-- Image area -->
-                            <div class="relative w-28 shrink-0 overflow-hidden bg-gradient-to-br from-[#faf5e8] via-[#eff5f1] to-[#dce9e2] sm:w-full sm:aspect-[4/4.6]">
-                                <!-- Dot pattern gives monograms a quiet directory texture. -->
+                            <div class="relative w-28 shrink-0 overflow-hidden bg-gradient-to-br from-[#faf5e8] via-[#eff5f1] to-[#dce9e2] sm:w-full sm:aspect-[3/4]">
+                                <!-- Directory texture keeps the placeholder art grounded. -->
                                 <div class="absolute inset-0 opacity-[0.15]" style="background-image: radial-gradient(circle at 1.5px 1.5px, rgba(7,91,72,.14) 1px, transparent 0); background-size: 16px 16px;"></div>
                                 @php
+                                    $gender = Gender::tryFrom((string) $person->getRawOriginal('gender'));
+                                    $placeholderImage = match ($gender) {
+                                        Gender::Female => asset('images/placeholders/person-female.png'),
+                                        Gender::Male => asset('images/placeholders/person-male.png'),
+                                        default => null,
+                                    };
                                     $initials = str($person->name)->explode(' ')
-                                        ->reject(fn(string $w): bool => in_array(strtolower($w), ['bin', 'binti', 'ibni', 'ibn', 'binte', 'abd', 'abdul', 'abu'], true))
+                                        ->reject(fn (string $word): bool => in_array(strtolower($word), ['bin', 'binti', 'ibni', 'ibn', 'binte', 'abd', 'abdul', 'abu'], true))
                                         ->take(2)
-                                        ->map(fn(string $w): string => str($w)->substr(0, 1)->upper())
+                                        ->map(fn (string $word): string => str($word)->substr(0, 1)->upper())
                                         ->implode('');
                                     $personState = $person->primaryAddress()?->state?->name;
                                 @endphp
@@ -614,26 +621,54 @@ new
                                         alt=""
                                         aria-hidden="true"
                                         class="relative h-full w-full object-cover object-top"
-                                        width="320"
-                                        height="368"
+                                        width="300"
+                                        height="400"
                                         loading="lazy"
                                     >
                                 @else
-                                    <div class="relative flex h-full w-full items-center justify-center">
-                                        <span class="font-heading text-[clamp(1.5rem,4vw,2.75rem)] font-bold tracking-tight text-emerald-800/30" aria-hidden="true">{{ $initials }}</span>
-                                    </div>
+                                    @if($placeholderImage !== null)
+                                        <img
+                                            src="{{ $placeholderImage }}"
+                                            alt=""
+                                            aria-hidden="true"
+                                            data-placeholder="speaker-image"
+                                            data-placeholder-variant="{{ $gender->value }}"
+                                            class="relative h-full w-full object-cover object-top"
+                                            width="300"
+                                            height="400"
+                                            loading="lazy"
+                                        >
+                                    @else
+                                        <div
+                                            data-placeholder="speaker-image"
+                                            data-placeholder-variant="neutral"
+                                            class="relative flex h-full w-full items-center justify-center"
+                                            aria-hidden="true"
+                                        >
+                                            <span class="font-heading text-[clamp(1.5rem,4vw,2.75rem)] font-bold tracking-tight text-emerald-800/30">{{ $initials }}</span>
+                                        </div>
+                                    @endif
                                 @endif
 
                                 <!-- Gradient fade at bottom -->
                                 <div class="absolute inset-x-0 bottom-0 hidden h-28 bg-gradient-to-t from-emerald-950/80 via-emerald-950/30 to-transparent sm:block"></div>
 
-                                <!-- Verified status -->
-                                <span class="absolute start-2.5 top-2.5 inline-flex items-center gap-1.5 rounded-full border border-white/70 bg-white/92 px-2.5 py-1 text-[10px] font-bold text-emerald-800 shadow-sm backdrop-blur sm:start-3 sm:top-3">
-                                    <svg class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.051l-7.5 9.75a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.897 3.896 6.976-9.07a.75.75 0 0 1 1.051-.142Z" clip-rule="evenodd" />
-                                    </svg>
-                                    {{ __('Verified') }}
-                                </span>
+                                <!-- Status badge -->
+                                @if((string) $person->status === 'verified')
+                                    <span class="absolute start-2.5 top-2.5 inline-flex items-center gap-1.5 rounded-full border border-white/70 bg-white/92 px-2.5 py-1 text-[10px] font-bold text-emerald-800 shadow-sm backdrop-blur sm:start-3 sm:top-3">
+                                        <svg class="h-3.5 w-3.5 text-emerald-700" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                            <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.051l-7.5 9.75a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.897 3.896 6.976-9.07a.75.75 0 0 1 1.051-.142Z" clip-rule="evenodd" />
+                                        </svg>
+                                        {{ __('Disahkan') }}
+                                    </span>
+                                @elseif((string) $person->status === 'pending')
+                                    <span class="absolute start-2.5 top-2.5 inline-flex items-center gap-1.5 rounded-full border border-amber-300/70 bg-amber-50/92 px-2.5 py-1 text-[10px] font-bold text-amber-800 shadow-sm backdrop-blur sm:start-3 sm:top-3">
+                                        <svg class="h-3.5 w-3.5 text-amber-600" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                            <path fill-rule="evenodd" d="M12 2.25a.75.75 0 0 1 .66.4l9 15.75a.75.75 0 0 1-.66 1.125H3a.75.75 0 0 1-.66-1.125l9-15.75a.75.75 0 0 1 .66-.4Zm0 6a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Zm0 7.5a.9.9 0 1 0 0 1.8.9.9 0 0 0 0-1.8Z" clip-rule="evenodd" />
+                                        </svg>
+                                        {{ __('Belum disahkan') }}
+                                    </span>
+                                @endif
 
                                 <!-- Arrow affordance -->
                                 <div class="absolute inset-x-3 bottom-3 hidden items-center justify-end gap-2 text-white sm:flex">

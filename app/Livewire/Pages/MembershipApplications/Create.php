@@ -19,7 +19,6 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -108,18 +107,27 @@ class Create extends Component implements HasForms
                                 MemberRole::Editor->value => 'Editor',
                             ])
                             ->required()
-                            ->live()
-                            ->afterStateUpdated(function (Set $set, ?string $state) use ($subjectType): void {
-                                if ($subjectType !== MemberSubjectType::Institution && $state === MemberRole::Owner->value) {
-                                    $set('relationship', 'self');
-                                }
-                            }),
+                            ->afterStateUpdatedJs(
+                                $subjectType !== MemberSubjectType::Institution
+                                    ? <<<'JS'
+                                        if ($state === 'owner') {
+                                            $set('relationship', 'self')
+                                        }
+                                    JS
+                                    : null
+                            ),
                         Select::make('relationship')
                             ->label('Hubungan anda dengan '.$this->context['subject_label'])
                             ->options(MembershipApplicationPresenter::relationshipOptions($subjectType))
                             ->required()
+                            ->native()
                             ->default($subjectType === MemberSubjectType::Institution ? null : 'self')
-                            ->disabled(fn (Get $get): bool => $subjectType !== MemberSubjectType::Institution && $get('applied_role') === MemberRole::Owner->value),
+                            ->disabled(fn (Get $get): bool => $subjectType !== MemberSubjectType::Institution && $get('applied_role') === MemberRole::Owner->value)
+                            ->extraInputAttributes(
+                                $subjectType !== MemberSubjectType::Institution
+                                    ? ['x-bind:disabled' => "\$get('applied_role') === 'owner'"]
+                                    : []
+                            ),
                         PhoneInput::make('phone')
                             ->label(__('Phone Number'))
                             ->initialCountry('MY')

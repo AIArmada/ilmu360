@@ -12,6 +12,7 @@ use AIArmada\Persons\Enums\AssignmentStatus;
 use App\Enums\DawahShareOutcomeType;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventVisibility;
+use App\Enums\SpeakerStatus;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\EventKeyPersonPivot;
@@ -72,7 +73,12 @@ class Show extends Component
     {
         $canBypassVisibility = auth()->user()?->hasAnyRole(['super_admin', 'moderator']) ?? false;
 
-        abort_unless($person->status === 'verified' || $canBypassVisibility, 404);
+        abort_unless(
+            ($canBypassVisibility
+                || (in_array((string) $person->status, ['verified', 'pending'], true)
+                    && $person->speaker_status === SpeakerStatus::Active)),
+            404
+        );
 
         $this->person = $person;
         $this->loadPersonRelations();

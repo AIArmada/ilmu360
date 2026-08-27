@@ -5,6 +5,8 @@ namespace App\Support\Membership;
 use AIArmada\Membership\Enums\ApplicationStatus;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Enums\MemberSubjectType;
+use App\Filament\Resources\Institutions\InstitutionResource;
+use App\Filament\Resources\Persons\PersonResource;
 use App\Models\Institution;
 use App\Models\MembershipApplication;
 use App\Models\Person;
@@ -158,6 +160,49 @@ class MembershipApplicationPresenter
         return new HtmlString($links);
     }
 
+    public static function evidencePreviewHtml(MembershipApplication $claim, int $size = 14): HtmlString
+    {
+        $media = $claim->getMedia('evidence');
+
+        if ($media->isEmpty()) {
+            return new HtmlString('<span class="text-sm text-gray-400">-</span>');
+        }
+
+        $items = $media->map(function (Media $media) use ($size): string {
+            $url = $media->getUrl();
+            $name = e($media->name !== '' ? $media->name : $media->file_name);
+            $px = $size * 4;
+            $style = "height:{$px}px;width:{$px}px";
+
+            if (str_starts_with((string) $media->mime_type, 'image/')) {
+                $thumb = $media->getAvailableUrl(['thumb']) ?: $url;
+
+                return sprintf(
+                    '<a href="%s" target="_blank" rel="noreferrer"><img src="%s" alt="%s" style="%s" class="rounded-lg object-cover"></a>',
+                    e($url),
+                    e($thumb),
+                    $name,
+                    $style,
+                );
+            }
+
+            return sprintf(
+                '<a href="%s" target="_blank" rel="noreferrer" title="%s" style="%s" class="flex items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-gray-500">%s</a>',
+                e($url),
+                $name,
+                $style,
+                self::fileIconSvg(),
+            );
+        })->implode('');
+
+        return new HtmlString('<div class="flex flex-wrap gap-2">'.$items.'</div>');
+    }
+
+    protected static function fileIconSvg(): string
+    {
+        return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-6 w-6"><path d="M19.5 21a3 3 0 0 0 3-3V9a3 3 0 0 0-3-3h-4.5a3 3 0 0 1-3-3V3.4a1.5 1.5 0 0 0-1.5-1.5H5.6A1.5 1.5 0 0 0 4 3.4v15.1a3 3 0 0 0 3 3h12.5Z" opacity=".3"/><path d="M19.5 21a3 3 0 0 0 3-3V9a3 3 0 0 0-3-3h-4.5a3 3 0 0 1-3-3V3.4a1.5 1.5 0 0 0-1.5-1.5H5.6A1.5 1.5 0 0 0 4 3.4v15.1a3 3 0 0 0 3 3h12.5Z"/></svg>';
+    }
+
     /**
      * @return array{subject_label: string, subject_title: string, redirect_url: string, admin_url: string}|null
      */
@@ -190,7 +235,9 @@ class MembershipApplicationPresenter
             'subject_label' => $label,
             'subject_title' => $title,
             'redirect_url' => $redirectUrl,
-            'admin_url' => '',
+            'admin_url' => $subject instanceof Institution
+                ? InstitutionResource::getUrl('view', ['record' => $subject])
+                : PersonResource::getUrl('view', ['record' => $subject]),
         ];
     }
 }
