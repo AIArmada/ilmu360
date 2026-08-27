@@ -17,6 +17,7 @@ use App\Models\Event;
 use App\Models\MemberInvitation;
 use App\Models\User;
 use App\Notifications\Membership\MemberInvitationNotification;
+use App\Support\Api\Member\MemberResourceRegistry;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 
@@ -144,6 +145,45 @@ it('creates a free organization event with a ticket type', function (): void {
         expect($event->pricing_mode->value)->toBe('free')
             ->and($event->primaryOccurrence?->ticketTypes()->first()?->price)->toBe(0);
     });
+});
+
+it('lets an organization member create a managed event draft', function (): void {
+    $owner = User::factory()->create();
+    $member = User::factory()->create();
+    $admin = User::factory()->create();
+    $organization = CreateOrganizationAction::make()->handle($owner, ['name' => 'Member Event Workspace']);
+    addTestMember($organization, $member, MemberRole::Viewer);
+    addTestMember($organization, $admin, MemberRole::Admin);
+    $category = eventCategoryId('lain_lain');
+
+    Livewire::actingAs($member)
+        ->test(CreateEvent::class, ['organization' => $organization])
+        ->set('form.title', 'Viewer Created Draft')
+        ->set('form.event_category_ids', [$category])
+        ->set('form.pricing_mode', 'free')
+        ->set('form.tickets.0.quota', '25')
+        ->call('submit')
+        ->assertRedirect(route('dashboard.organizations.show', $organization));
+
+    OwnerContext::withOwner($organization, function () use ($organization, $member, $admin): void {
+        $event = Event::query()->where('owner_id', $organization->getKey())->where('title', 'Viewer Created Draft')->firstOrFail();
+
+        expect($event->created_by_id)->toBe($member->getKey())
+            ->and($event->primaryOccurrence?->capacity)->toBe(25)
+            ->and($admin->can('update', $event))->toBeTrue()
+            ->and($member->can('update', $event))->toBeTrue();
+    });
+
+    $this->actingAs($admin);
+    $eventResource = app(MemberResourceRegistry::class)->resolve('events');
+    $memberEventIds = app(MemberResourceRegistry::class)
+        ->queryFor((string) $eventResource)
+        ->pluck('events.id')
+        ->all();
+
+    expect($memberEventIds)->toContain(
+        Event::query()->where('title', 'Viewer Created Draft')->value('id'),
+    );
 });
 
 it('creates paid assigned-seat ticketing with an owner-scoped seat map', function (): void {

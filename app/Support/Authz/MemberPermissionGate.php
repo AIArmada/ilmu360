@@ -2,6 +2,7 @@
 
 namespace App\Support\Authz;
 
+use AIArmada\Organizations\Models\Organization;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
@@ -24,6 +25,7 @@ final readonly class MemberPermissionGate
 
     private const array PERMISSION_THRESHOLD = [
         'view' => 10,
+        'create' => 10,
         'update' => 80,
         'delete' => 100,
         'manage-members' => 80,
@@ -41,6 +43,11 @@ final readonly class MemberPermissionGate
     public function canPerson(User $user, string $permission, Person $person): bool
     {
         return $this->memberCan($person, $user, $permission);
+    }
+
+    public function canOrganization(User $user, string $permission, Organization $organization): bool
+    {
+        return $this->memberCan($organization, $user, $permission);
     }
 
     public function canEvent(User $user, string $permission, Event $event): bool
@@ -84,6 +91,11 @@ final readonly class MemberPermissionGate
     public function hasAnyPersonPermission(User $user, string $permission): bool
     {
         return $this->hasAnyMembershipWithPermission($user->persons(), $permission);
+    }
+
+    public function hasAnyOrganizationPermission(User $user, string $permission): bool
+    {
+        return $this->hasAnyMembershipWithPermission($user->organizations(), $permission);
     }
 
     public function hasAnyReferencePermission(User $user, string $permission): bool

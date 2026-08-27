@@ -46,7 +46,7 @@ it('defaults the driver selections and starts with sensible downstream values', 
     expect($component->instance()->data)
         ->toMatchArray([
             'event_category_ids' => eventCategoryId('kuliah_ceramah'),
-            'domain_tags' => adaptiveSubmitEventTopicId('agama_kerohanian'),
+            'domain_tags' => adaptiveSubmitEventTopicId('agama-kerohanian'),
             'event_format' => EventFormat::Physical->value,
             'visibility' => 'public',
             'gender' => 'all',
@@ -80,7 +80,7 @@ it('hides religion-specific questions and clears stale audience state outside re
 
     $component = Livewire::test(Create::class)
         ->set('data.event_category_ids', [eventCategoryId('aktiviti_keagamaan')])
-        ->set('data.domain_tags', [adaptiveSubmitEventTopicId('agama_kerohanian')])
+        ->set('data.domain_tags', [adaptiveSubmitEventTopicId('agama-kerohanian')])
         ->set('data.is_muslim_only', true)
         ->set('data.event_category_ids', [eventCategoryId('kelas_kursus')])
         ->set('data.domain_tags', [adaptiveSubmitEventTopicId('pendidikan')]);
@@ -103,7 +103,7 @@ it('shows the topic and reference step only for the religious topic', function (
         ->assertSchemaComponentVisible($stepKey)
         ->set('data.domain_tags', adaptiveSubmitEventTopicId('pendidikan'))
         ->assertSchemaComponentHidden($stepKey)
-        ->set('data.domain_tags', adaptiveSubmitEventTopicId('agama_kerohanian'))
+        ->set('data.domain_tags', adaptiveSubmitEventTopicId('agama-kerohanian'))
         ->assertSchemaComponentVisible($stepKey);
 });
 
@@ -118,7 +118,7 @@ it('hydrates single-select taxonomy defaults when duplicating an event', functio
         'starts_at' => now()->addDays(3),
     ]);
     $categoryId = eventCategoryId('kuliah_ceramah');
-    $topicId = adaptiveSubmitEventTopicId('agama_kerohanian');
+    $topicId = adaptiveSubmitEventTopicId('agama-kerohanian');
 
     app(SyncEventClassificationsAction::class)->handle($sourceEvent, [
         'event_category_ids' => [$categoryId],
@@ -141,7 +141,7 @@ it('preserves a user-entered custom time when the context becomes religious', fu
         ->set('data.domain_tags', [adaptiveSubmitEventTopicId('pendidikan')])
         ->set('data.custom_time', '20:00')
         ->set('data.event_category_ids', [eventCategoryId('aktiviti_keagamaan')])
-        ->set('data.domain_tags', [adaptiveSubmitEventTopicId('agama_kerohanian')]);
+        ->set('data.domain_tags', [adaptiveSubmitEventTopicId('agama-kerohanian')]);
 
     $component
         ->assertSet('data.prayer_time', EventPrayerTime::LainWaktu->value)
@@ -206,7 +206,7 @@ it('adds custom time to the required progress fields only when selected', functi
 
     $component = Livewire::test(Create::class)
         ->set('data.event_category_ids', eventCategoryId('aktiviti_keagamaan'))
-        ->set('data.domain_tags', adaptiveSubmitEventTopicId('agama_kerohanian'))
+        ->set('data.domain_tags', adaptiveSubmitEventTopicId('agama-kerohanian'))
         ->set('data.prayer_time', EventPrayerTime::SelepasMaghrib->value)
         ->set('data.custom_time', null);
 

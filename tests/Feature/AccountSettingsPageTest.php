@@ -64,6 +64,23 @@ it('places the password fields side by side on desktop', function () {
         });
 });
 
+it('does not let the browser prefill the password fields', function () {
+    $user = User::factory()->create();
+
+    Livewire::actingAs($user)
+        ->test(AccountSettings::class)
+        ->assertFormFieldExists('password', function (TextInput $input): bool {
+            expect($input->getAutocomplete())->toBe('new-password');
+
+            return true;
+        })
+        ->assertFormFieldExists('password_confirmation', function (TextInput $input): bool {
+            expect($input->getAutocomplete())->toBe('new-password');
+
+            return true;
+        });
+});
+
 it('renders the account settings profile tab in Malay with password labels and no helper callouts', function () {
     $user = User::factory()->create();
 
@@ -74,6 +91,7 @@ it('renders the account settings profile tab in Malay with password labels and n
         ->assertSee('Tetapan Akaun')
         ->assertSee('Kata laluan baharu')
         ->assertSee('Sahkan kata laluan')
+        ->assertSee('wire:target')
         ->assertDontSee('Jika e-mel atau nombor telefon diubah, status pengesahannya akan ditetapkan semula sehingga disahkan semula.')
         ->assertDontSee('Pilihan institusi solat adalah peribadi dan buat masa ini hanya disimpan pada akaun anda.')
         ->assertDontSee('API Access');
@@ -146,6 +164,8 @@ it('updates account settings and resets verification when contact details change
         ->set('formData.email', 'updated@example.test')
         ->set('formData.phone', '+60122222222')
         ->set('formData.timezone', 'Asia/Jakarta')
+        ->set('formData.gender', 'female')
+        ->set('formData.date_of_birth', '1990-05-15')
         ->call('saveAccountSettings')
         ->assertHasNoErrors();
 
@@ -155,6 +175,8 @@ it('updates account settings and resets verification when contact details change
         ->and($user->email)->toBe('updated@example.test')
         ->and($user->phone)->toBe('+60122222222')
         ->and($user->timezone)->toBe('Asia/Jakarta')
+        ->and($user->gender)->toBe('female')
+        ->and($user->date_of_birth?->format('Y-m-d'))->toBe('1990-05-15')
         ->and($user->email_verified_at)->toBeNull()
         ->and($user->phone_verified_at)->toBeNull();
 
@@ -189,6 +211,17 @@ it('updates account settings and resets verification when contact details change
     expect($notificationState['settings']['timezone'])->toBe('Asia/Jakarta');
 
     Notification::assertSentTo($user->fresh(), VerifyEmailNotification::class);
+});
+
+it('shows a Filament flash notification after saving account settings', function () {
+    $user = User::factory()->create();
+
+    Livewire::actingAs($user)
+        ->test(AccountSettings::class)
+        ->set('formData.name', $user->name)
+        ->set('formData.email', $user->email)
+        ->call('saveAccountSettings')
+        ->assertNotified();
 });
 
 it('updates the account password when the confirmation matches', function () {
@@ -512,4 +545,17 @@ it('allows stale saved prayer institution preferences to remain while saving unr
     expect($user->name)->toBe('Updated Name')
         ->and($user->daily_prayer_institution_id)->toBe($institution->id)
         ->and($user->friday_prayer_institution_id)->toBe($institution->id);
+});
+
+it('renders gender and date of birth fields in Malay', function () {
+    $user = User::factory()->create();
+
+    $this->withSession(['locale' => 'ms'])
+        ->actingAs($user)
+        ->get(route('dashboard.account-settings'))
+        ->assertOk()
+        ->assertSee('Jantina')
+        ->assertSee('Tarikh Lahir')
+        ->assertSee('Lelaki')
+        ->assertSee('Perempuan');
 });

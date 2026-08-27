@@ -7,31 +7,31 @@ namespace Database\Seeders\AIArmada;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use App\Enums\EventTaxonomyCode;
-use App\Enums\TaxonomyTerm\DomainTermCode;
+use App\Enums\TaxonomyTerm\IssueTermCode;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
-final class EventTopicSeeder extends Seeder
+final class EventIssueSeeder extends Seeder
 {
     public function run(): void
     {
         DB::transaction(function (): void {
             $taxonomy = EventTaxonomy::query()->updateOrCreate(
-                ['code' => EventTaxonomyCode::Domain->value],
+                ['code' => EventTaxonomyCode::Issue->value],
                 [
-                    'name' => 'Event Topics',
-                    'description' => 'Broad optional topics for events.',
+                    'name' => 'Event Issues',
+                    'description' => 'Contemporary themes and topics for events.',
                     'is_hierarchical' => false,
                     'is_active' => true,
                 ],
             );
 
-            $topicCodes = array_map(static fn (DomainTermCode $term): string => $term->value, DomainTermCode::cases());
+            $issueCodes = array_map(static fn (IssueTermCode $term): string => $term->value, IssueTermCode::cases());
             $existingTerms = EventTerm::query()
                 ->where('event_taxonomy_id', $taxonomy->getKey())
                 ->get(['id', 'code']);
             $staleTermIds = $existingTerms
-                ->reject(fn (EventTerm $term): bool => in_array($term->code, $topicCodes, true))
+                ->reject(fn (EventTerm $term): bool => in_array($term->code, $issueCodes, true))
                 ->pluck('id');
 
             if ($staleTermIds->isNotEmpty()) {
@@ -40,7 +40,7 @@ final class EventTopicSeeder extends Seeder
 
             $termOrder = 0;
 
-            foreach (DomainTermCode::cases() as $term) {
+            foreach (IssueTermCode::cases() as $term) {
                 EventTerm::query()->updateOrCreate(
                     ['event_taxonomy_id' => $taxonomy->getKey(), 'code' => $term->value],
                     [

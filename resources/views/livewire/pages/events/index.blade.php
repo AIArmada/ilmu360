@@ -40,6 +40,43 @@
                 text-transform: uppercase;
                 color: rgb(100 116 139);
             }
+
+            .mi-search-form .fi-fo-field-wrp {
+                margin: 0;
+            }
+
+            .mi-search-form .fi-input-wrp {
+                border-radius: 1rem;
+                background: white;
+                box-shadow: 0 18px 45px -28px rgb(15 23 42 / 0.55);
+            }
+
+            .mi-search-form .fi-input {
+                min-height: 4rem;
+                border-radius: 1rem;
+                padding-right: 6rem;
+                font-size: 1rem;
+                font-weight: 500;
+            }
+
+            .mi-sort-form .fi-fo-field-wrp {
+                margin: 0;
+            }
+
+            .mi-sort-form .fi-input-wrp {
+                border: 0;
+                background: transparent;
+                box-shadow: none;
+            }
+
+            .mi-sort-form .fi-input {
+                border: 0;
+                background: transparent;
+                padding-top: 0;
+                padding-bottom: 0;
+                font-weight: 700;
+                box-shadow: none;
+            }
         </style>
     @endpush
 @endonce
@@ -92,12 +129,29 @@
     $selectedEventCategories = array_values(array_filter((array) $this->event_category_ids));
     $selectedEventFormats = array_values(array_filter((array) $this->event_format));
     $selectedLanguageCodes = array_values(array_filter((array) $this->language_codes));
-    $selectedPersonInChargeOptions = $this->personOptionLabels($selectedPersonInChargeIds);
-    $selectedPersonInChargeLabels = collect($selectedPersonInChargeIds)
-        ->map(fn (string $personId): ?string => $selectedPersonInChargeOptions[$personId] ?? null)
+    $selectedPersonLabelIds = collect([
+        $selectedPersonIds,
+        $selectedPersonInChargeIds,
+        $selectedModeratorIds,
+        $selectedImamIds,
+        $selectedKhatibIds,
+        $selectedBilalIds,
+    ])->flatten()
         ->filter()
-        ->values();
-    $eventCategoryLabels = app(\App\Contracts\EventCategoryCatalog::class)->options();
+        ->map(fn (mixed $personId): string => (string) $personId)
+        ->unique()
+        ->values()
+        ->all();
+    $personLabels = $this->personOptionLabels($selectedPersonLabelIds);
+    $referenceLabels = $this->referenceOptionLabels($selectedReferenceIds);
+    $referenceAuthorLabels = $this->referenceAuthorOptionLabels($this->reference_author_search);
+    $keyPersonRoleLabels = \App\Enums\EventKeyPersonRole::nonSpeakerOptions();
+    $searchScopeLabels = collect([
+        $this->search_include_institutions ? __('Institusi') : null,
+        $this->search_include_persons ? __('Penceramah') : null,
+        $this->search_include_references ? __('Rujukan') : null,
+    ])->filter()->values()->all();
+    $eventCategoryLabels = $this->eventCategoryOptions;
     $eventFormatLabels = collect(\App\Enums\EventFormat::cases())
         ->mapWithKeys(fn (\App\Enums\EventFormat $format): array => [$format->value => $format->getLabel()])
         ->all();
@@ -107,18 +161,14 @@
     $genderLabels = collect(\App\Enums\EventGenderRestriction::cases())
         ->mapWithKeys(fn (\App\Enums\EventGenderRestriction $restriction): array => [$restriction->value => $restriction->getLabel()])
         ->all();
+    $domainLabels = $this->termOptionLabels('domain', $selectedDomainTagIds);
+    $disciplineLabels = $this->termOptionLabels('discipline', $selectedDisciplineTagIds);
+    $sourceLabels = $this->termOptionLabels('source', $selectedSourceTagIds);
+    $issueLabels = $this->termOptionLabels('issue', $selectedIssueTagIds);
+    $institutionLabel = filled($institutionId) ? $this->institutionOptionLabel((string) $institutionId) : null;
+    $venueLabel = filled($venueId) ? $this->venueOptionLabel((string) $venueId) : null;
     $prayerTimeLabel = \App\Enums\EventPrayerTime::tryFrom((string) $prayerTime)?->getLabel() ?? $prayerTime;
     $timingModeLabel = \App\Enums\TimingMode::tryFrom((string) $timingMode)?->label();
-    $todayQuery = [
-        'starts_after' => now()->toDateString(),
-        'starts_before' => now()->toDateString(),
-        'time_scope' => 'all',
-    ];
-    $weekendQuery = [
-        'starts_after' => now()->next(\Carbon\CarbonInterface::SATURDAY)->toDateString(),
-        'starts_before' => now()->next(\Carbon\CarbonInterface::SUNDAY)->toDateString(),
-        'time_scope' => 'all',
-    ];
     $activeFilterCount = collect([
         filled($search),
         filled($countryId),
@@ -150,6 +200,7 @@
         count($selectedSourceTagIds) > 0,
         count($selectedIssueTagIds) > 0,
         count($selectedReferenceIds) > 0,
+        count($this->reference_author_search) > 0,
         filled($startsAfter),
         filled($startsBefore),
         filled($prayerTime),
@@ -161,6 +212,9 @@
         $this->has_end_time !== null,
         $timeScope !== 'upcoming',
         filled($lat),
+        ! $this->search_include_institutions,
+        ! $this->search_include_persons,
+        ! $this->search_include_references,
     ])->filter()->count();
     $hasActiveFilters = $activeFilterCount > 0;
     $savedSearchQuery = array_filter([
@@ -203,8 +257,12 @@
         'lat' => filled($lat) && filled($lng) ? $lat : null,
         'lng' => filled($lat) && filled($lng) ? $lng : null,
         'radius_km' => filled($lat) && filled($lng) ? $this->radius_km : null,
-        'sort' => $sort,
-        'time_scope' => $this->time_scope,
+        'sort' => $sort !== 'time' ? $sort : null,
+        'time_scope' => $timeScope !== 'upcoming' ? $timeScope : null,
+        'search_include_institutions' => $this->search_include_institutions ? null : false,
+        'search_include_persons' => $this->search_include_persons ? null : false,
+        'search_include_references' => $this->search_include_references ? null : false,
+        'reference_author_search' => $this->reference_author_search,
     ], function (mixed $value): bool {
         if (is_array($value)) {
             return $value !== [];
@@ -212,6 +270,16 @@
 
         return $value !== null && $value !== '';
     });
+    $todayQuery = array_replace($savedSearchQuery, [
+        'starts_after' => now()->toDateString(),
+        'starts_before' => now()->toDateString(),
+        'time_scope' => 'all',
+    ]);
+    $weekendQuery = array_replace($savedSearchQuery, [
+        'starts_after' => now()->next(\Carbon\CarbonInterface::SATURDAY)->toDateString(),
+        'starts_before' => now()->next(\Carbon\CarbonInterface::SUNDAY)->toDateString(),
+        'time_scope' => 'all',
+    ]);
     $searchShareUrl = $hasActiveFilters ? route('events.index', $savedSearchQuery) : null;
     $searchShareText = __('Explore these ilmu360° search results on :app', ['app' => config('app.name')]);
     $searchShareData = $searchShareUrl !== null
@@ -455,20 +523,8 @@
                     data-signal-control="filter_form"
                     data-signal-props='@json(['surface' => 'events_index'])'
                     class="mt-8 max-w-3xl">
-                    <div class="relative">
-                        <label for="event-search" class="sr-only">{{ __('Search events') }}</label>
-                        <input
-                            type="text"
-                            id="event-search"
-                            wire:model.live.debounce.300ms="filterData.search"
-                            wire:keydown.escape="clearSearch"
-                            data-signal-control="search"
-                            data-signal-include-value="true"
-                            placeholder="{{ __('Cari tajuk, ustaz, masjid, topik...') }}"
-                            class="h-16 w-full rounded-2xl border border-slate-200 bg-white pl-14 pr-24 text-base font-medium text-slate-900 shadow-[0_18px_45px_-28px_rgba(15,23,42,0.55)] outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10">
-                        <svg class="pointer-events-none absolute left-5 top-1/2 h-6 w-6 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-                        </svg>
+                    <div class="mi-search-form relative">
+                        {{ $this->searchForm }}
                         @if(filled($search))
                             <button type="button" wire:click="clearSearch"
                                 data-signal-event="search.cleared"
@@ -481,21 +537,6 @@
                         @endif
                     </div>
 
-                    <div class="mt-4 flex flex-wrap items-center gap-3">
-                        <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{{ __('Cari dalam') }}</span>
-                        <label class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600">
-                            <input type="checkbox" wire:model.live="search_include_institutions" class="size-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-500">
-                            {{ __('Institusi') }}
-                        </label>
-                        <label class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600">
-                            <input type="checkbox" wire:model.live="search_include_persons" class="size-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-500">
-                            {{ __('Penceramah') }}
-                        </label>
-                        <label class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600">
-                            <input type="checkbox" wire:model.live="search_include_references" class="size-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-500">
-                            {{ __('Rujukan') }}
-                        </label>
-                    </div>
                 </form>
             </div>
         </div>
@@ -505,7 +546,7 @@
         <form wire:submit.prevent class="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)] 2xl:grid-cols-[20rem_minmax(0,1fr)]">
             <aside class="h-fit rounded-2xl border border-amber-100/80 bg-white/95 p-4 shadow-[0_20px_50px_-35px_rgba(15,23,42,0.55)] lg:sticky lg:top-24">
                 <div wire:loading.delay.short
-                    wire:target="filterData,setLocation,clearLocation,clearAllFilters,setSort,toggleSave"
+                    wire:target="filterData,setLocation,clearLocation,clearAllFilters,toggleSave"
                     class="mb-4 inline-flex items-center gap-2 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
                     <svg class="size-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke-width="4"></circle>
@@ -549,102 +590,6 @@
 
                         <div x-show="locationNotice" x-cloak x-text="locationNotice" class="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold leading-5 text-amber-800"></div>
 
-                        <div class="mt-4 space-y-3">
-                            <label class="block">
-                                <span class="mb-1.5 block text-xs font-semibold text-slate-600">{{ __('Country') }}</span>
-                                <select wire:model.live="filterData.country_id" data-signal-control="country_id" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10">
-                                    <option value="">{{ __('Any Country') }}</option>
-                                    @foreach($countries as $country)
-                                        <option value="{{ $country->id }}">{{ $country->name }}</option>
-                                    @endforeach
-                                </select>
-                            </label>
-
-                            <label class="block">
-                                <span class="mb-1.5 block text-xs font-semibold text-slate-600">{{ __('Negeri') }}</span>
-                                <select wire:model.live="filterData.state_id" data-signal-control="state_id" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10">
-                                    <option value="">{{ __('Pilih negeri') }}</option>
-                                    @foreach($states as $state)
-                                        <option value="{{ $state->id }}">{{ $state->name }}</option>
-                                    @endforeach
-                                </select>
-                            </label>
-
-                            <label class="block">
-                                <span class="mb-1.5 block text-xs font-semibold text-slate-600">{{ __('City') }}</span>
-                                <select wire:model.live="filterData.city_id" data-signal-control="city_id" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10" @disabled(! filled($countryId))>
-                                    <option value="">{{ __('Any City') }}</option>
-                                    @foreach($cities as $city)
-                                        <option value="{{ $city->id }}">{{ $city->name }}</option>
-                                    @endforeach
-                                </select>
-                            </label>
-
-                            @if($divisions->isNotEmpty())
-                                <label class="block">
-                                    <span class="mb-1.5 block text-xs font-semibold text-slate-600">{{ __('Division / Bahagian') }}</span>
-                                    <select wire:model.live="filterData.area_assignments.administrative_division" data-signal-control="area_assignments.administrative_division" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10">
-                                        <option value="">{{ __('Any Division') }}</option>
-                                        @foreach($divisions as $division)
-                                            <option value="{{ $division->id }}">{{ $division->name }}</option>
-                                        @endforeach
-                                    </select>
-                                </label>
-                            @endif
-
-                            @if($postalLocalities->isNotEmpty())
-                                <label class="block">
-                                    <span class="mb-1.5 block text-xs font-semibold text-slate-600">{{ __('Locality / Kampung') }}</span>
-                                    <select wire:model.live="filterData.area_assignments.postal_locality" data-signal-control="area_assignments.postal_locality" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10">
-                                        <option value="">{{ __('Any Locality') }}</option>
-                                        @foreach($postalLocalities as $locality)
-                                            <option value="{{ $locality->id }}">{{ $locality->name }}</option>
-                                        @endforeach
-                                    </select>
-                                </label>
-                            @endif
-
-                            @if($districts->isNotEmpty())
-                                <label class="block">
-                                    <span class="mb-1.5 block text-xs font-semibold text-slate-600">{{ __('Daerah') }}</span>
-                                    <select wire:model.live="filterData.area_assignments.administrative_district" data-signal-control="area_assignments.administrative_district" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10">
-                                        <option value="">{{ __('Pilih daerah') }}</option>
-                                        @foreach($districts as $district)
-                                            <option value="{{ $district->id }}">{{ $district->name }}</option>
-                                        @endforeach
-                                    </select>
-                                </label>
-                            @endif
-
-                            @if($subdistricts->isNotEmpty())
-                                <label class="block">
-                                    <span class="mb-1.5 block text-xs font-semibold text-slate-600">{{ __('Bandar / Mukim / Zon') }}</span>
-                                    <select wire:model.live="filterData.area_assignments.administrative_subdivision" data-signal-control="area_assignments.administrative_subdivision" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10">
-                                        <option value="">{{ __('Semua kawasan') }}</option>
-                                        @foreach($subdistricts as $subdistrict)
-                                            <option value="{{ $subdistrict->id }}">{{ $subdistrict->name }}</option>
-                                        @endforeach
-                                    </select>
-                                </label>
-                            @endif
-
-                            @if($lat)
-                                <label
-                                    data-testid="nearby-radius-inline"
-                                    x-cloak
-                                    x-bind:hidden="! geolocationPermitted"
-                                    @if(! $showsGeolocationControls)
-                                        hidden
-                                    @endif
-                                    class="block">
-                                    <span class="mb-1.5 flex items-center justify-between text-xs font-semibold text-slate-600">
-                                        <span>{{ __('Radius') }}</span>
-                                        <span>{{ $this->radius_km }} km</span>
-                                    </span>
-                                    <input type="range" min="1" max="1000" step="1" wire:model.live.debounce.500ms="filterData.radius_km" data-signal-control="radius_km" class="w-full accent-emerald-700">
-                                </label>
-                            @endif
-                        </div>
                     </section>
 
                     <section class="py-4">
@@ -657,57 +602,6 @@
                         <div class="mt-3 grid grid-cols-2 gap-2">
                             <a href="{{ route('events.index', $todayQuery) }}" wire:navigate class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-center text-xs font-semibold text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50">{{ __('Hari ini') }}</a>
                             <a href="{{ route('events.index', $weekendQuery) }}" wire:navigate class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-center text-xs font-semibold text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50">{{ __('Hujung minggu') }}</a>
-                        </div>
-                        <div class="mt-3 space-y-3">
-                            <label class="block">
-                                <span class="mb-1.5 block text-xs font-semibold text-slate-600">{{ __('Dari') }}</span>
-                                <input type="date" wire:model.live="filterData.starts_after" data-signal-control="starts_after" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10">
-                            </label>
-                            <label class="block">
-                                <span class="mb-1.5 block text-xs font-semibold text-slate-600">{{ __('Hingga') }}</span>
-                                <input type="date" wire:model.live="filterData.starts_before" data-signal-control="starts_before" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10">
-                            </label>
-                        </div>
-                    </section>
-
-                    <section class="py-4">
-                        <h2 class="font-heading text-base font-bold text-emerald-950">{{ __('Jenis majlis') }}</h2>
-                        <div class="mt-3">
-                            @php $eventCategoryTree = app(\App\Contracts\EventCategoryCatalog::class)->tree(); @endphp
-                            <select multiple wire:model.live="filterData.event_category_ids" size="8" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10">
-                                @foreach($eventCategoryTree as $root)
-                                    <optgroup label="{{ $root['name'] }}">
-                                        <option value="{{ $root['id'] }}">{{ $root['name'] }}</option>
-                                        @foreach($root['children'] as $child)
-                                            <option value="{{ $child['id'] }}">{{ $child['name'] }}</option>
-                                        @endforeach
-                                    </optgroup>
-                                @endforeach
-                            </select>
-                        </div>
-                    </section>
-
-                    <section class="py-4">
-                        <h2 class="font-heading text-base font-bold text-emerald-950">{{ __('Bahasa') }}</h2>
-                        <div class="mt-3 flex flex-wrap gap-2">
-                            @foreach($languageOptions as $languageCode => $languageLabel)
-                                <label class="inline-flex cursor-pointer items-center rounded-xl border px-3 py-2 text-xs font-semibold transition {{ in_array($languageCode, $selectedLanguageCodes, true) ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-200' }}">
-                                    <input type="checkbox" wire:model.live="filterData.language_codes" value="{{ $languageCode }}" class="sr-only">
-                                    {{ $languageCode === 'ms' ? 'BM' : strtoupper((string) $languageCode) }}
-                                </label>
-                            @endforeach
-                        </div>
-                    </section>
-
-                    <section class="py-4">
-                        <h2 class="font-heading text-base font-bold text-emerald-950">{{ __('Format') }}</h2>
-                        <div class="mt-3 grid grid-cols-3 gap-2">
-                            @foreach(\App\Enums\EventFormat::cases() as $formatOption)
-                                <label class="inline-flex min-h-10 cursor-pointer items-center justify-center rounded-xl border px-2 text-center text-xs font-semibold transition {{ in_array($formatOption->value, $selectedEventFormats, true) ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-200' }}">
-                                    <input type="checkbox" wire:model.live="filterData.event_format" value="{{ $formatOption->value }}" class="sr-only">
-                                    {{ $formatOption->getLabel() }}
-                                </label>
-                            @endforeach
                         </div>
                     </section>
 
@@ -726,9 +620,7 @@
                                 class="text-xs font-semibold text-amber-700 transition hover:text-amber-800">
                                 {{ __('Set semula semua') }}
                             </button>
-                            <button type="submit" class="rounded-xl bg-emerald-800 px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-900">
-                                {{ __('Terapkan penapis') }}
-                            </button>
+                            <span class="text-right text-[11px] font-medium leading-4 text-slate-400">{{ __('Keputusan dikemas kini secara automatik.') }}</span>
                         </div>
                     </section>
                 </div>
@@ -773,79 +665,119 @@
                                 </span>
                             </div>
 
-                            <label class="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600">
+                            <div class="mi-sort-form inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600"
+                                data-signal-category="filter"
+                                data-signal-component="events_index_toolbar"
+                                data-signal-control="sort">
                                 <span>{{ __('Susun:') }}</span>
-                                <select wire:model.live="filterData.sort"
-                                    data-signal-change-event="filter.sort_changed"
-                                    data-signal-category="filter"
-                                    data-signal-component="events_index_toolbar"
-                                    data-signal-control="sort"
-                                    class="border-0 bg-transparent py-0 pl-0 pr-7 text-sm font-bold text-slate-800 focus:ring-0">
-                                    <option value="time">{{ __('Terbaru') }}</option>
-                                    <option value="relevance">{{ __('Relevance') }}</option>
-                                    @if($lat)
-                                        <option value="distance">{{ __('Distance') }}</option>
-                                    @endif
-                                </select>
-                            </label>
+                                {{ $this->sortForm }}
+                            </div>
                         </div>
                     </div>
 
                     @if($hasActiveFilters)
                         <div class="mt-5 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-4">
                             @if($search)
-                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">"{{ $search }}"</span>
+                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Carian') }}: "{{ $search }}"</span>
+                            @endif
+                            @if(count($searchScopeLabels) < 3)
+                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Cari dalam') }}: {{ implode(', ', $searchScopeLabels) ?: __('Tiada') }}</span>
                             @endif
                             @if($lat)
                                 <span class="inline-flex items-center gap-1 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800">{{ __('Dekat saya') }} · {{ $this->radius_km }} km</span>
                             @endif
                             @if($countryId)
-                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ $countries->firstWhere('id', $countryId)?->name ?? __('Country') }}</span>
+                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Negara') }}: {{ $countries->firstWhere('id', $countryId)?->name ?? $countryId }}</span>
                             @endif
                             @if($stateId)
-                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ $states->firstWhere('id', $stateId)?->name ?? __('State') }}</span>
+                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Negeri') }}: {{ $states->firstWhere('id', $stateId)?->name ?? $stateId }}</span>
                             @endif
                             @if($this->city_id)
-                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ $cities->firstWhere('id', $this->city_id)?->name ?? __('City') }}</span>
+                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Bandar') }}: {{ $cities->firstWhere('id', $this->city_id)?->name ?? $this->city_id }}</span>
                             @endif
                             @if($areaAssignments['administrative_division'] ?? null)
-                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ $divisions->firstWhere('id', $areaAssignments['administrative_division'])?->name ?? __('Division / Bahagian') }}</span>
+                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Bahagian') }}: {{ $divisions->firstWhere('id', $areaAssignments['administrative_division'])?->name ?? $areaAssignments['administrative_division'] }}</span>
                             @endif
                             @if($areaAssignments['postal_locality'] ?? null)
-                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ $postalLocalities->firstWhere('id', $areaAssignments['postal_locality'])?->name ?? __('Locality / Kampung') }}</span>
+                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Lokaliti / Kampung') }}: {{ $postalLocalities->firstWhere('id', $areaAssignments['postal_locality'])?->name ?? $areaAssignments['postal_locality'] }}</span>
                             @endif
                             @if($districtAreaId)
-                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ $districts->firstWhere('id', $districtAreaId)?->name ?? __('District') }}</span>
+                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Daerah') }}: {{ $districts->firstWhere('id', $districtAreaId)?->name ?? $districtAreaId }}</span>
                             @endif
                             @if($subdivisionAreaId)
-                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ $subdistricts->firstWhere('id', $subdivisionAreaId)?->name ?? __('Subdistrict / Local Area') }}</span>
+                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Bandar / Mukim / Zon') }}: {{ $subdistricts->firstWhere('id', $subdivisionAreaId)?->name ?? $subdivisionAreaId }}</span>
+                            @endif
+                            @if($institutionId)
+                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Institusi') }}: {{ $institutionLabel ?? $institutionId }}</span>
+                            @endif
+                            @if($venueId)
+                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Tempat') }}: {{ $venueLabel ?? $venueId }}</span>
                             @endif
                             @foreach($selectedEventCategories as $categoryId)
-                                <span class="inline-flex items-center rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800">{{ $eventCategoryLabels[$categoryId] ?? $categoryId }}</span>
+                                <span class="inline-flex items-center rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800">{{ __('Jenis majlis') }}: {{ $eventCategoryLabels[$categoryId] ?? $categoryId }}</span>
                             @endforeach
                             @foreach($selectedEventFormats as $eventFormat)
-                                <span class="inline-flex items-center rounded-full border border-sky-100 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-800">{{ $eventFormatLabels[$eventFormat] ?? str((string) $eventFormat)->headline() }}</span>
+                                <span class="inline-flex items-center rounded-full border border-sky-100 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-800">{{ __('Format') }}: {{ $eventFormatLabels[$eventFormat] ?? str((string) $eventFormat)->headline() }}</span>
                             @endforeach
                             @foreach($selectedLanguageCodes as $languageCode)
-                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ $languageOptions[$languageCode] ?? strtoupper((string) $languageCode) }}</span>
+                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Bahasa') }}: {{ $languageOptions[$languageCode] ?? strtoupper((string) $languageCode) }}</span>
+                            @endforeach
+                            @foreach($selectedPersonIds as $personId)
+                                <span class="inline-flex items-center rounded-full border border-orange-100 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-800">{{ __('Penceramah') }}: {{ $personLabels[(string) $personId] ?? $personId }}</span>
+                            @endforeach
+                            @foreach($selectedKeyPersonRoles as $role)
+                                <span class="inline-flex items-center rounded-full border border-orange-100 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-800">{{ __('Peranan Lain Dalam Majlis') }}: {{ $keyPersonRoleLabels[$role] ?? $role }}</span>
+                            @endforeach
+                            @foreach($selectedDomainTagIds as $domainTagId)
+                                <span class="inline-flex items-center rounded-full border border-violet-100 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-800">{{ __('Topik / bidang') }}: {{ $domainLabels[$domainTagId] ?? $domainTagId }}</span>
                             @endforeach
                             @foreach($selectedDisciplineTagIds as $disciplineTagId)
-                                <span class="inline-flex items-center rounded-full border border-violet-100 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-800">{{ __('Bidang Ilmu') }}: {{ $this->termOptionLabels('discipline', [$disciplineTagId])[$disciplineTagId] ?? $disciplineTagId }}</span>
+                                <span class="inline-flex items-center rounded-full border border-violet-100 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-800">{{ __('Topik lebih khusus') }}: {{ $disciplineLabels[$disciplineTagId] ?? $disciplineTagId }}</span>
+                            @endforeach
+                            @foreach($selectedSourceTagIds as $sourceTagId)
+                                <span class="inline-flex items-center rounded-full border border-violet-100 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-800">{{ __('Sumber Rujukan Utama') }}: {{ $sourceLabels[$sourceTagId] ?? $sourceTagId }}</span>
+                            @endforeach
+                            @foreach($selectedIssueTagIds as $issueTagId)
+                                <span class="inline-flex items-center rounded-full border border-violet-100 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-800">{{ __('Tema / Isu') }}: {{ $issueLabels[$issueTagId] ?? $issueTagId }}</span>
+                            @endforeach
+                            @foreach($selectedReferenceIds as $referenceId)
+                                <span class="inline-flex items-center rounded-full border border-violet-100 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-800">{{ __('Rujukan Kitab/Buku') }}: {{ $referenceLabels[$referenceId] ?? $referenceId }}</span>
+                            @endforeach
+                            @foreach($this->reference_author_search as $referenceAuthor)
+                                <span class="inline-flex items-center rounded-full border border-violet-100 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-800">{{ __('Pengarang Rujukan') }}: {{ $referenceAuthorLabels[$referenceAuthor] ?? $referenceAuthor }}</span>
                             @endforeach
                             @if($gender)
-                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ $genderLabels[$gender] ?? str((string) $gender)->replace('_', ' ')->headline() }}</span>
+                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Jantina') }}: {{ $genderLabels[$gender] ?? str((string) $gender)->replace('_', ' ')->headline() }}</span>
                             @endif
                             @foreach($selectedAgeGroups as $ageGroup)
-                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ $ageGroupLabels[$ageGroup] ?? str((string) $ageGroup)->replace('_', ' ')->headline() }}</span>
+                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Kumpulan umur') }}: {{ $ageGroupLabels[$ageGroup] ?? str((string) $ageGroup)->replace('_', ' ')->headline() }}</span>
                             @endforeach
+                            @if($childrenAllowed !== null)
+                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Kanak-kanak Dibenarkan Hadir') }}: {{ $childrenAllowed ? __('Ya') : __('Tidak') }}</span>
+                            @endif
+                            @if($isMuslimOnly !== null)
+                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Muslim Sahaja') }}: {{ $isMuslimOnly ? __('Ya') : __('Tidak') }}</span>
+                            @endif
                             @if($prayerTime)
-                                <span class="inline-flex items-center rounded-full border border-amber-100 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800">{{ $prayerTimeLabel }}</span>
+                                <span class="inline-flex items-center rounded-full border border-amber-100 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800">{{ __('Waktu solat') }}: {{ $prayerTimeLabel }}</span>
                             @endif
                             @if($timingModeLabel)
-                                <span class="inline-flex items-center rounded-full border border-amber-100 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800">{{ $timingModeLabel }}</span>
+                                <span class="inline-flex items-center rounded-full border border-amber-100 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800">{{ __('Mod masa') }}: {{ $timingModeLabel }}</span>
                             @endif
-                            @foreach($selectedPersonInChargeLabels as $personInChargeLabel)
-                                <span class="inline-flex items-center rounded-full border border-orange-100 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-800">{{ __('PIC / Penyelaras') }}: {{ $personInChargeLabel }}</span>
+                            @foreach($selectedPersonInChargeIds as $personInChargeId)
+                                <span class="inline-flex items-center rounded-full border border-orange-100 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-800">{{ __('PIC / Penyelaras') }}: {{ $personLabels[(string) $personInChargeId] ?? $personInChargeId }}</span>
+                            @endforeach
+                            @foreach($selectedModeratorIds as $moderatorId)
+                                <span class="inline-flex items-center rounded-full border border-orange-100 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-800">{{ __('Moderator') }}: {{ $personLabels[(string) $moderatorId] ?? $moderatorId }}</span>
+                            @endforeach
+                            @foreach($selectedImamIds as $imamId)
+                                <span class="inline-flex items-center rounded-full border border-orange-100 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-800">{{ __('Imam') }}: {{ $personLabels[(string) $imamId] ?? $imamId }}</span>
+                            @endforeach
+                            @foreach($selectedKhatibIds as $khatibId)
+                                <span class="inline-flex items-center rounded-full border border-orange-100 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-800">{{ __('Khatib') }}: {{ $personLabels[(string) $khatibId] ?? $khatibId }}</span>
+                            @endforeach
+                            @foreach($selectedBilalIds as $bilalId)
+                                <span class="inline-flex items-center rounded-full border border-orange-100 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-800">{{ __('Bilal') }}: {{ $personLabels[(string) $bilalId] ?? $bilalId }}</span>
                             @endforeach
                             @if($personInChargeSearch)
                                 <span class="inline-flex items-center rounded-full border border-orange-100 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-800">{{ __('Nama PIC / Penyelaras') }}: {{ $personInChargeSearch }}</span>
@@ -926,7 +858,7 @@
                         $savedEventIds = $this->savedEventIds;
                         $showPendingStatusNote = $events->contains(fn (\App\Data\PublicScheduleLeaf $leaf): bool => $leaf->event->status instanceof \App\States\EventStatus\Pending);
                         $showCancelledStatusNote = $events->contains(fn (\App\Data\PublicScheduleLeaf $leaf): bool => $leaf->event->status instanceof \App\States\EventStatus\Cancelled);
-                        $eventLoadingTarget = 'filterData,setLocation,clearLocation,clearAllFilters,setSort,toggleSave,gotoPage,setPage';
+                        $eventLoadingTarget = 'filterData,setLocation,clearLocation,clearAllFilters,toggleSave,gotoPage,setPage';
                     @endphp
 
                 <div class="mt-5 min-h-[42rem]" wire:transition="event-results">

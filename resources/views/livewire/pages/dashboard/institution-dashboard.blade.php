@@ -98,6 +98,9 @@
     $institutionSubmitUrl = $selectedInstitution !== null && $canUseSelectedInstitutionForScopedSubmission
         ? route('dashboard.institutions.submit-event', ['institution' => $selectedInstitution->id])
         : null;
+    $institutionAdvancedUrl = $selectedInstitution !== null && $canUseSelectedInstitutionForScopedSubmission
+        ? route('dashboard.events.create-advanced', ['institution' => $selectedInstitution->id])
+        : null;
     $institutionDashboardUrl = $selectedInstitution !== null
         ? route('dashboard.institutions', ['institution' => $selectedInstitution->id])
         : route('dashboard.institutions');
@@ -235,6 +238,23 @@
                                     >
                                         <x-filament::icon icon="heroicon-o-plus-circle" class="h-5 w-5" />
                                         {{ __('Add Event') }}
+                                    </a>
+                                @endif
+
+                                @if($institutionAdvancedUrl)
+                                    <a
+                                        href="{{ $institutionAdvancedUrl }}"
+                                        wire:navigate
+                                        data-signal-event="navigation.institution_advanced_event_create_started"
+                                        data-signal-category="navigation"
+                                        data-signal-component="institution_dashboard"
+                                        data-signal-control="create_advanced_event"
+                                        data-signal-entity-type="institution"
+                                        data-signal-entity-id="{{ $selectedInstitution->id }}"
+                                        class="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-white/90 px-4 text-sm font-semibold text-emerald-800 shadow-sm transition hover:bg-emerald-50"
+                                    >
+                                        <x-filament::icon icon="heroicon-o-ticket" class="h-5 w-5" />
+                                        {{ __('Advanced event setup') }}
                                     </a>
                                 @endif
 

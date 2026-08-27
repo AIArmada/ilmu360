@@ -288,18 +288,20 @@ class SharedFormSchema
                     Select::make('platform')
                         ->label(__('Platform'))
                         ->required()
-                        ->options(SocialPlatform::options())
+                        ->options(self::translatedOptions(SocialPlatform::options()))
                         ->searchable()
                         ->live(),
                     TextInput::make('label')
                         ->label(__('Label'))
                         ->maxLength(255)
+                        ->helperText(__('Optional name shown alongside this link.'))
                         ->placeholder(__('Main page, Official channel')),
                 ]),
                 TextInput::make('handle')
                     ->label(__('Handle'))
                     ->required()
                     ->maxLength(255)
+                    ->helperText(__('Enter the username or full profile link.'))
                     ->placeholder(__('username / https://...'))
                     ->live(onBlur: true)
                     ->afterStateUpdated(function (Get $get, Set $set, ?string $state): void {
@@ -385,13 +387,13 @@ class SharedFormSchema
             ->schema([
                 Select::make('type')
                     ->label(__('Type'))
-                    ->options(ContactMethodType::options())
+                    ->options(self::translatedOptions(ContactMethodType::options()))
                     ->required()
                     ->live(),
                 ...self::contactValueFields(),
                 Select::make('purpose')
                     ->label(__('Purpose'))
-                    ->options(ContactPurpose::options())
+                    ->options(self::translatedOptions(ContactPurpose::options()))
                     ->default(ContactPurpose::General->value)
                     ->required(),
                 Grid::make(2)->schema([
@@ -404,6 +406,7 @@ class SharedFormSchema
                 ])->columnSpanFull(),
             ])
             ->columns(4)
+            ->addActionLabel(__('Add contact details'))
             ->mutateRelationshipDataBeforeFillUsing(fn (array $data): array => self::normalizeContactRowsForFill($data))
             ->mutateRelationshipDataBeforeCreateUsing(fn (array $data): array => self::normalizeContactRowsForSave($data))
             ->mutateRelationshipDataBeforeSaveUsing(fn (array $data): array => self::normalizeContactRowsForSave($data));
@@ -1403,6 +1406,7 @@ class SharedFormSchema
                 ->live()
                 ->required($requireCountryField)
                 ->default($defaultCountryId)
+                ->disablePlaceholderSelection($requireCountryField)
                 ->afterStateUpdatedJs(self::countryCascadeResetScript())
                 ->native(false),
         ];
@@ -1634,7 +1638,22 @@ class SharedFormSchema
 
         $level = self::profileLevelForRole($countryId, $role);
 
-        return $level instanceof AddressLevelDefinition ? $level->label : $fallback;
+        return $level instanceof AddressLevelDefinition ? __($level->label) : $fallback;
+    }
+
+    /**
+     * @param  array<int|string, string>  $options
+     * @return array<string, string>
+     */
+    private static function translatedOptions(array $options): array
+    {
+        $translated = [];
+
+        foreach ($options as $value => $label) {
+            $translated[(string) $value] = __($label);
+        }
+
+        return $translated;
     }
 
     public static function locationLevelLabel(

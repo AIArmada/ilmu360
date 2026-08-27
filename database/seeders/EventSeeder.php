@@ -24,6 +24,10 @@ use App\Enums\EventTaxonomyCode;
 use App\Enums\EventVisibility;
 use App\Enums\PrayerOffset;
 use App\Enums\PrayerReference;
+use App\Enums\TaxonomyTerm\DisciplineTermCode;
+use App\Enums\TaxonomyTerm\DomainTermCode;
+use App\Enums\TaxonomyTerm\IssueTermCode;
+use App\Enums\TaxonomyTerm\SourceTermCode;
 use App\Enums\TimingMode;
 use App\Models\Event;
 use App\Models\Institution;
@@ -667,9 +671,9 @@ class EventSeeder extends Seeder
     {
         $haystack = mb_strtolower(trim($title.' '.($topic ?? '')));
 
-        $domainSlug = 'agama_kerohanian';
-        $disciplineSlug = 'hadith_studies';
-        $sourceSlug = 'hadith';
+        $domainSlug = DomainTermCode::AgamaKerohanian->value;
+        $disciplineSlug = DisciplineTermCode::IlmuHadith->value;
+        $sourceSlug = SourceTermCode::Hadith->value;
         $issueSlug = null;
 
         if (
@@ -678,32 +682,36 @@ class EventSeeder extends Seeder
             str_contains($haystack, 'qur\'an') ||
             str_contains($haystack, 'tadabbur')
         ) {
-            $disciplineSlug = str_contains($haystack, 'tadabbur') ? 'tadabbur' : 'tafsir';
-            $sourceSlug = 'quran';
+            $disciplineSlug = str_contains($haystack, 'tadabbur')
+                ? DisciplineTermCode::Tadabbur->value
+                : DisciplineTermCode::Tafsir->value;
+            $sourceSlug = SourceTermCode::AlQuran->value;
         } elseif (
             str_contains($haystack, 'adab') ||
             str_contains($haystack, 'akhlak') ||
             str_contains($haystack, 'tazkiyah') ||
             str_contains($haystack, 'hikam')
         ) {
-            $disciplineSlug = str_contains($haystack, 'tazkiyah') ? 'tazkiyah' : 'adab_akhlaq';
-            $sourceSlug = 'turath';
+            $disciplineSlug = str_contains($haystack, 'tazkiyah')
+                ? DisciplineTermCode::Tazkiyah->value
+                : DisciplineTermCode::Akhlak->value;
+            $sourceSlug = SourceTermCode::Kajian->value;
         } elseif (str_contains($haystack, 'sirah')) {
-            $disciplineSlug = 'sirah';
-            $sourceSlug = 'hadith';
-            $issueSlug = 'kepimpinan';
+            $disciplineSlug = DisciplineTermCode::Sirah->value;
+            $sourceSlug = SourceTermCode::Hadith->value;
+            $issueSlug = IssueTermCode::Kepimpinan->value;
         } elseif (
             str_contains($haystack, 'fiqh') ||
             str_contains($haystack, 'solat') ||
             str_contains($haystack, 'zakat') ||
             str_contains($haystack, 'puasa')
         ) {
-            $disciplineSlug = 'ibadah';
-            $sourceSlug = 'hadith';
+            $disciplineSlug = DisciplineTermCode::Ibadah->value;
+            $sourceSlug = SourceTermCode::Hadith->value;
         }
 
         if (str_contains($haystack, 'keluarga') || str_contains($haystack, 'keibubapaan')) {
-            $issueSlug = 'keluarga';
+            $issueSlug = IssueTermCode::Keluarga->value;
         }
 
         $payload = [
@@ -814,9 +822,9 @@ class EventSeeder extends Seeder
                     }
 
                     app(SyncEventClassificationsAction::class)->handle($event, [
-                        'domain_tags' => ['agama_kerohanian'],
-                        'discipline_tags' => ['hadith_studies'],
-                        'source_tags' => ['hadith'],
+                        'domain_tags' => [DomainTermCode::AgamaKerohanian->value],
+                        'discipline_tags' => [DisciplineTermCode::IlmuHadith->value],
+                        'source_tags' => [SourceTermCode::Hadith->value],
                     ]);
                 }
             });

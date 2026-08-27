@@ -1,13 +1,10 @@
 <?php
 
-use AIArmada\Addressing\Support\AddressCountryResolver;
 use AIArmada\Persons\Enums\AssignmentStatus;
 use App\Enums\EventVisibility;
-use App\Forms\SharedFormSchema;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\Person;
-use App\Support\Cache\SelectionCatalogCache;
 use App\Support\Search\PersonSearchService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
 use Illuminate\Database\Eloquent\Builder;
@@ -28,6 +25,8 @@ new
     {
         use WithPagination;
 
+        private const MIN_SEARCH_LENGTH = 3;
+
         #[Url]
         public ?string $search = null;
 
@@ -42,10 +41,6 @@ new
 
         #[Url]
         public ?string $state_id = null;
-
-        private bool $defaultCountryIdResolved = false;
-
-        private ?string $resolvedDefaultCountryId = null;
 
         private function applySort(Builder $query): Builder
         {
@@ -66,9 +61,13 @@ new
                 );
             }
 
+            if (mb_strlen($search) < self::MIN_SEARCH_LENGTH) {
+                return $this->emptyPaginator();
+            }
+
             $directMatches = $this->directSearch($search);
 
-            if ($directMatches->total() > 0 || mb_strlen($search) < 3) {
+            if ($directMatches->total() > 0) {
                 return $directMatches;
             }
 
@@ -100,24 +99,6 @@ new
             $this->resetPage();
         }
 
-        #[Computed]
-        public function titles(): array
-        {
-            return app(SelectionCatalogCache::class)->titleOptions();
-        }
-
-        #[Computed]
-        public function languages(): array
-        {
-            return app(SelectionCatalogCache::class)->languageOptions('id');
-        }
-
-        #[Computed]
-        public function states(): array
-        {
-            return SharedFormSchema::stateOptionsForCountry($this->defaultCountryId());
-        }
-
         public function clearFilters(): void
         {
             $this->title_id = null;
@@ -141,11 +122,6 @@ new
             )->with([
                 'media' => function (MorphMany $relation): void {
                     $relation->where('collection_name', 'profile');
-                },
-                'titleAssignments' => function (MorphMany $relation): void {
-                    $relation
-                        ->where('status', AssignmentStatus::Active)
-                        ->with('title.category');
                 },
                 'addresses.state',
             ]);
@@ -186,19 +162,6 @@ new
             $value = trim($value);
 
             return Str::isUuid($value) ? $value : null;
-        }
-
-        private function defaultCountryId(): ?string
-        {
-            if ($this->defaultCountryIdResolved) {
-                return $this->resolvedDefaultCountryId;
-            }
-
-            $this->defaultCountryIdResolved = true;
-            $countryCode = (string) config('contacting.defaults.country_code', 'MY');
-            $countryId = app(AddressCountryResolver::class)->resolveId($countryCode);
-
-            return $this->resolvedDefaultCountryId = is_string($countryId) ? $countryId : null;
         }
 
         private function directSearch(string $search): LengthAwarePaginatorContract
@@ -410,20 +373,6 @@ new
 @section('og_image_width', '1024')
 @section('og_image_height', '1024')
 
-@php
-    $search = $this->search;
-    $submitPersonUrl = route('contributions.submit-person');
-    $titles = $this->titles;
-    $languages = $this->languages;
-    $states = $this->states;
-    $titleId = $this->title_id;
-    $languageId = $this->language_id;
-    $stateId = $this->state_id;
-    $activeFilterCount = collect([$titleId, $languageId, $stateId])
-        ->filter(static fn (mixed $value): bool => filled($value))
-        ->count();
-@endphp
-
 <div data-art-direction="living-majlis" class="living-majlis-field relative min-h-screen overflow-x-clip text-slate-800">
     <!-- Hero Section -->
     <div class="relative overflow-hidden border-b border-emerald-900/[0.06]">
@@ -461,7 +410,7 @@ new
                                     type="search"
                                     id="person-search"
                                     aria-controls="person-results"
-                                    wire:model.live.debounce.300ms="search"
+                                    wire:model.live.debounce.150ms="search"
                                     wire:keydown.escape="clearSearch"
                                     placeholder="{{ __('Search speaker name…') }}"
                                     autocomplete="off"
@@ -533,9 +482,17 @@ new
                             </svg>
                         </div>
 
-                        <h2 class="mt-6 font-heading text-2xl font-bold text-emerald-950">{{ __('No speakers found') }}</h2>
+                        <h2 class="mt-6 font-heading text-2xl font-bold text-emerald-950">
+                            @if(filled($search) && mb_strlen(trim((string) $search)) < 3)
+                                {{ __('Continue typing to search') }}
+                            @else
+                                {{ __('No speakers found') }}
+                            @endif
+                        </h2>
                         <p class="mt-3 max-w-sm text-sm leading-6 text-slate-500">
-                            @if(filled($search))
+                            @if(filled($search) && mb_strlen(trim((string) $search)) < 3)
+                                {{ __('Type at least 3 characters to search.') }}
+                            @elseif(filled($search))
                                 {{ __('No profile matches “:search”. Try a different spelling or the full name.', ['search' => $search]) }}
                             @elseif($activeFilterCount > 0)
                                 {{ __('No speakers match these filters. Try changing or clearing them.') }}

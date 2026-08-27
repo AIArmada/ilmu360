@@ -84,14 +84,29 @@ class MembershipApplicationPresenter
             return '-';
         }
 
-        return self::relationshipOptions()[$relationship] ?? $relationship;
+        $subjectType = $claim->subject_type instanceof MemberSubjectType
+            ? $claim->subject_type
+            : MemberSubjectType::tryFrom((string) $claim->subject_type);
+
+        return self::relationshipOptions($subjectType)[$relationship]
+            ?? self::relationshipOptions()[$relationship]
+            ?? $relationship;
     }
 
     /**
      * @return array<string, string>
      */
-    public static function relationshipOptions(): array
+    public static function relationshipOptions(?MemberSubjectType $subjectType = null): array
     {
+        if ($subjectType === MemberSubjectType::Institution) {
+            return [
+                'imam' => 'Imam',
+                'bilal' => 'Bilal',
+                'committee_member' => 'Ahli Jawatan Kuasa',
+                'employee' => 'Pekerja',
+            ];
+        }
+
         return [
             'self' => 'Diri Sendiri',
             'personal_assistant' => 'Pembantu Peribadi',

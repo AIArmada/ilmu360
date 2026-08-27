@@ -6,6 +6,7 @@ namespace App\Support\Api\Member;
 
 use AIArmada\Addressing\Models\Address;
 use AIArmada\FilamentEvents\Resources\EventResource as AhliEventResource;
+use AIArmada\Organizations\Models\Organization;
 use App\Data\Api\Event\EventPayloadData;
 use App\Filament\Ahli\Resources\Institutions\InstitutionResource as AhliInstitutionResource;
 use App\Filament\Ahli\Resources\Persons\PersonResource as AhliPersonResource;
@@ -406,6 +407,11 @@ class MemberResourceRegistry
             $eventQuery
                 ->whereIn('institution_id', $user->institutions()->select('institutions.id'))
                 ->orWhereIn('events.id', $user->memberEvents()->select('events.id'))
+                ->orWhere(function (Builder $organizationEventQuery) use ($user): void {
+                    $organizationEventQuery
+                        ->where('events.owner_type', (new Organization)->getMorphClass())
+                        ->whereIn('events.owner_id', $user->organizations()->select('organizations.id'));
+                })
                 ->orWhereHas('persons', function (Builder $personQuery) use ($user): void {
                     $personQuery->whereIn('persons.id', $user->persons()->select('persons.id'));
                 })

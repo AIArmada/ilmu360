@@ -32,7 +32,7 @@
                     <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">{{ __('View all events where this speaker is listed, including drafts and submissions waiting for review.') }}</p>
                 </div>
 
-                @if($canManageEvents)
+                @if($canCreateEvents)
                     <a
                         href="{{ route('dashboard.events.create-advanced', ['person' => $person->id]) }}"
                         wire:navigate

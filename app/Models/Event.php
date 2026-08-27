@@ -26,6 +26,7 @@ use AIArmada\Events\Models\EventSeriesItemPivot;
 use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Events\Models\VenueSpaceType;
 use AIArmada\Membership\Traits\HasMembers;
+use AIArmada\Organizations\Models\Organization;
 use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventChangeType;
@@ -2308,7 +2309,7 @@ class Event extends PackageEvent implements AuditableContract
 
     /**
      * Check if a user can manage this event.
-     * Uses Authz scoped roles via event membership or organizer/institution scope.
+     * Uses Authz scoped roles via event membership, organizer, institution, or organization scope.
      */
     public function userCanManage(User $user): bool
     {
@@ -2370,6 +2371,14 @@ class Event extends PackageEvent implements AuditableContract
 
         if ($this->organizer instanceof Person && $memberPermissions->canPerson($user, $permission, $this->organizer)) {
             return true;
+        }
+
+        if ($this->owner_type === (new Organization)->getMorphClass() && filled($this->owner_id)) {
+            $organization = Organization::query()->find($this->owner_id);
+
+            if ($organization instanceof Organization && $memberPermissions->canOrganization($user, $permission, $organization)) {
+                return true;
+            }
         }
 
         return $this->institution instanceof Institution && $memberPermissions->canInstitution($user, $permission, $this->institution);

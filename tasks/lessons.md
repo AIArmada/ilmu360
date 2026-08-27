@@ -1,5 +1,19 @@
 # Lessons
 
+- When a contribution schema is reused by update pages, audit update-only media sections separately; shared form translations do not automatically cover duplicated owner-edit components.
+- When adding contextual form hints, localize the new source keys in every supported locale and keep nested enum options translated instead of relying on raw enum labels.
+- When a related profile list must match an existing event-card presentation, load the same event relations and render the shared card structure; add the related person's role as a clearly labeled badge and use a distinct accent so the context is not lost.
+- When a user asks for a section to copy an existing card style exactly, match the surrounding section shell and card geometry too; changing only the inner row layout can still leave the visual hierarchy inconsistent.
+
+- When a local search index is only partially populated, keep verified records reachable through canonical database fields and alternate names; an index-table existence check alone can turn valid profiles into false no-results responses.
+
+- On Livewire live-search pages, treat short intermediate queries as an explicit neutral state; returning an empty paginator for one- or two-character input creates a false “no results” flash before the real query can match.
+
+- When a required form field has a default value, include that field in every progress calculation; when Livewire and Alpine both calculate progress, a server-only fix can still render 0% in the browser.
+
+- When a Filament wizard replaces a custom advanced form, preserve feature discoverability as well as field parity; advertise high-value conditional capabilities such as registration, tickets, and seating before the wizard and explain how to activate hidden dependent fields.
+- When a dependent seating-map mode follows ticket seating choices, synchronize the map mode locally for assigned-only, general-admission-only, and mixed ticket sets; otherwise a valid-looking form can fail only at final submission.
+
 - When package event-location relations hydrate a base Venue model, normalize those venues to the application subclass at the discovery boundary before rendering address-dependent cards; calling app-only address methods on the package model can also bypass the app morph map.
 - When event seeders can be invoked independently of the aggregate database seeder, make their canonical space/taxonomy dependency explicit and idempotent; do not rely only on pipeline ordering.
 - For media tests that exercise real conversion jobs, use valid generated image files for direct model/API uploads, keep Livewire's fake upload objects for `fillForm`, and isolate the media conversion temporary directory by parallel worker token.

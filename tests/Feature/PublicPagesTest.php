@@ -29,7 +29,10 @@ use Livewire\Livewire;
 use Spatie\Permission\PermissionRegistrar;
 
 it('loads public index pages', function () {
-    $this->get(route('home'))->assertSuccessful()->assertSee('Majlis Ilmu');
+    $this->get(route('home'))
+        ->assertSuccessful()
+        ->assertSee('Majlis Ilmu')
+        ->assertSee('href="'.route('submit-event.create').'"', false);
     $this->get(route('events.index'))->assertSuccessful()->assertSee('Majlis Ilmu');
     $this->get(route('institutions.index'))->assertSuccessful()->assertSee('Majlis Ilmu');
     $this->get(route('persons.index'))->assertSuccessful()->assertSee(__('Cari ustaz, ustazah'));

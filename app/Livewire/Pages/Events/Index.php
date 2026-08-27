@@ -13,8 +13,10 @@ use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
+use App\Contracts\EventCategoryCatalog;
 use App\Data\PublicScheduleLeaf;
 use App\Enums\EventAgeGroup;
+use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
@@ -33,9 +35,11 @@ use App\Support\Auth\IntendedRedirect;
 use App\Support\Cache\SafeModelCache;
 use App\Support\Language\MalaysiaLanguageCatalog;
 use App\Support\Location\PublicGeolocationPermission;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Schemas\Components\Section;
@@ -54,6 +58,16 @@ use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 
+/**
+ * @property-read Collection<int, AddressCountry> $countries
+ * @property-read Collection<int, State> $states
+ * @property-read Collection<int, City> $cities
+ * @property-read Collection<int, AddressArea> $divisions
+ * @property-read Collection<int, AddressArea> $postalLocalities
+ * @property-read Collection<int, AddressArea> $districts
+ * @property-read Collection<int, AddressArea> $subdistricts
+ * @property-read array<string, string> $eventCategoryOptions
+ */
 #[Layout('layouts.app')]
 #[Title('Upcoming Events')]
 class Index extends Component implements HasForms
@@ -282,6 +296,46 @@ class Index extends Component implements HasForms
         return app(PublicGeolocationPermission::class)->isGranted();
     }
 
+    public function searchForm(Schema $schema): Schema
+    {
+        return $schema
+            ->statePath('filterData')
+            ->schema([
+                TextInput::make('search')
+                    ->label(__('Carian'))
+                    ->hiddenLabel()
+                    ->id('event-search')
+                    ->placeholder(__('Cari tajuk, ustaz, masjid, topik...'))
+                    ->prefixIcon('heroicon-m-magnifying-glass')
+                    ->maxLength(255)
+                    ->extraAttributes([
+                        'data-signal-control' => 'search',
+                        'data-signal-include-value' => 'true',
+                        'wire:keydown.escape' => 'clearSearch',
+                    ])
+                    ->live(debounce: 300),
+            ]);
+    }
+
+    public function sortForm(Schema $schema): Schema
+    {
+        return $schema
+            ->statePath('filterData')
+            ->schema([
+                Select::make('sort')
+                    ->label(__('Susun'))
+                    ->hiddenLabel()
+                    ->options(fn (): array => [
+                        'time' => __('Terbaru'),
+                        'relevance' => __('Relevance'),
+                        ...($this->lat !== null && $this->lng !== null ? ['distance' => __('Distance')] : []),
+                    ])
+                    ->extraAttributes(['data-signal-change-event' => 'filter.sort_changed'])
+                    ->native(false)
+                    ->live(),
+            ]);
+    }
+
     public function form(Schema $schema): Schema
     {
         return $schema
@@ -352,6 +406,93 @@ class Index extends Component implements HasForms
                 Section::make(__('Lokasi majlis'))
                     ->extraAttributes(['class' => 'mi-advanced-filter-group'])
                     ->schema([
+                        Select::make('country_id')
+                            ->label(__('Country'))
+                            ->placeholder(__('Any Country'))
+                            ->searchable()
+                            ->preload()
+                            ->options(fn (): array => $this->countries
+                                ->mapWithKeys(fn (AddressCountry $country): array => [(string) $country->getKey() => (string) $country->name])
+                                ->all())
+                            ->extraAttributes(['data-signal-control' => 'country_id'])
+                            ->live(),
+
+                        Select::make('state_id')
+                            ->label(__('Negeri'))
+                            ->placeholder(__('Pilih negeri'))
+                            ->searchable()
+                            ->preload()
+                            ->disabled(fn (): bool => ! filled($this->country_id))
+                            ->options(fn (): array => $this->states
+                                ->mapWithKeys(fn (State $state): array => [(string) $state->getKey() => (string) $state->name])
+                                ->all())
+                            ->extraAttributes(['data-signal-control' => 'state_id'])
+                            ->live(),
+
+                        Select::make('city_id')
+                            ->label(__('City'))
+                            ->placeholder(__('Any City'))
+                            ->searchable()
+                            ->preload()
+                            ->disabled(fn (): bool => ! filled($this->country_id))
+                            ->options(fn (): array => $this->cities
+                                ->mapWithKeys(fn (City $city): array => [(string) $city->getKey() => (string) $city->name])
+                                ->all())
+                            ->extraAttributes(['data-signal-control' => 'city_id'])
+                            ->live(),
+
+                        Select::make('area_assignments.administrative_division')
+                            ->label(__('Division / Bahagian'))
+                            ->placeholder(__('Any Division'))
+                            ->searchable()
+                            ->preload()
+                            ->disabled(fn (): bool => ! filled($this->country_id) && ! filled($this->state_id))
+                            ->visible(fn (): bool => $this->divisions->isNotEmpty())
+                            ->options(fn (): array => $this->divisions
+                                ->mapWithKeys(fn (AddressArea $area): array => [(string) $area->getKey() => (string) $area->name])
+                                ->all())
+                            ->extraAttributes(['data-signal-control' => 'area_assignments.administrative_division'])
+                            ->live(),
+
+                        Select::make('area_assignments.postal_locality')
+                            ->label(__('Locality / Kampung'))
+                            ->placeholder(__('Any Locality'))
+                            ->searchable()
+                            ->preload()
+                            ->disabled(fn (): bool => ! filled($this->country_id) && ! filled($this->state_id))
+                            ->visible(fn (): bool => $this->postalLocalities->isNotEmpty())
+                            ->options(fn (): array => $this->postalLocalities
+                                ->mapWithKeys(fn (AddressArea $area): array => [(string) $area->getKey() => (string) $area->name])
+                                ->all())
+                            ->extraAttributes(['data-signal-control' => 'area_assignments.postal_locality'])
+                            ->live(),
+
+                        Select::make('area_assignments.administrative_district')
+                            ->label(__('Daerah'))
+                            ->placeholder(__('Pilih daerah'))
+                            ->searchable()
+                            ->preload()
+                            ->disabled(fn (): bool => ! filled($this->country_id) && ! filled($this->state_id))
+                            ->visible(fn (): bool => $this->districts->isNotEmpty())
+                            ->options(fn (): array => $this->districts
+                                ->mapWithKeys(fn (AddressArea $area): array => [(string) $area->getKey() => (string) $area->name])
+                                ->all())
+                            ->extraAttributes(['data-signal-control' => 'area_assignments.administrative_district'])
+                            ->live(),
+
+                        Select::make('area_assignments.administrative_subdivision')
+                            ->label(__('Bandar / Mukim / Zon'))
+                            ->placeholder(__('Semua kawasan'))
+                            ->searchable()
+                            ->preload()
+                            ->disabled(fn (): bool => ! filled($this->country_id) && ! filled($this->state_id))
+                            ->visible(fn (): bool => $this->subdistricts->isNotEmpty())
+                            ->options(fn (): array => $this->subdistricts
+                                ->mapWithKeys(fn (AddressArea $area): array => [(string) $area->getKey() => (string) $area->name])
+                                ->all())
+                            ->extraAttributes(['data-signal-control' => 'area_assignments.administrative_subdivision'])
+                            ->live(),
+
                         Select::make('institution_id')
                             ->label(__('Institution'))
                             ->placeholder(__('Any Institution'))
@@ -383,6 +524,42 @@ class Index extends Component implements HasForms
                             ->live(),
                     ]),
 
+                Section::make(__('Bahasa'))
+                    ->extraAttributes(['class' => 'mi-advanced-filter-group'])
+                    ->schema([
+                        Select::make('language_codes')
+                            ->label(__('Bahasa'))
+                            ->placeholder(__('Pilih bahasa...'))
+                            ->helperText(__('Pilih satu atau lebih bahasa yang digunakan dalam majlis.'))
+                            ->searchable()
+                            ->preload()
+                            ->multiple()
+                            ->options(fn (): array => $this->languageOptions())
+                            ->live(),
+                    ]),
+
+                Section::make(__('Cari dalam'))
+                    ->extraAttributes(['class' => 'mi-advanced-filter-group'])
+                    ->schema([
+                        Toggle::make('search_include_institutions')
+                            ->label(__('Institusi'))
+                            ->default(true)
+                            ->extraAttributes(['data-signal-control' => 'search_include_institutions'])
+                            ->live(),
+
+                        Toggle::make('search_include_persons')
+                            ->label(__('Penceramah'))
+                            ->default(true)
+                            ->extraAttributes(['data-signal-control' => 'search_include_persons'])
+                            ->live(),
+
+                        Toggle::make('search_include_references')
+                            ->label(__('Rujukan'))
+                            ->default(true)
+                            ->extraAttributes(['data-signal-control' => 'search_include_references'])
+                            ->live(),
+                    ]),
+
                 Section::make(__('Penceramah & kandungan'))
                     ->extraAttributes(['class' => 'mi-advanced-filter-group'])
                     ->schema([
@@ -396,7 +573,7 @@ class Index extends Component implements HasForms
                             ->live(),
 
                         Select::make('key_person_roles')
-                            ->label(__('Peranan Lain'))
+                            ->label(__('Peranan Lain Dalam Majlis'))
                             ->placeholder(__('Any Role'))
                             ->searchable()
                             ->multiple()
@@ -597,6 +774,78 @@ class Index extends Component implements HasForms
                             ])
                             ->live(),
                     ]),
+
+                Section::make(__('Tarikh'))
+                    ->extraAttributes(['class' => 'mi-advanced-filter-group'])
+                    ->schema([
+                        DatePicker::make('starts_after')
+                            ->label(__('Dari'))
+                            ->placeholder(__('Pilih tarikh mula'))
+                            ->native(false)
+                            ->extraAttributes(['data-signal-control' => 'starts_after'])
+                            ->live(),
+
+                        DatePicker::make('starts_before')
+                            ->label(__('Hingga'))
+                            ->placeholder(__('Pilih tarikh akhir'))
+                            ->native(false)
+                            ->extraAttributes(['data-signal-control' => 'starts_before'])
+                            ->live(),
+                    ]),
+
+                Section::make(__('Jenis majlis'))
+                    ->extraAttributes(['class' => 'mi-advanced-filter-group'])
+                    ->schema([
+                        Select::make('event_category_ids')
+                            ->label(__('Jenis majlis'))
+                            ->placeholder(__('Semua jenis majlis'))
+                            ->searchable()
+                            ->preload()
+                            ->multiple()
+                            ->options(fn (): array => $this->eventCategoryOptions)
+                            ->extraAttributes(['data-signal-control' => 'event_category_ids'])
+                            ->live(),
+                    ]),
+
+                Section::make(__('Format'))
+                    ->extraAttributes(['class' => 'mi-advanced-filter-group'])
+                    ->schema([
+                        Select::make('event_format')
+                            ->label(__('Format'))
+                            ->placeholder(__('Semua format'))
+                            ->searchable()
+                            ->preload()
+                            ->multiple()
+                            ->options(collect(EventFormat::cases())
+                                ->mapWithKeys(fn (EventFormat $format): array => [$format->value => $format->getLabel()])
+                                ->all()
+                            )
+                            ->extraAttributes(['data-signal-control' => 'event_format'])
+                            ->live(),
+                    ]),
+
+                Section::make(__('Lokasi berdekatan'))
+                    ->extraAttributes(['class' => 'mi-advanced-filter-group'])
+                    ->visible(fn (): bool => filled($this->lat))
+                    ->schema([
+                        TextInput::make('radius_km')
+                            ->label(__('Radius'))
+                            ->helperText(__('Digunakan apabila mencari majlis berdekatan lokasi anda.'))
+                            ->numeric()
+                            ->minValue(1)
+                            ->maxValue(1000)
+                            ->step(1)
+                            ->suffix('km')
+                            ->extraAttributes(['data-signal-control' => 'radius_km'])
+                            ->extraFieldWrapperAttributes(fn (): array => [
+                                'data-testid' => 'nearby-radius-inline',
+                                'x-cloak' => true,
+                                'x-bind:hidden' => '! geolocationPermitted',
+                                ...(! $this->showsGeolocationControls() ? ['hidden' => true] : []),
+                            ])
+                            ->visible(fn (): bool => filled($this->lat))
+                            ->live(),
+                    ]),
             ]);
     }
 
@@ -771,6 +1020,15 @@ class Index extends Component implements HasForms
         return AddressCountry::query()
             ->orderBy('name')
             ->get(['id', 'name', 'iso2']);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    #[Computed]
+    public function eventCategoryOptions(): array
+    {
+        return app(EventCategoryCatalog::class)->options();
     }
 
     /**
@@ -980,7 +1238,6 @@ class Index extends Component implements HasForms
             ttl: 300,
             query: Institution::query()
                 ->whereIn('status', ['verified', 'pending'])
-                ->whereIn('status', ['verified', 'pending'])
                 ->orderBy('name')
                 ->limit(400)
                 ->with('names')->select(['id', 'name']),
@@ -997,7 +1254,6 @@ class Index extends Component implements HasForms
             key: 'events_venues_'.app()->getLocale().'_v2',
             ttl: 300,
             query: Venue::query()
-                ->whereIn('status', ['verified', 'pending'])
                 ->whereIn('status', ['verified', 'pending'])
                 ->orderBy('name')
                 ->limit(500)
@@ -1017,7 +1273,6 @@ class Index extends Component implements HasForms
         string $search = '',
     ): array {
         $query = Institution::query()
-            ->whereIn('status', ['verified', 'pending'])
             ->whereIn('status', ['verified', 'pending']);
 
         $this->applyAddressLocationFilters($query, $countryId, $areaAssignments, $stateId, $cityId);
@@ -1038,7 +1293,6 @@ class Index extends Component implements HasForms
         string $search = '',
     ): array {
         $query = Venue::query()
-            ->whereIn('status', ['verified', 'pending'])
             ->whereIn('status', ['verified', 'pending']);
 
         $this->applyAddressLocationFilters($query, $countryId, $areaAssignments, $stateId, $cityId);
@@ -1054,7 +1308,6 @@ class Index extends Component implements HasForms
     {
         return $this->pluckOptions(
             Person::query()
-                ->whereIn('status', ['verified', 'pending'])
                 ->whereIn('status', ['verified', 'pending'])
                 ->tap(fn (Builder $query): Builder => $this->applySearchConstraint($query, 'name', $search))
                 ->orderBy('name'),
@@ -1075,7 +1328,6 @@ class Index extends Component implements HasForms
 
         return $this->pluckOptions(
             Person::query()
-                ->whereIn('status', ['verified', 'pending'])
                 ->whereIn('status', ['verified', 'pending'])
                 ->whereIn('id', $values),
             'name',
@@ -1249,7 +1501,6 @@ class Index extends Component implements HasForms
     {
         return Institution::query()
             ->whereIn('status', ['verified', 'pending'])
-            ->whereIn('status', ['verified', 'pending'])
             ->whereKey($value)
             ->with('names')->first(['id', 'name'])
             ?->display_name;
@@ -1258,7 +1509,6 @@ class Index extends Component implements HasForms
     public function venueOptionLabel(string $value): ?string
     {
         return Venue::query()
-            ->whereIn('status', ['verified', 'pending'])
             ->whereIn('status', ['verified', 'pending'])
             ->whereKey($value)
             ->value('name');
@@ -1344,7 +1594,6 @@ class Index extends Component implements HasForms
             key: 'events_persons_'.app()->getLocale().'_v2',
             ttl: 300,
             query: Person::query()
-                ->whereIn('status', ['verified', 'pending'])
                 ->whereIn('status', ['verified', 'pending'])
                 ->orderBy('name')
                 ->limit(500)
@@ -1485,7 +1734,7 @@ class Index extends Component implements HasForms
      */
     public function languageOptions(): array
     {
-        return cache()->remember('event_filter_languages_v3', 3600, function (): array {
+        return cache()->remember('event_filter_languages_v4', 3600, function (): array {
             $preferredOrder = MalaysiaLanguageCatalog::codes();
             $preferredLabels = MalaysiaLanguageCatalog::labels();
 
@@ -1497,7 +1746,7 @@ class Index extends Component implements HasForms
                     $code = (string) $language->code;
                     $label = $preferredLabels[$code] ?? (string) ($language->name ?? strtoupper($code));
 
-                    return [$code => $label];
+                    return [$code => $label.' ('.($code === 'ms' ? 'BM' : strtoupper($code)).')'];
                 })
                 ->all();
         });

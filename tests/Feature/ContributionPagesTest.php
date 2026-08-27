@@ -31,7 +31,10 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Services\ContributionEntityMutationService;
 use Database\Seeders\PermissionSeeder;
+use Filament\Forms\Components\Field;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Select;
 use Filament\Schemas\Components\Tabs;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -123,7 +126,7 @@ it('tracks submission progress as speaker fields are completed', function () {
     $component = Livewire::actingAs(User::factory()->create())
         ->test(SubmitPerson::class);
 
-    expect($component->instance()->formProgress())->toBe(0);
+    expect($component->instance()->formProgress())->toBe(33);
 
     $component
         ->set('data.name', 'Ahmad Ali')
@@ -164,6 +167,126 @@ it('renders the person contribution page with translated copy when the locale ch
         ->assertDontSee('Add a New Person')
         ->assertDontSee('Education')
         ->assertDontSee('Contact Details');
+});
+
+it('uses Malay labels and contextual guidance throughout the speaker form', function () {
+    app()->setLocale('ms');
+
+    $component = Livewire::actingAs(User::factory()->create())
+        ->test(SubmitPerson::class)
+        ->assertFormFieldExists('name', function (Field $field): bool {
+            expect($field->getLabel())->toBe('Nama Penceramah');
+
+            return true;
+        })
+        ->assertFormFieldExists('family_name', function (Field $field): bool {
+            expect($field->getLabel())->toBe('Nama Bapa / Keluarga');
+
+            return true;
+        })
+        ->assertFormFieldExists('middle_name', function (Field $field): bool {
+            expect($field->getLabel())->toBe('Nama tengah');
+
+            return true;
+        })
+        ->assertFormFieldExists('title_ids', function (Field $field): bool {
+            expect($field->getLabel())->toBe('Gelaran');
+
+            return true;
+        })
+        ->assertFormFieldExists('names', function (Repeater $field): bool {
+            expect($field->getLabel())->toBe('Nama alternatif')
+                ->and($field->getAddActionLabel())->toBe('Tambah nama');
+
+            return true;
+        })
+        ->assertFormFieldExists('institutions', function (Repeater $field): bool {
+            expect($field->getLabel())->toBe('Institusi')
+                ->and($field->getAddActionLabel())->toBe('Tambah institusi');
+
+            return true;
+        })
+        ->assertFormFieldExists('address.country_id', function (Field $field): bool {
+            expect($field->getLabel())->toBe('Negara');
+
+            return true;
+        })
+        ->assertFormFieldExists('contactMethods', function (Repeater $field): bool {
+            expect($field->getLabel())->toBe('Maklumat Perhubungan')
+                ->and($field->getAddActionLabel())->toBe('Tambah maklumat perhubungan');
+
+            return true;
+        })
+        ->assertFormFieldExists('social_media', function (Repeater $field): bool {
+            expect($field->getLabel())->toBe('Media Sosial')
+                ->and($field->getAddActionLabel())->toBe('Tambah Media Sosial');
+
+            return true;
+        })
+        ->assertDontSee('Nama keluarga yang digunakan untuk susunan abjad.');
+});
+
+it('uses the corrected Malay labels and guidance on speaker and institution update forms', function () {
+    $user = User::factory()->create();
+    $person = Person::factory()->create([
+        'status' => 'verified',
+    ]);
+    $institution = Institution::factory()->create([
+        'status' => 'verified',
+    ]);
+
+    app()->setLocale('ms');
+    $this->actingAs($user);
+
+    $this->get(route('contributions.suggest-update', [
+        'subjectType' => ContributionSubjectType::Person->publicRouteSegment(),
+        'subjectId' => $person->slug,
+    ]))
+        ->assertOk()
+        ->assertSee('Nama Penceramah')
+        ->assertSee('Gunakan nama sebenar')
+        ->assertSee('Nama Bapa / Keluarga')
+        ->assertDontSee('Nama keluarga yang digunakan untuk susunan abjad.')
+        ->assertSee('Foto avatar')
+        ->assertSee('Gunakan foto profil segi empat yang jelas untuk avatar utama, sekurang-kurangnya 400x400 piksel.');
+
+    $this->get(route('contributions.suggest-update', [
+        'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+        'subjectId' => $institution->slug,
+    ]))
+        ->assertOk()
+        ->assertSee('Nama Institusi')
+        ->assertSee('Gunakan nama rasmi institusi.')
+        ->assertSee('Nama alternatif')
+        ->assertSee('Tambah nama')
+        ->assertSee('Kongsi penerangan ringkas tentang institusi ini.');
+});
+
+it('requires a country for a new speaker contribution', function () {
+    $user = User::factory()->create();
+
+    Livewire::actingAs($user)
+        ->test(SubmitPerson::class)
+        ->assertFormFieldExists('address.country_id', function (Select $field): bool {
+            expect($field->isRequired())->toBeTrue();
+
+            return true;
+        })
+        ->set('data.name', 'Speaker Country Required')
+        ->set('data.gender', 'male')
+        ->set('data.address.country_id', null)
+        ->call('submit')
+        ->assertHasErrors(['data.address.country_id']);
+});
+
+it('includes the selected country in the speaker progress calculation', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('contributions.submit-person'))
+        ->assertOk()
+        ->assertSee("'address',", false)
+        ->assertSee('this.isFilled(currentAddress.country_id)', false);
 });
 
 it('shows person affiliation fields on the dedicated create and update forms', function () {
@@ -600,7 +723,7 @@ it('shows the person media uploads on the suggest update page for public contrib
     ]))
         ->assertOk()
         ->assertDontSee(__('View My Contributions'))
-        ->assertSee(__('Avatar'))
+        ->assertSee(__('Profile avatar'))
         ->assertSee(__('Cover Image'))
         ->assertSee(__('Gallery'));
 
@@ -613,7 +736,7 @@ it('shows the person media uploads on the suggest update page for public contrib
     ]))
         ->assertOk()
         ->assertDontSee(__('View My Contributions'))
-        ->assertSee(__('Avatar'))
+        ->assertSee(__('Profile avatar'))
         ->assertSee(__('Cover Image'))
         ->assertSee(__('Gallery'));
 });

@@ -120,9 +120,24 @@
         });
     };
 
+    const localizeFilamentAccessibilityLabels = (root) => {
+        if (!document.documentElement.lang.toLowerCase().startsWith('ms')) {
+            return;
+        }
+
+        root.querySelectorAll('[aria-label="Clear selection"]').forEach((control) => {
+            control.setAttribute('aria-label', 'Kosongkan pilihan');
+        });
+
+        root.querySelectorAll('[aria-label="Search"]').forEach((control) => {
+            control.setAttribute('aria-label', 'Cari');
+        });
+    };
+
     const enhanceFormAccessibility = (root = document) => {
         ensureControlIdentity(root);
         repairLabels(root);
+        localizeFilamentAccessibilityLabels(root);
     };
 
     const scheduleEnhancements = () => {

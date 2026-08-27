@@ -1,3 +1,140 @@
+# Align speaker and institution update-form copy
+
+## Plan
+
+- [x] Trace the shared contribution schemas and update-only media fields.
+- [x] Correct Malay labels and contextual hints for speaker and institution updates.
+- [x] Add regression coverage and run validation checks.
+
+## Review
+
+Speaker and institution update pages now use the corrected Malay name labels and guidance. Speaker owner-only media fields share the localized labels and hints from the public contribution form, while institution names, alternative names, descriptions, addresses, and media fields now provide clear localized guidance.
+
+## Verification
+
+- Pest focused update-form coverage — passed (2 tests, 23 assertions).
+- PHPStan — no errors across 1000 files.
+- Targeted Pint, PHP syntax checks, translation JSON validation, and diff checks — passed.
+
+# Match speaker involvement cards to event-list information
+
+## Plan
+
+- [x] Trace the event details and relations already used by the upcoming-event cards.
+- [x] Render involvement entries with the same event information and a distinct role-focused color treatment.
+- [x] Add regression coverage and verify the rendered profile in Chrome.
+
+## Review
+
+Speaker involvement entries now render the same date, time, location, format, category, and event-link information as the upcoming-event cards. The section headings sit above the card list, each entry clearly identifies the person's role, and the cards use a violet/indigo treatment to distinguish them from the emerald upcoming-event listing.
+
+## Verification
+
+- `vendor/bin/pest --parallel --compact tests/Feature/PersonShowPageTimingTest.php --filter='shows linked non-person roles in a separate section on the person page'` — passed (11 assertions).
+- Chrome DevTools — the profile renders two role entries with `Peranan: Moderator/Khatib`, date/time, location, event category, violet/indigo card accents, no console errors, and all page requests return 200.
+- `vendor/bin/phpstan analyse --ansi`, `php artisan view:cache`, `npm run build`, `git diff --check`, and targeted Pint — passed.
+- The full timing suite has one unrelated existing failure in the federal-territory address formatter assertion; the role-list test passes independently.
+
+# Localize speaker contribution form in Bahasa Melayu
+
+## Plan
+
+- [x] Audit every visible field, action, dependent location label, and enum option on the new speaker form.
+- [x] Translate the form copy and add concise guidance for fields whose purpose or optionality is not obvious.
+- [x] Add regression coverage for the localized schema and preserve required/default/conditional behavior.
+- [x] Verify the rendered form in Chrome, tests, static analysis, syntax, and diff hygiene.
+
+## Review
+
+The new speaker contribution flow now uses Bahasa Melayu consistently across its field labels, actions, enum choices, location hierarchy, media guidance, and nested institution quick-add form. Contextual hints explain the purpose of names, affiliations, contact details, social links, location, biography, and optional media without changing the existing required or conditional rules.
+
+## Verification
+
+- `vendor/bin/pest --parallel --compact tests/Feature/ContributionPagesTest.php` — 69 passed (484 assertions).
+- `vendor/bin/phpstan analyse --ansi` — no errors across 1000 files.
+- Targeted Pint, `php artisan view:cache`, `npm run build`, translation JSON validation, PHP syntax checks, and `git diff --check` — passed.
+- Chrome verification — all tabs, dependent Malaysian location labels, contact/social options, media guidance, and institution quick-add copy render in Bahasa Melayu; Filament `Search`/`Clear selection` accessibility names are localized too.
+
+# Restore searches for unindexed speaker records
+
+## Plan
+
+- [x] Reproduce `/penceramah?search=dus` in Chrome and trace the local search path.
+- [x] Add a database fallback for verified profiles missing local search-term rows, including alternate names.
+- [x] Invalidate the cached empty result and add regression coverage.
+- [x] Verify the exact URL, no-match behavior, tests, static analysis, and diff hygiene.
+
+## Review
+
+The speaker search index was only populated for part of the verified directory. Searches now retain the indexed path for indexed profiles while checking canonical person and alternate-name fields for profiles without index rows. The public search cache key was versioned so prior empty `dus` responses cannot survive the fix.
+
+## Verification
+
+- `vendor/bin/pest --parallel --compact tests/Unit/SearchServiceFallbackTest.php` — 25 passed (35 assertions).
+- `vendor/bin/pest --parallel --compact tests/Feature/PersonIndexTest.php` — 36 passed (127 assertions).
+- `vendor/bin/phpstan analyse --ansi`, targeted Pint, `php artisan view:cache`, and `git diff --check` — passed.
+- Chrome verification — `dus` returns `Ustaz Ahmad Dusuki Abdul Rani`, `zzz` remains no-match, and `ka` shows the neutral typing state.
+
+# Prevent false empty state during speaker search
+
+## Plan
+
+- [x] Reproduce the short-query transition in Chrome and confirm the server response state.
+- [x] Skip search work below the minimum query length and render a neutral typing prompt.
+- [x] Add regression coverage and update the lesson notes.
+- [x] Re-test slow typing, real no-match searches, and matching searches in Chrome.
+
+## Review
+
+The directory now treats one- and two-character input as an incomplete search rather than a failed search. The Livewire computed path returns before resolving search IDs, and the empty-state panel renders a localized typing prompt. Three-character matches and genuine no-match searches retain their existing result behavior.
+
+## Verification
+
+- `vendor/bin/pest --parallel --compact tests/Feature/PersonIndexTest.php` — 36 passed (127 assertions).
+- `vendor/bin/phpstan analyse --ansi` — no errors.
+- `php artisan view:cache`, PHP syntax checks, and `git diff --check` — passed.
+- Chrome DevTools — `Ka` shows the neutral typing prompt, `Kaz` returns `Ustaz Kazim Elias`, `zzz` shows the genuine no-results state, the performance trace recorded 75ms worst interaction, and no console errors were observed.
+
+# Make speaker directory search snappy
+
+## Plan
+
+- [x] Reproduce live search in Chrome and inspect the Livewire request timing.
+- [x] Remove unused catalog resolution and eager loading from the directory render path.
+- [x] Reduce the live-search debounce while preserving live results, URL state, and loading markup.
+- [x] Run focused regression coverage and re-measure in Chrome.
+
+## Review
+
+The speaker directory no longer resolves unused title/language/state catalogs or eager-loads title assignments on every search update. Live search now waits 150ms instead of 300ms before sending the Livewire update.
+
+Chrome DevTools verification showed the Livewire response application timing drop from 381–415ms before the change to 197ms on the optimized path, with database timing dropping from 42–68ms to 32ms. The search still returns the expected Kazim and Ahmad results, and the performance trace recorded a 24ms INP for the optimized interaction.
+
+## Verification
+
+- `vendor/bin/pest --parallel --compact tests/Feature/PersonIndexTest.php` — 35 passed (122 assertions).
+- Chrome DevTools — live search returns `Ustaz Kazim Elias` and `3 penceramah ditemui` for `Ahmad`; no console errors observed.
+
+# Require country on speaker contribution location and progress
+
+## Plan
+
+- [x] Pass the country-required option through the person contribution schema.
+- [x] Enable it for the new speaker submission Location tab.
+- [x] Add focused form-schema regression coverage and verify the change.
+- [x] Count the default selected country in speaker form progress.
+
+## Review
+
+The new speaker contribution form now marks `address.country_id` as required in the `Lokasi` tab and rejects submission when the country is cleared. Both the server-rendered and Alpine progress calculations include the default country, so the indicator starts at 33% because that required field is already selected. Other person form consumers retain the existing optional-country behavior.
+
+## Verification
+
+- `vendor/bin/pest --parallel --compact tests/Feature/ContributionPagesTest.php --filter='submission progress|requires a country|selected country'` — 3 passed (12 assertions).
+- Targeted PHPStan at level 6 — no errors.
+- Targeted Pint check, Blade cache, PHP syntax checks, and `git diff --check` — passed.
+- Browser verification — `/sumbangan/penceramah/baru` displays 33% with Malaysia selected; clearing the country updates progress to 0%, and the Location tab shows `Negara*`.
+
 # Fix /majlis package Venue address lookup
 
 # Event submission category vocabulary
@@ -1128,3 +1265,189 @@ Verification:
 - `vendor/bin/pest --parallel --compact tests/Feature/ManagedWorkspacesTest.php` — 7 passed (47 assertions).
 - `vendor/bin/phpstan analyse --ansi` — no errors across 996 files.
 - `php artisan view:cache`, targeted Pint, and `git diff --check` — passed.
+
+# Managed event builder for member workspaces
+
+## Plan
+
+- [x] Map the existing managed event, organization authorization, ticketing, and session seams.
+- [x] Add shared managed-event context and scoped member access for institutions, speakers, and organizations.
+- [x] Reuse ticketing/seating configuration for all managed event owners.
+- [x] Expose the managed builder and session-ready workflow from each member workspace.
+- [x] Add regression tests and run focused/full verification.
+- [x] Review the final diff and document results.
+
+## Review
+
+Managed event creation now has one shared transaction workflow for the event container, first occurrence, registration policy, ticket types, quotas, and optional seating maps. Institution and speaker members use the advanced builder; organization members use the organization builder, with creation authorization available to every active member role.
+
+Organization-owned events now participate in the same scoped event policy and member resource listing. Organization owners/admins can manage those events, while the creating member can continue working on their own draft. Existing public \`/hantar-majlis\` submission behavior remains unchanged, and the advanced builder continues into the existing session submission workflow.
+
+## Verification
+
+- \`vendor/bin/pest --parallel --compact tests/Feature/ManagedWorkspacesTest.php\` — 8 passed (55 assertions).
+- \`vendor/bin/pest --parallel --compact tests/Feature/OrganizationFrontendTest.php\` — 9 passed (36 assertions).
+- \`vendor/bin/pest --parallel --compact tests/Feature/EventPolicyTest.php\` — 30 passed (30 assertions).
+- \`vendor/bin/pest --parallel --compact tests/Feature/DashboardPagesTest.php\` — 30 passed (304 assertions).
+- \`vendor/bin/phpstan analyse --ansi\` — no errors across 999 files.
+- \`vendor/bin/pint --dirty\`, \`php artisan view:cache\`, and \`git diff --check\` — passed.
+
+# Advanced event builder UX refresh
+
+## Plan
+
+- [x] Simplify the page header and make the four-step journey explicit.
+- [x] Reorganize fields into clear sections with progressive disclosure for optional ticketing and seating.
+- [x] Replace technical workflow copy with concise, user-facing guidance and a clearer final handoff.
+- [x] Preserve all existing field bindings, validation, authorization, and submission behavior.
+- [x] Verify Blade compilation, formatting, focused tests, and the final diff.
+
+## Review
+
+The advanced builder now uses one calm, single-column workspace with four focused steps: Event basics, Date & details, Registration, and Review & create. The duplicated step navigation, technical workflow sidebar, and dense default panels were removed. Templates and advanced ticket metadata are tucked behind optional disclosure controls, category selection uses touch-friendly checkboxes, and seating configuration appears only when a ticket actually needs it.
+
+Organizer switching now uses deferred Livewire state plus local Alpine presentation for the optional location field, avoiding a server request solely to change the visible form fields. All existing form keys, authorization, validation, ticketing, seating, and post-create session handoff remain intact.
+
+## Verification
+
+- `vendor/bin/pest --parallel --compact tests/Feature/ManagedWorkspacesTest.php` — 8 passed (55 assertions).
+- `vendor/bin/phpstan analyse --ansi` — no errors across 1000 files.
+- `vendor/bin/pint --dirty`, `php artisan view:cache`, `npm run build`, and `git diff --check` — passed.
+
+# Advanced/public event submission parity
+
+## Plan
+
+- [x] Map the public submission fields to the advanced event and first-session model boundaries.
+- [x] Define which values are derived and locked for institution- and speaker-originated advanced flows.
+- [x] Add the complete public event metadata set to the advanced builder and persist it through the managed-event workflow.
+- [x] Keep registration, ticket, package, quota, seating, and program timeframe controls as advanced-only additions.
+- [x] Add regression coverage for parity, contextual defaults, and server-side context enforcement.
+- [x] Run focused tests, Blade/build checks, static analysis, formatting, and diff validation.
+
+## Review
+
+The advanced builder now contains the public event profile fields: title, description, category, topic taxonomy, references, first-session date/time, country, format, visibility, audience, languages, speakers, other key people, location, links, and media. The public-only submitter and captcha fields remain out of the authenticated managed flow.
+
+Institution-originated creation locks the institution as organiser and location context. Speaker-originated creation locks the speaker as organiser and adds that speaker to the event people list; it does not guess an institution venue from a speaker membership. Venue, format, audience, content, and session details remain editable because they are not reliably known from the source page.
+
+The advanced-only controls remain separate for program timeframe, registration, ticket/package definitions, quotas, and seating. The created parent event stores the public profile and first-session metadata, then opens the existing public session submission flow with those values prefilled.
+
+The advanced timing rules now match the public flow for Friday/Ramadhan prayer options and end-time ordering, and the first session must fall inside the program timeframe.
+
+## Verification
+
+- \`vendor/bin/pest --parallel --compact tests/Feature/ManagedWorkspacesTest.php\` — 10 passed (77 assertions).
+- \`vendor/bin/pest --parallel --compact tests/Feature/EventActionsTest.php\` — 8 passed (39 assertions).
+- \`vendor/bin/pest --parallel --compact tests/Feature/AdvancedEventApiTest.php\` — 4 passed (17 assertions).
+- \`vendor/bin/phpstan analyse --ansi\` — no errors.
+- \`vendor/bin/pint\` on modified PHP files, testing-environment \`php artisan view:cache\`, \`npm run build\`, and \`git diff --check\` — passed.
+
+# Advanced builder Filament parity refresh
+
+## Plan
+
+- [x] Compare the public Filament wizard structure and field presentation with the advanced builder.
+- [x] Convert the advanced form to Filament schema components and the same friendly wizard shell.
+- [x] Preserve context locking, local conditional behavior, registration extras, and existing persistence.
+- [x] Add or update UI regression coverage.
+- [x] Run Blade, focused tests, static analysis, build, and diff checks.
+
+## Review
+
+The advanced event builder now follows the public Hantar Majlis interaction model: the custom multi-panel HTML was replaced with a responsive Filament wizard, grouped sections, helper text, native Filament validation presentation, repeaters for tickets/people/seating, and the same asset shell and scrollable step header. Managed-event context remains authoritative, while the registration, ticket, seating, program timeframe, and media controls remain available.
+
+The refactor also accounts for Filament-specific state: RichEditor JSON is accepted and persisted, empty single-file upload arrays are normalized before validation, and repeaters retain numeric state keys for the existing workflow. Age-group normalization remains client-local, and the seating review panel is client-local as well.
+
+## Verification
+
+- `vendor/bin/pest --parallel --compact tests/Feature/ManagedWorkspacesTest.php` — 10 passed (80 assertions).
+- `vendor/bin/pest --parallel --compact tests/Feature/EventActionsTest.php` — 8 passed (39 assertions).
+- `vendor/bin/pest --parallel --compact tests/Feature/AdvancedEventApiTest.php` — 4 passed (17 assertions).
+- `vendor/bin/phpstan analyse --ansi` — no errors.
+- `php artisan view:cache`, `npm run build`, targeted `vendor/bin/pint`, and `git diff --check` — passed.
+
+# Advanced feature discoverability follow-up
+
+## Plan
+
+- [x] Make registration, ticketing, quota, and seating capabilities visible before the wizard.
+- [x] Clarify how ticket seating activates the seating-map fields.
+- [x] Add regression assertions and verify the corrected UI path.
+
+## Review
+
+The advanced capabilities were not removed from the workflow, but the Filament refactor made them too easy to miss: registration and tickets were only visible on a later wizard step, while seating was conditionally hidden until a ticket selected a seating mode. The form now advertises these capabilities before the wizard, uses the clearer `Pendaftaran & tiket` step label, and explains the seating activation rule.
+
+Verification:
+
+- `vendor/bin/pest --parallel --compact tests/Feature/ManagedWorkspacesTest.php` — 10 passed (82 assertions).
+- `php artisan view:cache`, targeted Pint, and `git diff --check` — passed.
+
+# Advanced builder browser fill-through verification
+
+## Plan
+
+- [x] Fill the managed builder with harmless event, speaker, ticket, quota, and seating values.
+- [x] Verify registration, ticket, quota, seating, and seating-map controls in the rendered browser DOM.
+- [x] Correct the ticket-to-seating mode mismatch discovered during the fill-through.
+- [x] Leave the form at review without submitting an event.
+
+## Review
+
+Browser verification found that choosing an `Assigned` ticket left the seating map on its default `General Admission` mode, which would make the completed form fail later. Ticket seating now updates the seating-map mode locally: assigned-only tickets select `Assigned`, general-admission-only tickets select `General Admission`, and mixed modes select `Hybrid`.
+
+Verification:
+
+- Browser fill-through reached the final review step with registration enabled, a paid ticket at RM25.00, quota 50, assigned seating, a 50-seat map, and all seating fields visible; no event was submitted.
+- `vendor/bin/pest --parallel --compact tests/Feature/ManagedWorkspacesTest.php` — 10 passed (82 assertions).
+- `vendor/bin/phpstan analyse --ansi`, `php artisan view:cache`, targeted Pint, and `git diff --check` — passed.
+
+# Membership claim contact input and applicant notes
+
+## Plan
+
+- [x] Trace the membership claim form and existing account phone input.
+- [x] Add the Ysfkaya phone field and persist optional applicant notes in application metadata.
+- [x] Surface applicant notes to the claimant and reviewer, then add regression coverage.
+- [x] Run focused tests and verification checks.
+
+## Review
+
+The membership claim form now uses the same Ysfkaya phone configuration as Tetapan Akaun: Malaysia as the initial country, international display format, and E.164 submission format. Applicants can optionally add a Catatan up to 2,000 characters; the note is stored in the existing application metadata and shown in both the applicant history and admin review page.
+
+## Verification
+
+- `vendor/bin/pest --parallel --compact tests/Feature/MembershipApplicationPagesTest.php` — 16 passed (99 assertions).
+- `vendor/bin/pest --parallel --compact tests/Feature/MembershipApplicationAdminResourceTest.php` — 5 passed (32 assertions).
+- Full PHPStan and targeted PHPStan — no errors.
+- Targeted Pint, `php artisan view:cache`, JSON validation, PHP syntax checks, and `git diff --check` — passed.
+- Chrome verification — Malay page shows the Ysfkaya telephone input and Catatan textarea with the expected placeholder and 2,000-character limit.
+
+# Majlis filters and search cleanup
+
+## Plan
+
+- [x] Trace every Majlis filter, search scope, URL state, and active-filter summary.
+- [x] Align filter state updates, search scopes, date shortcuts, and saved/share links.
+- [x] Represent every active filter with a contextual label and complete the visible Malay vocabulary.
+- [x] Add focused regression coverage for the filter vocabulary and state-preserving search flows.
+- [x] Run browser, test, formatting, Blade, translation, diff, and PHPStan verification.
+- [x] Migrate the remaining sidebar and toolbar fields to Filament while preserving the existing `filterData` state and location cascade.
+
+## Review
+
+The Majlis page now keeps all filter controls in the same Livewire `filterData` state, so search scopes and secondary filters reset pagination and stay synchronized with the URL. Date shortcuts preserve the current search and filters. Active-filter chips now cover location, event type, language, format, audience, speakers and roles, topics, references, timing, links, and search scopes with clear field labels. The unused Apply button was replaced with an automatic-update message, and language choices now use a searchable, preloaded Filament multi-select showing full names alongside their codes.
+
+The remaining location, date, event-type, format, radius, search-scope, hero-search, and result-sort controls are now Filament schemas as well. Dependent geography fields keep their existing cascade and canonical address keys, while the branded search toolbar, Escape-to-clear behavior, nearby permission gate, date shortcuts, and distance-sort availability remain intact.
+
+Existing Signals intent tracking for search, filter changes, nearby search, clearing, saving, and sharing remains in place; no blanket cosmetic click tracking was added.
+
+## Verification
+
+- Focused filter/search regression tests — 6 passed (59 assertions).
+- Filament field-set regression test — passed for location, dates, category, format, radius, search scopes, hero search, and sorting.
+- Full `EventSearchTest` — 95 passed; the existing hidden domain payload test remains failing because broad domain options are preloaded into the initial response.
+- `vendor/bin/phpstan analyse --ansi` — no errors across 998 files.
+- Targeted Pint, `php artisan view:cache`, JSON validation, and `git diff --check` — passed.
+- Chrome verification — Malay filter options render correctly; search scopes and date shortcuts preserve state in the URL.

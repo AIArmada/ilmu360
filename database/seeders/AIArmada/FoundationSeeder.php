@@ -14,6 +14,9 @@ class FoundationSeeder extends Seeder
             EventRoleSeeder::class,
             EventTaxonomySeeder::class,
             EventTopicSeeder::class,
+            EventSourceSeeder::class,
+            EventDisciplineSeeder::class,
+            EventIssueSeeder::class,
         ]);
     }
 }

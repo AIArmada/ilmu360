@@ -274,15 +274,21 @@ class Show extends Component
                     ->whereNotNull('events.published_at')
                     ->whereHas('occurrences');
             })
-            // The profile only renders the event title and role here.
-            ->with('event:id,title,slug')
+            ->with('event')
             ->reorder()
             ->orderByRaw("({$primaryOccurrenceSql}) asc nulls last", $primaryOccurrence->getBindings())
             ->orderBy('sort_order')
             ->get();
 
+        $otherEvents = $other
+            ->map(fn (EventKeyPerson $keyPerson): mixed => $keyPerson->event)
+            ->filter(fn (mixed $event): bool => $event instanceof Event)
+            ->unique(fn (Event $event): string => (string) $event->getKey())
+            ->values();
+
         $speakerEvents = $upcoming
             ->concat($past)
+            ->concat($otherEvents)
             ->filter(fn (mixed $event): bool => $event instanceof Event)
             ->unique(fn (Event $event): string => (string) $event->getKey())
             ->values();

@@ -431,7 +431,12 @@ it('shows linked non-person roles in a separate section on the person page', fun
         ->assertSee('Kuliah Utama Penceramah')
         ->assertSee('Peranan Lain Dalam Majlis')
         ->assertSee('Moderator')
-        ->assertSee('Forum Dengan Moderator');
+        ->assertSee('Forum Dengan Moderator')
+        ->assertSee('Peranan: Moderator')
+        ->assertSee('<div class="mt-5 space-y-4">', false)
+        ->assertSee('sm:grid-cols-[7.5rem_minmax(0,1fr)]', false)
+        ->assertSee('from-violet-700 to-indigo-950', false)
+        ->assertSee('hover:border-violet-300', false);
 
     expect(substr_count((string) $response->getContent(), 'Forum Dengan Moderator'))->toBe(1);
 });

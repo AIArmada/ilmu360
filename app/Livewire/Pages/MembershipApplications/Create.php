@@ -14,7 +14,7 @@ use App\Models\User;
 use App\Support\Membership\MembershipApplicationPresenter;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
-use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Schemas\Components\Section;
@@ -25,6 +25,8 @@ use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use RuntimeException;
+use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
+use Ysfkaya\FilamentPhoneInput\PhoneInputNumberType;
 
 #[Layout('layouts.app')]
 class Create extends Component implements HasForms
@@ -89,6 +91,7 @@ class Create extends Component implements HasForms
     {
         $user = auth()->user();
         $needsPhone = $user instanceof User && blank($user->phone);
+        $subjectType = MemberSubjectType::tryFrom($this->subjectType);
 
         return $schema
             ->model(new MembershipApplication)
@@ -106,23 +109,32 @@ class Create extends Component implements HasForms
                             ])
                             ->required()
                             ->live()
-                            ->afterStateUpdated(function (Set $set, ?string $state): void {
-                                if ($state === MemberRole::Owner->value) {
+                            ->afterStateUpdated(function (Set $set, ?string $state) use ($subjectType): void {
+                                if ($subjectType !== MemberSubjectType::Institution && $state === MemberRole::Owner->value) {
                                     $set('relationship', 'self');
                                 }
                             }),
                         Select::make('relationship')
                             ->label('Hubungan anda dengan '.$this->context['subject_label'])
-                            ->options(MembershipApplicationPresenter::relationshipOptions())
+                            ->options(MembershipApplicationPresenter::relationshipOptions($subjectType))
                             ->required()
-                            ->default('self')
-                            ->disabled(fn (Get $get): bool => $get('applied_role') === MemberRole::Owner->value),
-                        TextInput::make('phone')
+                            ->default($subjectType === MemberSubjectType::Institution ? null : 'self')
+                            ->disabled(fn (Get $get): bool => $subjectType !== MemberSubjectType::Institution && $get('applied_role') === MemberRole::Owner->value),
+                        PhoneInput::make('phone')
                             ->label(__('Phone Number'))
-                            ->tel()
+                            ->initialCountry('MY')
+                            ->displayNumberFormat(PhoneInputNumberType::INTERNATIONAL)
+                            ->inputNumberFormat(PhoneInputNumberType::E164)
                             ->required()
                             ->visible($needsPhone)
                             ->helperText(__('We need a contact number to verify your claim. This is saved to your profile, not the application.'))
+                            ->columnSpanFull(),
+                        Textarea::make('notes')
+                            ->label(__('Catatan'))
+                            ->placeholder(__('Tulis apa-apa maklumat tambahan yang berkaitan dengan permohonan anda.'))
+                            ->helperText(__('Catatan ini akan dibaca oleh penyemak bersama bukti yang anda hantar.'))
+                            ->rows(4)
+                            ->maxLength(2000)
                             ->columnSpanFull(),
                         SpatieMediaLibraryFileUpload::make('evidence')
                             ->label(__('Evidence Files'))
@@ -154,7 +166,9 @@ class Create extends Component implements HasForms
         $appliedRole = $state['applied_role'] instanceof MemberRole
             ? $state['applied_role']->value
             : (string) ($state['applied_role'] ?? MemberRole::Editor->value);
-        $relationship = (string) ($state['relationship'] ?? 'self');
+        $subjectType = MemberSubjectType::tryFrom($this->subjectType);
+        $relationship = (string) ($state['relationship'] ?? ($subjectType === MemberSubjectType::Institution ? '' : 'self'));
+        $notes = trim((string) ($state['notes'] ?? ''));
 
         if (filled($state['phone'] ?? null) && blank($user->phone)) {
             $user->update(['phone' => $state['phone']]);
@@ -163,12 +177,13 @@ class Create extends Component implements HasForms
         $justification = sprintf(
             'Applying as %s. Relationship: %s.',
             MemberRole::from($appliedRole)->label(),
-            MembershipApplicationPresenter::relationshipOptions()[$relationship] ?? $relationship,
+            MembershipApplicationPresenter::relationshipOptions($subjectType)[$relationship] ?? $relationship,
         );
 
         $meta = [
             'applied_role' => $appliedRole,
             'relationship' => $relationship,
+            'notes' => $notes !== '' ? $notes : null,
         ];
 
         try {

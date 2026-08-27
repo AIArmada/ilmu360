@@ -85,6 +85,11 @@ class MembershipApplicationInfolist
                                     ]),
                                 Section::make('Notes')
                                     ->schema([
+                                        TextEntry::make('applicant_note')
+                                            ->label('Applicant Note')
+                                            ->state(fn (MembershipApplication $record): string => trim((string) data_get($record->meta, 'notes', '')))
+                                            ->placeholder('-')
+                                            ->columnSpanFull(),
                                         TextEntry::make('justification')
                                             ->label('Justification')
                                             ->columnSpanFull(),

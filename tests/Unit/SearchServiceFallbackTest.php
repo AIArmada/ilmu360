@@ -1,6 +1,8 @@
 <?php
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Persons\Enums\PersonNameType;
+use AIArmada\Persons\Models\PersonName;
 use App\Enums\InstitutionNameType;
 use App\Models\Institution;
 use App\Models\Person;
@@ -56,6 +58,30 @@ it('falls back to the local person search index when typesense lookup fails', fu
 
     expect($ids)->toContain((string) $person->id)
         ->and($queryIds)->toContain((string) $person->id);
+});
+
+it('finds an unindexed person through an alternate name', function () {
+    $person = Person::factory()->create([
+        'name' => 'Ahmad',
+        'family_name' => 'Rani',
+        'status' => 'verified',
+    ]);
+
+    PersonName::query()->create([
+        'person_id' => $person->getKey(),
+        'name_type' => PersonNameType::Display,
+        'full_name' => 'Ahmad Dusuki Abdul Rani',
+        'language_code' => 'ms',
+        'is_primary' => true,
+    ]);
+
+    DB::table('persons')->where('id', $person->getKey())->update(['searchable_name' => null]);
+    DB::table('person_search_terms')->where('person_id', $person->getKey())->delete();
+
+    $service = app(PersonSearchService::class);
+    $service->bustPublicSearchCache();
+
+    expect($service->publicSearchIds('dus'))->toContain((string) $person->getKey());
 });
 
 it('falls back to local person fuzzy search when typesense lookup fails', function () {

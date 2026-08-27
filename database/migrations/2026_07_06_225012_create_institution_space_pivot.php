@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('institution_space', function (Blueprint $table) {
             $table->foreignUuid('institution_id')->index();
             $table->foreignUuid('space_id')->index();
+            $table->unsignedInteger('capacity')->nullable();
             $table->timestamps();
 
             $table->primary(['institution_id', 'space_id']);

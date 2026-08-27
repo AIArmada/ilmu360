@@ -33,7 +33,10 @@ use App\Support\Location\PublicGeolocationPermission;
 use Database\Seeders\AIArmada\EventTopicSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
@@ -365,6 +368,120 @@ describe('Event Search Filters', function () {
             ->assertSee('search_include_institutions')
             ->assertSee('search_include_persons')
             ->assertSee('search_include_references');
+    });
+
+    it('renders the complete event filter vocabulary in Malay', function () {
+        $originalLocale = app()->getLocale();
+        app()->setLocale('ms');
+
+        try {
+            $response = $this->get(eventsIndexUrl());
+
+            $response->assertOk()
+                ->assertSee('Sebarang Negara')
+                ->assertSee('Sebarang Bandar')
+                ->assertSee('Sebarang Peranan')
+                ->assertSee('Sebarang Moderator')
+                ->assertSee('Sebarang Imam')
+                ->assertSee('Sebarang Khatib')
+                ->assertSee('Sebarang Bilal')
+                ->assertSee('Ada Masa Tamat')
+                ->assertSee('Tiada Masa Tamat')
+                ->assertSee('Bahasa Melayu (BM)')
+                ->assertSee('Pilih satu atau lebih bahasa yang digunakan dalam majlis.')
+                ->assertDontSee('Any Country')
+                ->assertDontSee('Any City')
+                ->assertDontSee('Any Role')
+                ->assertDontSee('Any Moderator')
+                ->assertDontSee('Any Imam')
+                ->assertDontSee('Any Khatib')
+                ->assertDontSee('Any Bilal')
+                ->assertDontSee('Has End Time')
+                ->assertDontSee('No End Time')
+                ->assertDontSee('Terapkan penapis');
+        } finally {
+            app()->setLocale($originalLocale);
+        }
+    });
+
+    it('uses a searchable Filament multi-select for languages', function (): void {
+        $component = Livewire::test(Index::class);
+        $field = collect($component->instance()->getForm('form')->getFlatFields())
+            ->first(fn (mixed $field): bool => $field instanceof Select && $field->getName() === 'language_codes');
+
+        expect($field)->toBeInstanceOf(Select::class)
+            ->and($field->isMultiple())->toBeTrue()
+            ->and($field->isSearchable())->toBeTrue()
+            ->and($field->isPreloaded())->toBeTrue()
+            ->and($field->getOptions())->toHaveKey('ms', 'Bahasa Melayu (BM)');
+    });
+
+    it('uses Filament for the complete sidebar filter field set', function (): void {
+        $component = Livewire::test(Index::class);
+        $fields = collect($component->instance()->getForm('form')->getFlatFields(withHidden: true))
+            ->keyBy(fn (mixed $field): string => $field->getName());
+        $searchFields = collect($component->instance()->getForm('searchForm')->getFlatFields(withHidden: true))
+            ->keyBy(fn (mixed $field): string => $field->getName());
+        $sortFields = collect($component->instance()->getForm('sortForm')->getFlatFields(withHidden: true))
+            ->keyBy(fn (mixed $field): string => $field->getName());
+
+        foreach ([
+            'country_id',
+            'state_id',
+            'city_id',
+            'area_assignments.administrative_division',
+            'area_assignments.postal_locality',
+            'area_assignments.administrative_district',
+            'area_assignments.administrative_subdivision',
+            'event_category_ids',
+            'event_format',
+            'search_include_institutions',
+            'search_include_persons',
+            'search_include_references',
+            'starts_after',
+            'starts_before',
+            'radius_km',
+        ] as $name) {
+            expect($fields)->toHaveKey($name);
+        }
+
+        expect($fields['event_category_ids'])->toBeInstanceOf(Select::class)
+            ->and($fields['event_format'])->toBeInstanceOf(Select::class)
+            ->and($fields['search_include_institutions'])->toBeInstanceOf(Toggle::class)
+            ->and($fields['starts_after'])->toBeInstanceOf(DatePicker::class)
+            ->and($fields['starts_before'])->toBeInstanceOf(DatePicker::class)
+            ->and($fields['radius_km'])->toBeInstanceOf(TextInput::class)
+            ->and($searchFields['search'])->toBeInstanceOf(TextInput::class)
+            ->and($sortFields['sort'])->toBeInstanceOf(Select::class);
+    });
+
+    it('keeps search scopes in the filter state and represents reference authors as active filters', function () {
+        $originalLocale = app()->getLocale();
+        app()->setLocale('ms');
+
+        try {
+            $component = Livewire::test(Index::class)
+                ->set('paginators.page', 2)
+                ->set('filterData.search_include_institutions', false)
+                ->set('filterData.reference_author_search', ['Muhammad Abduh']);
+
+            $component
+                ->assertSet('search_include_institutions', false)
+                ->assertSet('reference_author_search', ['Muhammad Abduh'])
+                ->assertSet('paginators.page', 1)
+                ->assertSee('Cari dalam: Penceramah, Rujukan')
+                ->assertSee('Pengarang Rujukan: Muhammad Abduh');
+        } finally {
+            app()->setLocale($originalLocale);
+        }
+    });
+
+    it('preserves the active search when using a date shortcut', function () {
+        $today = now()->toDateString();
+
+        $this->get(eventsIndexUrl(['search' => 'fiqh']))
+            ->assertOk()
+            ->assertSee('search=fiqh&amp;starts_after='.$today.'&amp;starts_before='.$today.'&amp;time_scope=all', false);
     });
 
     it('renders secondary filters directly in the events index sidebar', function () {

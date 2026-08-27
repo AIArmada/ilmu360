@@ -430,6 +430,12 @@ it('renders translated search placeholder on person index', function () {
         ->assertSee(__('Cari nama penceramah…'));
 });
 
+it('uses a short debounce for live speaker search', function () {
+    get('/penceramah')
+        ->assertSuccessful()
+        ->assertSee('wire:model.live.debounce.150ms="search"', false);
+});
+
 it('renders the search clear control as an icon button instead of text', function () {
     Person::factory()->create([
         'name' => 'Samad Al-Bakri',
@@ -502,6 +508,18 @@ it('shows the empty state when person search has no public matches', function ()
         ->assertSee(__('No speakers found'))
         ->assertSee(__('No profile matches “:search”. Try a different spelling or the full name.', ['search' => 'ammar']))
         ->assertDontSee('0 penceramah ditemui');
+});
+
+it('shows a neutral state while a speaker search is too short', function () {
+    $searchService = Mockery::mock(PersonSearchService::class);
+    $searchService->shouldNotReceive('publicSearchIds');
+    app()->instance(PersonSearchService::class, $searchService);
+
+    get('/penceramah?search=Ka')
+        ->assertSuccessful()
+        ->assertSee(__('Continue typing to search'))
+        ->assertSee(__('Type at least 3 characters to search.'))
+        ->assertDontSee(__('No speakers found'));
 });
 
 it('updates search results live when query changes', function () {

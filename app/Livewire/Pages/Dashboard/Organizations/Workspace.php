@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Livewire\Pages\Dashboard\Organizations;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\FilamentEvents\Resources\EventResource;
 use AIArmada\Membership\Actions\ChangeMemberRoleAction;
 use AIArmada\Membership\Actions\RemoveMemberAction;
 use AIArmada\Membership\Actions\RevokeInvitationAction;
@@ -308,6 +309,17 @@ final class Workspace extends Component
             ->filter(fn (Event $event): bool => $event->isPubliclyReachable())
             ->mapWithKeys(fn (Event $event): array => [(string) $event->getKey() => true])
             ->all());
+        $eventEditUrls = [];
+
+        foreach ($events as $event) {
+            if ($this->currentUser()->can('update', $event)) {
+                $eventEditUrls[(string) $event->getKey()] = EventResource::getUrl(
+                    'edit',
+                    ['record' => $event],
+                    panel: 'ahli',
+                );
+            }
+        }
 
         return view('livewire.pages.dashboard.organizations.workspace', [
             'organization' => $organization,
@@ -315,6 +327,7 @@ final class Workspace extends Component
             'invitations' => $this->invitations(),
             'events' => $events,
             'publicEventIds' => $publicEventIds,
+            'eventEditUrls' => $eventEditUrls,
             'roleOptions' => $this->roleOptions(),
             'canManageMembers' => $this->canManageMembers(),
             'canManageOrganization' => $this->canManageOrganization(),

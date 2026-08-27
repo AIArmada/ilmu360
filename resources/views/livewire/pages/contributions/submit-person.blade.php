@@ -73,6 +73,7 @@
                         'gender',
                         'names',
                         'institutions',
+                        'address',
                     ],
                     isFilled(value) {
                         if (Array.isArray(value)) {
@@ -87,10 +88,12 @@
                     },
                     calculate(state) {
                         const current = state ?? {};
+                        const currentAddress = current.address ?? {};
 
                         const checks = [
                             this.isFilled(current.name),
                             this.isFilled(current.gender),
+                            this.isFilled(currentAddress.country_id),
                         ];
 
                         (Array.isArray(current.names) ? current.names : []).forEach((name) => {

@@ -57,7 +57,8 @@ class MemberResourceMutationService
             AhliReferenceResource::class => $this->memberPermissionGate->hasAnyReferencePermission($user, 'reference.update'),
             AhliEventResource::class => $this->memberPermissionGate->hasAnyEventPermission($user, 'event.update')
                 || $this->memberPermissionGate->hasAnyInstitutionPermission($user, 'event.update')
-                || $this->memberPermissionGate->hasAnyPersonPermission($user, 'event.update'),
+                || $this->memberPermissionGate->hasAnyPersonPermission($user, 'event.update')
+                || $this->memberPermissionGate->hasAnyOrganizationPermission($user, 'event.update'),
             default => false,
         };
     }

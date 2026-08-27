@@ -98,6 +98,8 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
         'name',
         'email',
         'phone',
+        'gender',
+        'date_of_birth',
         'timezone',
         'current_team_id',
         'daily_prayer_institution_id',
@@ -128,6 +130,7 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
         return [
             'email_verified_at' => 'datetime',
             'phone_verified_at' => 'datetime',
+            'date_of_birth' => 'date',
             'password' => 'hashed',
         ];
     }

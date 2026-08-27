@@ -38,20 +38,28 @@ class InstitutionContributionFormSchema
                     TextInput::make('name')
                         ->label(__('Institution Name'))
                         ->required()
-                        ->maxLength(255),
+                        ->maxLength(255)
+                        ->helperText(__('Use the official name of this institution.')),
                     Repeater::make('names')
                         ->label(__('Alternative Names'))
+                        ->helperText(__('Add other names, abbreviations, or local names used by this institution.'))
                         ->schema([
                             Select::make('name_type')
-                                ->options(InstitutionNameType::class)
+                                ->label(__('Name type'))
+                                ->placeholder(__('Select name type'))
+                                ->options(fn (): array => self::institutionNameTypeOptions())
                                 ->required(),
                             TextInput::make('full_name')
+                                ->label(__('Full name'))
                                 ->required()
                                 ->maxLength(255),
                             TextInput::make('language_code')
+                                ->label(__('Name language'))
                                 ->maxLength(10)
                                 ->default('ms'),
                             Toggle::make('is_primary')
+                                ->label(__('Primary name'))
+                                ->helperText(__('Mark this if this is the main displayed name for the institution.'))
                                 ->default(false)
                                 ->fixIndistinctState(),
                         ])
@@ -61,10 +69,12 @@ class InstitutionContributionFormSchema
                         ->addActionLabel(__('Add name')),
                     RichEditor::make('description')
                         ->label(__('Description'))
+                        ->helperText(__('Share a short description of this institution.'))
                         ->columnSpanFull(),
                 ])
                 ->columns(2),
             Section::make(__('Address'))
+                ->description(__('Choose the country and region where this institution is based.'))
                 ->schema([
                     ...($shouldRenderLocationPicker
                         ? [
@@ -118,6 +128,7 @@ class InstitutionContributionFormSchema
                             ->image()
                             ->imageEditor()
                             ->conversion('thumb')
+                            ->helperText(__('Institution logo'))
                             ->columnSpanFull(),
                         SpatieMediaLibraryFileUpload::make('cover')
                             ->label(__('Cover Image'))
@@ -130,6 +141,7 @@ class InstitutionContributionFormSchema
                             ->automaticallyCropImagesToAspectRatio()
                             ->conversion('banner')
                             ->responsiveImages()
+                            ->helperText(__('Header or banner image'))
                             ->columnSpanFull(),
                         SpatieMediaLibraryFileUpload::make('gallery')
                             ->label(__('Gallery'))
@@ -139,6 +151,7 @@ class InstitutionContributionFormSchema
                             ->image()
                             ->conversion('gallery_thumb')
                             ->responsiveImages()
+                            ->helperText(__('Up to 10 photos of the institution'))
                             ->columnSpanFull(),
                     ])
                     ->columns(2),
@@ -184,6 +197,7 @@ class InstitutionContributionFormSchema
                 ->image()
                 ->imageEditor()
                 ->conversion('thumb')
+                ->helperText(__('Institution logo'))
                 ->deletable(false)
                 ->columnSpanFull();
         }
@@ -200,6 +214,7 @@ class InstitutionContributionFormSchema
                 ->automaticallyCropImagesToAspectRatio()
                 ->conversion('banner')
                 ->responsiveImages()
+                ->helperText(__('Header or banner image'))
                 ->deletable(false)
                 ->columnSpanFull();
         }
@@ -213,6 +228,7 @@ class InstitutionContributionFormSchema
                 ->image()
                 ->conversion('gallery_thumb')
                 ->responsiveImages()
+                ->helperText(__('Up to 10 photos of the institution'))
                 ->columnSpanFull();
         }
 
@@ -226,5 +242,15 @@ class InstitutionContributionFormSchema
         return $includeLocationPicker
             && $addressStatePath !== null
             && GooglePlacesConfiguration::isEnabled();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private static function institutionNameTypeOptions(): array
+    {
+        return collect(InstitutionNameType::cases())
+            ->mapWithKeys(fn (InstitutionNameType $type): array => [$type->value => __($type->label())])
+            ->all();
     }
 }

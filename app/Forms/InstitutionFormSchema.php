@@ -11,6 +11,7 @@ use App\Enums\InstitutionType;
 use App\Models\Institution;
 use App\Models\User;
 use App\Support\Cache\SelectionCatalogCache;
+use App\Support\Language\MalaysiaLanguageCatalog;
 use App\Support\Location\GooglePlacesConfiguration;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
@@ -43,18 +44,29 @@ class InstitutionFormSchema
                 ->label(__('Alternative Names'))
                 ->schema([
                     Select::make('name_type')
-                        ->options(InstitutionNameType::class)
+                        ->label(__('Name type'))
+                        ->placeholder(__('Select name type'))
+                        ->options(fn (): array => collect(InstitutionNameType::cases())
+                            ->mapWithKeys(fn (InstitutionNameType $type): array => [$type->value => __($type->label())])
+                            ->all())
                         ->required(),
                     TextInput::make('full_name')
+                        ->label(__('Full name'))
                         ->required()
                         ->maxLength(255),
                     Select::make('language_code')
-                        ->options(fn (): array => app(SelectionCatalogCache::class)->languageOptions('code'))
+                        ->label(__('Name language'))
+                        ->placeholder(__('Select language'))
+                        ->options(fn (): array => app(SelectionCatalogCache::class)->languageOptions(
+                            'code',
+                            MalaysiaLanguageCatalog::labels(),
+                        ))
                         ->searchable()
                         ->preload()
                         ->required()
                         ->default('ms'),
                     Toggle::make('is_primary')
+                        ->label(__('Primary name'))
                         ->default(false)
                         ->fixIndistinctState(),
                 ])

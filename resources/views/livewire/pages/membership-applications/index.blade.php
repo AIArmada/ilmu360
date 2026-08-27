@@ -70,6 +70,13 @@
 
                                 <p class="text-sm leading-6 text-slate-700">{{ $claim->justification }}</p>
 
+                                @if(filled(data_get($claim->meta, 'notes')))
+                                    <p class="rounded-xl bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-700">
+                                        <span class="font-semibold">{{ __('Catatan') }}:</span>
+                                        {{ data_get($claim->meta, 'notes') }}
+                                    </p>
+                                @endif
+
                                 @if($claim->status === ApplicationStatus::Approved && filled($claim->granted_role))
                                     <p class="text-sm font-medium text-emerald-700">{{ __('Granted role: :role', ['role' => $presenter::roleLabel($claim)]) }}</p>
                                 @endif

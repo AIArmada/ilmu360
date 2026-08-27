@@ -23,6 +23,7 @@ use App\Enums\EventPrayerTime;
 use App\Enums\EventTaxonomyCode;
 use App\Enums\EventVisibility;
 use App\Enums\ReferenceType;
+use App\Enums\TaxonomyTerm\DomainTermCode;
 use App\Forms\Components\Select;
 use App\Forms\InstitutionFormSchema;
 use App\Forms\PersonFormSchema;
@@ -108,9 +109,9 @@ class Create extends Component implements HasActions, HasForms
     private const array RELIGIOUS_CATEGORY_CODES = ['aktiviti_keagamaan'];
 
     /** @var list<string> */
-    private const array RELIGIOUS_TOPIC_CODES = ['agama_kerohanian'];
+    private const array RELIGIOUS_TOPIC_CODES = [DomainTermCode::AgamaKerohanian->value];
 
-    private const string AGAMA_KEROHANIAN_CODE = 'agama_kerohanian';
+    private const string AGAMA_KEROHANIAN_CODE = DomainTermCode::AgamaKerohanian->value;
 
     public function render(): View
     {
@@ -155,7 +156,7 @@ class Create extends Component implements HasActions, HasForms
         $scopedInstitution = $this->resolveScopedInstitution(request()->query('institution'));
         $defaultLanguageId = Language::where('code', 'ms')->value('id');
         $defaultCategoryId = $this->defaultEventTermId(EventCategoryCatalog::TAXONOMY_CODE, 'kuliah_ceramah');
-        $defaultDomainId = $this->defaultEventTermId(EventTaxonomyCode::Domain->value, 'agama_kerohanian');
+        $defaultDomainId = $this->defaultEventTermId(EventTaxonomyCode::Domain->value, DomainTermCode::AgamaKerohanian->value);
         $defaultIsReligious = $defaultCategoryId !== null || $defaultDomainId !== null;
 
         if ($scopedInstitution instanceof Institution) {
@@ -316,6 +317,30 @@ class Create extends Component implements HasActions, HasForms
                 ->mapWithKeys(fn (EventTerm $term): array => [(string) $term->id => (string) $term->name])
                 ->all();
         });
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function disciplineOptionsForDomain(?string $domainId): array
+    {
+        $taxonomyId = EventTaxonomy::query()->where('code', EventTaxonomyCode::Discipline->value)->value('id');
+
+        if ($taxonomyId === null || $domainId === null) {
+            return [];
+        }
+
+        return EventTerm::query()
+            ->where('event_taxonomy_id', $taxonomyId)
+            ->where('is_active', true)
+            ->where(function (Builder $query) use ($domainId): void {
+                $query->whereJsonContains('metadata->domain_ids', $domainId)
+                    ->orWhereNull('metadata->domain_ids');
+            })
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->all();
     }
 
     /**
@@ -1036,6 +1061,7 @@ class Create extends Component implements HasActions, HasForms
             ))
             ->afterStateUpdated(function (mixed $state, Set $set, Get $get): void {
                 $this->applyContextualDefaults($get, $set);
+                $set('discipline_tags', []);
             });
     }
 
@@ -1056,20 +1082,23 @@ class Create extends Component implements HasActions, HasForms
                         ->searchable()
                         ->preload()
                         ->allowHtml()
-                        ->options(fn (): array => $this->cachedSubmitTagOptions(
-                            type: EventTaxonomyCode::Discipline,
-                            cachePrefix: 'submit_tags_discipline_verified',
-                            statuses: ['verified'],
+                        ->options(fn (Get $get): array => $this->disciplineOptionsForDomain(
+                            is_string($domain = $get('domain_tags')) ? $domain : null,
                         ))
-                        ->getSearchResultsUsing(function (string $search): array {
+                        ->getSearchResultsUsing(function (string $search, ?Get $get = null): array {
                             if (blank($search)) {
                                 return [];
                             }
 
+                            $domainId = $get instanceof Get ? (is_string($d = $get('domain_tags')) ? $d : null) : null;
                             $taxonomyId = EventTaxonomy::query()->where('code', EventTaxonomyCode::Discipline->value)->value('id');
                             $results = EventTerm::query()
                                 ->where('event_taxonomy_id', $taxonomyId)
                                 ->where('is_active', true)
+                                ->when($domainId !== null, fn (Builder $query) => $query->where(function (Builder $query) use ($domainId): void {
+                                    $query->whereJsonContains('metadata->domain_ids', $domainId)
+                                        ->orWhereNull('metadata->domain_ids');
+                                }))
                                 ->whereLike('name', "%{$search}%")
                                 ->orderBy('sort_order')
                                 ->limit(20)
@@ -1897,13 +1926,105 @@ class Create extends Component implements HasActions, HasForms
      */
     protected function eventContainerDefaults(Event $event): array
     {
+        $event->loadMissing([
+            'classifications',
+            'references',
+            'languages',
+            'persons',
+            'keyPeople',
+            'primaryOccurrence',
+            'primaryOrganizerInvolvement',
+        ]);
+
         $eventVisibility = $event->visibility;
+        $eventFormat = $event->delivery_mode instanceof EventFormat
+            ? $event->delivery_mode->value
+            : (is_string($event->delivery_mode) && $event->delivery_mode !== '' ? $event->delivery_mode : EventFormat::Physical->value);
+        $eventGender = $event->gender instanceof EventGenderRestriction
+            ? $event->gender->value
+            : (is_string($event->gender) && $event->gender !== '' ? $event->gender : EventGenderRestriction::All->value);
+        $classifications = $event->classifications;
 
         $defaults = [
+            'title' => $event->title,
+            'description' => $event->description,
+            'event_category_ids' => $classifications
+                ->where('taxonomy_code', EventCategoryCatalog::TAXONOMY_CODE)
+                ->pluck('event_term_id')
+                ->filter()
+                ->first(),
+            'event_format' => $eventFormat,
+            'gender' => $eventGender,
+            'age_group' => $this->normalizeAgeGroupState($event->age_group),
+            'children_allowed' => (bool) $event->children_allowed,
+            'is_muslim_only' => (bool) $event->is_muslim_only,
+            'event_url' => $event->event_url,
+            'live_url' => $event->live_url,
+            'domain_tags' => $classifications
+                ->where('taxonomy_code', EventTaxonomyCode::Domain->value)
+                ->pluck('event_term_id')
+                ->filter()
+                ->first(),
+            'discipline_tags' => $classifications
+                ->where('taxonomy_code', EventTaxonomyCode::Discipline->value)
+                ->pluck('event_term_id')
+                ->filter()
+                ->values()
+                ->all(),
+            'source_tags' => $classifications
+                ->where('taxonomy_code', EventTaxonomyCode::Source->value)
+                ->pluck('event_term_id')
+                ->filter()
+                ->values()
+                ->all(),
+            'issue_tags' => $classifications
+                ->where('taxonomy_code', EventTaxonomyCode::Issue->value)
+                ->pluck('event_term_id')
+                ->filter()
+                ->values()
+                ->all(),
+            'references' => $event->references
+                ->pluck('id')
+                ->filter()
+                ->values()
+                ->all(),
+            'persons' => $this->duplicatePersonState($event),
+            'other_key_people' => $this->duplicateOtherKeyPeopleState($event),
+            'languages' => $event->languages
+                ->pluck('id')
+                ->map(strval(...))
+                ->values()
+                ->all(),
             'visibility' => $eventVisibility instanceof EventVisibility
                 ? $eventVisibility->value
                 : (is_string($eventVisibility) && $eventVisibility !== '' ? $eventVisibility : EventVisibility::Public->value),
         ];
+
+        $firstSession = is_array($event->metadata ?? null)
+            ? ($event->metadata['advanced_first_session'] ?? [])
+            : [];
+
+        if (is_array($firstSession)) {
+            $defaults = array_replace($defaults, array_filter([
+                'event_date' => $firstSession['event_date'] ?? null,
+                'prayer_time' => $firstSession['prayer_time'] ?? null,
+                'custom_time' => $firstSession['custom_time'] ?? null,
+                'end_time' => $firstSession['end_time'] ?? null,
+            ], filled(...)));
+        }
+
+        if (! array_key_exists('event_date', $defaults) && $event->primaryOccurrence?->starts_at instanceof CarbonInterface) {
+            $timezone = $this->resolveSubmissionTimezone($this->data['submission_country_id'] ?? null);
+            $startsAt = $event->primaryOccurrence->starts_at->copy()->timezone($timezone);
+            $defaults['event_date'] = $startsAt->toDateString();
+            $defaults['custom_time'] = $startsAt->format('H:i');
+            $defaults['prayer_time'] = EventPrayerTime::LainWaktu->value;
+        }
+
+        if (! array_key_exists('end_time', $defaults) && $event->primaryOccurrence?->ends_at instanceof CarbonInterface) {
+            $timezone = $this->resolveSubmissionTimezone($this->data['submission_country_id'] ?? null);
+            $defaults['end_time'] = $event->primaryOccurrence->ends_at->copy()->timezone($timezone)->format('H:i');
+        }
 
         $organizer = $event->primaryOrganizerInvolvement;
 

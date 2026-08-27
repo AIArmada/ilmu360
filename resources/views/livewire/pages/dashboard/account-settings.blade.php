@@ -54,9 +54,14 @@
                             {{ $this->form }}
 
                             <div class="flex justify-end">
-                                <button type="submit"
-                                    class="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700">
-                                    {{ __('Save Account Settings') }}
+                                <button type="submit" wire:loading.attr="disabled" wire:target="saveAccountSettings"
+                                    class="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70">
+                                    <svg wire:loading wire:target="saveAccountSettings" class="h-4 w-4 flex-shrink-0 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                                    </svg>
+                                    <span wire:loading.remove wire:target="saveAccountSettings">{{ __('Save Account Settings') }}</span>
+                                    <span wire:loading wire:target="saveAccountSettings">{{ __('Saving…') }}</span>
                                 </button>
                             </div>
                         </form>

@@ -58,6 +58,7 @@ class SubmitPerson extends Component implements HasActions, HasForms
             addressStatePath: 'address',
             regionOnlyAddress: true,
             showCountryField: true,
+            requireCountryField: true,
             includeAlternativeNames: true,
             useTitleMultiSelect: true,
             useInstitutionRepeater: true,
@@ -150,6 +151,7 @@ class SubmitPerson extends Component implements HasActions, HasForms
         $checks = [
             filled($data['name'] ?? null),
             filled($data['gender'] ?? null),
+            filled(data_get($data, 'address.country_id')),
         ];
 
         foreach (($data['names'] ?? []) as $name) {

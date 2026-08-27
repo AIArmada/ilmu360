@@ -5,7 +5,9 @@ declare(strict_types=1);
 use AIArmada\FilamentEvents\Resources\EventResource;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Membership\Services\MembershipRoleSyncService;
+use AIArmada\Ticketing\Models\TicketType;
 use App\Enums\ContributionSubjectType;
+use App\Enums\EventFormat;
 use App\Enums\EventKeyPersonRole;
 use App\Livewire\Pages\Dashboard\Events\CreateAdvanced;
 use App\Livewire\Pages\Dashboard\InstitutionDashboard;
@@ -16,6 +18,7 @@ use App\Models\EventKeyPerson;
 use App\Models\Institution;
 use App\Models\MemberInvitation;
 use App\Models\Person;
+use App\Models\Reference;
 use App\Models\User;
 use App\Notifications\Membership\MemberInvitationNotification;
 use App\Support\Api\Member\MemberResourceRegistry;
@@ -148,7 +151,7 @@ it('shows speaker events and authorizes event editing through the speaker member
         ->assertOk()
         ->assertSee('Speaker Managed Event')
         ->assertDontSee($editUrl, false)
-        ->assertDontSee($createUrl, false);
+        ->assertSee($createUrl, false);
 
     expect($admin->can('update', $event))->toBeTrue()
         ->and($viewer->can('update', $event))->toBeFalse()
@@ -170,13 +173,146 @@ it('carries the speaker workspace context into the event submission wizard', fun
         ->actingAs($user)
         ->test(CreateAdvanced::class)
         ->assertSet('prefillPersonId', $person->id)
-        ->assertSee('Prefilled Speaker');
+        ->assertSee('Prefilled Speaker')
+        ->assertSee('Satu borang lengkap')
+        ->assertSee('Pendaftaran &amp; tiket', false)
+        ->assertSee('Jenis tiket')
+        ->assertSee('Tempat duduk')
+        ->assertSee('Mula dengan templat');
 
     Livewire::withQueryParams(['person' => $person->id])
         ->actingAs($user)
         ->test(Create::class)
         ->assertSet('prefillPersonId', $person->id)
         ->assertSet('data.persons', [$person->id]);
+});
+
+it('lets a speaker member create a paid managed event with a ticket quota', function (): void {
+    $user = User::factory()->create();
+    $person = Person::factory()->create(['name' => 'Paid Speaker', 'status' => 'verified']);
+    $institution = Institution::factory()->create(['name' => 'Paid Speaker Venue', 'status' => 'verified']);
+    $category = eventCategoryId('lain_lain');
+
+    app(ScopedMemberRoleSeeder::class)->ensureForPerson();
+    app(ScopedMemberRoleSeeder::class)->ensureForInstitution();
+    $person->members()->syncWithoutDetaching([$user->id => ['role' => MemberRole::Editor->value]]);
+    $institution->members()->syncWithoutDetaching([$user->id => ['role' => MemberRole::Editor->value]]);
+
+    Livewire::withQueryParams(['person' => $person->id])
+        ->actingAs($user)
+        ->test(CreateAdvanced::class)
+        ->set('form.title', 'Speaker Ticketed Event')
+        ->set('form.default_event_category_ids', [$category])
+        ->set('form.primary_organizer_id', $person->id)
+        ->set('form.location_institution_id', $institution->id)
+        ->set('form.registration_required', true)
+        ->set('form.pricing_mode', 'paid')
+        ->set('form.tickets.0.price', '25.00')
+        ->set('form.tickets.0.quota', '40')
+        ->call('submit')
+        ->assertHasNoErrors()
+        ->assertRedirect();
+
+    $event = Event::query()->where('title', 'Speaker Ticketed Event')->firstOrFail();
+    $ticket = $event->primaryOccurrence?->ticketTypes()->first();
+
+    expect($event->created_by_id)->toBe($user->id)
+        ->and($event->pricing_mode->value)->toBe('paid')
+        ->and($event->registration_mode->value)->toBe('required')
+        ->and($event->primaryOccurrence?->capacity)->toBe(40)
+        ->and($ticket)->toBeInstanceOf(TicketType::class)
+        ->and($ticket?->price)->toBe(2500);
+});
+
+it('persists the public event profile while keeping institution context authoritative', function (): void {
+    $user = User::factory()->create();
+    $institution = Institution::factory()->create(['name' => 'Context Institution', 'status' => 'verified']);
+    $speaker = Person::factory()->create(['name' => 'Context Speaker', 'status' => 'verified']);
+    $reference = Reference::factory()->create(['status' => 'verified']);
+    $domain = submitEventTerm('domain');
+    $discipline = submitEventTerm('discipline');
+    $source = submitEventTerm('source');
+    $issue = submitEventTerm('issue');
+
+    app(ScopedMemberRoleSeeder::class)->ensureForInstitution();
+    app(ScopedMemberRoleSeeder::class)->ensureForPerson();
+    $institution->members()->syncWithoutDetaching([$user->id => ['role' => MemberRole::Editor->value]]);
+    $speaker->members()->syncWithoutDetaching([$user->id => ['role' => MemberRole::Editor->value]]);
+
+    Livewire::withQueryParams(['institution' => $institution->id])
+        ->actingAs($user)
+        ->test(CreateAdvanced::class)
+        ->set('form.title', 'Complete Advanced Event')
+        ->set('form.description', 'A complete event profile')
+        ->set('form.default_event_category_ids', [eventCategoryId('lain_lain')])
+        ->set('form.default_event_format', EventFormat::Physical->value)
+        ->set('form.domain_tags', $domain->id)
+        ->set('form.discipline_tags', [$discipline->id])
+        ->set('form.source_tags', [$source->id])
+        ->set('form.issue_tags', [$issue->id])
+        ->set('form.references', [$reference->id])
+        ->set('form.persons', [$speaker->id])
+        ->set('form.event_date', now()->addDays(5)->toDateString())
+        ->set('form.prayer_time', 'lain_waktu')
+        ->set('form.custom_time', '20:30')
+        ->set('form.end_time', '22:00')
+        ->set('form.gender', 'all')
+        ->set('form.age_group', ['adults'])
+        ->set('form.children_allowed', false)
+        ->set('form.languages', [languageId('ms')])
+        ->set('form.primary_organizer_id', $speaker->id)
+        ->set('form.location_institution_id', $speaker->id)
+        ->call('submit')
+        ->assertHasNoErrors()
+        ->assertRedirect();
+
+    $event = Event::query()->where('title', 'Complete Advanced Event')->firstOrFail();
+
+    expect($event->institution_id)->toBe($institution->id)
+        ->and($event->primaryOrganizerInvolvement?->involveable_id)->toBe($institution->id)
+        ->and($event->references()->whereKey($reference->id)->exists())->toBeTrue()
+        ->and($event->classifications()->where('event_term_id', $discipline->id)->exists())->toBeTrue()
+        ->and($event->classifications()->where('event_term_id', $source->id)->exists())->toBeTrue()
+        ->and($event->classifications()->where('event_term_id', $issue->id)->exists())->toBeTrue()
+        ->and($event->languages->pluck('code')->all())->toContain('ms')
+        ->and(EventKeyPerson::query()->where('event_id', $event->id)->where('involveable_id', $speaker->id)->exists())->toBeTrue()
+        ->and(data_get($event->metadata, 'advanced_first_session.custom_time'))->toBe('20:30');
+
+    Livewire::withQueryParams(['event' => $event->id])
+        ->actingAs($user)
+        ->test(Create::class)
+        ->assertSet('data.title', 'Complete Advanced Event')
+        ->assertSet('data.event_date', now()->addDays(5)->toDateString())
+        ->assertSet('data.custom_time', '20:30')
+        ->assertSet('data.references', [$reference->id])
+        ->assertSet('data.persons', [$speaker->id]);
+});
+
+it('applies the public first-session timing rules to the advanced builder', function (): void {
+    $user = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified']);
+    $domain = submitEventTerm('domain');
+
+    app(ScopedMemberRoleSeeder::class)->ensureForInstitution();
+    $institution->members()->syncWithoutDetaching([$user->id => ['role' => MemberRole::Editor->value]]);
+
+    $component = Livewire::withQueryParams(['institution' => $institution->id])
+        ->actingAs($user)
+        ->test(CreateAdvanced::class)
+        ->set('form.title', 'Timing Rules Event')
+        ->set('form.default_event_category_ids', [eventCategoryId('lain_lain')])
+        ->set('form.domain_tags', $domain->id)
+        ->set('form.event_date', now()->addDays(5)->toDateString())
+        ->set('form.prayer_time', 'sebelum_jumaat')
+        ->call('submit')
+        ->assertHasErrors('form.prayer_time');
+
+    $component
+        ->set('form.prayer_time', 'lain_waktu')
+        ->set('form.custom_time', '20:00')
+        ->set('form.end_time', '19:00')
+        ->call('submit')
+        ->assertHasErrors('form.end_time');
 });
 
 it('lets speaker admins invite, change, and remove non-owner members', function (): void {

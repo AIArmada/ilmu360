@@ -115,3 +115,25 @@ it('shows membership application subjects on the admin index and links to the vi
         ->assertSee('Institusi Untuk Tuntutan')
         ->assertSee(MembershipApplicationResource::getUrl('view', ['record' => $claim]), false);
 });
+
+it('shows applicant notes on the membership application view page', function () {
+    $administrator = User::factory()->create();
+    $administrator->assignRole('super_admin');
+
+    $institution = Institution::factory()->create();
+    $claim = MembershipApplication::factory()
+        ->for($institution, 'subject')
+        ->create([
+            'meta' => [
+                'relationship' => 'committee_member',
+                'notes' => 'Saya menguruskan aktiviti institusi ini.',
+            ],
+        ]);
+
+    $this->actingAs($administrator)
+        ->get(MembershipApplicationResource::getUrl('view', ['record' => $claim]))
+        ->assertSuccessful()
+        ->assertSee('Applicant Note')
+        ->assertSee('Ahli Jawatan Kuasa')
+        ->assertSee('Saya menguruskan aktiviti institusi ini.');
+});

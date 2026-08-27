@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Livewire\Pages\Dashboard\Organizations;
 
 use AIArmada\Events\Enums\RegistrationMode;
-use AIArmada\Organizations\Contracts\OrganizationAuthorization;
 use AIArmada\Organizations\Models\Organization;
 use AIArmada\Seating\Enums\SeatingMode;
 use AIArmada\Ticketing\Enums\PricingMode;
@@ -14,6 +13,7 @@ use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventFormat;
 use App\Enums\EventVisibility;
 use App\Models\User;
+use App\Support\Authz\OrganizationEventAccess;
 use Illuminate\Contracts\View\View;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
@@ -38,7 +38,7 @@ final class CreateEvent extends Component
     {
         $user = auth()->user();
         abort_unless($user instanceof User, 403);
-        app(OrganizationAuthorization::class)->authorize($user, $organization, 'organization.update');
+        app(OrganizationEventAccess::class)->authorizeCreate($user, $organization);
 
         $this->organizationId = (string) $organization->getKey();
         $this->eventCategoryOptions = $categoryCatalog->options();
@@ -255,7 +255,7 @@ final class CreateEvent extends Component
             ->whereHas('members', fn ($query) => $query->whereKey($user->getKey()))
             ->firstOrFail();
 
-        app(OrganizationAuthorization::class)->authorize($user, $organization, 'organization.update');
+        app(OrganizationEventAccess::class)->authorizeCreate($user, $organization);
 
         return $organization;
     }

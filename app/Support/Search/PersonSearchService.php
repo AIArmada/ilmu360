@@ -16,7 +16,7 @@ class PersonSearchService implements PublicDiscoveryAdapter
 {
     private const int PUBLIC_SEARCH_CACHE_TTL = 600;
 
-    private const string PUBLIC_SEARCH_CACHE_VERSION_KEY = 'person_search_public_version_v1';
+    private const string PUBLIC_SEARCH_CACHE_VERSION_KEY = 'person_search_public_version_v2';
 
     public function buildSearchableName(
         ?string $name,
@@ -130,15 +130,25 @@ class PersonSearchService implements PublicDiscoveryAdapter
 
         $qualifiedPersonId = $query->getModel()->qualifyColumn('id');
 
-        return $query->where(function (Builder $personQuery) use ($searchTokens, $qualifiedPersonId): void {
-            foreach ($searchTokens as $token) {
-                $personQuery->whereExists(function ($termQuery) use ($qualifiedPersonId, $token): void {
+        return $query->where(function (Builder $personQuery) use ($search, $searchTokens, $qualifiedPersonId): void {
+            $personQuery->where(function (Builder $indexedQuery) use ($searchTokens, $qualifiedPersonId): void {
+                foreach ($searchTokens as $token) {
+                    $indexedQuery->whereExists(function ($termQuery) use ($qualifiedPersonId, $token): void {
+                        $termQuery->selectRaw('1')
+                            ->from('person_search_terms')
+                            ->whereColumn('person_search_terms.person_id', $qualifiedPersonId)
+                            ->whereLike('person_search_terms.term', '%'.$token.'%');
+                    });
+                }
+            })->orWhere(function (Builder $unindexedQuery) use ($search, $qualifiedPersonId): void {
+                $unindexedQuery->whereNotExists(function ($termQuery) use ($qualifiedPersonId): void {
                     $termQuery->selectRaw('1')
                         ->from('person_search_terms')
-                        ->whereColumn('person_search_terms.person_id', $qualifiedPersonId)
-                        ->whereLike('person_search_terms.term', '%'.$token.'%');
+                        ->whereColumn('person_search_terms.person_id', $qualifiedPersonId);
                 });
-            }
+
+                $this->applyDatabaseNameSearch($unindexedQuery, $search);
+            });
         });
     }
 
@@ -642,7 +652,7 @@ class PersonSearchService implements PublicDiscoveryAdapter
 
     private function publicSearchCacheVersion(): int
     {
-        return (int) Cache::get(self::PUBLIC_SEARCH_CACHE_VERSION_KEY, 1);
+        return (int) Cache::get(self::PUBLIC_SEARCH_CACHE_VERSION_KEY, 2);
     }
 
     /**
@@ -682,11 +692,19 @@ class PersonSearchService implements PublicDiscoveryAdapter
         $collapsedWildcardSearch = '%'.str_replace(' ', '%', $collapsedSearch).'%';
         $searchTokens = array_values(array_filter(explode(' ', $collapsedSearch), static fn (string $token): bool => $token !== ''));
 
-        return $query->where(function (Builder $personQuery) use ($collapsedSearch, $collapsedWildcardSearch, $searchTokens): void {
-            $personQuery->where(function (Builder $nameQuery) use ($collapsedSearch, $collapsedWildcardSearch): void {
+        $qualifiedPersonId = $query->getModel()->qualifyColumn('id');
+
+        return $query->where(function (Builder $personQuery) use ($collapsedSearch, $collapsedWildcardSearch, $qualifiedPersonId, $searchTokens): void {
+            $personQuery->where(function (Builder $nameQuery) use ($collapsedSearch, $collapsedWildcardSearch, $qualifiedPersonId): void {
                 $nameQuery->whereLike('name', "%{$collapsedSearch}%")
                     ->orWhereLike('family_name', "%{$collapsedSearch}%")
-                    ->orWhereLike(DB::raw("concat(coalesce(name, ''), ' ', coalesce(family_name, ''))"), $collapsedWildcardSearch);
+                    ->orWhereLike(DB::raw("concat(coalesce(name, ''), ' ', coalesce(family_name, ''))"), $collapsedWildcardSearch)
+                    ->orWhereExists(function ($alternateNameQuery) use ($collapsedSearch, $qualifiedPersonId): void {
+                        $alternateNameQuery->selectRaw('1')
+                            ->from('person_names')
+                            ->whereColumn('person_names.person_id', $qualifiedPersonId)
+                            ->whereLike('person_names.full_name', "%{$collapsedSearch}%");
+                    });
             });
 
             foreach ($searchTokens as $token) {
@@ -695,7 +713,13 @@ class PersonSearchService implements PublicDiscoveryAdapter
                 }
 
                 $personQuery->orWhereLike('name', "%{$token}%")
-                    ->orWhereLike('family_name', "%{$token}%");
+                    ->orWhereLike('family_name', "%{$token}%")
+                    ->orWhereExists(function ($alternateNameQuery) use ($qualifiedPersonId, $token): void {
+                        $alternateNameQuery->selectRaw('1')
+                            ->from('person_names')
+                            ->whereColumn('person_names.person_id', $qualifiedPersonId)
+                            ->whereLike('person_names.full_name', "%{$token}%");
+                    });
             }
         });
     }

@@ -442,14 +442,14 @@ class SuggestUpdate extends Component implements HasActions, HasForms
 
         if (in_array('avatar', $this->directEditMediaFields, true)) {
             $components[] = SpatieMediaLibraryFileUpload::make('avatar')
-                ->label(__('Avatar'))
+                ->label(__('Profile avatar'))
                 ->collection('avatar')
                 ->image()
                 ->imageEditor()
                 ->circleCropper()
                 ->avatar()
                 ->conversion('thumb')
-                ->helperText(__('Recommended: a clear square image, at least 400x400px.'));
+                ->helperText(__('Use a clear square profile image for the main avatar, at least 400x400px.'));
         }
 
         if (in_array('main', $this->directEditMediaFields, true)) {
@@ -464,7 +464,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 ->automaticallyCropImagesToAspectRatio()
                 ->responsiveImages()
                 ->conversion('thumb')
-                ->helperText(__('Primary speaker portrait (1:1 ratio).'));
+                ->helperText(__('Primary speaker portrait for directory cards, using a 1:1 ratio.'));
         }
 
         if (in_array('profile', $this->directEditMediaFields, true)) {
@@ -479,7 +479,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 ->automaticallyCropImagesToAspectRatio()
                 ->responsiveImages()
                 ->conversion('profile_thumb')
-                ->helperText(__('Speaker portrait (3:4 ratio).'));
+                ->helperText(__('Vertical speaker portrait for the profile page, using a 3:4 ratio.'));
         }
 
         if (in_array('cover', $this->directEditMediaFields, true)) {
@@ -494,7 +494,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 ->automaticallyCropImagesToAspectRatio()
                 ->responsiveImages()
                 ->conversion('banner')
-                ->helperText(__('Cover image for person profile'));
+                ->helperText(__('Wide cover image for the speaker profile, using a 16:9 ratio.'));
         }
 
         if (in_array('gallery', $this->directEditMediaFields, true)) {
@@ -506,11 +506,11 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 ->image()
                 ->responsiveImages()
                 ->conversion('gallery_thumb')
-                ->helperText(__('Additional images'));
+                ->helperText(__('Additional photos related to the speaker.'));
         }
 
         return Section::make(__('Profile Photo & Media'))
-            ->description(__('Upload a clear square profile photo first. Cover and gallery images are optional.'))
+            ->description(__('All media fields are optional. If available, add a clear square profile photo first; cover and gallery images are optional.'))
             ->schema($components)
             ->columns(['default' => 1, 'sm' => 2]);
     }

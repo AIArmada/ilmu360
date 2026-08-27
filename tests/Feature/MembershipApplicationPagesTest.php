@@ -11,9 +11,13 @@ use App\Models\Institution;
 use App\Models\MembershipApplication;
 use App\Models\Person;
 use App\Models\User;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
+use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
+use Ysfkaya\FilamentPhoneInput\PhoneInputNumberType;
 
 beforeEach(function (): void {
     Storage::fake('public');
@@ -43,7 +47,8 @@ it('lets authenticated users submit a claim with applied role and relationship',
         ])
         ->fillForm([
             'applied_role' => MemberRole::Editor->value,
-            'relationship' => 'representative',
+            'relationship' => 'committee_member',
+            'notes' => 'Saya membantu urusan pentadbiran institusi ini.',
             'evidence' => [
                 UploadedFile::fake()->image('proof.png', 1200, 800),
                 UploadedFile::fake()->image('supporting-letter.png', 1200, 800),
@@ -57,8 +62,54 @@ it('lets authenticated users submit a claim with applied role and relationship',
     expect($claim->subject_type)->toBe(MemberSubjectType::Institution)
         ->and($claim->status)->toBe(ApplicationStatus::Pending)
         ->and($claim->meta['applied_role'])->toBe(MemberRole::Editor->value)
-        ->and($claim->meta['relationship'])->toBe('representative')
+        ->and($claim->meta['relationship'])->toBe('committee_member')
+        ->and($claim->meta['notes'])->toBe('Saya membantu urusan pentadbiran institusi ini.')
         ->and($claim->getMedia('evidence'))->toHaveCount(2);
+});
+
+it('uses institution-specific relationship options on the public claim form', function () {
+    $user = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified']);
+
+    Livewire::actingAs($user)
+        ->test(CreateMembershipApplicationPage::class, [
+            'subjectType' => MemberSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->getKey(),
+        ])
+        ->assertFormFieldExists('relationship', function (Select $field): bool {
+            expect($field->getOptions())->toBe([
+                'imam' => 'Imam',
+                'bilal' => 'Bilal',
+                'committee_member' => 'Ahli Jawatan Kuasa',
+                'employee' => 'Pekerja',
+            ]);
+
+            return true;
+        });
+});
+
+it('uses the account phone input and exposes the applicant notes field', function () {
+    $user = User::factory()->emailOnly()->create();
+    $institution = Institution::factory()->create(['status' => 'verified']);
+
+    Livewire::actingAs($user)
+        ->test(CreateMembershipApplicationPage::class, [
+            'subjectType' => MemberSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->getKey(),
+        ])
+        ->assertFormFieldExists('phone', function (PhoneInput $field): bool {
+            expect($field)->toBeInstanceOf(PhoneInput::class)
+                ->and($field->getInitialCountry())->toBe('MY')
+                ->and($field->getDisplayNumberFormat())->toBe(PhoneInputNumberType::INTERNATIONAL->value)
+                ->and($field->getInputNumberFormat())->toBe(PhoneInputNumberType::E164->value);
+
+            return true;
+        })
+        ->assertFormFieldExists('notes', function (Textarea $field): bool {
+            expect($field)->toBeInstanceOf(Textarea::class);
+
+            return true;
+        });
 });
 
 it('saves a provided phone number to the applicant profile when missing', function () {
@@ -103,7 +154,7 @@ it('requires applied role and relationship on the public claim form', function (
 });
 
 it('renders the public membership claim page in Malay without a side-by-side layout', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->emailOnly()->create();
     $person = Person::factory()->create([
         'name' => 'Ustaz Kazim Elias',
         'status' => 'verified',
@@ -132,6 +183,8 @@ it('renders the public membership claim page in Malay without a side-by-side lay
         ->assertSee('Fail Bukti')
         ->assertSee('Peranan yang anda mohon')
         ->assertSee('Hubungan anda dengan Penceramah')
+        ->assertSee('Kami memerlukan nombor telefon untuk mengesahkan tuntutan anda. Nombor ini disimpan pada profil anda, bukan pada permohonan.')
+        ->assertSee('Catatan')
         ->assertDontSee('Use this form when you belong to this record and need access to help maintain it. Claims are reviewed by moderators before membership is granted.')
         ->assertDontSee('Review notes')
         ->assertDontSee('lg:grid-cols-[1.1fr_0.9fr]', false);

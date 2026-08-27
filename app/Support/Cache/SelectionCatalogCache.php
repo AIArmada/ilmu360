@@ -71,19 +71,20 @@ final class SelectionCatalogCache
     }
 
     /**
+     * @param  array<string, string>  $preferredLabels  Optional localized labels keyed by language code.
      * @return array<string, string>
      */
-    public function languageOptions(string $key): array
+    public function languageOptions(string $key, array $preferredLabels = []): array
     {
         return collect($this->languageRows())
-            ->mapWithKeys(static function (array $language) use ($key): array {
+            ->mapWithKeys(static function (array $language) use ($key, $preferredLabels): array {
                 $optionKey = match ($key) {
                     'code' => $language['code'],
                     'id' => $language['id'],
                     default => throw new \InvalidArgumentException("Unsupported language option key [{$key}]."),
                 };
 
-                return [$optionKey => $language['name']];
+                return [$optionKey => $preferredLabels[$language['code']] ?? $language['name']];
             })
             ->all();
     }

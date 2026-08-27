@@ -348,6 +348,15 @@ final class PersonDashboard extends Component
         );
     }
 
+    public function canCreateEvents(): bool
+    {
+        return app(MemberPermissionGate::class)->canPerson(
+            $this->currentUser(),
+            'event.create',
+            $this->selectedPerson(),
+        );
+    }
+
     public function canEditEvent(Event $event): bool
     {
         return $this->currentUser()->can('update', $event);
@@ -409,6 +418,7 @@ final class PersonDashboard extends Component
             'events' => $events,
             'eventStats' => $this->eventStats(),
             'canManageEvents' => $this->canManageEvents(),
+            'canCreateEvents' => $this->canCreateEvents(),
             'eventEditUrls' => $eventEditUrls,
             'members' => $this->members(),
             'invitations' => $this->invitations(),

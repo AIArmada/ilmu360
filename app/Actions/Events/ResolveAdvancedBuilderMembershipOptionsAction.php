@@ -23,14 +23,12 @@ class ResolveAdvancedBuilderMembershipOptionsAction
         return [
             'institution_options' => $user->institutions()
                 ->whereIn('status', ['verified', 'pending'])
-                ->whereIn('status', ['verified', 'pending'])
                 ->orderBy('name')
                 ->with('names')
                 ->get(['institutions.id', 'institutions.name'])
                 ->mapWithKeys(fn (Institution $institution): array => [(string) $institution->id => $institution->display_name])
                 ->all(),
             'person_options' => $user->persons()
-                ->whereIn('status', ['verified', 'pending'])
                 ->whereIn('status', ['verified', 'pending'])
                 ->orderBy('name')
                 ->pluck('persons.name', 'persons.id')

@@ -49,6 +49,11 @@ class EventPolicy
             return true;
         }
 
+        // A managed-event creator can continue working on their own draft.
+        if ($this->isDraftCreatedBy($user, $event)) {
+            return true;
+        }
+
         // Use hybrid permission check (event members + organizer/institution scope)
         return $event->userCanView($user);
     }
@@ -73,6 +78,11 @@ class EventPolicy
 
         // Submitter can update their draft/pending submissions
         if ($event->submissions()->where('submitter_type', $user->getMorphClass())->where('submitter_id', $user->id)->exists() && in_array((string) $event->status, ['draft', 'pending', 'needs_changes'])) {
+            return true;
+        }
+
+        // A managed-event creator can continue working on their own draft.
+        if ($this->isDraftCreatedBy($user, $event)) {
             return true;
         }
 
@@ -166,5 +176,12 @@ class EventPolicy
         return $event->persons->contains(
             fn (Person $person): bool => $memberPermissionGate->canPerson($user, 'event.update', $person)
         );
+    }
+
+    private function isDraftCreatedBy(User $user, Event $event): bool
+    {
+        return (string) $event->status === 'draft'
+            && $event->created_by_type === $user->getMorphClass()
+            && (string) $event->created_by_id === (string) $user->getKey();
     }
 }

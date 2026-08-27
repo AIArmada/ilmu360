@@ -2,17 +2,21 @@
 
 namespace App\Livewire\Pages\Dashboard;
 
+use AIArmada\Persons\Enums\Gender;
 use App\Livewire\Concerns\InteractsWithToasts;
 use App\Models\Institution;
 use App\Models\User;
 use App\Services\Notifications\NotificationSettingsManager;
 use App\Support\Notifications\NotificationCatalog;
+use Carbon\CarbonInterface;
 use DateTimeImmutable;
 use DateTimeZone;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
+use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Illuminate\Contracts\View\View;
@@ -43,6 +47,8 @@ class AccountSettings extends Component implements HasForms
      *     email: string,
      *     phone: string,
      *     timezone: string,
+     *     gender: string,
+     *     date_of_birth: string,
      *     password: string,
      *     password_confirmation: string,
      *     daily_prayer_institution_id: string,
@@ -54,6 +60,8 @@ class AccountSettings extends Component implements HasForms
         'email' => '',
         'phone' => '',
         'timezone' => '',
+        'gender' => '',
+        'date_of_birth' => '',
         'password' => '',
         'password_confirmation' => '',
         'daily_prayer_institution_id' => '',
@@ -201,9 +209,28 @@ class AccountSettings extends Component implements HasForms
                             ->columnSpanFull()
                             ->mutateStateForValidationUsing(fn (mixed $state): ?string => $this->normalizeOptionalString($state))
                             ->rule(Rule::in($this->allowedTimezones())),
+                        Select::make('gender')
+                            ->label(__('Gender'))
+                            ->placeholder(__('Select gender'))
+                            ->native(false)
+                            ->options(collect(Gender::cases())->mapWithKeys(
+                                fn (Gender $gender): array => [$gender->value => __($gender->label())],
+                            ))
+                            ->columnSpan(1)
+                            ->mutateStateForValidationUsing(fn (mixed $state): ?string => $this->normalizeOptionalString($state))
+                            ->rule(Rule::in(['male', 'female'])),
+                        DatePicker::make('date_of_birth')
+                            ->label(__('Date of Birth'))
+                            ->native(false)
+                            ->maxDate(now()->subDay())
+                            ->displayFormat('d/m/Y')
+                            ->columnSpan(1)
+                            ->mutateStateForValidationUsing(fn (mixed $state): ?string => $this->normalizeOptionalString($state))
+                            ->rules(['nullable', 'date', 'before:today']),
                         TextInput::make('password')
                             ->label(__('New Password'))
                             ->password()
+                            ->autocomplete('new-password')
                             ->confirmed()
                             ->rules(['nullable', 'min:8'])
                             ->mutateStateForValidationUsing(fn (mixed $state): ?string => $this->normalizeOptionalPassword($state))
@@ -211,6 +238,7 @@ class AccountSettings extends Component implements HasForms
                         TextInput::make('password_confirmation')
                             ->label(__('Confirm Password'))
                             ->password()
+                            ->autocomplete('new-password')
                             ->rules(['nullable'])
                             ->mutateStateForValidationUsing(fn (mixed $state): ?string => $this->normalizeOptionalPassword($state))
                             ->maxLength(255),
@@ -252,6 +280,8 @@ class AccountSettings extends Component implements HasForms
         $normalizedEmail = $this->normalizeOptionalString($validated['email'] ?? null);
         $normalizedPhone = $this->normalizeOptionalPhone($validated['phone'] ?? null);
         $normalizedTimezone = $this->normalizeOptionalString($validated['timezone'] ?? null);
+        $normalizedGender = $this->normalizeOptionalString($validated['gender'] ?? null);
+        $normalizedDateOfBirth = $this->normalizeOptionalString($validated['date_of_birth'] ?? null);
         $normalizedPassword = $this->normalizeOptionalPassword($validated['password'] ?? null);
         $dailyPrayerInstitutionId = $this->normalizeOptionalString($validated['daily_prayer_institution_id'] ?? null);
         $fridayPrayerInstitutionId = $this->normalizeOptionalString($validated['friday_prayer_institution_id'] ?? null);
@@ -275,6 +305,8 @@ class AccountSettings extends Component implements HasForms
             'email' => $normalizedEmail,
             'phone' => $normalizedPhone,
             'timezone' => $normalizedTimezone,
+            'gender' => $normalizedGender,
+            'date_of_birth' => $normalizedDateOfBirth,
             'daily_prayer_institution_id' => $dailyPrayerInstitutionId,
             'friday_prayer_institution_id' => $fridayPrayerInstitutionId,
             'email_verified_at' => $emailChanged ? null : $user->email_verified_at,
@@ -285,27 +317,40 @@ class AccountSettings extends Component implements HasForms
             $forceFill['password'] = $normalizedPassword;
         }
 
-        $user->forceFill($forceFill)->save();
+        try {
+            $user->forceFill($forceFill)->save();
 
-        $this->accountSettingsForm()->fill($this->initialFormData($user));
-
-        if (request()->hasSession()) {
-            if ($normalizedTimezone !== null) {
-                request()->session()->put('user_timezone', $normalizedTimezone);
-            } else {
-                request()->session()->forget('user_timezone');
+            $this->accountSettingsForm()->fill($this->initialFormData($user));
+            if (request()->hasSession()) {
+                if ($normalizedTimezone !== null) {
+                    request()->session()->put('user_timezone', $normalizedTimezone);
+                } else {
+                    request()->session()->forget('user_timezone');
+                }
             }
+
+            $freshUser = $user->fresh() ?? $user;
+            $this->settingsManager()->syncProfileSettings($freshUser);
+
+            if ($emailChanged) {
+                $freshUser->sendEmailVerificationNotification();
+            }
+
+            Notification::make()
+                ->success()
+                ->title(__('Account settings updated.'))
+                ->send();
+            $this->hydrateNotificationCenter($freshUser);
+        } catch (ValidationException $exception) {
+            throw $exception;
+        } catch (\Throwable $exception) {
+            Notification::make()
+                ->danger()
+                ->title(__('Failed to save account settings. Please try again.'))
+                ->send();
+
+            report($exception);
         }
-
-        $freshUser = $user->fresh() ?? $user;
-        $this->settingsManager()->syncProfileSettings($freshUser);
-
-        if ($emailChanged) {
-            $freshUser->sendEmailVerificationNotification();
-        }
-
-        $this->successToast(__('Account settings updated.'));
-        $this->hydrateNotificationCenter($freshUser);
     }
 
     public function saveNotificationPreferences(): void
@@ -386,6 +431,8 @@ class AccountSettings extends Component implements HasForms
      *     email: string,
      *     phone: string,
      *     timezone: string,
+     *     gender: string,
+     *     date_of_birth: string,
      *     password: string,
      *     password_confirmation: string,
      *     daily_prayer_institution_id: string,
@@ -399,6 +446,10 @@ class AccountSettings extends Component implements HasForms
             'email' => (string) ($user->email ?? ''),
             'phone' => (string) ($user->phone ?? ''),
             'timezone' => (string) ($user->timezone ?? ''),
+            'gender' => (string) ($user->gender ?? ''),
+            'date_of_birth' => $user->date_of_birth instanceof CarbonInterface
+                ? $user->date_of_birth->format('Y-m-d')
+                : '',
             'password' => '',
             'password_confirmation' => '',
             'daily_prayer_institution_id' => (string) ($user->daily_prayer_institution_id ?? ''),

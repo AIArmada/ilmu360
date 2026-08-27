@@ -9,6 +9,7 @@ use AIArmada\Persons\Enums\PersonNameType;
 use App\Forms\Components\Select as QuickAddSelect;
 use App\Models\Institution;
 use App\Support\Cache\SelectionCatalogCache;
+use App\Support\Language\MalaysiaLanguageCatalog;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
@@ -36,6 +37,7 @@ class PersonContributionFormSchema
         bool $useInstitutionRepeater = false,
         bool $splitProfileSections = false,
         ?string $defaultCountryId = null,
+        bool $requireCountryField = false,
     ): array {
         $showCountryField ??= true;
         $defaultCountryId ??= AddressCountry::query()->where('iso2', 'MY')->value('id');
@@ -44,6 +46,7 @@ class PersonContributionFormSchema
             Select::make('title_ids')
                 ->label(__('Titles'))
                 ->placeholder(__('Select honorifics'))
+                ->helperText(__('Select any honorifics commonly used by this speaker.'))
                 ->multiple()
                 ->searchable()
                 ->options(fn (): array => self::titleOptions())
@@ -85,14 +88,15 @@ class PersonContributionFormSchema
             TextInput::make('name')
                 ->label(__('Speaker Name'))
                 ->required()
-                ->maxLength(255),
+                ->maxLength(255)
+                ->helperText(__('Use the name most people know this speaker by.')),
             TextInput::make('family_name')
                 ->label(__('Family name'))
-                ->maxLength(100)
-                ->helperText(__('Surname / family name used for sorting.')),
+                ->maxLength(100),
             TextInput::make('middle_name')
                 ->label(__('Middle name'))
-                ->maxLength(100),
+                ->maxLength(100)
+                ->helperText(__('Fill this in if the speaker has a middle name.')),
             Select::make('gender')
                 ->label(__('Gender'))
                 ->options(fn (): array => collect(Gender::cases())->mapWithKeys(
@@ -107,23 +111,32 @@ class PersonContributionFormSchema
             ...($includeAlternativeNames ? [
                 Repeater::make('names')
                     ->label(__('Alternative Names'))
+                    ->helperText(__('Add other names, spellings, or professional names used by this speaker.'))
                     ->schema([
                         Hidden::make('id'),
                         Select::make('name_type')
-                            ->options(PersonNameType::class)
+                            ->label(__('Name type'))
+                            ->placeholder(__('Select name type'))
+                            ->options(self::personNameTypeOptions())
                             ->required()
                             ->native(false),
                         TextInput::make('full_name')
+                            ->label(__('Full name'))
                             ->required()
                             ->maxLength(255),
                         Select::make('language_code')
+                            ->label(__('Name language'))
+                            ->placeholder(__('Select language'))
                             ->options(fn (): array => self::languageOptions('code'))
                             ->searchable()
                             ->preload()
                             ->required()
                             ->default('ms')
+                            ->disablePlaceholderSelection()
                             ->native(false),
                         Toggle::make('is_primary')
+                            ->label(__('Primary name'))
+                            ->helperText(__('Mark this if this should be the main displayed name.'))
                             ->fixIndistinctState()
                             ->default(false),
                     ])
@@ -135,12 +148,14 @@ class PersonContributionFormSchema
             ...($splitProfileSections ? [] : $titleFields),
             RichEditor::make('bio')
                 ->label(__('Biography'))
+                ->helperText(__('Share a short background, teaching focus, or relevant experience.'))
                 ->json()
                 ->columnSpanFull(),
             Select::make('language_ids')
                 ->label(__('Languages'))
                 ->placeholder(__('Pilih bahasa'))
                 ->options(fn (): array => self::languageOptions('id'))
+                ->helperText(__('Select languages the speaker uses or teaches in.'))
                 ->multiple()
                 ->searchable()
                 ->preload()
@@ -157,6 +172,7 @@ class PersonContributionFormSchema
                     ->columns(2),
             ] : []),
             Section::make($regionOnlyAddress ? __('Address') : __('Location / Base'))
+                ->description(__('Choose the country and region where this speaker is based.'))
                 ->schema([
                     ...($regionOnlyAddress
                         ? ($addressStatePath === null
@@ -164,34 +180,34 @@ class PersonContributionFormSchema
                                 includeCountryField: true,
                                 showCountryField: $showCountryField,
                                 defaultCountryId: $defaultCountryId,
-                                requireCountryField: false,
+                                requireCountryField: $requireCountryField,
                             )
                             : [SharedFormSchema::regionAddressGroup(
                                 statePath: $addressStatePath,
                                 includeCountryField: true,
                                 showCountryField: $showCountryField,
                                 defaultCountryId: $defaultCountryId,
-                                requireCountryField: false,
+                                requireCountryField: $requireCountryField,
                             )])
                         : ($addressStatePath === null
                             ? SharedFormSchema::addressFields(
                                 includeCountryField: true,
                                 showCountryField: $showCountryField,
                                 defaultCountryId: $defaultCountryId,
-                                requireCountryField: false,
+                                requireCountryField: $requireCountryField,
                             )
                             : [SharedFormSchema::addressGroup(
                                 statePath: $addressStatePath,
                                 includeCountryField: true,
                                 showCountryField: $showCountryField,
                                 defaultCountryId: $defaultCountryId,
-                                requireCountryField: false,
+                                requireCountryField: $requireCountryField,
                             )])),
                 ])
                 ->columns($addressStatePath === null ? 2 : 1),
             Section::make(__('Contact'))
                 ->schema([
-                    SharedFormSchema::contactsRepeater(),
+                    SharedFormSchema::contactsRepeater(__('Add a phone number, WhatsApp number, or email that people may use to contact the speaker.')),
                 ]),
             Section::make(__('Social Media'))
                 ->schema([
@@ -202,17 +218,17 @@ class PersonContributionFormSchema
         if ($includeMedia) {
             array_splice($components, 3, 0, [
                 Section::make(__('Profile Photo & Media'))
-                    ->description(__('Upload a clear square profile photo first. Cover and gallery images are optional.'))
+                    ->description(__('All media fields are optional. If available, add a clear square profile photo first; cover and gallery images are optional.'))
                     ->schema([
                         SpatieMediaLibraryFileUpload::make('avatar')
-                            ->label(__('Avatar'))
+                            ->label(__('Profile avatar'))
                             ->collection('avatar')
                             ->image()
                             ->imageEditor()
                             ->circleCropper()
                             ->avatar()
                             ->conversion('thumb')
-                            ->helperText(__('Recommended: a clear square image, at least 400x400px.')),
+                            ->helperText(__('Use a clear square profile image for the main avatar, at least 400x400px.')),
                         SpatieMediaLibraryFileUpload::make('main')
                             ->label(__('Main Photo'))
                             ->collection('main')
@@ -224,7 +240,7 @@ class PersonContributionFormSchema
                             ->automaticallyCropImagesToAspectRatio()
                             ->responsiveImages()
                             ->conversion('thumb')
-                            ->helperText(__('Primary speaker portrait (1:1 ratio).')),
+                            ->helperText(__('Primary speaker portrait for directory cards, using a 1:1 ratio.')),
                         SpatieMediaLibraryFileUpload::make('profile')
                             ->label(__('Profile Photo'))
                             ->collection('profile')
@@ -236,9 +252,9 @@ class PersonContributionFormSchema
                             ->automaticallyCropImagesToAspectRatio()
                             ->responsiveImages()
                             ->conversion('profile_thumb')
-                            ->helperText(__('Speaker portrait (3:4 ratio).')),
+                            ->helperText(__('Vertical speaker portrait for the profile page, using a 3:4 ratio.')),
                         SpatieMediaLibraryFileUpload::make('cover')
-                            ->label(__('Cover Image'))
+                            ->label(__('Profile cover image'))
                             ->collection('cover')
                             ->image()
                             ->imageEditor()
@@ -248,16 +264,16 @@ class PersonContributionFormSchema
                             ->automaticallyCropImagesToAspectRatio()
                             ->responsiveImages()
                             ->conversion('banner')
-                            ->helperText(__('Cover image for speaker profile')),
+                            ->helperText(__('Wide cover image for the speaker profile, using a 16:9 ratio.')),
                         SpatieMediaLibraryFileUpload::make('gallery')
-                            ->label(__('Gallery'))
+                            ->label(__('Photo gallery'))
                             ->collection('gallery')
                             ->multiple()
                             ->reorderable()
                             ->image()
                             ->responsiveImages()
                             ->conversion('gallery_thumb')
-                            ->helperText(__('Additional images')),
+                            ->helperText(__('Additional photos related to the speaker.')),
                     ])
                     ->columns(2),
             ]);
@@ -267,11 +283,13 @@ class PersonContributionFormSchema
             ? [
                 Repeater::make('institutions')
                     ->label(__('Institutions'))
+                    ->helperText(__('Add institutions associated with this speaker.'))
                     ->schema([
                         Hidden::make('id'),
                         Hidden::make('institution_name')->dehydrated(false),
                         QuickAddSelect::make('institution_id')
                             ->label(__('Institution'))
+                            ->helperText(__('Search for and select the associated institution.'))
                             ->searchable()
                             ->options(fn (): array => self::institutionSearchOptions(''))
                             ->preload()
@@ -287,7 +305,8 @@ class PersonContributionFormSchema
                             ->maxLength(255)
                             ->placeholder(__('e.g., Imam, Mudir, Committee Member')),
                         Toggle::make('is_primary')
-                            ->label(__('Primary'))
+                            ->label(__('Primary institution'))
+                            ->helperText(__('Mark the speaker\'s main institution.'))
                             ->fixIndistinctState()
                             ->default(false),
                     ])
@@ -341,7 +360,20 @@ class PersonContributionFormSchema
      */
     private static function languageOptions(string $key): array
     {
-        return app(SelectionCatalogCache::class)->languageOptions($key);
+        return app(SelectionCatalogCache::class)->languageOptions(
+            $key,
+            MalaysiaLanguageCatalog::labels(),
+        );
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private static function personNameTypeOptions(): array
+    {
+        return collect(PersonNameType::cases())
+            ->mapWithKeys(fn (PersonNameType $type): array => [$type->value => __($type->label())])
+            ->all();
     }
 
     /**
