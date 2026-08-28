@@ -21,6 +21,13 @@ class CurrentUserData extends Data
     {
         /** @var array<string, mixed> $payload */
         $payload = $user->withoutRelations()->toArray();
+        // Keep nullable profile fields stable in the authenticated-user contract.
+        // Eloquent omits null attributes from array serialization when they have
+        // never been written, but clients should not have to infer their shape.
+        $payload += [
+            'gender' => null,
+            'date_of_birth' => null,
+        ];
         $payload['roles'] = Authz::withScope(
             null,
             fn (): array => $user->getRoleNames()->sort()->values()->all(),

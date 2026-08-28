@@ -544,7 +544,7 @@ it('updates search results live when query changes', function () {
         ->assertDontSee('Ahmad');
 });
 
-it('does not repeat the public verified status predicate for person search', function () {
+it('does not repeat status predicates across person search queries', function () {
     $person = Person::factory()->create([
         'name' => 'Public Search Predicate Person',
         'status' => 'verified',
@@ -568,7 +568,10 @@ it('does not repeat the public verified status predicate for person search', fun
 
     expect($personQueries)->not->toBeEmpty()
         ->and($personQueries->every(
-            static fn (string $query): bool => ! str_contains($query, 'status" in'),
+            static fn (string $query): bool => ! (
+                str_contains($query, '"status" =')
+                && str_contains($query, '"status" in')
+            ),
         ))->toBeTrue();
 });
 

@@ -1451,3 +1451,182 @@ Existing Signals intent tracking for search, filter changes, nearby search, clea
 - `vendor/bin/phpstan analyse --ansi` — no errors across 998 files.
 - Targeted Pint, `php artisan view:cache`, JSON validation, and `git diff --check` — passed.
 - Chrome verification — Malay filter options render correctly; search scopes and date shortcuts preserve state in the URL.
+# Commit audit through 26 Aug 2026
+
+## Plan
+
+- [x] Define the cutoff, inspect repository state, and establish a test/static-analysis baseline.
+- [x] Review the cutoff commits and trace changed behavior through the code graph and tests.
+- [x] Reproduce confirmed defects and add focused regression tests.
+- [x] Fix confirmed bugs; explain and pause on ambiguous logic or workflow choices.
+- [x] Run verification and document findings, fixes, and any decisions still needed.
+
+## Review
+
+Scope: `a339e092`, `e82eec9f`, and `55c94af2`, through 2026-08-26 23:59:59 (+08:00). Later commits were checked only to avoid duplicating fixes that had already landed.
+
+Confirmed bugs fixed:
+
+- Membership claims now share one guard across the web, API, and MCP paths. Already-members, duplicate pending applications, and pending invitations are rejected before a new application is created.
+- The web claim form now validates role and relationship values server-side, shows claim conflicts on a visible field, validates unique phone numbers, and only saves a new phone number after the application succeeds.
+- Empty institution capacity overrides now clear an existing pivot override when the institution remains selected.
+- Person workspaces now detect existing members without email-case sensitivity, count an event once even when multiple speaker rows exist, normalize invalid URL filters, render state-object labels, and avoid links to private/draft events that the public route cannot open.
+- Membership relationship and role labels are translated in the claim form.
+- Claim evidence is now mandatory on the web form as well as the API and MCP contracts, with a regression test for an empty submission.
+- Hidden-event duplication now preserves the source visibility server-side, even if the hidden form field is omitted or tampered with.
+- A current-head PHPStan warning in the membership application resource was removed; PHPStan is clean.
+
+Findings already repaired by commits after the cutoff, so no duplicate patch was needed:
+
+- `laravel/ai` is in runtime `require`, not only `require-dev`.
+- AI-extracted taxonomy values are normalized to the scalar shape expected by the form.
+- Public institution/person claim buttons are limited to records the viewer can actually claim.
+- The advanced event builder preserves the requested person as the primary organizer context.
+
+Decisions resolved during this review:
+
+- Claim evidence is required consistently across web, API, and MCP. A claim without at least one supporting file is rejected.
+- Duplicating a hidden event keeps it hidden. The duplicate cannot silently become public because a hidden form field was not submitted.
+- A person-profile admin is a user with the `admin` membership role on that one person record. They can manage/delete the profile and its linked events at owner level; an owner can remove an admin, but an admin cannot remove the owner.
+- Any member of a person profile, including `viewer` and `editor`, can see that profile's private and draft linked events in the member workspace. Guests still cannot.
+- Only the exact `Topik / bidang` value `Agama & Kerohanian` activates religion-specific questions and the topic/reference step. `Jenis Majlis` does not determine religious behavior.
+- `Waktu` is always shown. Prayer-relative choices such as `Selepas Asar` and `Sebelum Maghrib` are treated as scheduling/cultural labels, not as evidence that an event is religious.
+
+Further logic and workflow decisions still needed:
+
+- Space override API semantics: an omitted override field preserves existing values; the web form now sends an empty field when an override is removed and clears that pivot. Decide whether an explicitly empty override list in every API client should also mean “clear all.”
+- Invitation history and viewer wording are UX choices: the workspace currently shows invitation history in one list and uses “management” wording for viewers. Decide whether to split active/history invitations and use neutral wording for non-managers.
+- Topic optionality: the form currently requires a `Topik / bidang` value even though the topic is otherwise an optional classifier. Decide whether events may be submitted without a broad topic; if yes, the form will simply skip religion-specific behavior.
+- Religious default time: when the form starts with `Agama & Kerohanian`, it currently preselects `Selepas Maghrib`; decide whether that helpful default should remain, or whether every event should start at `Lain waktu` and let the submitter choose.
+
+Verification:
+
+- `vendor/bin/pest --parallel --compact tests/Feature/MembershipApplicationPagesTest.php` — 21 passed (124 assertions).
+- `vendor/bin/pest --parallel --compact tests/Feature/MembershipApplicationActionsTest.php` — 8 passed (28 assertions).
+- `vendor/bin/pest --parallel --compact tests/Feature/SpaceModelRemediationTest.php` — 7 passed (29 assertions).
+- `vendor/bin/pest --parallel --compact tests/Feature/ManagedWorkspacesTest.php` — 12 passed (91 assertions).
+- `vendor/bin/pest --parallel --compact tests/Feature/SubmitEventAdaptiveFormTest.php` — 14 passed (83 assertions).
+- Member API parity — 5 passed (37 assertions); member MCP server — 40 passed (599 assertions).
+- `vendor/bin/phpstan analyse --ansi`, `vendor/bin/pint --dirty`, `php artisan view:cache`, JSON validation, and `git diff --check` — passed.
+
+No new Signals event was added: these fixes preserve existing workflow intent tracking and do not introduce a new user intent path.
+
+# Follow-up decisions: member permissions and event classification
+
+## Plan
+
+- [x] Trace the permission hierarchy, member-removal authorization, linked-event visibility, and religious/time form behavior.
+- [x] Implement the confirmed owner/admin, member-visibility, topic-based religious, and always-visible time decisions.
+- [x] Add regression tests for each changed rule and flow.
+- [x] Run focused tests, formatting, static analysis, and final diff review.
+- [x] Document the remaining product decisions in plain language.
+
+## Review
+
+Person-profile admins now receive owner-level deletion for the person profile and events linked through that profile without widening deletion rights for admins of other resource types. The person model also protects the owner membership at the shared mutation boundary, so a direct or Filament action cannot remove the owner accidentally.
+
+Person workspaces deliberately expose all linked event statuses and visibility levels to members, while public event links remain gated by the event's public reachability rules. The submission wizard now uses only the exact broad topic `Agama & Kerohanian` for religion-specific behavior and keeps `Waktu` available for every event.
+
+## Verification
+
+- `vendor/bin/pest --parallel tests/Feature/ManagedWorkspacesTest.php` — 13 passed (101 assertions).
+- `vendor/bin/pest --parallel tests/Feature/MemberPermissionGateTest.php` — 5 passed (34 assertions).
+- `vendor/bin/pest --parallel tests/Feature/SubmitEventAdaptiveFormTest.php` — 14 passed (91 assertions).
+- `vendor/bin/phpstan analyse --ansi` — no errors across 1,005 files.
+- `vendor/bin/pint --dirty --test`, `php artisan view:cache`, translation JSON validation, and `git diff --check` — passed.
+
+The full parallel suite also completed with 2,156 passing tests and 26 failures. The failures were existing unrelated/parallel-sensitive cases (geography fixture setup, locale-sensitive copy, cache/search expectations, public-page behavior, and other pre-existing tests); the two event mutation paths that looked potentially related passed when isolated.
+
+# Person ownership transfer and timing clarification
+
+## Plan
+
+- [x] Add a formal owner-only transfer workflow for person profiles.
+- [x] Make `Sebelum Maghrib` available every day and keep `Selepas Tarawih` Ramadan-only.
+- [x] Add regression coverage for transfer authorization, membership roles, and timing options.
+- [x] Run focused tests, formatting, static analysis, and document the space-override question with a concrete example.
+
+## Review
+
+The person workspace now has a formal ownership transfer action. The current owner can transfer ownership to an existing profile member; the old owner becomes an admin, the new member becomes the sole owner, and direct owner removal or role changes remain blocked. The transfer is intentionally owner-only until the product decides whether an admin may initiate this security-sensitive operation.
+
+`Sebelum Maghrib` is now a daily scheduling label in the public submit form, advanced builder, and contribution form. `Selepas Tarawih` remains Ramadan-only. There is no `Sebelum Tarawih` option in the current taxonomy.
+
+Space API semantics now match the documented contract: omitting `institution_space_overrides` preserves existing per-institution capacities, while sending `[]` clears those capacities without unlinking the institutions. Sending `institutions` still controls the institution links themselves.
+
+## Verification
+
+- Focused timing, workspace, contribution-form, space, and admin API tests passed: 52 tests, 311 assertions.
+- `vendor/bin/phpstan analyse --ansi` — no errors across 1,006 files.
+- `vendor/bin/pint --dirty --test` and `git diff --check` — passed.
+
+# Pest 5 test-impact audit and remediation
+
+## Plan
+
+- [x] Run Pest 5 Test Impact Analysis with coverage over the uncommitted-change impact set.
+- [x] Audit each reported failure against the current application source and contracts.
+- [x] Fix genuine regressions and update stale expectations or unstable fixtures.
+- [x] Replay the residual failures, rerun TIA, and complete static checks.
+- [x] Prove the changed submission flow in live Chrome DevTools MCP.
+
+## Review
+
+The initial TIA run reported 22 failures. The audit separated stale expectations from real regressions: canonical geography traversal, API null-field parity, generated Filament JavaScript encoding, public-page robots semantics, lazy taxonomy search, event-change rendering, report/subject translations, production seeder expectations, membership cleanup and race safety, and event timing behavior. Tests were updated only where the current codebase intentionally defines a different contract. The final residual failures were caused by an admin fixture combining explicit absolute timestamps with randomized prayer-relative metadata and a Tarawih test that was being normalized by the UI before it reached the shared submit guard; both are now covered by stable, source-aligned setup.
+
+## Verification
+
+- `XDEBUG_MODE=coverage vendor/bin/pest --parallel --tia --compact` — 2,193 passed (14,079 assertions; 102 directly affected, 2,091 replayed), 0 failed.
+- Residual replay — 5 passed (39 assertions), parallel.
+- `vendor/bin/phpstan analyse --ansi` — no errors across 1,007 files.
+- `vendor/bin/pint --dirty --test` — passed.
+- `git diff --check` — passed.
+- Live Chrome DevTools MCP at `https://ilmu360.test/hantar-majlis` — page title `Hantar Majlis - ilmu360°`; date and prayer controls updated through Livewire; an invalid end time was cleared client-side; five Livewire XHR requests returned HTTP 200; no console errors or warnings; generated validation JavaScript contained encoded message text and no raw `@js(` directive.
+
+No additional Signals event was needed: the event replacement navigation retains its explicit existing intent-tracking attributes.
+
+# Final hard-cut verification
+
+## Plan
+
+- [x] Apply the canonical geography contract at every catalog boundary and caller.
+- [x] Remove legacy geography parameter names without compatibility aliases or remapping.
+- [x] Re-run Pest 5 Test Impact Analysis after the hard cut.
+- [x] Re-run static, formatting, Blade, and repository-integrity checks.
+
+## Review
+
+Catalog controllers, the admin mutation service, and their tests now use the canonical `administrative_district` parameter. No legacy alias, translation layer, or backward-compatibility path was added. The source contract is authoritative.
+
+## Verification
+
+- `XDEBUG_MODE=coverage vendor/bin/pest --parallel --tia --compact` — 2,193 passed (14,079 assertions; 419 directly affected, 1,774 replayed), 0 failed.
+- Canonical catalog replay — 2 passed (22 assertions).
+- `vendor/bin/phpstan analyse --ansi` — no errors across 1,007 files.
+- `vendor/bin/pint --dirty --test`, `php artisan view:cache`, and `git diff --check` — passed.
+- Legacy geography, SoftDeletes, and debug-call scans — no matches.
+- No `packages` directory exists for the package migration constraint scan.
+
+# Pest 5 tooling and AI guidance
+
+## Plan
+
+- [x] Verify the Pest 5 Agent, PHPStan, and Rector packages are required, locked, and installed.
+- [x] Verify the Pest PHPStan extension, Pest Rector set, and local TIA configuration.
+- [x] Document plugin usage, coverage-backed TIA commands, and agent-probe rules in the AI guidance.
+- [x] Validate the installed commands and repository diff.
+
+## Review
+
+The requested Pest 5 plugins were already present in `composer.json`, `composer.lock`, and `vendor/`: Agent `v5.0.0`, PHPStan `v5.2.0`, Rector `v5.0.4`, and Rector core `2.6.4`. No dependency churn was needed. The AI guidance now points agents to the `./pest` wrapper for Xdebug-backed TIA, the Agent plugin's safe one-off syntax, the Pest PHPStan extension, and the Pest Rector coding-style set.
+
+## Verification
+
+- `composer validate --no-check-publish` — valid.
+- `vendor/bin/pest --version` — Pest 5.1.3.
+- `vendor/bin/pest --help` — exposes `--tia`, `--filtered`, `--locally`, `--baselined`, and `--baseline`.
+- `vendor/bin/rector --version` — Rector 2.6.4.
+- `phpstan.neon` resolves `vendor/pestphp/pest-plugin-phpstan/extension.neon`.
+- `vendor/bin/pest --agent='expect(true)->toBeTrue();'` — 1 passed (1 assertion).
+- `./pest --parallel --tia --filtered --compact --filter='requires an explicit administrative district'` — 1 passed (4 assertions); the runner correctly bypasses TIA for a partial filtered selection.
+- `vendor/bin/rector process --dry-run --no-progress-bar tests/Feature/Api/Frontend/CatalogApiTest.php` — no changes proposed.

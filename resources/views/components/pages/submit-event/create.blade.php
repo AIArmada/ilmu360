@@ -226,8 +226,6 @@
                         const currentState = state ?? {};
                         const categoryIds = this.selectedIds(currentState.event_category_ids);
                         const topicIds = this.selectedIds(currentState.domain_tags);
-                        const religious = intersects(categoryIds, this.config.religious_category_ids)
-                            || intersects(topicIds, this.config.religious_topic_ids);
                         const eventFormat = currentState.event_format?.value ?? currentState.event_format;
                         const isOnline = eventFormat === 'online';
                         const prayerTime = currentState.prayer_time?.value ?? currentState.prayer_time;
@@ -256,13 +254,9 @@
                             hasSelection(currentState.languages),
                         ];
 
-                        if (religious) {
-                            requiredFields.push(this.isFilled(prayerTime));
+                        requiredFields.push(this.isFilled(prayerTime));
 
-                            if (prayerTime === 'lain_waktu') {
-                                requiredFields.push(this.isFilled(currentState.custom_time));
-                            }
-                        } else {
+                        if (prayerTime === 'lain_waktu') {
                             requiredFields.push(this.isFilled(currentState.custom_time));
                         }
 

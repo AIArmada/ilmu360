@@ -102,18 +102,18 @@ class MembershipApplicationPresenter
     {
         if ($subjectType === MemberSubjectType::Institution) {
             return [
-                'imam' => 'Imam',
-                'bilal' => 'Bilal',
-                'committee_member' => 'Ahli Jawatan Kuasa',
-                'employee' => 'Pekerja',
+                'imam' => __('Imam'),
+                'bilal' => __('Bilal'),
+                'committee_member' => __('Committee member'),
+                'employee' => __('Employee'),
             ];
         }
 
         return [
-            'self' => 'Diri Sendiri',
-            'personal_assistant' => 'Pembantu Peribadi',
-            'representative' => 'Wakil',
-            'team_member' => 'Ahli Pasukan',
+            'self' => __('Yourself'),
+            'personal_assistant' => __('Personal assistant'),
+            'representative' => __('Representative'),
+            'team_member' => __('Team member'),
         ];
     }
 

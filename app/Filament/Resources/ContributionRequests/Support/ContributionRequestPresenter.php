@@ -81,6 +81,56 @@ class ContributionRequestPresenter
         };
     }
 
+    public static function breadcrumbTitle(ContributionRequest $request): string
+    {
+        $subject = self::labelForSubject($request->subject_type);
+
+        return sprintf('%s: %s', $subject, self::entityTitle($request));
+    }
+
+    /**
+     * @return list<array{field: string, original: string, proposed: string}>
+     */
+    public static function payloadChanges(ContributionRequest $request): array
+    {
+        /** @var array<int|string, mixed> $proposed */
+        $proposed = $request->proposed_data ?? [];
+        /** @var array<int|string, mixed> $original */
+        $original = $request->original_data ?? [];
+
+        return collect($proposed)
+            ->map(fn (mixed $proposedValue, int|string $key): array => [
+                'field' => Str::headline((string) $key),
+                'original' => self::formatValue($original[$key] ?? null),
+                'proposed' => self::formatValue($proposedValue),
+            ])
+            ->values()
+            ->all();
+    }
+
+    public static function formatValue(mixed $value): string
+    {
+        if ($value === null || $value === '') {
+            return '-';
+        }
+
+        if (is_bool($value)) {
+            return $value ? 'Yes' : 'No';
+        }
+
+        if (is_array($value)) {
+            $flat = array_filter($value, fn (mixed $item): bool => is_scalar($item) || $item === null);
+
+            if (count($flat) === count($value)) {
+                return implode(', ', array_map(fn (mixed $item): string => (string) $item, $flat));
+            }
+
+            return (string) json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        }
+
+        return (string) $value;
+    }
+
     public static function changedFields(ContributionRequest $request): string
     {
         $keys = array_keys($request->proposed_data ?? []);
@@ -118,27 +168,6 @@ class ContributionRequestPresenter
         }
 
         return new HtmlString($html);
-    }
-
-    public static function prettyJson(mixed $payload): HtmlString
-    {
-        if (is_string($payload) && $payload !== '') {
-            $decodedPayload = json_decode($payload, true);
-            $payload = is_array($decodedPayload) ? $decodedPayload : $payload;
-        }
-
-        $json = is_string($payload)
-            ? $payload
-            : json_encode($payload ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-
-        if ($json === false) {
-            $json = '{}';
-        }
-
-        return new HtmlString(sprintf(
-            '<pre class="whitespace-pre-wrap rounded-xl bg-slate-950 p-4 text-xs text-white">%s</pre>',
-            e($json)
-        ));
     }
 
     /**

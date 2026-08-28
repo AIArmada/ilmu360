@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ContributionRequests\Schemas;
 
 use App\Filament\Resources\ContributionRequests\Support\ContributionRequestPresenter;
 use App\Models\ContributionRequest;
+use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
@@ -91,28 +92,24 @@ class ContributionRequestInfolist
                         Tab::make('Payload')
                             ->icon('heroicon-m-code-bracket')
                             ->schema([
-                                Section::make('Payload Summary')
+                                Section::make('Changed Fields')
                                     ->schema([
-                                        TextEntry::make('changed_fields')
-                                            ->label('Changed Fields')
-                                            ->state(fn (ContributionRequest $record): string => ContributionRequestPresenter::changedFields($record))
-                                            ->placeholder('-'),
-                                    ]),
-                                Section::make('Original Data')
-                                    ->schema([
-                                        TextEntry::make('original_data_preview')
+                                        RepeatableEntry::make('payload_changes')
                                             ->label('')
-                                            ->state(fn (ContributionRequest $record) => ContributionRequestPresenter::prettyJson($record->original_data))
-                                            ->html()
-                                            ->columnSpanFull(),
-                                    ]),
-                                Section::make('Proposed Data')
-                                    ->schema([
-                                        TextEntry::make('proposed_data_preview')
-                                            ->label('')
-                                            ->state(fn (ContributionRequest $record) => ContributionRequestPresenter::prettyJson($record->proposed_data))
-                                            ->html()
-                                            ->columnSpanFull(),
+                                            ->state(fn (ContributionRequest $record): array => ContributionRequestPresenter::payloadChanges($record))
+                                            ->placeholder('No payload data.')
+                                            ->contained(false)
+                                            ->columns(3)
+                                            ->schema([
+                                                TextEntry::make('field')
+                                                    ->label('Field'),
+                                                TextEntry::make('original')
+                                                    ->label('Original')
+                                                    ->placeholder('-'),
+                                                TextEntry::make('proposed')
+                                                    ->label('Proposed')
+                                                    ->placeholder('-'),
+                                            ]),
                                     ]),
                             ]),
                         Tab::make('Proposed Media')

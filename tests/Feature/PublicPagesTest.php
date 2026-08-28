@@ -783,12 +783,14 @@ it('loads institution detail page with upcoming event category collection', func
         ->assertSee($eventCategory->name);
 });
 
-it('hides unverified persons and institutions from public pages', function () {
+it('hides pending institutions and keeps pending speaker pages out of search indexes', function () {
     $institution = Institution::factory()->create(['status' => 'pending']);
     $person = Person::factory()->create(['status' => 'pending']);
 
     $this->get(route('institutions.show', $institution))->assertNotFound();
-    $this->get(route('persons.show', $person))->assertNotFound();
+    $this->get(route('persons.show', $person))
+        ->assertSuccessful()
+        ->assertSee('<meta name="robots" content="noindex, nofollow">', false);
 });
 
 it('updates submit event age group without error', function () {

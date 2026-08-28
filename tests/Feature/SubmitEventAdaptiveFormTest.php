@@ -10,6 +10,10 @@ use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
+use App\Models\EventSubmission;
+use App\Models\Institution;
+use App\Models\Person;
+use App\Models\User;
 use Database\Seeders\AIArmada\EventTaxonomySeeder;
 use Database\Seeders\AIArmada\EventTopicSeeder;
 use Filament\Forms\Components\Select;
@@ -60,11 +64,13 @@ it('defaults the driver selections and starts with sensible downstream values', 
         ->assertHasErrors(['data.title', 'data.event_date']);
 });
 
-it('reveals religion-specific audience questions and prayer defaults', function (): void {
+it('uses the agama kerohanian topic for religion-specific audience questions', function (): void {
     app(EventTaxonomySeeder::class)->run();
     app(EventTopicSeeder::class)->run();
 
-    $component = Livewire::test(Create::class);
+    $component = Livewire::test(Create::class)
+        ->set('data.event_category_ids', [eventCategoryId('kelas_kursus')])
+        ->set('data.domain_tags', adaptiveSubmitEventTopicId('agama-kerohanian'));
 
     $component
         ->assertSee('Terbuka untuk Muslim Sahaja')
@@ -74,21 +80,23 @@ it('reveals religion-specific audience questions and prayer defaults', function 
         ->assertSet('data.custom_time', null);
 });
 
-it('hides religion-specific questions and clears stale audience state outside religion', function (): void {
+it('keeps waktu available for every event and does not classify by category alone', function (): void {
     app(EventTaxonomySeeder::class)->run();
     app(EventTopicSeeder::class)->run();
 
     $component = Livewire::test(Create::class)
         ->set('data.event_category_ids', [eventCategoryId('aktiviti_keagamaan')])
-        ->set('data.domain_tags', [adaptiveSubmitEventTopicId('agama-kerohanian')])
         ->set('data.is_muslim_only', true)
-        ->set('data.event_category_ids', [eventCategoryId('kelas_kursus')])
-        ->set('data.domain_tags', [adaptiveSubmitEventTopicId('pendidikan')]);
+        ->set('data.domain_tags', adaptiveSubmitEventTopicId('pendidikan'))
+        ->set('data.prayer_time', EventPrayerTime::LainWaktu->value);
 
     $component
         ->assertFormFieldHidden('is_muslim_only')
+        ->assertFormFieldVisible('prayer_time')
+        ->assertFormFieldVisible('custom_time')
         ->assertSet('data.is_muslim_only', false)
         ->assertSet('data.prayer_time', EventPrayerTime::LainWaktu->value)
+        ->set('data.custom_time', '20:00')
         ->assertSet('data.custom_time', '20:00');
 });
 
@@ -101,6 +109,7 @@ it('shows the topic and reference step only for the religious topic', function (
 
     $component
         ->assertSchemaComponentVisible($stepKey)
+        ->set('data.event_category_ids', [eventCategoryId('aktiviti_keagamaan')])
         ->set('data.domain_tags', adaptiveSubmitEventTopicId('pendidikan'))
         ->assertSchemaComponentHidden($stepKey)
         ->set('data.domain_tags', adaptiveSubmitEventTopicId('agama-kerohanian'))
@@ -132,16 +141,64 @@ it('hydrates single-select taxonomy defaults when duplicating an event', functio
         ->and($component->get('data.domain_tags'))->toBe($topicId);
 });
 
+it('keeps a private visibility when duplicating an event', function (): void {
+    app(EventTaxonomySeeder::class)->run();
+    app(EventTopicSeeder::class)->run();
+
+    $user = User::factory()->create();
+    $sourceEvent = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => EventVisibility::Private->value,
+        'published_at' => now(),
+        'starts_at' => now()->addDays(3),
+    ]);
+    EventSubmission::factory()->for($sourceEvent)->for($user, 'submitter')->create();
+
+    $institution = Institution::factory()->create(['status' => 'verified']);
+    $person = Person::factory()->create(['status' => 'verified']);
+    $topicId = adaptiveSubmitEventTopicId('agama-kerohanian');
+
+    $component = Livewire::withQueryParams(['duplicate' => $sourceEvent->getKey()])
+        ->actingAs($user)
+        ->test(Create::class);
+
+    setSubmitEventFormState($component, [
+        'title' => 'Private duplicate should stay private',
+        'domain_tags' => [$topicId],
+        'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
+        'event_date' => now()->addDays(5)->toDateString(),
+        'prayer_time' => EventPrayerTime::SelepasMaghrib->value,
+        'end_time' => '22:00',
+        'description' => 'Private duplicate test',
+        'event_format' => EventFormat::Physical->value,
+        'visibility' => EventVisibility::Public->value,
+        'gender' => EventGenderRestriction::All->value,
+        'age_group' => [EventAgeGroup::AllAges->value],
+        'languages' => [languageId('ms')],
+        'primary_organizer_id' => $institution->id,
+        'persons' => [$person->id],
+        'submitter_name' => $user->name,
+        'submitter_email' => $user->email,
+    ])
+        ->call('submit')
+        ->assertHasNoErrors()
+        ->assertRedirect(route('submit-event.success'));
+
+    expect(Event::query()->where('title', 'Private duplicate should stay private')->firstOrFail()->visibility)
+        ->toBe(EventVisibility::Private);
+});
+
 it('preserves a user-entered custom time when the context becomes religious', function (): void {
     app(EventTaxonomySeeder::class)->run();
     app(EventTopicSeeder::class)->run();
 
     $component = Livewire::test(Create::class)
         ->set('data.event_category_ids', [eventCategoryId('kelas_kursus')])
-        ->set('data.domain_tags', [adaptiveSubmitEventTopicId('pendidikan')])
+        ->set('data.domain_tags', adaptiveSubmitEventTopicId('pendidikan'))
+        ->set('data.prayer_time', EventPrayerTime::LainWaktu->value)
         ->set('data.custom_time', '20:00')
         ->set('data.event_category_ids', [eventCategoryId('aktiviti_keagamaan')])
-        ->set('data.domain_tags', [adaptiveSubmitEventTopicId('agama-kerohanian')]);
+        ->set('data.domain_tags', adaptiveSubmitEventTopicId('agama-kerohanian'));
 
     $component
         ->assertSet('data.prayer_time', EventPrayerTime::LainWaktu->value)
@@ -169,6 +226,7 @@ it('tracks independent progress fields in the browser without live bindings', fu
     expect($html)
         ->toContain('wire:ignore')
         ->toContain("window.addEventListener('submit-event-progress-updated'")
+        ->toContain('const topicIds = this.selectedIds(currentState.domain_tags);')
         ->toContain('$wire.watch')
         ->not->toContain("window.addEventListener('change'")
         ->not->toContain("window.addEventListener('input'")
@@ -176,7 +234,9 @@ it('tracks independent progress fields in the browser without live bindings', fu
         ->not->toContain('wire:model.live="data.visibility"')
         ->not->toContain('wire:model.live="data.gender"')
         ->not->toContain('wire:model.live="data.languages"')
-        ->not->toContain('wire:model.live="data.persons"');
+        ->not->toContain('wire:model.live="data.persons"')
+        ->not->toContain('religious_category_ids')
+        ->not->toContain('religious_topic_ids');
 });
 
 it('updates the progress indicator when required fields become complete', function (): void {

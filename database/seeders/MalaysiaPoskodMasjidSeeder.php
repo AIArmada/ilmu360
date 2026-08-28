@@ -217,12 +217,18 @@ class MalaysiaPoskodMasjidSeeder extends Seeder
 
         $this->malaysia = $malaysia;
 
-        /** @var Collection<int, AddressArea> $states */
-        $states = AddressArea::query()
+        /** @var Collection<string, AddressArea> $areas */
+        $areas = collect(AddressArea::query()
             ->where('country_code', 'MY')
-            ->where('level', 1)
-            ->orderBy('name')
-            ->get();
+            ->get()
+            ->all())
+            ->keyBy(fn (AddressArea $area): string => (string) $area->getKey());
+
+        /** @var Collection<int, AddressArea> $states */
+        $states = $areas
+            ->filter(fn (AddressArea $area): bool => (int) $area->level === 1)
+            ->sortBy('name')
+            ->values();
 
         foreach ($states as $state) {
             $stateId = (string) $state->getKey();
@@ -237,33 +243,33 @@ class MalaysiaPoskodMasjidSeeder extends Seeder
             $this->districtsByState[$stateId] = [];
             $this->subdistrictsByState[$stateId] = [];
 
-            $districts = AddressArea::query()
-                ->where('parent_id', $stateId)
-                ->whereIn('type', ['district', 'minor_district'])
-                ->orderBy('name')
-                ->get();
+            $districts = $areas
+                ->filter(fn (AddressArea $area): bool => in_array($area->type, ['district', 'minor_district'], true)
+                    && $this->areaBelongsToState($area, $stateId, $areas))
+                ->sortBy('name')
+                ->values();
 
             foreach ($districts as $district) {
                 $districtId = (string) $district->getKey();
                 $this->districtsByState[$stateId][$this->normalizeKey($district->name)] = $district;
                 $this->subdistrictsByDistrict[$districtId] = [];
 
-                $subdistricts = AddressArea::query()
-                    ->where('parent_id', $districtId)
-                    ->whereIn('type', ['mukim', 'subdistrict'])
-                    ->orderBy('name')
-                    ->get();
+                $subdistricts = $areas
+                    ->filter(fn (AddressArea $area): bool => (string) $area->parent_id === $districtId
+                        && in_array($area->type, ['mukim', 'subdistrict'], true))
+                    ->sortBy('name')
+                    ->values();
 
                 foreach ($subdistricts as $subdistrict) {
                     $this->subdistrictsByDistrict[$districtId][$this->normalizeKey($subdistrict->name)] = $subdistrict;
                 }
             }
 
-            $stateSubdistricts = AddressArea::query()
-                ->where('parent_id', $stateId)
-                ->whereIn('type', ['mukim', 'subdistrict'])
-                ->orderBy('name')
-                ->get();
+            $stateSubdistricts = $areas
+                ->filter(fn (AddressArea $area): bool => (string) $area->parent_id === $stateId
+                    && in_array($area->type, ['mukim', 'subdistrict'], true))
+                ->sortBy('name')
+                ->values();
 
             foreach ($stateSubdistricts as $subdistrict) {
                 $this->subdistrictsByState[$stateId][$this->normalizeKey($subdistrict->name)] = $subdistrict;
@@ -271,6 +277,36 @@ class MalaysiaPoskodMasjidSeeder extends Seeder
         }
 
         $this->ensureSubdistrict('Betong', 'Pusa');
+    }
+
+    /**
+     * @param  Collection<string, AddressArea>  $areas
+     */
+    private function areaBelongsToState(AddressArea $area, string $stateId, Collection $areas): bool
+    {
+        $parentId = is_scalar($area->parent_id) ? (string) $area->parent_id : null;
+        $visited = [];
+
+        while ($parentId !== null && $parentId !== '') {
+            if ($parentId === $stateId) {
+                return true;
+            }
+
+            if (isset($visited[$parentId])) {
+                return false;
+            }
+
+            $visited[$parentId] = true;
+            $parent = $areas->get($parentId);
+
+            if (! $parent instanceof AddressArea) {
+                return false;
+            }
+
+            $parentId = is_scalar($parent->parent_id) ? (string) $parent->parent_id : null;
+        }
+
+        return false;
     }
 
     /**

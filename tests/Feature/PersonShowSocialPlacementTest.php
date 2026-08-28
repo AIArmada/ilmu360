@@ -76,7 +76,7 @@ it('uses Malay labels for the profile share controls', function () {
         ->assertSuccessful()
         ->assertSee('grid grid-cols-2 gap-3', false)
         ->assertSee('Kongsi')
-        ->assertSee('Salin Link');
+        ->assertSee(__('Copy Link'));
 });
 
 it('keeps profile update and report actions side by side on mobile', function () {

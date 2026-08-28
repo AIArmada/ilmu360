@@ -1,7 +1,9 @@
 <?php
 
 use AIArmada\Membership\Enums\MemberRole;
+use App\Enums\EventKeyPersonRole;
 use App\Models\Event;
+use App\Models\EventKeyPerson;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
@@ -56,6 +58,43 @@ it('maps registration permissions to the intended membership roles', function ()
         ->and($gate->eventMembersWithPermission($event, 'event.export-registrations')->modelKeys())
         ->toContain($administrator->getKey())
         ->not->toContain($viewer->getKey());
+});
+
+it('gives person admins owner-level resource permissions without making them owners', function () {
+    $admin = User::factory()->create();
+    $viewer = User::factory()->create();
+    $person = Person::factory()->create();
+    $institution = Institution::factory()->create();
+    $event = Event::factory()->create([
+        'status' => 'approved',
+        'published_at' => now(),
+        'visibility' => 'private',
+    ]);
+
+    addTestMember($person, $admin, MemberRole::Admin);
+    addTestMember($person, $viewer, MemberRole::Viewer);
+    addTestMember($institution, $admin, MemberRole::Admin);
+    EventKeyPerson::query()->create([
+        'event_id' => $event->getKey(),
+        'involveable_type' => 'person',
+        'involveable_id' => $person->getKey(),
+        'role_code' => EventKeyPersonRole::Speaker->value,
+        'sort_order' => 1,
+        'visibility' => 'public',
+    ]);
+
+    $gate = app(MemberPermissionGate::class);
+
+    expect($gate->canPerson($admin, 'person.delete', $person))->toBeTrue()
+        ->and($gate->canEventThroughPerson($admin, 'event.delete', $event))->toBeTrue()
+        ->and($admin->can('delete', $person))->toBeTrue()
+        ->and($admin->can('delete', $event))->toBeTrue()
+        ->and($admin->can('delete', $institution))->toBeFalse()
+        ->and($gate->hasAnyPersonPermission($admin, 'person.delete'))->toBeTrue()
+        ->and($gate->personMembersWithPermission($person, 'person.delete')->modelKeys())
+        ->toContain($admin->getKey())
+        ->and($gate->canPerson($viewer, 'person.delete', $person))->toBeFalse()
+        ->and($gate->canEventThroughPerson($viewer, 'event.delete', $event))->toBeFalse();
 });
 
 it('uses one pivot-constrained existence query for each membership scope', function () {

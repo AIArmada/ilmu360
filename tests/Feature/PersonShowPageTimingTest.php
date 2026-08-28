@@ -306,8 +306,9 @@ it('formats federal-territory venue addresses with product state_id and no distr
     // Federal territory product shape: no district; local area in admin_area_2.
     $address = syncPrimaryAddressForTest($venue, [
         ...$geo['address'],
-        'administrative_district_id' => null,
-        'administrative_subdivision_id' => (string) $geo['subdistrict']->getKey(),
+        'area_assignments' => [
+            'administrative_subdivision' => (string) $geo['subdistrict']->getKey(),
+        ],
         'city' => 'Setiawangsa',
     ]);
 

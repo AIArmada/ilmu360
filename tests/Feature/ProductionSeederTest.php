@@ -7,6 +7,7 @@ use Database\Seeders\AddressingSeeder;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\FacilityTypeSeeder;
 use Database\Seeders\InspirationSeeder;
+use Database\Seeders\LanguageSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\ProductionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -74,6 +75,7 @@ it('production seeder only calls deterministic bootstrap seeders', function () {
         PermissionSeeder::class,
         RoleSeeder::class,
         ScopedMemberRolesSeeder::class,
+        LanguageSeeder::class,
         UserSeeder::class,
         FacilityTypeSeeder::class,
         VenueSpaceTypeSeeder::class,

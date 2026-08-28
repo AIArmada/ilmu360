@@ -185,6 +185,83 @@ it('uses institution pivot capacity overrides in event payloads', function (): v
         ->and(data_get($venuePayload, 'venue_space.capacity'))->toBe(300);
 });
 
+it('clears an institution capacity override when the selected override is removed', function (): void {
+    $institution = Institution::factory()->create();
+    $space = Space::factory()->create();
+
+    app(SaveSpaceAction::class)->handle([
+        'name' => $space->name,
+        'slug' => $space->slug,
+        'institutions' => [(string) $institution->getKey()],
+        'institution_space_overrides' => [[
+            'institution_id' => (string) $institution->getKey(),
+            'capacity' => 120,
+        ]],
+    ], $space);
+
+    app(SaveSpaceAction::class)->handle([
+        'name' => $space->name,
+        'slug' => $space->slug,
+        'institutions' => [(string) $institution->getKey()],
+        'institution_space_overrides' => [],
+    ], $space->fresh());
+
+    expect($institution->spaces()->whereKey($space->getKey())->firstOrFail()->pivot->capacity)
+        ->toBeNull();
+});
+
+it('clears all institution capacity overrides without unlinking institutions when the override list is empty', function (): void {
+    $firstInstitution = Institution::factory()->create();
+    $secondInstitution = Institution::factory()->create();
+    $space = Space::factory()->create();
+
+    $space->institutions()->attach([
+        $firstInstitution->getKey() => ['capacity' => 120],
+        $secondInstitution->getKey() => ['capacity' => 180],
+    ]);
+
+    app(SaveSpaceAction::class)->handle([
+        'name' => $space->name,
+        'slug' => $space->slug,
+        'institution_space_overrides' => [],
+    ], $space->fresh());
+
+    $space->refresh()->load('institutions');
+
+    expect($space->institutions)->toHaveCount(2)
+        ->and($space->institutions->pluck('pivot.capacity')->all())->each->toBeNull();
+});
+
+it('preserves unlisted institution links and capacities when applying partial overrides', function (): void {
+    $firstInstitution = Institution::factory()->create();
+    $secondInstitution = Institution::factory()->create();
+    $space = Space::factory()->create();
+
+    $space->institutions()->attach([
+        $firstInstitution->getKey() => ['capacity' => 120],
+        $secondInstitution->getKey() => ['capacity' => 180],
+    ]);
+
+    app(SaveSpaceAction::class)->handle([
+        'name' => $space->name,
+        'slug' => $space->slug,
+        'institution_space_overrides' => [[
+            'institution_id' => (string) $firstInstitution->getKey(),
+            'capacity' => 90,
+        ]],
+    ], $space->fresh());
+
+    $space->refresh()->load('institutions');
+    $capacities = $space->institutions->mapWithKeys(
+        fn (Institution $institution): array => [(string) $institution->getKey() => $institution->pivot->capacity],
+    );
+
+    expect($capacities->all())->toBe([
+        (string) $firstInstitution->getKey() => 90,
+        (string) $secondInstitution->getKey() => 180,
+    ]);
+});
+
 it('blocks deletion of spaces referenced by event locations', function (): void {
     $user = Mockery::mock(User::class);
     $user->shouldReceive('hasRole')->with('super_admin')->andReturnTrue();

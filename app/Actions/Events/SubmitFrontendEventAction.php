@@ -101,12 +101,6 @@ class SubmitFrontendEventAction
             ]);
         }
 
-        if ($selectedPrayer === EventPrayerTime::SebelumMaghrib && ! $this->isRamadhan($eventDate, $timezone)) {
-            throw ValidationException::withMessages([
-                $this->validationKey('prayer_time', $validationKeyPrefix) => __('Sebelum Maghrib hanya boleh dipilih semasa bulan Ramadhan.'),
-            ]);
-        }
-
         if ($selectedPrayer === EventPrayerTime::SelepasTarawih && ! $this->isRamadhan($eventDate, $timezone)) {
             throw ValidationException::withMessages([
                 $this->validationKey('prayer_time', $validationKeyPrefix) => __('Selepas Tarawih hanya boleh dipilih semasa bulan Ramadhan.'),

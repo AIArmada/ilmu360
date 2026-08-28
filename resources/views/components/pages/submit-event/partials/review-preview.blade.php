@@ -113,9 +113,9 @@
         $prayerTimeLabel = EventPrayerTime::tryFrom((string) $prayerTimeState)?->getLabel();
     }
 
-    $showCustomTime = ! $hasReligiousContext || ($prayerTimeState instanceof EventPrayerTime
+    $showCustomTime = $prayerTimeState instanceof EventPrayerTime
         ? $prayerTimeState === EventPrayerTime::LainWaktu
-        : (string) $prayerTimeState === EventPrayerTime::LainWaktu->value);
+        : (string) $prayerTimeState === EventPrayerTime::LainWaktu->value;
 
     $eventDate = filled($get('event_date'))
         ? Carbon::parse((string) $get('event_date'))->translatedFormat('d M Y')
@@ -298,12 +298,10 @@
                 <dt class="text-slate-500">{{ __('Tarikh') }}</dt>
                 <dd class="font-medium text-slate-900">{{ $toLabel($eventDate) }}</dd>
             </div>
-            @if ($hasReligiousContext)
-                <div>
-                    <dt class="text-slate-500">{{ __('Waktu') }}</dt>
-                    <dd class="font-medium text-slate-900">{{ $toLabel($prayerTimeLabel) }}</dd>
-                </div>
-            @endif
+            <div>
+                <dt class="text-slate-500">{{ __('Waktu') }}</dt>
+                <dd class="font-medium text-slate-900">{{ $toLabel($prayerTimeLabel) }}</dd>
+            </div>
             @if ($showCustomTime)
                 <div>
                     <dt class="text-slate-500">{{ __('Masa Mula') }}</dt>

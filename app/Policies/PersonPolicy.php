@@ -70,7 +70,7 @@ class PersonPolicy
      */
     public function delete(User $user, Person $person): bool
     {
-        // Only super admins and person owners can delete
+        // Super admins, person owners, and person admins can delete
         if ($user->hasRole('super_admin')) {
             return true;
         }
@@ -88,5 +88,13 @@ class PersonPolicy
         }
 
         return app(MemberPermissionGate::class)->canPerson($user, 'person.manage-members', $person);
+    }
+
+    /**
+     * Determine whether the user can transfer ownership of the model.
+     */
+    public function transferOwnership(User $user, Person $person): bool
+    {
+        return app(MemberPermissionGate::class)->canPerson($user, 'person.transfer-ownership', $person);
     }
 }

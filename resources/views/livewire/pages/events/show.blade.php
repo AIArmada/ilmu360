@@ -394,7 +394,28 @@
         <div class="mx-auto mt-8 max-w-7xl px-5 sm:px-8 lg:px-12">
             <div class="flex gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
                 <svg class="mt-0.5 size-5 shrink-0 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008M10.29 3.86l-8.1 14A2 2 0 003.92 21h16.16a2 2 0 001.73-3.14l-8.1-14a2 2 0 00-3.42 0z" /></svg>
-                <div><p class="font-bold">{{ $latestChangeNotice->public_title ?? __('Kemaskini majlis') }}</p>@if(filled($latestChangeNotice->public_message ?? null))<p class="mt-1 leading-6">{{ $latestChangeNotice->public_message }}</p>@endif</div>
+                <div class="min-w-0 flex-1">
+                    <p class="font-bold">{{ $latestChangeNotice->title ?: __('Kemaskini majlis') }}</p>
+                    @if(filled($latestChangeNotice->message))
+                        <p class="mt-1 leading-6">{{ $latestChangeNotice->message }}</p>
+                    @endif
+                    @if($this->replacementEvent instanceof \App\Models\Event)
+                        <a
+                            href="{{ route('events.show', $this->replacementEvent) }}"
+                            data-signal-event="navigation.event_replacement_clicked"
+                            data-signal-category="navigation"
+                            data-signal-component="event_change_notice"
+                            data-signal-control="replacement_event"
+                            data-signal-entity-type="event"
+                            data-signal-entity-id="{{ $event->id }}"
+                            data-signal-target-entity-type="event"
+                            data-signal-target-entity-id="{{ $this->replacementEvent->id }}"
+                            class="mt-3 inline-flex items-center gap-2 rounded-xl bg-[#173c34] px-3 py-2 text-sm font-bold text-white transition hover:bg-[#21594c] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#173c34]"
+                        >
+                            {{ __('Lihat Majlis Pengganti') }} <span aria-hidden="true">↗</span>
+                        </a>
+                    @endif
+                </div>
             </div>
         </div>
     @endif

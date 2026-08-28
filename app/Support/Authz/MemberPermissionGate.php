@@ -28,11 +28,16 @@ final readonly class MemberPermissionGate
         'create' => 10,
         'update' => 80,
         'delete' => 100,
+        'transfer-ownership' => 100,
         'manage-members' => 80,
         'approve' => 80,
         'manage-donation-channels' => 80,
         'view-registrations' => 10,
         'export-registrations' => 80,
+    ];
+
+    private const array PERSON_SCOPE_PERMISSION_THRESHOLD = [
+        'delete' => 80,
     ];
 
     public function canInstitution(User $user, string $permission, Institution $institution): bool
@@ -42,7 +47,7 @@ final readonly class MemberPermissionGate
 
     public function canPerson(User $user, string $permission, Person $person): bool
     {
-        return $this->memberCan($person, $user, $permission);
+        return $this->memberCan($person, $user, $permission, $this->eligiblePersonScopeRoles($permission));
     }
 
     public function canOrganization(User $user, string $permission, Organization $organization): bool
@@ -57,7 +62,7 @@ final readonly class MemberPermissionGate
 
     public function canEventThroughPerson(User $user, string $permission, Event $event): bool
     {
-        $roles = $this->eligibleRoles($permission);
+        $roles = $this->eligiblePersonScopeRoles($permission);
         $membershipTable = (new Person)->membersTable();
 
         if ($roles === []) {
@@ -90,7 +95,11 @@ final readonly class MemberPermissionGate
 
     public function hasAnyPersonPermission(User $user, string $permission): bool
     {
-        return $this->hasAnyMembershipWithPermission($user->persons(), $permission);
+        return $this->hasAnyMembershipWithPermission(
+            $user->persons(),
+            $permission,
+            $this->eligiblePersonScopeRoles($permission),
+        );
     }
 
     public function hasAnyOrganizationPermission(User $user, string $permission): bool
@@ -116,7 +125,7 @@ final readonly class MemberPermissionGate
      */
     public function personMembersWithPermission(Person $person, string $permission): Collection
     {
-        return $this->membersWithPermission($person, $permission);
+        return $this->membersWithPermission($person, $permission, $this->eligiblePersonScopeRoles($permission));
     }
 
     /**
@@ -127,13 +136,16 @@ final readonly class MemberPermissionGate
         return $this->membersWithPermission($event, $permission);
     }
 
-    private function memberCan(Model $subject, User $user, string $permission): bool
+    /**
+     * @param  list<string>|null  $roles
+     */
+    private function memberCan(Model $subject, User $user, string $permission, ?array $roles = null): bool
     {
         if (! method_exists($subject, 'members')) {
             return false;
         }
 
-        $roles = $this->eligibleRoles($permission);
+        $roles ??= $this->eligibleRoles($permission);
 
         return $roles !== []
             && $subject->members()->whereKey($user->getKey())->wherePivotIn('role', $roles)->exists();
@@ -142,13 +154,17 @@ final readonly class MemberPermissionGate
     /**
      * @return Collection<int, User>
      */
-    private function membersWithPermission(Model $subject, string $permission): Collection
+    /**
+     * @param  list<string>|null  $roles
+     * @return Collection<int, User>
+     */
+    private function membersWithPermission(Model $subject, string $permission, ?array $roles = null): Collection
     {
         if (! method_exists($subject, 'members')) {
             return collect();
         }
 
-        $roles = $this->eligibleRoles($permission);
+        $roles ??= $this->eligibleRoles($permission);
 
         if ($roles === []) {
             return collect();
@@ -165,10 +181,11 @@ final readonly class MemberPermissionGate
      * @template TPivot of Pivot
      *
      * @param  BelongsToMany<TRelatedModel, User, TPivot, 'pivot'>  $memberships
+     * @param  list<string>|null  $roles
      */
-    private function hasAnyMembershipWithPermission(BelongsToMany $memberships, string $permission): bool
+    private function hasAnyMembershipWithPermission(BelongsToMany $memberships, string $permission, ?array $roles = null): bool
     {
-        $roles = $this->eligibleRoles($permission);
+        $roles ??= $this->eligibleRoles($permission);
 
         return $roles !== [] && $memberships->wherePivotIn('role', $roles)->exists();
     }
@@ -180,6 +197,30 @@ final readonly class MemberPermissionGate
     {
         $threshold = $this->permissionThreshold($permission);
 
+        return $this->rolesAtOrAbove($threshold);
+    }
+
+    /**
+     * Person membership also grants the linked-resource permissions that the
+     * product treats as owner-level. Other membership subjects retain their
+     * normal permission thresholds.
+     *
+     * @return list<string>
+     */
+    private function eligiblePersonScopeRoles(string $permission): array
+    {
+        $shortPermission = $this->shortPermissionName($permission);
+        $threshold = self::PERSON_SCOPE_PERMISSION_THRESHOLD[$shortPermission]
+            ?? $this->permissionThreshold($permission);
+
+        return $this->rolesAtOrAbove($threshold);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function rolesAtOrAbove(?int $threshold): array
+    {
         if ($threshold === null) {
             return [];
         }

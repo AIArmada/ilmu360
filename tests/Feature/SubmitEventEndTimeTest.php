@@ -11,11 +11,29 @@ use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
+use Filament\Forms\Components\TimePicker;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
 
 beforeEach(function () {
     fakePrayerTimesApi();
+});
+
+it('renders valid client-side end-time notification scripts', function (): void {
+    $component = Livewire::test(Create::class);
+
+    foreach (['custom_time', 'end_time'] as $fieldName) {
+        $component->assertFormFieldExists($fieldName, function (TimePicker $field): bool {
+            $scripts = implode("\n", $field->getAfterStateUpdatedJs());
+
+            expect($scripts)
+                ->toContain('new FilamentNotification()')
+                ->toContain('Masa akhir mestilah selepas masa mula.')
+                ->not->toContain('@js(');
+
+            return true;
+        });
+    }
 });
 
 /**
@@ -277,21 +295,47 @@ it('allows sebelum maghrib during ramadhan', function () {
     expect($event->starts_at->timezone('UTC')->format('H:i'))->toBe('11:45');
 });
 
-it('rejects sebelum maghrib outside ramadhan', function () {
+it('allows sebelum maghrib outside ramadhan', function () {
     $fixtures = submitEventEndTimeFixtures();
 
     setSubmitEventFormState(
         Livewire::test(Create::class),
         submitEventEndTimeFormData($fixtures, [
-            'title' => 'Non Ramadhan Sebelum Maghrib Invalid',
+            'title' => 'Non Ramadhan Sebelum Maghrib Valid',
             'event_date' => '2027-03-20',
             'prayer_time' => EventPrayerTime::SebelumMaghrib->value,
+            'end_time' => '20:00',
         ]),
     )
         ->call('submit')
+        ->assertHasNoErrors()
+        ->assertRedirect(route('submit-event.success'));
+
+    $event = Event::where('title', 'Non Ramadhan Sebelum Maghrib Valid')->firstOrFail();
+
+    expect($event->starts_at->timezone('Asia/Kuala_Lumpur')->format('H:i'))->toBe('19:45')
+        ->and($event->starts_at->timezone('UTC')->format('H:i'))->toBe('11:45');
+});
+
+it('rejects selepas tarawih outside ramadhan', function () {
+    $fixtures = submitEventEndTimeFixtures();
+
+    $component = setSubmitEventFormState(
+        Livewire::test(Create::class),
+        submitEventEndTimeFormData($fixtures, [
+            'title' => 'Non Ramadhan Selepas Tarawih Invalid',
+            'event_date' => '2027-03-20',
+        ]),
+    );
+
+    // Set the invalid value after the normal form hydration so this test
+    // exercises the shared submit-action guard, not the UI option filter.
+    $component
+        ->set('data.prayer_time', EventPrayerTime::SelepasTarawih->value)
+        ->call('submit')
         ->assertHasErrors(['data.prayer_time']);
 
-    expect(Event::where('title', 'Non Ramadhan Sebelum Maghrib Invalid')->exists())->toBeFalse();
+    expect(Event::where('title', 'Non Ramadhan Selepas Tarawih Invalid')->exists())->toBeFalse();
 });
 
 it('rejects non-physical format for community event types', function () {

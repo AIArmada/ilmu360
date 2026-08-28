@@ -639,11 +639,8 @@ class Index extends Component implements HasForms
                             ->label(__('Topik / bidang'))
                             ->placeholder(__('Pilih topik…'))
                             ->searchable()
-                            ->preload()
                             ->multiple()
-                            ->options(fn (): array => $this->domains()
-                                ->mapWithKeys(fn (EventTerm $term): array => [(string) $term->getKey() => (string) $term->name])
-                                ->all())
+                            ->getSearchResultsUsing(fn (string $search): array => $this->searchTermOptions('domain', $search))
                             ->getOptionLabelsUsing(fn (array $values): array => $this->termOptionLabels('domain', $values))
                             ->live(),
 

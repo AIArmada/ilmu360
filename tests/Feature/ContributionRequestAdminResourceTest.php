@@ -105,3 +105,31 @@ it('opens contribution request records on the admin view page from the index', f
             $request,
         );
 });
+
+it('renders a record name breadcrumb and a structured payload on the view page', function () {
+    $administrator = User::factory()->create();
+    $administrator->assignRole('super_admin');
+
+    $institution = Institution::factory()->create(['name' => 'Sekolah Al-Falah']);
+    $request = ContributionRequest::factory()->create([
+        'type' => ContributionRequestType::Update,
+        'subject_type' => ContributionSubjectType::Institution,
+        'entity_type' => $institution->getMorphClass(),
+        'entity_id' => $institution->id,
+        'proposed_data' => [
+            'description' => 'Updated description',
+            'city' => 'Kuala Lumpur',
+        ],
+        'original_data' => [
+            'description' => 'Old description',
+            'city' => 'Shah Alam',
+        ],
+    ]);
+
+    Livewire::actingAs($administrator)
+        ->test(ViewContributionRequest::class, ['record' => $request->getKey()])
+        ->assertSee('Sekolah Al-Falah')
+        ->assertSee('Description')
+        ->assertSee('Updated description')
+        ->assertSee('Old description');
+});

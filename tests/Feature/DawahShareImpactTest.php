@@ -116,8 +116,8 @@ function dawahShareSubmitEventFormData(array $fixtures, array $overrides = []): 
     return array_merge([
         'title' => 'Attributed Submitted Event',
         'submission_country_id' => (string) ensureTestMalaysiaCountry()->getKey(),
-        'domain_tags' => [],
-        'discipline_tags' => [],
+        'domain_tags' => [$fixtures['domain_tag']->id],
+        'discipline_tags' => [$fixtures['discipline_tag']->id],
         'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
         'event_date' => now()->addDays(5)->toDateString(),
         'prayer_time' => EventPrayerTime::SelepasMaghrib->value,

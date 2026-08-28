@@ -35,7 +35,7 @@ class MembershipApplicationResource extends Resource
             return null;
         }
 
-        return $record->applicant?->name ?? (string) $record->getKey();
+        return $record->applicant->name ?? (string) $record->getKey();
     }
 
     protected static string|UnitEnum|null $navigationGroup = 'Moderation';

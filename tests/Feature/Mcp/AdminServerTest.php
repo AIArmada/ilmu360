@@ -24,6 +24,7 @@ use App\Enums\EventVisibility;
 use App\Enums\PrayerOffset;
 use App\Enums\PrayerReference;
 use App\Enums\RegistrationScope;
+use App\Enums\TimingMode;
 use App\Mcp\Prompts\DocumentationToolRoutingPrompt;
 use App\Mcp\Resources\Docs\McpGuideResource;
 use App\Mcp\Servers\AdminServer;
@@ -3930,6 +3931,10 @@ function adminMcpStableEvent(array $overrides = []): Event
         'starts_at' => $startsAt,
         'ends_at' => $startsAt->copy()->addHours(2),
         'timezone' => 'Asia/Kuala_Lumpur',
+        'timing_mode' => TimingMode::Absolute->value,
+        'prayer_reference' => null,
+        'prayer_offset' => null,
+        'prayer_display_text' => null,
         'event_category_ids' => [eventCategoryId('lain_lain')],
         'gender' => EventGenderRestriction::All->value,
         'age_group' => [EventAgeGroup::AllAges->value],

@@ -90,7 +90,11 @@
                     <article wire:key="person-event-{{ $event->getKey() }}" class="flex flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between">
                         <div class="min-w-0">
                             <div class="flex flex-wrap items-center gap-2">
-                                <a href="{{ route('events.show', $event) }}" wire:navigate class="font-semibold text-slate-900 hover:text-emerald-700">{{ $event->title }}</a>
+                                @if($eventEditUrl || $event->isPubliclyReachable())
+                                    <a href="{{ $eventEditUrl ?: route('events.show', $event) }}" wire:navigate class="font-semibold text-slate-900 hover:text-emerald-700">{{ $event->title }}</a>
+                                @else
+                                    <span class="font-semibold text-slate-900">{{ $event->title }}</span>
+                                @endif
                                 <span class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-600">{{ $this->eventStatusLabel($event->status) }}</span>
                             </div>
                             <p class="mt-2 text-sm text-slate-500">{{ $this->formatEventSchedule($event) }} · {{ $institutionLabel }}</p>
@@ -143,6 +147,9 @@
                                     <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-600">{{ $memberRole?->label() ?? data_get($member->pivot, 'role') }}</span>
                                     @if($canManageMembers && $memberRole !== \AIArmada\Membership\Enums\MemberRole::Owner)
                                         <button type="button" wire:click="startEditingMember('{{ $member->id }}')" class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">{{ __('Edit role') }}</button><button type="button" wire:click="removeMember('{{ $member->id }}')" wire:confirm="{{ __('Remove this member?') }}" class="rounded-lg border border-red-100 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50">{{ __('Remove') }}</button>
+                                    @endif
+                                    @if($canTransferOwnership && $memberRole !== \AIArmada\Membership\Enums\MemberRole::Owner)
+                                        <button type="button" wire:click="transferOwnership('{{ $member->id }}')" wire:confirm="{{ __('Transfer ownership to this member?') }}" data-signal-event="membership.person_ownership_transfer_started" data-signal-category="membership" data-signal-component="person_workspace" data-signal-control="transfer_ownership" data-signal-entity-type="person" data-signal-entity-id="{{ $person->id }}" class="rounded-lg border border-amber-200 px-3 py-2 text-xs font-semibold text-amber-700 hover:bg-amber-50">{{ __('Make owner') }}</button>
                                     @endif
                                 @endif
                             </div>

@@ -26,9 +26,9 @@ it('hydrates the events index language cache into the current safe payload forma
     Livewire::test(Index::class)
         ->assertSee('Cari Majlis Ilmu');
 
-    expect(Cache::get('event_filter_languages_v3'))
+    expect(Cache::get('event_filter_languages_v4'))
         ->toBeArray()
-        ->and(Cache::get('event_filter_languages_v3'))
+        ->and(Cache::get('event_filter_languages_v4'))
         ->toHaveKey('ms');
 });
 

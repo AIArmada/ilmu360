@@ -70,10 +70,9 @@ final class SaveSpaceAction
         $space->save();
 
         $hasInstitutionIds = array_key_exists('institutions', $data);
-        $hasInstitutionSpaceOverrides = array_key_exists('institution_space_overrides', $data)
-            && $data['institution_space_overrides'] !== [];
+        $hasInstitutionSpaceOverrideField = array_key_exists('institution_space_overrides', $data);
 
-        if ($hasInstitutionIds || $hasInstitutionSpaceOverrides) {
+        if ($hasInstitutionIds || $hasInstitutionSpaceOverrideField) {
             $existingCapacities = $space->institutions()
                 ->get()
                 ->mapWithKeys(fn (Institution $institution): array => [
@@ -82,10 +81,13 @@ final class SaveSpaceAction
                         : null,
                 ])
                 ->all();
-            $institutionIds = $this->normalizeInstitutionIds($data['institutions'] ?? []);
-            $overrides = $hasInstitutionSpaceOverrides
+            $overrides = $hasInstitutionSpaceOverrideField
                 ? $this->normalizeInstitutionSpaceOverrides($data['institution_space_overrides'])
                 : [];
+            $preserveExistingCapacities = ! $hasInstitutionIds && $overrides !== [];
+            $institutionIds = $hasInstitutionIds
+                ? $this->normalizeInstitutionIds($data['institutions'])
+                : array_keys($existingCapacities);
 
             $institutionIds = array_values(array_unique([
                 ...$institutionIds,
@@ -99,9 +101,13 @@ final class SaveSpaceAction
                 ['institutions.id', 'institutions.name'],
             );
 
-            if ($hasInstitutionSpaceOverrides) {
+            if ($hasInstitutionSpaceOverrideField) {
                 $space->institutions()->sync(collect($institutionIds)->mapWithKeys(
-                    fn (string $institutionId): array => [$institutionId => ['capacity' => $overrides[$institutionId] ?? null]],
+                    fn (string $institutionId): array => [$institutionId => [
+                        'capacity' => array_key_exists($institutionId, $overrides)
+                            ? $overrides[$institutionId]
+                            : ($preserveExistingCapacities ? ($existingCapacities[$institutionId] ?? null) : null),
+                    ]],
                 )->all());
             } else {
                 $space->institutions()->sync(collect($institutionIds)->mapWithKeys(

@@ -523,6 +523,47 @@ vendor/bin/pest --parallel --filter=SubmitEvent
 - No need to modify existing tests to support parallel mode
 - Default behavior - no additional configuration required
 
+## Pest 5 Plugins and Test Impact Analysis
+
+This project uses Pest 5 with the following development dependencies:
+
+- `pestphp/pest-plugin-agent` for one-off backend and browser verification.
+- `pestphp/pest-plugin-phpstan` for Pest-aware PHPStan rules.
+- `pestphp/pest-plugin-rector` with `rector/rector` for Pest refactoring.
+- `pestphp/pest-plugin-browser` for Playwright-backed `visit()` checks.
+
+When setting up a checkout that does not yet have the toolchain, install the Pest 5 packages explicitly:
+
+```bash
+composer require pestphp/pest-plugin-agent --dev
+composer require pestphp/pest-plugin-phpstan --dev
+composer require pestphp/pest-plugin-rector --dev
+composer require rector/rector --dev
+```
+
+Use the repository `./pest` wrapper for Test Impact Analysis. It enables Xdebug coverage for the Tia Engine, and `tests/Pest.php` enables local TIA with `pest()->tia()->locally()`:
+
+```bash
+./pest --parallel --tia --compact
+./pest --parallel --tia --filtered --compact
+./pest --parallel --tia --fresh --compact
+```
+
+The first command runs affected tests and replays unaffected tests from the cache; `--filtered` narrows execution to affected test files; `--fresh` rebuilds the dependency graph. Do not rely on bare `vendor/bin/pest --tia` in Herd when Xdebug is disabled.
+
+For a one-off verification probe, load the `pest-plugin-agent` skill first and use single outer quotes:
+
+```bash
+vendor/bin/pest --agent='$user = \App\Models\User::factory()->create(); expect($user->exists)->toBeTrue();'
+```
+
+Keep durable behavior in normal Pest tests. Run Pest-aware PHPStan and inspect Rector changes with:
+
+```bash
+vendor/bin/phpstan analyse --ansi
+vendor/bin/rector process --dry-run
+```
+
 ---
 
 # Static Analysis Safety for Runtime Extensions

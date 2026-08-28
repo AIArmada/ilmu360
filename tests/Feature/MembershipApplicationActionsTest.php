@@ -8,6 +8,7 @@ use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Membership\SubmitMembershipApplicationAction;
 use App\Enums\MemberSubjectType;
 use App\Models\Institution;
+use App\Models\MemberInvitation;
 use App\Models\MembershipApplication;
 use App\Models\Person;
 use App\Models\User;
@@ -38,6 +39,79 @@ it('submits a pending institution membership claim', function () {
         ->and($claim->subject_id)->toBe($institution->getKey())
         ->and($claim->applicant_id)->toBe($claimant->getKey())
         ->and($claim->status)->toBe(ApplicationStatus::Pending);
+});
+
+it('rejects a claim when the applicant is already a member', function () {
+    $person = Person::factory()->create();
+    $claimant = User::factory()->create();
+
+    addTestMember($person, $claimant, MemberRole::Viewer);
+
+    expect(fn () => app(SubmitMembershipApplicationAction::class)->handle(
+        $person,
+        $claimant,
+        'I manage this speaker profile.',
+    ))
+        ->toThrow(RuntimeException::class, 'membership_claim_already_member');
+
+    expect(MembershipApplication::query()
+        ->where('subject_id', $person->getKey())
+        ->where('applicant_id', $claimant->getKey())
+        ->exists())->toBeFalse();
+});
+
+it('rejects a second pending claim for the same subject and applicant', function () {
+    $person = Person::factory()->create();
+    $claimant = User::factory()->create();
+
+    withGlobalOwnerContext(function () use ($person, $claimant): void {
+        MembershipApplication::factory()
+            ->for($person, 'subject')
+            ->create([
+                'applicant_id' => $claimant->getKey(),
+                'status' => ApplicationStatus::Pending,
+            ]);
+    });
+
+    expect(fn () => app(SubmitMembershipApplicationAction::class)->handle(
+        $person,
+        $claimant,
+        'I manage this speaker profile.',
+    ))
+        ->toThrow(RuntimeException::class, 'membership_claim_duplicate_pending');
+
+    expect(MembershipApplication::query()
+        ->where('subject_id', $person->getKey())
+        ->where('applicant_id', $claimant->getKey())
+        ->count())->toBe(1);
+});
+
+it('rejects a claim while a matching invitation is still pending', function () {
+    $institution = Institution::factory()->create();
+    $claimant = User::factory()->create(['email' => 'invitee@example.com']);
+    $inviter = User::factory()->create();
+
+    MemberInvitation::query()->create([
+        'subject_type' => MemberSubjectType::Institution,
+        'subject_id' => $institution->getKey(),
+        'email' => $claimant->email,
+        'role' => MemberRole::Editor->spatieRoleName(),
+        'token' => 'pending-invitation-token',
+        'invited_by' => $inviter->getKey(),
+        'expires_at' => now()->addDay(),
+    ]);
+
+    expect(fn () => app(SubmitMembershipApplicationAction::class)->handle(
+        $institution,
+        $claimant,
+        'I help manage this institution.',
+    ))
+        ->toThrow(RuntimeException::class, 'membership_claim_pending_invitation');
+
+    expect(MembershipApplication::query()
+        ->where('subject_id', $institution->getKey())
+        ->where('applicant_id', $claimant->getKey())
+        ->exists())->toBeFalse();
 });
 
 it('approves a claim and grants editor membership', function () {

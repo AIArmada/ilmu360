@@ -11,20 +11,22 @@ use AIArmada\Membership\Actions\RemoveMemberAction;
 use AIArmada\Membership\Actions\RevokeInvitationAction;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Membership\InviteSubjectMember;
+use App\Actions\Membership\TransferPersonOwnershipAction;
 use App\Enums\MemberSubjectType;
 use App\Livewire\Concerns\InteractsWithToasts;
 use App\Models\Event;
-use App\Models\EventKeyPersonPivot;
 use App\Models\MemberInvitation;
 use App\Models\Person;
 use App\Models\User;
 use App\Support\Authz\MemberPermissionGate;
 use App\Support\Timezone\UserDateTimeFormatter;
 use BackedEnum;
+use Filament\Support\Contracts\HasLabel;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
@@ -72,6 +74,8 @@ final class PersonDashboard extends Component
         abort_unless(app(MemberPermissionGate::class)->canPerson($user, 'person.view', $person), 403);
 
         $this->personId = (string) $person->getKey();
+        $this->eventStatus = $this->normalizeEventStatus($this->eventStatus);
+        $this->eventPerPage = $this->normalizeEventPerPage($this->eventPerPage);
     }
 
     public function updatedEventSearch(): void
@@ -104,7 +108,7 @@ final class PersonDashboard extends Component
 
         $email = mb_strtolower(trim((string) $validated['inviteEmail']));
 
-        if ($person->members()->where('users.email', $email)->exists()) {
+        if ($person->members()->whereRaw('LOWER(users.email) = ?', [$email])->exists()) {
             throw ValidationException::withMessages([
                 'inviteEmail' => __('This person is already a member of the speaker profile.'),
             ]);
@@ -182,8 +186,12 @@ final class PersonDashboard extends Component
             return;
         }
 
-        OwnerContext::withOwner($person, function () use ($changeMemberRole, $member, $person, $validated): void {
-            $changeMemberRole->handle($person, $member, MemberRole::from((string) $validated['editingRole']));
+        DB::transaction(function () use ($changeMemberRole, $member, $person, $validated): void {
+            $person->lockForMembershipMutation();
+
+            OwnerContext::withOwner($person, function () use ($changeMemberRole, $member, $person, $validated): void {
+                $changeMemberRole->handle($person, $member, MemberRole::from((string) $validated['editingRole']));
+            });
         });
 
         $this->resetMemberEditor();
@@ -204,8 +212,12 @@ final class PersonDashboard extends Component
         }
 
         try {
-            OwnerContext::withOwner($person, function () use ($member, $person, $removeMember): void {
-                $removeMember->handle($person, $member);
+            DB::transaction(function () use ($member, $person, $removeMember): void {
+                $person->lockForMembershipMutation();
+
+                OwnerContext::withOwner($person, function () use ($member, $person, $removeMember): void {
+                    $removeMember->handle($person, $member);
+                });
             });
         } catch (Throwable $throwable) {
             report($throwable);
@@ -227,6 +239,22 @@ final class PersonDashboard extends Component
         $revokeInvitation->handle($invitation, $user);
 
         $this->successToast(__('Invitation revoked.'));
+    }
+
+    public function transferOwnership(string $memberId, TransferPersonOwnershipAction $transferOwnership): void
+    {
+        $person = $this->selectedPerson();
+        $user = $this->currentUser();
+
+        abort_unless(app(MemberPermissionGate::class)->canPerson($user, 'person.transfer-ownership', $person), 403);
+
+        $member = $this->memberOrFail($person, $memberId);
+
+        OwnerContext::withOwner($person, function () use ($member, $person, $transferOwnership, $user): void {
+            $transferOwnership->handle($person, $user, $member);
+        });
+
+        $this->successToast(__('Speaker ownership transferred.'));
     }
 
     /** @return Collection<int, User> */
@@ -263,6 +291,15 @@ final class PersonDashboard extends Component
         );
     }
 
+    public function canTransferOwnership(): bool
+    {
+        return app(MemberPermissionGate::class)->canPerson(
+            $this->currentUser(),
+            'person.transfer-ownership',
+            $this->selectedPerson(),
+        );
+    }
+
     public function canEditPerson(): bool
     {
         return $this->currentUser()->can('update', $this->selectedPerson());
@@ -285,9 +322,8 @@ final class PersonDashboard extends Component
     /** @return array{total:int,upcoming:int,needs_attention:int} */
     public function eventStats(): array
     {
-        $person = $this->selectedPerson();
         $eventsTable = (new Event)->getTable();
-        $events = $person->personEvents();
+        $events = $this->personEventQuery();
 
         return [
             'total' => (clone $events)->count(),
@@ -301,14 +337,13 @@ final class PersonDashboard extends Component
         ];
     }
 
-    /** @return LengthAwarePaginator<int, Event&object{pivot: EventKeyPersonPivot}> */
+    /** @return LengthAwarePaginator<int, Event> */
     public function events(): LengthAwarePaginator
     {
-        $person = $this->selectedPerson();
         $eventsTable = (new Event)->getTable();
         $search = trim($this->eventSearch);
 
-        $query = $person->personEvents()
+        $query = $this->personEventQuery()
             ->with([
                 'institution:id,name',
                 'primaryLocation.venueSpace:id,name',
@@ -364,6 +399,10 @@ final class PersonDashboard extends Component
 
     public function eventStatusLabel(mixed $status): string
     {
+        if ($status instanceof HasLabel) {
+            return $status->getLabel();
+        }
+
         if ($status instanceof BackedEnum) {
             $status = $status->value;
         }
@@ -424,6 +463,7 @@ final class PersonDashboard extends Component
             'invitations' => $this->invitations(),
             'roleOptions' => $this->roleOptions(),
             'canManageMembers' => $this->canManageMembers(),
+            'canTransferOwnership' => $this->canTransferOwnership(),
             'canEditPerson' => $this->canEditPerson(),
         ]);
     }
@@ -505,5 +545,17 @@ final class PersonDashboard extends Component
         $perPage = (int) $value;
 
         return in_array($perPage, [8, 15, 25], true) ? $perPage : 8;
+    }
+
+    /** @return Builder<Event> */
+    private function personEventQuery(): Builder
+    {
+        $personId = $this->selectedPerson()->getKey();
+
+        // Profile membership grants workspace visibility, including private
+        // and draft events. Public-route visibility is handled per event.
+        return Event::query()->whereHas('persons', function (Builder $personQuery) use ($personId): void {
+            $personQuery->whereKey($personId);
+        });
     }
 }

@@ -403,6 +403,9 @@ class MemberResourceRegistry
             return;
         }
 
+        // Membership is the workspace boundary, so private and draft events
+        // remain readable to members even when guests cannot open their public
+        // routes.
         $query->where(function (Builder $eventQuery) use ($user): void {
             $eventQuery
                 ->whereIn('institution_id', $user->institutions()->select('institutions.id'))

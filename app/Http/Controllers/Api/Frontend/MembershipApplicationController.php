@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Frontend;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Actions\CancelMembershipApplicationAction;
 use AIArmada\Membership\Enums\ApplicationStatus;
+use App\Actions\Membership\DiscardMembershipApplicationAction;
 use App\Actions\Membership\SubmitMembershipApplicationAction;
 use App\Enums\MemberSubjectType;
 use App\Models\MembershipApplication;
@@ -18,6 +19,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Throwable;
 
 #[Group('MembershipApplication', 'Authenticated membership-application endpoints for listing, creating, and cancelling subject membership applications.')]
 class MembershipApplicationController extends FrontendController
@@ -52,6 +54,7 @@ class MembershipApplicationController extends FrontendController
         string $subject,
         Request $request,
         SubmitMembershipApplicationAction $submitMembershipApplicationAction,
+        DiscardMembershipApplicationAction $discardMembershipApplicationAction,
         FrontendMediaSyncService $frontendMediaSyncService,
     ): JsonResponse {
         $resolvedSubjectType = MemberSubjectType::fromRouteSegment($subjectType);
@@ -72,6 +75,7 @@ class MembershipApplicationController extends FrontendController
         ]);
 
         $claimSubject = $resolvedSubjectType->resolveSubject($subject);
+        $application = null;
 
         try {
             $application = $submitMembershipApplicationAction->handle(
@@ -86,7 +90,19 @@ class MembershipApplicationController extends FrontendController
                 'evidence',
                 replace: true,
             );
-        } catch (RuntimeException $exception) {
+        } catch (Throwable $exception) {
+            if ($application instanceof MembershipApplication) {
+                try {
+                    $discardMembershipApplicationAction->handle($application);
+                } catch (Throwable $cleanupException) {
+                    report($cleanupException);
+                }
+            }
+
+            if (! $exception instanceof RuntimeException) {
+                throw $exception;
+            }
+
             throw ValidationException::withMessages([
                 'justification' => match ($exception->getMessage()) {
                     'membership_claim_already_member' => __('You are already a member of this record.'),

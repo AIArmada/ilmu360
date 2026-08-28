@@ -75,7 +75,7 @@ class CatalogController extends FrontendController
         ]);
     }
 
-    #[QueryParameter('district_id', 'Optional administrative district UUID used as the parent.', required: false, type: 'string', infer: false)]
+    #[QueryParameter('administrative_district', 'Optional administrative district UUID used as the parent.', required: false, type: 'string', infer: false)]
     #[QueryParameter('state_id', 'Optional package State UUID or country-profile parent when the previous area is not selected.', required: false, type: 'string', infer: false)]
     #[QueryParameter('country_id', 'Optional address country UUID when listing without a parent.', required: false, type: 'string', infer: false)]
     #[Endpoint(
@@ -86,7 +86,7 @@ class CatalogController extends FrontendController
     {
         return response()->json([
             'data' => $this->catalogs->administrativeSubdivisions(
-                $request->filled('district_id') ? $request->string('district_id')->toString() : null,
+                $request->filled('administrative_district') ? $request->string('administrative_district')->toString() : null,
                 $request->filled('country_id') ? $request->string('country_id')->toString() : null,
                 $request->filled('state_id') ? $request->string('state_id')->toString() : null,
             ),

@@ -2,6 +2,7 @@
 
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
+use App\Enums\EventPrayerTime;
 use App\Enums\EventTaxonomyCode;
 use App\Forms\EventContributionFormSchema;
 use App\Models\Institution;
@@ -142,4 +143,18 @@ it('creates pending tags from event update quick-add actions', function () {
         ->and($issueTag->is_active)->toBeTrue()
         ->and(EventTaxonomy::query()->findOrFail($issueTag->event_taxonomy_id)->code)->toBe(EventTaxonomyCode::Issue->value)
         ->and($issueTag->name)->toBe('Pemuda Quick Add');
+});
+
+it('keeps sebelum maghrib available outside ramadhan while restricting selepas tarawih', function (): void {
+    $method = new ReflectionMethod(EventContributionFormSchema::class, 'eventPrayerTimeOptions');
+
+    $outsideRamadhan = $method->invoke(null, '2027-03-20', 'Asia/Kuala_Lumpur');
+    $duringRamadhan = $method->invoke(null, '2027-02-20', 'Asia/Kuala_Lumpur');
+
+    expect($outsideRamadhan)
+        ->toHaveKey(EventPrayerTime::SebelumMaghrib->value)
+        ->not->toHaveKey(EventPrayerTime::SelepasTarawih->value)
+        ->and($duringRamadhan)
+        ->toHaveKey(EventPrayerTime::SebelumMaghrib->value)
+        ->toHaveKey(EventPrayerTime::SelepasTarawih->value);
 });

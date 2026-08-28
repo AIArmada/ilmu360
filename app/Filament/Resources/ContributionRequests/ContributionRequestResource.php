@@ -6,6 +6,7 @@ use App\Filament\RelationManagers\AuditsRelationManager;
 use App\Filament\Resources\ContributionRequests\Pages\ListContributionRequests;
 use App\Filament\Resources\ContributionRequests\Pages\ViewContributionRequest;
 use App\Filament\Resources\ContributionRequests\Schemas\ContributionRequestInfolist;
+use App\Filament\Resources\ContributionRequests\Support\ContributionRequestPresenter;
 use App\Filament\Resources\ContributionRequests\Tables\ContributionRequestsTable;
 use App\Models\ContributionRequest;
 use BackedEnum;
@@ -13,7 +14,9 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use UnitEnum;
 
 class ContributionRequestResource extends Resource
@@ -26,7 +29,17 @@ class ContributionRequestResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
-    protected static ?string $recordTitleAttribute = 'id';
+    protected static ?string $recordTitleAttribute = null;
+
+    #[\Override]
+    public static function getRecordTitle(?Model $record): string|Htmlable|null
+    {
+        if (! $record instanceof ContributionRequest) {
+            return parent::getRecordTitle($record);
+        }
+
+        return ContributionRequestPresenter::breadcrumbTitle($record);
+    }
 
     protected static string|UnitEnum|null $navigationGroup = 'Moderation';
 

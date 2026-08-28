@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tools\Member;
 
+use App\Actions\Membership\DiscardMembershipApplicationAction;
 use App\Actions\Membership\SubmitMembershipApplicationAction;
 use App\Enums\MemberSubjectType;
+use App\Models\MembershipApplication;
 use App\Models\User;
 use App\Support\Api\Member\MemberResourceService;
 use App\Support\Mcp\McpAuthenticatedUserResolver;
@@ -13,6 +15,7 @@ use App\Support\Mcp\McpFilePayloadNormalizer;
 use App\Support\Media\ModelMediaSyncService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
+use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
@@ -20,6 +23,7 @@ use Laravel\Mcp\Server\Tools\Annotations\IsDestructive;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
+use Throwable;
 
 #[IsReadOnly(false)]
 #[IsIdempotent(false)]
@@ -33,6 +37,7 @@ class MemberSubmitMembershipApplicationTool extends AbstractMemberWriteTool
 
     public function __construct(
         private readonly SubmitMembershipApplicationAction $submitMembershipApplicationAction,
+        private readonly DiscardMembershipApplicationAction $discardMembershipApplicationAction,
         private readonly McpFilePayloadNormalizer $filePayloadNormalizer,
         private readonly ModelMediaSyncService $mediaSyncService,
     ) {}
@@ -45,7 +50,7 @@ class MemberSubmitMembershipApplicationTool extends AbstractMemberWriteTool
             $validated = $this->validateArguments($request, [
                 'subject_type' => ['required', 'string'],
                 'subject' => ['required', 'string'],
-                'justification' => ['required', 'string'],
+                'justification' => ['required', 'string', 'max:2000'],
                 'evidence' => ['required', 'array', 'min:1', 'max:8'],
             ]);
 
@@ -58,6 +63,8 @@ class MemberSubmitMembershipApplicationTool extends AbstractMemberWriteTool
             $normalizedMediaPayload = $this->filePayloadNormalizer->normalize($validated, [
                 'evidence' => $this->evidenceMediaContract(),
             ]);
+
+            $application = null;
 
             try {
                 $application = $this->submitMembershipApplicationAction->handle(
@@ -83,6 +90,27 @@ class MemberSubmitMembershipApplicationTool extends AbstractMemberWriteTool
                         ],
                     ],
                 ];
+            } catch (Throwable $exception) {
+                if ($application instanceof MembershipApplication) {
+                    try {
+                        $this->discardMembershipApplicationAction->handle($application);
+                    } catch (Throwable $cleanupException) {
+                        report($cleanupException);
+                    }
+                }
+
+                if (! $exception instanceof \RuntimeException) {
+                    throw $exception;
+                }
+
+                throw ValidationException::withMessages([
+                    'justification' => match ($exception->getMessage()) {
+                        'membership_claim_already_member' => __('You are already a member of this record.'),
+                        'membership_claim_duplicate_pending' => __('You already have a pending application for this record.'),
+                        'membership_claim_pending_invitation' => __('You already have a pending invitation for this record. Please accept that invitation instead.'),
+                        default => __('The membership application could not be submitted.'),
+                    },
+                ]);
             } finally {
                 $this->filePayloadNormalizer->cleanup($normalizedMediaPayload['temporary_paths']);
             }
@@ -98,15 +126,23 @@ class MemberSubmitMembershipApplicationTool extends AbstractMemberWriteTool
         return [
             'subject_type' => $schema->string()->required()->enum($this->subjectTypeValues()),
             'subject' => $schema->string()->required()->min(1),
-            'justification' => $schema->string()->required(),
-            'evidence' => $schema->array()->required()
+            'justification' => $schema->string()->required()->max(2000),
+            'evidence' => $schema->array()->required()->min(1)->max(8)
                 ->items(
-                    $schema->object([
-                        'filename' => $schema->string()->required()->min(1),
-                        'mime_type' => $schema->string()->min(1),
-                        'content_base64' => $schema->string()->min(1),
-                        'content_url' => $schema->string()->min(1),
-                    ])->withoutAdditionalProperties()
+                    $schema->anyOf([
+                        $schema->object([
+                            'filename' => $schema->string()->required()->min(1),
+                            'mime_type' => $schema->string()->min(1),
+                            'content_base64' => $schema->string()->required()->min(1),
+                            'content_url' => $schema->string()->min(1),
+                        ])->withoutAdditionalProperties(),
+                        $schema->object([
+                            'filename' => $schema->string()->required()->min(1),
+                            'mime_type' => $schema->string()->min(1),
+                            'content_base64' => $schema->string()->min(1),
+                            'content_url' => $schema->string()->required()->min(1),
+                        ])->withoutAdditionalProperties(),
+                    ])
                 )
                 ->description('Array of MCP file descriptors. Each item must include filename plus either content_base64 or content_url. Multipart/form-data is not supported for MCP tools.'),
         ];

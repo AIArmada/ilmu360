@@ -493,7 +493,7 @@ describe('Event Search Filters', function () {
             ->assertDontSee('Advanced Filters');
     });
 
-    it('preloads broad topics in the events index filter', function (): void {
+    it('loads broad topics lazily in the events index filter', function (): void {
         app(EventTopicSeeder::class)->run();
 
         $component = Livewire::test(Index::class);
@@ -502,9 +502,8 @@ describe('Event Search Filters', function () {
 
         expect($field)->toBeInstanceOf(Select::class)
             ->and($field->getLabel())->toBe('Topic / field')
-            ->and($field->isPreloaded())->toBeTrue()
-            ->and($field->getOptions())
-            ->toContain('Agama & Kerohanian', 'Pendidikan', 'Sains & Matematik', 'Teknologi & IT');
+            ->and($field->isPreloaded())->toBeFalse()
+            ->and($field->getOptions())->toBeEmpty();
     });
 
     it('does not preload unrelated filter option labels into the initial events index response', function () {

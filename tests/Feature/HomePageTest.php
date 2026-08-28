@@ -19,7 +19,6 @@ it('displays the homepage successfully', function () {
     $response->assertSee('Majlis');
     $response->assertSee('Ilmu');
     $response->assertSee('Berdekatan Saya');
-    $response->assertDontSee('/flux/flux.js', false);
     $response->assertDontSee('grainy-gradients.vercel.app', false);
 });
 

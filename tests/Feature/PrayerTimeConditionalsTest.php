@@ -25,7 +25,6 @@ test('base prayer time options are visible without date selected', function () {
         ->assertSee('Lain Waktu')
         ->assertDontSee('Sebelum Jumaat')
         ->assertDontSee('Selepas Jumaat')
-        ->assertDontSee('Sebelum Maghrib')
         ->assertDontSee('Selepas Tarawih');
 });
 
@@ -57,7 +56,7 @@ test('selepas tarawih does not appear outside ramadhan', function () {
     // Apr 1, 2026 is after Ramadhan
     Livewire::test(Create::class)
         ->set('data.event_date', '2026-04-01')
-        ->assertDontSee('Sebelum Maghrib')
+        ->assertSee('Sebelum Maghrib')
         ->assertDontSee('Selepas Tarawih');
 });
 

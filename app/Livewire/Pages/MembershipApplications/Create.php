@@ -4,6 +4,7 @@ namespace App\Livewire\Pages\MembershipApplications;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Enums\MemberRole;
+use App\Actions\Membership\DiscardMembershipApplicationAction;
 use App\Actions\Membership\SubmitMembershipApplicationAction;
 use App\Enums\MemberSubjectType;
 use App\Livewire\Concerns\InteractsWithToasts;
@@ -20,10 +21,12 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use RuntimeException;
+use Throwable;
 use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
 use Ysfkaya\FilamentPhoneInput\PhoneInputNumberType;
 
@@ -100,12 +103,17 @@ class Create extends Component implements HasForms
                     ->description(__('Tell us how you are connected to this record so moderators can verify your claim.'))
                     ->schema([
                         Select::make('applied_role')
-                            ->label('Peranan yang anda mohon')
+                            ->label(__('Requested role'))
                             ->options([
-                                MemberRole::Owner->value => 'Pemilik',
-                                MemberRole::Admin->value => 'Pentadbir',
-                                MemberRole::Editor->value => 'Editor',
+                                MemberRole::Owner->value => __('Owner'),
+                                MemberRole::Admin->value => __('Administrator'),
+                                MemberRole::Editor->value => __('Editor'),
                             ])
+                            ->rule(Rule::in([
+                                MemberRole::Owner->value,
+                                MemberRole::Admin->value,
+                                MemberRole::Editor->value,
+                            ]))
                             ->required()
                             ->afterStateUpdatedJs(
                                 $subjectType !== MemberSubjectType::Institution
@@ -117,8 +125,9 @@ class Create extends Component implements HasForms
                                     : null
                             ),
                         Select::make('relationship')
-                            ->label('Hubungan anda dengan '.$this->context['subject_label'])
+                            ->label(__('Your relationship with :subject', ['subject' => $this->context['subject_label']]))
                             ->options(MembershipApplicationPresenter::relationshipOptions($subjectType))
+                            ->rule(Rule::in(array_keys(MembershipApplicationPresenter::relationshipOptions($subjectType))))
                             ->required()
                             ->native()
                             ->default($subjectType === MemberSubjectType::Institution ? null : 'self')
@@ -135,6 +144,7 @@ class Create extends Component implements HasForms
                             ->inputNumberFormat(PhoneInputNumberType::E164)
                             ->required()
                             ->visible($needsPhone)
+                            ->rule(Rule::unique(User::class, 'phone')->ignore($user instanceof User ? $user->getKey() : null))
                             ->helperText(__('We need a contact number to verify your claim. This is saved to your profile, not the application.'))
                             ->columnSpanFull(),
                         Textarea::make('notes')
@@ -151,17 +161,21 @@ class Create extends Component implements HasForms
                             ->reorderable()
                             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
                             ->maxFiles(8)
+                            ->minFiles(1)
+                            ->required()
                             ->conversion('thumb')
                             ->openable()
                             ->downloadable()
-                            ->helperText(__('Optional. Upload screenshots, letters, profile pages, or PDFs that support your claim.'))
+                            ->helperText(__('Upload screenshots, letters, profile pages, or PDFs that support your claim.'))
                             ->columnSpanFull(),
                     ]),
             ]);
     }
 
-    public function submit(SubmitMembershipApplicationAction $submitMembershipApplicationAction): void
-    {
+    public function submit(
+        SubmitMembershipApplicationAction $submitMembershipApplicationAction,
+        DiscardMembershipApplicationAction $discardMembershipApplicationAction,
+    ): void {
         $user = auth()->user();
         abort_unless($user instanceof User, 403);
 
@@ -171,21 +185,41 @@ class Create extends Component implements HasForms
 
         $state = $this->claimForm()->getState();
 
-        $appliedRole = $state['applied_role'] instanceof MemberRole
-            ? $state['applied_role']->value
-            : (string) ($state['applied_role'] ?? MemberRole::Editor->value);
+        $rawAppliedRole = $state['applied_role'] ?? null;
+        $appliedRole = $rawAppliedRole instanceof MemberRole
+            ? $rawAppliedRole->value
+            : (string) $rawAppliedRole;
+        $memberRole = MemberRole::tryFrom($appliedRole);
+
+        if (! $memberRole instanceof MemberRole) {
+            $this->addError('data.applied_role', __('Please select a valid role.'));
+
+            return;
+        }
+
         $subjectType = MemberSubjectType::tryFrom($this->subjectType);
         $relationship = (string) ($state['relationship'] ?? ($subjectType === MemberSubjectType::Institution ? '' : 'self'));
-        $notes = trim((string) ($state['notes'] ?? ''));
-
-        if (filled($state['phone'] ?? null) && blank($user->phone)) {
-            $user->update(['phone' => $state['phone']]);
+        if ($subjectType !== MemberSubjectType::Institution && $memberRole === MemberRole::Owner) {
+            $relationship = 'self';
         }
+
+        $relationshipOptions = MembershipApplicationPresenter::relationshipOptions($subjectType);
+
+        if (! array_key_exists($relationship, $relationshipOptions)) {
+            $this->addError('data.relationship', __('Please select a valid relationship.'));
+
+            return;
+        }
+
+        $notes = trim((string) ($state['notes'] ?? ''));
+        $phone = is_scalar($state['phone'] ?? null)
+            ? trim((string) $state['phone'])
+            : null;
 
         $justification = sprintf(
             'Applying as %s. Relationship: %s.',
-            MemberRole::from($appliedRole)->label(),
-            MembershipApplicationPresenter::relationshipOptions($subjectType)[$relationship] ?? $relationship,
+            __($memberRole->label()),
+            $relationshipOptions[$relationship],
         );
 
         $meta = [
@@ -194,6 +228,8 @@ class Create extends Component implements HasForms
             'notes' => $notes !== '' ? $notes : null,
         ];
 
+        $claim = null;
+
         try {
             $claim = $submitMembershipApplicationAction->handle(
                 $this->subject,
@@ -201,18 +237,28 @@ class Create extends Component implements HasForms
                 $justification,
                 $meta,
             );
+
+            $this->claimForm()->model($claim)->saveRelationships();
         } catch (RuntimeException $exception) {
+            $this->discardFailedClaim($claim, $discardMembershipApplicationAction);
+
             match ($exception->getMessage()) {
-                'membership_claim_already_member' => $this->addError('data.justification', __('You are already a member of this record.')),
-                'membership_claim_duplicate_pending' => $this->addError('data.justification', __('You already have a pending claim for this record.')),
-                'membership_claim_pending_invitation' => $this->addError('data.justification', __('You already have a pending invitation for this record. Please accept that invitation instead.')),
+                'membership_claim_already_member' => $this->addError('data.applied_role', __('You are already a member of this record.')),
+                'membership_claim_duplicate_pending' => $this->addError('data.applied_role', __('You already have a pending claim for this record.')),
+                'membership_claim_pending_invitation' => $this->addError('data.applied_role', __('You already have a pending invitation for this record. Please accept that invitation instead.')),
                 default => throw $exception,
             };
 
             return;
+        } catch (Throwable $exception) {
+            $this->discardFailedClaim($claim, $discardMembershipApplicationAction);
+
+            throw $exception;
         }
 
-        $this->claimForm()->model($claim)->saveRelationships();
+        if (filled($phone) && blank($user->phone)) {
+            $user->update(['phone' => $phone]);
+        }
 
         $this->successToast(__('Membership claim submitted for review.'));
 
@@ -229,6 +275,21 @@ class Create extends Component implements HasForms
     protected function claimForm(): Schema
     {
         return $this->getForm('form') ?? throw new RuntimeException('Membership application form is not available.');
+    }
+
+    private function discardFailedClaim(
+        ?MembershipApplication $claim,
+        DiscardMembershipApplicationAction $discardMembershipApplicationAction,
+    ): void {
+        if (! $claim instanceof MembershipApplication) {
+            return;
+        }
+
+        try {
+            $discardMembershipApplicationAction->handle($claim);
+        } catch (Throwable $cleanupException) {
+            report($cleanupException);
+        }
     }
 
     private function canonicalSubjectId(): string

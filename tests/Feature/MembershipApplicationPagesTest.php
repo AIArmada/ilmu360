@@ -126,6 +126,7 @@ it('saves a provided phone number to the applicant profile when missing', functi
         ->fillForm([
             'applied_role' => MemberRole::Owner->value,
             'phone' => '0123456789',
+            'evidence' => [UploadedFile::fake()->image('proof.png')],
         ])
         ->call('submit')
         ->assertRedirect(route('membership-applications.index'));
@@ -136,6 +137,32 @@ it('saves a provided phone number to the applicant profile when missing', functi
 
     expect($claim->meta['applied_role'])->toBe(MemberRole::Owner->value)
         ->and($claim->meta['relationship'])->toBe('self');
+});
+
+it('rejects a phone number already used by another account', function (): void {
+    $user = User::factory()->emailOnly()->create();
+    $existingUser = User::factory()->create(['phone' => '+60123456789']);
+    $person = Person::factory()->create(['status' => 'verified']);
+
+    expect($existingUser->phone)->toBe('+60123456789');
+
+    Livewire::actingAs($user)
+        ->test(CreateMembershipApplicationPage::class, [
+            'subjectType' => MemberSubjectType::Person->publicRouteSegment(),
+            'subjectId' => $person->slug,
+        ])
+        ->fillForm([
+            'applied_role' => MemberRole::Owner->value,
+            'phone' => '+60123456789',
+            'evidence' => [UploadedFile::fake()->image('proof.png')],
+        ])
+        ->call('submit')
+        ->assertHasErrors(['data.phone']);
+
+    expect($user->fresh()->phone)->toBeNull()
+        ->and(MembershipApplication::query()
+            ->where('applicant_id', $user->getKey())
+            ->exists())->toBeFalse();
 });
 
 it('requires applied role and relationship on the public claim form', function () {
@@ -151,6 +178,66 @@ it('requires applied role and relationship on the public claim form', function (
         ->assertHasErrors([
             'data.applied_role',
         ]);
+});
+
+it('requires evidence for membership claims', function (): void {
+    $user = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified']);
+
+    Livewire::actingAs($user)
+        ->test(CreateMembershipApplicationPage::class, [
+            'subjectType' => MemberSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->getKey(),
+        ])
+        ->fillForm([
+            'applied_role' => MemberRole::Editor->value,
+            'relationship' => 'employee',
+            'evidence' => [],
+        ])
+        ->call('submit')
+        ->assertHasErrors(['data.evidence']);
+});
+
+it('shows claim conflicts on a visible field and does not save profile data on failure', function () {
+    $user = User::factory()->emailOnly()->create();
+    $person = Person::factory()->create(['status' => 'verified']);
+
+    addTestMember($person, $user, MemberRole::Viewer);
+
+    Livewire::actingAs($user)
+        ->test(CreateMembershipApplicationPage::class, [
+            'subjectType' => MemberSubjectType::Person->publicRouteSegment(),
+            'subjectId' => $person->slug,
+        ])
+        ->fillForm([
+            'applied_role' => MemberRole::Owner->value,
+            'phone' => '0123456789',
+            'evidence' => [UploadedFile::fake()->image('proof.png')],
+        ])
+        ->call('submit')
+        ->assertHasErrors(['data.applied_role'])
+        ->assertHasNoErrors(['data.justification']);
+
+    expect($user->fresh()->phone)->toBeNull()
+        ->and(MembershipApplication::query()
+            ->where('subject_id', $person->getKey())
+            ->where('applicant_id', $user->getKey())
+            ->exists())->toBeFalse();
+});
+
+it('rejects forged membership role and relationship values', function () {
+    $user = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified']);
+
+    Livewire::actingAs($user)
+        ->test(CreateMembershipApplicationPage::class, [
+            'subjectType' => MemberSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->getKey(),
+        ])
+        ->set('data.applied_role', 'not-a-role')
+        ->set('data.relationship', 'self')
+        ->call('submit')
+        ->assertHasErrors(['data.applied_role']);
 });
 
 it('renders the public membership claim page in Malay without a side-by-side layout', function () {

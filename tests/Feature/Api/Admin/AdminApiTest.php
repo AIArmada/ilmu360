@@ -1468,7 +1468,9 @@ it('surfaces space update semantics through the admin api schema', function () {
         ->and(data_get($fields->get('capacity'), 'normalization.empty_string_at_mutation_layer'))->toBe('null')
         ->and(data_get($fields->get('institutions'), 'relation'))->toBe('institutions')
         ->and(data_get($fields->get('institutions'), 'collection_semantics.explicit_null'))->toBe('clear_collection')
-        ->and(data_get($fields->get('institutions'), 'collection_semantics.submitted_array'))->toBe('replace_relation_sync');
+        ->and(data_get($fields->get('institutions'), 'collection_semantics.submitted_array'))->toBe('replace_relation_sync')
+        ->and(data_get($fields->get('institution_space_overrides'), 'clear_semantics.omitted'))->toBe('preserve_existing')
+        ->and(data_get($fields->get('institution_space_overrides'), 'clear_semantics.empty_array'))->toBe('clear_all_overrides');
 });
 
 it('clears space capacity and institutions through the admin api', function () {
@@ -1494,6 +1496,39 @@ it('clears space capacity and institutions through the admin api', function () {
 
     expect($space->capacity)->toBeNull()
         ->and($space->institutions)->toHaveCount(0);
+});
+
+it('clears space institution capacity overrides through the admin api without unlinking institutions', function () {
+    $admin = adminApiUser('super_admin');
+    $institution = Institution::factory()->create();
+    $space = Space::factory()->create([
+        'slug' => 'admin-api-space-override-clear-'.Str::lower((string) Str::ulid()),
+        'capacity' => 300,
+    ]);
+    $space->institutions()->attach($institution, ['capacity' => 120]);
+
+    Sanctum::actingAs($admin);
+
+    $this->putJson('/api/v1/admin/spaces/'.$space->getRouteKey(), [
+        'name' => $space->name,
+        'slug' => $space->slug,
+    ])->assertOk();
+
+    $space->refresh()->load('institutions');
+
+    expect($space->institutions->firstOrFail()->pivot->capacity)->toBe(120);
+
+    $this->putJson('/api/v1/admin/spaces/'.$space->getRouteKey(), [
+        'name' => $space->name,
+        'slug' => $space->slug,
+        'institution_space_overrides' => [],
+    ])->assertOk();
+
+    $space->refresh()->load('institutions');
+
+    expect($space->institutions)->toHaveCount(1)
+        ->and($space->institutions->first()->getKey())->toBe($institution->getKey())
+        ->and($space->institutions->first()->pivot->capacity)->toBeNull();
 });
 
 it('exposes donation channel write schema and can create and update donation channels through the api', function () {
@@ -2639,7 +2674,7 @@ it('lists admin geography catalogs and exposes catalog metadata through admin wr
             'id' => $fixtures['administrative_district_id'],
         ]);
 
-    $this->getJson('/api/v1/admin/catalogs/administrative-subdivisions?district_id='.$fixtures['administrative_district_id'])
+    $this->getJson('/api/v1/admin/catalogs/administrative-subdivisions?administrative_district='.$fixtures['administrative_district_id'])
         ->assertOk()
         ->assertJsonFragment([
             'id' => $fixtures['administrative_subdivision_id'],
@@ -2654,7 +2689,7 @@ it('lists admin geography catalogs and exposes catalog metadata through admin wr
 
     expect($institutionCatalogs->get('address.country_id')['endpoint'] ?? null)->toBe('/api/v1/admin/catalogs/countries')
         ->and($institutionCatalogs->get('address.area_assignments.administrative_district')['query']['country_id'] ?? null)->toBe('{address.country_id}')
-        ->and($institutionCatalogs->get('address.area_assignments.administrative_subdivision')['query']['district_id'] ?? null)->toBe('{address.area_assignments.administrative_district}');
+        ->and($institutionCatalogs->get('address.area_assignments.administrative_subdivision')['query']['administrative_district'] ?? null)->toBe('{address.area_assignments.administrative_district}');
 
     $addressAreaSchema = $this->getJson('/api/v1/admin/address-areas/schema?operation=create')
         ->assertOk()

@@ -2487,7 +2487,7 @@ class AdminResourceMutationService
             $this->catalog(
                 $prefix.'.area_assignments.administrative_subdivision',
                 route('api.admin.catalogs.administrative-subdivisions', [], false),
-                ['district_id' => '{'.$prefix.'.area_assignments.administrative_district}'],
+                ['administrative_district' => '{'.$prefix.'.area_assignments.administrative_district}'],
             ),
         ];
     }

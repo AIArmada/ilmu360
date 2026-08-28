@@ -3,9 +3,12 @@
 declare(strict_types=1);
 
 use AIArmada\FilamentEvents\Resources\EventResource;
+use AIArmada\Membership\Actions\AddMemberAction;
+use AIArmada\Membership\Actions\RemoveMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Membership\Services\MembershipRoleSyncService;
 use AIArmada\Ticketing\Models\TicketType;
+use App\Actions\Membership\TransferPersonOwnershipAction;
 use App\Enums\ContributionSubjectType;
 use App\Enums\EventFormat;
 use App\Enums\EventKeyPersonRole;
@@ -24,6 +27,7 @@ use App\Notifications\Membership\MemberInvitationNotification;
 use App\Support\Api\Member\MemberResourceRegistry;
 use App\Support\Authz\MemberPermissionGate;
 use App\Support\Authz\ScopedMemberRoleSeeder;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
@@ -124,6 +128,21 @@ it('shows speaker events and authorizes event editing through the speaker member
         'visibility' => 'public',
     ]);
 
+    $draftEvent = Event::factory()->create([
+        'title' => 'Speaker Draft Event',
+        'institution_id' => $institution->id,
+        'status' => 'draft',
+        'visibility' => 'private',
+    ]);
+    EventKeyPerson::query()->create([
+        'event_id' => $draftEvent->id,
+        'involveable_type' => 'person',
+        'involveable_id' => $person->id,
+        'role_code' => EventKeyPersonRole::Speaker->value,
+        'sort_order' => 1,
+        'visibility' => 'public',
+    ]);
+
     $outsideEvent = Event::factory()->create(['title' => 'Outside Speaker Event']);
     $editUrl = EventResource::getUrl('edit', ['record' => $event], panel: 'ahli');
     $createUrl = route('dashboard.events.create-advanced', ['person' => $person->id]);
@@ -136,26 +155,72 @@ it('shows speaker events and authorizes event editing through the speaker member
         ->assertOk()
         ->assertSee('Manage speaker events')
         ->assertSee('Speaker Managed Event')
+        ->assertSee('Speaker Draft Event')
+        ->assertSee('Approved')
         ->assertSee($editUrl, false)
         ->assertSee($createUrl, false)
         ->assertDontSee('Outside Speaker Event');
 
+    $this->actingAs($viewer);
     $memberResourceRegistry = app(MemberResourceRegistry::class);
     $eventResource = $memberResourceRegistry->resolve('events');
     $memberEventIds = $memberResourceRegistry->queryFor((string) $eventResource)->pluck('events.id')->all();
 
-    expect($memberEventIds)->toContain($event->id)->not->toContain($outsideEvent->id);
+    expect($memberEventIds)
+        ->toContain($event->id)
+        ->toContain($draftEvent->id)
+        ->not->toContain($outsideEvent->id);
 
     $this->actingAs($viewer)
         ->get(route('dashboard.persons', $person))
         ->assertOk()
         ->assertSee('Speaker Managed Event')
+        ->assertSee('Speaker Draft Event')
+        ->assertDontSee(route('events.show', $event), false)
         ->assertDontSee($editUrl, false)
         ->assertSee($createUrl, false);
 
     expect($admin->can('update', $event))->toBeTrue()
         ->and($viewer->can('update', $event))->toBeFalse()
         ->and($outsideEvent->persons()->whereKey($person->id)->exists())->toBeFalse();
+
+    Livewire::withQueryParams(['event_status' => 'not-a-status'])
+        ->actingAs($admin)
+        ->test(PersonDashboard::class, ['person' => $person])
+        ->assertSet('eventStatus', 'all');
+});
+
+it('counts a speaker event once when the speaker has multiple involvement rows', function (): void {
+    $admin = User::factory()->create();
+    $person = Person::factory()->create(['status' => 'verified']);
+
+    Institution::factory()->create();
+    app(ScopedMemberRoleSeeder::class)->ensureForPerson();
+    $person->members()->syncWithoutDetaching([$admin->id => ['role' => MemberRole::Admin->value]]);
+
+    $event = Event::factory()->create(['status' => 'approved']);
+    EventKeyPerson::query()->create([
+        'event_id' => $event->id,
+        'involveable_type' => 'person',
+        'involveable_id' => $person->id,
+        'role_code' => EventKeyPersonRole::Speaker->value,
+        'sort_order' => 1,
+        'visibility' => 'public',
+    ]);
+    EventKeyPerson::query()->create([
+        'event_id' => $event->id,
+        'involveable_type' => 'person',
+        'involveable_id' => $person->id,
+        'role_code' => EventKeyPersonRole::Speaker->value,
+        'sort_order' => 2,
+        'visibility' => 'public',
+    ]);
+
+    $dashboard = Livewire::actingAs($admin)
+        ->test(PersonDashboard::class, ['person' => $person]);
+
+    expect($dashboard->instance()->events()->total())->toBe(1)
+        ->and($dashboard->instance()->eventStats()['total'])->toBe(1);
 });
 
 it('carries the speaker workspace context into the event submission wizard', function (): void {
@@ -313,6 +378,19 @@ it('applies the public first-session timing rules to the advanced builder', func
         ->set('form.end_time', '19:00')
         ->call('submit')
         ->assertHasErrors('form.end_time');
+
+    $component
+        ->set('form.title', 'Before Maghrib Outside Ramadan')
+        ->set('form.program_starts_at', '2027-03-20T19:00')
+        ->set('form.program_ends_at', '2027-03-20T22:00')
+        ->set('form.event_date', '2027-03-20')
+        ->set('form.prayer_time', 'sebelum_maghrib')
+        ->set('form.end_time', '20:00')
+        ->call('submit')
+        ->assertHasNoErrors()
+        ->assertRedirect();
+
+    expect(Event::query()->where('title', 'Before Maghrib Outside Ramadan')->exists())->toBeTrue();
 });
 
 it('lets speaker admins invite, change, and remove non-owner members', function (): void {
@@ -349,6 +427,146 @@ it('lets speaker admins invite, change, and remove non-owner members', function 
         ->and(MemberInvitation::query()->where('email', 'new-speaker-member@example.test')->where('subject_id', $person->getKey())->exists())->toBeTrue();
 
     Notification::assertSentOnDemand(MemberInvitationNotification::class);
+});
+
+it('lets a person owner remove an admin while protecting the owner from admins', function (): void {
+    $owner = User::factory()->create();
+    $admin = User::factory()->create();
+    $person = Person::factory()->create(['name' => 'Speaker Ownership Rules']);
+
+    Institution::factory()->create();
+    app(ScopedMemberRoleSeeder::class)->ensureForPerson();
+    addTestMember($person, $owner, MemberRole::Owner);
+    addTestMember($person, $admin, MemberRole::Admin);
+
+    Livewire::actingAs($owner)
+        ->test(PersonDashboard::class, ['person' => $person])
+        ->call('removeMember', $admin->getKey())
+        ->assertHasNoErrors();
+
+    expect($person->fresh()->members()->whereKey($admin->getKey())->exists())->toBeFalse()
+        ->and($person->fresh()->members()->whereKey($owner->getKey())->exists())->toBeTrue();
+
+    addTestMember($person, $admin, MemberRole::Admin);
+
+    Livewire::actingAs($admin)
+        ->test(PersonDashboard::class, ['person' => $person])
+        ->call('removeMember', $owner->getKey())
+        ->assertHasNoErrors()
+        ->assertDispatched('app-toast');
+
+    expect($person->fresh()->members()->whereKey($owner->getKey())->exists())->toBeTrue();
+
+    expect(function () use ($person, $owner): void {
+        app(RemoveMemberAction::class)->handle($person, $owner);
+    })
+        ->toThrow(AuthorizationException::class);
+});
+
+it('lets a person owner transfer ownership to an existing member', function (): void {
+    $owner = User::factory()->create();
+    $newOwner = User::factory()->create();
+    $person = Person::factory()->create(['name' => 'Speaker Ownership Transfer']);
+
+    Institution::factory()->create();
+    app(ScopedMemberRoleSeeder::class)->ensureForPerson();
+    addTestMember($person, $owner, MemberRole::Owner);
+    addTestMember($person, $newOwner, MemberRole::Editor);
+
+    $component = Livewire::actingAs($owner)
+        ->test(PersonDashboard::class, ['person' => $person])
+        ->assertSet('personId', $person->getKey());
+
+    expect($person->members()->whereKey($owner->getKey())->first()?->pivot?->role)
+        ->toBe(MemberRole::Owner->spatieRoleName())
+        ->and(app(MemberPermissionGate::class)->canPerson($owner, 'person.transfer-ownership', $person))
+        ->toBeTrue()
+        ->and($component->instance()->canTransferOwnership())
+        ->toBeTrue();
+
+    $component
+        ->assertSee(__('Make owner'))
+        ->call('transferOwnership', $newOwner->getKey())
+        ->assertHasNoErrors();
+
+    $person->refresh();
+    expect($person->members()->whereKey($owner->getKey())->first()?->pivot?->role)
+        ->toBe(MemberRole::Admin->spatieRoleName())
+        ->and($person->members()->whereKey($newOwner->getKey())->first()?->pivot?->role)
+        ->toBe(MemberRole::Owner->spatieRoleName())
+        ->and($person->ownerMember()->count())->toBe(1);
+});
+
+it('does not let a person admin transfer ownership', function (): void {
+    $owner = User::factory()->create();
+    $admin = User::factory()->create();
+    $newOwner = User::factory()->create();
+    $person = Person::factory()->create(['name' => 'Speaker Transfer Authorization']);
+
+    Institution::factory()->create();
+    app(ScopedMemberRoleSeeder::class)->ensureForPerson();
+    addTestMember($person, $owner, MemberRole::Owner);
+    addTestMember($person, $admin, MemberRole::Admin);
+    addTestMember($person, $newOwner, MemberRole::Editor);
+
+    expect(fn (): Person => app(TransferPersonOwnershipAction::class)->handle($person, $admin, $newOwner))
+        ->toThrow(AuthorizationException::class);
+
+    expect($person->fresh()->members()->whereKey($owner->getKey())->first()?->pivot?->role)
+        ->toBe(MemberRole::Owner->spatieRoleName())
+        ->and($person->fresh()->members()->whereKey($newOwner->getKey())->first()?->pivot?->role)
+        ->toBe(MemberRole::Editor->spatieRoleName());
+});
+
+it('rejects a stale resolved membership mutation after ownership changes', function (): void {
+    $owner = User::factory()->create();
+    $newOwner = User::factory()->create();
+    $person = Person::factory()->create(['name' => 'Speaker Stale Membership']);
+
+    Institution::factory()->create();
+    app(ScopedMemberRoleSeeder::class)->ensureForPerson();
+    addTestMember($person, $owner, MemberRole::Owner);
+    addTestMember($person, $newOwner, MemberRole::Editor);
+
+    $staleMember = $person->members()->whereKey($newOwner->getKey())->firstOrFail();
+    app(TransferPersonOwnershipAction::class)->handle($person, $owner, $newOwner);
+
+    expect(function () use ($newOwner, $person, $staleMember): void {
+        withGlobalOwnerContext(function () use ($newOwner, $person, $staleMember): void {
+            app(AddMemberAction::class)->handleResolvedMember($person, $newOwner, MemberRole::Viewer, $staleMember);
+        });
+    })->toThrow(RuntimeException::class, 'Membership changed while this mutation was in progress. Please retry.');
+
+    expect($person->fresh()->ownerMember()->count())->toBe(1)
+        ->and($person->fresh()->members()->whereKey($newOwner->getKey())->first()?->pivot?->role)
+        ->toBe(MemberRole::Owner->spatieRoleName());
+});
+
+it('does not invite an existing speaker member when email casing differs', function (): void {
+    Notification::fake();
+
+    $admin = User::factory()->create();
+    $member = User::factory()->create(['email' => 'Speaker.Member@example.test']);
+    $person = Person::factory()->create();
+
+    Institution::factory()->create();
+    app(ScopedMemberRoleSeeder::class)->ensureForPerson();
+    $person->members()->syncWithoutDetaching([
+        $admin->id => ['role' => MemberRole::Admin->value],
+        $member->id => ['role' => MemberRole::Viewer->value],
+    ]);
+
+    Livewire::actingAs($admin)
+        ->test(PersonDashboard::class, ['person' => $person])
+        ->set('inviteEmail', 'speaker.member@example.test')
+        ->set('inviteRole', MemberRole::Editor->value)
+        ->call('invite')
+        ->assertHasErrors(['inviteEmail']);
+
+    expect(MemberInvitation::query()
+        ->where('subject_id', $person->getKey())
+        ->where('email', 'speaker.member@example.test')
+        ->exists())->toBeFalse();
 });
 
 it('does not let an admin of one institution manage another institution', function (): void {

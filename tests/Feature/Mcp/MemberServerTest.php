@@ -45,6 +45,7 @@ use App\Models\User;
 use App\Support\GitHub\GitHubIssueReportContract;
 use App\Support\Mcp\McpTokenManager;
 use App\Support\Mcp\MemberMcpDocumentationPreflight;
+use App\Support\Media\ModelMediaSyncService;
 use App\Support\Search\PersonSearchService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -898,6 +899,36 @@ it('lists submits and cancels membership applications through member MCP workflo
     expect($application->fresh()?->status->value)->toBe('cancelled');
 });
 
+it('does not leave a pending membership application when evidence persistence fails', function (): void {
+    [$member] = institutionMemberMcpContext(role: 'admin');
+    $target = Institution::factory()->create(['status' => 'verified']);
+
+    $mediaSync = Mockery::mock(ModelMediaSyncService::class);
+    $mediaSync->shouldReceive('syncMultiple')
+        ->once()
+        ->andThrow(new RuntimeException('media persistence failed'));
+    $mediaSync->shouldReceive('clearCollection')
+        ->once()
+        ->andReturnNull();
+    app()->instance(ModelMediaSyncService::class, $mediaSync);
+
+    MemberServer::actingAs($member)
+        ->tool(MemberSubmitMembershipApplicationTool::class, [
+            'subject_type' => MemberSubjectType::Institution->value,
+            'subject' => $target->getKey(),
+            'justification' => 'I help manage this institution.',
+            'evidence' => [
+                memberMcpImageDescriptor('member-mcp-failing-evidence.png'),
+            ],
+        ])
+        ->assertHasErrors(['The membership application could not be submitted.']);
+
+    expect(MembershipApplication::query()
+        ->where('applicant_id', $member->getKey())
+        ->where('subject_id', $target->getKey())
+        ->exists())->toBeFalse();
+});
+
 it('creates plain github issues through the member MCP tool', function () {
     configureGithubIssueReportingForMemberMcp();
 
@@ -1138,13 +1169,18 @@ it('initializes and lists member MCP tools over the HTTP endpoint for Passport-a
     ]);
 
     expect(data_get($tools->get('member-submit-membership-application'), 'inputSchema.properties.evidence.type'))->toBe('array');
-    expect(data_get($tools->get('member-submit-membership-application'), 'inputSchema.properties.evidence.items.type'))->toBe('object');
-    expect(data_get($tools->get('member-submit-membership-application'), 'inputSchema.properties.evidence.items.required'))
-        ->toBe(['filename']);
-    expect(data_get($tools->get('member-submit-membership-application'), 'inputSchema.properties.evidence.items.properties.content_base64.type'))
-        ->toBe('string');
-    expect(data_get($tools->get('member-submit-membership-application'), 'inputSchema.properties.evidence.items.properties.content_url.type'))
-        ->toBe('string');
+    expect(data_get($tools->get('member-submit-membership-application'), 'inputSchema.properties.evidence.minItems'))
+        ->toBe(1);
+    expect(data_get($tools->get('member-submit-membership-application'), 'inputSchema.properties.evidence.maxItems'))
+        ->toBe(8);
+
+    $evidenceVariants = data_get($tools->get('member-submit-membership-application'), 'inputSchema.properties.evidence.items.anyOf');
+
+    expect($evidenceVariants)->toHaveCount(2)
+        ->and($evidenceVariants[0]['required'] ?? [])->toContain('filename', 'content_base64')
+        ->and($evidenceVariants[1]['required'] ?? [])->toContain('filename', 'content_url')
+        ->and($evidenceVariants[0]['properties']['content_base64']['type'] ?? null)->toBe('string')
+        ->and($evidenceVariants[1]['properties']['content_url']['type'] ?? null)->toBe('string');
 
     $githubIssueCategorySchema = data_get($tools->get('member-create-github-issue'), 'inputSchema.properties.category');
 

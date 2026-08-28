@@ -16,6 +16,7 @@ use App\Models\Reference;
 use App\Models\User;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class EditUser extends EditRecord
@@ -112,11 +113,15 @@ class EditUser extends EditRecord
             $subject = $this->firstResolvedSubject($subjectType, $user);
 
             if ($subject !== null) {
-                app(ChangeMemberRoleAction::class)->handle(
-                    $subject,
-                    $user,
-                    $role,
-                );
+                if ($subject instanceof Person) {
+                    DB::transaction(function () use ($role, $subject, $user): void {
+                        $subject->lockForMembershipMutation();
+
+                        app(ChangeMemberRoleAction::class)->handle($subject, $user, $role);
+                    });
+                } else {
+                    app(ChangeMemberRoleAction::class)->handle($subject, $user, $role);
+                }
             }
         }
 

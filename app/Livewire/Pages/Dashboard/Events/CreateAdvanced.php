@@ -1062,10 +1062,7 @@ class CreateAdvanced extends Component implements HasForms
                 return;
             }
 
-            if (
-                in_array($prayerTime, [EventPrayerTime::SebelumMaghrib, EventPrayerTime::SelepasTarawih], true)
-                && ! $this->isRamadhan($date)
-            ) {
+            if ($prayerTime === EventPrayerTime::SelepasTarawih && ! $this->isRamadhan($date)) {
                 $fail(__('Pilihan waktu ini hanya boleh dipilih semasa bulan Ramadhan.'));
             }
         };
@@ -1367,7 +1364,6 @@ class CreateAdvanced extends Component implements HasForms
                     return ! in_array($case, [
                         EventPrayerTime::SebelumJumaat,
                         EventPrayerTime::SelepasJumaat,
-                        EventPrayerTime::SebelumMaghrib,
                         EventPrayerTime::SelepasTarawih,
                     ], true);
                 }
@@ -1376,7 +1372,7 @@ class CreateAdvanced extends Component implements HasForms
                     return $date->isFriday();
                 }
 
-                if (in_array($case, [EventPrayerTime::SebelumMaghrib, EventPrayerTime::SelepasTarawih], true)) {
+                if ($case === EventPrayerTime::SelepasTarawih) {
                     return $this->isRamadhan($date);
                 }
 

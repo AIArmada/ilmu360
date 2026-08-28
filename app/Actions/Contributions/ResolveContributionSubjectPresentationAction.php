@@ -21,10 +21,10 @@ class ResolveContributionSubjectPresentationAction
     {
         return [
             'subject_label' => match (true) {
-                $entity instanceof Institution => __('institusi'),
-                $entity instanceof Person => __('penceramah'),
-                $entity instanceof Reference => __('rujukan'),
-                default => __('majlis'),
+                $entity instanceof Institution => __('Institution'),
+                $entity instanceof Person => __('Speaker'),
+                $entity instanceof Reference => __('Reference'),
+                default => __('Event'),
             },
             'subject_title' => match (true) {
                 $entity instanceof Institution => $entity->name,

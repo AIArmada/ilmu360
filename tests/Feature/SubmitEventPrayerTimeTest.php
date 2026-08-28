@@ -32,6 +32,6 @@ it('hides conditional prayer time options without a date', function () {
     // Jumaat and Tarawih require a qualifying date to appear
     $component->assertDontSee('Sebelum Jumaat')
         ->assertDontSee('Selepas Jumaat')
-        ->assertDontSee('Sebelum Maghrib')
+        ->assertSee('Sebelum Maghrib')
         ->assertDontSee('Selepas Tarawih');
 });

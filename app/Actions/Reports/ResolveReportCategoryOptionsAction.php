@@ -55,35 +55,35 @@ class ResolveReportCategoryOptionsAction
     {
         return match ($subjectType) {
             'event' => [
-                'wrong_info' => __('Maklumat tidak tepat'),
-                'cancelled_not_updated' => __('Dibatalkan tetapi belum dikemas kini'),
-                'inappropriate_content' => __('Kandungan tidak sesuai'),
-                'other' => __('Lain-lain'),
+                'wrong_info' => __('Wrong information'),
+                'cancelled_not_updated' => __('Cancelled but not updated'),
+                'inappropriate_content' => __('Inappropriate content'),
+                'other' => __('Other'),
             ],
             'institution' => [
-                'wrong_info' => __('Maklumat tidak tepat'),
-                'duplicate_institution' => __('Institusi pendua'),
-                'fake_institution' => __('Institusi palsu'),
-                'other' => __('Lain-lain'),
+                'wrong_info' => __('Wrong information'),
+                'duplicate_institution' => __('Duplicate institution'),
+                'fake_institution' => __('Fake institution'),
+                'other' => __('Other'),
             ],
             'person' => [
-                'wrong_info' => __('Maklumat tidak tepat'),
-                'duplicate_person' => __('Profil pendua'),
-                'fake_person' => __('Penceramah palsu'),
-                'other' => __('Lain-lain'),
+                'wrong_info' => __('Wrong information'),
+                'duplicate_person' => __('Duplicate person'),
+                'fake_person' => __('Fake person'),
+                'other' => __('Other'),
             ],
             'reference' => [
-                'wrong_info' => __('Maklumat tidak tepat'),
-                'fake_reference' => __('Rujukan palsu'),
-                'other' => __('Lain-lain'),
+                'wrong_info' => __('Wrong information'),
+                'fake_reference' => __('Fake reference'),
+                'other' => __('Other'),
             ],
             'donation_channel' => [
-                'wrong_info' => __('Maklumat tidak tepat'),
-                'donation_scam' => __('Penipuan saluran derma'),
-                'other' => __('Lain-lain'),
+                'wrong_info' => __('Wrong information'),
+                'donation_scam' => __('Donation channel scam'),
+                'other' => __('Other'),
             ],
             default => [
-                'other' => __('Lain-lain'),
+                'other' => __('Other'),
             ],
         };
     }

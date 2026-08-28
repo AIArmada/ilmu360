@@ -15,6 +15,7 @@ use Filament\Forms\Components\Select;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\DB;
 
 class MembersRelationManager extends RelationManager
 {
@@ -51,11 +52,16 @@ class MembersRelationManager extends RelationManager
                         $this->makeRoleSelect(),
                     ])
                     ->action(function (array $data): void {
-                        app(AddMemberAction::class)->handle(
-                            $this->getPersonOwner(),
-                            User::findOrFail($data['user_id']),
-                            MemberRole::tryFrom((string) ($data['role_id'] ?? '')) ?? MemberRole::Owner,
-                        );
+                        DB::transaction(function () use ($data): void {
+                            $person = $this->getPersonOwner();
+                            $person->lockForMembershipMutation();
+
+                            app(AddMemberAction::class)->handle(
+                                $person,
+                                User::findOrFail($data['user_id']),
+                                MemberRole::tryFrom((string) ($data['role_id'] ?? '')) ?? MemberRole::Owner,
+                            );
+                        });
 
                         $this->notifyOwnerEditPage();
                     }),
@@ -71,11 +77,16 @@ class MembersRelationManager extends RelationManager
                         'role_id' => $this->getMemberRoleId($record),
                     ])
                     ->action(function (array $data, User $record): void {
-                        app(ChangeMemberRoleAction::class)->handle(
-                            $this->getPersonOwner(),
-                            $record,
-                            MemberRole::tryFrom((string) ($data['role_id'] ?? '')) ?? MemberRole::Viewer,
-                        );
+                        DB::transaction(function () use ($data, $record): void {
+                            $person = $this->getPersonOwner();
+                            $person->lockForMembershipMutation();
+
+                            app(ChangeMemberRoleAction::class)->handle(
+                                $person,
+                                $record,
+                                MemberRole::tryFrom((string) ($data['role_id'] ?? '')) ?? MemberRole::Viewer,
+                            );
+                        });
 
                         $this->notifyOwnerEditPage();
                     }),
@@ -85,7 +96,12 @@ class MembersRelationManager extends RelationManager
                     ->hidden(fn (User $record): bool => $this->memberHasProtectedRole($record))
                     ->requiresConfirmation()
                     ->action(function (User $record): void {
-                        app(RemoveMemberAction::class)->handle($this->getPersonOwner(), $record);
+                        DB::transaction(function () use ($record): void {
+                            $person = $this->getPersonOwner();
+                            $person->lockForMembershipMutation();
+
+                            app(RemoveMemberAction::class)->handle($person, $record);
+                        });
 
                         $this->notifyOwnerEditPage();
                     }),

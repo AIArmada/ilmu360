@@ -687,7 +687,6 @@ class EventContributionFormSchema
                     return ! in_array($eventPrayerTime, [
                         EventPrayerTime::SebelumJumaat,
                         EventPrayerTime::SelepasJumaat,
-                        EventPrayerTime::SebelumMaghrib,
                         EventPrayerTime::SelepasTarawih,
                     ], true);
                 }
@@ -702,7 +701,7 @@ class EventContributionFormSchema
                     return $resolvedDate->isFriday();
                 }
 
-                if ($eventPrayerTime === EventPrayerTime::SebelumMaghrib || $eventPrayerTime === EventPrayerTime::SelepasTarawih) {
+                if ($eventPrayerTime === EventPrayerTime::SelepasTarawih) {
                     return self::isRamadhan($resolvedDate);
                 }
 

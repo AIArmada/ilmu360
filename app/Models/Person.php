@@ -7,6 +7,8 @@ use AIArmada\Addressing\Traits\HasAddresses;
 use AIArmada\Contacting\Concerns\HasContactMethods;
 use AIArmada\Contacting\Concerns\HasSocialProfiles;
 use AIArmada\Engagement\Models\Follow;
+use AIArmada\Membership\Contracts\MembershipMutationGuard;
+use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Membership\Models\MembershipInvitation;
 use AIArmada\Membership\Traits\HasMembers;
 use AIArmada\Persons\Enums\Gender;
@@ -21,18 +23,22 @@ use App\Models\Concerns\HasLanguages;
 use App\Support\Search\PersonSearchService;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Scout\Searchable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+use RuntimeException;
 use Spatie\DeletedModels\Models\Concerns\KeepsDeletedModels;
 use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
@@ -48,7 +54,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property Carbon|null $updated_at
  * @property SpeakerStatus $speaker_status
  */
-class Person extends \AIArmada\Persons\Models\Person implements AuditableContract, HasMedia
+class Person extends \AIArmada\Persons\Models\Person implements AuditableContract, HasMedia, MembershipMutationGuard
 {
     public const string PUBLIC_DIRECTORY_SESSION_KEY = 'public_persons_directory_seed';
 
@@ -89,6 +95,92 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
         'public_submission_locked_by',
     ];
 
+    /**
+     * Lock the person row before a membership mutation.
+     *
+     * Membership pivots do not have a database-level one-owner constraint, so
+     * all person membership writes must serialize through this row lock.
+     */
+    public function lockForMembershipMutation(): void
+    {
+        $this->newQuery()
+            ->whereKey($this->getKey())
+            ->lockForUpdate()
+            ->firstOrFail();
+    }
+
+    public function assertMemberCanBeAdded(Model $member, MemberRole $role, ?Model $existingMember): void
+    {
+        $this->lockForMembershipMutation();
+
+        $currentMember = $this->currentMemberForMutation($member);
+        $observedRole = $this->memberRoleForMutation($existingMember);
+        $existingRole = $this->memberRoleForMutation($currentMember);
+
+        if ($existingMember instanceof Model && $observedRole !== $existingRole) {
+            throw new RuntimeException('Membership changed while this mutation was in progress. Please retry.');
+        }
+
+        if ($existingRole === MemberRole::Owner && $role !== MemberRole::Owner) {
+            throw new AuthorizationException('Transfer speaker ownership before changing the owner role.');
+        }
+
+        if ($role === MemberRole::Owner
+            && $existingRole !== MemberRole::Owner
+            && $this->ownerMember()->lockForUpdate()->exists()) {
+            throw new AuthorizationException('Transfer speaker ownership instead of assigning a second owner.');
+        }
+    }
+
+    public function assertMemberCanBeRemoved(Model $member): void
+    {
+        $this->lockForMembershipMutation();
+
+        $currentMember = $this->currentMemberForMutation($member);
+        $currentRole = $this->memberRoleForMutation($currentMember);
+
+        if ($currentMember instanceof Model && $this->memberRoleForMutation($member) !== $currentRole) {
+            throw new RuntimeException('Membership changed while this mutation was in progress. Please retry.');
+        }
+
+        if ($currentRole === MemberRole::Owner) {
+            throw new AuthorizationException('Transfer speaker ownership before removing the owner.');
+        }
+    }
+
+    public function assertMemberRoleCanChange(Model $member, MemberRole $role): void
+    {
+        $this->lockForMembershipMutation();
+
+        $currentMember = $this->currentMemberForMutation($member);
+
+        if (! $currentMember instanceof Model) {
+            throw new RuntimeException('Cannot change the role of a non-member.');
+        }
+
+        $currentRole = $this->memberRoleForMutation($currentMember);
+
+        if ($this->memberRoleForMutation($member) !== $currentRole) {
+            throw new RuntimeException('Membership changed while this mutation was in progress. Please retry.');
+        }
+
+        if ($currentRole === MemberRole::Owner && $role !== MemberRole::Owner) {
+            throw new AuthorizationException('Transfer speaker ownership before changing the owner role.');
+        }
+
+        if ($role === MemberRole::Owner && $currentRole !== MemberRole::Owner) {
+            throw new AuthorizationException('Use the speaker ownership transfer workflow to assign an owner.');
+        }
+    }
+
+    /**
+     * @return BelongsToMany<User, $this, Pivot, 'pivot'>
+     */
+    public function ownerMember(): BelongsToMany
+    {
+        return $this->members()->wherePivot('role', MemberRole::Owner->spatieRoleName());
+    }
+
     #[\Override]
     protected function casts(): array
     {
@@ -100,6 +192,25 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
             'allow_public_event_submission' => 'boolean',
             'public_submission_locked_at' => 'datetime',
         ]);
+    }
+
+    private function memberRoleForMutation(?Model $member): ?MemberRole
+    {
+        $pivot = $member?->getRelationValue('pivot');
+
+        if (! $pivot instanceof Model) {
+            return null;
+        }
+
+        return MemberRole::fromSpatieRoleName((string) $pivot->getAttribute('role'));
+    }
+
+    private function currentMemberForMutation(Model $member): ?Model
+    {
+        return $this->members()
+            ->whereKey($member->getKey())
+            ->lockForUpdate()
+            ->first();
     }
 
     public static function formatDisplayedName(

@@ -57,14 +57,14 @@ it('lists package cities for a state_id', function () {
         ->toContain((string) $city->getKey());
 });
 
-it('requires an explicit district_id or state for public administrative-subdivision catalog options', function () {
+it('requires an explicit administrative district or state for public administrative-subdivision catalog options', function () {
     $country = ensureTestMalaysiaCountry();
     $geo = createTestPackageGeography('Selangor', 'Petaling', 'Shah Alam', country: $country);
 
     $omittedResponse = $this->getJson(route('api.client.catalogs.administrative-subdivisions'))
         ->assertOk();
 
-    $explicitResponse = $this->getJson(route('api.client.catalogs.administrative-subdivisions', ['district_id' => $geo['district']->getKey()]))
+    $explicitResponse = $this->getJson(route('api.client.catalogs.administrative-subdivisions', ['administrative_district' => $geo['district']->getKey()]))
         ->assertOk();
 
     expect($omittedResponse->json('data'))->toBe([])
