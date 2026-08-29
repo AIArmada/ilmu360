@@ -32,10 +32,10 @@ class VenueForm
                             ->required(),
                         Select::make('status')
                             ->options([
-                                'unverified' => 'Unverified',
                                 'pending' => 'Pending',
                                 'verified' => 'Verified',
                                 'rejected' => 'Rejected',
+                                'inactive' => 'Inactive',
                             ])
                             ->required()
                             ->default('verified'),

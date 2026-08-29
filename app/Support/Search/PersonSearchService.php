@@ -191,7 +191,7 @@ class PersonSearchService implements PublicDiscoveryAdapter
             if ($this->shouldUseTypesenseSearch() && app(TypesenseHealthCheckService::class)->isAvailable()) {
                 try {
                     $scoutIds = $this->searchIdsWithScout($normalizedSearch, [
-                        'filter_by' => 'status:=verified',
+                        'filter_by' => 'status:=[verified,pending]',
                         'num_typos' => 0,
                     ]);
 
@@ -234,7 +234,7 @@ class PersonSearchService implements PublicDiscoveryAdapter
     {
         if (! $this->hasPersonSearchTermsTable()) {
             return Person::query()
-                ->where('status', 'verified')
+                ->whereIn('status', ['verified', 'pending'])
                 ->select('persons.id')
                 ->tap(fn (Builder $query): Builder => $this->applyDatabaseNameSearch($query, $normalizedSearch))
                 ->orderBy('family_name')
@@ -246,7 +246,7 @@ class PersonSearchService implements PublicDiscoveryAdapter
         }
 
         return Person::query()
-            ->where('status', 'verified')
+            ->whereIn('status', ['verified', 'pending'])
             ->select('persons.id')
             ->tap(fn (Builder $query): Builder => $this->applyIndexedSearchWithLocalIndex($query, $normalizedSearch))
             ->orderBy('family_name')
@@ -279,7 +279,7 @@ class PersonSearchService implements PublicDiscoveryAdapter
             if ($this->shouldUseTypesenseSearch() && app(TypesenseHealthCheckService::class)->isAvailable()) {
                 try {
                     return $this->searchIdsWithScout($normalizedSearch, [
-                        'filter_by' => 'status:=verified',
+                        'filter_by' => 'status:=[verified,pending]',
                         'prioritize_exact_match' => true,
                     ]);
                 } catch (\Throwable $exception) {
@@ -288,7 +288,7 @@ class PersonSearchService implements PublicDiscoveryAdapter
             }
 
             $personQuery = Person::query()
-                ->where('status', 'verified')
+                ->whereIn('status', ['verified', 'pending'])
                 ->select(['id', 'name', 'middle_name', 'family_name'])
                 ->tap(fn (Builder $query): Builder => $this->applyFuzzyCandidateFilter($query, $normalizedSearch))
                 ->tap(fn (Builder $query): Builder => $this->applyFuzzyCandidateOrdering($query, $normalizedSearch))

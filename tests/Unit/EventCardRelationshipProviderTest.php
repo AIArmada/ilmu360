@@ -9,6 +9,7 @@ it('composes package relations with application-owned event card relations', fun
     $relations = (new EventCardRelationshipProvider(new DefaultEventSearchRelationProvider))->relations();
 
     expect($relations)
-        ->toContain('classifications.term', 'timeExpressions', 'references', 'institution.addresses.country')
+        ->toContain('classifications.term', 'timeExpressions', 'institution.addresses.country')
+        ->toHaveKey('references')
         ->not->toContain('classifications');
 });

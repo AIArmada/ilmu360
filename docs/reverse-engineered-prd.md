@@ -400,7 +400,7 @@ The system must expose the implemented `/api/v1` contracts and separate member/a
 | `moderation_reviews` / `event_escalations` | Review and SLA escalation records |
 | `saved_searches` | User-owned persisted filters and notification preference |
 | `tags`, `taggables` | Spatie polymorphic tags; type/status/order |
-| `donation_channels` | Institution-linked donation destinations; unverified/verified/rejected/inactive status |
+| `donation_channels` | Institution-linked donation destinations; pending/verified/rejected/inactive status |
 | `spaces`, `institution_space` | Physical/managed spaces and institution association |
 | `media`, `media_links` | Uploaded/linked assets and entity attachments |
 | `socialite` | Social account linkage |

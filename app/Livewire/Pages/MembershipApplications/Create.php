@@ -129,7 +129,7 @@ class Create extends Component implements HasForms
                             ->options(MembershipApplicationPresenter::relationshipOptions($subjectType))
                             ->rule(Rule::in(array_keys(MembershipApplicationPresenter::relationshipOptions($subjectType))))
                             ->required()
-                            ->native()
+                            ->native(false)
                             ->default($subjectType === MemberSubjectType::Institution ? null : 'self')
                             ->disabled(fn (Get $get): bool => $subjectType !== MemberSubjectType::Institution && $get('applied_role') === MemberRole::Owner->value)
                             ->extraInputAttributes(

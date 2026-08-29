@@ -621,7 +621,6 @@
     "spots left": "tempat isih ana",
     "surau": "Surau",
     "unlisted": "Ora didaftar",
-    "unverified": "Durung diverifikasi",
     "verified": "Diverifikasi",
     "your@email.com": "email@sampeyan.com",
     "Agenda": "Agenda",
@@ -908,5 +907,6 @@
     "No upcoming majlis yet": "Durung ana majlis bakal teka",
     "View profile & majlis": "Deleng profil lan majlis",
     "Know a speaker who is missing?": "Ngerti penceramah sing durung ana ing dhaptar?",
-    "Help the community find more teachers and preachers. Every suggestion is reviewed before it is published.": "Bantu masyarakat nemokake guru lan pendakwah liyane. Saben usulan bakal ditinjau sadurunge diterbitake."
+    "Help the community find more teachers and preachers. Every suggestion is reviewed before it is published.": "Bantu masyarakat nemokake guru lan pendakwah liyane. Saben usulan bakal ditinjau sadurunge diterbitake.",
+    "A contribution request for this record is already pending. Please wait for it to be reviewed before submitting another.": "Wis ana panyuwunan kontribusi kanggo rekaman iki sing isih nunggu. Mangga ngenteni nganti ditinjau sadurunge ngirim kontribusi liyane."
 }

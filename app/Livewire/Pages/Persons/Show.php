@@ -301,7 +301,7 @@ class Show extends Component
 
         if ($speakerEvents->isNotEmpty()) {
             $speakerEvents->load([
-                'references',
+                'references' => fn ($query) => $query->active(),
                 'primaryOccurrence',
                 'timeExpressions',
                 'classifications.term',

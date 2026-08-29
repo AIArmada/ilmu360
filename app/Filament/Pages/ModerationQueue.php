@@ -153,7 +153,7 @@ class ModerationQueue extends Page implements HasTable
                         'verified' => 'success',
                         'pending' => 'warning',
                         'rejected' => 'danger',
-                        'unverified' => 'gray',
+                        'inactive' => 'gray',
                         default => 'gray',
                     }),
                 TextColumn::make('venue.status')
@@ -173,7 +173,7 @@ class ModerationQueue extends Page implements HasTable
                         'verified' => 'success',
                         'pending' => 'warning',
                         'rejected' => 'danger',
-                        'unverified' => 'gray',
+                        'inactive' => 'gray',
                         default => 'gray',
                     }),
                 TextColumn::make('persons_status')
@@ -186,9 +186,9 @@ class ModerationQueue extends Page implements HasTable
                             return 'None';
                         }
 
-                        $unverified = $record->persons->where('pivot.status', '!=', 'verified')->count();
+                        $needsReview = $record->persons->where('pivot.status', '!=', 'verified')->count();
 
-                        return $unverified === 0 ? 'All verified' : $unverified.' unverified';
+                        return $needsReview === 0 ? 'All verified' : $needsReview.' needs review';
                     })
                     ->color(fn ($state): string => match (true) {
                         $state === 'All verified' => 'success',
@@ -205,9 +205,9 @@ class ModerationQueue extends Page implements HasTable
                             return 'None';
                         }
 
-                        $unverified = $record->references->where('status', '!=', 'verified')->count();
+                        $needsReview = $record->references->where('status', '!=', 'verified')->count();
 
-                        return $unverified === 0 ? 'All verified' : $unverified.' unverified';
+                        return $needsReview === 0 ? 'All verified' : $needsReview.' needs review';
                     })
                     ->tooltip(function (Event $record): ?string {
                         $pendingReferences = $record->references

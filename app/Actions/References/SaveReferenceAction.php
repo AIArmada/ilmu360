@@ -27,6 +27,7 @@ final readonly class SaveReferenceAction
     {
         $creating = ! $reference instanceof Reference;
         $reference ??= new Reference;
+        $status = array_key_exists('status', $data) ? (string) $data['status'] : ($creating ? 'verified' : (string) $reference->status);
 
         $reference->fill([
             'title' => $this->normalizeRequiredString($data['title'] ?? $reference->title, 'Reference'),
@@ -47,9 +48,13 @@ final readonly class SaveReferenceAction
             'is_canonical' => array_key_exists('is_canonical', $data)
                 ? (bool) $data['is_canonical']
                 : ($creating ? false : (bool) $reference->is_canonical),
-            'status' => array_key_exists('status', $data) ? (string) $data['status'] : ($creating ? 'verified' : (string) $reference->status),
+            'status' => $status,
 
         ]);
+
+        if (in_array($status, ['verified', 'pending'], true) && $reference->published_at === null) {
+            $reference->published_at = now();
+        }
 
         $reference->save();
 

@@ -21,8 +21,8 @@ class InstitutionPolicy
      */
     public function view(?User $user, Institution $institution): bool
     {
-        // Verified institutions are publicly viewable
-        if ($institution->status === 'verified') {
+        // Verified and pending institutions are publicly viewable
+        if (in_array((string) $institution->status, ['verified', 'pending'], true)) {
             return true;
         }
 

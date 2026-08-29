@@ -41,7 +41,7 @@ class VenuesTable
                         'verified' => 'success',
                         'pending' => 'warning',
                         'rejected' => 'danger',
-                        'unverified' => 'gray',
+                        'inactive' => 'gray',
                         default => 'gray',
                     })
                     ->sortable(),
@@ -72,10 +72,10 @@ class VenuesTable
                     ]),
                 SelectFilter::make('status')
                     ->options([
-                        'unverified' => 'Unverified',
                         'pending' => 'Pending',
                         'verified' => 'Verified',
                         'rejected' => 'Rejected',
+                        'inactive' => 'Inactive',
                     ]),
                 TernaryFilter::make('is_active')
                     ->label('Active'),

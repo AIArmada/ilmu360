@@ -8,6 +8,9 @@ use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Persons\Enums\AffiliationType;
 use App\Actions\Location\NormalizeGoogleMapsInputAction;
+use App\Enums\ContributionRequestStatus;
+use App\Enums\ContributionRequestType;
+use App\Enums\ContributionSubjectType;
 use App\Enums\EventFormat;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventVisibility;
@@ -234,7 +237,7 @@ it('filters public institutions by current location radius and returns distance 
         'status' => 'pending',
     ]);
     syncPrimaryAddressForTest($pendingInstitution, [
-        'lat' => 3.1390,
+        'lat' => 3.1395,
         'lng' => 101.6869,
     ]);
 
@@ -251,7 +254,7 @@ it('filters public institutions by current location radius and returns distance 
     expect($names)
         ->toContain('Masjid Radius Dekat')
         ->not->toContain('Masjid Radius Jauh')
-        ->not->toContain('Masjid Radius Pending')
+        ->toContain('Masjid Radius Pending')
         ->and($response->json('data.0.distance_km'))->toBeNumeric()
         ->and((float) $response->json('data.0.distance_km'))->toBeLessThan(1.0);
 });
@@ -617,6 +620,50 @@ it('allows direct contribution updates to clear nullable institution fields', fu
         ->assertJsonPath('data.mode', 'direct_edit');
 
     expect($institution->fresh()->description)->toBeNull();
+});
+
+it('blocks direct api contribution updates while any pending request exists', function () {
+    $owner = User::factory()->create();
+    $otherProposer = User::factory()->create();
+    $institution = Institution::factory()->create([
+        'status' => 'verified',
+        'description' => 'Old description',
+    ]);
+
+    assignInstitutionOwnerForFrontendApi($owner, $institution);
+    ContributionRequest::factory()->create([
+        'type' => ContributionRequestType::Update,
+        'subject_type' => ContributionSubjectType::Institution,
+        'entity_type' => $institution->getMorphClass(),
+        'entity_id' => $institution->getKey(),
+        'proposer_id' => $otherProposer->getKey(),
+        'status' => ContributionRequestStatus::Pending,
+    ]);
+
+    Sanctum::actingAs($owner);
+
+    $this->getJson(route('api.client.forms.contributions.suggest', [
+        'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+        'subject' => $institution->slug,
+    ]))
+        ->assertOk()
+        ->assertJsonPath('data.pending_update_blocked', true);
+
+    $this->postJson(route('api.client.contributions.suggest.store', [
+        'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+        'subject' => $institution->slug,
+    ]), [
+        'description' => 'New description',
+    ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['data'])
+        ->assertJsonPath('errors.data.0', __('A contribution request for this record is already pending. Please wait for it to be reviewed before submitting another.'));
+
+    expect($institution->fresh()->description)->toBe('Old description')
+        ->and(ContributionRequest::query()
+            ->where('entity_type', $institution->getMorphClass())
+            ->where('entity_id', $institution->getKey())
+            ->count())->toBe(1);
 });
 
 it('exposes person avatar direct edit media support for authorized public updaters', function () {
@@ -2243,14 +2290,33 @@ it('counts all public linked events on the reference directory cards', function 
         ->assertJsonPath('data.0.events_count', 2);
 });
 
-it('does not expose pending references on the public detail route', function () {
+it('exposes published pending references and hides unpublished references on the public detail route', function () {
     $reference = Reference::factory()->create([
-        'title' => 'Pending Public Reference',
+        'title' => 'Published Pending Public Reference',
         'status' => 'pending',
     ]);
 
     $this->getJson(route('api.client.references.show', ['referenceKey' => $reference->slug]))
+        ->assertOk()
+        ->assertJsonPath('data.reference.id', (string) $reference->id);
+
+    $unpublishedReference = Reference::factory()->pending()->unpublished()->create([
+        'title' => 'Unpublished Pending Public Reference',
+    ]);
+
+    $this->getJson(route('api.client.references.show', ['referenceKey' => $unpublishedReference->slug]))
         ->assertNotFound();
+});
+
+it('lists pending references in the public directory', function () {
+    $reference = Reference::factory()->create([
+        'title' => 'Rujukan Public Pending',
+        'status' => 'pending',
+    ]);
+
+    $this->getJson('/api/v1/references?search='.urlencode('Rujukan Public Pending'))
+        ->assertOk()
+        ->assertJsonPath('data.0.id', (string) $reference->id);
 });
 
 it('allows authorized users to view pending references on the frontend detail route', function () {

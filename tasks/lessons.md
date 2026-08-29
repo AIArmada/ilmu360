@@ -1,5 +1,8 @@
 # Lessons
 
+- When a user corrects the placement or language of a status alert, keep the alert visually attached to the related page heading and localize every user-facing string in that state, including fallback validation messages.
+- When a status alert sits beneath a page heading, use an intentional responsive vertical gap so the alert reads as related context without crowding the headline.
+
 - When a contribution schema is reused by update pages, audit update-only media sections separately; shared form translations do not automatically cover duplicated owner-edit components.
 - When adding contextual form hints, localize the new source keys in every supported locale and keep nested enum options translated instead of relying on raw enum labels.
 - When a related profile list must match an existing event-card presentation, load the same event relations and render the shared card structure; add the related person's role as a clearly labeled badge and use a distinct accent so the context is not lost.
@@ -508,3 +511,5 @@
 - When product classification changes, identify one authoritative taxonomy field and keep independent scheduling labels independent; do not let a cultural time label infer religious status or overwrite a submitter's selected time.
 - When a form callback normalizes an invalid scheduling choice, keep the same invariant in the shared submit action and test that guard through a state path that bypasses UI normalization; fixtures with explicit timestamps must also set an explicit timing mode.
 - When a contract migration is intentionally hard-cut, rename the boundary and every caller/test together, make the no-legacy scan a required gate, and do not add compatibility aliases or remapping.
+- When a user asks to remove a lifecycle status globally, audit every record type and status contract before retaining a model-specific usage; preserve only unrelated verification concepts such as email or address validation.
+- When a package model has separate publication timestamp and moderation status, public queries must require both; do not treat `status='published'` as a substitute for `published_at`.

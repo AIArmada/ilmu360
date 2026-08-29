@@ -223,6 +223,28 @@
                 ]"
             />
 
+            <div class="flex flex-wrap items-center gap-2">
+                <p class="text-[11px] font-black uppercase tracking-[0.24em] text-amber-700">
+                    {{ __('Institusi ilmu360°') }}
+                </p>
+
+                @if((string) $institution->status === 'verified')
+                    <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-100 px-2.5 py-1 text-[10px] font-bold text-emerald-800">
+                        <svg class="h-3.5 w-3.5 text-emerald-700" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.051l-7.5 9.75a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.897 3.896 6.976-9.07a.75.75 0 0 1 1.051-.142Z" clip-rule="evenodd" />
+                        </svg>
+                        {{ __('Disahkan') }}
+                    </span>
+                @elseif((string) $institution->status === 'pending')
+                    <span class="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-100 px-2.5 py-1 text-[10px] font-bold text-amber-800">
+                        <svg class="h-3.5 w-3.5 text-amber-600" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M12 2.25a.75.75 0 0 1 .66.4l9 15.75a.75.75 0 0 1-.66 1.125H3a.75.75 0 0 1-.66-1.125l9-15.75a.75.75 0 0 1 .66-.4Zm0 6a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Zm0 7.5a.9.9 0 1 0 0 1.8.9.9 0 0 0 0-1.8Z" clip-rule="evenodd" />
+                        </svg>
+                        {{ __('Belum disahkan') }}
+                    </span>
+                @endif
+            </div>
+
             <h1 class="mt-8 max-w-6xl break-words font-heading text-4xl font-bold leading-[0.98] tracking-[-0.045em] text-emerald-950 sm:mt-10 sm:text-5xl lg:mt-12 lg:text-6xl xl:text-7xl">
                 {{ $institution->name }}
             </h1>

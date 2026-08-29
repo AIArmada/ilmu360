@@ -54,7 +54,7 @@ class FrontendFormContractService
             'routing_surfaces' => [
                 'public' => [
                     'base_path' => '/api/v1',
-                    'record_scope' => 'Only active and verified public records.',
+                    'record_scope' => 'Public records follow each resource visibility contract; references require published_at and verified or pending status.',
                     'manifest_endpoint' => route('api.client.manifest'),
                     'write_contract_family' => 'GET /forms/*',
                 ],

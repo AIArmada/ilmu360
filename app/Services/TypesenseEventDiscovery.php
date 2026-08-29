@@ -281,7 +281,12 @@ class TypesenseEventDiscovery implements EventDiscoveryAdapter
         }
 
         if (! empty($filters['reference_ids'])) {
+            $requestedReferenceIds = $this->uuidFilterValues($filters['reference_ids']);
             $referenceIds = $this->expandedReferenceIdsForFiltering($filters['reference_ids']);
+
+            if ($referenceIds === []) {
+                $referenceIds = $requestedReferenceIds;
+            }
 
             if ($referenceIds !== []) {
                 $filterParts[] = 'reference_ids:['.implode(',', $referenceIds).']';

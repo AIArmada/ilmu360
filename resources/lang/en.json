@@ -812,7 +812,6 @@
     "spots left": "spots left",
     "surau": "Surau",
     "unlisted": "Unlisted",
-    "unverified": "Unverified",
     "verified": "Verified",
     "your@email.com": "your@email.com",
     "Centers of": "Centers of",
@@ -1396,5 +1395,6 @@
     "Transfer ownership to this member?": "Transfer ownership to this member?",
     "Make owner": "Make owner",
     "Speaker ownership transferred.": "Speaker ownership transferred.",
-    "Wrong information": "Wrong information"
+    "Wrong information": "Wrong information",
+    "A contribution request for this record is already pending. Please wait for it to be reviewed before submitting another.": "A contribution request for this record is already pending. Please wait for it to be reviewed before submitting another."
 }

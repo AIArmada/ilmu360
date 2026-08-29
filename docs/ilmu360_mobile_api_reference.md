@@ -39,12 +39,12 @@ This API has **two distinct routing surfaces**. Understanding the difference is 
 
 | Surface | Base path | Auth | Audience | Record scope |
 |---|---|---|---|---|
-| **Public / Client** | `/api/v1` | Optional or Sanctum bearer | Mobile apps, public consumers, AI readers | Active + verified records only |
-| **Admin** | `/api/v1/admin` | Sanctum bearer + Filament admin-panel access | Admin apps, operators, AI writers | All records (including inactive / unverified) |
+| **Public / Client** | `/api/v1` | Optional or Sanctum bearer | Mobile apps, public consumers, AI readers | Resource-specific public visibility contracts |
+| **Admin** | `/api/v1/admin` | Sanctum bearer + Filament admin-panel access | Admin apps, operators, AI writers | All records, regardless of lifecycle status |
 
 Key routing rules:
 
-- **Public query routes** (`/api/v1/persons`, `/api/v1/institutions`, etc.) return only records where `is_active = true` AND `status = 'verified'`. They never return drafts or rejected records.
+- **Public query routes** (`/api/v1/persons`, `/api/v1/institutions`, etc.) apply each resource's public visibility contract and never return drafts or rejected records. References specifically require a non-null `published_at` and `status` of `verified` or `pending`.
 - **Admin routes** (`/api/v1/admin/persons`, etc.) use Filament's own Eloquent query, which includes all records regardless of active or status state. The same `search=...` parameter on both surfaces therefore returns different result sets.
 - **Admin mutation routes** (POST / PUT) use the resource key and the record's admin **route_key** for record-specific paths. The format is `/api/v1/admin/{resourceKey}/{recordKey}`. Use the `route_key` returned by the admin collection or detail payloads.
 - Do not send public contribution payloads to `/api/v1/admin`, and do not expect admin schemas from `/api/v1/forms/...`.
@@ -113,18 +113,19 @@ The `search` parameter on public and admin surfaces queries different record sco
 
 | Surface | Endpoint | Records returned |
 |---|---|---|
-| Public | `GET /api/v1/persons?search=...` | Only `is_active = true` AND `status = 'verified'` |
-| Public | `GET /api/v1/institutions?search=...` | Only `is_active = true` AND `status = 'verified'` |
+| Public | `GET /api/v1/persons?search=...` | Resource-specific public visibility scope |
+| Public | `GET /api/v1/institutions?search=...` | Resource-specific public visibility scope |
+| Public | `GET /api/v1/references?search=...` | `published_at IS NOT NULL` AND `status IN ('verified', 'pending')` |
 | Admin | `GET /api/v1/admin/persons?search=...` | **All** records — active, inactive, pending, rejected |
 | Admin | `GET /api/v1/admin/institutions?search=...` | **All** records — active, inactive, pending, rejected |
 
-This is intentional. The admin surface mirrors Filament's resource query, which does not apply visibility filters. A person that returns zero results on the public surface may appear on the admin surface because it is inactive or has `status = 'pending'`.
+This is intentional. The admin surface mirrors Filament's resource query, which does not apply visibility filters. A record that returns zero results on the public surface may appear on the admin surface because it fails that resource's public visibility contract.
 
 For `persons`, `institutions`, and `references`, the admin HTTP API now reuses the same specialized search services that also back the public directory endpoints and the admin/member MCP `*list-records` tools. That means decorated person-title matching, institution name-or-alias matching across the `institution_names` table, and reference descriptive-text matching behave similarly across those surfaces; the main difference is which records each surface is allowed to return.
 
 Public event discovery follows the same principle: use `filter[search]` for event title/description text matching and `filter[person]` when you need an exact person UUID match.
 
-**AI agent guidance:** Never assume that a search result from one surface tells you anything definitive about results from the other. If you need to verify whether a person is visible to the public, check `is_active` and `status` in the record attributes.
+**AI agent guidance:** Never assume that a search result from one surface tells you anything definitive about results from the other. For a reference, public visibility requires both a non-null `published_at` and `status` `verified` or `pending`.
 
 ---
 
@@ -506,7 +507,7 @@ Interactive API docs are available on the API host under `/docs`, with the gener
 | `GET` | `/institutions/{institutionKey}` | Public institution detail by slug or UUID |
 | `GET` | `/persons` | Public person listing filters; person directory items include `status` and `is_active` in the default payload |
 | `GET` | `/persons/{personKey}` | Public person detail by slug or UUID |
-| `GET` | `/references` | Public reference listing filters; default directory pages show root/standalone references, while searched child parts can also appear. Reference directory items include `display_title`, `parent_reference_id`, `part_type`, `part_number`, `part_label`, `is_part`, `author`, `type`, `publisher`, `publication_year`, `is_active`, `events_count`, `front_cover_url`, and `is_following` in the default payload |
+| `GET` | `/references` | Public reference listing filters; default directory pages show root/standalone references, while searched child parts can also appear. Reference directory items include `display_title`, `parent_reference_id`, `part_type`, `part_number`, `part_label`, `is_part`, `author`, `type`, `publisher`, `publication_year`, `status`, `events_count`, `front_cover_url`, and `is_following` in the default payload |
 | `GET` | `/inspirations/random` | Random active inspiration payload with category and media metadata |
 | `GET` | `/venues/{venueKey}` | Public venue detail by slug or UUID |
 | `GET` | `/references/{referenceKey}` | Public reference detail by slug or UUID; child-part detail accepts `include_all_parts=true` to aggregate the whole book family |
@@ -514,9 +515,9 @@ Interactive API docs are available on the API host under `/docs`, with the gener
 
 Notes:
 
-- **Visibility rule:** `/persons`, `/institutions`, and `/references` return **only** records where `is_active = true` AND `status = 'verified'`. Inactive or unverified records are invisible on the public surface. To access all records including drafts, use the admin surface.
+- **Visibility rule:** public resources use their own visibility scopes. References returned by `/references` and `/references/{referenceKey}` must have `published_at IS NOT NULL` and `status IN ('verified', 'pending')`; an approved/published timestamp alone does not make another moderation status public. To access all records including drafts, use the admin surface.
 - Public person directory list items expose `status` and `is_active` alongside the existing summary fields. Keep client logic aligned with those canonical fields instead of inferring alternate aliases.
-- Public reference directory list items expose `display_title`, `parent_reference_id`, `part_type`, `part_number`, `part_label`, `is_part`, `author`, `type`, `publisher`, `publication_year`, `is_active`, `events_count`, `front_cover_url`, and `is_following` by default. `display_title` is the safest client-facing label because child parts can render as values like `Riyadhus Solihin — Jilid 2`.
+- Public reference directory list items expose `display_title`, `parent_reference_id`, `part_type`, `part_number`, `part_label`, `is_part`, `author`, `type`, `publisher`, `publication_year`, `status`, `events_count`, `front_cover_url`, and `is_following` by default. `display_title` is the safest client-facing label because child parts can render as values like `Riyadhus Solihin — Jilid 2`.
 - Default `/references` pagination intentionally hides child parts unless the client is actively searching. Search queries can return both root books and matching child parts.
 - `GET /references/{referenceKey}` now returns the same part metadata in the `reference` payload. Root books aggregate events from the whole family by default. Child parts return only exact-part events by default, but clients can opt into whole-book aggregation with `include_all_parts=true`.
 - The public event index supports `filter[reference_ids][]=<reference-uuid>` so native clients can paginate all public events for a given reference without relying on the capped preview lists from `GET /references/{referenceKey}`. When the supplied UUID is a root book reference, the filter automatically expands to child parts; when it is already a child part reference, filtering remains exact to that part.
@@ -929,7 +930,7 @@ Institution `PUT` is schema-guided: the core identity fields below are always re
 |---|---|---|
 | `name` | `string` | Required on both create and update |
 | `type` | `string` | Required on both create and update |
-| `status` | `string` | `unverified`, `pending`, `verified`, or `rejected`. Required on both create and update |
+| `status` | `string` | `pending`, `verified`, `rejected`, or `inactive`. Required on both create and update |
 
 Institution-specific update rules:
 
@@ -1490,8 +1491,9 @@ Important exceptions and mixed-semantic reminders:
 
 | Surface | Returns |
 |---|---|
-| `GET /api/v1/persons?search=` | Active + verified persons only |
-| `GET /api/v1/institutions?search=` | Active + verified institutions only |
+| `GET /api/v1/persons?search=` | The public person visibility scope |
+| `GET /api/v1/institutions?search=` | The public institution visibility scope |
+| `GET /api/v1/references?search=` | Published references with `status` `verified` or `pending` |
 | `GET /api/v1/admin/persons?search=` | All persons (any status, active or inactive) |
 | `GET /api/v1/admin/institutions?search=` | All institutions (any status, active or inactive) |
 

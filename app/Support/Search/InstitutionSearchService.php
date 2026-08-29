@@ -121,7 +121,7 @@ class InstitutionSearchService implements PublicDiscoveryAdapter
             if ($this->shouldUseTypesenseSearch() && app(TypesenseHealthCheckService::class)->isAvailable()) {
                 try {
                     return $this->searchIdsWithScout($normalizedSearch, [
-                        'filter_by' => 'status:=verified',
+                        'filter_by' => 'status:=[verified,pending]',
                         'num_typos' => 0,
                     ]);
                 } catch (\Throwable $exception) {
@@ -161,7 +161,7 @@ class InstitutionSearchService implements PublicDiscoveryAdapter
     private function publicSearchIdsFromDatabase(string $normalizedSearch): array
     {
         return Institution::query()
-            ->where('status', 'verified')
+            ->whereIn('status', ['verified', 'pending'])
             ->select('institutions.id')
             ->tap(fn (Builder $query): Builder => $this->applyDatabaseSearch($query, $normalizedSearch))
             ->orderBy('name')
@@ -195,7 +195,7 @@ class InstitutionSearchService implements PublicDiscoveryAdapter
             if ($this->shouldUseTypesenseSearch() && app(TypesenseHealthCheckService::class)->isAvailable()) {
                 try {
                     return $this->searchIdsWithScout($normalizedSearch, [
-                        'filter_by' => 'status:=verified',
+                        'filter_by' => 'status:=[verified,pending]',
                         'prioritize_exact_match' => true,
                     ]);
                 } catch (\Throwable $exception) {
@@ -215,7 +215,7 @@ class InstitutionSearchService implements PublicDiscoveryAdapter
     private function publicFuzzySearchIdsFromDatabase(string $normalizedSearch, float $minimumScore): array
     {
         return Institution::query()
-            ->where('status', 'verified')
+            ->whereIn('status', ['verified', 'pending'])
             ->with('names')
             ->select(['id', 'name'])
             ->tap(fn (Builder $query): Builder => $this->applyFuzzyCandidateFilter($query, $normalizedSearch))

@@ -1217,7 +1217,7 @@ class Index extends Component implements HasForms
             key: 'events_references_'.app()->getLocale().'_v2',
             ttl: 300,
             query: Reference::query()
-                ->whereIn('status', ['verified', 'pending'])
+                ->active()
                 ->orderBy('title')
                 ->limit(400)
                 ->select(['id', 'title']),
@@ -1386,7 +1386,7 @@ class Index extends Component implements HasForms
     private function searchReferenceOptions(string $search): array
     {
         $query = Reference::query()
-            ->whereIn('status', ['verified', 'pending'])
+            ->active()
             ->tap(fn (Builder $query): Builder => $this->applyReferenceSearchConstraint($query, $search))
             ->orderBy('title');
 
@@ -1405,7 +1405,7 @@ class Index extends Component implements HasForms
 
         return $this->referenceOptionsFromQuery(
             Reference::query()
-                ->whereIn('status', ['verified', 'pending'])
+                ->active()
                 ->whereIn('id', $values)
                 ->orderBy('title'),
             count($values),
@@ -1418,7 +1418,7 @@ class Index extends Component implements HasForms
     private function searchReferenceAuthorOptions(string $search): array
     {
         $query = Reference::query()
-            ->whereIn('status', ['verified', 'pending'])
+            ->active()
             ->whereNotNull('author')
             ->where('author', '!=', '')
             ->orderBy('author');
@@ -1447,7 +1447,7 @@ class Index extends Component implements HasForms
         }
 
         return Reference::query()
-            ->whereIn('status', ['verified', 'pending'])
+            ->active()
             ->whereIn('author', $values)
             ->whereNotNull('author')
             ->where('author', '!=', '')

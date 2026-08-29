@@ -199,7 +199,7 @@
     $issueLabels = collect($tagFields['issue_tags'])->map($resolveTagLabel)->filter()->all();
 
     $referenceIds = $asList($get('references'));
-    $referenceMap = Reference::query()->whereIn('id', $referenceIds)->pluck('title', 'id')->toArray();
+    $referenceMap = Reference::query()->active()->whereIn('id', $referenceIds)->pluck('title', 'id')->toArray();
     $referenceLabels = collect($referenceIds)
         ->map(fn (mixed $id): ?string => $referenceMap[$id] ?? null)
         ->filter()

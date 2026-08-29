@@ -1237,7 +1237,7 @@ class Create extends Component implements HasActions, HasForms
                 ->searchable()
                 ->preload()
                 ->native(false)
-                ->relationship('references', 'title', fn (Builder $query) => $query->whereIn('status', ['verified', 'pending']))
+                ->relationship('references', 'title', fn (Builder $query) => Reference::applyPublicVisibility($query))
                 ->createOptionForm([
                     TextInput::make('title')
                         ->label(__('Tajuk Kitab / Buku'))
@@ -1308,7 +1308,8 @@ class Create extends Component implements HasActions, HasForms
                         'publisher' => $data['publisher'] ?? null,
                         'description' => $data['description'] ?? null,
                         'is_canonical' => false,
-                        'status' => 'active',
+                        'status' => 'pending',
+                        'published_at' => now(),
                     ]);
 
                     $schema->model($reference)->saveRelationships();

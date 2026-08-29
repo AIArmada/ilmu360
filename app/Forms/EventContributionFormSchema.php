@@ -260,6 +260,7 @@ class EventContributionFormSchema
                         ->label(__('Rujukan Kitab / Buku'))
                         ->placeholder(__('Cari atau pilih rujukan…'))
                         ->options(fn (): array => Reference::query()
+                            ->active()
                             ->orderBy('title')
                             ->get(['id', 'title', 'parent_id', 'metadata'])
                             ->mapWithKeys(fn (Reference $reference): array => [(string) $reference->id => $reference->displayTitle()])
@@ -330,6 +331,7 @@ class EventContributionFormSchema
                                 'description' => $data['description'] ?? null,
                                 'is_canonical' => false,
                                 'status' => 'pending',
+                                'published_at' => now(),
                             ]);
 
                             $schema->model($reference)->saveRelationships();

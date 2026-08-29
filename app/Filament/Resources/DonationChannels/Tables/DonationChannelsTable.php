@@ -68,8 +68,8 @@ class DonationChannelsTable
                 TextColumn::make('status')
                     ->badge()
                     ->color(fn ($state): string => match ($state) {
+                        'pending' => 'warning',
                         'verified' => 'success',
-                        'unverified' => 'warning',
                         'rejected' => 'danger',
                         'inactive' => 'gray',
                         default => 'gray',

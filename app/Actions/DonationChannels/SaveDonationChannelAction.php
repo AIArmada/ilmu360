@@ -48,7 +48,7 @@ final readonly class SaveDonationChannelAction
             'reference_note' => array_key_exists('reference_note', $data)
                 ? $this->normalizeOptionalString($data['reference_note'])
                 : $donationChannel->reference_note,
-            'status' => $this->normalizeStatus($data['status'] ?? $donationChannel->status ?? ($creating ? 'unverified' : null)),
+            'status' => $this->normalizeStatus($data['status'] ?? $donationChannel->status ?? ($creating ? 'pending' : null)),
             'is_default' => array_key_exists('is_default', $data)
                 ? (bool) $data['is_default']
                 : ($creating ? false : (bool) $donationChannel->is_default),
@@ -174,7 +174,7 @@ final readonly class SaveDonationChannelAction
     {
         $status = $this->normalizeRequiredString($value, 'status');
 
-        if (! in_array($status, ['unverified', 'verified', 'rejected', 'inactive'], true)) {
+        if (! in_array($status, ['pending', 'verified', 'rejected', 'inactive'], true)) {
             throw ValidationException::withMessages([
                 'status' => __('The selected donation channel status is invalid.'),
             ]);

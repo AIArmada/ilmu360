@@ -91,7 +91,7 @@ class extends Component
     {
         return $this->applyLocationScope(
             Institution::query()
-                ->where('status', 'verified'),
+                ->whereIn('status', ['verified', 'pending']),
         );
     }
 
@@ -734,6 +734,22 @@ class extends Component
                         <a wire:key="institution-{{ $institution->id }}" href="{{ route('institutions.show', $institution) }}" wire:navigate class="group relative flex flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-900/8">
                             <!-- Banner Area (16:9, cover-first) -->
                             <div class="institution-card-media aspect-video bg-slate-50 relative overflow-hidden">
+                                @if((string) $institution->status === 'verified')
+                                    <span class="absolute start-2.5 top-2.5 z-10 inline-flex items-center gap-1.5 rounded-full border border-white/70 bg-white/92 px-2.5 py-1 text-[10px] font-bold text-emerald-800 shadow-sm backdrop-blur">
+                                        <svg class="h-3.5 w-3.5 text-emerald-700" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                            <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.051l-7.5 9.75a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.897 3.896 6.976-9.07a.75.75 0 0 1 1.051-.142Z" clip-rule="evenodd" />
+                                        </svg>
+                                        {{ __('Disahkan') }}
+                                    </span>
+                                @elseif((string) $institution->status === 'pending')
+                                    <span class="absolute start-2.5 top-2.5 z-10 inline-flex items-center gap-1.5 rounded-full border border-amber-300/70 bg-amber-50/92 px-2.5 py-1 text-[10px] font-bold text-amber-800 shadow-sm backdrop-blur">
+                                        <svg class="h-3.5 w-3.5 text-amber-600" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                            <path fill-rule="evenodd" d="M12 2.25a.75.75 0 0 1 .66.4l9 15.75a.75.75 0 0 1-.66 1.125H3a.75.75 0 0 1-.66-1.125l9-15.75a.75.75 0 0 1 .66-.4Zm0 6a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Zm0 7.5a.9.9 0 1 0 0 1.8.9.9 0 0 0 0-1.8Z" clip-rule="evenodd" />
+                                        </svg>
+                                        {{ __('Belum disahkan') }}
+                                    </span>
+                                @endif
+
                                 @if($cardInstitutionImageUrl)
                                     <img src="{{ $cardInstitutionImageUrl }}" alt="{{ $institution->name }}" class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy">
                                     <div class="absolute inset-0 bg-gradient-to-t from-slate-900/50 via-slate-900/15 to-transparent"></div>

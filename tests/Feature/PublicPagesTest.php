@@ -783,11 +783,16 @@ it('loads institution detail page with upcoming event category collection', func
         ->assertSee($eventCategory->name);
 });
 
-it('hides pending institutions and keeps pending speaker pages out of search indexes', function () {
-    $institution = Institution::factory()->create(['status' => 'pending']);
+it('renders pending institutions and keeps pending speaker pages out of search indexes', function () {
+    $institution = Institution::factory()->create([
+        'name' => 'Institusi Pending Paparan',
+        'status' => 'pending',
+    ]);
     $person = Person::factory()->create(['status' => 'pending']);
 
-    $this->get(route('institutions.show', $institution))->assertNotFound();
+    $this->get(route('institutions.show', $institution))
+        ->assertSuccessful()
+        ->assertSee('Institusi Pending Paparan');
     $this->get(route('persons.show', $person))
         ->assertSuccessful()
         ->assertSee('<meta name="robots" content="noindex, nofollow">', false);

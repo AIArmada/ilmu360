@@ -1279,7 +1279,18 @@ class Event extends PackageEvent implements AuditableContract
     protected function makeAllSearchableUsing(Builder $query): Builder
     {
         return $query
-            ->with(['institution', 'institution.addresses', 'venue', 'venue.addresses', 'persons', 'keyPeople.person', 'references', 'classifications', 'primaryOccurrence', 'timeExpressions'])
+            ->with([
+                'institution',
+                'institution.addresses',
+                'venue',
+                'venue.addresses',
+                'persons',
+                'keyPeople.person',
+                'references' => fn ($referenceQuery) => $referenceQuery->active(),
+                'classifications',
+                'primaryOccurrence',
+                'timeExpressions',
+            ])
             ->whereNotNull('events.published_at')
             ->whereIn('events.status', self::PUBLIC_STATUSES)
             ->where('events.visibility', EventVisibility::Public)
@@ -1298,7 +1309,20 @@ class Event extends PackageEvent implements AuditableContract
             return $this->toScoutDatabaseSearchableArray();
         }
 
-        $this->loadMissing(['institution', 'institution.addresses.areaAssignments.area', 'venue', 'venue.addresses.areaAssignments.area', 'persons', 'keyPeople.person', 'references', 'classifications', 'primaryOccurrence', 'timeExpressions']);
+        $this->loadMissing([
+            'institution',
+            'institution.addresses.areaAssignments.area',
+            'venue',
+            'venue.addresses.areaAssignments.area',
+            'persons',
+            'keyPeople.person',
+            'classifications',
+            'primaryOccurrence',
+            'timeExpressions',
+        ]);
+        $this->load([
+            'references' => fn ($referenceQuery) => $referenceQuery->active(),
+        ]);
         $locationAddress = $this->resolvedLocationAddress();
         $institution = $this->institution;
         $venue = $this->venue;

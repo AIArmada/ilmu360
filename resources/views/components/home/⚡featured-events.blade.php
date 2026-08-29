@@ -16,7 +16,7 @@ new class extends Component
             ->whereBetween('starts_at', [$now, $now->copy()->addDays(7)])
             ->orderBy('starts_at')
             ->with([
-                'references',
+                'references' => fn ($query) => $query->active(),
                 'media' => fn ($query) => $query
                     ->where('collection_name', 'cover')
                     ->ordered(),

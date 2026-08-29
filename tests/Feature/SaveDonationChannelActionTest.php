@@ -20,7 +20,6 @@ it('creates a bank account donation channel', function () {
         'bank_code' => 'MBB',
         'bank_name' => 'Maybank',
         'account_number' => '123456789',
-        'status' => 'unverified',
     ]);
 
     expect($channel)->toBeInstanceOf(DonationChannel::class)
@@ -32,7 +31,7 @@ it('creates a bank account donation channel', function () {
         ->and($channel->account_number)->toBe('123456789')
         ->and($channel->duitnow_type)->toBeNull()
         ->and($channel->ewallet_provider)->toBeNull()
-        ->and($channel->status)->toBe('unverified');
+        ->and($channel->status)->toBe('pending');
 });
 
 it('creates a duitnow donation channel', function () {
@@ -45,7 +44,7 @@ it('creates a duitnow donation channel', function () {
         'method' => 'duitnow',
         'duitnow_type' => 'mobile',
         'duitnow_value' => '+60123456789',
-        'status' => 'unverified',
+        'status' => 'pending',
     ]);
 
     expect($channel->method)->toBe('duitnow')
@@ -65,7 +64,7 @@ it('creates an ewallet donation channel', function () {
         'method' => 'ewallet',
         'ewallet_provider' => 'tng',
         'ewallet_handle' => '+60123456789',
-        'status' => 'unverified',
+        'status' => 'pending',
     ]);
 
     expect($channel->method)->toBe('ewallet')
@@ -108,7 +107,7 @@ it('assigns a channel to a person owner', function () {
         'bank_code' => 'MBB',
         'bank_name' => 'Maybank',
         'account_number' => '987654321',
-        'status' => 'unverified',
+        'status' => 'pending',
     ]);
 
     expect($channel->donatable_type)->toBe($person->getMorphClass())
@@ -123,7 +122,7 @@ it('rejects an invalid donation method', function () {
         'donatable_id' => (string) $institution->getKey(),
         'recipient' => 'Test',
         'method' => 'crypto',
-        'status' => 'unverified',
+        'status' => 'pending',
     ]);
 })->throws(ValidationException::class);
 
@@ -136,7 +135,7 @@ it('rejects an invalid owner type', function () {
         'bank_code' => 'MBB',
         'bank_name' => 'Maybank',
         'account_number' => '123456789',
-        'status' => 'unverified',
+        'status' => 'pending',
     ]);
 })->throws(ValidationException::class);
 
@@ -147,6 +146,21 @@ it('rejects empty recipient', function () {
         'donatable_type' => 'institution',
         'donatable_id' => (string) $institution->getKey(),
         'recipient' => '',
+        'method' => 'bank_account',
+        'bank_code' => 'MBB',
+        'bank_name' => 'Maybank',
+        'account_number' => '123456789',
+        'status' => 'pending',
+    ]);
+})->throws(ValidationException::class);
+
+it('rejects the removed unverified donation channel status', function () {
+    $institution = Institution::factory()->create();
+
+    app(SaveDonationChannelAction::class)->handle([
+        'donatable_type' => 'institution',
+        'donatable_id' => (string) $institution->getKey(),
+        'recipient' => 'Test',
         'method' => 'bank_account',
         'bank_code' => 'MBB',
         'bank_name' => 'Maybank',

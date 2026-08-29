@@ -152,7 +152,10 @@ class FollowController extends FrontendController
             $subject,
         );
 
-        abort_unless(in_array((string) $record->status, ['verified', 'pending'], true), 404);
+        abort_unless(
+            $record->isPubliclyVisible(),
+            404,
+        );
 
         return $record;
     }

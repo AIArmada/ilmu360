@@ -27,7 +27,7 @@ it('shows verification warnings in moderation queue', function () {
     $moderator->assignRole('moderator');
 
     $institution = Institution::factory()->create(['status' => 'verified']);
-    $venue = Venue::factory()->create(['status' => 'unverified']);
+    $venue = Venue::factory()->create(['status' => 'pending']);
     $person = Person::factory()->create(['status' => 'pending']);
 
     $event = Event::factory()->create([
@@ -42,8 +42,8 @@ it('shows verification warnings in moderation queue', function () {
         ->assertSuccessful()
         ->assertSee('Venue')
         ->assertSee($venue->name)
-        ->assertSee('Unverified')
-        ->assertSee('1 unverified');
+        ->assertSee('Pending')
+        ->assertSee('1 needs review');
 });
 
 it('does not expose a redundant event status column in moderation queue', function () {
@@ -116,7 +116,7 @@ it('shows pending references in moderation queue reference status', function () 
         ->get('/admin/moderation-queue')
         ->assertSuccessful()
         ->assertSee('References Status')
-        ->assertSee('1 unverified')
+        ->assertSee('1 needs review')
         ->assertSee('Pending Reference For Queue');
 });
 

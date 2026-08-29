@@ -85,6 +85,31 @@ describe('Event Show Page Going Feature', function () {
             ->assertSee('<meta name="robots" content="noindex, nofollow">', false);
     });
 
+    it('renders only publicly visible references on a public event page', function () {
+        $event = Event::factory()->create([
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now(),
+            'starts_at' => now()->addDay(),
+        ]);
+        $publishedPendingReference = Reference::factory()->pending()->create([
+            'title' => 'Published Pending Event Reference',
+        ]);
+        $unpublishedReference = Reference::factory()->pending()->unpublished()->create([
+            'title' => 'Unpublished Event Reference',
+        ]);
+
+        $event->references()->attach([
+            $publishedPendingReference->getKey(),
+            $unpublishedReference->getKey(),
+        ]);
+
+        $this->get(route('events.show', $event))
+            ->assertOk()
+            ->assertSee('Published Pending Event Reference')
+            ->assertDontSee('Unpublished Event Reference');
+    });
+
     it('renders Open Graph preview image metadata for events', function () {
         $event = Event::factory()->create([
             'title' => 'Kuliah Hadis Mingguan',

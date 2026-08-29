@@ -17,7 +17,11 @@ new class extends Component {
         return Event::active()
             ->whereBetween('starts_at', [$start, $end])
             ->orderBy('starts_at')
-            ->with(['institution', 'venue', 'references'])
+            ->with([
+                'institution',
+                'venue',
+                'references' => fn ($query) => $query->active(),
+            ])
             ->take(4)
             ->get();
     }

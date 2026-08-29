@@ -231,6 +231,7 @@ class ReferenceSeeder extends Seeder
                 'description' => $referenceData['description'],
                 'is_canonical' => $referenceData['is_canonical'],
                 'status' => $referenceData['status'],
+                'published_at' => $reference->published_at ?? now(),
                 'url' => $referenceData['url'],
                 'language' => $referenceData['language'],
             ]);

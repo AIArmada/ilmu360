@@ -699,7 +699,7 @@ it('includes reference study subtitle in the generic paginated events payload', 
     $bookReference = Reference::factory()->create([
         'title' => 'Al-Misbah Al-Munir',
         'type' => ReferenceType::Book->value,
-        'status' => 'approved',
+        'status' => 'verified',
     ]);
 
     $event->references()->attach($bookReference->id);
@@ -787,7 +787,7 @@ it('serializes event detail payloads with a stable reference front cover url', f
     ]);
 
     $reference = Reference::factory()->create([
-        'status' => 'approved',
+        'status' => 'verified',
     ]);
 
     $reference->addMedia(fakeGeneratedImageUpload('reference-front-cover.png', 800, 1200))

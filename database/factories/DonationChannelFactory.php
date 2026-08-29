@@ -28,7 +28,7 @@ class DonationChannelFactory extends Factory
             'recipient' => fake()->name(),
             'method' => $method,
             'reference_note' => fake()->optional()->sentence(),
-            'status' => fake()->randomElement(['unverified', 'verified']),
+            'status' => fake()->randomElement(['pending', 'verified']),
             'is_default' => false,
         ];
 

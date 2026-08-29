@@ -24,7 +24,7 @@ final class EventCardRelationshipProvider implements EventSearchRelationProvider
             'media' => fn ($query) => $query
                 ->whereIn('collection_name', ['cover', 'poster'])
                 ->ordered(),
-            'references',
+            'references' => fn ($query) => $query->active(),
             'persons.media' => fn ($query) => $query
                 ->where('collection_name', 'avatar')
                 ->ordered(),

@@ -35,6 +35,7 @@ class ReferenceFactory extends Factory
             'description' => fake()->paragraph(),
             'is_canonical' => fake()->boolean(),
             'status' => 'verified',
+            'published_at' => now(),
         ];
     }
 
@@ -48,7 +49,7 @@ class ReferenceFactory extends Factory
     }
 
     /**
-     * Create a pending (unverified) reference.
+     * Create a pending reference.
      */
     public function pending(): static
     {
@@ -64,6 +65,16 @@ class ReferenceFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'status' => 'verified',
+        ]);
+    }
+
+    /**
+     * Create an unpublished reference.
+     */
+    public function unpublished(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'published_at' => null,
         ]);
     }
 }

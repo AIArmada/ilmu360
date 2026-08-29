@@ -60,6 +60,9 @@ class Reference extends PackageReference implements AuditableContract
 {
     use AuditsModelChanges, HasSocialProfiles, KeepsDeletedModels, Searchable;
 
+    /** @var list<string> */
+    public const array PUBLIC_STATUSES = ['verified', 'pending'];
+
     /** @use HasFactory<ReferenceFactory> */
     use HasFactory;
 
@@ -88,15 +91,22 @@ class Reference extends PackageReference implements AuditableContract
             if ($reference->isDirty('status')) {
                 $now = now();
                 $reference->last_state_change_at = $now;
+                $status = (string) $reference->status;
 
-                match ((string) $reference->status) {
+                match ($status) {
                     'verified' => $reference->verified_at ??= $now,
                     'published' => $reference->published_at ??= $now,
                     'rejected' => $reference->rejected_at ??= $now,
                     default => null,
                 };
 
-                if ((string) $reference->status === 'verified') {
+                if (in_array($status, ['verified', 'pending'], true)
+                    && ! $reference->isDirty('published_at')
+                    && ($reference->exists || ! array_key_exists('published_at', $reference->getAttributes()))) {
+                    $reference->published_at = $now;
+                }
+
+                if ($status === 'verified') {
                     $reference->verified_by ??= auth()->id();
                 }
             }
@@ -117,6 +127,7 @@ class Reference extends PackageReference implements AuditableContract
         'description',
         'is_canonical',
         'status',
+        'published_at',
         'verified_at',
         'verified_by',
         'rejected_at',
@@ -134,6 +145,7 @@ class Reference extends PackageReference implements AuditableContract
             'year' => 'integer',
             'part_number' => 'integer',
             'is_canonical' => 'boolean',
+            'published_at' => 'immutable_datetime',
             'verified_at' => 'immutable_datetime',
             'rejected_at' => 'immutable_datetime',
             'last_state_change_at' => 'immutable_datetime',
@@ -160,6 +172,7 @@ class Reference extends PackageReference implements AuditableContract
 
         /** @var Collection<int, self> $selectedReferences */
         $selectedReferences = self::query()
+            ->active()
             ->whereIn('id', $normalizedReferenceIds->all())
             ->get(['id', 'parent_id']);
 
@@ -172,11 +185,14 @@ class Reference extends PackageReference implements AuditableContract
         $expandedChildIds = $selectedRootIds->isEmpty()
             ? collect()
             : self::query()
+                ->active()
                 ->whereIn('parent_id', $selectedRootIds->all())
                 ->pluck('id')
                 ->map(static fn (mixed $id): string => (string) $id);
 
-        return $normalizedReferenceIds
+        return $selectedReferences
+            ->pluck('id')
+            ->map(static fn (mixed $id): string => (string) $id)
             ->merge($expandedChildIds)
             ->unique()
             ->values()
@@ -209,7 +225,28 @@ class Reference extends PackageReference implements AuditableContract
     #[Scope]
     protected function active(Builder $query): void
     {
-        $query->whereIn('status', ['verified', 'pending', 'published']);
+        self::applyPublicVisibility($query);
+    }
+
+    /**
+     * @template TModel of \Illuminate\Database\Eloquent\Model
+     *
+     * @param  Builder<TModel>  $query
+     * @return Builder<TModel>
+     */
+    public static function applyPublicVisibility(Builder $query): Builder
+    {
+        $model = $query->getModel();
+
+        return $query
+            ->whereNotNull($model->qualifyColumn('published_at'))
+            ->whereIn($model->qualifyColumn('status'), self::PUBLIC_STATUSES);
+    }
+
+    public function isPubliclyVisible(): bool
+    {
+        return $this->published_at !== null
+            && in_array((string) $this->status, self::PUBLIC_STATUSES, true);
     }
 
     /**
@@ -236,7 +273,7 @@ class Reference extends PackageReference implements AuditableContract
 
     public function shouldBeSearchable(): bool
     {
-        return in_array((string) $this->status, ['verified', 'pending'], true);
+        return $this->isPubliclyVisible();
     }
 
     public function searchIndexShouldBeUpdated(): bool
@@ -252,6 +289,7 @@ class Reference extends PackageReference implements AuditableContract
             'description',
             'slug',
             'status',
+            'published_at',
         ]);
     }
 
@@ -261,8 +299,7 @@ class Reference extends PackageReference implements AuditableContract
      */
     protected function makeAllSearchableUsing(Builder $query): Builder
     {
-        return $query
-            ->whereIn('references.status', ['verified', 'pending']);
+        return $query->active();
     }
 
     /**
@@ -295,6 +332,7 @@ class Reference extends PackageReference implements AuditableContract
             'search_text' => $this->searchableText(),
             'slug' => (string) $this->slug,
             'status' => (string) $this->status,
+            'published_at' => $this->published_at?->timestamp,
             'updated_at' => $updatedAt->timestamp,
         ];
     }
@@ -389,8 +427,12 @@ class Reference extends PackageReference implements AuditableContract
         }
 
         return self::query()
-            ->where('id', $rootId)
-            ->orWhere('parent_id', $rootId)
+            ->active()
+            ->where(function (Builder $query) use ($rootId): void {
+                $query
+                    ->where('id', $rootId)
+                    ->orWhere('parent_id', $rootId);
+            })
             ->pluck('id')
             ->map(static fn (mixed $id): string => (string) $id)
             ->values()

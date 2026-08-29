@@ -3,6 +3,7 @@
 use AIArmada\Membership\Enums\MemberRole;
 use App\Models\Reference;
 use App\Models\User;
+use App\Policies\ReferencePolicy;
 use App\Support\Authz\MemberPermissionGate;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -41,4 +42,18 @@ it('denies viewer members from approving reference updates', function () {
 
     expect($user->can('approve', $reference))->toBeFalse()
         ->and($user->can('update', $reference))->toBeFalse();
+});
+
+it('requires publication and moderation status for public reference visibility', function () {
+    $verifiedReference = Reference::factory()->verified()->create();
+    $pendingReference = Reference::factory()->pending()->create();
+    $unpublishedReference = Reference::factory()->pending()->unpublished()->create();
+    $inactiveReference = Reference::factory()->create(['status' => 'inactive']);
+
+    $policy = app(ReferencePolicy::class);
+
+    expect($policy->view(null, $verifiedReference))->toBeTrue()
+        ->and($policy->view(null, $pendingReference))->toBeTrue()
+        ->and($policy->view(null, $unpublishedReference))->toBeFalse()
+        ->and($policy->view(null, $inactiveReference))->toBeFalse();
 });

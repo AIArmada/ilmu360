@@ -169,7 +169,7 @@ Supporting:
   - `approved`: public and indexable (if visibility allows).
   - `rejected`: not public, show to submitter with reason.
   - `cancelled`/`postponed`: public but clearly marked, not recommended in search results.
-- Verification status (institution, speaker, donation account): `unverified`, `pending`, `verified`, `rejected`.
+- Directory entity lifecycle status (speakers, institutions, and donation accounts): `pending`, `verified`, `rejected`, `inactive`.
 - Donation safety:
   - Donation accounts belong to institutions.
   - Events can only reference donation accounts owned by their institution.
@@ -423,7 +423,6 @@ Reports (`POST /reports`):
 ### Trust score model
 - Trust score range: 0..100 (stored on institutions and speakers).
 - Baselines:
-  - `unverified`: 10
   - `pending`: 20
   - `verified`: 70
   - `rejected`: 0

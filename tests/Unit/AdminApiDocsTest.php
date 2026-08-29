@@ -84,8 +84,8 @@ it('documents the public reference directory in the mobile api reference', funct
 
     expect($markdown)
         ->toContain('| `GET` | `/references` | Public reference listing filters; default directory pages show root/standalone references')
-        ->toContain('`/persons`, `/institutions`, and `/references` return **only** records where `is_active = true` AND `status = \'verified\'`')
-        ->toContain('Public reference directory list items expose `display_title`, `parent_reference_id`, `part_type`, `part_number`, `part_label`, `is_part`, `author`, `type`, `publisher`, `publication_year`, `is_active`, `events_count`, `front_cover_url`, and `is_following` by default.')
+        ->toContain('References returned by `/references` and `/references/{referenceKey}` must have `published_at IS NOT NULL` and `status IN (\'verified\', \'pending\')`')
+        ->toContain('Public reference directory list items expose `display_title`, `parent_reference_id`, `part_type`, `part_number`, `part_label`, `is_part`, `author`, `type`, `publisher`, `publication_year`, `status`, `events_count`, `front_cover_url`, and `is_following` by default.')
         ->toContain('Unified search accepts `search` as the canonical query parameter and `q` as a compatibility alias')
         ->toContain('The `/institutions/near` alias requires either `near=lat,lng` or both `lat` and `lng`; calling it without coordinates intentionally returns a validation error.')
         ->toContain('There are no plural follow-list routes such as `/follows/persons`')

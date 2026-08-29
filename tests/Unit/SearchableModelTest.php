@@ -125,7 +125,7 @@ it('only indexes active verified or pending institutions', function () {
     });
 });
 
-it('builds the reference searchable payload and only indexes active verified or pending references', function () {
+it('builds the reference searchable payload and only indexes published verified or pending references', function () {
     $reference = Reference::factory()->create([
         'title' => 'Tafsir Al-Hikmah',
         'author' => 'Dr. Ahmad',
@@ -144,6 +144,7 @@ it('builds the reference searchable payload and only indexes active verified or 
         ->and($payload['search_text'])->toContain('Dr. Ahmad')
         ->and($payload['search_text'])->toContain('Pustaka Hikmah')
         ->and($payload)->toHaveKey('publication_year', 2020)
+        ->and($payload['published_at'])->toBeInt()
         ->and($payload['updated_at'])->toBeInt();
 
     $rejectedReference = Reference::factory()->create([
@@ -151,6 +152,31 @@ it('builds the reference searchable payload and only indexes active verified or 
     ]);
 
     expect($rejectedReference->fresh()->shouldBeSearchable())->toBeFalse();
+
+    $unpublishedReference = Reference::factory()->pending()->unpublished()->create();
+
+    expect($unpublishedReference->fresh()->shouldBeSearchable())->toBeFalse();
+});
+
+it('excludes unpublished references from public event search payloads', function () {
+    $event = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now(),
+    ]);
+    $publishedPendingReference = Reference::factory()->pending()->create();
+    $unpublishedReference = Reference::factory()->pending()->unpublished()->create();
+
+    $event->references()->attach([
+        $publishedPendingReference->getKey(),
+        $unpublishedReference->getKey(),
+    ]);
+
+    $payload = $event->toSearchableArray();
+
+    expect($payload['reference_ids'])
+        ->toContain((string) $publishedPendingReference->getKey())
+        ->not->toContain((string) $unpublishedReference->getKey());
 });
 
 it('scopes make all searchable queries to the intended scout-ready records', function () {
@@ -176,6 +202,8 @@ it('scopes make all searchable queries to the intended scout-ready records', fun
             'status' => 'rejected',
         ]);
 
+        $unpublishedReference = Reference::factory()->pending()->unpublished()->create();
+
         $searchableEvent = Event::factory()->create([
             'status' => 'approved',
             'visibility' => 'public',
@@ -194,6 +222,7 @@ it('scopes make all searchable queries to the intended scout-ready records', fun
             ->and(Reference::makeAllSearchableQuery()->pluck('references.id')->all())
             ->toContain((string) $searchableReference->id)
             ->not->toContain((string) $hiddenReference->id)
+            ->not->toContain((string) $unpublishedReference->id)
             ->and(Event::makeAllSearchableQuery()->pluck('events.id')->all())
             ->toContain((string) $searchableEvent->id)
             ->not->toContain((string) $hiddenEvent->id)

@@ -4,6 +4,7 @@ use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
 use App\Enums\MemberSubjectType;
 use App\Models\Institution;
+use App\Models\Reference;
 use App\Models\Venue;
 
 it('requires an explicit country for public states catalog options', function () {
@@ -55,6 +56,24 @@ it('lists package cities for a state_id', function () {
     expect($omitted->json('data'))->toBe([])
         ->and(collect($explicit->json('data'))->pluck('id')->all())
         ->toContain((string) $city->getKey());
+});
+
+it('lists only published verified or pending references in the public catalog', function () {
+    $visiblePending = Reference::factory()->pending()->create([
+        'title' => 'Published Pending Catalog Reference',
+    ]);
+    $hiddenPending = Reference::factory()->pending()->unpublished()->create([
+        'title' => 'Unpublished Catalog Reference',
+    ]);
+
+    $response = $this->getJson(route('api.client.catalogs.references', ['q' => 'Catalog Reference']))
+        ->assertOk();
+
+    $ids = collect($response->json('data'))->pluck('id')->all();
+
+    expect($ids)
+        ->toContain((string) $visiblePending->getKey())
+        ->not->toContain((string) $hiddenPending->getKey());
 });
 
 it('requires an explicit administrative district or state for public administrative-subdivision catalog options', function () {

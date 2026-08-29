@@ -621,7 +621,6 @@
     "spots left": "இடங்கள் மீதமுள்ளன",
     "surau": "சுராவ்",
     "unlisted": "பட்டியலிடப்படாத",
-    "unverified": "சரிபார்க்கப்படாத",
     "verified": "சரிபார்க்கப்பட்டது",
     "your@email.com": "your@email.com",
     "Agenda": "நிகழ்ச்சி அட்டவணை",
@@ -864,5 +863,6 @@
     "Media Sosial Rasmi": "அதிகாரப்பூர்வ சமூக ஊடகம்",
     "Nampak maklumat yang tidak tepat atau meragukan? Bantu komuniti dengan memaklumkan kepada kami.": "தவறான அல்லது சந்தேகத்திற்குரிய தகவலைக் கண்டீர்களா? எங்களுக்குத் தெரிவிப்பதன் மூலம் சமூகத்திற்கு உதவுங்கள்.",
     "Pautan Institusi": "நிறுவன இணைப்புகள்",
-    "Lihat profil rasmi": "அதிகாரப்பூர்வ சுயவிவரத்தைக் காண்க"
+    "Lihat profil rasmi": "அதிகாரப்பூர்வ சுயவிவரத்தைக் காண்க",
+    "A contribution request for this record is already pending. Please wait for it to be reviewed before submitting another.": "இந்தப் பதிவுக்கான பங்களிப்பு கோரிக்கை ஏற்கனவே நிலுவையில் உள்ளது. மற்றொரு பங்களிப்பைச் சமர்ப்பிப்பதற்கு முன் அது பரிசீலிக்கப்படும் வரை காத்திருக்கவும்."
 }

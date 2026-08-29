@@ -46,7 +46,10 @@ class Show extends Component
     {
         $canBypassVisibility = auth()->user()?->hasAnyRole(['super_admin', 'moderator']) ?? false;
 
-        abort_unless($institution->status === 'verified' || $canBypassVisibility, 404);
+        abort_unless(
+            in_array((string) $institution->status, ['verified', 'pending'], true) || $canBypassVisibility,
+            404,
+        );
 
         $this->institution = $institution;
         $this->loadInstitutionRelations();
@@ -155,7 +158,7 @@ class Show extends Component
                 'persons.media',
                 'persons.titleAssignments.title.category',
                 'keyPeople.person',
-                'references',
+                'references' => fn ($query) => $query->active(),
                 'media',
                 'primaryOccurrence',
                 'timeExpressions',
@@ -180,7 +183,7 @@ class Show extends Component
             'persons.media',
             'persons.titleAssignments.title.category',
             'keyPeople.person',
-            'references',
+            'references' => fn ($query) => $query->active(),
             'media',
             'primaryOccurrence',
             'timeExpressions',

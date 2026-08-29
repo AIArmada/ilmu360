@@ -71,6 +71,21 @@ it('shows the total institution count at the bottom of the institution index', f
         ->assertSee('Jumlah institusi: 2');
 });
 
+it('lists pending institutions in the directory with the unverified badge and includes them in search', function () {
+    $institution = Institution::factory()->create([
+        'name' => 'Institusi Belum Disahkan',
+        'status' => 'pending',
+    ]);
+
+    get('/institusi')
+        ->assertSuccessful()
+        ->assertSee('Institusi Belum Disahkan')
+        ->assertSee('Belum disahkan');
+
+    Livewire::test('pages.institutions.index', ['search' => 'Institusi Belum Disahkan'])
+        ->assertSee('Institusi Belum Disahkan');
+});
+
 it('centers the institution card majlis counter without a view details label', function () {
     Institution::factory()->create([
         'name' => 'Institusi Kad Tanpa Butiran',
@@ -333,7 +348,7 @@ it('paginates direct institution search results without a second count query', f
     expect($institutionIdQueries)->not->toBeEmpty()
         ->and($institutionIdQueries)->toHaveCount(1)
         ->and($institutionIdQueries->every(
-            static fn (string $query): bool => ! str_contains($query, 'status" in'),
+            static fn (string $query): bool => str_contains($query, 'status') && str_contains($query, 'in'),
         ))->toBeTrue()
         ->and($institutionIdQueries->every(
             static fn (string $query): bool => ! str_contains($query, 'from "events"'),

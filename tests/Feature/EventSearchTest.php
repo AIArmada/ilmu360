@@ -524,7 +524,7 @@ describe('Event Search Filters', function () {
 
         Reference::factory()->create([
             'title' => 'Reference Hidden Filter Payload Test',
-            'status' => 'active',
+            'status' => 'verified',
         ]);
 
         EventTerm::factory()->create([
@@ -2234,12 +2234,12 @@ describe('Event Search Filters', function () {
     it('filters events by selected rujukan kitab buku', function () {
         $riyadhRef = Reference::factory()->create([
             'title' => 'Riyadhus Solihin',
-            'status' => 'active',
+            'status' => 'verified',
         ]);
 
         $bulughRef = Reference::factory()->create([
             'title' => 'Bulughul Maram',
-            'status' => 'active',
+            'status' => 'verified',
         ]);
 
         $riyadhEvent = createVisibleEventForSearch([

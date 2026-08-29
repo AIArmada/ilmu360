@@ -1025,7 +1025,7 @@ it('stages visitor event media on a pending contribution request and applies it 
 it('hydrates the selected person institution label even when the institution is not public', function () {
     $user = User::factory()->create();
     $institution = Institution::factory()->create([
-        'status' => 'unverified',
+        'status' => 'pending',
     ]);
     $person = Person::factory()->create([
         'status' => 'verified',
@@ -1689,13 +1689,16 @@ it('creates pending update requests for non-maintainer suggestions', function ()
         ->and(data_get($request?->proposed_data, 'address.line1'))->toBe('No. 8, Jalan Baru');
 });
 
-it('shows the latest pending request notice on the suggest update page', function () {
+it('shows the pending request notice below the heading and hides update controls', function () {
+    app()->setLocale('ms');
+
     $user = User::factory()->create();
+    $proposer = User::factory()->create();
     $institution = Institution::factory()->create([
         'status' => 'verified',
     ]);
     ContributionRequest::factory()->create([
-        'proposer_id' => $user->id,
+        'proposer_id' => $proposer->id,
         'entity_type' => $institution->getMorphClass(),
         'entity_id' => $institution->id,
         'status' => ContributionRequestStatus::Pending,
@@ -1703,12 +1706,25 @@ it('shows the latest pending request notice on the suggest update page', functio
 
     $this->actingAs($user);
 
-    Livewire::test(SuggestUpdate::class, [
+    $component = Livewire::test(SuggestUpdate::class, [
         'subjectType' => 'institution',
         'subjectId' => $institution->slug,
-    ])
-        ->assertSee(__('Pending Request'))
-        ->assertSee('Anda sudah mempunyai permintaan kemas kini yang masih menunggu untuk rekod ini sejak');
+    ]);
+
+    $component
+        ->assertSeeInOrder([
+            __('Suggest an Update'),
+            __('Pending Request'),
+            __('A contribution request for this record is already pending. Please wait for it to be reviewed before submitting another.'),
+        ])
+        ->assertDontSee(__('Submit Update Request'))
+        ->call('submit')
+        ->assertHasErrors(['data']);
+
+    expect(ContributionRequest::query()
+        ->where('entity_type', $institution->getMorphClass())
+        ->where('entity_id', $institution->getKey())
+        ->count())->toBe(1);
 });
 
 it('renders contribution requests and event submissions without approval controls', function () {

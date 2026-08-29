@@ -358,7 +358,8 @@ class EventController extends Controller
                 }
 
                 $query->whereHas('references', function (Builder $referenceQuery) use ($referenceIds): void {
-                    $referenceQuery->whereIn('references.id', $referenceIds);
+                    Reference::applyPublicVisibility($referenceQuery)
+                        ->whereIn('references.id', $referenceIds);
                 });
             }),
             AllowedFilter::callback('search', function (Builder $query, mixed $value): void {
@@ -454,7 +455,7 @@ class EventController extends Controller
             'venue.addresses.country',
             'persons.media' => fn ($query) => $query->where('collection_name', 'avatar'),
             'media' => fn ($query) => $query->where('collection_name', 'poster'),
-            'references',
+            'references' => fn ($query) => $query->active(),
         ]))
             ->allowedFilters(...$allowedFilters)
             ->allowedIncludes(...$allowedIncludes)
@@ -529,7 +530,7 @@ class EventController extends Controller
             'venue.addresses.country',
             'addresses.country',
             'media',
-            'references.media',
+            'references' => fn ($query) => $query->active()->with('media'),
         ]))
             ->allowedIncludes(...$allowedIncludes)
             ->whereKey($event->getKey())

@@ -280,7 +280,7 @@ class FrontendCatalogService
      */
     public function references(?string $search = null, int $limit = 50): array
     {
-        $query = Reference::query()->orderBy('title');
+        $query = Reference::query()->active()->orderBy('title');
         $normalizedSearch = trim((string) $search);
 
         if ($normalizedSearch !== '') {

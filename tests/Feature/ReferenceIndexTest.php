@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Reference;
+use Livewire\Livewire;
 
 use function Pest\Laravel\get;
 
@@ -18,7 +19,7 @@ it('renders the public reference index hero and search copy', function () {
         ->assertSee(__('Search references...'));
 });
 
-it('searches public verified references by title', function () {
+it('searches published verified and pending references by title', function () {
     Reference::factory()->create([
         'title' => 'Riyadhus Solihin Terjemahan',
         'status' => 'verified',
@@ -35,7 +36,7 @@ it('searches public verified references by title', function () {
         ->assertDontSee('Bulughul Maram');
 });
 
-it('only lists active verified references on the public index', function () {
+it('only lists published verified and pending references on the public index', function () {
     Reference::factory()->create([
         'title' => 'Rujukan Sah Paparan',
         'status' => 'verified',
@@ -51,11 +52,37 @@ it('only lists active verified references on the public index', function () {
         'status' => 'inactive',
     ]);
 
+    Reference::factory()->pending()->unpublished()->create([
+        'title' => 'Rujukan Belum Diterbitkan',
+    ]);
+
     get('/rujukan')
         ->assertSuccessful()
         ->assertSee('Rujukan Sah Paparan')
-        ->assertDontSee('Rujukan Menunggu Semakan')
-        ->assertDontSee('Rujukan Tidak Aktif');
+        ->assertSee('Rujukan Menunggu Semakan')
+        ->assertDontSee('Rujukan Tidak Aktif')
+        ->assertDontSee('Rujukan Belum Diterbitkan');
+});
+
+it('lists pending references in the directory and includes them in search', function () {
+    Reference::factory()->create([
+        'title' => 'Rujukan Belum Disahkan',
+        'status' => 'pending',
+    ]);
+
+    Reference::factory()->pending()->unpublished()->create([
+        'title' => 'Rujukan Pending Belum Terbit',
+    ]);
+
+    get('/rujukan')
+        ->assertSuccessful()
+        ->assertSee('Rujukan Belum Disahkan');
+
+    Livewire::test('pages.references.index', ['search' => 'Rujukan Belum Disahkan'])
+        ->assertSee('Rujukan Belum Disahkan');
+
+    Livewire::test('pages.references.index', ['search' => 'Rujukan Pending Belum Terbit'])
+        ->assertDontSee('Rujukan Pending Belum Terbit');
 });
 
 it('shows the reference empty state and clear icon button', function () {

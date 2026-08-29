@@ -34,7 +34,7 @@ class DonationChannelSeeder extends Seeder
                         DonationChannel::factory()->bankAccount()->make([
                             'donatable_type' => 'institution',
                             'donatable_id' => $institutionId,
-                            'status' => $status === 'verified' ? 'verified' : 'unverified',
+                            'status' => $status === 'verified' ? 'verified' : 'pending',
                             'is_default' => true,
                         ])->toArray(),
                         ['id' => (string) Str::uuid(), 'created_at' => now(), 'updated_at' => now()]
@@ -45,7 +45,7 @@ class DonationChannelSeeder extends Seeder
                             DonationChannel::factory()->duitnow()->make([
                                 'donatable_type' => 'institution',
                                 'donatable_id' => $institutionId,
-                                'status' => $status === 'verified' ? 'verified' : 'unverified',
+                                'status' => $status === 'verified' ? 'verified' : 'pending',
                             ])->toArray(),
                             ['id' => (string) Str::uuid(), 'created_at' => now(), 'updated_at' => now()]
                         );
@@ -56,7 +56,7 @@ class DonationChannelSeeder extends Seeder
                             DonationChannel::factory()->ewallet()->make([
                                 'donatable_type' => 'institution',
                                 'donatable_id' => $institutionId,
-                                'status' => 'unverified',
+                                'status' => 'pending',
                             ])->toArray(),
                             ['id' => (string) Str::uuid(), 'created_at' => now(), 'updated_at' => now()]
                         );
@@ -71,7 +71,7 @@ class DonationChannelSeeder extends Seeder
                             DonationChannel::factory()->bankAccount()->make([
                                 'donatable_type' => 'person',
                                 'donatable_id' => $personId,
-                                'status' => $status === 'verified' ? 'verified' : 'unverified',
+                                'status' => $status === 'verified' ? 'verified' : 'pending',
                                 'is_default' => true,
                             ])->toArray(),
                             ['id' => (string) Str::uuid(), 'created_at' => now(), 'updated_at' => now()]

@@ -37,7 +37,12 @@ new class extends Component {
 
         $query = Event::active()
             ->orderBy('starts_at')
-            ->with(['institution', 'venue', 'persons', 'references'])
+            ->with([
+                'institution',
+                'venue',
+                'persons',
+                'references' => fn ($query) => $query->active(),
+            ])
             ->take(6);
 
         // Simple time-based logic for now, utilizing the UTC timestamps in DB

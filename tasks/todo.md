@@ -1630,3 +1630,114 @@ The requested Pest 5 plugins were already present in `composer.json`, `composer.
 - `vendor/bin/pest --agent='expect(true)->toBeTrue();'` — 1 passed (1 assertion).
 - `./pest --parallel --tia --filtered --compact --filter='requires an explicit administrative district'` — 1 passed (4 assertions); the runner correctly bypasses TIA for a partial filtered selection.
 - `vendor/bin/rector process --dry-run --no-progress-bar tests/Feature/Api/Frontend/CatalogApiTest.php` — no changes proposed.
+
+# Block duplicate pending contribution requests
+
+## Plan
+
+- [x] Trace the contribution routes/components, request model/status semantics, and existing duplicate-submission tests.
+- [x] Implement a shared pending-request guard for speaker, institution, event, and reference contributions.
+- [x] Add focused Pest coverage for each resource type and allowed non-pending cases.
+- [x] Run focused tests, PHPStan/format checks, and review the final diff.
+
+## Review
+
+- Added an entity-wide pending-request guard shared by the web page, update-request action, and frontend API.
+- Hid the update form while blocked, placed the Malay alert beneath the heading with responsive spacing, and localized the new message across supported locales.
+- Preserved the existing proposer-scoped API request details while exposing only a boolean block indicator for other pending requests.
+
+## Verification
+
+- Focused parallel Pest run: 7 passed, 24 assertions.
+- `vendor/bin/phpstan analyse --ansi`: no errors.
+- Targeted Pint check, Blade cache compilation, PHP syntax checks, locale JSON validation, and `git diff --check`: passed.
+
+## Live verification
+
+- Submitted a speaker update in the browser, confirmed the Malay alert appeared beneath the heading with a 16px gap, and confirmed the update form was hidden.
+- Approved the request through the admin panel, revisited the exact speaker URL, and confirmed the alert disappeared while the `Hantar Permintaan Kemas Kini` form returned.
+- Restored the speaker's original test value after verification so the provided URL remained valid; the test request remains approved and no pending request remains.
+
+# Remove unused institution unverified status
+
+## Plan
+
+- [x] Audit institution status usages and confirm whether existing unverified institution rows need migration.
+- [x] Remove unverified from institution form, filters, admin API choices, and supporting documentation.
+- [x] Add regression coverage for the reduced institution status set.
+- [x] Run focused tests, static checks, and review the diff.
+
+## Review
+
+- Institution status is now limited to `pending`, `verified`, `rejected`, and `inactive` in the admin form, table filter, and admin API.
+- Legacy institution rows with `unverified` are normalized to `pending` for review by the migration; the current local database has no such rows.
+- This follow-up extends the removal to donation-account and venue status contracts.
+
+## Verification
+
+- Focused parallel Pest run: 2 passed, 22 assertions.
+- `vendor/bin/phpstan analyse --ansi`: no errors.
+- Pint check, Blade cache compilation, migration syntax check, and `git diff --check`: passed.
+- The live admin URL returned `Forbidden` because the attached browser session is not an administrator; form/API regression coverage passed instead.
+
+# Remove unverified record status globally
+
+## Plan
+
+- [x] Inventory record-status usages and separate them from unrelated email/address-validation terminology.
+- [x] Remove the status from donation channels and venue copies, normalizing defaults and validators to `pending`.
+- [x] Update tests, moderation labels, and status documentation.
+- [x] Run the complete relevant test slice, static checks, and review the final diff.
+
+## Review
+
+- Removed `unverified` from all supported record-status contracts: institutions, speakers, references, venues, and donation channels.
+- Legacy institution, venue, and donation-channel rows are normalized to `pending`; new donation-channel defaults and admin schemas now use `pending`.
+- Preserved unrelated verification concepts for email, phone, address validation, and historical migration compatibility.
+
+## Verification
+
+- Relevant parallel Pest slice: 35 passed, 296 assertions.
+- `vendor/bin/phpstan analyse --ansi`: no errors.
+- Pint, Blade cache compilation, PHP syntax checks, locale JSON validation, and `git diff --check`: passed.
+
+# Use custom Filament selects throughout the application
+
+## Plan
+
+- [x] Inventory application Select fields, SelectFilters, and explicit native overrides.
+- [x] Configure Filament Select and SelectFilter components to use `native(false)` by default.
+- [x] Replace the remaining explicit native Select override and add regression coverage.
+- [x] Run representative frontend tests, static checks, and review the final diff.
+
+## Review
+
+- Added an application-wide Filament configuration so new form selects and table select filters use the JavaScript select automatically.
+- Preserved `native()` on date and time picker components, which are separate controls and not Select fields.
+
+## Verification
+
+- Global configuration test: 1 passed, 2 assertions.
+- Representative public and dashboard form tests: 9 passed, 106 assertions.
+- PHPStan, Pint, Blade cache compilation, PHP syntax checks, and `git diff --check`: passed.
+
+# Align public reference visibility and contribution snapshots
+
+## Plan
+
+- [x] Enforce `published_at` plus `verified`/`pending` for every public reference surface.
+- [x] Align pending institution/reference detail authorization and public child-reference rendering.
+- [x] Use the locked entity when capturing contribution-request original data.
+- [x] Update factories, seed data, documentation, and regression tests.
+- [x] Run focused Pest, static-analysis, formatting, and diff checks.
+
+## Review
+
+Public reference visibility is now consistently `published_at IS NOT NULL` plus `status IN ('verified', 'pending')` across directories, search/index payloads, event relations, detail authorization, family expansion, follow/share resolution, and public catalogs. Contribution updates now lock and re-read the target before snapshotting and reject duplicate pending requests across entity types.
+
+## Verification
+
+- Focused reference, event API, public-read, event-show, search, and searchable-model suites passed after the final fixes.
+- `vendor/bin/phpstan analyse --ansi` — no errors across 1,011 files.
+- Targeted Pint, syntax, translation JSON, view-cache, and `git diff --check` verification completed.
+- Broad parallel suites previously showed nondeterministic unrelated failures; the affected tests were rerun individually or with focused filters and passed.

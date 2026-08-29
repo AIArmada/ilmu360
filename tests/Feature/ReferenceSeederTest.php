@@ -34,6 +34,7 @@ it('seeds references using submit-event compatible fields and links', function (
         ->and($reference?->url)->toBe('https://sunnah.com/riyadussalihin')
         ->and($reference?->year)->toBeInt()
         ->and($reference?->language)->toBe('ar')
+        ->and($reference?->published_at)->not->toBeNull()
         ->and($reference?->slug)->not->toBeNull()
         ->and($reference?->socialProfiles()->count())->toBe(2)
         ->and($reference?->socialProfiles()->where('platform', 'youtube')->exists())->toBeTrue();

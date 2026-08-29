@@ -54,7 +54,6 @@ class InstitutionsTable
                     ]),
                 SelectFilter::make('status')
                     ->options([
-                        'unverified' => 'Unverified',
                         'pending' => 'Pending',
                         'verified' => 'Verified',
                         'rejected' => 'Rejected',

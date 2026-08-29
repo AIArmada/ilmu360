@@ -497,7 +497,7 @@ class AdminResourceMutationService
                 'ewallet_handle' => null,
                 'ewallet_qr_payload' => null,
                 'reference_note' => null,
-                'status' => 'unverified',
+                'status' => 'pending',
                 'is_default' => false,
                 'clear_qr' => false,
             ],
@@ -513,7 +513,7 @@ class AdminResourceMutationService
             ],
             InstitutionResource::class => [
                 'type' => InstitutionType::Masjid->value,
-                'status' => 'active',
+                'status' => 'pending',
                 'clear_logo' => false,
                 'clear_cover' => false,
                 'clear_gallery' => false,
@@ -1117,7 +1117,7 @@ class AdminResourceMutationService
             ]),
             $this->field('type', 'string', required: true, default: InstitutionType::Masjid->value, allowedValues: $this->enumValues(InstitutionType::class)),
             $this->field('description', 'string', required: false),
-            $this->field('status', 'string', required: true, allowedValues: ['unverified', 'pending', 'verified', 'rejected', 'inactive']),
+            $this->field('status', 'string', required: true, allowedValues: ['pending', 'verified', 'rejected', 'inactive']),
             $this->field('address', 'object', required: ! $updating, meta: [
                 'mutation_semantics' => 'deep_merge_when_present',
                 'clear_semantics' => [
@@ -1253,7 +1253,7 @@ class AdminResourceMutationService
             $this->field('ewallet_handle', 'string', required: false, maxLength: 255, meta: $this->trimmedStringMutationMeta()),
             $this->field('ewallet_qr_payload', 'string', required: false, meta: $this->trimmedStringMutationMeta()),
             $this->field('reference_note', 'string', required: false, meta: $this->trimmedStringMutationMeta()),
-            $this->field('status', 'string', required: true, default: 'unverified', allowedValues: ['unverified', 'verified', 'rejected', 'inactive']),
+            $this->field('status', 'string', required: true, default: 'pending', allowedValues: ['pending', 'verified', 'rejected', 'inactive']),
             $this->field('is_default', 'boolean', required: false, default: false),
             $this->field('qr', 'file', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
             $this->field('clear_qr', 'boolean', required: false, default: false),
@@ -1503,7 +1503,7 @@ class AdminResourceMutationService
         return [
             $this->field('name', 'string', required: ! $updating, maxLength: 255),
             $this->field('type', 'string', required: ! $updating, default: VenueType::Dewan->value, allowedValues: $this->enumValues(VenueType::class)),
-            $this->field('status', 'string', required: ! $updating, default: 'verified', allowedValues: ['unverified', 'pending', 'verified', 'rejected', 'inactive']),
+            $this->field('status', 'string', required: ! $updating, default: 'verified', allowedValues: ['pending', 'verified', 'rejected', 'inactive']),
             $this->field('visibility', 'string', required: false, default: 'public', allowedValues: ['public', 'unlisted', 'private']),
             $this->field('facilities', 'array<string>', required: false, allowedValues: $this->venueFacilityValues(), meta: $this->facilitiesCollectionMeta()),
             $this->field('address', 'object', required: ! $updating, meta: [
@@ -2016,7 +2016,7 @@ class AdminResourceMutationService
             'type' => ['required', Rule::enum(InstitutionType::class)],
             'names' => ['nullable', 'array'],
             'description' => ['nullable', 'string'],
-            'status' => ['required', Rule::in(['unverified', 'pending', 'verified', 'rejected', 'inactive'])],
+            'status' => ['required', Rule::in(['pending', 'verified', 'rejected', 'inactive'])],
             'allow_public_event_submission' => $updating ? ['sometimes', 'boolean'] : ['prohibited'],
             'address' => $addressRule,
             'address.country_id' => $updating
@@ -2075,7 +2075,7 @@ class AdminResourceMutationService
             'ewallet_handle' => ['nullable', 'string', 'max:255'],
             'ewallet_qr_payload' => ['nullable', 'string'],
             'reference_note' => ['nullable', 'string'],
-            'status' => [$required, Rule::in(['unverified', 'verified', 'rejected', 'inactive'])],
+            'status' => [$required, Rule::in(['pending', 'verified', 'rejected', 'inactive'])],
             'is_default' => ['sometimes', 'boolean'],
             'qr' => ['nullable', 'file', 'mimetypes:image/jpeg,image/png,image/webp', $maxUploadSize],
             'clear_qr' => ['sometimes', 'boolean'],
@@ -2408,7 +2408,7 @@ class AdminResourceMutationService
         return [
             'name' => [$required, 'string', 'max:255'],
             'type' => [$required, Rule::enum(VenueType::class)],
-            'status' => [$required, Rule::in(['unverified', 'pending', 'verified', 'rejected', 'inactive'])],
+            'status' => [$required, Rule::in(['pending', 'verified', 'rejected', 'inactive'])],
             'visibility' => ['sometimes', Rule::in(['public', 'unlisted', 'private'])],
             'facilities' => ['nullable', 'array'],
             'facilities.*' => ['string', Rule::in($this->venueFacilityValues())],

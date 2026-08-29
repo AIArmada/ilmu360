@@ -621,7 +621,6 @@
     "spots left": "剩余名额",
     "surau": "祈祷室",
     "unlisted": "未列出",
-    "unverified": "未验证",
     "verified": "已验证",
     "your@email.com": "your@email.com",
     "Agenda": "议程",
@@ -864,5 +863,6 @@
     "Media Sosial Rasmi": "官方社交媒体",
     "Nampak maklumat yang tidak tepat atau meragukan? Bantu komuniti dengan memaklumkan kepada kami.": "发现不准确或可疑的信息？请告知我们，帮助社区。",
     "Pautan Institusi": "机构链接",
-    "Lihat profil rasmi": "查看官方资料"
+    "Lihat profil rasmi": "查看官方资料",
+    "A contribution request for this record is already pending. Please wait for it to be reviewed before submitting another.": "此记录已有待处理的贡献请求。请等待审核完成后再提交其他贡献。"
 }

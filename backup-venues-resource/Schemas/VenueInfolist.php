@@ -49,7 +49,7 @@ class VenueInfolist
                                                         'verified' => 'success',
                                                         'pending' => 'warning',
                                                         'rejected' => 'danger',
-                                                        'unverified' => 'gray',
+                                                        'inactive' => 'gray',
                                                         default => 'gray',
                                                     }),
                                                 IconEntry::make('is_active')

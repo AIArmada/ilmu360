@@ -109,11 +109,13 @@ use App\Support\Membership\AppMembershipApplicationNotifier;
 use App\Support\Membership\AppMembershipHook;
 use App\Support\Passport\PassportKeyProvisioner;
 use BezhanSalleh\LanguageSwitch\LanguageSwitch;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Support\Assets\Js;
 use Filament\Support\Colors\Color;
 use Filament\Support\Facades\FilamentAsset;
 use Filament\Support\Facades\FilamentColor;
+use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -263,6 +265,15 @@ class AppServiceProvider extends ServiceProvider
             Js::make('close-on-select', __DIR__.'/../../resources/js/filament/close-on-select.js'),
             Js::make('user-timezone', __DIR__.'/../../resources/js/filament/user-timezone.js'),
         ]);
+
+        Select::configureUsing(
+            static fn (Select $select): Select => $select->native(false),
+            isImportant: true,
+        );
+        SelectFilter::configureUsing(
+            static fn (SelectFilter $filter): SelectFilter => $filter->native(false),
+            isImportant: true,
+        );
 
         // Filament rendered outside a panel (public forms) defaults to amber;
         // match the panel brand so every surface shares one palette.

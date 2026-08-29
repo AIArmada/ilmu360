@@ -8,6 +8,7 @@ use App\Models\ContributionRequest;
 use App\Models\User;
 use App\Services\ContributionEntityMutationService;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class SubmitContributionUpdateRequestAction
@@ -17,6 +18,7 @@ class SubmitContributionUpdateRequestAction
     public function __construct(
         private readonly ContributionEntityMutationService $entityMutationService,
         private readonly ResolveContributionEntityMetadataAction $resolveContributionEntityMetadataAction,
+        private readonly EnsureNoPendingContributionRequestAction $ensureNoPendingContributionRequestAction,
     ) {}
 
     /**
@@ -29,21 +31,31 @@ class SubmitContributionUpdateRequestAction
         ?string $proposerNote = null,
     ): ContributionRequest {
         $entityMetadata = $this->resolveContributionEntityMetadataAction->handle($entity);
-        $originalData = array_intersect_key(
-            $this->entityMutationService->stateFor($entity),
-            $proposedData,
-        );
 
-        return ContributionRequest::create([
-            'type' => ContributionRequestType::Update,
-            'subject_type' => $entityMetadata['subject_type'],
-            'entity_type' => $entityMetadata['entity_type'],
-            'entity_id' => $entityMetadata['entity_id'],
-            'proposer_id' => $proposer->getKey(),
-            'status' => ContributionRequestStatus::Pending,
-            'proposed_data' => $proposedData,
-            'original_data' => $originalData,
-            'proposer_note' => $proposerNote,
-        ]);
+        return DB::transaction(function () use ($entity, $entityMetadata, $proposer, $proposedData, $proposerNote): ContributionRequest {
+            $lockedEntity = $entity->newQuery()
+                ->whereKey($entity->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $this->ensureNoPendingContributionRequestAction->handle($lockedEntity);
+
+            $originalData = array_intersect_key(
+                $this->entityMutationService->stateFor($lockedEntity),
+                $proposedData,
+            );
+
+            return ContributionRequest::create([
+                'type' => ContributionRequestType::Update,
+                'subject_type' => $entityMetadata['subject_type'],
+                'entity_type' => $entityMetadata['entity_type'],
+                'entity_id' => $entityMetadata['entity_id'],
+                'proposer_id' => $proposer->getKey(),
+                'status' => ContributionRequestStatus::Pending,
+                'proposed_data' => $proposedData,
+                'original_data' => $originalData,
+                'proposer_note' => $proposerNote,
+            ]);
+        });
     }
 }

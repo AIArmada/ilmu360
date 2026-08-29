@@ -40,14 +40,18 @@ it('renders the institution show page for a verified institution', function () {
         ->assertSee('Masjid yang terkenal di kawasan ini.');
 });
 
-it('returns 404 for unverified institution for guest', function () {
-    $institution = Institution::factory()->create(['status' => 'pending']);
+it('renders the institution show page for a pending institution', function () {
+    $institution = Institution::factory()->create([
+        'name' => 'Institusi Menunggu Semakan',
+        'status' => 'pending',
+    ]);
 
     $this->get(route('institutions.show', $institution))
-        ->assertNotFound();
+        ->assertSuccessful()
+        ->assertSee('Institusi Menunggu Semakan');
 });
 
-it('allows super_admin to view unverified institution', function () {
+it('allows super_admin to view pending institution', function () {
     config(['permission.teams' => false]);
     app(PermissionRegistrar::class)->forgetCachedPermissions();
 

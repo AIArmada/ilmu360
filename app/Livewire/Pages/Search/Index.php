@@ -255,7 +255,6 @@ class Index extends Component
         return app(ReferenceSearchService::class)->applySearch(
             Reference::query()
                 ->active()
-                ->where('status', 'verified')
                 ->root()
                 ->withCount(['events' => function (Builder $query): void {
                     $query

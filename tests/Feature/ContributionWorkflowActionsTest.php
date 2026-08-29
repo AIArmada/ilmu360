@@ -30,6 +30,7 @@ use Database\Seeders\PermissionSeeder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\ValidationException;
 use Spatie\Permission\PermissionRegistrar;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
@@ -165,6 +166,97 @@ it('submits contribution update requests through the action layer', function () 
             'title' => 'Original Action Title',
             'description' => 'Original description.',
         ]);
+});
+
+it('captures original update data from the locked entity', function () {
+    $proposer = User::factory()->create();
+    $reference = Reference::factory()->create([
+        'title' => 'Initial Locked Snapshot Title',
+        'description' => 'Initial locked snapshot description.',
+    ]);
+    $staleReference = $reference->newQuery()->whereKey($reference->getKey())->firstOrFail();
+
+    $reference->update([
+        'title' => 'Current Locked Snapshot Title',
+        'description' => 'Current locked snapshot description.',
+    ]);
+
+    $request = SubmitContributionUpdateRequestAction::run(
+        $staleReference,
+        $proposer,
+        [
+            'title' => 'Proposed Locked Snapshot Title',
+            'description' => 'Proposed locked snapshot description.',
+        ],
+    );
+
+    expect($request->original_data)->toMatchArray([
+        'title' => 'Current Locked Snapshot Title',
+        'description' => 'Current locked snapshot description.',
+    ]);
+});
+
+it('rejects update requests when any supported entity already has a pending request', function (ContributionSubjectType $subjectType) {
+    $proposer = User::factory()->create();
+    $existingProposer = User::factory()->create();
+
+    $entity = match ($subjectType) {
+        ContributionSubjectType::Event => Event::factory()->create(['status' => 'approved']),
+        ContributionSubjectType::Institution => Institution::factory()->create(['status' => 'verified']),
+        ContributionSubjectType::Person => Person::factory()->create(['status' => 'verified']),
+        ContributionSubjectType::Reference => Reference::factory()->create(['status' => 'verified']),
+    };
+
+    ContributionRequest::factory()->create([
+        'type' => ContributionRequestType::Update,
+        'subject_type' => $subjectType,
+        'entity_type' => $entity->getMorphClass(),
+        'entity_id' => $entity->getKey(),
+        'proposer_id' => $existingProposer->getKey(),
+        'status' => ContributionRequestStatus::Pending,
+    ]);
+
+    expect(fn () => SubmitContributionUpdateRequestAction::run(
+        $entity,
+        $proposer,
+        ['title' => 'Updated title'],
+    ))->toThrow(ValidationException::class);
+
+    expect(ContributionRequest::query()
+        ->where('entity_type', $entity->getMorphClass())
+        ->where('entity_id', $entity->getKey())
+        ->count())->toBe(1);
+})->with([
+    'speaker' => ContributionSubjectType::Person,
+    'institution' => ContributionSubjectType::Institution,
+    'event' => ContributionSubjectType::Event,
+    'reference' => ContributionSubjectType::Reference,
+]);
+
+it('allows a new update request after an earlier request is no longer pending', function () {
+    $proposer = User::factory()->create();
+    $reference = Reference::factory()->create(['status' => 'verified']);
+    $previousRequest = ContributionRequest::factory()->create([
+        'type' => ContributionRequestType::Update,
+        'subject_type' => ContributionSubjectType::Reference,
+        'entity_type' => $reference->getMorphClass(),
+        'entity_id' => $reference->getKey(),
+        'proposer_id' => User::factory()->create()->getKey(),
+        'status' => ContributionRequestStatus::Approved,
+    ]);
+
+    $request = SubmitContributionUpdateRequestAction::run(
+        $reference,
+        $proposer,
+        ['title' => 'Updated after approval'],
+    );
+
+    expect($request->id)->not->toBe($previousRequest->id)
+        ->and(ContributionRequest::query()
+            ->where('entity_type', $reference->getMorphClass())
+            ->where('entity_id', $reference->getKey())
+            ->where('status', ContributionRequestStatus::Pending)
+            ->count())->toBe(1);
 });
 
 it('approves staged institution create requests through the action layer without duplication', function () {

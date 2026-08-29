@@ -4,11 +4,12 @@ namespace App\Livewire\Pages\Contributions;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\Contributions\ApplyDirectContributionUpdateAction;
+use App\Actions\Contributions\EnsureNoPendingContributionRequestAction;
 use App\Actions\Contributions\ResolveContributionChangedPayloadAction;
 use App\Actions\Contributions\ResolveContributionSubjectPresentationAction;
 use App\Actions\Contributions\ResolveContributionSubmissionStateAction;
 use App\Actions\Contributions\ResolveContributionUpdateContextAction;
-use App\Actions\Contributions\ResolveLatestPendingContributionRequestAction;
+use App\Actions\Contributions\ResolvePendingContributionRequestAction;
 use App\Actions\Contributions\SubmitContributionUpdateRequestAction;
 use App\Enums\ContributionSubjectType;
 use App\Forms\EventContributionFormSchema;
@@ -176,15 +177,9 @@ class SuggestUpdate extends Component implements HasActions, HasForms
     }
 
     #[Computed]
-    public function latestPendingRequest(): ?ContributionRequest
+    public function pendingUpdateRequest(): ?ContributionRequest
     {
-        $user = auth()->user();
-
-        if (! $user instanceof User) {
-            return null;
-        }
-
-        return app(ResolveLatestPendingContributionRequestAction::class)->handle($user, $this->entity);
+        return app(ResolvePendingContributionRequestAction::class)->handle($this->entity);
     }
 
     public function form(Schema $schema): Schema
@@ -208,12 +203,14 @@ class SuggestUpdate extends Component implements HasActions, HasForms
         ResolveContributionChangedPayloadAction $resolveContributionChangedPayloadAction,
         ResolveContributionSubmissionStateAction $resolveContributionSubmissionStateAction,
         SubmitContributionUpdateRequestAction $submitContributionUpdateRequestAction,
+        EnsureNoPendingContributionRequestAction $ensureNoPendingContributionRequestAction,
     ): void {
         OwnerContext::withOwner(null, function () use (
             $applyDirectContributionUpdateAction,
             $resolveContributionChangedPayloadAction,
             $resolveContributionSubmissionStateAction,
             $submitContributionUpdateRequestAction,
+            $ensureNoPendingContributionRequestAction,
         ): void {
             $user = auth()->user();
 
@@ -222,6 +219,8 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             if (! $user->canSubmitDirectoryFeedback()) {
                 abort(403, $user->directoryFeedbackBanMessage());
             }
+
+            $ensureNoPendingContributionRequestAction->handle($this->entity);
 
             $submissionState = $resolveContributionSubmissionStateAction->handle($this->contributionForm()->getState());
             $state = $this->normalizeSubmissionState($submissionState['state']);

@@ -3,6 +3,7 @@
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
+use App\Models\Reference;
 use App\Models\Venue;
 use App\States\EventStatus\Approved;
 use App\States\EventStatus\Draft;
@@ -20,6 +21,12 @@ it('models have active scopes', function () {
         Institution::factory()->create(['status' => 'verified']);
         Institution::factory()->create(['status' => 'inactive']);
         expect(Institution::active()->count())->toBe(1);
+
+        Reference::factory()->create(['status' => 'verified']);
+        Reference::factory()->create(['status' => 'pending']);
+        Reference::factory()->pending()->unpublished()->create();
+        Reference::factory()->create(['status' => 'inactive']);
+        expect(Reference::active()->count())->toBe(2);
 
         Venue::factory()->create(['status' => 'verified']);
         Venue::factory()->create(['status' => 'inactive']);

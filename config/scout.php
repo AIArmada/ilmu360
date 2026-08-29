@@ -290,6 +290,7 @@ return [
                         ['name' => 'search_text', 'type' => 'string'],
                         ['name' => 'slug', 'type' => 'string'],
                         ['name' => 'status', 'type' => 'string', 'facet' => true],
+                        ['name' => 'published_at', 'type' => 'int64', 'optional' => true, 'facet' => true],
                         ['name' => 'is_active', 'type' => 'bool', 'facet' => true],
                         ['name' => 'country_id', 'type' => 'int32', 'optional' => true, 'facet' => true],
                         ['name' => 'administrative_district_id', 'type' => 'int32', 'optional' => true, 'facet' => true],

@@ -137,7 +137,6 @@ class InstitutionForm
                     ->components([
                         Select::make('status')
                             ->options([
-                                'unverified' => 'Unverified',
                                 'pending' => 'Pending',
                                 'verified' => 'Verified',
                                 'rejected' => 'Rejected',

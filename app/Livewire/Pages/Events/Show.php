@@ -22,6 +22,7 @@ use App\Models\EventKeyPerson;
 use App\Models\EventSubmission;
 use App\Models\Institution;
 use App\Models\Person;
+use App\Models\Reference;
 use App\Models\User;
 use App\Services\CalendarService;
 use App\Services\ShareTrackingService;
@@ -125,7 +126,13 @@ class Show extends Component
                 'donationChannel.media',
                 'accessPolicy',
                 'series',
-                'references.media',
+                'references' => function (Relation $query) use ($event): void {
+                    if (! $this->isEventOwner($event)) {
+                        Reference::applyPublicVisibility($query->getQuery());
+                    }
+
+                    $query->with('media');
+                },
                 'links',
                 'audiences',
                 'audienceProfiles',

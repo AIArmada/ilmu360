@@ -111,12 +111,12 @@ class DonationChannelForm
             ->schema([
                 Select::make('status')
                     ->options([
-                        'unverified' => 'Unverified',
+                        'pending' => 'Pending',
                         'verified' => 'Verified',
                         'rejected' => 'Rejected',
                         'inactive' => 'Inactive',
                     ])
-                    ->default('unverified')
+                    ->default('pending')
                     ->required(),
                 Toggle::make('confirm_default_replacement')
                     ->label('Replace existing default')

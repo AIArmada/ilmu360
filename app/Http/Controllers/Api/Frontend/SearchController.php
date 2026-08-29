@@ -479,14 +479,26 @@ class SearchController extends FrontendController
             ->tap(fn (Builder $query): Builder => $this->slugOrUuidResolver->apply($query, 'institutions.slug', $institutionKey))
             ->firstOrFail();
 
-        abort_unless($user instanceof User ? $user->can('view', $record) : $record->status === 'verified', 404);
+        abort_unless(
+            $user instanceof User
+                ? $user->can('view', $record)
+                : in_array((string) $record->status, ['verified', 'pending'], true),
+            404,
+        );
 
         $upcomingPerPage = max(1, min($request->integer('upcoming_per_page', 6), 50));
         $upcomingEvents = $this->limitedEventPayloadWithTotal(
             $this->institutionEventsQuery($record)
                 ->active()
                 ->where('starts_at', '>=', $now)
-                ->with(['institution.media', 'venue.addresses.country', 'persons.media', 'keyPeople.person', 'media', 'references'])
+                ->with([
+                    'institution.media',
+                    'venue.addresses.country',
+                    'persons.media',
+                    'keyPeople.person',
+                    'media',
+                    'references' => fn ($query) => $query->active(),
+                ])
                 ->orderBy('starts_at'),
             $upcomingPerPage,
         );
@@ -496,7 +508,14 @@ class SearchController extends FrontendController
             $this->institutionEventsQuery($record)
                 ->active()
                 ->where('starts_at', '<', $now)
-                ->with(['institution.media', 'venue.addresses.country', 'persons.media', 'keyPeople.person', 'media', 'references'])
+                ->with([
+                    'institution.media',
+                    'venue.addresses.country',
+                    'persons.media',
+                    'keyPeople.person',
+                    'media',
+                    'references' => fn ($query) => $query->active(),
+                ])
                 ->orderByDesc('starts_at'),
             $pastPerPage,
         );
@@ -538,7 +557,12 @@ class SearchController extends FrontendController
             ->tap(fn (Builder $query): Builder => $this->slugOrUuidResolver->apply($query, 'persons.slug', $personKey))
             ->firstOrFail();
 
-        abort_unless($user instanceof User ? $user->can('view', $record) : ($record->status === 'verified'), 404);
+        abort_unless(
+            $user instanceof User
+                ? $user->can('view', $record)
+                : in_array((string) $record->status, ['verified', 'pending'], true),
+            404,
+        );
 
         $otherRoleUpcomingPerPage = max(1, min($request->integer('other_role_upcoming_per_page', 6), 50));
         $otherRoleUpcomingMatches = $record->nonSpeakerEventKeyPeople()
@@ -558,7 +582,7 @@ class SearchController extends FrontendController
             'event.institution.addresses.country',
             'event.venue.addresses.country',
             'event.media',
-            'event.references',
+            'event.references' => fn ($query) => $query->active(),
         ]);
 
         $otherRoleUpcomingMatches = $otherRoleUpcomingMatches
@@ -591,7 +615,7 @@ class SearchController extends FrontendController
             'event.institution.addresses.country',
             'event.venue.addresses.country',
             'event.media',
-            'event.references',
+            'event.references' => fn ($query) => $query->active(),
         ]);
 
         $otherRolePastMatches = $otherRolePastMatches
@@ -611,7 +635,14 @@ class SearchController extends FrontendController
             $record->events()
                 ->active()
                 ->where('starts_at', '>=', $now)
-                ->with(['institution', 'institution.media', 'institution.addresses.country', 'venue.addresses.country', 'media', 'references'])
+                ->with([
+                    'institution',
+                    'institution.media',
+                    'institution.addresses.country',
+                    'venue.addresses.country',
+                    'media',
+                    'references' => fn ($query) => $query->active(),
+                ])
                 ->orderBy('starts_at'),
             $upcomingPerPage,
         );
@@ -621,7 +652,14 @@ class SearchController extends FrontendController
             $record->events()
                 ->active()
                 ->where('starts_at', '<', $now)
-                ->with(['institution', 'institution.media', 'institution.addresses.country', 'venue.addresses.country', 'media', 'references'])
+                ->with([
+                    'institution',
+                    'institution.media',
+                    'institution.addresses.country',
+                    'venue.addresses.country',
+                    'media',
+                    'references' => fn ($query) => $query->active(),
+                ])
                 ->orderByDesc('starts_at'),
             $pastPerPage,
         );
@@ -681,7 +719,7 @@ class SearchController extends FrontendController
                     'persons.media',
                     'keyPeople.person.media',
                     'media',
-                    'references',
+                    'references' => fn ($query) => $query->active(),
                 ])
                 ->orderBy('starts_at'),
             $upcomingPerPage,
@@ -698,7 +736,7 @@ class SearchController extends FrontendController
                     'persons.media',
                     'keyPeople.person.media',
                     'media',
-                    'references',
+                    'references' => fn ($query) => $query->active(),
                 ])
                 ->orderByDesc('starts_at'),
             $pastPerPage,
@@ -718,7 +756,7 @@ class SearchController extends FrontendController
     #[Group('Reference', 'Public reference directory and detail endpoints.')]
     #[Endpoint(
         title: 'List public references',
-        description: 'Returns a paginated directory of active, verified references. Supports search by title, author, or publisher, and a following filter.',
+        description: 'Returns a paginated directory of references that have been published and are verified or pending. Supports search by title, author, or publisher, and a following filter.',
     )]
     #[QueryParameter('fields', 'Optional comma-separated top-level list fields to return. Supported fields: id, slug, title, display_title, author, type, parent_reference_id, part_type, part_number, part_label, is_part, publisher, publication_year, status, events_count, front_cover_url, is_following.', required: false, type: 'string', infer: false, example: 'id,display_title,author,front_cover_url')]
     #[QueryParameter('search', 'Optional free-text search across public reference titles, authors, and publishers.', required: false, type: 'string', infer: false, example: 'Riyadus Solihin')]
@@ -793,7 +831,12 @@ class SearchController extends FrontendController
             ->tap(fn (Builder $query): Builder => $this->slugOrUuidResolver->apply($query, 'references.slug', $referenceKey))
             ->firstOrFail();
 
-        abort_unless($user instanceof User ? $user->can('view', $record) : ($record->status === 'verified'), 404);
+        abort_unless(
+            $user instanceof User
+                ? $user->can('view', $record)
+                : $record->isPubliclyVisible(),
+            404,
+        );
 
         $referenceEventIds = $record->isRootReference() || $request->boolean('include_all_parts')
             ? $record->familyReferenceIds()
@@ -804,7 +847,8 @@ class SearchController extends FrontendController
             Event::query()
                 ->active()
                 ->whereHas('references', function (Builder $referenceQuery) use ($referenceEventIds): void {
-                    $referenceQuery->whereIn('references.id', $referenceEventIds);
+                    Reference::applyPublicVisibility($referenceQuery)
+                        ->whereIn('references.id', $referenceEventIds);
                 })
                 ->where('starts_at', '>=', $now)
                 ->with([
@@ -814,6 +858,7 @@ class SearchController extends FrontendController
                     'persons.media',
                     'venue.addresses.country',
                     'media',
+                    'references' => fn ($query) => $query->active(),
                 ])
                 ->orderBy('starts_at', 'asc'),
             $upcomingPerPage,
@@ -824,7 +869,8 @@ class SearchController extends FrontendController
             Event::query()
                 ->active()
                 ->whereHas('references', function (Builder $referenceQuery) use ($referenceEventIds): void {
-                    $referenceQuery->whereIn('references.id', $referenceEventIds);
+                    Reference::applyPublicVisibility($referenceQuery)
+                        ->whereIn('references.id', $referenceEventIds);
                 })
                 ->where('starts_at', '<', $now)
                 ->with([
@@ -834,6 +880,7 @@ class SearchController extends FrontendController
                     'persons.media',
                     'venue.addresses.country',
                     'media',
+                    'references' => fn ($query) => $query->active(),
                 ])
                 ->orderByDesc('starts_at'),
             $pastPerPage,
@@ -951,7 +998,6 @@ class SearchController extends FrontendController
         $query = Institution::query()
             ->select('institutions.*')
             ->active()
-            ->where('status', 'verified')
             ->selectSub($this->institutionPublicEventCountSubquery(upcomingOnly: true), 'events_count')
             ->with(['addresses', 'media', 'names']);
 
@@ -988,7 +1034,6 @@ class SearchController extends FrontendController
 
         $query
             ->active()
-            ->where('status', 'verified')
             ->selectSub($this->institutionPublicEventCountSubquery(), 'events_count')
             ->with(['addresses', 'media', 'names']);
 
@@ -1179,7 +1224,6 @@ class SearchController extends FrontendController
         }
 
         return $query->active()
-            ->where('status', 'verified')
             ->withCount(['events' => function (Builder $query): void {
                 $query
                     ->whereNotNull('events.published_at')
@@ -1315,7 +1359,6 @@ class SearchController extends FrontendController
         }
 
         return $query->active()
-            ->where('status', 'verified')
             ->withCount(['events' => function (Builder $query): void {
                 $query
                     ->whereNotNull('events.published_at')

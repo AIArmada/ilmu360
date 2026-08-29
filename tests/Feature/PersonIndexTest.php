@@ -500,7 +500,7 @@ it('matches partial person names within a larger token', function () {
 
 it('shows the empty state when person search has no public matches', function () {
     Person::factory()->create([
-        'name' => 'Ammar',
+        'name' => 'Zayd',
         'status' => 'pending',
     ]);
 
@@ -521,6 +521,21 @@ it('shows a neutral state while a speaker search is too short', function () {
         ->assertSee(__('Continue typing to search'))
         ->assertSee(__('Type at least 3 characters to search.'))
         ->assertDontSee(__('No speakers found'));
+});
+
+it('lists pending speakers in the directory with the unverified badge and includes them in search', function () {
+    $person = Person::factory()->create([
+        'name' => 'Penceramah Belum Disahkan',
+        'status' => 'pending',
+    ]);
+
+    get('/penceramah')
+        ->assertSuccessful()
+        ->assertSee('Penceramah Belum Disahkan')
+        ->assertSee('Belum disahkan');
+
+    Livewire::test('pages.persons.index', ['search' => 'Penceramah Belum Disahkan'])
+        ->assertSee('Penceramah Belum Disahkan');
 });
 
 it('updates search results live when query changes', function () {
@@ -647,7 +662,7 @@ it('reindexes person search when a title assignment changes', function () {
 it('refreshes cached person search results when a person becomes verified', function () {
     $person = Person::factory()->create([
         'name' => 'Person Menunggu Pengesahan',
-        'status' => 'pending',
+        'status' => 'rejected',
     ]);
     $searchService = app(PersonSearchService::class);
 

@@ -109,7 +109,7 @@ new
         protected function eventPageEagerLoads(): array
         {
             return [
-                'references',
+                'references' => fn ($query) => $query->active(),
                 'institution',
                 'institution.addresses.country',
                 'venue.addresses.country',

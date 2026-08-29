@@ -27,7 +27,10 @@ class Show extends Component
     {
         $canBypassVisibility = auth()->user()?->hasAnyRole(['super_admin', 'moderator']) ?? false;
 
-        abort_unless((string) $reference->status === 'verified' || $canBypassVisibility, 404);
+        abort_unless(
+            $reference->isPubliclyVisible() || $canBypassVisibility,
+            404,
+        );
 
         $this->reference = $reference;
         $this->loadReferenceRelations();
@@ -82,8 +85,8 @@ class Show extends Component
             $this->reference->load([
                 'media',
                 'socialProfiles',
-                'parentReference',
-                'childReferences',
+                'parentReference' => fn ($query) => $query->active(),
+                'childReferences' => fn ($query) => $query->active(),
             ]);
         });
     }

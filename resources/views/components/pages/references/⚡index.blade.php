@@ -57,7 +57,6 @@ new
         {
             $query = Reference::query()
                 ->active()
-                ->where('status', 'verified')
                 ->withCount(['events' => function (Builder $query): void {
                     $query->active();
                 }])

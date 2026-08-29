@@ -1298,7 +1298,7 @@ class CreateAdvanced extends Component implements HasForms
     protected function referenceOptions(): array
     {
         return Reference::query()
-            ->whereIn('status', ['verified', 'pending'])
+            ->active()
             ->orderBy('title')
             ->pluck('title', 'id')
             ->mapWithKeys(fn (mixed $label, mixed $id): array => [(string) $id => (string) $label])

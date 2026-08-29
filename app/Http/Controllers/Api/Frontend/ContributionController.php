@@ -6,6 +6,7 @@ use AIArmada\Persons\Enums\Gender;
 use App\Actions\Contributions\ApplyDirectContributionUpdateAction;
 use App\Actions\Contributions\ApproveContributionRequestAction;
 use App\Actions\Contributions\CancelContributionRequestAction;
+use App\Actions\Contributions\EnsureNoPendingContributionRequestAction;
 use App\Actions\Contributions\RejectContributionRequestAction;
 use App\Actions\Contributions\ResolveContributionChangedPayloadAction;
 use App\Actions\Contributions\ResolveContributionSubjectPresentationAction;
@@ -14,6 +15,7 @@ use App\Actions\Contributions\ResolveContributionUpdateContextAction;
 use App\Actions\Contributions\ResolveLatestPendingContributionRequestAction;
 use App\Actions\Contributions\ResolveOwnContributionRequestAction;
 use App\Actions\Contributions\ResolvePendingContributionApprovalsAction;
+use App\Actions\Contributions\ResolvePendingContributionRequestAction;
 use App\Actions\Contributions\ResolveReviewableContributionRequestAction;
 use App\Actions\Contributions\SubmitContributionUpdateRequestAction;
 use App\Actions\Contributions\SubmitStagedContributionCreateAction;
@@ -255,7 +257,7 @@ class ContributionController extends FrontendController
     #[Endpoint(
         title: 'Get editable contribution context',
         description: 'Returns the current editable state, presentation metadata, and permission flags for an existing subject. '
-            .'Call this before submitting an update so you know whether the caller can edit directly, which sparse top-level fields are supported, and whether a pending request already exists. '
+            .'Call this before submitting an update so you know whether the caller can edit directly, which sparse top-level fields are supported, whether the caller has a pending request, and whether any pending request currently blocks updates. '
             .'Only direct-edit media fields exposed in `direct_edit_media_fields` are uploadable, currently institution `cover`/`gallery`, person `avatar`/`cover`/`gallery`, event `cover`/`poster`/`gallery`, and reference `front_cover`/`back_cover`/`gallery`.',
     )]
     public function suggestContext(
@@ -265,6 +267,7 @@ class ContributionController extends FrontendController
         ResolveContributionUpdateContextAction $resolveContributionUpdateContextAction,
         ResolveContributionSubjectPresentationAction $resolveContributionSubjectPresentationAction,
         ResolveLatestPendingContributionRequestAction $resolveLatestPendingContributionRequestAction,
+        ResolvePendingContributionRequestAction $resolvePendingContributionRequestAction,
     ): JsonResponse {
         $user = $this->requireUser($request);
         $this->ensureDirectoryFeedbackAllowed($user);
@@ -292,6 +295,7 @@ class ContributionController extends FrontendController
                     : [],
                 'subject_presentation' => $resolveContributionSubjectPresentationAction->handle($entity),
                 'can_direct_edit' => $canDirectEdit,
+                'pending_update_blocked' => $resolvePendingContributionRequestAction->handle($entity) instanceof ContributionRequest,
                 'latest_pending_request' => ($latestPendingRequest = $resolveLatestPendingContributionRequestAction->handle($user, $entity)) instanceof ContributionRequest
                     ? $this->contributionRequestData($latestPendingRequest, $user)
                     : null,
@@ -325,6 +329,7 @@ class ContributionController extends FrontendController
         description: 'Submits a sparse top-level payload for an existing event, institution, person, or reference. '
             .'Fetch `GET /forms/contributions/{subjectType}/{subject}/suggest` first to discover the editable field contract and current values. '
             .'Only files named in `direct_edit_media_fields` may be uploaded, and only when the current user can edit the subject directly. '
+            .'If any pending contribution request already exists for the subject, the update is rejected until that request is reviewed. '
             .'If the caller can update the subject directly, the changes are applied immediately and the response `mode` is `direct_edit`; otherwise a contribution review request is created and the response `mode` is `review`.',
     )]
     public function suggestUpdate(
@@ -336,6 +341,7 @@ class ContributionController extends FrontendController
         ResolveContributionSubmissionStateAction $resolveContributionSubmissionStateAction,
         ApplyDirectContributionUpdateAction $applyDirectContributionUpdateAction,
         SubmitContributionUpdateRequestAction $submitContributionUpdateRequestAction,
+        EnsureNoPendingContributionRequestAction $ensureNoPendingContributionRequestAction,
         ResolveContributionSubjectPresentationAction $resolveContributionSubjectPresentationAction,
         FrontendMediaSyncService $frontendMediaSyncService,
         ContributionEntityMutationService $contributionEntityMutationService,
@@ -358,6 +364,8 @@ class ContributionController extends FrontendController
             : [];
 
         abort_unless($user->can('view', $entity), 403);
+
+        $ensureNoPendingContributionRequestAction->handle($entity);
 
         $uploadedFiles = array_keys($request->allFiles());
 

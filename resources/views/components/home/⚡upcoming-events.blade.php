@@ -12,7 +12,12 @@ new class extends Component {
         return Event::active()
             ->where('starts_at', '>=', now())
             ->orderBy('starts_at')
-            ->with(['institution', 'venue', 'persons', 'references'])
+            ->with([
+                'institution',
+                'venue',
+                'persons',
+                'references' => fn ($query) => $query->active(),
+            ])
             ->take(9)
             ->get();
     }

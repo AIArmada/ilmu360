@@ -41,6 +41,26 @@ it('sets verified_by to the authenticated user when status changes to verified',
     expect($reference->fresh()->verified_by)->toBe((string) $user->getKey());
 });
 
+it('sets published_at when an existing unpublished reference becomes pending', function () {
+    $reference = Reference::factory()->unpublished()->create([
+        'status' => 'inactive',
+    ]);
+
+    expect($reference->published_at)->toBeNull();
+
+    $reference->update(['status' => 'pending']);
+
+    expect($reference->fresh()->published_at)->not->toBeNull();
+});
+
+it('keeps an explicitly unpublished new reference unpublished', function () {
+    $reference = Reference::factory()->unpublished()->create([
+        'status' => 'pending',
+    ]);
+
+    expect($reference->published_at)->toBeNull();
+});
+
 it('does not set verified_by when status is not verified', function () {
     $user = User::factory()->create();
     $this->actingAs($user);

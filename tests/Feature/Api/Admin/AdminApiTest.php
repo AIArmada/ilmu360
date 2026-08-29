@@ -1549,6 +1549,22 @@ it('exposes donation channel write schema and can create and update donation cha
     expect(collect($schema['fields'] ?? [])->pluck('name')->all())
         ->toContain('donatable_type', 'donatable_id', 'recipient', 'method', 'status', 'qr', 'clear_qr');
 
+    $statusField = collect($schema['fields'] ?? [])->firstWhere('name', 'status');
+
+    expect(data_get($statusField, 'allowed_values'))->toBe(['pending', 'verified', 'rejected', 'inactive'])
+        ->and(data_get($schema, 'defaults.status'))->toBe('pending');
+
+    $this->postJson('/api/v1/admin/donation-channels', [
+        'donatable_type' => 'institution',
+        'donatable_id' => (string) $institution->getKey(),
+        'recipient' => 'Rejected Legacy Status',
+        'method' => 'bank_account',
+        'bank_name' => 'Maybank',
+        'account_number' => '123456789012',
+        'status' => 'unverified',
+    ])->assertUnprocessable()
+        ->assertJsonValidationErrors(['status']);
+
     $createResponse = $this->withHeaders(['Accept' => 'application/json'])->post('/api/v1/admin/donation-channels', [
         'donatable_type' => 'institution',
         'donatable_id' => (string) $institution->getKey(),
@@ -2096,10 +2112,14 @@ it('exposes admin institution write schema and can create and update institution
         ->assertJsonPath('data.schema.endpoint', '/api/v1/admin/institutions')
         ->json('data.schema');
 
+    $statusField = collect($institutionSchema['fields'] ?? [])->firstWhere('name', 'status');
+
     expect(collect($institutionSchema['fields'] ?? [])->pluck('name')->all())
         ->toContain('address.country_id')
         ->and(collect($institutionSchema['fields'] ?? [])->pluck('name')->all())->not->toContain('address.country_code', 'address.country_key')
-        ->and(collect($institutionSchema['conditional_rules'] ?? [])->pluck('field')->all())->not->toContain('address.country_id');
+        ->and(collect($institutionSchema['conditional_rules'] ?? [])->pluck('field')->all())->not->toContain('address.country_id')
+        ->and(data_get($statusField, 'allowed_values'))->toBe(['pending', 'verified', 'rejected', 'inactive'])
+        ->and(data_get($institutionSchema, 'defaults.status'))->toBe('pending');
 
     $createResponse = $this->postJson('/api/v1/admin/institutions', [
         'name' => 'Admin API Institution',
@@ -2127,6 +2147,16 @@ it('exposes admin institution write schema and can create and update institution
         ],
     ])->assertOk()
         ->assertJsonPath('data.record.attributes.name', 'Admin API Institution Updated');
+
+    $this->putJson('/api/v1/admin/institutions/'.$institutionRouteKey, [
+        'name' => 'Admin API Institution Updated',
+        'type' => 'masjid',
+        'status' => 'unverified',
+        'address' => [
+            'country_id' => ensureAdminApiMalaysiaCountryExists(),
+        ],
+    ])->assertUnprocessable()
+        ->assertJsonValidationErrors(['status']);
 });
 
 it('preserves institution address line1 when sparse map fields are updated through the admin api', function () {
@@ -2407,7 +2437,7 @@ it('exposes admin venue write schema and can create and update venues through th
         ->assertJsonPath('data.resource.api_routes.collection', '/api/v1/admin/venues')
         ->assertJsonPath('data.resource.api_routes.schema', '/api/v1/admin/venues/schema');
 
-    $this->getJson('/api/v1/admin/venues/schema?operation=create')
+    $venueSchema = $this->getJson('/api/v1/admin/venues/schema?operation=create')
         ->assertOk()
         ->assertJsonPath('data.schema.resource_key', 'venues')
         ->assertJsonPath('data.schema.method', 'POST')
@@ -2415,7 +2445,12 @@ it('exposes admin venue write schema and can create and update venues through th
         ->assertJsonPath('data.schema.content_type', 'multipart/form-data')
         ->assertJsonPath('data.schema.defaults.type', 'dewan')
         ->assertJsonPath('data.schema.defaults.status', 'verified')
-        ->assertJsonPath('data.schema.catalogs.0.field', 'address.country_id');
+        ->assertJsonPath('data.schema.catalogs.0.field', 'address.country_id')
+        ->json('data.schema');
+
+    $statusField = collect($venueSchema['fields'] ?? [])->firstWhere('name', 'status');
+
+    expect(data_get($statusField, 'allowed_values'))->toBe(['pending', 'verified', 'rejected', 'inactive']);
 
     $createResponse = $this->postJson('/api/v1/admin/venues', [
         'name' => 'Admin API Venue',
@@ -2460,6 +2495,11 @@ it('exposes admin venue write schema and can create and update venues through th
         ->and($venue->contactMethods->first()?->value)->toBe('0312345678')
         ->and($venue->socialProfiles)->toHaveCount(1)
         ->and($venue->socialProfiles->first()?->platform)->toBe('website');
+
+    $this->putJson('/api/v1/admin/venues/'.$venueRouteKey, [
+        'status' => 'unverified',
+    ])->assertUnprocessable()
+        ->assertJsonValidationErrors(['status']);
 
     $this->putJson('/api/v1/admin/venues/'.$venueRouteKey, [
         'name' => 'Admin API Venue Updated',
@@ -2748,6 +2788,7 @@ it('exposes admin reference write schema and can create and update references th
         ->and($reference->slug)->toBe('admin-api-reference')
         ->and($reference->is_canonical)->toBeTrue()
         ->and($reference->status)->toBe('verified')
+        ->and($reference->published_at)->not->toBeNull()
         ->and((string) $reference->status)->toBeIn(['verified', 'pending'])
         ->and($reference->socialProfiles)->toHaveCount(1)
         ->and($reference->socialProfiles->first()?->platform)->toBe('website');

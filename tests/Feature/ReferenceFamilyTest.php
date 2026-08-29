@@ -169,3 +169,25 @@ it('hides child parts from default reference directory but finds them by search'
         ->assertSee('Riyadhus Solihin')
         ->assertSee('Jilid 2');
 });
+
+it('excludes unpublished references from public family expansion and event results', function () {
+    [$root, $partTwo, $partThree] = referenceFamilyFixtures();
+    $hiddenPart = Reference::factory()->pending()->unpublished()->create([
+        'title' => 'Hidden Jilid 4',
+        'parent_id' => $root->getKey(),
+        'part_type' => ReferencePartType::Jilid->value,
+        'part_number' => '4',
+    ]);
+    $hiddenEvent = publicReferenceFamilyEvent(['title' => 'Kuliah Jilid 4']);
+    $hiddenPart->events()->attach($hiddenEvent, ['sort_order' => 1]);
+
+    expect($root->fresh()->familyReferenceIds())
+        ->toEqualCanonicalizing([(string) $root->id, (string) $partTwo->id, (string) $partThree->id])
+        ->and(Reference::expandRootReferenceIdsForFiltering([(string) $root->id, (string) $hiddenPart->id]))
+        ->toEqualCanonicalizing([(string) $root->id, (string) $partTwo->id, (string) $partThree->id]);
+
+    $this->getJson(route('api.client.references.show', ['referenceKey' => $root->slug]))
+        ->assertOk()
+        ->assertJsonMissing(['title' => 'Kuliah Jilid 4'])
+        ->assertJsonMissing(['reference_study_subtitle' => 'Hidden Jilid 4']);
+});

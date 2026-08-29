@@ -582,7 +582,7 @@ final readonly class ShareTrackingUrlService
     private function referenceTarget(string $referenceIdentifier): array
     {
         $reference = $this->slugOrUuidResolver->first(
-            Reference::query(),
+            Reference::query()->active(),
             'references.slug',
             $referenceIdentifier,
         );

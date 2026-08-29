@@ -488,7 +488,7 @@ it('rejects invalid prayer institution ids on account settings', function () {
         ->assertHasErrors(['formData.daily_prayer_institution_id']);
 });
 
-it('rejects inactive or unverified institutions for new prayer preferences', function () {
+it('rejects inactive or pending institutions for new prayer preferences', function () {
     $inactiveInstitution = Institution::factory()->create([
         'status' => 'inactive',
     ]);

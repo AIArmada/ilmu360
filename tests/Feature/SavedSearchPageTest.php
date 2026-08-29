@@ -229,7 +229,7 @@ it('renders source issue and reference chips using human-readable values', funct
     $issueTag = savedSearchTerm('Keluarga');
     $reference = Reference::factory()->create([
         'title' => 'Riyadhus Solihin',
-        'status' => 'active',
+        'status' => 'verified',
     ]);
 
     $this->actingAs($user)

@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Log;
 
 class ReferenceSearchService implements PublicDiscoveryAdapter
 {
+    private const string PUBLIC_TYPESENSE_FILTER = 'status:=[verified,pending] && published_at:>0';
+
     /**
      * @param  Builder<Reference>  $query
      * @return Builder<Reference>
@@ -78,7 +80,7 @@ class ReferenceSearchService implements PublicDiscoveryAdapter
         if ($this->shouldUseTypesenseSearch() && app(TypesenseHealthCheckService::class)->isAvailable()) {
             try {
                 return $this->searchIdsWithScout($normalizedSearch, [
-                    'filter_by' => 'status:=verified',
+                    'filter_by' => self::PUBLIC_TYPESENSE_FILTER,
                     'num_typos' => 0,
                 ]);
             } catch (\Throwable $exception) {
@@ -125,7 +127,7 @@ class ReferenceSearchService implements PublicDiscoveryAdapter
         if ($this->shouldUseTypesenseSearch() && app(TypesenseHealthCheckService::class)->isAvailable()) {
             try {
                 return $this->searchIdsWithScout($normalizedSearch, [
-                    'filter_by' => 'status:=verified',
+                    'filter_by' => self::PUBLIC_TYPESENSE_FILTER,
                     'prioritize_exact_match' => true,
                 ]);
             } catch (\Throwable $exception) {
@@ -142,7 +144,7 @@ class ReferenceSearchService implements PublicDiscoveryAdapter
     private function publicSearchIdsFromDatabase(string $normalizedSearch): array
     {
         return Reference::query()
-            ->where('status', 'verified')
+            ->active()
             ->select('references.id')
             ->tap(fn (Builder $query): Builder => $this->applyDatabaseSearch($query, $normalizedSearch))
             ->orderBy('references.title')
@@ -158,7 +160,7 @@ class ReferenceSearchService implements PublicDiscoveryAdapter
     private function publicFuzzySearchIdsFromDatabase(string $normalizedSearch, float $minimumScore): array
     {
         return Reference::query()
-            ->where('status', 'verified')
+            ->active()
             ->select(['id', 'title', 'author'])
             ->tap(fn (Builder $query): Builder => $this->applyFuzzyCandidateFilter($query, $normalizedSearch))
             ->tap(fn (Builder $query): Builder => $this->applyFuzzyCandidateOrdering($query, $normalizedSearch))

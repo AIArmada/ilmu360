@@ -353,9 +353,10 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
 
         if ($referenceFilter['ids'] !== []) {
             $queryBuilder->whereHas('references', function (Builder $referenceQuery) use ($referenceFilter): void {
-                $referenceQuery->whereIn('references.id', $referenceFilter['ids']);
+                Reference::applyPublicVisibility($referenceQuery)
+                    ->whereIn('references.id', $referenceFilter['ids']);
             });
-        } elseif ($referenceFilter['has_author_filter']) {
+        } elseif ($referenceFilter['has_author_filter'] || $referenceFilter['has_id_filter']) {
             $queryBuilder->whereRaw('1 = 0');
         }
 
@@ -538,7 +539,8 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
 
             if ($referenceIds !== []) {
                 $nestedQuery->orWhereHas('references', function (Builder $referenceQuery) use ($referenceIds): void {
-                    $referenceQuery->whereIn('references.id', $referenceIds);
+                    Reference::applyPublicVisibility($referenceQuery)
+                        ->whereIn('references.id', $referenceIds);
                 });
             }
         });
@@ -914,10 +916,11 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
 
     /**
      * @param  array<string, mixed>  $filters
-     * @return array{ids: list<string>, has_author_filter: bool}
+     * @return array{ids: list<string>, has_author_filter: bool, has_id_filter: bool}
      */
     protected function resolvedReferenceFilter(array $filters): array
     {
+        $hasIdFilter = $this->uuidFilterValues($filters['reference_ids'] ?? null) !== [];
         $referenceIds = $this->expandedReferenceIdsForFiltering($filters['reference_ids'] ?? null);
         $hasAuthorFilter = false;
 
@@ -942,6 +945,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
         return [
             'ids' => $referenceIds,
             'has_author_filter' => $hasAuthorFilter,
+            'has_id_filter' => $hasIdFilter,
         ];
     }
 
