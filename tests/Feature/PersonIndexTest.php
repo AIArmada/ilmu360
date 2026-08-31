@@ -158,6 +158,7 @@ it('shows the total person count on the person index', function () {
     get('/penceramah?search='.urlencode($searchPrefix))
         ->assertSuccessful()
         ->assertSee('Temui penceramah')
+        ->assertSee('data-material="results-summary"', false)
         ->assertSee('2 penceramah ditemui');
 });
 

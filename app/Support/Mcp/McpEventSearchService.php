@@ -59,6 +59,7 @@ class McpEventSearchService
         'key_person_roles',
         'person_in_charge_ids',
         'person_in_charge_search',
+        'person_name_search',
         'moderator_ids',
         'imam_ids',
         'khatib_ids',
@@ -210,6 +211,7 @@ class McpEventSearchService
             'person_in_charge_ids' => ['sometimes', 'nullable', 'array'],
             'person_in_charge_ids.*' => ['string'],
             'person_in_charge_search' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'person_name_search' => ['sometimes', 'nullable', 'string', 'max:255'],
             'moderator_ids' => ['sometimes', 'nullable', 'array'],
             'moderator_ids.*' => ['string'],
             'imam_ids' => ['sometimes', 'nullable', 'array'],
@@ -321,6 +323,10 @@ class McpEventSearchService
             'person_in_charge_search' => $schema->string()->nullable()->description(
                 'Text search on the name of the person in charge / event coordinator.'
             ),
+            'person_name_search' => $schema->string()->nullable()->description(
+                'Free-text search on any person linked to the event, regardless of role. Matches attached '
+                .'speakers as well as key people (imam, khatib, bilal, moderator, person_in_charge) by name.'
+            ),
             'moderator_ids' => $stringArray->description('Array of person UUIDs who are the event moderator(s).'),
             'imam_ids' => $stringArray->description('Array of person UUIDs who are the event imam(s).'),
             'khatib_ids' => $stringArray->description('Array of person UUIDs who are the event khatib(s).'),
@@ -404,6 +410,7 @@ class McpEventSearchService
         }
 
         $filters['person_in_charge_search'] = $this->normalizeOptionalString($filters['person_in_charge_search'] ?? null);
+        $filters['person_name_search'] = $this->normalizeOptionalString($filters['person_name_search'] ?? null);
         $filters['starts_time_from'] = $this->normalizeOptionalString($filters['starts_time_from'] ?? null);
         $filters['starts_time_until'] = $this->normalizeOptionalString($filters['starts_time_until'] ?? null);
 

@@ -95,8 +95,9 @@
     display: none !important;
 }
 
-.person-search-input::-webkit-search-cancel-button,
-.person-search-input::-webkit-search-decoration {
+/* The shared search box renders its own clear button. */
+.mi-search-input::-webkit-search-cancel-button,
+.mi-search-input::-webkit-search-decoration {
     -webkit-appearance: none;
     appearance: none;
     display: none;
@@ -241,6 +242,10 @@
 
     .living-majlis-field [data-material="hero-field"] {
         background: Canvas !important;
+    }
+
+    .living-majlis-field [data-material="hero-art"] {
+        display: none;
     }
 
     .living-majlis-veil,

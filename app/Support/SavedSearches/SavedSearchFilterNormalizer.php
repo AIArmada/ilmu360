@@ -64,6 +64,7 @@ final class SavedSearchFilterNormalizer
         $this->normalizeEnumScalarFilter($normalizedFilters, 'prayer_time', EventPrayerTime::class);
         $this->normalizeEnumScalarFilter($normalizedFilters, 'timing_mode', TimingMode::class);
         $this->normalizeTrimmedStringFilter($normalizedFilters, 'person_in_charge_search');
+        $this->normalizeTrimmedStringFilter($normalizedFilters, 'person_name_search');
         $this->normalizeDateScalarFilter($normalizedFilters, 'starts_after');
         $this->normalizeDateScalarFilter($normalizedFilters, 'starts_before');
         $this->normalizeDateScalarFilter($normalizedFilters, 'starts_on_local_date');
@@ -95,6 +96,7 @@ final class SavedSearchFilterNormalizer
             'key_person_roles',
             'person_in_charge_ids',
             'person_in_charge_search',
+            'person_name_search',
             'moderator_ids',
             'imam_ids',
             'khatib_ids',

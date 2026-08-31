@@ -49,7 +49,8 @@ final class EventDiscoveryCriteriaFactory
             relationFilters: $this->select($normalizedFilters, [
                 'country_id', 'state_id', 'city_id', 'area_assignments',
                 'institution_id', 'venue_id', 'person_ids', 'reference_ids', 'language_codes',
-                'person_in_charge_ids', 'person_in_charge_search', 'domain_tag_ids', 'discipline_tag_ids',
+                'person_in_charge_ids', 'person_in_charge_search', 'person_name_search',
+                'domain_tag_ids', 'discipline_tag_ids',
                 'source_tag_ids', 'issue_tag_ids', 'event_category_ids',
             ]),
             latitude: $latitude,
@@ -174,6 +175,7 @@ final class EventDiscoveryCriteriaFactory
             || $this->arrayValue($filters['language_codes'] ?? null) !== []
             || $this->arrayValue($filters['reference_author_search'] ?? null) !== []
             || $this->normalizeText($filters['person_in_charge_search'] ?? null) !== null
+            || $this->normalizeText($filters['person_name_search'] ?? null) !== null
             || in_array($filters['timing_mode'] ?? null, [TimingMode::Absolute->value, TimingMode::PrayerRelative->value], true)
             || $this->normalizeText($filters['starts_time_from'] ?? null) !== null
             || $this->normalizeText($filters['starts_time_until'] ?? null) !== null

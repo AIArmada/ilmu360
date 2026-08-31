@@ -30,6 +30,8 @@ use App\Models\Venue;
 use App\Services\EventSearchService;
 use App\Services\TypesenseEventDiscovery;
 use App\Support\Location\PublicGeolocationPermission;
+use App\Support\Location\VisitorCountryResolver;
+use App\Support\SavedSearches\SavedSearchFilterNormalizer;
 use Database\Seeders\AIArmada\EventTopicSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -208,7 +210,8 @@ describe('Event Search Filters', function () {
 
         $response->assertOk()
             ->assertSee('Circle of')
-            ->assertSee('Penceramah & kandungan')
+            ->assertSee('Nama penceramah')
+            ->assertDontSee('Penceramah & kandungan')
             ->assertDontSee('Advanced Filters')
             ->assertSee('/js/filament/schemas/schemas.js', false)
             ->assertSee('/js/filament/support/support.js', false)
@@ -380,22 +383,19 @@ describe('Event Search Filters', function () {
             $response->assertOk()
                 ->assertSee('Sebarang Negara')
                 ->assertSee('Sebarang Bandar')
-                ->assertSee('Sebarang Peranan')
-                ->assertSee('Sebarang Moderator')
-                ->assertSee('Sebarang Imam')
-                ->assertSee('Sebarang Khatib')
-                ->assertSee('Sebarang Bilal')
-                ->assertSee('Ada Masa Tamat')
-                ->assertSee('Tiada Masa Tamat')
+                ->assertSee('Nama penceramah')
+                ->assertSee('Cari nama penceramah...')
                 ->assertSee('Bahasa Melayu (BM)')
                 ->assertSee('Pilih satu atau lebih bahasa yang digunakan dalam majlis.')
                 ->assertDontSee('Any Country')
                 ->assertDontSee('Any City')
-                ->assertDontSee('Any Role')
-                ->assertDontSee('Any Moderator')
-                ->assertDontSee('Any Imam')
-                ->assertDontSee('Any Khatib')
-                ->assertDontSee('Any Bilal')
+                ->assertDontSee('Sebarang Peranan')
+                ->assertDontSee('Sebarang Moderator')
+                ->assertDontSee('Sebarang Imam')
+                ->assertDontSee('Sebarang Khatib')
+                ->assertDontSee('Sebarang Bilal')
+                ->assertDontSee('Ada Masa Tamat')
+                ->assertDontSee('Tiada Masa Tamat')
                 ->assertDontSee('Has End Time')
                 ->assertDontSee('No End Time')
                 ->assertDontSee('Terapkan penapis');
@@ -419,8 +419,6 @@ describe('Event Search Filters', function () {
     it('uses Filament for the complete sidebar filter field set', function (): void {
         $component = Livewire::test(Index::class);
         $fields = collect($component->instance()->getForm('form')->getFlatFields(withHidden: true))
-            ->keyBy(fn (mixed $field): string => $field->getName());
-        $searchFields = collect($component->instance()->getForm('searchForm')->getFlatFields(withHidden: true))
             ->keyBy(fn (mixed $field): string => $field->getName());
         $sortFields = collect($component->instance()->getForm('sortForm')->getFlatFields(withHidden: true))
             ->keyBy(fn (mixed $field): string => $field->getName());
@@ -451,8 +449,24 @@ describe('Event Search Filters', function () {
             ->and($fields['starts_after'])->toBeInstanceOf(DatePicker::class)
             ->and($fields['starts_before'])->toBeInstanceOf(DatePicker::class)
             ->and($fields['radius_km'])->toBeInstanceOf(TextInput::class)
-            ->and($searchFields['search'])->toBeInstanceOf(TextInput::class)
             ->and($sortFields['sort'])->toBeInstanceOf(Select::class);
+    });
+
+    it('renders the shared search bar bound to the search filter state', function (): void {
+        Livewire::test(Index::class)
+            ->assertSee('id="event-search"', false)
+            ->assertSee('wire:model.live.debounce.300ms="filterData.search"', false)
+            ->assertSee('wire:keydown.escape="clearSearch"', false)
+            ->assertSee(__('Cari tajuk, ustaz, masjid, topik...'));
+    });
+
+    it('clears the shared search bar through the filter state', function (): void {
+        Livewire::test(Index::class)
+            ->set('filterData.search', 'fiqh')
+            ->assertSet('search', 'fiqh')
+            ->call('clearSearch')
+            ->assertSet('search', null)
+            ->assertSet('filterData.search', null);
     });
 
     it('keeps search scopes in the filter state and represents reference authors as active filters', function () {
@@ -478,18 +492,28 @@ describe('Event Search Filters', function () {
 
     it('preserves the active search when using a date shortcut', function () {
         $today = now()->toDateString();
+        // The country is scoped automatically, so it rides along in the shortcut.
+        $expectedQuery = http_build_query([
+            'search' => 'fiqh',
+            'country_id' => app(VisitorCountryResolver::class)->resolve(),
+            'starts_after' => $today,
+            'starts_before' => $today,
+            'time_scope' => 'all',
+        ]);
 
         $this->get(eventsIndexUrl(['search' => 'fiqh']))
             ->assertOk()
-            ->assertSee('search=fiqh&amp;starts_after='.$today.'&amp;starts_before='.$today.'&amp;time_scope=all', false);
+            ->assertSee($expectedQuery);
     });
 
     it('renders secondary filters directly in the events index sidebar', function () {
         Livewire::test(Index::class)
-            ->assertSee('Penceramah & kandungan')
+            // The section key is Malay "Penceramah", translated for the English locale.
+            ->assertSee('Speaker')
+            ->assertSee('Nama penceramah')
             ->assertSee('Topik & rujukan')
             ->assertSee('Lokasi majlis')
-            ->assertSee('Event URL')
+            ->assertDontSee('Pautan & siaran')
             ->assertDontSee('Advanced Filters');
     });
 
@@ -805,6 +829,126 @@ describe('Event Search Filters', function () {
         $response->assertOk()
             ->assertSee('Kuliah Usul Fiqh')
             ->assertDontSee('Kuliah Tauhid');
+    });
+
+    it('filters events by attached speaker name using the person name filter', function () {
+        $matchPerson = Person::factory()->create([
+            'name' => 'Ustaz Samad Al-Bakri',
+            'status' => 'verified',
+        ]);
+
+        $otherPerson = Person::factory()->create([
+            'name' => 'Ustaz Ahmad Zain',
+            'status' => 'verified',
+        ]);
+
+        $matchEvent = createVisibleEventForSearch([
+            'title' => 'Kuliah Nama Penceramah A',
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now(),
+            'starts_at' => now()->addDays(1),
+        ]);
+        $matchEvent->persons()->attach($matchPerson->id);
+
+        $otherEvent = createVisibleEventForSearch([
+            'title' => 'Kuliah Nama Penceramah B',
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now(),
+            'starts_at' => now()->addDays(1),
+        ]);
+        $otherEvent->persons()->attach($otherPerson->id);
+
+        $response = $this->get(eventsIndexUrl(['person_name_search' => 'Samad']));
+
+        $response->assertOk()
+            ->assertSee('Kuliah Nama Penceramah A')
+            ->assertDontSee('Kuliah Nama Penceramah B');
+    });
+
+    it('matches any key person role with the person name filter', function () {
+        $matchEvent = createVisibleEventForSearch([
+            'title' => 'Kuliah Nama Bilal',
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now(),
+            'starts_at' => now()->addDays(1),
+        ]);
+        $matchEvent->keyPeople()->create([
+            'display_name' => 'Bilal Rashid',
+            'role_code' => EventKeyPersonRole::Bilal->value,
+            'sort_order' => 1,
+        ]);
+
+        $otherEvent = createVisibleEventForSearch([
+            'title' => 'Kuliah Tanpa Bilal',
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now(),
+            'starts_at' => now()->addDays(1),
+        ]);
+        $otherEvent->keyPeople()->create([
+            'display_name' => 'Ustaz Halim Yusof',
+            'role_code' => EventKeyPersonRole::Speaker->value,
+            'sort_order' => 1,
+        ]);
+
+        $response = $this->get(eventsIndexUrl(['person_name_search' => 'Rashid']));
+
+        $response->assertOk()
+            ->assertSee('Kuliah Nama Bilal')
+            ->assertDontSee('Kuliah Tanpa Bilal');
+    });
+
+    it('shows the person name filter chip and keeps it in the saved search query', function () {
+        Livewire::test(Index::class)
+            ->set('filterData.person_name_search', 'Samad')
+            ->assertSet('person_name_search', 'Samad')
+            ->assertSee('Nama penceramah')
+            ->assertSee('Samad');
+    });
+
+    it('supports saving a search that only uses the person name filter', function () {
+        expect(app(SavedSearchFilterNormalizer::class)->normalizeForStorage([
+            'person_name_search' => '  Samad  ',
+            'unknown_key' => 'ignored',
+        ]))->toBe(['person_name_search' => 'Samad']);
+    });
+
+    it('still honours legacy role filters arriving from a saved search', function () {
+        $imam = Person::factory()->create([
+            'name' => 'Imam Legacy Filter',
+            'status' => 'verified',
+        ]);
+
+        $matchEvent = createVisibleEventForSearch([
+            'title' => 'Kuliah Imam Legacy',
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now(),
+            'starts_at' => now()->addDays(1),
+        ]);
+        $matchEvent->keyPeople()->create([
+            'display_name' => $imam->name,
+            'involveable_type' => 'person',
+            'involveable_id' => $imam->id,
+            'role_code' => EventKeyPersonRole::Imam->value,
+            'sort_order' => 1,
+        ]);
+
+        $otherEvent = createVisibleEventForSearch([
+            'title' => 'Kuliah Tanpa Imam Legacy',
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now(),
+            'starts_at' => now()->addDays(1),
+        ]);
+
+        $this->get(eventsIndexUrl(['imam_ids' => [$imam->id]]))
+            ->assertOk()
+            ->assertSee('Kuliah Imam Legacy')
+            ->assertDontSee('Kuliah Tanpa Imam Legacy');
     });
 
     it('searches events by reference title when the reference is attached', function () {
@@ -1769,16 +1913,13 @@ describe('Event Search Filters', function () {
     });
 
     it('does not default the majlis country filter from an unencrypted browser timezone cookie', function () {
-        Event::factory()->create([
-            'status' => 'approved',
-            'visibility' => 'public',
-            'published_at' => now(),
-            'starts_at' => now()->addDays(1),
-        ]);
+        $malaysia = ensureMalaysiaCountryForTests();
 
         Livewire::withCookie('user_timezone', 'Asia/Jakarta')
             ->test(Index::class)
-            ->assertSet('country_id', null)
+            // A Jakarta timezone must not drag the scope to Indonesia; the
+            // country comes from the edge geo header or the app fallback only.
+            ->assertSet('country_id', (string) $malaysia->getKey())
             ->assertSet('state_id', null);
 
         Livewire::test(Index::class)
@@ -2490,6 +2631,41 @@ describe('Event Search Filters', function () {
             ->assertSee('No Event URL')
             ->assertSee('Clear All Filters')
             ->assertSee('Save This Search');
+    });
+
+    it('drops the links section from the sidebar but still honours its filters from a url', function () {
+        createVisibleEventForSearch([
+            'title' => 'Broadcast Only Event',
+            'status' => 'approved',
+            'visibility' => 'public',
+            'event_url' => null,
+            'live_url' => 'https://youtube.com/live/broadcast',
+            'ends_at' => now()->addDays(2),
+            'published_at' => now(),
+            'starts_at' => now()->addDay(),
+        ]);
+
+        createVisibleEventForSearch([
+            'title' => 'No Broadcast Event',
+            'status' => 'approved',
+            'visibility' => 'public',
+            'event_url' => null,
+            'live_url' => null,
+            'ends_at' => null,
+            'published_at' => now(),
+            'starts_at' => now()->addDay(),
+        ]);
+
+        $fieldNames = collect(Livewire::test(Index::class)->instance()->getForm('form')->getFlatFields())
+            ->map(fn (mixed $field): string => $field->getName())
+            ->all();
+
+        expect($fieldNames)->not->toContain('has_event_url', 'has_live_url', 'has_end_time');
+
+        $this->get(eventsIndexUrl('has_live_url=1'))
+            ->assertOk()
+            ->assertSee('Broadcast Only Event')
+            ->assertDontSee('No Broadcast Event');
     });
 
     it('filters events by held date overlap range', function () {

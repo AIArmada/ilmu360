@@ -309,6 +309,28 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
             });
         }
 
+        $personNameSearch = $this->normalizeTextFilter($filters['person_name_search'] ?? null);
+
+        if ($personNameSearch !== null) {
+            $queryBuilder->where(function (Builder $personNameQuery) use ($personNameSearch): void {
+                $personNameQuery
+                    ->whereHas('persons', function (Builder $speakerQuery) use ($personNameSearch): void {
+                        $speakerQuery
+                            ->whereLike('persons.name', "%{$personNameSearch}%")
+                            ->orWhereLike('persons.searchable_name', "%{$personNameSearch}%");
+                    })
+                    ->orWhereHas('keyPeople', function (Builder $keyPersonQuery) use ($personNameSearch): void {
+                        $keyPersonQuery
+                            ->whereLike('event_involvements.display_name', "%{$personNameSearch}%")
+                            ->orWhereHas('person', function (Builder $personQuery) use ($personNameSearch): void {
+                                $personQuery
+                                    ->whereLike('persons.name', "%{$personNameSearch}%")
+                                    ->orWhereLike('persons.searchable_name', "%{$personNameSearch}%");
+                            });
+                    });
+            });
+        }
+
         $disciplineTagIds = $this->normalizeArrayFilter($filters['discipline_tag_ids'] ?? null);
 
         if ($disciplineTagIds !== []) {

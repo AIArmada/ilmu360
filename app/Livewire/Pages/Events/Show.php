@@ -8,6 +8,7 @@ use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Engagement\Models\Response;
 use AIArmada\Events\Enums\RegistrationMode;
+use AIArmada\Events\Models\EventRegistration;
 use App\Actions\Events\MarkEventGoingAction;
 use App\Actions\Events\RecordEventCheckInAction;
 use App\Actions\Events\RemoveEventGoingAction;
@@ -101,7 +102,53 @@ class Show extends Component
                     ->whereIn('visibility', Event::PUBLIC_SCHEDULE_VISIBILITIES);
             };
 
-            $event->loadCount('registrations');
+            $publicLocationScope = function (Relation $query) use ($event): void {
+                if ($this->isEventOwner($event)) {
+                    return;
+                }
+
+                $query
+                    ->where('status', 'active')
+                    ->where('visibility', 'public');
+            };
+
+            $publicTicketScope = function (Relation $relation): void {
+                $relation->getQuery()
+                    ->where('status', 'active')
+                    ->where('visibility', 'public')
+                    ->orderBy('sort_order')
+                    ->orderBy('name');
+            };
+
+            $publicSeatMapScope = function (Relation $relation): void {
+                $relation->getQuery()
+                    ->where('status', 'active')
+                    ->orderBy('name');
+            };
+
+            $publicLinkScope = function (Relation $relation): void {
+                $relation->getQuery()
+                    ->where('visibility', 'public')
+                    ->orderBy('sort_order')
+                    ->orderBy('label');
+            };
+
+            $publicMaterialScope = function (Relation $relation): void {
+                $relation->getQuery()
+                    ->where('visibility', 'public')
+                    ->whereNotNull('url')
+                    ->orderBy('sort_order')
+                    ->orderBy('title');
+            };
+            $capacityRegistrationScope = static function (Builder $query): void {
+                $query->whereIn(
+                    'status',
+                    config('events.lifecycle.registration.capacity_blocking_statuses', EventRegistration::CAPACITY_BLOCKING_STATUSES),
+                );
+            };
+
+            $event->loadCount(['registrations' => $capacityRegistrationScope]);
+            $event->loadSum(['registrations' => $capacityRegistrationScope], 'total_participants');
             $this->registrationsCount = $event->registrations_count;
             $event->load([
                 'media',
@@ -133,22 +180,53 @@ class Show extends Component
 
                     $query->with('media');
                 },
-                'links',
+                'links' => $publicLinkScope,
+                'materials' => $publicMaterialScope,
                 'audiences',
                 'audienceProfiles',
+                'locations' => $publicLocationScope,
                 'locations.venueSpace',
+                'primaryLocation' => $publicLocationScope,
                 'primaryLocation.venueSpace',
                 'primaryOccurrence' => $publicScheduleScope,
-                'occurrences' => $publicScheduleScope,
-                'occurrences.media',
-                'occurrences.sessions' => function (Relation $query) use ($publicScheduleScope): void {
+                'sessions' => function (Relation $query) use ($publicScheduleScope, $capacityRegistrationScope): void {
                     $publicScheduleScope($query);
                     $query
+                        ->whereNull('event_occurrence_id')
+                        ->withCount(['registrations' => $capacityRegistrationScope])
+                        ->withSum(['registrations' => $capacityRegistrationScope], 'total_participants')
                         ->orderBy('sort_order')
                         ->orderBy('starts_at')
                         ->orderBy('created_at')
                         ->orderBy('id');
                 },
+                'occurrences' => function (Relation $query) use ($publicScheduleScope, $capacityRegistrationScope): void {
+                    $publicScheduleScope($query);
+                    $query
+                        ->withCount(['registrations' => $capacityRegistrationScope])
+                        ->withSum(['registrations' => $capacityRegistrationScope], 'total_participants');
+                },
+                'occurrences.media',
+                'occurrences.sessions' => function (Relation $query) use ($publicScheduleScope, $capacityRegistrationScope): void {
+                    $publicScheduleScope($query);
+                    $query
+                        ->withCount(['registrations' => $capacityRegistrationScope])
+                        ->withSum(['registrations' => $capacityRegistrationScope], 'total_participants')
+                        ->orderBy('sort_order')
+                        ->orderBy('starts_at')
+                        ->orderBy('created_at')
+                        ->orderBy('id');
+                },
+                'occurrences.locations' => $publicLocationScope,
+                'occurrences.locations.venueSpace',
+                'occurrences.accessPolicies',
+                'occurrences.ticketTypes' => $publicTicketScope,
+                'occurrences.ticketTypes.seatingOptions.section',
+                'occurrences.ticketTypes.inventoryLevels',
+                'occurrences.seatMaps' => $publicSeatMapScope,
+                'occurrences.seatMaps.sections',
+                'occurrences.links' => $publicLinkScope,
+                'occurrences.materials' => $publicMaterialScope,
                 'occurrences.sessions.media',
                 'occurrences.sessions.involvements' => function (Relation $query) use ($event, $publicScheduleScope): void {
                     $publicScheduleScope($query);
@@ -159,21 +237,43 @@ class Show extends Component
                 },
                 'occurrences.sessions.involvements.involveable',
                 'occurrences.sessions.timeExpressions',
+                'occurrences.sessions.locations' => $publicLocationScope,
+                'occurrences.sessions.locations.venueSpace',
+                'occurrences.sessions.accessPolicies',
+                'occurrences.sessions.ticketTypes' => $publicTicketScope,
+                'occurrences.sessions.ticketTypes.seatingOptions.section',
+                'occurrences.sessions.ticketTypes.inventoryLevels',
+                'occurrences.sessions.seatMaps' => $publicSeatMapScope,
+                'occurrences.sessions.seatMaps.sections',
+                'occurrences.sessions.links' => $publicLinkScope,
+                'occurrences.sessions.materials' => $publicMaterialScope,
                 'occurrences.timeExpressions',
+                'sessions.media',
+                'sessions.involvements' => function (Relation $query) use ($event, $publicScheduleScope): void {
+                    $publicScheduleScope($query);
+
+                    if (! $this->isEventOwner($event)) {
+                        $query->where('status', 'active');
+                    }
+                },
+                'sessions.involvements.involveable',
+                'sessions.timeExpressions',
+                'sessions.locations' => $publicLocationScope,
+                'sessions.locations.venueSpace',
+                'sessions.accessPolicies',
+                'sessions.ticketTypes' => $publicTicketScope,
+                'sessions.ticketTypes.seatingOptions.section',
+                'sessions.ticketTypes.inventoryLevels',
+                'sessions.seatMaps' => $publicSeatMapScope,
+                'sessions.seatMaps.sections',
+                'sessions.links' => $publicLinkScope,
+                'sessions.materials' => $publicMaterialScope,
                 'languages',
                 'timeExpressions',
-                'ticketTypes' => function (Relation $relation): void {
-                    $relation->getQuery()
-                        ->where('visibility', 'public')
-                        ->orderBy('sort_order')
-                        ->orderBy('name');
-                },
+                'ticketTypes' => $publicTicketScope,
                 'ticketTypes.seatingOptions.section',
-                'seatMaps' => function (Relation $relation): void {
-                    $relation->getQuery()
-                        ->where('status', 'active')
-                        ->orderBy('name');
-                },
+                'ticketTypes.inventoryLevels',
+                'seatMaps' => $publicSeatMapScope,
                 'seatMaps.sections',
                 'latestPublishedChangeAnnouncement.replacementEvent.media',
                 'latestPublishedChangeAnnouncement.replacementEvent.institution.media',
@@ -357,7 +457,8 @@ class Show extends Component
     #[Computed]
     public function hasAboutContent(): bool
     {
-        return $this->descriptionHtml() !== ''
+        return trim((string) $this->event->summary) !== ''
+            || $this->descriptionHtml() !== ''
             || $this->event->classifications()->exists();
     }
 

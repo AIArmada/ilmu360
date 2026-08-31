@@ -10,6 +10,7 @@ use AIArmada\Events\Models\EventRole;
 use AIArmada\Events\Models\EventSession;
 use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\FilamentEvents\Resources\EventResource;
+use AIArmada\Seating\Enums\SeatingMode;
 use App\Actions\Events\SyncEventScheduleAction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\TimingMode;
@@ -523,6 +524,162 @@ it('renders every public occurrence and session with hierarchical cover media', 
         ->assertSee($firstOccurrence->getFirstMedia('cover')?->getAvailableUrl(['banner', 'thumb']), false)
         ->assertSee($firstSession->getFirstMedia('cover')?->getAvailableUrl(['banner', 'thumb']), false)
         ->assertSee($event->getFirstMedia('cover')?->getAvailableUrl(['banner', 'thumb']), false);
+});
+
+it('merges a single occurrence without sessions into the event presentation', function (): void {
+    $event = Event::factory()->create([
+        'title' => 'Majlis Satu Tarikh',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDay(),
+        'starts_at' => now()->addDay()->setTime(20, 0),
+        'ends_at' => now()->addDay()->setTime(22, 0),
+    ]);
+    $event->forceFill(['registration_mode' => null])->save();
+    $event->accessPolicy()->delete();
+
+    $this->get(route('events.show', $event))
+        ->assertOk()
+        ->assertSee('Majlis Satu Tarikh')
+        ->assertDontSee('data-testid="event-schedule-section"', false)
+        ->assertDontSee('Occurrence 1')
+        ->assertDontSee('Tiada sesi berasingan untuk tarikh ini.');
+});
+
+it('merges a single session into a single occurrence without redundant hierarchy labels', function (): void {
+    $event = Event::factory()->create([
+        'title' => 'Majlis Dengan Satu Program',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDay(),
+        'starts_at' => now()->addDay()->setTime(20, 0),
+        'ends_at' => now()->addDay()->setTime(22, 0),
+    ]);
+    $event->forceFill(['registration_mode' => null])->save();
+    $event->accessPolicy()->delete();
+    $occurrence = $event->primaryOccurrence;
+
+    expect($occurrence)->not->toBeNull();
+
+    if ($occurrence === null) {
+        return;
+    }
+
+    EventSession::query()->create([
+        'event_id' => $event->id,
+        'event_occurrence_id' => $occurrence->id,
+        'title' => 'Tadabbur Surah Al-Mulk',
+        'slug' => 'tadabbur-surah-al-mulk',
+        'summary' => 'Satu-satunya program untuk tarikh ini.',
+        'starts_at' => now()->addDay()->setTime(20, 15),
+        'ends_at' => now()->addDay()->setTime(21, 45),
+        'timezone' => 'Asia/Kuala_Lumpur',
+        'status' => EventSession::PUBLISHED,
+        'visibility' => 'public',
+        'delivery_mode' => 'physical',
+        'sort_order' => 1,
+    ]);
+
+    $this->get(route('events.show', $event))
+        ->assertOk()
+        ->assertSee('data-testid="event-schedule-section"', false)
+        ->assertSee('Tadabbur Surah Al-Mulk')
+        ->assertSee('Satu-satunya program untuk tarikh ini.')
+        ->assertDontSee('Occurrence 1')
+        ->assertDontSee('Sessions');
+});
+
+it('renders occurrence and session scoped admission data with conditional seating details', function (): void {
+    $event = Event::factory()->create([
+        'title' => 'Majlis Dengan Tiket',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDay(),
+        'starts_at' => now()->addDay()->setTime(20, 0),
+        'ends_at' => now()->addDay()->setTime(22, 0),
+    ]);
+    $event->forceFill(['registration_mode' => 'required'])->save();
+    $event->accessPolicy()->delete();
+    $event->accessPolicy()->create([
+        'registration_required' => true,
+        'approval_required' => true,
+        'payment_required' => true,
+        'ticket_required' => true,
+        'seating_required' => true,
+        'walk_in_allowed' => false,
+        'capacity' => 100,
+        'waitlist_enabled' => true,
+    ]);
+    $occurrence = $event->primaryOccurrence;
+
+    expect($occurrence)->not->toBeNull();
+
+    if ($occurrence === null) {
+        return;
+    }
+
+    $occurrence->forceFill(['capacity' => 80])->save();
+    $occurrenceTicket = $occurrence->ticketTypes()->create([
+        'name' => 'Dewan Utama',
+        'code' => 'DEWAN-UTAMA',
+        'description' => 'Tempat duduk umum.',
+        'access_type' => 'general',
+        'seating_mode' => SeatingMode::GeneralAdmission,
+        'price' => 2500,
+        'currency' => 'MYR',
+        'admits_quantity' => 1,
+        'min_quantity' => 1,
+        'max_quantity' => 4,
+        'status' => 'active',
+        'visibility' => 'public',
+    ]);
+    $hiddenTicket = $occurrence->ticketTypes()->create([
+        'name' => 'Tiket Tersembunyi',
+        'code' => 'HIDDEN',
+        'access_type' => 'general',
+        'price' => 0,
+        'currency' => 'MYR',
+        'status' => 'active',
+        'visibility' => 'hidden',
+    ]);
+    $session = EventSession::query()->create([
+        'event_id' => $event->id,
+        'event_occurrence_id' => $occurrence->id,
+        'title' => 'Sesi Berbayar',
+        'slug' => 'sesi-berbayar',
+        'starts_at' => now()->addDay()->setTime(20, 15),
+        'ends_at' => now()->addDay()->setTime(21, 45),
+        'status' => EventSession::PUBLISHED,
+        'visibility' => 'public',
+        'delivery_mode' => 'physical',
+        'sort_order' => 1,
+    ]);
+    $sessionTicket = $session->ticketTypes()->create([
+        'name' => 'Akses Sesi Khas',
+        'code' => 'SESI-KHAS',
+        'access_type' => 'general',
+        'price' => 0,
+        'currency' => 'MYR',
+        'admits_quantity' => 2,
+        'status' => 'active',
+        'visibility' => 'public',
+    ]);
+
+    expect($occurrenceTicket->exists)->toBeTrue()
+        ->and($hiddenTicket->exists)->toBeTrue()
+        ->and($sessionTicket->exists)->toBeTrue();
+
+    $this->get(route('events.show', $event))
+        ->assertOk()
+        ->assertSee('data-testid="event-admission-section"', false)
+        ->assertSee('Dewan Utama')
+        ->assertSee('Akses Sesi Khas')
+        ->assertSee('General Admission')
+        ->assertSee('Untuk')
+        ->assertSee('80')
+        ->assertSee('data-testid="event-seating-section"', false)
+        ->assertSee('Pembelian tiket dalam talian belum tersedia')
+        ->assertDontSee('Tiket Tersembunyi');
 });
 
 it('does not render private or draft schedule records on public event pages', function (): void {

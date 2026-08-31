@@ -1,3 +1,61 @@
+# Remove baked checkerboard from speaker hero artwork
+
+## Plan
+
+- [x] Inspect the artwork at native resolution and confirm the edge mosaic is encoded in the source image.
+- [x] Generate a flat, non-gradient extraction plate and create a real alpha cutout from it.
+- [x] Remove disconnected background fragments without damaging the arch, plant, microphone, books, or platform.
+- [x] Replace the WebP and verify the live desktop/mobile hero plus the preserved result count.
+
+## Review
+
+The hero artwork now uses a cleaned, alpha-preserving WebP produced from a flat extraction plate and a conservative eroded foreground alpha. The checkerboard fragments around the arch, leaves, and platform are removed; no artwork-side gradient, blend mode, or CSS mask is used. The `29 penceramah ditemui` summary remains visible.
+
+## Verification
+
+- `webpinfo public/images/speakers/penceramah-hero-art.webp` — `Alpha: 1`, canvas `1254 × 1254`, no error.
+- Collaborative browser preview at 1280×800 — the cutout loads with transparent corners and renders cleanly in the hero field.
+- Collaborative browser preview at 390×844 — the decorative artwork remains hidden and the search/count content remains unobstructed.
+
+# Match speaker hero artwork to the hero field
+
+## Plan
+
+- [x] Confirm the `x penceramah ditemui` summary remains in the results header.
+- [x] Regenerate the artwork background using the hero's neutral paper palette.
+- [x] Replace the WebP asset and correct its intrinsic dimensions in the markup.
+- [x] Recheck desktop and mobile rendering, then run the focused verification suite.
+
+## Review
+
+The speaker count was not removed; it remains rendered from the results summary and displays as `29 penceramah ditemui`. The hero artwork is now an alpha-preserving cutout with no artwork-side gradient or rectangular field, so the hero background shows through naturally around the preserved arch, microphone, books, plant, and soft shadow. The existing decorative-only implementation and responsive mobile fallback remain unchanged.
+
+## Verification
+
+- Collaborative browser preview at 1280×800 — transparent regenerated asset loaded at 1254×1254 and blends into the hero field without an artwork-side background.
+- Collaborative browser preview at 390×844 — artwork remains hidden and the search/count content is unobstructed.
+- `php artisan view:cache`, `npm run build`, `vendor/bin/pint --dirty --test`, `vendor/bin/pest --parallel --compact tests/Feature/PersonIndexTest.php`, and `git diff --check` — passed.
+
+# Add a generated speaker hero illustration
+
+## Plan
+
+- [x] Inspect the `/penceramah` hero structure, styles, and responsive layout.
+- [x] Generate and optimize a speaker-themed arch, microphone, books, and plant illustration.
+- [x] Place the artwork in the desktop hero with a responsive small-screen fallback.
+- [x] Verify Blade compilation, frontend build, focused tests, static checks, and browser rendering.
+
+## Review
+
+The public speaker directory hero now has a dedicated right-side visual built from the ilmu360° palette: a warm plaster niche, emerald microphone, stacked books, and plant. The WebP asset is an alpha-preserving cutout shown as a full right column on desktop, reduced to a quiet tablet accent, and hidden on narrow mobile screens so the search remains the primary action. The artwork is decorative and does not add a new tracking event.
+
+## Verification
+
+- `vendor/bin/pest --parallel --compact tests/Feature/PersonIndexTest.php` — 40 passed (152 assertions).
+- `php artisan view:cache`, `npm run build`, `vendor/bin/pint --dirty --test`, and `git diff --check` — passed.
+- Collaborative browser preview — artwork loaded from `/images/speakers/penceramah-hero-art.webp` at desktop width; mobile hero kept the artwork hidden and the search unobstructed.
+- Full PHPStan still reports the two pre-existing errors in `app/Http/Controllers/Api/EventController.php` and `app/Support/Location/VisitorCountryResolver.php`; no new errors were introduced by this change.
+
 # Align speaker and institution update-form copy
 
 ## Plan
@@ -1741,3 +1799,28 @@ Public reference visibility is now consistently `published_at IS NOT NULL` plus 
 - `vendor/bin/phpstan analyse --ansi` — no errors across 1,011 files.
 - Targeted Pint, syntax, translation JSON, view-cache, and `git diff --check` verification completed.
 - Broad parallel suites previously showed nondeterministic unrelated failures; the affected tests were rerun individually or with focused filters and passed.
+# Rebuild event detail page hierarchy and admission experience
+
+## Plan
+
+- [x] Inspect the target event’s real occurrence, session, access, ticket, seating, and location data.
+- [x] Audit the events package and its commerce, ticketing, seating, media, and registration integrations.
+- [x] Rebuild the public detail view with seamless single-occurrence/single-session presentation and explicit multi-level schedules.
+- [x] Make registration, ticketing, capacity, and seating states appear only when supported and verify responsive behavior.
+- [x] Run focused regression coverage, static checks, asset build, and browser verification.
+
+## Review
+
+The event detail page now presents the package graph as a coherent programme folio. A lone public occurrence is merged into the event’s date, time, location, time-expression, and admission presentation; a lone session is shown without redundant “Occurrence 1”/“Sessions” scaffolding. Multiple occurrences retain date boundaries, and each occurrence can show its session programme, scoped resources, speakers, location, and capacity.
+
+Admission is now data-driven across event, occurrence, and session scopes. Public ticket types expose price, quantity, seating mode, inventory, sales windows, and scope; registration exposes opening/closing/full states; access policies expose approval, waitlist, capacity, notes, and walk-in status; seat maps expose sections and capacity. Unsupported blocks stay absent. Paid ticket states remain informative because the current application has no enabled public paid checkout integration.
+
+## Verification
+
+- vendor/bin/pest --parallel --compact tests/Feature/EventShowPageTest.php — passed (37 tests, 138 assertions).
+- vendor/bin/pest --parallel --compact tests/Feature/EventSearchTest.php --filter=... — passed (14 tests, 39 assertions).
+- vendor/bin/phpstan analyse --ansi app/Support/Events/EventDetailPresenter.php app/Livewire/Pages/Events/Show.php — passed.
+- php artisan view:cache, npm run build, PHP syntax checks, and git diff --check — passed.
+- Supplied event URL — HTTP 200; live HTML shows the location/reference content and omits schedule, admission, registration, and seating blocks because the stored event has no sessions or admission configuration.
+- Full-project PHPStan still reports two pre-existing errors in app/Http/Controllers/Api/EventController.php and app/Support/Location/VisitorCountryResolver.php, both outside this change.
+- Collaborative preview navigation/snapshot timed out repeatedly after reconnect; live HTTP verification was used instead.

@@ -1,5 +1,15 @@
 # Lessons
 
+- When a count belongs to a result toolbar, align it with the sort controls in the same header row; keep the hero focused on discovery and make the summary visible without competing with the search action.
+
+- When a count is technically present but falls below the first viewport after a hero redesign, treat placement as a visibility bug; keep the reactive summary adjacent to the primary search action and hide it for genuine empty states.
+
+- When a UI count is reported missing, trace the dynamic translation key and verify the rendered output before changing markup; the visible Malay phrase may come from a locale file rather than a literal Blade string.
+
+- For generated hero artwork that must disappear into a page background, request and preserve a real alpha cutout; matching an opaque image's gradient to the CSS field can still leave a visible rectangular seam.
+
+- When a generated transparent asset is used in production, inspect native-resolution edges and the encoded alpha channel; a checkerboard shown by the viewer can be baked RGB data and must be removed before WebP conversion.
+
 - When a user corrects the placement or language of a status alert, keep the alert visually attached to the related page heading and localize every user-facing string in that state, including fallback validation messages.
 - When a status alert sits beneath a page heading, use an intentional responsive vertical gap so the alert reads as related context without crowding the headline.
 

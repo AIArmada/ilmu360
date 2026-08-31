@@ -223,32 +223,6 @@
                 ]"
             />
 
-            <div class="flex flex-wrap items-center gap-2">
-                <p class="text-[11px] font-black uppercase tracking-[0.24em] text-amber-700">
-                    {{ __('Institusi ilmu360°') }}
-                </p>
-
-                @if((string) $institution->status === 'verified')
-                    <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-100 px-2.5 py-1 text-[10px] font-bold text-emerald-800">
-                        <svg class="h-3.5 w-3.5 text-emerald-700" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                            <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.051l-7.5 9.75a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.897 3.896 6.976-9.07a.75.75 0 0 1 1.051-.142Z" clip-rule="evenodd" />
-                        </svg>
-                        {{ __('Disahkan') }}
-                    </span>
-                @elseif((string) $institution->status === 'pending')
-                    <span class="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-100 px-2.5 py-1 text-[10px] font-bold text-amber-800">
-                        <svg class="h-3.5 w-3.5 text-amber-600" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                            <path fill-rule="evenodd" d="M12 2.25a.75.75 0 0 1 .66.4l9 15.75a.75.75 0 0 1-.66 1.125H3a.75.75 0 0 1-.66-1.125l9-15.75a.75.75 0 0 1 .66-.4Zm0 6a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Zm0 7.5a.9.9 0 1 0 0 1.8.9.9 0 0 0 0-1.8Z" clip-rule="evenodd" />
-                        </svg>
-                        {{ __('Belum disahkan') }}
-                    </span>
-                @endif
-            </div>
-
-            <h1 class="mt-8 max-w-6xl break-words font-heading text-4xl font-bold leading-[0.98] tracking-[-0.045em] text-emerald-950 sm:mt-10 sm:text-5xl lg:mt-12 lg:text-6xl xl:text-7xl">
-                {{ $institution->name }}
-            </h1>
-
             <div class="mt-6 overflow-hidden rounded-[2rem] border border-white/80 bg-white/82 shadow-[0_30px_90px_-42px_rgba(6,78,59,0.42)] backdrop-blur-xl">
                 <div class="grid lg:grid-cols-[minmax(0,1.12fr)_minmax(24rem,0.88fr)]">
                     <div class="relative aspect-video self-start overflow-hidden bg-gradient-to-br from-emerald-100 via-[#f4efe4] to-amber-100">
@@ -265,6 +239,32 @@
                     <div class="flex flex-col p-6 sm:p-8 lg:px-8 lg:pb-4 lg:pt-5">
                         <div class="flex flex-1 flex-col">
                             <div>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <p class="text-[11px] font-black uppercase tracking-[0.24em] text-amber-700">
+                                        {{ __('Institusi ilmu360°') }}
+                                    </p>
+
+                                    @if((string) $institution->status === 'verified')
+                                        <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-100 px-2.5 py-1 text-[10px] font-bold text-emerald-800">
+                                            <svg class="h-3.5 w-3.5 text-emerald-700" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                                <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.051l-7.5 9.75a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.897 3.896 6.976-9.07a.75.75 0 0 1 1.051-.142Z" clip-rule="evenodd" />
+                                            </svg>
+                                            {{ __('Disahkan') }}
+                                        </span>
+                                    @elseif((string) $institution->status === 'pending')
+                                        <span class="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-100 px-2.5 py-1 text-[10px] font-bold text-amber-800">
+                                            <svg class="h-3.5 w-3.5 text-amber-600" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                                <path fill-rule="evenodd" d="M12 2.25a.75.75 0 0 1 .66.4l9 15.75a.75.75 0 0 1-.66 1.125H3a.75.75 0 0 1-.66-1.125l9-15.75a.75.75 0 0 1 .66-.4Zm0 6a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Zm0 7.5a.9.9 0 1 0 0 1.8.9.9 0 0 0 0-1.8Z" clip-rule="evenodd" />
+                                            </svg>
+                                            {{ __('Belum disahkan') }}
+                                        </span>
+                                    @endif
+                                </div>
+
+                                <h1 class="mt-3 max-w-3xl break-words font-heading text-4xl font-bold leading-[1.05] tracking-[-0.035em] text-emerald-950 sm:text-5xl lg:text-6xl">
+                                    {{ $institution->name }}
+                                </h1>
+
                                 @if($locationString !== '')
                                     <p class="flex items-start gap-2 text-sm leading-6 text-slate-600 sm:text-base">
                                         <svg class="mt-0.5 h-5 w-5 shrink-0 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
@@ -897,7 +897,7 @@
                         <h2 class="mt-1 font-heading text-xl font-bold text-emerald-950">{{ __('Ruang') }}</h2>
                         <ul class="mt-4 space-y-3 text-sm text-slate-700">
                             @foreach($spaces as $space)
-                                @php($effectiveCapacity = $space->effectiveCapacity())
+                                @php $effectiveCapacity = $space->effectiveCapacity(); @endphp
                                 <li class="flex items-center justify-between gap-4">
                                     <span class="font-medium text-slate-900">{{ $space->name }}</span>
                                     @if($effectiveCapacity)
@@ -909,37 +909,153 @@
                     </section>
                 @endif
 
-                @if($donationChannels->isNotEmpty())
-                    <section class="scroll-reveal reveal-right revealed rounded-[1.5rem] border border-emerald-100 bg-white p-5 shadow-sm">
-                        <p class="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700">{{ __('Sokongan') }}</p>
-                        <h2 class="mt-1 font-heading text-xl font-bold text-emerald-950">{{ __('Sumbangan') }}</h2>
-                        <div class="mt-4 space-y-4">
-                            @foreach($donationChannels as $channel)
-                                <div class="flex items-start gap-4 rounded-2xl border border-slate-200 p-4">
-                                    @if($channel->hasMedia('qr'))
-                                        <button type="button" class="group relative shrink-0 transition-transform active:scale-95">
-                                            <img
-                                                src="{{ $channel->getFirstMedia('qr')?->getAvailableUrl(['thumb']) ?: $channel->getFirstMediaUrl('qr') }}"
-                                                alt="{{ $channel->label ?: $channel->recipient }}"
-                                                class="h-20 w-20 rounded-2xl object-cover"
-                                                loading="lazy"
-                                            >
-                                        </button>
-                                    @endif
+                @php
+                    $sortedDonationChannels = $donationChannels->where('status', 'verified')->sortByDesc('is_default')->values();
+                @endphp
+                @if($sortedDonationChannels->isNotEmpty())
+                    <section
+                        x-data="{ copiedId: null, qrModalUrl: null, qrModalAlt: '', async copy(text, id) { try { await navigator.clipboard.writeText(text); this.copiedId = id; setTimeout(() => { if (this.copiedId === id) this.copiedId = null; }, 2200); } catch (e) {} } }"
+                        class="scroll-reveal reveal-right revealed rounded-[1.5rem] border border-emerald-100 bg-white p-5 shadow-sm"
+                    >
+                        <div>
+                            <p class="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700">{{ __('Sokongan') }}</p>
+                            <h2 class="mt-1 font-heading text-xl font-bold text-emerald-950">{{ __('Sumbangan') }}</h2>
+                        </div>
 
-                                    <div class="min-w-0 space-y-1">
-                                        <p class="font-semibold text-slate-900">{{ $channel->recipient }}</p>
-
-                                        @if(filled($channel->label))
-                                            <p class="text-sm text-slate-500">{{ $channel->label }}</p>
+                        <div class="mt-4 space-y-3">
+                            @foreach($sortedDonationChannels as $channel)
+                                @php
+                                    $isDefault = (bool) $channel->is_default;
+                                    $method = (string) $channel->method;
+                                    $methodLabel = match ($method) {
+                                        'bank_account' => __('Akaun Bank'),
+                                        'duitnow' => 'DuitNow',
+                                        'ewallet' => __('E-Dompet'),
+                                        default => $channel->method_display ?: \Illuminate\Support\Str::headline($method),
+                                    };
+                                    $methodTone = match ($method) {
+                                        'bank_account' => 'border-emerald-200 bg-emerald-50 text-emerald-800',
+                                        'duitnow' => 'border-sky-200 bg-sky-50 text-sky-800',
+                                        'ewallet' => 'border-amber-200 bg-amber-50 text-amber-800',
+                                        default => 'border-slate-200 bg-slate-50 text-slate-700',
+                                    };
+                                    $copyValue = match ($method) {
+                                        'bank_account' => (string) $channel->account_number,
+                                        'duitnow' => (string) $channel->duitnow_value,
+                                        'ewallet' => (string) ($channel->ewallet_handle ?: $channel->ewallet_qr_payload),
+                                        default => (string) ($channel->account_number ?: $channel->duitnow_value ?: $channel->ewallet_handle),
+                                    };
+                                    $copyLabel = match ($method) {
+                                        'bank_account' => __('No. Akaun'),
+                                        'duitnow' => __('ID DuitNow'),
+                                        'ewallet' => __('ID E-Dompet'),
+                                        default => __('No. Akaun'),
+                                    };
+                                    $duitnowTypeLabel = $channel->duitnow_type ? \Illuminate\Support\Str::headline((string) $channel->duitnow_type) : null;
+                                    $ewalletProviderLabel = $channel->ewallet_provider ? match (strtolower((string) $channel->ewallet_provider)) {
+                                        'tng' => "Touch 'n Go",
+                                        'grab' => 'GrabPay',
+                                        'shopee' => 'ShopeePay',
+                                        'boost' => 'Boost',
+                                        default => \Illuminate\Support\Str::headline((string) $channel->ewallet_provider),
+                                    } : null;
+                                    $bankDisplay = $channel->bank_name ?: $channel->bank_code;
+                                    $qrThumb = $channel->getFirstMedia('qr')?->getAvailableUrl(['thumb']) ?: $channel->getFirstMediaUrl('qr');
+                                    $qrFull = $channel->getFirstMediaUrl('qr') ?: $qrThumb;
+                                @endphp
+                                <div class="rounded-2xl border border-slate-200 bg-white p-4">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <span class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-wide {{ $methodTone }}">
+                                            @if($method === 'bank_account')
+                                                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12 4 4.5h16L21.75 12M3 12h18M4.5 12V19.5A2.25 2.25 0 0 0 6.75 21.75h10.5A2.25 2.25 0 0 0 19.5 19.5V12M9 16.5h6" /></svg>
+                                            @elseif($method === 'duitnow')
+                                                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12 12 11.25 12 9.75V6m0 0c-1.5 0-3 .75-3 2.25 0 1.5 1.5 2.25 3 2.25s3-.75 3-2.25S13.5 6 12 6Z" /></svg>
+                                            @else
+                                                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 12a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 12ZM3 12v2.25A2.25 2.25 0 0 0 5.25 16.5h13.5A2.25 2.25 0 0 0 21 14.25V12M16.5 10.5h.008v.008H16.5v-.008Z" /></svg>
+                                            @endif
+                                            {{ $methodLabel }}
+                                        </span>
+                                        @if($isDefault)
+                                            <span class="inline-flex items-center rounded-full bg-emerald-700 px-2 py-1 text-[10px] font-bold text-white">{{ __('Utama') }}</span>
                                         @endif
+                                        @if(filled($channel->label))
+                                            <span class="text-[11px] font-semibold text-slate-500">• {{ $channel->label }}</span>
+                                        @endif
+                                    </div>
 
-                                        @if(filled($channel->account_number))
-                                            <p class="text-sm text-slate-600">{{ $channel->account_number }}</p>
+                                    <div class="mt-3 flex items-start gap-4">
+                                        <div class="min-w-0 flex-1 space-y-2">
+                                            <p class="truncate font-semibold leading-5 text-slate-900" title="{{ $channel->recipient }}">{{ $channel->recipient }}</p>
+
+                                            @if($method === 'bank_account' && filled($bankDisplay))
+                                                <p class="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-600">
+                                                    <span class="inline-flex h-5 w-5 items-center justify-center rounded-md bg-white ring-1 ring-slate-200">
+                                                        <svg class="h-3 w-3 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12 4 4.5h16L21.75 12M3 12h18M4.5 12V19.5A2.25 2.25 0 0 0 6.75 21.75h10.5A2.25 2.25 0 0 0 19.5 19.5V12M9 16.5h6" /></svg>
+                                                    </span>
+                                                    {{ $bankDisplay }}
+                                                </p>
+                                            @endif
+
+                                            @if($method === 'duitnow' && filled($channel->duitnow_value))
+                                                <p class="text-xs font-semibold text-slate-600">
+                                                    DuitNow{{ $duitnowTypeLabel ? ' • '.$duitnowTypeLabel : '' }}
+                                                </p>
+                                            @endif
+
+                                            @if($method === 'ewallet' && filled($ewalletProviderLabel))
+                                                <p class="text-xs font-semibold text-slate-600">{{ $ewalletProviderLabel }}</p>
+                                            @endif
+
+                                            @if(filled($copyValue))
+                                                <div class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+                                                    <div class="min-w-0 flex-1">
+                                                        <p class="text-[10px] font-bold uppercase tracking-wide text-slate-400">{{ $copyLabel }}</p>
+                                                        <p class="truncate font-mono text-sm font-bold tracking-wide text-slate-900">{{ $copyValue }}</p>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        @click="copy(@js($copyValue), @js((string) $channel->id))"
+                                                        class="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border px-3 text-xs font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/20"
+                                                        :class="copiedId === @js((string) $channel->id) ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-white'"
+                                                    >
+                                                        <svg x-show="copiedId !== @js((string) $channel->id)" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75A1.125 1.125 0 0 1 3.75 20.625V7.875c0-.621.504-1.125 1.125-1.125H6.75m9 9.75h.008v.008H15.75v-.008Zm0 0V9.75a2.25 2.25 0 0 0-2.25-2.25H9.75a2.25 2.25 0 0 0-2.25 2.25v9.75A2.25 2.25 0 0 0 9.75 21h3.75A2.25 2.25 0 0 0 15.75 18Z" /></svg>
+                                                        <svg x-show="copiedId === @js((string) $channel->id)" x-cloak class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.051l-7.5 9.75a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.897 3.896 6.976-9.07a.75.75 0 0 1 1.051-.142Z" clip-rule="evenodd" /></svg>
+                                                        <span x-text="copiedId === @js((string) $channel->id) ? @js(__('Disalin!')) : @js(__('Salin'))"></span>
+                                                    </button>
+                                                </div>
+                                            @endif
+
+                                            @if(filled($channel->reference_note))
+                                                <p class="text-xs leading-5 text-slate-500">{{ __('Rujukan') }}: <span class="font-semibold text-slate-700">{{ $channel->reference_note }}</span></p>
+                                            @endif
+                                        </div>
+
+                                        @if(filled($qrThumb))
+                                            <button type="button" class="group relative shrink-0 transition-transform active:scale-95" @click="qrModalUrl=@js($qrFull); qrModalAlt=@js($channel->label ?: $channel->recipient)">
+                                                <img
+                                                    src="{{ $qrThumb }}"
+                                                    alt="{{ $channel->label ?: $channel->recipient }}"
+                                                    class="h-20 w-20 rounded-2xl border border-slate-200 bg-white object-cover p-1 shadow-sm group-hover:border-emerald-300"
+                                                    loading="lazy"
+                                                >
+                                                <span class="pointer-events-none absolute inset-0 grid place-items-center rounded-2xl bg-emerald-950/0 transition group-hover:bg-emerald-950/5"></span>
+                                                <span class="pointer-events-none absolute bottom-1 left-1 right-1 rounded-lg bg-white/95 px-1 py-0.5 text-center text-[9px] font-bold leading-none text-slate-700 shadow-sm">{{ __('Imbas QR') }}</span>
+                                            </button>
                                         @endif
                                     </div>
                                 </div>
                             @endforeach
+                        </div>
+
+                        <div x-show="qrModalUrl" x-cloak x-transition.opacity class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" @click.self="qrModalUrl=null" @keydown.escape.window="qrModalUrl=null" style="display: none;">
+                            <div class="relative w-full max-w-sm rounded-[1.5rem] bg-white p-4 shadow-2xl">
+                                <button type="button" @click="qrModalUrl=null" class="absolute -right-3 -top-3 grid h-8 w-8 place-items-center rounded-full bg-white text-slate-600 shadow-lg ring-1 ring-slate-200 hover:text-slate-900" aria-label="{{ __('Tutup') }}">
+                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                                </button>
+                                <img x-bind:src="qrModalUrl" x-bind:alt="qrModalAlt" class="mx-auto max-h-[70vh] w-full rounded-2xl border border-slate-200 bg-white object-contain p-2">
+                                <p class="mt-3 text-center text-sm font-semibold text-slate-700" x-text="qrModalAlt"></p>
+                                <p class="mt-1 text-center text-xs text-slate-500">{{ __('Imbas kod QR ini dengan aplikasi bank / e-dompet anda.') }}</p>
+                            </div>
                         </div>
                     </section>
                 @endif

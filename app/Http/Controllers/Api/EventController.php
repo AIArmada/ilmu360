@@ -292,6 +292,15 @@ class EventController extends Controller
                         });
                 });
             }),
+            AllowedFilter::callback('person_name_search', function (Builder $query, mixed $value): void {
+                $searchTerm = $this->normalizeTextFilter($value);
+
+                if ($searchTerm === null) {
+                    return;
+                }
+
+                $this->applyPersonNameSearchFilter($query, $searchTerm);
+            }),
             AllowedFilter::callback('imam_ids', function (Builder $query, mixed $value): void {
                 $personIds = $this->normalizeArrayFilter($value);
 
@@ -778,6 +787,32 @@ class EventController extends Controller
     /**
      * @param  Builder<Model>  $query
      */
+    /**
+     * Free-text person name match across attached speakers and every key-person role.
+     *
+     * @param  Builder<Model>  $query
+     */
+    private function applyPersonNameSearchFilter(Builder $query, string $searchTerm): void
+    {
+        $query->where(function (Builder $personNameQuery) use ($searchTerm): void {
+            $personNameQuery
+                ->whereHas('persons', function (Builder $speakerQuery) use ($searchTerm): void {
+                    $speakerQuery
+                        ->whereLike('persons.name', "%{$searchTerm}%")
+                        ->orWhereLike('persons.searchable_name', "%{$searchTerm}%");
+                })
+                ->orWhereHas('keyPeople', function (Builder $keyPersonQuery) use ($searchTerm): void {
+                    $keyPersonQuery
+                        ->whereLike('event_involvements.display_name', "%{$searchTerm}%")
+                        ->orWhereHas('person', function (Builder $personQuery) use ($searchTerm): void {
+                            $personQuery
+                                ->whereLike('persons.name', "%{$searchTerm}%")
+                                ->orWhereLike('persons.searchable_name', "%{$searchTerm}%");
+                        });
+                });
+        });
+    }
+
     private function applyPrayerTimeGroupFilter(Builder $query, string $group, Request $request): void
     {
         match ($group) {

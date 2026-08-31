@@ -380,8 +380,8 @@ new
         <!-- Background layers -->
         <div data-material="hero-field" class="absolute inset-0 bg-[radial-gradient(ellipse_at_18%_28%,rgba(5,101,82,0.10)_0%,transparent_42%),radial-gradient(ellipse_at_82%_18%,rgba(217,119,6,0.06)_0%,transparent_36%),linear-gradient(178deg,#fafaf7_0%,#f4f1e8_54%,#e7eee8_100%)]"></div>
 
-        <div class="relative mx-auto max-w-4xl px-5 py-14 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
-            <div class="max-w-3xl">
+        <div class="relative mx-auto grid max-w-7xl items-center gap-10 px-5 py-14 sm:px-6 sm:py-20 lg:min-h-[29rem] lg:grid-cols-[minmax(0,1fr)_minmax(19rem,28rem)] lg:gap-8 lg:px-8 lg:py-16">
+            <div class="relative z-10 max-w-2xl">
                     <h1 class="mt-6 max-w-3xl font-heading text-4xl font-bold leading-[1.06] tracking-[-0.035em] text-emerald-950 sm:text-5xl lg:text-6xl">
                         {{ __('Meet speakers who are') }}
                         <span class="relative inline-block text-emerald-700">
@@ -396,51 +396,41 @@ new
                         {{ __('Find ustaz, ustazah, and preachers across Malaysia. Learn about their work, see upcoming majlis, and continue your learning journey.') }}
                     </p>
 
-                    <!-- Search Box - refined pill -->
+                    <!-- Search box -->
                     <div class="mt-9 max-w-xl">
-                        <div data-material="translucent-control" class="living-majlis-veil group relative rounded-[1.5rem] p-1.5 transition-all duration-300 focus-within:scale-[1.01] focus-within:border-emerald-300 focus-within:ring-4 focus-within:ring-emerald-600/10 focus-within:shadow-[0_28px_70px_-30px_rgba(6,78,59,0.50)]">
-                            <label for="person-search" class="sr-only">{{ __('Search speakers') }}</label>
-                            <div class="flex items-center gap-3">
-                                <span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-emerald-50 text-emerald-700 transition-colors duration-300 group-focus-within:bg-emerald-100">
-                                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-4.35-4.35m1.35-5.4a6.75 6.75 0 1 1-13.5 0 6.75 6.75 0 0 1 13.5 0Z" />
-                                    </svg>
-                                </span>
-
-                                <input
-                                    type="search"
-                                    id="person-search"
-                                    aria-controls="person-results"
-                                    wire:model.live.debounce.150ms="search"
-                                    wire:keydown.escape="clearSearch"
-                                    placeholder="{{ __('Search speaker name…') }}"
-                                    autocomplete="off"
-                                    class="person-search-input h-12 min-w-0 flex-1 appearance-none border-0 bg-transparent px-0 text-base font-medium text-slate-900 placeholder:text-slate-400 focus:border-transparent focus:outline-none focus:ring-0 focus-visible:outline-none"
-                                >
-
-                                @if(filled($search))
-                                    <button
-                                        type="button"
-                                        wire:click="clearSearch"
-                                        wire:loading.attr="disabled"
-                                        wire:target="clearSearch"
-                                        aria-label="{{ __('Clear speaker search') }}"
-                                        class="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm transition-all duration-200 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 focus:outline-none focus:ring-4 focus:ring-rose-500/10"
-                                    >
-                                        <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l8 8M14 6l-8 8" />
-                                        </svg>
-                                    </button>
-                                @endif
-                            </div>
-                        </div>
+                        <x-ui.search-bar
+                            input-id="person-search"
+                            model="search"
+                            :value="$search"
+                            :placeholder="__('Search speaker name…')"
+                            :label="__('Search speakers')"
+                            :clear-label="__('Clear speaker search')"
+                            :debounce="150"
+                            aria-controls="person-results"
+                        />
                     </div>
-
 
                 </div>
 
+            <div data-material="hero-art" class="pointer-events-none absolute -bottom-12 end-[-5rem] z-0 hidden w-[21rem] opacity-25 sm:block lg:static lg:order-last lg:flex lg:h-full lg:w-full lg:items-end lg:justify-end lg:self-stretch lg:opacity-100">
+                <div class="relative w-full max-w-[27rem] lg:max-w-[21rem] lg:-me-4">
+                    <div class="absolute inset-x-12 bottom-4 h-24 rounded-full bg-emerald-950/10 blur-3xl"></div>
+                    <img
+                        src="{{ asset('images/speakers/penceramah-hero-art.webp') }}"
+                        alt=""
+                        aria-hidden="true"
+                        width="1254"
+                        height="1254"
+                        loading="eager"
+                        fetchpriority="high"
+                        decoding="async"
+                        class="living-majlis-hero-art relative block h-auto w-full"
+                    >
+                </div>
             </div>
         </div>
+
+    </div>
 
     <!-- Main Content -->
     <div class="mx-auto max-w-7xl px-5 py-10 sm:px-6 lg:px-8 lg:py-12">
@@ -552,11 +542,11 @@ new
                                 {{ __('Speaker directory') }}
                             @endif
                         </h2>
-                        <p id="person-results-summary" class="mt-2 text-sm text-slate-500" aria-live="polite">
+                        <p id="person-results-summary" data-material="results-summary" class="mt-2 text-sm font-semibold text-slate-600" aria-live="polite">
                             {{ trans_choice(':count speaker found|:count speakers found', $personTotal, ['count' => number_format($personTotal)]) }}
                             @if($activeFilterCount > 0)
-                                <span class="text-slate-400">·</span>
-                                {{ trans_choice(':count active filter|:count active filters', $activeFilterCount, ['count' => $activeFilterCount]) }}
+                                <span class="font-normal text-slate-400">·</span>
+                                <span class="font-normal text-slate-500">{{ trans_choice(':count active filter|:count active filters', $activeFilterCount, ['count' => $activeFilterCount]) }}</span>
                             @endif
                         </p>
                     </div>

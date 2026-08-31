@@ -1,11 +1,11 @@
 <?php
 
-use AIArmada\Addressing\Support\AddressCountryResolver;
 use App\Enums\EventVisibility;
 use App\Forms\SharedFormSchema;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Support\Cache\SelectionCatalogCache;
+use App\Support\Location\VisitorCountryResolver;
 use App\Support\Search\InstitutionSearchService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
 use Illuminate\Database\Eloquent\Builder;
@@ -466,13 +466,10 @@ class extends Component
         }
 
         $this->defaultCountryIdResolved = true;
-        $countryCode = (string) config('contacting.defaults.country_code', 'MY');
-        $countryId = app(SelectionCatalogCache::class)->rememberAddressValue(
-            "default-country:{$countryCode}",
-            fn (): ?string => app(AddressCountryResolver::class)->resolveId($countryCode),
-        );
 
-        return $this->resolvedDefaultCountryId = is_string($countryId) ? $countryId : null;
+        // Shared with the /majlis directory: the edge geo header (Cloudflare
+        // CF-IPCountry) is the cheapest GeoIP, no mmdb/api needed when behind CF.
+        return $this->resolvedDefaultCountryId = app(VisitorCountryResolver::class)->resolve();
     }
 };
 ?>
@@ -532,36 +529,18 @@ class extends Component
                 
                  <!-- Search and filter controls -->
                  <div class="mx-auto mt-8 max-w-5xl">
-                    <div class="mx-auto max-w-2xl">
-                        <div class="mb-2 flex items-center justify-between px-1 text-left">
-                            <label for="institution-search" class="text-sm font-semibold text-slate-700">{{ __('Search institutions') }}</label>
-                            <span class="text-xs font-medium text-slate-500">{{ number_format($institutionTotal) }} {{ __('institutions') }}</span>
-                        </div>
-                        <div class="relative group">
-                        <input 
-                            type="search"
-                            id="institution-search"
-                            wire:model.live.debounce.300ms="search"
-                            wire:keydown.escape="clearSearch"
-                            placeholder="{{ __('Search institutions...') }}" 
-                            autocomplete="off"
-                            aria-describedby="institution-search-hint"
-                            class="h-14 w-full rounded-2xl border-2 border-slate-200 bg-white pl-12 pr-14 font-medium text-slate-900 shadow-lg shadow-slate-200/60 transition-all placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-500/10"
-                        >
-                        <svg class="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-slate-400 group-focus-within:text-emerald-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                        @if(filled($search))
-                            <button type="button" wire:click="clearSearch"
-                                aria-label="{{ __('Clear search') }}"
-                                class="absolute right-3 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-red-200 bg-red-50 text-red-500 shadow-sm transition hover:border-red-300 hover:bg-red-100 hover:text-red-600 focus:outline-none focus:ring-4 focus:ring-red-500/10">
-                                <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l8 8M14 6l-8 8" />
-                                </svg>
-                                <span class="sr-only">{{ __('Clear search') }}</span>
-                            </button>
-                        @endif
-                        </div>
-                        <p id="institution-search-hint" class="sr-only">{{ __('Search by institution name or location.') }}</p>
-                    </div>
+                    <x-ui.search-bar
+                        input-id="institution-search"
+                        model="search"
+                        :value="$search"
+                        :placeholder="__('Search institutions...')"
+                        :label="__('Search institutions')"
+                        :label-visible="true"
+                        :count="$institutionTotal"
+                        :count-label="__('institutions')"
+                        :hint="__('Search by institution name or location.')"
+                        width="mx-auto max-w-2xl"
+                    />
 
                     <div data-institution-filters class="mx-auto mt-8 max-w-4xl border-t border-emerald-200/80 pt-5 text-left sm:pt-6">
                         <div class="mb-5 flex flex-wrap items-center justify-between gap-3">

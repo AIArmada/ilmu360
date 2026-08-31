@@ -689,6 +689,48 @@ it('filters events by key person roles and role-specific linked persons', functi
         ->not()->toContain($moderatedEvent->id);
 });
 
+it('filters events by free-text person name across every role', function () {
+    $speakerPerson = Person::factory()->create([
+        'name' => 'Ustaz API Nama Sepadan',
+        'status' => 'verified',
+    ]);
+
+    $speakerEvent = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => EventVisibility::Public,
+    ]);
+
+    $speakerEvent->persons()->attach($speakerPerson);
+
+    $bilalEvent = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => EventVisibility::Public,
+    ]);
+
+    $bilalEvent->keyPeople()->create([
+        'role_code' => EventKeyPersonRole::Bilal->value,
+        'display_name' => 'Bilal API Nama Sepadan',
+        'sort_order' => 1,
+        'visibility' => 'public',
+    ]);
+
+    $unrelatedEvent = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => EventVisibility::Public,
+    ]);
+
+    $response = $this->getJson('/api/v1/events?filter[person_name_search]=Nama%20Sepadan');
+
+    $response->assertOk();
+
+    $eventIds = collect($response->json('data'))->pluck('id')->all();
+
+    expect($eventIds)
+        ->toContain($speakerEvent->id)
+        ->toContain($bilalEvent->id)
+        ->not()->toContain($unrelatedEvent->id);
+});
+
 it('includes reference study subtitle in the generic paginated events payload', function () {
     $event = Event::factory()->create([
         'status' => 'approved',

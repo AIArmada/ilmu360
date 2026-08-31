@@ -18,7 +18,6 @@ use App\Data\PublicScheduleLeaf;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
-use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
 use App\Enums\TimingMode;
 use App\Forms\SharedFormSchema;
@@ -35,6 +34,9 @@ use App\Support\Auth\IntendedRedirect;
 use App\Support\Cache\SafeModelCache;
 use App\Support\Language\MalaysiaLanguageCatalog;
 use App\Support\Location\PublicGeolocationPermission;
+use App\Support\Location\VisitorCountryResolver;
+use App\Support\Timezone\UserDateTimeFormatter;
+use Carbon\CarbonInterface;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -152,6 +154,15 @@ class Index extends Component implements HasForms
     public ?string $person_in_charge_search = null;
 
     /**
+     * Free-text person name match across speakers and every key-person role.
+     *
+     * The role-specific person filters below are still honoured when present in
+     * a saved search or a shared URL, they just no longer have sidebar controls.
+     */
+    #[Url]
+    public ?string $person_name_search = null;
+
+    /**
      * @var list<string>
      */
     #[Url]
@@ -204,6 +215,16 @@ class Index extends Component implements HasForms
 
     #[Url]
     public ?string $starts_before = null;
+
+    /**
+     * Single-select date shortcut (Semua | Hari ini | Esok | … | Julat tersuai).
+     *
+     * Form-only state (kept out of the URL on purpose): the canonical date range
+     * travels as `starts_after`/`starts_before`, so saved searches and shared URLs
+     * keep working. A named shortcut is resolved into `starts_after`/`starts_before`
+     * by {@see normalizedUrlState()}; `custom` defers to the two date pickers.
+     */
+    public ?string $date_shortcut = null;
 
     #[Url]
     public ?string $time_scope = null;
@@ -285,36 +306,48 @@ class Index extends Component implements HasForms
 
     public function mount(): void
     {
+        $this->applyDefaultCountryScope();
+
         $normalized = $this->normalizedUrlState();
 
         $this->fillPublicPropertiesFromFilters($normalized);
         $this->filterData = $normalized;
     }
 
+    /**
+     * Scope address filters to the visitor's country when the visitor has not
+     * chosen one.
+     *
+     * The country carries no implicit meaning on its own — it only widens the
+     * address cascade. When the resolved country has a Geography provider
+     * (Malaysia, for example) the state, district, subdivision, division and
+     * locality fields are populated by SharedFormSchema and revealed by their
+     * `visible()` guards. Countries without a provider simply leave those
+     * levels empty.
+     */
+    private function applyDefaultCountryScope(): void
+    {
+        if (filled($this->country_id)) {
+            return;
+        }
+
+        $this->country_id = app(VisitorCountryResolver::class)->resolve();
+    }
+
+    /**
+     * The country the page falls back to when the visitor has not filtered.
+     *
+     * Used to keep the automatic scope out of the active-filter count so the
+     * page does not look pre-filtered.
+     */
+    public function defaultCountryId(): ?string
+    {
+        return app(VisitorCountryResolver::class)->resolve();
+    }
+
     public function showsGeolocationControls(): bool
     {
         return app(PublicGeolocationPermission::class)->isGranted();
-    }
-
-    public function searchForm(Schema $schema): Schema
-    {
-        return $schema
-            ->statePath('filterData')
-            ->schema([
-                TextInput::make('search')
-                    ->label(__('Carian'))
-                    ->hiddenLabel()
-                    ->id('event-search')
-                    ->placeholder(__('Cari tajuk, ustaz, masjid, topik...'))
-                    ->prefixIcon('heroicon-m-magnifying-glass')
-                    ->maxLength(255)
-                    ->extraAttributes([
-                        'data-signal-control' => 'search',
-                        'data-signal-include-value' => 'true',
-                        'wire:keydown.escape' => 'clearSearch',
-                    ])
-                    ->live(debounce: 300),
-            ]);
     }
 
     public function sortForm(Schema $schema): Schema
@@ -341,6 +374,69 @@ class Index extends Component implements HasForms
         return $schema
             ->statePath('filterData')
             ->schema([
+                Section::make(__('Tarikh'))
+                    ->extraAttributes(['class' => 'mi-advanced-filter-group'])
+                    ->schema([
+                        Select::make('date_shortcut')
+                            ->label(__('Tarikh'))
+                            ->options([
+                                'all' => __('Semua'),
+                                'today' => __('Hari ini'),
+                                'tomorrow' => __('Esok'),
+                                'this_week' => __('Minggu ini'),
+                                'this_weekend' => __('Hujung minggu'),
+                                'this_month' => __('Bulan ini'),
+                                'next_week' => __('Minggu depan'),
+                                'next_month' => __('Bulan depan'),
+                                'custom' => __('Julat tersuai'),
+                            ])
+                            ->default('all')
+                            ->selectablePlaceholder(false)
+                            ->live()
+                            ->afterStateUpdated(function (Set $set, $state): void {
+                                // Any choice other than the custom range clears the
+                                // hidden date pickers so "Semua" is a true no-constraint.
+                                if ($state !== 'custom') {
+                                    $set('starts_after', null);
+                                    $set('starts_before', null);
+                                }
+                            })
+                            ->extraAttributes(['data-signal-control' => 'date_shortcut']),
+
+                        DatePicker::make('starts_after')
+                            ->label(__('Dari'))
+                            ->placeholder(__('Pilih tarikh mula'))
+                            ->native(false)
+                            ->extraAttributes(['data-signal-control' => 'starts_after'])
+                            ->live()
+                            ->visible(fn (Get $get): bool => ($get('date_shortcut') ?? 'all') === 'custom'),
+
+                        DatePicker::make('starts_before')
+                            ->label(__('Hingga'))
+                            ->placeholder(__('Pilih tarikh akhir'))
+                            ->native(false)
+                            ->extraAttributes(['data-signal-control' => 'starts_before'])
+                            ->live()
+                            ->visible(fn (Get $get): bool => ($get('date_shortcut') ?? 'all') === 'custom'),
+                    ]),
+
+                Section::make(__('Format'))
+                    ->extraAttributes(['class' => 'mi-advanced-filter-group'])
+                    ->schema([
+                        Select::make('event_format')
+                            ->label(__('Format'))
+                            ->placeholder(__('Semua format'))
+                            ->searchable()
+                            ->preload()
+                            ->multiple()
+                            ->options(collect(EventFormat::cases())
+                                ->mapWithKeys(fn (EventFormat $format): array => [$format->value => $format->getLabel()])
+                                ->all()
+                            )
+                            ->extraAttributes(['data-signal-control' => 'event_format'])
+                            ->live(),
+                    ]),
+
                 Section::make(__('Masa'))
                     ->extraAttributes(['class' => 'mi-advanced-filter-group'])
                     ->schema([
@@ -560,81 +656,31 @@ class Index extends Component implements HasForms
                             ->live(),
                     ]),
 
-                Section::make(__('Penceramah & kandungan'))
+                Section::make(__('Penceramah'))
                     ->extraAttributes(['class' => 'mi-advanced-filter-group'])
                     ->schema([
-                        Select::make('person_ids')
-                            ->label(__('Speaker'))
-                            ->placeholder(__('Any Speaker'))
-                            ->searchable()
-                            ->multiple()
-                            ->getSearchResultsUsing(fn (string $search): array => $this->searchPersonOptions($search))
-                            ->getOptionLabelsUsing(fn (array $values): array => $this->personOptionLabels($values))
-                            ->live(),
-
-                        Select::make('key_person_roles')
-                            ->label(__('Peranan Lain Dalam Majlis'))
-                            ->placeholder(__('Any Role'))
-                            ->searchable()
-                            ->multiple()
-                            ->options(EventKeyPersonRole::nonSpeakerOptions())
-                            ->live(),
-
-                        Select::make('person_in_charge_ids')
-                            ->label(__('PIC / Penyelaras'))
-                            ->placeholder(__('Any PIC / Penyelaras'))
-                            ->searchable()
-                            ->multiple()
-                            ->getSearchResultsUsing(fn (string $search): array => $this->searchPersonOptions($search))
-                            ->getOptionLabelsUsing(fn (array $values): array => $this->personOptionLabels($values))
-                            ->live(),
-
-                        TextInput::make('person_in_charge_search')
-                            ->label(__('Nama PIC / Penyelaras'))
-                            ->placeholder(__('Cari nama PIC / Penyelaras'))
+                        TextInput::make('person_name_search')
+                            ->label(__('Nama penceramah'))
+                            ->placeholder(__('Cari nama penceramah...'))
+                            ->helperText(__('Padanan nama penceramah, imam, khatib, bilal, moderator atau PIC.'))
                             ->maxLength(255)
+                            ->extraAttributes(['data-signal-control' => 'person_name_search'])
                             ->live(onBlur: true),
-
-                        Select::make('moderator_ids')
-                            ->label(__('Moderator'))
-                            ->placeholder(__('Any Moderator'))
-                            ->searchable()
-                            ->multiple()
-                            ->getSearchResultsUsing(fn (string $search): array => $this->searchPersonOptions($search))
-                            ->getOptionLabelsUsing(fn (array $values): array => $this->personOptionLabels($values))
-                            ->live(),
-
-                        Select::make('imam_ids')
-                            ->label(__('Imam'))
-                            ->placeholder(__('Any Imam'))
-                            ->searchable()
-                            ->multiple()
-                            ->getSearchResultsUsing(fn (string $search): array => $this->searchPersonOptions($search))
-                            ->getOptionLabelsUsing(fn (array $values): array => $this->personOptionLabels($values))
-                            ->live(),
-
-                        Select::make('khatib_ids')
-                            ->label(__('Khatib'))
-                            ->placeholder(__('Any Khatib'))
-                            ->searchable()
-                            ->multiple()
-                            ->getSearchResultsUsing(fn (string $search): array => $this->searchPersonOptions($search))
-                            ->getOptionLabelsUsing(fn (array $values): array => $this->personOptionLabels($values))
-                            ->live(),
-
-                        Select::make('bilal_ids')
-                            ->label(__('Bilal'))
-                            ->placeholder(__('Any Bilal'))
-                            ->searchable()
-                            ->multiple()
-                            ->getSearchResultsUsing(fn (string $search): array => $this->searchPersonOptions($search))
-                            ->getOptionLabelsUsing(fn (array $values): array => $this->personOptionLabels($values))
-                            ->live(),
                     ]),
 
                 Section::make(__('Topik & rujukan'))
                     ->extraAttributes(['class' => 'mi-advanced-filter-group'])
                     ->schema([
+                        Select::make('event_category_ids')
+                            ->label(__('Jenis majlis'))
+                            ->placeholder(__('Semua jenis majlis'))
+                            ->searchable()
+                            ->preload()
+                            ->multiple()
+                            ->options(fn (): array => $this->eventCategoryOptions)
+                            ->extraAttributes(['data-signal-control' => 'event_category_ids'])
+                            ->live(),
+
                         Select::make('domain_tag_ids')
                             ->label(__('Topik / bidang'))
                             ->placeholder(__('Pilih topik…'))
@@ -741,86 +787,6 @@ class Index extends Component implements HasForms
                             ->live(),
                     ]),
 
-                Section::make(__('Pautan & siaran'))
-                    ->extraAttributes(['class' => 'mi-advanced-filter-group'])
-                    ->schema([
-                        Select::make('has_event_url')
-                            ->label(__('Event URL'))
-                            ->placeholder(__('Any'))
-                            ->options([
-                                '1' => __('Has URL'),
-                                '0' => __('No URL'),
-                            ])
-                            ->live(),
-
-                        Select::make('has_live_url')
-                            ->label(__('Live URL'))
-                            ->placeholder(__('Any'))
-                            ->options([
-                                '1' => __('Has Live URL'),
-                                '0' => __('No Live URL'),
-                            ])
-                            ->live(),
-
-                        Select::make('has_end_time')
-                            ->label(__('End Time'))
-                            ->placeholder(__('Any'))
-                            ->options([
-                                '1' => __('Has End Time'),
-                                '0' => __('No End Time'),
-                            ])
-                            ->live(),
-                    ]),
-
-                Section::make(__('Tarikh'))
-                    ->extraAttributes(['class' => 'mi-advanced-filter-group'])
-                    ->schema([
-                        DatePicker::make('starts_after')
-                            ->label(__('Dari'))
-                            ->placeholder(__('Pilih tarikh mula'))
-                            ->native(false)
-                            ->extraAttributes(['data-signal-control' => 'starts_after'])
-                            ->live(),
-
-                        DatePicker::make('starts_before')
-                            ->label(__('Hingga'))
-                            ->placeholder(__('Pilih tarikh akhir'))
-                            ->native(false)
-                            ->extraAttributes(['data-signal-control' => 'starts_before'])
-                            ->live(),
-                    ]),
-
-                Section::make(__('Jenis majlis'))
-                    ->extraAttributes(['class' => 'mi-advanced-filter-group'])
-                    ->schema([
-                        Select::make('event_category_ids')
-                            ->label(__('Jenis majlis'))
-                            ->placeholder(__('Semua jenis majlis'))
-                            ->searchable()
-                            ->preload()
-                            ->multiple()
-                            ->options(fn (): array => $this->eventCategoryOptions)
-                            ->extraAttributes(['data-signal-control' => 'event_category_ids'])
-                            ->live(),
-                    ]),
-
-                Section::make(__('Format'))
-                    ->extraAttributes(['class' => 'mi-advanced-filter-group'])
-                    ->schema([
-                        Select::make('event_format')
-                            ->label(__('Format'))
-                            ->placeholder(__('Semua format'))
-                            ->searchable()
-                            ->preload()
-                            ->multiple()
-                            ->options(collect(EventFormat::cases())
-                                ->mapWithKeys(fn (EventFormat $format): array => [$format->value => $format->getLabel()])
-                                ->all()
-                            )
-                            ->extraAttributes(['data-signal-control' => 'event_format'])
-                            ->live(),
-                    ]),
-
                 Section::make(__('Lokasi berdekatan'))
                     ->extraAttributes(['class' => 'mi-advanced-filter-group'])
                     ->visible(fn (): bool => filled($this->lat))
@@ -915,6 +881,15 @@ class Index extends Component implements HasForms
 
         $this->fillPublicPropertiesFromFilters($defaults);
         $this->filterData = $defaults;
+
+        // Restore the visitor's country so "clear" returns to how the page
+        // loaded rather than silently widening the search to every country.
+        $this->applyDefaultCountryScope();
+
+        $normalized = $this->normalizedUrlState();
+
+        $this->fillPublicPropertiesFromFilters($normalized);
+        $this->filterData = $normalized;
 
         $this->resetPage();
     }
@@ -1301,18 +1276,6 @@ class Index extends Component implements HasForms
     /**
      * @return array<string, string>
      */
-    private function searchPersonOptions(string $search): array
-    {
-        return $this->pluckOptions(
-            Person::query()
-                ->whereIn('status', ['verified', 'pending'])
-                ->tap(fn (Builder $query): Builder => $this->applySearchConstraint($query, 'name', $search))
-                ->orderBy('name'),
-            'name',
-            50,
-        );
-    }
-
     /**
      * @param  list<string>  $values
      * @return array<string, string>
@@ -1680,6 +1643,7 @@ class Index extends Component implements HasForms
             'key_person_roles' => $filters['key_person_roles'],
             'person_in_charge_ids' => $filters['person_in_charge_ids'],
             'person_in_charge_search' => $filters['person_in_charge_search'],
+            'person_name_search' => $filters['person_name_search'],
             'moderator_ids' => $filters['moderator_ids'],
             'imam_ids' => $filters['imam_ids'],
             'khatib_ids' => $filters['khatib_ids'],
@@ -1783,6 +1747,7 @@ class Index extends Component implements HasForms
             'key_person_roles' => [],
             'person_in_charge_ids' => [],
             'person_in_charge_search' => null,
+            'person_name_search' => null,
             'moderator_ids' => [],
             'imam_ids' => [],
             'khatib_ids' => [],
@@ -1794,6 +1759,7 @@ class Index extends Component implements HasForms
             'reference_ids' => [],
             'starts_after' => null,
             'starts_before' => null,
+            'date_shortcut' => 'all',
             'time_scope' => 'upcoming',
             'prayer_time' => null,
             'timing_mode' => null,
@@ -1829,6 +1795,9 @@ class Index extends Component implements HasForms
             $prayerTime = null;
         }
 
+        $dateShortcut = $this->effectiveDateShortcut($this->date_shortcut, $this->starts_after, $this->starts_before);
+        $dateRange = $this->dateRangeForShortcut($dateShortcut, $this->starts_after, $this->starts_before);
+
         return [
             'search' => filled($this->search) ? trim($this->search) : null,
             'country_id' => filled($this->country_id) ? $this->country_id : null,
@@ -1847,6 +1816,7 @@ class Index extends Component implements HasForms
             'key_person_roles' => $this->normalizeStringArray($this->key_person_roles),
             'person_in_charge_ids' => $this->normalizeStringArray($this->person_in_charge_ids),
             'person_in_charge_search' => filled($this->person_in_charge_search) ? trim($this->person_in_charge_search) : null,
+            'person_name_search' => filled($this->person_name_search) ? trim($this->person_name_search) : null,
             'moderator_ids' => $this->normalizeStringArray($this->moderator_ids),
             'imam_ids' => $this->normalizeStringArray($this->imam_ids),
             'khatib_ids' => $this->normalizeStringArray($this->khatib_ids),
@@ -1856,8 +1826,9 @@ class Index extends Component implements HasForms
             'source_tag_ids' => $this->normalizeStringArray($this->source_tag_ids),
             'issue_tag_ids' => $this->normalizeStringArray($this->issue_tag_ids),
             'reference_ids' => $this->normalizeStringArray($this->reference_ids),
-            'starts_after' => filled($this->starts_after) ? $this->starts_after : null,
-            'starts_before' => filled($this->starts_before) ? $this->starts_before : null,
+            'date_shortcut' => $dateShortcut,
+            'starts_after' => $dateRange['starts_after'],
+            'starts_before' => $dateRange['starts_before'],
             'time_scope' => in_array($this->time_scope, ['upcoming', 'past', 'all'], true) ? $this->time_scope : $defaults['time_scope'],
             'prayer_time' => $prayerTime,
             'timing_mode' => in_array($this->timing_mode, [TimingMode::Absolute->value, TimingMode::PrayerRelative->value], true)
@@ -1902,6 +1873,7 @@ class Index extends Component implements HasForms
         $this->key_person_roles = $filters['key_person_roles'];
         $this->person_in_charge_ids = $filters['person_in_charge_ids'];
         $this->person_in_charge_search = $filters['person_in_charge_search'];
+        $this->person_name_search = $filters['person_name_search'];
         $this->moderator_ids = $filters['moderator_ids'];
         $this->imam_ids = $filters['imam_ids'];
         $this->khatib_ids = $filters['khatib_ids'];
@@ -1913,6 +1885,7 @@ class Index extends Component implements HasForms
         $this->reference_ids = $filters['reference_ids'];
         $this->starts_after = $filters['starts_after'];
         $this->starts_before = $filters['starts_before'];
+        $this->date_shortcut = $filters['date_shortcut'] ?? 'all';
         $this->time_scope = $filters['time_scope'];
         $this->prayer_time = $filters['prayer_time'];
         $this->timing_mode = $filters['timing_mode'];
@@ -1975,6 +1948,9 @@ class Index extends Component implements HasForms
             $prayerTime = null;
         }
 
+        $dateShortcut = $this->effectiveDateShortcut($normalized['date_shortcut'] ?? null, $normalized['starts_after'] ?? null, $normalized['starts_before'] ?? null);
+        $dateRange = $this->dateRangeForShortcut($dateShortcut, $normalized['starts_after'] ?? null, $normalized['starts_before'] ?? null);
+
         return [
             'search' => filled($normalized['search']) ? trim((string) $normalized['search']) : null,
             'country_id' => filled($normalized['country_id']) ? (string) $normalized['country_id'] : null,
@@ -1993,6 +1969,7 @@ class Index extends Component implements HasForms
             'key_person_roles' => $this->normalizeStringArray($normalized['key_person_roles'] ?? []),
             'person_in_charge_ids' => $this->normalizeStringArray($normalized['person_in_charge_ids'] ?? []),
             'person_in_charge_search' => filled($normalized['person_in_charge_search'] ?? null) ? trim((string) $normalized['person_in_charge_search']) : null,
+            'person_name_search' => filled($normalized['person_name_search'] ?? null) ? trim((string) $normalized['person_name_search']) : null,
             'moderator_ids' => $this->normalizeStringArray($normalized['moderator_ids'] ?? []),
             'imam_ids' => $this->normalizeStringArray($normalized['imam_ids'] ?? []),
             'khatib_ids' => $this->normalizeStringArray($normalized['khatib_ids'] ?? []),
@@ -2002,8 +1979,9 @@ class Index extends Component implements HasForms
             'source_tag_ids' => $this->normalizeStringArray($normalized['source_tag_ids'] ?? []),
             'issue_tag_ids' => $this->normalizeStringArray($normalized['issue_tag_ids'] ?? []),
             'reference_ids' => $this->normalizeStringArray($normalized['reference_ids'] ?? []),
-            'starts_after' => filled($normalized['starts_after']) ? (string) $normalized['starts_after'] : null,
-            'starts_before' => filled($normalized['starts_before']) ? (string) $normalized['starts_before'] : null,
+            'date_shortcut' => $dateShortcut,
+            'starts_after' => $dateRange['starts_after'],
+            'starts_before' => $dateRange['starts_before'],
             'time_scope' => $timeScope,
             'prayer_time' => $prayerTime,
             'timing_mode' => $timingMode !== '' ? $timingMode : null,
@@ -2022,6 +2000,84 @@ class Index extends Component implements HasForms
             'search_include_references' => (bool) ($normalized['search_include_references'] ?? true),
             'reference_author_search' => $this->normalizeStringArray($normalized['reference_author_search'] ?? []),
         ];
+    }
+
+    /**
+     * Resolve which date shortcut is active, inferring `custom` when an explicit
+     * range (starts_after / starts_before) is present without a chosen shortcut —
+     * e.g. a shared URL or a saved search that stored the raw dates.
+     */
+    private function effectiveDateShortcut(mixed $shortcut, mixed $rawAfter, mixed $rawBefore): string
+    {
+        $allowed = ['all', 'today', 'tomorrow', 'this_week', 'this_weekend', 'this_month', 'next_week', 'next_month', 'custom'];
+        $value = is_string($shortcut) ? $shortcut : '';
+
+        if (! in_array($value, $allowed, true)) {
+            $value = '';
+        }
+
+        if ($value === '' || $value === 'all') {
+            $value = (filled($rawAfter) || filled($rawBefore)) ? 'custom' : 'all';
+        }
+
+        return $value;
+    }
+
+    /**
+     * Map a date shortcut to the canonical starts_after / starts_before pair.
+     *
+     * `custom` defers to the two date pickers; named shortcuts compute an
+     * inclusive day range (the search layer treats starts_before as end-of-day).
+     *
+     * @return array{starts_after: ?string, starts_before: ?string}
+     */
+    private function dateRangeForShortcut(string $shortcut, ?string $rawAfter, ?string $rawBefore): array
+    {
+        if ($shortcut === 'custom') {
+            return [
+                'starts_after' => filled($rawAfter) ? (string) $rawAfter : null,
+                'starts_before' => filled($rawBefore) ? (string) $rawBefore : null,
+            ];
+        }
+
+        if ($shortcut === 'all' || $shortcut === '') {
+            return ['starts_after' => null, 'starts_before' => null];
+        }
+
+        $today = UserDateTimeFormatter::userNow()->startOfDay();
+
+        [$after, $before] = match ($shortcut) {
+            'today' => [$today, $today],
+            'tomorrow' => [$today->copy()->addDay(), $today->copy()->addDay()],
+            'this_week' => [$today->copy()->startOfWeek(), $today->copy()->endOfWeek()],
+            'this_weekend' => $this->weekendDateRange($today),
+            'this_month' => [$today->copy()->startOfMonth(), $today->copy()->endOfMonth()],
+            'next_week' => [$today->copy()->startOfWeek()->addWeek(), $today->copy()->endOfWeek()->addWeek()],
+            'next_month' => [$today->copy()->startOfMonth()->addMonth(), $today->copy()->endOfMonth()->addMonth()],
+            default => [null, null],
+        };
+
+        if ($after === null || $before === null) {
+            return ['starts_after' => null, 'starts_before' => null];
+        }
+
+        return [
+            'starts_after' => $after->toDateString(),
+            'starts_before' => $before->toDateString(),
+        ];
+    }
+
+    /**
+     * @return array{0: CarbonInterface, 1: CarbonInterface}
+     */
+    private function weekendDateRange(CarbonInterface $today): array
+    {
+        $weekendStart = ($today->isSaturday() || $today->isSunday())
+            ? $today->copy()
+            : $today->copy()->next(CarbonInterface::SATURDAY);
+
+        // Inclusive Sat + Sun; the search layer extends starts_before to end-of-day.
+        return [$weekendStart, $weekendStart->copy()->addDay()];
     }
 
     /**

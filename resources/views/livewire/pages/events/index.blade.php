@@ -41,24 +41,6 @@
                 color: rgb(100 116 139);
             }
 
-            .mi-search-form .fi-fo-field-wrp {
-                margin: 0;
-            }
-
-            .mi-search-form .fi-input-wrp {
-                border-radius: 1rem;
-                background: white;
-                box-shadow: 0 18px 45px -28px rgb(15 23 42 / 0.55);
-            }
-
-            .mi-search-form .fi-input {
-                min-height: 4rem;
-                border-radius: 1rem;
-                padding-right: 6rem;
-                font-size: 1rem;
-                font-weight: 500;
-            }
-
             .mi-sort-form .fi-fo-field-wrp {
                 margin: 0;
             }
@@ -84,6 +66,9 @@
 @php
     $events = $this->scheduleItems;
     $search = $this->search;
+    $defaultCountryId = $this->defaultCountryId();
+    // The country is scoped automatically; only an explicit change is a filter.
+    $hasCountryScope = filled($this->country_id) && $this->country_id !== $defaultCountryId;
     $countryId = $this->country_id;
     $stateId = $this->state_id;
     $areaAssignments = $this->area_assignments;
@@ -122,6 +107,7 @@
     $selectedKeyPersonRoles = array_values(array_filter((array) $this->key_person_roles));
     $selectedPersonInChargeIds = array_values(array_filter((array) $this->person_in_charge_ids));
     $personInChargeSearch = filled($this->person_in_charge_search) ? trim((string) $this->person_in_charge_search) : null;
+    $personNameSearch = filled($this->person_name_search) ? trim((string) $this->person_name_search) : null;
     $selectedModeratorIds = array_values(array_filter((array) $this->moderator_ids));
     $selectedImamIds = array_values(array_filter((array) $this->imam_ids));
     $selectedKhatibIds = array_values(array_filter((array) $this->khatib_ids));
@@ -171,7 +157,7 @@
     $timingModeLabel = \App\Enums\TimingMode::tryFrom((string) $timingMode)?->label();
     $activeFilterCount = collect([
         filled($search),
-        filled($countryId),
+        $hasCountryScope,
         filled($stateId),
         filled($this->city_id),
         filled($areaAssignments['administrative_division'] ?? null),
@@ -191,6 +177,7 @@
         count($selectedKeyPersonRoles) > 0,
         count($selectedPersonInChargeIds) > 0,
         filled($personInChargeSearch),
+        filled($personNameSearch),
         count($selectedModeratorIds) > 0,
         count($selectedImamIds) > 0,
         count($selectedKhatibIds) > 0,
@@ -229,6 +216,7 @@
         'key_person_roles' => $selectedKeyPersonRoles,
         'person_in_charge_ids' => $selectedPersonInChargeIds,
         'person_in_charge_search' => $personInChargeSearch,
+        'person_name_search' => $personNameSearch,
         'moderator_ids' => $selectedModeratorIds,
         'imam_ids' => $selectedImamIds,
         'khatib_ids' => $selectedKhatibIds,
@@ -273,11 +261,6 @@
     $todayQuery = array_replace($savedSearchQuery, [
         'starts_after' => now()->toDateString(),
         'starts_before' => now()->toDateString(),
-        'time_scope' => 'all',
-    ]);
-    $weekendQuery = array_replace($savedSearchQuery, [
-        'starts_after' => now()->next(\Carbon\CarbonInterface::SATURDAY)->toDateString(),
-        'starts_before' => now()->next(\Carbon\CarbonInterface::SUNDAY)->toDateString(),
         'time_scope' => 'all',
     ]);
     $searchShareUrl = $hasActiveFilters ? route('events.index', $savedSearchQuery) : null;
@@ -523,20 +506,23 @@
                     data-signal-control="filter_form"
                     data-signal-props='@json(['surface' => 'events_index'])'
                     class="mt-8 max-w-3xl">
-                    <div class="mi-search-form relative">
-                        {{ $this->searchForm }}
-                        @if(filled($search))
-                            <button type="button" wire:click="clearSearch"
-                                data-signal-event="search.cleared"
-                                data-signal-category="search"
-                                data-signal-component="events_index_filters"
-                                data-signal-control="clear_search"
-                                class="absolute right-4 top-1/2 -translate-y-1/2 rounded-full border border-rose-100 bg-rose-50 px-3 py-1 text-xs font-bold text-rose-600 transition hover:bg-rose-100">
-                                {{ __('Clear') }}
-                            </button>
-                        @endif
-                    </div>
-
+                    <x-ui.search-bar
+                        input-id="event-search"
+                        model="filterData.search"
+                        :value="$search"
+                        :placeholder="__('Cari tajuk, ustaz, masjid, topik...')"
+                        maxlength="255"
+                        :label="__('Carian')"
+                        :hint="__('Cari mengikut tajuk, penceramah, institusi atau lokasi.')"
+                        :clear-attributes="[
+                            'data-signal-event' => 'search.cleared',
+                            'data-signal-category' => 'search',
+                            'data-signal-component' => 'events_index_filters',
+                            'data-signal-control' => 'clear_search',
+                        ]"
+                        data-signal-control="search"
+                        data-signal-include-value="true"
+                    />
                 </form>
             </div>
         </div>
@@ -590,19 +576,6 @@
 
                         <div x-show="locationNotice" x-cloak x-text="locationNotice" class="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold leading-5 text-amber-800"></div>
 
-                    </section>
-
-                    <section class="py-4">
-                        <h2 class="inline-flex items-center gap-2 font-heading text-base font-bold text-emerald-950">
-                            <svg class="size-5 text-emerald-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3.75 8.25h16.5M5.25 5.25h13.5A1.5 1.5 0 0 1 20.25 6.75v12A1.5 1.5 0 0 1 18.75 20.25H5.25A1.5 1.5 0 0 1 3.75 18.75v-12A1.5 1.5 0 0 1 5.25 5.25Z" />
-                            </svg>
-                            {{ __('Tarikh') }}
-                        </h2>
-                        <div class="mt-3 grid grid-cols-2 gap-2">
-                            <a href="{{ route('events.index', $todayQuery) }}" wire:navigate class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-center text-xs font-semibold text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50">{{ __('Hari ini') }}</a>
-                            <a href="{{ route('events.index', $weekendQuery) }}" wire:navigate class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-center text-xs font-semibold text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50">{{ __('Hujung minggu') }}</a>
-                        </div>
                     </section>
 
                     <section class="pt-4">
@@ -686,7 +659,7 @@
                             @if($lat)
                                 <span class="inline-flex items-center gap-1 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800">{{ __('Dekat saya') }} · {{ $this->radius_km }} km</span>
                             @endif
-                            @if($countryId)
+                            @if($hasCountryScope)
                                 <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Negara') }}: {{ $countries->firstWhere('id', $countryId)?->name ?? $countryId }}</span>
                             @endif
                             @if($stateId)
@@ -725,6 +698,9 @@
                             @foreach($selectedPersonIds as $personId)
                                 <span class="inline-flex items-center rounded-full border border-orange-100 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-800">{{ __('Penceramah') }}: {{ $personLabels[(string) $personId] ?? $personId }}</span>
                             @endforeach
+                            @if($personNameSearch)
+                                <span class="inline-flex items-center rounded-full border border-orange-100 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-800">{{ __('Nama penceramah') }}: {{ $personNameSearch }}</span>
+                            @endif
                             @foreach($selectedKeyPersonRoles as $role)
                                 <span class="inline-flex items-center rounded-full border border-orange-100 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-800">{{ __('Peranan Lain Dalam Majlis') }}: {{ $keyPersonRoleLabels[$role] ?? $role }}</span>
                             @endforeach

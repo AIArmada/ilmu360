@@ -108,6 +108,7 @@ final readonly class ExecuteSavedSearchAction
             'key_person_roles',
             'person_in_charge_ids',
             'person_in_charge_search',
+            'person_name_search',
             'moderator_ids',
             'imam_ids',
             'khatib_ids',
