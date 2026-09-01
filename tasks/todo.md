@@ -1,3 +1,100 @@
+# Make next majlis rows link to event details
+
+## Plan
+
+- [x] Trace the event detail route and the current next-majlis markup on both directory cards.
+- [x] Expose the selected event slug and make each next-majlis row its own direct link.
+- [x] Add regression coverage, update lessons, and verify both live directory pages.
+
+## Review
+
+The next-majlis row on both directory cards is now a sibling event link, so it opens the selected majlis detail page directly without nesting links inside the profile card link. Follow controls and profile actions remain unchanged.
+
+## Verification
+
+- `vendor/bin/pest --parallel --processes=4 --compact tests/Feature/InstitutionIndexTest.php` — 34 passed (161 assertions).
+- `vendor/bin/pest --parallel --processes=4 --compact tests/Feature/PersonIndexTest.php` — 43 passed (177 assertions).
+- `php artisan view:cache`, `npm run build`, `vendor/bin/pint --dirty --test`, and `git diff --check` — passed.
+- Collaborative browser preview — live clicks from both `/institusi` and `/penceramah` reached `/majlis/...`; mobile 390×844 checks confirmed direct event hrefs, no nested anchors, and no horizontal overflow.
+- PHPStan still reports the two pre-existing errors in `app/Http/Controllers/Api/EventController.php` and `app/Support/Location/VisitorCountryResolver.php`; no new errors were introduced by this change.
+
+# Add next majlis to institution cards
+
+## Plan
+
+- [x] Trace the institution event-count query and the existing speaker-card next-majlis convention.
+- [x] Add the nearest public upcoming majlis data and render it on institution cards.
+- [x] Add regression coverage, update lessons, and verify the live institution page at desktop and mobile widths.
+
+## Review
+
+Institution cards now show the nearest public upcoming majlis as a compact date-and-title row above the existing footer. The row has no extra icon, and the existing event count and follow control remain unchanged.
+
+## Verification
+
+- `vendor/bin/pest --parallel --compact tests/Feature/InstitutionIndexTest.php` — 34 passed (159 assertions).
+- `php artisan view:cache`, `npm run build`, `vendor/bin/pint --dirty --test`, and `git diff --check` — passed.
+- Collaborative browser preview at 1280×800 and 390×844 — next-event content renders, the follow control remains outside the institution link, and there is no horizontal overflow.
+- PHPStan still reports the two pre-existing errors in `app/Http/Controllers/Api/EventController.php` and `app/Support/Location/VisitorCountryResolver.php`; no new errors were introduced by this change.
+
+# Make institution-card follow icon interactive
+
+## Plan
+
+- [x] Trace the institution directory card, existing follow action, and auth/tracking conventions.
+- [x] Add a separate institution-card follow toggle with persisted state and a filled active icon.
+- [x] Add focused regression coverage and verify the live desktop/mobile behavior and guest redirect.
+
+## Review
+
+Institution cards now keep their existing content and event count while adding a bookmark button in the footer row. Authenticated users can follow or unfollow in place, the icon changes between outline and filled states, and guests are sent to login with `/institusi` as the intended destination. The button is outside the institution profile link, so it does not navigate to the profile.
+
+## Verification
+
+- `vendor/bin/pest --parallel --compact tests/Feature/InstitutionIndexTest.php` — 33 passed (152 assertions).
+- `php artisan view:cache`, `npm run build`, `vendor/bin/pint --dirty --test`, and `git diff --check` — passed.
+- Collaborative browser preview at 1280×800 and 390×844 — 12 institution follow buttons render, remain outside the profile anchors, sit in the event-count footer row, and do not cause horizontal overflow; guest click goes to `/login?redirect=/institusi`.
+- PHPStan still reports the two pre-existing errors in `app/Http/Controllers/Api/EventController.php` and `app/Support/Location/VisitorCountryResolver.php`; no new errors were introduced by this change.
+
+# Make speaker-card follow icon interactive
+
+## Plan
+
+- [x] Trace the existing person-detail follow action, auth redirect, and tracking conventions.
+- [x] Add a speaker-card follow toggle with persisted state, a filled active icon, and no profile navigation.
+- [x] Add focused regression coverage and verify the live page.
+
+## Review
+
+The speaker-card bookmark is now a valid button outside the profile link. Authenticated users can follow or unfollow in place, with the icon changing between outline and filled states; guests are sent to login with the directory as the intended destination.
+
+## Verification
+
+- `vendor/bin/pest --parallel --compact tests/Feature/PersonIndexTest.php` — 43 passed (175 assertions).
+- `vendor/bin/pest --parallel --compact tests/Feature/PersonFollowTest.php` — 7 passed (28 assertions).
+- `php artisan view:cache`, `npm run build`, `vendor/bin/pint --dirty --test`, and `git diff --check` — passed.
+- Collaborative browser preview at 1280×800 and 390×844 — bookmark stays in the profile-action row; guest click goes to `/login?redirect=/penceramah`, not a profile route.
+- PHPStan still reports the two pre-existing errors in `app/Http/Controllers/Api/EventController.php` and `app/Support/Location/VisitorCountryResolver.php`; no new errors were introduced by this change.
+
+# Add next event and follow affordance to speaker cards
+
+## Plan
+
+- [x] Attach each speaker's nearest upcoming public event without changing the existing card data.
+- [x] Add only the next-event row and follow icon to the speaker card markup.
+- [x] Add focused regression coverage and verify the live desktop/mobile card rendering.
+
+## Review
+
+Speaker cards now show the nearest upcoming public speaker event and a bookmark-style follow icon in the same row as the profile link. Existing counts, sorting, hero artwork, and profile links remain unchanged.
+
+## Verification
+
+- `vendor/bin/pest --parallel --compact tests/Feature/PersonIndexTest.php` — 40 passed (157 assertions).
+- `php artisan view:cache`, `npm run build`, `vendor/bin/pint --dirty --test`, translation JSON validation, and `git diff --check` — passed.
+- Collaborative browser preview at 1280×800 and 390×844 — next-event rows and follow icons render; the existing `29 penceramah ditemui` summary remains visible.
+- PHPStan still reports the two pre-existing errors in `app/Http/Controllers/Api/EventController.php` and `app/Support/Location/VisitorCountryResolver.php`; no new errors were introduced by this change.
+
 # Remove baked checkerboard from speaker hero artwork
 
 ## Plan

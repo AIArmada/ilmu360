@@ -162,6 +162,62 @@ it('shows the total person count on the person index', function () {
         ->assertSee('2 penceramah ditemui');
 });
 
+it('allows authenticated users to follow and unfollow a speaker from the directory card', function () {
+    $user = User::factory()->create();
+    $person = Person::factory()->create([
+        'name' => 'Directory Follow Speaker',
+        'status' => 'verified',
+    ]);
+
+    $component = Livewire::actingAs($user)
+        ->test('pages.persons.index')
+        ->assertSee('<article', false)
+        ->assertSee('data-follow-state="not-following"', false)
+        ->assertSee('aria-label="Ikuti"', false)
+        ->assertSee('wire:click.stop.prevent="toggleFollow(\''.$person->id.'\')"', false)
+        ->call('toggleFollow', (string) $person->id)
+        ->assertSet('followingPersonIds', [(string) $person->id])
+        ->assertSee('data-follow-state="following"', false)
+        ->assertSee('aria-pressed="true"', false);
+
+    expect($user->isFollowing($person))->toBeTrue();
+
+    $component
+        ->call('toggleFollow', (string) $person->id)
+        ->assertSet('followingPersonIds', [])
+        ->assertSee('data-follow-state="not-following"', false)
+        ->assertSee('aria-pressed="false"', false);
+
+    expect($user->isFollowing($person))->toBeFalse();
+});
+
+it('hydrates an existing speaker follow in the directory card', function () {
+    $user = User::factory()->create();
+    $person = Person::factory()->create([
+        'name' => 'Already Followed Speaker',
+        'status' => 'verified',
+    ]);
+
+    $user->follow($person);
+
+    Livewire::actingAs($user)
+        ->test('pages.persons.index')
+        ->assertSet('followingPersonIds', [(string) $person->id])
+        ->assertSee('data-follow-state="following"', false)
+        ->assertSee('aria-pressed="true"', false)
+        ->assertSee('fill="currentColor"', false);
+});
+
+it('redirects guests to login when trying to follow from a directory card', function () {
+    $person = Person::factory()->create([
+        'status' => 'verified',
+    ]);
+
+    Livewire::test('pages.persons.index')
+        ->call('toggleFollow', (string) $person->id)
+        ->assertRedirect(route('login', ['redirect' => route('persons.index', absolute: false)]));
+});
+
 it('uses a stable random person order instead of alphabetical sorting', function () {
     $directoryOffset = Person::publicDirectoryOrderOffset();
     $personId = static function (string $sortCharacter, string $tailCharacter) use ($directoryOffset): string {
@@ -745,6 +801,7 @@ it('counts only upcoming public events on the person index cards', function () {
     ]);
 
     $upcomingEvent = Event::factory()->create([
+        'title' => 'Majlis Penceramah Terdekat',
         'status' => 'approved',
         'visibility' => 'public',
         'published_at' => now()->subHour(),
@@ -784,6 +841,7 @@ it('counts only upcoming public events on the person index cards', function () {
         $pastAndUpcomingEvent,
         [(string) $person->getKey()],
     );
+    $upcomingEvent->refresh();
 
     $component = Livewire::test('pages.persons.index')
         ->assertSee('Person Dengan Majlis Akan Datang');
@@ -792,7 +850,15 @@ it('counts only upcoming public events on the person index cards', function () {
         ->firstWhere('id', $person->id);
 
     expect($listedPerson)->not->toBeNull()
-        ->and((int) $listedPerson?->events_count)->toBe(1);
+        ->and((int) $listedPerson?->events_count)->toBe(1)
+        ->and($listedPerson?->next_event_slug)->toBe($upcomingEvent->slug)
+        ->and($listedPerson?->next_event_title)->toBe('Majlis Penceramah Terdekat')
+        ->and($listedPerson?->next_event_starts_at)->not->toBeNull();
+
+    $component
+        ->assertSee('data-next-event', false)
+        ->assertSee('href="'.route('events.show', $upcomingEvent).'"', false)
+        ->assertSee('data-follow-icon="speaker"', false);
 });
 
 it('renders gender-aware placeholders for speakers without profile images', function (?Gender $gender, string $variant, ?string $asset) {

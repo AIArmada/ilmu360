@@ -1,5 +1,17 @@
 # Lessons
 
+- When a card contains a parent profile link and a child destination must open elsewhere, split the destination into a sibling link and carry its slug in the listing query; never nest interactive links.
+
+- When a directory card already shows an event count, add the nearest public upcoming majlis as a separate text row; keep its query scoped to the same public event policy and avoid adding a redundant decorative icon.
+
+- When a card affordance becomes interactive, keep its click inside the control, persist the state, and verify that the parent card link does not navigate.
+
+- When a user removes a decorative icon from a labeled card row, remove only that row icon and preserve the row's data and adjacent action controls.
+
+- When a user specifies a card-control placement, keep the control in the requested action row and remove any spacer markup that only supported its previous position.
+
+- When a user asks for only missing speaker-card affordances, preserve every existing card element and verify the diff adds only the next-event row and follow icon.
+
 - When a count belongs to a result toolbar, align it with the sort controls in the same header row; keep the hero focused on discovery and make the summary visible without competing with the search action.
 
 - When a count is technically present but falls below the first viewport after a hero redesign, treat placement as a visibility bug; keep the reactive summary adjacent to the primary search action and hide it for genuine empty states.

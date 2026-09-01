@@ -86,7 +86,7 @@ it('lists pending institutions in the directory with the unverified badge and in
         ->assertSee('Institusi Belum Disahkan');
 });
 
-it('centers the institution card majlis counter without a view details label', function () {
+it('keeps the institution card majlis counter in the footer row without a view details label', function () {
     Institution::factory()->create([
         'name' => 'Institusi Kad Tanpa Butiran',
         'status' => 'verified',
@@ -96,8 +96,67 @@ it('centers the institution card majlis counter without a view details label', f
         ->assertSuccessful()
         ->assertSee('Institusi Kad Tanpa Butiran')
         ->assertSee('institution-card-media aspect-video', false)
-        ->assertSee('border-t border-slate-100 flex items-center justify-center', false)
+        ->assertSee('border-t border-slate-100 px-6 pb-6 pt-5', false)
+        ->assertSee('flex items-center justify-between gap-3', false)
         ->assertDontSee(__('View Details'));
+});
+
+it('allows authenticated users to follow and unfollow an institution from the directory card', function () {
+    $user = User::factory()->create();
+    $institution = Institution::factory()->create([
+        'name' => 'Directory Follow Institution',
+        'status' => 'verified',
+    ]);
+
+    $component = Livewire::actingAs($user)
+        ->test('pages.institutions.index')
+        ->assertSee('<article', false)
+        ->assertSee('data-follow-icon="institution"', false)
+        ->assertSee('data-follow-state="not-following"', false)
+        ->assertSee('aria-label="Ikuti"', false)
+        ->assertSee('wire:click.stop.prevent="toggleFollow(\''.$institution->id.'\')"', false)
+        ->call('toggleFollow', (string) $institution->id)
+        ->assertSet('followingInstitutionIds', [(string) $institution->id])
+        ->assertSee('data-follow-state="following"', false)
+        ->assertSee('aria-pressed="true"', false)
+        ->assertSee('fill="currentColor"', false);
+
+    expect($user->isFollowing($institution))->toBeTrue();
+
+    $component
+        ->call('toggleFollow', (string) $institution->id)
+        ->assertSet('followingInstitutionIds', [])
+        ->assertSee('data-follow-state="not-following"', false)
+        ->assertSee('aria-pressed="false"', false);
+
+    expect($user->isFollowing($institution))->toBeFalse();
+});
+
+it('hydrates an existing institution follow in the directory card', function () {
+    $user = User::factory()->create();
+    $institution = Institution::factory()->create([
+        'name' => 'Already Followed Institution',
+        'status' => 'verified',
+    ]);
+
+    $user->follow($institution);
+
+    Livewire::actingAs($user)
+        ->test('pages.institutions.index')
+        ->assertSet('followingInstitutionIds', [(string) $institution->id])
+        ->assertSee('data-follow-state="following"', false)
+        ->assertSee('aria-pressed="true"', false)
+        ->assertSee('fill="currentColor"', false);
+});
+
+it('redirects guests to login when trying to follow from an institution directory card', function () {
+    $institution = Institution::factory()->create([
+        'status' => 'verified',
+    ]);
+
+    Livewire::test('pages.institutions.index')
+        ->call('toggleFollow', (string) $institution->id)
+        ->assertRedirect(route('login', ['redirect' => route('institutions.index', absolute: false)]));
 });
 
 it('renders the institution logo fallback image on cards when no cover exists', function () {
@@ -606,4 +665,47 @@ it('counts approved and pending public active events on institution cards', func
         ->assertSee('Institusi Kiraan Acara')
         ->assertSee('2 '.__('Events'))
         ->assertDontSee('1 '.__('Events'));
+});
+
+it('shows the nearest upcoming public majlis on institution cards', function () {
+    $institution = Institution::factory()->create([
+        'name' => 'Institusi Majlis Terdekat',
+        'slug' => 'institusi-majlis-terdekat',
+        'status' => 'verified',
+    ]);
+
+    Event::factory()->for($institution)->create([
+        'title' => 'Majlis Institusi Lebih Lewat',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'starts_at' => now()->addDays(7),
+        'published_at' => now(),
+    ]);
+
+    $nearestEvent = Event::factory()->for($institution)->create([
+        'title' => 'Majlis Institusi Terdekat',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'starts_at' => now()->addDays(2),
+        'published_at' => now(),
+    ]);
+
+    $component = Livewire::test('pages.institutions.index', [
+        'search' => 'Institusi Majlis Terdekat',
+    ]);
+
+    $listedInstitution = collect($component->instance()->institutions->items())
+        ->firstWhere('id', $institution->id);
+
+    $component
+        ->assertSee('data-next-event', false)
+        ->assertSee('href="'.route('events.show', $nearestEvent).'"', false)
+        ->assertSee(__('Next event'))
+        ->assertSee('Majlis Institusi Terdekat')
+        ->assertDontSee('Majlis Institusi Lebih Lewat');
+
+    expect($listedInstitution)->not->toBeNull()
+        ->and($listedInstitution?->next_event_slug)->toBe($nearestEvent->slug)
+        ->and($listedInstitution?->next_event_title)->toBe('Majlis Institusi Terdekat')
+        ->and($listedInstitution?->next_event_starts_at)->not->toBeNull();
 });

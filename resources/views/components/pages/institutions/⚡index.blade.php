@@ -1,12 +1,18 @@
 <?php
 
+use App\Enums\DawahShareOutcomeType;
 use App\Enums\EventVisibility;
 use App\Forms\SharedFormSchema;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\User;
+use App\Services\ShareTrackingService;
+use App\Support\Auth\IntendedRedirect;
 use App\Support\Cache\SelectionCatalogCache;
 use App\Support\Location\VisitorCountryResolver;
 use App\Support\Search\InstitutionSearchService;
+use App\Support\Timezone\UserDateTimeFormatter;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -32,6 +38,16 @@ class extends Component
         if ($this->country_id === null) {
             $this->country_id = $this->defaultCountryId();
         }
+
+        $user = auth()->user();
+
+        if ($user instanceof User) {
+            $this->followingInstitutionIds = $user->followingInstitutions()
+                ->pluck((new Institution)->qualifyColumn('id'))
+                ->map(static fn (mixed $id): string => (string) $id)
+                ->values()
+                ->all();
+        }
     }
 
     #[Url]
@@ -51,6 +67,11 @@ class extends Component
 
     #[Url]
     public ?string $administrative_subdivision_id = null;
+
+    /**
+     * @var list<string>
+     */
+    public array $followingInstitutionIds = [];
 
     #[Computed]
     public function institutions(): LengthAwarePaginatorContract
@@ -79,6 +100,9 @@ class extends Component
         return $this->scopedInstitutionsQuery()
             ->select('institutions.*')
             ->selectSub($this->publicEventCountSubquery(), 'events_count')
+            ->selectSub($this->nextPublicEventQuery()->select('events.slug'), 'next_event_slug')
+            ->selectSub($this->nextPublicEventQuery()->select('events.title'), 'next_event_title')
+            ->selectSub($this->nextPublicEventQuery()->select('next_event_occurrences.starts_at'), 'next_event_starts_at')
             ->with([
                 'addresses.state',
                 'addresses.city',
@@ -107,6 +131,25 @@ class extends Component
             ->whereIn('events.status', Event::PUBLIC_STATUSES)
             ->where('events.visibility', EventVisibility::Public->value)
             ->whereHas('occurrences');
+    }
+
+    /**
+     * @return Builder<Event>
+     */
+    private function nextPublicEventQuery(): Builder
+    {
+        $occurrencesTable = config('events.database.tables.event_occurrences', 'event_occurrences');
+
+        return Event::query()
+            ->join("{$occurrencesTable} as next_event_occurrences", 'next_event_occurrences.event_id', '=', 'events.id')
+            ->whereColumn('events.institution_id', 'institutions.id')
+            ->where('next_event_occurrences.starts_at', '>=', now())
+            ->whereNotNull('events.published_at')
+            ->whereIn('events.status', Event::PUBLIC_STATUSES)
+            ->where('events.visibility', EventVisibility::Public->value)
+            ->orderBy('next_event_occurrences.starts_at')
+            ->orderBy('events.id')
+            ->limit(1);
     }
 
     private function directSearch(string $search): LengthAwarePaginatorContract
@@ -405,6 +448,67 @@ class extends Component
         $this->administrative_district_id = null;
         $this->administrative_subdivision_id = null;
         $this->resetPage();
+    }
+
+    public function toggleFollow(string $institutionId): void
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof User) {
+            $this->redirect(
+                IntendedRedirect::loginUrl(route('institutions.index', absolute: false)),
+                navigate: true,
+            );
+
+            return;
+        }
+
+        $institution = $this->followableInstitution($institutionId);
+
+        if ($institution === null) {
+            return;
+        }
+
+        $institutionId = (string) $institution->getKey();
+
+        if ($user->isFollowing($institution)) {
+            $user->unfollow($institution);
+            $this->followingInstitutionIds = array_values(array_filter(
+                $this->followingInstitutionIds,
+                static fn (mixed $id): bool => (string) $id !== $institutionId,
+            ));
+
+            return;
+        }
+
+        $user->follow($institution);
+
+        if (! in_array($institutionId, $this->followingInstitutionIds, true)) {
+            $this->followingInstitutionIds[] = $institutionId;
+        }
+
+        app(ShareTrackingService::class)->recordOutcome(
+            type: DawahShareOutcomeType::InstitutionFollow,
+            outcomeKey: 'institution_follow:user:'.$user->id.':institution:'.$institution->id,
+            subject: $institution,
+            actor: $user,
+            request: request(),
+            metadata: [
+                'institution_id' => $institution->id,
+            ],
+        );
+    }
+
+    private function followableInstitution(string $institutionId): ?Institution
+    {
+        if (! Str::isUuid($institutionId)) {
+            return null;
+        }
+
+        return Institution::query()
+            ->whereIn('status', ['verified', 'pending'])
+            ->whereKey($institutionId)
+            ->first();
     }
 
     private function applyLocationScope(Builder $query): Builder
@@ -709,8 +813,10 @@ class extends Component
                     @foreach($institutions as $institution)
                         @php
                             $cardInstitutionImageUrl = $institution->public_image_url;
+                            $isFollowing = in_array((string) $institution->getKey(), $followingInstitutionIds, true);
                         @endphp
-                        <a wire:key="institution-{{ $institution->id }}" href="{{ route('institutions.show', $institution) }}" wire:navigate class="group relative flex flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-900/8">
+                        <article wire:key="institution-{{ $institution->id }}" class="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-900/8">
+                            <a href="{{ route('institutions.show', $institution) }}" wire:navigate class="relative flex flex-1 flex-col">
                             <!-- Banner Area (16:9, cover-first) -->
                             <div class="institution-card-media aspect-video bg-slate-50 relative overflow-hidden">
                                 @if((string) $institution->status === 'verified')
@@ -740,7 +846,7 @@ class extends Component
                                 @endif
                             </div>
                             
-                            <div class="p-6 pt-6 relative flex-1 flex flex-col">
+                            <div class="p-6 pb-0 pt-6 relative flex-1 flex flex-col">
                                 <h3 class="font-heading text-lg font-bold text-slate-900 group-hover:text-emerald-700 transition-colors mb-2 leading-tight">
                                     {{ $institution->name }}
                                 </h3>
@@ -753,15 +859,59 @@ class extends Component
                                     <svg class="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                                     <span class="line-clamp-2">{{ $locationDisplay }}</span>
                                 </p>
-                                
-                                <div class="mt-auto pt-5 border-t border-slate-100 flex items-center justify-center">
-                                    <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg ring-1 ring-emerald-200">
-                                        <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                                        {{ $institution->events_count }} {{ __('Events') }}
-                                    </span>
-                                </div>
+
+                                @php
+                                    $nextEventStartsAt = filled($institution->next_event_starts_at)
+                                        ? CarbonImmutable::parse((string) $institution->next_event_starts_at, 'UTC')
+                                        : null;
+                                @endphp
+
                             </div>
-                        </a>
+                            </a>
+                            @if($nextEventStartsAt instanceof CarbonImmutable && filled($institution->next_event_slug) && filled($institution->next_event_title))
+                                <a
+                                    data-next-event
+                                    href="{{ route('events.show', ['event' => $institution->next_event_slug]) }}"
+                                    wire:navigate
+                                    class="mx-6 mt-4 block min-w-0 border-t border-slate-100 pt-4 transition-colors duration-200 hover:border-emerald-200 hover:bg-emerald-50/30 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/15"
+                                >
+                                    <span class="min-w-0">
+                                        <span class="block text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">{{ __('Next event') }}</span>
+                                        <span class="mt-1 block truncate text-[11px] font-semibold text-slate-700 sm:text-xs">
+                                            {{ UserDateTimeFormatter::translatedFormat($nextEventStartsAt, 'j M Y') }}
+                                            <span class="text-slate-300" aria-hidden="true">·</span>
+                                            {{ $institution->next_event_title }}
+                                        </span>
+                                    </span>
+                                </a>
+                            @endif
+                            <div class="flex items-center justify-between gap-3 border-t border-slate-100 px-6 pb-6 pt-5">
+                                <span class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">
+                                    <svg class="h-3.5 w-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                    {{ $institution->events_count }} {{ __('Events') }}
+                                </span>
+                                <button
+                                    type="button"
+                                    wire:click.stop.prevent="toggleFollow('{{ $institution->id }}')"
+                                    wire:loading.attr="disabled"
+                                    data-follow-icon="institution"
+                                    data-follow-state="{{ $isFollowing ? 'following' : 'not-following' }}"
+                                    aria-label="{{ $isFollowing ? __('Nyahikut') : __('Ikuti') }}"
+                                    aria-pressed="{{ $isFollowing ? 'true' : 'false' }}"
+                                    class="grid h-9 w-9 shrink-0 place-items-center rounded-xl border transition-colors duration-200 disabled:cursor-wait disabled:opacity-60 {{ $isFollowing ? 'border-emerald-200 bg-emerald-50 text-emerald-700 group-hover:border-emerald-300 group-hover:bg-emerald-100' : 'border-slate-200 bg-white text-slate-400 group-hover:border-emerald-200 group-hover:text-emerald-700' }}"
+                                >
+                                    @if($isFollowing)
+                                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                            <path d="M6.75 4.5A2.25 2.25 0 0 1 9 2.25h6a2.25 2.25 0 0 1 2.25 2.25V21L12 17.25 6.75 21V4.5Z" />
+                                        </svg>
+                                    @else
+                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 4.5A2.25 2.25 0 0 1 9 2.25h6a2.25 2.25 0 0 1 2.25 2.25V21L12 17.25 6.75 21V4.5Z" />
+                                        </svg>
+                                    @endif
+                                </button>
+                            </div>
+                        </article>
                     @endforeach
                 </div>
 

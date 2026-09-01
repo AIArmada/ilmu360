@@ -2,11 +2,18 @@
 
 use AIArmada\Persons\Enums\AssignmentStatus;
 use AIArmada\Persons\Enums\Gender;
+use App\Enums\DawahShareOutcomeType;
+use App\Enums\EventKeyPersonRole;
 use App\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\Person;
+use App\Models\User;
+use App\Services\ShareTrackingService;
+use App\Support\Auth\IntendedRedirect;
 use App\Support\Search\PersonSearchService;
+use App\Support\Timezone\UserDateTimeFormatter;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
@@ -42,6 +49,26 @@ new
 
         #[Url]
         public ?string $state_id = null;
+
+        /**
+         * @var list<string>
+         */
+        public array $followingPersonIds = [];
+
+        public function mount(): void
+        {
+            $user = auth()->user();
+
+            if (! $user instanceof User) {
+                return;
+            }
+
+            $this->followingPersonIds = $user->followingPersons()
+                ->pluck((new Person)->qualifyColumn('id'))
+                ->map(static fn (mixed $id): string => (string) $id)
+                ->values()
+                ->all();
+        }
 
         private function applySort(Builder $query): Builder
         {
@@ -112,6 +139,68 @@ new
         {
             $this->search = null;
             $this->resetPage();
+        }
+
+        public function toggleFollow(string $personId): void
+        {
+            $user = auth()->user();
+
+            if (! $user instanceof User) {
+                $this->redirect(
+                    IntendedRedirect::loginUrl(route('persons.index', $this->directoryQueryString(), absolute: false)),
+                    navigate: true,
+                );
+
+                return;
+            }
+
+            $person = $this->followablePerson($personId);
+
+            if ($person === null) {
+                return;
+            }
+
+            $personId = (string) $person->getKey();
+
+            if ($user->isFollowing($person)) {
+                $user->unfollow($person);
+                $this->followingPersonIds = array_values(array_filter(
+                    $this->followingPersonIds,
+                    static fn (mixed $id): bool => (string) $id !== $personId,
+                ));
+
+                return;
+            }
+
+            $user->follow($person);
+
+            if (! in_array($personId, $this->followingPersonIds, true)) {
+                $this->followingPersonIds[] = $personId;
+            }
+
+            app(ShareTrackingService::class)->recordOutcome(
+                type: DawahShareOutcomeType::PersonFollow,
+                outcomeKey: 'person_follow:user:'.$user->id.':person:'.$person->id,
+                subject: $person,
+                actor: $user,
+                request: request(),
+                metadata: [
+                    'person_id' => $person->id,
+                ],
+            );
+        }
+
+        private function followablePerson(string $personId): ?Person
+        {
+            if (! Str::isUuid($personId)) {
+                return null;
+            }
+
+            return Person::query()
+                ->speakers()
+                ->whereIn('status', ['verified', 'pending'])
+                ->whereKey($personId)
+                ->first();
         }
 
         private function basePersonsQuery(): Builder
@@ -310,8 +399,42 @@ new
                 ->groupBy('event_involvements.involveable_id')
                 ->pluck('events_count', 'event_involvements.involveable_id');
 
+            $nextEvents = DB::table("{$eventInvolvementsTable} as event_involvements")
+                ->join("{$eventsTable} as events", 'events.id', '=', 'event_involvements.event_id')
+                ->join("{$occurrencesTable} as occurrences", 'occurrences.event_id', '=', 'events.id')
+                ->where('event_involvements.involveable_type', (new Person)->getMorphClass())
+                ->whereIn('event_involvements.involveable_id', $personIds->all())
+                ->where('event_involvements.role_code', EventKeyPersonRole::Speaker->value)
+                ->where('occurrences.starts_at', '>=', $now)
+                ->whereIn('events.status', Event::PUBLIC_STATUSES)
+                ->where('events.visibility', EventVisibility::Public)
+                ->whereNotNull('events.published_at')
+                ->select([
+                    'event_involvements.involveable_id as person_id',
+                    'events.slug as event_slug',
+                    'events.title as event_title',
+                    'occurrences.starts_at as event_starts_at',
+                ])
+                ->orderBy('event_involvements.involveable_id')
+                ->orderBy('occurrences.starts_at')
+                ->orderBy('events.id')
+                ->get()
+                ->groupBy('person_id')
+                ->map(static fn (Collection $eventRows): mixed => $eventRows->first());
+
             foreach ($persons as $person) {
-                $person->setAttribute('events_count', (int) ($counts->get((string) $person->getKey()) ?? 0));
+                $personId = (string) $person->getKey();
+                $nextEvent = $nextEvents->get($personId);
+
+                $person->setAttribute('events_count', (int) ($counts->get($personId) ?? 0));
+                $person->setAttribute('next_event_slug', is_object($nextEvent) ? (string) $nextEvent->event_slug : null);
+                $person->setAttribute('next_event_title', is_object($nextEvent) ? (string) $nextEvent->event_title : null);
+                $person->setAttribute(
+                    'next_event_starts_at',
+                    is_object($nextEvent) && filled($nextEvent->event_starts_at)
+                        ? CarbonImmutable::parse((string) $nextEvent->event_starts_at, 'UTC')
+                        : null,
+                );
             }
         }
 
@@ -579,16 +702,22 @@ new
                 <!-- Person Grid -->
                 <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     @foreach($persons as $person)
-                        <a
-                            href="{{ route('persons.show', $person) }}"
+                        @php
+                            $isFollowing = in_array((string) $person->getKey(), $followingPersonIds, true);
+                        @endphp
+                        <article
                             wire:key="person-directory-{{ $person->id }}"
-                            wire:navigate
                             data-material="opaque-card"
-                            class="living-majlis-card group relative flex min-h-[10rem] gap-0 overflow-hidden rounded-[1.5rem] transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-1.5 hover:border-emerald-300/80 hover:shadow-[0_22px_50px_-28px_rgba(6,78,59,0.40)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/15 focus-visible:ring-offset-2 sm:block sm:min-h-0"
+                            class="living-majlis-card group relative flex h-full flex-col overflow-hidden rounded-[1.5rem] transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-1.5 hover:border-emerald-300/80 hover:shadow-[0_22px_50px_-28px_rgba(6,78,59,0.40)]"
                         >
-                            <!-- Image area -->
-                            <div class="relative w-28 shrink-0 overflow-hidden bg-gradient-to-br from-[#faf5e8] via-[#eff5f1] to-[#dce9e2] sm:w-full sm:aspect-[3/4]">
-                                <!-- Directory texture keeps the placeholder art grounded. -->
+                            <a
+                                href="{{ route('persons.show', $person) }}"
+                                wire:navigate
+                                class="relative flex min-h-[10rem] w-full flex-1 gap-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/15 focus-visible:ring-offset-2 sm:block sm:min-h-0"
+                            >
+                                <!-- Image area -->
+                                <div class="relative w-28 shrink-0 overflow-hidden bg-gradient-to-br from-[#faf5e8] via-[#eff5f1] to-[#dce9e2] sm:w-full sm:aspect-[3/4]">
+                                    <!-- Directory texture keeps the placeholder art grounded. -->
                                 <div class="absolute inset-0 opacity-[0.15]" style="background-image: radial-gradient(circle at 1.5px 1.5px, rgba(7,91,72,.14) 1px, transparent 0); background-size: 16px 16px;"></div>
                                 @php
                                     $gender = Gender::tryFrom((string) $person->getRawOriginal('gender'));
@@ -669,7 +798,7 @@ new
                             </div>
 
                             <!-- Content area -->
-                            <div class="flex min-w-0 flex-1 flex-col p-4 sm:p-5">
+                            <div class="flex min-w-0 flex-1 flex-col p-4 pb-0 sm:p-5 sm:pb-0">
                                 <h3 class="font-heading text-lg font-bold leading-tight tracking-[-0.02em] text-emerald-950 transition-colors duration-200 group-hover:text-emerald-700">
                                     {{ $person->formatted_name }}
                                 </h3>
@@ -696,16 +825,58 @@ new
                                     </span>
                                 </div>
 
-                                <div class="mt-auto pt-4">
-                                    <span class="inline-flex items-center gap-2 text-xs font-bold text-emerald-700 transition-colors duration-200 group-hover:text-emerald-600 sm:text-sm">
-                                        {{ __('View profile & majlis') }}
-                                        <svg class="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1 motion-reduce:transition-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-5-5 5 5-5 5" />
-                                        </svg>
-                                    </span>
-                                </div>
                             </div>
                         </a>
+                            @if($person->next_event_starts_at instanceof CarbonImmutable && filled($person->next_event_slug) && filled($person->next_event_title))
+                                <a
+                                    data-next-event
+                                    href="{{ route('events.show', ['event' => $person->next_event_slug]) }}"
+                                    wire:navigate
+                                    class="mx-4 mt-4 block min-w-0 border-t border-slate-100 pt-4 transition-colors duration-200 hover:border-emerald-200 hover:bg-emerald-50/30 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/15 sm:mx-5"
+                                >
+                                    <span class="min-w-0">
+                                        <span class="block text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">{{ __('Next event') }}</span>
+                                        <span class="mt-1 block truncate text-[11px] font-semibold text-slate-700 sm:text-xs">
+                                            {{ UserDateTimeFormatter::translatedFormat($person->next_event_starts_at, 'j M Y') }}
+                                            <span class="text-slate-300" aria-hidden="true">·</span>
+                                            {{ $person->next_event_title }}
+                                        </span>
+                                    </span>
+                                </a>
+                            @endif
+                            <div class="flex items-center justify-between gap-3 px-4 pb-4 pt-4 sm:px-5 sm:pb-5">
+                                <a
+                                    href="{{ route('persons.show', $person) }}"
+                                    wire:navigate
+                                    class="inline-flex min-w-0 items-center gap-2 text-xs font-bold text-emerald-700 transition-colors duration-200 group-hover:text-emerald-600 sm:text-sm"
+                                >
+                                    {{ __('View profile & majlis') }}
+                                    <svg class="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1 motion-reduce:transition-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-5-5 5 5-5 5" />
+                                    </svg>
+                                </a>
+                                <button
+                                    type="button"
+                                    wire:click.stop.prevent="toggleFollow('{{ $person->id }}')"
+                                    wire:loading.attr="disabled"
+                                    data-follow-icon="speaker"
+                                    data-follow-state="{{ $isFollowing ? 'following' : 'not-following' }}"
+                                    aria-label="{{ $isFollowing ? __('Nyahikut') : __('Ikuti') }}"
+                                    aria-pressed="{{ $isFollowing ? 'true' : 'false' }}"
+                                    class="grid h-9 w-9 shrink-0 place-items-center rounded-xl border transition-colors duration-200 disabled:cursor-wait disabled:opacity-60 {{ $isFollowing ? 'border-emerald-200 bg-emerald-50 text-emerald-700 group-hover:border-emerald-300 group-hover:bg-emerald-100' : 'border-slate-200 bg-white text-slate-400 group-hover:border-emerald-200 group-hover:text-emerald-700' }}"
+                                >
+                                    @if($isFollowing)
+                                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                            <path d="M6.75 4.5A2.25 2.25 0 0 1 9 2.25h6a2.25 2.25 0 0 1 2.25 2.25V21L12 17.25 6.75 21V4.5Z" />
+                                        </svg>
+                                    @else
+                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 4.5A2.25 2.25 0 0 1 9 2.25h6a2.25 2.25 0 0 1 2.25 2.25V21L12 17.25 6.75 21V4.5Z" />
+                                        </svg>
+                                    @endif
+                                </button>
+                            </div>
+                        </article>
                     @endforeach
                 </div>
 
