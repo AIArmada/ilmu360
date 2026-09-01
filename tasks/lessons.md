@@ -1,5 +1,7 @@
 # Lessons
 
+- When a detail hero must fit a long title beside fixed media, measure the actual media height and reduce title size only within the desktop hero breakpoint; preserve a readable mobile title and never clip supporting actions.
+
 - When a card contains a parent profile link and a child destination must open elsewhere, split the destination into a sibling link and carry its slug in the listing query; never nest interactive links.
 
 - When a directory card already shows an event count, add the nearest public upcoming majlis as a separate text row; keep its query scoped to the same public event policy and avoid adding a redundant decorative icon.

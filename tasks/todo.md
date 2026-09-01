@@ -1,3 +1,23 @@
+# Auto-fit institution detail hero title
+
+## Plan
+
+- [x] Inspect the institution detail hero markup, responsive styles, and existing page tests.
+- [x] Implement responsive title sizing and height containment for the hero content.
+- [x] Add regression coverage, update task notes, and verify the live page at desktop/mobile sizes.
+
+## Review
+
+The institution detail hero now measures the cover image and reduces an oversized institution name on desktop until the counters and action row fit within the image boundary. The mobile title remains at its existing responsive size, and the fit logic leaves the content un-clipped if the fixed supporting content cannot fit at the readable minimum.
+
+## Verification
+
+- `vendor/bin/pest --parallel --compact tests/Feature/InstitutionShowPageTest.php` — 35 passed, 152 assertions.
+- `vendor/bin/pint --dirty --test` — passed.
+- `git diff --check` — passed.
+- `vendor/bin/phpstan analyse --ansi` — only the two existing unrelated baseline errors remain.
+- Live browser verification at 1280×800 and 390×844; no horizontal overflow, with the desktop action row ending 16px inside the cover-image boundary.
+
 # Make next majlis rows link to event details
 
 ## Plan

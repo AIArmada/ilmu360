@@ -110,6 +110,21 @@ it('keeps the institution title free of redundant badges', function () {
         ->assertDontSee(__('Institusi Disahkan'));
 });
 
+it('marks the institution hero regions for responsive title fitting', function () {
+    $institution = Institution::factory()->create([
+        'name' => 'Masjid Tuanku Mizan Zainal Abidin (Masjid Besi)',
+        'status' => 'verified',
+    ]);
+
+    $this->get(route('institutions.show', $institution))
+        ->assertSuccessful()
+        ->assertSee('data-institution-hero', false)
+        ->assertSee('data-institution-hero-media', false)
+        ->assertSee('data-institution-hero-panel', false)
+        ->assertSee('data-institution-hero-title', false)
+        ->assertSee('data-institution-hero-actions', false);
+});
+
 it('uses the institution logo as the public preview image when no cover exists', function () {
     Storage::fake('public');
     config()->set('media-library.disk_name', 'public');

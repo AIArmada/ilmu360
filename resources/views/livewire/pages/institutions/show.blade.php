@@ -223,9 +223,99 @@
                 ]"
             />
 
-            <div class="mt-6 overflow-hidden rounded-[2rem] border border-white/80 bg-white/82 shadow-[0_30px_90px_-42px_rgba(6,78,59,0.42)] backdrop-blur-xl">
+            <div
+                data-institution-hero
+                x-data="{
+                    media: null,
+                    panel: null,
+                    title: null,
+                    actions: null,
+                    resizeObserver: null,
+                    resizeHandler: null,
+                    isFitting: false,
+                    init() {
+                        this.media = this.$el.querySelector('[data-institution-hero-media]');
+                        this.panel = this.$el.querySelector('[data-institution-hero-panel]');
+                        this.title = this.$el.querySelector('[data-institution-hero-title]');
+                        this.actions = this.$el.querySelector('[data-institution-hero-actions]');
+
+                        if (!this.media || !this.panel || !this.title || !this.actions) {
+                            return;
+                        }
+
+                        this.resizeHandler = () => this.fitTitle();
+                        this.resizeObserver = typeof ResizeObserver === 'function'
+                            ? new ResizeObserver(this.resizeHandler)
+                            : null;
+
+                        this.resizeObserver?.observe(this.media);
+                        this.resizeObserver?.observe(this.panel);
+                        window.addEventListener('resize', this.resizeHandler, { passive: true });
+
+                        this.$nextTick(() => {
+                            this.fitTitle();
+                            requestAnimationFrame(() => this.fitTitle());
+                        });
+                    },
+                    fitTitle() {
+                        if (this.isFitting || !this.media || !this.title || !this.actions) {
+                            return;
+                        }
+
+                        this.isFitting = true;
+                        const inlineTransition = this.title.style.getPropertyValue('transition');
+                        const inlineTransitionPriority = this.title.style.getPropertyPriority('transition');
+
+                        try {
+                            this.title.style.setProperty('transition', 'none', 'important');
+                            this.title.style.removeProperty('font-size');
+
+                            if (!window.matchMedia('(min-width: 1024px)').matches) {
+                                return;
+                            }
+
+                            const baseSize = Number.parseFloat(window.getComputedStyle(this.title).fontSize);
+                            const minimumSize = 32;
+
+                            if (!Number.isFinite(baseSize)) {
+                                return;
+                            }
+
+                            let size = baseSize;
+                            this.title.style.setProperty('font-size', `${size}px`, 'important');
+
+                            while (
+                                size > minimumSize
+                                && this.actions.getBoundingClientRect().bottom > this.media.getBoundingClientRect().bottom
+                            ) {
+                                size -= 1;
+                                this.title.style.setProperty('font-size', `${size}px`, 'important');
+                            }
+                        } finally {
+                            if (inlineTransition) {
+                                this.title.style.setProperty('transition', inlineTransition, inlineTransitionPriority);
+                            } else {
+                                this.title.style.removeProperty('transition');
+                            }
+
+                            this.isFitting = false;
+                        }
+                    },
+                    destroy() {
+                        this.resizeObserver?.disconnect();
+
+                        if (this.resizeHandler) {
+                            window.removeEventListener('resize', this.resizeHandler);
+                        }
+                    },
+                }"
+                class="mt-6 overflow-hidden rounded-[2rem] border border-white/80 bg-white/82 shadow-[0_30px_90px_-42px_rgba(6,78,59,0.42)] backdrop-blur-xl"
+            >
                 <div class="grid lg:grid-cols-[minmax(0,1.12fr)_minmax(24rem,0.88fr)]">
-                    <div class="relative aspect-video self-start overflow-hidden bg-gradient-to-br from-emerald-100 via-[#f4efe4] to-amber-100">
+                    <div
+                        data-institution-hero-media
+                        class="relative aspect-video self-start overflow-hidden bg-gradient-to-br from-emerald-100 via-[#f4efe4] to-amber-100"
+                    >
                         <div class="absolute inset-0 opacity-40" style="background-image: radial-gradient(circle at 1px 1px, rgba(7,91,72,.2) 1px, transparent 0); background-size: 20px 20px;"></div>
                         <img
                             src="{{ $institutionCoverUrl }}"
@@ -236,7 +326,7 @@
                         <div class="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-emerald-950/80 via-emerald-950/25 to-transparent"></div>
                     </div>
 
-                    <div class="flex flex-col p-6 sm:p-8 lg:px-8 lg:pb-4 lg:pt-5">
+                    <div data-institution-hero-panel class="flex flex-col p-6 sm:p-8 lg:px-8 lg:pb-4 lg:pt-5">
                         <div class="flex flex-1 flex-col">
                             <div>
                                 <div class="flex flex-wrap items-center gap-2">
@@ -261,7 +351,7 @@
                                     @endif
                                 </div>
 
-                                <h1 class="mt-3 max-w-3xl break-words font-heading text-4xl font-bold leading-[1.05] tracking-[-0.035em] text-emerald-950 sm:text-5xl lg:text-6xl">
+                                <h1 data-institution-hero-title class="mt-3 max-w-3xl break-words font-heading text-4xl font-bold leading-[1.05] tracking-[-0.035em] text-emerald-950 sm:text-5xl lg:text-6xl">
                                     {{ $institution->name }}
                                 </h1>
 
@@ -285,7 +375,7 @@
 
                             </div>
 
-                            <div class="mt-auto pt-6">
+                            <div data-institution-hero-actions class="mt-auto pt-6">
                                 <div class="grid grid-cols-2 gap-3 border-t border-emerald-950/10 pt-4 sm:max-w-md">
                                     <div class="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-3 text-center">
                                         <p class="font-heading text-2xl font-bold text-emerald-950">{{ number_format($upcomingTotal) }}</p>
