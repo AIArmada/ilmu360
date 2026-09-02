@@ -80,9 +80,14 @@ it('maps poster display aspect ratios to the closest supported event ratios', fu
     $wideLandscapeEvent->addMedia(fakeGeneratedImageUpload('poster-wide.png', 1600, 900))
         ->toMediaCollection('poster');
 
+    $squareEvent = Event::factory()->create();
+    $squareEvent->addMedia(fakeGeneratedImageUpload('poster-square.png', 1000, 1000))
+        ->toMediaCollection('poster');
+
     expect($portraitEvent->poster_display_aspect_ratio)->toBe('3:4')
         ->and($standardLandscapeEvent->poster_display_aspect_ratio)->toBe('16:9')
-        ->and($wideLandscapeEvent->poster_display_aspect_ratio)->toBe('16:9');
+        ->and($wideLandscapeEvent->poster_display_aspect_ratio)->toBe('16:9')
+        ->and($squareEvent->poster_display_aspect_ratio)->toBe('1:1');
 });
 
 it('backfills missing poster dimensions after resolving the display aspect ratio', function () {
@@ -150,6 +155,25 @@ it('prefers Event cover over poster in card_image_url accessor', function () {
         ->toMediaCollection('cover');
 
     expect($event->card_image_url)->toContain('cover');
+});
+
+it('resolves the supported aspect ratio for the image used on event cards', function () {
+    $coverEvent = Event::factory()->create();
+    $coverEvent->addMedia(fakeGeneratedImageUpload('cover.png', 1600, 900))
+        ->toMediaCollection('cover');
+
+    $posterEvent = Event::factory()->create();
+    $posterEvent->addMedia(fakeGeneratedImageUpload('poster.png', 800, 1200))
+        ->toMediaCollection('poster');
+
+    $squareEvent = Event::factory()->create();
+    $squareEvent->addMedia(fakeGeneratedImageUpload('poster-square.png', 1000, 1000))
+        ->toMediaCollection('poster');
+
+    expect($coverEvent->card_image_aspect_ratio)->toBe('16:9')
+        ->and($posterEvent->card_image_aspect_ratio)->toBe('3:4')
+        ->and($squareEvent->card_image_aspect_ratio)->toBe('1:1')
+        ->and(Event::factory()->create()->card_image_aspect_ratio)->toBe('1:1');
 });
 
 it('uses Event cover in recommendation_image_url accessor', function () {

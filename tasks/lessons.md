@@ -1,5 +1,308 @@
 # Lessons
 
+## Runtime receipt presentation
+
+- A paid event order should have an authenticated online receipt first, with a Download PDF action that renders from immutable order/payment/discount/tax snapshots at request time. Avoid storing duplicate PDF artifacts by default; use the same receipt presenter for HTML and PDF, with authorization scoped to the purchaser or an authorized organizer/finance role.
+- Free registrations should use the same authenticated confirmation and admission-download flow, but must clearly omit payment language and receipt data.
+- Keep financial receipt access separate from admission access: purchasers and authorized finance/owner roles may view receipts, while accountless attendees may use a scoped secure admission link without seeing order/payment details.
+- Treat refunds as separate financial documents when enabled: preserve the original purchase receipt, show the current refund status on the order, and render a refund confirmation from immutable refund data rather than rewriting history.
+- Make refund policy a single event-level capability setting that is off by default. Keep normal refund fields and controls hidden until the organizer explicitly enables the policy, while retaining a private admin-only safety path for unavoidable financial reversals.
+- Transactional emails should link to the authorized online document views rather than attach PDFs; on-demand rendering keeps the delivery small and avoids unmanaged duplicate artifacts.
+- For v1, constrain a checkout to one event. This gives the order one participant-question context, one agreement, one capacity/refund policy, one receipt context, and one organizer settlement boundary; multi-event carts remain a later generic checkout capability.
+- Inside that event boundary, allow multiple occurrence/session ticket rows in one order. Preserve each row's schedule scope, participant, admission, and capacity reservation so a multi-date purchase remains understandable and independently manageable.
+- Keep v1 focused on admissions. Defer non-admission add-ons such as donations, meals, books, merchandise, and materials, while preserving the generic cart/order line-item seam for a future release.
+- Distinguish organizer-issued payment states in the document flow: complimentary gets a free confirmation, confirmed offline payment gets a receipt explicitly labeled offline, and pending offline payment gets no completed receipt until authorized confirmation.
+- A final checkout review is a valuable safety boundary: display each admission's schedule scope, participant, quantity, price, discounts, active tax, refund policy, and required agreement before payment, while allowing the buyer to return and edit earlier steps.
+- A fully discounted order is still a real admission but not a payment receipt: present the original price, discount, and RM0 final amount in a free confirmation and explicitly say that no payment occurred.
+- Mixed paid/free orders should remain one transaction and one receipt. Include every admission and show RM0 lines explicitly; use the free-confirmation presentation only when the entire order total is zero.
+- Do not expose organizer-side payment-provider costs as buyer charges. The receipt should show buyer-facing subtotal, discounts, tax when active, and amount paid; settlement reporting carries the provider fee separately.
+- Make merchant and event-host roles visible on financial documents: ilmu360° is the payment seller/merchant of record, while the organization or institution is the event host. This avoids ambiguity about who handled payment versus who runs the event.
+- Address receipts to the purchaser, not every participant. Keep participant names and answers on their individual admission/registration views to reduce privacy exposure and preserve the purchaser/participant distinction.
+- Reuse `aiarmada/orders` for human-readable references: its persisted unique `order_number` is configurable and suitable for receipt/refund support. Do not use the existing per-render invoice-number generator as an immutable receipt identity without a generic orders-package change.
+- Use “Receipt” for v1 completed-payment documents. Keep “Invoice/e-invoice” for a later tax/legal billing capability so the UI does not promise a financial document the dormant tax setup does not yet provide.
+- Include schedule-aware calendar delivery with admissions: `.ics` and provider links per occurrence/session, plus an add-all option for event-wide passes. Keep protected online access links out of calendar files unless the access policy explicitly permits them.
+- Route reminders by admission participant when possible, with purchaser fallback/summary delivery for missing participant contact details. Deduplicate notifications so a multi-ticket purchaser is not overwhelmed.
+- Keep v1 check-in online-only with explicit connection and server-verification feedback. Offline scan/sync should be a later generic capability because it must reconcile duplicate scans, refunds, transfers, and revoked admissions safely.
+- Treat QR as an acceleration path, not an access requirement. Staff-assisted lookup by IC or another participant identifier should check an existing scoped admission after confirmation and audit; it must remain distinct from issuing a new walk-in admission.
+- Keep sensitive identity collection independent from live check-in. An event may collect IC/passport for registration or eligibility even without check-in, and may run check-in without collecting those identifiers; do not couple the two settings or force sensitive data unnecessarily.
+- Keep the event participant record authoritative for event data while allowing an optional link to an existing `User`. The events package already provides a polymorphic participant relation and `CanBeEventParticipant`; reuse that seam instead of creating a global participant/customer record solely for event registration.
+- Do not silently link a purchaser-entered participant to a global account. Candidate matching may happen privately, but the participant must verify through sign-in or a secure claim flow before the polymorphic User link is finalized.
+- A claimed participant should gain a useful personal dashboard limited to their own admissions, recordings, schedule, consent, and data—not the purchaser’s financial documents or neighboring participants.
+- Keep purchaser ownership and participant access distinct: a participant claim grants personal access but does not remove the purchaser’s pre-cutoff transfer ability. Revoke the old link, issue a new claim path, and preserve the complete history.
+- Account deletion should detach personal access rather than erase event facts. Preserve the minimum registration/admission/attendance/refund/financial record required for the purchaser and organizer; when personal data may later be removed, delete it directly rather than introducing an anonymization workflow without a concrete need.
+- Do not impose an event-level approval gate when commerce eligibility is the real concern. Allow non-ticket events to publish after ordinary readiness checks; require the operational owner entity to be approved before ticket sales can be published, with pending entities still able to publish informational/free-registration events.
+- Gate activation, not authoring: pending entities should be able to prepare ticket commerce privately, then unlock publication and sales when entity approval is granted. Do not force them to rebuild the event after approval.
+- Approval revocation should stop future commerce without silently harming existing buyers. Pause new sales, preserve valid admissions and financial/support workflows, and handle any exceptional cancellation through an explicit audited process.
+- Treat settlement readiness as a second activation gate alongside entity approval. Require a complete payout destination before sales begin so manual organizer settlements have a defined destination and do not leave funds operationally stranded.
+- Keep settlement reporting event-traceable even when payouts are batched. Each event needs its own gross-to-net statement, and a payout batch should reference the contributing event statements and orders rather than collapsing them into an unexplained total.
+- Delay organizer payout until the event and its refund exposure are over. For multi-occurrence events, wait for the final occurrence and settle only after outstanding refunds are resolved; do not make early payout an implicit risk.
+- Make cancellations scope-aware. A cancelled occurrence/session should affect only the dependent admissions, while event-wide passes preserve access to unaffected dates and receive an explicit remedy for the cancelled scope; never cascade a single occurrence cancellation into whole-event invalidation by default.
+- Treat all-access passes as partially resilient: retain unaffected access and require an explicit replacement/credit/refund remedy for the cancelled date. Avoid opaque all-or-nothing treatment when only one scope changed.
+- Apply rescheduling at the narrowest affected scope. Move occurrence/session admissions with the changed occurrence by default, notify affected people, refresh calendars, and offer keep/transfer/refund choices without disturbing unaffected schedule scopes.
+- Keep payout confirmation outside the organizer’s control. Finance/admin should record the transfer reference, date, amount, and confirmation; organizers get visibility and reconciliation, not self-approval.
+- Use progressive disclosure in event authoring: start with a small intent choice (open door, free registration, or paid tickets) and reveal complexity only when activated, while keeping a clear path to advanced schedule, commerce, recording, and operational controls.
+- Optimize for the common schedule: create one occurrence by default, make adding another date obvious, and keep recurrence generation as an optional advanced path. Do not make a simple one-date event look like a scheduling administration tool.
+- Keep event mode flexible before anyone registers or buys, then treat a mode change as a high-impact lifecycle change. Revalidate the new mode and protect existing registrations, admissions, refunds, and reports from silent invalidation.
+- Default ticket sales to close at the applicable event/occurrence/session start. Offer an earlier organizer-configured cutoff or manual close, but keep post-start selling out of v1 to avoid unclear validity and refund behavior.
+- Treat manual sales closure as reversible before the start boundary, subject to fresh readiness checks and an audit entry. Keep the automatic start-time closure final in v1.
+- Apply the same start-time boundary to free registration: allow an earlier/manual close, but do not create new registered admissions after the applicable start in v1. Keep Open Door truly unregistered instead of forcing a hidden registration path.
+- Keep manual registration closure reversible before the start boundary, subject to current capacity/readiness checks and audit; the automatic start-time closure remains final.
+- Expose sales controls progressively: default to an event-wide action, then allow advanced occurrence/session/ticket scope when the programme needs it. Reuse the same scoped lifecycle and audit contract at every level.
+- Separate commercial cutoff from operational edits. Closing sales should not unnecessarily close participant name/contact corrections; transfers may have their own earlier cutoff when organizers need a stable list.
+- Keep admission identity stable across harmless participant edits. Correcting display/contact data should preserve the QR and admission, regenerate delivery as needed, and add an audit entry; transfers and cancellations are the transitions that change access.
+- Make transfers credential changes, not just text edits: revoke the prior participant’s QR/link immediately, issue a new credential, and retain the complete transfer trail against the original order/admission.
+- Keep participant intake proportional: require a full name, make email/phone optional, and use purchaser or assisted-organizer communication when an attendee has no email. Do not make every event collect more personal data than its delivery and operational needs require.
+- Keep check-in and admission issuance as separate permissions. Check-in staff can verify existing admissions but cannot bypass capacity by creating new ones; authorized ticket/registration roles issue complimentary/offline admissions through the audited workflow.
+- Separate live attendance capture from retrospective correction rights. Check-in staff need fast live marking, but post-event bulk edits belong to privileged event roles and must retain before/after values and reasons.
+- Separate attendance recording from live admission control. Existing `aiarmada/events` attendance models/logs and check-in services provide the foundation, but a reusable manual/bulk post-event attendance action is a package enhancement; ilmu360° owns the optional setting, print/export workflow, and UI.
+- Make QR/check-in presentation follow the check-in setting: no QR clutter when an event uses printed lists, with a safe enable-later path that adds QR delivery without changing admission identity.
+- Keep post-event attendance intentionally simple: `Attended`, `Did not attend`, and `Not recorded yet`, with optional notes. Never infer absence merely because no live check-in was captured.
+- Preserve attendance scope. An event-level “Attended” mark must not be expanded into occurrence/session attendance; only record finer-grained attendance when an organizer explicitly captures it.
+- Keep v1 attendance one-way: capture arrival/check-in, not departure/check-out. Reuse the package’s check-out contract only when a later event type has a genuine duration-tracking need.
+- Support bulk attendance edits in the reusable event workspace, with a clear scope/filter and per-change audit trail. Defer CSV import until a real workflow requires it; a good bulk list editor covers the initial printed-list use case.
+- Keep attendance separate from entitlement. A valid purchased admission should retain included recording access even when the participant is marked absent; only payment/admission/recording access rules should revoke it.
+- When refund policy is enabled, keep normal handling simple: self-service requests inside the published policy can be processed automatically, while late/exception requests use organizer approval and platform overrides remain audited and exceptional.
+- Separate refund approval from refund completion. When enabled, keep capacity reserved while a provider refund is pending and release it only after confirmed completion, preventing accidental overselling or a valid admission disappearing without a returned payment.
+- During enabled refund processing, block the affected admission from check-in but keep its capacity reserved. If the provider fails, restore the admission; if it succeeds, invalidate it and release capacity. These transitions must be idempotent and auditable.
+- When refund policy is enabled, stop automatic/self-service refunds after check-in or the applicable access window begins. Late refunds must be explicit organizer exceptions with a reason, preserving a clear audit trail and preventing refunds after use.
+- When refund policy is enabled, event cancellation should initiate full eligible refunds automatically rather than making every buyer apply. If the policy is disabled, retain only the private admin safety path for any unavoidable reversal.
+- Make multi-admission delivery convenient without merging identities: provide one combined PDF with one page per admission, while keeping individual secure links and downloads for participants.
+- Treat completed events as read-only archives rather than deleting them from public context. Close sales/registration while preserving authorized financial, admission, attendance, reporting, and recording access according to each resource's policy.
+- Public availability should communicate urgency without exposing attendance data by default: use qualitative labels and let organizers opt into exact remaining counts, while the operational workspace always shows precise held, sold, and remaining values.
+- For multi-occurrence ticket selection, use a schedule-first presentation: choose the date/session, then show applicable tickets, with all-event passes separated. This reduces scope mistakes without limiting the underlying package model.
+- Validate ticket-scope overlap per participant during checkout. Do not let one person consume redundant event-wide plus occurrence/session admissions, but allow the same ticket combinations when they belong to different participants.
+- Free admissions should have a simple pre-cutoff cancellation path that releases capacity without pretending a refund occurred.
+- Keep v1 ticket changes understandable: use refund-and-repurchase or an audited organizer action instead of promising self-service upgrades, downgrades, or arbitrary occurrence exchanges.
+- A waitlist is an opportunity to buy, not a price guarantee. Revalidate the current ticket terms when capacity is released and give the person a short, explicit acceptance window.
+- Voucher-funded refunds should not silently restore reusable value. Reissue decisions belong to an authorized organizer/admin workflow so abuse and financial ambiguity are avoided.
+- Post-event “did not attend” is a deliberate operational conclusion, not the absence of a scan. Provide an audited bulk action with a warning, and preserve `Not recorded yet` when the organizer has not made that determination.
+- Event duplication is a template convenience, not a history clone. Copy reusable authoring setup into a new draft, but keep all order, admission, participant, payment, attendance, refund, and audit records isolated.
+- Private preview is important for complex authoring: let organizers share a protected draft view without making it searchable, purchasable, or accidentally public.
+- Archive visibility should be stable and explicit. Preserve public archives for public events and keep private/unlisted archives private unless the organizer intentionally changes the visibility.
+- Open Door must remain genuinely unregistered. If an organizer wants a participant list or later attendance records, guide them to Free Registration rather than creating hidden records behind an open-door mode.
+- Preserve history through the lifecycle: drafts may be deleted, but events with operational or financial history should be archived rather than destructively removed.
+- Separate pausing public availability from invalidating existing access. An organizer may hide or pause a published event, but current buyers must retain their receipt and valid admission path unless a separate cancellation workflow applies.
+- Give event visibility simple names with distinct behavior—public, unlisted, and private—and keep that separate from the visibility of individual ticket types. Unlisted means link-only page viewing; private means a secure access check is required.
+- Keep unlisted page access simple and private page access protected. Do not make ordinary unlisted links behave like signed invitations, and do not let direct private URLs reveal the page.
+- Automate the normal waitlist path in FIFO order, while keeping organizer pause/skip/override actions explicit and audited so manual intervention does not become invisible favoritism.
+- Payment retry is a new attempt over revalidated resources, not a continuation that can duplicate an order. Preserve user intent where helpful, but recreate expired inventory, discount, and payment authority safely.
+- Keep gateway-specific payment-method choices out of event authoring in v1. The active provider advertises its capabilities, and provider adapters remain replaceable.
+- When a later question revisits an already settled tax policy, refer to the canonical tax decisions instead of adding a potentially contradictory default. Dormant tax behavior must stay dormant until activation criteria are met.
+- Treat offline refunds and corrections as controlled ledger operations with authorization, reason, and evidence; do not imply that bank-transfer reconciliation is automatic when it is not implemented.
+- Use the configured event support contact as the human escalation path, with platform support as fallback. Even a lightweight v1 support workflow should preserve an auditable request/outcome trail.
+- Provider failover must be explicit. Keep in-flight payment attempts with their original gateway and switch only new checkouts after an administrator changes the active provider.
+- Treat provider currency support as a publication-readiness check, not a late checkout error. An event must not advertise tickets it cannot collect payment for.
+- Pending offline payments need an expiry path that releases provisional capacity when staff do not confirm them; otherwise printed or abandoned bank-transfer requests can strand inventory.
+- Sponsored admissions should reuse complimentary issuance with a reason/funding label, not invent a payment or discount record that obscures the true transaction.
+- A resumable cart is useful only when treated as intent. Expired reservations must be recreated after fresh validation, never silently extended.
+- Keep financial authority with the purchaser. A participant who did not place the order may manage only the participant-side actions allowed by policy; cancellation and refund initiation remain with the purchaser or an authorized organizer/admin.
+- Material event changes should use the transactional notification path for affected admissions and keep marketing preferences separate. Operational notices cannot be treated as promotional mail.
+- Public archives should be durable by default but hideable, with archive presentation separated from privacy-retention and financial-record retention.
+- Event duplication should be selective, reviewable, and authorization-scoped. Always create a private draft, copy only checked authoring/configuration data, and never carry orders, payments, admissions, participants, attendance, refunds, or settlements into the new event.
+- Treat copied schedules and prices as starting configuration that requires confirmation; the new event begins with no sales or reservations.
+- Regenerate or clear private links, codes, invitation allocations, and reserved blocks during duplication so access cannot leak across events.
+- Copy question and agreement structures as new versions without old answers or acceptance history; copied recording sources also require revalidation before publication.
+- Distinct public lifecycle labels reduce support confusion: closed registration, sold out, paused, cancelled, and archived represent different causes and should not share one “unavailable” message.
+- Keep ordinary registration automatic. Once required data and any blocking agreement are complete, issue the admission without making organizers approve people one by one.
+- Evaluate eligibility before committing scarce capacity, and give a useful but privacy-safe reason when a participant cannot register.
+- Invitation-only access is not the same as manual approval. Reuse authenticated invitations, codes, vouchers, and organizer issuance rather than adding an unnecessary approval queue.
+- A waitlist offer should preserve the person’s requested ticket scope and type, revalidated against current rules; do not silently upgrade the offer into broader access.
+- Give the purchaser one cross-event order history while preserving each event’s financial, participant, admission, and settlement boundaries underneath.
+- Account-contact changes should update future delivery without severing historical ownership or document authorization.
+- Treat an open chargeback as a pending financial signal, not immediate proof that an admission is invalid. Revoke access only after an authoritative provider outcome and reconcile it idempotently.
+- Put generic fraud prevention and checkout abuse controls in Commerce/payment packages, keeping ilmu360° responsible for event policy and user-facing explanations.
+- Never mutate a paid transaction into a complimentary one. Preserve the original ledger and create a separately auditable complimentary admission when an operational correction is needed.
+- Do not add an ordinary post-issuance rejection state without a clear financial and admission consequence. Use cancellation/refund or an audited administrative exception instead.
+- Treat event ownership as immutable when the product says events are not transferable. Do not add an organization-transfer shortcut; a new organization creates a new event and the original financial history remains with its owner.
+- Protect payout changes with verification and audit. A destination change must not redirect already-earned event proceeds invisibly.
+- Freeze the settlement destination at the start of sales unless a deliberate finance/admin change is recorded; settlement history must remain explainable.
+- Version Event Agreements for historical registrations. New terms should not rewrite old acceptance records, and high-risk changes deserve an impact preview before publication.
+- Make delivery failures actionable without leaking data: show a safe warning to authorized users and allow correction/resend of the participant contact.
+- Support participant privacy requests while retaining the minimum operational and financial facts needed to run the event and defend the transaction.
+- Keep detailed audit logs behind role-based access. Operational staff need task context, not unrestricted financial or sensitive-answer history.
+- Minimize check-in views to the fields required at the door; participant answers and payment information should not appear by default.
+- Archive public availability separately from operational retention. Closing an event should not make authorized receipts, admissions, refunds, reports, or attendance disappear.
+- Provide platform-level suspension for safety, legal, and abuse cases, with an explicit reason and audit trail. Suspension is a control boundary, not a destructive delete.
+- Preserve existing admissions during a suspension by default, and require a distinct cancellation or safety workflow to invalidate them.
+- Hold settlement exposure narrowly. Disputed or unresolved amounts may be reserved, but unrelated event proceeds should remain explainable and available according to policy.
+- Keep payment secrets and raw provider configuration out of organizer workflows; provider adapters and credentials belong behind platform administration.
+- When currencies expand, require an event currency and provider support rather than quietly converting prices. Mixed-currency carts can remain deferred.
+- Use one Commerce-level precision and rounding policy across pricing, discounts, tax, refunds, and settlement so receipts cannot disagree with calculations.
+- Make retention policy authoritative. Organizers may manage their event data within the permitted lifecycle but cannot erase records required for financial, operational, legal, or dispute history.
+- Support the initial printed-list workflow with a browser-print view and CSV export; add richer spreadsheet formats only when actual usage justifies them.
+- Protect participant privacy on public pages by exposing aggregate availability only, never names, lists, or attendance counts.
+- Treat event URLs as durable identifiers. Display-slug changes and archive transitions should not strand shared links or create duplicate public identities.
+- Model an all-access pass as a multi-scope capacity promise. Reserve every applicable occurrence up front so the buyer is not sold access that later dates cannot honor.
+- Capacity must flow upward: session admissions contribute to occurrence capacity, and occurrence capacity remains bounded by the event/location ceiling.
+- Never issue an all-access pass from a partially successful reservation. Its guarantee requires an atomic or safely recoverable reservation across all applicable scopes.
+- Keep waitlists aligned with the promise being offered. An all-event waitlist and a single-occurrence waitlist need separate queues, eligibility, and promotion semantics.
+- Prohibit ordinary over-capacity issuance. An emergency override must be rare, explicit, authorized, and auditable.
+- Represent reserved staff/speaker capacity as real admissions or package-supported allocations so reports, check-in, refunds, and reconciliation can account for it.
+- For organizer-issued admissions without an external purchaser, preserve both roles: the organizer is the issuer/order subject and the attendee is the participant.
+- Recording-only access should reuse participant and entitlement records without touching physical capacity or live check-in resources.
+- Public availability must be schedule-scoped. A sold-out occurrence should not make other dates or a valid all-access product appear unavailable.
+- Let all-access holders arrive without pre-booking a date, but validate the pass against the actual occurrence/session at entry using the capacity reservation and scope rules.
+- Bulk issuance should be a guided, validated table before introducing file import. Staff need safe visibility into capacity, participant data, payment state, and agreement requirements.
+- Treat reserved staff/speaker blocks as real allocations and make their release explicit; invisible capacity deductions are impossible to reconcile.
+- Keep public closure separate from authorized operational issuance. A closed public sale may still permit on-site issuance only when the organizer explicitly enables it and every issuance is audited.
+- Post-start manual issuance is an exceptional operational path, not a loophole for ordinary late sales or self-registration. Make the warning and reason unavoidable.
+- Hiding a ticket type is a catalog decision, not a revocation. Existing admissions must continue to resolve against their frozen scope and terms.
+- An all-access credential should stop being transferable after first use. This prevents one credential from being passed between people across dates.
+- Enforce session scope strictly at check-in; event/occurrence membership alone must not authorize a different session.
+- Credential recovery should rotate or resend the access token without creating a new admission or rewriting its history.
+- Make check-in timing event-aware: provide a configurable opening time with a sensible default, and close live capture after the scheduled end plus a small grace period.
+- Treat v1 admissions as single-entry credentials. An all-access pass may be used once per applicable occurrence, but repeat scans for the same scope need explicit correction rather than implicit re-entry.
+- Reject wrong-scope presentations clearly and without writing attendance data; admission validity must be evaluated against the actual event/occurrence/session being checked.
+- Scope staff access to their assigned event and schedule leaf. A check-in role should not become a general participant directory permission.
+- Mask sensitive lookup information and require a confirmation step before staff finalize a match, reducing mistaken identity and unnecessary exposure.
+- Make check-in corrections privileged and immutable: record the original action, correction actor, reason, and timestamps rather than overwriting the scan.
+- Keep the live door screen operationally small. Aggregate counts help staff without turning the check-in surface into a broad reporting or participant-data view.
+- Generate printable lists through the same authorization and field-selection rules as digital exports, including a clear attendance column for manual marking.
+- Keep online access separate from attendance. A valid access click is not proof of participation unless the organizer deliberately records attendance through an appropriate workflow.
+- Treat hybrid delivery as one admission with alternate access paths, not two admissions or two charges.
+- A delivery-mode change must preserve valid admissions while recalculating capacity and access consequences. Moving online-to-physical needs an impact workflow when the venue cannot hold everyone.
+- Rotate protected access links when the underlying online URL changes; revoking the old link is part of the same update transaction.
+- Publish late-added recordings through entitlement-aware notification, not a broadcast to every event contact.
+- Use a distinct recording entitlement for recording-only purchases; do not attach physical QR/check-in semantics to a digital-only product.
+- Make recording commercial terms explicit and separate when they differ from the live event’s refund or expiry rules.
+- When cancellation and recording coexist, require an explicit remedy so buyers understand whether the recording is retained, substituted, refunded, or separately offered.
+- Enforce recording expiry through the access layer, and make extensions auditable rather than silently changing historical entitlement terms.
+- Snapshot the scope of an event-wide pass at purchase. A later-added occurrence should not silently expand an existing admission’s promise or capacity reservation.
+- Use inheritance for the common occurrence setup and an explicit override for exceptions; this keeps the authoring flow simple without limiting advanced programmes.
+- Allow all-access passes across changing venue/capacity contexts only when every applicable occurrence can honor the reservation.
+- Treat unsold recurrence edits as simple maintenance, but route any removal affecting registrations or admissions through impact analysis and buyer remedies.
+- Model overnight schedules with real local date-times, not same-day assumptions. End-time validation must support events and sessions crossing midnight.
+- Require end times only where operations depend on them; simple informational events should not be forced to invent a duration.
+- Show the complete recurrence result before writing records. Conflicts and invalid dates must be visible, and silent date loss is unacceptable.
+- Gate paid commerce behind a feature flag until provider, inventory, admission, refund, and settlement paths have passed end-to-end verification.
+- Keep provider environments isolated: sandbox credentials belong to development/staging, and production secrets must never enter test workflows.
+- Build reusable behavior in the local Commerce monorepo before adding ilmu360° glue. The application should integrate package contracts rather than fork or duplicate them.
+- Prefer contracts, contributors, registrars, and resolvers for optional integrations; avoid brittle package-presence branches and application-owned copies of generic concepts.
+- Make every external callback and side-effect workflow idempotent. Retries are normal for payments, reservations, issuance, refunds, and notifications.
+- Snapshot business meaning at the historical boundary. Mutable ticket definitions, agreements, discount rules, tax rules, and participant edits must not rewrite completed order/admission history.
+- Never let a browser return authorize fulfillment. Provider verification and a retry-safe transaction must be the only path that commits admissions.
+- Test failure and recovery paths as first-class behavior, including duplicate callbacks, expired holds, provider outages, refund failures, transfers, cancellations, and chargebacks.
+- Roll out in vertical slices so each stage is usable and verifiable before enabling the next; do not expose a large untested commerce surface at once.
+- Keep future package capabilities invisible until their product and operational contracts are complete. Installing seating support is not the same as enabling seat selection.
+- Keep presentation channels thin. Web, mobile, and API entry points should call the same actions and contracts rather than accumulating different event-commerce rules.
+- Make readiness actionable: tell organizers exactly what blocks publication or ticket sales and take them directly to the missing setup.
+- Put an explicit confirmation boundary around high-impact mutations, and model safe recovery separately from irreversible financial/history transitions.
+- Autosave is for draft intent only. It must never reserve scarce capacity, consume discount value, or create an admission before the organizer deliberately commits.
+- A preflight/dry-run is valuable before enabling sales: expose provider, currency, capacity, ticket, agreement, and settlement readiness in one honest summary.
+- Use feature/configuration gates for optional capabilities so payment, tax, seating, recordings, and providers can be enabled independently without branching domain behavior.
+- Treat package contract tests and migration notes as part of the integration, not optional documentation after the code is written.
+- Enforce package boundaries in CI where possible; application-specific UI should compose generic Commerce/events behavior rather than bypass it.
+- Converge all admission entry points on one lifecycle. Free, paid, offline, complimentary, refund, transfer, and cancellation differences should be explicit states, not separate competing systems.
+- Require an intentional participation-mode choice at the start; an accidental default can expose the wrong registration or commerce behavior.
+- Keep the first authoring step small and let progressive disclosure carry complexity later. The package model can be comprehensive without making the opening screen administrative.
+- Make the common one-occurrence path automatic while preserving an obvious advanced route for multi-date programmes.
+- A real preview and persistent readiness checklist turn publication errors into understandable corrections rather than surprise validation failures.
+- Surface draft persistence explicitly. Autosave should build confidence but must remain separate from committing commerce or capacity.
+- Preserve state while navigating a multi-step form. When dependent values must be cleared, explain the consequence instead of silently losing work.
+- Adapt the presentation to mobile without creating a second workflow contract; one focused step at a time is easier to complete and test.
+- Use one final publication summary as the last safety boundary for all high-impact event settings.
+- Put authentication at the start of the buyer journey when accounts are mandatory. Preserve intent through sign-in without creating a guest identity path.
+- Verify the buyer before reserving scarce resources or starting payment, and revalidate the preserved selection after authentication.
+- Explain purchaser versus participant in plain language. One person may pay while another person receives the admission and controls their own participant-side data.
+- Use one admission card per participant so scope, questions, consent, and delivery do not blur together in a multi-ticket checkout.
+- Prevent scope conflicts while the buyer is assigning participants, not only at final submit; early feedback is easier to understand and safer for capacity.
+- Keep schedule-first ticket selection consistent with the event hierarchy. The buyer should not have to infer which date or session a ticket covers.
+- Keep the summary visible through checkout and distinguish a zero-total confirmation from a real payment action in both copy and server workflow.
+- Keep payment credentials on the hosted provider surface and make the handoff explicit; event-domain code should never handle raw card data.
+- Show hold expiry before payment so a buyer understands the time limit and can act before capacity is released.
+- Treat the browser return as a status hint. Fulfillment waits for verified server-side provider evidence.
+- A failed attempt may preserve user intent, but its authority ends with its reservations; retries must revalidate and create fresh payment/reservation state.
+- Never expose a second-charge action while an original payment attempt is unresolved. Pending status and idempotent reconciliation are safer than guesswork.
+- Keep the purchaser dashboard informative without leaking provider internals, and send admissions only after the correct financial state is confirmed.
+- Make provider outages a designed state with actionable recovery, not a generic exception that leaves the buyer unsure whether they were charged.
+- Revalidate discounts at the final financial boundary. The displayed checkout total is provisional until ticket, participant, capacity, voucher, promotion, and payment conditions pass together.
+- Campaign pause/disable should affect future eligibility only; completed order snapshots are historical facts.
+- Recalculate discounts whenever cart scope or quantity changes, and clamp the final total at zero before entering the free-confirmation path.
+- Reserve voucher usage during checkout and commit it only after confirmed success; release failed or expired reservations safely.
+- Display promotion deadlines in the user’s relevant event timezone while storing authoritative timestamps in UTC.
+- Make discount attribution visible on receipts and settlements so buyers and organizers can understand where the price changed.
+- Scope every promotion to the event hierarchy and reject cross-event leakage at the package/integration boundary.
+- Default agreements for registered events, while keeping Open Door free of unnecessary participant consent machinery unless explicitly enabled.
+- Use guided agreement blocks and a plain-language summary to make comprehensive terms usable; do not expose raw rule/JSON editing to organizers.
+- Keep one complete agreement acceptance separate from marketing consent and platform purchase terms.
+- Deliver consent to the participant, not merely the purchaser. Accountless secure links and audited assisted acceptance cover people without email or accounts.
+- Keep guardian authority explicit for minors and preserve the exact agreement version accepted.
+- Expose one simple enforcement choice for pending acceptance; do not make organizers understand a complicated state machine just to decide whether consent blocks admission.
+- For public physical events, expose the exact address by default but allow a reduced general-area display when safety or privacy calls for it.
+- For unlisted/private physical events, separate venue identity from exact-address disclosure; reveal the precise address only through the permitted protected access or valid admission path.
+- Reuse the institution’s name/address when it is the selected venue and no explicit room is chosen; use the package `VenueSpace` when a specific place is selected.
+- Keep maps and navigation behind the same address-visibility policy as the displayed address.
+- Hide physical-location authoring for online-only events and show both physical and protected online access information for hybrid events.
+- Route post-registration venue changes through impact analysis, notification, and admission refresh rather than silently changing the destination.
+- Block conflicting use of the same managed venue space by default, with only an authorized and reasoned override.
+- Keep visibility layers composable: unlisted page access is link-only, private page access requires a secure gate, and ticket visibility can add a narrower restriction inside either page mode.
+- Let unlisted public-ticket events behave like link-shared public pages while retaining mandatory purchaser authentication at checkout.
+- Keep private pages protected before rendering their ticket choices; a direct URL should not leak the event or its private catalog.
+- Treat access links and codes as revocable credentials with expiry/rate limits, not permanent secrets.
+- Revoking visibility must not invalidate existing buyer documents or admissions unless a separate cancellation/suspension policy applies.
+- Explain the three visibility choices directly in the authoring UI so organizers understand the audience boundary before publishing.
+- Give organizers one overview for event health, then separate setup from live operations so a readiness problem is not confused with a sales or attendance metric.
+- Organize the workspace around the event lifecycle—schedule, registration, tickets, capacity, participants, check-in, recordings, finance, settings—and hide irrelevant complexity.
+- Scope filters to the event hierarchy and expose the same participant dimensions across list, attendance, export, and report views.
+- Land operational staff in the smallest workspace that lets them do their job; check-in staff should not need to navigate finance or content settings.
+- Make financial and sensitive-data boundaries visible through omission, not merely disabled controls, when a role has no access.
+- Use an auditable timeline to connect event changes, notifications, admissions, enabled refunds, transfers, and attendance corrections.
+- Label every export with scope and generation time; printed operational data becomes stale quickly and must say so.
+- Turn empty states into next actions so progressive disclosure remains discoverable rather than hiding capability without guidance.
+- Route transactional communication by person and admission, not only by purchaser/order. The buyer needs a summary while each participant needs only their own data.
+- Use recipient language preference with the application-locale fallback, and make the fallback deterministic so reminders and legal notices do not vary unpredictably.
+- Keep operational notices outside marketing consent and protect their mandatory content from organizer template customization.
+- Provide sensible reminder defaults with event-level control, but never let reminder settings suppress cancellation, venue, access, or payment-critical notices.
+- Make resend safe and idempotent; delivery recovery should not create duplicate admissions, agreements, receipts, or reservations.
+- Surface delivery status to authorized operators so a bounced email becomes an actionable contact correction rather than an invisible failure.
+- Keep participant intake proportional: full name is the baseline, while contact fields become necessary only for delivery, agreement, or access needs.
+- Scope custom questions explicitly to event, occurrence, session, or ticket and keep purchaser answers separate from participant answers.
+- A guided typed question vocabulary gives organizers power without exposing raw schemas; defer uploads, signatures, calculations, and deep branching until the generic package can enforce them safely.
+- Use one authoritative conditional evaluator across authoring preview, Livewire state, server validation, and persisted answers. Hidden questions must not block submission.
+- Version question definitions after use so historical answers retain their original meaning; corrections to a participant answer are new events, not rewrites.
+- A sample-answer preview catches confusing dependencies before publication and makes progressive disclosure discoverable.
+- Treat participant claim links as credentials: make them expiring, single-use, replaceable, and safe to resend.
+- Preserve the purchaser’s operational access when a participant does not claim an admission, while keeping claimed participant access least-privilege.
+- Do not merge participants merely because they share an email address; event identity and account linking require deliberate verification.
+- Protect IC/passport data beyond ordinary application fields: encrypt or strongly isolate it, exclude it from search/export defaults, and audit sensitive access.
+- Keep participant claiming orthogonal to order ownership. A participant gains personal access, not the purchaser’s financial authority.
+- Account deletion should detach personal access and retain the minimum original records required for event and financial integrity. Keep v1 privacy cleanup simple: delete permitted personal data, and do not build anonymized replacement records unless a later requirement justifies it.
+- Keep team identity individual and verified. Shared logins make audit, revocation, and sensitive-data accountability unreliable.
+- Separate event-management permissions by job: content, ticket/registration, check-in, finance/reporting, and owner/manager should not collapse into one broad role.
+- Scope check-in staff to the smallest schedule boundary needed, and keep finance/reporting access distinct from participant answers.
+- Make invitations expiring and personally accepted, and make revocation immediate so operational access does not linger.
+- Treat sensitive identity fields as an additional permission, not an accidental consequence of being able to view participants.
+- Record team membership and sensitive-data actions in the same event timeline as commerce and attendance changes.
+- Give every event a traceable settlement statement, including zero-sales events, so the organizer can distinguish “nothing payable” from “not processed.”
+- Show gross-to-net settlement math as separate lines for sales, discounts, tax, refunds, provider fees, disputes, and net payable.
+- Keep settlement status explicit and gate readiness on final occurrence plus financial exposure closure, not merely on a calendar date.
+- Hold only the affected disputed amount and keep unrelated proceeds explainable and available under policy.
+- Keep payout confirmation with finance/admin and record the full transfer evidence; organizer visibility is useful, self-confirmation is not.
+- Reconcile refunds and reversals into settlement calculations while preserving immutable order receipts and original currency values.
+- Separate editable event authoring content from immutable commercial and participant records. Public revisions may continue after sales begin, but orders, admissions, and audit history must retain their original snapshots.
+- Route post-sale schedule changes through an impact-review workflow with notifications and preserved history; never silently move a buyer’s commitment.
+- Do not delete occurrences or sessions that have registrations or admissions. Cancel or archive the affected scope so financial, attendance, and support history remains explainable.
+- Protect capacity reductions as a safety boundary: never lower capacity below sold, confirmed, pending, or reserved demand without an explicit authorized resolution.
+- Treat ticket price and catalog changes as future-facing versions. Hide retired ticket types from new buyers while preserving every existing admission and financial reference.
+- Version registration questions and Event Agreements once they have participant history; new wording must not rewrite what earlier participants answered or accepted.
+- Make quantity limits explicit and configurable, with a small safe default, while allowing one purchaser to assign multiple admissions to different participants.
+- Use schedule-overlap validation rather than a blanket one-ticket-per-person rule; separate admissions are valid when their scopes do not conflict.
+- Keep free, paid, complimentary, and offline admissions in the same capacity accounting unless an organizer deliberately creates separate allocations.
+- Treat ticket availability as scope-aware. A sold-out ticket type, occurrence, or session should not incorrectly make unrelated inventory unavailable.
+- Put shared-capacity pools and waitlist mechanics in reusable inventory/event package seams. Waitlist offers should be FIFO, time-bounded, current-price, scope-specific, and idempotently advanced after expiry or payment failure.
+- Keep eligibility open by default and expose only simple, understandable restrictions in v1; do not turn ordinary event registration into a policy-engine configuration exercise.
+- Prefer age bands over exact birth dates to minimize sensitive data, and make guardian acceptance explicit for minors.
+- Check eligibility before holding capacity or taking payment, but preserve a valid paid admission unless fraud, law, or an audited platform action requires otherwise.
+- Use private ticket visibility, access codes, and reusable access-policy contracts for invitation/member/special tickets; defer document uploads and complex proof workflows until a generic package capability exists.
+- Do not add a separate event-language policy when the product already has an application locale. Keep event authoring and display aligned with that locale, and avoid creating multilingual content configuration without a concrete need.
+- Treat social previews and SEO as visibility-sensitive: public events may be discoverable, unlisted events may be shared by link without indexing, and private event metadata must remain protected.
+
+## Authenticated buyer versus commerce customer
+
+- Do not assume `aiarmada/customers` must sit between an authenticated application `User` and commerce. Orders already support a polymorphic customer subject, so an application with mandatory verified accounts may use `User` as the canonical buyer. Treat `Customer` as an optional commerce/CRM projection for guest, contact-only, business, multi-user, or otherwise decoupled identity cases.
+
+- For compact directory-card event dates, use day and month only (j M) and keep the year-bearing format for contexts where the full date is needed.
+
 - When a detail hero must fit a long title beside fixed media, measure the actual media height and reduce title size only within the desktop hero breakpoint; preserve a readable mobile title and never clip supporting actions.
 
 - When a card contains a parent profile link and a child destination must open elsewhere, split the destination into a sibling link and carry its slug in the listing query; never nest interactive links.
@@ -237,6 +540,84 @@
 - For Livewire loading indicators in interactive search forms, avoid in-flow placement (`mb-*` blocks) because it causes layout shift while typing; prefer absolute overlay badges anchored to a `relative` container.
 - For dense advanced-search UIs, group filters into labeled Filament sub-sections inside a collapsed parent section, then verify each group’s state sync and dependency behavior in-browser (not only by schema review).
 - When expanding `/majlis` location filtering, always keep organizer dimensions paired: if `institution_id` exists in UI/state/search pipeline, add `venue_id` through the same end-to-end path (URL props, normalized filters, query payload, DB filter, active chips, and test).
+- When adding event payments, keep provider choice behind the commerce payment contracts from the first release. CHIP-specific configuration, payloads, callbacks, and reconciliation belong in a provider adapter; event, ticket, seat, order, and refund workflows must remain provider-agnostic so another gateway can be added or selected later.
+- Treat MYR as a v1 product policy, not a domain constraint: persist currency with each money value and make provider-supported currencies discoverable so multi-currency can be introduced without rewriting event commerce.
+- When using `aiarmada/tax` as a dormant capability, do not confuse package installation with activation. Keep the checkout tax step disabled until rates/zones are configured, but preserve currency, buyer identity, tax class, and calculated tax snapshots at the checkout/order boundary so later activation is safe and historical orders do not recalculate from mutable rules.
+- When the user requests a package by name, verify the local monorepo’s actual package boundary before designing against it. Here, `aiarmada/promotions` is the existing campaign engine; redeemable `aiarmada/vouchers` must not be consumed until payment/order success because a failed checkout must not burn a buyer’s code.
+- When a user points out that an underlying engine supports more complexity, inspect the actual condition pipeline and compound implementations before narrowing product scope. Integrate the generic engine broadly, then use progressive disclosure and domain-specific validation to keep complex rules safe and understandable.
+- When package capabilities are suggested as an alternative to new application features, inspect their actual models and actions, not only their marketing names. Reuse existing voucher issuance, assignment, limits, targeting, and stacking seams; distinguish supported model-based assignment from unsupported email-only behavior before promising it.
+- For this event-commerce design, every decision must be checked against the relevant AIArmada package first. Classify the result as existing capability, generic Commerce enhancement, or ilmu360-specific integration so the application does not duplicate reusable package behavior.
+- When a generic package exposes a capability with product-specific assumptions, separate the reusable contract from the domain-specific resolver. Here, inventory already has reserve/release/commit semantics, but checkout must resolve polymorphic TicketType lines instead of forcing ilmu360 to fake tickets as Products.
+- Inventory currently models stock per `inventoryable` item and location, with no first-class shared stock pool; if ticket types must share a quota, add that as a generic inventory capability (or a generic capacity contributor) rather than introducing an ilmu360-only ticket quota table.
+- `aiarmada/ticketing` already has `TicketType.admits_quantity`, but the current event order fulfillment expects participants at order-item quantity and then issues extra passes using the same holder when `admits_quantity` is greater than one. Do not expose group/family tickets as if they were ordinary multi-participant tickets until participant, seat, and refund semantics are defined; any full support should be a generic events/ticketing enhancement.
+- `EventTicketScope` already defines the intended hierarchy: event-scoped tickets can serve any occurrence/session in the event, occurrence-scoped tickets stay within that occurrence, and session-scoped tickets match one session. The current check-in path validates event/occurrence but does not enforce a pass's `session_id` against the selected session, so strict session access needs a reusable package fix and regression coverage.
+- `aiarmada/events` has waitlist primitives (`Waitlisted` status, `waitlisted_at`, a waitlist event, and promotion actions/configuration), but the inspected package path does not provide a complete FIFO offer lifecycle tied to released inventory/capacity, expiry, payment, and notifications. For v1 there are no seat resources; treat the workflow as a package-level inventory/capacity enhancement plus an ilmu360° UI.
+- `EventRegistrationParticipant` already stores common participant fields and an `answers()` relation, while `EventRegistrationAnswer` stores flexible answer values and scope identifiers; no first-class question-definition model was found. Custom registration questions therefore need a generic definitions/validation/scoping seam in `aiarmada/events`, with the application responsible for a friendly, constrained builder.
+- Flexible answer storage does not itself provide safe question behavior. Start with a small typed question vocabulary and an extensible definition contract; defer uploads, signatures, calculated answers, and deeply nested branching until validation, privacy, and lifecycle semantics are package-level capabilities.
+- Conditional registration fields must have one authoritative visibility/validation evaluator: hidden fields should not block checkout, and the evaluator must be reused in the authoring preview, Livewire state, server validation, and persisted answer normalization.
+- When conditional visibility changes, clear the answer from the active submission but never rewrite completed registration history; this separates current form state from immutable operational records.
+- Registration-question versioning is necessary once answers are operational data: changing option labels, requiredness, or conditions in place would make old answers ambiguous. Reuse the event package's answer records, but keep definition/version identity alongside them.
+- The communications package has a consent resolver for message channels/categories, not a participant-data consent ledger. Do not treat message consent as registration consent; preserve event-specific data-use evidence at the registration boundary and keep marketing opt-in separate.
+- The inspected events package exposes participant/registration resources but no dedicated participant export or sensitive-answer policy. Access and export must therefore be explicit event-scoped authorization capabilities, with check-in views kept narrower than organizer reporting.
+- Existing package exports are domain-specific (for example inventory stock/movement and feedback answers); do not reuse an unrelated exporter for event participants. Build a scoped event export contract so columns, permissions, audit, and expiring delivery are enforced together.
+- The events package already has change logs, notification batches/deliveries, queued welcome mail, and ticket/order notifications, but they are separate primitives. Event commerce needs a single idempotent notification policy that connects lifecycle changes, payment outcomes, admissions, waitlist offers, and reminder scheduling without bundling marketing consent.
+- Organizer-authored email content should be modeled as bounded content blocks around protected transactional data. A free-form template override could remove payment, refund, consent, or QR details and would make package notification guarantees unreliable.
+- The events package stores timezone fields on event, occurrence, and session records and exposes `HasEventSchedule`; reminder jobs must use the effective schedule object's timezone while retaining UTC persistence. Do not use the viewer's timezone to decide when an event-local reminder is due.
+- The events package has recurrence-rule data and a batch occurrence action, but the inspected path does not provide a complete organizer-facing preview/series-edit workflow. Keep recurrence generation behind the package contracts and add the safe series UX as a generic events capability rather than hand-building date rows only in ilmu360°.
+- Series editing must be aware of registration state: a date with sales cannot be rewritten like an empty future date. Use exception/future/series scopes for unsold records and route sold records through the package lifecycle/change-notification/refund seams.
+- `CloneEventOccurrenceAction` already clones sessions and their event content, but recurrence generation still needs explicit relative-time and ticket/registration inheritance rules. Reuse the cloning actions and add package-level recurrence orchestration rather than copying only raw session rows in the application.
+- Schedule validation cannot treat every time overlap as an error because parallel tracks are legitimate. Use structured conflict results: warnings for permissible overlaps and blocking errors for shared rooms, out-of-bounds sessions, and invalid time ranges. Seat-map conflicts are future scope.
+- For v1, capacity has one simple physical source: `VenueSpace.capacity` when an explicit space is selected, otherwise an organizer-entered general-admission capacity. Keep the source and any lower safety ceiling visible; assigned-seat capacity contributors are future scope.
+- Reducing a parent capacity can invalidate multiple ticket types and active capacity reservations. Treat it as an explicit protected workflow that compares sold and active-held counts before saving; never let a simple numeric field update silently create an oversold state.
+- Ticketing already stores per-ticket sale windows and per-cart min/max quantities, but it does not expose a complete event safety cutoff or per-account lifetime limit. Keep sale-window inheritance and closure in the ticketing/events integration, and distinguish cart quantity rules from buyer-level limits.
+- `TicketType` has public/private/hidden visibility plus per-cart quantity fields, but no buyer-level limit or complete private-ticket authorization path. Define visibility semantics explicitly and enforce invite/code access server-side; URL obscurity is not an access control.
+- The ticketing visibility enum is useful only when the application defines the access contract: public listing, private gated purchase, and hidden operational issuance should not collapse into one boolean. Voucher/promotion targeting can provide the generic gate, while ilmu360° owns event-specific invitation UX.
+- The checkout package already separates browser callbacks from provider verification and exposes payment callback/webhook processing, but completion still has to be tied to idempotent reservation commit and event-pass issuance. Never use a browser redirect alone as proof of payment or run a second charge while the first attempt is pending.
+- A provider callback may arrive after the customer-facing redirect, so payment state must be modeled as pending/verified/failed rather than inferred from the browser page. Keep a single checkout reference across retries, reconciliation, and late callbacks.
+- `PaymentContract` and the checkout gateway resolver already model redirect URLs, pending/success/failure states, and runtime gateway registration. Keep hosted-versus-embedded behavior inside the provider adapter so event and ticket code never depends on CHIP-specific credential handling.
+- Runtime gateway registration does not mean gateway choice belongs in the event form. Keep provider routing platform-controlled in v1, persist the selected gateway per checkout, and expose provider-native payment methods through the hosted adapter.
+- The events package supplies draft states and event templates but no named draft-autosave workflow. Keep autosave/resume in the application workspace, persist through event actions/transactions, and never let autosave imply publication or bypass readiness.
+- `EventPolicy` delegates ownership-specific management through `CanManageEventsFor`, while the authorization/membership packages provide role and team seams. Reuse those boundaries for event staff; do not bypass them with a shared organizer flag or UI-only checks.
+- Event staff should be invited to named, verified ilmu360° accounts rather than sharing credentials. Membership lifecycle and sensitive-data access must remain auditable; a scoped short-lived check-in mode can solve shared-device needs without weakening account identity.
+- The app currently has both an operational `Organization` context and an event `Institution` relation. Keep them distinct: one organization owns event operations and financial responsibility, while primary/co-host institutions are presentation or host relationships unless a future generic multi-owner capability is introduced.
+- In an institution-centered product, an institution can be both the public organizer and the physical venue. Keep those roles distinct in the data model, but make institution-as-location the simplest path; a named hall/room or separate venue is optional rather than mandatory.
+- Support contact is event commerce data, not an attendee identity. Resolve it organization-default first, event override second, and platform fallback last; use it consistently in the event page and transactional communications.
+- Keep organizer legal/participation text as one combined, versioned Event Agreement rather than a multi-agreement builder. Platform terms and optional marketing consent remain separate. Do not store only a current checkbox because organizers may later edit the agreement.
+- Consent enforcement is one simple event-level setting: pending Event Agreement acceptance either blocks admission/check-in or remains an outstanding, auditable status with reminders. Avoid per-agreement enforcement controls unless a later generic requirement proves it necessary.
+- Apply the combined Event Agreement once per participant admission at event scope, not once per session. Version the text so edits never overwrite the historical acceptance attached to an existing registration.
+- Participant agreement completion should be system-driven: send a secure, scoped link automatically, expose status to the purchaser, and provide resend/correction actions. Keep account creation optional for attendees.
+- Preserve adult agency when no email exists: do not let a purchaser silently accept another adult’s agreement. An optional assisted on-site acceptance flow can provide a practical fallback while keeping the participant interaction and audit trail explicit.
+- For minors, separate the participant record from the consenting guardian. Require explicit guardian authority and preserve that guardian’s acceptance evidence; never require a child account merely to complete event consent.
+- Participant editing needs separate actor permissions: purchaser and participant self-service before cutoff, guardian access for minors, and audited staff corrections. Preserve historical snapshots once consent or check-in has occurred.
+- Treat agreement withdrawal as a state transition, not deletion. Preserve the accepted version and withdrawal evidence, then let the event’s simple admission-enforcement policy determine entry and trigger the normal transfer/refund workflow.
+- Keep the consent UI to one event-level enforcement toggle. Default it to blocking when an Event Agreement exists, but allow organizers to opt into non-blocking collection without introducing per-agreement configuration.
+- Do not let high-impact event edits bypass ticketing and capacity consequences. Wrap existing event change-chain/notification primitives in an impact-preview workflow that coordinates admissions, inventory/capacity reservations, refunds, transfers, and communications before committing. Seat-map consequences are future scope.
+- Rescheduling should preserve buyer value by default: carry admissions forward, offer explicit transfer/refund choices with a deadline, and resolve capacity conflicts through the same impact workflow instead of silently invalidating tickets.
+- Delivery mode should be one event model with progressive authoring fields. Keep meeting-provider credentials and access behavior behind an integration seam; do not expose a raw online URL as the authorization mechanism.
+- Treat online access as a revocable admission entitlement, not merely an emailed URL. Prefer provider-specific unique links, with a signed ilmu360° gate as the generic fallback and lifecycle checks on every access attempt.
+- Make online access timing part of the schedule scope: event defaults, occurrence/session overrides, and timezone-aware open/close windows. Recordings are now first release, but keep their entitlement and availability policy separate from live access.
+- The app currently exposes only a single `recording_url` and image-focused media collections, not a recording domain. A proper recording feature needs scope, lifecycle, access entitlement, and provider/storage seams in the reusable events boundary; do not overload the legacy link field.
+- Recording authoring should support both external links and uploaded video through one provider/storage contract. This keeps the form simple while allowing hosted links, protected storage, and future streaming/transcoding adapters without changing event/ticket rules.
+- Treat a recording-access purchase as normal commerce with a non-seating entitlement, not a special payment path. Included access and separately sold access should resolve through the same event-scope entitlement contract.
+- Reuse the event/occurrence/session scope resolver for recording entitlement. Define broader-to-narrower access centrally so included tickets, recording tickets, and future providers cannot each invent different access rules.
+- Keep recording audience configuration intentionally small: public, included entitlement, separate purchase, or team-only. Avoid building an organizer-facing permission matrix or email-list ACL in the first release.
+- Recording lifecycle needs explicit processing/publication/expiry states, not a URL-present boolean. External links require validation; uploaded files remain inaccessible until processing succeeds, then follow the same entitlement gate.
+- Default recordings to protected streaming and make download a deliberate organizer choice. Use expiring URLs and provider capability checks; do not imply that an external provider can be forced to disable downloads.
+- Constrain first-release uploads to a documented playback-friendly format rather than hiding a missing transcoding pipeline behind a generic upload field. Keep processing and storage contracts extensible for future transcoding.
+- Add accessibility metadata at the recording boundary: optional caption tracks and transcript resources should travel with the recording version and remain protected by the same entitlement gate.
+- Keep recording analytics aggregate by default and model provider capabilities explicitly. Do not turn a content feature into individual attendee surveillance or promise metrics external hosts cannot provide.
+- `aiarmada/events` already models the explicit place inside a venue through `EventLocation.venue_space_id`, with `Venue->spaces()` and `VenueSpace.capacity`; `events.default_venue_id`/`institution_id` remain the owning address context. It supports event/occurrence/session location scope and snapshots the space name/address. Use that seam for institution-as-venue plus optional hall/room selection—do not create a duplicate application `hall_id`, `space_id`, or `events.venue_id`.
+- A reusable `VenueSpace` seat-map default remains a future cross-package capability. Current seating maps are polymorphic event-scope hosts, but v1 does not clone maps, create seat holds, allocate seats, or expose assigned/hybrid seating.
+- V1 is general admission only. Do not infer assigned seating from capacity; use the selected space’s capacity or an explicit general-admission capacity, and treat seat maps/seat eligibility/seat attributes as future scope.
+- Reuse package venue/space facilities for attendee-facing accessibility and logistics, but snapshot what the event promised at publication. Keep event-specific directions separate from mutable catalog defaults.
+- A space model is not automatically a booking system. Add a generic availability/conflict seam over `EventLocation` and schedule scopes, then distinguish hard conflicts for managed spaces from warnings where ilmu360° lacks authoritative calendar ownership.
+- Seat eligibility, physical seat geometry, seat attributes, and allocation rules remain future seating-package work. In v1, an accessibility/accommodation request may be collected for organizer follow-up, but it does not promise or allocate a particular seat and should not expose sensitive details in ordinary exports.
+- Model venue rooms/areas explicitly when a venue hosts parallel sessions. Tie capacity to the selected room/area, then snapshot the effective selection at event scope so sessions cannot accidentally share an incompatible physical space; seat maps remain future scope.
+- Physical-room conflicts are a schedule validation concern, not merely a form warning. Validate selected room compatibility and overlapping times server-side before publishing or changing a scheduled event; seat-map compatibility is future scope.
+- The package's default event `publish()` workflow only guards ownership, records `published_at`, and transitions status; it does not verify schedule, registration, ticket, inventory, or capacity readiness. Readiness should therefore be an explicit reusable validator/contract around the lifecycle, with ilmu360° supplying the progressive checklist and moderation policy. Seating readiness is future scope.
+- `aiarmada/orders` snapshots the financial line fields (`name`, `sku`, quantity, unit price, discount, tax, total, currency, and metadata), but `TicketType` itself remains mutable and issued `Pass` records point back to it without a ticket revision snapshot. Material ticket changes after reservations/sales therefore need an explicit freeze/version policy, preferably a generic ticketing capability plus an ilmu360° editing guard.
+- Inventory reservations default to a 15-minute lifetime in the inspected package path; v1 checkout shares one deadline/reference across ticket inventory/capacity, voucher/promotion reservations, and payment. When seating is activated later, seat holds must join the same contract rather than running an independent timer.
+- An expired event checkout should preserve only the buyer's intended cart state, not its authority: retry must revalidate ticket, capacity, voucher, and payment availability and create fresh reservations. Silent renewal would undermine scarcity controls, while dropping the whole cart would make ordinary payment retries unnecessarily hostile.
 - For UI text-only filter requests, update both Filament field labels and Blade fallback chip labels together; otherwise mixed terminology appears (field uses new label but active chips still show old wording).
 - When users clarify that a filter issue is about query semantics (not labels), immediately verify and update both DB and search-engine filter logic, then add overlap-focused tests to lock behavior.
 - In conditional filter UIs, if a field should only apply in one mode, hide it (not only disable it), and add normalization/query guards so stale URL params cannot produce conflicting filters.
@@ -537,3 +918,6 @@
 - When a contract migration is intentionally hard-cut, rename the boundary and every caller/test together, make the no-legacy scan a required gate, and do not add compatibility aliases or remapping.
 - When a user asks to remove a lifecycle status globally, audit every record type and status contract before retaining a model-specific usage; preserve only unrelated verification concepts such as email or address validation.
 - When a package model has separate publication timestamp and moderation status, public queries must require both; do not treat `status='published'` as a substitute for `published_at`.
+## Event commerce release scope
+
+- Do not equate the application’s current direct Composer dependencies with AIArmada capability. The commerce monorepo already provides checkout, orders, seating, and `cashier-chip`; when planning event commerce, distinguish existing app installation/configuration from package availability and verify the complete payment path before gating the product decision.

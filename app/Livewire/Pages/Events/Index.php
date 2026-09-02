@@ -373,6 +373,11 @@ class Index extends Component implements HasForms
     {
         return $schema
             ->statePath('filterData')
+            ->columns([
+                'default' => 1,
+                'sm' => 2,
+                'lg' => 3,
+            ])
             ->schema([
                 Section::make(__('Tarikh'))
                     ->extraAttributes(['class' => 'mi-advanced-filter-group'])

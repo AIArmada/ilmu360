@@ -135,7 +135,11 @@
     $eventPosterPreviewUrl = $eventHasPoster ? $event->getFirstMedia('poster')?->getAvailableUrl(['poster_thumb', 'card']) : null;
     $eventPosterOriginalUrl = $eventHasPoster ? $event->getFirstMediaUrl('poster') : null;
     $eventPosterDisplayAspectRatio = $eventHasPoster ? $event->poster_display_aspect_ratio : '16:9';
-    $posterAspectClass = $eventPosterDisplayAspectRatio === '3:4' ? 'aspect-[3/4]' : 'aspect-[16/9]';
+    $posterAspectClass = match ($eventPosterDisplayAspectRatio) {
+        '1:1' => 'aspect-square',
+        '3:4' => 'aspect-[3/4]',
+        default => 'aspect-[16/9]',
+    };
     $eventCoverUrl = $event->getFirstMedia('cover')?->getAvailableUrl(['banner', 'thumb']) ?? '';
     $heroImage = $eventCoverUrl;
     if ($heroImage === '') {

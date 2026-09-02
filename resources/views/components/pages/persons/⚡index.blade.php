@@ -837,7 +837,7 @@ new
                                     <span class="min-w-0">
                                         <span class="block text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">{{ __('Next event') }}</span>
                                         <span class="mt-1 block truncate text-[11px] font-semibold text-slate-700 sm:text-xs">
-                                            {{ UserDateTimeFormatter::translatedFormat($person->next_event_starts_at, 'j M Y') }}
+                                            {{ UserDateTimeFormatter::translatedFormat($person->next_event_starts_at, 'j M') }}
                                             <span class="text-slate-300" aria-hidden="true">·</span>
                                             {{ $person->next_event_title }}
                                         </span>

@@ -2241,6 +2241,7 @@ class Event extends PackageEvent implements AuditableContract
 
         $ratio = $width / $height;
         $supportedRatios = [
+            '1:1' => 1,
             '3:4' => 3 / 4,
             '16:9' => 16 / 9,
         ];
@@ -2258,6 +2259,25 @@ class Event extends PackageEvent implements AuditableContract
         }
 
         return $closestRatio;
+    }
+
+    /**
+     * Get the supported aspect ratio for the image used on event cards.
+     *
+     * Covers are the landscape web artwork, posters preserve their detected
+     * supported ratio, and the logo/placeholder fallback is square.
+     */
+    public function getCardImageAspectRatioAttribute(): string
+    {
+        if ($this->getFirstMedia('cover') instanceof Media) {
+            return '16:9';
+        }
+
+        if ($this->getFirstMedia('poster') instanceof Media) {
+            return $this->poster_display_aspect_ratio;
+        }
+
+        return '1:1';
     }
 
     public function getPosterOrientationAttribute(): string

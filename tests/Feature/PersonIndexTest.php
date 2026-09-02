@@ -15,6 +15,8 @@ use App\Models\Person;
 use App\Models\User;
 use App\Services\EventKeyPersonSyncService;
 use App\Support\Search\PersonSearchService;
+use App\Support\Timezone\UserDateTimeFormatter;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -848,6 +850,10 @@ it('counts only upcoming public events on the person index cards', function () {
 
     $listedPerson = collect($component->instance()->persons->items())
         ->firstWhere('id', $person->id);
+    $listedPersonDate = CarbonImmutable::parse(
+        (string) data_get($listedPerson, 'next_event_starts_at'),
+        'UTC',
+    );
 
     expect($listedPerson)->not->toBeNull()
         ->and((int) $listedPerson?->events_count)->toBe(1)
@@ -858,6 +864,8 @@ it('counts only upcoming public events on the person index cards', function () {
     $component
         ->assertSee('data-next-event', false)
         ->assertSee('href="'.route('events.show', $upcomingEvent).'"', false)
+        ->assertSee(UserDateTimeFormatter::translatedFormat($listedPersonDate, 'j M'))
+        ->assertDontSee(UserDateTimeFormatter::translatedFormat($listedPersonDate, 'j M Y'))
         ->assertSee('data-follow-icon="speaker"', false);
 });
 

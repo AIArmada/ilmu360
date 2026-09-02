@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "c33057a186649e8fe1fc8a3aa328e7db",
+    "content-hash": "5710a72cb0b3e3f4e2ceb4aab96a187d",
     "packages": [
         {
             "name": "aiarmada/addressing",
@@ -141,6 +141,285 @@
                 "MIT"
             ],
             "description": "Generic Spatie Permission wrapper with scoped authorization and impersonation for Laravel applications.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "aiarmada/cart",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../commerce/packages/cart",
+                "reference": "7bfad9a7eef92527f0832b1ee01c560051bf4dbd"
+            },
+            "require": {
+                "aiarmada/commerce-support": "self.version",
+                "php": "^8.4"
+            },
+            "suggest": {
+                "aiarmada/cart-graphql": "GraphQL API layer with queries, mutations, and subscriptions",
+                "aiarmada/signals": "Optional cart analytics and alerting through the Signals package"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "AIArmada\\Cart\\CartServiceProvider"
+                    ],
+                    "aliases": {
+                        "Cart": "AIArmada\\Cart\\Facades\\Cart"
+                    }
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "AIArmada\\Cart\\": "src",
+                    "AIArmada\\Cart\\Database\\Factories\\": "database/factories"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "A comprehensive commerce ecosystem for Laravel with cart, payments, vouchers, shipping, and inventory management.",
+            "homepage": "https://github.com/aiarmada/commerce",
+            "support": {
+                "issues": "https://github.com/aiarmada/commerce/issues",
+                "source": "https://github.com/aiarmada/commerce"
+            },
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "aiarmada/cashier",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../commerce/packages/cashier",
+                "reference": "c4d8987ee134ef121850047d9d509ea25b37cf41"
+            },
+            "require": {
+                "aiarmada/commerce-support": "self.version",
+                "php": "^8.4"
+            },
+            "suggest": {
+                "aiarmada/affiliates": "Optional integration",
+                "aiarmada/cart": "Optional integration",
+                "aiarmada/cashier-chip": "Required for CHIP payment gateway support",
+                "aiarmada/chip": "Optional integration",
+                "aiarmada/customers": "Optional integration",
+                "aiarmada/inventory": "Optional integration",
+                "laravel/cashier": "Required for Stripe payment gateway support. Without it, calling the stripe gateway throws a clear error."
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "AIArmada\\Cashier\\CashierServiceProvider"
+                    ],
+                    "aliases": {
+                        "Cashier": "AIArmada\\Cashier\\Facades\\Cashier"
+                    }
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "AIArmada\\Cashier\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "AIArmada\\Cashier\\Tests\\": "tests/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Unified multi-gateway billing integration for Laravel supporting Stripe and CHIP",
+            "homepage": "https://github.com/aiarmada/commerce",
+            "keywords": [
+                "billing",
+                "cashier",
+                "chip",
+                "laravel",
+                "multi-gateway",
+                "payments",
+                "stripe",
+                "subscriptions"
+            ],
+            "support": {
+                "issues": "https://github.com/aiarmada/commerce/issues",
+                "source": "https://github.com/aiarmada/commerce"
+            },
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "aiarmada/cashier-chip",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../commerce/packages/cashier-chip",
+                "reference": "fe8a5ee0c5a70ea2fd29adcc45060dbdee302aaa"
+            },
+            "require": {
+                "aiarmada/chip": "self.version",
+                "aiarmada/commerce-support": "self.version",
+                "php": "^8.4",
+                "spatie/laravel-webhook-client": "^3.6.2"
+            },
+            "suggest": {
+                "aiarmada/docs": "Optional integration",
+                "aiarmada/vouchers": "Optional integration"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "AIArmada\\CashierChip\\CashierChipServiceProvider"
+                    ],
+                    "aliases": {
+                        "CashierChip": "AIArmada\\CashierChip\\Facades\\CashierChip"
+                    }
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "AIArmada\\CashierChip\\": "src/",
+                    "AIArmada\\CashierChip\\Database\\Factories\\": "database/factories/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "AIArmada\\CashierChip\\Tests\\": "tests/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Laravel Cashier-style billing integration for CHIP payment gateway",
+            "homepage": "https://github.com/aiarmada/commerce",
+            "support": {
+                "issues": "https://github.com/aiarmada/commerce/issues",
+                "source": "https://github.com/aiarmada/commerce"
+            },
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "aiarmada/checkout",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../commerce/packages/checkout",
+                "reference": "8e1bb7306980da2f47e7c6abcb090710d242eee3"
+            },
+            "require": {
+                "aiarmada/cart": "self.version",
+                "aiarmada/commerce-support": "self.version",
+                "aiarmada/customers": "self.version",
+                "aiarmada/docs": "self.version",
+                "aiarmada/orders": "self.version",
+                "aiarmada/pricing": "self.version",
+                "aiarmada/products": "self.version",
+                "aiarmada/shipping": "self.version",
+                "illuminate/contracts": "^13.15.0",
+                "illuminate/support": "^13.15.0",
+                "php": "^8.4",
+                "spatie/laravel-webhook-client": "^3.6.2"
+            },
+            "suggest": {
+                "aiarmada/cashier": "For unified multi-gateway payment processing (recommended)",
+                "aiarmada/cashier-chip": "For Cashier-style CHIP payment integration",
+                "aiarmada/chip": "For direct CHIP payment gateway integration",
+                "aiarmada/inventory": "For stock validation and reservation during checkout",
+                "aiarmada/jnt": "For J&T Express shipping integration (integrates via shipping adapter)",
+                "aiarmada/promotions": "For automatic promotion application during checkout",
+                "aiarmada/tax": "For tax calculation during checkout",
+                "aiarmada/vouchers": "For voucher/coupon redemption during checkout"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "AIArmada\\Checkout\\CheckoutServiceProvider"
+                    ],
+                    "aliases": {
+                        "Checkout": "AIArmada\\Checkout\\Facades\\Checkout"
+                    }
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "AIArmada\\Checkout\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Unified checkout flow orchestrating cart, orders, payments, and fulfillment for the AIArmada Commerce ecosystem",
+            "homepage": "https://github.com/aiarmada/commerce",
+            "support": {
+                "issues": "https://github.com/aiarmada/commerce/issues",
+                "source": "https://github.com/aiarmada/commerce"
+            },
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "aiarmada/chip",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../commerce/packages/chip",
+                "reference": "b8f63879750afa68204e49ef57216b10eb971a09"
+            },
+            "require": {
+                "aiarmada/commerce-support": "self.version",
+                "ext-curl": "*",
+                "illuminate/http": "^13.15.0",
+                "illuminate/queue": "^13.15.0",
+                "illuminate/validation": "^13.15.0",
+                "php": "^8.4"
+            },
+            "suggest": {
+                "aiarmada/docs": "Optional integration"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "AIArmada\\Chip\\ChipServiceProvider"
+                    ],
+                    "aliases": {
+                        "Chip": "AIArmada\\Chip\\Facades\\Chip",
+                        "ChipSend": "AIArmada\\Chip\\Facades\\ChipSend"
+                    }
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "AIArmada\\Chip\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Modern Laravel integration for CHIP payment gateway - Collect & Send APIs",
+            "homepage": "https://github.com/aiarmada/commerce",
+            "support": {
+                "issues": "https://github.com/aiarmada/commerce/issues",
+                "source": "https://github.com/aiarmada/commerce"
+            },
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -322,6 +601,100 @@
                 "social",
                 "whatsapp"
             ],
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "aiarmada/customers",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../commerce/packages/customers",
+                "reference": "9857120902fbba219479a6e31f6c8cab7f934d4d"
+            },
+            "require": {
+                "aiarmada/commerce-support": "self.version",
+                "aiarmada/contacting": "self.version",
+                "php": "^8.4"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "AIArmada\\Customers\\CustomersServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "AIArmada\\Customers\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "AIArmada",
+                    "email": "dev@aiarmada.com"
+                }
+            ],
+            "description": "Customer relationship management for the AIArmada Commerce ecosystem",
+            "keywords": [
+                "addresses",
+                "commerce",
+                "crm",
+                "customers",
+                "laravel",
+                "segments"
+            ],
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "aiarmada/docs",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../commerce/packages/docs",
+                "reference": "8c35ede4a7f7e9fae6de215e28b9354ce73660f5"
+            },
+            "require": {
+                "aiarmada/commerce-support": "self.version",
+                "php": "^8.4",
+                "spatie/browsershot": "^5.3.0",
+                "spatie/laravel-pdf": "^2.9.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "AIArmada\\Docs\\DocsServiceProvider"
+                    ],
+                    "aliases": {
+                        "Doc": "AIArmada\\Docs\\Facades\\Doc"
+                    }
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "AIArmada\\Docs\\": "src/",
+                    "AIArmada\\Docs\\Database\\Factories\\": "database/factories/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Doc generation package for Laravel with PDF support for invoices, receipts, shipping labels, and customizable templates",
+            "homepage": "https://github.com/aiarmada/commerce",
+            "support": {
+                "issues": "https://github.com/aiarmada/commerce/issues",
+                "source": "https://github.com/aiarmada/commerce"
+            },
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -1126,6 +1499,61 @@
             }
         },
         {
+            "name": "aiarmada/orders",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../commerce/packages/orders",
+                "reference": "cfd477b11488cd6adee96cf823da24b5996ad7f9"
+            },
+            "require": {
+                "aiarmada/commerce-support": "self.version",
+                "php": "^8.4",
+                "spatie/browsershot": "^5.3.0",
+                "spatie/laravel-pdf": "^2.9.0"
+            },
+            "suggest": {
+                "aiarmada/docs": "Optional integration",
+                "aiarmada/inventory": "Optional integration",
+                "aiarmada/shipping": "Optional integration"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "AIArmada\\Orders\\OrdersServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "AIArmada\\Orders\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "AIArmada",
+                    "email": "dev@aiarmada.com"
+                }
+            ],
+            "description": "Order management and transaction lifecycle for the AIArmada Commerce ecosystem",
+            "keywords": [
+                "commerce",
+                "invoices",
+                "laravel",
+                "orders",
+                "state-machine",
+                "transactions"
+            ],
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
             "name": "aiarmada/organizations",
             "version": "dev-main",
             "dist": {
@@ -1234,6 +1662,160 @@
             }
         },
         {
+            "name": "aiarmada/pricing",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../commerce/packages/pricing",
+                "reference": "effdd920c5b9969f27d0eee2504ea4c8c6a0fa65"
+            },
+            "require": {
+                "aiarmada/commerce-support": "self.version",
+                "php": "^8.4"
+            },
+            "suggest": {
+                "aiarmada/promotions": "Optional integration"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "AIArmada\\Pricing\\PricingServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "AIArmada\\Pricing\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "AIArmada",
+                    "email": "dev@aiarmada.com"
+                }
+            ],
+            "description": "Dynamic pricing engine for the AIArmada Commerce ecosystem",
+            "keywords": [
+                "commerce",
+                "laravel",
+                "price-rules",
+                "pricing",
+                "promotions",
+                "tiered-pricing"
+            ],
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "aiarmada/products",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../commerce/packages/products",
+                "reference": "5ed56f114bd69cf3b4b7dea39239612391c72dd2"
+            },
+            "require": {
+                "aiarmada/commerce-support": "self.version",
+                "php": "^8.4"
+            },
+            "suggest": {
+                "aiarmada/inventory": "Optional integration",
+                "aiarmada/pricing": "Optional integration"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "AIArmada\\Products\\ProductsServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "AIArmada\\Products\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "AIArmada",
+                    "email": "dev@aiarmada.com"
+                }
+            ],
+            "description": "Product catalog and PIM for the AIArmada Commerce ecosystem",
+            "keywords": [
+                "catalog",
+                "categories",
+                "commerce",
+                "laravel",
+                "pim",
+                "products",
+                "variants"
+            ],
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "aiarmada/promotions",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../commerce/packages/promotions",
+                "reference": "d9ef0098ec4cae3bfe5667ccc6e3ac097e5d433a"
+            },
+            "require": {
+                "aiarmada/commerce-support": "self.version",
+                "illuminate/database": "^13.15.0",
+                "illuminate/support": "^13.15.0",
+                "php": "^8.4",
+                "spatie/laravel-activitylog": "^5.0.0",
+                "spatie/laravel-data": "^4.23.0"
+            },
+            "suggest": {
+                "aiarmada/cart": "Optional integration",
+                "aiarmada/orders": "Optional integration",
+                "aiarmada/products": "For product/category targeting in promotions",
+                "aiarmada/vouchers": "Optional integration"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "AIArmada\\Promotions\\PromotionsServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "AIArmada\\Promotions\\": "src/",
+                    "AIArmada\\Promotions\\Database\\Factories\\": "database/factories/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "AIArmada Team"
+                }
+            ],
+            "description": "Automatic promotions and discount campaigns for commerce",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
             "name": "aiarmada/references",
             "version": "dev-main",
             "dist": {
@@ -1328,6 +1910,53 @@
             }
         },
         {
+            "name": "aiarmada/shipping",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../commerce/packages/shipping",
+                "reference": "b036efb7c0f470ca4b59fd45c55697f235e58833"
+            },
+            "require": {
+                "aiarmada/commerce-support": "self.version",
+                "php": "^8.4"
+            },
+            "suggest": {
+                "aiarmada/cart": "Required for free shipping evaluation with cart subtotals",
+                "aiarmada/inventory": "Optional integration",
+                "aiarmada/orders": "Required for order fulfillment handler integration"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "AIArmada\\Shipping\\ShippingServiceProvider"
+                    ],
+                    "aliases": {
+                        "Shipping": "AIArmada\\Shipping\\Facades\\Shipping"
+                    }
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "AIArmada\\Shipping\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Multi-carrier shipping abstraction layer for Laravel commerce applications",
+            "homepage": "https://github.com/aiarmada/commerce",
+            "support": {
+                "issues": "https://github.com/aiarmada/commerce/issues",
+                "source": "https://github.com/aiarmada/commerce"
+            },
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
             "name": "aiarmada/signals",
             "version": "dev-main",
             "dist": {
@@ -1372,6 +2001,60 @@
                 "laravel",
                 "product-analytics",
                 "signals"
+            ],
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "aiarmada/tax",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../commerce/packages/tax",
+                "reference": "c79efb6762e09d6847e6d6a3240a40e946d25631"
+            },
+            "require": {
+                "aiarmada/commerce-support": "self.version",
+                "akaunting/laravel-money": "^6.0.3",
+                "owen-it/laravel-auditing": "^14.0.3",
+                "php": "^8.4",
+                "spatie/laravel-activitylog": "^5.0.0",
+                "spatie/laravel-data": "^4.23.0",
+                "spatie/laravel-model-states": "^2.14.1",
+                "spatie/laravel-settings": "^3.8.1"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "AIArmada\\Tax\\TaxServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "AIArmada\\Tax\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "AIArmada",
+                    "email": "dev@aiarmada.com"
+                }
+            ],
+            "description": "Tax calculation engine for the AIArmada Commerce ecosystem",
+            "keywords": [
+                "commerce",
+                "gst",
+                "laravel",
+                "sales-tax",
+                "tax",
+                "vat"
             ],
             "transport-options": {
                 "symlink": true,
@@ -1433,6 +2116,54 @@
                 "ticketing",
                 "tickets"
             ],
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "aiarmada/vouchers",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../commerce/packages/vouchers",
+                "reference": "eaa378f316a61ecf8dff05b6112e8752691c915c"
+            },
+            "require": {
+                "aiarmada/cart": "self.version",
+                "aiarmada/commerce-support": "self.version",
+                "php": "^8.4"
+            },
+            "suggest": {
+                "aiarmada/affiliates": "Optional integration",
+                "aiarmada/filament-cart": "Optional integration",
+                "aiarmada/orders": "Optional integration"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "AIArmada\\Vouchers\\VoucherServiceProvider"
+                    ],
+                    "aliases": {
+                        "Voucher": "AIArmada\\Vouchers\\Facades\\Voucher"
+                    }
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "AIArmada\\Vouchers\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Voucher and coupon system for Laravel built on the cart package's condition system, with support for multiple redemption types, usage limits, and expiry dates",
+            "homepage": "https://github.com/aiarmada/commerce",
+            "support": {
+                "issues": "https://github.com/aiarmada/commerce/issues",
+                "source": "https://github.com/aiarmada/commerce"
+            },
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -3968,16 +4699,16 @@
         },
         {
             "name": "giggsey/libphonenumber-for-php-lite",
-            "version": "9.0.37",
+            "version": "9.0.38",
             "source": {
                 "type": "git",
                 "url": "https://github.com/giggsey/libphonenumber-for-php-lite.git",
-                "reference": "8e2514898587995033a4425683e32674f2073e1d"
+                "reference": "a165edb4765b39abc4f4af3bde9ed3b5f9690384"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/giggsey/libphonenumber-for-php-lite/zipball/8e2514898587995033a4425683e32674f2073e1d",
-                "reference": "8e2514898587995033a4425683e32674f2073e1d",
+                "url": "https://api.github.com/repos/giggsey/libphonenumber-for-php-lite/zipball/a165edb4765b39abc4f4af3bde9ed3b5f9690384",
+                "reference": "a165edb4765b39abc4f4af3bde9ed3b5f9690384",
                 "shasum": ""
             },
             "require": {
@@ -4042,7 +4773,7 @@
                 "issues": "https://github.com/giggsey/libphonenumber-for-php-lite/issues",
                 "source": "https://github.com/giggsey/libphonenumber-for-php-lite"
             },
-            "time": "2026-08-15T20:02:37+00:00"
+            "time": "2026-09-01T10:41:38+00:00"
         },
         {
             "name": "graham-campbell/result-type",
@@ -4950,16 +5681,16 @@
         },
         {
             "name": "laravel/framework",
-            "version": "v13.29.0",
+            "version": "v13.30.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravel/framework.git",
-                "reference": "6e2c363716964d8238cee7097b258119a984f0cf"
+                "reference": "718d17db56861e0a49f644217c8853dab1bff8ce"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravel/framework/zipball/6e2c363716964d8238cee7097b258119a984f0cf",
-                "reference": "6e2c363716964d8238cee7097b258119a984f0cf",
+                "url": "https://api.github.com/repos/laravel/framework/zipball/718d17db56861e0a49f644217c8853dab1bff8ce",
+                "reference": "718d17db56861e0a49f644217c8853dab1bff8ce",
                 "shasum": ""
             },
             "require": {
@@ -5173,7 +5904,7 @@
                 "issues": "https://github.com/laravel/framework/issues",
                 "source": "https://github.com/laravel/framework"
             },
-            "time": "2026-08-25T20:57:16+00:00"
+            "time": "2026-09-01T21:42:30+00:00"
         },
         {
             "name": "laravel/horizon",
@@ -6436,16 +7167,16 @@
         },
         {
             "name": "league/flysystem",
-            "version": "3.35.3",
+            "version": "3.36.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/thephpleague/flysystem.git",
-                "reference": "5fc8404762179ae514678487b23494fd69b2309c"
+                "reference": "f7fb152932f30072d573510cbd4dd657d6475b25"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/thephpleague/flysystem/zipball/5fc8404762179ae514678487b23494fd69b2309c",
-                "reference": "5fc8404762179ae514678487b23494fd69b2309c",
+                "url": "https://api.github.com/repos/thephpleague/flysystem/zipball/f7fb152932f30072d573510cbd4dd657d6475b25",
+                "reference": "f7fb152932f30072d573510cbd4dd657d6475b25",
                 "shasum": ""
             },
             "require": {
@@ -6513,9 +7244,9 @@
             ],
             "support": {
                 "issues": "https://github.com/thephpleague/flysystem/issues",
-                "source": "https://github.com/thephpleague/flysystem/tree/3.35.3"
+                "source": "https://github.com/thephpleague/flysystem/tree/3.36.0"
             },
-            "time": "2026-08-22T12:55:54+00:00"
+            "time": "2026-09-02T08:00:27+00:00"
         },
         {
             "name": "league/flysystem-aws-s3-v3",
@@ -7404,16 +8135,16 @@
         },
         {
             "name": "lorisleiva/lody",
-            "version": "v0.7.0",
+            "version": "v0.7.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/lorisleiva/lody.git",
-                "reference": "82ecb6faa55fb20109e6959f42f0f652cd77674b"
+                "reference": "018d3d384872d4b28f5194dae5fd05894db7fabe"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/lorisleiva/lody/zipball/82ecb6faa55fb20109e6959f42f0f652cd77674b",
-                "reference": "82ecb6faa55fb20109e6959f42f0f652cd77674b",
+                "url": "https://api.github.com/repos/lorisleiva/lody/zipball/018d3d384872d4b28f5194dae5fd05894db7fabe",
+                "reference": "018d3d384872d4b28f5194dae5fd05894db7fabe",
                 "shasum": ""
             },
             "require": {
@@ -7464,7 +8195,7 @@
             ],
             "support": {
                 "issues": "https://github.com/lorisleiva/lody/issues",
-                "source": "https://github.com/lorisleiva/lody/tree/v0.7.0"
+                "source": "https://github.com/lorisleiva/lody/tree/v0.7.1"
             },
             "funding": [
                 {
@@ -7472,7 +8203,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-03-18T12:49:31+00:00"
+            "time": "2026-09-01T11:53:49+00:00"
         },
         {
             "name": "maennchen/zipstream-php",
@@ -7623,16 +8354,16 @@
         },
         {
             "name": "monolog/monolog",
-            "version": "3.10.0",
+            "version": "3.11.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Seldaek/monolog.git",
-                "reference": "b321dd6749f0bf7189444158a3ce785cc16d69b0"
+                "reference": "147f303310f06334f03f409e49d7ad1e275ff05a"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Seldaek/monolog/zipball/b321dd6749f0bf7189444158a3ce785cc16d69b0",
-                "reference": "b321dd6749f0bf7189444158a3ce785cc16d69b0",
+                "url": "https://api.github.com/repos/Seldaek/monolog/zipball/147f303310f06334f03f409e49d7ad1e275ff05a",
+                "reference": "147f303310f06334f03f409e49d7ad1e275ff05a",
                 "shasum": ""
             },
             "require": {
@@ -7710,7 +8441,7 @@
             ],
             "support": {
                 "issues": "https://github.com/Seldaek/monolog/issues",
-                "source": "https://github.com/Seldaek/monolog/tree/3.10.0"
+                "source": "https://github.com/Seldaek/monolog/tree/3.11.0"
             },
             "funding": [
                 {
@@ -7722,7 +8453,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-01-02T08:56:05+00:00"
+            "time": "2026-09-02T12:39:56+00:00"
         },
         {
             "name": "mtdowling/jmespath.php",
@@ -9524,16 +10255,16 @@
         },
         {
             "name": "phpstan/phpdoc-parser",
-            "version": "2.3.3",
+            "version": "2.3.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/phpstan/phpdoc-parser.git",
-                "reference": "fb19eedd2bb67ff8cf7a5502ad329e701d6398a3"
+                "reference": "148cefffaf0233e4c08cc13db8a195a56dd6dfe9"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpstan/phpdoc-parser/zipball/fb19eedd2bb67ff8cf7a5502ad329e701d6398a3",
-                "reference": "fb19eedd2bb67ff8cf7a5502ad329e701d6398a3",
+                "url": "https://api.github.com/repos/phpstan/phpdoc-parser/zipball/148cefffaf0233e4c08cc13db8a195a56dd6dfe9",
+                "reference": "148cefffaf0233e4c08cc13db8a195a56dd6dfe9",
                 "shasum": ""
             },
             "require": {
@@ -9565,9 +10296,9 @@
             "description": "PHPDoc parser with support for nullable, intersection and generic types",
             "support": {
                 "issues": "https://github.com/phpstan/phpdoc-parser/issues",
-                "source": "https://github.com/phpstan/phpdoc-parser/tree/2.3.3"
+                "source": "https://github.com/phpstan/phpdoc-parser/tree/2.3.5"
             },
-            "time": "2026-07-08T07:01:06+00:00"
+            "time": "2026-08-31T16:05:28+00:00"
         },
         {
             "name": "pragmarx/google2fa",
@@ -10732,6 +11463,74 @@
             "time": "2022-12-17T21:53:22+00:00"
         },
         {
+            "name": "spatie/browsershot",
+            "version": "5.4.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/spatie/browsershot.git",
+                "reference": "dcf7a65fd1d0fc8fd113739b84982377728d0b2f"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/spatie/browsershot/zipball/dcf7a65fd1d0fc8fd113739b84982377728d0b2f",
+                "reference": "dcf7a65fd1d0fc8fd113739b84982377728d0b2f",
+                "shasum": ""
+            },
+            "require": {
+                "ext-fileinfo": "*",
+                "ext-json": "*",
+                "php": "^8.2",
+                "spatie/temporary-directory": "^2.0",
+                "symfony/process": "^6.0|^7.0|^8.0"
+            },
+            "require-dev": {
+                "pestphp/pest": "^3.0|^4.0",
+                "spatie/image": "^3.6",
+                "spatie/pdf-to-text": "^1.52",
+                "spatie/phpunit-snapshot-assertions": "^5.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Spatie\\Browsershot\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Freek Van der Herten",
+                    "email": "freek@spatie.be",
+                    "homepage": "https://github.com/freekmurze",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Convert a webpage to an image or pdf using headless Chrome",
+            "homepage": "https://github.com/spatie/browsershot",
+            "keywords": [
+                "chrome",
+                "convert",
+                "headless",
+                "image",
+                "pdf",
+                "puppeteer",
+                "screenshot",
+                "webpage"
+            ],
+            "support": {
+                "source": "https://github.com/spatie/browsershot/tree/5.4.0"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/spatie",
+                    "type": "github"
+                }
+            ],
+            "time": "2026-05-26T13:13:33+00:00"
+        },
+        {
             "name": "spatie/eloquent-sortable",
             "version": "5.0.1",
             "source": {
@@ -11413,16 +12212,16 @@
         },
         {
             "name": "spatie/laravel-medialibrary",
-            "version": "11.23.5",
+            "version": "11.23.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/spatie/laravel-medialibrary.git",
-                "reference": "8ca16954d607de1853c9609e88eb91eab43d67b9"
+                "reference": "5319032c4197354fe21889e6808b388f6fb257d9"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/spatie/laravel-medialibrary/zipball/8ca16954d607de1853c9609e88eb91eab43d67b9",
-                "reference": "8ca16954d607de1853c9609e88eb91eab43d67b9",
+                "url": "https://api.github.com/repos/spatie/laravel-medialibrary/zipball/5319032c4197354fe21889e6808b388f6fb257d9",
+                "reference": "5319032c4197354fe21889e6808b388f6fb257d9",
                 "shasum": ""
             },
             "require": {
@@ -11507,7 +12306,7 @@
             ],
             "support": {
                 "issues": "https://github.com/spatie/laravel-medialibrary/issues",
-                "source": "https://github.com/spatie/laravel-medialibrary/tree/11.23.5"
+                "source": "https://github.com/spatie/laravel-medialibrary/tree/11.23.6"
             },
             "funding": [
                 {
@@ -11519,7 +12318,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-08-10T08:15:27+00:00"
+            "time": "2026-09-01T09:46:42+00:00"
         },
         {
             "name": "spatie/laravel-model-states",
@@ -11662,6 +12461,101 @@
                 }
             ],
             "time": "2026-08-26T09:13:25+00:00"
+        },
+        {
+            "name": "spatie/laravel-pdf",
+            "version": "2.13.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/spatie/laravel-pdf.git",
+                "reference": "004e3d21cc1c3b2f435d9794841bacf1cf46ab8f"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/spatie/laravel-pdf/zipball/004e3d21cc1c3b2f435d9794841bacf1cf46ab8f",
+                "reference": "004e3d21cc1c3b2f435d9794841bacf1cf46ab8f",
+                "shasum": ""
+            },
+            "require": {
+                "illuminate/contracts": "^11.0|^12.0|^13.0",
+                "php": "^8.2",
+                "spatie/laravel-package-tools": "^1.16.1",
+                "spatie/temporary-directory": "^2.2.1"
+            },
+            "require-dev": {
+                "chrome-php/chrome": "^1.0",
+                "dompdf/dompdf": "^3.0",
+                "ext-imagick": "*",
+                "larastan/larastan": "^2.7.0|^3.0",
+                "laravel/pint": "^1.13.7",
+                "nunomaduro/collision": "^8.0",
+                "orchestra/testbench": "^9.6|^10.0|^11.0",
+                "pestphp/pest": "^2.30|^3.7|^4.4",
+                "pestphp/pest-plugin-arch": "^2.5|^3.0|^4.0",
+                "pestphp/pest-plugin-laravel": "^2.2|^3.1|^4.1",
+                "phpstan/extension-installer": "^1.3.1",
+                "phpstan/phpstan-deprecation-rules": "^1.1.4|^2.0",
+                "phpstan/phpstan-phpunit": "^1.3.15|^2.0",
+                "pontedilana/php-weasyprint": "^2.4",
+                "spatie/image": "^3.3.2",
+                "spatie/invade": "^2.1",
+                "spatie/laravel-ray": "^1.33",
+                "spatie/pdf-to-image": "^2.2|^3.1",
+                "spatie/pdf-to-text": "^1.52.1",
+                "spatie/pest-expectations": "^1.5",
+                "spatie/pest-plugin-snapshots": "^2.1",
+                "spatie/pixelmatch-php": "^1.0",
+                "tecnickcom/tc-lib-pdf-encrypt": "^2.5",
+                "wnx/sidecar-browsershot": "^2.0"
+            },
+            "suggest": {
+                "chrome-php/chrome": "Required for the Chrome PHP driver (^1.0)",
+                "dompdf/dompdf": "Required for the DOMPDF driver (^3.0)",
+                "spatie/browsershot": "Required for the Browsershot driver (^4.0|^5.0)",
+                "tecnickcom/tc-lib-pdf-encrypt": "Required to password-protect PDFs with the default encrypter (^2.5)"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "aliases": {
+                        "LaravelPdf": "Pdf"
+                    },
+                    "providers": [
+                        "Spatie\\LaravelPdf\\PdfServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "files": [
+                    "src/Support/functions.php"
+                ],
+                "psr-4": {
+                    "Spatie\\LaravelPdf\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Freek Van der Herten",
+                    "email": "freek@spatie.be",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Create PDFs in Laravel apps",
+            "homepage": "https://github.com/spatie/laravel-pdf",
+            "keywords": [
+                "laravel",
+                "laravel-pdf",
+                "spatie"
+            ],
+            "support": {
+                "issues": "https://github.com/spatie/laravel-pdf/issues",
+                "source": "https://github.com/spatie/laravel-pdf/tree/2.13.1"
+            },
+            "time": "2026-09-01T08:23:12+00:00"
         },
         {
             "name": "spatie/laravel-permission",
@@ -12804,16 +13698,16 @@
         },
         {
             "name": "symfony/console",
-            "version": "v8.1.5",
+            "version": "v8.1.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/console.git",
-                "reference": "d07c06839e33047e2c894a6793248f3fb66c8129"
+                "reference": "eb7d9957d66739649e931ce7a9d05dab69f8abac"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/console/zipball/d07c06839e33047e2c894a6793248f3fb66c8129",
-                "reference": "d07c06839e33047e2c894a6793248f3fb66c8129",
+                "url": "https://api.github.com/repos/symfony/console/zipball/eb7d9957d66739649e931ce7a9d05dab69f8abac",
+                "reference": "eb7d9957d66739649e931ce7a9d05dab69f8abac",
                 "shasum": ""
             },
             "require": {
@@ -12880,7 +13774,7 @@
                 "terminal"
             ],
             "support": {
-                "source": "https://github.com/symfony/console/tree/v8.1.5"
+                "source": "https://github.com/symfony/console/tree/v8.1.6"
             },
             "funding": [
                 {
@@ -12900,20 +13794,20 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-08-21T14:29:57+00:00"
+            "time": "2026-08-25T14:18:42+00:00"
         },
         {
             "name": "symfony/css-selector",
-            "version": "v8.1.5",
+            "version": "v8.1.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/css-selector.git",
-                "reference": "a291fb5adb65f52a4bb315db2d803698315dc64d"
+                "reference": "08e2905152a39cf3fd1745d83f8c483e258887d9"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/css-selector/zipball/a291fb5adb65f52a4bb315db2d803698315dc64d",
-                "reference": "a291fb5adb65f52a4bb315db2d803698315dc64d",
+                "url": "https://api.github.com/repos/symfony/css-selector/zipball/08e2905152a39cf3fd1745d83f8c483e258887d9",
+                "reference": "08e2905152a39cf3fd1745d83f8c483e258887d9",
                 "shasum": ""
             },
             "require": {
@@ -12949,7 +13843,7 @@
             "description": "Converts CSS selectors to XPath expressions",
             "homepage": "https://symfony.com",
             "support": {
-                "source": "https://github.com/symfony/css-selector/tree/v8.1.5"
+                "source": "https://github.com/symfony/css-selector/tree/v8.1.6"
             },
             "funding": [
                 {
@@ -12969,7 +13863,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-08-21T17:47:34+00:00"
+            "time": "2026-08-23T10:06:25+00:00"
         },
         {
             "name": "symfony/deprecation-contracts",
@@ -13502,16 +14396,16 @@
         },
         {
             "name": "symfony/http-foundation",
-            "version": "v8.1.5",
+            "version": "v8.1.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/http-foundation.git",
-                "reference": "ee16f97e95cfa011a742714d7c8c8f70fe7423f4"
+                "reference": "093b78326f649c3a9db922b9f17123b6aeb3b8fb"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/http-foundation/zipball/ee16f97e95cfa011a742714d7c8c8f70fe7423f4",
-                "reference": "ee16f97e95cfa011a742714d7c8c8f70fe7423f4",
+                "url": "https://api.github.com/repos/symfony/http-foundation/zipball/093b78326f649c3a9db922b9f17123b6aeb3b8fb",
+                "reference": "093b78326f649c3a9db922b9f17123b6aeb3b8fb",
                 "shasum": ""
             },
             "require": {
@@ -13559,7 +14453,7 @@
             "description": "Defines an object-oriented layer for the HTTP specification",
             "homepage": "https://symfony.com",
             "support": {
-                "source": "https://github.com/symfony/http-foundation/tree/v8.1.5"
+                "source": "https://github.com/symfony/http-foundation/tree/v8.1.6"
             },
             "funding": [
                 {
@@ -13579,20 +14473,20 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-08-20T09:59:12+00:00"
+            "time": "2026-08-30T20:10:55+00:00"
         },
         {
             "name": "symfony/http-kernel",
-            "version": "v8.1.5",
+            "version": "v8.1.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/http-kernel.git",
-                "reference": "0306e1e65b90023fe40de6c6be95d06396bcb2e6"
+                "reference": "2f73beb7c6f1a97d2c17bbf4dbd59da8cc18b355"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/http-kernel/zipball/0306e1e65b90023fe40de6c6be95d06396bcb2e6",
-                "reference": "0306e1e65b90023fe40de6c6be95d06396bcb2e6",
+                "url": "https://api.github.com/repos/symfony/http-kernel/zipball/2f73beb7c6f1a97d2c17bbf4dbd59da8cc18b355",
+                "reference": "2f73beb7c6f1a97d2c17bbf4dbd59da8cc18b355",
                 "shasum": ""
             },
             "require": {
@@ -13669,7 +14563,7 @@
             "description": "Provides a structured process for converting a Request into a Response",
             "homepage": "https://symfony.com",
             "support": {
-                "source": "https://github.com/symfony/http-kernel/tree/v8.1.5"
+                "source": "https://github.com/symfony/http-kernel/tree/v8.1.6"
             },
             "funding": [
                 {
@@ -13689,7 +14583,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-08-22T13:45:00+00:00"
+            "time": "2026-08-30T21:40:49+00:00"
         },
         {
             "name": "symfony/mailer",
@@ -13773,7 +14667,7 @@
         },
         {
             "name": "symfony/mime",
-            "version": "v8.1.5",
+            "version": "v8.1.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/mime.git",
@@ -13835,7 +14729,7 @@
                 "mime-type"
             ],
             "support": {
-                "source": "https://github.com/symfony/mime/tree/v8.1.5"
+                "source": "https://github.com/symfony/mime/tree/v8.1.6"
             },
             "funding": [
                 {
@@ -14839,7 +15733,7 @@
         },
         {
             "name": "symfony/process",
-            "version": "v8.1.5",
+            "version": "v8.1.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/process.git",
@@ -14880,7 +15774,7 @@
             "description": "Executes commands in sub-processes",
             "homepage": "https://symfony.com",
             "support": {
-                "source": "https://github.com/symfony/process/tree/v8.1.5"
+                "source": "https://github.com/symfony/process/tree/v8.1.6"
             },
             "funding": [
                 {
@@ -14985,16 +15879,16 @@
         },
         {
             "name": "symfony/property-info",
-            "version": "v8.1.5",
+            "version": "v8.1.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/property-info.git",
-                "reference": "b335f8e7fb1440ed3448fb33340efc6127678e53"
+                "reference": "d25e1dabbaff3f91bb15ba68328cf4fbd1c43c42"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/property-info/zipball/b335f8e7fb1440ed3448fb33340efc6127678e53",
-                "reference": "b335f8e7fb1440ed3448fb33340efc6127678e53",
+                "url": "https://api.github.com/repos/symfony/property-info/zipball/d25e1dabbaff3f91bb15ba68328cf4fbd1c43c42",
+                "reference": "d25e1dabbaff3f91bb15ba68328cf4fbd1c43c42",
                 "shasum": ""
             },
             "require": {
@@ -15047,7 +15941,7 @@
                 "validator"
             ],
             "support": {
-                "source": "https://github.com/symfony/property-info/tree/v8.1.5"
+                "source": "https://github.com/symfony/property-info/tree/v8.1.6"
             },
             "funding": [
                 {
@@ -15067,7 +15961,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-08-21T17:47:34+00:00"
+            "time": "2026-08-30T08:48:43+00:00"
         },
         {
             "name": "symfony/psr-http-message-bridge",
@@ -15158,7 +16052,7 @@
         },
         {
             "name": "symfony/routing",
-            "version": "v8.1.5",
+            "version": "v8.1.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/routing.git",
@@ -15214,7 +16108,7 @@
                 "url"
             ],
             "support": {
-                "source": "https://github.com/symfony/routing/tree/v8.1.5"
+                "source": "https://github.com/symfony/routing/tree/v8.1.6"
             },
             "funding": [
                 {
@@ -15238,16 +16132,16 @@
         },
         {
             "name": "symfony/serializer",
-            "version": "v8.1.5",
+            "version": "v8.1.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/serializer.git",
-                "reference": "9c064d505c661e3e17aa8999870f4fb0ed05e024"
+                "reference": "931151b12d6e2d4996ce2ce8e7b180d35455f37a"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/serializer/zipball/9c064d505c661e3e17aa8999870f4fb0ed05e024",
-                "reference": "9c064d505c661e3e17aa8999870f4fb0ed05e024",
+                "url": "https://api.github.com/repos/symfony/serializer/zipball/931151b12d6e2d4996ce2ce8e7b180d35455f37a",
+                "reference": "931151b12d6e2d4996ce2ce8e7b180d35455f37a",
                 "shasum": ""
             },
             "require": {
@@ -15313,7 +16207,7 @@
             "description": "Handles serializing and deserializing data structures, including object graphs, into array structures or other formats like XML and JSON.",
             "homepage": "https://symfony.com",
             "support": {
-                "source": "https://github.com/symfony/serializer/tree/v8.1.5"
+                "source": "https://github.com/symfony/serializer/tree/v8.1.6"
             },
             "funding": [
                 {
@@ -15333,20 +16227,20 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-08-22T09:06:25+00:00"
+            "time": "2026-08-30T08:48:47+00:00"
         },
         {
             "name": "symfony/service-contracts",
-            "version": "v3.7.1",
+            "version": "v3.7.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/service-contracts.git",
-                "reference": "c0a284bab1ed8aa0417e3d69250ab437739563a0"
+                "reference": "15e6a07ec2a2c75ceb1b21dd98105ee8456d2257"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/service-contracts/zipball/c0a284bab1ed8aa0417e3d69250ab437739563a0",
-                "reference": "c0a284bab1ed8aa0417e3d69250ab437739563a0",
+                "url": "https://api.github.com/repos/symfony/service-contracts/zipball/15e6a07ec2a2c75ceb1b21dd98105ee8456d2257",
+                "reference": "15e6a07ec2a2c75ceb1b21dd98105ee8456d2257",
                 "shasum": ""
             },
             "require": {
@@ -15400,7 +16294,7 @@
                 "standards"
             ],
             "support": {
-                "source": "https://github.com/symfony/service-contracts/tree/v3.7.1"
+                "source": "https://github.com/symfony/service-contracts/tree/v3.7.3"
             },
             "funding": [
                 {
@@ -15420,7 +16314,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-06-16T09:55:08+00:00"
+            "time": "2026-07-27T15:39:01+00:00"
         },
         {
             "name": "symfony/string",
@@ -15849,16 +16743,16 @@
         },
         {
             "name": "symfony/var-dumper",
-            "version": "v8.1.5",
+            "version": "v8.1.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/var-dumper.git",
-                "reference": "61743d9bc7ab23b194527ca1be2fafd7dc93b74a"
+                "reference": "3783365b58972f4779254d98372af80fbf15e170"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/var-dumper/zipball/61743d9bc7ab23b194527ca1be2fafd7dc93b74a",
-                "reference": "61743d9bc7ab23b194527ca1be2fafd7dc93b74a",
+                "url": "https://api.github.com/repos/symfony/var-dumper/zipball/3783365b58972f4779254d98372af80fbf15e170",
+                "reference": "3783365b58972f4779254d98372af80fbf15e170",
                 "shasum": ""
             },
             "require": {
@@ -15912,7 +16806,7 @@
                 "dump"
             ],
             "support": {
-                "source": "https://github.com/symfony/var-dumper/tree/v8.1.5"
+                "source": "https://github.com/symfony/var-dumper/tree/v8.1.6"
             },
             "funding": [
                 {
@@ -15932,7 +16826,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-08-21T12:16:08+00:00"
+            "time": "2026-08-30T20:10:55+00:00"
         },
         {
             "name": "tapp/filament-auditing",
@@ -22420,6 +23314,10 @@
         "aiarmada/addressing": 20,
         "aiarmada/affiliates": 20,
         "aiarmada/authz": 20,
+        "aiarmada/cart": 20,
+        "aiarmada/cashier": 20,
+        "aiarmada/cashier-chip": 20,
+        "aiarmada/checkout": 20,
         "aiarmada/commerce-support": 20,
         "aiarmada/communications": 20,
         "aiarmada/contacting": 20,
@@ -22441,12 +23339,16 @@
         "aiarmada/inventory": 20,
         "aiarmada/membership": 20,
         "aiarmada/moderation": 20,
+        "aiarmada/orders": 20,
         "aiarmada/organizations": 20,
         "aiarmada/persons": 20,
+        "aiarmada/promotions": 20,
         "aiarmada/references": 20,
         "aiarmada/seating": 20,
         "aiarmada/signals": 20,
+        "aiarmada/tax": 20,
         "aiarmada/ticketing": 20,
+        "aiarmada/vouchers": 20,
         "spatie/guidelines-skills": 20
     },
     "prefer-stable": true,

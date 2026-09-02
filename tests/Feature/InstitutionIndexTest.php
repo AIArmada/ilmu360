@@ -8,6 +8,8 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Models\User;
 use App\Support\Search\InstitutionSearchService;
+use App\Support\Timezone\UserDateTimeFormatter;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -696,11 +698,17 @@ it('shows the nearest upcoming public majlis on institution cards', function () 
 
     $listedInstitution = collect($component->instance()->institutions->items())
         ->firstWhere('id', $institution->id);
+    $listedInstitutionDate = CarbonImmutable::parse(
+        (string) data_get($listedInstitution, 'next_event_starts_at'),
+        'UTC',
+    );
 
     $component
         ->assertSee('data-next-event', false)
         ->assertSee('href="'.route('events.show', $nearestEvent).'"', false)
         ->assertSee(__('Next event'))
+        ->assertSee(UserDateTimeFormatter::translatedFormat($listedInstitutionDate, 'j M'))
+        ->assertDontSee(UserDateTimeFormatter::translatedFormat($listedInstitutionDate, 'j M Y'))
         ->assertSee('Majlis Institusi Terdekat')
         ->assertDontSee('Majlis Institusi Lebih Lewat');
 
