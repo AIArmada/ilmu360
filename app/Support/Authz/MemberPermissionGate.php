@@ -33,6 +33,8 @@ final readonly class MemberPermissionGate
         'approve' => 80,
         'manage-donation-channels' => 80,
         'view-registrations' => 10,
+        'manage-attendance' => 10,
+        'manage-admissions' => 80,
         'export-registrations' => 80,
     ];
 

@@ -8,8 +8,19 @@
     $duplicateEventUrl = $canEditEvent && $canUseSelectedInstitutionForScopedSubmission && filled($selectedInstitutionId)
         ? route('dashboard.institutions.submit-event', ['institution' => $selectedInstitutionId, 'duplicate' => $event->id])
         : null;
-    $createSessionUrl = $canEditEvent
-        ? route('submit-event.create', ['event' => $event->id])
+    $scheduleUrl = $canEditEvent
+        ? route('dashboard.events.schedule', ['event' => $event->id])
+        : null;
+    $registrationQuestionsUrl = $canEditEvent
+        ? route('dashboard.events.registration-questions', ['event' => $event->id])
+        : null;
+    $canViewRegistrations = auth()->user()?->can('viewRegistrations', $event) ?? false;
+    $participantsUrl = $canViewRegistrations
+        ? route('dashboard.events.participants', ['event' => $event->id])
+        : null;
+    $canManageAdmissions = auth()->user()?->can('manageAdmissions', $event) ?? false;
+    $offlineAdmissionsUrl = $canManageAdmissions
+        ? route('dashboard.events.offline-admissions', ['event' => $event->id])
         : null;
 @endphp
 
@@ -30,7 +41,7 @@
         </div>
     @endif
 
-    @if($ahliEventEditUrl || $duplicateEventUrl || $createSessionUrl)
+    @if($ahliEventEditUrl || $duplicateEventUrl || $scheduleUrl || $registrationQuestionsUrl || $participantsUrl || $offlineAdmissionsUrl)
         <div class="mt-2 flex flex-wrap items-center gap-2">
             @if($ahliEventEditUrl)
                 <a
@@ -55,9 +66,51 @@
                 </a>
             @endif
 
-            @if($createSessionUrl)
-                <a href="{{ $createSessionUrl }}" wire:navigate class="text-xs font-semibold text-indigo-700 hover:underline">
-                    {{ __('Add Session') }}
+            @if($scheduleUrl)
+                <a href="{{ $scheduleUrl }}" wire:navigate class="text-xs font-semibold text-indigo-700 hover:underline" data-signal-event="navigation.event_schedule_opened" data-signal-category="navigation" data-signal-component="institution_event_list" data-signal-control="schedule" data-signal-entity-type="event" data-signal-entity-id="{{ $event->id }}">
+                    {{ __('Schedule') }}
+                </a>
+            @endif
+
+            @if($registrationQuestionsUrl)
+                <a href="{{ $registrationQuestionsUrl }}" wire:navigate class="text-xs font-semibold text-violet-700 hover:underline" data-signal-event="navigation.event_registration_questions_opened" data-signal-category="navigation" data-signal-component="institution_event_list" data-signal-control="registration_questions" data-signal-entity-type="event" data-signal-entity-id="{{ $event->id }}">
+                    {{ __('Questions') }}
+                </a>
+            @endif
+
+            @if($participantsUrl)
+                <a
+                    href="{{ $participantsUrl }}"
+                    wire:navigate
+                    data-signal-event="navigation.event_participants_opened"
+                    data-signal-category="navigation"
+                    data-signal-component="institution_event_list"
+                    data-signal-control="participants"
+                    data-signal-entity-type="event"
+                    data-signal-entity-id="{{ $event->id }}"
+                    title="{{ __('Participants and attendance') }}"
+                    aria-label="{{ __('Participants and attendance') }}"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-sky-200 bg-sky-50 text-sky-700 transition hover:bg-sky-100"
+                >
+                    <x-filament::icon icon="heroicon-o-user-group" class="h-4 w-4" />
+                </a>
+            @endif
+
+            @if($offlineAdmissionsUrl)
+                <a
+                    href="{{ $offlineAdmissionsUrl }}"
+                    wire:navigate
+                    data-signal-event="navigation.event_offline_admissions_opened"
+                    data-signal-category="navigation"
+                    data-signal-component="institution_event_list"
+                    data-signal-control="offline_admissions"
+                    data-signal-entity-type="event"
+                    data-signal-entity-id="{{ $event->id }}"
+                    title="{{ __('Offline admissions') }}"
+                    aria-label="{{ __('Offline admissions') }}"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-amber-200 bg-amber-50 text-amber-700 transition hover:bg-amber-100"
+                >
+                    <x-filament::icon icon="heroicon-o-banknotes" class="h-4 w-4" />
                 </a>
             @endif
         </div>

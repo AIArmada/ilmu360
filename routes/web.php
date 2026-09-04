@@ -2,10 +2,12 @@
 
 use App\Enums\ContributionSubjectType;
 use App\Enums\MemberSubjectType;
+use App\Http\Controllers\Api\RegistrationExportController;
 use App\Http\Controllers\Auth\SocialiteController;
 use App\Http\Controllers\DawahShareController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\NetworkDiagnosticsController;
+use App\Http\Controllers\Public\EventCheckoutResultController;
 use App\Http\Controllers\Public\EventPassController;
 use App\Http\Controllers\Public\EventsController;
 use App\Http\Controllers\SitemapController;
@@ -20,6 +22,11 @@ use App\Livewire\Pages\Dashboard\AccountSettings;
 use App\Livewire\Pages\Dashboard\DawahImpactIndex;
 use App\Livewire\Pages\Dashboard\DawahImpactLinkShow;
 use App\Livewire\Pages\Dashboard\Events\CreateAdvanced;
+use App\Livewire\Pages\Dashboard\Events\OfflineAdmissions as EventOfflineAdmissions;
+use App\Livewire\Pages\Dashboard\Events\Participants as EventParticipants;
+use App\Livewire\Pages\Dashboard\Events\Refunds as EventRefunds;
+use App\Livewire\Pages\Dashboard\Events\RegistrationQuestions as EventRegistrationQuestions;
+use App\Livewire\Pages\Dashboard\Events\Schedule as EventSchedule;
 use App\Livewire\Pages\Dashboard\InstitutionDashboard;
 use App\Livewire\Pages\Dashboard\NotificationsIndex;
 use App\Livewire\Pages\Dashboard\Organizations\CreateEvent as CreateOrganizationEvent;
@@ -28,6 +35,8 @@ use App\Livewire\Pages\Dashboard\Organizations\Index as OrganizationsIndex;
 use App\Livewire\Pages\Dashboard\Organizations\Workspace as OrganizationWorkspace;
 use App\Livewire\Pages\Dashboard\PersonDashboard;
 use App\Livewire\Pages\Dashboard\UserDashboard;
+use App\Livewire\Pages\Events\Checkout as EventCheckout;
+use App\Livewire\Pages\Events\Refund as EventRefund;
 use App\Livewire\Pages\Membership\ShowInvitation as ShowMemberInvitation;
 use App\Livewire\Pages\MembershipApplications\Create as CreateMembershipApplicationPage;
 use App\Livewire\Pages\MembershipApplications\Index as MembershipApplicationsIndex;
@@ -79,6 +88,9 @@ Route::livewire('/majlis/{event:slug}', 'pages.events.show')
 Route::get('/majlis/{event:slug}/kalendar.ics', [EventsController::class, 'calendar'])
     ->middleware(ResolvePublicSlugRedirect::class)
     ->name('events.calendar');
+Route::livewire('/majlis/{event:slug}/checkout/{ticket?}', EventCheckout::class)
+    ->middleware([ResolvePublicSlugRedirect::class, 'auth', 'verified', 'throttle:registration'])
+    ->name('events.checkout');
 Route::livewire('/majlis/{event:slug}/{occurrenceSlug}', 'pages.events.occurrence')
     ->middleware(ResolvePublicSlugRedirect::class)
     ->name('events.occurrence');
@@ -111,10 +123,29 @@ Route::middleware('auth')->group(function () {
     Route::livewire('/dashboard/institusi/tambah-majlis', Create::class)->name('dashboard.institutions.submit-event');
     Route::livewire('/dashboard/penceramah/{person:slug}', PersonDashboard::class)->name('dashboard.persons');
     Route::livewire('/dashboard/majlis/cipta-lanjutan', CreateAdvanced::class)->name('dashboard.events.create-advanced');
+    Route::livewire('/dashboard/majlis/{event}/jadual', EventSchedule::class)->name('dashboard.events.schedule');
+    Route::livewire('/dashboard/majlis/{event}/pendaftaran', EventRegistrationQuestions::class)->name('dashboard.events.registration-questions');
+    Route::livewire('/dashboard/majlis/{event}/peserta', EventParticipants::class)->name('dashboard.events.participants');
+    Route::livewire('/dashboard/majlis/{event}/kemasukan', EventOfflineAdmissions::class)->name('dashboard.events.offline-admissions');
+    Route::livewire('/dashboard/majlis/{event}/bayaran-balik', EventRefunds::class)->name('dashboard.events.refunds');
+    Route::get('/dashboard/majlis/{event}/peserta/export', [RegistrationExportController::class, 'export'])
+        ->name('dashboard.events.participants.export');
+    Route::livewire('/majlis/{event:slug}/pendaftaran/{registration}/refund', EventRefund::class)
+        ->middleware('verified')
+        ->name('events.registration.refund');
     Route::livewire('/dashboard/organisasi', OrganizationsIndex::class)->name('dashboard.organizations.index');
     Route::livewire('/dashboard/organisasi/cipta', CreateOrganization::class)->name('dashboard.organizations.create');
     Route::livewire('/dashboard/organisasi/{organization}', OrganizationWorkspace::class)->name('dashboard.organizations.show');
     Route::livewire('/dashboard/organisasi/{organization}/majlis/cipta', CreateOrganizationEvent::class)->name('dashboard.organizations.events.create');
+    Route::get('/checkout/result/{session}', [EventCheckoutResultController::class, 'show'])
+        ->middleware('verified')
+        ->name('checkout.result');
+    Route::get('/checkout/result/{session}/receipt', [EventCheckoutResultController::class, 'receipt'])
+        ->middleware('verified')
+        ->name('checkout.receipt');
+    Route::get('/checkout/free/{registration}', [EventCheckoutResultController::class, 'free'])
+        ->middleware('verified')
+        ->name('checkout.free');
     Route::livewire('/carian-tersimpan', Index::class)->name('saved-searches.index');
     Route::livewire('/jemputan-ahli/{token}', ShowMemberInvitation::class)->name('member-invitations.show');
     Route::livewire('/sumbangan', ContributionsIndex::class)->name('contributions.index');
@@ -138,11 +169,6 @@ Route::middleware('auth')->group(function () {
         ->whereIn('subjectType', ContributionSubjectType::publicRouteSegments())
         ->name('reports.create');
 });
-
-// Event Registration - Rate limited
-Route::post('/majlis/{event:slug}/daftar', [EventsController::class, 'register'])
-    ->middleware(['throttle:registration', ResolvePublicSlugRedirect::class])
-    ->name('events.register');
 
 Route::middleware('auth')->get('/majlis/{event:slug}/pas/{pass}', EventPassController::class)
     ->middleware(ResolvePublicSlugRedirect::class)

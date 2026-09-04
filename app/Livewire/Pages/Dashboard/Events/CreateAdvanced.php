@@ -586,11 +586,11 @@ class CreateAdvanced extends Component implements HasForms
                                 ->columns(2),
                         ]),
                     Step::make(__('Pendaftaran & tiket'))
-                        ->description(__('Aktifkan pendaftaran, pakej, had peserta, dan tempat duduk.'))
+                        ->description(__('Aktifkan pendaftaran, pakej, dan had peserta.'))
                         ->icon('heroicon-o-ticket')
                         ->schema([
                             Callout::make(__('Ciri lanjutan majlis'))
-                                ->description(__('Di sini anda boleh mewajibkan pendaftaran, membina beberapa jenis tiket atau pakej, menetapkan harga dan kuota, serta mengaktifkan pelan tempat duduk.'))
+                                ->description(__('Di sini anda boleh mewajibkan pendaftaran, membina beberapa jenis tiket atau pakej, serta menetapkan harga dan kuota.'))
                                 ->info(),
                             Section::make(__('Cara orang menyertai'))
                                 ->description(__('Untuk majlis percuma tanpa had, biarkan pilihan asal.'))
@@ -606,6 +606,24 @@ class CreateAdvanced extends Component implements HasForms
                                         ->native(false)
                                         ->required()
                                         ->helperText(__('Majlis berbayar memerlukan pendaftaran.')),
+                                    Toggle::make('check_in_enabled')
+                                        ->label(__('Benarkan check-in semasa hadir'))
+                                        ->helperText(__('Jika dimatikan, anda masih boleh merekod kehadiran kemudian daripada ruang peserta.'))
+                                        ->inline(false)
+                                        ->default(true)
+                                        ->dehydrated(),
+                                    Toggle::make('refunds_enabled')
+                                        ->label(__('Benarkan pembatalan / bayaran balik'))
+                                        ->helperText(__('Dimatikan secara lalai. Hidupkan hanya jika penganjur mahu menerima permintaan bayaran balik mengikut polisi majlis.'))
+                                        ->inline(false)
+                                        ->default(false)
+                                        ->dehydrated(),
+                                    Select::make('participant_identity')
+                                        ->label(__('Nombor pengenalan peserta'))
+                                        ->options($this->participantIdentityOptions())
+                                        ->native(false)
+                                        ->default('none')
+                                        ->helperText(__('Pilihan ini tidak bergantung pada check-in. Nombor disimpan secara terlindung dan dipaparkan secara tersamar kepada petugas.')),
                                     Hidden::make('registration_mode')->dehydrated(),
                                 ])
                                 ->columns(2),
@@ -640,10 +658,13 @@ class CreateAdvanced extends Component implements HasForms
                                                 ->numeric()
                                                 ->minValue(1),
                                             Select::make('seating_mode')
-                                                ->label(__('Tempat duduk'))
+                                                ->label(__('Penetapan tempat duduk'))
                                                 ->options($this->seatingOptions())
+                                                ->default(SeatingMode::None->value)
                                                 ->native(false)
                                                 ->required()
+                                                ->dehydrated()
+                                                ->visible($this->ticketSeatingEnabled())
                                                 ->afterStateUpdatedJs(<<<'JS'
                                                     const tickets = Object.values($get('../../tickets') || {})
                                                     const modes = tickets
@@ -655,7 +676,7 @@ class CreateAdvanced extends Component implements HasForms
                                                         ? 'hybrid'
                                                         : hasGeneralAdmission
                                                             ? 'general_admission'
-                                                            : 'assigned'
+                                                        : 'assigned'
 
                                                     $set('../../seating.mode', modes.length > 0 ? seatingMode : 'general_admission')
                                                 JS),
@@ -676,9 +697,14 @@ class CreateAdvanced extends Component implements HasForms
                                         ->columns(2)
                                         ->columnSpanFull(),
                                 ]),
+                            Callout::make(__('Tempat duduk belum diaktifkan'))
+                                ->description(__('Versi pertama menggunakan pendaftaran tanpa pemilihan atau penetapan tempat duduk. Sokongan tempat duduk daripada pakej dikekalkan untuk keluaran akan datang.'))
+                                ->info()
+                                ->visible(! $this->ticketSeatingEnabled()),
                             Callout::make(__('Tempat duduk diaktifkan melalui tiket'))
                                 ->description(__('Pilih kaedah tempat duduk selain Tiada pada sekurang-kurangnya satu tiket. Medan pelan tempat duduk akan muncul pada langkah semakan terakhir.'))
                                 ->warning()
+                                ->visible($this->ticketSeatingEnabled())
                                 ->visibleJs("!Object.values(\$get('tickets') || {}).some((ticket) => ticket && ticket.seating_mode && ticket.seating_mode !== 'none')"),
                         ]),
                     Step::make(__('Semak & cipta'))
@@ -710,6 +736,7 @@ class CreateAdvanced extends Component implements HasForms
                                 ->columns(2),
                             Section::make(__('Tempat duduk'))
                                 ->description(__('Bahagian ini hanya diperlukan jika sekurang-kurangnya satu tiket menggunakan tempat duduk.'))
+                                ->visible($this->ticketSeatingEnabled())
                                 ->visibleJs("Object.values(\$get('tickets') || {}).some((ticket) => ticket && ticket.seating_mode && ticket.seating_mode !== 'none')")
                                 ->schema([
                                     Select::make('seating.mode')
@@ -756,7 +783,8 @@ class CreateAdvanced extends Component implements HasForms
 
     public function hasSeatingTicket(): bool
     {
-        return $this->ticketStateHasSeating($this->form['tickets'] ?? []);
+        return $this->ticketSeatingEnabled()
+            && $this->ticketStateHasSeating($this->form['tickets'] ?? []);
     }
 
     public function applyTemplate(string $template): void
@@ -918,6 +946,15 @@ class CreateAdvanced extends Component implements HasForms
 
     protected function normalizeFormStateForValidation(): void
     {
+        if (! $this->ticketSeatingEnabled()) {
+            $this->form['tickets'] = array_map(
+                static fn (mixed $ticket): array => is_array($ticket)
+                    ? array_replace($ticket, ['seating_mode' => SeatingMode::None->value])
+                    : ['seating_mode' => SeatingMode::None->value],
+                array_values((array) ($this->form['tickets'] ?? [])),
+            );
+        }
+
         foreach (['cover', 'poster'] as $field) {
             $upload = $this->form[$field] ?? null;
 
@@ -1007,6 +1044,9 @@ class CreateAdvanced extends Component implements HasForms
             'form.registration_required' => ['required', 'boolean'],
             'form.registration_mode' => ['required', Rule::in(array_column(RegistrationScope::cases(), 'value'))],
             'form.pricing_mode' => ['required', Rule::enum(PricingMode::class)],
+            'form.check_in_enabled' => ['required', 'boolean'],
+            'form.refunds_enabled' => ['required', 'boolean'],
+            'form.participant_identity' => ['required', Rule::in(['none', 'ic', 'passport'])],
             'form.tickets' => ['required', 'array', 'min:1', 'max:20'],
             'form.tickets.*.name' => ['required', 'string', 'max:120'],
             'form.tickets.*.code' => ['nullable', 'string', 'max:40'],
@@ -1014,7 +1054,9 @@ class CreateAdvanced extends Component implements HasForms
             'form.tickets.*.price' => ['required', 'regex:/^\d+(?:\.\d{1,2})?$/'],
             'form.tickets.*.quota' => ['nullable', 'integer', 'min:1', 'max:1000000'],
             'form.tickets.*.max_quantity' => ['nullable', 'integer', 'min:1', 'max:100'],
-            'form.tickets.*.seating_mode' => ['required', Rule::enum(SeatingMode::class)],
+            'form.tickets.*.seating_mode' => $this->ticketSeatingEnabled()
+                ? ['required', Rule::enum(SeatingMode::class)]
+                : ['required', Rule::in([SeatingMode::None->value])],
         ];
 
         if ($this->hasSeatingTicket()) {
@@ -1215,6 +1257,21 @@ class CreateAdvanced extends Component implements HasForms
             ->reject(fn (PricingMode $mode): bool => $mode === PricingMode::Mixed)
             ->mapWithKeys(fn (PricingMode $mode): array => [$mode->value => $mode->label()])
             ->all();
+    }
+
+    /** @return array<string, string> */
+    protected function participantIdentityOptions(): array
+    {
+        return [
+            'none' => __('Jangan minta'),
+            'ic' => __('Nombor IC'),
+            'passport' => __('Nombor pasport'),
+        ];
+    }
+
+    protected function ticketSeatingEnabled(): bool
+    {
+        return (bool) config('events.features.commerce.ticket_seating_enabled', false);
     }
 
     /** @return array<string, string> */

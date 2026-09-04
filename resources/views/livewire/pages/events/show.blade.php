@@ -202,7 +202,6 @@
     data-signal-component="event_detail_external_navigation"
     data-signal-control="external_link"
     x-data='{
-        registerOpen: false,
         shareModalOpen: false,
         posterModalOpen: false,
         copied: false,
@@ -795,6 +794,34 @@
                                     </div>
                                     @if($ticketSections->isNotEmpty())<p class="mt-3 text-xs font-semibold text-slate-500">{{ __('Seksyen') }}: {{ $ticketSections->implode(', ') }}</p>@endif
                                     @if($ticket->sales_starts_at || $ticket->sales_ends_at)<p class="mt-3 border-t border-slate-200 pt-3 text-xs text-slate-500">@if($ticket->sales_starts_at){{ __('Dibuka') }} {{ \App\Support\Timezone\UserDateTimeFormatter::format($ticket->sales_starts_at, 'j M, h:i A') }}@endif @if($ticket->sales_ends_at) · {{ __('Tutup') }} {{ \App\Support\Timezone\UserDateTimeFormatter::format($ticket->sales_ends_at, 'j M, h:i A') }}@endif</p>@endif
+                                    @php
+                                        $ticketSalesOpen = (! $ticket->sales_starts_at || $ticket->sales_starts_at->isPast())
+                                            && (! $ticket->sales_ends_at || $ticket->sales_ends_at->isFuture());
+                                        $ticketHasCapacity = ! $ticketEntry['inventory_configured'] || $ticketEntry['inventory_available'] === null || $ticketEntry['inventory_available'] > 0;
+                                        $ticketCanCheckout = ! $eventActionsDisabled
+                                            && $ticket->status === 'active'
+                                            && $ticket->isPubliclyVisible()
+                                            && $ticketSalesOpen
+                                            && $ticketHasCapacity
+                                            && ((int) ($ticket->price ?? 0) === 0 || \App\Support\Commerce\EventCommerceModes::publicPaidCheckoutEnabled());
+                                    @endphp
+                                    @if($ticketCanCheckout)
+                                        <a href="{{ route('events.checkout', ['event' => $event, 'ticket' => $ticket->getKey()]) }}"
+                                            data-signal-event="commerce.event_checkout_started"
+                                            data-signal-category="commerce"
+                                            data-signal-component="event_detail_ticket"
+                                            data-signal-control="buy_ticket"
+                                            data-signal-entity-type="ticket_type"
+                                            data-signal-entity-id="{{ $ticket->getKey() }}"
+                                            data-signal-props='@json(['scope_type' => $ticketEntry['scope_type'], 'price' => (int) ($ticket->price ?? 0)])'
+                                            class="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-[#173c34] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#21594c] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#173c34]">
+                                            {{ (int) ($ticket->price ?? 0) > 0 ? __('Buy ticket') : __('Register with this ticket') }}
+                                        </a>
+                                    @elseif($ticket->sales_ends_at && $ticket->sales_ends_at->isPast())
+                                        <p class="mt-4 rounded-xl bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-600">{{ __('Ticket sales have closed.') }}</p>
+                                    @elseif($ticketEntry['inventory_configured'] && $ticketEntry['inventory_available'] === 0)
+                                        <p class="mt-4 rounded-xl bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700">{{ __('Sold out') }}</p>
+                                    @endif
                                 </article>
                             @endforeach
                         </div>
@@ -849,7 +876,7 @@
                     $registrationClosed = $registrationPolicy?->closes_at && $registrationPolicy->closes_at->isPast();
                     $registrationNotOpen = $registrationPolicy?->opens_at && $registrationPolicy->opens_at->isFuture();
                     $registrationAtCapacity = $registrationCapacity !== null && $registrationReserved >= $registrationCapacity;
-                    $registrationCanUseFreeForm = ! $paymentRequired && ! $eventActionsDisabled;
+                    $registrationCanUseFreeForm = ! $paymentRequired && $ticketEntries->isEmpty() && ! $eventActionsDisabled;
                 @endphp
                 <section id="register" data-testid="event-registration-section" class="rounded-2xl border border-[#b27b1b]/35 bg-[#fff9ed] p-6 shadow-sm">
                     <p class="text-xs font-bold uppercase tracking-[0.2em] text-[#b27b1b]">{{ $registrationPolicy?->registration_required ? __('Registration Required') : __('Registration') }}</p>
@@ -863,7 +890,7 @@
                     @elseif($registrationNotOpen)
                         <p class="mt-5 rounded-xl bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-600">{{ __('Dibuka') }} {{ \App\Support\Timezone\UserDateTimeFormatter::format($registrationPolicy->opens_at, 'j M, h:i A') }}</p>
                     @elseif($registrationCanUseFreeForm)
-                        <a href="#register" @click.prevent="registerOpen = true" data-signal-event="submission.event_registration_opened" data-signal-category="submission" data-signal-component="event_detail_registration" data-signal-control="register_open" data-signal-entity-type="event" data-signal-entity-id="{{ $event->id }}" data-signal-props='@json(['registration_mode' => $registrationMode->value])' class="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-[#173c34] px-4 py-3 font-bold text-white transition hover:bg-[#21594c] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#173c34]">{{ __('Register') }}</a>
+                        <a href="{{ route('events.checkout', ['event' => $event]) }}" data-signal-event="commerce.event_checkout_started" data-signal-category="commerce" data-signal-component="event_detail_registration" data-signal-control="register_open" data-signal-entity-type="event" data-signal-entity-id="{{ $event->id }}" data-signal-props='@json(['registration_mode' => $registrationMode->value])' class="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-[#173c34] px-4 py-3 font-bold text-white transition hover:bg-[#21594c] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#173c34]">{{ __('Register') }}</a>
                     @else
                         <p class="mt-5 rounded-xl bg-amber-50 px-3 py-2 text-sm font-semibold leading-6 text-amber-900">{{ __('Pilih tiket di atas untuk meneruskan pendaftaran.') }}</p>
                     @endif
@@ -926,7 +953,6 @@
     @endif
 
     @if($hasRegistration && !$eventActionsDisabled && !$paymentRequired)
-        <div x-show="registerOpen" x-cloak x-transition.opacity @keydown.escape.window="registerOpen = false" class="fixed inset-0 z-50 flex items-center justify-center bg-[#0c211e]/70 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="{{ __('Register') }}"><div @click.away="registerOpen = false" class="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl"><div class="flex items-start justify-between bg-[#173c34] p-6 text-white"><div><p class="text-xs font-bold uppercase tracking-[0.2em] text-[#f2c867]">{{ __('Registration') }}</p><h2 class="mt-2 font-heading text-2xl font-semibold">{{ __('Register') }}</h2></div><button type="button" @click="registerOpen = false" class="rounded-lg p-2 text-white/70 transition hover:bg-white/10 hover:text-white" aria-label="{{ __('Tutup') }}"><svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button></div><form action="{{ route('events.register', $event) }}" method="POST" data-signal-submit-event="submission.event_registration_submitted" data-signal-category="submission" data-signal-component="event_detail_registration" data-signal-control="registration_form" data-signal-entity-type="event" data-signal-entity-id="{{ $event->id }}" data-signal-props='@json(['registration_mode' => $registrationMode->value])' class="space-y-5 p-6">@csrf<div><label for="event-registration-name" class="block text-sm font-bold text-slate-700">{{ __('Name') }} <span class="text-rose-500">*</span></label><input id="event-registration-name" type="text" name="name" required class="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-slate-900 outline-none transition focus:border-[#173c34] focus:bg-white focus:ring-4 focus:ring-[#173c34]/10"></div><div><label for="event-registration-email" class="block text-sm font-bold text-slate-700">{{ __('Email') }}</label><input id="event-registration-email" type="email" name="email" class="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-slate-900 outline-none transition focus:border-[#173c34] focus:bg-white focus:ring-4 focus:ring-[#173c34]/10"></div><div><label for="event-registration-phone" class="block text-sm font-bold text-slate-700">{{ __('Phone') }}</label><input id="event-registration-phone" type="tel" name="phone" class="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-slate-900 outline-none transition focus:border-[#173c34] focus:bg-white focus:ring-4 focus:ring-[#173c34]/10"></div><p class="rounded-xl bg-slate-50 p-3 text-xs leading-5 text-slate-600">{{ __('Please provide either email or phone number so we can send your registration confirmation.') }}</p><div class="flex gap-3"><button type="button" @click="registerOpen = false" class="flex-1 rounded-xl border border-slate-200 px-4 py-3 font-bold text-slate-700 transition hover:bg-slate-50">{{ __('Cancel') }}</button><button type="submit" class="flex-1 rounded-xl bg-[#173c34] px-4 py-3 font-bold text-white transition hover:bg-[#21594c]">{{ __('Register') }}</button></div></form></div></div>
     @endif
 
     <div x-show="shareModalOpen" x-cloak x-transition.opacity @keydown.escape.window="shareModalOpen = false" class="fixed inset-0 z-50 flex items-center justify-center bg-[#0c211e]/70 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="{{ __('Share Preview') }}"><div @click.away="shareModalOpen = false" class="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl"><div class="bg-[#173c34] p-6 text-white"><p class="text-xs font-bold uppercase tracking-[0.2em] text-[#f2c867]">{{ __('Share') }}</p><h2 class="mt-2 font-heading text-2xl font-semibold">{{ __('Share Preview') }}</h2><p class="mt-2 line-clamp-2 text-sm text-white/65">{{ $event->title }}</p></div><div class="grid grid-cols-2 gap-3 p-6">@foreach(['whatsapp' => 'WhatsApp', 'telegram' => 'Telegram', 'facebook' => 'Facebook', 'x' => 'X', 'email' => __('Email')] as $shareProvider => $shareLabel)<button type="button" @click="share('{{ $shareProvider }}')" data-signal-event="share.provider_clicked" data-signal-category="share" data-signal-component="event_detail_share_modal" data-signal-control="{{ $shareProvider }}" data-signal-entity-type="event" data-signal-entity-id="{{ $event->id }}" class="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-[#173c34] hover:bg-slate-50">{{ $shareLabel }}</button>@endforeach<button type="button" @click="share('copy_link')" data-signal-event="share.provider_clicked" data-signal-category="share" data-signal-component="event_detail_share_modal" data-signal-control="copy_link" data-signal-entity-type="event" data-signal-entity-id="{{ $event->id }}" class="col-span-2 rounded-xl bg-[#173c34] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#21594c]"><span x-text="copied ? @js(__('Link copied to clipboard!')) : @js(__('Copy Link'))"></span></button><button type="button" @click="share('native_share')" class="col-span-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50">{{ __('Share from device') }}</button></div><button type="button" @click="shareModalOpen = false" class="w-full border-t border-slate-100 px-6 py-4 text-sm font-bold text-slate-500 transition hover:bg-slate-50">{{ __('Cancel') }}</button></div></div>

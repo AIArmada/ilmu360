@@ -56,6 +56,9 @@ final class CreateEvent extends Component
             'visibility' => EventVisibility::Public->value,
             'registration_mode' => RegistrationMode::Required->value,
             'pricing_mode' => PricingMode::Free->value,
+            'check_in_enabled' => true,
+            'participant_identity' => 'none',
+            'refunds_enabled' => false,
             'event_category_ids' => array_slice(array_keys($this->eventCategoryOptions), 0, 1),
             'tickets' => [$this->defaultTicket()],
             'seating' => [
@@ -105,11 +108,19 @@ final class CreateEvent extends Component
 
     public function addSection(): void
     {
+        if (! $this->ticketSeatingEnabled()) {
+            return;
+        }
+
         $this->form['seating']['sections'][] = $this->defaultSection();
     }
 
     public function removeSection(int $index): void
     {
+        if (! $this->ticketSeatingEnabled()) {
+            return;
+        }
+
         if (count((array) ($this->form['seating']['sections'] ?? [])) <= 1) {
             return;
         }
@@ -119,6 +130,10 @@ final class CreateEvent extends Component
 
     public function hasSeatingTicket(): bool
     {
+        if (! $this->ticketSeatingEnabled()) {
+            return false;
+        }
+
         foreach ((array) ($this->form['tickets'] ?? []) as $ticket) {
             if (is_array($ticket) && (string) ($ticket['seating_mode'] ?? SeatingMode::None->value) !== SeatingMode::None->value) {
                 return true;
@@ -130,6 +145,7 @@ final class CreateEvent extends Component
 
     public function submit(CreateOrganizationEventAction $createOrganizationEvent): mixed
     {
+        $this->normalizeTicketSeatingForV1();
         $validated = $this->validate($this->rules());
         $user = auth()->user();
         abort_unless($user instanceof User, 403);
@@ -156,7 +172,9 @@ final class CreateEvent extends Component
             'form.tickets.*.price' => ['required', 'regex:/^\\d+(?:\\.\\d{1,2})?$/'],
             'form.tickets.*.quota' => ['nullable', 'integer', 'min:1', 'max:1000000'],
             'form.tickets.*.max_quantity' => ['nullable', 'integer', 'min:1', 'max:100'],
-            'form.tickets.*.seating_mode' => ['required', Rule::enum(SeatingMode::class)],
+            'form.tickets.*.seating_mode' => $this->ticketSeatingEnabled()
+                ? ['required', Rule::enum(SeatingMode::class)]
+                : ['required', Rule::in([SeatingMode::None->value])],
         ];
 
         $rules = [
@@ -169,6 +187,9 @@ final class CreateEvent extends Component
             'form.visibility' => ['required', Rule::in([EventVisibility::Public->value, EventVisibility::Unlisted->value, EventVisibility::Private->value])],
             'form.registration_mode' => ['required', Rule::enum(RegistrationMode::class)],
             'form.pricing_mode' => ['required', Rule::enum(PricingMode::class)],
+            'form.check_in_enabled' => ['required', 'boolean'],
+            'form.participant_identity' => ['required', Rule::in(['none', 'ic', 'passport'])],
+            'form.refunds_enabled' => ['required', 'boolean'],
             'form.event_category_ids' => ['required', 'array', 'min:1'],
             'form.event_category_ids.*' => ['uuid', Rule::in(array_keys($this->eventCategoryOptions))],
             ...$ticketRules,
@@ -215,6 +236,25 @@ final class CreateEvent extends Component
                 ->mapWithKeys(fn (SeatingMode $mode): array => [$mode->value => $mode->label()])
                 ->all(),
         ]);
+    }
+
+    public function ticketSeatingEnabled(): bool
+    {
+        return (bool) config('events.features.commerce.ticket_seating_enabled', false);
+    }
+
+    private function normalizeTicketSeatingForV1(): void
+    {
+        if ($this->ticketSeatingEnabled()) {
+            return;
+        }
+
+        $this->form['tickets'] = array_map(
+            static fn (mixed $ticket): array => is_array($ticket)
+                ? array_replace($ticket, ['seating_mode' => SeatingMode::None->value])
+                : ['seating_mode' => SeatingMode::None->value],
+            array_values((array) ($this->form['tickets'] ?? [])),
+        );
     }
 
     /** @return array<string, string> */

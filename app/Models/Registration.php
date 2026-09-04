@@ -45,6 +45,7 @@ class Registration extends PackageEventRegistration implements AuditableContract
         'cancelled_at',
         'rejected_at',
         'waitlisted_at',
+        'refund_pending_at',
         'refunded_at',
         'expired_at',
         'status_reason',

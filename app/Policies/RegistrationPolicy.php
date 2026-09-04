@@ -6,6 +6,7 @@ use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;
 use App\Support\Authz\MemberPermissionGate;
+use App\Support\Events\EventCommercePolicy;
 
 class RegistrationPolicy
 {
@@ -83,6 +84,18 @@ class RegistrationPolicy
         }
 
         return false;
+    }
+
+    /**
+     * Only the purchaser may request a normal event refund. Organizers use
+     * the event-level manageAdmissions permission for exceptional refunds.
+     */
+    public function requestRefund(User $user, Registration $registration): bool
+    {
+        $event = $registration->event;
+
+        return $event instanceof Event
+            && app(EventCommercePolicy::class)->canSelfServiceRefund($user, $event, $registration);
     }
 
     /**

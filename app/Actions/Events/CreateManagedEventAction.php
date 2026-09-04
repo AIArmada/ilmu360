@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Actions\Events;
 
 use AIArmada\Events\Enums\RegistrationMode;
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Organizations\Models\Organization;
+use AIArmada\Seating\Enums\SeatingMode;
 use AIArmada\Ticketing\Enums\PricingMode;
 use App\Models\Event;
 use App\Models\Institution;
@@ -44,6 +46,9 @@ final class CreateManagedEventAction
         array $seating = [],
         ?string $locationVenueId = null,
     ): Event {
+        $tickets = $this->normalizeTicketSeating($tickets);
+        $seating = $this->ticketSeatingEnabled() ? $seating : [];
+
         return DB::transaction(function () use (
             $user,
             $form,
@@ -71,13 +76,41 @@ final class CreateManagedEventAction
                 locationVenueId: $locationVenueId,
             );
 
-            return $this->configureEventRegistration->handle(
+            return OwnerContext::withOwner($event->owner, fn (): Event => $this->configureEventRegistration->handle(
                 event: $event,
                 registrationMode: $registrationMode,
                 pricingMode: $pricingMode,
                 tickets: $tickets,
                 seating: $seating,
-            );
+            ));
         });
+    }
+
+    /**
+     * The package supports assigned seating, but the application deliberately
+     * keeps that capability out of the v1 event-creation workflow. Keeping the
+     * guard here makes every application entry point obey the same policy while
+     * leaving the reusable package API ready for a later release.
+     *
+     * @param  array<int, array<string, mixed>>  $tickets
+     * @return array<int, array<string, mixed>>
+     */
+    private function normalizeTicketSeating(array $tickets): array
+    {
+        if ($this->ticketSeatingEnabled()) {
+            return $tickets;
+        }
+
+        return array_map(
+            static fn (array $ticket): array => array_replace($ticket, [
+                'seating_mode' => SeatingMode::None->value,
+            ]),
+            array_values($tickets),
+        );
+    }
+
+    private function ticketSeatingEnabled(): bool
+    {
+        return (bool) config('events.features.commerce.ticket_seating_enabled', false);
     }
 }

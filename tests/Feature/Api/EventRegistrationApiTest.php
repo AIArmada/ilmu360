@@ -2,6 +2,7 @@
 
 use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Engagement\Models\Response;
+use AIArmada\Seating\Enums\SeatingMode;
 use App\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\Registration;
@@ -101,6 +102,27 @@ it('allows registration for unlisted events when registration is enabled', funct
         'email' => 'unlisted@example.test',
     ])->assertCreated()
         ->assertJsonPath('data.event_id', $event->id);
+});
+
+it('rejects ticketless api registration when a public ticket is configured', function (): void {
+    $event = registrationReadyEvent();
+    $event->ticketTypes()->create([
+        'name' => 'General Admission',
+        'code' => 'GENERAL-ADMISSION',
+        'access_type' => 'general',
+        'seating_mode' => SeatingMode::None,
+        'price' => 0,
+        'currency' => 'MYR',
+        'status' => 'active',
+        'visibility' => 'public',
+    ]);
+
+    $this->postJson(route('api.events.registrations.store', $event), [
+        'name' => 'Ticketless Bypass',
+        'email' => 'ticketless-bypass@example.test',
+    ])->assertNotFound();
+
+    expect(Registration::query()->where('event_id', $event->id)->exists())->toBeFalse();
 });
 
 it('rejects registration for private and draft events', function () {

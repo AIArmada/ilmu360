@@ -112,6 +112,11 @@ class CreateAdvancedEventAction
                         'custom_time' => $form['custom_time'] ?? null,
                         'end_time' => $form['end_time'] ?? null,
                     ],
+                    'registration' => [
+                        'check_in_enabled' => (bool) ($form['check_in_enabled'] ?? true),
+                        'participant_identity' => (string) ($form['participant_identity'] ?? 'none'),
+                        'refunds_enabled' => (bool) ($form['refunds_enabled'] ?? config('events.features.commerce.refunds_enabled_by_default', false)),
+                    ],
                 ],
             ]);
 

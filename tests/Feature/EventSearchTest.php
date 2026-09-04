@@ -87,7 +87,7 @@ function eventShowUrl(Event $event): string
 
 function eventRegistrationUrl(Event $event): string
 {
-    return route('events.register', ['event' => $event->slug], false);
+    return route('api.events.registrations.store', ['event' => $event->slug], false);
 }
 
 function ensureAddressCountryForTests(
@@ -3308,12 +3308,12 @@ describe('Event Registration', function () {
                 'published_at' => now(),
             ]);
 
-        $response = $this->post(eventRegistrationUrl($event), [
+        $response = $this->postJson(eventRegistrationUrl($event), [
             'name' => 'Ahmad',
             'email' => 'ahmad@example.com',
         ]);
 
-        $response->assertRedirect();
+        $response->assertCreated();
         $registration = Registration::query()
             ->where('event_id', $event->id)
             ->forPrimaryContact('ahmad@example.com')
@@ -3338,18 +3338,18 @@ describe('Event Registration', function () {
             ]);
 
         // First registration
-        $this->post(eventRegistrationUrl($event), [
+        $this->postJson(eventRegistrationUrl($event), [
             'name' => 'Ahmad',
             'email' => 'ahmad@example.com',
         ]);
 
         // Duplicate (currently allowed — no unique constraint on email)
-        $response = $this->post(eventRegistrationUrl($event), [
+        $response = $this->postJson(eventRegistrationUrl($event), [
             'name' => 'Ahmad Again',
             'email' => 'ahmad@example.com',
         ]);
 
-        $response->assertRedirect();
+        $response->assertCreated();
     });
 
     it('enforces capacity limits', function () {
@@ -3373,11 +3373,11 @@ describe('Event Registration', function () {
                 'status' => 'confirmed',
             ]);
 
-        $response = $this->post(eventRegistrationUrl($event), [
+        $response = $this->postJson(eventRegistrationUrl($event), [
             'name' => 'Late Registrant',
             'email' => 'late@example.com',
         ]);
 
-        $response->assertRedirect();
+        $response->assertCreated();
     });
 });

@@ -7,6 +7,7 @@ use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Actions\RemoveMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Membership\Services\MembershipRoleSyncService;
+use AIArmada\Seating\Enums\SeatingMode;
 use AIArmada\Ticketing\Models\TicketType;
 use App\Actions\Membership\TransferPersonOwnershipAction;
 use App\Enums\ContributionSubjectType;
@@ -287,6 +288,49 @@ it('lets a speaker member create a paid managed event with a ticket quota', func
         ->and($event->primaryOccurrence?->capacity)->toBe(40)
         ->and($ticket)->toBeInstanceOf(TicketType::class)
         ->and($ticket?->price)->toBe(2500);
+});
+
+it('persists the selected ticket seating mode when seating is enabled', function (): void {
+    $originalSeatingEnabled = config('events.features.commerce.ticket_seating_enabled');
+    config()->set('events.features.commerce.ticket_seating_enabled', true);
+
+    try {
+        $user = User::factory()->create();
+        $person = Person::factory()->create(['name' => 'Seated Speaker', 'status' => 'verified']);
+        $institution = Institution::factory()->create(['name' => 'Seated Venue', 'status' => 'verified']);
+
+        app(ScopedMemberRoleSeeder::class)->ensureForPerson();
+        app(ScopedMemberRoleSeeder::class)->ensureForInstitution();
+        $person->members()->syncWithoutDetaching([$user->id => ['role' => MemberRole::Editor->value]]);
+        $institution->members()->syncWithoutDetaching([$user->id => ['role' => MemberRole::Editor->value]]);
+
+        Livewire::withQueryParams(['person' => $person->id])
+            ->actingAs($user)
+            ->test(CreateAdvanced::class)
+            ->set('form.title', 'Assigned Seating Event')
+            ->set('form.default_event_category_ids', [eventCategoryId('lain_lain')])
+            ->set('form.primary_organizer_id', $person->id)
+            ->set('form.location_institution_id', $institution->id)
+            ->set('form.registration_required', true)
+            ->set('form.pricing_mode', 'paid')
+            ->set('form.tickets.0.price', '25.00')
+            ->set('form.tickets.0.quota', '40')
+            ->set('form.tickets.0.seating_mode', SeatingMode::Assigned->value)
+            ->set('form.seating.mode', SeatingMode::Assigned->value)
+            ->set('form.seating.map_name', 'Main hall')
+            ->set('form.seating.sections.0.capacity', '40')
+            ->set('form.seating.sections.0.rows', '4')
+            ->set('form.seating.sections.0.seats_per_row', '10')
+            ->call('submit')
+            ->assertHasNoErrors()
+            ->assertRedirect();
+
+        $event = Event::query()->where('title', 'Assigned Seating Event')->firstOrFail();
+
+        expect($event->primaryOccurrence?->ticketTypes()->first()?->seating_mode)->toBe(SeatingMode::Assigned);
+    } finally {
+        config()->set('events.features.commerce.ticket_seating_enabled', $originalSeatingEnabled);
+    }
 });
 
 it('persists the public event profile while keeping institution context authoritative', function (): void {

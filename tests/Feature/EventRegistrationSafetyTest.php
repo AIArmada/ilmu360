@@ -17,24 +17,20 @@ it('allows multiple registrations for the same event', function () {
         ]);
 
     $first = $this
-        ->withSession(['_token' => 'test-token'])
-        ->post(route('events.register', $event), [
-            '_token' => 'test-token',
+        ->postJson(route('api.events.registrations.store', $event), [
             'name' => 'Registrant',
             'email' => 'same@example.com',
         ]);
 
-    $first->assertSessionHasNoErrors();
+    $first->assertCreated();
 
     $second = $this
-        ->withSession(['_token' => 'test-token'])
-        ->post(route('events.register', $event), [
-            '_token' => 'test-token',
+        ->postJson(route('api.events.registrations.store', $event), [
             'name' => 'Registrant Other',
             'email' => 'other@example.com',
         ]);
 
-    $second->assertSessionHasNoErrors();
+    $second->assertCreated();
 
     expect(
         Registration::query()
@@ -56,13 +52,11 @@ it('allows authenticated users to register without email or phone', function () 
 
     $response = $this
         ->actingAs($user)
-        ->withSession(['_token' => 'test-token'])
-        ->post(route('events.register', $event), [
-            '_token' => 'test-token',
+        ->postJson(route('api.events.registrations.store', $event), [
             'name' => 'Authenticated Registrant',
         ]);
 
-    $response->assertSessionHasNoErrors();
+    $response->assertCreated();
 
     $registration = Registration::query()
         ->where('event_id', $event->id)
@@ -84,13 +78,11 @@ it('rejects guest registration without email or phone on the web form', function
         ]);
 
     $response = $this
-        ->withSession(['_token' => 'test-token'])
-        ->post(route('events.register', $event), [
-            '_token' => 'test-token',
+        ->postJson(route('api.events.registrations.store', $event), [
             'name' => 'Guest Registrant',
         ]);
 
-    $response->assertSessionHasErrors(['contact']);
+    $response->assertUnprocessable()->assertJsonValidationErrors(['contact']);
 
     expect(Registration::query()->where('event_id', $event->id)->count())->toBe(0);
 });
@@ -104,14 +96,12 @@ it('allows registration for unlisted events when registration is enabled', funct
         ]);
 
     $response = $this
-        ->withSession(['_token' => 'test-token'])
-        ->post(route('events.register', $event), [
-            '_token' => 'test-token',
+        ->postJson(route('api.events.registrations.store', $event), [
             'name' => 'Unlisted Registrant',
             'email' => 'unlisted@example.com',
         ]);
 
-    $response->assertSessionHasNoErrors();
+    $response->assertCreated();
 
     $registration = Registration::query()
         ->where('event_id', $event->id)

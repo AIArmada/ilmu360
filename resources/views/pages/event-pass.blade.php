@@ -15,6 +15,10 @@
                     <div class="mx-auto mb-6 flex size-52 items-center justify-center rounded-2xl bg-white p-2 shadow-inner">
                         {!! $qrSvg !!}
                     </div>
+                @elseif(! $checkInEnabled)
+                    <div class="mb-6 rounded-2xl bg-slate-50 p-4 text-center text-sm leading-6 text-slate-600">
+                        {{ __('The organiser has not enabled live check-in for this event. Keep this admission for your records.') }}
+                    </div>
                 @endif
 
                 <dl class="space-y-4">

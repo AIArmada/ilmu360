@@ -310,6 +310,8 @@ final class Workspace extends Component
             ->mapWithKeys(fn (Event $event): array => [(string) $event->getKey() => true])
             ->all());
         $eventEditUrls = [];
+        $eventScheduleUrls = [];
+        $eventOfflineAdmissionsUrls = [];
 
         foreach ($events as $event) {
             if ($this->currentUser()->can('update', $event)) {
@@ -317,6 +319,17 @@ final class Workspace extends Component
                     'edit',
                     ['record' => $event],
                     panel: 'ahli',
+                );
+                $eventScheduleUrls[(string) $event->getKey()] = route(
+                    'dashboard.events.schedule',
+                    ['event' => $event->getKey()],
+                );
+            }
+
+            if ($this->currentUser()->can('manageAdmissions', $event)) {
+                $eventOfflineAdmissionsUrls[(string) $event->getKey()] = route(
+                    'dashboard.events.offline-admissions',
+                    ['event' => $event->getKey()],
                 );
             }
         }
@@ -328,6 +341,8 @@ final class Workspace extends Component
             'events' => $events,
             'publicEventIds' => $publicEventIds,
             'eventEditUrls' => $eventEditUrls,
+            'eventScheduleUrls' => $eventScheduleUrls,
+            'eventOfflineAdmissionsUrls' => $eventOfflineAdmissionsUrls,
             'roleOptions' => $this->roleOptions(),
             'canManageMembers' => $this->canManageMembers(),
             'canManageOrganization' => $this->canManageOrganization(),

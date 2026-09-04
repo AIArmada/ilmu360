@@ -32,6 +32,20 @@ final class ResolveEventCheckInStateAction
             ];
         }
 
+        $checkInEnabled = data_get(
+            is_array($event->metadata) ? $event->metadata : [],
+            'registration.check_in_enabled',
+        );
+
+        if ($checkInEnabled === false) {
+            return [
+                'available' => false,
+                'reason' => __('Check-in tidak diaktifkan untuk majlis ini.'),
+                'method' => 'self_reported',
+                'registration_id' => null,
+            ];
+        }
+
         if ($event->primaryOccurrence && in_array((string) $event->primaryOccurrence->status, ['postponed', 'rescheduled'], true)) {
             return [
                 'available' => false,
@@ -52,7 +66,7 @@ final class ResolveEventCheckInStateAction
             ];
         }
 
-        $eventTimezone = $event->timezone ?: 'Asia/Kuala_Lumpur';
+        $eventTimezone = $event->timezone ?: (string) config('app.timezone', 'UTC');
         $windowStartsAt = $startsAt->copy()->setTimezone($eventTimezone)->subHours(2);
         $windowEndsAt = $startsAt->copy()->setTimezone($eventTimezone)->addHours(8);
         $now = now($eventTimezone);

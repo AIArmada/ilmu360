@@ -24,7 +24,7 @@ final class VisitorCountryResolver
     private static ?string $cacheScope = null;
 
     /**
-     * @return array{
+     * @var array{
      *     country_id: string|null,
      *     country_code: string|null,
      *     source: 'edge_header'|'app_fallback'|'unresolved'

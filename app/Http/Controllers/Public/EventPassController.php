@@ -9,6 +9,7 @@ use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 use BaconQrCode\Writer;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -28,16 +29,24 @@ class EventPassController extends Controller
             ->firstOrFail();
 
         $holder = $pass->holder;
+        $registration = $pass->registration;
+        $isHolder = $holder !== null
+            && $holder->holder_type === $user->getMorphClass()
+            && $holder->holder_id === $user->id;
+        $isPurchaser = $registration instanceof Model
+            && $registration->getAttribute('registrant_type') === $user->getMorphClass()
+            && (string) $registration->getAttribute('registrant_id') === (string) $user->getKey();
 
-        abort_if(
-            $holder === null
-                || $holder->holder_type !== $user->getMorphClass()
-                || $holder->holder_id !== $user->id,
-            404,
-        );
+        abort_unless($isHolder || $isPurchaser, 404);
+        abort_unless($pass->isValid(), 404);
+
+        $checkInEnabled = data_get(
+            is_array($event->metadata) ? $event->metadata : [],
+            'registration.check_in_enabled',
+        ) !== false;
 
         $qrSvg = null;
-        if ($pass->qr_code) {
+        if ($checkInEnabled && $pass->qr_code) {
             $renderer = new ImageRenderer(
                 new RendererStyle(200),
                 new SvgImageBackEnd,
@@ -46,6 +55,11 @@ class EventPassController extends Controller
             $qrSvg = $writer->writeString($pass->qr_code);
         }
 
-        return view('pages.event-pass', ['pass' => $pass, 'event' => $event, 'qrSvg' => $qrSvg]);
+        return view('pages.event-pass', [
+            'pass' => $pass,
+            'event' => $event,
+            'qrSvg' => $qrSvg,
+            'checkInEnabled' => $checkInEnabled,
+        ]);
     }
 }

@@ -813,6 +813,9 @@ class EventController extends Controller
         });
     }
 
+    /**
+     * @param  Builder<Model>  $query
+     */
     private function applyPrayerTimeGroupFilter(Builder $query, string $group, Request $request): void
     {
         match ($group) {

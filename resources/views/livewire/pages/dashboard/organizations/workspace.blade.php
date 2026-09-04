@@ -65,7 +65,43 @@
             </section>
 
             <div class="space-y-8">
-                <section class="rounded-3xl border border-[#eadfca] bg-white p-6 shadow-sm sm:p-8"><p class="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">{{ __('Events') }}</p><h2 class="mt-2 font-heading text-2xl font-bold text-[#0b2a42]">{{ __('Your organization events') }}</h2><div class="mt-5 space-y-3">@forelse($events as $event)@php($eventEditUrl = $eventEditUrls[(string) $event->getKey()] ?? null)<div wire:key="organization-event-{{ $event->id }}" class="rounded-2xl border border-slate-100 p-4 {{ isset($publicEventIds[(string) $event->getKey()]) ? 'hover:border-emerald-200 hover:bg-emerald-50/40' : 'bg-slate-50' }}"><div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div class="min-w-0">@if(isset($publicEventIds[(string) $event->getKey()]))<a href="{{ route('events.show', $event) }}" class="font-semibold text-slate-900 hover:text-emerald-700">{{ $event->title }}</a>@else<p class="font-semibold text-slate-900">{{ $event->title }}</p>@endif<p class="mt-1 text-xs uppercase tracking-[0.14em] text-slate-400">{{ (string) $event->status }} · {{ $event->visibility }}</p></div>@if($eventEditUrl)<a href="{{ $eventEditUrl }}" class="shrink-0 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">{{ __('Edit') }}</a>@endif</div></div>@empty<p class="text-sm text-slate-500">{{ __('Create your first event for this organization.') }}</p>@endforelse</div><a href="{{ route('dashboard.organizations.events.create', $organization) }}" wire:navigate data-signal-event="navigation.organization_event_create_started" data-signal-category="navigation" data-signal-component="organization_workspace" data-signal-control="create_event" data-signal-entity-type="organization" data-signal-entity-id="{{ $organization->id }}" class="mt-5 inline-flex text-sm font-semibold text-emerald-800 hover:text-emerald-950">{{ __('Create an event →') }}</a></section>
+                <section class="rounded-3xl border border-[#eadfca] bg-white p-6 shadow-sm sm:p-8">
+                    <p class="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">{{ __('Events') }}</p>
+                    <h2 class="mt-2 font-heading text-2xl font-bold text-[#0b2a42]">{{ __('Your organization events') }}</h2>
+                    <div class="mt-5 space-y-3">
+                        @forelse($events as $event)
+                            @php($eventEditUrl = $eventEditUrls[(string) $event->getKey()] ?? null)
+                            @php($eventScheduleUrl = $eventScheduleUrls[(string) $event->getKey()] ?? null)
+                            @php($eventOfflineAdmissionsUrl = $eventOfflineAdmissionsUrls[(string) $event->getKey()] ?? null)
+                            <div wire:key="organization-event-{{ $event->id }}" class="rounded-2xl border border-slate-100 p-4 {{ isset($publicEventIds[(string) $event->getKey()]) ? 'hover:border-emerald-200 hover:bg-emerald-50/40' : 'bg-slate-50' }}">
+                                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                    <div class="min-w-0">
+                                        @if(isset($publicEventIds[(string) $event->getKey()]))
+                                            <a href="{{ route('events.show', $event) }}" class="font-semibold text-slate-900 hover:text-emerald-700">{{ $event->title }}</a>
+                                        @else
+                                            <p class="font-semibold text-slate-900">{{ $event->title }}</p>
+                                        @endif
+                                        <p class="mt-1 text-xs uppercase tracking-[0.14em] text-slate-400">{{ (string) $event->status }} · {{ $event->visibility }}</p>
+                                    </div>
+                                    <div class="flex flex-wrap gap-2">
+                                        @if($eventScheduleUrl)
+                                            <a href="{{ $eventScheduleUrl }}" wire:navigate data-signal-event="navigation.event_schedule_opened" data-signal-category="navigation" data-signal-component="organization_workspace" data-signal-control="schedule" data-signal-entity-type="event" data-signal-entity-id="{{ $event->id }}" class="shrink-0 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-800 hover:bg-indigo-100">{{ __('Schedule') }}</a>
+                                        @endif
+                                        @if($eventOfflineAdmissionsUrl)
+                                            <a href="{{ $eventOfflineAdmissionsUrl }}" wire:navigate data-signal-event="navigation.event_offline_admissions_opened" data-signal-category="navigation" data-signal-component="organization_workspace" data-signal-control="offline_admissions" data-signal-entity-type="event" data-signal-entity-id="{{ $event->id }}" class="shrink-0 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-100">{{ __('Admissions') }}</a>
+                                        @endif
+                                        @if($eventEditUrl)
+                                            <a href="{{ $eventEditUrl }}" class="shrink-0 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">{{ __('Edit') }}</a>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        @empty
+                            <p class="text-sm text-slate-500">{{ __('Create your first event for this organization.') }}</p>
+                        @endforelse
+                    </div>
+                    <a href="{{ route('dashboard.organizations.events.create', $organization) }}" wire:navigate data-signal-event="navigation.organization_event_create_started" data-signal-category="navigation" data-signal-component="organization_workspace" data-signal-control="create_event" data-signal-entity-type="organization" data-signal-entity-id="{{ $organization->id }}" class="mt-5 inline-flex text-sm font-semibold text-emerald-800 hover:text-emerald-950">{{ __('Create an event →') }}</a>
+                </section>
 
                 <section class="rounded-3xl border border-[#eadfca] bg-white p-6 shadow-sm sm:p-8"><p class="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">{{ __('Invitations') }}</p><h2 class="mt-2 font-heading text-2xl font-bold text-[#0b2a42]">{{ __('Pending invitations') }}</h2><div class="mt-5 space-y-3">@forelse($invitations as $invitation)<div wire:key="organization-invitation-{{ $invitation->id }}" class="flex items-center justify-between gap-3 rounded-2xl bg-[#fbf8f1] p-3"><div><p class="text-sm font-semibold text-slate-900">{{ $invitation->email }}</p><p class="mt-1 text-xs text-slate-500">{{ $invitation->subject_type?->label() ?? __('Organization') }} · {{ \AIArmada\Membership\Enums\MemberRole::fromSpatieRoleName($invitation->role)?->label() ?? $invitation->role }}</p></div>@if($canManageMembers && $invitation->isValid())<button type="button" wire:click="revokeInvitation('{{ $invitation->id }}')" class="text-xs font-semibold text-red-600 hover:text-red-800">{{ __('Revoke') }}</button>@endif</div>@empty<p class="text-sm text-slate-500">{{ __('No invitations yet.') }}</p>@endforelse</div></section>
 

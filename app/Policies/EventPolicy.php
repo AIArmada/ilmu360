@@ -136,6 +136,18 @@ class EventPolicy
     }
 
     /**
+     * Determine whether the user can view the event participant workspace.
+     */
+    public function viewRegistrations(User $user, Event $event): bool
+    {
+        if ($user->hasAnyRole(['super_admin', 'moderator'])) {
+            return true;
+        }
+
+        return $event->userHasScopedEventPermission($user, 'event.view-registrations');
+    }
+
+    /**
      * Determine whether the user can export registrations.
      */
     public function exportRegistrations(User $user, Event $event): bool
@@ -158,6 +170,36 @@ class EventPolicy
         }
 
         return $event->userHasScopedEventPermission($user, 'event.manage-members');
+    }
+
+    /**
+     * Determine whether the user can view and update event attendance.
+     *
+     * Attendance staff deliberately use a separate low-threshold permission
+     * so an event viewer can help at the door without receiving event-editing
+     * or financial powers.
+     */
+    public function manageAttendance(User $user, Event $event): bool
+    {
+        if ($user->hasAnyRole(['super_admin', 'moderator'])) {
+            return true;
+        }
+
+        return $event->userHasScopedEventPermission($user, 'event.manage-attendance');
+    }
+
+    /**
+     * Determine whether the user can create or confirm organizer-issued
+     * admissions. This remains separate from attendance permission because it
+     * creates financial and capacity records.
+     */
+    public function manageAdmissions(User $user, Event $event): bool
+    {
+        if ($user->hasAnyRole(['super_admin', 'moderator'])) {
+            return true;
+        }
+
+        return $event->userHasScopedEventPermission($user, 'event.manage-admissions');
     }
 
     public function publishChange(User $user, Event $event): bool

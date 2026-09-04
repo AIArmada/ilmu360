@@ -186,7 +186,7 @@ it('lets an organization member create a managed event draft', function (): void
     );
 });
 
-it('creates paid assigned-seat ticketing with an owner-scoped seat map', function (): void {
+it('keeps v1 organization ticketing general-admission-only', function (): void {
     $owner = User::factory()->create();
     $organization = CreateOrganizationAction::make()->handle($owner, ['name' => 'Paid Events']);
     $category = eventCategoryId('lain_lain');
@@ -198,6 +198,7 @@ it('creates paid assigned-seat ticketing with an owner-scoped seat map', functio
         ->set('form.pricing_mode', 'paid')
         ->set('form.tickets.0.price', '25.00')
         ->set('form.tickets.0.quota', '20')
+        // This simulates stale or tampered state. V1 must normalize it away.
         ->set('form.tickets.0.seating_mode', 'assigned')
         ->set('form.seating.mode', 'assigned')
         ->set('form.seating.sections.0.capacity', '20')
@@ -209,14 +210,12 @@ it('creates paid assigned-seat ticketing with an owner-scoped seat map', functio
     OwnerContext::withOwner($organization, function () use ($organization): void {
         $event = Event::query()->where('owner_id', $organization->getKey())->firstOrFail();
         $ticket = $event->primaryOccurrence?->ticketTypes()->first();
-        $map = SeatMap::forHost($event)->first();
 
         expect($event->pricing_mode->value)->toBe('paid')
             ->and($ticket)->toBeInstanceOf(TicketType::class)
             ->and($ticket?->price)->toBe(2500)
-            ->and($map)->toBeInstanceOf(SeatMap::class)
-            ->and($map?->sections()->first()?->capacity)->toBe(20)
-            ->and($map?->sections()->first()?->seats()->count())->toBe(20)
-            ->and(Seat::query()->count())->toBe(20);
+            ->and($ticket?->seating_mode?->value)->toBe('none')
+            ->and(SeatMap::forHost($event)->count())->toBe(0)
+            ->and(Seat::query()->count())->toBe(0);
     });
 });

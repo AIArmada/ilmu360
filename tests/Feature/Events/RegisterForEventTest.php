@@ -6,7 +6,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-it('creates a confirmed registration via the public web route', function () {
+it('creates a confirmed registration via the public api route', function () {
     $event = Event::factory()
         ->create([
             'status' => 'approved',
@@ -22,14 +22,12 @@ it('creates a confirmed registration via the public web route', function () {
     ]);
 
     $response = $this
-        ->withSession(['_token' => 'test-token'])
-        ->post(route('events.register', $event), [
-            '_token' => 'test-token',
+        ->postJson(route('api.events.registrations.store', $event), [
             'name' => 'Web Registrant',
             'email' => 'web@example.com',
         ]);
 
-    $response->assertSessionHasNoErrors();
+    $response->assertCreated();
     expect(Registration::query()->where('event_id', $event->id)->count())->toBe(1);
 });
 

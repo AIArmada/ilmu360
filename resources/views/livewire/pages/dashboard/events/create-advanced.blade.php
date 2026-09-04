@@ -130,8 +130,8 @@
                         <p class="mt-1 text-xs leading-5 text-amber-900/70">{{ __('Harga, kuota, kod, dan had seorang.') }}</p>
                     </div>
                     <div class="rounded-xl border border-amber-200/80 bg-white/70 p-3">
-                        <p class="font-semibold">{{ __('Tempat duduk') }}</p>
-                        <p class="mt-1 text-xs leading-5 text-amber-900/70">{{ __('Tempat duduk umum atau bernombor.') }}</p>
+                        <p class="font-semibold">{{ __('Kehadiran') }}</p>
+                        <p class="mt-1 text-xs leading-5 text-amber-900/70">{{ __('Pendaftaran umum tanpa pemilihan atau penetapan tempat duduk.') }}</p>
                     </div>
                 </div>
                 <p class="mt-4 text-xs leading-5 text-amber-900/70">{{ __('Semua ciri ini berada pada langkah Pendaftaran & tiket di dalam borang di bawah.') }}</p>

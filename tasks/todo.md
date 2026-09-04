@@ -6,12 +6,32 @@
 - [x] Audit the AIArmada `events`, `ticketing`, `seating`, and related Filament package contracts and integrations.
 - [x] Define the event aggregate and the progressive authoring workflow, including capability gates, validation, ownership, and tracking.
 - [x] Produce a phased implementation plan with open product decisions, risks, and verification coverage.
+- [x] Install and configure the reusable Commerce packages for event checkout, inventory reservation, discounts, tax readiness, payments, orders, and receipts.
+- [x] Implement the authenticated account-first event checkout and free-registration path with participant-level agreement and protected optional identity data.
+- [x] Implement provider-neutral checkout configuration with dormant tax support, MYR currency snapshots, voucher/promotion entry, and runtime receipt generation.
+- [x] Implement event-scoped participant lookup, staff-assisted check-in, post-event attendance correction, and auditable event/occurrence/session scope.
+- [x] Add the organizer schedule workspace for the package-backed `Event → Occurrence → Session` model, including the generic package occurrence-update action and UTC-safe date/time editing.
+- [x] Add generic registration-question definitions and organizer authoring for event, occurrence, and session scopes, including inheritance, validation, archival, and checkout answer snapshots.
+- [x] Add organizer-only offline admissions on the shared Orders/Event Registrations/Passes pipeline, with provisional payment state and later confirmation.
+- [x] Complete the remaining organizer workspace slices: offline admissions, refund toggle/workflow, and filtered exports.
+- [ ] Complete end-to-end payment-provider callback, failure/retry, and production-gate verification with real provider credentials.
 
 ## Review
 
-The audit confirms that the package model is `Event → Occurrence → Session`, with registrations, tickets, and seat maps attachable at each scope and effective settings inherited from the nearest configured parent. The current advanced form creates only an event plus its primary occurrence; it does not author additional occurrences or sessions, and its registration/ticket/seating controls are narrower than the package contract. A progressive Event Workspace is recommended: a short creation flow followed by checklist-driven schedule, access, ticket, seating, and operations setup. Paid selling is first-release scope: the app currently lacks the Cart/Checkout/Orders/Products/Customers/Cashier dependencies and payment is disabled by config, so implementation must install and configure the commerce stack, select an explicit `cashier-chip` gateway if CHIP remains the chosen processor, and prove buyer identity, ticket inventory reservation/commit/release, seat holds, payment callbacks, refunds, and idempotency before launch. Because ilmu360° requires verified accounts, `User` may be the canonical buyer and order subject; `aiarmada/customers` should remain optional unless CRM/customer-profile separation is needed. The event/ticketing packages already provide native TicketType-to-cart actions and order/registration fulfillment, while inventory already provides durable reservation-group reserve/release/commit semantics; however, generic checkout reservation currently resolves product/variant IDs and skips the polymorphic TicketType cart attributes, and no first-class shared inventory pool exists. The event workflow therefore needs an explicit integration bridge, preferably implemented generically in the commerce packages with event/ticketing contributors, plus a reusable shared-capacity model if the product decision requires multiple ticket types to draw from one quota. No implementation was made in this task.
+The audit confirmed that the package model is `Event → Occurrence → Session`, with registrations, tickets, and seat maps attachable at each scope and effective settings inherited from the nearest configured parent. The current advanced form still creates the initial schedule through the application’s existing event path, while the commerce and operations foundation is now implemented incrementally. The first implementation slice installs and configures the reusable Commerce stack, keeps provider and currency seams replaceable, leaves tax dormant, uses the package cart/discount pipeline, and routes free and paid registration through authenticated account-first checkout. Provider integrations now have a package-level extension seam: an optional provider binds a `PaymentProcessorInterface`, tags it with `checkout.payment_processors`, and can become the configured default without event-domain changes. Currency is carried from the event ticket through the checkout request and the billable CHIP path instead of being silently replaced by a customer default. Participant identity data is event-scoped, encrypted, HMAC-searchable, masked, and independent from live check-in. A dedicated participant workspace now gives authorized staff manual lookup/check-in plus later event/occurrence/session attendance updates, bulk actions, print support, and correction logs. The schedule workspace now extends that model without duplicate tables: application UI and authorization call package occurrence/session actions, and the reusable package supplies the generic occurrence update action. Registration questions are now package-backed, inherited from event to occurrence/session with narrower definitions replacing the same field key, authorable from the organizer workspace, archived without deletion, and captured as immutable participant answer snapshots during checkout. Package changes remain generic: polymorphic inventory reservation, event registration fulfillment, runtime receipt documents, verifier/performer fields, registration-question primitives, and provider-neutral refund completion events are implemented in `/Users/Saiffil/Herd/commerce`; application-specific policy, UI, and event metadata remain in ilmu360°. The organizer workspace now includes offline admissions, the default-off refund workflow, and filtered sensitive exports. Payment cannot be declared production-ready until real provider credentials and callback/failure/retry tests are exercised.
+
+The hard-cut audit also removed the session-introduced compatibility paths: Cashier now accepts only the canonical billable subject and explicit provider field, scoped refund synchronization no longer infers a full-order refund from missing metadata, event refund correlation reads only canonical refund metadata, refund routing no longer infers a processor from an older order shape, pass issuance reads only canonical order-item options, and the free checkout result requires its current checkout batch metadata. Existing provider-status normalization and request-time PDF rendering are current integration behavior, not support for an older contract or data shape.
 
 The v1 scope was subsequently narrowed to general admission only: do not activate assigned seating, seat maps, seat holds, seat-level allocation, or buyer seat selection in the first release. Preserve the package-compatible data/integration seams so seating can be added later without redesigning event, ticket, or checkout contracts.
+
+### Verification review — 2026-09-04
+
+- Application PHPStan level 6 passes across 1,035 files; Commerce PHPStan passes across 4,695 files with the repository-required 1 GB memory override.
+- Focused package tests pass for checkout/payment flow (48), checkout data objects (18), CHIP webhook dispatch (21), order transitions (6), order refunds (2), event-registration allocation (9), registration questions (3), receipt generation (3), and the affected inventory/refund paths.
+- Follow-up provider/currency tests pass for tagged payment processor registration (1), Cashier status resolution (1), billable CHIP currency override (5), and the `ChargeChipCustomer` action (1).
+- Focused application tests pass for checkout (6), refunds/provider-confirmation (5), offline admissions (3), participant/check-in workspace (5), registration export (3), registration questions (2), and schedule workspace (3).
+- Blade view cache, checkout/refund route registration, diff checks, and the migration/geography/SoftDeletes guard scans pass. Targeted Commerce Rector reports no changes; the application-wide dry-run reports the existing broad 215-file style baseline and was not applied.
+- The remaining production gate is operational: configure real CHIP sandbox credentials, exercise hosted payment success/failure/timeout/duplicate callback and refund webhook flows, verify queue/worker behavior, and complete browser validation of the hosted handoff and runtime PDF download before enabling paid checkout in production.
 
 ### Locked decisions
 
@@ -26,7 +46,7 @@ The v1 scope was subsequently narrowed to general admission only: do not activat
 - When `Refund Policy` is On, approved refunds return the full ticket amount to the buyer; the original payment-processing cost remains an organizer-side settlement cost.
 - When `Refund Policy` is On, refunds operate at individual ticket/admission level, so a buyer can refund one participant’s ticket without refunding the whole order; released ticket capacity becomes available again. Assigned seats are not part of v1.
 - Platform/admin-only financial safety actions remain available outside the normal refund setting for unavoidable reversals such as duplicate charges, verified chargebacks, legal requirements, or a platform-required event cancellation. These actions are never exposed as ordinary buyer refund controls.
-- V1 permits buyers to update or transfer an admission before its configured cutoff; event organizers may disable transfers for an event.
+- Events and admissions are not transferable in v1. A participant may update permitted personal details through the purchaser-controlled workflow, while any exceptional organizer correction remains an audited administrative action.
 - Only the purchaser requires a v1 ilmu360° account; attendees may remain accountless, receive an admission through the purchaser or their supplied contact, and optionally claim it later.
 - Each v1 admission receives a unique one-time-checkable QR code; staff have both scanner and manual name/email lookup, and access is evaluated against the admission’s event/occurrence/session scope.
 - QR is a convenience, not a requirement. For an existing admission, authorized check-in staff may search by the participant’s IC number or another configured identifier such as passport number, phone, name, email, or order number, confirm the matching event/admission, and complete check-in with an audit record. A failed lookup cannot bypass capacity or create entry; a new walk-in still uses the separate Issue Admission flow.
@@ -34,7 +54,7 @@ The v1 scope was subsequently narrowed to general admission only: do not activat
 - Participant data remains event-scoped, but an `EventRegistrationParticipant` may optionally link to an existing ilmu360° `User` when that participant is safely identified. This supports the case where one purchaser buys for another person without turning the participant’s IC/passport into a global identity record or giving the purchaser access to the participant’s account.
 - Existing-User linking is participant-controlled. The system may privately detect a likely match, but the link is finalized only when the participant signs in or uses their secure claim link; the purchaser is never told whether a matching account exists.
 - After claiming or linking an admission, a participant’s dashboard shows only their own admissions, eligible recordings, schedule, agreement status, and participant details. It does not expose the purchaser’s receipt/payment information or other participants in the same order.
-- A claimed participant does not make an admission permanently non-transferable. Before the configured cutoff, the purchaser may transfer it; the current participant is notified and loses access, the new participant receives a fresh secure claim link, and prior consent/attendance/link history remains preserved.
+- Events and admissions are not transferable in v1. Participant corrections are handled through the purchaser-controlled workflow or an audited organizer action; consent, attendance, and admission history remain preserved.
 - Deleting a participant’s ilmu360° account removes the personal account link and dashboard access but does not delete the event registration, admission, attendance, refund, or financial history needed by the purchaser and organizer. Remaining participant data follows the platform’s privacy-retention/deletion rules; v1 does not create anonymized replacement records.
 - Check-in is optional per event. An organizer may choose not to operate live check-in at all, print or export the participant list for manual use, and record attendance later. Attendance is separate from admission validity: later manual updates are scoped to the event/occurrence/session, record who made the change and when, and preserve correction history.
 - When live check-in is disabled, admission views and downloads omit QR codes and check-in instructions. If the organizer enables check-in later, QR codes can be generated and updated admissions delivered without changing the underlying registration or admission identity.
@@ -49,7 +69,7 @@ The v1 scope was subsequently narrowed to general admission only: do not activat
 - Receipt and financial-PDF access is limited to the authenticated purchaser and authorized event finance/owner roles. An emailed receipt link leads through account authentication, while an attendee may receive a separate secure admission link without an account and without access to order/payment details.
 - The original receipt remains an immutable record of the purchase. A partial or full refund updates the order status and creates a separate refund confirmation/document; it never rewrites the original receipt.
 - Confirmation emails link to the authenticated online receipt and admission pages rather than attaching PDF files; receipt/admission PDFs are generated only when the authorized recipient requests a download or print action.
-- V1 checkout contains tickets and recording-access admissions from one event only; non-admission add-ons such as donations, meals, books, merchandise, and workshop materials are deferred. Multi-event carts are also deferred so participant questions, agreements, capacity, refunds, receipts, and organizer settlement stay unambiguous.
+- V1 checkout contains tickets from one event only. Recording-access admissions are a separate future feature; non-admission add-ons such as donations, meals, books, merchandise, and workshop materials are deferred. Multi-event carts are also deferred so participant questions, agreements, capacity, refunds, receipts, and organizer settlement stay unambiguous.
 - Organizer-issued admissions use clear document states: complimentary admissions receive a free confirmation and admission; confirmed cash or bank-transfer admissions receive an admission and a receipt marked as offline payment; pending offline payments receive only a provisional confirmation until an authorized organizer confirms the payment.
 - Checkout includes a final review step before payment. It shows every admission, occurrence/session, participant, quantity, price, discount, active tax, refund policy, and required agreement, with editing available before the buyer proceeds to the provider.
 - An order reduced to RM0 by vouchers or promotions is treated as a free confirmation, not a payment receipt. The confirmation preserves the original price, discount allocation, and final zero total, and clearly states that no payment was made.
@@ -77,6 +97,7 @@ The v1 scope was subsequently narrowed to general admission only: do not activat
 - Offline v1 admissions use explicit payment statuses/methods (complimentary, cash, bank transfer, or pending), with authorized confirmation, audit history, and notes/proof; they are not represented as CHIP payments.
 - V1 ticket pricing, checkout, refunds, and settlement reporting offer MYR only, but every monetary amount carries an explicit currency code; provider adapters declare supported currencies so future currencies can be added without redesigning commerce or event workflows.
 - Payment integration must be provider-neutral from the foundation: event/ticket workflows depend on commerce payment contracts, while `cashier-chip`/CHIP is a replaceable adapter and future providers can be registered without changing event logic.
+- Optional payment providers extend the generic checkout package through the `checkout.payment_processors` container tag; processor identity remains stable in checkout/order data while a concrete provider identity is retained for callbacks, status checks, refunds, and future gateway replacement.
 - Future multi-currency support will be event-scoped: one event uses one configured currency across its ticket types and orders; mixed-currency carts are deferred.
 - `aiarmada/tax` is the planned dormant v1 tax foundation: install its contracts/models/settings and keep checkout tax disabled initially, while making generic checkout improvements for currency propagation, polymorphic buyer/exemption context, line tax-class snapshots, and immutable order tax outcomes so activation does not require a redesign.
 - When tax is activated, ilmu360° administrators own tax zones, rates, and tax-class definitions centrally; event creators may select only an approved tax category for their tickets.
@@ -108,14 +129,14 @@ The v1 scope was subsequently narrowed to general admission only: do not activat
 - Registration always shows the ilmu360° privacy notice; event-specific data-use consent can be required and marketing opt-in is always separate and optional. Store the exact consent text/version, subject, timestamp, and account/registration context. `aiarmada/communications` consent remains for messaging decisions; registration-data consent belongs to the event workflow boundary.
 - Participant access is least-privilege and event-scoped: owners/managers see their event's operational data, check-in staff see only identity/admission/attendance fields, analysts see aggregates by default, purchasers see their own order/participants, and attendees see only their own admission/answers. Sensitive answers require explicit permission and are excluded from ordinary exports.
 - Organizers can export filtered participant lists in v1 (event/occurrence/session, ticket, registration, and check-in status) with selectable columns. Sensitive columns require explicit permission; exports are audited, access-scoped, and delivered through an expiring download. The existing inventory export framework is not an event-participant export, so the event export belongs in a reusable events/Filament seam.
-- V1 sends transactional email for account verification, payment states, admission delivery, transfers/participant updates, refunds, cancellations/postponements/venue or schedule changes, waitlist promotion, and event reminders (default 24 hours and 1 hour before each applicable occurrence/session). Marketing remains separate opt-in; the notification workflow must use the existing event/order/ticketing/communications seams and be provider/channel-extensible.
+- V1 sends transactional email for account verification, payment states, admission delivery, participant updates, refunds, cancellations/postponements/venue or schedule changes, waitlist promotion, and event reminders (default 24 hours and 1 hour before each applicable occurrence/session). Marketing remains separate opt-in; the notification workflow must use the existing event/order/ticketing/communications seams and be provider/channel-extensible.
 - Organizer email customization is limited to practical event content and safe reminder choices; platform-controlled identity, payment/refund, admission/QR, schedule, privacy/legal, and unsubscribe blocks cannot be removed or rewritten. Template/content-block integration should use the communications package while preserving transactional semantics.
 - Every event has a confirmed default IANA timezone; occurrences and sessions inherit it unless explicitly overridden. Persist timestamps in UTC, display the applicable local timezone, and schedule reminders from the relevant occurrence/session timezone.
 - V1 includes a recurring-schedule generator with common weekly/monthly/weekday patterns, an end date or occurrence limit, and a preview before creation. Generated occurrences remain individually editable while retaining their recurrence relationship.
 - Recurring-series edits use explicit scope: one occurrence creates an exception, future unsold occurrences may be updated, and sold/registered occurrences require a protected reschedule or cancellation workflow with notices and refund handling.
-- Cancelling one occurrence affects only admissions whose access depends on that occurrence/session. Occurrence/session tickets are refunded, transferred, or replaced through the change workflow; event-wide passes remain valid for unaffected occurrences and receive a clear replacement or partial-remedy option for the cancelled scope. Cancelling one occurrence does not automatically cancel the whole event.
+- Cancelling one occurrence affects only admissions whose access depends on that occurrence/session. Occurrence/session tickets are refunded or replaced through the change workflow; event-wide passes remain valid for unaffected occurrences and receive a clear replacement or partial-remedy option for the cancelled scope. Cancelling one occurrence does not automatically cancel the whole event.
 - When one date in an event-wide pass is cancelled, the pass remains valid for its unaffected dates. The organizer must offer a clear remedy for the cancelled scope—replacement date, proportional credit/refund, or another explicitly stated option—without silently cancelling the entire pass.
-- Rescheduling one occurrence moves its existing occurrence/session admissions to the new date/time by default. Affected participants are notified, calendar entries are updated, and buyers receive a deadline to keep, transfer, or refund; unaffected occurrences and admissions remain unchanged.
+- Rescheduling one occurrence moves its existing occurrence/session admissions to the new date/time by default. Affected participants are notified, calendar entries are updated, and buyers receive a deadline to keep or refund; unaffected occurrences and admissions remain unchanged.
 - Recurrence generation clones the session programme using relative times; each occurrence can override its sessions, while ticket, registration, and capacity settings inherit unless the organizer explicitly chooses a different setup. Assigned seating remains future scope.
 - Parallel sessions are allowed for multi-track programmes, but the schedule validator warns about overlaps and blocks impossible conflicts (same physical room, session outside its occurrence, or invalid start/end order). `EventScheduleValidator` is the generic seam for these rules; seat-map conflicts are future scope.
 - V1 uses general admission only: selecting a `VenueSpace` automatically provides its stored physical-space capacity, while a manual total is required when no usable space capacity exists. Organizers may set a lower safety ceiling but never increase the known physical capacity, and the UI separates available, held, sold, and remaining counts. Assigned, hybrid, and seat-level capacity remain future capabilities.
@@ -127,9 +148,9 @@ The v1 scope was subsequently narrowed to general admission only: do not activat
 - Free registration closes automatically when the applicable event, occurrence, or session starts. Organizers may close it earlier or manually; v1 does not accept new registrations after the applicable start time. Open Door events remain unregistered and are not affected by this cutoff.
 - A manual free-registration closure may be reopened before the applicable start time if capacity and event readiness still pass. Reopening is explicit and audited; after the applicable start time, registration remains closed for v1.
 - Sales controls are progressive: simple mode offers one event-wide close/reopen action; Advanced mode allows closing or reopening a specific occurrence, session, or ticket type, subject to its own start time, capacity, readiness, and audit rules.
-- Participant corrections and admission transfers use deadlines separate from ticket sales and registration. Sales may close earlier, while harmless name/email/details corrections remain available until a configured changes cutoff (default applicable start); organizers may set an earlier transfer cutoff to finalize their participant list.
-- Correcting a participant’s name, email, or other harmless details does not invalidate the existing admission or QR. The admission display and delivery may be regenerated, but the admission identity remains the same and the correction is audited; only transfer or cancellation changes access identity/state.
-- A transfer immediately revokes the previous participant’s QR/secure admission access and issues a new credential to the new participant. The original admission/order reference and transfer history remain traceable for the purchaser and authorized organizers.
+- Participant corrections use a deadline separate from ticket sales and registration. Sales may close earlier, while harmless name/email/details corrections remain available until a configured changes cutoff (default applicable start).
+- Correcting a participant’s name, email, or other harmless details does not invalidate the existing admission or QR. The admission display and delivery may be regenerated, but the admission identity remains the same and the correction is audited; cancellation is the only ordinary v1 action that changes access state.
+- Events and admissions are not transferable in v1. A future transfer capability must revoke the previous participant’s QR/secure admission access and preserve the original admission/order reference and history rather than mutating the original record.
 - Every admission requires the participant’s full name. Participant email is optional but needed for personal admission delivery, agreement links, or direct online-access notices; participant phone is optional. The purchaser’s email remains mandatory and verified, with purchaser or organizer-assisted communication for attendees without email.
 - Ordinary check-in staff may look up and check in existing admissions, including with assisted identity lookup, but may not create new walk-in admissions. Only owners, managers, or authorized ticket/registration staff may issue complimentary or offline admissions, subject to capacity, payment-state, and audit controls.
 - Check-in staff may record live attendance through the check-in flow, but retrospective bulk attendance updates and corrections require an owner, manager, or authorized registration staff member. Every change records the actor, time, scope, previous/new status, and optional reason.
@@ -155,22 +176,22 @@ The v1 scope was subsequently narrowed to general admission only: do not activat
 - After registration, ilmu360° automatically sends each named participant a secure Event Agreement link with one-time verification. The purchaser sees each participant’s acceptance status and may resend the link or correct the email; participants do not need ilmu360° accounts.
 - When an adult participant has no email, the purchaser cannot accept the Event Agreement for them. If the organizer enables assisted acceptance, the participant may read and accept on an organizer-controlled device, with the participant, staff member, device/session, and timestamp recorded; otherwise the participant remains outstanding.
 - A minor remains the participant while a named parent/guardian supplies name, email, relationship, and explicit authority confirmation to accept the Event Agreement. The minor does not need an account; guardian acceptance uses the same secure-link or assisted-device paths.
-- After purchase, the purchaser may update or transfer an admission until the configured cutoff; an adult participant may update their own details through the secure link, a guardian may update a minor’s details, and authorized event staff may correct records with an audit entry. Finalized consent/check-in history is never overwritten.
-- Participants may decline or withdraw the combined Event Agreement. Their admission records the resulting consent status, preserves prior acceptance history, notifies the purchaser/organizer, and follows the configured event policy for blocking entry, transfer, or refund; consent history is never deleted.
+- After purchase, the purchaser may update an admission until the configured cutoff; an adult participant may update their own details through the secure link, a guardian may update a minor’s details, and authorized event staff may correct records with an audit entry. Finalized consent/check-in history is never overwritten.
+- Participants may decline or withdraw the combined Event Agreement. Their admission records the resulting consent status, preserves prior acceptance history, notifies the purchaser/organizer, and follows the configured event policy for blocking entry or refund; consent history is never deleted.
 - Adding an Event Agreement enables “require acceptance before admission” by default. The organizer may turn this single event-level enforcement setting off for informational/non-blocking agreements; events without an agreement have no consent step.
-- Low-risk event edits may save normally, while high-impact changes (date/time/timezone, venue/space, capacity, cancellation, postponement, and schedule changes) use a guided impact workflow showing affected tickets, registrations, capacity, refunds/transfers, notifications, and a final confirmation. Existing `aiarmada/events` change/notification primitives are reused; commerce coordination is added around them. Seat-map changes are future scope.
-- For postponement or rescheduling, existing tickets remain valid for the replacement date by default. Buyers receive a deadline to keep the ticket, transfer to another available occurrence, or request a refund under the event-change policy; no response keeps the ticket active, while capacity conflicts receive priority transfer or refund handling.
+- Low-risk event edits may save normally, while high-impact changes (date/time/timezone, venue/space, capacity, cancellation, postponement, and schedule changes) use a guided impact workflow showing affected tickets, registrations, capacity, refunds, notifications, and a final confirmation. Existing `aiarmada/events` change/notification primitives are reused; commerce coordination is added around them. Seat-map changes are future scope.
+- For postponement or rescheduling, existing tickets remain valid for the replacement date by default. Buyers receive a deadline to keep the ticket or request a refund under the event-change policy; no response keeps the ticket active, while capacity conflicts receive organizer-managed replacement or refund handling.
 - The same event workflow supports in-person, online, and hybrid delivery. In-person events expose venue and capacity fields; online events expose access instructions; hybrid events expose both. V1 uses general admission only; assigned/hybrid seating remains a future capability. Online access is scoped to the event, occurrence, or session and is released only to valid registered participants; provider-specific meeting integrations remain replaceable future adapters.
-- Online access is admission-specific where supported; otherwise the raw provider URL is hidden behind an ilmu360° signed access link that verifies an active admission. Access is revoked when the admission is refunded, cancelled, or transferred, and raw meeting URLs are never public.
-- Online access windows inherit from the event (default 15 minutes before start through scheduled end) and may be overridden per occurrence or session; access timing follows the effective local timezone. Recordings are included in the first release, with separate recording access rules rather than inheriting live-session timing automatically.
+- Online access is admission-specific where supported; otherwise the raw provider URL is hidden behind an ilmu360° signed access link that verifies an active admission. Access is revoked when the admission is refunded or cancelled, and raw meeting URLs are never public.
+- Online access windows inherit from the event (default 15 minutes before start through scheduled end) and may be overridden per occurrence or session; access timing follows the effective local timezone. Recordings are a separate future feature with its own access rules rather than inheriting live-session timing automatically.
 - Recordings are first-class, scope-aware resources attached to the event, occurrence, or session, with their own publication state, availability window, audience/entitlement rule, and protected access path. The current app’s `Event.recording_url` is only a single generic link and the media collections are image-oriented; use a reusable `aiarmada/events` recording/access capability instead of extending that column.
-- The first release accepts both externally hosted recording links and uploaded video files through one provider-neutral `RecordingSource` seam. External links may point to services such as YouTube, Vimeo, Zoom, or cloud storage; uploaded files use protected ilmu360° storage/playback. Source-specific credentials and storage behavior stay outside the event form.
+- The future recording feature accepts both externally hosted recording links and uploaded video files through one provider-neutral `RecordingSource` seam. External links may point to services such as YouTube, Vimeo, Zoom, or cloud storage; uploaded files use protected ilmu360° storage/playback. Source-specific credentials and storage behavior stay outside the event form.
 - A recording may be included with a valid admission or sold as a separate no-seat recording-access ticket. Both paths use the normal `aiarmada/orders`/checkout/payment, voucher/promotion, tax, refund, and entitlement lifecycle; recording purchases do not consume physical event seating.
 - Recording entitlement follows the event access hierarchy: an event-scoped admission may access all recordings, an occurrence-scoped admission may access that occurrence and its sessions, and a session-scoped admission may access only that session. A recording-access ticket grants only its targeted recording; narrower admissions never unlock broader event content.
 - Each recording has one simple access mode: public, included with qualifying registration/ticket, sold separately through a recording-access ticket, or team-only. Custom email lists and arbitrary ACLs are out of scope for v1.
 - Recordings support draft, processing, published, and archived lifecycle states; organizers may publish immediately or schedule release, set an optional expiry, and notify eligible viewers. A recording is inaccessible outside its published availability window.
 - Recording playback is stream-only by default, with an organizer-controlled download option. Uploaded files use expiring protected URLs; external-provider download behavior is respected, and revoked/refunded admissions lose access immediately.
-- V1 uploaded recordings use a validated, playback-friendly MP4/H.264 format with size/duration checks and a preparation step before publication. Automatic transcoding is deferred behind the provider/storage seam; external links are unaffected by upload-format rules.
+- The future uploaded-recording feature will use a validated, playback-friendly MP4/H.264 format with size/duration checks and a preparation step before publication. Automatic transcoding is deferred behind the provider/storage seam; external links are unaffected by upload-format rules.
 - Recordings may include optional WebVTT/SRT caption tracks and a readable transcript. Captions/transcripts are versioned with the recording; automatic speech-to-text and richer multilingual tooling remain future provider capabilities.
 - Organizer recording analytics are privacy-safe aggregates: views, approximate unique viewers, completion where supported, downloads, access failures, and separate-recording sales/revenue. Individual viewing histories are not exposed by default, and external-provider metrics are capability-dependent.
 - Venue authoring lets organizers select an existing reusable venue, use the selected institution as the venue without a specific place, choose an explicit `VenueSpace` within that institution/venue, or create a new venue inline. The event stores an effective location snapshot; seat-map cloning remains future scope.
@@ -220,7 +241,7 @@ The v1 scope was subsequently narrowed to general admission only: do not activat
 - Pending bank-transfer admissions have a configurable confirmation deadline. If staff do not confirm payment before it expires, the provisional admission and its capacity reservation are released safely.
 - Sponsored or scholarship admissions use the complimentary-admission flow with an optional funding/reason label, consume capacity, and do not create a fictional payment transaction.
 - A signed-in buyer may resume their saved cart after leaving, but the 15-minute reservation is authoritative: an expired hold is revalidated and recreated only when ticket, capacity, discount, and payment conditions still pass.
-- Cancellation and refund requests belong to the purchaser who made the order. A participant who is not the purchaser cannot request or initiate cancellation/refund for that admission; an authorized organizer or administrator may perform a controlled exception. A participant may still update permitted personal details or transfer through the allowed workflow.
+- Cancellation and refund requests belong to the purchaser who made the order. A participant who is not the purchaser cannot request or initiate cancellation/refund for that admission; an authorized organizer or administrator may perform a controlled exception. A participant may still update permitted personal details through the allowed workflow.
 - Organizer announcements for schedule, venue, access, or material event changes are transactional messages to affected participants, with purchaser fallback where needed, and do not depend on marketing consent.
 - Public archived event pages remain available indefinitely by default, while organizers may later hide the archive. Operational and financial records follow the platform’s separate privacy-retention rules.
 - Authorized owners and event-team members may duplicate an event through a reviewable checklist of reusable content and setup.
@@ -281,7 +302,7 @@ The v1 scope was subsequently narrowed to general admission only: do not activat
 - Public ticket sales and registration may be closed while explicitly enabled organizer-issued/on-site admissions remain available. Manual issuance still requires authorization, capacity, participant data, and audit history.
 - If on-site/manual issuance is enabled, authorized staff may issue an admission after the event starts as an explicit operational exception. This is not public post-start selling or ordinary self-registration and must show a warning and record the reason.
 - Hiding or unpublishing a ticket type does not invalidate admissions already issued for it; those admissions retain their original scope and terms.
-- An event-wide pass becomes non-transferable after its holder checks in for any applicable occurrence/session. Before use, the normal transfer cutoff applies.
+- An event-wide pass is not transferable in v1, before or after check-in. It remains valid only for the purchaser and participant recorded on the admission.
 - A session-scoped admission is rejected when presented for another session, even when both sessions belong to the same occurrence, unless a separately issued valid admission covers that session.
 - Lost QR credentials can be regenerated or resent by authorized users without changing the underlying admission, order reference, participant identity, or access scope.
 - Each event or occurrence may configure when check-in opens; the v1 default is two hours before the applicable start time.
@@ -297,7 +318,7 @@ The v1 scope was subsequently narrowed to general admission only: do not activat
 - Joining an online event does not automatically mark the participant as attended. Online access and attendance remain separate records.
 - A hybrid admission permits either physical entry or online access for its valid scope; the participant is not required to use both channels.
 - If an event changes from in-person to online, existing admissions remain valid and receive updated protected access instructions.
-- If an event changes from online to in-person and capacity is affected, the impact workflow offers affected buyers a keep, transfer, or refund path.
+- If an event changes from online to in-person and capacity is affected, the impact workflow offers affected buyers a keep or refund path; any replacement arrangement is organizer-managed and does not transfer the admission identity.
 - When an online access URL changes, old signed links are revoked immediately and new protected links are delivered to eligible admissions.
 - Recordings added after the live event notify eligible participants only after the recording is published and its access policy is active.
 - Recording-only purchases create an entitlement confirmation without a physical-event QR code or live check-in requirement.
@@ -319,7 +340,7 @@ The v1 scope was subsequently narrowed to general admission only: do not activat
 - Payment callbacks, admission issuance, capacity reservations, refunds, and notifications are idempotent and safe to retry.
 - Orders, admissions, participant answers, agreements, discounts, tax outcomes, and refunds preserve immutable historical snapshots wherever later edits could change the meaning of the original transaction.
 - Payment success issues admissions through a transactional, retry-safe server workflow. The browser return page can report status but cannot authorize an admission by itself.
-- The verification suite covers successful payment, timeout, duplicate callbacks, provider failure, refund failure, expired holds, transfers, cancellation, chargebacks, and recovery/retry paths.
+- The verification suite covers successful payment, timeout, duplicate callbacks, provider failure, refund failure, expired holds, non-transferable admissions, cancellation, chargebacks, and recovery/retry paths.
 - Rollout is staged: prove free registration, organizer-issued admissions, paid CHIP checkout, refunds/settlements, and operational check-in in sequence while preserving the final v1 scope.
 - Unfinished capabilities such as assigned seating remain absent from v1 UI and authoring flows even when their package contracts are installed for future activation.
 - Web checkout and future mobile/API checkout use the same server-side actions and contracts; presentation layers do not create separate business rules.
@@ -331,7 +352,7 @@ The v1 scope was subsequently narrowed to general admission only: do not activat
 - Payment, tax, seating, recordings, and future providers are activated through configuration or feature flags rather than UI assumptions or code forks.
 - AIArmada package changes include focused tests, migration notes, and documented contracts before ilmu360° depends on them.
 - CI verifies that application code uses the generic package paths and does not recreate or bypass reusable Commerce behavior.
-- Free registration, paid checkout, organizer-issued admissions, refunds, transfers, and cancellations share one admission/order workflow; only the entry point and payment state differ.
+- Free registration, paid checkout, organizer-issued admissions, refunds, and cancellations share one admission/order workflow; only the entry point and payment state differ.
 - The organizer must deliberately choose Open Door, Free Registration, or Paid Tickets; the form does not silently preselect a participation mode.
 - The first authoring screen stays small, asking for the mode, title, and basic event identity before revealing deeper choices.
 - The simple path automatically creates one occurrence, while advanced schedule tools remain available when the organizer needs them.
@@ -410,7 +431,7 @@ The v1 scope was subsequently narrowed to general admission only: do not activat
 - Organizers can filter participants and admissions by occurrence, session, ticket type, participant, agreement status, payment state, and attendance.
 - Check-in staff land directly in their assigned check-in workspace rather than the full organizer dashboard.
 - Finance and settlement information is hidden from content editors and check-in staff.
-- The workspace includes an event timeline for important changes, notifications, admissions, enabled refunds, transfers, and attendance corrections.
+- The workspace includes an event timeline for important changes, notifications, admissions, enabled refunds, participant corrections, and attendance corrections.
 - Every export and report states its scope and generation date so a printed list cannot be mistaken for current live data.
 - Empty or incomplete sections explain the next recommended action instead of presenting an unhelpful blank state.
 - Transactional email uses the recipient’s preferred language when available, with the application’s active language/locale as fallback.
@@ -502,7 +523,7 @@ The v1 scope was subsequently narrowed to general admission only: do not activat
 - [ ] Implement and test reusable Commerce capabilities in `/Users/Saiffil/Herd/commerce` before adding application-specific orchestration.
 - [ ] Build the ilmu360° Event Workspace over the existing advanced Livewire builder and package event models.
 - [ ] Build the authenticated buyer flow, one-event cart, participant registration, agreements, payment, admission fulfillment, and receipts.
-- [ ] Build organizer operations for issuance, capacity, waitlists, transfers, refunds, check-in, attendance, recordings, and finance.
+- [ ] Build organizer operations for issuance, capacity, waitlists, refunds, check-in, attendance, and finance. Recording operations remain a separate future feature; admission transfers are explicitly deferred from v1.
 - [ ] Run package/application security review, focused and end-to-end tests, staged sandbox/live rollout, and production readiness checks.
 
 ### Package-fit boundary
@@ -575,10 +596,10 @@ The implementation must keep this boundary visible in code, tests, and package d
 
 - [ ] Build event-scoped roles and workspace sections for schedule, registration, tickets, capacity, participants, check-in, recordings, finance, and settings.
 - [ ] Add organizer-issued complimentary, offline-confirmed, and pending-offline admissions through one audited issuance workflow. Enforce capacity and document/payment states.
-- [ ] Add purchaser-only transfer/cancellation/refund flows behind the event-level `Refund Policy` setting, Off by default. Keep the private platform/admin reversal path separate.
+- [ ] Add purchaser-only cancellation/refund flows behind the event-level `Refund Policy` setting, Off by default. Keep the private platform/admin reversal path separate; admission transfers are not part of v1.
 - [ ] Add occurrence/session-aware reschedule, cancellation, venue change, capacity impact, notification, and remedy workflows. Never delete a scope with registrations/admissions.
 - [ ] Add optional online check-in with QR plus manual IC/passport/name/email/phone/order lookup, scoped staff sessions, server confirmation, masked sensitive fields, and audited corrections. Add post-event bulk attendance updates without CSV import.
-- [ ] Add recordings as separate first-release access resources: external link or upload, draft/processing/published/archived states, included or separate recording admission, protected stream/download policy, expiry, captions/transcripts, and aggregate analytics.
+- [ ] Reserve the generic recording/access boundary for a future feature: external link or upload, draft/processing/published/archived states, included or separate recording admission, protected stream/download policy, expiry, captions/transcripts, and aggregate analytics. Do not expose recording authoring or recording admissions in v1.
 - [ ] Add public/unlisted/private page access, public-only discovery/SEO, social previews for public/unlisted, support contacts, accessibility/facility information, and application-locale rendering.
 
 ### Phase 5 — finance, settlement, and administration
@@ -592,11 +613,11 @@ The implementation must keep this boundary visible in code, tests, and package d
 ### Phase 6 — verification and staged rollout
 
 - [ ] Test generic package contracts first, then application integration tests, using Pest parallel execution and PHPStan level 6.
-- [ ] Cover free Open Door, free registration, paid CHIP checkout, mixed tickets, RM0 voucher result, participant-per-admission, multi-occurrence/session scope, shared capacity, waitlist, organizer issuance, transfer, refund toggle Off/On, cancellation, reschedule, check-in, attendance correction, recordings, and settlement.
+- [ ] Cover free Open Door, free registration, paid CHIP checkout, mixed tickets, RM0 voucher result, participant-per-admission, multi-occurrence/session scope, shared capacity, waitlist, organizer issuance, non-transferable admissions, refund toggle Off/On, cancellation, reschedule, check-in, attendance correction, and settlement. Verify that recording admissions remain absent from v1.
 - [ ] Add adversarial tests for duplicate checkout, duplicate/late callbacks, race-to-last-capacity, expired holds, voucher reuse, provider outage, unsupported currency, unauthorized private links, sensitive-field access, stale staff sessions, and post-sale mutation.
 - [ ] Verify browser workflows on mobile and desktop, public/unlisted/private access, authenticated receipt/PDF download, hosted payment handoff, manual check-in, organizer workspace, and finance permission boundaries.
 - [ ] Run migration checks against the real local database, package/app syntax and formatting, PHPStan, Blade/view compilation, asset build, translation coverage, diff checks, and security review.
-- [ ] Roll out behind feature flags: package foundation → free registration/issuance → CHIP sandbox paid checkout → production paid checkout → refunds/settlement → check-in/recordings. Enable each stage only after its operational runbook and recovery test pass.
+- [ ] Roll out behind feature flags: package foundation → free registration/issuance → CHIP sandbox paid checkout → production paid checkout → refunds/settlement → check-in. Enable each stage only after its operational runbook and recovery test pass; recordings remain a separate future feature.
 
 ### Explicit v1 exclusions
 
@@ -2586,4 +2607,130 @@ Admission is now data-driven across event, occurrence, and session scopes. Publi
 - php artisan view:cache, npm run build, PHP syntax checks, and git diff --check — passed.
 - Supplied event URL — HTTP 200; live HTML shows the location/reference content and omits schedule, admission, registration, and seating blocks because the stored event has no sessions or admission configuration.
 - Full-project PHPStan still reports two pre-existing errors in app/Http/Controllers/Api/EventController.php and app/Support/Location/VisitorCountryResolver.php, both outside this change.
+
+# Event commerce v1 — implementation review
+
+## Plan
+
+- [x] Use the existing AIArmada checkout, orders, inventory, ticketing, promotions, vouchers, tax, and payment packages before adding application-specific behavior.
+- [x] Add a guided event checkout that requires an account and verified email before payment, while allowing the purchaser to register other participants.
+- [x] Keep participant data event-scoped, encrypt optional IC/passport values, support dynamic registration questions, and store the event agreement as one clear acceptance.
+- [x] Support CHIP in test/online checkout through a provider-neutral payment processor seam with tagged processor registration, request-level currency propagation, and generic payment/refund events.
+- [x] Keep MYR and tax configuration ready for expansion while leaving tax inactive; support vouchers/promotions/coupons through the package pricing engine.
+- [x] Ship v1 without seat selection or assignable seats; retain occurrence/session scheduling and ticket inventory support.
+- [x] Add optional check-in, staff lookup by participant details, offline admissions, and later attendance updates.
+- [x] Keep refunds behind one event-level toggle, off and hidden by default, and restrict participant self-service cancellation/refund to the purchaser.
+- [x] Provide an online receipt with runtime document generation through the Orders package.
+
+## Review
+
+The implementation now follows the package boundaries: reusable payment, currency, webhook, refund, receipt, registration, inventory, and question behavior lives in `/Users/Saiffil/Herd/commerce`; event policy, guided forms, participant/check-in workflows, and public pages live in this application. The application does not use `aiarmada/customers` for ordinary v1 buyers because authenticated `User` records already own the checkout/order relationship; customer CRM remains available for a future guest/customer mode.
+
+The corrected sandbox project is `/Users/Saiffil/Herd/unfair`. A fresh RM1 CHIP sandbox payment completed through checkout, inventory reservation, order payment, event registration, participant creation, and pass issuance. The earlier identity-field error came from replaying an old pre-normalization checkout session; current checkout data uses the package-supported participant metadata boundary and the fresh flow passed.
+
+## Verification
+
+- `./pest --parallel --compact tests/Feature/EventCheckoutTest.php` — 8 passed, 32 assertions.
+- `vendor/bin/phpstan analyse --ansi` in ilmu360 — no errors across 1,035 files.
+- `vendor/bin/phpstan analyse --ansi --memory-limit=1G` in commerce — no errors across 4,701 files; the normal process limit was insufficient for the result cache.
+- `git diff --check` — passed in both repositories.
+- The result page was verified with a paid registration and receipt link under explicit global Commerce owner context; local PDF runtime absence correctly uses the Orders package’s documented HTML fallback, while production Browsershot/PDF runtime remains supported.
 - Collaborative preview navigation/snapshot timed out repeatedly after reconnect; live HTTP verification was used instead.
+
+# Audit and consolidate event-commerce changes
+
+## Plan
+
+- [x] Inventory every tracked and untracked change in Commerce and ilmu360, including migration ordering, schema conventions, package dependencies, and application-specific references.
+- [x] Compare the new event-registration-question schema with neighboring Commerce migrations and consolidate the refund timestamp into the main registration migration where safe for this unreleased change set.
+- [x] Audit Commerce changes for generic package ownership, public contracts, configuration seams, tenant/owner scope, migration safety, and missing regression coverage.
+- [x] Audit ilmu360 changes for application policy, authorization, presentation, and any reusable capability that should instead be promoted generically into Commerce.
+- [x] Fix all confirmed issues without reverting unrelated user work; add or adjust focused tests for each behavior change.
+- [x] Repeat the diff, genericity, static-analysis, test, formatting, migration, and package-boundary audit until no actionable issue remains.
+
+## Review
+
+The final review covered all tracked and untracked changes in both repositories. The registration-question migration now uses Commerce’s standard `commerce_json_column_type(...)` helper for JSON-compatible columns. The separate `000072` migration was removed, and `refund_pending_at` is part of the main event-registration migration. No migration constraints/cascades, Laravel SoftDeletes, direct JSON-type drift, or forbidden application-specific references were found in the Commerce package changes; the remaining `App\\Models` examples are generic command documentation.
+
+The package boundary is clean. Generic upgrades remain in Commerce: provider-aware payment processors and refund state, currency propagation, CHIP/Stripe status handling, voucher/promotion integration, order receipts, event registration questions, occurrence updates, inventory reservations, registration/pass lifecycle, and owner-scoped refund reconciliation. The ilmu360-specific layer owns organizer policy, permissions, guided forms, participant identity, check-in/attendance, offline admissions, event pages, and dashboard workflows. No remaining application action was identified that should be moved to Commerce without importing ilmu360 policy.
+
+The final repair pass fixed the generic `PaymentContract` seam by declaring `isRefunded()` for provider-neutral refund classification, formatted all changed PHP files in both repositories, and retained fail-closed behavior for unknown provider responses. The refund listener is provider-neutral, correlation-safe, idempotent, and owner-scoped; duplicate manual event registration was removed where Laravel discovery already covers the listener.
+
+## Verification
+
+- Commerce PHPStan: passed across 4,697 files. ilmu360 PHPStan: passed across 1,035 files.
+- Changed-file Pint checks: passed in both repositories. `git diff --check`: passed in both repositories.
+- Commerce Checkout: 241 passed, 861 assertions. Commerce Events: 234 passed, 1,130 assertions. The focused payment processor regression slice: 8 passed, 62 assertions.
+- ilmu360 focused event suite: 37 passed, 171 assertions. The full Vouchers suite previously passed with 907 passed, 7 skipped, and 1,757 assertions.
+- Migration existence/order and package guard scans passed; the separate `000072` migration is absent and the consolidated column is present in `000014`.
+- The final package suites had no failures: CHIP 1,061 passed/4 skipped; Cashier CHIP 537 passed; Cart 1,018 passed/2 skipped; Communications 253 passed; Filament CHIP 16 passed; Inventory 1,153 passed/6 skipped; Shipping 538 passed/1 skipped/1 risky; and Vouchers 907 passed/7 skipped.
+- Real provider credential, webhook, queue-worker, and browser/PDF-hosting verification remains an operational production gate; the code-level audit and local regression coverage are complete.
+
+# Current Task: Remove non-API legacy compatibility from Commerce
+
+## Plan
+
+- [x] Inventory explicit legacy/backward/deprecated behavior and old config, payload, storage, and API-shape paths across Commerce.
+- [x] Classify each result: remove legacy behavior; retain intentional public API compatibility and provider-neutral contracts.
+- [x] Remove confirmed legacy branches, configuration, docs, and tests without adding migrations or compatibility aliases.
+- [x] Update canonical callers and tests together, including event registration, voucher, webhook, checkout, and refund paths.
+- [x] Repeat source/docs scans and run focused tests, PHPStan, formatting, and diff checks until no non-API legacy path remains.
+
+## Review
+
+The legacy-removal pass is complete. Confirmed non-API legacy branches, configuration keys, payload-shape fallbacks, storage aliases, deprecated internal handlers, and stale tests were removed or updated. Stable public API compatibility and provider-neutral contracts were retained; no migration-era alias or fallback remains in the audited paths.
+
+The migration audit found no further schema edit was needed: `000071` already uses `commerce_json_column_type(...)`, `000072` is absent, and `refund_pending_at` is already in the main event-registration migration. The repository-wide cleanup also removed Communications reads of `services.webhooks` and Shipping reads of old origin environment aliases. Commerce changes remain generic; ilmu360 owns organizer policy, permissions, participant identity, check-in, attendance, offline admissions, and its guided event workflows. No remaining application action warranted promotion into Commerce.
+
+CHIP was checked against the rendered official Collect documentation, its linked API pages, the published OpenAPI/LLM reference, and the official changelog. The implementation now distinguishes registered webhook verification (`Webhook.public_key`) from company success-callback verification (`GET /public_key/`), uses the documented RSA/HMAC signatures, exact provider statuses/events, canonical nested purchase fields, documented refund/capture behavior, and safe retries without inventing mutation idempotency headers.
+
+Final verification: Commerce and ilmu360 Pint checks passed; PHPStan passed across 4,701 Commerce and 1,035 ilmu360 files; both `git diff --check` checks passed; all package suites listed above had no failures; and the genericity, migration, address, constraint, and non-API legacy scans were clean. Commerce Rector dry-run was clean; ilmu360 Rector reported 215 repository-wide optional transformations, which were not applied because they are outside this task and would rewrite unrelated user work. Intentional public API compatibility and normal operational fallbacks remain. Real provider credentials, inbound delivery, queue workers, and production PDF/browser runtimes remain environment-level verification gates.
+
+# Current Task: Audit the external Commerce regression review
+
+## Plan
+
+- [x] Verify each of the eleven reported behavior changes against current Commerce source, package contracts, provider documentation, and existing tests.
+- [x] Separate genuine regressions from intentional removal of non-API legacy behavior and from claims contradicted by CHIP's documented payloads/statuses.
+- [x] Add focused regression coverage and fix every confirmed issue without restoring unsupported legacy paths or changing unrelated user work.
+- [x] Repeat source scans, package tests, static analysis, formatting, and diff checks until the audit has no unresolved actionable finding.
+
+## Review
+
+The review confirmed two genuine regressions. An explicit voucher maximum of `0` was treated as unlimited in both the voucher helper and the canonical stacking policy; `0` now disables vouchers, negative values remain unlimited, and positive values remain capped. Existing affiliate voucher configurations with `upline_levels[].share` were also silently reduced to zero; the generic allocator now honors that documented share override for both amount and weight calculations. Focused regression tests cover both paths.
+
+The remaining findings were not regressions in the current API contract. CHIP's official schema says the `payout.failed` event carries payout status `error`, so `PayoutData::isFailed()` is correct. CHIP also documents `pending_refund` as the processing state and `refunded` as the final state for both full and partial refunds; refund failures are HTTP errors and the successful refund response has a top-level Payment `id`. The strict canonical webhook/status parsing, nested payment fields, owner context, and provider URLs therefore remain intentional and correct. The event refund listener, participant metadata, and webhook deduplication changes intentionally do not restore removed non-API legacy payload fallbacks.
+
+No unrelated user changes were reverted, and no ilmu360-specific behavior was moved into Commerce.
+
+## Verification
+
+- Commerce Vouchers: 909 passed, 7 skipped, 1,760 assertions.
+- Commerce Affiliates: 1,139 passed, 5 skipped, 2,595 assertions.
+- Commerce PHPStan: passed across 4,701 files with no errors.
+- Targeted Pint checks and `git diff --check`: passed.
+
+# Current Task: Audit checkout, offline admissions, attendance, and refunds
+
+## Plan
+
+- [x] Verify every reported behavior, authorization, transaction, idempotency, query, and form-state concern against current source and tests.
+- [x] Reproduce or add focused tests for the findings that can be exercised locally, including the seating-enabled submission path.
+- [x] Fix each confirmed correctness or security issue without changing intentional product policy or unrelated uncommitted work.
+- [x] Repeat the review, tests, static analysis, formatting, and diff checks until no actionable finding remains.
+
+## Review
+
+The reported attendance timestamp inconsistency was confirmed and fixed: marking a participant as absent clears active check-in evidence while preserving the original timestamp only in audit metadata. Registration exports, refund eligibility, participant filters, and summary counts now use the same attendance definition. Event-scope check-in also refuses duplicate active attendance records, and the dashboard now uses the full event attendance policy for authorization.
+
+The duplicate seating form state was removed. The seating-enabled submission path now establishes the package owner context required by the generic seating models, while v1 remains general-admission only. Ticketed events cannot fall through to the ticketless registration workflow; this is checked both when the page opens and again at submission so a stale checkout cannot bypass the current event configuration.
+
+Refund processing remains purchaser-only, disabled by default, and provider-confirmed before completion. Pending provider submission is claimed atomically in Commerce, so a retry cannot submit the same refund twice. The other reported behaviors were verified as intentional product policy or canonical package behavior and were not changed. No legacy routes, aliases, payload fallbacks, or compatibility branches were restored or added.
+
+## Verification
+
+- ilmu360 focused suites: checkout 10 passed/38 assertions; attendance 7/21; refunds 6/22; registration safety 4/14.
+- Commerce refund suites: registration refund 5 passed/15 assertions; refund model 7/27.
+- PHPStan passed across 1,036 ilmu360 files and 4,702 Commerce files.
+- Changed-file Pint checks and `git diff --check` passed in both repositories.
+- Final Commerce verification also passed: Orders 286 tests/661 assertions, Events 234/1,130, CHIP webhook processing 32 tests plus 1 skipped/49 assertions, Cashier CHIP status sync 2/2, and CHIP refund payment 2/4.

@@ -115,6 +115,9 @@ class ResolveAdvancedBuilderContextAction
                 'other_key_people' => [],
                 'registration_required' => false,
                 'registration_mode' => RegistrationScope::Event->value,
+                'check_in_enabled' => true,
+                'participant_identity' => 'none',
+                'refunds_enabled' => false,
             ],
         ];
     }

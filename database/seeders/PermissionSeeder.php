@@ -31,6 +31,8 @@ class PermissionSeeder extends Seeder
             'event.delete',
             'event.manage-members',
             'event.view-registrations',
+            'event.manage-attendance',
+            'event.manage-admissions',
             'event.export-registrations',
         ];
 

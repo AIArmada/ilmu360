@@ -9,6 +9,7 @@ use AIArmada\Addressing\Models\AddressAreaRelationship;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
+use AIArmada\Checkout\Models\CheckoutSession;
 use AIArmada\CommerceSupport\Models\Language as CommerceLanguage;
 use AIArmada\Communications\Contracts\ConsentResolver;
 use AIArmada\Communications\Contracts\PreferenceResolver;
@@ -24,10 +25,18 @@ use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\FilamentSignals\Policies\TrackedPropertyPolicy;
+use AIArmada\Inventory\Models\InventoryAllocation;
 use AIArmada\Inventory\Models\InventoryLevel;
 use AIArmada\Inventory\Models\InventoryLocation;
+use AIArmada\Inventory\Models\InventoryMovement;
 use AIArmada\Membership\Contracts\MembershipApplicationNotifier;
 use AIArmada\Membership\Contracts\MembershipHook;
+use AIArmada\Orders\Models\Order;
+use AIArmada\Orders\Models\OrderAddress;
+use AIArmada\Orders\Models\OrderItem;
+use AIArmada\Orders\Models\OrderNote;
+use AIArmada\Orders\Models\OrderPayment;
+use AIArmada\Orders\Models\OrderRefund;
 use AIArmada\Organizations\Contracts\CurrentOrganizationResolver;
 use AIArmada\Organizations\Models\Organization;
 use AIArmada\Persons\Models\PersonName;
@@ -94,6 +103,7 @@ use App\Policies\AddressAreaPolicy;
 use App\Policies\AddressCountryPolicy;
 use App\Policies\EventPolicy;
 use App\Policies\FilamentAuditPolicy;
+use App\Policies\RegistrationPolicy;
 use App\Services\Captcha\TurnstileVerifier;
 use App\Services\EventCategoryCatalog as DefaultEventCategoryCatalog;
 use App\Services\EventCategoryPolicy;
@@ -333,6 +343,13 @@ class AppServiceProvider extends ServiceProvider
             'event_occurrence' => EventOccurrence::class,
             'event_submission' => EventSubmission::class,
             'event_session' => EventSession::class,
+            'checkout_session' => CheckoutSession::class,
+            'order' => Order::class,
+            'order_address' => OrderAddress::class,
+            'order_item' => OrderItem::class,
+            'order_note' => OrderNote::class,
+            'order_payment' => OrderPayment::class,
+            'order_refund' => OrderRefund::class,
             'contribution_request' => ContributionRequest::class,
             'event_registration_participant' => EventRegistrationParticipant::class,
             'membership_application' => MembershipApplication::class,
@@ -353,6 +370,8 @@ class AppServiceProvider extends ServiceProvider
             'organization' => Organization::class,
             'inventory_location' => InventoryLocation::class,
             'inventory_level' => InventoryLevel::class,
+            'inventory_allocation' => InventoryAllocation::class,
+            'inventory_movement' => InventoryMovement::class,
             'ticket_type' => TicketType::class,
         ]);
 
@@ -360,6 +379,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(AddressArea::class, AddressAreaPolicy::class);
         Gate::policy(AddressCountry::class, AddressCountryPolicy::class);
         Gate::policy(Event::class, EventPolicy::class);
+        Gate::policy(Registration::class, RegistrationPolicy::class);
         Gate::policy(TrackedProperty::class, TrackedPropertyPolicy::class);
 
         Gate::define('audit', static fn (mixed $user, mixed $resource): bool => $user instanceof User
