@@ -2840,3 +2840,44 @@ The Filament event-registration importer now resolves its model through the even
 The resettable development schema now defines encrypted-secret-capable text columns directly in `create_donation_channels_table` and defines `reports.last_state_change_at` directly in `create_reports_table`. The two follow-up migrations were removed. Existing-row encryption and lifecycle backfill were intentionally omitted because these create migrations run before rows exist; a development database should be recreated to apply the consolidated schema.
 
 Verification passed: languageable pivot (1 test/3 assertions), lifecycle hardening (3/32), donation-channel actions (9/33), report actions (4/27), targeted Pint, targeted PHPStan, and `git diff --check`.
+
+# Current Task: Complete the re-audit remediation fix plan
+
+## Plan A — Bulk-delete authorization
+
+- [x] Add `deleteAny()` to the ten covered policies, mirroring each policy's existing record-level `delete()` role check.
+- [x] Add per-record authorization to the eight remaining Filament bulk delete actions.
+- [x] Add a Pest feature regression proving Reports bulk deletion is denied for an unauthorized user and succeeds for an authorized user.
+- [x] Run the focused authorization test, then the requested formatting, static-analysis, and diff checks.
+
+## Plan B — DonationChannel lifecycle hardening
+
+- [x] Guard lifecycle timestamps and status from mass assignment while retaining `verified_by` as an actor field.
+- [x] Add donation-channel status constants and transition methods, and migrate any direct lifecycle writes to those methods.
+- [x] Add regression coverage for guarded status input and transition timestamps.
+- [x] Run the focused lifecycle test, then the requested formatting, static-analysis, and diff checks.
+
+## Plan C — Media and Filament correctness
+
+- [x] Register Reference front/back cover and gallery media collections with the canonical MIME and single-file behavior.
+- [x] Make Reference cover fields visible/dehydrated only for books using enum-aware form state.
+- [x] Replace stale string Heroicon names in the four touched Filament files.
+- [x] Extend media regression coverage and run focused verification plus formatting/static checks.
+
+## Plan D — Viewer-timezone display
+
+- [x] Route event timing display and Livewire date/time display through `UserDateTimeFormatter`.
+- [x] Replace raw date formatting in the affected user and venue views without changing event-local scheduling semantics.
+- [x] Add/extend timing coverage for an `X-Timezone` viewer request and run the focused timezone/timing checks plus the browser smoke probe.
+
+## Plan E — Schema strictness and hygiene
+
+- [x] Verify the languageables pivot schema against the current package contract; document the intentional integer surrogate pivot key because only the UUID `language_id`/morph keys are part of the package contract.
+- [x] Record the deliberate non-fixes (Fortify throttle stub, long-lived Sanctum expiry, and deferred architecture refactor) in the review.
+- [x] Leave tracked backup/screenshot artifacts untouched pending explicit authorization for `git rm --cached`; do not rewrite history.
+
+## Review
+
+The four code fixes are implemented with Pest coverage. The optional invitation `signed` middleware remains deferred: hashed tokens with expiry provide the current protection without expanding the issuance surface in this pass. The languageables integer surrogate key remains a documented package-compatible exception; its UUID foreign and morph keys are unchanged. Tracked backup and screenshot artifacts remain untouched because E2 requires explicit authorization, and no history rewrite was attempted. The Fortify throttle stub remains the stock conditional limiter integration, Sanctum `expiration=null` remains intentional for long-lived manual/MCP tokens, and the structural architecture item remains deferred for a separate ADR-sized refactor.
+
+The affected-surface run completed with 118 passing tests and 472 assertions; its two failures were unrelated baseline failures in `InstitutionIndexTest` and `ManagedWorkspacesTest`, and it included the new bulk-delete, donation lifecycle, Reference media, and viewer-timezone coverage. The required final full TIA run completed with 2,196 passing tests and 116 baseline failures across 2,312 affected tests (14,024 assertions; 5,356.98 seconds). The failures were concentrated in existing parallel owner-context/database-interleaving, missing-attribute, seeder-dependent, and timeout cases; none of the new remediation tests failed in the focused affected-surface run. PHPStan completed with no errors (1,040 files), Pint passed, `git diff --check` passed, and Rector dry-run reported the existing 261-file baseline without applying changes. The browser agent probe for `/majlis` passed with no JavaScript errors.
