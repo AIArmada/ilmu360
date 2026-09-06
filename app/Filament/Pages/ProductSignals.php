@@ -8,6 +8,7 @@ use AIArmada\FilamentSignals\Pages\LiveActivityReport;
 use App\Services\Signals\ProductSignalsInsightsService;
 use BackedEnum;
 use Filament\Pages\Page;
+use Filament\Support\Icons\Heroicon;
 use UnitEnum;
 
 /**
@@ -15,7 +16,7 @@ use UnitEnum;
  */
 final class ProductSignals extends Page
 {
-    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-chart-bar-square';
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedChartBarSquare;
 
     protected static string|UnitEnum|null $navigationGroup = 'Insights';
 

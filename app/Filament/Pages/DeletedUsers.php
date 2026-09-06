@@ -7,6 +7,7 @@ use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
@@ -20,7 +21,7 @@ class DeletedUsers extends Page implements HasTable
 {
     use InteractsWithTable;
 
-    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-trash';
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTrash;
 
     protected static ?string $navigationLabel = 'Deleted Users';
 
@@ -63,7 +64,7 @@ class DeletedUsers extends Page implements HasTable
             ->actions([
                 Action::make('restore')
                     ->label('Restore')
-                    ->icon('heroicon-o-arrow-uturn-left')
+                    ->icon(Heroicon::OutlinedArrowUturnLeft)
                     ->color('success')
                     ->requiresConfirmation()
                     ->modalHeading('Restore Deleted User')

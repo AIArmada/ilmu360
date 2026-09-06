@@ -459,13 +459,58 @@ it('registers media conversions for Series model', function () {
 it('registers media conversions for Reference model', function () {
     $reference = Reference::factory()->create();
 
-    $reference->addMedia(fakeGeneratedImageUpload('book-cover.png', 400, 560))
+    $reference->addMedia(fakeGeneratedImageUpload('front-cover.png', 400, 560))
+        ->toMediaCollection('front_cover');
+    $reference->addMedia(fakeGeneratedImageUpload('back-cover.png', 400, 560))
+        ->toMediaCollection('back_cover');
+    $reference->addMedia(fakeGeneratedImageUpload('gallery.png', 1200, 800))
+        ->toMediaCollection('gallery');
+
+    $frontCoverMedia = $reference->getFirstMedia('front_cover');
+    $backCoverMedia = $reference->getFirstMedia('back_cover');
+    $galleryMedia = $reference->getFirstMedia('gallery');
+
+    expect($frontCoverMedia)->not->toBeNull();
+    expect($backCoverMedia)->not->toBeNull();
+    expect($galleryMedia)->not->toBeNull();
+    expect($frontCoverMedia->getMediaConversionNames())->toContain('thumb');
+    expect($backCoverMedia->getMediaConversionNames())->toContain('thumb');
+    expect($galleryMedia->getMediaConversionNames())->toContain('gallery_thumb');
+});
+
+it('keeps only the latest media in Reference single-file cover collections', function () {
+    $reference = Reference::factory()->create();
+
+    $firstFrontCover = $reference->addMedia(fakeGeneratedImageUpload('first-front-cover.png', 400, 560))
+        ->toMediaCollection('front_cover');
+    $reference->refresh();
+    $latestFrontCover = $reference->addMedia(fakeGeneratedImageUpload('latest-front-cover.png', 400, 560))
         ->toMediaCollection('front_cover');
 
-    $media = $reference->getFirstMedia('front_cover');
+    $reference->refresh();
+    $firstBackCover = $reference->addMedia(fakeGeneratedImageUpload('first-back-cover.png', 400, 560))
+        ->toMediaCollection('back_cover');
+    $reference->refresh();
+    $latestBackCover = $reference->addMedia(fakeGeneratedImageUpload('latest-back-cover.png', 400, 560))
+        ->toMediaCollection('back_cover');
 
-    expect($media)->not->toBeNull();
-    expect($media->getMediaConversionNames())->toContain('thumb');
+    $freshReference = $reference->fresh();
+
+    expect($freshReference->getMedia('front_cover'))->toHaveCount(1)
+        ->and($freshReference->getFirstMedia('front_cover')?->getKey())->toBe($latestFrontCover->getKey())
+        ->and($freshReference->getMedia('back_cover'))->toHaveCount(1)
+        ->and($freshReference->getFirstMedia('back_cover')?->getKey())->toBe($latestBackCover->getKey())
+        ->and($firstFrontCover->fresh())->toBeNull()
+        ->and($firstBackCover->fresh())->toBeNull();
+});
+
+it('rejects non-image files for Reference media collections', function () {
+    $reference = Reference::factory()->create();
+
+    foreach (['front_cover', 'back_cover', 'gallery'] as $collection) {
+        expect(fn () => $reference->addMedia(UploadedFile::fake()->create("document-{$collection}.pdf", 100, 'application/pdf'))
+            ->toMediaCollection($collection))->toThrow(FileUnacceptableForCollection::class);
+    }
 });
 
 // ---------------------------------------------------------------

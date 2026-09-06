@@ -8,6 +8,7 @@ use AIArmada\FilamentSignals\Pages\PageViewsReport;
 use App\Services\ShareTracking\AdminShareAnalyticsService;
 use BackedEnum;
 use Filament\Pages\Page;
+use Filament\Support\Icons\Heroicon;
 use UnitEnum;
 
 /**
@@ -15,7 +16,7 @@ use UnitEnum;
  */
 final class ShareAnalytics extends Page
 {
-    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-share';
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedShare;
 
     protected static string|UnitEnum|null $navigationGroup = 'Insights';
 

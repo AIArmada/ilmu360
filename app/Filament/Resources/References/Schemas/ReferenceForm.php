@@ -50,8 +50,8 @@ class ReferenceForm
                             ->searchable()
                             ->preload()
                             ->live()
-                            ->visible(fn (Get $get): bool => in_array($get('type'), [ReferenceType::Book, ReferenceType::Book->value], true))
-                            ->dehydrated(fn (Get $get): bool => in_array($get('type'), [ReferenceType::Book, ReferenceType::Book->value], true)),
+                            ->visible(fn (Get $get): bool => $get('type') === ReferenceType::Book)
+                            ->dehydrated(fn (Get $get): bool => $get('type') === ReferenceType::Book),
                         Select::make('part_type')
                             ->label('Part Type')
                             ->options(ReferencePartType::class)

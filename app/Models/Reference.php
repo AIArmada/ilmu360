@@ -679,6 +679,30 @@ class Reference extends PackageReference implements AuditableContract
     }
 
     /**
+     * Register media collections for Spatie Media Library.
+     */
+    #[\Override]
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('front_cover')
+            ->useDisk(config('media-library.disk_name'))
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
+            ->withResponsiveImages()
+            ->singleFile();
+
+        $this->addMediaCollection('back_cover')
+            ->useDisk(config('media-library.disk_name'))
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
+            ->withResponsiveImages()
+            ->singleFile();
+
+        $this->addMediaCollection('gallery')
+            ->useDisk(config('media-library.disk_name'))
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
+            ->withResponsiveImages();
+    }
+
+    /**
      * Register media conversions for optimized image delivery.
      */
     public function registerMediaConversions(?Media $media = null): void
