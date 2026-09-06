@@ -148,7 +148,8 @@ class ContributionRequestsTable
             ->recordUrl(fn (ContributionRequest $record): string => ContributionRequestResource::getUrl('view', ['record' => $record]))
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->authorizeIndividualRecords('delete'),
                 ]),
             ]);
     }

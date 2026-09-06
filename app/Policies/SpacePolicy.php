@@ -39,6 +39,11 @@ class SpacePolicy
         return $user->hasRole('super_admin') && ! $space->eventLocations()->exists();
     }
 
+    public function deleteAny(User $user): bool
+    {
+        return $user->hasRole('super_admin');
+    }
+
     public function restore(User $user, Space $space): bool
     {
         return $user->hasRole('super_admin');

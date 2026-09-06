@@ -48,4 +48,9 @@ class SavedSearchPolicy
     {
         return $user->id === $savedSearch->user_id;
     }
+
+    public function deleteAny(User $user): bool
+    {
+        return false;
+    }
 }

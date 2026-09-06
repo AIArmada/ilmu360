@@ -34,6 +34,11 @@ class AddressCountryPolicy
         return $user->hasRole('super_admin');
     }
 
+    public function deleteAny(User $user): bool
+    {
+        return $user->hasRole('super_admin');
+    }
+
     public function restore(User $user, AddressCountry $addressCountry): bool
     {
         return $user->hasRole('super_admin');

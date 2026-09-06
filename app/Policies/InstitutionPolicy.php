@@ -73,6 +73,11 @@ class InstitutionPolicy
         return app(MemberPermissionGate::class)->canInstitution($user, 'institution.delete', $institution);
     }
 
+    public function deleteAny(User $user): bool
+    {
+        return $user->hasRole('super_admin');
+    }
+
     /**
      * Determine whether the user can manage members.
      */

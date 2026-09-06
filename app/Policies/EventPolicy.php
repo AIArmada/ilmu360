@@ -119,6 +119,11 @@ class EventPolicy
         return $event->userCanDelete($user);
     }
 
+    public function deleteAny(User $user): bool
+    {
+        return $user->hasRole('super_admin');
+    }
+
     /**
      * Determine whether the user can moderate the event.
      */

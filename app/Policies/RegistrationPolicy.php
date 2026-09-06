@@ -86,6 +86,11 @@ class RegistrationPolicy
         return false;
     }
 
+    public function deleteAny(User $user): bool
+    {
+        return $user->hasRole('super_admin');
+    }
+
     /**
      * Only the purchaser may request a normal event refund. Organizers use
      * the event-level manageAdmissions permission for exceptional refunds.

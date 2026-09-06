@@ -78,6 +78,11 @@ class PersonPolicy
         return app(MemberPermissionGate::class)->canPerson($user, 'person.delete', $person);
     }
 
+    public function deleteAny(User $user): bool
+    {
+        return $user->hasRole('super_admin');
+    }
+
     /**
      * Determine whether the user can manage person members.
      */

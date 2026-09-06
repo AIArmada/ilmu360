@@ -53,6 +53,11 @@ class ReferencePolicy
         return app(MemberPermissionGate::class)->canReference($user, 'reference.delete', $reference);
     }
 
+    public function deleteAny(User $user): bool
+    {
+        return $user->hasRole('super_admin');
+    }
+
     public function manageMembers(User $user, Reference $reference): bool
     {
         if ($user->hasRole('super_admin')) {
