@@ -2150,7 +2150,7 @@ class Index extends Component implements HasForms
         }
 
         try {
-            return now()->setTimeFromTimeString($normalized)->format('H:i');
+            return UserDateTimeFormatter::userNow()->setTimeFromTimeString($normalized)->format('H:i');
         } catch (\Throwable) {
             return null;
         }

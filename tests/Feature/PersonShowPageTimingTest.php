@@ -1,6 +1,7 @@
 <?php
 
 use AIArmada\Addressing\Models\Address;
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Enums\EventFormat;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\PrayerOffset;
@@ -15,6 +16,7 @@ use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Venue;
 use App\Support\Location\AddressHierarchyFormatter;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
 function linkPersonEvent(Person $person, Event $event): void
@@ -55,6 +57,34 @@ it('shows prayer-relative timing text on person page instead of absolute time', 
         ->assertSeeText('Selepas Asar')
         ->assertSeeText((string) $expectedEndTime)
         ->assertDontSeeText((string) $event->starts_at?->format('h:i A'));
+});
+
+it('renders full timing display in the viewer timezone from X-Timezone', function () {
+    $event = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => 'public',
+        'timing_mode' => TimingMode::Absolute,
+        'starts_at' => Carbon::parse('2026-02-18 01:30:00', 'UTC'),
+    ]);
+
+    $request = Request::create('/events/'.$event->getKey());
+    $request->headers->set('X-Timezone', 'America/Los_Angeles');
+    $this->app->instance('request', $request);
+
+    $originalLocale = app()->getLocale();
+    app()->setLocale('en');
+
+    try {
+        $fullTimingDisplay = OwnerContext::withOwner(
+            null,
+            fn (): string => $event->fresh()->full_timing_display,
+        );
+
+        expect($fullTimingDisplay)
+            ->toBe('Tuesday, 17 February 2026 - 5:30 PM');
+    } finally {
+        app()->setLocale($originalLocale);
+    }
 });
 
 it('filters upcoming person events by friendly date ranges', function () {

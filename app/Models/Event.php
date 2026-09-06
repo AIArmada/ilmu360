@@ -2069,7 +2069,7 @@ class Event extends PackageEvent implements AuditableContract
      */
     public function getFullTimingDisplayAttribute(): string
     {
-        $date = $this->starts_at?->translatedFormat('l, j F Y') ?? '';
+        $date = UserDateTimeFormatter::translatedFormat($this->starts_at, 'l, j F Y');
         $time = $this->timing_display;
 
         return "{$date} - {$time}";

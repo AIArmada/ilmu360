@@ -214,7 +214,7 @@ new class extends Component
                         <a href="{{ route('events.show', $event) }}" wire:navigate class="group flex flex-col gap-4 rounded-3xl border border-slate-200 bg-slate-50 p-5 transition hover:-translate-y-0.5 hover:border-emerald-200 hover:bg-white hover:shadow-lg hover:shadow-emerald-950/5 sm:flex-row sm:items-center">
                             <img src="{{ $event->getFirstMediaUrl('poster', 'thumb') ?: ($event->institution?->getFirstMediaUrl('logo', 'thumb') ?: $thumbUrl) }}" alt="{{ $event->title }}" class="h-24 w-full rounded-2xl object-cover sm:h-20 sm:w-28">
                             <div class="min-w-0 flex-1">
-                                <p class="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-600">{{ optional($event->starts_at)?->timezone($event->timezone ?? config('app.timezone'))->translatedFormat('D, j M Y g:i A') }}</p>
+                                <p class="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-600">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($event->starts_at, 'D, j M Y g:i A') }}</p>
                                 <h3 class="mt-2 text-lg font-semibold text-slate-900 transition group-hover:text-emerald-700">{{ $event->title }}</h3>
                                 @if ($event->institution)
                                     <p class="mt-2 text-sm text-slate-600">{{ $event->institution->name }}</p>
@@ -245,7 +245,7 @@ new class extends Component
                         <a href="{{ route('events.show', $event) }}" wire:navigate class="group flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg hover:shadow-slate-950/5 sm:flex-row sm:items-center">
                             <img src="{{ $event->getFirstMediaUrl('poster', 'thumb') ?: ($event->institution?->getFirstMediaUrl('logo', 'thumb') ?: $thumbUrl) }}" alt="{{ $event->title }}" class="h-24 w-full rounded-2xl object-cover sm:h-20 sm:w-28">
                             <div class="min-w-0 flex-1">
-                                <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">{{ optional($event->starts_at)?->timezone($event->timezone ?? config('app.timezone'))->translatedFormat('D, j M Y g:i A') }}</p>
+                                <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($event->starts_at, 'D, j M Y g:i A') }}</p>
                                 <h3 class="mt-2 text-lg font-semibold text-slate-900 transition group-hover:text-emerald-700">{{ $event->title }}</h3>
                                 @if ($event->institution)
                                     <p class="mt-2 text-sm text-slate-600">{{ $event->institution->name }}</p>

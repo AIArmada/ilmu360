@@ -32,6 +32,7 @@ use App\States\EventStatus\Cancelled;
 use App\States\EventStatus\EventStatus;
 use App\States\EventStatus\Pending;
 use App\Support\Auth\IntendedRedirect;
+use App\Support\Timezone\UserDateTimeFormatter;
 use Carbon\CarbonInterface;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Contracts\View\View;
@@ -393,7 +394,7 @@ class Show extends Component
     #[Computed]
     public function eventTimeStatus(): string
     {
-        $now = now($this->event->timezone ?: 'Asia/Kuala_Lumpur');
+        $now = UserDateTimeFormatter::userNow();
         $startsAt = $this->event->starts_at;
         $endsAt = $this->effectiveEndsAt();
 
