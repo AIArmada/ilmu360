@@ -552,15 +552,15 @@ it('displays spaces and facilities', function () {
 it('displays donation channels', function () {
     $institution = Institution::factory()->create(['status' => 'verified']);
 
-    $institution->donationChannels()->create([
+    $channel = $institution->donationChannels()->create([
         'method' => 'bank_account',
         'bank_code' => 'BIMB',
         'bank_name' => 'Bank Islam',
         'account_number' => '123456789012',
         'recipient' => 'Tabung Masjid Al-Ikhlas',
         'label' => 'Infaq Bulanan',
-        'status' => 'verified',
     ]);
+    $channel->verify();
 
     $this->get(route('institutions.show', $institution))
         ->assertSuccessful()
@@ -581,8 +581,8 @@ it('renders donation qr thumbnails without the rounded border shell', function (
         'account_number' => '123456789012',
         'recipient' => 'Tabung Masjid Al-Ikhlas',
         'label' => 'Infaq Bulanan',
-        'status' => 'verified',
     ]);
+    $channel->verify();
 
     $channel->addMedia(UploadedFile::fake()->image('qr.png', 300, 300))
         ->toMediaCollection('qr');

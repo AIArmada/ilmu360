@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\AuditsModelChanges;
+use Carbon\CarbonImmutable;
 use Database\Factories\DonationChannelFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -10,6 +11,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use InvalidArgumentException;
+use LogicException;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
@@ -20,6 +23,14 @@ class DonationChannel extends Model implements AuditableContract, HasMedia
 {
     /** @use HasFactory<DonationChannelFactory> */
     use AuditsModelChanges, HasFactory, HasUuids, InteractsWithMedia;
+
+    public const string STATUS_PENDING = 'pending';
+
+    public const string STATUS_VERIFIED = 'verified';
+
+    public const string STATUS_REJECTED = 'rejected';
+
+    public const string STATUS_INACTIVE = 'inactive';
 
     protected $table = 'donation_channels';
 
@@ -53,11 +64,6 @@ class DonationChannel extends Model implements AuditableContract, HasMedia
         'ewallet_handle',
         'ewallet_qr_payload',
         'reference_note',
-        'status',
-        'verified_at',
-        'rejected_at',
-        'published_at',
-        'last_state_change_at',
         'verified_by',
         'is_default',
     ];
@@ -76,9 +82,92 @@ class DonationChannel extends Model implements AuditableContract, HasMedia
         ];
     }
 
+    /**
+     * Transition the donation channel and record the matching lifecycle timestamp.
+     */
+    public function transitionStatus(string $status): static
+    {
+        if (! $this->exists) {
+            throw new LogicException('A new donation channel must be saved before it can transition.');
+        }
+
+        $this->assertValidStatus($status);
+        $currentStatus = $this->normalizeStatus($this->getAttribute('status'));
+
+        if ($currentStatus === null) {
+            throw new LogicException('A persisted donation channel must have a valid status before it can transition.');
+        }
+
+        if ($status === self::STATUS_VERIFIED) {
+            $this->verified_by ??= auth()->id();
+        }
+
+        if ($currentStatus === $status) {
+            $now = CarbonImmutable::now();
+            $this->applyStatusTimestamp($status, $now);
+            $this->last_state_change_at ??= $now;
+
+            if ($this->isDirty()) {
+                $this->save();
+            }
+
+            return $this;
+        }
+
+        $now = CarbonImmutable::now();
+        $this->setAttribute('status', $status);
+        $this->applyStatusTimestamp($status, $now, true);
+        $this->last_state_change_at = $now;
+        $this->save();
+
+        return $this;
+    }
+
+    /**
+     * Verify the donation channel and record the verifying actor when available.
+     */
+    public function verify(?User $verifier = null): static
+    {
+        $this->verified_by ??= $verifier?->getKey() ?? auth()->id();
+
+        return $this->transitionStatus(self::STATUS_VERIFIED);
+    }
+
+    /**
+     * Reject the donation channel.
+     */
+    public function reject(): static
+    {
+        return $this->transitionStatus(self::STATUS_REJECTED);
+    }
+
+    /**
+     * Deactivate the donation channel using the existing publication timestamp.
+     */
+    public function publish(): static
+    {
+        return $this->transitionStatus(self::STATUS_INACTIVE);
+    }
+
     #[\Override]
     protected static function booted(): void
     {
+        static::creating(function (self $channel): void {
+            if ($channel->getAttribute('status') === null) {
+                $channel->setAttribute('status', self::STATUS_PENDING);
+            } else {
+                $channel->assertValidStatus((string) $channel->getAttribute('status'));
+            }
+
+            $now = CarbonImmutable::now();
+            $channel->applyStatusTimestamp((string) $channel->getAttribute('status'), $now);
+            $channel->last_state_change_at ??= $now;
+
+            if ((string) $channel->getAttribute('status') === self::STATUS_VERIFIED) {
+                $channel->verified_by ??= auth()->id();
+            }
+        });
+
         static::saved(function (self $channel): void {
             if (! $channel->is_default) {
                 return;
@@ -98,6 +187,49 @@ class DonationChannel extends Model implements AuditableContract, HasMedia
                     'updated_at' => now(),
                 ]);
         });
+    }
+
+    private function assertValidStatus(string $status): void
+    {
+        if (! in_array($status, self::validStatuses(), true)) {
+            throw new InvalidArgumentException(sprintf('The donation channel status [%s] is invalid.', $status));
+        }
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function validStatuses(): array
+    {
+        return [
+            self::STATUS_PENDING,
+            self::STATUS_VERIFIED,
+            self::STATUS_REJECTED,
+            self::STATUS_INACTIVE,
+        ];
+    }
+
+    private function normalizeStatus(mixed $status): ?string
+    {
+        return is_string($status) && in_array($status, self::validStatuses(), true) ? $status : null;
+    }
+
+    private function applyStatusTimestamp(string $status, CarbonImmutable $at, bool $overwrite = false): void
+    {
+        $attribute = match ($status) {
+            self::STATUS_VERIFIED => 'verified_at',
+            self::STATUS_REJECTED => 'rejected_at',
+            self::STATUS_INACTIVE => 'published_at',
+            default => null,
+        };
+
+        if ($attribute === null) {
+            return;
+        }
+
+        if ($overwrite || $this->getAttribute($attribute) === null) {
+            $this->setAttribute($attribute, $at);
+        }
     }
 
     /**

@@ -1775,16 +1775,18 @@ it('serializes institution detail payloads with address and donation metadata fo
         'waze_url' => 'https://waze.com/ul?ll=3.4501,102.4194',
     ]);
 
-    $donationChannel = $institution->donationChannels()->create(DonationChannel::factory()->raw([
+    $donationChannel = DonationChannel::factory()->create([
+        'donatable_type' => $institution->getMorphClass(),
+        'donatable_id' => $institution->getKey(),
         'label' => 'Tabung Utama',
         'recipient' => 'Masjid Detail DTO',
         'method' => 'bank_account',
         'bank_name' => 'Maybank',
         'bank_code' => 'MBB',
         'account_number' => '1234567890',
-        'status' => 'verified',
         'is_default' => true,
-    ]));
+    ]);
+    $donationChannel->verify();
 
     $donationChannel->addMedia(fakeGeneratedImageUpload('institution-qr.png', 600, 600))
         ->toMediaCollection('qr');
@@ -1856,8 +1858,8 @@ it('exposes 7-item institution detail lists with canonical address lines and qr 
         'account_number' => '123456789012',
         'recipient' => 'Tabung Masjid Detail',
         'label' => 'QR Infaq',
-        'status' => 'verified',
     ]);
+    $channel->verify();
 
     $channel->addMedia(fakeGeneratedImageUpload('qr.png', 300, 300))
         ->toMediaCollection('qr');

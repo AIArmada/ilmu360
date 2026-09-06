@@ -9,14 +9,18 @@ it('orders donation channels with the default one first', function () {
 
     // 2. Create two donation channels for it.
     // We create the first one as non-default.
-    $firstChannel = $institution->donationChannels()->create(DonationChannel::factory()->raw([
+    $firstChannel = DonationChannel::factory()->create([
+        'donatable_type' => $institution->getMorphClass(),
+        'donatable_id' => $institution->getKey(),
         'is_default' => false,
-    ]));
+    ]);
 
     // We create the second one also as non-default.
-    $secondChannel = $institution->donationChannels()->create(DonationChannel::factory()->raw([
+    $secondChannel = DonationChannel::factory()->create([
+        'donatable_type' => $institution->getMorphClass(),
+        'donatable_id' => $institution->getKey(),
         'is_default' => false,
-    ]));
+    ]);
 
     // 3. Set the second one as default.
     $secondChannel->update(['is_default' => true]);

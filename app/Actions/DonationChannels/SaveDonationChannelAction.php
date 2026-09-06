@@ -36,6 +36,7 @@ final readonly class SaveDonationChannelAction
         );
 
         $method = $this->normalizeMethod($data['method'] ?? $donationChannel->method ?? ($creating ? 'bank_account' : null));
+        $status = $this->normalizeStatus($data['status'] ?? $donationChannel->status ?? ($creating ? DonationChannel::STATUS_PENDING : null));
 
         $donationChannel->fill(array_merge([
             'donatable_type' => $owner['type'],
@@ -48,13 +49,16 @@ final readonly class SaveDonationChannelAction
             'reference_note' => array_key_exists('reference_note', $data)
                 ? $this->normalizeOptionalString($data['reference_note'])
                 : $donationChannel->reference_note,
-            'status' => $this->normalizeStatus($data['status'] ?? $donationChannel->status ?? ($creating ? 'pending' : null)),
             'is_default' => array_key_exists('is_default', $data)
                 ? (bool) $data['is_default']
                 : ($creating ? false : (bool) $donationChannel->is_default),
         ], $this->methodAttributes($method, $data, $donationChannel)));
 
         $donationChannel->save();
+
+        if ((string) $donationChannel->status !== $status) {
+            $donationChannel->transitionStatus($status);
+        }
 
         if (($data['clear_qr'] ?? false) === true) {
             $this->mediaSyncService->clearCollection($donationChannel, 'qr');
@@ -174,7 +178,12 @@ final readonly class SaveDonationChannelAction
     {
         $status = $this->normalizeRequiredString($value, 'status');
 
-        if (! in_array($status, ['pending', 'verified', 'rejected', 'inactive'], true)) {
+        if (! in_array($status, [
+            DonationChannel::STATUS_PENDING,
+            DonationChannel::STATUS_VERIFIED,
+            DonationChannel::STATUS_REJECTED,
+            DonationChannel::STATUS_INACTIVE,
+        ], true)) {
             throw ValidationException::withMessages([
                 'status' => __('The selected donation channel status is invalid.'),
             ]);

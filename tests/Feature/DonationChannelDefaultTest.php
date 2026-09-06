@@ -11,7 +11,6 @@ it('keeps only one default donation channel per owner when creating a new defaul
         'bank_name' => 'Maybank',
         'bank_code' => 'MBB',
         'account_number' => '1234567890',
-        'status' => 'verified',
         'is_default' => true,
     ]);
 
@@ -20,7 +19,6 @@ it('keeps only one default donation channel per owner when creating a new defaul
         'method' => 'duitnow',
         'duitnow_type' => 'mobile',
         'duitnow_value' => '0123456789',
-        'status' => 'verified',
         'is_default' => true,
     ]);
 
@@ -40,7 +38,6 @@ it('keeps only one default donation channel per owner when updating an existing 
         'bank_name' => 'Maybank',
         'bank_code' => 'MBB',
         'account_number' => '1234567890',
-        'status' => 'verified',
         'is_default' => true,
     ]);
 
@@ -49,7 +46,6 @@ it('keeps only one default donation channel per owner when updating an existing 
         'method' => 'ewallet',
         'ewallet_provider' => 'tng',
         'ewallet_handle' => '0123456789',
-        'status' => 'verified',
         'is_default' => false,
     ]);
 
