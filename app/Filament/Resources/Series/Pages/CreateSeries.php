@@ -34,7 +34,7 @@ class CreateSeries extends CreateRecord
     }
 
     /**
-     * @return array<string, list<array{id: int, name: string}>>
+     * @return array<string, list<array{id: string, name: string}>>
      */
     protected function getRelatedAuditSnapshot(Model $record): array
     {
@@ -47,7 +47,7 @@ class CreateSeries extends CreateRecord
                 ->orderBy('languages.name')
                 ->get(['languages.id', 'languages.name'])
                 ->map(fn (Language $language): array => [
-                    'id' => (int) $language->getKey(),
+                    'id' => (string) $language->getKey(),
                     'name' => $language->name,
                 ])
                 ->values()

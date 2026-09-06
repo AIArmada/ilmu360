@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use AIArmada\Contacting\Data\ContactMethodData;
+use AIArmada\Events\States\RegistrationStatus\Confirmed;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;
@@ -22,102 +23,97 @@ class RegistrationSeeder extends Seeder
             return;
         }
 
-        Registration::unsetEventDispatcher();
-        Event::unsetEventDispatcher();
+        Registration::withoutEvents(function (): void {
+            Event::withoutEvents(function (): void {
+                DB::transaction(function (): void {
+                    $events = Event::query()
+                        ->whereHas('accessPolicy', function ($query): void {
+                            $query->where('registration_required', true);
+                        })
+                        ->pluck('id')
+                        ->toArray();
 
-        try {
-            DB::transaction(function (): void {
-                $events = Event::query()
-                    ->whereHas('accessPolicy', function ($query): void {
-                        $query->where('registration_required', true);
-                    })
-                    ->pluck('id')
-                    ->toArray();
+                    $userColumns = ['id', 'name', 'email'];
 
-                $userColumns = ['id', 'name', 'email'];
+                    if (Schema::hasColumn('users', 'phone')) {
+                        $userColumns[] = 'phone';
+                    }
 
-                if (Schema::hasColumn('users', 'phone')) {
-                    $userColumns[] = 'phone';
-                }
+                    $users = User::query()->get($userColumns)->toArray();
 
-                $users = User::query()->get($userColumns)->toArray();
+                    $eventCounts = [];
 
-                $eventCounts = [];
+                    foreach ($events as $eventId) {
+                        $count = random_int(3, 8);
+                        $eventCounts[$eventId] = $count;
+                        $shuffledUsers = collect($users)->shuffle()->values()->toArray();
+                        $usedEmails = [];
+                        $userIndex = 0;
 
-                foreach ($events as $eventId) {
-                    $count = random_int(3, 8);
-                    $eventCounts[$eventId] = $count;
-                    $shuffledUsers = collect($users)->shuffle()->values()->toArray();
-                    $usedEmails = [];
-                    $userIndex = 0;
-
-                    for ($i = 0; $i < $count; $i++) {
-                        $user = null;
-                        if (! empty($shuffledUsers) && $userIndex < count($shuffledUsers) && random_int(0, 1) === 1) {
-                            $user = $shuffledUsers[$userIndex++];
-                        }
-
-                        $email = $user['email'] ?? fake()->safeEmail();
-                        while (in_array($email, $usedEmails, true)) {
+                        for ($i = 0; $i < $count; $i++) {
                             $user = null;
-                            $email = fake()->safeEmail();
-                        }
-                        $usedEmails[] = $email;
+                            if (! empty($shuffledUsers) && $userIndex < count($shuffledUsers) && random_int(0, 1) === 1) {
+                                $user = $shuffledUsers[$userIndex++];
+                            }
 
-                        // Event dispatcher is unset for bulk seed speed; assign package defaults explicitly.
-                        $registration = new Registration([
-                            'registration_no' => 'REG-'.mb_strtoupper(Str::random(10)),
-                            'registered_at' => now(),
-                            'event_id' => $eventId,
-                            'registrant_type' => isset($user['id']) ? (new User)->getMorphClass() : null,
-                            'registrant_id' => $user['id'] ?? null,
-                            'registration_type' => 'individual',
-                            'status' => 'confirmed',
-                            'source' => 'website',
-                            'total_participants' => 1,
-                        ]);
-                        $registration->id = (string) Str::uuid();
-                        $registration->save();
+                            $email = $user['email'] ?? fake()->safeEmail();
+                            while (in_array($email, $usedEmails, true)) {
+                                $user = null;
+                                $email = fake()->safeEmail();
+                            }
+                            $usedEmails[] = $email;
 
-                        $participant = $registration->participants()->make([
-                            'event_id' => $registration->event_id,
-                            'event_occurrence_id' => $registration->event_occurrence_id,
-                            'event_session_id' => $registration->event_session_id,
-                            'participant_type' => $registration->registrant_type,
-                            'participant_id' => $registration->registrant_id,
-                            'name' => $user['name'] ?? fake()->name(),
-                            'is_primary' => true,
-                            'is_purchaser' => true,
-                            'status' => 'active',
-                        ]);
-                        $participant->id = (string) Str::uuid();
-                        $participant->save();
+                            // Use the lifecycle initializer so seeded registrations get their timestamps.
+                            $registration = new Registration([
+                                'registration_no' => 'REG-'.mb_strtoupper(Str::random(10)),
+                                'event_id' => $eventId,
+                                'registrant_type' => isset($user['id']) ? (new User)->getMorphClass() : null,
+                                'registrant_id' => $user['id'] ?? null,
+                                'registration_type' => 'individual',
+                                'source' => 'website',
+                                'total_participants' => 1,
+                            ]);
+                            $registration->id = (string) Str::uuid();
+                            $registration->initializeStatus(Confirmed::class);
+                            $registration->save();
 
-                        $participant->addContactMethod(new ContactMethodData(
-                            type: 'email',
-                            purpose: 'general',
-                            value: $email,
-                            isPrimary: true,
-                        ));
+                            $participant = $registration->participants()->make([
+                                'event_id' => $registration->event_id,
+                                'event_occurrence_id' => $registration->event_occurrence_id,
+                                'event_session_id' => $registration->event_session_id,
+                                'participant_type' => $registration->registrant_type,
+                                'participant_id' => $registration->registrant_id,
+                                'name' => $user['name'] ?? fake()->name(),
+                                'is_primary' => true,
+                                'is_purchaser' => true,
+                                'status' => 'active',
+                            ]);
+                            $participant->id = (string) Str::uuid();
+                            $participant->save();
 
-                        $phone = $user['phone'] ?? null;
-
-                        if (is_string($phone) && $phone !== '') {
                             $participant->addContactMethod(new ContactMethodData(
-                                type: 'phone',
+                                type: 'email',
                                 purpose: 'general',
-                                value: $phone,
-                                countryCode: config('contacting.defaults.country_code', 'MY'),
+                                value: $email,
                                 isPrimary: true,
                             ));
+
+                            $phone = $user['phone'] ?? null;
+
+                            if (is_string($phone) && $phone !== '') {
+                                $participant->addContactMethod(new ContactMethodData(
+                                    type: 'phone',
+                                    purpose: 'general',
+                                    value: $phone,
+                                    countryCode: config('contacting.defaults.country_code', 'MY'),
+                                    isPrimary: true,
+                                ));
+                            }
                         }
                     }
-                }
 
+                });
             });
-        } finally {
-            Event::setEventDispatcher(app('events'));
-            Registration::setEventDispatcher(app('events'));
-        }
+        });
     }
 }

@@ -132,7 +132,7 @@
         default => 'border-lime-300/40 bg-lime-300/15 text-lime-100',
     };
     $eventHasPoster = $event->hasMedia('poster');
-    $eventPosterPreviewUrl = $eventHasPoster ? $event->getFirstMedia('poster')?->getAvailableUrl(['poster_thumb', 'card']) : null;
+    $eventPosterPreviewUrl = $eventHasPoster ? $event->getFirstMedia('poster')?->getAvailableUrl(['poster_thumb']) : null;
     $eventPosterOriginalUrl = $eventHasPoster ? $event->getFirstMediaUrl('poster') : null;
     $eventPosterDisplayAspectRatio = $eventHasPoster ? $event->poster_display_aspect_ratio : '16:9';
     $posterAspectClass = match ($eventPosterDisplayAspectRatio) {

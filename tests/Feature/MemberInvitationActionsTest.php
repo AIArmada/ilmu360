@@ -73,14 +73,15 @@ it('rejects acceptance for protected ownership invitations even if the row alrea
         'email' => 'invitee@example.com',
     ]);
 
-    $invitation = MemberInvitation::query()->create([
+    $invitation = new MemberInvitation;
+    $invitation->fill([
         'subject_type' => MemberSubjectType::Institution,
         'subject_id' => $institution->getKey(),
         'email' => $invitee->email,
         'role' => 'owner',
-        'token' => 'stale-owner-invitation',
         'invited_by' => $inviter->getKey(),
     ]);
+    $invitation->issue('stale-owner-invitation')->save();
 
     expect(fn () => app(AcceptSubjectMemberInvitation::class)->handle($invitation, $invitee))
         ->toThrow(ValidationException::class);

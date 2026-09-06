@@ -180,7 +180,7 @@ class ShowInvitation extends Component
     private function resolveInvitationByToken(string $token): MemberInvitation
     {
         $invitation = MemberInvitation::query()
-            ->whereIn('token', [$token, MemberInvitation::tokenForStorage($token)])
+            ->where('token', MemberInvitation::tokenForStorage($token))
             ->first();
 
         abort_unless($invitation instanceof MemberInvitation, 404);

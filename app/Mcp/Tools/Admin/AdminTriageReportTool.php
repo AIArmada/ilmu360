@@ -59,7 +59,7 @@ class AdminTriageReportTool extends AbstractAdminTool
     {
         return [
             'record_key' => $schema->string()->required()->min(1),
-            'action' => $schema->string()->required()->enum(array_keys(ReportTriageWorkflow::availableActions(new Report(['status' => 'open'])))),
+            'action' => $schema->string()->required()->enum(array_keys(ReportTriageWorkflow::availableActions(Report::makeOpen()))),
             'resolution_note' => $schema->string()->nullable(),
         ];
     }

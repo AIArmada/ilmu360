@@ -107,16 +107,18 @@ it('redirects guests to login for member invitation pages', function () {
     $institution = Institution::factory()->create();
     $inviter = User::factory()->create();
 
-    $invitation = MemberInvitation::query()->create([
+    $rawToken = 'member-invite-token';
+    $invitation = new MemberInvitation;
+    $invitation->fill([
         'subject_type' => 'institution',
         'subject_id' => $institution->getKey(),
         'email' => 'invitee@example.com',
         'role' => 'viewer',
-        'token' => 'member-invite-token',
         'invited_by' => $inviter->getKey(),
     ]);
+    $invitation->issue($rawToken)->save();
 
-    $this->get(route('member-invitations.show', ['token' => $invitation->token]))
+    $this->get(route('member-invitations.show', ['token' => $rawToken]))
         ->assertRedirect(route('login'));
 });
 
@@ -129,18 +131,20 @@ it('lets invitees accept member invitations from the invitation page', function 
         'email' => 'invitee@example.com',
     ]);
 
-    $invitation = MemberInvitation::query()->create([
+    $rawToken = 'member-invite-token-accept';
+    $invitation = new MemberInvitation;
+    $invitation->fill([
         'subject_type' => 'institution',
         'subject_id' => $institution->getKey(),
         'email' => $invitee->email,
         'role' => 'admin',
-        'token' => 'member-invite-token-accept',
         'invited_by' => $inviter->getKey(),
     ]);
+    $invitation->issue($rawToken)->save();
 
     Livewire::actingAs($invitee)
         ->test(ShowInvitation::class, [
-            'token' => $invitation->token,
+            'token' => $rawToken,
         ])
         ->call('accept')
         ->assertRedirect(route('institutions.show', $institution));
@@ -159,18 +163,20 @@ it('shows a clear message when the signed-in user has no email for the invitatio
         'email' => null,
     ]);
 
-    $invitation = MemberInvitation::query()->create([
+    $rawToken = 'member-invite-token-no-email';
+    $invitation = new MemberInvitation;
+    $invitation->fill([
         'subject_type' => 'institution',
         'subject_id' => $institution->getKey(),
         'email' => 'invitee@example.com',
         'role' => 'viewer',
-        'token' => 'member-invite-token-no-email',
         'invited_by' => $inviter->getKey(),
     ]);
+    $invitation->issue($rawToken)->save();
 
     Livewire::actingAs($invitee)
         ->test(ShowInvitation::class, [
-            'token' => $invitation->token,
+            'token' => $rawToken,
         ])
         ->assertSee('Add an email address to your account before accepting this invitation.')
         ->call('accept');
@@ -187,18 +193,20 @@ it('shows invalid messaging for protected invitations that should no longer be a
         'email' => 'invitee@example.com',
     ]);
 
-    $invitation = MemberInvitation::query()->create([
+    $rawToken = 'member-invite-token-protected-owner';
+    $invitation = new MemberInvitation;
+    $invitation->fill([
         'subject_type' => 'institution',
         'subject_id' => $institution->getKey(),
         'email' => $invitee->email,
         'role' => 'owner',
-        'token' => 'member-invite-token-protected-owner',
         'invited_by' => $inviter->getKey(),
     ]);
+    $invitation->issue($rawToken)->save();
 
     Livewire::actingAs($invitee)
         ->test(ShowInvitation::class, [
-            'token' => $invitation->token,
+            'token' => $rawToken,
         ])
         ->assertSee('This invitation is no longer valid.')
         ->call('accept');
@@ -215,20 +223,22 @@ it('shows invalid messaging when the invited subject no longer exists', function
         'email' => 'invitee@example.com',
     ]);
 
-    $invitation = MemberInvitation::query()->create([
+    $rawToken = 'member-invite-token-missing-subject';
+    $invitation = new MemberInvitation;
+    $invitation->fill([
         'subject_type' => 'institution',
         'subject_id' => $institution->getKey(),
         'email' => $invitee->email,
         'role' => 'viewer',
-        'token' => 'member-invite-token-missing-subject',
         'invited_by' => $inviter->getKey(),
     ]);
+    $invitation->issue($rawToken)->save();
 
     $institution->delete();
 
     Livewire::actingAs($invitee)
         ->test(ShowInvitation::class, [
-            'token' => $invitation->token,
+            'token' => $rawToken,
         ])
         ->assertSee('This invitation is no longer valid.')
         ->assertSee(route('home'), false);

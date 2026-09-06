@@ -44,7 +44,10 @@ it('registers media conversions for Event model', function () {
     expect($event->hasMedia('poster'))->toBeTrue();
 
     $coverConversions = $coverMedia->getMediaConversionNames();
-    expect($coverConversions)->toContain('thumb');
+    expect($coverConversions)
+        ->toContain('card')
+        ->toContain('banner')
+        ->toContain('thumb');
     $conversions = $media->getMediaConversionNames();
     expect($conversions)->toContain('poster_thumb');
 });

@@ -2164,7 +2164,7 @@ class Create extends Component implements HasActions, HasForms
         ];
 
         if ($duplicateEvent->languages->isNotEmpty()) {
-            $defaults['languages'] = $duplicateEvent->languages->pluck('id')->map(fn (mixed $id): int => (int) $id)->values()->all();
+            $defaults['languages'] = $duplicateEvent->languages->pluck('id')->map(fn (mixed $id): string => (string) $id)->values()->all();
         }
 
         if ($duplicateEvent->starts_at instanceof CarbonInterface) {

@@ -1996,6 +1996,16 @@ class Event extends PackageEvent implements AuditableContract
      */
     public function registerMediaConversions(?Media $media = null): void
     {
+        $this->addMediaConversion('card')
+            ->performOnCollections('cover')
+            ->fit(Fit::Crop, 1280, 720)
+            ->format('webp');
+
+        $this->addMediaConversion('banner')
+            ->performOnCollections('cover')
+            ->fit(Fit::Crop, 1920, 1080)
+            ->format('webp');
+
         $this->addMediaConversion('thumb')
             ->performOnCollections('cover')
             ->fit(Fit::Max, 1920, 1080)

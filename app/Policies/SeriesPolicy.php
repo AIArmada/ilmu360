@@ -39,6 +39,11 @@ class SeriesPolicy
         return $user->hasRole('super_admin');
     }
 
+    public function deleteAny(User $user): bool
+    {
+        return $user->hasRole('super_admin');
+    }
+
     public function restore(User $user, Series $series): bool
     {
         return $user->hasRole('super_admin');

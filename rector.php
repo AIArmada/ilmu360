@@ -27,7 +27,7 @@ return RectorConfig::configure()
     ])
     ->withParallel(timeoutSeconds: 600)
     ->withSets([
-        LaravelSetList::LARAVEL_120,
+        LaravelSetList::LARAVEL_130,
         PestSetList::CODING_STYLE,
     ])
     ->withPreparedSets(codeQuality: true, deadCode: true)

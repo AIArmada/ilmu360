@@ -21,11 +21,11 @@ return new class extends Migration
             // Bank
             $table->string('bank_code')->nullable();        // normalized code
             $table->string('bank_name')->nullable();        // optional display
-            $table->string('account_number')->nullable();
+            $table->text('account_number')->nullable();
 
             // DuitNow
             $table->string('duitnow_type')->nullable();     // mobile|nric|business|passport
-            $table->string('duitnow_value')->nullable();
+            $table->text('duitnow_value')->nullable();
 
             // E-wallet
             $table->string('ewallet_provider')->nullable(); // tng|grab|shopee|boost|etc

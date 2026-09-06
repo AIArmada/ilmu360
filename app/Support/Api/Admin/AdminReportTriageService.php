@@ -99,29 +99,19 @@ final readonly class AdminReportTriageService
                 ? trim($validated['resolution_note'])
                 : null;
 
-            match ($action) {
-                'triage' => $report->forceFill([
-                    'status' => 'triaged',
-                    'handled_by' => $actor->getKey(),
-                    'resolution_note' => $resolutionNote,
-                ])->save(),
-                'resolve' => $report->forceFill([
-                    'status' => 'resolved',
-                    'handled_by' => $actor->getKey(),
-                    'resolution_note' => $resolutionNote,
-                ])->save(),
-                'dismiss' => $report->forceFill([
-                    'status' => 'dismissed',
-                    'handled_by' => $actor->getKey(),
-                    'resolution_note' => $resolutionNote,
-                ])->save(),
-                'reopen' => $report->forceFill([
-                    'status' => 'open',
-                    'handled_by' => null,
-                    'resolution_note' => null,
-                ])->save(),
+            $targetStatus = match ($action) {
+                'triage' => Report::STATUS_TRIAGED,
+                'resolve' => Report::STATUS_RESOLVED,
+                'dismiss' => Report::STATUS_DISMISSED,
+                'reopen' => Report::STATUS_OPEN,
                 default => throw new \InvalidArgumentException('Unsupported report triage action.'),
             };
+
+            $report->fill([
+                'handled_by' => $action === 'reopen' ? null : $actor->getKey(),
+                'resolution_note' => $action === 'reopen' ? null : $resolutionNote,
+            ]);
+            $report->transitionStatus($targetStatus);
 
             $report->loadMissing(['reporter', 'entity']);
 

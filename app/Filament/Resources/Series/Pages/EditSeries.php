@@ -69,7 +69,7 @@ class EditSeries extends EditRecord
     }
 
     /**
-     * @return array<string, list<array{id: int, name: string}>>
+     * @return array<string, list<array{id: string, name: string}>>
      */
     protected function getRelatedAuditSnapshot(Model $record): array
     {

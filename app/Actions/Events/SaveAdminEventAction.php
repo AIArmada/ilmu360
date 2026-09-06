@@ -145,7 +145,7 @@ final readonly class SaveAdminEventAction
                 ->map(strval(...))
                 ->values()
                 ->all(),
-            'languages' => $event->languages->pluck('id')->map(fn (mixed $id): int => (int) $id)->values()->all(),
+            'languages' => $event->languages->pluck('id')->map(fn (mixed $id): string => (string) $id)->values()->all(),
             'domain_tags' => $groupedTerms->get('domain', collect())->pluck('event_term_id')->map(fn (mixed $id): string => (string) $id)->values()->all(),
             'discipline_tags' => $groupedTerms->get('discipline', collect())->pluck('event_term_id')->map(fn (mixed $id): string => (string) $id)->values()->all(),
             'source_tags' => $groupedTerms->get('source', collect())->pluck('event_term_id')->map(fn (mixed $id): string => (string) $id)->values()->all(),

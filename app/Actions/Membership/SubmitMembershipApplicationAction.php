@@ -7,6 +7,7 @@ namespace App\Actions\Membership;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Actions\ApplyForMembershipAction;
 use AIArmada\Membership\Enums\ApplicationStatus;
+use AIArmada\Membership\Enums\InvitationStatus;
 use App\Models\Institution;
 use App\Models\MemberInvitation;
 use App\Models\MembershipApplication;
@@ -81,8 +82,7 @@ final readonly class SubmitMembershipApplicationAction
             ->where('subject_type', $subjectType)
             ->where('subject_id', $subjectId)
             ->where('email', mb_strtolower(trim($email)))
-            ->whereNull('accepted_at')
-            ->whereNull('revoked_at')
+            ->where('status', InvitationStatus::Pending->value)
             ->where(function ($query): void {
                 $query
                     ->whereNull('expires_at')

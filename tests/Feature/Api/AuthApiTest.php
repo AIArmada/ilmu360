@@ -304,11 +304,12 @@ it('logs in through google api token exchange and returns a bearer token', funct
     $provider = Mockery::mock();
     $provider->shouldReceive('stateless')->once()->andReturnSelf();
     $provider->shouldReceive('userFromToken')->once()->with('google-access-token')->andReturn(
-        (new SocialiteUser)->map([
+        SocialiteUser::fake([
             'id' => 'google-api-123',
             'name' => 'Mobile Google User',
             'email' => 'google-mobile@example.test',
             'avatar' => 'https://example.com/google-mobile.jpg',
+            'email_verified' => true,
         ])
     );
 
@@ -341,11 +342,12 @@ it('links an existing user during google api token exchange', function () {
     $provider = Mockery::mock();
     $provider->shouldReceive('stateless')->once()->andReturnSelf();
     $provider->shouldReceive('userFromToken')->once()->with('google-access-token')->andReturn(
-        (new SocialiteUser)->map([
+        SocialiteUser::fake([
             'id' => 'google-api-456',
             'name' => 'Existing Google User',
             'email' => 'existing-google@example.test',
             'avatar' => 'https://example.com/existing-google.jpg',
+            'email_verified' => true,
         ])
     );
 

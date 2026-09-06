@@ -4,6 +4,7 @@ namespace App\Filament\RelationManagers;
 
 use AIArmada\Membership\Actions\InviteMemberAction;
 use AIArmada\Membership\Actions\RevokeInvitationAction;
+use AIArmada\Membership\Enums\InvitationStatus;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Enums\MemberSubjectType;
 use App\Models\Event;
@@ -107,7 +108,9 @@ abstract class MemberInvitationsRelationManager extends RelationManager
                 Action::make('revokeInvitation')
                     ->label('Revoke')
                     ->color('danger')
-                    ->hidden(fn (MemberInvitation $record): bool => $record->isAccepted() || $record->isRevoked())
+                    ->hidden(fn (MemberInvitation $record): bool => $record->isAccepted()
+                        || $record->isRevoked()
+                        || $record->status === InvitationStatus::Expired)
                     ->requiresConfirmation()
                     ->action(function (MemberInvitation $record): void {
                         /** @var User $user */

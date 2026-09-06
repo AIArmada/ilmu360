@@ -43,7 +43,6 @@ final readonly class SaveReportAction
             'description' => array_key_exists('description', $data)
                 ? $this->normalizeOptionalString($data['description'])
                 : $report->description,
-            'status' => $status,
             'reporter_id' => array_key_exists('reporter_id', $data)
                 ? $this->normalizeOptionalUserKey($data['reporter_id'], 'reporter_id')
                 : ($creating ? null : $report->reporter_id),
@@ -55,9 +54,20 @@ final readonly class SaveReportAction
                 : $report->resolution_note,
         ]);
 
-        $this->applyLifecycleTimestamps($report, $status, $previousStatus, $creating);
+        if ($creating) {
+            if ($status !== Report::STATUS_OPEN) {
+                throw ValidationException::withMessages([
+                    'status' => __('A new report must start in the open status.'),
+                ]);
+            }
 
-        $report->save();
+            $report->initializeStatus($status);
+            $report->save();
+        } elseif ($previousStatus !== $status) {
+            $report->transitionStatus($status);
+        } else {
+            $report->save();
+        }
 
         if (($data['clear_evidence'] ?? false) === true) {
             $this->mediaSyncService->clearCollection($report, 'evidence');
@@ -118,38 +128,18 @@ final readonly class SaveReportAction
     {
         $status = $this->normalizeRequiredString($value, 'status');
 
-        if (! in_array($status, ['open', 'triaged', 'resolved', 'dismissed'], true)) {
+        if (! in_array($status, [
+            Report::STATUS_OPEN,
+            Report::STATUS_TRIAGED,
+            Report::STATUS_RESOLVED,
+            Report::STATUS_DISMISSED,
+        ], true)) {
             throw ValidationException::withMessages([
                 'status' => __('The selected report status is invalid.'),
             ]);
         }
 
         return $status;
-    }
-
-    private function applyLifecycleTimestamps(
-        Report $report,
-        string $status,
-        ?string $previousStatus,
-        bool $creating,
-    ): void {
-        $now = now();
-
-        if ($creating && blank($report->reported_at)) {
-            $report->reported_at = $now;
-        }
-
-        if ($previousStatus === $status && ! $creating) {
-            return;
-        }
-
-        match ($status) {
-            'open' => $report->reported_at ??= $now,
-            'triaged' => $report->reviewed_at = $now,
-            'resolved' => $report->resolved_at = $now,
-            'dismissed' => $report->rejected_at = $now,
-            default => null,
-        };
     }
 
     private function normalizeOptionalUserKey(mixed $value, string $field): ?string

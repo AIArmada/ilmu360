@@ -9,6 +9,7 @@ use AIArmada\FilamentEvents\Resources\EventResource;
 use AIArmada\Membership\Actions\ChangeMemberRoleAction;
 use AIArmada\Membership\Actions\RemoveMemberAction;
 use AIArmada\Membership\Actions\RevokeInvitationAction;
+use AIArmada\Membership\Enums\InvitationStatus;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Organizations\Actions\ArchiveOrganizationAction;
 use AIArmada\Organizations\Actions\MakeOrganizationPrivateAction;
@@ -86,8 +87,7 @@ final class Workspace extends Component
 
         $pendingInvitationExists = $this->invitationQuery($organization)
             ->where('email', $email)
-            ->whereNull('accepted_at')
-            ->whereNull('revoked_at')
+            ->where('status', InvitationStatus::Pending->value)
             ->where(function (Builder $query): void {
                 $query->whereNull('expires_at')->orWhere('expires_at', '>', now());
             })

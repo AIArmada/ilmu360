@@ -5,6 +5,7 @@ use App\Models\DonationChannel;
 use App\Models\Institution;
 use App\Models\Person;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 uses(RefreshDatabase::class);
@@ -32,6 +33,16 @@ it('creates a bank account donation channel', function () {
         ->and($channel->duitnow_type)->toBeNull()
         ->and($channel->ewallet_provider)->toBeNull()
         ->and($channel->status)->toBe('pending');
+
+    $storedAccountNumber = DB::table('donation_channels')
+        ->where('id', $channel->getKey())
+        ->value('account_number');
+    $reloaded = DonationChannel::query()->findOrFail($channel->getKey());
+
+    expect($storedAccountNumber)->not->toBe('123456789')
+        ->and($reloaded->account_number)->toBe('123456789')
+        ->and($reloaded->toArray())->not->toHaveKey('account_number')
+        ->and($reloaded->toArray())->not->toHaveKey('duitnow_value');
 });
 
 it('creates a duitnow donation channel', function () {

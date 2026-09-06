@@ -23,9 +23,9 @@ trait HasLanguages
     /**
      * Sync the languages for the model.
      *
-     * @param  array<int|string>|int|string  $languages
+     * @param  array<int, string>|string  $languages
      */
-    public function syncLanguages(array|int|string $languages): void
+    public function syncLanguages(array|string $languages): void
     {
         $this->auditSync('languages', $languages, true, ['languages.id', 'languages.name']);
     }

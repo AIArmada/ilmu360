@@ -91,15 +91,15 @@ it('rejects a claim while a matching invitation is still pending', function () {
     $claimant = User::factory()->create(['email' => 'invitee@example.com']);
     $inviter = User::factory()->create();
 
-    MemberInvitation::query()->create([
+    $invitation = new MemberInvitation;
+    $invitation->fill([
         'subject_type' => MemberSubjectType::Institution,
         'subject_id' => $institution->getKey(),
         'email' => $claimant->email,
         'role' => MemberRole::Editor->spatieRoleName(),
-        'token' => 'pending-invitation-token',
         'invited_by' => $inviter->getKey(),
-        'expires_at' => now()->addDay(),
     ]);
+    $invitation->issue('pending-invitation-token', now()->addDay())->save();
 
     expect(fn () => app(SubmitMembershipApplicationAction::class)->handle(
         $institution,

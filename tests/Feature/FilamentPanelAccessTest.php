@@ -78,6 +78,17 @@ it('denies admin panel access for users with scoped roles only', function () {
     expect($user->canAccessPanel(Panel::make()->id('admin')))->toBeFalse();
 });
 
+it('denies access to unknown panels by default', function () {
+    $user = User::factory()->create();
+
+    Authz::withScope(null, function () use ($user): void {
+        Role::findOrCreate('institution-admin', 'web');
+        $user->syncRoles(['institution-admin']);
+    }, $user);
+
+    expect($user->canAccessPanel(Panel::make()->id('unknown')))->toBeFalse();
+});
+
 it('allows admin panel access when user has a global role assignment', function () {
     $user = User::factory()->create();
 

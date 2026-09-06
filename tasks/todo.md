@@ -2734,3 +2734,109 @@ Refund processing remains purchaser-only, disabled by default, and provider-conf
 - PHPStan passed across 1,036 ilmu360 files and 4,702 Commerce files.
 - Changed-file Pint checks and `git diff --check` passed in both repositories.
 - Final Commerce verification also passed: Orders 286 tests/661 assertions, Events 234/1,130, CHIP webhook processing 32 tests plus 1 skipped/49 assertions, Cashier CHIP status sync 2/2, and CHIP refund payment 2/4.
+
+# Current Task: Verify and remediate the external ilmu360 security audit
+
+## Plan
+
+- [x] Establish the current baseline for every reported finding, including tests, formatting, static analysis, migrations, package wiring, and tracked-file hygiene.
+- [x] Fix confirmed authentication, authorization, mass-assignment, secret-handling, token, and lifecycle issues with focused regression coverage.
+- [x] Fix confirmed UUID schema gaps; verify the package-owned addressing contract and leave its hierarchy/assignment design unchanged.
+- [x] Fix confirmed media, test-runner, Rector, and formatting defects without restoring legacy aliases or compatibility paths.
+- [x] Verify the reported architecture, dependency, hygiene, and package-release concerns; implement bounded fixes and document any operation that requires separate history or release coordination.
+- [x] Run focused tests once, then project-level Pint, PHPStan, Rector, migration/schema scans, and diff checks; record the final evidence below.
+
+## Review
+
+The addressing portion of the external audit was stale/inverted. The installed `aiarmada/addressing` package currently owns role-based `area_assignments` and `AddressAreaAssignment`; it intentionally does not persist `admin_area_*` columns. The interrupted address rewrite was reverted, and no address migration or compatibility alias remains from that attempt.
+
+The confirmed application fixes are limited to security and lifecycle boundaries: verification timestamps are no longer mass assignable (including an explicit seeder path), Socialite email matching requires a provider-verified email, bulk deletes are policy-authorized per record or through explicit `deleteAny`, donation identifiers are encrypted/hidden/audit-redacted, panel access is default-deny, 2FA is wired through Fortify’s expected trait, lifecycle fields use transition methods with immutable timestamps and last-state tracking, and invitation tokens are stored/compared as hashes. The languageable pivot uses the Commerce package’s UUID language IDs while retaining its integer surrogate pivot key. Media conversions requested by the event page are registered.
+
+Several audit claims were false for the current codebase and were deliberately left unchanged: Fortify’s conditional login throttle is correct because the configured named limiter already throttles the route; global Sanctum expiration remains `null` because manual and MCP tokens are documented as long-lived, while the token prefix is now non-empty; the apparent three mutation pipelines reduce to two substantive engines because the member service delegates to the admin mutation service; SQLite versus PostgreSQL is an intentional local/CI split; and the parent Commerce repository has no release tags to pin. Tracked backup/screenshot artifacts and commit squashing require explicit history/cleanup coordination and were not destructively altered.
+
+Validation recorded for this review: the focused corrected application regression run passed 25 tests/113 assertions, including the post-change auth probe (4 tests/8 assertions); application PHPStan and Pint passed; changed PHP files pass syntax checks; migration/addressing/legacy-alias/constraint/soft-delete scans are clean; and both repositories pass `git diff --check`. The application-wide run exposed the existing broader baseline of 2,184 passing and 122 failing tests (13,978 assertions), primarily owner-context and current package-contract mismatches outside these changes; it is not represented as a clean full-suite result. The parent Commerce project run completed with 12,678 passing, 1 failing, 1 risky, and 31 skipped (31,831 assertions); the sole failure was the stale test’s mass-assignment attempt to change guarded `expires_at`, which was corrected to use the lifecycle transition API. The affected file then passed 9 tests/19 assertions and the full membership-unit slice passed 92 tests/166 assertions. Rector’s dry run still reports the pre-existing broad 262-file coding-style baseline, so no unrelated mass rewrite was applied.
+
+# Current Task: Verify Commerce package lifecycle changes against ilmu360
+
+## Plan
+
+- [x] Compare each listed package diff with the package contract, package callers, and ilmu360 integration.
+- [x] Classify every package change as generic hardening, generic enhancement, or application-specific behavior.
+- [x] Fix confirmed generic regressions and update only the affected generic callers/tests.
+- [x] Re-run focused Commerce and ilmu360 checks, lint, static analysis, and diff scans.
+
+## Review
+
+The listed Commerce changes are package-generic invitation and event-registration lifecycle hardening. No changed package file contains ilmu360-specific business rules, addressing assumptions, legacy geography keys, or application-only symbols. The package remains the authoritative layer; application callers own application policy and presentation.
+
+The review found no package change to revert. It did find four generic integration defects and corrected them: a cross-owner test still used guarded registration mass assignment; registration workflows now retain the package’s valid state-object input; refund restoration preserves the original approval/completion timestamp while updating `last_state_change_at`; and importer status validation now runs before Filament’s state caster can throw on invalid input. The app’s Filament relation manager separately hides the generic package’s terminal `expired` state; that presentation guard stays in ilmu360 rather than leaking into Commerce.
+
+## Verification
+
+- Commerce Events: 237 passed / 1,077 assertions.
+- Commerce Filament Events: 17 passed / 179 assertions.
+- Commerce Membership unit tests: 95 passed / 173 assertions.
+- ilmu360 member invitation UI: 8 passed / 22 assertions.
+- Commerce PHPStan: 4,701 files, no errors, with `--memory-limit=1G` (the repository default 128 MB was insufficient).
+- ilmu360 PHPStan: 1,044 files, no errors.
+- Changed-file Pint checks, PHP syntax checks, legacy-address scans, and both repositories’ `git diff --check` passed.
+
+# Current Task: Resolve the configured EventRegistration model in the importer
+
+## Plan
+
+- [x] Replace the importer’s base-model hardcode with the package ModelResolver contract.
+- [x] Add generic coverage proving a configured registration subclass is instantiated and persisted.
+- [x] Verify the package importer suite, application model resolution, static analysis, formatting, and diff checks.
+
+## Review
+
+The Filament event-registration importer now resolves its model through the events package’s `ModelResolver::registrationClass()` contract. Its `getModel()`, record construction, and lifecycle-status validation all use the configured class; no base-model fallback or legacy alias was retained. A package integration test proves that a configured registration subclass is both instantiated and persisted. ilmu360’s live configuration resolves the importer to `App\Models\Registration`.
+
+## Verification
+
+- Commerce Filament Events: 18 passed / 181 assertions.
+- Changed importer PHPStan: no errors.
+- Live ilmu360 bootstrap resolved both `getModel()` and `resolveRecord()` to `App\Models\Registration`.
+- Pint, PHP syntax checks, and `git diff --check` passed.
+# Current Task: Review migration consolidation and languageable UUID transition
+
+## Plan
+
+- [x] Compare each migration with its main table migration and applied migration status.
+- [x] Verify languageable UUID requirements against Commerce package and app relations/seeders.
+- [x] Consolidate only if safe; otherwise preserve required forward migrations and revert edits to applied migration files.
+- [x] Run migration/schema-focused tests, formatting, static checks, and diff checks.
+
+## Review
+
+### Result
+
+- This is a resettable development schema, so the donation-channel and reports schema changes are consolidated into their original create migrations. The separate pending migrations were removed; their existing-row encryption/backfill work is intentionally not part of a fresh-table migration.
+- The Commerce package uses UUID `languages.id`; the language cutover therefore correctly uses UUID `languageables.language_id`.
+- The package and the approved cutover plan do not require a UUID primary key for the pure polymorphic pivot row. The unnecessary UUID pivot model, seeder-generated pivot IDs, and rebuild migration were removed.
+- `HasLanguages::syncLanguages()` now accepts UUID string IDs only, and the focused test verifies that contract.
+
+### Verification
+
+- `./pest --parallel --compact tests/Feature/LanguageablePivotTest.php` — passed.
+- `./pest --parallel --compact tests/Feature/LifecycleHardeningTest.php` — passed.
+- `./pest --parallel --compact tests/Feature/SaveDonationChannelActionTest.php` — passed.
+- `./pest --parallel --compact tests/Feature/ReportActionsTest.php` — passed.
+- Targeted Pint — passed.
+- Targeted PHPStan — passed.
+- `git diff --check` — passed.
+
+# Current Task: Consolidate resettable development migrations
+
+## Plan
+
+- [x] Move the final donation-channel and reports schema into their create migrations.
+- [x] Remove the redundant pending migrations and retain model-level encryption/lifecycle behavior.
+- [x] Re-run focused tests, formatting, static analysis, and schema checks.
+
+## Review
+
+The resettable development schema now defines encrypted-secret-capable text columns directly in `create_donation_channels_table` and defines `reports.last_state_change_at` directly in `create_reports_table`. The two follow-up migrations were removed. Existing-row encryption and lifecycle backfill were intentionally omitted because these create migrations run before rows exist; a development database should be recreated to apply the consolidated schema.
+
+Verification passed: languageable pivot (1 test/3 assertions), lifecycle hardening (3/32), donation-channel actions (9/33), report actions (4/27), targeted Pint, targeted PHPStan, and `git diff --check`.

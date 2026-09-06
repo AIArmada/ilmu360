@@ -299,7 +299,7 @@ class AdminUpdateEventTool extends AbstractAdminWriteTool
             'space_key' => $schema->string()->nullable()->description('Space route key (slug preferred, UUID allowed).'),
             'person_keys' => $schema->array()->items($schema->string())->nullable()->description('MCP-only route-key alias for the underlying persons UUID array. Omit or pass null to preserve currently attached persons. Pass [] to detach all persons. Pass a non-empty array of person slugs/UUIDs to replace all attached persons.'),
             'reference_keys' => $schema->array()->items($schema->string())->nullable()->description('MCP-only route-key alias for the underlying references UUID array. Omit or pass null to preserve currently linked references. Pass [] to detach all references. Pass a non-empty array of reference slugs/UUIDs to replace all linked references.'),
-            'languages' => $schema->array()->items($schema->integer())->nullable()->description('Array of language record IDs (integers).'),
+            'languages' => $schema->array()->items($schema->string())->nullable()->description('Array of language record UUIDs.'),
             'domain_tags' => $schema->array()->items($schema->string())->nullable()->description('Array of domain/category tag UUIDs (max 3).'),
             'discipline_tags' => $schema->array()->items($schema->string())->nullable()->description('Array of discipline/field-of-study tag UUIDs.'),
             'source_tags' => $schema->array()->items($schema->string())->nullable()->description('Array of source tag UUIDs.'),

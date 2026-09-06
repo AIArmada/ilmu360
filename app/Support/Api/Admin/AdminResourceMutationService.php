@@ -711,7 +711,7 @@ class AdminResourceMutationService
                 'description' => $record->description,
                 'visibility' => (string) $record->visibility,
                 'status' => (string) $record->status,
-                'languages' => $record->languages()->pluck('languages.id')->map(fn (mixed $id): int => (int) $id)->values()->all(),
+                'languages' => $record->languages()->pluck('languages.id')->map(fn (mixed $id): string => (string) $id)->values()->all(),
                 'clear_cover' => false,
                 'clear_gallery' => false,
             ];
@@ -1298,7 +1298,7 @@ class AdminResourceMutationService
             $this->field('name', 'string', required: true, maxLength: 255),
             $this->field('gender', 'string', required: true, default: Gender::Male->value, allowedValues: $this->enumValues(Gender::class)),
             $this->field('bio', 'rich_text', required: false),
-            $this->field('language_ids', 'array<int>', required: false, meta: [
+            $this->field('language_ids', 'array<string>', required: false, meta: [
                 'collection_semantics' => $this->replaceCollectionSemantics(
                     submittedArray: 'replace_relation_sync',
                     itemIdsPreserved: null,
@@ -1410,7 +1410,7 @@ class AdminResourceMutationService
             $this->field('description', 'string', required: false, maxLength: 5000, meta: $this->trimmedStringMutationMeta()),
             $this->field('visibility', 'string', required: true, default: 'public', allowedValues: ['public', 'unlisted', 'private']),
             $this->field('status', 'string', required: false, default: 'active', allowedValues: ['active', 'inactive']),
-            $this->field('languages', 'array<int>', required: false, meta: $this->relationCollectionMeta(
+            $this->field('languages', 'array<string>', required: false, meta: $this->relationCollectionMeta(
                 'languages',
                 submittedArray: 'replace_relation_sync',
                 safeClientStrategy: 'omit_field_to_preserve_or_send_full_relation_ids',
@@ -1569,7 +1569,7 @@ class AdminResourceMutationService
             ]),
             $this->field('children_allowed', 'boolean', required: false, default: false),
             $this->field('is_muslim_only', 'boolean', required: false, default: false),
-            $this->field('languages', 'array<int>', required: false, meta: $this->relationCollectionMeta(
+            $this->field('languages', 'array<string>', required: false, meta: $this->relationCollectionMeta(
                 'languages',
                 submittedArray: 'replace_relation_sync',
                 safeClientStrategy: 'omit_field_to_preserve_or_send_full_relation_ids',

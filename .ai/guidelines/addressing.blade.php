@@ -1,62 +1,49 @@
 # Addressing & Geography Guidelines
 
-This application uses `aiarmada/addressing` natively. Do not invent alias columns, dual storage, or BC shims.
+This application uses `aiarmada/addressing` natively. Treat the package's current migrations, models, country profiles, and actions as canonical. The package stores direct country/state/city IDs and role-based address-area assignments; do not invent fixed admin-area columns, aliases, or backward-compatibility shims.
 
-## Canonical Address columns (persist these)
+## Canonical address data
 
-| Column | Model / meaning (Malaysia product) |
-|--------|--------------------------------------|
-| `country_id` | `AddressCountry` (UUID) |
-| `state_id` | `State` table (UUID) — negeri / federal territory |
-| `city_id` | `City` table (UUID) — major city under state |
-| `admin_area_1_id` | `AddressArea` — **district** (daerah) |
-| `admin_area_2_id` | `AddressArea` — **subdistrict** (mukim / local area) |
-| `admin_area_3_id` | Always **null** on app writes |
-| `admin_area_4_id` | Always **null** on app writes |
+| Data | Storage |
+|------|---------|
+| Country | `addresses.country_id` (UUID) |
+| State or federal territory | `addresses.state_id` (UUID) |
+| City | `addresses.city_id` (UUID, optional) |
+| Administrative and postal areas | `address_area_assignments` rows (`address_id`, `address_area_id`, `role`, `is_primary`, `metadata`) |
 
-Also store denormalized text when useful: `line1`, `line2`, `postcode`, `state`, `city`, `country`, `country_code`, geo/provider/navigation fields.
+Use `Address::areaAssignments()`, `AddressAreaAssignment`, `AddressLocationData::areaAssignments`, `SyncAddressAreaAssignmentsAction`, and the configured `CountryAddressProfile`. Address-area roles and hierarchy levels are country-profile data; never assume that one country maps to the same fixed columns as another.
 
-## Package dual model (do not confuse them)
+For Malaysia, the profile defines roles such as `administrative_division`, `administrative_district`, `administrative_subdivision`, and `postal_locality`. The selected state remains `state_id`; an address-area assignment is not a substitute for the state relation.
 
-1. **First-class tables**: `states` + `cities` — use for `state_id` / `city_id`. Seed MY via package `MalaysiaGeographySeeder`.
-2. **Generic tree**: `address_areas` (`type`, `level`, `parent_id`) — import hierarchy for districts/subdistricts (and optional level-1 state *nodes* only as parents of districts). Level-1 area rows are **not** written to `admin_area_*` and are **not** a substitute for `states.state_id`.
+Denormalized text and provider/navigation fields may also be stored when useful: `line1`, `line2`, `postcode`, `state`, `city`, `country`, `country_code`, and the package's geo/provider fields.
 
-## Forbidden (zero legacy footprint)
+## Form and validation
 
-- Do **not** use removed package leftovers: `district_id`, `subdistrict_id`, `district()`, `subdistrict()`, `stateArea()`, `districtArea()`, `subdistrictArea()`.
-- Do **not** invent form-only aliases (`state_area_id` is forbidden in app code).
-- Do **not** store state UUID in `admin_area_1_id`.
-- Do **not** store subdistrict in `admin_area_3_id` (always null).
-- Do **not** use integer geography tables or integer FKs for country/state/city/district.
-- Do **not** remap legacy keys in app or tests — fix callers instead.
-- Do **not** reintroduce dual API keys (`district_id` / `subdistrict_id` as aliases).
+Use the package's country → state → optional city flow, followed by the area roles defined by the selected country's profile. Resolve options through the package profile/provider APIs and persist them through `SyncAddressAreaAssignmentsAction`; do not duplicate hierarchy rules in application callers.
 
-## Form cascade (MY)
+## Forbidden legacy keys
 
-```
-country_id → state_id → city_id (optional)
-          ↘ admin_area_1_id (district; hidden for federal territories)
-            → admin_area_2_id (subdistrict / local area)
-```
+- Fixed `admin_area_1_id` through `admin_area_4_id` columns.
+- Form-only aliases such as `state_area_id`.
+- Removed geography keys or relations such as `district_id`, `subdistrict_id`, `district()`, `subdistrict()`, `stateArea()`, `districtArea()`, and `subdistrictArea()`.
+- Integer geography tables or integer geography foreign keys.
+- Dual API keys or caller-side remapping of obsolete keys.
 
-- District options: AddressArea level 2 whose parent is the AddressArea level-1 node that matches the selected `State` (by name/label/code within country).
-- Subdistrict options: AddressArea children of the selected district; for federal territories, children of the matching level-1 area under the state.
-- Federal territories (KL, Putrajaya, Labuan): no district field; `admin_area_1_id` null; local areas in `admin_area_2_id`.
+`area_assignments`, `areaAssignments`, `AddressAreaAssignment`, and configured role names are current package APIs, not legacy consumers.
 
-## Seed / import
+## Seed and import
 
-- Countries: `php artisan address:seed-countries` / package seeder.
-- MY states + cities: `AIArmada\Addressing\Database\Seeders\MalaysiaGeographySeeder`.
-- Districts/subdistricts: import into `address_areas` (CSV / `ImportAddressAreasAction` / app poskod seeders). Keep level-1 state *area nodes* only as hierarchy parents for districts when needed.
+- Countries: `php artisan address:seed-countries` or the package country seeder.
+- Malaysia states and cities: `AIArmada\Addressing\Database\Seeders\MalaysiaGeographySeeder`.
+- Administrative and postal areas: import `address_areas` through the package/import actions and sync role-based assignments to addresses.
 
-## Snapshots & DTO
+## Snapshots
 
-- `AddressData` is flat text + geo/provider — not a substitute for FK columns on `addresses`.
-- Historical moments use `AddressSnapshot` or event location snapshots — do not point live mutable addresses from historical records.
+Historical moments use `AddressSnapshot` or event-location snapshots; do not point historical records at mutable live address state.
 
 ## Verification
 
 ```bash
-# Must be empty (except this guideline / intentional null writes of admin_area_3/4):
-rg -n "state_area_id|\\bdistrict_id\\b|\\bsubdistrict_id\\b|stateArea\\(|districtArea\\(|subdistrictArea\\(" app/ tests/ database/ resources/ --glob '!**/storage/**'
+# Application code must not use removed fixed-column or legacy geography APIs.
+rg -n "admin_area_[1-4]_id|state_area_id|\\bdistrict_id\\b|\\bsubdistrict_id\\b|stateArea\\(|districtArea\\(|subdistrictArea\\(" app/ tests/ database/ resources/ --glob '!**/storage/**'
 ```

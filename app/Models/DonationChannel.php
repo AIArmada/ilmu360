@@ -30,6 +30,14 @@ class DonationChannel extends Model implements AuditableContract, HasMedia
     /**
      * @var list<string>
      */
+    protected $hidden = [
+        'account_number',
+        'duitnow_value',
+    ];
+
+    /**
+     * @var list<string>
+     */
     protected $fillable = [
         'donatable_type',
         'donatable_id',
@@ -58,10 +66,12 @@ class DonationChannel extends Model implements AuditableContract, HasMedia
     protected function casts(): array
     {
         return [
+            'account_number' => 'encrypted',
             'verified_at' => 'immutable_datetime',
             'rejected_at' => 'immutable_datetime',
             'published_at' => 'immutable_datetime',
             'last_state_change_at' => 'immutable_datetime',
+            'duitnow_value' => 'encrypted',
             'is_default' => 'boolean',
         ];
     }

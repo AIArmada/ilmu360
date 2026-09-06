@@ -27,4 +27,7 @@ frankenphp
 frankenphp-worker.php
 Homestead.json
 Homestead.yaml
-Thumbs.dbbackup-*-resource/
+Thumbs.db
+backup-*-resource/
+screenshots/
+tasks/*.png

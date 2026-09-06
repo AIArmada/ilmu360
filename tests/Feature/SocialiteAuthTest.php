@@ -97,11 +97,12 @@ it('redirects to the intended page after registration', function () {
 it('redirects to the intended page after google sign-in', function () {
     $target = route('persons.index', absolute: false);
 
-    Socialite::fake('google', (new SocialiteUser)->map([
+    Socialite::fake('google', SocialiteUser::fake([
         'id' => 'google-intended-123',
         'name' => 'Jane Intended',
         'email' => 'intended@example.com',
         'avatar' => 'https://example.com/intended.jpg',
+        'email_verified' => true,
     ]));
 
     $this->get(route('socialite.redirect', ['provider' => 'google', 'redirect' => $target]))
@@ -113,11 +114,12 @@ it('redirects to the intended page after google sign-in', function () {
 });
 
 it('creates a user and social account on callback', function () {
-    Socialite::fake('google', (new SocialiteUser)->map([
+    Socialite::fake('google', SocialiteUser::fake([
         'id' => 'google-123',
         'name' => 'Jane Doe',
         'email' => 'jane@example.com',
         'avatar' => 'https://example.com/avatar.jpg',
+        'email_verified' => true,
     ]));
 
     $response = $this->get(route('socialite.callback', ['provider' => 'google']));
@@ -149,11 +151,12 @@ it('links a social account to an existing user', function () {
         'email_verified_at' => null,
     ]);
 
-    Socialite::fake('google', (new SocialiteUser)->map([
+    Socialite::fake('google', SocialiteUser::fake([
         'id' => 'google-456',
         'name' => 'Existing User',
         'email' => 'existing@example.com',
         'avatar' => 'https://example.com/existing.jpg',
+        'email_verified' => true,
     ]));
 
     $response = $this->get(route('socialite.callback', ['provider' => 'google']));
@@ -188,11 +191,12 @@ it('verifies an existing user when signing in through an existing google social 
         'avatar_url' => 'https://example.com/old-avatar.jpg',
     ]);
 
-    Socialite::fake('google', (new SocialiteUser)->map([
+    Socialite::fake('google', SocialiteUser::fake([
         'id' => 'google-789',
         'name' => 'Linked User',
         'email' => 'linked@example.com',
         'avatar' => 'https://example.com/new-avatar.jpg',
+        'email_verified' => true,
     ]));
 
     $response = $this->get(route('socialite.callback', ['provider' => 'google']));

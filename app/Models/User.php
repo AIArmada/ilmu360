@@ -43,6 +43,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 use Spatie\DeletedModels\Models\Concerns\KeepsDeletedModels;
@@ -52,7 +53,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable implements AuditableContract, FilamentUser, HasLocalePreference, MustVerifyEmailContract
 {
     /** @use HasFactory<UserFactory> */
-    use AuditsModelChanges, CanBookmark, CanRespond, HasApiTokens, HasFactory, HasRoles, HasUserRestoration, HasUuids, KeepsDeletedModels, MustVerifyEmail {
+    use AuditsModelChanges, CanBookmark, CanRespond, HasApiTokens, HasFactory, HasRoles, HasUserRestoration, HasUuids, KeepsDeletedModels, MustVerifyEmail, TwoFactorAuthenticatable {
         HasUserRestoration::attributesToKeep insteadof KeepsDeletedModels;
         HasUserRestoration::afterRestoringModel insteadof KeepsDeletedModels;
         KeepsDeletedModels::attributesToKeep as protected deletedModelsAttributesToKeep;
@@ -105,8 +106,6 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
         'daily_prayer_institution_id',
         'friday_prayer_institution_id',
         'password',
-        'email_verified_at',
-        'phone_verified_at',
     ];
 
     /**
@@ -117,6 +116,8 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
     protected $hidden = [
         'password',
         'remember_token',
+        'two_factor_secret',
+        'two_factor_recovery_codes',
     ];
 
     /**
@@ -128,8 +129,9 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
-            'phone_verified_at' => 'datetime',
+            'email_verified_at' => 'immutable_datetime',
+            'phone_verified_at' => 'immutable_datetime',
+            'two_factor_confirmed_at' => 'immutable_datetime',
             'date_of_birth' => 'date',
             'password' => 'hashed',
         ];
@@ -670,7 +672,7 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
             return $this->hasApplicationAdminAccess();
         }
 
-        return $this->roles()->exists();
+        return false;
     }
 
     public function hasAhliPanelAccess(): bool

@@ -29,18 +29,19 @@ final readonly class InviteSubjectMember
         $memberRole = MemberRole::from($role);
 
         $rawToken = Str::random(64);
+        $expiresAt ??= now()->addDays(
+            (int) config('membership.invitations.default_expiry_days', 14)
+        );
 
-        $invitation = MemberInvitation::query()->create([
+        $invitation = new MemberInvitation;
+        $invitation->fill([
             'subject_type' => $subject->getMorphClass(),
             'subject_id' => $subject->getKey(),
             'email' => mb_strtolower($email),
             'role' => $memberRole->spatieRoleName(),
-            'token' => MemberInvitation::tokenForStorage($rawToken),
             'invited_by' => $inviter->getKey(),
-            'expires_at' => $expiresAt ?? now()->addDays(
-                (int) config('membership.invitations.default_expiry_days', 14)
-            ),
         ]);
+        $invitation->issue($rawToken, $expiresAt)->save();
 
         $acceptUrl = route('member-invitations.show', ['token' => $rawToken]);
 

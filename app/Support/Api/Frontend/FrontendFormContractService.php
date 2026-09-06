@@ -14,6 +14,7 @@ use App\Enums\EventVisibility;
 use App\Enums\InstitutionType;
 use App\Enums\MemberSubjectType;
 use App\Enums\RegistrationScope;
+use App\Models\Language;
 use App\Models\User;
 use App\Services\GitHub\GitHubIssueReporter;
 use App\Services\ShareTrackingService;
@@ -319,6 +320,8 @@ class FrontendFormContractService
      */
     public function submitEvent(?User $user): array
     {
+        $defaultLanguageId = Language::query()->where('code', 'ms')->value('id');
+        $defaultLanguages = $defaultLanguageId === null ? [] : [(string) $defaultLanguageId];
         $submissionCountryIds = AddressCountry::query()
             ->orderBy('name')
             ->pluck('id')
@@ -339,7 +342,7 @@ class FrontendFormContractService
                 'children_allowed' => true,
                 'gender' => EventGenderRestriction::All->value,
                 'age_group' => [EventAgeGroup::AllAges->value],
-                'languages' => [101],
+                'languages' => $defaultLanguages,
                 'event_format' => EventFormat::Physical->value,
                 'visibility' => EventVisibility::Public->value,
                 'primary_organizer_id' => null,
@@ -368,7 +371,7 @@ class FrontendFormContractService
                 $this->field('age_group', 'array<string>', required: true, default: [EventAgeGroup::AllAges->value], allowedValues: $this->enumValues(EventAgeGroup::class)),
                 $this->field('children_allowed', 'boolean', required: false, default: true),
                 $this->field('is_muslim_only', 'boolean', required: false, default: false),
-                $this->field('languages', 'array<int>', required: true, default: [101], catalog: route('api.client.catalogs.languages')),
+                $this->field('languages', 'array<string>', required: true, default: $defaultLanguages, catalog: route('api.client.catalogs.languages')),
                 $this->field('domain_tags', 'array<string>', required: false, catalog: route('api.client.catalogs.tags', ['type' => EventTaxonomyCode::Domain->value])),
                 $this->field('discipline_tags', 'array<string>', required: false, catalog: route('api.client.catalogs.tags', ['type' => EventTaxonomyCode::Discipline->value])),
                 $this->field('source_tags', 'array<string>', required: false, catalog: route('api.client.catalogs.tags', ['type' => EventTaxonomyCode::Source->value])),
@@ -495,7 +498,7 @@ class FrontendFormContractService
                 $this->field('address', 'object', required: true),
                 $this->field('address.country_id', 'uuid', required: true, catalog: route('api.client.catalogs.countries')),
                 $this->field('address.area_assignments', 'array<object>', required: false),
-                $this->field('language_ids', 'array<int>', required: false, catalog: route('api.client.catalogs.languages')),
+                $this->field('language_ids', 'array<string>', required: false, catalog: route('api.client.catalogs.languages')),
                 $this->field('contactMethods', 'array<object>', required: false),
                 $this->field('social_media', 'array<object>', required: false),
                 $this->field('avatar', 'file', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),

@@ -24,7 +24,6 @@ it('shows the reported subject title and admin link on the reports index', funct
 
     $reference->reports()->create([
         'category' => 'fake_reference',
-        'status' => 'open',
     ]);
 
     $this->actingAs($administrator)
@@ -45,7 +44,6 @@ it('shows a donation channel account name when the label is missing', function (
 
     $donationChannel->reports()->create([
         'category' => 'donation_scam',
-        'status' => 'open',
     ]);
 
     $this->actingAs($administrator)

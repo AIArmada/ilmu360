@@ -7,6 +7,7 @@ namespace App\Actions\Series;
 use App\Models\Series;
 use App\Support\Media\ModelMediaSyncService;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -62,11 +63,13 @@ final readonly class SaveSeriesAction
         $languageIds = [];
 
         foreach (is_array($data['languages']) ? $data['languages'] : [] as $languageId) {
-            if (filter_var($languageId, FILTER_VALIDATE_INT) === false) {
+            $languageId = is_scalar($languageId) ? trim((string) $languageId) : '';
+
+            if (! Str::isUuid($languageId)) {
                 continue;
             }
 
-            $languageIds[] = (int) $languageId;
+            $languageIds[] = $languageId;
         }
 
         $series->syncLanguages(array_values(array_unique($languageIds)));

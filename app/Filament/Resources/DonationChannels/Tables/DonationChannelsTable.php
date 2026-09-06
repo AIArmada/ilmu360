@@ -64,7 +64,7 @@ class DonationChannelsTable
                     }),
                 TextColumn::make('payment_details')
                     ->label('Details')
-                    ->searchable(['bank_name', 'account_number', 'duitnow_value', 'ewallet_handle']),
+                    ->searchable(['bank_name', 'ewallet_handle']),
                 TextColumn::make('status')
                     ->badge()
                     ->color(fn ($state): string => match ($state) {

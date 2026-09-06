@@ -21,9 +21,9 @@ class UserSeeder extends Seeder
             [
                 'name' => 'Super Admin',
                 'password' => Hash::make('password'),
-                'email_verified_at' => now(),
             ]
         );
+        $this->markEmailAsVerified($superAdmin);
         $superAdmin->syncRoles(['super_admin']);
 
         // Admin - Administrative access
@@ -32,9 +32,9 @@ class UserSeeder extends Seeder
             [
                 'name' => 'Administrator',
                 'password' => Hash::make('password'),
-                'email_verified_at' => now(),
             ]
         );
+        $this->markEmailAsVerified($admin);
         $admin->syncRoles(['admin']);
 
         // Moderator - Can moderate content
@@ -43,9 +43,9 @@ class UserSeeder extends Seeder
             [
                 'name' => 'Content Moderator',
                 'password' => Hash::make('password'),
-                'email_verified_at' => now(),
             ]
         );
+        $this->markEmailAsVerified($moderator);
         $moderator->syncRoles(['moderator']);
 
         // Editor - Can create and edit content
@@ -54,9 +54,9 @@ class UserSeeder extends Seeder
             [
                 'name' => 'Content Editor',
                 'password' => Hash::make('password'),
-                'email_verified_at' => now(),
             ]
         );
+        $this->markEmailAsVerified($editor);
         $editor->syncRoles(['editor']);
 
         // Viewer - Read-only access
@@ -65,20 +65,20 @@ class UserSeeder extends Seeder
             [
                 'name' => 'Report Viewer',
                 'password' => Hash::make('password'),
-                'email_verified_at' => now(),
             ]
         );
+        $this->markEmailAsVerified($viewer);
         $viewer->syncRoles(['viewer']);
 
         // Regular user without admin access
-        User::query()->updateOrCreate(
+        $user = User::query()->updateOrCreate(
             ['email' => 'user@ilmu360.com'],
             [
                 'name' => 'Regular User',
                 'password' => Hash::make('password'),
-                'email_verified_at' => now(),
             ]
         );
+        $this->markEmailAsVerified($user);
 
         $this->command->info('User accounts seeded successfully!');
         $this->command->newLine();
@@ -93,5 +93,10 @@ class UserSeeder extends Seeder
                 ['user@ilmu360.com', 'password', '(none)'],
             ]
         );
+    }
+
+    private function markEmailAsVerified(User $user): void
+    {
+        $user->forceFill(['email_verified_at' => now()])->save();
     }
 }

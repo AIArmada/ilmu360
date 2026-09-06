@@ -256,6 +256,7 @@ class RegistrationExportController extends Controller
      * `%` and `_` are data here, not operators for the export filter.
      *
      * @template TModel of Model
+     *
      * @param  Builder<TModel>  $query
      * @return Builder<TModel>
      */

@@ -364,7 +364,7 @@ class EventMediaExtractionService
     }
 
     /**
-     * @return array<int, int>
+     * @return array<int, string>
      */
     protected function mapLanguageCodesToIds(mixed $value): array
     {
@@ -390,7 +390,7 @@ class EventMediaExtractionService
         return Language::query()
             ->whereIn('code', $codes)
             ->pluck('id')
-            ->map(fn (mixed $id): int => (int) $id)
+            ->map(fn (mixed $id): string => (string) $id)
             ->values()
             ->all();
     }

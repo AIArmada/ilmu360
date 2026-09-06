@@ -9,6 +9,7 @@ use AIArmada\FilamentEvents\Resources\EventResource;
 use AIArmada\Membership\Actions\ChangeMemberRoleAction;
 use AIArmada\Membership\Actions\RemoveMemberAction;
 use AIArmada\Membership\Actions\RevokeInvitationAction;
+use AIArmada\Membership\Enums\InvitationStatus;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Membership\InviteSubjectMember;
 use App\Actions\Membership\TransferPersonOwnershipAction;
@@ -116,8 +117,7 @@ final class PersonDashboard extends Component
 
         $pendingInvitationExists = $this->invitationQuery($person)
             ->where('email', $email)
-            ->whereNull('accepted_at')
-            ->whereNull('revoked_at')
+            ->where('status', InvitationStatus::Pending->value)
             ->where(function (Builder $query): void {
                 $query->whereNull('expires_at')->orWhere('expires_at', '>', now());
             })

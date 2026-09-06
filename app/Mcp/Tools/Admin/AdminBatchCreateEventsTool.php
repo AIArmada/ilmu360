@@ -306,7 +306,7 @@ class AdminBatchCreateEventsTool extends AbstractAdminWriteTool
             'space_key' => $schema->string()->nullable()->description('Space route key (slug preferred, UUID allowed).'),
             'person_keys' => $schema->array()->items($schema->string())->nullable()->description('MCP-only route-key alias for the underlying persons UUID array. On create, omit/null/[] all mean no persons; event types that require a person will fail validation if this resolves to an empty list. Pass person slugs/UUIDs to attach those persons in payload order.'),
             'reference_keys' => $schema->array()->items($schema->string())->nullable()->description('MCP-only route-key alias for the underlying references UUID array. On create, omit/null/[] all mean no references. Pass reference slugs/UUIDs to link those references.'),
-            'languages' => $schema->array()->items($schema->integer())->nullable(),
+            'languages' => $schema->array()->items($schema->string())->nullable(),
             'domain_tags' => $schema->array()->items($schema->string())->nullable(),
             'discipline_tags' => $schema->array()->items($schema->string())->nullable(),
             'source_tags' => $schema->array()->items($schema->string())->nullable(),

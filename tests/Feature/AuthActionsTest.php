@@ -7,7 +7,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
-use Laravel\Socialite\Contracts\User as SocialiteUser;
+use Laravel\Socialite\Two\User as SocialiteUser;
 
 uses(RefreshDatabase::class);
 
@@ -22,10 +22,12 @@ it('resolves an existing social account by provider id', function () {
         'provider_id' => $providerId,
     ]);
 
-    $socialUser = Mockery::mock(SocialiteUser::class);
-    $socialUser->shouldReceive('getId')->andReturn($providerId);
-    $socialUser->shouldReceive('getAvatar')->andReturn('https://example.com/avatar.jpg');
-    $socialUser->shouldReceive('getEmail')->andReturn($user->email);
+    $socialUser = SocialiteUser::fake([
+        'id' => $providerId,
+        'email' => $user->email,
+        'avatar' => 'https://example.com/avatar.jpg',
+        'email_verified' => true,
+    ]);
 
     $result = app(ResolveSocialiteUserAction::class)->handle($provider, $socialUser);
 
@@ -34,12 +36,14 @@ it('resolves an existing social account by provider id', function () {
 });
 
 it('creates a new user when no social account or user exists', function () {
-    $socialUser = Mockery::mock(SocialiteUser::class);
-    $socialUser->shouldReceive('getId')->andReturn('google-456');
-    $socialUser->shouldReceive('getName')->andReturn('Ali New User');
-    $socialUser->shouldReceive('getNickname')->andReturn(null);
-    $socialUser->shouldReceive('getEmail')->andReturn('ali@example.com');
-    $socialUser->shouldReceive('getAvatar')->andReturn(null);
+    $socialUser = SocialiteUser::fake([
+        'id' => 'google-456',
+        'name' => 'Ali New User',
+        'nickname' => null,
+        'email' => 'ali@example.com',
+        'avatar' => null,
+        'email_verified' => true,
+    ]);
 
     $result = app(ResolveSocialiteUserAction::class)->handle('google', $socialUser);
 
@@ -58,12 +62,14 @@ it('creates a new user when no social account or user exists', function () {
 it('links existing user by email when social account is new', function () {
     $user = User::factory()->create(['email' => 'existing@example.com']);
 
-    $socialUser = Mockery::mock(SocialiteUser::class);
-    $socialUser->shouldReceive('getId')->andReturn('google-789');
-    $socialUser->shouldReceive('getName')->andReturn('Existing User');
-    $socialUser->shouldReceive('getNickname')->andReturn(null);
-    $socialUser->shouldReceive('getEmail')->andReturn('existing@example.com');
-    $socialUser->shouldReceive('getAvatar')->andReturn(null);
+    $socialUser = SocialiteUser::fake([
+        'id' => 'google-789',
+        'name' => 'Existing User',
+        'nickname' => null,
+        'email' => 'existing@example.com',
+        'avatar' => null,
+        'email_verified' => true,
+    ]);
 
     $result = app(ResolveSocialiteUserAction::class)->handle('google', $socialUser);
 
@@ -75,6 +81,50 @@ it('links existing user by email when social account is new', function () {
         ->where('provider', 'google')
         ->exists()
     )->toBeTrue();
+});
+
+it('does not link an unverified provider email to an existing user', function () {
+    $victim = User::factory()->unverified()->create([
+        'email' => 'existing@example.com',
+    ]);
+
+    $socialUser = SocialiteUser::fake([
+        'id' => 'google-unverified',
+        'name' => 'Unverified Provider User',
+        'email' => 'existing@example.com',
+        'email_verified' => false,
+    ]);
+
+    $result = app(ResolveSocialiteUserAction::class)->handle('google', $socialUser);
+
+    expect($result['user']->is($victim))->toBeFalse()
+        ->and($result['user']->email)->toBeNull()
+        ->and($result['user']->hasVerifiedEmail())->toBeFalse()
+        ->and($result['created_account'])->toBeTrue();
+
+    expect(SocialAccount::query()
+        ->where('user_id', $victim->id)
+        ->where('provider', 'google')
+        ->exists()
+    )->toBeFalse();
+});
+
+it('accepts the Google provider verified_email claim', function () {
+    $user = User::factory()->unverified()->create([
+        'email' => 'verified-claim@example.com',
+    ]);
+
+    $socialUser = SocialiteUser::fake([
+        'id' => 'google-verified-claim',
+        'name' => 'Verified Claim User',
+        'email' => 'verified-claim@example.com',
+        'verified_email' => true,
+    ]);
+
+    $result = app(ResolveSocialiteUserAction::class)->handle('google', $socialUser);
+
+    expect($result['user']->is($user))->toBeTrue()
+        ->and($user->fresh()?->hasVerifiedEmail())->toBeTrue();
 });
 
 it('authenticates a user by email', function () {

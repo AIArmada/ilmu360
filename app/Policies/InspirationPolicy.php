@@ -39,6 +39,11 @@ class InspirationPolicy
         return $user->hasRole('super_admin');
     }
 
+    public function deleteAny(User $user): bool
+    {
+        return $user->hasRole('super_admin');
+    }
+
     public function restore(User $user, Inspiration $inspiration): bool
     {
         return $user->hasRole('super_admin');

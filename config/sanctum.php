@@ -5,6 +5,9 @@ use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Laravel\Sanctum\Http\Middleware\AuthenticateSession;
 use Laravel\Sanctum\Sanctum;
 
+$sanctumExpiration = env('SANCTUM_EXPIRATION');
+$sanctumTokenPrefix = env('SANCTUM_TOKEN_PREFIX');
+
 return [
 
     /*
@@ -50,7 +53,9 @@ return [
     |
     */
 
-    'expiration' => null,
+    'expiration' => is_numeric($sanctumExpiration) && (int) $sanctumExpiration > 0
+        ? (int) $sanctumExpiration
+        : null,
 
     /*
     |--------------------------------------------------------------------------
@@ -65,7 +70,9 @@ return [
     |
     */
 
-    'token_prefix' => env('SANCTUM_TOKEN_PREFIX', ''),
+    'token_prefix' => is_string($sanctumTokenPrefix) && $sanctumTokenPrefix !== ''
+        ? $sanctumTokenPrefix
+        : 'ilmu360_',
 
     /*
     |--------------------------------------------------------------------------

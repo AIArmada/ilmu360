@@ -8,6 +8,7 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
+use App\Models\Report;
 use App\Models\User;
 use App\Models\Venue;
 use Database\Seeders\PermissionSeeder;
@@ -215,7 +216,6 @@ it('shows only events with open reports on the reports tab', function () {
         'reporter_id' => $reporter->id,
         'category' => 'other',
         'description' => 'Potentially misleading event information.',
-        'status' => 'open',
     ]);
 
     $notOpenReportedEvent = Event::factory()->create([
@@ -223,14 +223,14 @@ it('shows only events with open reports on the reports tab', function () {
         'status' => 'pending',
     ]);
 
-    $notOpenReportedEvent->reports()->create([
+    $resolvedReport = $notOpenReportedEvent->reports()->create([
         'reporter_id' => $reporter->id,
         'handled_by' => $moderator->id,
         'category' => 'other',
         'description' => 'Already handled.',
-        'status' => 'resolved',
         'resolution_note' => 'Reviewed and resolved.',
     ]);
+    $resolvedReport->transitionStatus(Report::STATUS_RESOLVED);
 
     $this->actingAs($moderator)
         ->get('/admin/moderation-queue?tab=reports')

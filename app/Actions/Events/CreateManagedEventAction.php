@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Actions\Events;
 
-use AIArmada\Events\Enums\RegistrationMode;
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Events\Enums\RegistrationMode;
 use AIArmada\Organizations\Models\Organization;
 use AIArmada\Seating\Enums\SeatingMode;
 use AIArmada\Ticketing\Enums\PricingMode;

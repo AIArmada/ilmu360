@@ -48,7 +48,6 @@ class SubmitReportAction
             'description' => $description,
             'reporter_id' => $reporter?->getKey(),
             'reporter_fingerprint' => $reporterFingerprint,
-            'status' => 'open',
         ]);
 
         $this->productSignalsService->recordReportSubmitted($report, $request ?? request());

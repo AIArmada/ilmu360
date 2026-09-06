@@ -2,10 +2,11 @@
 
 namespace App\Models;
 
+use AIArmada\Membership\Enums\InvitationStatus;
 use AIArmada\Membership\Models\MembershipInvitation as PackageMembershipInvitation;
 use App\Enums\MemberSubjectType;
 use App\Models\Concerns\AuditsModelChanges;
-use Carbon\CarbonInterface;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use OwenIt\Auditing\Contracts\Auditable;
 
@@ -15,9 +16,12 @@ use OwenIt\Auditing\Contracts\Auditable;
  * @property string|null $subject_id
  * @property string|null $email
  * @property string|null $token
- * @property CarbonInterface|null $expires_at
- * @property CarbonInterface|null $accepted_at
- * @property CarbonInterface|null $revoked_at
+ * @property InvitationStatus $status
+ * @property CarbonImmutable|null $expires_at
+ * @property CarbonImmutable|null $expired_at
+ * @property CarbonImmutable|null $accepted_at
+ * @property CarbonImmutable|null $revoked_at
+ * @property CarbonImmutable|null $last_state_change_at
  */
 class MemberInvitation extends PackageMembershipInvitation implements Auditable
 {
@@ -35,13 +39,7 @@ class MemberInvitation extends PackageMembershipInvitation implements Auditable
         'subject_id',
         'email',
         'role',
-        'token',
         'invited_by',
-        'expires_at',
-        'accepted_at',
-        'accepted_by',
-        'revoked_at',
-        'revoked_by',
     ];
 
     #[\Override]
@@ -49,9 +47,12 @@ class MemberInvitation extends PackageMembershipInvitation implements Auditable
     {
         return [
             'subject_type' => MemberSubjectType::class,
-            'expires_at' => 'datetime',
-            'accepted_at' => 'datetime',
-            'revoked_at' => 'datetime',
+            'status' => InvitationStatus::class,
+            'expires_at' => 'immutable_datetime',
+            'expired_at' => 'immutable_datetime',
+            'accepted_at' => 'immutable_datetime',
+            'revoked_at' => 'immutable_datetime',
+            'last_state_change_at' => 'immutable_datetime',
         ];
     }
 
@@ -69,30 +70,5 @@ class MemberInvitation extends PackageMembershipInvitation implements Auditable
     public function revokedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'revoked_by');
-    }
-
-    #[\Override]
-    public function isExpired(): bool
-    {
-        return $this->expires_at instanceof CarbonInterface && $this->expires_at->isPast();
-    }
-
-    public function isAccepted(): bool
-    {
-        return $this->accepted_at !== null;
-    }
-
-    public function isRevoked(): bool
-    {
-        return $this->revoked_at !== null;
-    }
-
-    #[\Override]
-    public function matchesToken(string $token): bool
-    {
-        $storedToken = (string) $this->getRawOriginal('token', $this->token);
-
-        return hash_equals($storedToken, static::tokenForStorage($token))
-            || hash_equals($storedToken, $token);
     }
 }

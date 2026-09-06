@@ -108,17 +108,19 @@ it('lets an invited organization member accept a frontend invitation', function 
     $invitee = User::factory()->create(['email' => 'invitee@example.com']);
     $organization = CreateOrganizationAction::make()->handle($owner, ['name' => 'Invitation Workspace']);
 
-    $invitation = MemberInvitation::query()->create([
+    $rawToken = 'organization-invitation-token';
+    $invitation = new MemberInvitation;
+    $invitation->fill([
         'subject_type' => 'organization',
         'subject_id' => $organization->getKey(),
         'email' => $invitee->email,
         'role' => MemberRole::Viewer->spatieRoleName(),
-        'token' => 'organization-invitation-token',
         'invited_by' => $owner->getKey(),
     ]);
+    $invitation->issue($rawToken)->save();
 
     Livewire::actingAs($invitee)
-        ->test(ShowInvitation::class, ['token' => $invitation->token])
+        ->test(ShowInvitation::class, ['token' => $rawToken])
         ->call('accept')
         ->assertRedirect(route('dashboard.organizations.show', $organization));
 

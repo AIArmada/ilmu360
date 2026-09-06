@@ -16,6 +16,7 @@ use App\Models\Reference;
 use App\Models\User;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -44,6 +45,32 @@ class EditUser extends EditRecord
         unset($data['roles'], $data['permissions']);
 
         return $data;
+    }
+
+    /**
+     * Verification timestamps are deliberately excluded from User::$fillable.
+     * This authorized admin surface may still change them, but only through an
+     * explicit force fill after the ordinary user attributes are persisted.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    #[\Override]
+    protected function handleRecordUpdate(Model $record, array $data): Model
+    {
+        if (! $record instanceof User) {
+            throw new \RuntimeException('Expected Filament record to be a User instance.');
+        }
+
+        $verificationData = $this->verificationData($data);
+        unset($data['email_verified_at'], $data['phone_verified_at']);
+
+        parent::handleRecordUpdate($record, $data);
+
+        if ($verificationData !== []) {
+            $record->forceFill($verificationData)->save();
+        }
+
+        return $record;
     }
 
     /**
@@ -187,6 +214,18 @@ class EditUser extends EditRecord
             $pivotSlug = $this->pivotRoleSlug($freshUser, $subjectType);
             $this->protectedRoleSelections[$subjectType->value] = $pivotSlug ?? '';
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function verificationData(array $data): array
+    {
+        return array_intersect_key($data, array_flip([
+            'email_verified_at',
+            'phone_verified_at',
+        ]));
     }
 
     private function pivotRoleSlug(User $user, MemberSubjectType $subjectType): ?string

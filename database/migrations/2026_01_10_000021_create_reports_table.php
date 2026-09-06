@@ -38,6 +38,7 @@ return new class extends Migration
             $table->timestampTz('resolved_at')->nullable();
             $table->timestampTz('rejected_at')->nullable();
             $table->timestampTz('archived_at')->nullable();
+            $table->timestampTz('last_state_change_at')->nullable()->index();
             $table->timestamps();
         });
     }
