@@ -1644,6 +1644,7 @@ describe('Event Search Filters', function () {
             'title' => 'Women Only Audience Event',
             'gender' => EventGenderRestriction::WomenOnly,
             'status' => 'approved',
+            'visibility' => 'public',
             'published_at' => now(),
             'starts_at' => now()->addDay(),
         ]);
@@ -1652,6 +1653,7 @@ describe('Event Search Filters', function () {
             'title' => 'Men Only Audience Event',
             'gender' => EventGenderRestriction::MenOnly,
             'status' => 'approved',
+            'visibility' => 'public',
             'published_at' => now(),
             'starts_at' => now()->addDay(),
         ]);

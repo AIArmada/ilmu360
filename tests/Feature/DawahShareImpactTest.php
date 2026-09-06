@@ -684,6 +684,7 @@ test('event registrations are attributed after a shared landing', function () {
     expect($cookie)->not->toBeNull();
 
     $response = $this
+        ->withCredentials()
         ->withCookie(config('dawah-share.cookie.name'), $cookie?->getValue())
         ->postJson(route('api.events.registrations.store', $event), [
             'name' => 'Guest Registrant',

@@ -15,7 +15,7 @@ class AffiliateRuntimeDataPurger
     public function purgeTables(): array
     {
         return array_values(array_filter([
-            config('affiliates.database.tables.affiliates', 'affiliates'),
+            config('affiliates.database.tables.affiliates', 'affiliate_affiliates'),
             config('affiliates.database.tables.attributions', 'affiliate_attributions'),
             config('affiliates.database.tables.balances', 'affiliate_balances'),
             config('affiliates.database.tables.commission_promotions', 'affiliate_commission_promotions'),
@@ -25,7 +25,8 @@ class AffiliateRuntimeDataPurger
             config('affiliates.database.tables.daily_stats', 'affiliate_daily_stats'),
             config('affiliates.database.tables.fraud_signals', 'affiliate_fraud_signals'),
             config('affiliates.database.tables.links', 'affiliate_links'),
-            config('affiliates.database.tables.network', 'affiliate_network'),
+            config('affiliates.database.tables.upline', 'affiliate_upline'),
+            config('affiliates.database.tables.rank_histories', 'affiliate_rank_histories'),
             config('affiliates.database.tables.payout_events', 'affiliate_payout_events'),
             config('affiliates.database.tables.payout_holds', 'affiliate_payout_holds'),
             config('affiliates.database.tables.payout_methods', 'affiliate_payout_methods'),

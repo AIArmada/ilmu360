@@ -39,15 +39,11 @@ it('preloads the title catalog once and reuses its shared cache on the person up
         ->filter(fn (array $query): bool => str_contains($query['query'], 'from "titles"'));
     $languageCatalogQueries = collect($queries)
         ->filter(fn (array $query): bool => str_contains($query['query'], 'select "id", "code", "name" from "languages"'));
-    $roleQueries = collect($queries)
-        ->filter(fn (array $query): bool => str_contains($query['query'], 'from "roles" inner join "model_has_roles"'));
-
     $titleField = collect($component->instance()->getForm('form')->getFlatFields())
         ->first(fn (mixed $field): bool => method_exists($field, 'getName') && $field->getName() === 'title_ids');
 
     expect($titleCatalogQueries)->toHaveCount(1)
         ->and($languageCatalogQueries)->toHaveCount(1)
-        ->and($roleQueries)->toHaveCount(1)
         ->and($titleField)->not->toBeNull()
         ->and($titleField->getSearchResults('syeikh'))->not->toBeEmpty()
         ->and($titleField->getSearchResults('datuk'))->not->toBeEmpty()

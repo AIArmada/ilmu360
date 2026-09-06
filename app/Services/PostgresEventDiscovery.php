@@ -251,7 +251,19 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
         }
 
         if (! empty($filters['venue_id'])) {
-            $queryBuilder->where('default_venue_id', $filters['venue_id']);
+            $venueId = $filters['venue_id'];
+
+            $queryBuilder->where(function (Builder $venueFilterQuery) use ($venueId): void {
+                $venueFilterQuery
+                    ->where('default_venue_id', $venueId)
+                    ->orWhereHas('locations', function (Builder $locationQuery) use ($venueId): void {
+                        $locationQuery
+                            ->whereNull('event_occurrence_id')
+                            ->whereNull('event_session_id')
+                            ->where('location_role', 'primary')
+                            ->where('venue_id', $venueId);
+                    });
+            });
         }
 
         $personIds = $this->uuidFilterValues($filters['person_ids'] ?? null);
@@ -807,6 +819,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
         $addressesTable = config('addressing.tables.addresses', 'addresses');
         $addressablesTable = config('addressing.tables.addressables', 'addressables');
         $assignmentsTable = config('addressing.tables.address_area_assignments', 'address_area_assignments');
+        $venueTable = (new Venue)->getTable();
         $venueMorphType = (new Venue)->getMorphClass();
         $institutionMorphType = (new Institution)->getMorphClass();
 
@@ -838,17 +851,38 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
             });
         };
 
-        $queryBuilder->where(function (Builder $locationQuery) use ($matchesOwnerAddress, $venueMorphType, $institutionMorphType): void {
+        $matchesEventVenueAddress = static function (Builder $eventQuery) use ($matchesOwnerAddress, $venueTable, $venueMorphType): void {
+            $eventQuery->whereHas('locations', function (Builder $locationQuery) use ($matchesOwnerAddress, $venueTable, $venueMorphType): void {
+                $locationQuery
+                    ->whereNull('event_occurrence_id')
+                    ->whereNull('event_session_id')
+                    ->where('location_role', 'primary')
+                    ->whereNotNull('venue_id')
+                    ->whereHas('venue', function (Builder $venueQuery) use ($matchesOwnerAddress, $venueTable, $venueMorphType): void {
+                        $matchesOwnerAddress($venueQuery, "{$venueTable}.id", $venueMorphType);
+                    });
+            });
+        };
+
+        $queryBuilder->where(function (Builder $locationQuery) use ($matchesEventVenueAddress, $matchesOwnerAddress, $institutionMorphType, $venueMorphType): void {
             $locationQuery
                 ->where(function (Builder $institutionQuery) use ($matchesOwnerAddress, $institutionMorphType): void {
                     $institutionQuery->whereNotNull('events.institution_id');
                     $matchesOwnerAddress($institutionQuery, 'events.institution_id', $institutionMorphType);
                 })
-                ->orWhere(function (Builder $venueQuery) use ($matchesOwnerAddress, $venueMorphType): void {
+                ->orWhere(function (Builder $venueQuery) use ($matchesEventVenueAddress, $matchesOwnerAddress, $venueMorphType): void {
                     $venueQuery
                         ->whereNull('events.institution_id')
-                        ->whereNotNull('events.default_venue_id');
-                    $matchesOwnerAddress($venueQuery, 'events.default_venue_id', $venueMorphType);
+                        ->where(function (Builder $venueLocationQuery) use ($matchesEventVenueAddress, $matchesOwnerAddress, $venueMorphType): void {
+                            $venueLocationQuery
+                                ->where(function (Builder $defaultVenueQuery) use ($matchesOwnerAddress, $venueMorphType): void {
+                                    $defaultVenueQuery->whereNotNull('events.default_venue_id');
+                                    $matchesOwnerAddress($defaultVenueQuery, 'events.default_venue_id', $venueMorphType);
+                                })
+                                ->orWhere(function (Builder $eventLocationQuery) use ($matchesEventVenueAddress): void {
+                                    $matchesEventVenueAddress($eventLocationQuery);
+                                });
+                        });
                 });
         });
     }

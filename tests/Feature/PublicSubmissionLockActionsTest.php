@@ -318,9 +318,9 @@ it('auto-reopens institution submission when lock credibility drifts', function 
     $institution->refresh();
     expect($institution->allow_public_event_submission)->toBeFalse();
 
-    $member->update([
+    $member->forceFill([
         'phone_verified_at' => null,
-    ]);
+    ])->save();
 
     $institution->refresh();
     expect($institution->allow_public_event_submission)->toBeTrue();

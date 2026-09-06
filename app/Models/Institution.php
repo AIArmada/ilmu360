@@ -301,11 +301,12 @@ class Institution extends Model implements AuditableContract, HasMedia
     }
 
     /**
-     * @return MorphToMany<Person, $this>
+     * @return BelongsToMany<Person, $this>
      */
-    public function persons(): MorphToMany
+    public function persons(): BelongsToMany
     {
-        return $this->morphToMany(Person::class, 'affiliatable', 'affiliations', 'institution_id', 'affiliatable_id')
+        return $this->belongsToMany(Person::class, 'affiliations', 'institution_id', 'affiliatable_id')
+            ->wherePivot('affiliatable_type', (new Person)->getMorphClass())
             ->withPivot(['position', 'is_primary'])
             ->withTimestamps();
     }

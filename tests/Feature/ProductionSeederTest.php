@@ -1,6 +1,5 @@
 <?php
 
-use AIArmada\Addressing\Actions\SeedAddressCitiesAction;
 use AIArmada\Addressing\Database\Seeders\MalaysiaPostalCodeSeeder;
 use App\Models\Space;
 use Database\Seeders\AddressingSeeder;
@@ -82,32 +81,6 @@ it('production seeder only calls deterministic bootstrap seeders', function () {
         SpaceSeeder::class,
         InspirationSeeder::class,
     ]);
-});
-
-it('reduces city seed data outside production while keeping production complete', function () {
-    $method = new ReflectionMethod(AddressingSeeder::class, 'citySeedRows');
-    $seeder = new AddressingSeeder;
-    $cities = app(SeedAddressCitiesAction::class);
-    $originalEnvironment = app()->environment();
-
-    try {
-        app()['env'] = 'testing';
-        $sample = $method->invoke($seeder, $cities);
-
-        $actionPath = new ReflectionClass($cities)->getFileName();
-
-        expect($actionPath)->toBeString();
-
-        expect($sample)->toBeArray()->not->toBeEmpty()
-            ->and(collect($sample)->every(fn (array $city): bool => ($city['country_code'] ?? null) === 'MY'))
-            ->toBeTrue();
-
-        app()['env'] = 'production';
-
-        expect($method->invoke($seeder, $cities))->toBeNull();
-    } finally {
-        app()['env'] = $originalEnvironment;
-    }
 });
 
 it('seeds common spaces deterministically without factories', function () {

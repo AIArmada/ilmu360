@@ -1111,7 +1111,7 @@ it('clears report optional scalars and evidence through the admin api', function
         'entity_id' => (string) $event->getKey(),
         'category' => 'wrong_info',
         'description' => 'Legacy report description.',
-        'status' => 'triaged',
+        'status' => 'open',
         'reporter_id' => (string) $reporter->getKey(),
         'handled_by' => (string) $handler->getKey(),
         'resolution_note' => 'Legacy resolution note.',

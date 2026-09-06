@@ -511,8 +511,8 @@ it('returns member update schema and updates institutions through member MCP wri
 
     [$member, $institution] = institutionMemberMcpContext(role: 'admin');
     $originalAddress = $institution->fresh()?->primaryAddress();
-    $originalLat = $originalAddress?->lat;
-    $originalLng = $originalAddress?->lng;
+    $originalLat = $originalAddress?->latitude;
+    $originalLng = $originalAddress?->longitude;
 
     MemberServer::actingAs($member)
         ->tool(MemberGetWriteSchemaTool::class, [
@@ -579,8 +579,8 @@ it('returns member update schema and updates institutions through member MCP wri
         ->and($institution->fresh()?->slug)->not->toBe('attempted-member-institution-injection')
         ->and($institution->fresh()?->getMedia('cover'))->toHaveCount(1)
         ->and($institution->fresh()?->getMedia('gallery'))->toHaveCount(1)
-        ->and(abs(((float) $institution->fresh()?->primaryAddress()?->lat) - (float) $originalLat))->toBeLessThan(0.000001)
-        ->and(abs(((float) $institution->fresh()?->primaryAddress()?->lng) - (float) $originalLng))->toBeLessThan(0.000001);
+        ->and(abs(((float) $institution->fresh()?->primaryAddress()?->latitude) - (float) $originalLat))->toBeLessThan(0.000001)
+        ->and(abs(((float) $institution->fresh()?->primaryAddress()?->longitude) - (float) $originalLng))->toBeLessThan(0.000001);
 
     MemberServer::actingAs($member)
         ->tool(MemberUpdateRecordTool::class, [

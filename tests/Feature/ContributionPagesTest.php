@@ -31,6 +31,7 @@ use App\Models\Report;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\ContributionEntityMutationService;
+use Carbon\CarbonImmutable;
 use Database\Seeders\PermissionSeeder;
 use Filament\Forms\Components\Field;
 use Filament\Forms\Components\FileUpload;
@@ -1604,8 +1605,12 @@ it('normalizes submit-style organizer and location changes on the event update p
         'delivery_mode' => EventFormat::Physical,
         'institution_id' => $institution->id,
         'default_venue_id' => null,
-        'starts_at' => now()->addDays(5)->setTime(20, 0),
-        'ends_at' => now()->addDays(5)->setTime(21, 0),
+        'timing_mode' => TimingMode::Absolute,
+        'prayer_reference' => null,
+        'prayer_offset' => null,
+        'prayer_display_text' => null,
+        'starts_at' => CarbonImmutable::parse('2027-03-20 20:00:00', 'Asia/Kuala_Lumpur')->utc(),
+        'ends_at' => CarbonImmutable::parse('2027-03-20 21:00:00', 'Asia/Kuala_Lumpur')->utc(),
     ]);
     $event->setPrimaryOrganizer($institution);
 

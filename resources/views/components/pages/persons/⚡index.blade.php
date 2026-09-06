@@ -731,7 +731,7 @@ new
                                         ->take(2)
                                         ->map(fn (string $word): string => str($word)->substr(0, 1)->upper())
                                         ->implode('');
-                                    $personState = $person->primaryAddress()?->state?->name;
+                                    $personState = $person->primaryAddress()?->state;
                                 @endphp
 
                                 @if($person->hasMedia('profile'))

@@ -72,6 +72,7 @@ describe('view', function () {
     it('allows anyone to view unlisted events', function () {
         $event = Event::factory()->create([
             'visibility' => 'unlisted',
+            'status' => Approved::class,
         ]);
 
         expect(Gate::forUser(null)->allows('view', $event))->toBeTrue();

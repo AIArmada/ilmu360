@@ -411,7 +411,7 @@ it('applies the public first-session timing rules to the advanced builder', func
         ->set('form.title', 'Timing Rules Event')
         ->set('form.default_event_category_ids', [eventCategoryId('lain_lain')])
         ->set('form.domain_tags', $domain->id)
-        ->set('form.event_date', now()->addDays(5)->toDateString())
+        ->set('form.event_date', '2027-03-20')
         ->set('form.prayer_time', 'sebelum_jumaat')
         ->call('submit')
         ->assertHasErrors('form.prayer_time');

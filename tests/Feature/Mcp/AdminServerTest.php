@@ -2018,8 +2018,8 @@ it('creates and updates institutions through MCP write tools', function () {
     $institution = Institution::query()->where('name', 'Admin MCP Institution')->firstOrFail();
     $institutionId = (string) $institution->getKey();
     $originalAddress = $institution->fresh()?->primaryAddress();
-    $originalLat = $originalAddress?->lat;
-    $originalLng = $originalAddress?->lng;
+    $originalLat = $originalAddress?->latitude;
+    $originalLng = $originalAddress?->longitude;
 
     expect($institution->display_name)->toBe('Admin MCP Institution')
         ->and($institution->status)->toBe('verified')
@@ -2073,8 +2073,8 @@ it('creates and updates institutions through MCP write tools', function () {
             ->etc());
 
     expect($institution->fresh()?->slug)->not->toBe('attempted-admin-institution-injection')
-        ->and(abs(((float) $institution->fresh()?->primaryAddress()?->lat) - (float) $originalLat))->toBeLessThan(0.000001)
-        ->and(abs(((float) $institution->fresh()?->primaryAddress()?->lng) - (float) $originalLng))->toBeLessThan(0.000001);
+        ->and(abs(((float) $institution->fresh()?->primaryAddress()?->latitude) - (float) $originalLat))->toBeLessThan(0.000001)
+        ->and(abs(((float) $institution->fresh()?->primaryAddress()?->longitude) - (float) $originalLng))->toBeLessThan(0.000001);
 });
 
 it('surfaces venue and reference update semantics through admin MCP write schemas', function () {

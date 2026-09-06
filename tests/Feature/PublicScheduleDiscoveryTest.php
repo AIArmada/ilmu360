@@ -2,13 +2,19 @@
 
 use AIArmada\Events\Actions\CreateEventOccurrenceAction;
 use AIArmada\Events\Actions\CreateEventSessionAction;
+use App\Enums\EventFormat;
 use App\Livewire\Pages\Events\Index;
 use App\Models\Event;
 use App\Models\Venue;
+use App\Support\Location\VisitorCountryResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
+
+beforeEach(function (): void {
+    app(VisitorCountryResolver::class)->forget();
+});
 
 it('lists meaningful sessions and otherwise falls back to occurrences', function (): void {
     $event = Event::factory()->create([
@@ -17,6 +23,7 @@ it('lists meaningful sessions and otherwise falls back to occurrences', function
         'visibility' => 'public',
         'published_at' => now()->subDay(),
         'starts_at' => now()->addDays(2),
+        'delivery_mode' => EventFormat::Physical->value,
     ]);
 
     $occurrenceWithoutSessions = $event->occurrences()->firstOrFail();

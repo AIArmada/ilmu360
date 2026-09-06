@@ -31,6 +31,7 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\ParallelTesting;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Livewire\Livewire;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
@@ -50,11 +51,27 @@ pest()->tia()->locally();
 pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
     ->beforeEach(function () {
+        static $livewireOwnerContextListenersRegistered = false;
+
         PreventRequestForgery::except('*');
 
         setPermissionsTeamId(null);
         app(PermissionRegistrar::class)->forgetCachedPermissions();
         OwnerContext::setForRequest(null);
+
+        if (! $livewireOwnerContextListenersRegistered) {
+            Livewire::listen('pre-mount', static function (mixed ...$_): void {
+                ensureTestLivewireOwnerContext();
+            });
+            Livewire::listen('mount', static function (mixed ...$_): void {
+                ensureTestLivewireOwnerContext();
+            });
+            Livewire::listen('hydrate', static function (mixed ...$_): void {
+                ensureTestLivewireOwnerContext();
+            });
+
+            $livewireOwnerContextListenersRegistered = true;
+        }
 
         $compiledViewPath = storage_path('framework/views/testing_'.ParallelTesting::token());
         $mediaTemporaryPath = storage_path('media-library/temp/testing_'.ParallelTesting::token());
@@ -208,6 +225,15 @@ function addTestMember(Model $subject, Model $user, MemberRole|string $role = Me
 function withGlobalOwnerContext(callable $callback): mixed
 {
     return OwnerContext::withOwner(null, $callback);
+}
+
+function ensureTestLivewireOwnerContext(): void
+{
+    if (OwnerContext::hasOverride() || OwnerContext::resolve() !== null) {
+        return;
+    }
+
+    OwnerContext::setForRequest(null);
 }
 
 /**

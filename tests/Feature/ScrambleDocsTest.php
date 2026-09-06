@@ -2,13 +2,17 @@
 
 use App\Support\ApiDocumentation\ApiDocumentationUrlResolver;
 use App\Support\ApiDocumentation\ApiDocumentationVersionResolver;
+use App\Support\ApiDocumentation\ApiRequestBodyExamplesExtension;
+use App\Support\ApiDocumentation\ApiSecurityRequirementExtension;
+use App\Support\ApiDocumentation\ApiWorkflowSchemasTransformer;
 use Dedoc\Scramble\Generator;
+use Dedoc\Scramble\Scramble;
 use Illuminate\Auth\Middleware\Authenticate;
+use Illuminate\Routing\Route as IlluminateRoute;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Mockery\MockInterface;
-use Symfony\Component\Process\Process;
 
 use function Pest\Laravel\mock;
 
@@ -736,56 +740,31 @@ it('includes the mobile api reference in the docs description for ai and mobile 
 });
 
 it('publishes explicit auth response schemas for ai clients', function () {
-    $script = <<<'PHP'
-error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
-ini_set('display_errors', '0');
-putenv('APP_ENV=testing');
-$_ENV['APP_ENV'] = 'testing';
-$_SERVER['APP_ENV'] = 'testing';
+    $config = Scramble::configure()
+        ->cloneWithoutExposing()
+        ->useConfig([
+            'api_path' => 'api/v1',
+            'api_domain' => null,
+            'info' => [
+                'title' => 'ilmu360° API',
+                'version' => 'v1',
+                'description' => 'Small auth-only documentation fixture.',
+            ],
+        ])
+        ->withOperationTransformers([
+            ApiSecurityRequirementExtension::class,
+            ApiRequestBodyExamplesExtension::class,
+        ])
+        ->withDocumentTransformers([
+            ApiWorkflowSchemasTransformer::class,
+        ])
+        ->routes(static fn (IlluminateRoute $route): bool => in_array($route->uri(), [
+            'api/v1/auth/register',
+            'api/v1/auth/login',
+            'api/v1/auth/logout',
+        ], true));
 
-require __DIR__.'/vendor/autoload.php';
-
-$app = require __DIR__.'/bootstrap/app.php';
-$kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
-$request = Illuminate\Http\Request::create(
-    'https://api.ilmu360.test/docs.json',
-    'GET',
-    [],
-    [],
-    [],
-    [
-        'HTTP_HOST' => 'api.ilmu360.test',
-        'HTTP_ACCEPT' => 'application/json',
-        'HTTPS' => 'on',
-    ],
-);
-
-$response = $kernel->handle($request);
-
-if ($response->getStatusCode() !== 200) {
-    fwrite(STDERR, 'Unexpected status: '.$response->getStatusCode());
-    exit(1);
-}
-
-echo $response->getContent();
-
-$kernel->terminate($request, $response);
-PHP;
-
-    $process = new Process(
-        [PHP_BINARY, '-r', $script],
-        base_path(),
-        [
-            'APP_ENV' => 'testing',
-            'LARAVEL_PARALLEL_TESTING' => false,
-            'PARATEST' => false,
-            'TEST_TOKEN' => false,
-            'UNIQUE_TEST_TOKEN' => false,
-        ],
-    );
-    $process->mustRun();
-
-    $spec = json_decode($process->getOutput(), true, flags: JSON_THROW_ON_ERROR);
+    $spec = app(Generator::class)($config);
     $paths = $spec['paths'] ?? [];
 
     expect($paths['/auth/register']['post']['requestBody']['content']['application/json']['schema'] ?? null)->not->toBeNull()

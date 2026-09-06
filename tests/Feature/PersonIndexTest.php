@@ -347,6 +347,21 @@ it('filters the public directory by Malaysian state', function () {
         ->assertDontSee('State Filter Other');
 });
 
+it('renders the denormalized primary address state in the public directory', function (): void {
+    $stateName = 'Negeri Paparan Direktori';
+    $geography = createTestPackageGeography($stateName);
+    $person = Person::factory()->create([
+        'name' => 'Directory State Display',
+        'status' => 'verified',
+    ]);
+
+    syncPrimaryAddressForTest($person, $geography['address']);
+
+    Livewire::test('pages.persons.index')
+        ->assertSee('Directory State Display')
+        ->assertSee($stateName);
+});
+
 it('resets pagination when filters change and preserves filter query strings', function () {
     $title = Title::query()->where('short_form', 'Ustazah')->firstOrFail();
 

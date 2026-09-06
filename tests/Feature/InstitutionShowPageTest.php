@@ -519,7 +519,7 @@ it('displays affiliated persons', function () {
     ]);
 
     Affiliation::create([
-        'affiliatable_type' => $institution->getMorphClass(),
+        'affiliatable_type' => $person->getMorphClass(),
         'affiliatable_id' => $person->getKey(),
         'institution_id' => $institution->getKey(),
         'position' => 'Imam Besar',

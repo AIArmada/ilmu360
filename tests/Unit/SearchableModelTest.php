@@ -159,24 +159,26 @@ it('builds the reference searchable payload and only indexes published verified 
 });
 
 it('excludes unpublished references from public event search payloads', function () {
-    $event = Event::factory()->create([
-        'status' => 'approved',
-        'visibility' => 'public',
-        'published_at' => now(),
-    ]);
-    $publishedPendingReference = Reference::factory()->pending()->create();
-    $unpublishedReference = Reference::factory()->pending()->unpublished()->create();
+    withGlobalOwnerContext(function (): void {
+        $event = Event::factory()->create([
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now(),
+        ]);
+        $publishedPendingReference = Reference::factory()->pending()->create();
+        $unpublishedReference = Reference::factory()->pending()->unpublished()->create();
 
-    $event->references()->attach([
-        $publishedPendingReference->getKey(),
-        $unpublishedReference->getKey(),
-    ]);
+        $event->references()->attach([
+            $publishedPendingReference->getKey(),
+            $unpublishedReference->getKey(),
+        ]);
 
-    $payload = $event->toSearchableArray();
+        $payload = $event->toSearchableArray();
 
-    expect($payload['reference_ids'])
-        ->toContain((string) $publishedPendingReference->getKey())
-        ->not->toContain((string) $unpublishedReference->getKey());
+        expect($payload['reference_ids'])
+            ->toContain((string) $publishedPendingReference->getKey())
+            ->not->toContain((string) $unpublishedReference->getKey());
+    });
 });
 
 it('scopes make all searchable queries to the intended scout-ready records', function () {

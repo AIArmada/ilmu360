@@ -246,7 +246,7 @@ it('renders public event poster containers using the poster aspect ratio', funct
         ->assertSee('data-poster-aspect="3:4"', false);
 });
 
-it('uses a 16:9 placeholder aspect ratio for public events index cards without posters', function () {
+it('uses a square placeholder aspect ratio for public events index cards without posters', function () {
     $institution = Institution::factory()->create([
         'status' => 'verified',
     ]);
@@ -264,7 +264,7 @@ it('uses a 16:9 placeholder aspect ratio for public events index cards without p
     $this->get(route('events.index', ['search' => 'Tanpa Poster']))
         ->assertSuccessful()
         ->assertSee('Majlis Tanpa Poster')
-        ->assertSee('data-cover-aspect="16:9"', false);
+        ->assertSee('data-cover-aspect="1:1"', false);
 });
 
 it('uses the real person avatar in public person share metadata and preview', function () {

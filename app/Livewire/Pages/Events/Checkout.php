@@ -59,6 +59,11 @@ final class Checkout extends Component
 
     public bool $processing = false;
 
+    public function boot(): void
+    {
+        OwnerContext::setForRequest(null);
+    }
+
     public function mount(Event $event, EventTicketingPolicy $ticketingPolicy, ?string $ticket = null): void
     {
         $this->event = $event;
