@@ -82,7 +82,6 @@ Injection / D. Query Scoping & Data Exposure / E. Dependencies). Inside a
 category, order by check ID then by location. Required shape:
 
 ```
-
 ### [F-01] Inline ToggleColumn on `is_admin` bypasses the update policy
 
 Check: A4
@@ -193,7 +192,7 @@ authorization. A _missing_ policy is not the trigger.
 - **Docs**:
   https://filamentphp.com/docs/5.x/actions/import#per-record-authorization
 
-### A3. Overridden `can*()` methods no longer invoked (v4+) — `[Site]` `[Conditional]`
+### A3. Actions authorize via response methods, not `can*()` overrides — `[Site]` `[Conditional]`
 
 - **Search**:
   `grep -rnE "function can(Create|Edit|View|ViewAny|Delete|DeleteAny|ForceDelete|ForceDeleteAny|Restore|RestoreAny|Reorder|Replicate|Attach|Detach|DetachAny|Associate|Dissociate|DissociateAny)\(" app/Filament`.
@@ -204,8 +203,8 @@ authorization. A _missing_ policy is not the trigger.
   `get*AuthorizationResponse()` method (which must return an
   `Illuminate\Auth\Access\Response` — `Response::allow()` / `Response::deny()` —
   not a bool).
-- **Why**: in v4+ `can*()` still gates page access, navigation, and global
-  search, but record/bulk **actions** and relation managers authorize via
+- **Why**: `can*()` gates page access, navigation, and global search, but
+  record/bulk **actions** and relation managers authorize via
   `get*AuthorizationResponse()` directly — so the page looks gated while the
   action leaks.
 - **Docs**:
