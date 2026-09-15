@@ -2902,3 +2902,46 @@ The affected-surface run completed with 118 passing tests and 472 assertions; it
 - `vendor/bin/phpstan analyse --ansi` — passed with no errors.
 - `git diff --check` — passed.
 - `vendor/bin/rector process --dry-run` — informational exit 2; the existing repository baseline reports 261 files that would change, and no Rector changes were applied.
+# DecryptException on institution show — 2026-09-07
+
+## Plan
+
+- [x] Reproduce the affected institution page failure and identify the invalid encrypted column without exposing sensitive values.
+- [x] Trace all donation-channel write paths and confirm the seeded Eloquent path already writes canonical encrypted values.
+- [x] Apply the smallest hard-cut fix for the canonical encrypted donation-channel data contract: reset and reseed the local database; add no backward-compatibility fallback.
+- [x] Run the focused regression test and verify the affected URL and stored ciphertext.
+
+## Review
+
+- The affected database contained 95 invalid donation-channel ciphertext values out of 109 rows; the affected bank-account value was plaintext. `php artisan migrate:fresh --seed` recreated the schema and reseeded through `DonationChannel`, producing 0 invalid values. The affected institution URL returned HTTP 200 afterward.
+- `./pest --parallel --tia --filtered --compact --filter=InstitutionShowPage` passed: 35 tests, 152 assertions.
+- No runtime compatibility path was added; `DonationChannel` continues to use strict Laravel encrypted casts.
+
+# Current Task: Pest suite cleanup (app-specific only) — 2026-09-15
+
+## Plan
+
+- [x] Audit all ~276 test files via parallel workflow: KEEP application-specific tests, DELETE package-duplicate/redundant/legacy/leftover/irrelevant with per-file evidence (read-only audit, hard-delete mode approved).
+- [x] Implement approved deletions plus `tests/output*.md` leftovers; resolve keeper conflicts from synthesis.
+- [x] Verify with scoped Pest runs + Pint + PHPStan; full suite left to CI.
+
+## Review / Results
+
+- 8-agent parallel audit + 1 follow-up suspect audit (26 files) + parent verification of every delete/edit against live code. Workflow merger step failed to carry payloads; recovered all 8 verdict sets from child logs and merged manually.
+- Deleted 7 test files: `SignalsPrecisionAndFunnelsTest` (548 lines, package-duplicate), `SocialMediaPlatformTest`, `Membership/ClaimTest` (+ empty dir), `CountryStatesAdminTest` (package-duplicates), `PestDurationBudgetTest` (irrelevant CI-helper test), `Feature/ExampleTest` + `Unit/ExampleTest` (placeholders). Deleted 5 `tests/output*.md` committed run artifacts.
+- Trimmed, not deleted: `RegisterForEventTest` (intra-file exact duplicate removed; file kept — cross-file keeper `EventRegistrationApiTest` lacks its accessPolicy precondition). `EventRegistrationSafetyTest` near-duplicates deliberately kept (distinct model-state/count-0 assertions detect distinct defects).
+- Fixed 2 stale kept files: `FilamentEventResourceTest` App-namespaced manager imports → live `AIArmada\FilamentSeating|FilamentTicketing` wiring; `ReportActionsTest` stale `ResolveReporterFingerprintAction` test + 3 now-unused imports removed (action deleted in audit).
+- Scoped Pest: `ReportActionsTest` 3/3 pass, `FilamentEventResourceTest` 2/2 pass. `RegisterForEventTest` fails pre-existing (`idempotency_key` missing from `Registration::$fillable` while package service requires it); untouched keeper `EventRegistrationApiTest` fails 4/9 the same run — package-drift failures, not regressions, left for follow-up. Pint passed, `git diff --check` clean, PHPStan 42 errors = pre-existing baseline, zero new.
+
+# Current Task: Full Pest suite to green (codebase is truth) — 2026-09-15
+
+## Plan
+
+- [ ] Full-suite baseline via `./pest --parallel --compact`, output saved to file.
+- [ ] Triage failures by normalized signature; codebase (app + packages) is truth — fix tests to match, no app-behavior changes.
+- [ ] Fix group by group (parallel workers if scale warrants); convert any PHPUnit-class tests to Pest rather than deleting.
+- [ ] Re-run full suite to confirm all green, plus Pint + PHPStan.
+
+## Review / Results
+
+- (pending)

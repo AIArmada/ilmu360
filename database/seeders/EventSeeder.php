@@ -510,7 +510,7 @@ class EventSeeder extends Seeder
                 $person instanceof Person ? [$person->id] : [],
             );
 
-            $this->ensureScheduleEventHasTags($event, $title, $topic);
+            $this->ensureScheduleEventHasClassifications($event, $title, $topic);
 
         }
     }
@@ -635,7 +635,7 @@ class EventSeeder extends Seeder
         return $matchingEvents->count() === 1 ? $matchingEvents->first() : null;
     }
 
-    private function ensureScheduleEventHasTags(Event $event, string $title, ?string $topic): void
+    private function ensureScheduleEventHasClassifications(Event $event, string $title, ?string $topic): void
     {
         $existingTaxonomyCodes = $event->classifications()
             ->pluck('taxonomy_code')

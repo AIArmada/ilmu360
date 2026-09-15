@@ -4,20 +4,15 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Institutions\RelationManagers;
 
-use AIArmada\FilamentEvents\Resources\EventResource;
+use AIArmada\FilamentEvents\RelationManagers\EventsRelationManager as BaseEventsRelationManager;
 use Filament\Actions\CreateAction;
-use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Table;
 
-class EventsRelationManager extends RelationManager
+class EventsRelationManager extends BaseEventsRelationManager
 {
-    protected static string $relationship = 'events';
-
-    protected static ?string $relatedResource = EventResource::class;
-
     public function table(Table $table): Table
     {
-        return $table
+        return parent::table($table)
             ->headerActions([
                 CreateAction::make(),
             ]);

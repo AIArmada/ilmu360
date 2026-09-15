@@ -2,6 +2,8 @@
 
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Addressing\Models\State;
+use AIArmada\CommerceSupport\Support\CanonicalSlug;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Signals\Models\SignalEvent;
 use AIArmada\Signals\Models\TrackedProperty;
@@ -9,7 +11,7 @@ use App\Actions\Events\GenerateEventSlugAction;
 use App\Actions\Institutions\GenerateInstitutionSlugAction;
 use App\Actions\Persons\GeneratePersonSlugAction;
 use App\Actions\References\GenerateReferenceSlugAction;
-use App\Actions\Slugs\SyncCanonicalSlugAction;
+use App\Actions\Slugs\SyncSlugRedirectAction;
 use App\Actions\Venues\GenerateVenueSlugAction;
 use App\Filament\Resources\SlugRedirects\Pages\CreateSlugRedirect;
 use App\Filament\Resources\SlugRedirects\Pages\EditSlugRedirect;
@@ -131,7 +133,7 @@ it('persists canonical slug changes through the shared slug synchronizer', funct
     $oldPath = route('references.show', $reference, false);
     recordVisitedPath($oldPath);
 
-    $didChange = app(SyncCanonicalSlugAction::class)->persist($reference, 'kitab-sinkron-baru');
+    $didChange = CanonicalSlug::persist($reference, 'kitab-sinkron-baru', app(SyncSlugRedirectAction::class));
 
     $reference->refresh();
     $redirect = SlugRedirect::query()->where('source_path', $oldPath)->firstOrFail();
@@ -574,34 +576,34 @@ function slugRedirectAdministrator(): User
 }
 
 /**
- * @return array{country: AddressCountry, state: AddressArea, district: AddressArea, subdistrict: AddressArea}
+ * @return array{country: AddressCountry, state: State, district: AddressArea, subdistrict: AddressArea}
  */
 function createSlugRedirectGeography(): array
 {
-    $country = createSlugRedirectCountry();
-    $state = createTestAddressArea('Selangor', 1, country: $country);
-    $district = createTestAddressArea('Petaling', 2, parent: $state, country: $country);
-    $subdistrict = createTestAddressArea('Shah Alam', 3, parent: $district, country: $country);
+    $geo = createTestPackageGeography('Selangor', 'Petaling', 'Shah Alam');
 
     return [
-        'country' => $country,
-        'state' => $state,
-        'district' => $district,
-        'subdistrict' => $subdistrict,
+        'country' => $geo['country'],
+        'state' => $geo['state'],
+        'district' => $geo['district'],
+        'subdistrict' => $geo['subdistrict'],
     ];
 }
 
 /**
- * @param  array{country: AddressCountry, state: AddressArea, district: AddressArea, subdistrict: AddressArea}  $geography
- * @return array<string, string>
+ * @param  array{country: AddressCountry, state: State, district: AddressArea, subdistrict: AddressArea}  $geography
+ * @return array<string, mixed>
  */
 function slugRedirectAddressPayload(array $geography): array
 {
     return [
         'country_id' => (string) $geography['country']->getKey(),
         'state_id' => (string) $geography['state']->getKey(),
-        'administrative_district_id' => (string) $geography['district']->getKey(),
-        'administrative_subdivision_id' => (string) $geography['subdistrict']->getKey(),
+        'country_code' => (string) $geography['country']->iso2,
+        'area_assignments' => [
+            'administrative_district' => (string) $geography['district']->getKey(),
+            'administrative_subdivision' => (string) $geography['subdistrict']->getKey(),
+        ],
     ];
 }
 

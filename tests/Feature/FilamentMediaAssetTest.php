@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\CommerceSupport\Models\Role;
+use AIArmada\Authz\Models\Role;
 use App\Models\Person;
 use App\Models\User;
 use Spatie\Permission\PermissionRegistrar;

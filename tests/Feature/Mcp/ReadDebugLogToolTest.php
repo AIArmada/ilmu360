@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\CommerceSupport\Models\Role;
+use AIArmada\Authz\Models\Role;
 use App\Mcp\Servers\AdminServer;
 use App\Mcp\Tools\Admin\AdminReadDebugLogTool;
 use App\Models\User;

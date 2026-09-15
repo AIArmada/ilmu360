@@ -2,9 +2,12 @@
 
 namespace App\Models;
 
+use AIArmada\Engagement\Contracts\Followable;
 use AIArmada\Engagement\Models\Follow;
 use AIArmada\Events\Models\EventSeries as PackageEventSeries;
+use AIArmada\Events\Models\EventSeriesItem;
 use AIArmada\Events\Models\EventSeriesItemPivot;
+use AIArmada\Events\Models\EventSeriesRule;
 use App\Models\Concerns\AuditsModelChanges;
 use App\Models\Concerns\HasLanguages;
 use Database\Factories\SeriesFactory;
@@ -12,6 +15,7 @@ use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
@@ -34,12 +38,53 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property array<string, mixed>|null $dynamic_rule_json
  * @property array<string, mixed>|null $metadata
  */
-class Series extends PackageEventSeries implements AuditableContract, HasMedia
+class Series extends PackageEventSeries implements AuditableContract, Followable, HasMedia
 {
     protected static string $ownerScopeConfigKey = 'series.owner';
 
     /** @use HasFactory<SeriesFactory> */
     use AuditsModelChanges, HasFactory, HasLanguages, InteractsWithMedia;
+
+    /**
+     * The inherited item/rule relations resolve their foreign key from the
+     * parent class name (series_id), which does not exist. Pin the real key.
+     *
+     * @return HasMany<EventSeriesItem, $this>
+     */
+    #[\Override]
+    public function items(): HasMany
+    {
+        return $this->hasMany(EventSeriesItem::class, 'event_series_id');
+    }
+
+    /**
+     * @return HasMany<EventSeriesRule, $this>
+     */
+    #[\Override]
+    public function rules(): HasMany
+    {
+        return $this->hasMany(EventSeriesRule::class, 'event_series_id');
+    }
+
+    public function followableName(): string
+    {
+        return (string) $this->title;
+    }
+
+    public function followableUrl(): ?string
+    {
+        return route('series.show', ['series' => $this->slug]);
+    }
+
+    public function followableImage(): ?string
+    {
+        return null;
+    }
+
+    public function defaultFollowNotificationLevel(): ?string
+    {
+        return null;
+    }
 
     #[\Override]
     protected static function newFactory(): SeriesFactory

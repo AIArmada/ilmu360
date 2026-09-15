@@ -945,8 +945,8 @@ describe('Event Show Page Location & Contact Info', function () {
         $venue->primaryAddress()?->update([
             'line1' => 'Persiaran Masjid',
             'google_maps_url' => 'https://www.google.com/maps/search/?api=1&query=3.139%2C101.6869&query_place_id=place_123',
-            'lat' => 3.139,
-            'lng' => 101.6869,
+            'latitude' => 3.139,
+            'longitude' => 101.6869,
         ]);
 
         $event = Event::factory()->create([

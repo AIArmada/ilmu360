@@ -51,10 +51,10 @@ class AddressableObserver implements ShouldHandleEventsAfterCommit
             $this->publicDirectoryCacheVersion->bumpForAddress($address);
         }
 
-        $this->syncAddressable($addressable);
+        $this->syncAddressable($addressable, $address instanceof Address ? $address : null);
     }
 
-    private function syncAddressable(Addressable $addressable): void
+    private function syncAddressable(Addressable $addressable, ?Address $deletedAddress = null): void
     {
         $addressable->loadMissing('addressable');
 
@@ -70,7 +70,11 @@ class AddressableObserver implements ShouldHandleEventsAfterCommit
         }
 
         if ($subject instanceof Person) {
-            $this->generatePersonSlugAction->syncPersonSlugsForName($subject->name);
+            if ($deletedAddress instanceof Address) {
+                $this->generatePersonSlugAction->syncPersonSlugAfterAddressDeleted($subject, $deletedAddress);
+            } else {
+                $this->generatePersonSlugAction->syncPersonSlugsForName($subject->name);
+            }
             $this->generateEventSlugAction->syncEventSlugsForPersonName($subject->name);
             $this->syncSearchableModel($subject);
             $this->publicListingsCache->bustMajlisListing();

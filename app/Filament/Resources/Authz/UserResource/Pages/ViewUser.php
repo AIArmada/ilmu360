@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Authz\UserResource\Pages;
 
+use AIArmada\Authz\Facades\Authz;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Models\Response;
-use AIArmada\FilamentAuthz\Facades\Authz;
 use AIArmada\FilamentEvents\Resources\EventResource;
 use App\Filament\Resources\Authz\UserResource;
 use App\Filament\Resources\Institutions\InstitutionResource;

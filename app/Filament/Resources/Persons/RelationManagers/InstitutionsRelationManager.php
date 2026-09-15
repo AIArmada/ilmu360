@@ -81,7 +81,7 @@ class InstitutionsRelationManager extends RelationManager
 
                         return $data;
                     })
-                    ->after(function (AttachAction $action): void {
+                    ->before(function (AttachAction $action): void {
                         $this->clearOtherPrimaryAffiliations($action->getRecord(), $action->getData());
                     }),
             ])
@@ -92,7 +92,7 @@ class InstitutionsRelationManager extends RelationManager
                         Toggle::make('is_primary'),
                         DatePicker::make('joined_at'),
                     ])
-                    ->after(function (EditAction $action): void {
+                    ->before(function (EditAction $action): void {
                         $this->clearOtherPrimaryAffiliations($action->getRecord(), $action->getData());
                     }),
                 DetachAction::make(),
@@ -108,14 +108,24 @@ class InstitutionsRelationManager extends RelationManager
 
     /**
      * Filament updates belongs-to-many pivot rows directly, so the affiliation
-     * model observer cannot enforce this invariant for these actions.
+     * model observer cannot enforce this invariant for these actions. This must
+     * run before the write: the partial unique index on primary affiliations
+     * rejects the new primary while another primary row still exists.
      *
      * @param  Model|array<string, mixed>|null  $record
      * @param  array<string, mixed>  $data
      */
     private function clearOtherPrimaryAffiliations(Model|array|null $record, array $data): void
     {
-        if (! (bool) ($data['is_primary'] ?? false) || ! $record instanceof Model) {
+        if (! (bool) ($data['is_primary'] ?? false)) {
+            return;
+        }
+
+        $excludeInstitutionId = $record instanceof Model
+            ? $record->getKey()
+            : ($data['recordId'] ?? null);
+
+        if ($excludeInstitutionId === null || $excludeInstitutionId === '') {
             return;
         }
 
@@ -129,7 +139,7 @@ class InstitutionsRelationManager extends RelationManager
             ->newPivotStatement()
             ->where('affiliatable_id', $owner->getKey())
             ->where('affiliatable_type', $owner->getMorphClass())
-            ->where('institution_id', '!=', $record->getKey())
+            ->where('institution_id', '!=', $excludeInstitutionId)
             ->update([
                 'is_primary' => false,
                 'updated_at' => now(),

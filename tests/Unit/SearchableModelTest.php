@@ -126,36 +126,38 @@ it('only indexes active verified or pending institutions', function () {
 });
 
 it('builds the reference searchable payload and only indexes published verified or pending references', function () {
-    $reference = Reference::factory()->create([
-        'title' => 'Tafsir Al-Hikmah',
-        'author' => 'Dr. Ahmad',
-        'publisher' => 'Pustaka Hikmah',
-        'description' => '<p>Rujukan utama kuliah.</p>',
-        'year' => '2020',
-        'status' => 'pending',
-    ]);
+    withGlobalOwnerContext(function (): void {
+        $reference = Reference::factory()->create([
+            'title' => 'Tafsir Al-Hikmah',
+            'author' => 'Dr. Ahmad',
+            'publisher' => 'Pustaka Hikmah',
+            'description' => '<p>Rujukan utama kuliah.</p>',
+            'year' => '2020',
+            'status' => 'pending',
+        ]);
 
-    $payload = $reference->fresh()->toSearchableArray();
+        $payload = $reference->fresh()->toSearchableArray();
 
-    expect($reference->fresh()->shouldBeSearchable())->toBeTrue()
-        ->and($payload)->toHaveKey('id', (string) $reference->id)
-        ->and($payload)->toHaveKey('title', 'Tafsir Al-Hikmah')
-        ->and($payload)->toHaveKey('description', 'Rujukan utama kuliah.')
-        ->and($payload['search_text'])->toContain('Dr. Ahmad')
-        ->and($payload['search_text'])->toContain('Pustaka Hikmah')
-        ->and($payload)->toHaveKey('publication_year', 2020)
-        ->and($payload['published_at'])->toBeInt()
-        ->and($payload['updated_at'])->toBeInt();
+        expect($reference->fresh()->shouldBeSearchable())->toBeTrue()
+            ->and($payload)->toHaveKey('id', (string) $reference->id)
+            ->and($payload)->toHaveKey('title', 'Tafsir Al-Hikmah')
+            ->and($payload)->toHaveKey('description', 'Rujukan utama kuliah.')
+            ->and($payload['search_text'])->toContain('Dr. Ahmad')
+            ->and($payload['search_text'])->toContain('Pustaka Hikmah')
+            ->and($payload)->toHaveKey('publication_year', 2020)
+            ->and($payload['published_at'])->toBeInt()
+            ->and($payload['updated_at'])->toBeInt();
 
-    $rejectedReference = Reference::factory()->create([
-        'status' => 'rejected',
-    ]);
+        $rejectedReference = Reference::factory()->create([
+            'status' => 'rejected',
+        ]);
 
-    expect($rejectedReference->fresh()->shouldBeSearchable())->toBeFalse();
+        expect($rejectedReference->fresh()->shouldBeSearchable())->toBeFalse();
 
-    $unpublishedReference = Reference::factory()->pending()->unpublished()->create();
+        $unpublishedReference = Reference::factory()->pending()->unpublished()->create();
 
-    expect($unpublishedReference->fresh()->shouldBeSearchable())->toBeFalse();
+        expect($unpublishedReference->fresh()->shouldBeSearchable())->toBeFalse();
+    });
 });
 
 it('excludes unpublished references from public event search payloads', function () {

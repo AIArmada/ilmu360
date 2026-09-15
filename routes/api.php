@@ -87,7 +87,6 @@ Route::prefix('v1')->group(function () {
             Route::get('/administrative-subdivisions', [CatalogController::class, 'administrativeSubdivisions'])->name('administrative-subdivisions');
             Route::get('/languages', [CatalogController::class, 'languages'])->name('languages');
             Route::get('/taxonomy-terms/{type}', [CatalogController::class, 'taxonomyTerms'])->name('taxonomy-terms');
-            Route::get('/tags/{type}', [CatalogController::class, 'tags'])->name('tags');
             Route::get('/references', [CatalogController::class, 'references'])->name('references');
             Route::get('/submit-institutions', [CatalogController::class, 'submitInstitutions'])->name('submit-institutions');
             Route::get('/submit-persons', [CatalogController::class, 'submitPersons'])->name('submit-persons');

@@ -110,21 +110,12 @@ class CatalogController extends FrontendController
     )]
     public function taxonomyTerms(string $type, Request $request): JsonResponse
     {
-        $tagType = EventTaxonomyCode::tryFrom($type);
-        abort_unless($tagType instanceof EventTaxonomyCode, 404);
+        $taxonomyCode = EventTaxonomyCode::tryFrom($type);
+        abort_unless($taxonomyCode instanceof EventTaxonomyCode, 404);
 
         return response()->json([
-            'data' => $this->catalogs->taxonomyTerms($tagType->value, $request->string('q')->toString()),
+            'data' => $this->catalogs->taxonomyTerms($taxonomyCode->value, $request->string('q')->toString()),
         ]);
-    }
-
-    #[Endpoint(
-        title: 'List tags catalog',
-        description: 'Alias of taxonomy-terms catalog (ADR-011). Prefer /taxonomy-terms/{type}.',
-    )]
-    public function tags(string $type, Request $request): JsonResponse
-    {
-        return $this->taxonomyTerms($type, $request);
     }
 
     #[Endpoint(

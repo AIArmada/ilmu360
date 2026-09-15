@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use AIArmada\CommerceSupport\Models\Role;
+use AIArmada\Authz\Models\Role;
 use App\Mcp\Servers\AdminServer;
 use App\Mcp\Servers\MemberServer;
 use App\Mcp\Tools\Admin\AdminDocumentationFetchTool;

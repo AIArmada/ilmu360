@@ -10,15 +10,15 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 
 class AppConsentResolver implements ConsentResolver
 {
-    public function resolve(
+    public function resolveConsent(
         ?string $recipientType,
         ?string $recipientId,
         string $channel,
         string $category,
     ): ConsentDecisionData {
-        $user = $this->resolveUser($recipientType, $recipientId);
+        $recipient = $this->resolveUser($recipientType, $recipientId);
 
-        if ($user === null) {
+        if ($recipient === null) {
             return new ConsentDecisionData(consented: true);
         }
 
@@ -28,7 +28,11 @@ class AppConsentResolver implements ConsentResolver
             return new ConsentDecisionData(consented: true);
         }
 
-        $hasActiveDestination = $user->notificationDestinations()
+        if (! method_exists($recipient, 'notificationDestinations')) {
+            return new ConsentDecisionData(consented: true);
+        }
+
+        $hasActiveDestination = $recipient->notificationDestinations()
             ->where('channel', $appChannel->value)
             ->where('status', 'active')
             ->exists();

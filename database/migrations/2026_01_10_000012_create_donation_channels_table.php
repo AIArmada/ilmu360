@@ -34,7 +34,7 @@ return new class extends Migration
 
             $table->string('reference_note')->nullable();
 
-            $table->string('status')->default('unverified'); // unverified|verified|rejected|inactive
+            $table->string('status')->default('pending'); // pending|verified|rejected|inactive
             $table->timestampTz('verified_at')->nullable();
             $table->timestampTz('rejected_at')->nullable();
             $table->timestampTz('published_at')->nullable();

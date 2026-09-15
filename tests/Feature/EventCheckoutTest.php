@@ -308,7 +308,8 @@ it('renders an authenticated paid checkout result with participant data', functi
             'external_order_type' => $order::class,
             'status' => 'confirmed',
         ]);
-    $session = CheckoutSession::create([
+    $session = new CheckoutSession;
+    $session->forceFill([
         'cart_id' => (string) str()->uuid(),
         'order_id' => (string) $order->getKey(),
         'status' => 'completed',
@@ -322,7 +323,7 @@ it('renders an authenticated paid checkout result with participant data', functi
         ],
         'grand_total' => 100,
         'currency' => 'MYR',
-    ]);
+    ])->save();
 
     $this->actingAs($user)
         ->get(route('checkout.result', ['session' => $session]))

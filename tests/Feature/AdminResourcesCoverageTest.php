@@ -1,6 +1,9 @@
 <?php
 
 use AIArmada\Events\Models\EventTemplate;
+use AIArmada\FilamentEvents\RelationManagers\EventsRelationManager as PersonEventsRelationManager;
+use AIArmada\FilamentEvents\RelationManagers\EventsRelationManager as ReferenceEventsRelationManager;
+use AIArmada\FilamentEvents\RelationManagers\EventsRelationManager as SeriesEventsRelationManager;
 use AIArmada\FilamentEvents\Resources\EventResource;
 use AIArmada\FilamentEvents\Resources\EventTemplateResource;
 use AIArmada\FilamentEvents\Resources\EventTemplateResource\Pages\CreateEventTemplate;
@@ -14,16 +17,13 @@ use App\Filament\Resources\Institutions\RelationManagers\DonationChannelsRelatio
 use App\Filament\Resources\Institutions\RelationManagers\MemberInvitationsRelationManager as InstitutionMemberInvitationsRelationManager;
 use App\Filament\Resources\MembershipApplications\MembershipApplicationResource;
 use App\Filament\Resources\Persons\PersonResource;
-use App\Filament\Resources\Persons\RelationManagers\EventsRelationManager as PersonEventsRelationManager;
 use App\Filament\Resources\Persons\RelationManagers\FollowersRelationManager as PersonFollowersRelationManager;
 use App\Filament\Resources\Persons\RelationManagers\InstitutionsRelationManager as PersonInstitutionsRelationManager;
 use App\Filament\Resources\Persons\RelationManagers\MemberInvitationsRelationManager as PersonMemberInvitationsRelationManager;
 use App\Filament\Resources\References\ReferenceResource;
-use App\Filament\Resources\References\RelationManagers\EventsRelationManager as ReferenceEventsRelationManager;
 use App\Filament\Resources\References\RelationManagers\MemberInvitationsRelationManager as ReferenceMemberInvitationsRelationManager;
 use App\Filament\Resources\References\RelationManagers\MembersRelationManager as ReferenceMembersRelationManager;
 use App\Filament\Resources\Reports\ReportResource;
-use App\Filament\Resources\Series\RelationManagers\EventsRelationManager as SeriesEventsRelationManager;
 use App\Filament\Resources\Series\SeriesResource;
 use App\Filament\Resources\Spaces\SpaceResource;
 use App\Filament\Resources\Venues\VenueResource;

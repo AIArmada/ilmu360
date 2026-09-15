@@ -270,9 +270,7 @@ class ReferenceSearchService implements PublicDiscoveryAdapter
                 ->orWhereLike('references.author', "%{$normalizedSearch}%")
                 ->orWhereLike('references.publisher', "%{$normalizedSearch}%")
                 ->orWhereLike('references.description', "%{$normalizedSearch}%")
-                ->orWhereLike('references.part_type', "%{$normalizedSearch}%")
-                ->orWhereLike('references.part_label', "%{$normalizedSearch}%")
-                ->orWhereLike('references.part_number', "%{$normalizedSearch}%");
+                ->orWherePartTextLike("%{$normalizedSearch}%");
 
             if (count($searchTokens) < 2) {
                 return;
@@ -286,9 +284,7 @@ class ReferenceSearchService implements PublicDiscoveryAdapter
                             ->orWhereLike('references.author', "%{$token}%")
                             ->orWhereLike('references.publisher', "%{$token}%")
                             ->orWhereLike('references.description', "%{$token}%")
-                            ->orWhereLike('references.part_type', "%{$token}%")
-                            ->orWhereLike('references.part_label', "%{$token}%")
-                            ->orWhereLike('references.part_number', "%{$token}%");
+                            ->orWherePartTextLike("%{$token}%");
                     });
                 }
             });

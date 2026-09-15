@@ -12,11 +12,15 @@ use AIArmada\Addressing\Models\State;
 use AIArmada\Checkout\Models\CheckoutSession;
 use AIArmada\CommerceSupport\Models\Language as CommerceLanguage;
 use AIArmada\Communications\Contracts\ConsentResolver;
+use AIArmada\Communications\Contracts\DestinationResolver;
+use AIArmada\Communications\Contracts\PayloadRedactor;
 use AIArmada\Communications\Contracts\PreferenceResolver;
 use AIArmada\Communications\Contracts\QuietHoursResolver;
 use AIArmada\Communications\Contracts\SuppressionResolver;
 use AIArmada\Contacting\Models\ContactMethod;
 use AIArmada\Contacting\Models\SocialProfile;
+use AIArmada\Customers\Models\Customer;
+use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventAccessPolicy;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventRegistrationParticipant;
@@ -114,6 +118,8 @@ use App\Support\Communications\AppConsentResolver;
 use App\Support\Communications\AppPreferenceResolver;
 use App\Support\Communications\AppQuietHoursResolver;
 use App\Support\Communications\AppSuppressionResolver;
+use App\Support\Communications\ListSafePayloadRedactor;
+use App\Support\Communications\ProbeSafeDestinationResolver;
 use App\Support\Media\MediaFileNamer;
 use App\Support\Membership\AppMembershipApplicationNotifier;
 use App\Support\Membership\AppMembershipHook;
@@ -198,6 +204,16 @@ class AppServiceProvider extends ServiceProvider
             AppSuppressionResolver::class,
         );
 
+        $this->app->singleton(
+            PayloadRedactor::class,
+            ListSafePayloadRedactor::class,
+        );
+
+        $this->app->bind(
+            DestinationResolver::class,
+            ProbeSafeDestinationResolver::class,
+        );
+
         $filamentAuditingViews = base_path('vendor/tapp/filament-auditing/resources/views');
 
         if (is_dir($filamentAuditingViews)) {
@@ -207,6 +223,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(MembershipHook::class, AppMembershipHook::class);
         $this->app->singleton(MembershipApplicationNotifier::class, AppMembershipApplicationNotifier::class);
         $this->app->singleton(CurrentOrganizationResolver::class, AppCurrentOrganizationResolver::class);
+        config(['organizations.resolver' => AppCurrentOrganizationResolver::class]);
 
         $this->app->bind(
             function ($app): CaptchaVerifier {
@@ -336,8 +353,10 @@ class AppServiceProvider extends ServiceProvider
 
             'ai_model_pricing' => AiModelPricing::class,
             'contact' => ContactMethod::class,
+            'customer' => Customer::class,
             'user' => User::class,
             'event' => Event::class,
+            'package_event' => PackageEvent::class,
             'event_access_policy' => EventAccessPolicy::class,
             'event_key_person' => EventKeyPerson::class,
             'event_occurrence' => EventOccurrence::class,

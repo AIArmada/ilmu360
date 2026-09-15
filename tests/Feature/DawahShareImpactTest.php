@@ -274,6 +274,7 @@ test('share redirect resolves non uuid reference slugs without server errors', f
     $reference = Reference::factory()->create([
         'slug' => 'fiqh-muamalat',
         'status' => 'verified',
+        'published_at' => now()->subDay(),
     ]);
 
     $redirectResponse = $this->actingAs($this->sharer)

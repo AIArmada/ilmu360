@@ -115,6 +115,11 @@ return [
         'gateway_priority' => ['cashier-chip', 'chip', 'cashier'],
         'prefer_actor' => true,
         'retry_limit' => 3,
+        'callback_token_ttl' => 60 * 60 * 24,
+        'callback_rate_limit' => [
+            'max_attempts' => 10,
+            'decay_seconds' => 60,
+        ],
         // Optional provider packages register their processors through the
         // checkout.payment_processors container tag.
         'gateways' => [

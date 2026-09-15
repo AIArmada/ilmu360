@@ -56,18 +56,21 @@ class ReferenceForm
                             ->label('Part Type')
                             ->options(ReferencePartType::class)
                             ->default(ReferencePartType::Jilid->value)
+                            ->formatStateUsing(fn (ReferencePartType|string|null $state, ?Reference $record): ReferencePartType|string|null => ReferencePartType::tryFrom((string) ($record?->partTypeValue() ?? '')) ?? $state)
                             ->visible(fn (Get $get): bool => filled($get('parent_id')))
                             ->dehydrated(fn (Get $get): bool => filled($get('parent_id'))),
                         TextInput::make('part_number')
                             ->label('Part Number')
                             ->placeholder('2')
                             ->maxLength(255)
+                            ->formatStateUsing(fn (?string $state, ?Reference $record): ?string => $record?->partNumberValue() ?? $state)
                             ->visible(fn (Get $get): bool => filled($get('parent_id')))
                             ->dehydrated(fn (Get $get): bool => filled($get('parent_id'))),
                         TextInput::make('part_label')
                             ->label('Part Label')
                             ->helperText('Optional display label, e.g. Jilid 2 or Bahagian Akhir.')
                             ->maxLength(255)
+                            ->formatStateUsing(fn (?string $state, ?Reference $record): ?string => $record?->partLabelValue() ?? $state)
                             ->visible(fn (Get $get): bool => filled($get('parent_id')))
                             ->dehydrated(fn (Get $get): bool => filled($get('parent_id'))),
                         TextInput::make('year')

@@ -36,9 +36,9 @@ final readonly class SaveReferenceAction
             'parent_id' => array_key_exists('parent_id', $data) || array_key_exists('parent_reference_id', $data)
                 ? $this->normalizeOptionalString($data['parent_id'] ?? $data['parent_reference_id'] ?? null)
                 : $reference->parent_id,
-            'part_type' => array_key_exists('part_type', $data) ? $this->normalizeOptionalString($data['part_type']) : $reference->part_type,
-            'part_number' => array_key_exists('part_number', $data) ? $this->normalizeOptionalString($data['part_number']) : $reference->part_number,
-            'part_label' => array_key_exists('part_label', $data) ? $this->normalizeOptionalString($data['part_label']) : $reference->part_label,
+            'part_type' => array_key_exists('part_type', $data) ? $this->normalizeOptionalString($data['part_type']) : $reference->partTypeValue(),
+            'part_number' => array_key_exists('part_number', $data) ? $this->normalizeOptionalString($data['part_number']) : $reference->partNumberValue(),
+            'part_label' => array_key_exists('part_label', $data) ? $this->normalizeOptionalString($data['part_label']) : $reference->partLabelValue(),
             'year' => array_key_exists('year', $data) || array_key_exists('publication_year', $data)
                 ? $this->normalizeOptionalString($data['year'] ?? $data['publication_year'] ?? null)
                 : $reference->year,

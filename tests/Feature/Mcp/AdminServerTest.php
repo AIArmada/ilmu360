@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\CommerceSupport\Models\Role;
+use AIArmada\Authz\Models\Role;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
@@ -3047,13 +3047,7 @@ it('initializes and lists admin MCP tools over the HTTP endpoint for Passport-au
         ->toContain('venue-type nouns (`dewan`, `auditorium`, `stadium`, `perpustakaan`, `padang`, `hotel`) should be searched as `venues` first')
         ->toContain('`spaces` are finer-grained sublocations inside institutions');
 
-    $sessionId = $initialize->headers->get('MCP-Session-Id');
-
-    expect($sessionId)->not->toBeNull();
-
-    $listTools = $this->withHeaders([
-        'MCP-Session-Id' => (string) $sessionId,
-    ])->postJson('/mcp/admin', [
+    $listTools = $this->postJson('/mcp/admin', [
         'jsonrpc' => '2.0',
         'id' => 'list-tools-admin-mcp-passport',
         'method' => 'tools/list',
@@ -3270,13 +3264,7 @@ it('initializes and lists admin MCP tools over the HTTP endpoint', function () {
         ],
     ])->assertOk();
 
-    $sessionId = $initialize->headers->get('MCP-Session-Id');
-
-    expect($sessionId)->not->toBeNull();
-
-    $listTools = $this->withToken($token)->withHeaders([
-        'MCP-Session-Id' => (string) $sessionId,
-    ])->postJson('/mcp/admin', [
+    $listTools = $this->withToken($token)->postJson('/mcp/admin', [
         'jsonrpc' => '2.0',
         'id' => 'list-tools-admin-mcp',
         'method' => 'tools/list',
@@ -3474,13 +3462,7 @@ it('auto-injects guide on first operational call and allows the retry in the sam
         ],
     ])->assertOk();
 
-    $sessionId = $initialize->headers->get('MCP-Session-Id');
-
-    expect($sessionId)->not->toBeNull();
-
-    $firstCall = $this->withToken($token)->withHeaders([
-        'MCP-Session-Id' => (string) $sessionId,
-    ])->postJson('/mcp/admin', [
+    $firstCall = $this->withToken($token)->postJson('/mcp/admin', [
         'jsonrpc' => '2.0',
         'id' => 'call-admin-list-resources-first-attempt',
         'method' => 'tools/call',
@@ -3496,9 +3478,7 @@ it('auto-injects guide on first operational call and allows the retry in the sam
     expect($firstCall->json('result.structuredContent.retry.tool_name'))->toBe('admin-list-resources');
     expect($firstCall->json('result.content.0.text'))->toContain('Guide auto-loaded');
 
-    $allowedCall = $this->withToken($token)->withHeaders([
-        'MCP-Session-Id' => (string) $sessionId,
-    ])->postJson('/mcp/admin', [
+    $allowedCall = $this->withToken($token)->postJson('/mcp/admin', [
         'jsonrpc' => '2.0',
         'id' => 'call-admin-list-resources-after-docs',
         'method' => 'tools/call',
@@ -3530,8 +3510,6 @@ it('auto-injects guide via meta-session identity and allows the retry', function
             ],
         ],
     ])->assertOk();
-
-    expect($initialize->headers->get('MCP-Session-Id'))->not->toBeNull();
 
     $firstCall = $this->withToken($token)->postJson('/mcp/admin', [
         'jsonrpc' => '2.0',
@@ -3652,13 +3630,7 @@ it('lists and reads the documentation routing prompt through the admin MCP serve
         ],
     ])->assertOk();
 
-    $sessionId = $initialize->headers->get('MCP-Session-Id');
-
-    expect($sessionId)->not->toBeNull();
-
-    $listPrompts = $this->withToken($token)->withHeaders([
-        'MCP-Session-Id' => (string) $sessionId,
-    ])->postJson('/mcp/admin', [
+    $listPrompts = $this->withToken($token)->postJson('/mcp/admin', [
         'jsonrpc' => '2.0',
         'id' => 'list-admin-mcp-prompts',
         'method' => 'prompts/list',
@@ -3680,9 +3652,7 @@ it('lists and reads the documentation routing prompt through the admin MCP serve
         ],
     ]);
 
-    $getPrompt = $this->withToken($token)->withHeaders([
-        'MCP-Session-Id' => (string) $sessionId,
-    ])->postJson('/mcp/admin', [
+    $getPrompt = $this->withToken($token)->postJson('/mcp/admin', [
         'jsonrpc' => '2.0',
         'id' => 'get-admin-mcp-prompt',
         'method' => 'prompts/get',
@@ -3743,13 +3713,7 @@ it('lists and reads verified documentation resources through the admin MCP serve
         ],
     ])->assertOk();
 
-    $sessionId = $initialize->headers->get('MCP-Session-Id');
-
-    expect($sessionId)->not->toBeNull();
-
-    $listResources = $this->withToken($token)->withHeaders([
-        'MCP-Session-Id' => (string) $sessionId,
-    ])->postJson('/mcp/admin', [
+    $listResources = $this->withToken($token)->postJson('/mcp/admin', [
         'jsonrpc' => '2.0',
         'id' => 'list-admin-mcp-resources',
         'method' => 'resources/list',

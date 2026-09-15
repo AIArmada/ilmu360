@@ -1,7 +1,7 @@
 <?php
 
 use AIArmada\Addressing\Models\AddressAreaStateLink;
-use AIArmada\CommerceSupport\Models\Role;
+use AIArmada\Authz\Models\Role;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Enums\RegistrationMode as PackageRegistrationMode;
 use AIArmada\Events\Models\EventTaxonomy;

@@ -583,6 +583,7 @@ it('filters institutions by the package city level', function () {
     syncPrimaryAddressForTest($other, [
         ...$geo['address'],
         'city_id' => null,
+        'city' => null,
     ]);
 
     get('/institusi?state_id='.$geo['state']->getKey().'&city_id='.$geo['city']->getKey())

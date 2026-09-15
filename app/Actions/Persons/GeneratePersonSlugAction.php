@@ -2,10 +2,12 @@
 
 namespace App\Actions\Persons;
 
-use App\Actions\Slugs\Concerns\BuildsUniqueSlug;
-use App\Actions\Slugs\Concerns\InteractsWithOrderedSlugModels;
-use App\Actions\Slugs\Concerns\ResolvesLocationSuffix;
-use App\Actions\Slugs\SyncCanonicalSlugAction;
+use AIArmada\Addressing\Models\Address;
+use AIArmada\Addressing\Support\LocationSlugSegments;
+use AIArmada\CommerceSupport\Support\CanonicalSlug;
+use AIArmada\CommerceSupport\Support\StableModelOrder;
+use AIArmada\CommerceSupport\Support\UniqueSlug;
+use App\Actions\Slugs\SyncSlugRedirectAction;
 use App\Models\Person;
 use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -13,12 +15,9 @@ use Lorisleiva\Actions\Concerns\AsAction;
 class GeneratePersonSlugAction
 {
     use AsAction;
-    use BuildsUniqueSlug;
-    use InteractsWithOrderedSlugModels;
-    use ResolvesLocationSuffix;
 
     public function __construct(
-        private readonly SyncCanonicalSlugAction $syncCanonicalSlugAction,
+        private readonly SyncSlugRedirectAction $syncSlugRedirectAction,
     ) {}
 
     public function syncPersonSlugsForName(string $name): bool
@@ -34,14 +33,45 @@ class GeneratePersonSlugAction
             ->with(['addresses'])
             ->get();
 
-        return $this->syncOrderedModels($persons, fn (Person $person): bool => $this->syncPersonSlug($person));
+        return StableModelOrder::sync($persons, fn (Person $person): bool => $this->syncPersonSlug($person));
     }
 
     public function syncPersonSlug(Person $person): bool
     {
         $slug = $this->forPerson($person);
 
-        return $this->syncCanonicalSlugAction->persist($person, $slug);
+        return CanonicalSlug::persist($person, $slug, $this->syncSlugRedirectAction);
+    }
+
+    /**
+     * Recompute a person's slug after one of their addresses was deleted.
+     * When no addresses remain, the deleted address's location is reused so
+     * the public slug keeps its country suffix instead of collapsing to the
+     * bare name.
+     */
+    public function syncPersonSlugAfterAddressDeleted(Person $person, Address $deletedAddress): bool
+    {
+        $person->unsetRelation('addresses');
+        $person->load(['addresses']);
+
+        if ($person->primaryAddress() !== null) {
+            return $this->syncPersonSlug($person);
+        }
+
+        $slug = $this->handle(
+            $person->name,
+            [
+                'city' => $deletedAddress->city,
+                'state' => $deletedAddress->state,
+                'country_id' => $deletedAddress->country_id,
+                'country_code' => $deletedAddress->country_code,
+                'family_name' => $person->family_name,
+                'middle_name' => $person->middle_name,
+            ],
+            (string) $person->getKey(),
+        );
+
+        return CanonicalSlug::persist($person, $slug, $this->syncSlugRedirectAction);
     }
 
     /**
@@ -63,7 +93,7 @@ class GeneratePersonSlugAction
 
         $locationSuffix = $this->locationSuffix($payload);
 
-        return $this->buildUniqueSlug(
+        return UniqueSlug::build(
             Person::class,
             $nameSlug,
             [],
@@ -98,32 +128,7 @@ class GeneratePersonSlugAction
      */
     private function locationSuffix(array $payload): string
     {
-        $countryCode = $this->resolveCountryCode($payload);
-        $segments = [];
-
-        foreach ([
-            $this->slugSegment($this->firstFilled([
-                $payload['city'] ?? null,
-                $this->canonicalCityName($payload['city_id'] ?? null),
-            ])),
-            $this->slugSegment($this->firstFilled([
-                $payload['state'] ?? null,
-                $this->canonicalStateName($payload['state_id'] ?? null),
-            ])),
-            $this->countryCodeSegment($countryCode),
-        ] as $segment) {
-            if ($segment === null) {
-                continue;
-            }
-
-            if (($segments[array_key_last($segments)] ?? null) === $segment) {
-                continue;
-            }
-
-            $segments[] = $segment;
-        }
-
-        return implode('-', $segments);
+        return LocationSlugSegments::suffix($payload, preferLiteralCountry: false);
     }
 
     private function displayName(string $name, mixed $middleName = null, mixed $familyName = null): string

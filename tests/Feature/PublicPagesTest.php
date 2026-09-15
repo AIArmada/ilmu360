@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\CommerceSupport\Models\Role;
+use AIArmada\Authz\Models\Role;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Events\Models\EventTerm;
 use App\Enums\ContributionSubjectType;

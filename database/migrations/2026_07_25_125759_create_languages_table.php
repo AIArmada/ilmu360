@@ -8,9 +8,6 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::dropIfExists('languageables');
-        Schema::dropIfExists('languages');
-
         Schema::create('languages', function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->string('code', 10)->unique();

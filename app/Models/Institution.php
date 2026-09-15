@@ -5,6 +5,7 @@ namespace App\Models;
 use AIArmada\Addressing\Traits\HasAddresses;
 use AIArmada\Contacting\Concerns\HasContactMethods;
 use AIArmada\Contacting\Concerns\HasSocialProfiles;
+use AIArmada\Engagement\Contracts\Followable;
 use AIArmada\Engagement\Models\Follow;
 use AIArmada\Membership\Traits\HasMembers;
 use App\Enums\InstitutionType;
@@ -37,7 +38,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 /**
  * @property CarbonInterface|null $published_at
  */
-class Institution extends Model implements AuditableContract, HasMedia
+class Institution extends Model implements AuditableContract, Followable, HasMedia
 {
     public const string PUBLIC_DIRECTORY_SESSION_KEY = 'public_institutions_directory_seed';
 
@@ -185,6 +186,26 @@ class Institution extends Model implements AuditableContract, HasMedia
     public function getDisplayNameAttribute(): string
     {
         return self::formatDisplayName($this->name, $this->primaryNickname);
+    }
+
+    public function followableName(): string
+    {
+        return $this->display_name;
+    }
+
+    public function followableUrl(): ?string
+    {
+        return route('institutions.show', ['institution' => $this->slug]);
+    }
+
+    public function followableImage(): ?string
+    {
+        return $this->public_logo_url;
+    }
+
+    public function defaultFollowNotificationLevel(): ?string
+    {
+        return null;
     }
 
     public function getPrimaryNicknameAttribute(): ?string

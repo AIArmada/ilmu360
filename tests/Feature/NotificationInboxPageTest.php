@@ -1,6 +1,5 @@
 <?php
 
-use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Communications\Enums\NotificationFamily;
 use AIArmada\Communications\Enums\NotificationPriority;
 use AIArmada\Communications\Enums\NotificationTrigger;
@@ -16,7 +15,7 @@ it('renders the notifications inbox for authenticated users', function () {
     $user = User::factory()->create();
     $otherUser = User::factory()->create();
 
-    OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+    createTestRecord(NotificationInbox::class, [
         'recipient_type' => $user->getMorphClass(),
         'recipient_id' => $user->getKey(),
         'family' => NotificationFamily::EventUpdate->value,
@@ -32,9 +31,9 @@ it('renders the notifications inbox for authenticated users', function () {
             'entity_id' => null,
         ],
         'read_at' => null,
-    ]));
+    ]);
 
-    OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+    createTestRecord(NotificationInbox::class, [
         'recipient_type' => $user->getMorphClass(),
         'recipient_id' => $user->getKey(),
         'family' => NotificationFamily::EventUpdate->value,
@@ -50,9 +49,9 @@ it('renders the notifications inbox for authenticated users', function () {
         ],
         'read_at' => null,
         'archived_at' => now(),
-    ]));
+    ]);
 
-    OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+    createTestRecord(NotificationInbox::class, [
         'recipient_type' => $otherUser->getMorphClass(),
         'recipient_id' => $otherUser->getKey(),
         'family' => NotificationFamily::EventUpdate->value,
@@ -68,7 +67,7 @@ it('renders the notifications inbox for authenticated users', function () {
             'entity_id' => null,
         ],
         'read_at' => null,
-    ]));
+    ]);
 
     $response = $this->withSession(['locale' => 'en'])
         ->actingAs($user)
@@ -85,7 +84,7 @@ it('renders the notifications inbox for authenticated users', function () {
 it('filters unread notifications and marks them as read in the inbox component', function () {
     $user = User::factory()->create();
 
-    $unread = OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+    $unread = createTestRecord(NotificationInbox::class, [
         'recipient_type' => $user->getMorphClass(),
         'recipient_id' => $user->getKey(),
         'family' => NotificationFamily::EventUpdate->value,
@@ -101,9 +100,9 @@ it('filters unread notifications and marks them as read in the inbox component',
             'entity_id' => null,
         ],
         'read_at' => null,
-    ]));
+    ]);
 
-    $read = OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+    $read = createTestRecord(NotificationInbox::class, [
         'recipient_type' => $user->getMorphClass(),
         'recipient_id' => $user->getKey(),
         'family' => NotificationFamily::EventUpdate->value,
@@ -119,7 +118,7 @@ it('filters unread notifications and marks them as read in the inbox component',
             'entity_id' => null,
         ],
         'read_at' => now(),
-    ]));
+    ]);
 
     Livewire::actingAs($user)
         ->test(NotificationsIndex::class)

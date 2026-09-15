@@ -6,6 +6,7 @@ use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Traits\HasAddresses;
 use AIArmada\Contacting\Concerns\HasContactMethods;
 use AIArmada\Contacting\Concerns\HasSocialProfiles;
+use AIArmada\Engagement\Contracts\Followable;
 use AIArmada\Engagement\Models\Follow;
 use AIArmada\Membership\Contracts\MembershipMutationGuard;
 use AIArmada\Membership\Enums\MemberRole;
@@ -54,7 +55,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property Carbon|null $updated_at
  * @property SpeakerStatus $speaker_status
  */
-class Person extends \AIArmada\Persons\Models\Person implements AuditableContract, HasMedia, MembershipMutationGuard
+class Person extends \AIArmada\Persons\Models\Person implements AuditableContract, Followable, HasMedia, MembershipMutationGuard
 {
     public const string PUBLIC_DIRECTORY_SESSION_KEY = 'public_persons_directory_seed';
 
@@ -184,7 +185,13 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
     #[\Override]
     protected function casts(): array
     {
-        return array_merge(parent::casts(), [
+        $casts = parent::casts();
+
+        // The application runs its own pending/verified person lifecycle and
+        // does not use the package PersonStatus enum (active/published/archived).
+        unset($casts['status']);
+
+        return array_merge($casts, [
             'verified_at' => 'immutable_datetime',
             'rejected_at' => 'immutable_datetime',
             'last_state_change_at' => 'immutable_datetime',
@@ -223,6 +230,26 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
             trim((string) $middleName),
             trim((string) $familyName),
         ])));
+    }
+
+    public function followableName(): string
+    {
+        return $this->formatted_name;
+    }
+
+    public function followableUrl(): ?string
+    {
+        return route('persons.show', ['person' => $this->slug]);
+    }
+
+    public function followableImage(): ?string
+    {
+        return $this->avatar_url;
+    }
+
+    public function defaultFollowNotificationLevel(): ?string
+    {
+        return null;
     }
 
     public function getFormattedNameAttribute(): string

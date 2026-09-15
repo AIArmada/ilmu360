@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Models\Reference;
 use App\Support\Models\SlugOrUuidResolver;
 use Illuminate\Support\Str;
@@ -10,21 +11,21 @@ uses(TestCase::class);
 it('does not append key lookup bindings for non-uuid identifiers', function () {
     $resolver = app(SlugOrUuidResolver::class);
 
-    $query = $resolver->apply(Reference::query(), 'references.slug', 'fiqh-muamalat');
+    $bindings = OwnerContext::withOwner(null, fn (): array => $resolver->apply(Reference::query(), 'references.slug', 'fiqh-muamalat')->getBindings());
 
-    expect($query->getBindings())
+    expect($bindings)
         ->toHaveCount(1)
-        ->and($query->getBindings()[0])->toBe('fiqh-muamalat');
+        ->and($bindings[0])->toBe('fiqh-muamalat');
 });
 
 it('appends key lookup bindings for uuid identifiers', function () {
     $resolver = app(SlugOrUuidResolver::class);
     $identifier = (string) Str::uuid();
 
-    $query = $resolver->apply(Reference::query(), 'references.slug', $identifier);
+    $bindings = OwnerContext::withOwner(null, fn (): array => $resolver->apply(Reference::query(), 'references.slug', $identifier)->getBindings());
 
-    expect($query->getBindings())
+    expect($bindings)
         ->toHaveCount(2)
-        ->and($query->getBindings()[0])->toBe($identifier)
-        ->and($query->getBindings()[1])->toBe($identifier);
+        ->and($bindings[0])->toBe($identifier)
+        ->and($bindings[1])->toBe($identifier);
 });

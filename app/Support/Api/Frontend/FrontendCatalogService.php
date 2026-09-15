@@ -11,7 +11,6 @@ use AIArmada\Events\Models\EventTerm;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Events\ResolveAdvancedBuilderContextAction;
 use App\Contracts\SpaceEligibilityResolver;
-use App\Enums\EventTaxonomyCode;
 use App\Enums\MemberSubjectType;
 use App\Forms\SharedFormSchema;
 use App\Models\Institution;
@@ -266,16 +265,6 @@ class FrontendCatalogService
     }
 
     /**
-     * Transitional Spatie tag catalog. Prefer taxonomyTerms() for event classification (ADR-011).
-     *
-     * @return list<array{id: string, label: string}>
-     */
-    public function tags(EventTaxonomyCode $type, ?string $search = null, int $limit = 50): array
-    {
-        return $this->taxonomyTerms($type->value, $search, $limit);
-    }
-
-    /**
      * @return list<array{id: string, label: string}>
      */
     public function references(?string $search = null, int $limit = 50): array
@@ -287,8 +276,7 @@ class FrontendCatalogService
             $query->where(function (Builder $referenceQuery) use ($normalizedSearch): void {
                 $referenceQuery
                     ->whereLike('title', '%'.$normalizedSearch.'%')
-                    ->orWhereLike('part_label', '%'.$normalizedSearch.'%')
-                    ->orWhereLike('part_number', '%'.$normalizedSearch.'%');
+                    ->orWherePartTextLike('%'.$normalizedSearch.'%');
             });
         }
 

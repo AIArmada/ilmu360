@@ -2,6 +2,7 @@
 
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
+use App\Enums\EventTaxonomyCode;
 use App\Enums\MemberSubjectType;
 use App\Models\Institution;
 use App\Models\Reference;
@@ -135,4 +136,19 @@ it('lists membership claim subjects from the public catalog endpoint', function 
         ->assertJsonPath('data.0.id', $institution->id)
         ->assertJsonPath('data.0.slug', $institution->slug)
         ->assertJsonPath('data.0.label', $institution->display_name);
+});
+
+it('lists taxonomy terms through the canonical catalog endpoint', function () {
+    $term = submitEventTerm(EventTaxonomyCode::Domain->value);
+
+    $response = $this->getJson(route('api.client.catalogs.taxonomy-terms', ['type' => EventTaxonomyCode::Domain->value]))
+        ->assertOk();
+
+    expect(collect($response->json('data'))->pluck('id')->all())->toContain((string) $term->getKey());
+});
+
+it('returns 404 for the removed tags catalog alias', function () {
+    submitEventTerm(EventTaxonomyCode::Domain->value);
+
+    $this->getJson('/api/v1/catalogs/tags/'.EventTaxonomyCode::Domain->value)->assertNotFound();
 });

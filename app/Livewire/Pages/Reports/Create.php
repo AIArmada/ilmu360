@@ -2,8 +2,8 @@
 
 namespace App\Livewire\Pages\Reports;
 
+use AIArmada\CommerceSupport\Support\RequestFingerprint;
 use App\Actions\Contributions\ResolveContributionSubjectAction;
-use App\Actions\Reports\ResolveReporterFingerprintAction;
 use App\Actions\Reports\ResolveReportFormContextAction;
 use App\Actions\Reports\SubmitReportAction;
 use App\Enums\ContributionSubjectType;
@@ -106,7 +106,6 @@ class Create extends Component implements HasForms
 
     public function submit(
         SubmitReportAction $submitReportAction,
-        ResolveReporterFingerprintAction $resolveReporterFingerprintAction,
     ): void {
         $user = auth()->user();
 
@@ -129,7 +128,7 @@ class Create extends Component implements HasForms
                 $this->entity,
                 $this->subjectType,
                 $user,
-                $resolveReporterFingerprintAction->handle(request()),
+                RequestFingerprint::resolve(request()),
                 (string) $state['category'],
                 filled($state['description'] ?? null) ? (string) $state['description'] : null,
                 request(),

@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Spaces;
 
+use AIArmada\FilamentEvents\RelationManagers\EventsRelationManager;
 use AIArmada\FilamentEvents\Resources\VenueSpaceResource;
 use App\Filament\RelationManagers\AuditsRelationManager;
 use App\Filament\Resources\Spaces\Pages\CreateSpace;
 use App\Filament\Resources\Spaces\Pages\EditSpace;
 use App\Filament\Resources\Spaces\Pages\ListSpaces;
 use App\Filament\Resources\Spaces\Pages\ViewSpace;
-use App\Filament\Resources\Spaces\RelationManagers\EventsRelationManager;
 use App\Filament\Resources\Spaces\RelationManagers\InstitutionsRelationManager;
 use App\Filament\Resources\Spaces\Schemas\SpaceForm;
 use App\Filament\Resources\Spaces\Schemas\SpaceInfolist;

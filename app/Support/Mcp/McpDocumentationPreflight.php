@@ -99,7 +99,6 @@ class McpDocumentationPreflight
     private function contextKeysFromRequest(Request $request): array
     {
         $contextKeys = [
-            $request->sessionId(),
             ...$this->extractSessionIdsFromMeta($request->meta()),
             $this->actorContextKey($request->user()),
         ];

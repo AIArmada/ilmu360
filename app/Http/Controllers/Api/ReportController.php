@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
+use AIArmada\CommerceSupport\Support\RequestFingerprint;
 use App\Actions\Reports\ResolveReportCategoryOptionsAction;
 use App\Actions\Reports\ResolveReportEntityMetadataAction;
-use App\Actions\Reports\ResolveReporterFingerprintAction;
 use App\Actions\Reports\SubmitReportAction;
 use App\Data\Api\Report\ReportSubmissionData;
 use App\Http\Controllers\Controller;
@@ -34,12 +34,11 @@ class ReportController extends Controller
         ResolveReportCategoryOptionsAction $resolveReportCategoryOptionsAction,
         ResolveReportEntityMetadataAction $resolveReportEntityMetadataAction,
         SubmitReportAction $submitReportAction,
-        ResolveReporterFingerprintAction $resolveReporterFingerprintAction,
         FrontendMediaSyncService $frontendMediaSyncService,
     ): JsonResponse {
         $this->authorize('create', Report::class);
 
-        $reporterFingerprint = $resolveReporterFingerprintAction->handle($request);
+        $reporterFingerprint = RequestFingerprint::resolve($request);
         $maxUploadSizeKb = (int) ceil(((int) config('media-library.max_file_size', 10 * 1024 * 1024)) / 1024);
 
         $validated = $request->validate([

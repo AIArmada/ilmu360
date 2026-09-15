@@ -2,11 +2,11 @@
 
 namespace App\Actions\Institutions;
 
-use AIArmada\Addressing\Models\State;
-use App\Actions\Slugs\Concerns\BuildsUniqueSlug;
-use App\Actions\Slugs\Concerns\InteractsWithOrderedSlugModels;
-use App\Actions\Slugs\Concerns\ResolvesLocationSuffix;
-use App\Actions\Slugs\SyncCanonicalSlugAction;
+use AIArmada\Addressing\Support\LocationSlugSegments;
+use AIArmada\CommerceSupport\Support\CanonicalSlug;
+use AIArmada\CommerceSupport\Support\StableModelOrder;
+use AIArmada\CommerceSupport\Support\UniqueSlug;
+use App\Actions\Slugs\SyncSlugRedirectAction;
 use App\Models\Institution;
 use App\Support\Location\AddressAssignments;
 use Illuminate\Support\Str;
@@ -15,12 +15,9 @@ use Lorisleiva\Actions\Concerns\AsAction;
 class GenerateInstitutionSlugAction
 {
     use AsAction;
-    use BuildsUniqueSlug;
-    use InteractsWithOrderedSlugModels;
-    use ResolvesLocationSuffix;
 
     public function __construct(
-        private readonly SyncCanonicalSlugAction $syncCanonicalSlugAction,
+        private readonly SyncSlugRedirectAction $syncSlugRedirectAction,
     ) {}
 
     public function syncInstitutionSlugsForName(string $name): bool
@@ -36,14 +33,14 @@ class GenerateInstitutionSlugAction
             ->with(['addresses'])
             ->get();
 
-        return $this->syncOrderedModels($institutions, fn (Institution $institution): bool => $this->syncInstitutionSlug($institution));
+        return StableModelOrder::sync($institutions, fn (Institution $institution): bool => $this->syncInstitutionSlug($institution));
     }
 
     public function syncInstitutionSlug(Institution $institution): bool
     {
         $slug = $this->forInstitution($institution);
 
-        return $this->syncCanonicalSlugAction->persist($institution, $slug);
+        return CanonicalSlug::persist($institution, $slug, $this->syncSlugRedirectAction);
     }
 
     /**
@@ -60,7 +57,7 @@ class GenerateInstitutionSlugAction
 
         $locationSuffix = $this->locationSuffix($address);
 
-        return $this->buildUniqueSlug(
+        return UniqueSlug::build(
             Institution::class,
             $nameSlug,
             [],
@@ -98,24 +95,24 @@ class GenerateInstitutionSlugAction
         $assignments = (array) ($address['area_assignments'] ?? []);
         $city = $this->firstFilled([
             $address['city'] ?? null,
-            $this->canonicalCityName($address['city_id'] ?? null),
-            $this->areaName($assignments[AddressAssignments::ADMINISTRATIVE_SUBDIVISION] ?? null),
+            LocationSlugSegments::cityName($address['city_id'] ?? null),
+            LocationSlugSegments::areaName($assignments[AddressAssignments::ADMINISTRATIVE_SUBDIVISION] ?? null),
         ]);
         $district = $this->firstFilled([
-            $this->areaName($assignments[AddressAssignments::ADMINISTRATIVE_DISTRICT] ?? null),
+            LocationSlugSegments::areaName($assignments[AddressAssignments::ADMINISTRATIVE_DISTRICT] ?? null),
         ]);
         $state = $this->firstFilled([
             $address['state'] ?? null,
-            $this->canonicalStateName($address['state_id'] ?? null),
+            LocationSlugSegments::stateName($address['state_id'] ?? null),
         ]);
-        $countryCode = $this->resolveCountryCode($address);
+        $countryCode = LocationSlugSegments::countryCode($address);
         $segments = [];
 
         foreach ([
             $this->slugSegment($city),
             $this->slugSegment($district),
             $this->slugSegment($state),
-            $this->countryCodeSegment($countryCode),
+            $this->codeSegment($countryCode),
         ] as $segment) {
             if ($segment === null) {
                 continue;
@@ -131,16 +128,45 @@ class GenerateInstitutionSlugAction
         return implode('-', $segments);
     }
 
-    private function canonicalStateName(mixed $stateId): ?string
+    private function slugSegment(mixed $value): ?string
     {
-        $stateId = $this->uuidValue($stateId);
-
-        if ($stateId === null) {
+        if (! is_string($value)) {
             return null;
         }
 
-        $resolved = State::query()->whereKey($stateId)->value('name');
+        $segment = Str::slug($value);
 
-        return is_string($resolved) && trim($resolved) !== '' ? $resolved : null;
+        return $segment !== '' ? $segment : null;
+    }
+
+    private function codeSegment(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $segment = Str::lower(trim($value));
+
+        return $segment !== '' ? $segment : null;
+    }
+
+    /**
+     * @param  array<int, mixed>  $values
+     */
+    private function firstFilled(array $values): ?string
+    {
+        foreach ($values as $value) {
+            if (! is_string($value)) {
+                continue;
+            }
+
+            $trimmed = trim($value);
+
+            if ($trimmed !== '') {
+                return $trimmed;
+            }
+        }
+
+        return null;
     }
 }

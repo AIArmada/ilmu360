@@ -2,9 +2,9 @@
 
 namespace App\Observers;
 
+use AIArmada\CommerceSupport\Support\CanonicalSlug;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\Events\GenerateEventSlugAction;
-use App\Actions\Slugs\SyncCanonicalSlugAction;
 use App\Actions\Slugs\SyncSlugRedirectAction;
 use App\Models\Event;
 use App\Observers\Concerns\SyncsCurrentAndPreviousValues;
@@ -18,7 +18,6 @@ class EventObserver implements ShouldHandleEventsAfterCommit
 
     public function __construct(
         protected GenerateEventSlugAction $generateEventSlugAction,
-        protected SyncCanonicalSlugAction $syncCanonicalSlugAction,
         protected SyncSlugRedirectAction $syncSlugRedirectAction,
         protected PublicDirectoryCacheVersion $publicDirectoryCacheVersion,
         protected PublicListingsCache $publicListingsCache
@@ -61,9 +60,10 @@ class EventObserver implements ShouldHandleEventsAfterCommit
              * observer runs, so redirects are synchronized here from the model's
              * previous persisted slug snapshot.
              */
-            $this->syncCanonicalSlugAction->syncChanged(
+            CanonicalSlug::syncChanged(
                 $event,
                 $event->getPrevious()['slug'] ?? null,
+                $this->syncSlugRedirectAction,
             );
         }
 

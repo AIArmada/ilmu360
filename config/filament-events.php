@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
+use AIArmada\FilamentEvents\Extensions\DefaultEventMediaExtension;
+use AIArmada\FilamentSeating\RelationManagers\SeatMapsRelationManager;
+use AIArmada\FilamentTicketing\RelationManagers\TicketTypesRelationManager;
 use App\Filament\Resources\Events\EventAdminContextFormExtension;
-use App\Filament\Resources\Events\EventMediaFormExtension;
 use App\Filament\Resources\Events\RelationManagers\ReferencesRelationManager;
-use App\Filament\Resources\Events\RelationManagers\SeatMapsRelationManager;
-use App\Filament\Resources\Events\RelationManagers\TicketTypesRelationManager;
 
 return [
     'navigation' => [
@@ -27,7 +27,7 @@ return [
         ],
         'event_form_extensions' => [
             EventAdminContextFormExtension::class,
-            EventMediaFormExtension::class,
+            DefaultEventMediaExtension::class,
         ],
         'event_relation_managers' => [
             ReferencesRelationManager::class,

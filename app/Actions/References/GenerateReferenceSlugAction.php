@@ -2,9 +2,10 @@
 
 namespace App\Actions\References;
 
-use App\Actions\Slugs\Concerns\BuildsUniqueSlug;
-use App\Actions\Slugs\Concerns\InteractsWithOrderedSlugModels;
-use App\Actions\Slugs\SyncCanonicalSlugAction;
+use AIArmada\CommerceSupport\Support\CanonicalSlug;
+use AIArmada\CommerceSupport\Support\StableModelOrder;
+use AIArmada\CommerceSupport\Support\UniqueSlug;
+use App\Actions\Slugs\SyncSlugRedirectAction;
 use App\Models\Reference;
 use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -12,11 +13,9 @@ use Lorisleiva\Actions\Concerns\AsAction;
 class GenerateReferenceSlugAction
 {
     use AsAction;
-    use BuildsUniqueSlug;
-    use InteractsWithOrderedSlugModels;
 
     public function __construct(
-        private readonly SyncCanonicalSlugAction $syncCanonicalSlugAction,
+        private readonly SyncSlugRedirectAction $syncSlugRedirectAction,
     ) {}
 
     public function syncReferenceSlugsForTitle(string $title): bool
@@ -31,14 +30,14 @@ class GenerateReferenceSlugAction
             ->where('references.title', $normalizedTitle)
             ->get();
 
-        return $this->syncOrderedModels($references, fn (Reference $reference): bool => $this->syncReferenceSlug($reference));
+        return StableModelOrder::sync($references, fn (Reference $reference): bool => $this->syncReferenceSlug($reference));
     }
 
     public function syncReferenceSlug(Reference $reference): bool
     {
         $slug = $this->forReference($reference);
 
-        return $this->syncCanonicalSlugAction->persist($reference, $slug);
+        return CanonicalSlug::persist($reference, $slug, $this->syncSlugRedirectAction);
     }
 
     public function handle(?string $title, ?string $ignoreReferenceId = null): string
@@ -50,7 +49,7 @@ class GenerateReferenceSlugAction
             $titleSlug = 'rujukan';
         }
 
-        return $this->buildUniqueSlug(
+        return UniqueSlug::build(
             Reference::class,
             $titleSlug,
             [],

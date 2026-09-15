@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Database\Factories\EventFactory as PackageEventFactory;
 use AIArmada\Events\Enums\RegistrationMode as PackageRegistrationMode;
 use AIArmada\Events\Enums\ScheduleKind;
@@ -240,50 +241,52 @@ class EventFactory extends PackageEventFactory
                 ? $schedule['ends_at']
                 : null;
 
-            app(SyncEventScheduleAction::class)->execute(
-                event: $event,
-                scheduleKind: ScheduleKind::Single,
-                startsAt: $startsAt,
-                endsAt: $endsAt,
-                timezone: $event->timezone,
-                timingMode: $timingMode,
-                prayerReference: ($schedule['prayer_reference'] ?? null) instanceof PrayerReference
-                    ? $schedule['prayer_reference']->value
-                    : ($schedule['prayer_reference'] ?? null),
-                prayerOffset: $prayerOffset,
-                prayerDisplayText: $schedule['prayer_display_text'] ?? null,
-            );
+            OwnerContext::withOwner($event->owner, function () use ($event, $startsAt, $endsAt, $timingMode, $prayerOffset, $schedule): void {
+                app(SyncEventScheduleAction::class)->execute(
+                    event: $event,
+                    scheduleKind: ScheduleKind::Single,
+                    startsAt: $startsAt,
+                    endsAt: $endsAt,
+                    timezone: $event->timezone,
+                    timingMode: $timingMode,
+                    prayerReference: ($schedule['prayer_reference'] ?? null) instanceof PrayerReference
+                        ? $schedule['prayer_reference']->value
+                        : ($schedule['prayer_reference'] ?? null),
+                    prayerOffset: $prayerOffset,
+                    prayerDisplayText: $schedule['prayer_display_text'] ?? null,
+                );
 
-            $categoryIds = $event->event_category_ids;
-            if ($categoryIds === []) {
-                $categoryId = array_key_first(app(EventCategoryCatalog::class)->options());
-                $categoryIds = $categoryId !== null ? [$categoryId] : [];
-            }
+                $categoryIds = $event->event_category_ids;
+                if ($categoryIds === []) {
+                    $categoryId = array_key_first(app(EventCategoryCatalog::class)->options());
+                    $categoryIds = $categoryId !== null ? [$categoryId] : [];
+                }
 
-            if ($categoryIds !== []) {
-                app(SyncEventClassificationsAction::class)->handle($event, ['event_category_ids' => $categoryIds]);
-            }
+                if ($categoryIds !== []) {
+                    app(SyncEventClassificationsAction::class)->handle($event, ['event_category_ids' => $categoryIds]);
+                }
 
-            // Create EventLink rows for streaming/recording URLs
-            $this->ensureFactoryUrlLinks($event);
+                // Create EventLink rows for streaming/recording URLs
+                $this->ensureFactoryUrlLinks($event);
 
-            // 30% of events have registration settings
-            if (
-                fake()->boolean(30)
-                && ! $event->accessPolicy()->exists()
-            ) {
-                $event->forceFill([
-                    'registration_mode' => PackageRegistrationMode::Required->value,
-                ])->save();
+                // 30% of events have registration settings
+                if (
+                    fake()->boolean(30)
+                    && ! $event->accessPolicy()->exists()
+                ) {
+                    $event->forceFill([
+                        'registration_mode' => PackageRegistrationMode::Required->value,
+                    ])->save();
 
-                $event->accessPolicy()->create([
-                    'registration_required' => true,
-                    'capacity' => fake()->numberBetween(30, 300),
-                    'walk_in_allowed' => false,
-                    'opens_at' => $startsAt?->copy()->subDays(7),
-                    'closes_at' => $startsAt?->copy()->subDays(1),
-                ]);
-            }
+                    $event->accessPolicy()->create([
+                        'registration_required' => true,
+                        'capacity' => fake()->numberBetween(30, 300),
+                        'walk_in_allowed' => false,
+                        'opens_at' => $startsAt?->copy()->subDays(7),
+                        'closes_at' => $startsAt?->copy()->subDays(1),
+                    ]);
+                }
+            });
 
             if (self::$scheduleStates instanceof WeakMap && isset(self::$scheduleStates[$event])) {
                 unset(self::$scheduleStates[$event]);
@@ -306,17 +309,19 @@ class EventFactory extends PackageEventFactory
         ]);
 
         return $this->afterCreating(function (Event $event) use ($prayer, $offset): void {
-            app(SyncEventScheduleAction::class)->execute(
-                event: $event,
-                scheduleKind: ScheduleKind::Single,
-                startsAt: $event->starts_at,
-                endsAt: $event->ends_at,
-                timezone: $event->timezone,
-                timingMode: TimingMode::PrayerRelative,
-                prayerReference: $prayer->value,
-                prayerOffset: $offset->minutes(),
-                prayerDisplayText: $offset->displayText($prayer),
-            );
+            OwnerContext::withOwner($event->owner, function () use ($event, $prayer, $offset): void {
+                app(SyncEventScheduleAction::class)->execute(
+                    event: $event,
+                    scheduleKind: ScheduleKind::Single,
+                    startsAt: $event->starts_at,
+                    endsAt: $event->ends_at,
+                    timezone: $event->timezone,
+                    timingMode: TimingMode::PrayerRelative,
+                    prayerReference: $prayer->value,
+                    prayerOffset: $offset->minutes(),
+                    prayerDisplayText: $offset->displayText($prayer),
+                );
+            });
         });
     }
 

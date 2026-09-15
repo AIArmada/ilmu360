@@ -1,9 +1,9 @@
 <?php
 
-use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Communications\Enums\NotificationFamily;
 use AIArmada\Communications\Enums\NotificationPriority;
 use AIArmada\Communications\Enums\NotificationTrigger;
+use AIArmada\Communications\Models\CommunicationDestination;
 use AIArmada\Communications\Models\NotificationInbox;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -102,12 +102,14 @@ it('registers, updates, and removes push destinations through the api', function
         ->assertJsonPath('data.platform', 'ios')
         ->assertJsonPath('data.device_label', 'Aiman iPhone');
 
-    $this->assertDatabaseHas('communication_destinations', [
-        'recipient_id' => $user->id,
-        'channel' => 'push',
-        'address' => 'ios-primary',
-        'external_id' => 'token-one',
-    ]);
+    $stored = CommunicationDestination::query()
+        ->where('recipient_id', $user->id)
+        ->where('channel', 'push')
+        ->get()
+        ->first(fn (CommunicationDestination $destination): bool => $destination->address === 'ios-primary');
+
+    expect($stored)->not->toBeNull()
+        ->and($stored->external_id)->toBe('token-one');
 
     $updateResponse = $this->putJson('/api/v1/notification-destinations/push/ios-primary', [
         'fcm_token' => 'token-two',
@@ -121,29 +123,31 @@ it('registers, updates, and removes push destinations through the api', function
         ->assertJsonPath('data.platform', 'android')
         ->assertJsonPath('data.device_label', 'Aiman Android');
 
-    $this->assertDatabaseHas('communication_destinations', [
-        'recipient_id' => $user->id,
-        'channel' => 'push',
-        'address' => 'ios-primary',
-        'external_id' => 'token-two',
-    ]);
+    $refreshed = CommunicationDestination::query()
+        ->where('recipient_id', $user->id)
+        ->where('channel', 'push')
+        ->get()
+        ->first(fn (CommunicationDestination $destination): bool => $destination->address === 'ios-primary');
+
+    expect($refreshed)->not->toBeNull()
+        ->and($refreshed->external_id)->toBe('token-two');
 
     $deleteResponse = $this->deleteJson('/api/v1/notification-destinations/push/ios-primary');
 
     $deleteResponse->assertNoContent();
 
-    $this->assertDatabaseMissing('communication_destinations', [
-        'recipient_id' => $user->id,
-        'channel' => 'push',
-        'address' => 'ios-primary',
-    ]);
+    expect(CommunicationDestination::query()
+        ->where('recipient_id', $user->id)
+        ->where('channel', 'push')
+        ->pluck('address')
+        ->all())->not->toContain('ios-primary');
 });
 
 it('lists notifications and marks them as read through the api', function () {
     $user = User::factory()->create();
     $otherUser = User::factory()->create();
 
-    $unread = OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+    $unread = createTestRecord(NotificationInbox::class, [
         'recipient_type' => $user->getMorphClass(),
         'recipient_id' => $user->getKey(),
         'family' => NotificationFamily::EventUpdate->value,
@@ -159,8 +163,8 @@ it('lists notifications and marks them as read through the api', function () {
             'entity_id' => null,
         ],
         'read_at' => null,
-    ]));
-    $read = OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+    ]);
+    $read = createTestRecord(NotificationInbox::class, [
         'recipient_type' => $user->getMorphClass(),
         'recipient_id' => $user->getKey(),
         'family' => NotificationFamily::EventUpdate->value,
@@ -176,8 +180,8 @@ it('lists notifications and marks them as read through the api', function () {
             'entity_id' => null,
         ],
         'read_at' => now(),
-    ]));
-    OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+    ]);
+    createTestRecord(NotificationInbox::class, [
         'recipient_type' => $user->getMorphClass(),
         'recipient_id' => $user->getKey(),
         'family' => NotificationFamily::EventUpdate->value,
@@ -194,8 +198,8 @@ it('lists notifications and marks them as read through the api', function () {
         ],
         'read_at' => null,
         'archived_at' => now(),
-    ]));
-    OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+    ]);
+    createTestRecord(NotificationInbox::class, [
         'recipient_type' => $otherUser->getMorphClass(),
         'recipient_id' => $otherUser->getKey(),
         'family' => NotificationFamily::EventUpdate->value,
@@ -211,7 +215,7 @@ it('lists notifications and marks them as read through the api', function () {
             'entity_id' => null,
         ],
         'read_at' => null,
-    ]));
+    ]);
 
     Sanctum::actingAs($user);
 

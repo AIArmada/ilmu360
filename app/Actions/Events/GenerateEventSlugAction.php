@@ -2,9 +2,10 @@
 
 namespace App\Actions\Events;
 
-use App\Actions\Slugs\Concerns\BuildsUniqueSlug;
-use App\Actions\Slugs\Concerns\InteractsWithOrderedSlugModels;
-use App\Actions\Slugs\SyncCanonicalSlugAction;
+use AIArmada\CommerceSupport\Support\CanonicalSlug;
+use AIArmada\CommerceSupport\Support\StableModelOrder;
+use AIArmada\CommerceSupport\Support\UniqueSlug;
+use App\Actions\Slugs\SyncSlugRedirectAction;
 use App\Enums\EventKeyPersonRole;
 use App\Models\Event;
 use App\Models\Institution;
@@ -18,11 +19,9 @@ use Lorisleiva\Actions\Concerns\AsAction;
 class GenerateEventSlugAction
 {
     use AsAction;
-    use BuildsUniqueSlug;
-    use InteractsWithOrderedSlugModels;
 
     public function __construct(
-        private readonly SyncCanonicalSlugAction $syncCanonicalSlugAction,
+        private readonly SyncSlugRedirectAction $syncSlugRedirectAction,
     ) {}
 
     public function syncEventSlugsForTitle(string $title): bool
@@ -38,7 +37,7 @@ class GenerateEventSlugAction
             ->with(['persons:id,slug'])
             ->get();
 
-        return $this->syncOrderedModels($events, fn (Event $event): bool => $this->syncEventSlug($event));
+        return StableModelOrder::sync($events, fn (Event $event): bool => $this->syncEventSlug($event));
     }
 
     public function syncEventSlugsForPersonName(string $personName): bool
@@ -102,7 +101,7 @@ class GenerateEventSlugAction
     {
         $slug = $this->forEvent($event);
 
-        return $this->syncCanonicalSlugAction->persist($event, $slug);
+        return CanonicalSlug::persist($event, $slug, $this->syncSlugRedirectAction);
     }
 
     /**
@@ -142,7 +141,7 @@ class GenerateEventSlugAction
         $normalizedPersonSlugs = $this->normalizedPersonSlugs($personSlugs);
         $dateSuffix = $this->dateSuffix($date, $timezone);
 
-        return $this->buildUniqueSlug(
+        return UniqueSlug::build(
             Event::class,
             $titleSlug,
             $normalizedPersonSlugs,

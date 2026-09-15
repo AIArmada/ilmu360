@@ -1,6 +1,5 @@
 <?php
 
-use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Communications\Enums\NotificationFamily;
 use AIArmada\Communications\Enums\NotificationPriority;
 use AIArmada\Communications\Enums\NotificationTrigger;
@@ -175,7 +174,7 @@ it('records a signals event when a notification is read via the api', function (
     $user = User::factory()->create();
     Sanctum::actingAs($user);
 
-    $message = OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+    $message = createTestRecord(NotificationInbox::class, [
         'recipient_type' => $user->getMorphClass(),
         'recipient_id' => $user->getKey(),
         'family' => NotificationFamily::EventUpdate->value,
@@ -191,7 +190,7 @@ it('records a signals event when a notification is read via the api', function (
             'entity_id' => null,
         ],
         'read_at' => null,
-    ]));
+    ]);
 
     $this->postJson("/api/v1/notifications/{$message->id}/read")
         ->assertOk();
@@ -210,7 +209,7 @@ it('does not break notification reads when signals ingestion fails', function ()
     $user = User::factory()->create();
     Sanctum::actingAs($user);
 
-    $message = OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+    $message = createTestRecord(NotificationInbox::class, [
         'recipient_type' => $user->getMorphClass(),
         'recipient_id' => $user->getKey(),
         'family' => NotificationFamily::EventUpdate->value,
@@ -226,7 +225,7 @@ it('does not break notification reads when signals ingestion fails', function ()
             'entity_id' => null,
         ],
         'read_at' => null,
-    ]));
+    ]);
 
     $this->postJson("/api/v1/notifications/{$message->id}/read")
         ->assertOk();
@@ -238,7 +237,7 @@ it('does not break notification reads when signals ingestion fails', function ()
 it('records a signals event when all notifications are marked as read from the inbox page', function () {
     $user = User::factory()->create();
 
-    OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+    createTestRecord(NotificationInbox::class, [
         'recipient_type' => $user->getMorphClass(),
         'recipient_id' => $user->getKey(),
         'family' => NotificationFamily::EventUpdate->value,
@@ -254,9 +253,9 @@ it('records a signals event when all notifications are marked as read from the i
             'entity_id' => null,
         ],
         'read_at' => null,
-    ]));
+    ]);
 
-    OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+    createTestRecord(NotificationInbox::class, [
         'recipient_type' => $user->getMorphClass(),
         'recipient_id' => $user->getKey(),
         'family' => NotificationFamily::EventUpdate->value,
@@ -272,7 +271,7 @@ it('records a signals event when all notifications are marked as read from the i
             'entity_id' => null,
         ],
         'read_at' => null,
-    ]));
+    ]);
 
     Livewire::actingAs($user)
         ->test(NotificationsIndex::class)

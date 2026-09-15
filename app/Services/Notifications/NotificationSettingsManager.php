@@ -21,14 +21,15 @@ class NotificationSettingsManager
 {
     public function ensureUserConfiguration(User $user): void
     {
-        CommunicationPreference::query()->firstOrCreate(
-            [
-                'recipient_type' => $user->getMorphClass(),
-                'recipient_id' => $user->getKey(),
-                'channel' => null,
-                'category' => null,
-            ],
-            [
+        $baseMatch = [
+            'recipient_type' => $user->getMorphClass(),
+            'recipient_id' => $user->getKey(),
+            'channel' => null,
+            'category' => null,
+        ];
+
+        if (! $this->findPreference($baseMatch) instanceof CommunicationPreference) {
+            $this->createPreference($baseMatch, [
                 'locale' => app()->getLocale(),
                 'timezone' => $this->userStringAttribute($user, 'timezone') ?: config('app.timezone'),
                 'enabled_at' => now(),
@@ -40,8 +41,8 @@ class NotificationSettingsManager
                     'fallback_strategy' => (string) config('notification-center.defaults.fallback_strategy', 'next_available'),
                     'urgent_override' => true,
                 ],
-            ]
-        );
+            ]);
+        }
 
         $existingScopeKeys = $this->scopePreferencesFor($user)
             ->get(['scope_type', 'scope_key'])
@@ -324,7 +325,7 @@ class NotificationSettingsManager
             $state = Arr::get($familyInput, $familyKey, []);
             $enabled = (bool) Arr::get($state, 'enabled', true);
 
-            CommunicationPreference::query()->updateOrCreate(
+            $this->updateOrCreatePreference(
                 [
                     'recipient_type' => $user->getMorphClass(),
                     'recipient_id' => $user->getKey(),
@@ -361,7 +362,7 @@ class NotificationSettingsManager
                 : ! (Arr::has($state, 'cadence') || Arr::has($state, 'channels') || Arr::has($state, 'urgent_override'));
             $enabled = (bool) Arr::get($state, 'enabled', true);
 
-            CommunicationPreference::query()->updateOrCreate(
+            $this->updateOrCreatePreference(
                 [
                     'recipient_type' => $user->getMorphClass(),
                     'recipient_id' => $user->getKey(),
@@ -482,27 +483,37 @@ class NotificationSettingsManager
         ];
 
         if (filled($email)) {
-            CommunicationDestination::query()->updateOrCreate(
-                [
-                    ...$recipientKeys,
-                    'channel' => NotificationChannel::Email->value,
-                    'address' => $email,
-                ],
-                [
+            $current = $this->findDestination($user, NotificationChannel::Email->value, $email);
+
+            if ($current instanceof CommunicationDestination) {
+                $current->forceFill([
                     'external_id' => null,
-                    'status' => $emailVerifiedAt !== null
-                        ? 'active'
-                        : 'inactive',
+                    'status' => $emailVerifiedAt !== null ? 'active' : 'inactive',
                     'is_primary' => true,
                     'verified_at' => $emailVerifiedAt,
                     'metadata' => ['source' => 'account_email'],
-                ]
-            );
+                ])->save();
+                $keepId = $current->getKey();
+            } else {
+                $created = new CommunicationDestination;
+                $created->forceFill([
+                    ...$recipientKeys,
+                    'channel' => NotificationChannel::Email->value,
+                    'address' => $email,
+                    'external_id' => null,
+                    'status' => $emailVerifiedAt !== null ? 'active' : 'inactive',
+                    'is_primary' => true,
+                    'verified_at' => $emailVerifiedAt,
+                    'metadata' => ['source' => 'account_email'],
+                ]);
+                $created->save();
+                $keepId = $created->getKey();
+            }
 
             CommunicationDestination::query()
                 ->where($recipientKeys)
                 ->where('channel', NotificationChannel::Email->value)
-                ->where('address', '!=', $email)
+                ->where('id', '!=', $keepId)
                 ->delete();
         } else {
             CommunicationDestination::query()
@@ -512,25 +523,37 @@ class NotificationSettingsManager
         }
 
         if (filled($phone) && $phoneVerifiedAt !== null) {
-            CommunicationDestination::query()->updateOrCreate(
-                [
-                    ...$recipientKeys,
-                    'channel' => NotificationChannel::Whatsapp->value,
-                    'address' => $phone,
-                ],
-                [
+            $current = $this->findDestination($user, NotificationChannel::Whatsapp->value, $phone);
+
+            if ($current instanceof CommunicationDestination) {
+                $current->forceFill([
                     'external_id' => null,
                     'status' => 'active',
                     'is_primary' => true,
                     'verified_at' => $phoneVerifiedAt,
                     'metadata' => ['source' => 'account_phone'],
-                ]
-            );
+                ])->save();
+                $keepId = $current->getKey();
+            } else {
+                $created = new CommunicationDestination;
+                $created->forceFill([
+                    ...$recipientKeys,
+                    'channel' => NotificationChannel::Whatsapp->value,
+                    'address' => $phone,
+                    'external_id' => null,
+                    'status' => 'active',
+                    'is_primary' => true,
+                    'verified_at' => $phoneVerifiedAt,
+                    'metadata' => ['source' => 'account_phone'],
+                ]);
+                $created->save();
+                $keepId = $created->getKey();
+            }
 
             CommunicationDestination::query()
                 ->where($recipientKeys)
                 ->where('channel', NotificationChannel::Whatsapp->value)
-                ->where('address', '!=', $phone)
+                ->where('id', '!=', $keepId)
                 ->delete();
         } else {
             CommunicationDestination::query()
@@ -548,7 +571,7 @@ class NotificationSettingsManager
             $this->userStringAttribute($user, 'timezone') ?: (config('app.timezone') ?: 'UTC')
         );
 
-        CommunicationPreference::query()->updateOrCreate(
+        $this->updateOrCreatePreference(
             [
                 'recipient_type' => $user->getMorphClass(),
                 'recipient_id' => $user->getKey(),
@@ -765,5 +788,67 @@ class NotificationSettingsManager
         $meta = $existing->metadata;
 
         return is_array($meta) ? $meta : [];
+    }
+
+    /**
+     * The package model guards recipient_type/scope_type from mass assignment,
+     * so preference writes go through explicit forceFill.
+     *
+     * @param  array<string, mixed>  $match
+     */
+    private function findPreference(array $match): ?CommunicationPreference
+    {
+        $query = CommunicationPreference::query();
+
+        foreach ($match as $column => $value) {
+            $value === null ? $query->whereNull($column) : $query->where($column, $value);
+        }
+
+        return $query->first();
+    }
+
+    /**
+     * @param  array<string, mixed>  $match
+     * @param  array<string, mixed>  $values
+     */
+    private function createPreference(array $match, array $values): CommunicationPreference
+    {
+        $preference = new CommunicationPreference;
+        $preference->forceFill(array_merge($match, $values));
+        $preference->save();
+
+        return $preference;
+    }
+
+    /**
+     * @param  array<string, mixed>  $match
+     * @param  array<string, mixed>  $values
+     */
+    private function updateOrCreatePreference(array $match, array $values): CommunicationPreference
+    {
+        $preference = $this->findPreference($match);
+
+        if (! $preference instanceof CommunicationPreference) {
+            return $this->createPreference($match, $values);
+        }
+
+        $preference->update($values);
+
+        return $preference;
+    }
+
+    /**
+     * Addresses are encrypted at rest, so address matching decrypts in PHP.
+     */
+    private function findDestination(User $user, string $channel, string $address): ?CommunicationDestination
+    {
+        $match = CommunicationDestination::query()
+            ->where('recipient_type', $user->getMorphClass())
+            ->where('recipient_id', $user->id)
+            ->where('channel', $channel)
+            ->get()
+            ->first(fn (CommunicationDestination $destination): bool => $destination->address === $address);
+
+        return $match instanceof CommunicationDestination ? $match : null;
     }
 }

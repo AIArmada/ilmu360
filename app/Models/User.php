@@ -2,24 +2,26 @@
 
 namespace App\Models;
 
-use AIArmada\CommerceSupport\Models\Permission;
-use AIArmada\CommerceSupport\Models\Role;
+use AIArmada\Authz\Facades\Authz;
+use AIArmada\Authz\Models\Permission;
+use AIArmada\Authz\Models\Role;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Communications\Models\CommunicationDestination;
 use AIArmada\Communications\Models\CommunicationPreference;
 use AIArmada\Communications\Traits\HasInbox;
+use AIArmada\Engagement\Contracts\CanInteract;
 use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Engagement\Models\Follow;
 use AIArmada\Engagement\Traits\CanBookmark;
 use AIArmada\Engagement\Traits\CanFollow;
 use AIArmada\Engagement\Traits\CanRespond;
-use AIArmada\FilamentAuthz\Facades\Authz;
 use AIArmada\Organizations\Models\Organization;
 use App\Enums\NotificationChannel;
 use App\Models\Concerns\AuditsModelChanges;
 use App\Models\Concerns\HasUserRestoration;
 use App\Notifications\Auth\ResetPasswordNotification;
 use App\Notifications\Auth\VerifyEmailNotification;
+use App\Notifications\Channels\InboxChannel;
 use App\Support\Submission\PublicSubmissionLockService;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
@@ -50,7 +52,7 @@ use Spatie\DeletedModels\Models\Concerns\KeepsDeletedModels;
 use Spatie\Permission\PermissionRegistrar;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable implements AuditableContract, FilamentUser, HasLocalePreference, MustVerifyEmailContract
+class User extends Authenticatable implements AuditableContract, CanInteract, FilamentUser, HasLocalePreference, MustVerifyEmailContract
 {
     /** @use HasFactory<UserFactory> */
     use AuditsModelChanges, CanBookmark, CanRespond, HasApiTokens, HasFactory, HasRoles, HasUserRestoration, HasUuids, KeepsDeletedModels, MustVerifyEmail, TwoFactorAuthenticatable {
@@ -72,6 +74,7 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
     use HasInbox, Notifiable {
         HasInbox::unreadNotifications insteadof Notifiable;
         Notifiable::unreadNotifications as unreadDatabaseNotifications;
+        Notifiable::routeNotificationFor as traitRouteNotificationFor;
     }
 
     public $incrementing = false;
@@ -475,6 +478,37 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
     public function isFollowing(mixed $subject): bool
     {
         return OwnerContext::withOwner(null, fn (): bool => $this->traitIsFollowing($subject));
+    }
+
+    public function interactionDisplayName(): string
+    {
+        return (string) ($this->name ?? $this->email);
+    }
+
+    public function interactionNotificationRoute(?string $channel = null): mixed
+    {
+        return $channel === null ? $this->email : $this->routeNotificationFor($channel);
+    }
+
+    /**
+     * Route inbox-channel notifications to this user.
+     *
+     * The communications dispatcher only plans deliveries (and runs the send
+     * job) for channels with a resolvable destination. Inbox delivery targets
+     * the user itself, so the user key acts as the destination address.
+     */
+    /**
+     * @param  mixed  $driver
+     * @param  mixed  $notification
+     * @return mixed
+     */
+    public function routeNotificationFor($driver, $notification = null)
+    {
+        if ($driver === InboxChannel::class) {
+            return (string) $this->getKey();
+        }
+
+        return $this->traitRouteNotificationFor($driver, $notification);
     }
 
     /**

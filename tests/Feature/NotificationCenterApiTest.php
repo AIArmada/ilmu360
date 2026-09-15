@@ -99,18 +99,21 @@ it('registers updates and removes push destinations through the api', function (
         ->assertJsonPath('data.device_label', 'Aiman iPhone Pro')
         ->assertJsonPath('data.locale', 'en');
 
-    expect(CommunicationDestination::query()
+    $updated = CommunicationDestination::query()
         ->where('recipient_type', $user->getMorphClass())
         ->where('recipient_id', $user->id)
-        ->where('address', 'iphone-1')
-        ->value('external_id'))->toBe('token-2');
+        ->get()
+        ->first(fn (CommunicationDestination $destination): bool => $destination->address === 'iphone-1');
+
+    expect($updated)->not->toBeNull()
+        ->and($updated->external_id)->toBe('token-2');
 
     $this->deleteJson('/api/v1/notification-destinations/push/iphone-1')
         ->assertNoContent();
 
-    $this->assertDatabaseMissing('communication_destinations', [
-        'recipient_type' => $user->getMorphClass(),
-        'recipient_id' => $user->id,
-        'address' => 'iphone-1',
-    ]);
+    expect(CommunicationDestination::query()
+        ->where('recipient_type', $user->getMorphClass())
+        ->where('recipient_id', $user->id)
+        ->pluck('address')
+        ->all())->not->toContain('iphone-1');
 });

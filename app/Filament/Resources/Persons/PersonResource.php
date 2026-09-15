@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Persons;
 
+use AIArmada\FilamentEvents\RelationManagers\EventsRelationManager;
 use AIArmada\FilamentPersons\Resources\PersonResource as PackagePersonResource;
 use AIArmada\FilamentPersons\Resources\PersonResource\RelationManagers\AffiliationsRelationManager as PackageAffiliationsRelationManager;
 use App\Filament\RelationManagers\AuditsRelationManager;
@@ -11,7 +12,6 @@ use App\Filament\Resources\Persons\Pages\CreatePerson;
 use App\Filament\Resources\Persons\Pages\EditPerson;
 use App\Filament\Resources\Persons\Pages\ListPersons;
 use App\Filament\Resources\Persons\Pages\ViewPerson;
-use App\Filament\Resources\Persons\RelationManagers\EventsRelationManager;
 use App\Filament\Resources\Persons\RelationManagers\FollowersRelationManager;
 use App\Filament\Resources\Persons\RelationManagers\MemberInvitationsRelationManager;
 use App\Filament\Resources\Persons\RelationManagers\MembersRelationManager;

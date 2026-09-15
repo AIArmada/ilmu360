@@ -7,7 +7,7 @@ namespace App\Support\Passport;
 use Illuminate\Support\Facades\File;
 use Laravel\Passport\Passport;
 use League\OAuth2\Server\CryptKey;
-use phpseclib3\Crypt\RSA;
+use phpseclib4\Crypt\RSA;
 use Throwable;
 
 final class PassportKeyProvisioner

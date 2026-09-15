@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Series\Pages;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Filament\Pages\Concerns\AuditsRelatedStateChanges;
+use AIArmada\FilamentCommerceSupport\Concerns\AuditsRelatedStateChanges;
 use App\Filament\Resources\Series\SeriesResource;
 use App\Models\Language;
 use App\Models\Series;

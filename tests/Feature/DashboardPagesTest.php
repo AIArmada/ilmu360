@@ -1,6 +1,5 @@
 <?php
 
-use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Communications\Enums\NotificationFamily;
 use AIArmada\Communications\Models\NotificationInbox;
 use AIArmada\Engagement\Contracts\EngagementManager;
@@ -149,7 +148,7 @@ it('renders the reference-inspired user dashboard with real saved search and not
         'name' => 'Other User Search',
     ]);
 
-    OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+    createTestRecord(NotificationInbox::class, [
         'recipient_type' => $user->getMorphClass(),
         'recipient_id' => $user->getKey(),
         'family' => NotificationFamily::EventUpdate->value,
@@ -163,7 +162,7 @@ it('renders the reference-inspired user dashboard with real saved search and not
             'entity_id' => null,
         ],
         'read_at' => null,
-    ]));
+    ]);
 
     $response = $this->withSession(['locale' => 'en'])
         ->actingAs($user)

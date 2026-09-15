@@ -15,6 +15,7 @@ use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Database\Seeders\ScopedMemberRolesSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -235,6 +236,31 @@ it('shows invalid messaging when the invited subject no longer exists', function
     $invitation->issue($rawToken)->save();
 
     $institution->delete();
+
+    Livewire::actingAs($invitee)
+        ->test(ShowInvitation::class, [
+            'token' => $rawToken,
+        ])
+        ->assertSee('This invitation has been revoked.')
+        ->assertSee(route('home'), false);
+});
+
+it('shows invalid messaging when the invitation references a subject that never existed', function () {
+    $inviter = User::factory()->create();
+    $invitee = User::factory()->create([
+        'email' => 'ghost-invitee@example.com',
+    ]);
+
+    $rawToken = 'member-invite-token-ghost-subject';
+    $invitation = new MemberInvitation;
+    $invitation->fill([
+        'subject_type' => 'institution',
+        'subject_id' => (string) Str::uuid(),
+        'email' => $invitee->email,
+        'role' => 'viewer',
+        'invited_by' => $inviter->getKey(),
+    ]);
+    $invitation->issue($rawToken)->save();
 
     Livewire::actingAs($invitee)
         ->test(ShowInvitation::class, [

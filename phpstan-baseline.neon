@@ -13,12 +13,6 @@ parameters:
 			path: app/Actions/Events/SyncEventScheduleAction.php
 
 		-
-			message: '#^Method App\\Actions\\Fortify\\ResetUserPassword\:\:passwordRules\(\) should return array\<int, array\<mixed\>\|Illuminate\\Contracts\\Validation\\ValidationRule\|string\> but returns array\<int, Illuminate\\Validation\\Rules\\Password\|string\>\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Actions/Fortify/ResetUserPassword.php
-
-		-
 			message: '#^Trait App\\Concerns\\ProfileValidationRules is used zero times and is not analysed\.$#'
 			identifier: trait.unused
 			count: 1

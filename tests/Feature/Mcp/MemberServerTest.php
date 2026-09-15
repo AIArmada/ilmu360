@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\CommerceSupport\Models\Role;
+use AIArmada\Authz\Models\Role;
 use AIArmada\Persons\Enums\AssignmentStatus;
 use AIArmada\Persons\Enums\TitleUsagePosition;
 use AIArmada\Persons\Models\Title;
@@ -1054,13 +1054,7 @@ it('initializes and lists member MCP tools over the HTTP endpoint for Passport-a
         ->toContain('venue-type nouns (`dewan`, `auditorium`, `stadium`, `perpustakaan`, `padang`, `hotel`) should be searched as `venues` first')
         ->toContain('`spaces` are finer-grained sublocations inside institutions');
 
-    $sessionId = $initialize->headers->get('MCP-Session-Id');
-
-    expect($sessionId)->not->toBeNull();
-
-    $listTools = $this->withHeaders([
-        'MCP-Session-Id' => (string) $sessionId,
-    ])->postJson('/mcp/member', [
+    $listTools = $this->postJson('/mcp/member', [
         'jsonrpc' => '2.0',
         'id' => 'list-tools-member-mcp-passport',
         'method' => 'tools/list',
@@ -1257,13 +1251,7 @@ it('initializes and lists member MCP tools over the HTTP endpoint', function () 
         ],
     ])->assertOk();
 
-    $sessionId = $initialize->headers->get('MCP-Session-Id');
-
-    expect($sessionId)->not->toBeNull();
-
-    $listTools = $this->withToken($token)->withHeaders([
-        'MCP-Session-Id' => (string) $sessionId,
-    ])->postJson('/mcp/member', [
+    $listTools = $this->withToken($token)->postJson('/mcp/member', [
         'jsonrpc' => '2.0',
         'id' => 'list-tools-member-mcp',
         'method' => 'tools/list',
@@ -1307,9 +1295,7 @@ it('initializes and lists member MCP tools over the HTTP endpoint', function () 
         'member-read-debug-log',
     );
 
-    $unavailableDebugLogCall = $this->withToken($token)->withHeaders([
-        'MCP-Session-Id' => (string) $sessionId,
-    ])->postJson('/mcp/member', [
+    $unavailableDebugLogCall = $this->withToken($token)->postJson('/mcp/member', [
         'jsonrpc' => '2.0',
         'id' => 'call-member-read-debug-log',
         'method' => 'tools/call',
@@ -1317,7 +1303,7 @@ it('initializes and lists member MCP tools over the HTTP endpoint', function () 
             'name' => 'member-read-debug-log',
             'arguments' => ['filter' => 'mcp.image_upload'],
         ],
-    ])->assertOk();
+    ])->assertStatus(400);
 
     expect($unavailableDebugLogCall->json('error.message'))->toBe('Tool [member-read-debug-log] not found.');
 });
@@ -1470,13 +1456,7 @@ it('auto-injects guide on first member operational call and allows the retry', f
         ],
     ])->assertOk();
 
-    $sessionId = $initialize->headers->get('MCP-Session-Id');
-
-    expect($sessionId)->not->toBeNull();
-
-    $firstCall = $this->withToken($token)->withHeaders([
-        'MCP-Session-Id' => (string) $sessionId,
-    ])->postJson('/mcp/member', [
+    $firstCall = $this->withToken($token)->postJson('/mcp/member', [
         'jsonrpc' => '2.0',
         'id' => 'call-member-list-records-first-attempt',
         'method' => 'tools/call',
@@ -1492,9 +1472,7 @@ it('auto-injects guide on first member operational call and allows the retry', f
     expect($firstCall->json('result.structuredContent.retry.tool_name'))->toBe('member-list-records');
     expect($firstCall->json('result.content.0.text'))->toContain('Guide auto-loaded');
 
-    $allowedCall = $this->withToken($token)->withHeaders([
-        'MCP-Session-Id' => (string) $sessionId,
-    ])->postJson('/mcp/member', [
+    $allowedCall = $this->withToken($token)->postJson('/mcp/member', [
         'jsonrpc' => '2.0',
         'id' => 'call-member-list-resources-after-docs',
         'method' => 'tools/call',
@@ -1543,13 +1521,7 @@ it('lists and reads the documentation routing prompt through the member MCP serv
         ],
     ])->assertOk();
 
-    $sessionId = $initialize->headers->get('MCP-Session-Id');
-
-    expect($sessionId)->not->toBeNull();
-
-    $listPrompts = $this->withToken($token)->withHeaders([
-        'MCP-Session-Id' => (string) $sessionId,
-    ])->postJson('/mcp/member', [
+    $listPrompts = $this->withToken($token)->postJson('/mcp/member', [
         'jsonrpc' => '2.0',
         'id' => 'list-member-mcp-prompts',
         'method' => 'prompts/list',
@@ -1571,9 +1543,7 @@ it('lists and reads the documentation routing prompt through the member MCP serv
         ],
     ]);
 
-    $getPrompt = $this->withToken($token)->withHeaders([
-        'MCP-Session-Id' => (string) $sessionId,
-    ])->postJson('/mcp/member', [
+    $getPrompt = $this->withToken($token)->postJson('/mcp/member', [
         'jsonrpc' => '2.0',
         'id' => 'get-member-mcp-prompt',
         'method' => 'prompts/get',
@@ -1635,13 +1605,7 @@ it('lists and reads verified documentation resources through the member MCP serv
         ],
     ])->assertOk();
 
-    $sessionId = $initialize->headers->get('MCP-Session-Id');
-
-    expect($sessionId)->not->toBeNull();
-
-    $listResources = $this->withToken($token)->withHeaders([
-        'MCP-Session-Id' => (string) $sessionId,
-    ])->postJson('/mcp/member', [
+    $listResources = $this->withToken($token)->postJson('/mcp/member', [
         'jsonrpc' => '2.0',
         'id' => 'list-member-mcp-resources',
         'method' => 'resources/list',

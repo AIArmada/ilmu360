@@ -2,6 +2,7 @@
 
 namespace App\Actions\Slugs;
 
+use AIArmada\CommerceSupport\Contracts\SlugRedirectRecorder;
 use AIArmada\Signals\Models\SignalEvent;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Models\Event;
@@ -11,11 +12,16 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
-final readonly class SyncSlugRedirectAction
+final readonly class SyncSlugRedirectAction implements SlugRedirectRecorder
 {
     public function __construct(
         private PublicSlugPathResolver $publicSlugPathResolver,
     ) {}
+
+    public function record(Model $model, ?string $previousSlug): bool
+    {
+        return $this->handle($model, $previousSlug);
+    }
 
     public function handle(Model $model, ?string $previousSlug): bool
     {

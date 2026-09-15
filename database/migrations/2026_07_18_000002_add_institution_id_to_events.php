@@ -13,7 +13,7 @@ return new class extends Migration
         $eventsTable = (string) config('events.database.tables.events', 'events');
 
         Schema::table($eventsTable, function (Blueprint $table): void {
-            $table->uuid('institution_id')->nullable()->index();
+            $table->foreignUuid('institution_id')->nullable()->index();
             $table->index(['institution_id', 'status', 'visibility']);
         });
     }

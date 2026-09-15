@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
@@ -19,6 +20,39 @@ class Registration extends PackageEventRegistration implements AuditableContract
 {
     /** @use HasFactory<RegistrationFactory> */
     use AuditsModelChanges, HasFactory;
+
+    /**
+     * Resolve the mail route without requiring a notification instance.
+     *
+     * Destination resolution probes routes with routeNotificationFor($channel)
+     * and no notification. The package signature requires one even though the
+     * lookup only needs the primary participant, so accept the probe call.
+     *
+     * @return array<string, string>|string|null
+     */
+    #[\Override]
+    public function routeNotificationForMail(?Notification $notification = null): array|string|null
+    {
+        if ($notification !== null) {
+            return parent::routeNotificationForMail($notification);
+        }
+
+        $participant = $this->resolvePrimaryParticipant();
+
+        if ($participant === null) {
+            return null;
+        }
+
+        $email = $participant->resolveEmail();
+
+        if ($email === null) {
+            return null;
+        }
+
+        $name = mb_trim((string) $participant->name);
+
+        return $name !== '' ? [$email => $name] : $email;
+    }
 
     /**
      * @var list<string>
@@ -43,6 +77,7 @@ class Registration extends PackageEventRegistration implements AuditableContract
         'parent_registration_id',
         'is_bundle_root',
         'pass_entitlements',
+        'idempotency_key',
         'metadata',
     ];
 

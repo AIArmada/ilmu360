@@ -126,8 +126,8 @@ it('shows nearby event matches on the unified search page when location is prese
     ]);
 
     $institution->primaryAddress()?->update([
-        'lat' => 3.1390,
-        'lng' => 101.6869,
+        'latitude' => 3.1390,
+        'longitude' => 101.6869,
     ]);
 
     Event::factory()

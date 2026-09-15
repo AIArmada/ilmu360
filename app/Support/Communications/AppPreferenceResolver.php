@@ -17,13 +17,13 @@ class AppPreferenceResolver implements PreferenceResolver
         string $channel,
         string $category,
     ): bool {
-        $user = $this->resolveUser($recipientType, $recipientId);
+        $recipient = $this->resolveUser($recipientType, $recipientId);
 
-        if ($user === null) {
+        if ($recipient === null || ! method_exists($recipient, 'notificationSetting')) {
             return true;
         }
 
-        $setting = $user->notificationSetting;
+        $setting = $recipient->notificationSetting;
 
         if (! $setting instanceof CommunicationPreference) {
             return true;
@@ -56,13 +56,13 @@ class AppPreferenceResolver implements PreferenceResolver
         string $channel,
         string $category,
     ): ?bool {
-        $user = $this->resolveUser($recipientType, $recipientId);
+        $recipient = $this->resolveUser($recipientType, $recipientId);
 
-        if ($user === null) {
+        if ($recipient === null || ! method_exists($recipient, 'notificationSetting')) {
             return null;
         }
 
-        $setting = $user->notificationSetting;
+        $setting = $recipient->notificationSetting;
 
         if (! $setting instanceof CommunicationPreference) {
             return null;

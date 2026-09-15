@@ -303,7 +303,39 @@ function normalizeTestAddressAttributes(array $attributes): array
         }
     }
 
+    if (array_key_exists('lat', $attributes) && ! array_key_exists('latitude', $attributes)) {
+        $attributes['latitude'] = $attributes['lat'];
+    }
+    unset($attributes['lat']);
+
+    if (array_key_exists('lng', $attributes) && ! array_key_exists('longitude', $attributes)) {
+        $attributes['longitude'] = $attributes['lng'];
+    }
+    unset($attributes['lng']);
+
+    if (array_key_exists('google_place_id', $attributes) && ! array_key_exists('provider_place_id', $attributes)) {
+        $attributes['provider_place_id'] = $attributes['google_place_id'];
+    }
+    unset($attributes['google_place_id']);
+
     return $attributes;
+}
+
+/**
+ * Create records for package models that guard attributes from mass assignment.
+ *
+ * @param  class-string<Model>  $modelClass
+ * @param  array<string, mixed>  $attributes
+ */
+function createTestRecord(string $modelClass, array $attributes): Model
+{
+    return OwnerContext::withOwner(null, function () use ($modelClass, $attributes): Model {
+        $record = new $modelClass;
+        $record->forceFill($attributes);
+        $record->save();
+
+        return $record;
+    });
 }
 
 function fakeGeneratedImageUpload(string $name = 'image.png', int $width = 1200, int $height = 800): UploadedFile

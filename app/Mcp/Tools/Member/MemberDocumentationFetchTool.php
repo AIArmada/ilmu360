@@ -51,7 +51,7 @@ class MemberDocumentationFetchTool extends AbstractMemberTool
             }
 
             if ((string) $validated['id'] === MemberMcpDocumentationPreflight::GUIDE_DOCUMENT_ID) {
-                $this->documentationPreflight->markGuideInContext($request->sessionId());
+                $this->documentationPreflight->markGuideInContext($request);
             }
 
             return $document;

@@ -1,8 +1,8 @@
 <?php
 
-use AIArmada\CommerceSupport\Models\Role;
+use AIArmada\Authz\Facades\Authz;
+use AIArmada\Authz\Models\Role;
 use AIArmada\Engagement\Contracts\EngagementManager;
-use AIArmada\FilamentAuthz\Facades\Authz;
 use App\Enums\MemberSubjectType;
 use App\Filament\Resources\Authz\UserResource;
 use App\Filament\Resources\Authz\UserResource\Pages\EditUser;

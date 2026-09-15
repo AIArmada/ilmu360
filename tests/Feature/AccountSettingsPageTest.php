@@ -141,20 +141,20 @@ it('updates account settings and resets verification when contact details change
         'phone_verified_at' => now(),
     ]);
 
-    CommunicationDestination::query()->create([
+    (new CommunicationDestination)->forceFill([
         'recipient_type' => $user->getMorphClass(),
         'recipient_id' => $user->getKey(),
         'channel' => 'email',
         'address' => 'old@example.test',
         'external_id' => null,
-    ]);
-    CommunicationDestination::query()->create([
+    ])->save();
+    (new CommunicationDestination)->forceFill([
         'recipient_type' => $user->getMorphClass(),
         'recipient_id' => $user->getKey(),
         'channel' => 'whatsapp',
         'address' => '+60111111111',
         'external_id' => null,
-    ]);
+    ])->save();
 
     session(['user_timezone' => 'Asia/Kuala_Lumpur']);
 
@@ -187,24 +187,22 @@ it('updates account settings and resets verification when contact details change
         ->pluck('address')
         ->all())->toBe(['updated@example.test']);
 
-    $this->assertDatabaseHas('communication_destinations', [
-        'recipient_id' => $user->id,
-        'channel' => 'email',
-        'address' => 'updated@example.test',
-        'status' => 'inactive',
-    ]);
+    $newDestination = CommunicationDestination::query()
+        ->where('recipient_type', $user->getMorphClass())
+        ->where('recipient_id', $user->id)
+        ->where('channel', 'email')
+        ->get()
+        ->first(fn (CommunicationDestination $destination): bool => $destination->address === 'updated@example.test');
 
-    $this->assertDatabaseMissing('communication_destinations', [
-        'recipient_id' => $user->id,
-        'channel' => 'email',
-        'address' => 'old@example.test',
-    ]);
+    expect($newDestination)->not->toBeNull()
+        ->and($newDestination->status)->toBe('inactive');
 
-    $this->assertDatabaseMissing('communication_destinations', [
-        'recipient_id' => $user->id,
-        'channel' => 'whatsapp',
-        'address' => '+60111111111',
-    ]);
+    expect(CommunicationDestination::query()
+        ->where('recipient_type', $user->getMorphClass())
+        ->where('recipient_id', $user->id)
+        ->where('channel', 'whatsapp')
+        ->pluck('address')
+        ->all())->not->toContain('+60111111111');
 
     $notificationState = app(NotificationSettingsManager::class)->stateFor($user->fresh());
 

@@ -9,7 +9,7 @@ use AIArmada\Communications\Data\SuppressionDecisionData;
 
 class AppSuppressionResolver implements SuppressionResolver
 {
-    public function resolve(
+    public function resolveSuppression(
         ?string $recipientType,
         ?string $recipientId,
         ?string $destinationHash,

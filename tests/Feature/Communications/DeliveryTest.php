@@ -1,5 +1,7 @@
 <?php
 
+use AIArmada\Communications\Enums\NotificationFamily;
+use AIArmada\Communications\Enums\NotificationTrigger;
 use App\Models\User;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -15,6 +17,16 @@ it('records a communication entry when a notification is sent with auto-capture'
         public function via(object $notifiable): array
         {
             return ['mail'];
+        }
+
+        public function notificationFamily(): NotificationFamily
+        {
+            return NotificationFamily::EventUpdate;
+        }
+
+        public function notificationTrigger(): NotificationTrigger
+        {
+            return NotificationTrigger::EventUpdated;
         }
 
         public function toMail(object $notifiable): MailMessage

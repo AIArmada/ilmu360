@@ -1,7 +1,7 @@
 <?php
 
-use AIArmada\CommerceSupport\Models\Role;
-use AIArmada\FilamentAuthz\Facades\Authz;
+use AIArmada\Authz\Facades\Authz;
+use AIArmada\Authz\Models\Role;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;

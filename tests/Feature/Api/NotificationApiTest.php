@@ -32,8 +32,10 @@ it('registers a push destination through the api', function () {
     $destination = CommunicationDestination::query()
         ->where('recipient_id', $user->id)
         ->where('recipient_type', $user->getMorphClass())
-        ->where('address', 'installation-123')
-        ->firstOrFail();
+        ->get()
+        ->first(fn (CommunicationDestination $candidate): bool => $candidate->address === 'installation-123');
+
+    expect($destination)->not->toBeNull();
 
     $response->assertCreated()
         ->assertJsonPath('message', __('notifications.api.push_registered'))
@@ -50,7 +52,7 @@ it('registers a push destination through the api', function () {
 
 it('updates an existing push destination through the api', function () {
     $user = User::factory()->create();
-    $destination = OwnerContext::withOwner(null, fn () => CommunicationDestination::query()->create([
+    $destination = createTestRecord(CommunicationDestination::class, [
         'recipient_type' => $user->getMorphClass(),
         'recipient_id' => $user->id,
         'channel' => 'push',
@@ -67,7 +69,7 @@ it('updates an existing push destination through the api', function () {
             'timezone' => 'UTC',
             'last_seen_at' => now()->subDay()->toIso8601String(),
         ],
-    ]));
+    ]);
 
     Sanctum::actingAs($user);
 
@@ -101,7 +103,7 @@ it('updates an existing push destination through the api', function () {
 it('lists serialized notification messages for the current user', function () {
     $user = User::factory()->create();
 
-    OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+    createTestRecord(NotificationInbox::class, [
         'recipient_type' => $user->getMorphClass(),
         'recipient_id' => $user->getKey(),
         'family' => NotificationFamily::EventUpdate->value,
@@ -118,9 +120,9 @@ it('lists serialized notification messages for the current user', function () {
             'meta' => ['source' => 'system'],
         ],
         'read_at' => null,
-    ]));
+    ]);
 
-    OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+    createTestRecord(NotificationInbox::class, [
         'recipient_type' => $user->getMorphClass(),
         'recipient_id' => $user->getKey(),
         'family' => NotificationFamily::EventUpdate->value,
@@ -130,7 +132,7 @@ it('lists serialized notification messages for the current user', function () {
         'body' => 'Already read.',
         'data' => ['action_url' => null, 'entity_type' => null, 'entity_id' => null],
         'read_at' => now(),
-    ]));
+    ]);
 
     Sanctum::actingAs($user);
 
@@ -155,7 +157,7 @@ it('lists serialized notification messages for the current user', function () {
 
 it('marks a notification as read through the api', function () {
     $user = User::factory()->create();
-    $message = OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+    $message = createTestRecord(NotificationInbox::class, [
         'recipient_type' => $user->getMorphClass(),
         'recipient_id' => $user->getKey(),
         'family' => NotificationFamily::EventUpdate->value,
@@ -165,7 +167,7 @@ it('marks a notification as read through the api', function () {
         'body' => 'The event schedule has changed.',
         'data' => ['action_url' => null, 'entity_type' => null, 'entity_id' => null],
         'read_at' => null,
-    ]));
+    ]);
 
     Sanctum::actingAs($user);
 
@@ -182,7 +184,7 @@ it('marks a notification as read through the api', function () {
 it('marks all unread notifications as read through the api', function () {
     $user = User::factory()->create();
 
-    OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+    createTestRecord(NotificationInbox::class, [
         'recipient_type' => $user->getMorphClass(),
         'recipient_id' => $user->getKey(),
         'family' => NotificationFamily::EventUpdate->value,
@@ -192,9 +194,9 @@ it('marks all unread notifications as read through the api', function () {
         'body' => 'First unread notification.',
         'data' => ['action_url' => null, 'entity_type' => null, 'entity_id' => null],
         'read_at' => null,
-    ]));
+    ]);
 
-    OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+    createTestRecord(NotificationInbox::class, [
         'recipient_type' => $user->getMorphClass(),
         'recipient_id' => $user->getKey(),
         'family' => NotificationFamily::EventUpdate->value,
@@ -204,9 +206,9 @@ it('marks all unread notifications as read through the api', function () {
         'body' => 'Second unread notification.',
         'data' => ['action_url' => null, 'entity_type' => null, 'entity_id' => null],
         'read_at' => null,
-    ]));
+    ]);
 
-    OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+    createTestRecord(NotificationInbox::class, [
         'recipient_type' => $user->getMorphClass(),
         'recipient_id' => $user->getKey(),
         'family' => NotificationFamily::EventUpdate->value,
@@ -216,7 +218,7 @@ it('marks all unread notifications as read through the api', function () {
         'body' => 'Already read.',
         'data' => ['action_url' => null, 'entity_type' => null, 'entity_id' => null],
         'read_at' => now(),
-    ]));
+    ]);
 
     Sanctum::actingAs($user);
 

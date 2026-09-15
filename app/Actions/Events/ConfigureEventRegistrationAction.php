@@ -129,7 +129,7 @@ final class ConfigureEventRegistrationAction
 
             $price = $pricingMode === PricingMode::Free
                 ? 0
-                : MoneyNormalizer::toCents((string) ($ticket['price'] ?? '0.00'));
+                : MoneyNormalizer::toCents(self::majorToMinorUnits((string) ($ticket['price'] ?? '0.00')));
 
             if ($pricingMode === PricingMode::Paid && $price <= 0) {
                 throw new InvalidArgumentException('Paid ticket types must have a price greater than zero.');
@@ -153,6 +153,17 @@ final class ConfigureEventRegistrationAction
         }
 
         return $normalized;
+    }
+
+    /**
+     * Convert a validated major-unit decimal string to integer minor units
+     * using exact string math (the form guarantees /^\d+(?:\.\d{1,2})?$/).
+     */
+    private static function majorToMinorUnits(string $major): int
+    {
+        [$whole, $fraction] = array_pad(explode('.', $major, 2), 2, '0');
+
+        return ((int) $whole * 100) + (int) str_pad(substr($fraction, 0, 2), 2, '0');
     }
 
     /** @param  array<string, mixed>  $seating */

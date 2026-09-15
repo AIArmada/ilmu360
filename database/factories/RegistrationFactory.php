@@ -84,6 +84,7 @@ class RegistrationFactory extends PackageEventRegistrationFactory
                 type: 'email',
                 purpose: 'general',
                 value: $email,
+                isPublic: true,
                 isPrimary: true,
             ));
         }
@@ -94,6 +95,7 @@ class RegistrationFactory extends PackageEventRegistrationFactory
                 purpose: 'general',
                 value: $phone,
                 countryCode: config('contacting.defaults.country_code', 'MY'),
+                isPublic: true,
                 isPrimary: true,
             ));
         }

@@ -5,6 +5,8 @@ namespace App\Models;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Traits\HasAddresses;
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Engagement\Contracts\Bookmarkable;
+use AIArmada\Engagement\Contracts\Respondable;
 use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Engagement\Models\Response;
 use AIArmada\Engagement\Traits\HasResponses;
@@ -123,7 +125,7 @@ use Spatie\ModelStates\HasStates;
  * @property Carbon|null $updated_at
  * @property Carbon|null $created_at
  */
-class Event extends PackageEvent implements AuditableContract
+class Event extends PackageEvent implements AuditableContract, Bookmarkable, Respondable
 {
     /**
      * @use HasFactory<EventFactory>
@@ -453,7 +455,7 @@ class Event extends PackageEvent implements AuditableContract
             ->filter(fn (mixed $code): bool => is_string($code) && $code !== '')
             ->values();
 
-        OwnerContext::withOwner(null, function () use ($languageCodes): void {
+        OwnerContext::withOwner($this->owner, function () use ($languageCodes): void {
             $this->languageRecords()->delete();
 
             foreach ($languageCodes as $index => $languageCode) {
@@ -777,7 +779,7 @@ class Event extends PackageEvent implements AuditableContract
             return;
         }
 
-        OwnerContext::withOwner(null, function (): void {
+        OwnerContext::withOwner($this->owner, function (): void {
             foreach ($this->pendingAudienceWrites as $type => $value) {
                 match ($type) {
                     'gender' => $this->syncSingleAudience('gender', $value),
@@ -945,42 +947,38 @@ class Event extends PackageEvent implements AuditableContract
 
     private function syncSingleAudience(string $type, mixed $value): void
     {
-        OwnerContext::withOwner(null, function () use ($type, $value): void {
-            if (! in_array($value, [null, '', false], true)) {
-                EventAudience::updateOrCreate(
-                    ['event_id' => $this->id, 'audience_type' => $type],
-                    ['value' => (string) $value],
-                );
-            } else {
-                EventAudience::where('event_id', $this->id)
-                    ->where('audience_type', $type)
-                    ->delete();
-            }
-        });
+        if (! in_array($value, [null, '', false], true)) {
+            EventAudience::updateOrCreate(
+                ['event_id' => $this->id, 'audience_type' => $type],
+                ['value' => (string) $value],
+            );
+        } else {
+            EventAudience::where('event_id', $this->id)
+                ->where('audience_type', $type)
+                ->delete();
+        }
     }
 
     private function syncAgeGroupAudience(mixed $value): void
     {
-        OwnerContext::withOwner(null, function () use ($value): void {
-            EventAudience::where('event_id', $this->id)
-                ->where('audience_type', 'age_group')
-                ->delete();
+        EventAudience::where('event_id', $this->id)
+            ->where('audience_type', 'age_group')
+            ->delete();
 
-            if (in_array($value, [null, [], ''], true)) {
-                return;
-            }
+        if (in_array($value, [null, [], ''], true)) {
+            return;
+        }
 
-            $values = is_array($value) ? $value : [$value];
+        $values = is_array($value) ? $value : [$value];
 
-            foreach (array_values($values) as $i => $v) {
-                EventAudience::create([
-                    'event_id' => $this->id,
-                    'audience_type' => 'age_group',
-                    'value' => (string) $v,
-                    'sort_order' => $i,
-                ]);
-            }
-        });
+        foreach (array_values($values) as $i => $v) {
+            EventAudience::create([
+                'event_id' => $this->id,
+                'audience_type' => 'age_group',
+                'value' => (string) $v,
+                'sort_order' => $i,
+            ]);
+        }
     }
 
     private function primaryOccurrenceDate(string $key): mixed
@@ -1020,7 +1018,7 @@ class Event extends PackageEvent implements AuditableContract
         $languageCodes = OwnerContext::withOwner(null, function (): Collection {
             $languageRecords = $this->relationLoaded('languages')
                 ? $this->getRelation('languages')
-                : $this->languageRecords()->get();
+                : $this->languageRecords()->withoutOwnerScope()->get();
 
             $languageCodes = $languageRecords
                 ->filter(fn (mixed $record): bool => $record instanceof EventLanguage)
@@ -1040,7 +1038,7 @@ class Event extends PackageEvent implements AuditableContract
         });
 
         if ($languageCodes->isEmpty() && $this->exists) {
-            $languageCodes = OwnerContext::withOwner(null, fn (): Collection => $this->languageRecords()
+            $languageCodes = OwnerContext::withOwner(null, fn (): Collection => $this->languageRecords()->withoutOwnerScope()
                 ->pluck('language_code')
                 ->filter(fn (mixed $languageCode): bool => is_string($languageCode) && $languageCode !== '')
                 ->values());
@@ -1940,6 +1938,37 @@ class Event extends PackageEvent implements AuditableContract
     public function goingBy(): MorphMany
     {
         return $this->responses()->where('response_type', 'going');
+    }
+
+    public function bookmarkTitle(): string
+    {
+        return (string) $this->title;
+    }
+
+    public function bookmarkUrl(): ?string
+    {
+        return route('events.show', ['event' => $this->slug]);
+    }
+
+    public function bookmarkImage(): ?string
+    {
+        return $this->card_image_url;
+    }
+
+    /** @return array<string> */
+    public function allowedResponseTypes(): array
+    {
+        return ['going'];
+    }
+
+    public function defaultResponseVisibility(): string
+    {
+        return 'public';
+    }
+
+    public function allowsMultipleResponsesFromSameResponder(): bool
+    {
+        return false;
     }
 
     /**

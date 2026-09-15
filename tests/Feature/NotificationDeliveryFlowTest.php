@@ -112,7 +112,7 @@ it('localizes followed-content inbox notifications per recipient locale', functi
 it('marks package inbox messages read via HasInbox helpers', function () {
     $user = User::factory()->create();
 
-    $inbox = OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+    $inbox = createTestRecord(NotificationInbox::class, [
         'recipient_type' => $user->getMorphClass(),
         'recipient_id' => $user->id,
         'family' => NotificationFamily::EventUpdate->value,
@@ -122,7 +122,7 @@ it('marks package inbox messages read via HasInbox helpers', function () {
         'body' => 'Details updated',
         'data' => [],
         'read_at' => null,
-    ]));
+    ]);
 
     expect($user->unreadCount())->toBe(1);
 

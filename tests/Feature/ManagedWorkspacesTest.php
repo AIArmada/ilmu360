@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\FilamentEvents\Resources\EventResource;
 use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Actions\RemoveMemberAction;
@@ -280,7 +281,7 @@ it('lets a speaker member create a paid managed event with a ticket quota', func
         ->assertRedirect();
 
     $event = Event::query()->where('title', 'Speaker Ticketed Event')->firstOrFail();
-    $ticket = $event->primaryOccurrence?->ticketTypes()->first();
+    $ticket = OwnerContext::withOwner($event->owner, fn (): ?TicketType => $event->primaryOccurrence?->ticketTypes()->first());
 
     expect($event->created_by_id)->toBe($user->id)
         ->and($event->pricing_mode->value)->toBe('paid')
@@ -327,7 +328,9 @@ it('persists the selected ticket seating mode when seating is enabled', function
 
         $event = Event::query()->where('title', 'Assigned Seating Event')->firstOrFail();
 
-        expect($event->primaryOccurrence?->ticketTypes()->first()?->seating_mode)->toBe(SeatingMode::Assigned);
+        $seatingMode = OwnerContext::withOwner($event->owner, fn () => $event->primaryOccurrence?->ticketTypes()->first()?->seating_mode);
+
+        expect($seatingMode)->toBe(SeatingMode::Assigned);
     } finally {
         config()->set('events.features.commerce.ticket_seating_enabled', $originalSeatingEnabled);
     }

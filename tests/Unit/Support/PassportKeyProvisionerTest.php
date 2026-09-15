@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Laravel\Passport\Passport;
 use League\OAuth2\Server\AuthorizationServer;
-use phpseclib3\Crypt\RSA;
+use phpseclib4\Crypt\RSA;
 use Tests\TestCase;
 
 uses(TestCase::class);

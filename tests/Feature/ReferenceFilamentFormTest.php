@@ -42,7 +42,7 @@ it('persists a selected parent book through the direct Filament reference form',
         ->firstOrFail();
 
     expect($part->parent_id)->toBe($parent->id)
-        ->and($part->part_type)->toBe(ReferencePartType::Jilid->value)
-        ->and($part->part_number)->toBe(2)
+        ->and($part->partTypeValue())->toBe(ReferencePartType::Jilid->value)
+        ->and($part->partNumberValue())->toBe('2')
         ->and($part->year)->toBe(2024);
 });

@@ -31,7 +31,7 @@ class ReadResourceWithDocumentationPreflight extends ReadResource
         try {
             $resource = $this->resolveResource($uri, $context);
         } catch (InvalidArgumentException $invalidArgumentException) {
-            throw new JsonRpcException($invalidArgumentException->getMessage(), -32002, $request->id);
+            throw new JsonRpcException($invalidArgumentException->getMessage(), -32602, $request->id);
         }
 
         $response = $this->invokeResource($resource, $uri);

@@ -181,18 +181,17 @@ Unsure? Log `$get('field')` + `array_map('gettype', …)` and check `storage/log
 
 # Model Sorting with Spatie Eloquent Sortable
 
-Always use `spatie/eloquent-sortable` (never manual sort columns): model `implements Sortable` + `SortableTrait` with `order_column_name => 'order_column'`, `sort_when_creating => true`; migration `$table->unsignedInteger('order_column')->nullable()`; `order_column` in `$fillable`; query via `->ordered()` (incl. relationships) — never `orderBy('order_column')` or manual values. Used by: `Tag` (scoped by type), `Topic`, `EventType`.
+Always use `spatie/eloquent-sortable` (never manual sort columns): model `implements Sortable` + `SortableTrait` with `order_column_name => 'order_column'`, `sort_when_creating => true`; migration `$table->unsignedInteger('order_column')->nullable()`; `order_column` in `$fillable`; query via `->ordered()` (incl. relationships) — never `orderBy('order_column')` or manual values. No current app models use it — reintroduce per model when ordering is needed.
 
 ---
 
-# Unified Tag System (Spatie Tags + TagType)
+# Event Classification (Package Taxonomies)
 
-All tagging uses Spatie's native polymorphic `taggables` — no custom pivot. Types (`App\Enums\TagType` → label/color/icon/description/order): `domain` (Aqidah/Syariah/Akhlak…), `discipline` (Tafsir/Sirah/Fiqh…), `source` (Quran/Hadith/Turath…), `issue` (Rasuah/Kepimpinan…).
+All event classification uses the events package taxonomy store — `EventTaxonomy` + `EventTerm` + `EventClassification`, read via `$event->classifications()`. There is no Spatie-tags layer: no `Tag` model, no `taggables` writes, no `/tags` alias (removed; it 404s).
 
-- Storage: `type` stays a **string** (Spatie's `tagsWithType()` needs strict string match); use `$tag->type_enum` for the enum.
-- Native API only: `attachTag(s)` / `syncTags` / `detachTag(s)`, `Tag::ofType(TagType::X|'x')` / `getWithType(…)` / `$event->tagsWithType(…)`, `Tag::ordered()`.
-- Status: `pending` (user-created Discipline/Issue) vs `verified` (pre-seeded Domain/Source); event approval auto-verifies attachments; always query/dropdown with both (`whereIn('status', ['verified', 'pending'])`), like Speaker/Institution/Venue.
-- Sorting: `order_column`, scoped per type, auto-assigned. No extra fields (`is_active`, `is_system`, `description`, `weight`, `is_primary`).
+- Vocabulary: `App\Enums\EventTaxonomyCode` (`domain`, `discipline`, `source`, `issue` → label/description/color/icon) plus `EventCategoryCatalog` (hierarchical event categories); seed terms live in `App\Enums\TaxonomyTerm\*TermCode`.
+- Sync: app `SyncEventClassificationsAction` (vocabulary adapter) → package synchronizer; payload keys `domain_tags` / `discipline_tags` / `source_tags` / `issue_tags` (+ `taxonomy_term_ids`, `event_category_ids`).
+- Catalog: `/taxonomy-terms/{type}` is the canonical options endpoint (via `FrontendCatalogService::taxonomyTerms()`); user-created terms are `firstOrCreate`d active with `sort_order` 0.
 
 ---
 

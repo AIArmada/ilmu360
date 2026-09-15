@@ -118,7 +118,7 @@ class FrontendFormContractService
                 'submit_institutions' => route('api.client.catalogs.submit-institutions'),
                 'venues' => route('api.client.catalogs.venues'),
                 'references' => route('api.client.catalogs.references'),
-                'tags_template' => route('api.client.catalogs.tags', ['type' => 'type'], false),
+                'taxonomy_terms_template' => route('api.client.catalogs.taxonomy-terms', ['type' => 'type'], false),
                 'prayer_institutions' => $user instanceof User ? route('api.client.catalogs.prayer-institutions') : null,
                 'institution_roles' => $user instanceof User ? route('api.client.catalogs.institution-roles') : null,
             ],
@@ -372,10 +372,10 @@ class FrontendFormContractService
                 $this->field('children_allowed', 'boolean', required: false, default: true),
                 $this->field('is_muslim_only', 'boolean', required: false, default: false),
                 $this->field('languages', 'array<string>', required: true, default: $defaultLanguages, catalog: route('api.client.catalogs.languages')),
-                $this->field('domain_tags', 'array<string>', required: false, catalog: route('api.client.catalogs.tags', ['type' => EventTaxonomyCode::Domain->value])),
-                $this->field('discipline_tags', 'array<string>', required: false, catalog: route('api.client.catalogs.tags', ['type' => EventTaxonomyCode::Discipline->value])),
-                $this->field('source_tags', 'array<string>', required: false, catalog: route('api.client.catalogs.tags', ['type' => EventTaxonomyCode::Source->value])),
-                $this->field('issue_tags', 'array<string>', required: false, catalog: route('api.client.catalogs.tags', ['type' => EventTaxonomyCode::Issue->value])),
+                $this->field('domain_tags', 'array<string>', required: false, catalog: route('api.client.catalogs.taxonomy-terms', ['type' => EventTaxonomyCode::Domain->value])),
+                $this->field('discipline_tags', 'array<string>', required: false, catalog: route('api.client.catalogs.taxonomy-terms', ['type' => EventTaxonomyCode::Discipline->value])),
+                $this->field('source_tags', 'array<string>', required: false, catalog: route('api.client.catalogs.taxonomy-terms', ['type' => EventTaxonomyCode::Source->value])),
+                $this->field('issue_tags', 'array<string>', required: false, catalog: route('api.client.catalogs.taxonomy-terms', ['type' => EventTaxonomyCode::Issue->value])),
                 $this->field('references', 'array<string>', required: false, catalog: route('api.client.catalogs.references')),
                 $this->field('primary_organizer_id', 'uuid', required: true, meta: [
                     'catalogs' => [

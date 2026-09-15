@@ -8,7 +8,8 @@ use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\Affiliates\States\Active;
 use AIArmada\Affiliates\States\PendingConversion;
-use AIArmada\CommerceSupport\Models\Role;
+use AIArmada\Authz\Facades\Authz;
+use AIArmada\Authz\Models\Role;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Communications\Enums\NotificationFamily;
 use AIArmada\Communications\Enums\NotificationPriority;
@@ -19,7 +20,6 @@ use AIArmada\Communications\Models\NotificationInbox;
 use AIArmada\Engagement\Contracts\EngagementCounterService;
 use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Models\Follow;
-use AIArmada\FilamentAuthz\Facades\Authz;
 use App\Filament\Pages\DeletedUsers;
 use App\Models\AiUsageLog;
 use App\Models\ContributionRequest;
@@ -119,7 +119,7 @@ it('restores a deleted user together with key relationships and child records', 
         'name' => 'Restore Search',
     ]);
 
-    $notificationSetting = CommunicationPreference::create([
+    $notificationSetting = createTestRecord(CommunicationPreference::class, [
         'recipient_type' => $user->getMorphClass(),
         'recipient_id' => $user->id,
         'channel' => null,
@@ -127,7 +127,7 @@ it('restores a deleted user together with key relationships and child records', 
         'locale' => 'ms',
         'timezone' => 'UTC',
     ]);
-    $scopedPreference = CommunicationPreference::create([
+    $scopedPreference = createTestRecord(CommunicationPreference::class, [
         'recipient_type' => $user->getMorphClass(),
         'recipient_id' => $user->id,
         'channel' => 'email',
@@ -136,15 +136,15 @@ it('restores a deleted user together with key relationships and child records', 
         'scope_key' => 'restore-rule',
         'enabled_at' => now(),
     ]);
-    $notificationDestination = OwnerContext::withOwner(null, fn () => CommunicationDestination::query()->create([
+    $notificationDestination = createTestRecord(CommunicationDestination::class, [
         'recipient_type' => $user->getMorphClass(),
         'recipient_id' => $user->id,
         'channel' => 'push',
         'address' => 'restore-device-token',
         'status' => 'active',
         'is_primary' => true,
-    ]));
-    $notificationMessage = OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+    ]);
+    $notificationMessage = createTestRecord(NotificationInbox::class, [
         'recipient_type' => $user->getMorphClass(),
         'recipient_id' => $user->id,
         'family' => NotificationFamily::EventUpdate->value,
@@ -160,7 +160,7 @@ it('restores a deleted user together with key relationships and child records', 
             'entity_id' => null,
         ],
         'read_at' => null,
-    ]));
+    ]);
 
     $aiUsageLog = AiUsageLog::query()->create([
         'invocation_id' => (string) Str::uuid(),
@@ -317,7 +317,16 @@ it('restores a deleted user together with key relationships and child records', 
     $user->institutions()->attach($institution->id, ['joined_at' => $institutionJoinedAt]);
     $user->persons()->attach($person->id, ['joined_at' => $personJoinedAt]);
     $user->references()->attach($reference->id, ['joined_at' => $referenceJoinedAt]);
-    $user->follow($venue, ['followed_at' => $venueJoinedAt]);
+    OwnerContext::withOwner(null, function () use ($user, $venue, $venueJoinedAt): void {
+        Follow::query()->create([
+            'follower_type' => $user->getMorphClass(),
+            'follower_id' => $user->getKey(),
+            'followable_type' => $venue->getMorphClass(),
+            'followable_id' => $venue->getKey(),
+            'status' => 'active',
+            'followed_at' => $venueJoinedAt,
+        ]);
+    });
 
     OwnerContext::withOwner(null, function () use ($user, $followedInstitution): void {
         Follow::query()->create([
@@ -691,7 +700,16 @@ it('restores an api self-deleted user from the deleted users admin page', functi
     $user->institutions()->attach($institution->id, ['joined_at' => $institutionJoinedAt]);
     $user->persons()->attach($person->id, ['joined_at' => $personJoinedAt]);
     $user->references()->attach($reference->id, ['joined_at' => $referenceJoinedAt]);
-    $user->follow($venue, ['followed_at' => $venueJoinedAt]);
+    OwnerContext::withOwner(null, function () use ($user, $venue, $venueJoinedAt): void {
+        Follow::query()->create([
+            'follower_type' => $user->getMorphClass(),
+            'follower_id' => $user->getKey(),
+            'followable_type' => $venue->getMorphClass(),
+            'followable_id' => $venue->getKey(),
+            'status' => 'active',
+            'followed_at' => $venueJoinedAt,
+        ]);
+    });
     app(EngagementManager::class)->bookmark($user, $sharedEvent);
     $user->respond($sharedEvent, 'going');
     $user->memberEvents()->attach($sharedEvent->id, ['joined_at' => $eventJoinedAt]);
@@ -716,7 +734,7 @@ it('restores an api self-deleted user from the deleted users admin page', functi
         'status' => 'verified',
         'verified_at' => now(),
     ]);
-    $apiNotificationSetting = CommunicationPreference::create([
+    $apiNotificationSetting = createTestRecord(CommunicationPreference::class, [
         'recipient_type' => $user->getMorphClass(),
         'recipient_id' => $user->id,
         'channel' => null,
@@ -724,7 +742,7 @@ it('restores an api self-deleted user from the deleted users admin page', functi
         'locale' => 'ms',
         'timezone' => 'Asia/Kuala_Lumpur',
     ]);
-    $apiScopedPreference = CommunicationPreference::create([
+    $apiScopedPreference = createTestRecord(CommunicationPreference::class, [
         'recipient_type' => $user->getMorphClass(),
         'recipient_id' => $user->id,
         'channel' => 'email',

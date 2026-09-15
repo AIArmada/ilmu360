@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\CommerceSupport\Models\Role;
+use AIArmada\Authz\Models\Role;
 use AIArmada\Events\Enums\ScheduleKind;
 use App\Actions\Events\SyncEventScheduleAction;
 use App\Enums\EventAgeGroup;

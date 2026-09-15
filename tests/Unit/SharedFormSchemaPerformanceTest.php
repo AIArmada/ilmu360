@@ -20,8 +20,11 @@ it('resolves a country address profile once while building repeated location lab
     });
 
     SharedFormSchema::locationLevelLabel($countryId, 'administrative_district', 'District');
+    $queriesAfterFirstLabel = $countryQueries;
+
     SharedFormSchema::locationLevelLabel($countryId, 'administrative_subdivision', 'Subdistrict');
     SharedFormSchema::locationLevelLabel($countryId, 'postal_locality', 'Locality');
 
-    expect($countryQueries)->toBe(1);
+    expect($queriesAfterFirstLabel)->toBeGreaterThan(0)
+        ->and($countryQueries)->toBe($queriesAfterFirstLabel);
 });

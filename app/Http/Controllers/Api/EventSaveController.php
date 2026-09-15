@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use AIArmada\Engagement\Contracts\EngagementCounterService;
 use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Models\Bookmark;
 use App\Data\Api\EventEngagement\EventEngagementListItemData;
@@ -82,6 +83,7 @@ class EventSaveController extends Controller
         }
 
         $created = $bookmark->wasRecentlyCreated;
+        app(EngagementCounterService::class)->recalculateBookmarks($event);
         $savesCount = Bookmark::forBookmarkable($event)->active()->count();
 
         if ($created) {
@@ -116,6 +118,7 @@ class EventSaveController extends Controller
         $user = $this->currentUser($request);
         $wasSaved = Bookmark::forBookmarker($user)->forBookmarkable($event)->active()->exists();
         app(EngagementManager::class)->removeBookmark($user, $event);
+        app(EngagementCounterService::class)->recalculateBookmarks($event);
         $savesCount = Bookmark::forBookmarkable($event)->active()->count();
 
         return response()->json([

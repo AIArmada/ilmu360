@@ -96,6 +96,6 @@ class AppQuietHoursResolver implements QuietHoursResolver
             return null;
         }
 
-        return $user->notificationSetting();
+        return $user->notificationSetting()->first();
     }
 }

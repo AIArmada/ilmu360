@@ -2,10 +2,11 @@
 
 namespace App\Actions\Venues;
 
-use App\Actions\Slugs\Concerns\BuildsUniqueSlug;
-use App\Actions\Slugs\Concerns\InteractsWithOrderedSlugModels;
-use App\Actions\Slugs\Concerns\ResolvesLocationSuffix;
-use App\Actions\Slugs\SyncCanonicalSlugAction;
+use AIArmada\Addressing\Support\LocationSlugSegments;
+use AIArmada\CommerceSupport\Support\CanonicalSlug;
+use AIArmada\CommerceSupport\Support\StableModelOrder;
+use AIArmada\CommerceSupport\Support\UniqueSlug;
+use App\Actions\Slugs\SyncSlugRedirectAction;
 use App\Models\Venue;
 use App\Support\Location\AddressAssignments;
 use Illuminate\Support\Str;
@@ -14,12 +15,9 @@ use Lorisleiva\Actions\Concerns\AsAction;
 class GenerateVenueSlugAction
 {
     use AsAction;
-    use BuildsUniqueSlug;
-    use InteractsWithOrderedSlugModels;
-    use ResolvesLocationSuffix;
 
     public function __construct(
-        private readonly SyncCanonicalSlugAction $syncCanonicalSlugAction,
+        private readonly SyncSlugRedirectAction $syncSlugRedirectAction,
     ) {}
 
     public function syncVenueSlugsForName(string $name): bool
@@ -35,14 +33,14 @@ class GenerateVenueSlugAction
             ->with(['addresses'])
             ->get();
 
-        return $this->syncOrderedModels($venues, fn (Venue $venue): bool => $this->syncVenueSlug($venue));
+        return StableModelOrder::sync($venues, fn (Venue $venue): bool => $this->syncVenueSlug($venue));
     }
 
     public function syncVenueSlug(Venue $venue): bool
     {
         $slug = $this->forVenue($venue);
 
-        return $this->syncCanonicalSlugAction->persist($venue, $slug);
+        return CanonicalSlug::persist($venue, $slug, $this->syncSlugRedirectAction);
     }
 
     /**
@@ -59,7 +57,7 @@ class GenerateVenueSlugAction
 
         $locationSuffix = $this->locationSuffix($address);
 
-        return $this->buildUniqueSlug(
+        return UniqueSlug::build(
             Venue::class,
             $nameSlug,
             [],
@@ -94,36 +92,11 @@ class GenerateVenueSlugAction
     private function locationSuffix(array $address): string
     {
         $assignments = (array) ($address['area_assignments'] ?? []);
-        $city = $this->firstFilled([
-            $address['city'] ?? null,
-            $this->canonicalCityName($address['city_id'] ?? null),
-            $this->areaName($assignments[AddressAssignments::ADMINISTRATIVE_SUBDIVISION] ?? null),
-        ]);
-        $state = $this->firstFilled([
-            $address['state'] ?? null,
-            $this->canonicalStateName($address['state_id'] ?? null),
-            $this->areaName($assignments[AddressAssignments::ADMINISTRATIVE_DISTRICT] ?? null),
-        ]);
-        $countryCode = $this->resolveCountryCode($address, true);
 
-        $segments = [];
-
-        foreach ([
-            $this->slugSegment($city),
-            $this->slugSegment($state),
-            $this->countryCodeSegment($countryCode),
-        ] as $segment) {
-            if ($segment === null) {
-                continue;
-            }
-
-            if (($segments[array_key_last($segments)] ?? null) === $segment) {
-                continue;
-            }
-
-            $segments[] = $segment;
-        }
-
-        return implode('-', $segments);
+        return LocationSlugSegments::suffix(
+            $address,
+            $assignments[AddressAssignments::ADMINISTRATIVE_SUBDIVISION] ?? null,
+            $assignments[AddressAssignments::ADMINISTRATIVE_DISTRICT] ?? null,
+        );
     }
 }

@@ -3,15 +3,30 @@
 namespace App\Models;
 
 use AIArmada\Events\Models\EventUpdate;
+use AIArmada\Events\Models\EventUpdateItem;
 use App\Enums\EventChangeSeverity;
 use App\Enums\EventChangeType;
 use Database\Factories\EventChangeAnnouncementFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class EventChangeAnnouncement extends EventUpdate
 {
+    /**
+     * The inherited items relation resolves its foreign key from the parent
+     * class name (event_change_announcement_id), which does not exist. Pin
+     * the real key.
+     *
+     * @return HasMany<EventUpdateItem, $this>
+     */
+    #[\Override]
+    public function items(): HasMany
+    {
+        return $this->hasMany(EventUpdateItem::class, 'event_update_id');
+    }
+
     protected $fillable = [
         'id',
         'event_id',

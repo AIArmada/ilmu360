@@ -2,6 +2,7 @@
 
 namespace App\Actions\Fortify;
 
+use App\Concerns\PasswordValidationRules;
 use App\Models\User;
 use App\Services\ShareTrackingService;
 use App\Services\Signals\ProductSignalsService;

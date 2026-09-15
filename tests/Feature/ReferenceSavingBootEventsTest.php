@@ -87,8 +87,10 @@ it('normalizes part fields for book references with a parent', function () {
     ]);
 
     expect($reference->parent_id)->toBe((string) $parent->getKey())
-        ->and($reference->part_type)->toBe('jilid')
-        ->and($reference->part_number)->toBe(2);
+        ->and($reference->partTypeValue())->toBe('jilid')
+        ->and($reference->partNumberValue())->toBe('2')
+        ->and($reference->fresh()->partTypeValue())->toBe('jilid')
+        ->and($reference->fresh()->partNumberValue())->toBe('2');
 });
 
 it('clears part fields for non-book references even when parent_id is set', function () {
@@ -105,9 +107,10 @@ it('clears part fields for non-book references even when parent_id is set', func
     ]);
 
     expect($reference->parent_id)->toBeNull()
-        ->and($reference->part_type)->toBeNull()
-        ->and($reference->part_number)->toBeNull()
-        ->and($reference->part_label)->toBeNull();
+        ->and($reference->partTypeValue())->toBeNull()
+        ->and($reference->partNumberValue())->toBeNull()
+        ->and($reference->partLabelValue())->toBeNull()
+        ->and($reference->reference_parts)->toBeNull();
 });
 
 it('clears part fields when parent_id is blank for book references', function () {
@@ -119,6 +122,7 @@ it('clears part fields when parent_id is blank for book references', function ()
     ]);
 
     expect($reference->parent_id)->toBeNull()
-        ->and($reference->part_type)->toBeNull()
-        ->and($reference->part_number)->toBeNull();
+        ->and($reference->partTypeValue())->toBeNull()
+        ->and($reference->partNumberValue())->toBeNull()
+        ->and($reference->reference_parts)->toBeNull();
 });

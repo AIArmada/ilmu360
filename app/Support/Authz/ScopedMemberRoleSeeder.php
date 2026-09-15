@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Support\Authz;
 
-use AIArmada\CommerceSupport\Models\Role;
-use AIArmada\FilamentAuthz\Facades\Authz;
+use AIArmada\Authz\Facades\Authz;
+use AIArmada\Authz\Models\Role;
 
 final readonly class ScopedMemberRoleSeeder
 {

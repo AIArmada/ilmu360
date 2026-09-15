@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use AIArmada\Events\Models\EventAttendance;
+use AIArmada\Events\Models\EventAttendanceLog;
 use Database\Factories\EventCheckinFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class EventCheckin extends EventAttendance
 {
@@ -23,6 +25,18 @@ class EventCheckin extends EventAttendance
         'notes',
         'metadata',
     ];
+
+    /**
+     * The inherited logs relation resolves its foreign key from the parent
+     * class name (event_checkin_id), which does not exist. Pin the real key.
+     *
+     * @return HasMany<EventAttendanceLog, $this>
+     */
+    #[\Override]
+    public function logs(): HasMany
+    {
+        return $this->hasMany(EventAttendanceLog::class, 'event_attendance_id');
+    }
 
     #[\Override]
     protected function casts(): array

@@ -2,7 +2,7 @@
 
 namespace App\Data\Api\User;
 
-use AIArmada\FilamentAuthz\Facades\Authz;
+use AIArmada\Authz\Facades\Authz;
 use App\Models\User;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Support\Transformation\TransformationContext;

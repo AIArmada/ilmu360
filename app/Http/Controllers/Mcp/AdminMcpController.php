@@ -20,12 +20,6 @@ class AdminMcpController extends Controller
             'X-Accel-Buffering' => 'no',
         ];
 
-        $sessionId = $request->header('MCP-Session-Id');
-
-        if (is_string($sessionId) && $sessionId !== '') {
-            $headers['MCP-Session-Id'] = $sessionId;
-        }
-
         return response()->stream(function (): void {
             @set_time_limit(0);
 
@@ -50,13 +44,6 @@ class AdminMcpController extends Controller
 
     public function destroy(Request $request): Response
     {
-        $headers = [];
-        $sessionId = $request->header('MCP-Session-Id');
-
-        if (is_string($sessionId) && $sessionId !== '') {
-            $headers['MCP-Session-Id'] = $sessionId;
-        }
-
-        return response('', 202, $headers);
+        return response('', 202);
     }
 }

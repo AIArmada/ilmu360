@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use AIArmada\Contacting\Concerns\HasSocialProfiles;
+use AIArmada\Engagement\Contracts\Followable;
 use AIArmada\Engagement\Models\Follow;
 use AIArmada\Membership\Traits\HasMembers;
 use AIArmada\References\Models\Reference as PackageReference;
@@ -38,9 +39,6 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property ReferenceType|string|null $type
  * @property string|null $parent_reference_id
  * @property string|null $parent_id
- * @property string|null $part_type
- * @property int|null $part_number
- * @property string|null $part_label
  * @property int|null $year
  * @property string|null $publisher
  * @property string|null $description
@@ -53,10 +51,10 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property CarbonImmutable|null $last_state_change_at
  * @property string|null $url
  * @property string|null $language
- * @property array<int, mixed>|null $reference_parts
+ * @property array<int, array{type: string, value: string|null, label: string|null}>|null $reference_parts
  * @property array<string, mixed>|null $metadata
  */
-class Reference extends PackageReference implements AuditableContract
+class Reference extends PackageReference implements AuditableContract, Followable
 {
     use AuditsModelChanges, HasSocialProfiles, KeepsDeletedModels, Searchable;
 
@@ -119,6 +117,7 @@ class Reference extends PackageReference implements AuditableContract
         'parent_id',
         'author',
         'type',
+        // Virtual part inputs consumed by normalizeReferencePartFields() into reference_parts.
         'part_type',
         'part_number',
         'part_label',
@@ -143,7 +142,6 @@ class Reference extends PackageReference implements AuditableContract
     {
         return [
             'year' => 'integer',
-            'part_number' => 'integer',
             'is_canonical' => 'boolean',
             'published_at' => 'immutable_datetime',
             'verified_at' => 'immutable_datetime',
@@ -271,6 +269,27 @@ class Reference extends PackageReference implements AuditableContract
         $query->whereNotNull('parent_id');
     }
 
+    /**
+     * Match part designations stored in the reference_parts JSON payload.
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function orWherePartTextLike(Builder $query, string $pattern): void
+    {
+        $connection = $query->getModel()->getConnection();
+        $column = $connection->getQueryGrammar()->wrap($query->getModel()->qualifyColumn('reference_parts'));
+        $driver = $connection->getDriverName();
+        $operator = $driver === 'pgsql' ? 'ILIKE' : 'LIKE';
+        $expression = match ($driver) {
+            'pgsql' => "COALESCE({$column}::text, '')",
+            'mysql', 'mariadb' => "COALESCE(CAST({$column} AS CHAR), '')",
+            default => "COALESCE(CAST({$column} AS TEXT), '')",
+        };
+
+        $query->orWhereRaw("{$expression} {$operator} ?", [$pattern]);
+    }
+
     public function shouldBeSearchable(): bool
     {
         return $this->isPubliclyVisible();
@@ -282,9 +301,7 @@ class Reference extends PackageReference implements AuditableContract
             'title',
             'author',
             'type',
-            'part_type',
-            'part_number',
-            'part_label',
+            'reference_parts',
             'publisher',
             'description',
             'slug',
@@ -474,6 +491,26 @@ class Reference extends PackageReference implements AuditableContract
         return $this->displayTitle();
     }
 
+    public function followableName(): string
+    {
+        return $this->displayTitle();
+    }
+
+    public function followableUrl(): ?string
+    {
+        return route('references.show', ['reference' => $this->slug]);
+    }
+
+    public function followableImage(): ?string
+    {
+        return null;
+    }
+
+    public function defaultFollowNotificationLevel(): ?string
+    {
+        return null;
+    }
+
     public function typeValue(): ?string
     {
         return $this->optionalStringAttribute('type');
@@ -486,17 +523,40 @@ class Reference extends PackageReference implements AuditableContract
 
     public function partTypeValue(): ?string
     {
-        return $this->optionalStringAttribute('part_type');
+        return $this->normalizeStringValue($this->primaryPartEntry()['type'] ?? null);
     }
 
     public function partNumberValue(): ?string
     {
-        return $this->optionalStringAttribute('part_number');
+        return $this->normalizeStringValue($this->primaryPartEntry()['value'] ?? null);
     }
 
     public function partLabelValue(): ?string
     {
-        return $this->optionalStringAttribute('part_label');
+        return $this->normalizeStringValue($this->primaryPartEntry()['label'] ?? null);
+    }
+
+    /**
+     * A child reference designates exactly one part of its parent book.
+     *
+     * @return array{type?: mixed, value?: mixed, label?: mixed}
+     */
+    private function primaryPartEntry(): array
+    {
+        $parts = $this->getAttributes()['reference_parts'] ?? null;
+
+        if (is_string($parts)) {
+            $decoded = json_decode($parts, true);
+            $parts = is_array($decoded) ? $decoded : [];
+        }
+
+        if (! is_array($parts)) {
+            return [];
+        }
+
+        $first = $parts[0] ?? null;
+
+        return is_array($first) ? $first : [];
     }
 
     public function titleValue(): ?string
@@ -543,16 +603,27 @@ class Reference extends PackageReference implements AuditableContract
     {
         if ($this->typeValue() !== ReferenceType::Book->value || blank($this->parentReferenceIdValue())) {
             $this->parent_id = null;
-            $this->part_type = null;
-            $this->part_number = null;
-            $this->part_label = null;
+            $this->reference_parts = null;
+            unset($this->attributes['part_type'], $this->attributes['part_number'], $this->attributes['part_label']);
 
             return;
         }
 
-        $this->part_type = (ReferencePartType::tryFrom((string) $this->partTypeValue()) ?? ReferencePartType::Jilid)->value;
-        $this->part_number = $this->part_number !== null ? (int) $this->nullableTrimmedString((string) $this->part_number) : null;
-        $this->part_label = $this->nullableTrimmedString($this->part_label);
+        if (array_key_exists('part_type', $this->attributes)
+            || array_key_exists('part_number', $this->attributes)
+            || array_key_exists('part_label', $this->attributes)) {
+            $type = ReferencePartType::tryFrom((string) $this->optionalStringAttribute('part_type')) ?? ReferencePartType::Jilid;
+
+            $this->reference_parts = [
+                [
+                    'type' => $type->value,
+                    'value' => $this->nullableTrimmedString($this->optionalStringAttribute('part_number')),
+                    'label' => $this->nullableTrimmedString($this->optionalStringAttribute('part_label')),
+                ],
+            ];
+
+            unset($this->attributes['part_type'], $this->attributes['part_number'], $this->attributes['part_label']);
+        }
 
         $this->ensureValidParentReference();
     }

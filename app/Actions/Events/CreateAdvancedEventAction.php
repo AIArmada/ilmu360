@@ -2,6 +2,7 @@
 
 namespace App\Actions\Events;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Enums\RegistrationMode;
 use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\Organizations\Models\Organization;
@@ -120,64 +121,66 @@ class CreateAdvancedEventAction
                 ],
             ]);
 
-            app(SyncEventClassificationsAction::class)->handle($event, [
-                'event_category_ids' => $categoryIds,
-                'domain_tags' => (array) ($form['domain_tags'] ?? []),
-                'discipline_tags' => (array) ($form['discipline_tags'] ?? []),
-                'source_tags' => (array) ($form['source_tags'] ?? []),
-                'issue_tags' => (array) ($form['issue_tags'] ?? []),
-            ]);
+            OwnerContext::withOwner($owner, function () use ($event, $form, $categoryIds, $venueId, $spaceIds, $startsAt, $endsAt, $timezone, $primaryOrganizer): void {
+                app(SyncEventClassificationsAction::class)->handle($event, [
+                    'event_category_ids' => $categoryIds,
+                    'domain_tags' => (array) ($form['domain_tags'] ?? []),
+                    'discipline_tags' => (array) ($form['discipline_tags'] ?? []),
+                    'source_tags' => (array) ($form['source_tags'] ?? []),
+                    'issue_tags' => (array) ($form['issue_tags'] ?? []),
+                ]);
 
-            $event->syncLocation($venueId, $spaceIds);
+                $event->syncLocation($venueId, $spaceIds);
 
-            if (is_array($form['languages'] ?? null) && $form['languages'] !== []) {
-                $event->syncLanguages($form['languages']);
-            }
+                if (is_array($form['languages'] ?? null) && $form['languages'] !== []) {
+                    $event->syncLanguages($form['languages']);
+                }
 
-            if (array_key_exists('references', $form)) {
-                $event->references()->sync(array_values(array_filter(
-                    (array) $form['references'],
-                    is_string(...),
-                )));
-            }
+                if (array_key_exists('references', $form)) {
+                    $event->references()->sync(array_values(array_filter(
+                        (array) $form['references'],
+                        is_string(...),
+                    )));
+                }
 
-            app(SyncEventScheduleAction::class)->execute(
-                event: $event,
-                scheduleKind: ScheduleKind::Single,
-                startsAt: $startsAt,
-                endsAt: $endsAt,
-                timezone: $timezone,
-                timingMode: TimingMode::Absolute,
-            );
+                app(SyncEventScheduleAction::class)->execute(
+                    event: $event,
+                    scheduleKind: ScheduleKind::Single,
+                    startsAt: $startsAt,
+                    endsAt: $endsAt,
+                    timezone: $timezone,
+                    timingMode: TimingMode::Absolute,
+                );
 
-            $event->accessPolicy()->create([
-                'registration_required' => (bool) $form['registration_required'],
-                'walk_in_allowed' => ! (bool) $form['registration_required'],
-            ]);
+                $event->accessPolicy()->create([
+                    'registration_required' => (bool) $form['registration_required'],
+                    'walk_in_allowed' => ! (bool) $form['registration_required'],
+                ]);
 
-            $event->setPrimaryOrganizer($primaryOrganizer);
+                $event->setPrimaryOrganizer($primaryOrganizer);
 
-            $this->eventKeyPersonSync->sync(
-                $event,
-                array_values(array_filter((array) ($form['persons'] ?? []), is_string(...))),
-                $this->canonicalOtherKeyPeople($form['other_key_people'] ?? []),
-            );
+                $this->eventKeyPersonSync->sync(
+                    $event,
+                    array_values(array_filter((array) ($form['persons'] ?? []), is_string(...))),
+                    $this->canonicalOtherKeyPeople($form['other_key_people'] ?? []),
+                );
 
-            $cover = $form['cover'] ?? null;
-            $poster = $form['poster'] ?? null;
-            $gallery = array_values(array_filter((array) ($form['gallery'] ?? []), $this->isUploadedFile(...)));
+                $cover = $form['cover'] ?? null;
+                $poster = $form['poster'] ?? null;
+                $gallery = array_values(array_filter((array) ($form['gallery'] ?? []), $this->isUploadedFile(...)));
 
-            if ($cover instanceof UploadedFile) {
-                $this->mediaSync->syncSingle($event, $cover, 'cover');
-            }
+                if ($cover instanceof UploadedFile) {
+                    $this->mediaSync->syncSingle($event, $cover, 'cover');
+                }
 
-            if ($poster instanceof UploadedFile) {
-                $this->mediaSync->syncSingle($event, $poster, 'poster');
-            }
+                if ($poster instanceof UploadedFile) {
+                    $this->mediaSync->syncSingle($event, $poster, 'poster');
+                }
 
-            if ($gallery !== []) {
-                $this->mediaSync->syncMultiple($event, $gallery, 'gallery');
-            }
+                if ($gallery !== []) {
+                    $this->mediaSync->syncMultiple($event, $gallery, 'gallery');
+                }
+            });
 
             return $event;
         });

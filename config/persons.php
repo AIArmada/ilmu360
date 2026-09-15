@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 use AIArmada\Addressing\Models\AddressCountry;
+use App\Models\Institution;
 use App\Models\Person;
 
 $tablePrefix = '';
@@ -28,13 +29,13 @@ return [
     'models' => [
         'person' => Person::class,
         'country' => AddressCountry::class,
-        'institution' => null,
+        'institution' => Institution::class,
     ],
 
     // Optional integration toggles.
     'integrations' => [
         'addressing' => [
-            'enabled' => (bool) env('PERSONS_ADDRESSING_ENABLED', false),
+            'enabled' => (bool) env('PERSONS_ADDRESSING_ENABLED', true),
         ],
     ],
 

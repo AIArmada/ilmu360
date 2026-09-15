@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\References;
 
+use AIArmada\FilamentEvents\RelationManagers\EventsRelationManager;
 use App\Filament\RelationManagers\AuditsRelationManager;
 use App\Filament\Resources\References\Pages\CreateReference;
 use App\Filament\Resources\References\Pages\EditReference;
 use App\Filament\Resources\References\Pages\ListReferences;
-use App\Filament\Resources\References\RelationManagers\EventsRelationManager;
 use App\Filament\Resources\References\RelationManagers\MemberInvitationsRelationManager;
 use App\Filament\Resources\References\RelationManagers\MembersRelationManager;
 use App\Filament\Resources\References\Schemas\ReferenceForm;

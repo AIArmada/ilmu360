@@ -53,13 +53,6 @@ class VenueFactory extends PackageVenueFactory
             ]),
             'status' => 'verified',
             'visibility' => 'public',
-            'city' => fake()->city(),
-            // @phpstan-ignore-next-line Faker dynamic provider method
-            'state' => fake()->state(),
-            'postcode' => fake()->postcode(),
-            'country_code' => 'MY',
-            'latitude' => fake()->randomFloat(7, 1.0, 7.0),
-            'longitude' => fake()->randomFloat(7, 99.0, 119.0),
         ];
     }
 

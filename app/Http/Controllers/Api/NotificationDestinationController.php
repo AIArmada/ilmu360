@@ -37,12 +37,17 @@ class NotificationDestinationController extends Controller
         $validated = $this->validatePushPayload($request);
         $user = $this->currentUser($request);
 
-        $destination = CommunicationDestination::firstOrNew([
-            'recipient_type' => $user->getMorphClass(),
-            'recipient_id' => $user->id,
-            'channel' => NotificationChannel::Push->value,
-            'address' => $validated['installation_id'],
-        ]);
+        $destination = $this->findPushDestination($user, $validated['installation_id']);
+
+        if (! $destination instanceof CommunicationDestination) {
+            $destination = new CommunicationDestination;
+            $destination->forceFill([
+                'recipient_type' => $user->getMorphClass(),
+                'recipient_id' => $user->id,
+                'channel' => NotificationChannel::Push->value,
+                'address' => $validated['installation_id'],
+            ]);
+        }
 
         $destination->forceFill([
             'external_id' => $validated['fcm_token'],
@@ -80,10 +85,9 @@ class NotificationDestinationController extends Controller
         $validated = $this->validatePushPayload($request, $installation);
         $user = $this->currentUser($request);
 
-        $destination = $user->notificationDestinations()
-            ->where('channel', NotificationChannel::Push->value)
-            ->where('address', $installation)
-            ->firstOrFail();
+        $destination = $this->findPushDestination($user, $installation);
+
+        abort_unless($destination instanceof CommunicationDestination, 404);
 
         $destination->forceFill([
             'external_id' => $validated['fcm_token'],
@@ -110,13 +114,23 @@ class NotificationDestinationController extends Controller
     )]
     public function destroyPush(Request $request, string $installation): Response
     {
-        $this->currentUser($request)
-            ->notificationDestinations()
-            ->where('channel', NotificationChannel::Push->value)
-            ->where('address', $installation)
-            ->delete();
+        $destination = $this->findPushDestination($this->currentUser($request), $installation);
+        $destination?->delete();
 
         return response()->noContent();
+    }
+
+    /**
+     * Addresses are encrypted at rest, so installation matching decrypts in PHP.
+     */
+    private function findPushDestination(User $user, string $installation): ?CommunicationDestination
+    {
+        $match = $user->notificationDestinations()
+            ->where('channel', NotificationChannel::Push->value)
+            ->get()
+            ->first(fn (CommunicationDestination $destination): bool => $destination->address === $installation);
+
+        return $match instanceof CommunicationDestination ? $match : null;
     }
 
     /**

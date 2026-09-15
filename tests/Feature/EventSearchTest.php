@@ -306,7 +306,7 @@ describe('Event Search Filters', function () {
             ->assertSee('Circle of');
 
         $eventHydrationQueries = collect($queries)
-            ->filter(static fn (string $query): bool => str_contains($query, 'select * from "events"'));
+            ->filter(static fn (string $query): bool => str_starts_with(ltrim($query), 'select * from "events"'));
 
         expect($eventHydrationQueries)->toHaveCount(1);
     });
@@ -3022,10 +3022,11 @@ describe('Event Search Filters', function () {
             'starts_at' => now()->addDays(4),
         ]);
 
-        $eventAddress = Address::create([
-            'lat' => 3.1390,
-            'lng' => 101.6869,
-        ]);
+        $eventAddress = new Address;
+        $eventAddress->forceFill([
+            'latitude' => 3.1390,
+            'longitude' => 101.6869,
+        ])->save();
         $event->attachAddress($eventAddress, 'primary', true);
 
         $events = app(EventSearchService::class)->searchNearby(

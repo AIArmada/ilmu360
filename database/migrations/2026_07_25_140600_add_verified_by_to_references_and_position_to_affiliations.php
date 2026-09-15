@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -51,9 +52,6 @@ return new class extends Migration
         }
 
         Schema::table('persons', function (Blueprint $table) {
-            if (! Schema::hasColumn('persons', 'searchable_name')) {
-                $table->string('searchable_name', 512)->nullable()->index();
-            }
             if (! Schema::hasColumn('persons', 'verified_at')) {
                 $table->timestampTz('verified_at')->nullable();
             }

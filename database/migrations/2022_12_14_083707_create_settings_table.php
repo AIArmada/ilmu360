@@ -8,6 +8,12 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('settings') && ! $this->hasPackageIntegerSchema()) {
+            return;
+        }
+
+        Schema::dropIfExists('settings');
+
         Schema::create('settings', function (Blueprint $table): void {
             $table->uuid('id')->primary();
 
@@ -20,5 +26,14 @@ return new class extends Migration
 
             $table->unique(['group', 'name']);
         });
+    }
+
+    private function hasPackageIntegerSchema(): bool
+    {
+        try {
+            return in_array(Schema::getColumnType('settings', 'id'), ['integer', 'bigint'], true);
+        } catch (Throwable) {
+            return false;
+        }
     }
 };

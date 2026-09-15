@@ -2,21 +2,20 @@
 
 namespace App\Models\Concerns;
 
+use AIArmada\CommerceSupport\Concerns\HasCommerceAudit;
+use AIArmada\CommerceSupport\Support\FixedValueRedactor;
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Support\Auditing\FixedValueRedactor;
 use BackedEnum;
 use DateTimeInterface;
 use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
-use OwenIt\Auditing\Auditable;
 use OwenIt\Auditing\Contracts\Audit;
-use OwenIt\Auditing\Events\AuditCustom;
 
 trait AuditsModelChanges
 {
-    use Auditable;
+    use HasCommerceAudit;
 
     /**
      * @var array<string, class-string>
@@ -61,66 +60,6 @@ trait AuditsModelChanges
     }
 
     /**
-     * @param  array<string, mixed>  $oldValues
-     * @param  array<string, mixed>  $newValues
-     */
-    public function recordCustomAudit(string $event, array $oldValues, array $newValues): void
-    {
-        if ($oldValues === [] && $newValues === []) {
-            return;
-        }
-
-        $previousAuditEvent = $this->auditEvent;
-        $previousAuditCustomOld = is_array($this->auditCustomOld ?? null) ? $this->auditCustomOld : [];
-        $previousAuditCustomNew = is_array($this->auditCustomNew ?? null) ? $this->auditCustomNew : [];
-        $previousIsCustomEvent = $this->isCustomEvent;
-
-        $this->auditEvent = $event;
-        $this->auditCustomOld = $oldValues;
-        $this->auditCustomNew = $newValues;
-        $this->isCustomEvent = true;
-        $this->preloadResolverData();
-
-        event(new AuditCustom($this));
-
-        $this->auditEvent = $previousAuditEvent;
-        $this->auditCustomOld = $previousAuditCustomOld;
-        $this->auditCustomNew = $previousAuditCustomNew;
-        $this->isCustomEvent = $previousIsCustomEvent;
-    }
-
-    /**
-     * @param  array<string, mixed>  $before
-     * @param  array<string, mixed>  $after
-     */
-    public function recordCustomAuditDifferences(string $event, array $before, array $after): void
-    {
-        $oldValues = [];
-        $newValues = [];
-
-        foreach (array_unique([...array_keys($before), ...array_keys($after)]) as $attribute) {
-            $beforeHasValue = array_key_exists($attribute, $before);
-            $afterHasValue = array_key_exists($attribute, $after);
-            $beforeValue = $before[$attribute] ?? null;
-            $afterValue = $after[$attribute] ?? null;
-
-            if ($this->auditValuesMatch($beforeValue, $afterValue)) {
-                continue;
-            }
-
-            if ($beforeHasValue) {
-                $oldValues[$attribute] = $beforeValue;
-            }
-
-            if ($afterHasValue) {
-                $newValues[$attribute] = $afterValue;
-            }
-        }
-
-        $this->recordCustomAudit($event, $oldValues, $newValues);
-    }
-
-    /**
      * @return array<string, string>
      */
     public function formatAuditFieldsForPresentation(string $field, Audit $record): array
@@ -147,47 +86,6 @@ trait AuditsModelChanges
         }
 
         return Str::headline($attribute);
-    }
-
-    private function auditValuesMatch(mixed $before, mixed $after): bool
-    {
-        return $this->normalizeComparableAuditValue($before) === $this->normalizeComparableAuditValue($after);
-    }
-
-    private function normalizeComparableAuditValue(mixed $value): mixed
-    {
-        return match (true) {
-            $value instanceof BackedEnum => (string) $value->value,
-            $value instanceof \UnitEnum => $value->name,
-            $value instanceof DateTimeInterface => $value->format(DateTimeInterface::ATOM),
-            $value instanceof Collection => $this->normalizeComparableAuditValue($value->all()),
-            is_array($value) => $this->normalizeComparableAuditArray($value),
-            is_bool($value), is_int($value), is_float($value), is_string($value), $value === null => $value,
-            is_object($value) => method_exists($value, '__toString')
-                ? (string) $value
-                : ($this->jsonEncodeAuditValue($value) ?? '[object]'),
-            default => (string) $value,
-        };
-    }
-
-    /**
-     * @param  array<mixed>  $value
-     * @return array<mixed>
-     */
-    private function normalizeComparableAuditArray(array $value): array
-    {
-        if (array_is_list($value)) {
-            return array_map(
-                fn (mixed $nestedValue): mixed => $this->normalizeComparableAuditValue($nestedValue),
-                $value,
-            );
-        }
-
-        ksort($value);
-
-        return collect($value)
-            ->map(fn (mixed $nestedValue): mixed => $this->normalizeComparableAuditValue($nestedValue))
-            ->all();
     }
 
     private function stringifyAuditValue(string $attribute, mixed $value): string

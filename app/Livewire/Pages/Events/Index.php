@@ -1457,8 +1457,7 @@ class Index extends Component implements HasForms
         return $query->where(function (Builder $referenceQuery) use ($normalizedSearch): void {
             $referenceQuery
                 ->whereLike('title', "%{$normalizedSearch}%")
-                ->orWhereLike('part_label', "%{$normalizedSearch}%")
-                ->orWhereLike('part_number', "%{$normalizedSearch}%");
+                ->orWherePartTextLike("%{$normalizedSearch}%");
         });
     }
 
