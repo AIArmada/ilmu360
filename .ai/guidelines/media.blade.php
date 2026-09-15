@@ -1,276 +1,50 @@
 # Media Management Guidelines (Spatie Medialibrary v11 + Filament v5)
 
-This document defines the media architecture that is already implemented across this application.  
-When adding or modifying media features, follow these rules exactly.
+Media architecture already implemented app-wide. Follow exactly when adding/modifying media features.
 
 ## Core Stack
-- Package: `spatie/laravel-medialibrary` v11
-- Filament integration: `filament/spatie-laravel-media-library-plugin` v5
-- Main config: `config/media-library.php`
-- Global upload policy: `app/Providers/AppServiceProvider.php`
-- Naming strategy: `app/Support/Media/MediaFileNamer.php`
-- Storage path strategy: `app/Support/Media/MediaPathGenerator.php`
+- `spatie/laravel-medialibrary` v11 + `filament/spatie-laravel-media-library-plugin` v5
+- Config: `config/media-library.php`; upload policy: `app/Providers/AppServiceProvider.php` (static boot guards — keep for Octane)
+- Naming: `app/Support/Media/MediaFileNamer.php`; paths: `app/Support/Media/MediaPathGenerator.php`
 
 ## Global Upload Policy (Do Not Bypass)
-All `SpatieMediaLibraryFileUpload` fields are globally configured in `AppServiceProvider`.
+All `SpatieMediaLibraryFileUpload` fields inherit: size from `media-library.max_file_size` (10MB), `maxParallelUploads(2)`, `appendFiles()`, immutable cache header (`public, max-age=31536000, immutable`), filename `<slug-or-model-base>-<8-char-ulid>.<ext>`, human `name` from model + collection label, `custom_properties` = `collection` + `original_file_name`.
 
-### Implemented defaults
-- Max upload size is derived from `config('media-library.max_file_size')` (10MB default).
-- `maxParallelUploads(2)` to balance UX and server load.
-- `appendFiles()` so additional uploads do not replace unintentionally.
-- Immutable cache header for uploaded files:
-  - `CacheControl: public, max-age=31536000, immutable`
-- Storage filename pattern:
-  - `<slug-or-model-base>-<8-char-ulid>.<ext>`
-- Human-readable media `name` is generated from model + collection label.
-- `custom_properties` always store:
-  - `collection`
-  - `original_file_name`
+## Naming & Paths
+- Storage base priority: `slug` → `name` → `title` → `label` → morph alias/class basename. Display name: `<Collection Label> - <Subject Label>` (fallback: original filename). Labels: poster→Event Poster, cover→Cover Image, logo→Logo, avatar→Avatar, main→Main Image, gallery→Gallery Image, qr→QR Code, evidence→Evidence File.
+- Directory: `{model_type_plural}/{uuid_shard}/{model_uuid}/{collection}/` (e.g. `events/019c/019c4228-…/poster/`); sharding avoids hot directories and groups by owner+collection.
 
-### Octane safety
-- Boot-time configuration is protected by static guards (for example `$mediaUploadConfigured`) in `AppServiceProvider`.
-- Keep these guards to avoid duplicate macro/config registration in long-lived workers.
-
-## Naming Rules (Natural, Consistent, Searchable)
-Implemented in `MediaFileNamer`.
-
-### Storage base name priority
-1. `slug`
-2. `name`
-3. `title`
-4. `label`
-5. Morph alias / class basename fallback
-
-### Human display name labels
-- `poster` => `Event Poster`
-- `cover` => `Cover Image`
-- `logo` => `Logo`
-- `avatar` => `Avatar`
-- `main` => `Main Image`
-- `gallery` => `Gallery Image`
-- `qr` => `QR Code`
-- `evidence` => `Evidence File`
-
-The final media name format is:
-- `<Collection Label> - <Subject Label>`
-- Fallback to original filename label if subject is not available.
-
-## Directory Strategy (Long-Term Scalability)
-Implemented in `MediaPathGenerator`.
-
-Directory format:
-- `{model_type_plural}/{uuid_shard}/{model_uuid}/{collection}/`
-
-Example:
-- `events/019c/019c4228-.../poster/`
-- `institutions/01b2/01b2c1d4-.../gallery/`
-
-Why:
-- Avoids giant hot directories.
-- Keeps files grouped by owner and collection.
-- Makes bulk cleanup and debugging easier.
-
-## Media Library Config Decisions
-Configured in `config/media-library.php`.
-
-### Performance-centric defaults
-- `version_urls => true` (cache busting without stale assets)
-- `default_loading_attribute_value => 'lazy'`
-- `force_lazy_loading => true`
-- `queue_conversions_by_default => true`
-- `queue_conversions_after_database_commit => true`
-- `file_remover_class => FileBaseFileRemover` (safe for shared directory structures)
-- Image optimizers enabled (JPEG, PNG, SVG, GIF, WebP, AVIF)
-- Generators enabled for image, webp, avif, pdf, svg, video
-
-### Custom classes
-- `file_namer => App\Support\Media\MediaFileNamer::class`
-- `path_generator => App\Support\Media\MediaPathGenerator::class`
+## Media Library Config (`config/media-library.php`)
+- `version_urls`, lazy loading (`default_loading_attribute_value`, `force_lazy_loading`), queued conversions (+ after commit), `FileBaseFileRemover`, image optimizers (JPEG/PNG/SVG/GIF/WebP/AVIF), generators (image/webp/avif/pdf/svg/video).
+- Custom `file_namer` (`MediaFileNamer`) and `path_generator` (`MediaPathGenerator`).
 
 ## Model Collection Matrix (Canonical)
-
-### Event (`app/Models/Event.php`)
-- `cover`: image/jpeg,image/png,image/webp, responsive, single file, fallback placeholder, required 16:9 website/mobile-app cover
-- `poster`: image/jpeg,image/png,image/webp, responsive, single file, fallback placeholder, required 3:4 portrait external-distribution poster
-- `gallery`: image/jpeg,image/png,image/webp, responsive, multi file
-- Conversions:
-  - `thumb`: 1920x1080 crop webp sharpen(10) on `cover`,`gallery`
-  - `card`: max 1920x1080 webp on `cover`,`poster`
-  - `preview`: max 1920x1080 webp on `cover`,`poster`
-
-### Institution (`app/Models/Institution.php`)
-- `logo`: jpeg,png,webp,svg, single file, fallback placeholder
-- `cover`: jpeg,png,webp, responsive, single file, fallback placeholder
-- `gallery`: jpeg,png,webp, responsive, multi file
-- Conversions:
-  - `thumb`: 1080x1080 webp sharpen(10) on `logo`
-  - `banner`: 1920x1080 crop webp on `cover`
-  - `gallery_thumb`: 1920x1080 crop webp sharpen(10) on `gallery`
-
-### Speaker (`app/Models/Speaker.php`)
-- `avatar`: jpeg,png,webp, single file, fallback placeholder
-- `main`: jpeg,png,webp, responsive, single file, fallback placeholder
-- `cover`: jpeg,png,webp, responsive, single file, fallback placeholder
-- `gallery`: jpeg,png,webp, responsive, multi file
-- Conversions:
-  - `thumb`: 1080x1080 webp sharpen(10) on `avatar`
-  - `card`: 1080x1440 webp on `avatar`
-  - `profile`: 1080x1080 webp on `avatar`
-  - `main_thumb`: 1080x1080 webp sharpen(10) on `main`
-  - `display`: 1080x1440 crop webp on `main`
-  - `banner`: 1920x1080 crop webp on `cover`
-  - `gallery_thumb`: 1920x1080 crop webp sharpen(10) on `gallery`
-
-### Venue (`app/Models/Venue.php`)
-- `main`: jpeg,png,webp, responsive, single file, fallback placeholder
-- `cover`: jpeg,png,webp, responsive, single file, fallback placeholder
-- `gallery`: jpeg,png,webp, responsive, multi file
-- Conversions:
-  - `thumb`: 1920x1080 crop webp sharpen(10) on `main`,`cover`,`gallery`
-  - `banner`: 1920x1080 crop webp on `main`,`cover`
-
-### Series (`app/Models/Series.php`)
-- `cover`: jpeg,png,webp, responsive, single file
-- `gallery`: jpeg,png,webp, responsive, multi file
-- Conversions:
-  - `thumb`: 1920x1080 crop webp sharpen(10) on `cover`,`gallery`
-
-### Reference (`app/Models/Reference.php`)
-- `front_cover`: jpeg,png,webp, responsive, single file
-- `back_cover`: jpeg,png,webp, responsive, single file
-- `gallery`: jpeg,png,webp, responsive, multi file
-- Conversions:
-  - `thumb`: 1080x1440 crop webp sharpen(10) on `front_cover`,`back_cover`
-  - `gallery_thumb`: 1920x1080 crop webp sharpen(10) on `gallery`
-
-### DonationChannel (`app/Models/DonationChannel.php`)
-- `qr`: jpeg,png,webp, single file
-- Conversion:
-  - `thumb`: 1080x1080 webp on `qr`
-
-### Report (`app/Models/Report.php`)
-- `evidence`: jpeg,png,webp,pdf, multi file
-- Conversion:
-  - `thumb`: 1080x1080 webp on `evidence`
-
-## Filament Form Integration Pattern
-
-### Admin resources
-All major resources already use `SpatieMediaLibraryFileUpload`:
-- `Events`, `Institutions`, `Speakers`, `Venues`, `Series`, `References`, `DonationChannels`, `Reports`
-
-Common implemented options:
-- `->collection('...')`
-- `->image()` and `->imageEditor()` for image collections
-- `->responsiveImages()` where needed
-- `->conversion('thumb'|'banner'|'gallery_thumb'|'preview')`
-- `->multiple()->reorderable()` for gallery/evidence collections
-- `->maxFiles(8)` and PDF support for report evidence
-
-### Public submission
-`resources/views/components/pages/submit-event/create.blade.php` includes:
-- `cover` upload for website/mobile app display, fixed to 16:9
-- `poster` upload for external/social distribution, fixed to 3:4 portrait
-- `gallery` upload with reorder support
-- image editor + responsive images + conversion wiring
-
-### Quick-create forms
-`InstitutionFormSchema`, `SpeakerFormSchema`, and `VenueFormSchema` also support media uploads during relation quick-create flows, then call:
-- `$schema?->model($model)->saveRelationships();`
-
-## Filament Table/Infolist Rendering Pattern
-Use conversion-specific media columns/entries for lightweight lists:
-- `SpatieMediaLibraryImageColumn` in table resources
-- `SpatieMediaLibraryImageEntry` in infolists
-- Always point to the correct collection + conversion (`thumb`, `banner`, `gallery_thumb`, `preview`)
-
-This avoids serving full originals in admin grids.
-
-## Frontend Consumption Pattern
-
-### Event detail page
-Implemented in:
-- `app/Livewire/Pages/Events/Show.php`
-- `resources/views/livewire/pages/events/show.blade.php`
-
-Features:
-- Gallery payload built from `poster` + `gallery`.
-- Uses `getAvailableUrl(['preview','thumb'])` with safe fallback to original URL.
-- Gallery slider with thumbnail strip.
-- Related events section uses `card_image_url`.
-- Share preview modal uses `card_image_url` + social share links + native share/copy flow.
-
-### Other pages
-- Speaker and institution public pages render conversion URLs (`profile`, `banner`, `gallery_thumb`, etc.)
-- Listing pages eager load `media` to avoid N+1.
-
-## Card Image Fallback Chain
-`Event::getCardImageUrlAttribute()`:
-1. Event cover `card`/`preview`/`thumb`
-2. Event poster `card`/`preview`/`thumb`
-3. Institution logo `thumb`
-4. Global placeholder image
+- **Event**: `cover` (16:9, required) + `poster` (3:4 portrait, required) + `gallery` — jpeg/png/webp, responsive, cover/poster single-file w/ placeholder. Conversions: `thumb` 1920×1080 crop webp+sharpen10 (cover,gallery); `card`/`preview` max-1920 webp (cover,poster).
+- **Institution**: `logo` (jpeg/png/webp/svg, single, placeholder) + `cover` (responsive, single, placeholder) + `gallery` (responsive, multi). Conversions: `thumb` 1080² webp+sharpen10 (logo); `banner` 1920×1080 crop webp (cover); `gallery_thumb` 1920×1080 crop webp+sharpen10.
+- **Speaker**: `avatar` (single, placeholder) + `main`/`cover` (responsive, single, placeholder) + `gallery` (multi) — jpeg/png/webp. Conversions: `thumb`/`profile` 1080² webp (+sharpen10 on thumb), `card` 1080×1440 (avatar); `main_thumb` 1080²+sharpen10, `display` 1080×1440 crop (main); `banner` 1920×1080 (cover); `gallery_thumb` 1920×1080+sharpen10.
+- **Venue**: `main`/`cover` (responsive, single, placeholder) + `gallery` (multi). Conversions: `thumb` 1920×1080 crop+sharpen10 (all); `banner` 1920×1080 (main,cover).
+- **Series**: `cover` (responsive, single) + `gallery` (multi). Conversion: `thumb` 1920×1080 crop+sharpen10 (both).
+- **Reference**: `front_cover`/`back_cover` (responsive, single) + `gallery` (multi). Conversions: `thumb` 1080×1440 crop+sharpen10 (covers); `gallery_thumb` 1920×1080+sharpen10.
+- **DonationChannel**: `qr` (single) → `thumb` 1080² webp. **Report**: `evidence` (jpeg/png/webp/pdf, multi, max 8) → `thumb` 1080² webp.
 
 ## Event Aspect Ratio Contract
+- `cover` = primary website/app visual, always 16:9 (submit/contribution/admin forms, APIs, MCP images). `poster` = shareable flyer, always 3:4 portrait (same surfaces). MCP: separate cover/poster tools, fixed ratios — no generic ratio selector.
 
-- Event `cover` is the primary website/mobile-app visual and must be 16:9 on public submit forms, contribution update forms, admin forms, frontend/admin APIs, and MCP-generated images.
-- Event `poster` is the shareable external-distribution flyer and must be 3:4 portrait on public submit forms, contribution update forms, admin forms, frontend/admin APIs, and MCP-generated images.
-- MCP exposes separate event image tools: cover tools write the `cover` collection at 16:9; poster tools write the `poster` collection at 3:4. Do not add a generic ratio selector for event media generation.
+## Card Image Fallback (`Event::getCardImageUrlAttribute`)
+Event cover (`card`/`preview`/`thumb`) → poster (same) → institution logo `thumb` → global placeholder. Use for cards, previews, and social images.
 
-Use this accessor for cards, previews, and social image fallback behavior.
+## Filament Integration
+- Forms (Events, Institutions, Speakers, Venues, Series, References, DonationChannels, Reports): `SpatieMediaLibraryFileUpload` + `->collection()`, `->image()`/`->imageEditor()`, `->responsiveImages()`, `->conversion(thumb|banner|gallery_thumb|preview)`; galleries/evidence `->multiple()->reorderable()`. Public submit (`components/pages/submit-event/create.blade.php`): cover 16:9 + poster 3:4 + gallery. Quick-create schemas (`Institution`/`Speaker`/`VenueFormSchema`) then `$schema?->model($model)->saveRelationships()`.
+- Tables/infolists: conversion-specific `SpatieMediaLibraryImageColumn`/`SpatieMediaLibraryImageEntry` (never full originals in grids).
 
-## Maintenance and Cleanup
+## Frontend Consumption
+- Event detail (`Livewire/Pages/Events/Show.php` + blade): gallery from `poster` + `gallery` via `getAvailableUrl(['preview','thumb'])` w/ original fallback; slider + thumbnails; related-events + share modal use `card_image_url`.
+- Elsewhere: conversion URLs (`profile`, `banner`, `gallery_thumb`, …); eager-load `media` on all list/detail queries (`->with('media')`).
 
-### Scheduled jobs (`routes/console.php`)
-- Daily clean:
-  - `media-library:clean --delete-orphaned --force`
-- Weekly regenerate missing derivatives:
-  - `media-library:regenerate --only-missing --with-responsive-images --force`
+## Maintenance & Optimization
+- Scheduled: daily `media-library:clean --delete-orphaned --force`; weekly `media-library:regenerate --only-missing --with-responsive-images --force`. Structure migration `app:media:migrate-structure` (`app/Console/Commands/MigrateMediaToNewStructure.php`; `--dry-run`, `--force`) restructures legacy paths/names.
+- Rules: conversion URLs for UI (grids/cards/galleries/previews); responsive images on major collections; strict per-collection MIME; singular assets as `singleFile()`. Indexes: `media.order_column`, `media_model_collection_order_index`, `media_collection_created_at_index`.
+- Tests: `MediaConversionsTest` + `SubmitEventMediaTest` cover MIME acceptance, conversion registration, fallbacks, custom config, submit uploads.
 
-### Migration helper command
-- `app: media:migrate-structure`
-- File: `app/Console/Commands/MigrateMediaToNewStructure.php`
-- Supports:
-  - `--dry-run`
-  - `--force`
-- Moves legacy media paths into the sharded structure and renames files to the slug-based convention.
-
-## Query and Storage Optimization Rules
-- Always eager-load media when rendering list/detail pages:
-  - `->with('media')`, `load(['media', ...])`
-- Prefer conversion URLs for UI surfaces:
-  - admin grids, cards, galleries, previews
-- Use responsive images on major visual collections (`poster`, `cover`, `main`, `gallery` where configured).
-- Keep strict MIME rules per collection.
-- Keep singular assets (`poster`, `avatar`, `logo`, `main`, `cover`, `qr`) as `singleFile()` collections.
-
-## Database-Level Optimizations Implemented
-- `media.order_column` indexed
-- Extra indexes added on media table:
-  - `media_model_collection_order_index` on (`model_type`, `model_id`, `collection_name`, `order_column`)
-  - `media_collection_created_at_index` on (`collection_name`, `created_at`)
-
-These improve collection fetch ordering and maintenance/reporting queries.
-
-## Testing Guarantees (Reference)
-`tests/Feature/MediaConversionsTest.php` and `tests/Feature/SubmitEventMediaTest.php` verify:
-- Collection MIME acceptance/rejection
-- Conversions are registered and used
-- Fallback URLs exist
-- Custom media config is active (`path_generator`, `file_namer`, lazy loading, versioned URLs)
-- Submit-event cover/poster/gallery uploads persist correctly
-
-## AI Implementation Checklist (For New Media Features)
-1. Add/extend collection + conversions in the model (`registerMediaCollections`, `registerMediaConversions`).
-2. Use `SpatieMediaLibraryFileUpload` with explicit `collection()` and conversion mapping.
-3. Use conversion-specific image columns/entries in Filament tables/infolists.
-4. Render conversion URLs on frontend, not originals.
-5. Eager-load `media` in queries to avoid N+1.
-6. Add/adjust tests for conversions, MIME constraints, and fallback behavior.
-7. Do not bypass global naming/path conventions.
-
-## Do Not Do
-- Do not introduce ad-hoc filename generation outside global upload config.
-- Do not store large image originals directly in list/card UIs.
-- Do not skip collection MIME constraints.
-- Do not remove AppServiceProvider static boot guards in Octane environments.
+## AI Checklist for New Media Features
+1. Collection + conversions in model. 2. `SpatieMediaLibraryFileUpload` w/ explicit collection/conversion. 3. Conversion-specific columns/entries. 4. Conversion URLs on frontend + eager-load `media`. 5. Tests for MIME/conversions/fallbacks. 6. Never ad-hoc filenames, never originals in lists, never drop MIME rules or Octane boot guards.

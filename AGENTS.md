@@ -3,7 +3,7 @@
 
 # Addressing & Geography Guidelines
 
-This application uses `aiarmada/addressing` natively. Treat the package's current migrations, models, country profiles, and actions as canonical. The package stores direct country/state/city IDs and role-based address-area assignments; do not invent fixed admin-area columns, aliases, or BC shims.
+This application uses `aiarmada/addressing` natively. Treat the package's current migrations, models, country profiles, and actions as canonical: direct country/state/city IDs plus role-based address-area assignments. Do not invent fixed admin-area columns, aliases, or backward-compatibility shims, and never assume one country's profile maps to another's fixed columns.
 
 ## Canonical address data
 
@@ -14,47 +14,40 @@ This application uses `aiarmada/addressing` natively. Treat the package's curren
 | City | `addresses.city_id` (UUID, optional) |
 | Administrative and postal areas | `address_area_assignments` rows (`address_id`, `address_area_id`, `role`, `is_primary`, `metadata`) |
 
-Use `Address::areaAssignments()`, `AddressAreaAssignment`, `AddressLocationData::areaAssignments`, `SyncAddressAreaAssignmentsAction`, and the configured `CountryAddressProfile`. Area roles and hierarchy levels are country-profile data; never assume one country maps to the same fixed columns as another.
+Use `Address::areaAssignments()`, `AddressAreaAssignment`, `AddressLocationData::areaAssignments`, `SyncAddressAreaAssignmentsAction`, and the configured `CountryAddressProfile`.
 
-For Malaysia, the profile defines roles such as `administrative_division`, `administrative_district`, `administrative_subdivision`, and `postal_locality`. The selected state remains `state_id`; an area assignment is not a substitute for the state relation.
+For Malaysia, the profile defines roles such as `administrative_division`, `administrative_district`, `administrative_subdivision`, and `postal_locality`. The selected state remains `state_id`; an address-area assignment is not a substitute for the state relation.
 
-Also store denormalized text when useful: `line1`, `line2`, `postcode`, `state`, `city`, `country`, `country_code`, geo/provider/navigation fields.
+Denormalized text and provider/navigation fields may also be stored when useful: `line1`, `line2`, `postcode`, `state`, `city`, `country`, `country_code`, and the package's geo/provider fields.
 
-## Forbidden (zero legacy footprint)
+## Form and validation
 
-- Do **not** use fixed `admin_area_1_id` through `admin_area_4_id` columns.
-- Do **not** invent form-only aliases (`state_area_id` is forbidden in app code).
-- Do **not** use removed package leftovers: `district_id`, `subdistrict_id`, `district()`, `subdistrict()`, `stateArea()`, `districtArea()`, `subdistrictArea()`.
-- Do **not** use integer geography tables or integer FKs for country/state/city/areas.
-- Do **not** remap legacy keys in app or tests — fix callers instead.
-- Do **not** reintroduce dual API keys (`district_id` / `subdistrict_id` as aliases).
+Use the package's country → state → optional city flow, then the area roles from the selected country's profile. Resolve options via package profile/provider APIs and persist via `SyncAddressAreaAssignmentsAction`; do not duplicate hierarchy rules in callers.
 
-## Form cascade (MY)
+## Forbidden legacy keys
 
-```
-country_id → state_id → city_id (optional) → area roles from country profile
-```
+- Fixed `admin_area_1_id` through `admin_area_4_id` columns.
+- Form-only aliases such as `state_area_id`.
+- Removed geography keys/relations: `district_id`, `subdistrict_id`, `district()`, `subdistrict()`, `stateArea()`, `districtArea()`, `subdistrictArea()`.
+- Integer geography tables or integer geography foreign keys.
+- Dual API keys or caller-side remapping of obsolete keys.
 
-- Area options come from the package profile/provider APIs for the selected state/city (division/district/subdivision/locality as the profile defines them).
-- Federal territories (KL, Putrajaya, Labuan): district-equivalent role may be absent; locality/subdivision roles remain available.
+`area_assignments`, `areaAssignments`, `AddressAreaAssignment`, and configured role names are current package APIs, not legacy consumers.
 
-## Seed / import
+## Seed and import
 
-- Countries: `php artisan address:seed-countries` / package seeder.
-- MY states + cities: `AIArmada\Addressing\Database\Seeders\MalaysiaGeographySeeder`.
-- Administrative and postal areas: import `address_areas` through the package/import actions and sync role-based assignments to addresses.
+- Countries: `php artisan address:seed-countries` or the package country seeder.
+- Malaysia states/cities: `AIArmada\Addressing\Database\Seeders\MalaysiaGeographySeeder`.
+- Administrative/postal areas: import `address_areas` through package/import actions, then sync role-based assignments.
 
-## Snapshots & DTO
+## Snapshots
 
-- `AddressData` is flat text + geo/provider — not a substitute for FK/assignment rows on `addresses`.
-- Historical moments use `AddressSnapshot` or event location snapshots — do not point live mutable addresses from historical records.
+Historical moments use `AddressSnapshot` or event-location snapshots; do not point historical records at mutable live address state.
 
 ## Verification
 
 ```bash
-
-# Must be empty (app code must not use removed fixed-column or legacy geography APIs):
-
+# Application code must not use removed fixed-column or legacy geography APIs.
 rg -n "admin_area_[1-4]_id|state_area_id|\\bdistrict_id\\b|\\bsubdistrict_id\\b|stateArea\\(|districtArea\\(|subdistrictArea\\(" app/ tests/ database/ resources/ --glob '!**/storage/**'
 ```
 
@@ -68,14 +61,11 @@ The application is being rebranded to **ilmu360°** (ilmu360 with a degree sign 
 
 # Database Guidelines
 
-- **Primary keys**: `uuid('id')->primary()`.
-- **Foreign keys**: `foreignUuid('col')` only — UUIDs end-to-end. No integer geography FKs.
-- **Geography**: use package addressing storage only — `country_id`, `state_id`, `city_id` plus role-based `address_area_assignments`. See `.ai/guidelines/addressing.blade.php`.
-- **Never** add DB-level constraints or cascades: no `->constrained()`, no `->cascadeOnDelete()`, no FK constraints.
-- **Cascades/integrity**: enforce in application logic (models/actions/services).
+- **Primary keys**: `uuid('id')->primary()`. **Foreign keys**: `foreignUuid('col')` only — UUIDs end-to-end, no integer geography FKs.
+- **Geography**: package addressing storage only — `country_id`, `state_id`, `city_id` plus role-based `address_area_assignments` (see `.ai/guidelines/addressing.blade.php`).
+- **Never** DB-level constraints or cascades: no `->constrained()`, no `->cascadeOnDelete()`, no FK constraints; enforce integrity in application logic (models/actions/services).
 - **Migrations**: keep safe/idempotent; no `down()` required.
-- **No SoftDeletes**: never use Laravel's `SoftDeletes` trait or `$table->softDeletes()` in migrations. This application uses `spatie/laravel-deleted-models` (`KeepsDeletedModels` trait) instead, which stores a full copy of the deleted model in a separate `deleted_models` table.
-- Ensure no constraints/cascades slipped in: `rg -n -- "constrained\(|cascadeOnDelete\(" packages/*/database`
+- **No SoftDeletes**: never use Laravel's `SoftDeletes` trait or `$table->softDeletes()`. This application uses `spatie/laravel-deleted-models` (`KeepsDeletedModels` trait) instead, which stores a full copy of the deleted model in a separate `deleted_models` table.
 
 ## Verification
 
@@ -94,33 +84,28 @@ The application is being rebranded to **ilmu360°** (ilmu360 with a degree sign 
 
 ## Contracts
 
-- Every resolvable concern gets a contract (`Contracts/`). Default implementations live in `Services/` or `Resolvers/`.
-- Null-object resolvers for optional integrations (`Null*Resolver`) — ship the no-op with the contract so downstream code never conditionally checks "is this installed?".
-- Workflow contracts separate policy from implementation (e.g. `EventLifecycleWorkflow` interface + `DefaultEventLifecycleWorkflow`).
+- Every resolvable concern gets a contract (`Contracts/`); default implementations live in `Services/` or `Resolvers/`.
+- Ship null-object resolvers (`Null*Resolver`) with the contract so downstream code never checks "is this installed?".
+- Separate workflow policy from implementation (e.g. `EventLifecycleWorkflow` interface + `DefaultEventLifecycleWorkflow`).
 
 ## Actions
 
-- Extract reusable Actions for orchestration that spans transactions, side effects, normalization, or multiple entrypoints.
-- Keep trivial single-step handlers inline when extraction adds no clarity.
-- Reuse existing Actions before creating new ones.
-- Watch for Action/Service duplicates — a Backfill action and a Sync service doing the same work should be one class.
+- Extract reusable Actions for orchestration spanning transactions, side effects, normalization, or multiple entrypoints; keep trivial single-step handlers inline.
+- Reuse existing Actions before creating new ones; merge Action/Service duplicates (one Backfill/Sync implementation, not two).
 
 ## Services
 
-- Every service should have a clear role. Services without contracts are catch-all candidates.
-- Prefer splitting a catch-all service into Actions with a thin service facade.
-- Service count should be low; high service counts with no contracts is a smell.
+- Every service needs a clear role and (usually) a contract — contract-less or numerous services are catch-all smells; split them into Actions behind a thin service facade.
 
 ## Support Folder
 
-- `Support/` should not mix policy, integration wiring, and normalization.
-- Split into sub-namespaces when categories emerge (`Support/Policy/`, `Support/Integration/`, `Support/Normalization/`).
+- Don't mix policy, integration wiring, and normalization in `Support/`; split into `Support/Policy/`, `Support/Integration/`, `Support/Normalization/` as categories emerge.
 
 ## Verification
 
-- Check for duplicate orchestration: `rg -n "function (handle|execute|process)" packages/*/src/Actions packages/*/src/Services`
-- Check for services without contracts: `rg -l "class.*Service" packages/*/src/Services | xargs rg -L "implements"`
-- Grep for null-object pattern adoption: `rg "Null.*Resolver|Null.*Dispatcher" packages/`
+- Duplicate orchestration: `rg -n "function (handle|execute|process)" packages/*/src/Actions packages/*/src/Services`
+- Services without contracts: `rg -l "class.*Service" packages/*/src/Services | xargs rg -L "implements"`
+- Null-object adoption: `rg "Null.*Resolver|Null.*Dispatcher" packages/`
 
 === .ai/general rules ===
 
@@ -128,519 +113,110 @@ The application is being rebranded to **ilmu360°** (ilmu360 with a degree sign 
 
 ### 1. Plan Node Default
 
-Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions)
-- If something goes sideways, STOP and re-plan immediately – don't keep pushing
-- Use plan mode for verification steps, not just building
-- Write detailed specs upfront to reduce ambiguity
+Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions); write detailed specs upfront. If something goes sideways, STOP and re-plan — don't keep pushing. Use plan mode for verification, not just building.
 
 ### 2. Subagent Strategy
 
-- Use subagents liberally to keep main context window clean
-- Offload research, exploration, and parallel analysis to subagents
-- For complex problems, throw more compute at it via subagents
-- One tack per subagent for focused execution
+Use subagents liberally (research, exploration, parallel analysis; one tack each) to keep the main context clean; throw more compute at complex problems.
 
 ### 3. Self-Improvement Loop
 
-- After ANY correction from the user: update 'tasks/lessons.md' with the pattern
-- Write rules for yourself that prevent the same mistake
-- Ruthlessly iterate on these lessons until mistake rate drops
-- Review lessons at session start for relevant project
+After ANY user correction, update `tasks/lessons.md` with the preventive pattern; iterate ruthlessly. Review lessons at session start.
 
 ### 4. Verification Before Done
 
-- Never mark a task complete without proving it works
-- Diff behavior between main and your changes when relevant
-- Ask yourself: "Would a staff engineer approve this?"
-- Run tests, check logs, demonstrate correctness
-- **Run tests once**: A single test run must gather ALL info needed to start debugging. Never re-run the same test suite just to parse output you missed — use the first run, inspect logs, or save output to a file. If a test run is expensive, capture its full output the first time.
+Never mark complete without proof: diff vs main when relevant, ask "would a staff engineer approve?", run tests, check logs. **Run tests once** — one run must capture everything (save output to a file for expensive suites); never re-run just to re-read output.
 
 ### 5. UI Tracking Review
 
-- Whenever a task changes UI behavior, navigation, forms, filters, tabs, table actions, buttons, or stateful interactions, explicitly evaluate whether product event tracking should be added or updated
-- Prefer curated high-signal tracking over blanket click logging; track user intent and meaningful workflow transitions, not every cosmetic interaction
-- For backend-confirmed outcomes, prefer server-side Signals events so the data represents what actually happened
-- For frontend-only intent, use the centralized Signals UI event helper instead of one-off JavaScript handlers
-- Purely cosmetic changes can skip tracking only when they do not alter user behavior, entry points, or interaction paths
+When a task changes UI behavior/navigation/forms/filters/tabs/actions/state, evaluate product event tracking: curated high-signal intent/workflow transitions (not blanket clicks); server-side Signals for backend-confirmed outcomes; centralized Signals UI helper for frontend-only intent. Skip only purely cosmetic changes that alter no behavior, entry points, or paths.
 
 ### 6. Demand Elegant (Balanced)
 
-- For non-trivial changes: pause and ask "Is there a more elegant way?"
-- If a fix feels hacky: "Knowing everything I know now, implement the elegant solution"
-- Skip this for simple, obvious fixes – don't over-engineer
-- Challenge your own work before presenting it
+For non-trivial changes ask "is there a more elegant way?" — if hacky, re-implement knowing what you know now. Skip for simple obvious fixes.
 
 ### 7. Autonomous Bug Fixing
 
-- When given a bug report: just fix it. Don't ask for hand-holding
-- Point at logs, errors, failing tests – then resolve them
-- Zero context switching required from the user
-- Go fix failing CI tests without being told how
+Just fix reported bugs (logs, errors, failing tests — including CI) with zero hand-holding or context switches.
 
 ### 8. Laravel Actions Where Appropriate
 
-- Prefer Laravel Actions for reusable workflow orchestration that spans validation-adjacent normalization, transactions, side effects, or multiple entrypoints
-- Do not force every mutation into an action; trivial single-call controller or Livewire handlers can stay inline
-- Before adding a new action, check whether the behavior is already covered by an existing action and extend that path instead of duplicating orchestration
-- Keep controllers and Livewire components focused on HTTP/UI concerns when a workflow is substantial enough to extract
+Prefer Actions for reusable orchestration (validation-adjacent normalization, transactions, side effects, multiple entrypoints); extend existing Actions before creating new ones. Invoke the `laravel-actions` skill for entrypoint patterns and testing.
 
 ### 9. Spatie Laravel Data Adoption
 
-- Use `spatie/laravel-data` as a boundary-contract layer, not as a default application pattern.
-- Prefer Data objects for API response DTOs when controllers build large nested arrays, the same payload shape is reused across endpoints, or public/mobile contracts need stronger consistency.
-- Consider Data objects for controller-to-action payloads only when the request state is large, nested, reused, or shared across multiple entrypoints.
-- Start with output-only refactors when introducing Data on existing public APIs. Keep keys, nullability, nesting, status codes, and error shapes unchanged, and lock parity with focused tests.
-- Treat input and validation refactors as externally observable behavior changes unless proven otherwise. Add request/response contract tests before widening Data usage on writes.
-- Do not adopt Data broadly in Livewire or Filament form state by default. Prefer native array state unless a specific component proves a clear hydration or reuse benefit.
-- Do not rewrite simple internal readonly DTOs or tiny mutation endpoints just for consistency.
-- For dynamic catalog/config payloads and small one-off arrays, prefer plain arrays or readonly PHP objects over Data classes.
-- When in doubt, use fewer Data classes and place them on stable boundaries such as public/mobile API serializers.
+Use `spatie/laravel-data` as a boundary-contract layer, not a default: API response DTOs for large/nested/reused payloads or public-mobile consistency; controller→action payloads only when large/nested/reused/shared. Start output-only (keys/nullability/nesting/status/errors unchanged + parity tests); treat input/validation refactors as behavior changes (contract tests first). Not for Livewire/Filament form state, simple readonly DTOs, tiny endpoints, or dynamic catalog/config payloads (prefer arrays/readonly objects) unless proven beneficial. When in doubt, fewer Data classes on stable boundaries.
 
 ## Task Management
 
-1. *Plan First*: Write plan to 'tasks/todo.md' with checkable items
-2. *Verify Plan*: Check in before starting implementation
-3. *Track Progress*: Mark items complete as you go
-4. *Explain Changes*: High-level summary at each step
-5. *Document Results*: Add review section to 'tasks/todo.md'
-6. *Capture Lessons*: Update 'tasks/lessons.md' after corrections
+1. *Plan First*: plan to `tasks/todo.md`. 2. *Verify Plan*: check in before implementing. 3. *Track Progress*: mark items done. 4. *Explain Changes*: summary each step. 5. *Document Results*: review section in todo. 6. *Capture Lessons*: `tasks/lessons.md` after corrections.
 
 ## Core Principles
 
-- *Simplicity First*: Make every change as simple as possible. Impact minimal code.
-- *No Laziness*: Find root causes. No temporary fixes. Senior developer standards.
-- *Minimat Impact*: Changes should only touch what's necessary. Avoid introducing bugs.
+- *Simplicity First*: smallest possible change. *No Laziness*: root causes, no temp fixes, senior standards. *Minimal Impact*: touch only what's necessary.
 
 ---------
 
 # Filament Form Data Handling with Enums
 
-## Critical: Enum Serialization/Deserialization in Filament Forms
+Filament deserializes enums in form closures but passes strings after submit — match the context:
 
-### Context
+| Context | Data | Compare with |
+|---|---|---|
+| Field closures (`->disabled()`, `->visible()`, `->required()`, `->hidden()`, `->afterStateUpdated()`, `->reactive()`, validation reading `Get $get`) | Enum objects | `EventAgeGroup::Children` directly |
+| `submit()`/`action()`/validated state | Strings | `EventAgeGroup::Children->value` |
+| Database queries | Backing values | `->value` (e.g. `where('age_group', …->value)`) |
 
-When working with PHP Backed Enums in Filament forms, understanding how Filament handles enum serialization and deserialization is crucial for writing correct conditional logic.
-
-### The Behavior
-
-**Inside Form Field Closures** (e.g., `->disabled()`, `->visible()`, `->required()`, etc.):
-- When you use `$get('field_name')` to retrieve form data, Filament automatically **deserializes string values back into enum instances**.
-- Arrays will contain **enum objects**, not strings.
-- **Use enum instances directly for comparison**: `EventAgeGroup::Children` (NOT `->value`)
-
-**Example:**
 ```php
-// ✅ CORRECT - Use enum instances directly
 ->disabled(function (Get $get): bool {
-    $ageGroups = $get('age_group') ?? [];
-    // $ageGroups contains: [EventAgeGroup::AllAges, EventAgeGroup::Adults]
-    return in_array(EventAgeGroup::Children, $ageGroups, true) || 
-           in_array(EventAgeGroup::AllAges, $ageGroups, true);
-})
-
-// ❌ WRONG - Using ->value will NOT match
-->disabled(function (Get $get): bool {
-    $ageGroups = $get('age_group') ?? [];
-    // This will always return false because 'children' string !== EventAgeGroup::Children enum object
-    return in_array(EventAgeGroup::Children->value, $ageGroups, true);
-})
+    $ageGroups = $get('age_group') ?? []; // [EventAgeGroup::AllAges, …] — objects, so ->value never matches here
+    return in_array(EventAgeGroup::Children, $ageGroups, true)
+        || in_array(EventAgeGroup::AllAges, $ageGroups, true);
+});
 ```
 
-**In Submit/Action Methods** (e.g., `submit()`, `action()`, after validation):
-- Form data is **serialized** and contains **string values**.
-- Arrays will contain **strings**, not enum objects.
-- **Use `->value` property for comparison**: `EventAgeGroup::Children->value`
-
-**Example:**
-```php
-public function submit(): void
-{
-    $validated = $this->form->getState();
-    $ageGroups = $validated['age_group'] ?? [];
-    
-    // $ageGroups contains: ['all_ages', 'adults'] (strings)
-    
-    // ✅ CORRECT - Use ->value for string comparison
-    if (in_array(EventAgeGroup::Children->value, $ageGroups, true) || 
-        in_array(EventAgeGroup::AllAges->value, $ageGroups, true)) {
-        $validated['children_allowed'] = true;
-    }
-}
-```
-
-### Debugging Tip
-
-If you're unsure what format the data is in, add logging:
-
-```php
-\Log::info('Form data debug', [
-    'data' => $get('field_name'),
-    'types' => array_map('gettype', (array)$get('field_name')),
-]);
-```
-
-Then check `storage/logs/laravel.log` to see if you're dealing with enum objects or strings.
-
-### Summary Table
-
-| Context | Data Format | Comparison Method | Example |
-|---------|-------------|-------------------|---------|
-| Form field closures (`->disabled()`, `->visible()`, etc.) | Enum objects | Use enum directly | `in_array(EventAgeGroup::Children, $data, true)` |
-| Submit/action methods, validated data | Strings | Use `->value` | `in_array(EventAgeGroup::Children->value, $data, true)` |
-| Database queries | Strings (stored as backing values) | Use `->value` | `where('age_group', EventAgeGroup::Children->value)` |
-
-### When This Matters
-
-- Conditional form logic: `->disabled()`, `->visible()`, `->required()`, `->hidden()`
-- Field dependencies: `->afterStateUpdated()`, `->reactive()`
-- Any closure receiving `Get $get` parameter
-- Validation rules that check other fields
-
-### Key Takeaway
-
-**Filament automatically converts between enum objects (for PHP logic) and strings (for storage/transport).** Always check your context to know which format you're working with.
+Unsure? Log `$get('field')` + `array_map('gettype', …)` and check `storage/logs/laravel.log`.
 
 ---
 
 # Model Sorting with Spatie Eloquent Sortable
 
-## Overview
-
-This application uses `spatie/eloquent-sortable` for consistent model ordering. Always use this package instead of manually managing sort columns.
-
-## Implementation Pattern
-
-### Model Setup
-
-```php
-use Spatie\EloquentSortable\Sortable;
-use Spatie\EloquentSortable\SortableTrait;
-
-class MyModel extends Model implements Sortable
-{
-    use SortableTrait;
-
-    public array $sortable = [
-        'order_column_name' => 'order_column',
-        'sort_when_creating' => true,
-    ];
-
-    protected $fillable = [
-        'name',
-        'order_column', // Always include in fillable
-    ];
-}
-```
-
-### Migration
-
-```php
-Schema::create('my_models', function (Blueprint $table) {
-    $table->uuid('id')->primary();
-    $table->string('name');
-    $table->unsignedInteger('order_column')->nullable(); // Always nullable
-    $table->timestamps();
-});
-```
-
-### Querying Sorted Records
-
-```php
-// Use the ->ordered() scope provided by the trait
-$records = MyModel::ordered()->get();
-
-// In relationships
-public function items(): HasMany
-{
-    return $this->hasMany(Item::class)->ordered();
-}
-```
-
-### Key Rules
-
-1. **Column name**: Always use `order_column` for consistency across models
-2. **Nullable**: The column should be nullable (SortableTrait handles auto-assignment)
-3. **No manual sorting**: Don't manually set `order_column` values; let the trait manage it
-4. **Use `->ordered()` scope**: Always use the provided scope instead of `->orderBy('order_column')`
-
-### Models Using Sortable
-
-- `Tag` (inherited from Spatie Tags, scoped by type)
-- `Topic`
-- `EventType`
+Always use `spatie/eloquent-sortable` (never manual sort columns): model `implements Sortable` + `SortableTrait` with `order_column_name => 'order_column'`, `sort_when_creating => true`; migration `$table->unsignedInteger('order_column')->nullable()`; `order_column` in `$fillable`; query via `->ordered()` (incl. relationships) — never `orderBy('order_column')` or manual values. Used by: `Tag` (scoped by type), `Topic`, `EventType`.
 
 ---
 
-# Unified Tag System Architecture
+# Unified Tag System (Spatie Tags + TagType)
 
-## Overview
+All tagging uses Spatie's native polymorphic `taggables` — no custom pivot. Types (`App\Enums\TagType` → label/color/icon/description/order): `domain` (Aqidah/Syariah/Akhlak…), `discipline` (Tafsir/Sirah/Fiqh…), `source` (Quran/Hadith/Turath…), `issue` (Rasuah/Kepimpinan…).
 
-This application uses **Spatie Tags** with a **TagType enum** for organizing tags by category. All tag functionality uses Spatie's native polymorphic `taggables` table.
-
-## TagType Enum
-
-Located at `App\Enums\TagType`, provides metadata for each tag type:
-
-```php
-TagType::Domain->label();       // "Domain"
-TagType::Domain->color();       // "primary"
-TagType::Domain->icon();        // "heroicon-o-academic-cap"
-TagType::Domain->description(); // "Core Islamic knowledge areas..."
-TagType::Domain->order();       // 10
-```
-
-## Type Storage & Access
-
-The `type` column stores string values ('domain', 'discipline', 'source', 'issue') to maintain compatibility with Spatie's native methods:
-
-```php
-$tag->type;        // Returns: 'domain' (string)
-$tag->type_enum;   // Returns: TagType::Domain (enum instance)
-```
-
-**Why not cast to enum?** Spatie's `tagsWithType()` method does strict string comparison, so the type must remain a string in the model. Use the `type_enum` accessor when you need enum functionality.
-
-## Tag Types
-
-| Type | Value | Purpose |
-|------|-------|---------|
-| Domain | `domain` | Core Islamic knowledge areas (Aqidah, Syariah, Akhlak) |
-| Discipline | `discipline` | Specific fields of study (Tafsir, Sirah, Fiqh, etc.) |
-| Source | `source` | Reference sources (Quran, Hadith, Turath, etc.) |
-| Issue | `issue` | Contemporary themes/topics (Rasuah, Kepimpinan, etc.) |
-
-## Usage
-
-### Tagging Events
-
-```php
-// Attach tags to an event
-$event->attachTag($tag);
-$event->attachTags([$tag1, $tag2]);
-
-// Sync tags (replaces all existing tags)
-$event->syncTags([$tag1, $tag2]);
-
-// Detach tags
-$event->detachTag($tag);
-$event->detachTags();
-```
-
-### Querying Tags
-
-```php
-// Get all tags of a specific type (verified + pending)
-$domainTags = Tag::ofType(TagType::Domain)->whereIn('status', ['verified', 'pending'])->get();
-$issueTags = Tag::ofType('issue')->whereIn('status', ['verified', 'pending'])->get();
-
-// Spatie's native method (use with status filter)
-$domainTags = Tag::getWithType('domain')->filter(fn($tag) => in_array($tag->status, ['verified', 'pending']));
-
-// Get event's tags of specific type
-$domainTags = $event->tagsWithType('domain');
-
-// Get all tags ordered
-$tags = Tag::ordered()->get();
-```
-
-### Tag Status & Moderation
-
-- Tags have a `status` column with values: `'pending'`, `'verified'`
-- Pre-seeded tags are `'verified'` (Domain, Source types are pre-seeded only)
-- User-created tags (Discipline, Issue) are created as `'pending'`
-- When an event is approved, all attached pending tags are auto-verified
-- Show both `'verified'` and `'pending'` tags in form dropdowns (similar to Speaker/Institution/Venue)
-
-### Tag Sorting
-
-- Tags use Spatie Eloquent Sortable with `order_column`
-- Sorting is scoped by `type` (tags within same type are ordered independently)
-- Auto-assigns order when created
-
-## Key Principles
-
-1. **Use native Spatie methods**: `attachTag()`, `syncTags()`, `tagsWithType()`, etc.
-2. **No custom pivot**: Everything uses `taggables` table (polymorphic)
-3. **Type-based organization**: Use `TagType` enum for categorization and metadata
-4. **Status-based moderation**: User-created tags start as `'pending'`, auto-verify on event approval
-5. **Keep it simple**: No extra fields like `is_active`, `is_system`, `description`, `weight`, or `is_primary`
+- Storage: `type` stays a **string** (Spatie's `tagsWithType()` needs strict string match); use `$tag->type_enum` for the enum.
+- Native API only: `attachTag(s)` / `syncTags` / `detachTag(s)`, `Tag::ofType(TagType::X|'x')` / `getWithType(…)` / `$event->tagsWithType(…)`, `Tag::ordered()`.
+- Status: `pending` (user-created Discipline/Issue) vs `verified` (pre-seeded Domain/Source); event approval auto-verifies attachments; always query/dropdown with both (`whereIn('status', ['verified', 'pending'])`), like Speaker/Institution/Venue.
+- Sorting: `order_column`, scoped per type, auto-assigned. No extra fields (`is_active`, `is_system`, `description`, `weight`, `is_primary`).
 
 ---
 
 # Testing Best Practices
 
-## Running Tests
-
-Always use **parallel execution** for faster test runs:
-
-```bash
-
-# Run all tests in parallel
-
-vendor/bin/pest --parallel
-
-# Run specific tests in parallel
-
-vendor/bin/pest --parallel --filter=SubmitEvent
-
-# Run tests with compact output in parallel
-
-vendor/bin/pest --parallel --compact
-```
-
-### Why Parallel?
-
-- **Speed**: Tests run significantly faster by utilizing multiple CPU cores
-- **Efficiency**: Reduces CI/CD pipeline time
-- **Best practice**: Pest's parallel mode handles database isolation automatically
-
-### Alternative Commands
-
-While `php artisan test` can be used, prefer `vendor/bin/pest --parallel` for optimal performance:
-
-```bash
-
-# ❌ Slower (sequential)
-
-php artisan test --filter=SubmitEvent
-
-# ✅ Faster (parallel)
-
-vendor/bin/pest --parallel --filter=SubmitEvent
-```
-
-### Key Points
-
-- Parallel execution is safe for all tests (Pest handles isolation)
-- No need to modify existing tests to support parallel mode
-- Default behavior - no additional configuration required
-
-## Pest 5 Plugins and Test Impact Analysis
-
-This project uses Pest 5 with the following development dependencies:
-
-- `pestphp/pest-plugin-agent` for one-off backend and browser verification.
-- `pestphp/pest-plugin-phpstan` for Pest-aware PHPStan rules.
-- `pestphp/pest-plugin-rector` with `rector/rector` for Pest refactoring.
-- `pestphp/pest-plugin-browser` for Playwright-backed `visit()` checks.
-
-When setting up a checkout that does not yet have the toolchain, install the Pest 5 packages explicitly:
-
-```bash
-composer require pestphp/pest-plugin-agent --dev
-composer require pestphp/pest-plugin-phpstan --dev
-composer require pestphp/pest-plugin-rector --dev
-composer require rector/rector --dev
-```
-
-Use the repository `./pest` wrapper for Test Impact Analysis. It enables Xdebug coverage for the Tia Engine, and `tests/Pest.php` enables local TIA with `pest()->tia()->locally()`:
-
-```bash
-./pest --parallel --tia --compact
-./pest --parallel --tia --filtered --compact
-./pest --parallel --tia --fresh --compact
-```
-
-The first command runs affected tests and replays unaffected tests from the cache; `--filtered` narrows execution to affected test files; `--fresh` rebuilds the dependency graph. Do not rely on bare `vendor/bin/pest --tia` in Herd when Xdebug is disabled.
-
-For a one-off verification probe, load the `pest-plugin-agent` skill first and use single outer quotes:
-
-```bash
-vendor/bin/pest --agent='$user = \App\Models\User::factory()->create(); expect($user->exists)->toBeTrue();'
-```
-
-Keep durable behavior in normal Pest tests. Run Pest-aware PHPStan and inspect Rector changes with:
-
-```bash
-vendor/bin/phpstan analyse --ansi
-vendor/bin/rector process --dry-run
-```
+Default to parallel Pest (`vendor/bin/pest --parallel`, + `--filter=…`/`--compact`) — parallel is isolation-safe, never sequential `php artisan test`. Follow `.ai/rules/tests.md` for the toolchain (TIA, agent probes, PHPStan, Rector); invoke `testing-best-practices` when designing tests and `pest-testing` for Pest syntax.
 
 ---
 
-# Static Analysis Safety for Runtime Extensions
+# Static Analysis (Runtime Extensions + PHPStan 6)
 
-When a method looks "undefined" in static analysis, do not remove it until you verify its source.
-
-## Required Verification Before Removal
-
-1. Search for runtime extensions first:
-   - `macro()` / `hasMacro()` in service providers
-   - package mixins/traits
-   - plugin-specific extensions (for example Filament add-ons like quick-add select)
-2. Confirm if the method is intentionally runtime-provided (for example `Select::macro(...)`).
-3. If runtime-provided, preserve behavior and fix static analysis with a narrow rule (stub or focused ignore pattern), instead of deleting the method call.
-4. Only remove a method when you have confirmed there is no implementation source and no feature dependency.
-
-## Practical Rule
-
-- Behavior safety takes priority over static-analysis convenience.
-- Never remove feature methods such as `->closeOnSelect()` or `->quickAdd()` without source verification and impact check.
-
----
-
-# PHPStan Level 6 Compliance
-
-All new and modified code must be written to pass PHPStan at level 6.
-
-## Required Standard
-
-1. Do not introduce new PHPStan errors.
-2. Prefer real fixes (types, generics, return shapes, null-handling, narrowing) over broad ignores.
-3. Avoid adding baseline suppressions unless there is a verified runtime-extension limitation that cannot be modeled safely.
-4. If a suppression is unavoidable, keep it as narrow as possible (specific file + message pattern) and document why.
-
-## Verification Command
-
-Run and pass:
-
-```bash
-vendor/bin/phpstan analyse --ansi
-```
+Behavior safety beats analysis convenience: never remove a seemingly-undefined method (e.g. `->closeOnSelect()`, `->quickAdd()`) without checking `macro()`/`hasMacro()`, mixins/traits, and plugin extensions (e.g. Filament quick-add) — if runtime-provided, keep it and silence PHPStan narrowly (stub/focused ignore + documented reason); remove only when no implementation source or feature dependency exists. All new/modified code must pass PHPStan level 6 (`vendor/bin/phpstan analyse --ansi`): real fixes over ignores, no new errors, no broad baselines.
 
 ---
 
 # Timezone Handling (Critical)
 
-## Core Rules
-
-- Store all timestamps in UTC at the database layer.
-- Resolve viewer timezone at request-time using `App\Support\Timezone\UserTimezoneResolver`.
-- For display formatting in Blade/Livewire, use `App\Support\Timezone\UserDateTimeFormatter`.
-- Do not hardcode region timezones (for example `Asia/Kuala_Lumpur`) in public query/filter logic.
-
-## Display Rules
-
-- Prefer:
-    - `UserDateTimeFormatter::format($date, 'h:i A')`
-    - `UserDateTimeFormatter::translatedFormat($date, 'l, j F Y')`
-- Avoid direct `->format()` / `->translatedFormat()` in public-facing views unless you intentionally need storage timezone output.
-
-## Date Filter Rules
-
-- For date-only filters (`starts_after`, `starts_before`, etc.), parse input as user-local date and convert to UTC boundaries before querying:
-    - start boundary => startOfDay in user timezone -> UTC
-    - end boundary => endOfDay in user timezone -> UTC
-- Use `UserDateTimeFormatter::parseUserDateToUtc(...)` for this conversion.
-
-## Prayer-Time Filter Notes
-
-- Advanced search may use prayer-relative labels (for example `Selepas Jumaat`, `Selepas Maghrib`, `Selepas Tarawih`).
-- Use `prayer_display_text` keyword matching and `prayer_reference` mapping where applicable.
-- `Tarawih` is label-based (text matching), not a `PrayerReference` enum value.
+Store UTC; resolve viewer tz per-request via `UserTimezoneResolver`; format via `UserDateTimeFormatter::format($date, 'h:i A')` / `::translatedFormat($date, 'l, j F Y')` — never `->format()` in public views (unless storage-tz output is intended) and never hardcode region tz (e.g. `Asia/Kuala_Lumpur`) in public query/filter logic. Date-only filters (`starts_after`, …): parse user-local date → UTC day boundaries (`parseUserDateToUtc`). Prayer labels (`Selepas Jumaat/Maghrib/Tarawih`): `prayer_display_text` keyword + `prayer_reference` mapping; `Tarawih` is label-only, not a `PrayerReference` value.
 
 ---
 
 # Query Safety Notes
 
-## Qualified Columns in Scopes
-
-- When scopes are reused inside joined queries, qualify columns by table name to avoid ambiguous-column failures (especially in SQLite tests).
-- Example: in `Event::active()`, use `events.is_active` instead of plain `is_active`.
-
-## Public Listing Visibility
-
-- If a public page is expected to show only approved records, explicitly constrain `status = approved` even when using broader reusable scopes.
+Qualify columns in reused scopes (`events.is_active`, not `is_active`) to survive joins (esp. SQLite tests). Public listings: explicitly constrain `status = approved` even with broader reusable scopes.
 
 ---
 
@@ -652,10 +228,7 @@ Always use the OpenAI developer documentation MCP server (`openaiDeveloperDocs`)
 
 # Git Safety
 
-- Never use `git` to mass-delete, mass-revert, or bulk-reset work. No `git clean -fdx`, no `git reset --hard` across branches, no `git checkout -- .`, no `git push --force`, no `git push --delete` without explicit per-branch approval.
-- Never run destructive git commands without explicit, per-command user approval.
-- If a git operation would affect more than one commit, stop and ask first.
-- `git stash` and `git stash pop` are safe. Avoid `git stash drop` and `git stash clear` — they permanently delete stashed work.
+Never run destructive git commands (`clean -fdx`, `reset --hard`, `checkout -- .`, `push --force`/`--delete`, `stash drop`/`clear`) or multi-commit operations without explicit per-command approval — ask first. Safe: `git stash` / `stash pop`.
 
 === .ai/lifecycle rules ===
 
@@ -663,450 +236,96 @@ Always use the OpenAI developer documentation MCP server (`openaiDeveloperDocs`)
 
 ## Core Rules
 
-- Every model with a status or state machine must have a `status` column (string-backed enum).
-- Each terminal status transition records a dedicated `timestampTz` column (e.g. `published_at`, `cancelled_at`, `archived_at`).
-- Use `*_at` for actual transition times. Keep scheduled deadlines (`expires_at`, `registration_opens_at`) separate from state transitions.
-- Never use `is_*` booleans for state that can be derived from status.
-- Do not bury lifecycle events in JSON or booleans when the timestamp matters operationally.
+- Every model with a status/state machine has a `status` column (string-backed enum); never use `is_*` booleans for derivable state, and never bury operational lifecycle events in JSON or booleans.
+- Each terminal status transition records a dedicated `timestampTz` column (`published_at`, `cancelled_at`, `archived_at`); keep scheduled deadlines (`expires_at`, `registration_opens_at`) separate from transition times.
 
 ## Naming
 
-- Column: `status` (not `state`, not `is_active`, not `status_code`)
-- Timestamp: `{status_name}_at` (e.g. `confirmed_at`, `refunded_at`, `completed_at`, `cancelled_at`)
-- Visibility column: `visibility` with string-backed enum (not `is_public`, not `is_visible`)
-- Scheduled deadlines: `{purpose}_at` (e.g. `registration_opens_at`, `check_in_closes_at`)
+- Status column: `status` (not `state`/`status_code`/`is_active`); timestamps: `{status_name}_at` (`confirmed_at`, `refunded_at`, …); visibility: `visibility` enum (not `is_public`/`is_visible`); deadlines: `{purpose}_at` (`registration_opens_at`, `check_in_closes_at`).
 
 ## Transition Integrity
 
-- Status-to-timestamp mapping must be centralised in the transition method or supporting trait.
-- When a status transitions from X to Y, the transition sets `y_at = now()`.
-- Use immutable date casts (`'immutable_datetime'`) for lifecycle timestamps.
-- Track the last state change: `last_state_change_at` updated on every transition.
+- Centralise status→timestamp mapping in the transition method/trait: on X→Y set `y_at = now()` plus `last_state_change_at = now()`; cast lifecycle timestamps as `'immutable_datetime'`.
 
 ## Migration Pattern
 
-- Phase 1 (non-breaking): Add new `status` + `*_at` columns as nullable, backfill existing rows.
-- Phase 2 (breaking): Drop old boolean columns (`is_active`, `is_public`) after confirming data is migrated.
-- Phase 3 (cleanup): Make `status` NOT NULL once all rows are populated.
+- Phase 1: add nullable `status` + `*_at`, backfill. Phase 2: drop old booleans (`is_active`, `is_public`). Phase 3: make `status` NOT NULL.
 
 ## Verification
 
-- Check for boolean anti-patterns: `rg -n "is_active|is_public|is_archived|registration_required|waitlist_enabled|approval_required" packages/*/database/migrations`
-- Check status columns have matching `*_at` timestamps: `rg -n "timestampTz\('.*_at'\)" packages/*/database/migrations`
-- Check for `state` instead of `status`: `rg -n "\bstate\b" packages/*/src/Models`
+- Boolean anti-patterns: `rg -n "is_active|is_public|is_archived|registration_required|waitlist_enabled|approval_required" packages/*/database/migrations`
+- `*_at` coverage: `rg -n "timestampTz\('.*_at'\)" packages/*/database/migrations`
+- `state` vs `status`: `rg -n "\bstate\b" packages/*/src/Models`
 
 === .ai/livewire rules ===
 
-- Installation: https://livewire.laravel.com/docs/4.x/installation
-- Quickstart: https://livewire.laravel.com/docs/4.x/quickstart
-- Upgrading: https://livewire.laravel.com/docs/4.x/upgrading
+# Livewire 4 Documentation Reference
 
-- Components: https://livewire.laravel.com/docs/4.x/components
-- Nesting: https://livewire.laravel.com/docs/4.x/nesting
-- Understanding Nesting: https://livewire.laravel.com/docs/4.x/understanding-nesting
-- Pages: https://livewire.laravel.com/docs/4.x/pages
-
-- Properties: https://livewire.laravel.com/docs/4.x/properties
-- Computed Properties: https://livewire.laravel.com/docs/4.x/computed-properties
-- Actions: https://livewire.laravel.com/docs/4.x/actions
-
-- Forms: https://livewire.laravel.com/docs/4.x/forms
-- Validation: https://livewire.laravel.com/docs/4.x/validation
-- Uploads: https://livewire.laravel.com/docs/4.x/uploads
-
-- Lifecycle Hooks: https://livewire.laravel.com/docs/4.x/lifecycle-hooks
-- Events: https://livewire.laravel.com/docs/4.x/events
-
-- Lazy Loading: https://livewire.laravel.com/docs/4.x/lazy
-- Islands: https://livewire.laravel.com/docs/4.x/islands
-- Loading States: https://livewire.laravel.com/docs/4.x/loading-states
-- Hydration: https://livewire.laravel.com/docs/4.x/hydration
-
-- #[Async]: https://livewire.laravel.com/docs/4.x/attribute-async
-- #[Computed]: https://livewire.laravel.com/docs/4.x/attribute-computed
-- #[Defer]: https://livewire.laravel.com/docs/4.x/attribute-defer
-- #[Isolate]: https://livewire.laravel.com/docs/4.x/attribute-isolate
-- #[Js]: https://livewire.laravel.com/docs/4.x/attribute-js
-- #[Json]: https://livewire.laravel.com/docs/4.x/attribute-json
-- #[Layout]: https://livewire.laravel.com/docs/4.x/attribute-layout
-- #[Lazy]: https://livewire.laravel.com/docs/4.x/attribute-lazy
-- #[Locked]: https://livewire.laravel.com/docs/4.x/attribute-locked
-- #[Modelable]: https://livewire.laravel.com/docs/4.x/attribute-modelable
-- #[On]: https://livewire.laravel.com/docs/4.x/attribute-on
-- #[Reactive]: https://livewire.laravel.com/docs/4.x/attribute-reactive
-- #[Renderless]: https://livewire.laravel.com/docs/4.x/attribute-renderless
-- #[Session]: https://livewire.laravel.com/docs/4.x/attribute-session
-- #[Title]: https://livewire.laravel.com/docs/4.x/attribute-title
-- #[Transition]: https://livewire.laravel.com/docs/4.x/attribute-transition
-- #[Url]: https://livewire.laravel.com/docs/4.x/attribute-url
-- #[Validate]: https://livewire.laravel.com/docs/4.x/attribute-validate
-
-- @island: https://livewire.laravel.com/docs/4.x/directive-island
-- @persist: https://livewire.laravel.com/docs/4.x/directive-persist
-- @placeholder: https://livewire.laravel.com/docs/4.x/directive-placeholder
-- @teleport: https://livewire.laravel.com/docs/4.x/directive-teleport
-
-- wire:model: https://livewire.laravel.com/docs/4.x/wire-model
-- wire:bind: https://livewire.laravel.com/docs/4.x/wire-bind
-
-- wire:click: https://livewire.laravel.com/docs/4.x/wire-click
-- wire:submit: https://livewire.laravel.com/docs/4.x/wire-submit
-- wire:confirm: https://livewire.laravel.com/docs/4.x/wire-confirm
-
-- wire:loading: https://livewire.laravel.com/docs/4.x/wire-loading
-- wire:dirty: https://livewire.laravel.com/docs/4.x/wire-dirty
-- wire:offline: https://livewire.laravel.com/docs/4.x/wire-offline
-- wire:cloak: https://livewire.laravel.com/docs/4.x/wire-cloak
-- wire:show: https://livewire.laravel.com/docs/4.x/wire-show
-
-- wire:navigate: https://livewire.laravel.com/docs/4.x/wire-navigate
-- wire:current: https://livewire.laravel.com/docs/4.x/wire-current
-
-- wire:init: https://livewire.laravel.com/docs/4.x/wire-init
-- wire:poll: https://livewire.laravel.com/docs/4.x/wire-poll
-- wire:intersect: https://livewire.laravel.com/docs/4.x/wire-intersect
-- wire:ignore: https://livewire.laravel.com/docs/4.x/wire-ignore
-- wire:replace: https://livewire.laravel.com/docs/4.x/wire-replace
-
-- wire:ref: https://livewire.laravel.com/docs/4.x/wire-ref
-- wire:stream: https://livewire.laravel.com/docs/4.x/wire-stream
-- wire:text: https://livewire.laravel.com/docs/4.x/wire-text
-- wire:transition: https://livewire.laravel.com/docs/4.x/wire-transition
-- wire:sort: https://livewire.laravel.com/docs/4.x/wire-sort
-
-- Navigate: https://livewire.laravel.com/docs/4.x/navigate
-- URL: https://livewire.laravel.com/docs/4.x/url
-- Redirecting: https://livewire.laravel.com/docs/4.x/redirecting
-
-- Pagination: https://livewire.laravel.com/docs/4.x/pagination
-- Teleport: https://livewire.laravel.com/docs/4.x/teleport
-- Morphing: https://livewire.laravel.com/docs/4.x/morphing
-- Styles: https://livewire.laravel.com/docs/4.x/styles
-
-- JavaScript: https://livewire.laravel.com/docs/4.x/javascript
-- Alpine.js: https://livewire.laravel.com/docs/4.x/alpine
-
-- Synthesizers: https://livewire.laravel.com/docs/4.x/synthesizers
-- Security: https://livewire.laravel.com/docs/4.x/security
-- CSP (Content Security Policy): https://livewire.laravel.com/docs/4.x/csp
-
-- Testing: https://livewire.laravel.com/docs/4.x/testing
-- Troubleshooting: https://livewire.laravel.com/docs/4.x/troubleshooting
-
-- Contribution Guide: https://livewire.laravel.com/docs/4.x/contribution-guide
-- Downloads: https://livewire.laravel.com/docs/4.x/downloads
+This project uses Livewire 4. Invoke the `livewire-development` skill for any Livewire task (components, reactivity, validation, loading states, testing) and use `search-docs` for API details. Always follow the project's existing component format first.
 
 === .ai/media rules ===
 
 # Media Management Guidelines (Spatie Medialibrary v11 + Filament v5)
 
-This document defines the media architecture that is already implemented across this application.  
-When adding or modifying media features, follow these rules exactly.
+Media architecture already implemented app-wide. Follow exactly when adding/modifying media features.
 
 ## Core Stack
 
-- Package: `spatie/laravel-medialibrary` v11
-- Filament integration: `filament/spatie-laravel-media-library-plugin` v5
-- Main config: `config/media-library.php`
-- Global upload policy: `app/Providers/AppServiceProvider.php`
-- Naming strategy: `app/Support/Media/MediaFileNamer.php`
-- Storage path strategy: `app/Support/Media/MediaPathGenerator.php`
+- `spatie/laravel-medialibrary` v11 + `filament/spatie-laravel-media-library-plugin` v5
+- Config: `config/media-library.php`; upload policy: `app/Providers/AppServiceProvider.php` (static boot guards — keep for Octane)
+- Naming: `app/Support/Media/MediaFileNamer.php`; paths: `app/Support/Media/MediaPathGenerator.php`
 
 ## Global Upload Policy (Do Not Bypass)
 
-All `SpatieMediaLibraryFileUpload` fields are globally configured in `AppServiceProvider`.
+All `SpatieMediaLibraryFileUpload` fields inherit: size from `media-library.max_file_size` (10MB), `maxParallelUploads(2)`, `appendFiles()`, immutable cache header (`public, max-age=31536000, immutable`), filename `<slug-or-model-base>-<8-char-ulid>.<ext>`, human `name` from model + collection label, `custom_properties` = `collection` + `original_file_name`.
 
-### Implemented defaults
+## Naming & Paths
 
-- Max upload size is derived from `config('media-library.max_file_size')` (10MB default).
-- `maxParallelUploads(2)` to balance UX and server load.
-- `appendFiles()` so additional uploads do not replace unintentionally.
-- Immutable cache header for uploaded files:
-  - `CacheControl: public, max-age=31536000, immutable`
-- Storage filename pattern:
-  - `<slug-or-model-base>-<8-char-ulid>.<ext>`
-- Human-readable media `name` is generated from model + collection label.
-- `custom_properties` always store:
-  - `collection`
-  - `original_file_name`
+- Storage base priority: `slug` → `name` → `title` → `label` → morph alias/class basename. Display name: `<Collection Label> - <Subject Label>` (fallback: original filename). Labels: poster→Event Poster, cover→Cover Image, logo→Logo, avatar→Avatar, main→Main Image, gallery→Gallery Image, qr→QR Code, evidence→Evidence File.
+- Directory: `{model_type_plural}/{uuid_shard}/{model_uuid}/{collection}/` (e.g. `events/019c/019c4228-…/poster/`); sharding avoids hot directories and groups by owner+collection.
 
-### Octane safety
+## Media Library Config (`config/media-library.php`)
 
-- Boot-time configuration is protected by static guards (for example `$mediaUploadConfigured`) in `AppServiceProvider`.
-- Keep these guards to avoid duplicate macro/config registration in long-lived workers.
-
-## Naming Rules (Natural, Consistent, Searchable)
-
-Implemented in `MediaFileNamer`.
-
-### Storage base name priority
-
-1. `slug`
-2. `name`
-3. `title`
-4. `label`
-5. Morph alias / class basename fallback
-
-### Human display name labels
-
-- `poster` => `Event Poster`
-- `cover` => `Cover Image`
-- `logo` => `Logo`
-- `avatar` => `Avatar`
-- `main` => `Main Image`
-- `gallery` => `Gallery Image`
-- `qr` => `QR Code`
-- `evidence` => `Evidence File`
-
-The final media name format is:
-- `<Collection Label> - <Subject Label>`
-- Fallback to original filename label if subject is not available.
-
-## Directory Strategy (Long-Term Scalability)
-
-Implemented in `MediaPathGenerator`.
-
-Directory format:
-- `{model_type_plural}/{uuid_shard}/{model_uuid}/{collection}/`
-
-Example:
-- `events/019c/019c4228-.../poster/`
-- `institutions/01b2/01b2c1d4-.../gallery/`
-
-Why:
-- Avoids giant hot directories.
-- Keeps files grouped by owner and collection.
-- Makes bulk cleanup and debugging easier.
-
-## Media Library Config Decisions
-
-Configured in `config/media-library.php`.
-
-### Performance-centric defaults
-
-- `version_urls => true` (cache busting without stale assets)
-- `default_loading_attribute_value => 'lazy'`
-- `force_lazy_loading => true`
-- `queue_conversions_by_default => true`
-- `queue_conversions_after_database_commit => true`
-- `file_remover_class => FileBaseFileRemover` (safe for shared directory structures)
-- Image optimizers enabled (JPEG, PNG, SVG, GIF, WebP, AVIF)
-- Generators enabled for image, webp, avif, pdf, svg, video
-
-### Custom classes
-
-- `file_namer => App\Support\Media\MediaFileNamer::class`
-- `path_generator => App\Support\Media\MediaPathGenerator::class`
+- `version_urls`, lazy loading (`default_loading_attribute_value`, `force_lazy_loading`), queued conversions (+ after commit), `FileBaseFileRemover`, image optimizers (JPEG/PNG/SVG/GIF/WebP/AVIF), generators (image/webp/avif/pdf/svg/video).
+- Custom `file_namer` (`MediaFileNamer`) and `path_generator` (`MediaPathGenerator`).
 
 ## Model Collection Matrix (Canonical)
 
-### Event (`app/Models/Event.php`)
-
-- `cover`: image/jpeg,image/png,image/webp, responsive, single file, fallback placeholder, required 16:9 website/mobile-app cover
-- `poster`: image/jpeg,image/png,image/webp, responsive, single file, fallback placeholder, required 3:4 portrait external-distribution poster
-- `gallery`: image/jpeg,image/png,image/webp, responsive, multi file
-- Conversions:
-  - `thumb`: 1920x1080 crop webp sharpen(10) on `cover`,`gallery`
-  - `card`: max 1920x1080 webp on `cover`,`poster`
-  - `preview`: max 1920x1080 webp on `cover`,`poster`
-
-### Institution (`app/Models/Institution.php`)
-
-- `logo`: jpeg,png,webp,svg, single file, fallback placeholder
-- `cover`: jpeg,png,webp, responsive, single file, fallback placeholder
-- `gallery`: jpeg,png,webp, responsive, multi file
-- Conversions:
-  - `thumb`: 1080x1080 webp sharpen(10) on `logo`
-  - `banner`: 1920x1080 crop webp on `cover`
-  - `gallery_thumb`: 1920x1080 crop webp sharpen(10) on `gallery`
-
-### Speaker (`app/Models/Speaker.php`)
-
-- `avatar`: jpeg,png,webp, single file, fallback placeholder
-- `main`: jpeg,png,webp, responsive, single file, fallback placeholder
-- `cover`: jpeg,png,webp, responsive, single file, fallback placeholder
-- `gallery`: jpeg,png,webp, responsive, multi file
-- Conversions:
-  - `thumb`: 1080x1080 webp sharpen(10) on `avatar`
-  - `card`: 1080x1440 webp on `avatar`
-  - `profile`: 1080x1080 webp on `avatar`
-  - `main_thumb`: 1080x1080 webp sharpen(10) on `main`
-  - `display`: 1080x1440 crop webp on `main`
-  - `banner`: 1920x1080 crop webp on `cover`
-  - `gallery_thumb`: 1920x1080 crop webp sharpen(10) on `gallery`
-
-### Venue (`app/Models/Venue.php`)
-
-- `main`: jpeg,png,webp, responsive, single file, fallback placeholder
-- `cover`: jpeg,png,webp, responsive, single file, fallback placeholder
-- `gallery`: jpeg,png,webp, responsive, multi file
-- Conversions:
-  - `thumb`: 1920x1080 crop webp sharpen(10) on `main`,`cover`,`gallery`
-  - `banner`: 1920x1080 crop webp on `main`,`cover`
-
-### Series (`app/Models/Series.php`)
-
-- `cover`: jpeg,png,webp, responsive, single file
-- `gallery`: jpeg,png,webp, responsive, multi file
-- Conversions:
-  - `thumb`: 1920x1080 crop webp sharpen(10) on `cover`,`gallery`
-
-### Reference (`app/Models/Reference.php`)
-
-- `front_cover`: jpeg,png,webp, responsive, single file
-- `back_cover`: jpeg,png,webp, responsive, single file
-- `gallery`: jpeg,png,webp, responsive, multi file
-- Conversions:
-  - `thumb`: 1080x1440 crop webp sharpen(10) on `front_cover`,`back_cover`
-  - `gallery_thumb`: 1920x1080 crop webp sharpen(10) on `gallery`
-
-### DonationChannel (`app/Models/DonationChannel.php`)
-
-- `qr`: jpeg,png,webp, single file
-- Conversion:
-  - `thumb`: 1080x1080 webp on `qr`
-
-### Report (`app/Models/Report.php`)
-
-- `evidence`: jpeg,png,webp,pdf, multi file
-- Conversion:
-  - `thumb`: 1080x1080 webp on `evidence`
-
-## Filament Form Integration Pattern
-
-### Admin resources
-
-All major resources already use `SpatieMediaLibraryFileUpload`:
-- `Events`, `Institutions`, `Speakers`, `Venues`, `Series`, `References`, `DonationChannels`, `Reports`
-
-Common implemented options:
-- `->collection('...')`
-- `->image()` and `->imageEditor()` for image collections
-- `->responsiveImages()` where needed
-- `->conversion('thumb'|'banner'|'gallery_thumb'|'preview')`
-- `->multiple()->reorderable()` for gallery/evidence collections
-- `->maxFiles(8)` and PDF support for report evidence
-
-### Public submission
-
-`resources/views/components/pages/submit-event/create.blade.php` includes:
-- `cover` upload for website/mobile app display, fixed to 16:9
-- `poster` upload for external/social distribution, fixed to 3:4 portrait
-- `gallery` upload with reorder support
-- image editor + responsive images + conversion wiring
-
-### Quick-create forms
-
-`InstitutionFormSchema`, `SpeakerFormSchema`, and `VenueFormSchema` also support media uploads during relation quick-create flows, then call:
-- `$schema?->model($model)->saveRelationships();`
-
-## Filament Table/Infolist Rendering Pattern
-
-Use conversion-specific media columns/entries for lightweight lists:
-- `SpatieMediaLibraryImageColumn` in table resources
-- `SpatieMediaLibraryImageEntry` in infolists
-- Always point to the correct collection + conversion (`thumb`, `banner`, `gallery_thumb`, `preview`)
-
-This avoids serving full originals in admin grids.
-
-## Frontend Consumption Pattern
-
-### Event detail page
-
-Implemented in:
-- `app/Livewire/Pages/Events/Show.php`
-- `resources/views/livewire/pages/events/show.blade.php`
-
-Features:
-- Gallery payload built from `poster` + `gallery`.
-- Uses `getAvailableUrl(['preview','thumb'])` with safe fallback to original URL.
-- Gallery slider with thumbnail strip.
-- Related events section uses `card_image_url`.
-- Share preview modal uses `card_image_url` + social share links + native share/copy flow.
-
-### Other pages
-
-- Speaker and institution public pages render conversion URLs (`profile`, `banner`, `gallery_thumb`, etc.)
-- Listing pages eager load `media` to avoid N+1.
-
-## Card Image Fallback Chain
-
-`Event::getCardImageUrlAttribute()`:
-1. Event cover `card`/`preview`/`thumb`
-2. Event poster `card`/`preview`/`thumb`
-3. Institution logo `thumb`
-4. Global placeholder image
+- **Event**: `cover` (16:9, required) + `poster` (3:4 portrait, required) + `gallery` — jpeg/png/webp, responsive, cover/poster single-file w/ placeholder. Conversions: `thumb` 1920×1080 crop webp+sharpen10 (cover,gallery); `card`/`preview` max-1920 webp (cover,poster).
+- **Institution**: `logo` (jpeg/png/webp/svg, single, placeholder) + `cover` (responsive, single, placeholder) + `gallery` (responsive, multi). Conversions: `thumb` 1080² webp+sharpen10 (logo); `banner` 1920×1080 crop webp (cover); `gallery_thumb` 1920×1080 crop webp+sharpen10.
+- **Speaker**: `avatar` (single, placeholder) + `main`/`cover` (responsive, single, placeholder) + `gallery` (multi) — jpeg/png/webp. Conversions: `thumb`/`profile` 1080² webp (+sharpen10 on thumb), `card` 1080×1440 (avatar); `main_thumb` 1080²+sharpen10, `display` 1080×1440 crop (main); `banner` 1920×1080 (cover); `gallery_thumb` 1920×1080+sharpen10.
+- **Venue**: `main`/`cover` (responsive, single, placeholder) + `gallery` (multi). Conversions: `thumb` 1920×1080 crop+sharpen10 (all); `banner` 1920×1080 (main,cover).
+- **Series**: `cover` (responsive, single) + `gallery` (multi). Conversion: `thumb` 1920×1080 crop+sharpen10 (both).
+- **Reference**: `front_cover`/`back_cover` (responsive, single) + `gallery` (multi). Conversions: `thumb` 1080×1440 crop+sharpen10 (covers); `gallery_thumb` 1920×1080+sharpen10.
+- **DonationChannel**: `qr` (single) → `thumb` 1080² webp. **Report**: `evidence` (jpeg/png/webp/pdf, multi, max 8) → `thumb` 1080² webp.
 
 ## Event Aspect Ratio Contract
 
-- Event `cover` is the primary website/mobile-app visual and must be 16:9 on public submit forms, contribution update forms, admin forms, frontend/admin APIs, and MCP-generated images.
-- Event `poster` is the shareable external-distribution flyer and must be 3:4 portrait on public submit forms, contribution update forms, admin forms, frontend/admin APIs, and MCP-generated images.
-- MCP exposes separate event image tools: cover tools write the `cover` collection at 16:9; poster tools write the `poster` collection at 3:4. Do not add a generic ratio selector for event media generation.
+- `cover` = primary website/app visual, always 16:9 (submit/contribution/admin forms, APIs, MCP images). `poster` = shareable flyer, always 3:4 portrait (same surfaces). MCP: separate cover/poster tools, fixed ratios — no generic ratio selector.
 
-Use this accessor for cards, previews, and social image fallback behavior.
+## Card Image Fallback (`Event::getCardImageUrlAttribute`)
 
-## Maintenance and Cleanup
+Event cover (`card`/`preview`/`thumb`) → poster (same) → institution logo `thumb` → global placeholder. Use for cards, previews, and social images.
 
-### Scheduled jobs (`routes/console.php`)
+## Filament Integration
 
-- Daily clean:
-  - `media-library:clean --delete-orphaned --force`
-- Weekly regenerate missing derivatives:
-  - `media-library:regenerate --only-missing --with-responsive-images --force`
+- Forms (Events, Institutions, Speakers, Venues, Series, References, DonationChannels, Reports): `SpatieMediaLibraryFileUpload` + `->collection()`, `->image()`/`->imageEditor()`, `->responsiveImages()`, `->conversion(thumb|banner|gallery_thumb|preview)`; galleries/evidence `->multiple()->reorderable()`. Public submit (`components/pages/submit-event/create.blade.php`): cover 16:9 + poster 3:4 + gallery. Quick-create schemas (`Institution`/`Speaker`/`VenueFormSchema`) then `$schema?->model($model)->saveRelationships()`.
+- Tables/infolists: conversion-specific `SpatieMediaLibraryImageColumn`/`SpatieMediaLibraryImageEntry` (never full originals in grids).
 
-### Migration helper command
+## Frontend Consumption
 
-- `app: media:migrate-structure`
-- File: `app/Console/Commands/MigrateMediaToNewStructure.php`
-- Supports:
-  - `--dry-run`
-  - `--force`
-- Moves legacy media paths into the sharded structure and renames files to the slug-based convention.
+- Event detail (`Livewire/Pages/Events/Show.php` + blade): gallery from `poster` + `gallery` via `getAvailableUrl(['preview','thumb'])` w/ original fallback; slider + thumbnails; related-events + share modal use `card_image_url`.
+- Elsewhere: conversion URLs (`profile`, `banner`, `gallery_thumb`, …); eager-load `media` on all list/detail queries (`->with('media')`).
 
-## Query and Storage Optimization Rules
+## Maintenance & Optimization
 
-- Always eager-load media when rendering list/detail pages:
-  - `->with('media')`, `load(['media', ...])`
-- Prefer conversion URLs for UI surfaces:
-  - admin grids, cards, galleries, previews
-- Use responsive images on major visual collections (`poster`, `cover`, `main`, `gallery` where configured).
-- Keep strict MIME rules per collection.
-- Keep singular assets (`poster`, `avatar`, `logo`, `main`, `cover`, `qr`) as `singleFile()` collections.
+- Scheduled: daily `media-library:clean --delete-orphaned --force`; weekly `media-library:regenerate --only-missing --with-responsive-images --force`. Structure migration `app:media:migrate-structure` (`app/Console/Commands/MigrateMediaToNewStructure.php`; `--dry-run`, `--force`) restructures legacy paths/names.
+- Rules: conversion URLs for UI (grids/cards/galleries/previews); responsive images on major collections; strict per-collection MIME; singular assets as `singleFile()`. Indexes: `media.order_column`, `media_model_collection_order_index`, `media_collection_created_at_index`.
+- Tests: `MediaConversionsTest` + `SubmitEventMediaTest` cover MIME acceptance, conversion registration, fallbacks, custom config, submit uploads.
 
-## Database-Level Optimizations Implemented
+## AI Checklist for New Media Features
 
-- `media.order_column` indexed
-- Extra indexes added on media table:
-  - `media_model_collection_order_index` on (`model_type`, `model_id`, `collection_name`, `order_column`)
-  - `media_collection_created_at_index` on (`collection_name`, `created_at`)
-
-These improve collection fetch ordering and maintenance/reporting queries.
-
-## Testing Guarantees (Reference)
-
-`tests/Feature/MediaConversionsTest.php` and `tests/Feature/SubmitEventMediaTest.php` verify:
-- Collection MIME acceptance/rejection
-- Conversions are registered and used
-- Fallback URLs exist
-- Custom media config is active (`path_generator`, `file_namer`, lazy loading, versioned URLs)
-- Submit-event cover/poster/gallery uploads persist correctly
-
-## AI Implementation Checklist (For New Media Features)
-
-1. Add/extend collection + conversions in the model (`registerMediaCollections`, `registerMediaConversions`).
-2. Use `SpatieMediaLibraryFileUpload` with explicit `collection()` and conversion mapping.
-3. Use conversion-specific image columns/entries in Filament tables/infolists.
-4. Render conversion URLs on frontend, not originals.
-5. Eager-load `media` in queries to avoid N+1.
-6. Add/adjust tests for conversions, MIME constraints, and fallback behavior.
-7. Do not bypass global naming/path conventions.
-
-## Do Not Do
-
-- Do not introduce ad-hoc filename generation outside global upload config.
-- Do not store large image originals directly in list/card UIs.
-- Do not skip collection MIME constraints.
-- Do not remove AppServiceProvider static boot guards in Octane environments.
+1. Collection + conversions in model. 2. `SpatieMediaLibraryFileUpload` w/ explicit collection/conversion. 3. Conversion-specific columns/entries. 4. Conversion URLs on frontend + eager-load `media`. 5. Tests for MIME/conversions/fallbacks. 6. Never ad-hoc filenames, never originals in lists, never drop MIME rules or Octane boot guards.
 
 === foundation rules ===
 
@@ -1182,7 +401,7 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 ## Project Rules
 
 - This project contains committed, area-grouped rules in `.ai/rules` when that directory exists (settled decisions, non-obvious traps, standing constraints). Framework and package guidelines that only apply to specific paths (testing, frontend, components) also live there, under `.ai/rules/boost` — this is not just recorded decisions, it is load-bearing guidance you have not seen inline. Before you enter plan mode or create/edit any file, you MUST first: open @.ai/rules/index.md (it maps file globs to rule files), read every rule file whose globs cover the path(s) in scope, and run `grep -rin 'keyword' .ai/rules` to catch what a path match alone misses. Do not write code until you have read and are following every matching rule. If `.ai/rules` does not exist, continue without it.
-- Record durable rules with `record-rule` so the next agent or teammate inherits them instead of working them out again. Pass a `glob` (e.g. `app/Http/Controllers/**`), a short `title`, and a few-line `note`. Always use `record-rule`, never your native memory or notes tool — native memory is personal and session-scoped; only `.ai/rules` is shared with the team and persists in the repo.
+- Record a rule with `record-rule` only when the user explicitly asks for one. Instructions for the work at hand are not rules, no matter how emphatic: "remove this typo", "use X here" are work to do, not rules to record. Never record a rule on your own initiative, as a byproduct of a change, or to summarize what you just did. When the user does ask, pass a `glob` (e.g. `app/Http/Controllers/**`), a short `title`, and a few-line `note`. Use `record-rule` rather than your native memory or notes tool, because native memory is personal and session-scoped, while only `.ai/rules` is shared with the team and persists in the repo.
 
 ## Artisan
 
@@ -1212,6 +431,7 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 # Deployment
 
 - Laravel can be deployed using [Laravel Cloud](https://cloud.laravel.com/), which is the fastest way to deploy and scale production Laravel applications.
+- Activate the `deploying-to-cloud` skill whenever deploying to Laravel Cloud, configuring Cloud environments or resources, using the Cloud CLI, or troubleshooting Cloud deployments.
 
 === herd rules ===
 
@@ -1224,8 +444,9 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 
 # Test Enforcement
 
-- Test every code change by adding or updating a test.
-- Run the affected tests and ensure they pass.
+- Add or update tests for behavior and logic changes when a test provides meaningful regression coverage.
+- Pure copy, styling, and layout-only changes do not require new or updated tests.
+- When test coverage applies, run the affected tests and ensure they pass.
 - Test the changed behavior and its important failure modes, but do not add tests beyond them.
 - Read the `testing-best-practices` skill before writing tests.
 
@@ -1293,242 +514,6 @@ When working on Octane-specific features (concurrency, shared tables, memory, dr
 - Rerun a test after each change to it.
 - Run `vendor/bin/pest` to call the test runner directly. It accepts the same file path and `--filter=testName` arguments.
 - After the feature tests pass, ask the user to run the complete suite with `php artisan test --compact`.
-
-=== filament/filament/core rules ===
-
-## Filament
-
-- Filament is a Laravel UI framework built on Livewire, Alpine.js, and Tailwind CSS. UIs are defined in PHP via fluent, chainable components. Follow existing conventions in this app.
-- Use the `search-docs` tool for official documentation on Artisan commands, code examples, testing, relationships, and idiomatic practices. If `search-docs` is unavailable, refer to https://filamentphp.com/docs.
-
-### Artisan
-
-- Always use Filament-specific Artisan commands to create files. Find available commands with the `list-artisan-commands` tool, or run `php artisan --help`.
-- Inspect required options before running, and always pass `--no-interaction`.
-
-### Patterns
-
-Always use static `make()` methods to initialize components. Most configuration methods accept a `Closure` for dynamic values.
-
-Use `Get $get` to read other form field values for conditional logic:
-
-<code-snippet name="Conditional form field visibility" lang="php">
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
-use Filament\Schemas\Components\Utilities\Get;
-
-Select::make('type')
-    ->options(CompanyType::class)
-    ->required()
-    ->live(),
-
-TextInput::make('company_name')
-    ->required()
-    ->visible(fn (Get $get): bool => $get('type') === 'business'),
-
-</code-snippet>
-
-Use `Set $set` inside `->afterStateUpdated()` on a `->live()` field to mutate another field reactively. Prefer `->live(onBlur: true)` on text inputs to avoid per-keystroke updates:
-
-<code-snippet name="Reactive field update" lang="php">
-use Filament\Schemas\Components\Utilities\Set;
-use Illuminate\Support\Str;
-
-TextInput::make('title')
-    ->required()
-    ->live(onBlur: true)
-    ->afterStateUpdated(fn (Set $set, ?string $state) => $set(
-        'slug',
-        Str::slug($state ?? ''),
-    )),
-
-TextInput::make('slug')
-    ->required(),
-
-</code-snippet>
-
-Compose layout by nesting `Section` and `Grid`. Children need explicit `->columnSpan()` or `->columnSpanFull()`:
-
-<code-snippet name="Section and Grid layout" lang="php">
-use Filament\Schemas\Components\Grid;
-use Filament\Schemas\Components\Section;
-
-Section::make('Details')
-    ->schema([
-        Grid::make(2)->schema([
-            TextInput::make('first_name')
-                ->columnSpan(1),
-            TextInput::make('last_name')
-                ->columnSpan(1),
-            TextInput::make('bio')
-                ->columnSpanFull(),
-        ]),
-    ]),
-
-</code-snippet>
-
-Use `Repeater` for inline `HasMany` management. `->relationship()` with no args binds to the relationship matching the field name:
-
-<code-snippet name="Repeater for HasMany" lang="php">
-use Filament\Forms\Components\Repeater;
-
-Repeater::make('qualifications')
-    ->relationship()
-    ->schema([
-        TextInput::make('institution')
-            ->required(),
-        TextInput::make('qualification')
-            ->required(),
-    ])
-    ->columns(2),
-
-</code-snippet>
-
-Use `state()` with a `Closure` to compute derived column values:
-
-<code-snippet name="Computed table column value" lang="php">
-use Filament\Tables\Columns\TextColumn;
-
-TextColumn::make('full_name')
-    ->state(fn (User $record): string => "{$record->first_name} {$record->last_name}"),
-
-</code-snippet>
-
-Use `SelectFilter` for enum or relationship filters, and `Filter` with a `->query()` closure for custom logic:
-
-<code-snippet name="Table filters" lang="php">
-use Filament\Tables\Filters\Filter;
-use Filament\Tables\Filters\SelectFilter;
-use Illuminate\Database\Eloquent\Builder;
-
-SelectFilter::make('status')
-    ->options(UserStatus::class),
-
-SelectFilter::make('author')
-    ->relationship('author', 'name'),
-
-Filter::make('verified')
-    ->query(fn (Builder $query) => $query->whereNotNull('email_verified_at')),
-
-</code-snippet>
-
-Actions are buttons that encapsulate optional modal forms and behavior:
-
-<code-snippet name="Action with modal form" lang="php">
-use Filament\Actions\Action;
-
-Action::make('updateEmail')
-    ->schema([
-        TextInput::make('email')
-            ->email()
-            ->required(),
-    ])
-    ->action(fn (array $data, User $record) => $record->update($data)),
-
-</code-snippet>
-
-### Testing
-
-Testing setup (requires `pestphp/pest-plugin-livewire` in `composer.json`):
-
-- Always call `$this->actingAs(User::factory()->create())` before testing panel functionality.
-- For edit pages, pass `['record' => $user->id]`, use `->call('save')` (not `->call('create')`), and do not assert `->assertRedirect()` (edit pages do not redirect after save).
-
-<code-snippet name="Table test" lang="php">
-use function Pest\Livewire\livewire;
-
-livewire(ListUsers::class)
-    ->assertCanSeeTableRecords($users)
-    ->searchTable($users->first()->name)
-    ->assertCanSeeTableRecords($users->take(1))
-    ->assertCanNotSeeTableRecords($users->skip(1));
-
-</code-snippet>
-
-<code-snippet name="Create resource test" lang="php">
-use function Pest\Laravel\assertDatabaseHas;
-
-livewire(CreateUser::class)
-    ->fillForm([
-        'name' => 'Test',
-        'email' => 'test@example.com',
-    ])
-    ->call('create')
-    ->assertNotified()
-    ->assertHasNoFormErrors()
-    ->assertRedirect();
-
-assertDatabaseHas(User::class, [
-    'name' => 'Test',
-    'email' => 'test@example.com',
-]);
-
-</code-snippet>
-
-<code-snippet name="Edit resource test" lang="php">
-livewire(EditUser::class, ['record' => $user->id])
-    ->fillForm(['name' => 'Updated'])
-    ->call('save')
-    ->assertNotified()
-    ->assertHasNoFormErrors();
-
-assertDatabaseHas(User::class, [
-    'id' => $user->id,
-    'name' => 'Updated',
-]);
-
-</code-snippet>
-
-<code-snippet name="Testing validation" lang="php">
-livewire(CreateUser::class)
-    ->fillForm([
-        'name' => null,
-        'email' => 'invalid-email',
-    ])
-    ->call('create')
-    ->assertHasFormErrors([
-        'name' => 'required',
-        'email' => 'email',
-    ])
-    ->assertNotNotified();
-
-</code-snippet>
-
-Use `->callAction(DeleteAction::class)` for page actions, or `->callAction(TestAction::make('name')->table($record))` for table actions:
-
-<code-snippet name="Calling actions" lang="php">
-use Filament\Actions\Testing\TestAction;
-
-livewire(ListUsers::class)
-    ->callAction(TestAction::make('promote')->table($user), [
-        'role' => 'admin',
-    ])
-    ->assertNotified();
-
-</code-snippet>
-
-### Correct Namespaces
-
-- Form fields (`TextInput`, `Select`, `Repeater`, etc.): `Filament\Forms\Components\`
-- Infolist entries (`TextEntry`, `IconEntry`, etc.): `Filament\Infolists\Components\`
-- Layout components (`Grid`, `Section`, `Fieldset`, `Tabs`, `Wizard`, etc.): `Filament\Schemas\Components\`
-- Schema utilities (`Get`, `Set`, etc.): `Filament\Schemas\Components\Utilities\`
-- Table columns (`TextColumn`, `IconColumn`, etc.): `Filament\Tables\Columns\`
-- Table filters (`SelectFilter`, `Filter`, etc.): `Filament\Tables\Filters\`
-- Actions (`DeleteAction`, `CreateAction`, etc.): `Filament\Actions\`. Never use `Filament\Tables\Actions\`, `Filament\Forms\Actions\`, or any other sub-namespace for actions.
-- Icons: `Filament\Support\Icons\Heroicon` enum (e.g., `Heroicon::PencilSquare`)
-
-### Common Mistakes
-
-- **Never assume public file visibility.** File visibility is `private` by default. Always use `->visibility('public')` when public access is needed.
-- **Never assume full-width layout.** `Grid`, `Section`, `Fieldset`, and `Repeater` do not span all columns by default.
-- **Use `Select::make('author_id')->relationship('author', 'name')` for BelongsTo fields.** `BelongsToSelect` does not exist in v4.
-- **`Repeater` uses `->schema()`, not `->fields()`.**
-- **Never add `->dehydrated(false)` to fields that need to be saved.** It strips the value from form state before `->action()` or the save handler runs. Only use it for helper/UI-only fields.
-- **Use correct property types when overriding `Page`, `Resource`, and `Widget` properties.** These properties have union types or changed modifiers that must be preserved:
-  - `$navigationIcon`: `protected static string | BackedEnum | null` (not `?string`)
-  - `$navigationGroup`: `protected static string | UnitEnum | null` (not `?string`)
-  - `$view`: `protected string` (not `protected static string`) on `Page` and `Widget` classes
 
 === spatie/laravel-activitylog/core rules ===
 
@@ -1683,17 +668,6 @@ Key config options in `config/activitylog.php`:
 - `actions.log_activity`: Action class for logging activities
 - `actions.clean_log`: Action class for cleaning old activities
 
-=== filament/blueprint/core rules ===
-
-## Filament Blueprint
-
-You are writing Filament v5 implementation plans. Plans must be specific enough
-that an implementing agent can write code without making decisions.
-
-**Start here**: Read
-`/vendor/filament/blueprint/resources/markdown/planning/overview.md` for plan format,
-required sections, and what to clarify with the user before planning.
-
 === pestphp/pest-plugin-agent/core rules ===
 
 ## Pest Agent Plugin
@@ -1724,11 +698,8 @@ If `visit()` is undefined (or the package is not installed), **do not install it
 
 ```bash
 composer require pestphp/pest-plugin-browser --dev   # the browser plugin (needs Node.js)
-
 npm install playwright@latest                         # Playwright driver
-
 npx playwright install                                # download the browser binaries
-
 ```
 
 Once the user approves and it's installed, add `tests/Browser/Screenshots` to `.gitignore` so captured screenshots aren't committed. Browser assertions then run through the same `vendor/bin/pest --agent='…'` flow:

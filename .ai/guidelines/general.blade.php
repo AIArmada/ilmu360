@@ -1,475 +1,100 @@
 ## Workflow Orchestration
 
 ### 1. Plan Node Default
-Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions)
-- If something goes sideways, STOP and re-plan immediately – don't keep pushing
-- Use plan mode for verification steps, not just building
-- Write detailed specs upfront to reduce ambiguity
+Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions); write detailed specs upfront. If something goes sideways, STOP and re-plan — don't keep pushing. Use plan mode for verification, not just building.
 
 ### 2. Subagent Strategy
-- Use subagents liberally to keep main context window clean
-- Offload research, exploration, and parallel analysis to subagents
-- For complex problems, throw more compute at it via subagents
-- One tack per subagent for focused execution
+Use subagents liberally (research, exploration, parallel analysis; one tack each) to keep the main context clean; throw more compute at complex problems.
 
 ### 3. Self-Improvement Loop
-- After ANY correction from the user: update 'tasks/lessons.md' with the pattern
-- Write rules for yourself that prevent the same mistake
-- Ruthlessly iterate on these lessons until mistake rate drops
-- Review lessons at session start for relevant project
+After ANY user correction, update `tasks/lessons.md` with the preventive pattern; iterate ruthlessly. Review lessons at session start.
 
 ### 4. Verification Before Done
-- Never mark a task complete without proving it works
-- Diff behavior between main and your changes when relevant
-- Ask yourself: "Would a staff engineer approve this?"
-- Run tests, check logs, demonstrate correctness
-- **Run tests once**: A single test run must gather ALL info needed to start debugging. Never re-run the same test suite just to parse output you missed — use the first run, inspect logs, or save output to a file. If a test run is expensive, capture its full output the first time.
+Never mark complete without proof: diff vs main when relevant, ask "would a staff engineer approve?", run tests, check logs. **Run tests once** — one run must capture everything (save output to a file for expensive suites); never re-run just to re-read output.
 
 ### 5. UI Tracking Review
-
-- Whenever a task changes UI behavior, navigation, forms, filters, tabs, table actions, buttons, or stateful interactions, explicitly evaluate whether product event tracking should be added or updated
-- Prefer curated high-signal tracking over blanket click logging; track user intent and meaningful workflow transitions, not every cosmetic interaction
-- For backend-confirmed outcomes, prefer server-side Signals events so the data represents what actually happened
-- For frontend-only intent, use the centralized Signals UI event helper instead of one-off JavaScript handlers
-- Purely cosmetic changes can skip tracking only when they do not alter user behavior, entry points, or interaction paths
+When a task changes UI behavior/navigation/forms/filters/tabs/actions/state, evaluate product event tracking: curated high-signal intent/workflow transitions (not blanket clicks); server-side Signals for backend-confirmed outcomes; centralized Signals UI helper for frontend-only intent. Skip only purely cosmetic changes that alter no behavior, entry points, or paths.
 
 ### 6. Demand Elegant (Balanced)
-- For non-trivial changes: pause and ask "Is there a more elegant way?"
-- If a fix feels hacky: "Knowing everything I know now, implement the elegant solution"
-- Skip this for simple, obvious fixes – don't over-engineer
-- Challenge your own work before presenting it
+For non-trivial changes ask "is there a more elegant way?" — if hacky, re-implement knowing what you know now. Skip for simple obvious fixes.
 
 ### 7. Autonomous Bug Fixing
-- When given a bug report: just fix it. Don't ask for hand-holding
-- Point at logs, errors, failing tests – then resolve them
-- Zero context switching required from the user
-- Go fix failing CI tests without being told how
+Just fix reported bugs (logs, errors, failing tests — including CI) with zero hand-holding or context switches.
 
 ### 8. Laravel Actions Where Appropriate
-- Prefer Laravel Actions for reusable workflow orchestration that spans validation-adjacent normalization, transactions, side effects, or multiple entrypoints
-- Do not force every mutation into an action; trivial single-call controller or Livewire handlers can stay inline
-- Before adding a new action, check whether the behavior is already covered by an existing action and extend that path instead of duplicating orchestration
-- Keep controllers and Livewire components focused on HTTP/UI concerns when a workflow is substantial enough to extract
+Prefer Actions for reusable orchestration (validation-adjacent normalization, transactions, side effects, multiple entrypoints); extend existing Actions before creating new ones. Invoke the `laravel-actions` skill for entrypoint patterns and testing.
 
 ### 9. Spatie Laravel Data Adoption
-
-- Use `spatie/laravel-data` as a boundary-contract layer, not as a default application pattern.
-- Prefer Data objects for API response DTOs when controllers build large nested arrays, the same payload shape is reused across endpoints, or public/mobile contracts need stronger consistency.
-- Consider Data objects for controller-to-action payloads only when the request state is large, nested, reused, or shared across multiple entrypoints.
-- Start with output-only refactors when introducing Data on existing public APIs. Keep keys, nullability, nesting, status codes, and error shapes unchanged, and lock parity with focused tests.
-- Treat input and validation refactors as externally observable behavior changes unless proven otherwise. Add request/response contract tests before widening Data usage on writes.
-- Do not adopt Data broadly in Livewire or Filament form state by default. Prefer native array state unless a specific component proves a clear hydration or reuse benefit.
-- Do not rewrite simple internal readonly DTOs or tiny mutation endpoints just for consistency.
-- For dynamic catalog/config payloads and small one-off arrays, prefer plain arrays or readonly PHP objects over Data classes.
-- When in doubt, use fewer Data classes and place them on stable boundaries such as public/mobile API serializers.
+Use `spatie/laravel-data` as a boundary-contract layer, not a default: API response DTOs for large/nested/reused payloads or public-mobile consistency; controller→action payloads only when large/nested/reused/shared. Start output-only (keys/nullability/nesting/status/errors unchanged + parity tests); treat input/validation refactors as behavior changes (contract tests first). Not for Livewire/Filament form state, simple readonly DTOs, tiny endpoints, or dynamic catalog/config payloads (prefer arrays/readonly objects) unless proven beneficial. When in doubt, fewer Data classes on stable boundaries.
 
 ## Task Management
-
-1. *Plan First*: Write plan to 'tasks/todo.md' with checkable items
-2. *Verify Plan*: Check in before starting implementation
-3. *Track Progress*: Mark items complete as you go
-4. *Explain Changes*: High-level summary at each step
-5. *Document Results*: Add review section to 'tasks/todo.md'
-6. *Capture Lessons*: Update 'tasks/lessons.md' after corrections
+1. *Plan First*: plan to `tasks/todo.md`. 2. *Verify Plan*: check in before implementing. 3. *Track Progress*: mark items done. 4. *Explain Changes*: summary each step. 5. *Document Results*: review section in todo. 6. *Capture Lessons*: `tasks/lessons.md` after corrections.
 
 ## Core Principles
-
-- *Simplicity First*: Make every change as simple as possible. Impact minimal code.
-- *No Laziness*: Find root causes. No temporary fixes. Senior developer standards.
-- *Minimat Impact*: Changes should only touch what's necessary. Avoid introducing bugs.
+- *Simplicity First*: smallest possible change. *No Laziness*: root causes, no temp fixes, senior standards. *Minimal Impact*: touch only what's necessary.
 
 ---------
 
 # Filament Form Data Handling with Enums
 
-## Critical: Enum Serialization/Deserialization in Filament Forms
+Filament deserializes enums in form closures but passes strings after submit — match the context:
 
-### Context
-When working with PHP Backed Enums in Filament forms, understanding how Filament handles enum serialization and deserialization is crucial for writing correct conditional logic.
+| Context | Data | Compare with |
+|---|---|---|
+| Field closures (`->disabled()`, `->visible()`, `->required()`, `->hidden()`, `->afterStateUpdated()`, `->reactive()`, validation reading `Get $get`) | Enum objects | `EventAgeGroup::Children` directly |
+| `submit()`/`action()`/validated state | Strings | `EventAgeGroup::Children->value` |
+| Database queries | Backing values | `->value` (e.g. `where('age_group', …->value)`) |
 
-### The Behavior
-
-**Inside Form Field Closures** (e.g., `->disabled()`, `->visible()`, `->required()`, etc.):
-- When you use `$get('field_name')` to retrieve form data, Filament automatically **deserializes string values back into enum instances**.
-- Arrays will contain **enum objects**, not strings.
-- **Use enum instances directly for comparison**: `EventAgeGroup::Children` (NOT `->value`)
-
-**Example:**
 ```php
-// ✅ CORRECT - Use enum instances directly
 ->disabled(function (Get $get): bool {
-    $ageGroups = $get('age_group') ?? [];
-    // $ageGroups contains: [EventAgeGroup::AllAges, EventAgeGroup::Adults]
-    return in_array(EventAgeGroup::Children, $ageGroups, true) || 
-           in_array(EventAgeGroup::AllAges, $ageGroups, true);
-})
-
-// ❌ WRONG - Using ->value will NOT match
-->disabled(function (Get $get): bool {
-    $ageGroups = $get('age_group') ?? [];
-    // This will always return false because 'children' string !== EventAgeGroup::Children enum object
-    return in_array(EventAgeGroup::Children->value, $ageGroups, true);
-})
+    $ageGroups = $get('age_group') ?? []; // [EventAgeGroup::AllAges, …] — objects, so ->value never matches here
+    return in_array(EventAgeGroup::Children, $ageGroups, true)
+        || in_array(EventAgeGroup::AllAges, $ageGroups, true);
+});
 ```
 
-**In Submit/Action Methods** (e.g., `submit()`, `action()`, after validation):
-- Form data is **serialized** and contains **string values**.
-- Arrays will contain **strings**, not enum objects.
-- **Use `->value` property for comparison**: `EventAgeGroup::Children->value`
-
-**Example:**
-```php
-public function submit(): void
-{
-    $validated = $this->form->getState();
-    $ageGroups = $validated['age_group'] ?? [];
-    
-    // $ageGroups contains: ['all_ages', 'adults'] (strings)
-    
-    // ✅ CORRECT - Use ->value for string comparison
-    if (in_array(EventAgeGroup::Children->value, $ageGroups, true) || 
-        in_array(EventAgeGroup::AllAges->value, $ageGroups, true)) {
-        $validated['children_allowed'] = true;
-    }
-}
-```
-
-### Debugging Tip
-If you're unsure what format the data is in, add logging:
-
-```php
-\Log::info('Form data debug', [
-    'data' => $get('field_name'),
-    'types' => array_map('gettype', (array)$get('field_name')),
-]);
-```
-
-Then check `storage/logs/laravel.log` to see if you're dealing with enum objects or strings.
-
-### Summary Table
-
-| Context | Data Format | Comparison Method | Example |
-|---------|-------------|-------------------|---------|
-| Form field closures (`->disabled()`, `->visible()`, etc.) | Enum objects | Use enum directly | `in_array(EventAgeGroup::Children, $data, true)` |
-| Submit/action methods, validated data | Strings | Use `->value` | `in_array(EventAgeGroup::Children->value, $data, true)` |
-| Database queries | Strings (stored as backing values) | Use `->value` | `where('age_group', EventAgeGroup::Children->value)` |
-
-### When This Matters
-- Conditional form logic: `->disabled()`, `->visible()`, `->required()`, `->hidden()`
-- Field dependencies: `->afterStateUpdated()`, `->reactive()`
-- Any closure receiving `Get $get` parameter
-- Validation rules that check other fields
-
-### Key Takeaway
-**Filament automatically converts between enum objects (for PHP logic) and strings (for storage/transport).** Always check your context to know which format you're working with.
+Unsure? Log `$get('field')` + `array_map('gettype', …)` and check `storage/logs/laravel.log`.
 
 ---
 
 # Model Sorting with Spatie Eloquent Sortable
 
-## Overview
-This application uses `spatie/eloquent-sortable` for consistent model ordering. Always use this package instead of manually managing sort columns.
-
-## Implementation Pattern
-
-### Model Setup
-```php
-use Spatie\EloquentSortable\Sortable;
-use Spatie\EloquentSortable\SortableTrait;
-
-class MyModel extends Model implements Sortable
-{
-    use SortableTrait;
-
-    public array $sortable = [
-        'order_column_name' => 'order_column',
-        'sort_when_creating' => true,
-    ];
-
-    protected $fillable = [
-        'name',
-        'order_column', // Always include in fillable
-    ];
-}
-```
-
-### Migration
-```php
-Schema::create('my_models', function (Blueprint $table) {
-    $table->uuid('id')->primary();
-    $table->string('name');
-    $table->unsignedInteger('order_column')->nullable(); // Always nullable
-    $table->timestamps();
-});
-```
-
-### Querying Sorted Records
-```php
-// Use the ->ordered() scope provided by the trait
-$records = MyModel::ordered()->get();
-
-// In relationships
-public function items(): HasMany
-{
-    return $this->hasMany(Item::class)->ordered();
-}
-```
-
-### Key Rules
-1. **Column name**: Always use `order_column` for consistency across models
-2. **Nullable**: The column should be nullable (SortableTrait handles auto-assignment)
-3. **No manual sorting**: Don't manually set `order_column` values; let the trait manage it
-4. **Use `->ordered()` scope**: Always use the provided scope instead of `->orderBy('order_column')`
-
-### Models Using Sortable
-- `Tag` (inherited from Spatie Tags, scoped by type)
-- `Topic`
-- `EventType`
+Always use `spatie/eloquent-sortable` (never manual sort columns): model `implements Sortable` + `SortableTrait` with `order_column_name => 'order_column'`, `sort_when_creating => true`; migration `$table->unsignedInteger('order_column')->nullable()`; `order_column` in `$fillable`; query via `->ordered()` (incl. relationships) — never `orderBy('order_column')` or manual values. Used by: `Tag` (scoped by type), `Topic`, `EventType`.
 
 ---
 
-# Unified Tag System Architecture
+# Unified Tag System (Spatie Tags + TagType)
 
-## Overview
-This application uses **Spatie Tags** with a **TagType enum** for organizing tags by category. All tag functionality uses Spatie's native polymorphic `taggables` table.
+All tagging uses Spatie's native polymorphic `taggables` — no custom pivot. Types (`App\Enums\TagType` → label/color/icon/description/order): `domain` (Aqidah/Syariah/Akhlak…), `discipline` (Tafsir/Sirah/Fiqh…), `source` (Quran/Hadith/Turath…), `issue` (Rasuah/Kepimpinan…).
 
-## TagType Enum
-Located at `App\Enums\TagType`, provides metadata for each tag type:
-
-```php
-TagType::Domain->label();       // "Domain"
-TagType::Domain->color();       // "primary"
-TagType::Domain->icon();        // "heroicon-o-academic-cap"
-TagType::Domain->description(); // "Core Islamic knowledge areas..."
-TagType::Domain->order();       // 10
-```
-
-## Type Storage & Access
-
-The `type` column stores string values ('domain', 'discipline', 'source', 'issue') to maintain compatibility with Spatie's native methods:
-
-```php
-$tag->type;        // Returns: 'domain' (string)
-$tag->type_enum;   // Returns: TagType::Domain (enum instance)
-```
-
-**Why not cast to enum?** Spatie's `tagsWithType()` method does strict string comparison, so the type must remain a string in the model. Use the `type_enum` accessor when you need enum functionality.
-
-## Tag Types
-| Type | Value | Purpose |
-|------|-------|---------|
-| Domain | `domain` | Core Islamic knowledge areas (Aqidah, Syariah, Akhlak) |
-| Discipline | `discipline` | Specific fields of study (Tafsir, Sirah, Fiqh, etc.) |
-| Source | `source` | Reference sources (Quran, Hadith, Turath, etc.) |
-| Issue | `issue` | Contemporary themes/topics (Rasuah, Kepimpinan, etc.) |
-
-## Usage
-
-### Tagging Events
-```php
-// Attach tags to an event
-$event->attachTag($tag);
-$event->attachTags([$tag1, $tag2]);
-
-// Sync tags (replaces all existing tags)
-$event->syncTags([$tag1, $tag2]);
-
-// Detach tags
-$event->detachTag($tag);
-$event->detachTags();
-```
-
-### Querying Tags
-```php
-// Get all tags of a specific type (verified + pending)
-$domainTags = Tag::ofType(TagType::Domain)->whereIn('status', ['verified', 'pending'])->get();
-$issueTags = Tag::ofType('issue')->whereIn('status', ['verified', 'pending'])->get();
-
-// Spatie's native method (use with status filter)
-$domainTags = Tag::getWithType('domain')->filter(fn($tag) => in_array($tag->status, ['verified', 'pending']));
-
-// Get event's tags of specific type
-$domainTags = $event->tagsWithType('domain');
-
-// Get all tags ordered
-$tags = Tag::ordered()->get();
-```
-
-### Tag Status & Moderation
-- Tags have a `status` column with values: `'pending'`, `'verified'`
-- Pre-seeded tags are `'verified'` (Domain, Source types are pre-seeded only)
-- User-created tags (Discipline, Issue) are created as `'pending'`
-- When an event is approved, all attached pending tags are auto-verified
-- Show both `'verified'` and `'pending'` tags in form dropdowns (similar to Speaker/Institution/Venue)
-
-### Tag Sorting
-- Tags use Spatie Eloquent Sortable with `order_column`
-- Sorting is scoped by `type` (tags within same type are ordered independently)
-- Auto-assigns order when created
-
-## Key Principles
-1. **Use native Spatie methods**: `attachTag()`, `syncTags()`, `tagsWithType()`, etc.
-2. **No custom pivot**: Everything uses `taggables` table (polymorphic)
-3. **Type-based organization**: Use `TagType` enum for categorization and metadata
-4. **Status-based moderation**: User-created tags start as `'pending'`, auto-verify on event approval
-5. **Keep it simple**: No extra fields like `is_active`, `is_system`, `description`, `weight`, or `is_primary`
+- Storage: `type` stays a **string** (Spatie's `tagsWithType()` needs strict string match); use `$tag->type_enum` for the enum.
+- Native API only: `attachTag(s)` / `syncTags` / `detachTag(s)`, `Tag::ofType(TagType::X|'x')` / `getWithType(…)` / `$event->tagsWithType(…)`, `Tag::ordered()`.
+- Status: `pending` (user-created Discipline/Issue) vs `verified` (pre-seeded Domain/Source); event approval auto-verifies attachments; always query/dropdown with both (`whereIn('status', ['verified', 'pending'])`), like Speaker/Institution/Venue.
+- Sorting: `order_column`, scoped per type, auto-assigned. No extra fields (`is_active`, `is_system`, `description`, `weight`, `is_primary`).
 
 ---
 
 # Testing Best Practices
 
-## Running Tests
-
-Always use **parallel execution** for faster test runs:
-
-```bash
-# Run all tests in parallel
-vendor/bin/pest --parallel
-
-# Run specific tests in parallel
-vendor/bin/pest --parallel --filter=SubmitEvent
-
-# Run tests with compact output in parallel
-vendor/bin/pest --parallel --compact
-```
-
-### Why Parallel?
-- **Speed**: Tests run significantly faster by utilizing multiple CPU cores
-- **Efficiency**: Reduces CI/CD pipeline time
-- **Best practice**: Pest's parallel mode handles database isolation automatically
-
-### Alternative Commands
-While `php artisan test` can be used, prefer `vendor/bin/pest --parallel` for optimal performance:
-
-```bash
-# ❌ Slower (sequential)
-php artisan test --filter=SubmitEvent
-
-# ✅ Faster (parallel)
-vendor/bin/pest --parallel --filter=SubmitEvent
-```
-
-### Key Points
-- Parallel execution is safe for all tests (Pest handles isolation)
-- No need to modify existing tests to support parallel mode
-- Default behavior - no additional configuration required
-
-## Pest 5 Plugins and Test Impact Analysis
-
-This project uses Pest 5 with the following development dependencies:
-
-- `pestphp/pest-plugin-agent` for one-off backend and browser verification.
-- `pestphp/pest-plugin-phpstan` for Pest-aware PHPStan rules.
-- `pestphp/pest-plugin-rector` with `rector/rector` for Pest refactoring.
-- `pestphp/pest-plugin-browser` for Playwright-backed `visit()` checks.
-
-When setting up a checkout that does not yet have the toolchain, install the Pest 5 packages explicitly:
-
-```bash
-composer require pestphp/pest-plugin-agent --dev
-composer require pestphp/pest-plugin-phpstan --dev
-composer require pestphp/pest-plugin-rector --dev
-composer require rector/rector --dev
-```
-
-Use the repository `./pest` wrapper for Test Impact Analysis. It enables Xdebug coverage for the Tia Engine, and `tests/Pest.php` enables local TIA with `pest()->tia()->locally()`:
-
-```bash
-./pest --parallel --tia --compact
-./pest --parallel --tia --filtered --compact
-./pest --parallel --tia --fresh --compact
-```
-
-The first command runs affected tests and replays unaffected tests from the cache; `--filtered` narrows execution to affected test files; `--fresh` rebuilds the dependency graph. Do not rely on bare `vendor/bin/pest --tia` in Herd when Xdebug is disabled.
-
-For a one-off verification probe, load the `pest-plugin-agent` skill first and use single outer quotes:
-
-```bash
-vendor/bin/pest --agent='$user = \App\Models\User::factory()->create(); expect($user->exists)->toBeTrue();'
-```
-
-Keep durable behavior in normal Pest tests. Run Pest-aware PHPStan and inspect Rector changes with:
-
-```bash
-vendor/bin/phpstan analyse --ansi
-vendor/bin/rector process --dry-run
-```
+Default to parallel Pest (`vendor/bin/pest --parallel`, + `--filter=…`/`--compact`) — parallel is isolation-safe, never sequential `php artisan test`. Follow `.ai/rules/tests.md` for the toolchain (TIA, agent probes, PHPStan, Rector); invoke `testing-best-practices` when designing tests and `pest-testing` for Pest syntax.
 
 ---
 
-# Static Analysis Safety for Runtime Extensions
+# Static Analysis (Runtime Extensions + PHPStan 6)
 
-When a method looks "undefined" in static analysis, do not remove it until you verify its source.
-
-## Required Verification Before Removal
-1. Search for runtime extensions first:
-   - `macro()` / `hasMacro()` in service providers
-   - package mixins/traits
-   - plugin-specific extensions (for example Filament add-ons like quick-add select)
-2. Confirm if the method is intentionally runtime-provided (for example `Select::macro(...)`).
-3. If runtime-provided, preserve behavior and fix static analysis with a narrow rule (stub or focused ignore pattern), instead of deleting the method call.
-4. Only remove a method when you have confirmed there is no implementation source and no feature dependency.
-
-## Practical Rule
-- Behavior safety takes priority over static-analysis convenience.
-- Never remove feature methods such as `->closeOnSelect()` or `->quickAdd()` without source verification and impact check.
-
----
-
-# PHPStan Level 6 Compliance
-
-All new and modified code must be written to pass PHPStan at level 6.
-
-## Required Standard
-1. Do not introduce new PHPStan errors.
-2. Prefer real fixes (types, generics, return shapes, null-handling, narrowing) over broad ignores.
-3. Avoid adding baseline suppressions unless there is a verified runtime-extension limitation that cannot be modeled safely.
-4. If a suppression is unavoidable, keep it as narrow as possible (specific file + message pattern) and document why.
-
-## Verification Command
-Run and pass:
-
-```bash
-vendor/bin/phpstan analyse --ansi
-```
+Behavior safety beats analysis convenience: never remove a seemingly-undefined method (e.g. `->closeOnSelect()`, `->quickAdd()`) without checking `macro()`/`hasMacro()`, mixins/traits, and plugin extensions (e.g. Filament quick-add) — if runtime-provided, keep it and silence PHPStan narrowly (stub/focused ignore + documented reason); remove only when no implementation source or feature dependency exists. All new/modified code must pass PHPStan level 6 (`vendor/bin/phpstan analyse --ansi`): real fixes over ignores, no new errors, no broad baselines.
 
 ---
 
 # Timezone Handling (Critical)
 
-## Core Rules
-- Store all timestamps in UTC at the database layer.
-- Resolve viewer timezone at request-time using `App\Support\Timezone\UserTimezoneResolver`.
-- For display formatting in Blade/Livewire, use `App\Support\Timezone\UserDateTimeFormatter`.
-- Do not hardcode region timezones (for example `Asia/Kuala_Lumpur`) in public query/filter logic.
-
-## Display Rules
-- Prefer:
-    - `UserDateTimeFormatter::format($date, 'h:i A')`
-    - `UserDateTimeFormatter::translatedFormat($date, 'l, j F Y')`
-- Avoid direct `->format()` / `->translatedFormat()` in public-facing views unless you intentionally need storage timezone output.
-
-## Date Filter Rules
-- For date-only filters (`starts_after`, `starts_before`, etc.), parse input as user-local date and convert to UTC boundaries before querying:
-    - start boundary => startOfDay in user timezone -> UTC
-    - end boundary => endOfDay in user timezone -> UTC
-- Use `UserDateTimeFormatter::parseUserDateToUtc(...)` for this conversion.
-
-## Prayer-Time Filter Notes
-- Advanced search may use prayer-relative labels (for example `Selepas Jumaat`, `Selepas Maghrib`, `Selepas Tarawih`).
-- Use `prayer_display_text` keyword matching and `prayer_reference` mapping where applicable.
-- `Tarawih` is label-based (text matching), not a `PrayerReference` enum value.
+Store UTC; resolve viewer tz per-request via `UserTimezoneResolver`; format via `UserDateTimeFormatter::format($date, 'h:i A')` / `::translatedFormat($date, 'l, j F Y')` — never `->format()` in public views (unless storage-tz output is intended) and never hardcode region tz (e.g. `Asia/Kuala_Lumpur`) in public query/filter logic. Date-only filters (`starts_after`, …): parse user-local date → UTC day boundaries (`parseUserDateToUtc`). Prayer labels (`Selepas Jumaat/Maghrib/Tarawih`): `prayer_display_text` keyword + `prayer_reference` mapping; `Tarawih` is label-only, not a `PrayerReference` value.
 
 ---
 
 # Query Safety Notes
 
-## Qualified Columns in Scopes
-- When scopes are reused inside joined queries, qualify columns by table name to avoid ambiguous-column failures (especially in SQLite tests).
-- Example: in `Event::active()`, use `events.is_active` instead of plain `is_active`.
-
-## Public Listing Visibility
-- If a public page is expected to show only approved records, explicitly constrain `status = approved` even when using broader reusable scopes.
+Qualify columns in reused scopes (`events.is_active`, not `is_active`) to survive joins (esp. SQLite tests). Public listings: explicitly constrain `status = approved` even with broader reusable scopes.
 
 ---
 
@@ -481,7 +106,4 @@ Always use the OpenAI developer documentation MCP server (`openaiDeveloperDocs`)
 
 # Git Safety
 
-- Never use `git` to mass-delete, mass-revert, or bulk-reset work. No `git clean -fdx`, no `git reset --hard` across branches, no `git checkout -- .`, no `git push --force`, no `git push --delete` without explicit per-branch approval.
-- Never run destructive git commands without explicit, per-command user approval.
-- If a git operation would affect more than one commit, stop and ask first.
-- `git stash` and `git stash pop` are safe. Avoid `git stash drop` and `git stash clear` — they permanently delete stashed work.
+Never run destructive git commands (`clean -fdx`, `reset --hard`, `checkout -- .`, `push --force`/`--delete`, `stash drop`/`clear`) or multi-commit operations without explicit per-command approval — ask first. Safe: `git stash` / `stash pop`.

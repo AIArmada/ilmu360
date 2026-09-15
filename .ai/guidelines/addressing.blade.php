@@ -1,6 +1,6 @@
 # Addressing & Geography Guidelines
 
-This application uses `aiarmada/addressing` natively. Treat the package's current migrations, models, country profiles, and actions as canonical. The package stores direct country/state/city IDs and role-based address-area assignments; do not invent fixed admin-area columns, aliases, or backward-compatibility shims.
+This application uses `aiarmada/addressing` natively. Treat the package's current migrations, models, country profiles, and actions as canonical: direct country/state/city IDs plus role-based address-area assignments. Do not invent fixed admin-area columns, aliases, or backward-compatibility shims, and never assume one country's profile maps to another's fixed columns.
 
 ## Canonical address data
 
@@ -11,7 +11,7 @@ This application uses `aiarmada/addressing` natively. Treat the package's curren
 | City | `addresses.city_id` (UUID, optional) |
 | Administrative and postal areas | `address_area_assignments` rows (`address_id`, `address_area_id`, `role`, `is_primary`, `metadata`) |
 
-Use `Address::areaAssignments()`, `AddressAreaAssignment`, `AddressLocationData::areaAssignments`, `SyncAddressAreaAssignmentsAction`, and the configured `CountryAddressProfile`. Address-area roles and hierarchy levels are country-profile data; never assume that one country maps to the same fixed columns as another.
+Use `Address::areaAssignments()`, `AddressAreaAssignment`, `AddressLocationData::areaAssignments`, `SyncAddressAreaAssignmentsAction`, and the configured `CountryAddressProfile`.
 
 For Malaysia, the profile defines roles such as `administrative_division`, `administrative_district`, `administrative_subdivision`, and `postal_locality`. The selected state remains `state_id`; an address-area assignment is not a substitute for the state relation.
 
@@ -19,13 +19,13 @@ Denormalized text and provider/navigation fields may also be stored when useful:
 
 ## Form and validation
 
-Use the package's country → state → optional city flow, followed by the area roles defined by the selected country's profile. Resolve options through the package profile/provider APIs and persist them through `SyncAddressAreaAssignmentsAction`; do not duplicate hierarchy rules in application callers.
+Use the package's country → state → optional city flow, then the area roles from the selected country's profile. Resolve options via package profile/provider APIs and persist via `SyncAddressAreaAssignmentsAction`; do not duplicate hierarchy rules in callers.
 
 ## Forbidden legacy keys
 
 - Fixed `admin_area_1_id` through `admin_area_4_id` columns.
 - Form-only aliases such as `state_area_id`.
-- Removed geography keys or relations such as `district_id`, `subdistrict_id`, `district()`, `subdistrict()`, `stateArea()`, `districtArea()`, and `subdistrictArea()`.
+- Removed geography keys/relations: `district_id`, `subdistrict_id`, `district()`, `subdistrict()`, `stateArea()`, `districtArea()`, `subdistrictArea()`.
 - Integer geography tables or integer geography foreign keys.
 - Dual API keys or caller-side remapping of obsolete keys.
 
@@ -34,8 +34,8 @@ Use the package's country → state → optional city flow, followed by the area
 ## Seed and import
 
 - Countries: `php artisan address:seed-countries` or the package country seeder.
-- Malaysia states and cities: `AIArmada\Addressing\Database\Seeders\MalaysiaGeographySeeder`.
-- Administrative and postal areas: import `address_areas` through the package/import actions and sync role-based assignments to addresses.
+- Malaysia states/cities: `AIArmada\Addressing\Database\Seeders\MalaysiaGeographySeeder`.
+- Administrative/postal areas: import `address_areas` through package/import actions, then sync role-based assignments.
 
 ## Snapshots
 
