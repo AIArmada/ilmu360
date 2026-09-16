@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Livewire\Pages\Events\Index;
 use App\Support\Location\VisitorCountryResolver;
+use Filament\Forms\Components\Select;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
@@ -12,6 +13,16 @@ uses(RefreshDatabase::class);
 beforeEach(function (): void {
     app(VisitorCountryResolver::class)->forget();
 });
+
+function cascadeSelectField($component, string $name): Select
+{
+    $field = collect($component->instance()->getForm('form')->getFlatFields())
+        ->first(fn (mixed $field): bool => $field instanceof Select && $field->getName() === $name);
+
+    expect($field)->toBeInstanceOf(Select::class);
+
+    return $field;
+}
 
 it('reveals the provider address levels once a state is chosen', function (): void {
     $country = ensureTestMalaysiaCountry();
@@ -55,14 +66,14 @@ it('cascades the district options from the selected state', function (): void {
         ->set('filterData.country_id', (string) $country->getKey())
         ->set('filterData.state_id', (string) $selangor['state']->getKey());
 
-    $districtNames = $component->instance()->districts->pluck('name')->all();
+    $districtNames = array_values(cascadeSelectField($component, 'area_assignments.administrative_district')->getSearchResults(''));
 
     expect($districtNames)->toContain('Petaling')
         ->and($districtNames)->not->toContain('Johor Bahru');
 
     $component->set('filterData.state_id', (string) $johor['state']->getKey());
 
-    $districtNames = $component->instance()->districts->pluck('name')->all();
+    $districtNames = array_values(cascadeSelectField($component, 'area_assignments.administrative_district')->getSearchResults(''));
 
     expect($districtNames)->toContain('Johor Bahru')
         ->and($districtNames)->not->toContain('Petaling');
@@ -77,7 +88,7 @@ it('populates the subdivision options from the selected district', function (): 
         ->set('filterData.state_id', (string) $geography['state']->getKey())
         ->set('filterData.area_assignments.administrative_district', (string) $geography['district']->getKey());
 
-    expect($component->instance()->subdistricts->pluck('name')->all())
+    expect(array_values(cascadeSelectField($component, 'area_assignments.administrative_subdivision')->getSearchResults('')))
         ->toContain('Petaling Jaya');
 });
 

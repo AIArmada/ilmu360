@@ -112,11 +112,6 @@
     $sort = $this->sort;
     $countries = $this->countries;
     $states = $this->states;
-    $cities = $this->cities;
-    $divisions = $this->divisions;
-    $postalLocalities = $this->postalLocalities;
-    $districts = $this->districts;
-    $subdistricts = $this->subdistricts;
     $languageOptions = $this->languageOptions();
     $selectedAgeGroups = array_values(array_filter((array) $this->age_group));
     $selectedDisciplineTagIds = array_values(array_filter((array) $this->discipline_tag_ids));
@@ -174,6 +169,11 @@
     $issueLabels = $this->termOptionLabels('issue', $selectedIssueTagIds);
     $institutionLabel = filled($institutionId) ? $this->institutionOptionLabel((string) $institutionId) : null;
     $venueLabel = filled($venueId) ? $this->venueOptionLabel((string) $venueId) : null;
+    $cityLabel = filled($this->city_id) ? $this->cityOptionLabel((string) $this->city_id) : null;
+    $divisionLabel = filled($areaAssignments['administrative_division'] ?? null) ? $this->areaOptionLabel((string) $areaAssignments['administrative_division']) : null;
+    $postalLocalityLabel = filled($areaAssignments['postal_locality'] ?? null) ? $this->areaOptionLabel((string) $areaAssignments['postal_locality']) : null;
+    $districtLabel = filled($districtAreaId) ? $this->areaOptionLabel((string) $districtAreaId) : null;
+    $subdivisionLabel = filled($subdivisionAreaId) ? $this->areaOptionLabel((string) $subdivisionAreaId) : null;
     $prayerTimeLabel = \App\Enums\EventPrayerTime::tryFrom((string) $prayerTime)?->getLabel() ?? $prayerTime;
     $timingModeLabel = \App\Enums\TimingMode::tryFrom((string) $timingMode)?->label();
     $activeFilterCount = collect([
@@ -726,19 +726,19 @@
                                 <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Negeri') }}: {{ $states->firstWhere('id', $stateId)?->name ?? $stateId }}</span>
                             @endif
                             @if($this->city_id)
-                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Bandar') }}: {{ $cities->firstWhere('id', $this->city_id)?->name ?? $this->city_id }}</span>
+                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Bandar') }}: {{ $cityLabel ?? $this->city_id }}</span>
                             @endif
                             @if($areaAssignments['administrative_division'] ?? null)
-                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Bahagian') }}: {{ $divisions->firstWhere('id', $areaAssignments['administrative_division'])?->name ?? $areaAssignments['administrative_division'] }}</span>
+                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Bahagian') }}: {{ $divisionLabel ?? $areaAssignments['administrative_division'] }}</span>
                             @endif
                             @if($areaAssignments['postal_locality'] ?? null)
-                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Lokaliti / Kampung') }}: {{ $postalLocalities->firstWhere('id', $areaAssignments['postal_locality'])?->name ?? $areaAssignments['postal_locality'] }}</span>
+                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Lokaliti / Kampung') }}: {{ $postalLocalityLabel ?? $areaAssignments['postal_locality'] }}</span>
                             @endif
                             @if($districtAreaId)
-                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Daerah') }}: {{ $districts->firstWhere('id', $districtAreaId)?->name ?? $districtAreaId }}</span>
+                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Daerah') }}: {{ $districtLabel ?? $districtAreaId }}</span>
                             @endif
                             @if($subdivisionAreaId)
-                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Bandar / Mukim / Zon') }}: {{ $subdistricts->firstWhere('id', $subdivisionAreaId)?->name ?? $subdivisionAreaId }}</span>
+                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Bandar / Mukim / Zon') }}: {{ $subdivisionLabel ?? $subdivisionAreaId }}</span>
                             @endif
                             @if($institutionId)
                                 <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Institusi') }}: {{ $institutionLabel ?? $institutionId }}</span>

@@ -212,6 +212,10 @@ it('does not expose private child schedules or allow cross-parent slug traversal
         'visibility' => 'public',
         'published_at' => now()->subDay(),
         'starts_at' => now()->addDays(2),
+        // Pin physical so the event carries an institution address and stays
+        // inside the default country scope; online events have no location
+        // signal and fall outside it.
+        'delivery_mode' => EventFormat::Physical->value,
     ]);
     $occurrence = $event->occurrences()->firstOrFail();
     $occurrence->update([

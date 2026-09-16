@@ -31,7 +31,6 @@ use App\Models\Venue;
 use App\Services\EventSearchService;
 use App\Services\PublicScheduleDiscoveryService;
 use App\Support\Auth\IntendedRedirect;
-use App\Support\Cache\SafeModelCache;
 use App\Support\Language\MalaysiaLanguageCatalog;
 use App\Support\Location\PublicGeolocationPermission;
 use App\Support\Location\VisitorCountryResolver;
@@ -63,11 +62,6 @@ use Livewire\WithPagination;
 /**
  * @property-read Collection<int, AddressCountry> $countries
  * @property-read Collection<int, State> $states
- * @property-read Collection<int, City> $cities
- * @property-read Collection<int, AddressArea> $divisions
- * @property-read Collection<int, AddressArea> $postalLocalities
- * @property-read Collection<int, AddressArea> $districts
- * @property-read Collection<int, AddressArea> $subdistricts
  * @property-read array<string, string> $eventCategoryOptions
  */
 #[Layout('layouts.app')]
@@ -76,6 +70,17 @@ class Index extends Component implements HasForms
 {
     use InteractsWithForms;
     use WithPagination;
+
+    /**
+     * Area roles with filter selects. Form state always carries these keys
+     * (null-filled) so nested bindings resolve; search criteria stay sparse.
+     */
+    private const array AREA_ASSIGNMENT_ROLES = [
+        'administrative_division',
+        'postal_locality',
+        'administrative_district',
+        'administrative_subdivision',
+    ];
 
     #[Url]
     public ?string $search = null;
@@ -312,6 +317,7 @@ class Index extends Component implements HasForms
 
         $this->fillPublicPropertiesFromFilters($normalized);
         $this->filterData = $normalized;
+        $this->filterData['area_assignments'] = $this->withAreaAssignmentDefaults($normalized['area_assignments']);
     }
 
     /**
@@ -534,11 +540,13 @@ class Index extends Component implements HasForms
                             ->label(__('City'))
                             ->placeholder(__('Any City'))
                             ->searchable()
-                            ->preload()
                             ->disabled(fn (): bool => ! filled($this->country_id))
-                            ->options(fn (): array => $this->cities
-                                ->mapWithKeys(fn (City $city): array => [(string) $city->getKey() => (string) $city->name])
-                                ->all())
+                            ->getSearchResultsUsing(fn (Get $get, string $search): array => $this->searchCityOptions(
+                                countryId: $this->normalizeNullableString($get('country_id')),
+                                stateId: $this->normalizeNullableString($get('state_id')),
+                                search: $search,
+                            ))
+                            ->getOptionLabelUsing(fn (?string $value): ?string => $this->cityOptionLabel($value))
                             ->extraAttributes(['data-signal-control' => 'city_id'])
                             ->live(),
 
@@ -546,12 +554,15 @@ class Index extends Component implements HasForms
                             ->label(__('Division / Bahagian'))
                             ->placeholder(__('Any Division'))
                             ->searchable()
-                            ->preload()
                             ->disabled(fn (): bool => ! filled($this->country_id) && ! filled($this->state_id))
-                            ->visible(fn (): bool => $this->divisions->isNotEmpty())
-                            ->options(fn (): array => $this->divisions
-                                ->mapWithKeys(fn (AddressArea $area): array => [(string) $area->getKey() => (string) $area->name])
-                                ->all())
+                            ->visible(fn (): bool => SharedFormSchema::areaOptionsForRole($this->country_id, 'administrative_division', $this->state_id) !== [])
+                            ->getSearchResultsUsing(fn (Get $get, string $search): array => $this->searchAreaOptions(
+                                role: 'administrative_division',
+                                countryId: $this->normalizeNullableString($get('country_id')),
+                                stateId: $this->normalizeNullableString($get('state_id')),
+                                search: $search,
+                            ))
+                            ->getOptionLabelUsing(fn (?string $value): ?string => $this->areaOptionLabel($value))
                             ->extraAttributes(['data-signal-control' => 'area_assignments.administrative_division'])
                             ->live(),
 
@@ -559,12 +570,15 @@ class Index extends Component implements HasForms
                             ->label(__('Locality / Kampung'))
                             ->placeholder(__('Any Locality'))
                             ->searchable()
-                            ->preload()
                             ->disabled(fn (): bool => ! filled($this->country_id) && ! filled($this->state_id))
-                            ->visible(fn (): bool => $this->postalLocalities->isNotEmpty())
-                            ->options(fn (): array => $this->postalLocalities
-                                ->mapWithKeys(fn (AddressArea $area): array => [(string) $area->getKey() => (string) $area->name])
-                                ->all())
+                            ->visible(fn (): bool => SharedFormSchema::areaOptionsForRole($this->country_id, 'postal_locality', $this->state_id) !== [])
+                            ->getSearchResultsUsing(fn (Get $get, string $search): array => $this->searchAreaOptions(
+                                role: 'postal_locality',
+                                countryId: $this->normalizeNullableString($get('country_id')),
+                                stateId: $this->normalizeNullableString($get('state_id')),
+                                search: $search,
+                            ))
+                            ->getOptionLabelUsing(fn (?string $value): ?string => $this->areaOptionLabel($value))
                             ->extraAttributes(['data-signal-control' => 'area_assignments.postal_locality'])
                             ->live(),
 
@@ -572,12 +586,15 @@ class Index extends Component implements HasForms
                             ->label(__('Daerah'))
                             ->placeholder(__('Pilih daerah'))
                             ->searchable()
-                            ->preload()
                             ->disabled(fn (): bool => ! filled($this->country_id) && ! filled($this->state_id))
-                            ->visible(fn (): bool => $this->districts->isNotEmpty())
-                            ->options(fn (): array => $this->districts
-                                ->mapWithKeys(fn (AddressArea $area): array => [(string) $area->getKey() => (string) $area->name])
-                                ->all())
+                            ->visible(fn (): bool => SharedFormSchema::shouldShowDistrictField($this->state_id, $this->country_id))
+                            ->getSearchResultsUsing(fn (Get $get, string $search): array => $this->searchAreaOptions(
+                                role: 'administrative_district',
+                                countryId: $this->normalizeNullableString($get('country_id')),
+                                stateId: $this->normalizeNullableString($get('state_id')),
+                                search: $search,
+                            ))
+                            ->getOptionLabelUsing(fn (?string $value): ?string => $this->areaOptionLabel($value))
                             ->extraAttributes(['data-signal-control' => 'area_assignments.administrative_district'])
                             ->live(),
 
@@ -585,12 +602,16 @@ class Index extends Component implements HasForms
                             ->label(__('Bandar / Mukim / Zon'))
                             ->placeholder(__('Semua kawasan'))
                             ->searchable()
-                            ->preload()
                             ->disabled(fn (): bool => ! filled($this->country_id) && ! filled($this->state_id))
-                            ->visible(fn (): bool => $this->subdistricts->isNotEmpty())
-                            ->options(fn (): array => $this->subdistricts
-                                ->mapWithKeys(fn (AddressArea $area): array => [(string) $area->getKey() => (string) $area->name])
-                                ->all())
+                            ->visible(fn (): bool => SharedFormSchema::shouldShowSubdistrictField($this->state_id, $this->area_assignments['administrative_district'] ?? null, $this->country_id))
+                            ->getSearchResultsUsing(fn (Get $get, string $search): array => $this->searchAreaOptions(
+                                role: 'administrative_subdivision',
+                                countryId: $this->normalizeNullableString($get('country_id')),
+                                stateId: $this->normalizeNullableString($get('state_id')),
+                                districtId: $this->normalizeAreaAssignments($get('area_assignments'))['administrative_district'] ?? null,
+                                search: $search,
+                            ))
+                            ->getOptionLabelUsing(fn (?string $value): ?string => $this->areaOptionLabel($value))
                             ->extraAttributes(['data-signal-control' => 'area_assignments.administrative_subdivision'])
                             ->live(),
 
@@ -605,7 +626,7 @@ class Index extends Component implements HasForms
                                 areaAssignments: $this->normalizeAreaAssignments($get('area_assignments')),
                                 search: $search,
                             ))
-                            ->getOptionLabelUsing(fn (string $value): ?string => $this->institutionOptionLabel($value))
+                            ->getOptionLabelUsing(fn (?string $value): ?string => $this->institutionOptionLabel($value))
                             ->helperText(__('Pilihan mengikut lokasi yang dipilih.'))
                             ->live(),
 
@@ -620,7 +641,7 @@ class Index extends Component implements HasForms
                                 areaAssignments: $this->normalizeAreaAssignments($get('area_assignments')),
                                 search: $search,
                             ))
-                            ->getOptionLabelUsing(fn (string $value): ?string => $this->venueOptionLabel($value))
+                            ->getOptionLabelUsing(fn (?string $value): ?string => $this->venueOptionLabel($value))
                             ->helperText(__('Pilihan mengikut lokasi yang dipilih.'))
                             ->live(),
                     ]),
@@ -822,12 +843,12 @@ class Index extends Component implements HasForms
         if ($key === 'country_id') {
             $this->filterData['state_id'] = null;
             $this->filterData['city_id'] = null;
-            $this->filterData['area_assignments'] = [];
+            $this->filterData['area_assignments'] = $this->withAreaAssignmentDefaults([]);
             $this->filterData['institution_id'] = null;
             $this->filterData['venue_id'] = null;
         } elseif ($key === 'state_id') {
             $this->filterData['city_id'] = null;
-            $this->filterData['area_assignments'] = [];
+            $this->filterData['area_assignments'] = $this->withAreaAssignmentDefaults([]);
             $this->filterData['institution_id'] = null;
             $this->filterData['venue_id'] = null;
         } elseif ($key === 'area_assignments.administrative_division') {
@@ -895,6 +916,7 @@ class Index extends Component implements HasForms
 
         $this->fillPublicPropertiesFromFilters($normalized);
         $this->filterData = $normalized;
+        $this->filterData['area_assignments'] = $this->withAreaAssignmentDefaults($normalized['area_assignments']);
 
         $this->resetPage();
     }
@@ -1025,220 +1047,6 @@ class Index extends Component implements HasForms
     }
 
     /**
-     * @return Collection<int, City>
-     */
-    #[Computed]
-    public function cities(): Collection
-    {
-        if (! filled($this->state_id) && ! filled($this->country_id)) {
-            return collect();
-        }
-
-        $query = City::query();
-
-        if (filled($this->state_id)) {
-            $query->where('state_id', $this->state_id);
-        }
-
-        if (filled($this->country_id)) {
-            $query->where('country_id', $this->country_id);
-        }
-
-        return $query
-            ->orderBy('name')
-            ->get();
-    }
-
-    /**
-     * @return Collection<int, AddressArea>
-     */
-    #[Computed]
-    public function districts(): Collection
-    {
-        if (! filled($this->state_id) && ! filled($this->country_id)) {
-            return collect();
-        }
-
-        $options = SharedFormSchema::districtOptionsForState($this->state_id, $this->country_id);
-
-        return AddressArea::query()->whereIn('id', array_keys($options))->orderBy('name')->get();
-    }
-
-    /**
-     * @return Collection<int, AddressArea>
-     */
-    #[Computed]
-    public function divisions(): Collection
-    {
-        if (! filled($this->state_id) && ! filled($this->country_id)) {
-            return collect();
-        }
-
-        $options = SharedFormSchema::areaOptionsForRole($this->country_id, 'administrative_division', $this->state_id);
-
-        return AddressArea::query()->whereIn('id', array_keys($options))->orderBy('name')->get();
-    }
-
-    /**
-     * @return Collection<int, AddressArea>
-     */
-    #[Computed]
-    public function postalLocalities(): Collection
-    {
-        if (! filled($this->state_id) && ! filled($this->country_id)) {
-            return collect();
-        }
-
-        $options = SharedFormSchema::areaOptionsForRole($this->country_id, 'postal_locality', $this->state_id);
-
-        return AddressArea::query()->whereIn('id', array_keys($options))->orderBy('name')->get();
-    }
-
-    /**
-     * @return Collection<int, AddressArea>
-     */
-    #[Computed]
-    public function subdistricts(): Collection
-    {
-        if (filled($this->area_assignments['administrative_district'] ?? null)) {
-            $options = SharedFormSchema::subdistrictOptionsForSelection(
-                $this->state_id,
-                $this->area_assignments['administrative_district'],
-                $this->country_id,
-            );
-
-            return AddressArea::query()->whereIn('id', array_keys($options))->orderBy('name')->get();
-        }
-
-        if (! filled($this->state_id) && ! filled($this->country_id)) {
-            return collect();
-        }
-
-        $options = SharedFormSchema::subdistrictOptionsForSelection(
-            $this->state_id,
-            null,
-            $this->country_id,
-        );
-
-        return AddressArea::query()->whereIn('id', array_keys($options))->orderBy('name')->get();
-    }
-
-    /**
-     * @return Collection<int, EventTerm>
-     */
-    #[Computed]
-    public function disciplines(): Collection
-    {
-        return app(SafeModelCache::class)->rememberCollection(
-            key: 'events_disciplines_'.app()->getLocale().'_v3',
-            ttl: 300,
-            query: EventTerm::query()
-                ->whereIn('event_taxonomy_id', $this->activeTaxonomyIds('discipline'))
-                ->where('is_active', true)
-                ->orderBy('sort_order'),
-        );
-    }
-
-    /**
-     * @return Collection<int, EventTerm>
-     */
-    #[Computed]
-    public function domains(): Collection
-    {
-        return app(SafeModelCache::class)->rememberCollection(
-            key: 'events_domains_'.app()->getLocale().'_v4',
-            ttl: 300,
-            query: EventTerm::query()
-                ->whereIn('event_taxonomy_id', $this->activeTaxonomyIds('domain'))
-                ->where('is_active', true)
-                ->orderBy('sort_order'),
-        );
-    }
-
-    /**
-     * @return Collection<int, EventTerm>
-     */
-    #[Computed]
-    public function sources(): Collection
-    {
-        return app(SafeModelCache::class)->rememberCollection(
-            key: 'events_sources_'.app()->getLocale().'_v3',
-            ttl: 300,
-            query: EventTerm::query()
-                ->whereIn('event_taxonomy_id', $this->activeTaxonomyIds('source'))
-                ->where('is_active', true)
-                ->orderBy('sort_order'),
-        );
-    }
-
-    /**
-     * @return Collection<int, EventTerm>
-     */
-    #[Computed]
-    public function issues(): Collection
-    {
-        return app(SafeModelCache::class)->rememberCollection(
-            key: 'events_issues_'.app()->getLocale().'_v3',
-            ttl: 300,
-            query: EventTerm::query()
-                ->whereIn('event_taxonomy_id', $this->activeTaxonomyIds('issue'))
-                ->where('is_active', true)
-                ->orderBy('sort_order'),
-        );
-    }
-
-    /**
-     * @return Collection<int, Reference>
-     */
-    #[Computed]
-    public function references(): Collection
-    {
-        return app(SafeModelCache::class)->rememberCollection(
-            key: 'events_references_'.app()->getLocale().'_v2',
-            ttl: 300,
-            query: Reference::query()
-                ->active()
-                ->orderBy('title')
-                ->limit(400)
-                ->select(['id', 'title']),
-        );
-    }
-
-    /**
-     * @return Collection<int, Institution>
-     */
-    #[Computed]
-    public function institutions(): Collection
-    {
-        return app(SafeModelCache::class)->rememberCollection(
-            key: 'events_institutions_'.app()->getLocale().'_v2',
-            ttl: 300,
-            query: Institution::query()
-                ->whereIn('status', ['verified', 'pending'])
-                ->orderBy('name')
-                ->limit(400)
-                ->with('names')->select(['id', 'name']),
-        );
-    }
-
-    /**
-     * @return Collection<int, Venue>
-     */
-    #[Computed]
-    public function venues(): Collection
-    {
-        return app(SafeModelCache::class)->rememberCollection(
-            key: 'events_venues_'.app()->getLocale().'_v2',
-            ttl: 300,
-            query: Venue::query()
-                ->whereIn('status', ['verified', 'pending'])
-                ->orderBy('name')
-                ->limit(500)
-                ->select(['id', 'name']),
-        );
-    }
-
-    /**
      * @param  array<string, string>  $areaAssignments
      * @return array<string, string>
      */
@@ -1276,6 +1084,99 @@ class Index extends Component implements HasForms
         $this->applySearchConstraint($query, 'name', $search);
 
         return $this->pluckOptions($query->orderBy('name'), 'name', 50);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function searchCityOptions(?string $countryId, ?string $stateId, string $search = ''): array
+    {
+        if (! filled($stateId) && ! filled($countryId)) {
+            return [];
+        }
+
+        $query = City::query();
+
+        if (filled($stateId)) {
+            $query->where('state_id', $stateId);
+        }
+
+        if (filled($countryId)) {
+            $query->where('country_id', $countryId);
+        }
+
+        $this->applySearchConstraint($query, 'name', $search);
+
+        return $this->pluckOptions($query->orderBy('name'), 'name', 50);
+    }
+
+    public function cityOptionLabel(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $id = SharedFormSchema::normalizeLocationId($value);
+
+        if ($id === null) {
+            return null;
+        }
+
+        return City::query()->whereKey($id)->value('name');
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function searchAreaOptions(
+        string $role,
+        ?string $countryId,
+        ?string $stateId,
+        string $search = '',
+        ?string $districtId = null,
+    ): array {
+        if (! filled($stateId) && ! filled($countryId)) {
+            return [];
+        }
+
+        $options = match ($role) {
+            'administrative_district' => SharedFormSchema::districtOptionsForState($stateId, $countryId),
+            'administrative_subdivision' => SharedFormSchema::subdistrictOptionsForSelection($stateId, $districtId, $countryId),
+            default => SharedFormSchema::areaOptionsForRole($countryId, $role, $stateId),
+        };
+
+        return $this->filterAreaOptions($options, $search);
+    }
+
+    public function areaOptionLabel(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $id = SharedFormSchema::normalizeLocationId($value);
+
+        if ($id === null) {
+            return null;
+        }
+
+        return AddressArea::query()->whereKey($id)->value('name');
+    }
+
+    /**
+     * @param  array<int|string, string>  $options
+     * @return array<string, string>
+     */
+    private function filterAreaOptions(array $options, string $search): array
+    {
+        $normalizedSearch = mb_strtolower(trim($search));
+
+        return collect($options)
+            ->when($normalizedSearch !== '', fn (Collection $matches): Collection => $matches
+                ->filter(fn (string $label): bool => str_contains(mb_strtolower($label), $normalizedSearch)))
+            ->take(50)
+            ->mapWithKeys(fn (string $label, int|string $id): array => [(string) $id => $label])
+            ->all();
     }
 
     /**
@@ -1461,20 +1362,32 @@ class Index extends Component implements HasForms
         });
     }
 
-    public function institutionOptionLabel(string $value): ?string
+    public function institutionOptionLabel(?string $value): ?string
     {
+        $id = $value === null ? null : SharedFormSchema::normalizeLocationId($value);
+
+        if ($id === null) {
+            return null;
+        }
+
         return Institution::query()
             ->whereIn('status', ['verified', 'pending'])
-            ->whereKey($value)
+            ->whereKey($id)
             ->with('names')->first(['id', 'name'])
             ?->display_name;
     }
 
-    public function venueOptionLabel(string $value): ?string
+    public function venueOptionLabel(?string $value): ?string
     {
+        $id = $value === null ? null : SharedFormSchema::normalizeLocationId($value);
+
+        if ($id === null) {
+            return null;
+        }
+
         return Venue::query()
             ->whereIn('status', ['verified', 'pending'])
-            ->whereKey($value)
+            ->whereKey($id)
             ->value('name');
     }
 
@@ -1546,23 +1459,6 @@ class Index extends Component implements HasForms
             cityId: filled($cityId) ? $cityId : null,
             areaAssignments: $areaAssignments,
         ));
-    }
-
-    /**
-     * @return Collection<int, Person>
-     */
-    #[Computed]
-    public function persons(): Collection
-    {
-        return app(SafeModelCache::class)->rememberCollection(
-            key: 'events_persons_'.app()->getLocale().'_v2',
-            ttl: 300,
-            query: Person::query()
-                ->whereIn('status', ['verified', 'pending'])
-                ->orderBy('name')
-                ->limit(500)
-                ->select(['id', 'name']),
-        );
     }
 
     /**
@@ -1738,7 +1634,7 @@ class Index extends Component implements HasForms
             'country_id' => null,
             'state_id' => null,
             'city_id' => null,
-            'area_assignments' => [],
+            'area_assignments' => $this->withAreaAssignmentDefaults([]),
             'language_codes' => [],
             'event_category_ids' => [],
             'gender' => null,
@@ -2115,14 +2011,23 @@ class Index extends Component implements HasForms
             }
 
             $role = trim($role);
-            $areaId = trim((string) $areaId);
+            $areaId = SharedFormSchema::normalizeLocationId($areaId);
 
-            if ($role !== '' && $areaId !== '') {
+            if ($role !== '' && $areaId !== null) {
                 $assignments[$role] = $areaId;
             }
         }
 
         return $assignments;
+    }
+
+    /**
+     * @param  array<string, ?string>  $assignments
+     * @return array<string, ?string>
+     */
+    private function withAreaAssignmentDefaults(array $assignments): array
+    {
+        return $assignments + array_fill_keys(self::AREA_ASSIGNMENT_ROLES, null);
     }
 
     private function normalizeNullableString(mixed $value): ?string
