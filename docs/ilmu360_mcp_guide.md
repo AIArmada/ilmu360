@@ -34,7 +34,7 @@ Key rules:
 - Those MCP event-detail projections resolve replacement chains to the latest still-reachable public or unlisted target and omit stale unreachable replacements rather than exposing dead public links.
 - `admin-get-record` and `member-get-record` responses now embed `contacts` and `social_media` alongside `address` directly in `data.record.attributes` for resources that expose those relations (institutions, speakers, venues, and references with social media). The fetch-modify-resend flow for these collection fields is now directly actionable from a single get-record call without a separate relation-traversal step.
 - Public/mobile discovery additions also do not automatically imply new MCP tools. For example, the public `GET /api/v1/references` directory now exists for native reference browsing, but MCP still uses the existing generic `admin-list-records` and `member-list-records` flows for the `references` resource rather than a dedicated public-reference tool.
-- For `speakers`, `institutions`, and `references`, `admin-list-records` and `member-list-records` now reuse the same specialized search services as the public directory endpoints. Expect decorated speaker-title matching, institution name or alias matching across the `institution_names` table, and reference descriptive-text matching to behave similarly while still honoring each surface's own visibility or membership scope.
+- For `people`, `institutions`, and `references`, `admin-list-records` and `member-list-records` now reuse the same specialized search services as the public directory endpoints. Expect decorated speaker-title matching, institution name or alias matching across the `institution_names` table, and reference descriptive-text matching to behave similarly while still honoring each surface's own visibility or membership scope.
 - `current_media` contains metadata only; it does not expose signed or temporary URLs.
 - Generic user record payloads intentionally redact `email`, `email_verified_at`, `phone`, `phone_verified_at`, `daily_prayer_institution_id`, and `friday_prayer_institution_id`.
 - Record lookups use `route_key` for record-specific paths, and missing records return 404 rather than a generic server error.
@@ -300,15 +300,14 @@ Event image generation uses a 3-step workflow on each server:
 | `events` | list/get/meta + schema + create + update + preview | list/get/meta + schema + update + preview | Member scope only; no member create |
 | `inspirations` | list/get/meta + schema + create + update + preview | Not exposed | Admin-only through the current MCP surface |
 | `institutions` | list/get/meta + schema + create + update + preview | list/get/meta + schema + update + preview | Member scope limited to linked institutions |
-| `speakers` | list/get/meta + schema + create + update + preview | list/get/meta + schema + update + preview | Member scope limited to linked speakers |
+| `people` | list/get/meta + schema + create + update + preview | list/get/meta + schema + update + preview | Member scope limited to linked people |
 | `references` | list/get/meta + schema + create + update + preview | list/get/meta + schema + update + preview | Member scope limited to linked references |
 | `reports` | list/get/meta + schema + create + update + preview | Not exposed | Admin CRUD plus explicit triage workflow |
 | `donation-channels` | list/get/meta + schema + create + update + preview | Not exposed | Admin-only payment channel management |
 | `series` | list/get/meta + schema + create + update + preview | Not exposed | Admin-only through the current MCP surface |
 | `spaces` | list/get/meta + schema + create + update + preview | Not exposed | Admin-only through the current MCP surface |
-| `tags` | list/get/meta + schema + create + update + preview | Not exposed | Admin-only taxonomy management |
+| `address-areas` | list/get/meta + schema + create + update + preview | Not exposed | Admin-only address-area management |
 | `venues` | list/get/meta + schema + create + update + preview | Not exposed | Admin-only through the current MCP surface |
-| `subdistricts` | list/get/meta + schema + create + update + preview | Not exposed | No media upload fields |
 
 ### Relation traversal rules
 
@@ -377,8 +376,8 @@ When the user asks you to “look for” a named place, start with the most like
 - For venues, `facilities`, `contacts`, and `social_media` are replacement collections. `facilities` input is normalized into canonical `venue_facilities` rows for the general venue scope, so safe clients should resend the full enabled facility set.
 - Reference write schemas now expose additional field semantics for `author`, `publication_year`, `publisher`, and `social_media`.
 - For references, omitted optional scalars preserve the existing value, while `null` or trimmed empty input clears `author`, `publication_year`, and `publisher` to `null`. `social_media` follows the same replacement and canonicalization rules as the other write-capable directory resources.
-- Event write schemas now expose additional field semantics for `event_url`, `live_url`, `recording_url`, `languages`, `references`, `series`, `domain_tags`, `discipline_tags`, `source_tags`, `issue_tags`, `speakers`, `other_key_people`, `organizer_type`, `registration_mode`, and `status`.
-- For events, update schemas are sparse: omitted scalar and relation fields preserve the current value via server-side form-state merge, `null` or `[]` clear the supported relation collections, and submitted `speakers` / `other_key_people` arrays rebuild the underlying `key_people` rows with new order values.
+- Event write schemas now expose additional field semantics for `event_url`, `live_url`, `recording_url`, `languages`, `references`, `series`, `domain_tags`, `discipline_tags`, `source_tags`, `issue_tags`, `persons`, `other_key_people`, `organizer_type`, `registration_mode`, and `status`.
+- For events, update schemas are sparse: omitted scalar and relation fields preserve the current value via server-side form-state merge, `null` or `[]` clear the supported relation collections, and submitted `persons` / `other_key_people` arrays rebuild the underlying `key_people` rows with new order values.
 - On admin create/update, `status` is writable and constrained to `draft`, `pending`, or `approved`. MCP create defaults to `draft` when omitted. `approved` sets `published_at`; `draft` and `pending` clear it.
 - Event record detail payloads also expose the public change-surface projection fields `active_change_notice`, `change_announcements`, and `replacement_event` so MCP clients can reason about the same published replacement-chain behavior as the public/mobile event detail contract without following stale links.
 - Member event update schemas inherit the same event semantics because the member MCP surface delegates to the shared admin write service.
@@ -394,8 +393,8 @@ When the user asks you to “look for” a named place, start with the most like
 - For reports, `entity_type`, `entity_id`, `category`, and `status` remain required on update, `category` depends on `entity_type`, the optional text / user-reference fields clear on `null`, and `evidence` preserves on omission or `null` but clears on `[]`. The destructive raw-HTTP `clear_evidence` flag is still not available through MCP.
 - Tag write schemas now expose additional field semantics for `name`, `name.ms`, `name.en`, and `order_column`.
 - For tags, `name.en` falls back to `name.ms` when it is omitted, `null`, or trimmed empty input, and blank / null `order_column` values trigger sortable recomputation instead of storing `null`.
-- Geography write schemas use package-native fields: `country_id`, `state_id`, `city_id`, `admin_area_1_id` (district), `admin_area_2_id` (subdistrict).
-- For address hierarchy, `state_id` is the package State table; districts use `admin_area_1_id`; subdistricts use `admin_area_2_id`. Federal territories may omit district.
+- Geography write schemas use package-native fields: `country_id`, `state_id`, `city_id`, plus `address.area_assignments` (array of `address_areas` UUIDs).
+- For address hierarchy, `state_id` is the package State table; districts, subdistricts, and postal areas resolve through `address_areas` assignments. Federal territories may omit district.
 - Handle-style social platforms (`facebook`, `twitter`, `instagram`, `youtube`, `tiktok`, `telegram`, `whatsapp`, `linkedin`, `threads`) may canonicalize a submitted URL into stored `username`, so persisted `url` can come back as `null` after normalization.
 - Even though the schema advertises model-layer normalization notes for Twitter / X, validated MCP payloads should still use the canonical platform value `twitter`, not `x`.
 - Enum fields and filters use enum backing values, not display labels. For events, use values like `kuliah_ceramah`, `all_ages`, `prayer_relative`, `maghrib`, and `immediately` instead of labels like `Kuliah / Ceramah` or localized prayer text.
@@ -456,11 +455,11 @@ Admin tool behavior notes:
 - `admin-update-event` and `admin-batch-update-events` use presence-sensitive relation aliases: omit `speaker_keys`/`reference_keys` or pass `null` to preserve existing relationships; pass `[]` to detach all; pass a non-empty array to replace all.
 - `admin-list-resources` is a discovery manifest, not merely a small name list. Keep `verbose=false` for compact exploration and use `verbose=true` only when you need full metadata. Pass `writable_only=true` to filter the list to only resources with active write support.
 - `current_media` is metadata only; it is useful for form prefill but does not expose signed URLs.
-- `admin-search-events` is the dedicated event-discovery MCP path and is aligned with `GET /api/v1/admin/events/search`. It supports keyword search with default cross-entity expansion (institution/speaker/reference), geo-proximity sorting (`sort=distance` with `lat`, `lng`, `radius_km`), date range (`starts_after`, `starts_before`, `time_scope`), clock-time or prayer-relative windows (`timing_mode`, `starts_time_from/until`, `prayer_time`), event type and format arrays, audience and audience-boolean filters, institution/venue/speaker/role filters, tag/reference UUID arrays, reference author filters (`reference_author_search`), and query expansion toggles (`search_include_institutions`, `search_include_speakers`, `search_include_references`). Each parameter includes an inline description of valid values in the tool schema.
+- `admin-search-events` is the dedicated event-discovery MCP path and is aligned with `GET /api/v1/admin/events/search`. It supports keyword search with default cross-entity expansion (institution/speaker/reference), geo-proximity sorting (`sort=distance` with `lat`, `lng`, `radius_km`), date range (`starts_after`, `starts_before`, `time_scope`), clock-time or prayer-relative windows (`timing_mode`, `starts_time_from/until`, `prayer_time`), event type and format arrays, audience and audience-boolean filters, institution/venue/speaker/role filters, tag/reference UUID arrays, reference author filters (`reference_author_search`), and query expansion toggles (`search_include_institutions`, `search_include_persons`, `search_include_references`). Each parameter includes an inline description of valid values in the tool schema.
 - `admin-list-records` accepts a `filters` object keyed by the resource metadata filter keys, for example `{ "status": "approved", "is_active": true }` for `events`.
 - `admin-upload-event-cover-image` and `admin-upload-event-poster-image` accept a pre-generated image via `{event_key, image, creative_direction?}` and save it to the event media collection. The cover tool writes `cover` at required ratio `16:9`; the poster tool writes `poster` at required ratio `3:4`. The `image` field is a file descriptor: pass `{content_base64, filename}`. Optionally include `mime_type` in the descriptor; it is auto-detected if omitted. Use the MCP prompts `admin-event-cover-image-prompt` and `admin-event-poster-image-prompt` before calling these tools — the prompts build engineered prompt text with brand reference images for ChatGPT native image generation. Speaker-context references follow this order: speaker `cover`, then speaker `avatar`, then organizer institution media from `event->organizer`.
 - If attaching reference media fails, retry the prompt call with `include_existing_media=false` and `max_reference_media=0`, then re-generate and re-upload.
-- For `speakers`, `institutions`, and `references`, `admin-list-records` search now reuses the same specialized search services as the public directory endpoints; the main difference is record scope, not text-matching behavior.
+- For `people`, `institutions`, and `references`, `admin-list-records` search now reuses the same specialized search services as the public directory endpoints; the main difference is record scope, not text-matching behavior.
 - For date-aware resources, `starts_after`, `starts_before`, and `starts_on_local_date` are date-only `YYYY-MM-DD` strings interpreted in the resolved request timezone. Do not send ISO 8601 timestamps to those MCP arguments.
 - Event enum filters and payload values must be backing values, for example `filter[event_category_ids]=kuliah_ceramah` and `filter[timing_mode]=prayer_relative`.
 - `admin-get-record-actions` is read-only and returns record-specific next-step MCP tools, including explicit workflow-schema tool hints when a moderation, triage, or review flow is currently available on that record.
@@ -517,7 +516,7 @@ Member tool behavior notes:
 - Event media writes enforce fixed ratios across MCP writes: `cover` must be `16:9` and `poster` must be `3:4`.
 - Member update tools support `validate_only=true` for preview-only member writes.
 - Member related-record traversal is limited to one level and only for relations exposed by member resource metadata.
-- For `speakers`, `institutions`, and `references`, `member-list-records` search reuses the same specialized search services as the public directory endpoints, while still respecting Ahli membership scope. Unlike `admin-list-records`, `member-list-records` does **not** accept a `filters` object; use `search`, `starts_after`, `starts_before`, and `starts_on_local_date` to narrow results.
+- For `people`, `institutions`, and `references`, `member-list-records` search reuses the same specialized search services as the public directory endpoints, while still respecting Ahli membership scope. Unlike `admin-list-records`, `member-list-records` does **not** accept a `filters` object; use `search`, `starts_after`, `starts_before`, and `starts_on_local_date` to narrow results.
 - Contribution-request workflow tools cover listing, approving, rejecting, and cancelling queue items that the authenticated member can legitimately act on through the Ahli surface.
 - Membership-claim workflow tools cover listing, submitting with evidence uploads, and cancelling the member's own pending claims.
 - `member-create-github-issue` creates a plain GitHub issue only; it does not assign Copilot.
@@ -556,7 +555,7 @@ The admin tool catalog above is the canonical list of model-visible operations. 
 
 Current structurally write-capable admin resources include:
 
-- `speakers`
+- `people`
 - `events`
 - `inspirations`
 - `institutions`
@@ -565,9 +564,8 @@ Current structurally write-capable admin resources include:
 - `donation-channels`
 - `series`
 - `spaces`
-- `tags`
 - `venues`
-- `subdistricts`
+- `address-areas`
 
 Read-only admin resources are still discoverable through the resource list and metadata tools; use the capability matrix for the full runtime inventory.
 
@@ -588,7 +586,7 @@ The member tool catalog above is the canonical list of model-visible operations.
 Current member-write-capable resources include:
 
 - `institutions`
-- `speakers`
+- `people`
 - `references`
 - `events`
 
@@ -643,7 +641,7 @@ Use this as the quick scan list when you want ChatGPT to reason about the connec
 | `fetch` | Fetch the full text of one verified docs page | `id` |
 | `admin-list-resources` | Discover accessible admin resources | `verbose?`, `writable_only?` |
 | `admin-get-resource-meta` | Inspect one resource’s metadata, routes, relations, and abilities | `resource_key` |
-| `admin-search-events` | Run dedicated event discovery with rich filters | `query?`, `sort?` (time/relevance/distance), `time_scope?` (upcoming/past/all), `starts_after?`, `starts_before?`, `starts_time_from?`, `starts_time_until?`, `timing_mode?`, `prayer_time?`, `event_category_ids?` (array), `event_format?` (array: physical/online/hybrid), `language_codes?` (array), `gender?`, `age_group?` (array), `children_allowed?`, `is_muslim_only?`, `country_id?`, `state_id?`, `city_id?`, `admin_area_1_id?`, `admin_area_2_id?`, `lat?`, `lng?`, `radius_km?`, `institution_id?`, `venue_id?`, `speaker_ids?` (array), `key_person_roles?` (array), `person_in_charge_ids?`, `person_in_charge_search?`, `moderator_ids?`, `imam_ids?`, `khatib_ids?`, `bilal_ids?`, `topic_ids?` (array), `domain_tag_ids?` (array), `source_tag_ids?` (array), `issue_tag_ids?` (array), `reference_ids?` (array), `reference_author_search?` (array), `search_include_institutions?`, `search_include_speakers?`, `search_include_references?`, `has_event_url?`, `has_live_url?`, `has_end_time?`, `page?`, `per_page?` |
+| `admin-search-events` | Run dedicated event discovery with rich filters | `query?`, `sort?` (time/relevance/distance), `time_scope?` (upcoming/past/all), `starts_after?`, `starts_before?`, `starts_time_from?`, `starts_time_until?`, `timing_mode?`, `prayer_time?`, `event_category_ids?` (array), `event_format?` (array: physical/online/hybrid), `language_codes?` (array), `gender?`, `age_group?` (array), `children_allowed?`, `is_muslim_only?`, `country_id?`, `state_id?`, `city_id?`, `area_assignments?`, `lat?`, `lng?`, `radius_km?`, `institution_id?`, `venue_id?`, `person_ids?` (array), `key_person_roles?` (array), `person_in_charge_ids?`, `person_in_charge_search?`, `person_name_search?`, `moderator_ids?`, `imam_ids?`, `khatib_ids?`, `bilal_ids?`, `discipline_tag_ids?` (array), `domain_tag_ids?` (array), `source_tag_ids?` (array), `issue_tag_ids?` (array), `reference_ids?` (array), `reference_author_search?` (array), `search_include_institutions?`, `search_include_persons?`, `search_include_references?`, `has_event_url?`, `has_live_url?`, `has_end_time?`, `page?`, `per_page?` |
 | `admin-list-records` | Search and paginate records for one admin resource | `resource_key`, `search?`, `filters?`, `starts_after?`, `starts_before?`, `starts_on_local_date?`, `page?`, `per_page?` |
 | `admin-list-related-records` | Traverse a named relation on a record | `resource_key`, `record_key`, `relation`, `search?`, `page?`, `per_page?` |
 | `admin-get-record` | Read one admin record and its permissions | `resource_key`, `record_key` |
@@ -679,7 +677,7 @@ Use this as the quick scan list when you want ChatGPT to reason about the connec
 | `fetch` | Fetch the full text of one verified docs page | `id` |
 | `member-list-resources` | Discover accessible Ahli-scoped resources | `verbose?` |
 | `member-get-resource-meta` | Inspect one member resource’s metadata and write support | `resource_key` |
-| `member-search-events` | Run dedicated event discovery with rich filters | `query?`, `sort?` (time/relevance/distance), `time_scope?` (upcoming/past/all), `starts_after?`, `starts_before?`, `starts_time_from?`, `starts_time_until?`, `timing_mode?`, `prayer_time?`, `event_category_ids?` (array), `event_format?` (array: physical/online/hybrid), `language_codes?` (array), `gender?`, `age_group?` (array), `children_allowed?`, `is_muslim_only?`, `country_id?`, `state_id?`, `city_id?`, `admin_area_1_id?`, `admin_area_2_id?`, `lat?`, `lng?`, `radius_km?`, `institution_id?`, `venue_id?`, `speaker_ids?` (array), `key_person_roles?` (array), `person_in_charge_ids?`, `person_in_charge_search?`, `moderator_ids?`, `imam_ids?`, `khatib_ids?`, `bilal_ids?`, `topic_ids?` (array), `domain_tag_ids?` (array), `source_tag_ids?` (array), `issue_tag_ids?` (array), `reference_ids?` (array), `reference_author_search?` (array), `search_include_institutions?`, `search_include_speakers?`, `search_include_references?`, `has_event_url?`, `has_live_url?`, `has_end_time?`, `page?`, `per_page?` |
+| `member-search-events` | Run dedicated event discovery with rich filters | `query?`, `sort?` (time/relevance/distance), `time_scope?` (upcoming/past/all), `starts_after?`, `starts_before?`, `starts_time_from?`, `starts_time_until?`, `timing_mode?`, `prayer_time?`, `event_category_ids?` (array), `event_format?` (array: physical/online/hybrid), `language_codes?` (array), `gender?`, `age_group?` (array), `children_allowed?`, `is_muslim_only?`, `country_id?`, `state_id?`, `city_id?`, `area_assignments?`, `lat?`, `lng?`, `radius_km?`, `institution_id?`, `venue_id?`, `person_ids?` (array), `key_person_roles?` (array), `person_in_charge_ids?`, `person_in_charge_search?`, `person_name_search?`, `moderator_ids?`, `imam_ids?`, `khatib_ids?`, `bilal_ids?`, `discipline_tag_ids?` (array), `domain_tag_ids?` (array), `source_tag_ids?` (array), `issue_tag_ids?` (array), `reference_ids?` (array), `reference_author_search?` (array), `search_include_institutions?`, `search_include_persons?`, `search_include_references?`, `has_event_url?`, `has_live_url?`, `has_end_time?`, `page?`, `per_page?` |
 | `member-list-records` | Search and paginate records for one member resource | `resource_key`, `search?`, `starts_after?`, `starts_before?`, `starts_on_local_date?`, `page?`, `per_page?` |
 | `member-list-related-records` | Traverse a named relation on a member record | `resource_key`, `record_key`, `relation`, `search?`, `page?`, `per_page?` |
 | `member-get-record` | Read one member record | `resource_key`, `record_key` |

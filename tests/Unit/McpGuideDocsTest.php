@@ -2,6 +2,50 @@
 
 declare(strict_types=1);
 
+use App\Support\Api\Admin\AdminResourceMutationService;
+use App\Support\Api\Admin\AdminResourceRegistry;
+use App\Support\Api\Member\MemberResourceMutationService;
+use App\Support\Api\Member\MemberResourceRegistry;
+use Tests\TestCase;
+
+uses(TestCase::class);
+
+function liveWritableAdminResourceKeys(): array
+{
+    $registry = app(AdminResourceRegistry::class);
+    $mutations = app(AdminResourceMutationService::class);
+
+    $keys = [];
+
+    foreach ($registry->resources() as $resourceClass) {
+        if ($mutations->supports($resourceClass)) {
+            $keys[] = $registry->keyFor($resourceClass);
+        }
+    }
+
+    sort($keys);
+
+    return $keys;
+}
+
+function liveWritableMemberResourceKeys(): array
+{
+    $registry = app(MemberResourceRegistry::class);
+    $mutations = app(MemberResourceMutationService::class);
+
+    $keys = [];
+
+    foreach ($registry->resources() as $resourceClass) {
+        if ($mutations->supports($resourceClass)) {
+            $keys[] = $registry->keyFor($resourceClass);
+        }
+    }
+
+    sort($keys);
+
+    return $keys;
+}
+
 function documentedMcpGuideBulletList(string $markdown, string $heading): array
 {
     $lines = preg_split('/\R/', $markdown) ?: [];
@@ -32,25 +76,8 @@ function documentedMcpGuideBulletList(string $markdown, string $heading): array
 it('keeps the admin MCP guide aligned with the live admin write-capable resources', function (): void {
     $markdown = file_get_contents(dirname(__DIR__, 2).'/docs/ilmu360_mcp_admin_agent_guide.md') ?: '';
 
-    $expected = [
-        'donation-channels',
-        'events',
-        'inspirations',
-        'institutions',
-        'references',
-        'reports',
-        'series',
-        'spaces',
-        'persons',
-        'subdistricts',
-        'tags',
-        'venues',
-    ];
-
-    sort($expected);
-
     expect(documentedMcpGuideBulletList($markdown, 'Current structurally write-capable admin resources include:'))
-        ->toEqual($expected)
+        ->toEqual(liveWritableAdminResourceKeys())
         ->and($markdown)
         ->toContain('# ilmu360° Admin MCP Agent Guide')
         ->toContain('docs-admin-mcp-guide')
@@ -70,17 +97,8 @@ it('keeps the admin MCP guide aligned with the live admin write-capable resource
 it('keeps the member MCP guide aligned with the live member write-capable resources', function (): void {
     $markdown = file_get_contents(dirname(__DIR__, 2).'/docs/ilmu360_mcp_member_agent_guide.md') ?: '';
 
-    $expected = [
-        'events',
-        'institutions',
-        'references',
-        'persons',
-    ];
-
-    sort($expected);
-
     expect(documentedMcpGuideBulletList($markdown, 'Current member-write-capable resources include:'))
-        ->toEqual($expected)
+        ->toEqual(liveWritableMemberResourceKeys())
         ->and($markdown)
         ->toContain('# ilmu360° Member MCP Agent Guide')
         ->toContain('docs-member-mcp-guide')

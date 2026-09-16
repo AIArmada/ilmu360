@@ -142,7 +142,7 @@ return [
 
     For admin geography lookups, use the authenticated GET /admin/catalogs/* endpoints referenced by schema catalog metadata.
 
-    Current admin write support includes events, institutions, persons, references, venues, and subdistricts.
+    Current admin write support includes address-areas, donation-channels, events, inspirations, institutions, references, reports, series, people, spaces, and venues.
 
     Admin write support is limited to resources whose write_support.schema flag is true in the admin manifest.
     MD,

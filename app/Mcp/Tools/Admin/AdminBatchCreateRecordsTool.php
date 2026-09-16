@@ -72,7 +72,7 @@ class AdminBatchCreateRecordsTool extends AbstractAdminWriteTool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'resource_key' => $schema->string()->required()->min(1)->description('Writable admin resource key (e.g. persons, references, institutions).'),
+            'resource_key' => $schema->string()->required()->min(1)->description('Writable admin resource key (e.g. people, references, institutions).'),
             'items' => $schema->array()->required()->min(1)->max(100)->items(
                 $schema->object([
                     'external_row_id' => $schema->string()->nullable()->description('Optional caller-assigned row identifier for idempotency tracking and safe retries.'),

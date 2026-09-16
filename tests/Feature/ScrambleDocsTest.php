@@ -491,7 +491,7 @@ it('documents the api overview description for client and ai consumers', functio
         ->toContain('GET /institution-workspace auto-selects the first accessible institution when institution_id is omitted')
         ->not->toContain('The recordKey parameter must be the UUID primary key')
         ->not->toContain('Get the update schema using the id (UUID primary key, not the slug)')
-        ->toContain('Current admin write support includes events, institutions, persons, references, venues, and subdistricts.')
+        ->toContain('Current admin write support includes address-areas, donation-channels, events, inspirations, institutions, references, reports, series, people, spaces, and venues.')
         ->toContain('Raw API timestamp fields are stored and returned in UTC')
         ->toContain('Viewer-facing helper fields such as event timing_display and end_time_display are localized only when the request provides timezone context')
         ->toContain('Without timezone context, bare API requests fall back to UTC.')

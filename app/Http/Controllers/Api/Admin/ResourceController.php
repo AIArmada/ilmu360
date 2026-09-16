@@ -27,7 +27,7 @@ class ResourceController extends Controller
         private readonly AdminWriteValidationFeedback $validationFeedback,
     ) {}
 
-    #[PathParameter('resourceKey', 'Admin resource key from `GET /admin/manifest`, for example `events`, `institutions`, or `persons`.', example: 'events')]
+    #[PathParameter('resourceKey', 'Admin resource key from `GET /admin/manifest`, for example `events`, `institutions`, or `people`.', example: 'events')]
     #[Endpoint(
         title: 'Get admin resource metadata',
         description: 'Returns metadata for a single admin resource, including read and write support flags and related API routes.',
@@ -37,7 +37,7 @@ class ResourceController extends Controller
         return response()->json($this->resourceService->resourceMeta($resourceKey));
     }
 
-    #[PathParameter('resourceKey', 'Admin resource key from `GET /admin/manifest`, for example `events`, `institutions`, or `persons`.', example: 'events')]
+    #[PathParameter('resourceKey', 'Admin resource key from `GET /admin/manifest`, for example `events`, `institutions`, or `people`.', example: 'events')]
     #[QueryParameter('search', 'Optional free-text search across the resource\'s searchable columns.', required: false, type: 'string', infer: false, example: 'maghrib')]
     #[QueryParameter('filter[status]', 'Optional status filter for resources that expose a status filter. Persons accept `pending`, `verified`, `rejected`, and `inactive`; events accept `draft`, `pending`, `needs_changes`, `approved`, `cancelled`, and `rejected`.', required: false, type: 'string', infer: false, example: 'verified')]
     #[QueryParameter('filter[published]', 'Optional published-state filter for event resources. Use `true` for events with `published_at` set and `false` for unpublished events.', required: false, type: 'boolean', infer: false, example: true)]
@@ -71,7 +71,7 @@ class ResourceController extends Controller
         ));
     }
 
-    #[PathParameter('resourceKey', 'Admin resource key from `GET /admin/manifest`, for example `events`, `institutions`, or `persons`.', example: 'events')]
+    #[PathParameter('resourceKey', 'Admin resource key from `GET /admin/manifest`, for example `events`, `institutions`, or `people`.', example: 'events')]
     #[PathParameter('recordKey', 'Existing admin record route key returned by the collection or record endpoints.', example: '0195b86a-3c15-73fa-a2d8-5a45f6a7f701')]
     #[PathParameter('relation', 'Admin relation key from the resource metadata `relations` list. Use the exact key returned by `GET /admin/{resourceKey}/meta`.', example: 'persons')]
     #[QueryParameter('search', 'Optional free-text search across the related resource or related model columns.', required: false, type: 'string', infer: false, example: 'maghrib')]
@@ -94,7 +94,7 @@ class ResourceController extends Controller
         ));
     }
 
-    #[PathParameter('resourceKey', 'Admin resource key from `GET /admin/manifest`, for example `events`, `institutions`, or `persons`.', example: 'events')]
+    #[PathParameter('resourceKey', 'Admin resource key from `GET /admin/manifest`, for example `events`, `institutions`, or `people`.', example: 'events')]
     #[QueryParameter('operation', 'Schema mode. Use `create` for new records or `update` for existing records.', required: false, type: 'string', infer: false, default: 'create', example: 'update')]
     #[QueryParameter('recordKey', 'Required when `operation=update`. Use the record route key returned by the admin collection or record endpoints.', required: false, type: 'string', infer: false, example: '0195b86a-3c15-73fa-a2d8-5a45f6a7f701')]
     #[Endpoint(
