@@ -6,6 +6,7 @@ use App\Actions\References\GenerateReferenceSlugAction;
 use App\Actions\Slugs\SyncSlugRedirectAction;
 use App\Models\Reference;
 use App\Observers\Concerns\SyncsCurrentAndPreviousValues;
+use App\Support\Search\ReferenceSearchService;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
 class ReferenceObserver implements ShouldHandleEventsAfterCommit
@@ -15,7 +16,17 @@ class ReferenceObserver implements ShouldHandleEventsAfterCommit
     public function __construct(
         protected GenerateReferenceSlugAction $generateReferenceSlugAction,
         protected SyncSlugRedirectAction $syncSlugRedirectAction,
+        protected ReferenceSearchService $referenceSearchService,
     ) {}
+
+    public function saved(Reference $reference): void
+    {
+        if (! $reference->wasRecentlyCreated && ! $reference->wasChanged()) {
+            return;
+        }
+
+        $this->referenceSearchService->bustPublicSearchCache();
+    }
 
     public function updated(Reference $reference): void
     {
@@ -34,5 +45,6 @@ class ReferenceObserver implements ShouldHandleEventsAfterCommit
     {
         $this->syncSlugRedirectAction->purgeForModel($reference);
         $this->generateReferenceSlugAction->syncReferenceSlugsForTitle($reference->title);
+        $this->referenceSearchService->bustPublicSearchCache();
     }
 }

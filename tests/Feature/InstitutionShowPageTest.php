@@ -532,7 +532,7 @@ it('displays affiliated persons', function () {
         ->assertSee('Imam Besar');
 });
 
-it('displays spaces and facilities', function () {
+it('does not display spaces and facilities on the institution page', function () {
     $institution = Institution::factory()->create(['status' => 'verified']);
 
     $space = Space::factory()->create([
@@ -545,8 +545,8 @@ it('displays spaces and facilities', function () {
 
     $this->get(route('institutions.show', $institution))
         ->assertSuccessful()
-        ->assertSee('Dewan Kuliah Utama')
-        ->assertSee('500');
+        ->assertDontSee('Dewan Kuliah Utama')
+        ->assertDontSee('Kemudahan');
 });
 
 it('displays donation channels', function () {

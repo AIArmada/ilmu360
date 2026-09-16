@@ -148,11 +148,6 @@
     $referenceLabels = $this->referenceOptionLabels($selectedReferenceIds);
     $referenceAuthorLabels = $this->referenceAuthorOptionLabels($this->reference_author_search);
     $keyPersonRoleLabels = \App\Enums\EventKeyPersonRole::nonSpeakerOptions();
-    $searchScopeLabels = collect([
-        $this->search_include_institutions ? __('Institusi') : null,
-        $this->search_include_persons ? __('Penceramah') : null,
-        $this->search_include_references ? __('Rujukan') : null,
-    ])->filter()->values()->all();
     $eventCategoryLabels = $this->eventCategoryOptions;
     $eventFormatLabels = collect(\App\Enums\EventFormat::cases())
         ->mapWithKeys(fn (\App\Enums\EventFormat $format): array => [$format->value => $format->getLabel()])
@@ -220,9 +215,6 @@
         $this->has_end_time !== null,
         $timeScope !== 'upcoming',
         filled($lat),
-        ! $this->search_include_institutions,
-        ! $this->search_include_persons,
-        ! $this->search_include_references,
     ])->filter()->count();
     $hasActiveFilters = $activeFilterCount > 0;
     $savedSearchQuery = array_filter([
@@ -268,9 +260,6 @@
         'radius_km' => filled($lat) && filled($lng) ? $this->radius_km : null,
         'sort' => $sort !== 'time' ? $sort : null,
         'time_scope' => $timeScope !== 'upcoming' ? $timeScope : null,
-        'search_include_institutions' => $this->search_include_institutions ? null : false,
-        'search_include_persons' => $this->search_include_persons ? null : false,
-        'search_include_references' => $this->search_include_references ? null : false,
         'reference_author_search' => $this->reference_author_search,
     ], function (mixed $value): bool {
         if (is_array($value)) {
@@ -532,10 +521,10 @@
                         input-id="event-search"
                         model="filterData.search"
                         :value="$search"
-                        :placeholder="__('Cari tajuk, ustaz, masjid, topik...')"
+                        :placeholder="__('Cari tajuk majlis...')"
                         maxlength="255"
                         :label="__('Carian')"
-                        :hint="__('Cari mengikut tajuk, penceramah, institusi atau lokasi.')"
+                        :hint="__('Cari mengikut tajuk majlis.')"
                         :clear-attributes="[
                             'data-signal-event' => 'search.cleared',
                             'data-signal-category' => 'search',
@@ -712,9 +701,6 @@
                         <div class="mt-5 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-4">
                             @if($search)
                                 <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Carian') }}: "{{ $search }}"</span>
-                            @endif
-                            @if(count($searchScopeLabels) < 3)
-                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Cari dalam') }}: {{ implode(', ', $searchScopeLabels) ?: __('Tiada') }}</span>
                             @endif
                             @if($lat)
                                 <span class="inline-flex items-center gap-1 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800">{{ __('Dekat saya') }} · {{ $this->radius_km }} km</span>

@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\Reference;
+use App\Support\Search\ReferenceSearchService;
+use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 
 use function Pest\Laravel\get;
@@ -105,4 +107,66 @@ it('shows the total reference count at the bottom of the index', function () {
         ->assertSuccessful()
         ->assertSee('Direktori Rujukan')
         ->assertSee('Jumlah rujukan: 2');
+});
+
+it('skips the search query for short reference queries', function () {
+    Reference::factory()->create([
+        'title' => 'Riyadhus Solihin Terjemahan',
+        'status' => 'verified',
+    ]);
+
+    $queries = [];
+    DB::listen(function ($query) use (&$queries): void {
+        $queries[] = $query->toRawSql();
+    });
+
+    get('/rujukan?search='.urlencode('ri'))
+        ->assertSuccessful()
+        ->assertSee(__('Continue typing to search'))
+        ->assertDontSee('Riyadhus Solihin Terjemahan');
+
+    $likeQueries = collect($queries)
+        ->filter(static fn (string $query): bool => str_contains(strtolower($query), '"title" like'));
+
+    expect($likeQueries)->toBeEmpty();
+});
+
+it('scopes reference index media loads to cover collections', function () {
+    Reference::factory()->create([
+        'title' => 'Rujukan Sampul Depan',
+        'status' => 'verified',
+    ]);
+
+    $queries = [];
+    DB::listen(function ($query) use (&$queries): void {
+        $queries[] = $query->toRawSql();
+    });
+
+    get('/rujukan')->assertSuccessful();
+
+    $mediaQueries = collect($queries)
+        ->filter(static fn (string $query): bool => str_contains($query, '"media"'));
+
+    expect($mediaQueries)->not->toBeEmpty()
+        ->and($mediaQueries->every(
+            static fn (string $query): bool => str_contains($query, '"collection_name"')
+                && str_contains($query, 'front_cover')
+                && str_contains($query, 'back_cover'),
+        ))->toBeTrue();
+});
+
+it('refreshes cached reference search results when a reference becomes verified', function () {
+    $reference = Reference::factory()->create([
+        'title' => 'Rujukan Menunggu Pengesahan',
+        'status' => 'rejected',
+    ]);
+    $searchService = app(ReferenceSearchService::class);
+
+    expect($searchService->publicSearchIds('menunggu pengesahan'))
+        ->not->toContain((string) $reference->id);
+
+    $reference->update(['status' => 'verified']);
+
+    expect($searchService->publicSearchIds('menunggu pengesahan'))
+        ->toContain((string) $reference->id);
 });

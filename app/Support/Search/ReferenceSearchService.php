@@ -6,10 +6,15 @@ use AIArmada\CommerceSupport\Support\StringSimilarity;
 use App\Contracts\PublicDiscoveryAdapter;
 use App\Models\Reference;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class ReferenceSearchService implements PublicDiscoveryAdapter
 {
+    private const int PUBLIC_SEARCH_CACHE_TTL = 600;
+
+    private const string PUBLIC_SEARCH_CACHE_VERSION_KEY = 'reference_search_public_version_v2';
+
     private const string PUBLIC_TYPESENSE_FILTER = 'status:=[verified,pending] && published_at:>0';
 
     /**
@@ -77,18 +82,29 @@ class ReferenceSearchService implements PublicDiscoveryAdapter
             return [];
         }
 
-        if ($this->shouldUseTypesenseSearch() && app(TypesenseHealthCheckService::class)->isAvailable()) {
-            try {
-                return $this->searchIdsWithScout($normalizedSearch, [
-                    'filter_by' => self::PUBLIC_TYPESENSE_FILTER,
-                    'num_typos' => 0,
-                ]);
-            } catch (\Throwable $exception) {
-                $this->logScoutFallback('Reference Typesense public search failed, falling back to database search', $exception, $normalizedSearch);
-            }
-        }
+        $cacheKey = sprintf(
+            'reference_search_public:%s:%s',
+            $this->publicSearchCacheVersion(),
+            md5($normalizedSearch),
+        );
 
-        return $this->publicSearchIdsFromDatabase($normalizedSearch);
+        /** @var list<string> $ids */
+        $ids = Cache::remember($cacheKey, self::PUBLIC_SEARCH_CACHE_TTL, function () use ($normalizedSearch): array {
+            if ($this->shouldUseTypesenseSearch() && app(TypesenseHealthCheckService::class)->isAvailable()) {
+                try {
+                    return $this->searchIdsWithScout($normalizedSearch, [
+                        'filter_by' => self::PUBLIC_TYPESENSE_FILTER,
+                        'num_typos' => 0,
+                    ]);
+                } catch (\Throwable $exception) {
+                    $this->logScoutFallback('Reference Typesense public search failed, falling back to database search', $exception, $normalizedSearch);
+                }
+            }
+
+            return $this->publicSearchIdsFromDatabase($normalizedSearch);
+        });
+
+        return $ids;
     }
 
     /**
@@ -124,18 +140,29 @@ class ReferenceSearchService implements PublicDiscoveryAdapter
 
         $minimumScore = $this->minimumFuzzyScore($normalizedSearch);
 
-        if ($this->shouldUseTypesenseSearch() && app(TypesenseHealthCheckService::class)->isAvailable()) {
-            try {
-                return $this->searchIdsWithScout($normalizedSearch, [
-                    'filter_by' => self::PUBLIC_TYPESENSE_FILTER,
-                    'prioritize_exact_match' => true,
-                ]);
-            } catch (\Throwable $exception) {
-                $this->logScoutFallback('Reference Typesense fuzzy search failed, falling back to database fuzzy search', $exception, $normalizedSearch);
-            }
-        }
+        $cacheKey = sprintf(
+            'reference_search_public_fuzzy:%s:%s',
+            $this->publicSearchCacheVersion(),
+            md5($normalizedSearch),
+        );
 
-        return $this->publicFuzzySearchIdsFromDatabase($normalizedSearch, $minimumScore);
+        /** @var list<string> $ids */
+        $ids = Cache::remember($cacheKey, self::PUBLIC_SEARCH_CACHE_TTL, function () use ($minimumScore, $normalizedSearch): array {
+            if ($this->shouldUseTypesenseSearch() && app(TypesenseHealthCheckService::class)->isAvailable()) {
+                try {
+                    return $this->searchIdsWithScout($normalizedSearch, [
+                        'filter_by' => self::PUBLIC_TYPESENSE_FILTER,
+                        'prioritize_exact_match' => true,
+                    ]);
+                } catch (\Throwable $exception) {
+                    $this->logScoutFallback('Reference Typesense fuzzy search failed, falling back to database fuzzy search', $exception, $normalizedSearch);
+                }
+            }
+
+            return $this->publicFuzzySearchIdsFromDatabase($normalizedSearch, $minimumScore);
+        });
+
+        return $ids;
     }
 
     /**
@@ -411,11 +438,25 @@ class ReferenceSearchService implements PublicDiscoveryAdapter
         return (string) config('scout.driver');
     }
 
+    public function bustPublicSearchCache(): void
+    {
+        Cache::put(
+            self::PUBLIC_SEARCH_CACHE_VERSION_KEY,
+            $this->publicSearchCacheVersion() + 1,
+            now()->addDays(30),
+        );
+    }
+
     public function normalizedSearch(string $search): ?string
     {
         $normalized = StringSimilarity::normalize($search);
 
         return $normalized === '' ? null : $normalized;
+    }
+
+    private function publicSearchCacheVersion(): int
+    {
+        return (int) Cache::get(self::PUBLIC_SEARCH_CACHE_VERSION_KEY, 1);
     }
 
     /**

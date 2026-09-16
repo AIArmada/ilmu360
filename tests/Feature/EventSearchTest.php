@@ -38,7 +38,6 @@ use Database\Seeders\RoleSeeder;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
@@ -367,10 +366,10 @@ describe('Event Search Filters', function () {
     it('shows search placeholder on events index', function () {
         $this->get(eventsIndexUrl())
             ->assertOk()
-            ->assertSee('Cari tajuk, ustaz, masjid, topik...')
-            ->assertSee('search_include_institutions')
-            ->assertSee('search_include_persons')
-            ->assertSee('search_include_references');
+            ->assertSee('Cari tajuk majlis...')
+            ->assertDontSee('search_include_institutions')
+            ->assertDontSee('search_include_persons')
+            ->assertDontSee('search_include_references');
     });
 
     it('renders the complete event filter vocabulary in Malay', function () {
@@ -433,9 +432,6 @@ describe('Event Search Filters', function () {
             'area_assignments.administrative_subdivision',
             'event_category_ids',
             'event_format',
-            'search_include_institutions',
-            'search_include_persons',
-            'search_include_references',
             'starts_after',
             'starts_before',
             'radius_km',
@@ -443,9 +439,16 @@ describe('Event Search Filters', function () {
             expect($fields)->toHaveKey($name);
         }
 
+        foreach ([
+            'search_include_institutions',
+            'search_include_persons',
+            'search_include_references',
+        ] as $removedScope) {
+            expect($fields)->not->toHaveKey($removedScope);
+        }
+
         expect($fields['event_category_ids'])->toBeInstanceOf(Select::class)
             ->and($fields['event_format'])->toBeInstanceOf(Select::class)
-            ->and($fields['search_include_institutions'])->toBeInstanceOf(Toggle::class)
             ->and($fields['starts_after'])->toBeInstanceOf(DatePicker::class)
             ->and($fields['starts_before'])->toBeInstanceOf(DatePicker::class)
             ->and($fields['radius_km'])->toBeInstanceOf(TextInput::class)
@@ -457,7 +460,7 @@ describe('Event Search Filters', function () {
             ->assertSee('id="event-search"', false)
             ->assertSee('wire:model.live.debounce.300ms="filterData.search"', false)
             ->assertSee('wire:keydown.escape="clearSearch"', false)
-            ->assertSee(__('Cari tajuk, ustaz, masjid, topik...'));
+            ->assertSee(__('Cari tajuk majlis...'));
     });
 
     it('clears the shared search bar through the filter state', function (): void {
@@ -469,22 +472,20 @@ describe('Event Search Filters', function () {
             ->assertSet('filterData.search', null);
     });
 
-    it('keeps search scopes in the filter state and represents reference authors as active filters', function () {
+    it('represents reference authors as active filters without search scopes', function () {
         $originalLocale = app()->getLocale();
         app()->setLocale('ms');
 
         try {
             $component = Livewire::test(Index::class)
                 ->set('paginators.page', 2)
-                ->set('filterData.search_include_institutions', false)
                 ->set('filterData.reference_author_search', ['Muhammad Abduh']);
 
             $component
-                ->assertSet('search_include_institutions', false)
                 ->assertSet('reference_author_search', ['Muhammad Abduh'])
                 ->assertSet('paginators.page', 1)
-                ->assertSee('Cari dalam: Penceramah, Rujukan')
-                ->assertSee('Pengarang Rujukan: Muhammad Abduh');
+                ->assertSee('Pengarang Rujukan: Muhammad Abduh')
+                ->assertDontSee('Cari dalam');
         } finally {
             app()->setLocale($originalLocale);
         }
@@ -727,7 +728,7 @@ describe('Event Search Filters', function () {
             ->assertSee('Public Program On Index');
     });
 
-    it('searches events by institution name when the institution name matches', function () {
+    it('does not match institution names in the event keyword search', function () {
         $matchInstitution = Institution::factory()->create([
             'name' => 'Pusat Tarbiah Al Hikmah',
             'status' => 'verified',
@@ -757,11 +758,11 @@ describe('Event Search Filters', function () {
         $response = $this->get(eventsIndexUrl('search=Al%20Hikmah'));
 
         $response->assertOk()
-            ->assertSee('Kuliah Subuh Institusi A')
+            ->assertDontSee('Kuliah Subuh Institusi A')
             ->assertDontSee('Kuliah Subuh Institusi B');
     });
 
-    it('searches events by person name when the person is attached', function () {
+    it('does not match person names in the event keyword search', function () {
         $matchPerson = Person::factory()->create([
             'name' => 'Ustaz Samad Al-Bakri',
             'status' => 'verified',
@@ -793,11 +794,11 @@ describe('Event Search Filters', function () {
         $response = $this->get(eventsIndexUrl('search=Samad'));
 
         $response->assertOk()
-            ->assertSee('Kuliah Person A')
+            ->assertDontSee('Kuliah Person A')
             ->assertDontSee('Kuliah Person B');
     });
 
-    it('searches events by free-text key person name when no linked person entity exists', function () {
+    it('does not match key person names in the event keyword search', function () {
         $matchEvent = createVisibleEventForSearch([
             'title' => 'Kuliah Usul Fiqh',
             'status' => 'approved',
@@ -827,7 +828,7 @@ describe('Event Search Filters', function () {
         $response = $this->get(eventsIndexUrl('search=Tarmizi'));
 
         $response->assertOk()
-            ->assertSee('Kuliah Usul Fiqh')
+            ->assertDontSee('Kuliah Usul Fiqh')
             ->assertDontSee('Kuliah Tauhid');
     });
 
@@ -951,7 +952,7 @@ describe('Event Search Filters', function () {
             ->assertDontSee('Kuliah Tanpa Imam Legacy');
     });
 
-    it('searches events by reference title when the reference is attached', function () {
+    it('does not match reference titles in the event keyword search', function () {
         $matchReference = Reference::factory()->create([
             'title' => 'Kitab Al Fiqh Al Islami',
             'status' => 'verified',
@@ -983,7 +984,7 @@ describe('Event Search Filters', function () {
         $response = $this->get(eventsIndexUrl('search=Al%20Fiqh'));
 
         $response->assertOk()
-            ->assertSee('Halaqah Rujukan A')
+            ->assertDontSee('Halaqah Rujukan A')
             ->assertDontSee('Halaqah Rujukan B');
     });
 

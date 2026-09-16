@@ -222,7 +222,6 @@ class Show extends Component
                 'persons',
                 'persons.media',
                 'persons.titleAssignments.title.category',
-                'spaces' => fn ($query) => $query->where('status', 'active'),
                 'languages',
             ]);
         });

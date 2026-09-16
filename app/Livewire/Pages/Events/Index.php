@@ -40,7 +40,6 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
-use Filament\Forms\Components\Toggle;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Schemas\Components\Section;
@@ -272,15 +271,6 @@ class Index extends Component implements HasForms
 
     #[Url]
     public string $sort = 'time';
-
-    #[Url]
-    public bool $search_include_institutions = true;
-
-    #[Url]
-    public bool $search_include_persons = true;
-
-    #[Url]
-    public bool $search_include_references = true;
 
     /**
      * @var list<string>
@@ -657,28 +647,6 @@ class Index extends Component implements HasForms
                             ->preload()
                             ->multiple()
                             ->options(fn (): array => $this->languageOptions())
-                            ->live(),
-                    ]),
-
-                Section::make(__('Cari dalam'))
-                    ->extraAttributes(['class' => 'mi-advanced-filter-group'])
-                    ->schema([
-                        Toggle::make('search_include_institutions')
-                            ->label(__('Institusi'))
-                            ->default(true)
-                            ->extraAttributes(['data-signal-control' => 'search_include_institutions'])
-                            ->live(),
-
-                        Toggle::make('search_include_persons')
-                            ->label(__('Penceramah'))
-                            ->default(true)
-                            ->extraAttributes(['data-signal-control' => 'search_include_persons'])
-                            ->live(),
-
-                        Toggle::make('search_include_references')
-                            ->label(__('Rujukan'))
-                            ->default(true)
-                            ->extraAttributes(['data-signal-control' => 'search_include_references'])
                             ->live(),
                     ]),
 
@@ -1578,10 +1546,12 @@ class Index extends Component implements HasForms
             return true;
         });
 
-        // Boolean scope toggles must be included even when false.
-        $searchFilters['search_include_institutions'] = $filters['search_include_institutions'];
-        $searchFilters['search_include_persons'] = $filters['search_include_persons'];
-        $searchFilters['search_include_references'] = $filters['search_include_references'];
+        // The /majlis keyword search is event-focused: it matches event titles
+        // only. Institution, person, and reference discovery live on their
+        // dedicated pages (/institusi, /penceramah, /rujukan).
+        $searchFilters['search_include_institutions'] = false;
+        $searchFilters['search_include_persons'] = false;
+        $searchFilters['search_include_references'] = false;
 
         if ($filters['reference_author_search'] !== []) {
             $searchFilters['reference_author_search'] = $filters['reference_author_search'];
@@ -1673,9 +1643,6 @@ class Index extends Component implements HasForms
             'lng' => null,
             'radius_km' => 15,
             'sort' => 'time',
-            'search_include_institutions' => true,
-            'search_include_persons' => true,
-            'search_include_references' => true,
             'reference_author_search' => [],
         ];
     }
@@ -1744,9 +1711,6 @@ class Index extends Component implements HasForms
             'lng' => filled($this->lng) ? $this->lng : null,
             'radius_km' => max(1, min(1000, $this->radius_km)),
             'sort' => in_array($this->sort, ['time', 'relevance', 'distance'], true) ? $this->sort : $defaults['sort'],
-            'search_include_institutions' => $this->search_include_institutions,
-            'search_include_persons' => $this->search_include_persons,
-            'search_include_references' => $this->search_include_references,
             'reference_author_search' => $this->normalizeStringArray($this->reference_author_search),
         ];
     }
@@ -1799,9 +1763,6 @@ class Index extends Component implements HasForms
         $this->lng = $filters['lng'];
         $this->radius_km = $filters['radius_km'];
         $this->sort = $filters['sort'];
-        $this->search_include_institutions = (bool) ($filters['search_include_institutions'] ?? true);
-        $this->search_include_persons = (bool) ($filters['search_include_persons'] ?? true);
-        $this->search_include_references = (bool) ($filters['search_include_references'] ?? true);
         $this->reference_author_search = $filters['reference_author_search'];
     }
 
@@ -1895,9 +1856,6 @@ class Index extends Component implements HasForms
             'lng' => filled($normalized['lng']) ? (string) $normalized['lng'] : null,
             'radius_km' => max(1, min(1000, (int) ($normalized['radius_km'] ?? $defaults['radius_km']))),
             'sort' => $sort,
-            'search_include_institutions' => (bool) ($normalized['search_include_institutions'] ?? true),
-            'search_include_persons' => (bool) ($normalized['search_include_persons'] ?? true),
-            'search_include_references' => (bool) ($normalized['search_include_references'] ?? true),
             'reference_author_search' => $this->normalizeStringArray($normalized['reference_author_search'] ?? []),
         ];
     }

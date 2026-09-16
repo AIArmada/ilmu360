@@ -4,6 +4,7 @@ use App\Models\Reference;
 use App\Support\Search\ReferenceSearchService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -16,6 +17,8 @@ new
     class extends Component
     {
         use WithPagination;
+
+        private const MIN_SEARCH_LENGTH = 3;
 
         #[Url]
         public ?string $search = null;
@@ -33,9 +36,13 @@ new
                     ->withQueryString();
             }
 
+            if (mb_strlen($search) < self::MIN_SEARCH_LENGTH) {
+                return $this->emptyPaginator();
+            }
+
             $directMatches = $this->directSearch($search);
 
-            if ($directMatches->total() > 0 || mb_strlen($search) < 3) {
+            if ($directMatches->total() > 0) {
                 return $directMatches;
             }
 
@@ -60,7 +67,13 @@ new
                 ->withCount(['events' => function (Builder $query): void {
                     $query->active();
                 }])
-                ->with('media');
+                // Cards only read front/back covers, so skip the gallery
+                // collection instead of loading every media row per page.
+                ->with([
+                    'media' => function (MorphMany $relation): void {
+                        $relation->whereIn('collection_name', ['front_cover', 'back_cover']);
+                    },
+                ]);
 
             if (! $includeParts) {
                 $query->root();
@@ -132,7 +145,10 @@ new
                 return [];
             }
 
-            $scopedIds = $this->baseReferencesQuery(includeParts: true)
+            // Lean scope check: same active visibility as the card query
+            // but without the events_count subselect and media eager load.
+            $scopedIds = Reference::query()
+                ->active()
                 ->whereIn('references.id', $orderedIds)
                 ->pluck('references.id')
                 ->map(static fn (mixed $id): string => (string) $id)
@@ -190,13 +206,6 @@ new
 @section('og_image_width', '1024')
 @section('og_image_height', '1024')
 
-@php
-    $references = $this->references;
-    $search = $this->search;
-    $referenceTotal = $references->total();
-    $referenceLoadingTarget = 'search,clearSearch';
-@endphp
-
 <div class="relative min-h-screen">
     <div class="relative pt-12 pb-16 bg-white border-b border-slate-100 overflow-hidden">
         <div class="absolute inset-0 bg-emerald-50/50"></div>
@@ -212,43 +221,44 @@ new
             </p>
 
             <div class="mx-auto mt-8 max-w-xl">
-                <div class="group relative">
-                    <label for="reference-search" class="sr-only">{{ __('Search references') }}</label>
-                    <input
-                        type="text"
-                        id="reference-search"
-                        wire:model.live.debounce.300ms="search"
-                        wire:keydown.escape="clearSearch"
-                        placeholder="{{ __('Search references...') }}"
-                        class="h-14 w-full rounded-2xl border-2 border-slate-200 bg-white py-0 pl-12 pr-4 font-medium text-slate-900 shadow-lg shadow-slate-200/60 transition-all placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-500/10"
-                    >
-                    <svg class="absolute left-4 top-1/2 h-6 w-6 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    @if(filled($search))
-                        <button
-                            type="button"
-                            wire:click="clearSearch"
-                            aria-label="{{ __('Clear search') }}"
-                            class="absolute right-3 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-red-200 bg-red-50 text-red-500 shadow-sm transition hover:border-red-300 hover:bg-red-100 hover:text-red-600 focus:outline-none focus:ring-4 focus:ring-red-500/10"
-                        >
-                            <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l8 8M14 6l-8 8" />
-                            </svg>
-                            <span class="sr-only">{{ __('Clear search') }}</span>
-                        </button>
-                    @endif
-                </div>
+                <x-ui.search-bar
+                    input-id="reference-search"
+                    model="search"
+                    :value="$search"
+                    :placeholder="__('Search references...')"
+                    :label="__('Search references')"
+                    :debounce="150"
+                    aria-controls="reference-results"
+                />
             </div>
         </div>
     </div>
 
     <div class="container mx-auto mt-12 px-6 lg:px-12">
-        <div wire:loading.delay.short wire:target="{{ $referenceLoadingTarget }}">
-            <x-ui.skeleton.institution-card-grid :items="8" columns="sm:grid-cols-2 lg:grid-cols-4" />
-        </div>
+        @island(name: 'reference-results', always: true)
+            @php
+                $references = $this->references;
+                $search = $this->search;
+                $referenceTotal = $references->total();
+                $referenceLoadingTarget = 'search,clearSearch,gotoPage,setPage,nextPage,previousPage';
+            @endphp
 
-        <div wire:loading.remove wire:target="{{ $referenceLoadingTarget }}">
+            <div
+                id="reference-results"
+                class="min-h-[32rem]"
+                wire:transition="reference-results"
+                wire:loading.class="opacity-60"
+                wire:loading.attr="aria-busy"
+                wire:target="{{ $referenceLoadingTarget }}"
+                role="region"
+                aria-label="{{ __('Reference list') }}"
+            >
+                <div wire:loading.delay.short wire:target="{{ $referenceLoadingTarget }}" role="status" aria-live="polite">
+                    <span class="sr-only">{{ __('Loading reference list…') }}</span>
+                    <x-ui.skeleton.institution-card-grid :items="12" columns="sm:grid-cols-2 lg:grid-cols-4" />
+                </div>
+
+                <div wire:loading.remove wire:target="{{ $referenceLoadingTarget }}">
             @if($references->isEmpty())
                 <div class="rounded-3xl border border-dashed border-slate-200 bg-slate-50/50 py-24 text-center">
                     <div class="mb-6 inline-flex h-20 w-20 items-center justify-center rounded-full bg-white text-slate-300 shadow-sm">
@@ -256,9 +266,19 @@ new
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                         </svg>
                     </div>
-                    <h3 class="text-xl font-bold text-slate-900">{{ __('No references found') }}</h3>
+                    <h3 class="text-xl font-bold text-slate-900">
+                        @if(filled($search) && mb_strlen(trim((string) $search)) < 3)
+                            {{ __('Continue typing to search') }}
+                        @else
+                            {{ __('No references found') }}
+                        @endif
+                    </h3>
                     <p class="mx-auto mt-2 max-w-md text-slate-500">
-                        {{ __('We couldn\'t find any references matching your search.') }}
+                        @if(filled($search) && mb_strlen(trim((string) $search)) < 3)
+                            {{ __('Type at least 3 characters to search.') }}
+                        @else
+                            {{ __('We couldn\'t find any references matching your search.') }}
+                        @endif
                     </p>
                     <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
                         <button type="button" wire:click="clearSearch" class="font-semibold text-emerald-600 hover:text-emerald-700">
@@ -339,6 +359,8 @@ new
                     </p>
                 </div>
             @endif
-        </div>
+                </div>
+            </div>
+        @endisland
     </div>
 </div>

@@ -25,7 +25,6 @@
         ->values();
     $donationChannels = $institution->donationChannels;
     $persons = $institution->persons;
-    $spaces = $institution->spaces;
     $institutionUrl = route('institutions.show', $institution);
     $shareText = trim($institution->name . ' - ' . config('app.name'));
     $shareLinks = app(\App\Services\ShareTrackingService::class)->redirectLinks(
@@ -975,24 +974,6 @@
                                             <p class="text-sm text-slate-500">{{ $person->pivot->position }}</p>
                                         @endif
                                     </div>
-                                </li>
-                            @endforeach
-                        </ul>
-                    </section>
-                @endif
-
-                @if($spaces->isNotEmpty())
-                    <section class="scroll-reveal reveal-right revealed rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
-                        <p class="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700">{{ __('Kemudahan') }}</p>
-                        <h2 class="mt-1 font-heading text-xl font-bold text-emerald-950">{{ __('Ruang') }}</h2>
-                        <ul class="mt-4 space-y-3 text-sm text-slate-700">
-                            @foreach($spaces as $space)
-                                @php $effectiveCapacity = $space->effectiveCapacity(); @endphp
-                                <li class="flex items-center justify-between gap-4">
-                                    <span class="font-medium text-slate-900">{{ $space->name }}</span>
-                                    @if($effectiveCapacity)
-                                        <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{{ $effectiveCapacity }}</span>
-                                    @endif
                                 </li>
                             @endforeach
                         </ul>
