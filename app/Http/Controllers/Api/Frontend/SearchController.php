@@ -46,6 +46,7 @@ use App\Support\PublicDiscovery\PublicDiscovery;
 use App\Support\Search\InstitutionSearchService;
 use App\Support\Search\PersonSearchService;
 use App\Support\Search\ReferenceSearchService;
+use Carbon\CarbonInterface;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\QueryParameter;
@@ -498,6 +499,9 @@ class SearchController extends FrontendController
                     'keyPeople.person',
                     'media',
                     'references' => fn ($query) => $query->active(),
+                    'primaryOccurrence',
+                    'classifications.term',
+                    'timeExpressions',
                 ])
                 ->orderBy('starts_at'),
             $upcomingPerPage,
@@ -515,6 +519,9 @@ class SearchController extends FrontendController
                     'keyPeople.person',
                     'media',
                     'references' => fn ($query) => $query->active(),
+                    'primaryOccurrence',
+                    'classifications.term',
+                    'timeExpressions',
                 ])
                 ->orderByDesc('starts_at'),
             $pastPerPage,
@@ -565,70 +572,14 @@ class SearchController extends FrontendController
         );
 
         $otherRoleUpcomingPerPage = max(1, min($request->integer('other_role_upcoming_per_page', 6), 50));
-        $otherRoleUpcomingMatches = $record->nonSpeakerEventKeyPeople()
-            ->whereHas('event', function (Builder $query) use ($now): void {
-                $query
-                    ->whereNotNull('events.published_at')
-                    ->whereIn('events.status', Event::PUBLIC_STATUSES)
-                    ->where('events.visibility', EventVisibility::Public)
-                    ->whereHas('occurrences')
-                    ->where('starts_at', '>=', $now);
-            })
-            ->get();
-
-        $otherRoleUpcomingMatches->loadMissing([
-            'event.institution',
-            'event.institution.media',
-            'event.institution.addresses.country',
-            'event.venue.addresses.country',
-            'event.media',
-            'event.references' => fn ($query) => $query->active(),
-        ]);
-
-        $otherRoleUpcomingMatches = $otherRoleUpcomingMatches
-            ->sortBy(function (EventKeyPerson $keyPerson): int {
-                $event = $keyPerson->event;
-                $startsAt = $event instanceof Event ? $event->starts_at : null;
-
-                return $startsAt instanceof \DateTimeInterface ? $startsAt->getTimestamp() : PHP_INT_MAX;
-            })
-            ->values();
-        $otherRoleUpcomingParticipations = $otherRoleUpcomingMatches
-            ->take($otherRoleUpcomingPerPage)
-            ->values();
+        $otherRoleUpcoming = $this->personParticipationPayload($record, $now, 'upcoming', $otherRoleUpcomingPerPage);
+        $otherRoleUpcomingParticipations = $otherRoleUpcoming['items'];
+        $otherRoleUpcomingTotal = $otherRoleUpcoming['total'];
 
         $otherRolePastPerPage = max(1, min($request->integer('other_role_past_per_page', 6), 50));
-        $otherRolePastMatches = $record->nonSpeakerEventKeyPeople()
-            ->whereHas('event', function (Builder $query) use ($now): void {
-                $query
-                    ->whereNotNull('events.published_at')
-                    ->whereIn('events.status', Event::PUBLIC_STATUSES)
-                    ->where('events.visibility', EventVisibility::Public)
-                    ->whereHas('occurrences')
-                    ->where('starts_at', '<', $now);
-            })
-            ->get();
-
-        $otherRolePastMatches->loadMissing([
-            'event.institution',
-            'event.institution.media',
-            'event.institution.addresses.country',
-            'event.venue.addresses.country',
-            'event.media',
-            'event.references' => fn ($query) => $query->active(),
-        ]);
-
-        $otherRolePastMatches = $otherRolePastMatches
-            ->sortByDesc(function (EventKeyPerson $keyPerson): int {
-                $event = $keyPerson->event;
-                $startsAt = $event instanceof Event ? $event->starts_at : null;
-
-                return $startsAt instanceof \DateTimeInterface ? $startsAt->getTimestamp() : 0;
-            })
-            ->values();
-        $otherRolePastParticipations = $otherRolePastMatches
-            ->take($otherRolePastPerPage)
-            ->values();
+        $otherRolePast = $this->personParticipationPayload($record, $now, 'past', $otherRolePastPerPage);
+        $otherRolePastParticipations = $otherRolePast['items'];
+        $otherRolePastTotal = $otherRolePast['total'];
 
         $upcomingPerPage = max(1, min($request->integer('upcoming_per_page', 10), 50));
         $upcomingEvents = $this->limitedEventPayloadWithTotal(
@@ -640,8 +591,12 @@ class SearchController extends FrontendController
                     'institution.media',
                     'institution.addresses.country',
                     'venue.addresses.country',
+                    'persons.media',
                     'media',
                     'references' => fn ($query) => $query->active(),
+                    'primaryOccurrence',
+                    'classifications.term',
+                    'timeExpressions',
                 ])
                 ->orderBy('starts_at'),
             $upcomingPerPage,
@@ -657,8 +612,12 @@ class SearchController extends FrontendController
                     'institution.media',
                     'institution.addresses.country',
                     'venue.addresses.country',
+                    'persons.media',
                     'media',
                     'references' => fn ($query) => $query->active(),
+                    'primaryOccurrence',
+                    'classifications.term',
+                    'timeExpressions',
                 ])
                 ->orderByDesc('starts_at'),
             $pastPerPage,
@@ -674,11 +633,11 @@ class SearchController extends FrontendController
                 'other_role_upcoming_participations' => $otherRoleUpcomingParticipations
                     ->map(fn (EventKeyPerson $keyPerson): array => $this->eventParticipationData($keyPerson))
                     ->all(),
-                'other_role_upcoming_total' => $otherRoleUpcomingMatches->count(),
+                'other_role_upcoming_total' => $otherRoleUpcomingTotal,
                 'other_role_past_participations' => $otherRolePastParticipations
                     ->map(fn (EventKeyPerson $keyPerson): array => $this->eventParticipationData($keyPerson))
                     ->all(),
-                'other_role_past_total' => $otherRolePastMatches->count(),
+                'other_role_past_total' => $otherRolePastTotal,
             ],
         ]);
     }
@@ -720,6 +679,9 @@ class SearchController extends FrontendController
                     'keyPeople.person.media',
                     'media',
                     'references' => fn ($query) => $query->active(),
+                    'primaryOccurrence',
+                    'classifications.term',
+                    'timeExpressions',
                 ])
                 ->orderBy('starts_at'),
             $upcomingPerPage,
@@ -737,6 +699,9 @@ class SearchController extends FrontendController
                     'keyPeople.person.media',
                     'media',
                     'references' => fn ($query) => $query->active(),
+                    'primaryOccurrence',
+                    'classifications.term',
+                    'timeExpressions',
                 ])
                 ->orderByDesc('starts_at'),
             $pastPerPage,
@@ -859,6 +824,9 @@ class SearchController extends FrontendController
                     'venue.addresses.country',
                     'media',
                     'references' => fn ($query) => $query->active(),
+                    'primaryOccurrence',
+                    'classifications.term',
+                    'timeExpressions',
                 ])
                 ->orderBy('starts_at', 'asc'),
             $upcomingPerPage,
@@ -881,6 +849,9 @@ class SearchController extends FrontendController
                     'venue.addresses.country',
                     'media',
                     'references' => fn ($query) => $query->active(),
+                    'primaryOccurrence',
+                    'classifications.term',
+                    'timeExpressions',
                 ])
                 ->orderByDesc('starts_at'),
             $pastPerPage,
@@ -926,7 +897,12 @@ class SearchController extends FrontendController
                     'institution',
                     'institution.addresses.country',
                     'venue.addresses.country',
+                    'persons.media',
                     'media',
+                    'references' => fn ($query) => $query->active(),
+                    'primaryOccurrence',
+                    'classifications.term',
+                    'timeExpressions',
                 ])
                 ->orderBy('starts_at', 'asc'),
             $upcomingPerPage,
@@ -941,7 +917,12 @@ class SearchController extends FrontendController
                     'institution',
                     'institution.addresses.country',
                     'venue.addresses.country',
+                    'persons.media',
                     'media',
+                    'references' => fn ($query) => $query->active(),
+                    'primaryOccurrence',
+                    'classifications.term',
+                    'timeExpressions',
                 ])
                 ->orderByDesc('starts_at'),
             $pastPerPage,
@@ -965,6 +946,65 @@ class SearchController extends FrontendController
      * @param  Builder<Event>|HasMany<Event, TDeclaringModel>|BelongsToMany<Event, TDeclaringModel, TPivot, 'pivot'>  $query
      * @return array{items: list<array<string, mixed>>, total: int}
      */
+    /**
+     * @return array{items: Collection<int, EventKeyPerson>, total: int}
+     */
+    private function personParticipationPayload(Person $record, CarbonInterface $now, string $direction, int $perPage): array
+    {
+        $involvementsTable = (new EventKeyPerson)->getTable();
+        $occurrencesTable = config('events.database.tables.event_occurrences', 'event_occurrences');
+
+        $query = $record->nonSpeakerEventKeyPeople()
+            ->whereHas('event', function (Builder $query) use ($now, $direction): void {
+                $query
+                    ->whereNotNull('events.published_at')
+                    ->whereIn('events.status', Event::PUBLIC_STATUSES)
+                    ->where('events.visibility', EventVisibility::Public)
+                    ->whereHas('occurrences');
+
+                if ($direction === 'upcoming') {
+                    $query->where('starts_at', '>=', $now);
+                } else {
+                    $query->where('starts_at', '<', $now);
+                }
+            });
+
+        $total = (clone $query)->count();
+
+        /** @var Collection<int, EventKeyPerson> $matches */
+        $matches = $query
+            ->select("{$involvementsTable}.*")
+            ->selectSub(function ($query) use ($occurrencesTable, $involvementsTable): void {
+                $query->select("{$occurrencesTable}.starts_at")
+                    ->from($occurrencesTable)
+                    ->whereColumn("{$occurrencesTable}.event_id", "{$involvementsTable}.event_id")
+                    ->orderBy("{$occurrencesTable}.starts_at")
+                    ->orderBy("{$occurrencesTable}.created_at")
+                    ->orderBy("{$occurrencesTable}.id")
+                    ->limit(1);
+            }, '__ordered_starts_at')
+            ->with([
+                'event.primaryOccurrence',
+                'event.classifications.term',
+                'event.timeExpressions',
+                'event.institution',
+                'event.institution.media',
+                'event.institution.addresses.country',
+                'event.venue.addresses.country',
+                'event.persons.media',
+                'event.media',
+                'event.references' => fn ($query) => $query->active(),
+            ])
+            ->reorder()
+            ->orderBy('__ordered_starts_at', $direction === 'upcoming' ? 'asc' : 'desc')
+            ->orderBy("{$involvementsTable}.sort_order")
+            ->orderBy("{$involvementsTable}.id")
+            ->take($perPage)
+            ->get();
+
+        return ['items' => $matches, 'total' => $total];
+    }
+
     private function limitedEventPayloadWithTotal(Builder|HasMany|BelongsToMany $query, int $perPage): array
     {
         /** @var Collection<int, Event> $limitedEvents */

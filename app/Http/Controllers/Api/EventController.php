@@ -465,6 +465,9 @@ class EventController extends Controller
             'persons.media' => fn ($query) => $query->where('collection_name', 'avatar'),
             'media' => fn ($query) => $query->where('collection_name', 'poster'),
             'references' => fn ($query) => $query->active(),
+            'primaryOccurrence',
+            'classifications.term',
+            'timeExpressions',
         ]))
             ->allowedFilters(...$allowedFilters)
             ->allowedIncludes(...$allowedIncludes)
@@ -540,6 +543,9 @@ class EventController extends Controller
             'addresses.country',
             'media',
             'references' => fn ($query) => $query->active()->with('media'),
+            'primaryOccurrence',
+            'classifications.term',
+            'timeExpressions',
         ]))
             ->allowedIncludes(...$allowedIncludes)
             ->whereKey($event->getKey())

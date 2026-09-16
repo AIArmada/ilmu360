@@ -99,16 +99,21 @@ final class OrganizationController extends FrontendController
         $selected = $organizations->first(fn (Organization $organization): bool => $organization->is($selectedContext));
         abort_unless($selected instanceof Organization, 403);
 
+        $membersQuery = $selected->members()->orderBy('name');
+        $membersTotal = (clone $membersQuery)->count();
+        $members = $membersQuery->take(100)->get()->map(fn (Model $member): array => [
+            'id' => $member->getKey(),
+            'name' => $member->getAttribute('name'),
+            'email' => $member->getAttribute('email'),
+            'role' => data_get($member->getRelationValue('pivot'), 'role'),
+        ])->all();
+
         return response()->json([
             'data' => [
                 'organizations' => $organizations->map(fn (Organization $organization): array => $this->workspacePayload($organization))->all(),
                 'selected_organization' => $this->workspacePayload($selected),
-                'members' => $selected->members()->get()->map(fn (Model $member): array => [
-                    'id' => $member->getKey(),
-                    'name' => $member->getAttribute('name'),
-                    'email' => $member->getAttribute('email'),
-                    'role' => data_get($member->getRelationValue('pivot'), 'role'),
-                ])->all(),
+                'members' => $members,
+                'members_total' => $membersTotal,
             ],
         ]);
     }

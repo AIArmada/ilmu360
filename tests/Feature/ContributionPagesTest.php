@@ -944,6 +944,86 @@ it('lets a visitor submit an event update without the normally required event fi
     expect(ContributionRequest::query()->where('entity_id', $event->getKey())->count())->toBe(1);
 });
 
+it('accepts an untouched multi-day event schedule when a visitor updates other fields', function () {
+    $visitor = User::factory()->create();
+    $institution = Institution::factory()->create([
+        'status' => 'verified',
+    ]);
+    $startsAt = now()->addDays(3)->setTime(20, 0);
+    $event = Event::factory()->for($institution)->create([
+        'title' => 'Majlis Rentas Hari',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subMinute(),
+        'event_category_ids' => [eventCategoryId('komuniti_kebajikan')],
+        'institution_id' => $institution->id,
+        'description' => 'Original description',
+        'starts_at' => $startsAt,
+        'ends_at' => $startsAt->copy()->addDays(3)->subMinutes(10),
+        'timing_mode' => 'absolute',
+    ]);
+    $event->setPrimaryOrganizer($institution);
+
+    Livewire::actingAs($visitor)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Event->publicRouteSegment(),
+            'subjectId' => $event->slug,
+        ])
+        ->set('data.description', 'Updated event description')
+        ->set('data.proposer_note', 'Saya mahu kemaskini penerangan')
+        ->call('submit')
+        ->assertHasNoFormErrors()
+        ->assertRedirect(route('contributions.index'));
+
+    $request = ContributionRequest::query()->where('entity_id', $event->getKey())->first();
+
+    expect($request)->not->toBeNull()
+        ->and($request->proposed_data)->toHaveKey('description')
+        ->and($request->proposed_data)->not->toHaveKeys(['starts_at', 'ends_at']);
+});
+
+it('keeps a prayer-relative event schedule unchanged when a visitor updates other fields', function () {
+    $reviewer = User::factory()->create();
+    $visitor = User::factory()->create();
+    $institution = Institution::factory()->create([
+        'status' => 'verified',
+    ]);
+    $startsAt = CarbonImmutable::parse('2027-03-20 20:00:00', 'Asia/Kuala_Lumpur')->utc();
+    $event = Event::factory()->for($institution)->kuliahMaghrib()->create([
+        'title' => 'Kuliah Maghrib Penerangan',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subMinute(),
+        'event_category_ids' => [eventCategoryId('komuniti_kebajikan')],
+        'institution_id' => $institution->id,
+        'description' => 'Original description',
+        'starts_at' => $startsAt,
+    ]);
+    $event->setPrimaryOrganizer($institution);
+
+    Livewire::actingAs($visitor)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Event->publicRouteSegment(),
+            'subjectId' => $event->slug,
+        ])
+        ->set('data.description', 'Updated event description')
+        ->set('data.proposer_note', 'Saya mahu kemaskini penerangan')
+        ->call('submit')
+        ->assertHasNoFormErrors()
+        ->assertRedirect(route('contributions.index'));
+
+    $request = ContributionRequest::query()->where('entity_id', $event->getKey())->latest()->first();
+
+    expect($request)->not->toBeNull()
+        ->and($request->proposed_data)->toHaveKey('description')
+        ->and($request->proposed_data)->not->toHaveKeys(['starts_at', 'ends_at', 'timezone']);
+
+    app(ApproveContributionRequestAction::class)->handle($request->fresh(), $reviewer);
+
+    expect($event->fresh()->starts_at?->utc()->toDateTimeString())->toBe($startsAt->toDateTimeString())
+        ->and($event->fresh()->timezone)->toBe('Asia/Kuala_Lumpur');
+});
+
 it('exposes event media upload fields to public contributors for moderated submission', function () {
     $visitor = User::factory()->create();
     $institution = Institution::factory()->create([

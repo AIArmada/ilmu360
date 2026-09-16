@@ -2,11 +2,14 @@
 
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
+use AIArmada\Membership\Enums\MemberRole;
 use App\Enums\EventTaxonomyCode;
 use App\Enums\MemberSubjectType;
 use App\Models\Institution;
 use App\Models\Reference;
+use App\Models\User;
 use App\Models\Venue;
+use Laravel\Sanctum\Sanctum;
 
 it('requires an explicit country for public states catalog options', function () {
     $malaysia = ensureTestMalaysiaCountry();
@@ -151,4 +154,71 @@ it('returns 404 for the removed tags catalog alias', function () {
     submitEventTerm(EventTaxonomyCode::Domain->value);
 
     $this->getJson('/api/v1/catalogs/tags/'.EventTaxonomyCode::Domain->value)->assertNotFound();
+});
+
+it('lists administrative districts for an explicit state', function () {
+    $country = ensureTestMalaysiaCountry();
+    $geo = createTestPackageGeography('Selangor', 'Petaling', 'Shah Alam', country: $country);
+
+    $response = $this->getJson(route('api.client.catalogs.administrative-districts', ['state_id' => $geo['state']->getKey()]))
+        ->assertOk();
+
+    expect(collect($response->json('data'))->pluck('id')->all())
+        ->toContain((string) $geo['district']->getKey());
+});
+
+it('lists institution role options for authenticated clients', function () {
+    Sanctum::actingAs(User::factory()->create());
+
+    $response = $this->getJson(route('api.client.catalogs.institution-roles'))
+        ->assertOk();
+
+    expect($response->json('data'))->toHaveKey(MemberRole::Owner->value);
+});
+
+it('requires authentication for institution role options', function () {
+    $this->getJson(route('api.client.catalogs.institution-roles'))
+        ->assertUnauthorized();
+});
+
+it('lists only verified institutions in the prayer institutions catalog', function () {
+    $verified = Institution::factory()->create([
+        'name' => 'Prayer Catalog Masjid',
+        'status' => 'verified',
+    ]);
+    $pending = Institution::factory()->create([
+        'name' => 'Prayer Catalog Pending Surau',
+        'status' => 'pending',
+    ]);
+
+    $response = $this->getJson(route('api.client.catalogs.prayer-institutions', ['q' => 'Prayer Catalog']))
+        ->assertOk();
+
+    $ids = collect($response->json('data'))->pluck('id')->all();
+
+    expect($ids)
+        ->toContain((string) $verified->getKey())
+        ->not->toContain((string) $pending->getKey());
+});
+
+it('lists submittable institutions in the submit institutions catalog', function () {
+    $open = Institution::factory()->create([
+        'name' => 'Submit Catalog Open Madrasah',
+        'status' => 'verified',
+        'allow_public_event_submission' => true,
+    ]);
+    $closed = Institution::factory()->create([
+        'name' => 'Submit Catalog Closed Madrasah',
+        'status' => 'verified',
+        'allow_public_event_submission' => false,
+    ]);
+
+    $response = $this->getJson(route('api.client.catalogs.submit-institutions', ['q' => 'Submit Catalog']))
+        ->assertOk();
+
+    $ids = collect($response->json('data'))->pluck('id')->all();
+
+    expect($ids)
+        ->toContain((string) $open->getKey())
+        ->not->toContain((string) $closed->getKey());
 });

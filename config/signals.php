@@ -278,4 +278,10 @@ return [
             ],
         ],
     ],
+
+    'http' => [
+        'prefix' => 'api/v1/signals',
+        'middleware' => ['api'],
+        'tracker_script' => 'tracker.js',
+    ],
 ];

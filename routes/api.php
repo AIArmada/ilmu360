@@ -120,7 +120,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/references', [SearchController::class, 'references'])->name('references.index');
         Route::get('/references/{referenceKey}', [SearchController::class, 'showReference'])->name('references.show');
         Route::get('/series/{series}', [SearchController::class, 'showSeries'])->name('series.show');
-        Route::post('/submit-event', [EventSubmissionController::class, 'store'])->name('submit-event.store');
+        Route::post('/submit-event', [EventSubmissionController::class, 'store'])
+            ->middleware('throttle:event-submission')
+            ->name('submit-event.store');
     });
 
     // Events API with query builder

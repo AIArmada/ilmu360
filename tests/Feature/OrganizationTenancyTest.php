@@ -47,6 +47,21 @@ it('only exposes public organizations from the public directory', function (): v
     expect(collect($response->json('data'))->pluck('name'))->not->toContain($private->name);
 });
 
+it('shows a public organization through the public directory', function (): void {
+    $owner = User::factory()->create();
+    $public = CreateOrganizationAction::make()->handle($owner, ['name' => 'Showcase Circle']);
+    MakeOrganizationPublicAction::make()->handle($public, $owner);
+    $private = CreateOrganizationAction::make()->handle($owner, ['name' => 'Hidden Circle']);
+
+    $this->getJson(route('api.client.organizations.show', ['organizationKey' => $public->slug]))
+        ->assertOk()
+        ->assertJsonPath('data.name', 'Showcase Circle')
+        ->assertJsonPath('data.slug', $public->slug);
+
+    $this->getJson(route('api.client.organizations.show', ['organizationKey' => $private->slug]))
+        ->assertNotFound();
+});
+
 it('establishes the selected organization context for workspace requests', function (): void {
     $owner = User::factory()->create();
     $organization = CreateOrganizationAction::make()->handle($owner, ['name' => 'Workspace Circle']);

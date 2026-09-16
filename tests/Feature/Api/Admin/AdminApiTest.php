@@ -1,6 +1,7 @@
 <?php
 
 use AIArmada\Addressing\Models\AddressAreaStateLink;
+use AIArmada\Addressing\Models\City;
 use AIArmada\Authz\Models\Role;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Enums\RegistrationMode as PackageRegistrationMode;
@@ -2738,6 +2739,25 @@ it('lists admin geography catalogs and exposes catalog metadata through admin wr
     $addressAreaCatalogs = collect(is_array($addressAreaSchema) ? $addressAreaSchema : [])->keyBy('field');
 
     expect($addressAreaCatalogs->get('country_id')['endpoint'] ?? null)->toBe('/api/v1/admin/catalogs/countries');
+});
+
+it('lists admin city catalog options scoped by state', function () {
+    $admin = adminApiUser('super_admin');
+    Sanctum::actingAs($admin);
+
+    $fixtures = ensureAdminApiSubdistrictFixtures();
+    $city = City::query()->create([
+        'state_id' => $fixtures['state_id'],
+        'country_id' => $fixtures['country_id'],
+        'name' => 'Admin API Catalog City',
+    ]);
+
+    $this->getJson('/api/v1/admin/catalogs/cities?state_id='.$fixtures['state_id'])
+        ->assertOk()
+        ->assertJsonFragment([
+            'id' => (string) $city->getKey(),
+            'label' => 'Admin API Catalog City',
+        ]);
 });
 
 it('exposes admin reference write schema and can create and update references through the api', function () {

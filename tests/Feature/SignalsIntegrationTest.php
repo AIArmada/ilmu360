@@ -1,6 +1,8 @@
 <?php
 
 use AIArmada\Signals\Models\SignalEvent;
+use AIArmada\Signals\Models\SignalIdentity;
+use AIArmada\Signals\Models\SignalSession;
 use AIArmada\Signals\Models\TrackedProperty;
 use AIArmada\Signals\SignalsServiceProvider;
 use App\Enums\DawahShareOutcomeType;
@@ -44,7 +46,7 @@ it('renders the inline signal event hooks used by the package tracker', function
     $this->get(route('home'))
         ->assertSuccessful()
         ->assertSee('data-signals-tracker', false)
-        ->assertSee('/api/signals/collect/browser-event', false)
+        ->assertSee('/api/v1/signals/collect/browser-event', false)
         ->assertSee('data-signal-submit-event="search.submitted"', false)
         ->assertSee('data-signal-event="search.nearby_requested"', false)
         ->assertSee('data-signal-event="navigation.quick_filter_clicked"', false)
@@ -83,7 +85,7 @@ it('accepts signals page view ingestion for the default tracked property', funct
     $trackedProperty = TrackedProperty::query()->firstOrFail();
     expect(app('router')->has('signals.collect.pageview'))->toBeTrue();
 
-    $this->postJson('/api/signals/collect/pageview', [
+    $this->postJson('/api/v1/signals/collect/pageview', [
         'write_key' => $trackedProperty->write_key,
         'session_identifier' => 'session-test-1',
         'path' => '/majlis',
@@ -167,4 +169,79 @@ it('does not break affiliate-backed outcomes when signals ingestion fails', func
 
     expect($outcome)->not->toBeNull();
     expect($outcome?->outcomeType)->toBe(DawahShareOutcomeType::EventSave->value);
+});
+
+it('accepts signals identity ingestion for the default tracked property', function () {
+    $trackedProperty = TrackedProperty::query()->firstOrFail();
+
+    $this->postJson('/api/v1/signals/collect/identify', [
+        'write_key' => $trackedProperty->write_key,
+        'external_id' => 'user-ext-1',
+        'email' => 'signals-identify@example.test',
+    ], ['Origin' => url('/')])->assertAccepted()
+        ->assertJsonPath('status', 'ok');
+
+    expect(SignalIdentity::query()
+        ->where('tracked_property_id', $trackedProperty->id)
+        ->where('external_id', 'user-ext-1')
+        ->exists())->toBeTrue();
+});
+
+it('captures signals geolocation for a known session', function () {
+    $trackedProperty = TrackedProperty::query()->firstOrFail();
+
+    $this->postJson('/api/v1/signals/collect/pageview', [
+        'write_key' => $trackedProperty->write_key,
+        'session_identifier' => 'session-geo-1',
+        'path' => '/majlis',
+        'url' => url('/majlis'),
+        'title' => 'Majlis',
+    ])->assertAccepted();
+
+    $this->postJson('/api/v1/signals/collect/geo', [
+        'write_key' => $trackedProperty->write_key,
+        'session_identifier' => 'session-geo-1',
+        'latitude' => 3.139,
+        'longitude' => 101.6869,
+        'accuracy' => 25,
+    ], ['Origin' => url('/')])->assertAccepted()
+        ->assertJsonPath('status', 'ok');
+
+    $session = SignalSession::query()->where('session_identifier', 'session-geo-1')->firstOrFail();
+
+    expect((float) $session->latitude)->toEqual(3.139)
+        ->and((float) $session->longitude)->toEqual(101.6869)
+        ->and($session->geolocation_source)->toBe('browser');
+});
+
+it('accepts signed trusted server outcomes', function () {
+    $trackedProperty = TrackedProperty::query()->firstOrFail();
+    config()->set('signals.ingestion.trusted.secret', 'test-trusted-secret');
+
+    $payload = [
+        'write_key' => $trackedProperty->write_key,
+        'event_name' => 'purchase.completed',
+        'event_category' => 'conversion',
+        'idempotency_key' => 'test-outcome-1',
+        'transaction_id' => 'txn-1',
+        'revenue_minor' => 1999,
+        'currency' => 'MYR',
+    ];
+    $content = (string) json_encode($payload);
+    $timestamp = (string) time();
+    $signature = hash_hmac('sha256', $timestamp.'.'.$content, 'test-trusted-secret');
+
+    $response = $this->call('POST', '/api/v1/signals/collect/server-outcome', [], [], [], [
+        'CONTENT_TYPE' => 'application/json',
+        'HTTP_ACCEPT' => 'application/json',
+        'HTTP_X-Signals-Timestamp' => $timestamp,
+        'HTTP_X-Signals-Signature' => 'sha256='.$signature,
+    ], $content);
+
+    $response->assertAccepted();
+
+    expect(SignalEvent::query()
+        ->where('event_name', 'purchase.completed')
+        ->where('tracked_property_id', $trackedProperty->id)
+        ->exists())->toBeTrue();
 });

@@ -1,9 +1,12 @@
 <?php
 
+use App\Models\Event;
+use App\Models\EventKeyPerson;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 
 it('resolves public directory detail endpoints by uuid', function (string $resource): void {
@@ -89,4 +92,66 @@ it('requires coordinates for the nearby institution alias', function (): void {
         ->assertUnprocessable()
         ->assertJsonPath('error.code', 'validation_error')
         ->assertJsonPath('error.details.fields.near.0', 'Provide `near=lat,lng` or both `lat` and `lng` to use the nearby institution endpoint.');
+});
+
+it('bounds person detail participation queries regardless of participation count', function (): void {
+    $person = null;
+
+    withGlobalOwnerContext(function () use (&$person): void {
+        $person = Person::factory()->create(['status' => 'verified']);
+
+        foreach (range(1, 10) as $offset) {
+            $upcoming = Event::factory()->create([
+                'status' => 'approved',
+                'visibility' => 'public',
+                'published_at' => now(),
+                'starts_at' => now()->addDays($offset),
+                'ends_at' => now()->addDays($offset)->addHours(2),
+            ]);
+            EventKeyPerson::factory()->create([
+                'event_id' => $upcoming->getKey(),
+                'involveable_type' => 'person',
+                'involveable_id' => $person->getKey(),
+                'role_code' => 'moderator',
+                'visibility' => 'public',
+                'sort_order' => 1,
+            ]);
+
+            $past = Event::factory()->create([
+                'status' => 'approved',
+                'visibility' => 'public',
+                'published_at' => now(),
+                'starts_at' => now()->subDays($offset),
+                'ends_at' => now()->subDays($offset)->addHours(2),
+            ]);
+            EventKeyPerson::factory()->create([
+                'event_id' => $past->getKey(),
+                'involveable_type' => 'person',
+                'involveable_id' => $person->getKey(),
+                'role_code' => 'moderator',
+                'visibility' => 'public',
+                'sort_order' => 1,
+            ]);
+        }
+    });
+
+    DB::flushQueryLog();
+    DB::enableQueryLog();
+
+    $this->getJson(route('api.client.persons.show', ['personKey' => $person->getKey()]))
+        ->assertOk()
+        ->assertJsonPath('data.other_role_upcoming_total', 10)
+        ->assertJsonPath('data.other_role_past_total', 10)
+        ->assertJsonCount(6, 'data.other_role_upcoming_participations')
+        ->assertJsonCount(6, 'data.other_role_past_participations');
+
+    $queryLog = collect(DB::getQueryLog());
+    $involvementFetches = $queryLog
+        ->filter(fn (array $query): bool => str_contains($query['query'], 'event_involvements')
+            && ! str_contains($query['query'], 'exists'));
+    $occurrenceQueries = $queryLog
+        ->filter(fn (array $query): bool => str_contains($query['query'], 'event_occurrences'));
+
+    expect($involvementFetches)->toHaveCount(4)
+        ->and($occurrenceQueries->count())->toBeLessThanOrEqual(12);
 });

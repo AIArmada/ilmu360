@@ -160,6 +160,8 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 $formState = $this->eventComparableState($formState);
             }
 
+            $this->originalData = $formState;
+
             $this->contributionForm()->fill($formState);
         });
     }
@@ -354,7 +356,13 @@ class SuggestUpdate extends Component implements HasActions, HasForms
 
     private function fixedEventTimezone(): ?string
     {
-        return config('app.timezone', 'UTC');
+        $timezone = $this->entity instanceof Event ? $this->entity->timezone : null;
+
+        if (is_string($timezone) && $timezone !== '') {
+            return $timezone;
+        }
+
+        return config('app.default_user_timezone', config('app.timezone', 'UTC'));
     }
 
     /**
@@ -896,6 +904,8 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             && $state['event_date'] !== ($this->originalData['event_date'] ?? null)
         ) {
             $state['end_date'] = null;
+        } elseif (! array_key_exists('end_date', $state)) {
+            $state['end_date'] = $this->originalData['end_date'] ?? null;
         }
 
         return EventContributionUpdateStateMapper::toPersistenceState($state);

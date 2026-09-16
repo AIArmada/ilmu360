@@ -26,7 +26,7 @@ abstract class FrontendController extends Controller
     {
         $user = $this->currentUser($request);
 
-        abort_unless($user instanceof User, 403);
+        abort_unless($user instanceof User, 401);
 
         return $user;
     }
