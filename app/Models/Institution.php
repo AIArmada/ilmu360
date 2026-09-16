@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use AIArmada\Addressing\Traits\HasAddresses;
+use AIArmada\CommerceSupport\Concerns\ParsesPostgresTimestamps;
 use AIArmada\Contacting\Concerns\HasContactMethods;
 use AIArmada\Contacting\Concerns\HasSocialProfiles;
 use AIArmada\Engagement\Contracts\Followable;
@@ -46,7 +47,7 @@ class Institution extends Model implements AuditableContract, Followable, HasMed
      * @use HasFactory<InstitutionFactory>
      * @use HasMembers<User>
      */
-    use AuditsModelChanges, HasAddresses, HasContactMethods, HasDonationChannels, HasFactory, HasLanguages, HasMembers, HasSocialProfiles, HasUuids, InteractsWithMedia, KeepsDeletedModels, Searchable;
+    use AuditsModelChanges, HasAddresses, HasContactMethods, HasDonationChannels, HasFactory, HasLanguages, HasMembers, HasSocialProfiles, HasUuids, InteractsWithMedia, KeepsDeletedModels, ParsesPostgresTimestamps, Searchable;
 
     public $incrementing = false;
 
