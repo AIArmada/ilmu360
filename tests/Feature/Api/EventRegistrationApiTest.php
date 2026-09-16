@@ -92,18 +92,6 @@ it('rejects guest registration without email or phone', function () {
         ->assertJsonValidationErrors(['contact']);
 });
 
-it('allows registration for unlisted events when registration is enabled', function () {
-    $event = registrationReadyEvent([
-        'visibility' => EventVisibility::Unlisted,
-    ]);
-
-    $this->postJson(route('api.events.registrations.store', $event), [
-        'name' => 'Unlisted Registrant',
-        'email' => 'unlisted@example.test',
-    ])->assertCreated()
-        ->assertJsonPath('data.event_id', $event->id);
-});
-
 it('rejects ticketless api registration when a public ticket is configured', function (): void {
     $event = registrationReadyEvent();
     $event->ticketTypes()->create([

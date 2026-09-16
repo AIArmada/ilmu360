@@ -80,6 +80,9 @@ pest()->extend(TestCase::class)
         File::ensureDirectoryExists($mediaTemporaryPath);
         config()->set('view.compiled', $compiledViewPath);
         config()->set('media-library.temporary_directory_path', $mediaTemporaryPath);
+        // Optimizer binaries add per-conversion process overhead in tests and
+        // no test asserts optimizer output.
+        config()->set('media-library.image_optimizers', []);
 
         if (app()->resolved('blade.compiler')) {
             $compiler = app('blade.compiler');

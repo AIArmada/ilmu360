@@ -101,7 +101,8 @@ it('allows registration for unlisted events when registration is enabled', funct
             'email' => 'unlisted@example.com',
         ]);
 
-    $response->assertCreated();
+    $response->assertCreated()
+        ->assertJsonPath('data.event_id', $event->id);
 
     $registration = Registration::query()
         ->where('event_id', $event->id)

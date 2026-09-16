@@ -77,180 +77,30 @@ it('uses canonical state and city names when person slug text is absent', functi
     ]))->toBe('penceramah-canonical-lokasi-shah-alam-selangor-my');
 });
 
-it('generates slugs based on name only (titles no longer assigned on create)', function () {
+it('generates slugs from the name alone without auto-assigning titles', function () {
     $proposer = User::factory()->create();
     $country = createPersonSlugCountry();
 
-    $person = app(ContributionEntityMutationService::class)->createPerson([
-        'name' => 'Ahmad Fauzi',
-        'gender' => 'male',
-        'address' => [
-            'country_id' => (string) $country->getKey(),
-        ],
-    ], $proposer);
+    $cases = [
+        ['Ahmad Fauzi', 'male', 'ahmad-fauzi-my'],
+        ['Azhar Sulaiman', 'male', 'azhar-sulaiman-my'],
+        ['Ali Zainal Abidin', 'male', 'ali-zainal-abidin-my'],
+        ['Othman Hamzah', 'male', 'othman-hamzah-my'],
+        ['Mimi Haryani', 'female', 'mimi-haryani-my'],
+    ];
 
-    expect($person->formatted_name)->toBe('Ahmad Fauzi')
-        ->and($person->slug)->toBe('ahmad-fauzi-my');
-});
+    foreach ($cases as [$name, $gender, $expectedSlug]) {
+        $person = app(ContributionEntityMutationService::class)->createPerson([
+            'name' => $name,
+            'gender' => $gender,
+            'address' => [
+                'country_id' => (string) $country->getKey(),
+            ],
+        ], $proposer);
 
-it('generates slug from name alone when no title assignments exist', function () {
-    $proposer = User::factory()->create();
-    $country = createPersonSlugCountry();
-
-    $person = app(ContributionEntityMutationService::class)->createPerson([
-        'name' => 'Ahmad Fauzi',
-        'gender' => 'male',
-        'address' => [
-            'country_id' => (string) $country->getKey(),
-        ],
-    ], $proposer);
-
-    expect($person->formatted_name)->toBe('Ahmad Fauzi')
-        ->and($person->slug)->toBe('ahmad-fauzi-my');
-});
-
-it('generates slug from name alone (full professor titles not auto-assigned)', function () {
-    $proposer = User::factory()->create();
-    $country = createPersonSlugCountry();
-
-    $person = app(ContributionEntityMutationService::class)->createPerson([
-        'name' => 'Azhar Sulaiman',
-        'gender' => 'male',
-        'address' => [
-            'country_id' => (string) $country->getKey(),
-        ],
-    ], $proposer);
-
-    expect($person->formatted_name)->toBe('Azhar Sulaiman')
-        ->and($person->slug)->toBe('azhar-sulaiman-my');
-});
-
-it('generates slug from name alone (associate professor titles not auto-assigned)', function () {
-    $proposer = User::factory()->create();
-    $country = createPersonSlugCountry();
-
-    $person = app(ContributionEntityMutationService::class)->createPerson([
-        'name' => 'Azhar Sulaiman',
-        'gender' => 'male',
-        'address' => [
-            'country_id' => (string) $country->getKey(),
-        ],
-    ], $proposer);
-
-    expect($person->formatted_name)->toBe('Azhar Sulaiman')
-        ->and($person->slug)->toBe('azhar-sulaiman-my');
-});
-
-it('generates slug from name alone (religious prefixes not auto-assigned)', function () {
-    $proposer = User::factory()->create();
-    $country = createPersonSlugCountry();
-
-    $person = app(ContributionEntityMutationService::class)->createPerson([
-        'name' => 'Ahmad Fauzi',
-        'gender' => 'male',
-        'address' => [
-            'country_id' => (string) $country->getKey(),
-        ],
-    ], $proposer);
-
-    expect($person->formatted_name)->toBe('Ahmad Fauzi')
-        ->and($person->slug)->toBe('ahmad-fauzi-my');
-});
-
-it('generates slug from name alone (habib not auto-assigned)', function () {
-    $proposer = User::factory()->create();
-    $country = createPersonSlugCountry();
-
-    $person = app(ContributionEntityMutationService::class)->createPerson([
-        'name' => 'Ali Zainal Abidin',
-        'gender' => 'male',
-        'address' => [
-            'country_id' => (string) $country->getKey(),
-        ],
-    ], $proposer);
-
-    expect($person->formatted_name)->toBe('Ali Zainal Abidin')
-        ->and($person->slug)->toBe('ali-zainal-abidin-my');
-});
-
-it('generates slug from name alone (maulana not auto-assigned)', function () {
-    $proposer = User::factory()->create();
-    $country = createPersonSlugCountry();
-
-    $person = app(ContributionEntityMutationService::class)->createPerson([
-        'name' => 'Ahmad Fauzi',
-        'gender' => 'male',
-        'address' => [
-            'country_id' => (string) $country->getKey(),
-        ],
-    ], $proposer);
-
-    expect($person->formatted_name)->toBe('Ahmad Fauzi')
-        ->and($person->slug)->toBe('ahmad-fauzi-my');
-});
-
-it('generates slug from name alone (syeikhul maqari not auto-assigned)', function () {
-    $proposer = User::factory()->create();
-    $country = createPersonSlugCountry();
-
-    $person = app(ContributionEntityMutationService::class)->createPerson([
-        'name' => 'Othman Hamzah',
-        'gender' => 'male',
-        'address' => [
-            'country_id' => (string) $country->getKey(),
-        ],
-    ], $proposer);
-
-    expect($person->formatted_name)->toBe('Othman Hamzah')
-        ->and($person->slug)->toBe('othman-hamzah-my');
-});
-
-it('generates slug from name alone (hj not auto-assigned)', function () {
-    $proposer = User::factory()->create();
-    $country = createPersonSlugCountry();
-
-    $person = app(ContributionEntityMutationService::class)->createPerson([
-        'name' => 'Ahmad Fauzi',
-        'gender' => 'male',
-        'address' => [
-            'country_id' => (string) $country->getKey(),
-        ],
-    ], $proposer);
-
-    expect($person->formatted_name)->toBe('Ahmad Fauzi')
-        ->and($person->slug)->toBe('ahmad-fauzi-my');
-});
-
-it('generates slug from name alone (hjh not auto-assigned)', function () {
-    $proposer = User::factory()->create();
-    $country = createPersonSlugCountry();
-
-    $person = app(ContributionEntityMutationService::class)->createPerson([
-        'name' => 'Mimi Haryani',
-        'gender' => 'female',
-        'address' => [
-            'country_id' => (string) $country->getKey(),
-        ],
-    ], $proposer);
-
-    expect($person->formatted_name)->toBe('Mimi Haryani')
-        ->and($person->slug)->toBe('mimi-haryani-my');
-});
-
-it('generates slug from name alone (professional prefixes not auto-assigned)', function () {
-    $proposer = User::factory()->create();
-    $country = createPersonSlugCountry();
-
-    $person = app(ContributionEntityMutationService::class)->createPerson([
-        'name' => 'Mimi Haryani',
-        'gender' => 'female',
-        'address' => [
-            'country_id' => (string) $country->getKey(),
-        ],
-    ], $proposer);
-
-    expect($person->formatted_name)->toBe('Mimi Haryani')
-        ->and($person->slug)->toBe('mimi-haryani-my');
+        expect($person->formatted_name)->toBe($name)
+            ->and($person->slug)->toBe($expectedSlug);
+    }
 });
 
 it('adds duplicate numbering only when the same person name reuses the same country suffix', function () {

@@ -30,16 +30,6 @@ beforeEach(function (): void {
     }
 });
 
-it('serves scramble docs only on the api host', function () {
-    $this->get('https://api.ilmu360.test/docs', [
-        'Host' => 'api.ilmu360.test',
-    ])->assertOk();
-
-    $this->get('https://ilmu360.test/docs', [
-        'Host' => 'ilmu360.test',
-    ])->assertNotFound();
-});
-
 it('keeps the docs landing page lightweight by loading docs json lazily', function () {
     mock(Generator::class, function (MockInterface $mock): void {
         $mock->shouldNotReceive('__invoke');
@@ -54,7 +44,65 @@ it('keeps the docs landing page lightweight by loading docs json lazily', functi
         ->assertDontSee('apiDescriptionDocument =', false);
 });
 
-it('serves scramble docs publicly on the api host outside local environments', function () {
+it('publishes the docs surface on the api host', function () {
+    $this->get('https://api.ilmu360.test/docs', [
+        'Host' => 'api.ilmu360.test',
+    ])->assertOk();
+
+    $this->get('https://ilmu360.test/docs', [
+        'Host' => 'ilmu360.test',
+    ])->assertNotFound();
+
+    $this->getJson('https://ilmu360.test/docs/index.json', [
+        'Host' => 'ilmu360.test',
+    ])->assertNotFound();
+
+    $this->getJson('https://ilmu360.test/docs/events.json', [
+        'Host' => 'ilmu360.test',
+    ])->assertNotFound();
+
+    $indexResponse = $this->getJson('https://api.ilmu360.test/docs/index.json', [
+        'Host' => 'api.ilmu360.test',
+    ])->assertOk();
+
+    expect($indexResponse->json('openapi'))->toBe('3.1.0')
+        ->and($indexResponse->json('complete_spec_url'))->toBe('https://api.ilmu360.test/docs.json')
+        ->and($indexResponse->json('human_docs_url'))->toBe('https://api.ilmu360.test/docs')
+        ->and($indexResponse->json('sections'))->toContainEqual([
+            'key' => 'events',
+            'title' => 'Events',
+            'description' => 'Event discovery, event details, attendance, and event submissions.',
+            'url' => 'https://api.ilmu360.test/docs/events.json',
+        ]);
+
+    $focusedResponse = $this->getJson('https://api.ilmu360.test/docs/events.json', [
+        'Host' => 'api.ilmu360.test',
+    ])->assertOk();
+
+    $focusedPaths = $focusedResponse->json('paths');
+
+    expect($focusedResponse->json('openapi'))->toBe('3.1.0')
+        ->and($focusedResponse->json('x-ilmu360-section'))->toBe('events')
+        ->and($focusedResponse->json('x-ilmu360-complete-spec'))->toBe('https://api.ilmu360.test/docs.json')
+        ->and($focusedPaths)->not->toBeEmpty()
+        ->and($focusedPaths['/events']['get'] ?? null)->not->toBeNull()
+        ->and($focusedPaths['/admin/manifest'] ?? null)->toBeNull();
+
+    $response = $this->getJson('https://api.ilmu360.test/docs.json', [
+        'Host' => 'api.ilmu360.test',
+    ])
+        ->assertOk()
+        ->assertJsonPath('openapi', '3.1.0')
+        ->assertJsonPath('servers.0.url', 'https://api.ilmu360.test/api/v1');
+
+    expect((string) $response->headers->get('Cache-Control'))
+        ->toContain('public')
+        ->toContain('max-age=300')
+        ->toContain('s-maxage=3600')
+        ->toContain('stale-while-revalidate=86400')
+        ->and((string) $response->headers->get('ETag'))->not->toBe('')
+        ->and((string) $response->headers->get('Vary'))->toContain('Accept');
+
     $originalEnvironment = app()->environment();
     app()['env'] = 'production';
 
@@ -69,70 +117,6 @@ it('serves scramble docs publicly on the api host outside local environments', f
     } finally {
         app()['env'] = $originalEnvironment;
     }
-});
-
-it('publishes openapi json on the api host with the api v1 server url', function () {
-    $this->getJson('https://api.ilmu360.test/docs.json', [
-        'Host' => 'api.ilmu360.test',
-    ])
-        ->assertOk()
-        ->assertJsonPath('openapi', '3.1.0')
-        ->assertJsonPath('servers.0.url', 'https://api.ilmu360.test/api/v1');
-});
-
-it('publishes a lightweight documentation index with focused specification links', function () {
-    $response = $this->getJson('https://api.ilmu360.test/docs/index.json', [
-        'Host' => 'api.ilmu360.test',
-    ])->assertOk();
-
-    expect($response->json('openapi'))->toBe('3.1.0')
-        ->and($response->json('complete_spec_url'))->toBe('https://api.ilmu360.test/docs.json')
-        ->and($response->json('human_docs_url'))->toBe('https://api.ilmu360.test/docs')
-        ->and($response->json('sections'))->toContainEqual([
-            'key' => 'events',
-            'title' => 'Events',
-            'description' => 'Event discovery, event details, attendance, and event submissions.',
-            'url' => 'https://api.ilmu360.test/docs/events.json',
-        ]);
-});
-
-it('publishes focused openapi documents from the canonical cached specification', function () {
-    $response = $this->getJson('https://api.ilmu360.test/docs/events.json', [
-        'Host' => 'api.ilmu360.test',
-    ])->assertOk();
-
-    $paths = $response->json('paths');
-
-    expect($response->json('openapi'))->toBe('3.1.0')
-        ->and($response->json('x-ilmu360-section'))->toBe('events')
-        ->and($response->json('x-ilmu360-complete-spec'))->toBe('https://api.ilmu360.test/docs.json')
-        ->and($paths)->not->toBeEmpty()
-        ->and($paths['/events']['get'] ?? null)->not->toBeNull()
-        ->and($paths['/admin/manifest'] ?? null)->toBeNull();
-});
-
-it('keeps documentation index and focused specifications on the api host', function () {
-    $this->getJson('https://ilmu360.test/docs/index.json', [
-        'Host' => 'ilmu360.test',
-    ])->assertNotFound();
-
-    $this->getJson('https://ilmu360.test/docs/events.json', [
-        'Host' => 'ilmu360.test',
-    ])->assertNotFound();
-});
-
-it('serves docs json with cache and etag headers for agent and cdn clients', function () {
-    $response = $this->getJson('https://api.ilmu360.test/docs.json', [
-        'Host' => 'api.ilmu360.test',
-    ])->assertOk();
-
-    expect((string) $response->headers->get('Cache-Control'))
-        ->toContain('public')
-        ->toContain('max-age=300')
-        ->toContain('s-maxage=3600')
-        ->toContain('stale-while-revalidate=86400')
-        ->and((string) $response->headers->get('ETag'))->not->toBe('')
-        ->and((string) $response->headers->get('Vary'))->toContain('Accept');
 });
 
 it('caches docs json generation between requests', function () {
@@ -279,7 +263,7 @@ it('changes the documentation fingerprint when scramble runtime config changes',
     }
 });
 
-it('groups person endpoints under a dedicated person tag in scramble docs', function () {
+it('groups endpoints under entity tags in scramble docs', function () {
     $response = $this->getJson('https://api.ilmu360.test/docs.json', [
         'Host' => 'api.ilmu360.test',
     ])->assertOk();
@@ -287,25 +271,30 @@ it('groups person endpoints under a dedicated person tag in scramble docs', func
     $paths = $response->json('paths');
 
     expect($paths['/persons']['get']['tags'] ?? null)->toContain('Person')
-        ->and($paths['/persons/{personKey}']['get']['tags'] ?? null)->toContain('Person');
-});
-
-it('groups other public directory endpoints under dedicated entity tags in scramble docs', function () {
-    $response = $this->getJson('https://api.ilmu360.test/docs.json', [
-        'Host' => 'api.ilmu360.test',
-    ])->assertOk();
-
-    $paths = $response->json('paths');
-
-    expect($paths['/institutions']['get']['tags'] ?? null)->toContain('Institution')
+        ->and($paths['/persons/{personKey}']['get']['tags'] ?? null)->toContain('Person')
+        ->and($paths['/institutions']['get']['tags'] ?? null)->toContain('Institution')
         ->and($paths['/institutions/{institutionKey}']['get']['tags'] ?? null)->toContain('Institution')
         ->and($paths['/references']['get']['tags'] ?? null)->toContain('Reference')
         ->and($paths['/venues/{venueKey}']['get']['tags'] ?? null)->toContain('Venue')
         ->and($paths['/references/{referenceKey}']['get']['tags'] ?? null)->toContain('Reference')
-        ->and($paths['/series/{series}']['get']['tags'] ?? null)->toContain('Series');
+        ->and($paths['/series/{series}']['get']['tags'] ?? null)->toContain('Series')
+        ->and($paths['/admin/manifest']['get']['tags'] ?? null)->toContain('Admin Manifest')
+        ->and($paths['/admin/catalogs/countries']['get']['tags'] ?? null)->toContain('Admin Catalog')
+        ->and($paths['/admin/catalogs/states']['get']['tags'] ?? null)->toContain('Admin Catalog')
+        ->and($paths['/admin/catalogs/administrative-districts']['get']['tags'] ?? null)->toContain('Admin Catalog')
+        ->and($paths['/admin/catalogs/administrative-subdivisions']['get']['tags'] ?? null)->toContain('Admin Catalog')
+        ->and($paths['/admin/{resourceKey}']['get']['tags'] ?? null)->toContain('Admin Resource')
+        ->and($paths['/admin/{resourceKey}']['post']['tags'] ?? null)->toContain('Admin Resource')
+        ->and($paths['/admin/{resourceKey}/meta']['get']['tags'] ?? null)->toContain('Admin Resource')
+        ->and($paths['/admin/{resourceKey}/schema']['get']['tags'] ?? null)->toContain('Admin Resource')
+        ->and($paths['/admin/{resourceKey}/{recordKey}']['get']['tags'] ?? null)->toContain('Admin Resource')
+        ->and($paths['/admin/{resourceKey}/{recordKey}']['put']['tags'] ?? null)->toContain('Admin Resource')
+        ->and($paths['/auth/login']['post']['tags'] ?? null)->toContain('Authentication')
+        ->and($paths['/auth/register']['post']['tags'] ?? null)->toContain('Authentication')
+        ->and($paths['/auth/logout']['post']['tags'] ?? null)->toContain('Authentication');
 });
 
-it('publishes named person institution and reference schemas for the public directory endpoints', function () {
+it('publishes named response schemas for directory search and form contracts', function () {
     $response = $this->getJson('https://api.ilmu360.test/docs.json', [
         'Host' => 'api.ilmu360.test',
     ])->assertOk();
@@ -359,7 +348,44 @@ it('publishes named person institution and reference schemas for the public dire
         ->and(data_get($paths, '/references.get.responses.200.content.application/json.schema'))->not->toBeNull()
         ->and(data_get($paths, '/references/{referenceKey}.get.responses.200.content.application/json.schema'))->not->toBeNull()
         ->and(data_get($schemas, 'EventSummary.properties.institution.properties.type'))->not->toBeNull()
-        ->and(data_get($schemas, 'EventSummary.properties.persons.items.properties.gender'))->not->toBeNull();
+        ->and(data_get($schemas, 'EventSummary.properties.persons.items.properties.gender'))->not->toBeNull()
+        ->and($schemas)->toHaveKeys([
+            'SearchIndexResponse',
+            'PublicManifestResponse',
+            'PublicFormFieldContract',
+            'PublicConditionalRule',
+            'MobileTelemetryAcceptedResponse',
+            'MobileTelemetryFormResponse',
+            'SubmitEventFormResponse',
+            'InstitutionContributionFormResponse',
+            'PersonContributionFormResponse',
+            'ReportFormResponse',
+            'GitHubIssueReportFormResponse',
+            'AccountSettingsFormResponse',
+            'AdvancedEventFormResponse',
+            'InstitutionWorkspaceFormResponse',
+            'MembershipApplicationFormResponse',
+            'ContributionSuggestContextResponse',
+        ])
+        ->and($searchParameters)->toContain('search', 'q')
+        ->and(data_get($paths, '/search.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/SearchIndexResponse')
+        ->and(data_get($paths, '/manifest.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/PublicManifestResponse')
+        ->and(data_get($paths, '/forms/mobile-telemetry.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/MobileTelemetryFormResponse')
+        ->and(data_get($paths, '/forms/submit-event.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/SubmitEventFormResponse')
+        ->and(data_get($paths, '/forms/contributions/institutions.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/InstitutionContributionFormResponse')
+        ->and(data_get($paths, '/forms/contributions/persons.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/PersonContributionFormResponse')
+        ->and(data_get($paths, '/forms/report.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/ReportFormResponse')
+        ->and(data_get($paths, '/forms/github-issue-report.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/GitHubIssueReportFormResponse')
+        ->and(data_get($paths, '/forms/account-settings.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/AccountSettingsFormResponse')
+        ->and(data_get($paths, '/forms/advanced-events.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/AdvancedEventFormResponse')
+        ->and(data_get($paths, '/forms/institution-workspace.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/InstitutionWorkspaceFormResponse')
+        ->and(data_get($paths, '/forms/membership-applications/{subjectType}.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/MembershipApplicationFormResponse')
+        ->and(data_get($paths, '/forms/contributions/{subjectType}/{subject}/suggest.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/ContributionSuggestContextResponse')
+        ->and(data_get($schemas, 'AccountSettingsFormResponse.properties.data.properties.mcp_tokens_endpoint.type'))->toBe('string')
+        ->and(data_get($schemas, 'AccountSettingsFormResponse.properties.data.properties.mcp_token_fields.type'))->toBe('array')
+        ->and(data_get($schemas, 'SearchIndexResponse.properties.data.properties.persons.properties.items.type'))->toBe('array')
+        ->and(data_get($schemas, 'PublicFormFieldContract.properties.name.type'))->toBe('string')
+        ->and(data_get($schemas, 'PublicConditionalRule.properties.field.type'))->toBe('string');
 });
 
 it('documents share payload and tracking endpoints for client integrations', function () {
@@ -426,49 +452,18 @@ it('documents sparse event list fields for public event index clients', function
         ->and(data_get($schemas, 'EventIndexResponse.properties.meta.properties.pagination.properties.next_page'))->not->toBeNull();
 });
 
-it('exposes the admin api foundation in scramble docs under dedicated admin tags', function () {
+it('documents the api overview description for client and ai consumers', function () {
     $response = $this->getJson('https://api.ilmu360.test/docs.json', [
         'Host' => 'api.ilmu360.test',
     ])->assertOk();
 
-    $paths = $response->json('paths');
+    $description = (string) $response->json('info.description');
 
-    expect($paths['/admin/manifest']['get']['tags'] ?? null)->toContain('Admin Manifest')
-        ->and($paths['/admin/catalogs/countries']['get']['tags'] ?? null)->toContain('Admin Catalog')
-        ->and($paths['/admin/catalogs/states']['get']['tags'] ?? null)->toContain('Admin Catalog')
-        ->and($paths['/admin/catalogs/administrative-districts']['get']['tags'] ?? null)->toContain('Admin Catalog')
-        ->and($paths['/admin/catalogs/administrative-subdivisions']['get']['tags'] ?? null)->toContain('Admin Catalog')
-        ->and($paths['/admin/{resourceKey}']['get']['tags'] ?? null)->toContain('Admin Resource')
-        ->and($paths['/admin/{resourceKey}']['post']['tags'] ?? null)->toContain('Admin Resource')
-        ->and($paths['/admin/{resourceKey}/meta']['get']['tags'] ?? null)->toContain('Admin Resource')
-        ->and($paths['/admin/{resourceKey}/schema']['get']['tags'] ?? null)->toContain('Admin Resource')
-        ->and($paths['/admin/{resourceKey}/{recordKey}']['get']['tags'] ?? null)->toContain('Admin Resource')
-        ->and($paths['/admin/{resourceKey}/{recordKey}']['put']['tags'] ?? null)->toContain('Admin Resource');
-});
-
-it('documents how clients obtain bearer tokens for authenticated api access', function () {
-    $response = $this->getJson('https://api.ilmu360.test/docs.json', [
-        'Host' => 'api.ilmu360.test',
-    ])->assertOk();
-
-    $paths = $response->json('paths');
-
-    expect((string) $response->json('info.description'))
+    expect($description)
         ->toContain('POST /auth/login')
         ->toContain('Authorization: Bearer {token}')
         ->toContain('Admin > Authz > User > API Access')
         ->not->toContain('Account Settings > API Access')
-        ->and($paths['/auth/login']['post']['tags'] ?? null)->toContain('Authentication')
-        ->and($paths['/auth/register']['post']['tags'] ?? null)->toContain('Authentication')
-        ->and($paths['/auth/logout']['post']['tags'] ?? null)->toContain('Authentication');
-});
-
-it('documents public and admin mutation capability boundaries in the api overview', function () {
-    $response = $this->getJson('https://api.ilmu360.test/docs.json', [
-        'Host' => 'api.ilmu360.test',
-    ])->assertOk();
-
-    expect((string) $response->json('info.description'))
         ->toContain("Canonical API documentation for ilmu360° client and platform integrations.\n\nGet an access token")
         ->toContain("\n\n---\n\nAI QUICKSTART:\n")
         ->toContain('https://api.ilmu360.test/docs')
@@ -496,15 +491,7 @@ it('documents public and admin mutation capability boundaries in the api overvie
         ->toContain('GET /institution-workspace auto-selects the first accessible institution when institution_id is omitted')
         ->not->toContain('The recordKey parameter must be the UUID primary key')
         ->not->toContain('Get the update schema using the id (UUID primary key, not the slug)')
-        ->toContain('Current admin write support includes events, institutions, persons, references, venues, and subdistricts.');
-});
-
-it('documents utc transport fields and request-timezone helper behavior clearly', function () {
-    $response = $this->getJson('https://api.ilmu360.test/docs.json', [
-        'Host' => 'api.ilmu360.test',
-    ])->assertOk();
-
-    expect((string) $response->json('info.description'))
+        ->toContain('Current admin write support includes events, institutions, persons, references, venues, and subdistricts.')
         ->toContain('Raw API timestamp fields are stored and returned in UTC')
         ->toContain('Viewer-facing helper fields such as event timing_display and end_time_display are localized only when the request provides timezone context')
         ->toContain('Without timezone context, bare API requests fall back to UTC.')
@@ -512,7 +499,13 @@ it('documents utc transport fields and request-timezone helper behavior clearly'
         ->toContain('send X-Timezone: Asia/Kuala_Lumpur with either public-event values such as filter[starts_after]=2026-04-12&filter[starts_before]=2026-04-12 or admin-resource values such as starts_after=2026-04-12&starts_before=2026-04-12')
         ->toContain('If you omit timezone context, the same filter values are interpreted in UTC instead.')
         ->not->toContain('The server timezone is UTC; the default display timezone is Asia/Kuala_Lumpur (MYT, UTC+8).')
-        ->not->toContain('All date/time filter values must be expressed in UTC.');
+        ->not->toContain('All date/time filter values must be expressed in UTC.')
+        ->not->toContain('https://ilmu360.test/docs')
+        ->not->toContain('https://ilmu360.test/docs.json')
+        ->toContain('published at `/docs.json`')
+        ->toContain('ilmu360° Mobile API Reference')
+        ->toContain('If you are building an AI client, use this read order:')
+        ->toContain('Android, iOS application developers, and AI agents');
 });
 
 it('keeps live api routes and generated scramble operations aligned', function () {
@@ -665,23 +658,14 @@ it('keeps live api routes and generated scramble operations aligned', function (
         ->and(array_key_exists('/saved-searches/{saved_search}', $paths))->toBeFalse();
 });
 
-it('does not leak local-only docs urls into the published api description', function () {
-    $response = $this->getJson('https://api.ilmu360.test/docs.json', [
-        'Host' => 'api.ilmu360.test',
-    ])->assertOk();
-
-    expect((string) $response->json('info.description'))
-        ->not->toContain('https://ilmu360.test/docs')
-        ->not->toContain('https://ilmu360.test/docs.json')
-        ->toContain('published at `/docs.json`');
-});
-
-it('adds workflow summaries to public contract and mutation endpoints', function () {
+it('summarizes workflow endpoints for clients and agents', function () {
     $response = $this->getJson('https://api.ilmu360.test/docs.json', [
         'Host' => 'api.ilmu360.test',
     ])->assertOk();
 
     $paths = $response->json('paths');
+    $adminListParameters = collect(data_get($paths, '/admin/{resourceKey}.get.parameters', []))->pluck('name')->all();
+    $tags = collect($response->json('tags'))->keyBy('name');
 
     expect($paths['/manifest']['get']['summary'] ?? null)->toBe('Discover public client flows')
         ->and($paths['/forms/mobile-telemetry']['get']['summary'] ?? null)->toBe('Get mobile-telemetry field contract')
@@ -705,18 +689,8 @@ it('adds workflow summaries to public contract and mutation endpoints', function
         ->and($paths['/forms/institution-workspace']['get']['description'] ?? null)->toContain('workspace endpoint')
         ->and($paths['/contributions/{subjectType}/{subject}/suggest']['post']['summary'] ?? null)->toBe('Submit a contribution update')
         ->and($paths['/contributions/{subjectType}/{subject}/suggest']['post']['description'] ?? null)->toContain('direct_edit')
-        ->and($paths['/contributions/{subjectType}/{subject}/suggest']['post']['description'] ?? null)->toContain('review');
-});
-
-it('documents admin schema-driven writes and dynamic payload discovery', function () {
-    $response = $this->getJson('https://api.ilmu360.test/docs.json', [
-        'Host' => 'api.ilmu360.test',
-    ])->assertOk();
-
-    $paths = $response->json('paths');
-    $adminListParameters = collect(data_get($paths, '/admin/{resourceKey}.get.parameters', []))->pluck('name')->all();
-
-    expect($paths['/admin/manifest']['get']['summary'] ?? null)->toBe('List admin resources and write support')
+        ->and($paths['/contributions/{subjectType}/{subject}/suggest']['post']['description'] ?? null)->toContain('review')
+        ->and($paths['/admin/manifest']['get']['summary'] ?? null)->toBe('List admin resources and write support')
         ->and($paths['/admin/{resourceKey}/schema']['get']['summary'] ?? null)->toBe('Get admin write schema')
         ->and($paths['/admin/{resourceKey}/schema']['get']['description'] ?? null)->toContain('mutation payloads are resource-specific')
         ->and($paths['/admin/{resourceKey}']['post']['summary'] ?? null)->toBe('Create an admin resource record')
@@ -725,18 +699,34 @@ it('documents admin schema-driven writes and dynamic payload discovery', functio
         ->and($paths['/admin/{resourceKey}/{recordKey}/relations/{relation}']['get']['summary'] ?? null)->toBe('List admin related records')
         ->and($paths['/admin/{resourceKey}/{recordKey}/relations/{relation}']['get']['description'] ?? null)->toContain('Use the relation keys from `GET /admin/{resourceKey}/meta`')
         ->and($paths['/admin/{resourceKey}/{recordKey}']['put']['summary'] ?? null)->toBe('Update an admin resource record')
-        ->and($paths['/admin/{resourceKey}/{recordKey}']['put']['description'] ?? null)->toContain('schema?operation=update&recordKey={recordKey}');
-});
-
-it('includes the mobile api reference in the docs description for ai and mobile consumers', function () {
-    $response = $this->getJson('https://api.ilmu360.test/docs.json', [
-        'Host' => 'api.ilmu360.test',
-    ])->assertOk();
-
-    expect((string) $response->json('info.description'))
-        ->toContain('ilmu360° Mobile API Reference')
-        ->toContain('If you are building an AI client, use this read order:')
-        ->toContain('Android, iOS application developers, and AI agents');
+        ->and($paths['/admin/{resourceKey}/{recordKey}']['put']['description'] ?? null)->toContain('schema?operation=update&recordKey={recordKey}')
+        ->and($paths['/catalogs/countries']['get']['summary'] ?? null)->toBe('List public countries catalog')
+        ->and($paths['/catalogs/membership-application-subjects/{subjectType}']['get']['summary'] ?? null)->toBe('List membership-claim subjects')
+        ->and($paths['/catalogs/spaces']['get']['description'] ?? null)->toContain('global space options when no `institution_id` is selected')
+        ->and($paths['/me/events/going']['get']['summary'] ?? null)->toBe('List going events')
+        ->and($paths['/me/events/saved']['get']['summary'] ?? null)->toBe('List saved events')
+        ->and($paths['/events/{event}/me']['get']['summary'] ?? null)->toBe('Get current user event state')
+        ->and($paths['/events/{event}/check-ins']['post']['summary'] ?? null)->toBe('Record an event check-in')
+        ->and($paths['/account-settings']['get']['summary'] ?? null)->toBe('Get account settings')
+        ->and($paths['/forms/github-issue-report']['get']['summary'] ?? null)->toBe('Get GitHub issue-report field contract')
+        ->and($paths['/github-issues']['post']['summary'] ?? null)->toBe('Create a GitHub issue report')
+        ->and($paths['/github-issues']['post']['description'] ?? null)->toContain('Non-admin users create a plain issue')
+        ->and($paths['/institution-workspace']['get']['summary'] ?? null)->toBe('Get institution workspace')
+        ->and($paths['/institution-workspace']['get']['description'] ?? null)->toContain('first accessible institution is selected automatically')
+        ->and($paths['/membership-applications/{subjectType}/{subject}']['post']['summary'] ?? null)->toBe('Submit a membership application')
+        ->and($paths['/reports']['post']['summary'] ?? null)->toBe('Submit a report')
+        ->and($paths['/events/{event}/registrations/export']['get']['summary'] ?? null)->toBe('Export registrations as CSV')
+        ->and($paths['/institution-workspace/{institutionId}/members/{memberId}']['delete']['summary'] ?? null)->toBe('Remove an institution member')
+        ->and($paths['/follows/{type}/{subject}']['get']['description'] ?? null)->toContain('current authenticated user is following')
+        ->and($paths['/follows/{type}/{subject}']['get']['description'] ?? null)->toContain('The `{subject}` path segment is required')
+        ->and($paths['/follows/{type}/{subject}']['get']['description'] ?? null)->toContain('instead of plural `/follows/...` routes')
+        ->and($paths['/follows/{type}/{subject}']['post']['description'] ?? null)->toContain('Creates a follow relationship')
+        ->and($paths['/follows/{type}/{subject}']['delete']['description'] ?? null)->toContain('Removes the follow relationship')
+        ->and($paths['/events/{event}']['get']['summary'] ?? null)->toBe('Get an event detail payload')
+        ->and($paths['/events/{event}']['get']['description'] ?? null)->toContain('event detail payload by slug or UUID')
+        ->and($tags->get('Catalog')['description'] ?? null)->toBe('Public lookup catalogs for geography, tags, languages, references, venues, and write-flow selectors.')
+        ->and($tags->get('InstitutionWorkspace')['description'] ?? null)->toContain('member management')
+        ->and($tags->get('RegistrationExport')['description'] ?? null)->toContain('CSV export');
 });
 
 it('publishes explicit auth response schemas for ai clients', function () {
@@ -811,92 +801,7 @@ it('publishes sanctum bearer security metadata for authenticated api operations'
         ->and($paths['/auth/login']['post']['security'] ?? null)->toBeNull();
 });
 
-it('publishes explicit schemas for search manifest and public form contracts', function () {
-    $response = $this->getJson('https://api.ilmu360.test/docs.json', [
-        'Host' => 'api.ilmu360.test',
-    ])->assertOk();
-
-    $paths = $response->json('paths');
-    $schemas = $response->json('components.schemas');
-    $searchParameters = collect(data_get($paths, '/search.get.parameters', []))->pluck('name')->all();
-
-    expect($schemas)->toHaveKeys([
-        'SearchIndexResponse',
-        'PublicManifestResponse',
-        'PublicFormFieldContract',
-        'PublicConditionalRule',
-        'MobileTelemetryAcceptedResponse',
-        'MobileTelemetryFormResponse',
-        'SubmitEventFormResponse',
-        'InstitutionContributionFormResponse',
-        'PersonContributionFormResponse',
-        'ReportFormResponse',
-        'GitHubIssueReportFormResponse',
-        'AccountSettingsFormResponse',
-        'AdvancedEventFormResponse',
-        'InstitutionWorkspaceFormResponse',
-        'MembershipApplicationFormResponse',
-        'ContributionSuggestContextResponse',
-    ])
-        ->and($searchParameters)->toContain('search', 'q')
-        ->and(data_get($paths, '/search.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/SearchIndexResponse')
-        ->and(data_get($paths, '/manifest.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/PublicManifestResponse')
-        ->and(data_get($paths, '/forms/mobile-telemetry.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/MobileTelemetryFormResponse')
-        ->and(data_get($paths, '/forms/submit-event.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/SubmitEventFormResponse')
-        ->and(data_get($paths, '/forms/contributions/institutions.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/InstitutionContributionFormResponse')
-        ->and(data_get($paths, '/forms/contributions/persons.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/PersonContributionFormResponse')
-        ->and(data_get($paths, '/forms/report.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/ReportFormResponse')
-        ->and(data_get($paths, '/forms/github-issue-report.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/GitHubIssueReportFormResponse')
-        ->and(data_get($paths, '/forms/account-settings.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/AccountSettingsFormResponse')
-        ->and(data_get($paths, '/forms/advanced-events.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/AdvancedEventFormResponse')
-        ->and(data_get($paths, '/forms/institution-workspace.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/InstitutionWorkspaceFormResponse')
-        ->and(data_get($paths, '/forms/membership-applications/{subjectType}.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/MembershipApplicationFormResponse')
-        ->and(data_get($paths, '/forms/contributions/{subjectType}/{subject}/suggest.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/ContributionSuggestContextResponse')
-        ->and(data_get($schemas, 'AccountSettingsFormResponse.properties.data.properties.mcp_tokens_endpoint.type'))->toBe('string')
-        ->and(data_get($schemas, 'AccountSettingsFormResponse.properties.data.properties.mcp_token_fields.type'))->toBe('array')
-        ->and(data_get($schemas, 'SearchIndexResponse.properties.data.properties.persons.properties.items.type'))->toBe('array')
-        ->and(data_get($schemas, 'PublicFormFieldContract.properties.name.type'))->toBe('string')
-        ->and(data_get($schemas, 'PublicConditionalRule.properties.field.type'))->toBe('string');
-});
-
-it('adds summaries and descriptions to catalog and authenticated workflow endpoints', function () {
-    $response = $this->getJson('https://api.ilmu360.test/docs.json', [
-        'Host' => 'api.ilmu360.test',
-    ])->assertOk();
-
-    $paths = $response->json('paths');
-    $tags = collect($response->json('tags'))->keyBy('name');
-
-    expect($paths['/catalogs/countries']['get']['summary'] ?? null)->toBe('List public countries catalog')
-        ->and($paths['/catalogs/membership-application-subjects/{subjectType}']['get']['summary'] ?? null)->toBe('List membership-claim subjects')
-        ->and($paths['/catalogs/spaces']['get']['description'] ?? null)->toContain('global space options when no `institution_id` is selected')
-        ->and($paths['/me/events/going']['get']['summary'] ?? null)->toBe('List going events')
-        ->and($paths['/me/events/saved']['get']['summary'] ?? null)->toBe('List saved events')
-        ->and($paths['/events/{event}/me']['get']['summary'] ?? null)->toBe('Get current user event state')
-        ->and($paths['/events/{event}/check-ins']['post']['summary'] ?? null)->toBe('Record an event check-in')
-        ->and($paths['/account-settings']['get']['summary'] ?? null)->toBe('Get account settings')
-        ->and($paths['/forms/github-issue-report']['get']['summary'] ?? null)->toBe('Get GitHub issue-report field contract')
-        ->and($paths['/github-issues']['post']['summary'] ?? null)->toBe('Create a GitHub issue report')
-        ->and($paths['/github-issues']['post']['description'] ?? null)->toContain('Non-admin users create a plain issue')
-        ->and($paths['/institution-workspace']['get']['summary'] ?? null)->toBe('Get institution workspace')
-        ->and($paths['/institution-workspace']['get']['description'] ?? null)->toContain('first accessible institution is selected automatically')
-        ->and($paths['/membership-applications/{subjectType}/{subject}']['post']['summary'] ?? null)->toBe('Submit a membership application')
-        ->and($paths['/reports']['post']['summary'] ?? null)->toBe('Submit a report')
-        ->and($paths['/events/{event}/registrations/export']['get']['summary'] ?? null)->toBe('Export registrations as CSV')
-        ->and($paths['/institution-workspace/{institutionId}/members/{memberId}']['delete']['summary'] ?? null)->toBe('Remove an institution member')
-        ->and($paths['/follows/{type}/{subject}']['get']['description'] ?? null)->toContain('current authenticated user is following')
-        ->and($paths['/follows/{type}/{subject}']['get']['description'] ?? null)->toContain('The `{subject}` path segment is required')
-        ->and($paths['/follows/{type}/{subject}']['get']['description'] ?? null)->toContain('instead of plural `/follows/...` routes')
-        ->and($paths['/follows/{type}/{subject}']['post']['description'] ?? null)->toContain('Creates a follow relationship')
-        ->and($paths['/follows/{type}/{subject}']['delete']['description'] ?? null)->toContain('Removes the follow relationship')
-        ->and($paths['/events/{event}']['get']['summary'] ?? null)->toBe('Get an event detail payload')
-        ->and($paths['/events/{event}']['get']['description'] ?? null)->toContain('event detail payload by slug or UUID')
-        ->and($tags->get('Catalog')['description'] ?? null)->toBe('Public lookup catalogs for geography, tags, languages, references, venues, and write-flow selectors.')
-        ->and($tags->get('InstitutionWorkspace')['description'] ?? null)->toContain('member management')
-        ->and($tags->get('RegistrationExport')['description'] ?? null)->toContain('CSV export');
-});
-
-it('publishes high-value request body examples for agentic write endpoints', function () {
+it('publishes request examples for agentic write endpoints', function () {
     $response = $this->getJson('https://api.ilmu360.test/docs.json', [
         'Host' => 'api.ilmu360.test',
     ])->assertOk();
@@ -915,17 +820,8 @@ it('publishes high-value request body examples for agentic write endpoints', fun
         ->and(data_get($paths, '/mobile/telemetry/events.post.requestBody.content.application/json.example.anonymous_id'))->toBe('ios-installation-123')
         ->and(data_get($paths, '/mobile/telemetry/events.post.requestBody.content.application/json.example.events.1.component'))->toBe('register_button')
         ->and(data_get($paths, '/github-issues.post.requestBody.content.application/json.example.category'))->toBe('docs_mismatch')
-        ->and(data_get($paths, '/github-issues.post.requestBody.content.application/json.example.client_version'))->toBe('GPT-5.4');
-});
-
-it('publishes follow-up request examples for authenticated workflow mutations', function () {
-    $response = $this->getJson('https://api.ilmu360.test/docs.json', [
-        'Host' => 'api.ilmu360.test',
-    ])->assertOk();
-
-    $paths = $response->json('paths');
-
-    expect(data_get($paths, '/notification-destinations/push.post.requestBody.content.application/json.example.installation_id'))->toBe('ios-installation-123')
+        ->and(data_get($paths, '/github-issues.post.requestBody.content.application/json.example.client_version'))->toBe('GPT-5.4')
+        ->and(data_get($paths, '/notification-destinations/push.post.requestBody.content.application/json.example.installation_id'))->toBe('ios-installation-123')
         ->and(data_get($paths, '/notification-destinations/push/{installation}.put.requestBody.content.application/json.example.fcm_token'))->toBe('fcm-token-updated-xyz789')
         ->and(data_get($paths, '/membership-applications/{subjectType}/{subject}.post.requestBody.content.multipart/form-data.example.justification'))->toContain('mosque committee')
         ->and(data_get($paths, '/institution-workspace/{institutionId}/members.post.requestBody.content.application/json.example.email'))->toBe('member@example.com')
