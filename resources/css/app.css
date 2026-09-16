@@ -9,9 +9,39 @@
 @source '../**/*.blade.php';
 @source '../**/*.js';
 
+/* Metric-tuned Outfit fallback (Arial + overrides) so display=swap swaps without layout shift. */
+@font-face {
+    font-family: 'Outfit Fallback';
+    src: local('Arial');
+    size-adjust: 99.26%;
+    ascent-override: 100.74%;
+    descent-override: 26.19%;
+    line-gap-override: 0%;
+    font-weight: 300 600;
+}
+
+@font-face {
+    font-family: 'Outfit Fallback';
+    src: local('Arial Bold');
+    size-adjust: 98.65%;
+    ascent-override: 101.37%;
+    descent-override: 26.36%;
+    line-gap-override: 0%;
+    font-weight: 700;
+}
+
+/* Bottom-anchored decor rides page-height growth during load; reveal once settled. */
+.mi-bg-settled {
+    display: none;
+}
+
+body.is-loaded .mi-bg-settled {
+    display: block;
+}
+
 @theme {
-    --font-heading: 'Outfit', ui-sans-serif, system-ui, sans-serif;
-    --font-sans: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+    --font-heading: 'Outfit', 'Outfit Fallback', ui-sans-serif, system-ui, sans-serif;
+    --font-sans: 'Outfit', 'Outfit Fallback', ui-sans-serif, system-ui, sans-serif;
 
     /* Filament compatibility - 'color' is used internally */
     --color-color-50: oklch(0.985 0 0);

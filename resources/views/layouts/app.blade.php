@@ -49,6 +49,8 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script>
+        window.addEventListener('load', () => document.body.classList.add('is-loaded'));
+
         (() => {
             const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
@@ -126,7 +128,7 @@
             </div>
             <div class="absolute top-20 right-[5%] h-[30rem] w-[30rem] rounded-full bg-teal-500/10 blur-[100px]"></div>
             <div
-                class="absolute bottom-[-10rem] left-[20%] h-[40rem] w-[40rem] rounded-full bg-emerald-600/5 blur-[120px]">
+                class="absolute bottom-[-10rem] left-[20%] h-[40rem] w-[40rem] rounded-full bg-emerald-600/5 blur-[120px] mi-bg-settled">
             </div>
         </div>
 
@@ -168,7 +170,7 @@
                 x-data="{ mobileMenuOpen: false }">
                 <nav class="container mx-auto flex h-20 items-center justify-between px-6 lg:px-12">
                     <a href="{{ route('home') }}" wire:navigate class="flex items-center">
-                        <img src="{{ asset('images/logo.png') }}" alt="{{ config('app.name') }}"
+                        <img src="{{ asset('images/logo.png') }}" alt="{{ config('app.name') }}" width="1227" height="276"
                             class="h-12 w-auto">
                     </a>
 
