@@ -1255,10 +1255,6 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
             return EventChangeType::Cancelled->publicBadgeLabel();
         }
 
-        if ($this->primaryOccurrence && $this->primaryOccurrence->status === 'postponed') {
-            return EventChangeType::Postponed->publicBadgeLabel();
-        }
-
         $notice = $this->latestPublishedChangeAnnouncement;
 
         if (! $notice instanceof EventChangeAnnouncement) {

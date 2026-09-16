@@ -11,6 +11,7 @@ use App\States\EventStatus\Cancelled;
 use App\States\EventStatus\Draft;
 use App\States\EventStatus\Pending;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
@@ -287,5 +288,28 @@ it('keeps every public event container discoverable and searchable', function ()
         expect($discoverableIds)->toContain($event->id)
             ->and($activeIds)->toContain($event->id)
             ->and($event->fresh()->shouldBeSearchable())->toBeTrue();
+    });
+});
+
+it('resolves the public change badge without touching occurrences', function () {
+    withGlobalOwnerContext(function (): void {
+        $event = Event::factory()->create([
+            'status' => Approved::class,
+            'visibility' => 'public',
+            'published_at' => now(),
+        ]);
+
+        $event->occurrences()->firstOrFail()->update(['status' => 'postponed']);
+
+        DB::enableQueryLog();
+
+        $label = $event->fresh()->public_change_badge_label;
+
+        $occurrenceQueries = collect(DB::getQueryLog())
+            ->filter(fn (array $query): bool => str_contains($query['query'], 'event_occurrences'))
+            ->count();
+
+        expect($label)->toBeNull()
+            ->and($occurrenceQueries)->toBe(0);
     });
 });

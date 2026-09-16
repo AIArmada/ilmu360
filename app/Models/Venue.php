@@ -35,10 +35,6 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property CarbonImmutable|null $verified_at
  * @property CarbonImmutable|null $rejected_at
  * @property CarbonImmutable|null $last_state_change_at
- * @property float|int|string|null $latitude
- * @property float|int|string|null $longitude
- * @property string|null $google_maps_url
- * @property string|null $map_url
  * @property array<string, mixed>|null $metadata
  *
  * @extends PackageVenue<Space>
@@ -62,22 +58,6 @@ class Venue extends PackageVenue implements AuditableContract
         'slug',
         'description',
         'venue_type',
-        'line1',
-        'line2',
-        'city',
-        'state',
-        'postcode',
-        'country_code',
-        'country',
-        'latitude',
-        'longitude',
-        'google_place_id',
-        'google_maps_url',
-        'waze_url',
-        'map_url',
-        'directions',
-        'geocoded_at',
-        'geocoding_source',
         'status',
         'verified_at',
         'verified_by',

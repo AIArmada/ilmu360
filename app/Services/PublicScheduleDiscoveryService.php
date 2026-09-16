@@ -8,10 +8,12 @@ use AIArmada\Events\Contracts\EventSearchRelationProvider;
 use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
+use AIArmada\Persons\Enums\AssignmentStatus;
 use App\Data\EventDiscoveryCriteriaFactory;
 use App\Data\PublicScheduleLeaf;
 use App\Enums\EventPrayerTime;
 use App\Models\Event;
+use App\Models\Person;
 use App\Models\Venue;
 use App\Support\Events\PublicSchedulePolicy;
 use App\Support\Events\PublicScheduleSlug;
@@ -19,6 +21,7 @@ use App\Support\Timezone\UserDateTimeFormatter;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Collection;
@@ -76,18 +79,18 @@ final class PublicScheduleDiscoveryService
 
             /** @var EloquentCollection<int, Event> $events */
             $events = new EloquentCollection($parentPaginator->items());
-            $events->load($this->scheduleRelations());
+            $events->load($this->searchRelations());
         } else {
             if ($criteria->text === null) {
                 /** @var EloquentCollection<int, Event> $events */
                 $events = $this->eventDiscovery
                     ->publicEventQuery(null, $eventFilters)
-                    ->with($this->scheduleRelations())
+                    ->with($this->searchRelations())
                     ->get();
             } else {
                 $directEvents = $this->eventDiscovery
                     ->publicEventQuery($criteria->text, $eventFilters)
-                    ->with($this->scheduleRelations())
+                    ->with($this->searchRelations())
                     ->get();
 
                 if ($directEvents->isNotEmpty()) {
@@ -104,7 +107,7 @@ final class PublicScheduleDiscoveryService
 
                     /** @var EloquentCollection<int, Event> $events */
                     $events = new EloquentCollection($parentPaginator->items());
-                    $events->load($this->scheduleRelations());
+                    $events->load($this->searchRelations());
                 }
             }
         }
@@ -229,8 +232,53 @@ final class PublicScheduleDiscoveryService
             'occurrences.sessions.involvements' => fn (Relation $query) => $query
                 ->where('status', 'active')
                 ->where('visibility', 'public'),
-            'occurrences.sessions.involvements.involveable',
+            'occurrences.sessions.involvements.involveable' => function (MorphTo $relation): void {
+                // Cards render formatted_name per involveable; preload the full
+                // title graph so the accessor never falls back to per-person queries.
+                $relation->morphWith([
+                    Person::class => [
+                        'titleAssignments' => fn (Relation $query) => $query
+                            ->where('status', AssignmentStatus::Active)
+                            ->with('title.category'),
+                    ],
+                ]);
+            },
         ];
+    }
+
+    /**
+     * Relations for the search path: the full schedule graph minus loads the
+     * listing provably never reads.
+     *
+     * - The `primaryOccurrence` subtree duplicates the full occurrence graph
+     *   (same tables, subset of rows); cards read leaves, and the change-badge
+     *   accessor no longer touches the relation either.
+     * - The nested location `venue` loads are unconditionally overwritten by
+     *   hydrateApplicationVenues() with application Venue models.
+     *
+     * Detail pages keep scheduleRelations() untouched via publicRelations().
+     *
+     * @return array<int|string, mixed>
+     */
+    private function searchRelations(): array
+    {
+        return collect($this->scheduleRelations())
+            // Keys are strings for constrained relations, but bare nested paths
+            // arrive with numeric keys — match those by value, or Eloquent
+            // resurrects the dropped parents unconstrained to satisfy them.
+            ->reject(function (mixed $constraints, int|string $key): bool {
+                $path = is_string($key) ? $key : (is_string($constraints) ? $constraints : null);
+
+                return is_string($path)
+                    && ($path === 'primaryOccurrence'
+                        || str_starts_with($path, 'primaryOccurrence.')
+                        || in_array($path, [
+                            'primaryLocation.venue',
+                            'occurrences.locations.venue',
+                            'occurrences.sessions.locations.venue',
+                        ], true));
+            })
+            ->all();
     }
 
     /**
@@ -285,11 +333,12 @@ final class PublicScheduleDiscoveryService
         foreach ($locations as $location) {
             $venueId = $location->getAttribute('venue_id');
 
-            if (! is_string($venueId) || $venueId === '') {
-                continue;
-            }
-
-            $location->setRelation('venue', $venues->get($venueId));
+            // Always set the relation (null included) so readers never lazy-load:
+            // the search path skips the nested venue eager loads this replaces.
+            $location->setRelation(
+                'venue',
+                is_string($venueId) && $venueId !== '' ? $venues->get($venueId) : null,
+            );
         }
     }
 

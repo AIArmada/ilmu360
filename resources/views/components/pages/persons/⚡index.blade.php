@@ -214,6 +214,13 @@ new
                     $relation->where('collection_name', 'profile');
                 },
                 'addresses.state',
+                // Matches the lazy path in formatted_name (active assignments
+                // with title.category) so cards never query per person.
+                'titleAssignments' => function (MorphMany $relation): void {
+                    $relation
+                        ->where('status', AssignmentStatus::Active)
+                        ->with('title.category');
+                },
             ]);
         }
 
@@ -374,12 +381,20 @@ new
             $eventInvolvementsTable = (new EventKeyPerson)->getTable();
             $occurrencesTable = config('events.database.tables.event_occurrences', 'event_occurrences');
             $now = now();
-            $upcomingEvents = DB::table($occurrencesTable)
-                ->select('event_id')
-                ->groupBy('event_id')
-                // MIN(starts_at) is the same earliest-occurrence value used by
-                // EventBuilder, including the past-plus-future case.
-                ->havingRaw('min(starts_at) >= ?', [$now]);
+            // Scoped to the listed persons' public events. Join duplication cannot
+            // change MIN(starts_at), which stays the same earliest-occurrence
+            // value used by EventBuilder, including the past-plus-future case.
+            $upcomingEvents = DB::table("{$occurrencesTable} as occurrences")
+                ->select('occurrences.event_id')
+                ->join("{$eventsTable} as events", 'events.id', '=', 'occurrences.event_id')
+                ->join("{$eventInvolvementsTable} as event_involvements", 'event_involvements.event_id', '=', 'events.id')
+                ->where('event_involvements.involveable_type', (new Person)->getMorphClass())
+                ->whereIn('event_involvements.involveable_id', $personIds->all())
+                ->whereIn('events.status', Event::PUBLIC_STATUSES)
+                ->where('events.visibility', EventVisibility::Public)
+                ->whereNotNull('events.published_at')
+                ->groupBy('occurrences.event_id')
+                ->havingRaw('min(occurrences.starts_at) >= ?', [$now]);
 
             $counts = DB::table("{$eventInvolvementsTable} as event_involvements")
                 ->join("{$eventsTable} as events", 'events.id', '=', 'event_involvements.event_id')
