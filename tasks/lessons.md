@@ -970,3 +970,14 @@
 - When a generated hero asset already contains the foreground objects, remove the previous overlay artwork rather than stacking duplicate visual subjects; keep the generated image as one responsive composition.
 - Before changing image opacity, distinguish the asset's own opacity from tint/veil overlays; tune the overlay layers first so the source image can stay fully visible and readable.
 - When a generated hero object competes with copy, regenerate the source with an explicit uninterrupted negative-space transition instead of hiding the object with a CSS veil.
+- For image-backed footer edits, validate both the bitmap and the containing section height; removing visual foreground detail alone does not shorten a fixed-height footer.
+- When a user removes edge foliage from a generated architectural background, keep the lighting-bearing lanterns and structural columns as explicit invariants so the composition stays framed rather than becoming visually bare.
+- When a clean lower image field is intentionally available for footer copy, increase the containing footer height while retaining auto-spacing so the legal row moves down without disturbing the main columns.
+- When the user says the previous composition is already right, restore the container geometry and make the requested extra space in the bitmap's localized region instead of stretching the full section.
+- When a footer separator is removed, preserve the floor/visual base and adjust only the content padding needed for optical balance rather than moving the entire footer block.
+- For iterative visual tuning, use small spacing increments (8px here) and recheck the rendered screenshot after each adjustment rather than overcorrecting the composition.
+- When a visual spacing request names a utility value such as `pt-12`, change the shared container padding directly and verify the footer's outer margin separately so internal text movement is not confused with section-to-section spacing.
+- For directory filters that depend on related public records, keep the filter in the base Eloquent query so normal pagination, search fallback, URL state, and empty-state counts all inherit the same constraint.
+- For a polished reference-matched CTA, put depth in layered surface treatments and keep the label and directional icon anchored so gloss does not become motion noise.
+- For footer legal-row spacing, adjust the parent footer's bottom inset rather than adding padding to the bottom row itself; `mt-auto` can amplify the apparent movement.
+- For a reference-matched CTA icon, give the symbol its own silhouette and material treatment rather than only enlarging a generic glyph; keep the surrounding container borderless and let the glow carry the depth.

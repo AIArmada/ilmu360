@@ -50,6 +50,9 @@ new
         #[Url]
         public ?string $state_id = null;
 
+        #[Url]
+        public ?bool $upcoming_only = null;
+
         /**
          * @var list<string>
          */
@@ -127,11 +130,18 @@ new
             $this->resetPage();
         }
 
+        public function toggleUpcomingOnly(): void
+        {
+            $this->upcoming_only = $this->upcoming_only === true ? null : true;
+            $this->resetPage();
+        }
+
         public function clearFilters(): void
         {
             $this->title_id = null;
             $this->language_id = null;
             $this->state_id = null;
+            $this->upcoming_only = null;
             $this->resetPage();
         }
 
@@ -229,6 +239,7 @@ new
             $titleId = $this->normalizedFilterId($this->title_id);
             $languageId = $this->normalizedFilterId($this->language_id);
             $stateId = $this->normalizedFilterId($this->state_id);
+            $upcomingOnly = $this->upcoming_only === true;
 
             return $query
                 ->when($titleId !== null, function (Builder $query) use ($titleId): void {
@@ -246,6 +257,16 @@ new
                 ->when($stateId !== null, function (Builder $query) use ($stateId): void {
                     $query->whereHas('addresses', function (Builder $addressQuery) use ($stateId): void {
                         $addressQuery->where('state_id', $stateId);
+                    });
+                })
+                ->when($upcomingOnly, function (Builder $query): void {
+                    $query->whereHas('personEvents', function (Builder $eventQuery): void {
+                        $eventQuery
+                            ->whereIn('events.status', Event::PUBLIC_STATUSES)
+                            ->where('events.visibility', EventVisibility::Public->value)
+                            ->whereNotNull('events.published_at')
+                            ->where('events.starts_at', '>=', now())
+                            ->whereHas('occurrences');
                     });
                 });
         }
@@ -480,6 +501,7 @@ new
                 'title_id' => $this->normalizedFilterId($this->title_id),
                 'language_id' => $this->normalizedFilterId($this->language_id),
                 'state_id' => $this->normalizedFilterId($this->state_id),
+                'upcoming_only' => $this->upcoming_only === true ? '1' : null,
             ])
                 ->filter(static fn (mixed $value): bool => filled($value))
                 ->map(static fn (mixed $value): string => (string) $value)
@@ -569,17 +591,17 @@ new
     </div>
 
     <!-- Main Content -->
-    <div class="mx-auto max-w-7xl px-5 pt-10 pb-8 sm:px-6 lg:px-8 lg:pt-12 lg:pb-12">
+    <div class="mx-auto max-w-7xl px-5 pt-10 pb-10 sm:px-6 lg:px-8 lg:pt-12 lg:pb-14">
         @island(name: 'person-results', always: true)
             @php
                 $persons = $this->persons;
                 $search = $this->search;
-                $personLoadingTarget = 'search,sort,title_id,language_id,state_id,clearSearch,clearFilters,gotoPage,setPage,nextPage,previousPage';
+                $personLoadingTarget = 'search,sort,title_id,language_id,state_id,upcoming_only,toggleUpcomingOnly,clearSearch,clearFilters,gotoPage,setPage,nextPage,previousPage';
                 $submitPersonUrl = route('contributions.submit-person');
                 $personTotal = $persons->total();
                 $activeFilterCount = collect([$this->title_id, $this->language_id, $this->state_id])
                     ->filter(static fn (mixed $value): bool => filled($value))
-                    ->count();
+                    ->count() + ($this->upcoming_only === true ? 1 : 0);
             @endphp
 
             <div
@@ -688,25 +710,42 @@ new
                     </div>
 
                     @unless(filled($search))
-                        <div class="flex w-fit shrink-0 flex-col gap-1.5 self-end sm:self-auto" role="group" aria-label="{{ __('Sort directory') }}">
-                            <span class="px-1 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">{{ __('Sort') }}</span>
-                            <div data-material="translucent-control" class="living-majlis-veil flex items-center gap-1 rounded-xl p-0.5">
-                                <button
-                                    type="button"
-                                    wire:click="$set('sort', null)"
-                                    aria-pressed="{{ $sort === null ? 'true' : 'false' }}"
-                                    class="rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/10 {{ $sort === null ? 'bg-emerald-800 text-white' : 'text-slate-500 hover:text-slate-800' }}"
-                                >
-                                    {{ __('Random') }}
-                                </button>
-                                <button
-                                    type="button"
-                                    wire:click="$set('sort', 'name')"
-                                    aria-pressed="{{ $sort === 'name' ? 'true' : 'false' }}"
-                                    class="rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/10 {{ $sort === 'name' ? 'bg-emerald-800 text-white' : 'text-slate-500 hover:text-slate-800' }}"
-                                >
-                                    {{ __('Name A–Z') }}
-                                </button>
+                        <div class="flex w-full flex-wrap items-end justify-end gap-3 sm:w-auto sm:flex-nowrap">
+                            <button
+                                type="button"
+                                wire:click="toggleUpcomingOnly"
+                                wire:loading.attr="disabled"
+                                aria-pressed="{{ $this->upcoming_only === true ? 'true' : 'false' }}"
+                                aria-label="{{ __('Upcoming events only') }}"
+                                class="inline-flex h-9 w-full items-center justify-center gap-2 rounded-xl border px-3.5 text-xs font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/10 disabled:cursor-wait disabled:opacity-60 sm:w-auto {{ $this->upcoming_only === true ? 'border-emerald-700 bg-emerald-800 text-white shadow-sm' : 'border-slate-200/80 bg-white/75 text-slate-600 hover:border-emerald-200 hover:text-emerald-800' }}"
+                            >
+                                <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 3.75v2.5m9-2.5v2.5M4.5 9.25h15m-13.5-5.5h11a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2Z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 13h.01m3.74 0H12m3.74 0h.01m-7.5 3.25h.01m3.74 0H12m3.74 0h.01" />
+                                </svg>
+                                {{ __('Upcoming events only') }}
+                            </button>
+
+                            <div class="flex shrink-0 flex-col gap-1.5" role="group" aria-label="{{ __('Sort directory') }}">
+                                <span class="px-1 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">{{ __('Sort') }}</span>
+                                <div data-material="translucent-control" class="living-majlis-veil flex items-center gap-1 rounded-xl p-0.5">
+                                    <button
+                                        type="button"
+                                        wire:click="$set('sort', null)"
+                                        aria-pressed="{{ $sort === null ? 'true' : 'false' }}"
+                                        class="rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/10 {{ $sort === null ? 'bg-emerald-800 text-white' : 'text-slate-500 hover:text-slate-800' }}"
+                                    >
+                                        {{ __('Random') }}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        wire:click="$set('sort', 'name')"
+                                        aria-pressed="{{ $sort === 'name' ? 'true' : 'false' }}"
+                                        class="rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/10 {{ $sort === 'name' ? 'bg-emerald-800 text-white' : 'text-slate-500 hover:text-slate-800' }}"
+                                    >
+                                        {{ __('Name A–Z') }}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     @endunless
@@ -910,15 +949,22 @@ new
 
                     <div class="relative flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
                         <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-6">
-                            <span class="relative grid h-[4.5rem] w-[4.5rem] shrink-0 place-items-center rounded-[1.25rem] bg-emerald-800/35 text-[#f5d98f] shadow-[0_16px_30px_-22px_rgba(0,0,0,0.8)]">
-                                <svg class="relative h-12 w-12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                                    <circle cx="12" cy="7.2" r="2.35" />
-                                    <path d="M7.25 18.9c.18-3.5 1.75-5.55 4.75-5.55s4.57 2.05 4.75 5.55a.7.7 0 0 1-.7.75H7.95a.7.7 0 0 1-.7-.75Z" />
-                                    <circle cx="5.7" cy="10.35" r="1.7" fill-opacity=".72" />
-                                    <path d="M2.25 18.65c.14-2.45 1.25-3.9 3.35-3.9 1.12 0 1.98.43 2.55 1.28-.45.78-.75 1.67-.9 2.7H2.9a.65.65 0 0 1-.65-.08Z" fill-opacity=".72" />
-                                    <circle cx="18.3" cy="10.35" r="1.7" fill-opacity=".72" />
-                                    <path d="M21.75 18.65c-.14-2.45-1.25-3.9-3.35-3.9-1.12 0-1.98.43-2.55 1.28.45.78.75 1.67.9 2.7h4.35a.65.65 0 0 0 .65-.08Z" fill-opacity=".72" />
-                                    <path d="M9.2 20.35h5.6" stroke="#f7e6ad" stroke-linecap="round" stroke-width="1.15" />
+                            <span class="relative grid h-20 w-20 shrink-0 place-items-center rounded-[1.35rem] bg-emerald-800/35 text-[#f5d98f] shadow-[0_18px_34px_-22px_rgba(0,0,0,0.9)]">
+                                <span class="pointer-events-none absolute inset-3 rounded-full bg-gold-300/10 blur-xl"></span>
+                                <svg class="relative h-14 w-14 drop-shadow-[0_6px_8px_rgba(0,0,0,0.18)]" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+                                    <defs>
+                                        <linearGradient id="speaker-group-gold" x1="15" y1="13" x2="49" y2="54" gradientUnits="userSpaceOnUse">
+                                            <stop stop-color="#FFF0B1" />
+                                            <stop offset="1" stop-color="#E8BA55" />
+                                        </linearGradient>
+                                    </defs>
+                                    <circle cx="32" cy="17.5" r="6" fill="url(#speaker-group-gold)" />
+                                    <path d="M18.5 46.5c.25-8.45 4.75-13.15 13.5-13.15s13.25 4.7 13.5 13.15c.03 1.02-.79 1.85-1.81 1.85H20.31a1.81 1.81 0 0 1-1.81-1.85Z" fill="url(#speaker-group-gold)" />
+                                    <circle cx="13.5" cy="26" r="4.6" fill="#F7D98F" fill-opacity=".78" />
+                                    <path d="M2.75 49.5c.24-6.52 3.77-10.2 10.55-10.2 3.99 0 6.92 1.53 8.77 4.58-.84 1.58-1.37 3.42-1.57 5.53H4.55a1.8 1.8 0 0 1-1.8-1.91Z" fill="#F7D98F" fill-opacity=".78" />
+                                    <circle cx="50.5" cy="26" r="4.6" fill="#F7D98F" fill-opacity=".78" />
+                                    <path d="M61.25 49.5c-.24-6.52-3.77-10.2-10.55-10.2-3.99 0-6.92 1.53-8.77 4.58.84 1.58 1.37 3.42 1.57 5.53h15.95a1.8 1.8 0 0 0 1.8-1.91Z" fill="#F7D98F" fill-opacity=".78" />
+                                    <path d="M23.5 53h17" stroke="#FFF0B1" stroke-linecap="round" stroke-width="2" />
                                 </svg>
                             </span>
 
@@ -938,10 +984,10 @@ new
                         <a
                             href="{{ $submitPersonUrl }}"
                             wire:navigate
-                            class="group inline-flex min-h-14 w-full items-center justify-between gap-5 rounded-[1.25rem] bg-[#efd18a] px-5 py-3.5 text-left text-[#063b27] shadow-[0_18px_34px_-20px_rgba(217,165,20,0.78)] ring-1 ring-[#fff0bd]/70 transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#f5dfaa] hover:shadow-[0_22px_42px_-20px_rgba(217,165,20,0.9)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-gold-400/40 sm:w-auto sm:min-w-[18rem]"
+                            class="living-majlis-cta-button group inline-flex min-h-14 w-full items-center justify-between gap-5 rounded-[1.25rem] px-5 py-3.5 text-left text-[#063b27] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-gold-400/40 sm:w-auto sm:min-w-[18rem]"
                         >
-                            <span class="text-sm font-bold sm:text-base">{{ __('Suggest a speaker') }}</span>
-                            <svg class="h-5 w-5 shrink-0" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <span class="relative z-10 text-sm font-bold sm:text-base">{{ __('Suggest a speaker') }}</span>
+                            <svg class="relative z-10 h-5 w-5 shrink-0" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M4.167 10h11.666m0 0-4.166-4.167M15.833 10l-4.166 4.167" />
                             </svg>
                         </a>

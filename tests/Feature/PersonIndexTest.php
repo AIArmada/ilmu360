@@ -884,6 +884,57 @@ it('counts only upcoming public events on the person index cards', function () {
         ->assertSee('data-follow-icon="speaker"', false);
 });
 
+it('can filter the person directory to speakers with upcoming public events', function () {
+    $upcomingSpeaker = Person::factory()->create([
+        'name' => 'Speaker Dengan Majlis Akan Datang',
+        'status' => 'verified',
+    ]);
+    $pastSpeaker = Person::factory()->create([
+        'name' => 'Speaker Tanpa Majlis Akan Datang',
+        'status' => 'verified',
+    ]);
+    $unlistedSpeaker = Person::factory()->create([
+        'name' => 'Speaker Dengan Majlis Tidak Disenaraikan',
+        'status' => 'verified',
+    ]);
+
+    $upcomingEvent = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subHour(),
+        'starts_at' => now()->addDays(3),
+    ]);
+    $pastEvent = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subHour(),
+        'starts_at' => now()->subDays(3),
+    ]);
+    $unlistedEvent = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => 'unlisted',
+        'published_at' => now()->subHour(),
+        'starts_at' => now()->addDays(3),
+    ]);
+
+    app(EventKeyPersonSyncService::class)->sync($upcomingEvent, [(string) $upcomingSpeaker->getKey()]);
+    app(EventKeyPersonSyncService::class)->sync($pastEvent, [(string) $pastSpeaker->getKey()]);
+    app(EventKeyPersonSyncService::class)->sync($unlistedEvent, [(string) $unlistedSpeaker->getKey()]);
+
+    $component = Livewire::test('pages.persons.index')
+        ->call('toggleUpcomingOnly');
+
+    $listedIds = collect($component->instance()->persons->items())
+        ->pluck('id')
+        ->map(static fn (mixed $id): string => (string) $id)
+        ->all();
+
+    expect($component->instance()->upcoming_only)->toBeTrue()
+        ->and($listedIds)->toContain((string) $upcomingSpeaker->getKey())
+        ->and($listedIds)->not->toContain((string) $pastSpeaker->getKey())
+        ->and($listedIds)->not->toContain((string) $unlistedSpeaker->getKey());
+});
+
 it('renders gender-aware placeholders for speakers without profile images', function (?Gender $gender, string $variant, ?string $asset) {
     $person = Person::factory()->create([
         'name' => 'No Image Speaker',

@@ -5,7 +5,6 @@ namespace App\Livewire\Pages\Events;
 use AIArmada\Addressing\Data\AddressLocationData;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
-use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
 use AIArmada\Addressing\Support\AddressLocationScope;
 use AIArmada\CommerceSupport\Support\OwnerContext;
@@ -88,9 +87,6 @@ class Index extends Component implements HasForms
 
     #[Url]
     public ?string $state_id = null;
-
-    #[Url]
-    public ?string $city_id = null;
 
     /** @var array<string, string> */
     #[Url]
@@ -267,12 +263,6 @@ class Index extends Component implements HasForms
 
     #[Url]
     public string $sort = 'time';
-
-    /**
-     * @var list<string>
-     */
-    #[Url]
-    public array $reference_author_search = [];
 
     /**
      * @var array<string, mixed>
@@ -522,20 +512,6 @@ class Index extends Component implements HasForms
                             ->extraAttributes(['data-signal-control' => 'state_id'])
                             ->live(),
 
-                        Select::make('city_id')
-                            ->label(__('City'))
-                            ->placeholder(__('Any City'))
-                            ->searchable()
-                            ->disabled(fn (): bool => ! filled($this->country_id))
-                            ->getSearchResultsUsing(fn (Get $get, string $search): array => $this->searchCityOptions(
-                                countryId: $this->normalizeNullableString($get('country_id')),
-                                stateId: $this->normalizeNullableString($get('state_id')),
-                                search: $search,
-                            ))
-                            ->getOptionLabelUsing(fn (?string $value): ?string => $this->cityOptionLabel($value))
-                            ->extraAttributes(['data-signal-control' => 'city_id'])
-                            ->live(),
-
                         Select::make('area_assignments.administrative_division')
                             ->label(__('Division / Bahagian'))
                             ->placeholder(__('Any Division'))
@@ -608,7 +584,6 @@ class Index extends Component implements HasForms
                             ->getSearchResultsUsing(fn (Get $get, string $search): array => $this->searchInstitutionOptions(
                                 countryId: $this->normalizeNullableString($get('country_id')),
                                 stateId: $this->normalizeNullableString($get('state_id')),
-                                cityId: $this->normalizeNullableString($get('city_id')),
                                 areaAssignments: $this->normalizeAreaAssignments($get('area_assignments')),
                                 search: $search,
                             ))
@@ -703,15 +678,6 @@ class Index extends Component implements HasForms
                             ->getSearchResultsUsing(fn (string $search): array => $this->searchReferenceOptions($search))
                             ->getOptionLabelsUsing(fn (array $values): array => $this->referenceOptionLabels($values))
                             ->live(),
-
-                        Select::make('reference_author_search')
-                            ->label(__('Pengarang Rujukan'))
-                            ->placeholder(__('Cari atau pilih pengarang...'))
-                            ->searchable()
-                            ->multiple()
-                            ->getSearchResultsUsing(fn (string $search): array => $this->searchReferenceAuthorOptions($search))
-                            ->getOptionLabelsUsing(fn (array $values): array => $this->referenceAuthorOptionLabels($values))
-                            ->live(),
                     ]),
 
                 Section::make(__('Untuk siapa'))
@@ -794,25 +760,30 @@ class Index extends Component implements HasForms
     {
         if ($key === 'country_id') {
             $this->filterData['state_id'] = null;
-            $this->filterData['city_id'] = null;
             $this->filterData['area_assignments'] = $this->withAreaAssignmentDefaults([]);
-            $this->filterData['institution_id'] = null;
         } elseif ($key === 'state_id') {
-            $this->filterData['city_id'] = null;
             $this->filterData['area_assignments'] = $this->withAreaAssignmentDefaults([]);
-            $this->filterData['institution_id'] = null;
         } elseif ($key === 'area_assignments.administrative_division') {
             $this->filterData['area_assignments']['administrative_district'] = null;
             $this->filterData['area_assignments']['administrative_subdivision'] = null;
-            $this->filterData['institution_id'] = null;
         } elseif ($key === 'area_assignments.administrative_district') {
             $this->filterData['area_assignments']['administrative_subdivision'] = null;
-            $this->filterData['institution_id'] = null;
-        } elseif ($key === 'city_id' || str_starts_with((string) $key, 'area_assignments.')) {
-            $this->filterData['institution_id'] = null;
         }
 
         $normalized = $this->normalizedFilterData($this->filterData);
+
+        // A location change re-scopes the institution options. The selected
+        // institution survives when it is still inside the new scope and is
+        // reset only when it falls outside of it.
+        if ($this->isLocationFilterKey($key) && ! $this->institutionWithinScope(
+            $normalized['institution_id'] ?? null,
+            $normalized['country_id'],
+            $normalized['state_id'] ?? null,
+            $normalized['area_assignments'],
+        )) {
+            $normalized['institution_id'] = null;
+            $this->filterData['institution_id'] = null;
+        }
 
         $this->fillPublicPropertiesFromFilters($normalized);
         $this->resetPage();
@@ -1000,56 +971,16 @@ class Index extends Component implements HasForms
     private function searchInstitutionOptions(
         ?string $countryId,
         ?string $stateId,
-        ?string $cityId,
         array $areaAssignments,
         string $search = '',
     ): array {
         $query = Institution::query()
             ->whereIn('status', ['verified', 'pending']);
 
-        $this->applyAddressLocationFilters($query, $countryId, $areaAssignments, $stateId, $cityId);
+        $this->applyAddressLocationFilters($query, $countryId, $areaAssignments, $stateId);
         $query->searchNameOrNickname($search);
 
         return $this->institutionOptionsFromQuery($query->orderBy('name'), 50);
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private function searchCityOptions(?string $countryId, ?string $stateId, string $search = ''): array
-    {
-        if (! filled($stateId) && ! filled($countryId)) {
-            return [];
-        }
-
-        $query = City::query();
-
-        if (filled($stateId)) {
-            $query->where('state_id', $stateId);
-        }
-
-        if (filled($countryId)) {
-            $query->where('country_id', $countryId);
-        }
-
-        $this->applySearchConstraint($query, 'name', $search);
-
-        return $this->pluckOptions($query->orderBy('name'), 'name', 50);
-    }
-
-    public function cityOptionLabel(?string $value): ?string
-    {
-        if ($value === null) {
-            return null;
-        }
-
-        $id = SharedFormSchema::normalizeLocationId($value);
-
-        if ($id === null) {
-            return null;
-        }
-
-        return City::query()->whereKey($id)->value('name');
     }
 
     /**
@@ -1228,52 +1159,6 @@ class Index extends Component implements HasForms
     }
 
     /**
-     * @return array<string, string>
-     */
-    private function searchReferenceAuthorOptions(string $search): array
-    {
-        $query = Reference::query()
-            ->active()
-            ->whereNotNull('author')
-            ->where('author', '!=', '')
-            ->orderBy('author');
-
-        $normalizedSearch = trim($search);
-
-        if ($normalizedSearch !== '') {
-            $query->whereLike('author', "%{$normalizedSearch}%");
-        }
-
-        return $query
-            ->limit(50)
-            ->pluck('author', 'author')
-            ->mapWithKeys(fn (string $author): array => [$author => $author])
-            ->all();
-    }
-
-    /**
-     * @param  list<string>  $values
-     * @return array<string, string>
-     */
-    public function referenceAuthorOptionLabels(array $values): array
-    {
-        if ($values === []) {
-            return [];
-        }
-
-        return Reference::query()
-            ->active()
-            ->whereIn('author', $values)
-            ->whereNotNull('author')
-            ->where('author', '!=', '')
-            ->orderBy('author')
-            ->limit(count($values))
-            ->pluck('author', 'author')
-            ->mapWithKeys(fn (string $author): array => [$author => $author])
-            ->all();
-    }
-
-    /**
      * @param  Builder<Reference>  $query
      * @return array<string, string>
      */
@@ -1383,14 +1268,53 @@ class Index extends Component implements HasForms
         ?string $countryId,
         array $areaAssignments,
         ?string $stateId = null,
-        ?string $cityId = null,
     ): void {
         app(AddressLocationScope::class)->apply($query, new AddressLocationData(
             countryId: filled($countryId) ? $countryId : null,
             stateId: filled($stateId) ? $stateId : null,
-            cityId: filled($cityId) ? $cityId : null,
             areaAssignments: $areaAssignments,
         ));
+    }
+
+    private function isLocationFilterKey(?string $key): bool
+    {
+        if ($key === null) {
+            return false;
+        }
+
+        return in_array($key, ['country_id', 'state_id'], true)
+            || str_starts_with($key, 'area_assignments.');
+    }
+
+    /**
+     * Whether the selected institution falls inside the selected location
+     * scope, using the same constraints as the institution options.
+     *
+     * @param  array<string, string>  $areaAssignments
+     */
+    private function institutionWithinScope(
+        mixed $institutionId,
+        ?string $countryId,
+        ?string $stateId,
+        array $areaAssignments,
+    ): bool {
+        $institutionId = SharedFormSchema::normalizeLocationId($institutionId);
+
+        if ($institutionId === null) {
+            return true;
+        }
+
+        if ($countryId === null && $stateId === null && $areaAssignments === []) {
+            return true;
+        }
+
+        $query = Institution::query()
+            ->whereKey($institutionId)
+            ->whereIn('status', ['verified', 'pending']);
+
+        $this->applyAddressLocationFilters($query, $countryId, $areaAssignments, $stateId);
+
+        return $query->exists();
     }
 
     /**
@@ -1461,7 +1385,6 @@ class Index extends Component implements HasForms
         $searchFilters = [
             'country_id' => $filters['country_id'],
             'state_id' => $filters['state_id'] ?? null,
-            'city_id' => $filters['city_id'] ?? null,
             'area_assignments' => $filters['area_assignments'] ?? [],
             'language_codes' => $filters['language_codes'],
             'event_category_ids' => $filters['event_category_ids'],
@@ -1516,10 +1439,6 @@ class Index extends Component implements HasForms
         $searchFilters['search_include_persons'] = false;
         $searchFilters['search_include_references'] = false;
 
-        if ($filters['reference_author_search'] !== []) {
-            $searchFilters['reference_author_search'] = $filters['reference_author_search'];
-        }
-
         return $searchFilters;
     }
 
@@ -1566,7 +1485,6 @@ class Index extends Component implements HasForms
             'search' => null,
             'country_id' => null,
             'state_id' => null,
-            'city_id' => null,
             'area_assignments' => $this->withAreaAssignmentDefaults([]),
             'language_codes' => [],
             'event_category_ids' => [],
@@ -1605,7 +1523,6 @@ class Index extends Component implements HasForms
             'lng' => null,
             'radius_km' => 15,
             'sort' => 'time',
-            'reference_author_search' => [],
         ];
     }
 
@@ -1631,7 +1548,6 @@ class Index extends Component implements HasForms
             'search' => filled($this->search) ? trim($this->search) : null,
             'country_id' => filled($this->country_id) ? $this->country_id : null,
             'state_id' => filled($this->state_id) ? $this->state_id : null,
-            'city_id' => filled($this->city_id) ? $this->city_id : null,
             'area_assignments' => $this->normalizeAreaAssignments($this->area_assignments),
             'language_codes' => $languageCodes,
             'event_category_ids' => $this->normalizeStringArray($this->event_category_ids),
@@ -1672,7 +1588,6 @@ class Index extends Component implements HasForms
             'lng' => filled($this->lng) ? $this->lng : null,
             'radius_km' => max(1, min(1000, $this->radius_km)),
             'sort' => in_array($this->sort, ['time', 'relevance', 'distance'], true) ? $this->sort : $defaults['sort'],
-            'reference_author_search' => $this->normalizeStringArray($this->reference_author_search),
         ];
     }
 
@@ -1684,7 +1599,6 @@ class Index extends Component implements HasForms
         $this->search = $filters['search'];
         $this->country_id = $filters['country_id'];
         $this->state_id = $filters['state_id'] ?? null;
-        $this->city_id = $filters['city_id'] ?? null;
         $this->area_assignments = $filters['area_assignments'];
         $this->language_codes = $filters['language_codes'];
         $this->event_category_ids = $filters['event_category_ids'];
@@ -1723,7 +1637,6 @@ class Index extends Component implements HasForms
         $this->lng = $filters['lng'];
         $this->radius_km = $filters['radius_km'];
         $this->sort = $filters['sort'];
-        $this->reference_author_search = $filters['reference_author_search'];
     }
 
     /**
@@ -1776,7 +1689,6 @@ class Index extends Component implements HasForms
             'search' => filled($normalized['search']) ? trim((string) $normalized['search']) : null,
             'country_id' => filled($normalized['country_id']) ? (string) $normalized['country_id'] : null,
             'state_id' => filled($normalized['state_id'] ?? null) ? (string) $normalized['state_id'] : null,
-            'city_id' => filled($normalized['city_id'] ?? null) ? (string) $normalized['city_id'] : null,
             'area_assignments' => $this->normalizeAreaAssignments($normalized['area_assignments'] ?? []),
             'language_codes' => $languageCodes,
             'event_category_ids' => $this->normalizeStringArray($normalized['event_category_ids'] ?? []),
@@ -1815,7 +1727,6 @@ class Index extends Component implements HasForms
             'lng' => filled($normalized['lng']) ? (string) $normalized['lng'] : null,
             'radius_km' => max(1, min(1000, (int) ($normalized['radius_km'] ?? $defaults['radius_km']))),
             'sort' => $sort,
-            'reference_author_search' => $this->normalizeStringArray($normalized['reference_author_search'] ?? []),
         ];
     }
 

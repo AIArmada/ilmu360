@@ -1,16 +1,17 @@
 <?php
 
 use App\Livewire\Pages\Events\Index;
+use App\Models\Institution;
 use Filament\Forms\Components\Select;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
 
-function dietCitySelectField($component): Select
+function dietInstitutionSelectField($component): Select
 {
     $field = collect($component->instance()->getForm('form')->getFlatFields())
-        ->first(fn (mixed $field): bool => $field instanceof Select && $field->getName() === 'city_id');
+        ->first(fn (mixed $field): bool => $field instanceof Select && $field->getName() === 'institution_id');
 
     expect($field)->toBeInstanceOf(Select::class);
 
@@ -27,18 +28,16 @@ function dietAreaSelectField($component, string $name): Select
     return $field;
 }
 
-it('does not preload city options into the filter HTML', function () {
-    $geo = createTestPackageGeography('Negeri Diet '.uniqid(), 'District Diet '.uniqid(), null, 'Kota Diet '.uniqid());
+it('does not preload institution options into the filter HTML', function () {
+    $institution = Institution::factory()->create([
+        'name' => 'Institusi Diet '.uniqid(),
+        'status' => 'verified',
+    ]);
 
-    $response = $this->get(route('events.index', [
-        'country_id' => (string) $geo['country']->getKey(),
-        'state_id' => (string) $geo['state']->getKey(),
-    ], false));
+    $response = $this->get(route('events.index', [], false));
 
     $response->assertOk();
-    $response->assertDontSee($geo['city']->name);
-    // The cascade roots stay preloaded.
-    $response->assertSee($geo['state']->name);
+    $response->assertDontSee($institution->name);
 });
 
 it('does not preload area options into the filter HTML', function () {
@@ -54,18 +53,16 @@ it('does not preload area options into the filter HTML', function () {
     $response->assertDontSee($districtName);
 });
 
-it('labels selected city and district chips without preloaded options', function () {
-    $geo = createTestPackageGeography('Negeri Diet '.uniqid(), 'Daerah Chip '.uniqid(), null, 'Kota Chip '.uniqid());
+it('labels selected district chips without preloaded options', function () {
+    $geo = createTestPackageGeography('Negeri Diet '.uniqid(), 'Daerah Chip '.uniqid());
 
     $response = $this->get(route('events.index', [
         'country_id' => (string) $geo['country']->getKey(),
         'state_id' => (string) $geo['state']->getKey(),
-        'city_id' => (string) $geo['city']->getKey(),
         'area_assignments' => ['administrative_district' => (string) $geo['district']->getKey()],
     ], false));
 
     $response->assertOk()
-        ->assertSee($geo['city']->name)
         ->assertSee($geo['district']->name);
 });
 
@@ -84,15 +81,14 @@ it('shows scoped subdivision options only on search', function () {
         ->assertDontSee($subdivisionName);
 });
 
-it('tolerates malformed city filter values', function () {
+it('ignores removed city filter values', function () {
     $this->get(route('events.index', ['city_id' => 'xx'], false))->assertOk();
 });
 
 it('resolves null location labels without querying', function () {
     $component = Livewire::test(Index::class);
 
-    expect($component->instance()->cityOptionLabel(null))->toBeNull()
-        ->and($component->instance()->areaOptionLabel(null))->toBeNull()
+    expect($component->instance()->areaOptionLabel(null))->toBeNull()
         ->and($component->instance()->institutionOptionLabel(null))->toBeNull();
 });
 
@@ -127,19 +123,25 @@ it('keeps area assignment keys in form state for nested bindings', function () {
     expect($component->get('filterData.area_assignments'))->toBe($expected);
 });
 
-it('searches city options asynchronously within the selected scope', function () {
-    $geoA = createTestPackageGeography('Negeri Scope A '.uniqid(), 'District A '.uniqid(), null, 'Kota Scope A '.uniqid());
-    $geoB = createTestPackageGeography('Negeri Scope B '.uniqid(), 'District B '.uniqid(), null, 'Kota Scope B '.uniqid());
+it('searches institution options asynchronously within the selected scope', function () {
+    $geoA = createTestPackageGeography('Negeri Scope A '.uniqid(), 'District A '.uniqid());
+    $geoB = createTestPackageGeography('Negeri Scope B '.uniqid(), 'District B '.uniqid());
+
+    $match = Institution::factory()->create(['name' => 'Institusi Scope A '.uniqid(), 'status' => 'verified']);
+    syncPrimaryAddressForTest($match, $geoA['address']);
+
+    $other = Institution::factory()->create(['name' => 'Institusi Scope B '.uniqid(), 'status' => 'verified']);
+    syncPrimaryAddressForTest($other, $geoB['address']);
 
     $component = Livewire::withQueryParams([
         'country_id' => (string) $geoA['country']->getKey(),
         'state_id' => (string) $geoA['state']->getKey(),
     ])->test(Index::class);
 
-    $results = dietCitySelectField($component)->getSearchResults('Kota Scope');
+    $results = dietInstitutionSelectField($component)->getSearchResults('Institusi Scope');
 
-    expect($results)->toHaveKey((string) $geoA['city']->getKey())
-        ->and($results)->not->toHaveKey((string) $geoB['city']->getKey());
+    expect($results)->toHaveKey((string) $match->getKey())
+        ->and($results)->not->toHaveKey((string) $other->getKey());
 });
 
 it('searches district options asynchronously within the selected scope', function () {

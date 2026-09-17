@@ -458,7 +458,7 @@
             <!-- Living Majlis Footer -->
             <footer class="living-majlis-footer relative mt-20 overflow-hidden bg-emerald-950 text-emerald-50">
                 <div class="living-majlis-footer-image pointer-events-none absolute inset-0 opacity-100"
-                    style="background-image: url('{{ asset('images/footer-courtyard.png') }}');">
+                    style="background-image: url('{{ asset('images/footer-courtyard-v4.png') }}');">
                 </div>
                 <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(2,33,22,0.08),rgba(2,33,22,0.18)_50%,rgba(2,33,22,0.08))]"></div>
                 <div class="pointer-events-none absolute inset-0 opacity-[0.06]"
@@ -469,7 +469,7 @@
                 </div>
                 <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_150%_at_8%_0%,rgba(16,185,129,0.14),transparent_58%)]"></div>
 
-                <div class="relative z-10 mx-auto flex min-h-[34rem] max-w-7xl flex-col px-5 pt-14 pb-6 sm:px-6 lg:px-8 lg:pt-20 lg:pb-6">
+                <div class="relative z-10 mx-auto flex min-h-[30rem] max-w-7xl flex-col px-5 pt-12 pb-8 sm:px-6 lg:px-8 lg:pt-12 lg:pb-8">
                     <div class="grid gap-10 lg:mx-auto lg:max-w-4xl lg:grid-cols-[1.35fr_0.8fr_1fr] lg:gap-16">
                         <div>
                             <span class="font-heading text-4xl font-bold tracking-tight"><span class="text-white">ilmu</span><span class="text-gold-300">360°</span></span>
@@ -556,7 +556,7 @@
                     </div>
 
                     <div
-                        class="mt-auto flex flex-col gap-4 border-t border-gold-300/30 pt-6 text-xs text-emerald-100/55 sm:flex-row sm:items-center sm:justify-between">
+                        class="mt-auto flex flex-col gap-4 pt-6 text-xs text-emerald-100/55 sm:flex-row sm:items-center sm:justify-between">
                         <p>&copy; {{ date('Y') }} ilmu360°. {{ __('All rights reserved.') }}</p>
                         <div class="flex items-center gap-3">
                             <span>{{ __('Privacy') }}</span>

@@ -145,7 +145,6 @@
         ->all();
     $personLabels = $this->personOptionLabels($selectedPersonLabelIds);
     $referenceLabels = $this->referenceOptionLabels($selectedReferenceIds);
-    $referenceAuthorLabels = $this->referenceAuthorOptionLabels($this->reference_author_search);
     $keyPersonRoleLabels = \App\Enums\EventKeyPersonRole::nonSpeakerOptions();
     $eventCategoryLabels = $this->eventCategoryOptions;
     $eventFormatLabels = collect(\App\Enums\EventFormat::cases())
@@ -162,7 +161,6 @@
     $sourceLabels = $this->termOptionLabels('source', $selectedSourceTagIds);
     $issueLabels = $this->termOptionLabels('issue', $selectedIssueTagIds);
     $institutionLabel = filled($institutionId) ? $this->institutionOptionLabel((string) $institutionId) : null;
-    $cityLabel = filled($this->city_id) ? $this->cityOptionLabel((string) $this->city_id) : null;
     $divisionLabel = filled($areaAssignments['administrative_division'] ?? null) ? $this->areaOptionLabel((string) $areaAssignments['administrative_division']) : null;
     $postalLocalityLabel = filled($areaAssignments['postal_locality'] ?? null) ? $this->areaOptionLabel((string) $areaAssignments['postal_locality']) : null;
     $districtLabel = filled($districtAreaId) ? $this->areaOptionLabel((string) $districtAreaId) : null;
@@ -173,7 +171,6 @@
         filled($search),
         $hasCountryScope,
         filled($stateId),
-        filled($this->city_id),
         filled($areaAssignments['administrative_division'] ?? null),
         filled($districtAreaId),
         filled($subdivisionAreaId),
@@ -200,7 +197,6 @@
         count($selectedSourceTagIds) > 0,
         count($selectedIssueTagIds) > 0,
         count($selectedReferenceIds) > 0,
-        count($this->reference_author_search) > 0,
         filled($startsAfter),
         filled($startsBefore),
         filled($prayerTime),
@@ -218,7 +214,6 @@
         'search' => $search,
         'country_id' => $countryId,
         'state_id' => $stateId,
-        'city_id' => $this->city_id,
         'area_assignments' => $areaAssignments,
         'institution_id' => $institutionId,
         'person_ids' => $selectedPersonIds,
@@ -256,7 +251,6 @@
         'radius_km' => filled($lat) && filled($lng) ? $this->radius_km : null,
         'sort' => $sort !== 'time' ? $sort : null,
         'time_scope' => $timeScope !== 'upcoming' ? $timeScope : null,
-        'reference_author_search' => $this->reference_author_search,
     ], function (mixed $value): bool {
         if (is_array($value)) {
             return $value !== [];
@@ -707,9 +701,6 @@
                             @if($stateId)
                                 <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Negeri') }}: {{ $states->firstWhere('id', $stateId)?->name ?? $stateId }}</span>
                             @endif
-                            @if($this->city_id)
-                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Bandar') }}: {{ $cityLabel ?? $this->city_id }}</span>
-                            @endif
                             @if($areaAssignments['administrative_division'] ?? null)
                                 <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Bahagian') }}: {{ $divisionLabel ?? $areaAssignments['administrative_division'] }}</span>
                             @endif
@@ -757,9 +748,6 @@
                             @endforeach
                             @foreach($selectedReferenceIds as $referenceId)
                                 <span class="inline-flex items-center rounded-full border border-violet-100 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-800">{{ __('Rujukan Kitab/Buku') }}: {{ $referenceLabels[$referenceId] ?? $referenceId }}</span>
-                            @endforeach
-                            @foreach($this->reference_author_search as $referenceAuthor)
-                                <span class="inline-flex items-center rounded-full border border-violet-100 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-800">{{ __('Pengarang Rujukan') }}: {{ $referenceAuthorLabels[$referenceAuthor] ?? $referenceAuthor }}</span>
                             @endforeach
                             @if($gender)
                                 <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Jantina') }}: {{ $genderLabels[$gender] ?? str((string) $gender)->replace('_', ' ')->headline() }}</span>

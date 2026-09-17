@@ -2976,3 +2976,59 @@ The affected-surface run completed with 118 passing tests and 472 assertions; it
 - Hero image refinement generates and adopts `public/images/speakers/penceramah-hero-background-v2.png` from the approved art direction; the generated composition now contains the arch, mosque, microphone, Quran, books, and plants as one responsive layer.
 - Opacity refinement reduces only the hero text veil and footer image darkening overlay, restoring image detail while preserving readable content; desktop and mobile checks pass without overflow.
 - Hero source refinement adopts `penceramah-hero-background-v3.png`, removing the central vase and repairing the hard transition into the arch; desktop and 390px mobile screenshots confirm a clean text field and no horizontal overflow.
+- Footer source refinement adopts `footer-courtyard-v2.png`, removing the central mosque skyline and lower reflective floor while preserving the side lanterns and arch; the footer minimum height was reduced from 34rem to 30rem and verified at desktop and mobile widths.
+- Footer edge refinement adopts `footer-courtyard-v3.png`, removing the remaining left and right foliage while preserving the lanterns, arch, empty center, and shortened composition; desktop and 390px mobile checks remain overflow-free.
+- Footer spacing refinement increases the minimum footer height from 30rem to 32rem, expanding the clean lower emerald field while keeping the legal row anchored at the bottom; verified in the desktop screenshot.
+- Correction refinement restores the footer minimum height to 30rem and adopts `footer-courtyard-v4.png`, expanding only the bottom floor band while preserving the previously approved foliage-free composition.
+- Footer text refinement removes the unnecessary legal-bar border and shifts the main footer columns up slightly with `lg:pt-16`; the lower floor and legal row remain intact.
+- Final footer text refinement moves the main columns up another 8px to `lg:pt-14`, with the floor, legal row, and mobile layout unchanged.
+
+# Current Task: Penceramah upcoming-event filter + lower spacing — 2026-09-17
+
+## Plan
+
+- [x] Move the shared footer content padding to `pt-12` and add a small responsive CTA-to-footer breathing gap.
+- [x] Add a URL-shareable “Upcoming events only” toggle to the penceramah directory and apply the public future-event query.
+- [x] Run focused feature verification, formatting, build, and desktop/mobile browser smoke checks.
+
+## Review / Results
+
+- Focused `PersonIndexTest` coverage passed: 2 tests, 15 assertions.
+- Pint passed, the Vite production build passed, and browser checks confirmed the filter URL state, 0 console errors, and no horizontal overflow at desktop and 390px mobile widths.
+- The CTA-to-footer gap is now 40px mobile / 56px desktop, with the shared footer content padding at `pt-12`.
+
+# Current Task: Glossy suggestion CTA — 2026-09-17
+
+## Plan
+
+- [x] Give the `Cadangkan penceramah` button a restrained 3D, glossy gold surface while preserving its fixed arrow placement.
+- [x] Rebuild and verify the CTA at desktop and mobile widths.
+
+## Review / Results
+
+- The CTA now uses layered ivory-to-antique-gold shading, inset edges, a soft lift shadow, and a pressed state.
+- Desktop and 390px mobile checks pass with no horizontal overflow; the production Vite build also passes.
+
+# Current Task: Footer legal-row optical adjustment — 2026-09-17
+
+## Plan
+
+- [x] Move the lowest copyright and policy-link row upward by a small, measurable increment.
+- [x] Verify the rendered text position on desktop and mobile after the change.
+
+## Review / Results
+
+- Increased only the footer container's bottom padding from 24px to 32px, moving the legal text upward by 8px without changing the main footer columns.
+- Browser measurements confirm the new 32px footer-bottom gap at 1440px and 390px widths; both remain overflow-free.
+
+# Current Task: Refine suggestion-section icon — 2026-09-17
+
+## Plan
+
+- [x] Replace the small generic people glyph with a larger bespoke community mark.
+- [x] Verify the icon's scale and alignment at desktop and mobile widths.
+
+## Review / Results
+
+- The icon now uses a custom three-person silhouette with warm gold shading, a soft ambient glow, and no decorative border.
+- Desktop and 390px mobile screenshots confirm the icon remains centered and visually balanced with the CTA copy.

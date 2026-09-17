@@ -237,6 +237,64 @@ body.is-loaded .mi-bg-settled {
         box-shadow: 0 30px 80px -42px color-mix(in oklab, var(--color-emerald-800) 85%, transparent);
     }
 
+    .living-majlis-cta-button {
+        isolation: isolate;
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(255, 240, 189, 0.82);
+        background: linear-gradient(180deg, #fff6c9 0%, #f4d88f 44%, #dfb660 100%);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.88),
+            inset 0 -3px 0 rgba(126, 83, 15, 0.22),
+            0 7px 0 -4px rgba(4, 54, 35, 0.56),
+            0 18px 34px -20px rgba(217, 165, 20, 0.84);
+        transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+    }
+
+    .living-majlis-cta-button::before {
+        position: absolute;
+        top: 1px;
+        right: 1px;
+        left: 1px;
+        height: 52%;
+        border-radius: 1.1rem 1.1rem 0.8rem 0.8rem;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0));
+        content: '';
+        pointer-events: none;
+    }
+
+    .living-majlis-cta-button::after {
+        position: absolute;
+        right: 12%;
+        bottom: -58%;
+        left: 12%;
+        height: 70%;
+        border-radius: 999px;
+        background: rgba(255, 248, 213, 0.38);
+        content: '';
+        filter: blur(14px);
+        pointer-events: none;
+    }
+
+    .living-majlis-cta-button:hover {
+        filter: saturate(1.04) brightness(1.02);
+        transform: translateY(-2px);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.94),
+            inset 0 -3px 0 rgba(126, 83, 15, 0.20),
+            0 7px 0 -4px rgba(4, 54, 35, 0.56),
+            0 24px 42px -20px rgba(217, 165, 20, 0.94);
+    }
+
+    .living-majlis-cta-button:active {
+        filter: saturate(0.98);
+        transform: translateY(1px);
+        box-shadow:
+            inset 0 2px 0 rgba(126, 83, 15, 0.18),
+            inset 0 -1px 0 rgba(255, 255, 255, 0.48),
+            0 6px 14px -8px rgba(217, 165, 20, 0.72);
+    }
+
     .living-majlis-footer {
         isolation: isolate;
         margin-top: 0 !important;
@@ -286,6 +344,9 @@ body.is-loaded .mi-bg-settled {
     .living-majlis-folio,
     .living-majlis-card,
     .living-majlis-card:hover,
+    .living-majlis-cta-button,
+    .living-majlis-cta-button:hover,
+    .living-majlis-cta-button:active,
     .living-majlis-field [data-material="translucent-control"],
     .living-majlis-field [data-material="translucent-control"]:focus-within {
         transform: none !important;
