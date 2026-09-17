@@ -209,7 +209,7 @@ describe('Event Search Filters', function () {
 
         $response->assertOk()
             ->assertSee('Circle of')
-            ->assertSee('Nama penceramah')
+            ->assertSee('Speaker')
             ->assertDontSee('Penceramah & kandungan')
             ->assertDontSee('Advanced Filters')
             ->assertSee('/js/filament/schemas/schemas.js', false)
@@ -382,8 +382,9 @@ describe('Event Search Filters', function () {
             $response->assertOk()
                 ->assertSee('Sebarang Negara')
                 ->assertSee('Sebarang Bandar')
-                ->assertSee('Nama penceramah')
-                ->assertSee('Cari nama penceramah...')
+                ->assertSee('Penceramah')
+                ->assertSee('Cari atau pilih penceramah...')
+                ->assertSee('Pilih satu atau lebih penceramah.')
                 ->assertSee('Bahasa Melayu (BM)')
                 ->assertSee('Pilih satu atau lebih bahasa yang digunakan dalam majlis.')
                 ->assertDontSee('Any Country')
@@ -415,6 +416,16 @@ describe('Event Search Filters', function () {
             ->and($field->getOptions())->toHaveKey('ms', 'Bahasa Melayu (BM)');
     });
 
+    it('uses a searchable Filament multi-select for speakers', function (): void {
+        $component = Livewire::test(Index::class);
+        $field = collect($component->instance()->getForm('form')->getFlatFields())
+            ->first(fn (mixed $field): bool => $field instanceof Select && $field->getName() === 'person_ids');
+
+        expect($field)->toBeInstanceOf(Select::class)
+            ->and($field->isMultiple())->toBeTrue()
+            ->and($field->isSearchable())->toBeTrue();
+    });
+
     it('uses Filament for the complete sidebar filter field set', function (): void {
         $component = Livewire::test(Index::class);
         $fields = collect($component->instance()->getForm('form')->getFlatFields(withHidden: true))
@@ -432,6 +443,7 @@ describe('Event Search Filters', function () {
             'area_assignments.administrative_subdivision',
             'event_category_ids',
             'event_format',
+            'person_ids',
             'starts_after',
             'starts_before',
             'radius_km',
@@ -443,12 +455,15 @@ describe('Event Search Filters', function () {
             'search_include_institutions',
             'search_include_persons',
             'search_include_references',
+            'person_name_search',
+            'venue_id',
         ] as $removedScope) {
             expect($fields)->not->toHaveKey($removedScope);
         }
 
         expect($fields['event_category_ids'])->toBeInstanceOf(Select::class)
             ->and($fields['event_format'])->toBeInstanceOf(Select::class)
+            ->and($fields['person_ids'])->toBeInstanceOf(Select::class)
             ->and($fields['starts_after'])->toBeInstanceOf(DatePicker::class)
             ->and($fields['starts_before'])->toBeInstanceOf(DatePicker::class)
             ->and($fields['radius_km'])->toBeInstanceOf(TextInput::class)
@@ -511,7 +526,7 @@ describe('Event Search Filters', function () {
         Livewire::test(Index::class)
             // The section key is Malay "Penceramah", translated for the English locale.
             ->assertSee('Speaker')
-            ->assertSee('Nama penceramah')
+            ->assertSee('Cari atau pilih penceramah...')
             ->assertSee('Topik & rujukan')
             ->assertSee('Lokasi majlis')
             ->assertDontSee('Pautan & siaran')
@@ -908,6 +923,18 @@ describe('Event Search Filters', function () {
             ->assertSet('person_name_search', 'Samad')
             ->assertSee('Nama penceramah')
             ->assertSee('Samad');
+    });
+
+    it('filters speakers through the penceramah multi-select and shows their chips', function () {
+        $firstSpeaker = Person::factory()->create(['status' => 'verified', 'name' => 'Ustaz Pilihan Pertama']);
+        $secondSpeaker = Person::factory()->create(['status' => 'verified', 'name' => 'Ustaz Pilihan Kedua']);
+
+        Livewire::test(Index::class)
+            ->set('filterData.person_ids', [$firstSpeaker->id, $secondSpeaker->id])
+            ->assertSet('person_ids', [$firstSpeaker->id, $secondSpeaker->id])
+            ->assertSee(__('Penceramah'))
+            ->assertSee('Ustaz Pilihan Pertama')
+            ->assertSee('Ustaz Pilihan Kedua');
     });
 
     it('supports saving a search that only uses the person name filter', function () {
@@ -1448,20 +1475,21 @@ describe('Event Search Filters', function () {
             ->assertDontSee('Institution Excluded Event');
     });
 
-    it('filters events by venue in advanced filters', function () {
-        $includedVenue = Venue::factory()->create(['status' => 'verified']);
-        $excludedVenue = Venue::factory()->create(['status' => 'verified']);
+    it('ignores the removed venue filter on the events index', function () {
+        $venue = Venue::factory()->create(['status' => 'verified']);
 
-        Event::factory()->for($includedVenue)->create([
-            'title' => 'Venue Match Event',
+        Event::factory()->for($venue)->create([
+            'title' => 'Venue Ignored Event A',
             'status' => 'approved',
             'visibility' => 'public',
             'published_at' => now(),
             'starts_at' => now()->addDays(2),
         ]);
 
-        Event::factory()->for($excludedVenue)->create([
-            'title' => 'Venue Excluded Event',
+        Event::factory()->create([
+            'title' => 'Venue Ignored Event B',
+            'institution_id' => Institution::factory(),
+            'default_venue_id' => null,
             'status' => 'approved',
             'visibility' => 'public',
             'published_at' => now(),
@@ -1469,12 +1497,13 @@ describe('Event Search Filters', function () {
         ]);
 
         $response = $this->get(eventsIndexUrl([
-            'venue_id' => $includedVenue->id,
+            'venue_id' => $venue->id,
         ]));
 
         $response->assertOk()
-            ->assertSee('Venue Match Event')
-            ->assertDontSee('Venue Excluded Event');
+            ->assertSee('Venue Ignored Event A')
+            ->assertSee('Venue Ignored Event B')
+            ->assertDontSee('Any Venue');
     });
 
     it('filters events by selected person ids in advanced filters', function () {

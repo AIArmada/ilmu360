@@ -93,13 +93,11 @@ it('resolves null location labels without querying', function () {
 
     expect($component->instance()->cityOptionLabel(null))->toBeNull()
         ->and($component->instance()->areaOptionLabel(null))->toBeNull()
-        ->and($component->instance()->institutionOptionLabel(null))->toBeNull()
-        ->and($component->instance()->venueOptionLabel(null))->toBeNull();
+        ->and($component->instance()->institutionOptionLabel(null))->toBeNull();
 });
 
-it('tolerates malformed institution and venue filter values', function () {
+it('tolerates malformed institution filter values', function () {
     $this->get(route('events.index', ['institution_id' => 'xx'], false))->assertOk();
-    $this->get(route('events.index', ['venue_id' => 'zz'], false))->assertOk();
 });
 
 it('drops malformed area assignment filter values', function () {

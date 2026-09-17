@@ -571,7 +571,7 @@ new
     </div>
 
     <!-- Main Content -->
-    <div class="mx-auto max-w-7xl px-5 py-10 sm:px-6 lg:px-8 lg:py-12">
+    <div class="mx-auto max-w-7xl px-5 pt-10 pb-8 sm:px-6 lg:px-8 lg:pt-12 lg:pb-12">
         @island(name: 'person-results', always: true)
             @php
                 $persons = $this->persons;
@@ -904,29 +904,46 @@ new
             @endif
 
             <!-- Community Contribution CTA -->
-            <section class="mt-14 sm:mt-20">
-                <div data-material="opaque-cta" class="living-majlis-cta relative overflow-hidden rounded-[1.5rem] border border-emerald-800/15 px-6 py-10 text-white sm:px-8 md:px-10 md:py-12">
+            <section class="relative mt-14 sm:mt-20">
+                <div data-material="opaque-cta" class="living-majlis-cta relative overflow-hidden rounded-[1.5rem] border border-emerald-800/15 px-6 py-10 text-white sm:px-8 md:px-10 md:py-11">
                     <!-- One quiet field texture keeps the dark CTA grounded. -->
                     <div class="absolute inset-0 opacity-[0.08]" style="background-image: radial-gradient(circle at 1.5px 1.5px, rgba(255,255,255,.70) 1px, transparent 0); background-size: 22px 22px;"></div>
                     <div class="absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-emerald-700/[0.15] blur-3xl"></div>
 
                     <div class="relative flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
-                        <div class="max-w-2xl">
-                            <h2 class="max-w-xl font-heading text-2xl font-bold leading-snug tracking-tight text-balance sm:text-3xl">
-                                {{ __('Know a speaker who is missing?') }}
-                            </h2>
-                            <p class="mt-4 max-w-2xl text-sm leading-6 text-emerald-100/75 sm:text-base">
-                                {{ __('Help the community find more teachers and preachers. Every suggestion is reviewed before it is published.') }}
-                            </p>
+                        <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-6">
+                            <span class="relative grid h-[4.5rem] w-[4.5rem] shrink-0 place-items-center rounded-[1.25rem] bg-emerald-800/35 text-[#f5d98f] shadow-[0_16px_30px_-22px_rgba(0,0,0,0.8)]">
+                                <svg class="relative h-12 w-12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                    <circle cx="12" cy="7.2" r="2.35" />
+                                    <path d="M7.25 18.9c.18-3.5 1.75-5.55 4.75-5.55s4.57 2.05 4.75 5.55a.7.7 0 0 1-.7.75H7.95a.7.7 0 0 1-.7-.75Z" />
+                                    <circle cx="5.7" cy="10.35" r="1.7" fill-opacity=".72" />
+                                    <path d="M2.25 18.65c.14-2.45 1.25-3.9 3.35-3.9 1.12 0 1.98.43 2.55 1.28-.45.78-.75 1.67-.9 2.7H2.9a.65.65 0 0 1-.65-.08Z" fill-opacity=".72" />
+                                    <circle cx="18.3" cy="10.35" r="1.7" fill-opacity=".72" />
+                                    <path d="M21.75 18.65c-.14-2.45-1.25-3.9-3.35-3.9-1.12 0-1.98.43-2.55 1.28.45.78.75 1.67.9 2.7h4.35a.65.65 0 0 0 .65-.08Z" fill-opacity=".72" />
+                                    <path d="M9.2 20.35h5.6" stroke="#f7e6ad" stroke-linecap="round" stroke-width="1.15" />
+                                </svg>
+                            </span>
+
+                            <div class="max-w-2xl">
+                                <p class="text-[11px] font-black uppercase tracking-[0.22em] text-gold-300">
+                                    {{ __('Speaker suggestion') }}
+                                </p>
+                                <h2 class="mt-2 max-w-xl font-heading text-2xl font-bold leading-snug tracking-tight text-balance sm:text-3xl">
+                                    {{ __('Know a speaker who is missing?') }}
+                                </h2>
+                                <p class="mt-3 max-w-2xl text-sm leading-6 text-emerald-100/75 sm:text-base">
+                                    {{ __('Help the community find more teachers and preachers. Every suggestion is reviewed before it is published.') }}
+                                </p>
+                            </div>
                         </div>
 
                         <a
                             href="{{ $submitPersonUrl }}"
                             wire:navigate
-                            class="group inline-flex min-h-14 w-full items-center justify-between gap-5 rounded-[1.25rem] bg-white px-5 py-3.5 text-left text-emerald-900 shadow-[0_20px_40px_-20px_rgba(0,25,11,0.55)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-amber-50 hover:shadow-[0_24px_48px_-20px_rgba(0,25,11,0.65)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-gold-400/30 sm:w-auto sm:min-w-[18rem]"
+                            class="group inline-flex min-h-14 w-full items-center justify-between gap-5 rounded-[1.25rem] bg-[#efd18a] px-5 py-3.5 text-left text-[#063b27] shadow-[0_18px_34px_-20px_rgba(217,165,20,0.78)] ring-1 ring-[#fff0bd]/70 transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#f5dfaa] hover:shadow-[0_22px_42px_-20px_rgba(217,165,20,0.9)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-gold-400/40 sm:w-auto sm:min-w-[18rem]"
                         >
                             <span class="text-sm font-bold sm:text-base">{{ __('Suggest a speaker') }}</span>
-                            <svg class="h-5 w-5 shrink-0 transition-transform duration-300 group-hover:translate-x-1.5 motion-reduce:transition-none" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <svg class="h-5 w-5 shrink-0" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M4.167 10h11.666m0 0-4.166-4.167M15.833 10l-4.166 4.167" />
                             </svg>
                         </a>
@@ -936,6 +953,7 @@ new
                 </div>
             </div>
         @endisland
+
     </div>
 
     <x-filament-actions::modals />

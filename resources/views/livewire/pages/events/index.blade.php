@@ -96,7 +96,6 @@
     $districtAreaId = $areaAssignments['administrative_district'] ?? null;
     $subdivisionAreaId = $areaAssignments['administrative_subdivision'] ?? null;
     $institutionId = $this->institution_id;
-    $venueId = $this->venue_id;
     $gender = $this->gender;
     $childrenAllowed = $this->children_allowed;
     $isMuslimOnly = $this->is_muslim_only;
@@ -163,7 +162,6 @@
     $sourceLabels = $this->termOptionLabels('source', $selectedSourceTagIds);
     $issueLabels = $this->termOptionLabels('issue', $selectedIssueTagIds);
     $institutionLabel = filled($institutionId) ? $this->institutionOptionLabel((string) $institutionId) : null;
-    $venueLabel = filled($venueId) ? $this->venueOptionLabel((string) $venueId) : null;
     $cityLabel = filled($this->city_id) ? $this->cityOptionLabel((string) $this->city_id) : null;
     $divisionLabel = filled($areaAssignments['administrative_division'] ?? null) ? $this->areaOptionLabel((string) $areaAssignments['administrative_division']) : null;
     $postalLocalityLabel = filled($areaAssignments['postal_locality'] ?? null) ? $this->areaOptionLabel((string) $areaAssignments['postal_locality']) : null;
@@ -181,7 +179,6 @@
         filled($subdivisionAreaId),
         filled($areaAssignments['postal_locality'] ?? null),
         filled($institutionId),
-        filled($venueId),
         count($selectedLanguageCodes) > 0,
         count($selectedEventCategories) > 0,
         count($selectedEventFormats) > 0,
@@ -224,7 +221,6 @@
         'city_id' => $this->city_id,
         'area_assignments' => $areaAssignments,
         'institution_id' => $institutionId,
-        'venue_id' => $venueId,
         'person_ids' => $selectedPersonIds,
         'key_person_roles' => $selectedKeyPersonRoles,
         'person_in_charge_ids' => $selectedPersonInChargeIds,
@@ -728,9 +724,6 @@
                             @endif
                             @if($institutionId)
                                 <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Institusi') }}: {{ $institutionLabel ?? $institutionId }}</span>
-                            @endif
-                            @if($venueId)
-                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Tempat') }}: {{ $venueLabel ?? $venueId }}</span>
                             @endif
                             @foreach($selectedEventCategories as $categoryId)
                                 <span class="inline-flex items-center rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800">{{ __('Jenis majlis') }}: {{ $eventCategoryLabels[$categoryId] ?? $categoryId }}</span>

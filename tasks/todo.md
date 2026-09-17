@@ -2945,3 +2945,30 @@ The affected-surface run completed with 118 passing tests and 472 assertions; it
 ## Review / Results
 
 - (pending)
+
+# Current Task: Penceramah lower sections + app-wide footer — 2026-09-17
+
+## Plan
+
+- [x] Generate the transparent cream mosque illustration for the footer watermark with the Codex image model (`public/images/footer-mosque.png`).
+- [x] Rebuild the shared footer in `resources/views/layouts/app.blade.php` (dark emerald, brand + Menu + Komuniti + ayah card + bottom bar) so every page inherits it.
+- [x] Restyle the persons index CTA (`CADANGAN PENCERAMAH` eyebrow, icon badge, cream button); the promise row was later removed per the final visual direction.
+- [x] Add the CTA/footer Malay strings to `ms.json` / `ms_MY.json`; remove the unused promise-row strings after the row was removed.
+- [x] Verify with a Pest browser probe, desktop/mobile screenshots, public-route HTTP smoke, and Pint.
+
+## Review / Results
+
+- Footer is now one component in `layouts/app.blade.php` (previously the only footer in the app), so `/`, `/majlis`, `/penceramah`, `/institusi`, `/tempat`, `/rujukan`, `/tentang-kami` all render it; all return 200 (guests on `/sumbangan/penceramah/baru` still 302 to login, unchanged behavior).
+- Pagination left untouched per instruction; `Memaparkan 1 hingga 12 daripada 30 keputusan` line is Livewire's own paginator, not new markup.
+- Mosque watermark is `absolute -top-2 -left-24 w-[24rem] sm:w-[34rem] lg:w-[46rem]` at 10% opacity so it never collides with the bottom bar on mobile.
+- Browser probe: `visit("/penceramah")` asserted the new Malay copy + `assertNoJavaScriptErrors()`; `pest --agent` passes. Screenshots reviewed at 1440x900 and 390x844 (CTA, features, footer).
+- Stale Blade/Livewire compiled views produced transient `$__blaze` / `$inputId` 500s after the edits; `php artisan view:clear` resolved them — no code change was needed.
+- Pint `--dirty` passed. PHPStan was not run to completion (15 min timeout) and is unaffected: no PHP files changed.
+- Follow-up screenshot comparison keeps the lower transition as three deliberate surfaces: patterned CTA surround, lighter patterned promise section, then the solid sand curve before the image footer; verified again at desktop and mobile widths.
+- Follow-up refinement removes the external pattern from both lower content sections so the CTA and promise row flow on the page's cream field without reading as extra nested sections.
+- Final refinement removes the entire promise section and its unused translation keys, leaving the CTA to transition directly into the lantern footer.
+- Footer transition refinement removes the page wrapper's bottom padding and replaces the solid curve with a short transparent blend; the footer now starts exactly at the CTA edge.
+- Footer refinement removes the quote card, centers the three remaining content groups, and anchors the copyright/link row to the bottom of the footer content area.
+- Final spacing refinement restores a controlled CTA-to-footer breathing gap: 32px on mobile and 48px on desktop.
+- Bottom-bar refinement reduces footer bottom padding to 24px so the horizontal rule and legal wording sit closer to the footer base.
+- CTA interaction refinement keeps the suggestion-button arrow fixed on hover and vertically centers the CTA icon beside its text on larger screens; desktop and mobile layout checks remain overflow-free.

@@ -27,7 +27,6 @@ use App\Models\Language;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
-use App\Models\Venue;
 use App\Services\EventSearchService;
 use App\Services\PublicScheduleDiscoveryService;
 use App\Support\Auth\IntendedRedirect;
@@ -127,9 +126,6 @@ class Index extends Component implements HasForms
     #[Url]
     public ?string $institution_id = null;
 
-    #[Url]
-    public ?string $venue_id = null;
-
     /**
      * @var list<string>
      */
@@ -160,8 +156,8 @@ class Index extends Component implements HasForms
     /**
      * Free-text person name match across speakers and every key-person role.
      *
-     * The role-specific person filters below are still honoured when present in
-     * a saved search or a shared URL, they just no longer have sidebar controls.
+     * Still honoured when present in a saved search or a shared URL; the
+     * sidebar now filters speakers through the `person_ids` multi-select.
      */
     #[Url]
     public ?string $person_name_search = null;
@@ -619,21 +615,6 @@ class Index extends Component implements HasForms
                             ->getOptionLabelUsing(fn (?string $value): ?string => $this->institutionOptionLabel($value))
                             ->helperText(__('Pilihan mengikut lokasi yang dipilih.'))
                             ->live(),
-
-                        Select::make('venue_id')
-                            ->label(__('Tempat'))
-                            ->placeholder(__('Any Venue'))
-                            ->searchable()
-                            ->getSearchResultsUsing(fn (Get $get, string $search): array => $this->searchVenueOptions(
-                                countryId: $this->normalizeNullableString($get('country_id')),
-                                stateId: $this->normalizeNullableString($get('state_id')),
-                                cityId: $this->normalizeNullableString($get('city_id')),
-                                areaAssignments: $this->normalizeAreaAssignments($get('area_assignments')),
-                                search: $search,
-                            ))
-                            ->getOptionLabelUsing(fn (?string $value): ?string => $this->venueOptionLabel($value))
-                            ->helperText(__('Pilihan mengikut lokasi yang dipilih.'))
-                            ->live(),
                     ]),
 
                 Section::make(__('Bahasa'))
@@ -653,13 +634,16 @@ class Index extends Component implements HasForms
                 Section::make(__('Penceramah'))
                     ->extraAttributes(['class' => 'mi-advanced-filter-group'])
                     ->schema([
-                        TextInput::make('person_name_search')
-                            ->label(__('Nama penceramah'))
-                            ->placeholder(__('Cari nama penceramah...'))
-                            ->helperText(__('Padanan nama penceramah, imam, khatib, bilal, moderator atau PIC.'))
-                            ->maxLength(255)
-                            ->extraAttributes(['data-signal-control' => 'person_name_search'])
-                            ->live(onBlur: true),
+                        Select::make('person_ids')
+                            ->label(__('Penceramah'))
+                            ->placeholder(__('Cari atau pilih penceramah...'))
+                            ->helperText(__('Pilih satu atau lebih penceramah.'))
+                            ->searchable()
+                            ->multiple()
+                            ->getSearchResultsUsing(fn (string $search): array => $this->searchPersonOptions($search))
+                            ->getOptionLabelsUsing(fn (array $values): array => $this->personOptionLabels($values))
+                            ->extraAttributes(['data-signal-control' => 'person_ids'])
+                            ->live(),
                     ]),
 
                 Section::make(__('Topik & rujukan'))
@@ -813,24 +797,19 @@ class Index extends Component implements HasForms
             $this->filterData['city_id'] = null;
             $this->filterData['area_assignments'] = $this->withAreaAssignmentDefaults([]);
             $this->filterData['institution_id'] = null;
-            $this->filterData['venue_id'] = null;
         } elseif ($key === 'state_id') {
             $this->filterData['city_id'] = null;
             $this->filterData['area_assignments'] = $this->withAreaAssignmentDefaults([]);
             $this->filterData['institution_id'] = null;
-            $this->filterData['venue_id'] = null;
         } elseif ($key === 'area_assignments.administrative_division') {
             $this->filterData['area_assignments']['administrative_district'] = null;
             $this->filterData['area_assignments']['administrative_subdivision'] = null;
             $this->filterData['institution_id'] = null;
-            $this->filterData['venue_id'] = null;
         } elseif ($key === 'area_assignments.administrative_district') {
             $this->filterData['area_assignments']['administrative_subdivision'] = null;
             $this->filterData['institution_id'] = null;
-            $this->filterData['venue_id'] = null;
         } elseif ($key === 'city_id' || str_starts_with((string) $key, 'area_assignments.')) {
             $this->filterData['institution_id'] = null;
-            $this->filterData['venue_id'] = null;
         }
 
         $normalized = $this->normalizedFilterData($this->filterData);
@@ -1035,26 +1014,6 @@ class Index extends Component implements HasForms
     }
 
     /**
-     * @param  array<string, string>  $areaAssignments
-     * @return array<string, string>
-     */
-    private function searchVenueOptions(
-        ?string $countryId,
-        ?string $stateId,
-        ?string $cityId,
-        array $areaAssignments,
-        string $search = '',
-    ): array {
-        $query = Venue::query()
-            ->whereIn('status', ['verified', 'pending']);
-
-        $this->applyAddressLocationFilters($query, $countryId, $areaAssignments, $stateId, $cityId);
-        $this->applySearchConstraint($query, 'name', $search);
-
-        return $this->pluckOptions($query->orderBy('name'), 'name', 50);
-    }
-
-    /**
      * @return array<string, string>
      */
     private function searchCityOptions(?string $countryId, ?string $stateId, string $search = ''): array
@@ -1150,6 +1109,22 @@ class Index extends Component implements HasForms
     /**
      * @return array<string, string>
      */
+    private function searchPersonOptions(string $search = ''): array
+    {
+        /** @var Collection<int, Person> $persons */
+        $persons = Person::query()
+            ->whereIn('status', ['verified', 'pending'])
+            ->tap(fn (Builder $query): Builder => $this->applySearchConstraint($query, 'name', $search))
+            ->orderBy('name')
+            ->with('titleAssignments.title.category')
+            ->limit(50)
+            ->get(['id', 'name', 'middle_name', 'family_name']);
+
+        return $persons
+            ->mapWithKeys(fn (Person $person): array => [(string) $person->id => $person->formatted_name])
+            ->all();
+    }
+
     /**
      * @param  list<string>  $values
      * @return array<string, string>
@@ -1160,13 +1135,16 @@ class Index extends Component implements HasForms
             return [];
         }
 
-        return $this->pluckOptions(
-            Person::query()
-                ->whereIn('status', ['verified', 'pending'])
-                ->whereIn('id', $values),
-            'name',
-            count($values),
-        );
+        /** @var Collection<int, Person> $persons */
+        $persons = Person::query()
+            ->whereIn('status', ['verified', 'pending'])
+            ->whereIn('id', $values)
+            ->with('titleAssignments.title.category')
+            ->get(['id', 'name', 'middle_name', 'family_name']);
+
+        return $persons
+            ->mapWithKeys(fn (Person $person): array => [(string) $person->id => $person->formatted_name])
+            ->all();
     }
 
     /**
@@ -1345,20 +1323,6 @@ class Index extends Component implements HasForms
             ?->display_name;
     }
 
-    public function venueOptionLabel(?string $value): ?string
-    {
-        $id = $value === null ? null : SharedFormSchema::normalizeLocationId($value);
-
-        if ($id === null) {
-            return null;
-        }
-
-        return Venue::query()
-            ->whereIn('status', ['verified', 'pending'])
-            ->whereKey($id)
-            ->value('name');
-    }
-
     /**
      * @template TModel of Model
      *
@@ -1506,7 +1470,6 @@ class Index extends Component implements HasForms
             'children_allowed' => $filters['children_allowed'],
             'is_muslim_only' => $filters['is_muslim_only'],
             'institution_id' => $filters['institution_id'],
-            'venue_id' => $filters['venue_id'],
             'person_ids' => $filters['person_ids'],
             'key_person_roles' => $filters['key_person_roles'],
             'person_in_charge_ids' => $filters['person_in_charge_ids'],
@@ -1612,7 +1575,6 @@ class Index extends Component implements HasForms
             'children_allowed' => null,
             'is_muslim_only' => null,
             'institution_id' => null,
-            'venue_id' => null,
             'person_ids' => [],
             'key_person_roles' => [],
             'person_in_charge_ids' => [],
@@ -1678,7 +1640,6 @@ class Index extends Component implements HasForms
             'children_allowed' => $this->normalizeNullableBoolean($this->children_allowed),
             'is_muslim_only' => $this->normalizeNullableBoolean($this->is_muslim_only),
             'institution_id' => filled($this->institution_id) ? $this->institution_id : null,
-            'venue_id' => filled($this->venue_id) ? $this->venue_id : null,
             'person_ids' => $this->normalizeStringArray($this->person_ids),
             'key_person_roles' => $this->normalizeStringArray($this->key_person_roles),
             'person_in_charge_ids' => $this->normalizeStringArray($this->person_in_charge_ids),
@@ -1732,7 +1693,6 @@ class Index extends Component implements HasForms
         $this->children_allowed = $filters['children_allowed'];
         $this->is_muslim_only = $filters['is_muslim_only'];
         $this->institution_id = $filters['institution_id'];
-        $this->venue_id = $filters['venue_id'];
         $this->person_ids = $filters['person_ids'];
         $this->key_person_roles = $filters['key_person_roles'];
         $this->person_in_charge_ids = $filters['person_in_charge_ids'];
@@ -1825,7 +1785,6 @@ class Index extends Component implements HasForms
             'children_allowed' => $this->normalizeNullableBoolean($normalized['children_allowed'] ?? null),
             'is_muslim_only' => $this->normalizeNullableBoolean($normalized['is_muslim_only'] ?? null),
             'institution_id' => filled($normalized['institution_id']) ? (string) $normalized['institution_id'] : null,
-            'venue_id' => filled($normalized['venue_id']) ? (string) $normalized['venue_id'] : null,
             'person_ids' => $this->normalizeStringArray($normalized['person_ids'] ?? []),
             'key_person_roles' => $this->normalizeStringArray($normalized['key_person_roles'] ?? []),
             'person_in_charge_ids' => $this->normalizeStringArray($normalized['person_in_charge_ids'] ?? []),

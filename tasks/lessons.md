@@ -950,5 +950,19 @@
 - When changing a package-owned reference key to UUID, distinguish the referenced model/FK contract from a pivot table’s surrogate primary key; verify both against the package schema and integration plan before imposing an all-UUID rewrite.
 - When migration history is explicitly resettable development state, consolidate schema-only follow-up changes into the create migration and remove the redundant pending migration; do not carry existing-row backfills into a fresh-table definition.
 - When a failure comes from test setup or a stale package vocabulary, update the fixture or assertion to the protected mutation and canonical contract; keep focused tests self-contained and avoid production seeders or large documentation fixtures.
+- When a visual comparison task narrows scope after implementation starts, keep unrelated controls unchanged and verify the requested region independently before making further edits.
 - When deleting a trait, class, or helper, check same-namespace implicit resolution in addition to fully qualified references; `use PasswordValidationRules;` inside `App\Actions\Fortify` resolves without an import line, so an FQCN grep alone will miss the caller. Run PHPStan on the touched area before calling the deletion done.
 - When auditing every caller of a symbol, never conclude the inventory from a truncated search: `head -N` cuts alphabetically later files silently, so always list matches per file without a row limit (or count-then-page) before claiming every call site is covered.
+- In screenshot-matching UI work, align decorative sections to the same content grid as the primary body and give repeated icons bespoke visual weight instead of relying on generic one-path placeholders.
+- For reference-matching lower sections, compare the full transition surface—not only the cards and footer—because background texture and negative space are part of the visual target.
+- When adjusting reference-matched controls, rebuild before judging the screenshot; stale frontend bundles can hide correct source-level color and icon changes.
+- For reference-matched icon systems, remove decorative outlines when the reference treats the glyph as a seamless material detail; scale the glyph before adding more containers.
+- When a reference shows adjacent lower sections as one visual field, share the same background surface and pattern layer across the boundary instead of approximating each section independently.
+- When a later screenshot clarifies that a visual field is intentionally segmented, preserve the reference's distinct background zones and transition curve instead of merging them for visual continuity.
+- When a user wants lower content to stop reading as a nested section, remove decorative background layers from the section wrappers and let the page's base surface carry the continuity.
+- When the user explicitly removes a content section, delete its markup and section-specific translation keys together so no hidden copy or dead styling remains.
+- When a footer looks separated after the preceding content is removed, inspect wrapper padding as well as pseudo-elements; the gap may come from layout spacing, not only the footer background.
+- When removing a footer column, reflow the remaining groups into a centered constrained grid and use flex auto-spacing to keep legal links anchored at the visual bottom.
+- After making a footer edge seamless, retain a small responsive breathing gap when the next visual review shows the CTA needs separation; tune it by viewport rather than restoring the old global padding.
+- For footer legal bars, separate top breathing room from bottom anchoring; use independent padding values so the rule can sit close to the visual base without moving the main content.
+- For reference-matched CTA controls, keep directional icons visually anchored during hover and align adjacent decorative icons to the content block's centerline at the side-by-side breakpoint.

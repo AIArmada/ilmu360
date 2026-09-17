@@ -455,46 +455,88 @@
 
             @include('components.ui.toast-stack')
 
-            <!-- Modern Footer -->
-            <footer class="mt-20 border-t border-slate-200 bg-white/50 backdrop-blur-sm">
-                <div class="container mx-auto px-6 py-12 lg:px-12">
-                    <div class="grid gap-12 lg:grid-cols-4">
-                        <div class="lg:col-span-2 flex flex-col gap-4">
-                            <div class="flex items-center gap-3">
-                                <img src="{{ asset('images/milogo.webp') }}" alt="ilmu360°"
-                                    class="h-10 w-10 rounded-lg">
-                                <span class="font-heading text-lg font-bold text-slate-900">ilmu360°</span>
-                            </div>
-                            <p class="text-slate-500 max-w-sm leading-relaxed">
+            <!-- Living Majlis Footer -->
+            <footer class="living-majlis-footer relative mt-20 overflow-hidden bg-emerald-950 text-emerald-50">
+                <div class="living-majlis-footer-image pointer-events-none absolute inset-0 opacity-100"
+                    style="background-image: url('{{ asset('images/footer-courtyard.png') }}');">
+                </div>
+                <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(2,33,22,0.16),rgba(2,33,22,0.34)_50%,rgba(2,33,22,0.16))]"></div>
+                <div class="pointer-events-none absolute inset-0 opacity-[0.06]"
+                    style="background-image: url('{{ asset('images/pattern-bg.png') }}'); background-size: 320px;">
+                </div>
+                <div class="pointer-events-none absolute inset-0 opacity-[0.055]"
+                    style="background-image: radial-gradient(circle at 1.5px 1.5px, rgba(255,255,255,0.75) 1px, transparent 0); background-size: 22px 22px;">
+                </div>
+                <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_150%_at_8%_0%,rgba(16,185,129,0.14),transparent_58%)]"></div>
+
+                <div class="relative z-10 mx-auto flex min-h-[34rem] max-w-7xl flex-col px-5 pt-14 pb-6 sm:px-6 lg:px-8 lg:pt-20 lg:pb-6">
+                    <div class="grid gap-10 lg:mx-auto lg:max-w-4xl lg:grid-cols-[1.35fr_0.8fr_1fr] lg:gap-16">
+                        <div>
+                            <span class="font-heading text-4xl font-bold tracking-tight"><span class="text-white">ilmu</span><span class="text-gold-300">360°</span></span>
+                            <p class="mt-4 max-w-xs text-sm leading-6 text-emerald-100/70">
                                 {{ __('Connecting the community through knowledge. Discover classes, lectures, and gatherings across Malaysia.') }}
                             </p>
+
+                            <div class="mt-6 flex items-center gap-3">
+                                <a href="#" aria-label="Facebook"
+                                    class="text-emerald-100/60 transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">
+                                    <svg class="h-[1.05rem] w-[1.05rem]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073Z" />
+                                    </svg>
+                                </a>
+                                <a href="#" aria-label="Instagram"
+                                    class="text-emerald-100/60 transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">
+                                    <svg class="h-[1.05rem] w-[1.05rem]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                        <path d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0Zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03Zm0 3.678c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162ZM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4Zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.794.646-1.439 1.44-1.439.793-.001 1.44.645 1.44 1.439Z" />
+                                    </svg>
+                                </a>
+                                <a href="#" aria-label="YouTube"
+                                    class="text-emerald-100/60 transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">
+                                    <svg class="h-[1.05rem] w-[1.05rem]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814ZM9.545 15.568V8.432L15.818 12l-6.273 3.568Z" />
+                                    </svg>
+                                </a>
+                                <a href="#" aria-label="TikTok"
+                                    class="text-emerald-100/60 transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">
+                                    <svg class="h-[1.05rem] w-[1.05rem]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                        <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07Z" />
+                                    </svg>
+                                </a>
+                            </div>
                         </div>
 
-                        <div>
-                            <h3 class="font-heading font-semibold text-slate-900 mb-4">{{ __('Discover') }}</h3>
-                            <ul class="space-y-3 text-slate-500">
+                        <nav aria-label="{{ __('Menu') }}">
+                            <h3 class="font-heading text-sm font-bold text-white">{{ __('Menu') }}</h3>
+                            <ul class="mt-4 space-y-3 text-sm text-emerald-100/70">
                                 <li><a href="{{ route('events.index') }}" wire:navigate
-                                        class="hover:text-emerald-600 transition-colors">{{ __('Upcoming Events') }}</a>
+                                        class="transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">{{ __('Upcoming Events') }}</a>
                                 </li>
                                 <li><a href="{{ route('institutions.index') }}" wire:navigate
-                                        class="hover:text-emerald-600 transition-colors">{{ __('Institutions') }}</a>
+                                        class="transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">{{ __('Institutions') }}</a>
                                 </li>
                                 <li><a href="{{ route('persons.index') }}" wire:navigate
-                                        class="hover:text-emerald-600 transition-colors">{{ __('Speakers') }}</a></li>
+                                        class="transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">{{ __('Speakers') }}</a>
+                                </li>
                                 <li><a href="{{ route('venues.index') }}" wire:navigate
-                                        class="hover:text-emerald-600 transition-colors">{{ __('Venue') }}</a></li>
+                                        class="transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">{{ __('Venue') }}</a>
+                                </li>
                                 <li><a href="{{ route('references.index') }}" wire:navigate
-                                        class="hover:text-emerald-600 transition-colors">{{ __('Reference') }}</a></li>
+                                        class="transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">{{ __('Reference') }}</a>
+                                </li>
                             </ul>
-                        </div>
+                        </nav>
 
-                        <div>
-                            <h3 class="font-heading font-semibold text-slate-900 mb-4">{{ __('Community') }}</h3>
-                            <ul class="space-y-3 text-slate-500">
+                        <nav aria-label="{{ __('Community') }}">
+                            <h3 class="font-heading text-sm font-bold text-white">{{ __('Community') }}</h3>
+                            <ul class="mt-4 space-y-3 text-sm text-emerald-100/70">
                                 <li><a href="{{ route('about') }}" wire:navigate
-                                        class="hover:text-emerald-600 transition-colors">{{ __('About Us') }}</a></li>
+                                        class="transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">{{ __('About Us') }}</a>
+                                </li>
                                 <li><a href="{{ route('home') }}#submit" wire:navigate
-                                        class="hover:text-emerald-600 transition-colors">{{ __('Submit Event') }}</a>
+                                        class="transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">{{ __('Submit Event') }}</a>
+                                </li>
+                                <li><a href="{{ route('contributions.submit-person') }}" wire:navigate
+                                        class="transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">{{ __('Speaker suggestion') }}</a>
                                 </li>
                                 @php
                                     $supportEmail = config('mail.from.address');
@@ -503,21 +545,30 @@
                                 <li>
                                     @if ($hasSupportEmail)
                                         <a href="mailto:{{ $supportEmail }}"
-                                            class="hover:text-emerald-600 transition-colors">{{ __('Contact Support') }}</a>
+                                            class="transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">{{ __('Contact Support') }}</a>
                                     @else
                                         <span>{{ __('Contact Support') }}</span>
                                     @endif
                                 </li>
                             </ul>
-                        </div>
+                        </nav>
+
                     </div>
 
                     <div
-                        class="mt-12 flex flex-col gap-6 border-t border-slate-200 pt-8 md:flex-row md:items-center md:justify-between text-sm text-slate-400">
-                        <span>&copy; {{ date('Y') }} ilmu360°. {{ __('All rights reserved.') }}</span>
-                        <div class="flex gap-6">
+                        class="mt-auto flex flex-col gap-4 border-t border-gold-300/30 pt-6 text-xs text-emerald-100/55 sm:flex-row sm:items-center sm:justify-between">
+                        <p>&copy; {{ date('Y') }} ilmu360°. {{ __('All rights reserved.') }}</p>
+                        <div class="flex items-center gap-3">
                             <span>{{ __('Privacy') }}</span>
+                            <span aria-hidden="true">|</span>
                             <span>{{ __('Terms') }}</span>
+                            <span aria-hidden="true">|</span>
+                            @if ($hasSupportEmail)
+                                <a href="mailto:{{ $supportEmail }}"
+                                    class="transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">{{ __('Contact Us') }}</a>
+                            @else
+                                <span>{{ __('Contact Us') }}</span>
+                            @endif
                         </div>
                     </div>
                 </div>
