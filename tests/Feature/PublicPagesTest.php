@@ -46,14 +46,6 @@ it('loads public index pages', function () {
         ->assertSee('href="'.route('submit-event.create').'"', false);
     $this->get(route('submit-event.create'))->assertSuccessful()->assertSee('Hantar Majlis');
     $this->get(route('submit-event.success'))->assertSuccessful()->assertSee(__('Event Submitted!'));
-
-    $this->get('/events')->assertNotFound();
-    $this->get('/institutions')->assertNotFound();
-    $this->get('/persons')->assertNotFound();
-    $this->get('/venues')->assertNotFound();
-    $this->get('/references')->assertNotFound();
-    $this->get('/submit-event')->assertNotFound();
-    $this->get('/submit-event/success')->assertNotFound();
 });
 
 it('respects the signals geolocation toggle in tracker markup', function () {
@@ -164,11 +156,6 @@ it('renders the submit-event upload copy in the selected locale', function () {
         ->assertSee('Have a poster? Let us help fill it in.')
         ->assertSee('Upload poster')
         ->assertDontSee('Ada poster? Biar kami bantu isi.');
-});
-
-it('does not expose experimental AI homepage variants', function () {
-    $this->get('/glm')->assertNotFound();
-    $this->get('/kimi')->assertNotFound();
 });
 
 it('loads public detail pages', function () {

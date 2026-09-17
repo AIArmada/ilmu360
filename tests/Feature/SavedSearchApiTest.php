@@ -145,11 +145,11 @@ describe('Saved Search API Endpoints', function () {
                     ]);
             });
 
-            it('rejects the legacy singular language filter key', function () {
+            it('rejects unknown saved search filter keys', function () {
                 $response = $this->postJson('/api/v1/saved-searches', [
-                    'name' => 'Legacy Language Search',
+                    'name' => 'Unknown Filter Search',
                     'filters' => [
-                        'language' => 'malay',
+                        'not_a_filter' => 'malay',
                     ],
                     'notify' => 'daily',
                 ]);

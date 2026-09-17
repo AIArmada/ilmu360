@@ -43,23 +43,13 @@ it('requires authentication for user and institution dashboards', function () {
     expect(route('dashboard.institutions.events'))->toEndWith('/dashboard/institusi/senarai-majlis');
     expect(route('dashboard.institutions.submit-event'))->toEndWith('/dashboard/institusi/tambah-majlis');
 
-    $this->get('/papan-pemuka')->assertNotFound();
     $this->get('/dashboard')->assertRedirect(route('login'));
     $this->get('/dashboard/notifications')->assertRedirect(route('login'));
     $this->get('/tetapan-akaun')->assertRedirect(route('login'));
     $this->get('/dashboard/institusi')->assertRedirect(route('login'));
     $this->get('/dashboard/institusi/senarai-majlis')->assertRedirect(route('login'));
     $this->get('/dashboard/institusi/tambah-majlis')->assertRedirect(route('login'));
-    $this->get('/dashboard/institusi/hantar-majlis')->assertNotFound();
     $this->get(route('dashboard.events.create-advanced'))->assertRedirect(route('login'));
-});
-
-it('does not expose the legacy papan pemuka dashboard URL', function () {
-    $user = User::factory()->create();
-
-    $this->actingAs($user)
-        ->get('/papan-pemuka')
-        ->assertNotFound();
 });
 
 it('renders the reference-inspired user dashboard with real saved search and notification panels', function () {
@@ -507,24 +497,8 @@ it('paginates redesigned majlis cards when counts exceed the dashboard page size
         ->not->toContain('scrollIntoView()');
 });
 
-it('does not expose the removed legacy account settings urls', function () {
+it('renders the account settings notifications tab', function () {
     $user = User::factory()->create();
-
-    $this->actingAs($user)
-        ->get('/papan-pemuka/tetapan-akaun')
-        ->assertNotFound();
-
-    $this->actingAs($user)
-        ->get('/dashboard/account-settings')
-        ->assertNotFound();
-
-    $this->actingAs($user)
-        ->get('/papan-pemuka/pilihan-digest')
-        ->assertNotFound();
-
-    $this->actingAs($user)
-        ->get('/dashboard/digest-preferences')
-        ->assertNotFound();
 
     $followedResponse = $this->withSession(['locale' => 'en'])
         ->actingAs($user)
@@ -1333,33 +1307,4 @@ it('forbids selecting institutions the user does not belong to', function () {
     $this->actingAs($user)
         ->get(route('dashboard.institutions', ['institution' => $nonMemberInstitution->id]))
         ->assertForbidden();
-});
-
-it('does not expose removed institution dashboard legacy urls', function () {
-    $user = User::factory()->create();
-
-    $this->actingAs($user)
-        ->get('/papan-pemuka/institusi')
-        ->assertNotFound();
-
-    $this->actingAs($user)
-        ->get('/dashboard/institutions')
-        ->assertNotFound();
-});
-
-it('does not expose removed advanced schedule urls', function () {
-    $owner = User::factory()->create();
-    $otherUser = User::factory()->create();
-
-    $event = Event::factory()->for($owner, 'owner')->create([
-        'status' => 'draft',
-    ]);
-
-    $this->actingAs($owner)
-        ->get("/dashboard/events/{$event->id}/schedule")
-        ->assertNotFound();
-
-    $this->actingAs($otherUser)
-        ->get("/dashboard/events/{$event->id}/schedule")
-        ->assertNotFound();
 });

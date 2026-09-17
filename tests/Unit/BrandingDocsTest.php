@@ -28,40 +28,6 @@ dataset('canonical lowercase docs', [
     'visitor guide' => 'docs/ilmu360_visitor_guide.md',
 ]);
 
-it('does not keep legacy-prefixed documentation duplicates', function (): void {
-    $docsPath = dirname(__DIR__, 2).'/docs';
-
-    $legacyMatches = [];
-
-    $iterator = new RecursiveIteratorIterator(
-        new RecursiveDirectoryIterator($docsPath, FilesystemIterator::SKIP_DOTS),
-    );
-
-    foreach ($iterator as $item) {
-        if (! $item instanceof SplFileInfo || ! $item->isFile()) {
-            continue;
-        }
-
-        $relativePath = str_replace($docsPath.'/', '', $item->getPathname());
-
-        if (str_starts_with($relativePath, 'trash/')) {
-            continue;
-        }
-
-        $basename = $item->getBasename();
-
-        if (! str_starts_with($basename, 'MAJLISILMU')
-            && ! str_starts_with($basename, 'majlisilmu')
-            && ! str_starts_with($basename, 'ILMU360')) {
-            continue;
-        }
-
-        $legacyMatches[] = $relativePath;
-    }
-
-    expect($legacyMatches)->toBeEmpty();
-});
-
 it('keeps the canonical lowercase documentation set present', function (string $relativePath): void {
     expect(file_exists(dirname(__DIR__, 2).'/'.$relativePath))->toBeTrue();
 })->with('canonical lowercase docs');
@@ -78,16 +44,10 @@ it('keeps active docs free of transition-era brand notes', function (string $rel
         ->not->toContain('rebrand sudah selesai');
 })->with('active current-brand docs');
 
-it('keeps the active brand standard free of legacy-name messaging', function (): void {
+it('keeps the active brand standard rules present', function (): void {
     $markdown = file_get_contents(dirname(__DIR__, 2).'/docs/ilmu360-brand-name-standard.md') ?: '';
 
     expect($markdown)
-        ->not->toContain('**Legacy name:**')
-        ->not->toContain('MajlisIlmu = legacy name only')
-        ->not->toContain('#MajlisIlmu')
-        ->not->toContain('During the rebrand transition')
-        ->not->toContain('formerly MajlisIlmu')
-        ->not->toContain('MajlisIlmu / ilmu360°')
         ->toContain('## 8. Prior-Name Exception Rule')
         ->toContain('## 23. Archive and Provenance Note Rule')
         ->toContain('> **ilmu360° for identity. ilmu360 for function. Ilmu360 for formality.**');

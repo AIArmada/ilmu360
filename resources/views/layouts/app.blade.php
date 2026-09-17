@@ -166,7 +166,7 @@
 
             <!-- Premium Header -->
             <header
-                class="sticky top-0 z-50 w-full border-b border-white/10 bg-white/70 backdrop-blur-md transition-all"
+                class="sticky top-0 z-50 w-full border-b border-[#e5dccb] bg-[#f6f1e8]/95 backdrop-blur-md transition-all"
                 x-data="{ mobileMenuOpen: false }">
                 <nav class="container mx-auto flex h-20 items-center justify-between px-6 lg:px-12">
                     <a href="{{ route('home') }}" wire:navigate class="flex items-center">
@@ -221,8 +221,8 @@
                         </div>
 
                         <a href="{{ route('submit-event.create') }}" wire:navigate
-                            class="hidden sm:inline-flex items-center justify-center rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200 transition-colors">
-                            {{ __('Tambah Majlis') }}
+                            class="living-majlis-header-button living-majlis-header-button--gold hidden items-center justify-center rounded-full px-4 py-2 text-sm font-semibold sm:inline-flex">
+                            <span class="relative z-10">{{ __('Tambah Majlis') }}</span>
                         </a>
 
                         @auth
@@ -316,8 +316,8 @@
                                     {{ __('Log In') }}
                                 </a>
                                 <a href="{{ \App\Support\Auth\IntendedRedirect::registerUrl(request()->fullUrl()) }}" wire:navigate
-                                    class="inline-flex items-center justify-center rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-500/30 hover:bg-emerald-700 hover:shadow-emerald-500/40 hover:-translate-y-0.5 transition-all duration-300">
-                                    {{ __('Sign Up') }}
+                                    class="living-majlis-header-button living-majlis-header-button--emerald inline-flex items-center justify-center rounded-full px-5 py-2 text-sm font-semibold">
+                                    <span class="relative z-10">{{ __('Sign Up') }}</span>
                                 </a>
                             </div>
                         @endauth
@@ -325,7 +325,7 @@
                 </nav>
 
                 <!-- Mobile Menu Dropdown -->
-                <div x-show="mobileMenuOpen" x-collapse x-cloak class="md:hidden border-t border-slate-100 bg-white">
+                <div x-show="mobileMenuOpen" x-collapse x-cloak class="md:hidden border-t border-[#e5dccb] bg-[#f6f1e8]">
                     <div class="container mx-auto px-6 py-4 space-y-4">
                         <div class="flex flex-col gap-2">
                             <a href="{{ route('events.index') }}" wire:navigate
@@ -335,10 +335,10 @@
                             <a href="{{ route('persons.index') }}" wire:navigate
                                 class="block py-2 text-base font-semibold text-slate-700 hover:text-emerald-600">{{ __('Speakers') }}</a>
                         </div>
-                        <div class="border-t border-slate-100 pt-4 flex flex-col gap-3">
+                        <div class="border-t border-[#e5dccb] pt-4 flex flex-col gap-3">
                             <a href="{{ route('submit-event.create') }}" wire:navigate
-                                class="block w-full text-center rounded-lg bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700">
-                                {{ __('Tambah Majlis') }}
+                                class="living-majlis-header-button living-majlis-header-button--gold block w-full rounded-xl px-4 py-3 text-center text-sm font-semibold">
+                                <span class="relative z-10">{{ __('Tambah Majlis') }}</span>
                             </a>
                             @guest
                                 <div class="grid grid-cols-2 gap-3">
@@ -347,8 +347,8 @@
                                         {{ __('Log In') }}
                                     </a>
                                     <a href="{{ \App\Support\Auth\IntendedRedirect::registerUrl(request()->fullUrl()) }}" wire:navigate
-                                        class="flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-3 text-sm font-semibold text-white">
-                                        {{ __('Sign Up') }}
+                                        class="living-majlis-header-button living-majlis-header-button--emerald flex items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold">
+                                        <span class="relative z-10">{{ __('Sign Up') }}</span>
                                     </a>
                                 </div>
                             @else
@@ -426,7 +426,7 @@
                             @endguest
                         </div>
                         <!-- Mobile Language Switcher -->
-                        <div class="border-t border-slate-100 pt-4" data-language-switcher-case="title">
+                        <div class="border-t border-[#e5dccb] pt-4" data-language-switcher-case="title">
                             <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
                                 {{ __('Language') }}
                             </p>
@@ -469,7 +469,7 @@
                 </div>
                 <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_150%_at_8%_0%,rgba(16,185,129,0.14),transparent_58%)]"></div>
 
-                <div class="relative z-10 mx-auto flex min-h-[30rem] max-w-7xl flex-col px-5 pt-12 pb-8 sm:px-6 lg:px-8 lg:pt-12 lg:pb-8">
+                <div class="relative z-10 mx-auto flex min-h-[30rem] max-w-7xl flex-col px-5 pt-24 pb-8 sm:px-6 lg:px-8 lg:pt-24 lg:pb-8">
                     <div class="grid gap-10 lg:mx-auto lg:max-w-4xl lg:grid-cols-[1.35fr_0.8fr_1fr] lg:gap-16">
                         <div>
                             <span class="font-heading text-4xl font-bold tracking-tight"><span class="text-white">ilmu</span><span class="text-gold-300">360°</span></span>

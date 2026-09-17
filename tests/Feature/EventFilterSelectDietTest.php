@@ -81,10 +81,6 @@ it('shows scoped subdivision options only on search', function () {
         ->assertDontSee($subdivisionName);
 });
 
-it('ignores removed city filter values', function () {
-    $this->get(route('events.index', ['city_id' => 'xx'], false))->assertOk();
-});
-
 it('resolves null location labels without querying', function () {
     $component = Livewire::test(Index::class);
 

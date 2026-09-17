@@ -616,37 +616,50 @@ class extends Component
     $institutionTotal = $institutions->total();
 @endphp
 
-<div class="relative min-h-screen">
+<div data-art-direction="living-majlis" class="living-majlis-field relative min-h-screen overflow-x-clip text-slate-800">
         <!-- Hero Section -->
-        <div class="relative pt-12 pb-16 bg-white border-b border-slate-100 overflow-hidden">
-             <div class="absolute inset-0 bg-emerald-50/50"></div>
-        <div class="absolute inset-0 opacity-5" style="background-image: url('{{ asset('images/pattern-bg.png') }}');"></div>
+        <div class="relative overflow-hidden border-b border-emerald-900/[0.06]">
+            <div data-material="hero-field" class="absolute inset-0 overflow-hidden bg-[#f7f3e8]">
+                <img
+                    src="{{ asset('images/institutions/pusat-ilmu-hero-background-v1.png') }}"
+                    alt=""
+                    aria-hidden="true"
+                    class="absolute inset-0 h-full w-full object-cover object-[35%_center] sm:object-[42%_center] lg:object-center"
+                    width="1672"
+                    height="941"
+                    loading="eager"
+                    decoding="async"
+                >
+                <div class="absolute inset-0 bg-gradient-to-r from-[#fafaf7]/90 via-[#fafaf7]/45 via-44% to-transparent"></div>
+                <div class="absolute inset-0 bg-gradient-to-b from-[#fffaf0]/10 via-transparent to-[#e7eee8]/15"></div>
+            </div>
 
-            <div class="container relative mx-auto px-6 lg:px-12 text-center">
-                 <h1 class="font-heading text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight text-balance mb-6">
+            <div class="relative mx-auto max-w-7xl px-5 py-14 sm:px-6 sm:py-20 lg:px-8 lg:py-16">
+                 <h1 class="max-w-2xl font-heading text-4xl font-bold leading-[1.06] tracking-[-0.035em] text-emerald-950 text-balance sm:text-5xl lg:text-6xl">
                     {{ __('Centers of') }} <br class="hidden md:block" />
-                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500">{{ __('Knowledge & Community') }}</span>
+                    <span class="text-emerald-700">{{ __('Knowledge & Community') }}</span>
                 </h1>
-                <p class="text-slate-600 text-lg md:text-xl max-w-2xl mx-auto text-balance">
-                    {{ __('Connect with the mosques, suraus, and educational centers hosting Majlis Ilmu and nurturing our community.') }}
+                <p class="mt-6 max-w-xl text-base leading-7 text-slate-600 text-balance sm:mt-7 sm:text-lg">
+                    {{ __('Connect with the mosques, suraus, and educational centers nurturing our community.') }}
                 </p>
                 
                  <!-- Search and filter controls -->
-                 <div class="mx-auto mt-8 max-w-5xl">
+                 <div class="mt-9 max-w-3xl">
                     <x-ui.search-bar
                         input-id="institution-search"
                         model="search"
                         :value="$search"
                         :placeholder="__('Search institutions...')"
                         :label="__('Search institutions')"
-                        :label-visible="true"
-                        :count="$institutionTotal"
-                        :count-label="__('institutions')"
                         :hint="__('Search by institution name or location.')"
-                        width="mx-auto max-w-2xl"
+                        width="max-w-xl"
                     />
+                </div>
+            </div>
+        </div>
 
-                    <div data-institution-filters class="mx-auto mt-8 max-w-4xl border-t border-emerald-200/80 pt-5 text-left sm:pt-6">
+        <div class="relative z-10 mx-auto max-w-7xl px-5 py-7 sm:px-6 sm:py-8 lg:px-8">
+            <div data-institution-filters class="living-majlis-veil mx-auto max-w-4xl rounded-[1.5rem] p-5 text-left sm:p-6">
                         <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
                             <div class="flex items-center gap-2">
                                 <span class="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100">
@@ -771,13 +784,10 @@ class extends Component
 	                            </button>
 	                        @endif
 	                    </div>
-	                    </div>
+            </div>
+        </div>
 
-		                 </div>
-		            </div>
-		        </div>
-
-	        <div class="container mx-auto mt-12 px-6 lg:px-12">
+	        <div class="mx-auto max-w-7xl px-5 pt-10 pb-16 sm:px-6 lg:px-8 lg:pt-12 lg:pb-20">
             @island(name: 'institution-results', always: true)
                 @php
                     $institutions = $this->institutions;
@@ -809,13 +819,15 @@ class extends Component
 	                        </div>
 		                </div>
 		            @else
-                <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+	                <div class="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
                     @foreach($institutions as $institution)
                         @php
-                            $cardInstitutionImageUrl = $institution->public_image_url;
+                            $cardInstitutionImageUrl = $institution->public_cover_url !== ''
+                                ? $institution->public_cover_url
+                                : ($institution->public_logo_url !== '' ? $institution->public_logo_url : null);
                             $isFollowing = in_array((string) $institution->getKey(), $followingInstitutionIds, true);
                         @endphp
-                        <article wire:key="institution-{{ $institution->id }}" class="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-900/8">
+	                        <article wire:key="institution-{{ $institution->id }}" class="living-majlis-card group relative flex h-full flex-col overflow-hidden rounded-[1.5rem] border transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-1.5 hover:border-emerald-300/80 hover:shadow-[0_22px_50px_-28px_rgba(6,78,59,0.40)]">
                             <a href="{{ route('institutions.show', $institution) }}" wire:navigate class="relative flex flex-1 flex-col">
                             <!-- Banner Area (16:9, cover-first) -->
                             <div class="institution-card-media aspect-video bg-slate-50 relative overflow-hidden">
@@ -839,10 +851,14 @@ class extends Component
                                     <img src="{{ $cardInstitutionImageUrl }}" alt="{{ $institution->name }}" class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy">
                                     <div class="absolute inset-0 bg-gradient-to-t from-slate-900/50 via-slate-900/15 to-transparent"></div>
                                 @else
-                                    <div class="absolute inset-0 bg-gradient-to-br from-emerald-50 to-teal-50 opacity-100 group-hover:opacity-90 transition-opacity"></div>
-                                    <svg class="absolute right-0 bottom-0 text-emerald-100/50 w-32 h-32 transform translate-x-8 translate-y-8" fill="currentColor" viewBox="0 0 24 24">
-                                         <path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                    </svg>
+                                    <img
+                                        src="{{ asset('images/placeholders/institution-v2.png') }}"
+                                        alt=""
+                                        aria-hidden="true"
+                                        class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                        loading="lazy"
+                                    >
+                                    <div class="absolute inset-0 bg-gradient-to-t from-emerald-950/35 via-transparent to-transparent"></div>
                                 @endif
                             </div>
                             
@@ -919,52 +935,60 @@ class extends Component
 		                    {{ $institutions->withQueryString()->links() }}
 		                </div>
 
-                        <div class="mt-6 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-4 text-center shadow-sm">
-                            <p class="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">{{ __('Direktori Institusi') }}</p>
-                            <p class="mt-2 text-sm font-semibold text-slate-600">
-                                {{ __('Jumlah institusi: :count', ['count' => number_format($institutions->total())]) }}
-                            </p>
-                        </div>
 	            @endif
 
                     </div>
                 </div>
             @endisland
 
-                    <section class="mt-16">
-                        <div class="relative overflow-hidden rounded-[2rem] border border-emerald-200/70 bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-600 px-6 py-8 text-white shadow-[0_30px_90px_-40px_rgba(5,150,105,0.85)] md:px-10 md:py-10">
-                            <div class="absolute -right-16 -top-16 h-44 w-44 rounded-full bg-white/10 blur-2xl"></div>
-                            <div class="absolute -bottom-20 left-0 h-48 w-48 rounded-full bg-emerald-300/20 blur-3xl"></div>
 
-                            <div class="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-                                <div class="max-w-2xl">
-                                    <span class="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.22em] text-emerald-50">
-                                        {{ __('Sumbangan Komuniti') }}
-                                    </span>
-                                    <h2 class="mt-4 font-heading text-2xl font-bold tracking-tight text-balance md:text-3xl">
-                                        {{ __('Tak jumpa institusi yang anda cari? Cadangkan institusi baharu.') }}
-                                    </h2>
-                                    <p class="mt-3 max-w-2xl text-sm leading-6 text-emerald-50/90 md:text-base">
-                                        {{ __('Bantu kami tambah masjid, surau, pusat pengajian, dan komuniti ilmu yang patut ditemui ramai. Hantaran anda akan disemak dahulu sebelum dipaparkan kepada umum.') }}
-                                    </p>
-                                </div>
+                    <section class="mt-16 sm:mt-20">
+                        <div data-material="opaque-cta" class="living-majlis-cta relative overflow-hidden rounded-[1.5rem] border border-emerald-800/15 px-6 py-10 text-white sm:px-8 md:px-10 md:py-11">
+                            <div class="absolute inset-0 opacity-[0.08]" style="background-image: radial-gradient(circle at 1.5px 1.5px, rgba(255,255,255,.70) 1px, transparent 0); background-size: 22px 22px;"></div>
+                            <div class="absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-emerald-700/[0.15] blur-3xl"></div>
 
-                                <div class="flex flex-col items-start gap-3 lg:items-end">
-                                    <a
-                                        href="{{ $submitInstitutionUrl }}"
-                                        wire:navigate
-                                        class="group inline-flex w-full min-w-0 items-center justify-between gap-4 rounded-[1.5rem] bg-white px-5 py-4 text-left text-emerald-700 shadow-xl shadow-emerald-950/20 transition duration-200 hover:-translate-y-0.5 hover:bg-emerald-50 sm:w-auto sm:min-w-[18rem]"
-                                    >
-                                        <span class="block">
-                                            <span class="block text-[11px] font-black uppercase tracking-[0.2em] text-emerald-500">{{ __('Tambah ke direktori') }}</span>
-                                            <span class="mt-1 block text-base font-bold text-emerald-900">{{ __('Cadangkan institusi baharu') }}</span>
-                                        </span>
-                                        <svg class="h-5 w-5 shrink-0 transition group-hover:translate-x-1" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.167 10h11.666m0 0-4.166-4.167M15.833 10l-4.166 4.167" />
+                            <div class="relative flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+                                <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-6">
+                                    <span class="relative grid h-20 w-20 shrink-0 place-items-center rounded-[1.35rem] bg-emerald-800/35 text-[#f5d98f] shadow-[0_18px_34px_-22px_rgba(0,0,0,0.9)]">
+                                        <span class="pointer-events-none absolute inset-3 rounded-full bg-gold-300/10 blur-xl"></span>
+                                        <svg class="relative h-14 w-14 drop-shadow-[0_6px_8px_rgba(0,0,0,0.18)]" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+                                            <defs>
+                                                <linearGradient id="institution-gold" x1="13" y1="10" x2="51" y2="55" gradientUnits="userSpaceOnUse">
+                                                    <stop stop-color="#FFF0B1" />
+                                                    <stop offset="1" stop-color="#E8BA55" />
+                                                </linearGradient>
+                                            </defs>
+                                            <path d="M11 51h42M16 51V31h32v20M22 51V37h20v14" stroke="url(#institution-gold)" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" />
+                                            <path d="M18 31c2.6-7.4 7.5-11.1 14-11.1S43.4 23.6 46 31" fill="url(#institution-gold)" />
+                                            <path d="M12 31V20h5v11m30 0V20h5v11M14.5 20h0M49.5 20h0M32 19V9" stroke="url(#institution-gold)" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" />
+                                            <path d="M29 51V39h6v12" stroke="#063b27" stroke-linejoin="round" stroke-width="2" />
+                                            <path d="M32 6v3m-2-1.5h4" stroke="#FFF0B1" stroke-linecap="round" stroke-width="2" />
                                         </svg>
-                                    </a>
+                                    </span>
 
+                                    <div class="max-w-2xl">
+                                        <p class="text-[11px] font-black uppercase tracking-[0.22em] text-gold-300">
+                                            {{ __('Community Contribution') }}
+                                        </p>
+                                        <h2 class="mt-2 max-w-xl font-heading text-2xl font-bold leading-snug tracking-tight text-balance sm:text-3xl">
+                                            {{ __('Kenal institusi yang belum tersenarai?') }}
+                                        </h2>
+                                        <p class="mt-3 max-w-2xl text-sm leading-6 text-emerald-100/75 sm:text-base">
+                                            {{ __('Bantu kami menambah masjid, surau, madrasah, dan pusat ilmu yang patut ditemui ramai. Setiap cadangan akan disemak sebelum diterbitkan.') }}
+                                        </p>
+                                    </div>
                                 </div>
+
+                                <a
+                                    href="{{ $submitInstitutionUrl }}"
+                                    wire:navigate
+                                    class="living-majlis-cta-button group inline-flex min-h-14 w-full items-center justify-between gap-5 rounded-[1.25rem] px-5 py-3.5 text-left text-[#063b27] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-gold-400/40 sm:w-auto sm:min-w-[18rem]"
+                                >
+                                    <span class="relative z-10 text-sm font-bold sm:text-base">{{ __('Cadangkan institusi') }}</span>
+                                    <svg class="relative z-10 h-5 w-5 shrink-0" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.167 10h11.666m0 0-4.166-4.167M15.833 10l-4.166 4.167" />
+                                    </svg>
+                                </a>
                             </div>
                         </div>
                     </section>

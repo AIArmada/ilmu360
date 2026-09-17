@@ -280,7 +280,8 @@
 @endphp
 
 <div
-    class="min-h-screen bg-[#fbfaf6] text-slate-900"
+    data-art-direction="living-majlis"
+    class="living-majlis-field min-h-screen overflow-x-clip text-slate-900"
     x-data="{
         ...window.ilmu360.geolocationPermission({
             initiallyGranted: @js($showsGeolocationControls),
@@ -478,7 +479,7 @@
             await this.copyEventLink(eventId, url);
         },
     }">
-    <section class="relative pt-12 pb-16 bg-white border-b border-slate-100 overflow-hidden">
+    <section class="relative overflow-hidden border-b border-emerald-900/[0.06]">
         <div class="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(245,158,11,0.12),transparent_32%),linear-gradient(90deg,#fffdf8_0%,#fffaf0_52%,#f2f8f4_100%)]"></div>
         <div class="absolute inset-y-0 right-0 hidden w-[48%] overflow-hidden lg:block">
             <div class="absolute inset-0 rounded-bl-[11rem] bg-slate-200">
@@ -489,7 +490,7 @@
         <div class="pointer-events-none absolute right-[35%] top-6 hidden h-72 w-72 rounded-full border border-amber-200/50 opacity-40 lg:block"></div>
         <div class="pointer-events-none absolute right-[38%] top-14 hidden h-52 w-52 rounded-full border border-emerald-200/60 opacity-40 lg:block"></div>
 
-        <div class="container relative mx-auto px-6 lg:px-12">
+        <div class="relative mx-auto max-w-7xl px-5 py-14 sm:px-6 sm:py-20 lg:px-8 lg:py-16">
             <div class="max-w-4xl">
                 <p class="text-xs font-bold uppercase tracking-[0.26em] text-emerald-700">{{ __('Majlis Ilmu') }}</p>
                 <h1 class="mt-4 font-heading text-5xl font-bold leading-none tracking-normal text-emerald-950 md:text-7xl">
@@ -529,9 +530,9 @@
         </div>
     </section>
 
-    <main class="container relative z-10 mx-auto -mt-8 px-6 pb-20 lg:px-12">
+    <main class="relative z-10 mx-auto max-w-7xl px-5 pt-10 pb-20 sm:px-6 lg:px-8 lg:pt-12">
         <form wire:submit.prevent class="space-y-5">
-            <section class="overflow-hidden rounded-2xl border border-amber-100/80 bg-white/95 shadow-[0_20px_50px_-35px_rgba(15,23,42,0.55)]">
+            <section class="living-majlis-veil overflow-hidden rounded-[1.5rem] border shadow-[0_20px_50px_-35px_rgba(15,23,42,0.55)]">
                 <div class="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between md:p-5">
                     <div class="flex min-w-0 items-start gap-3">
                         <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100">
@@ -639,7 +640,7 @@
             </section>
 
             <section class="min-w-0">
-                <div class="rounded-2xl border border-amber-100/80 bg-white/95 p-4 shadow-[0_20px_50px_-35px_rgba(15,23,42,0.55)] md:p-6">
+                <div class="living-majlis-veil rounded-[1.5rem] border p-4 shadow-[0_20px_50px_-35px_rgba(15,23,42,0.55)] md:p-6">
                     <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                         <div>
                             <h2 aria-live="polite" class="font-heading text-2xl font-bold text-emerald-950">
@@ -1047,7 +1048,7 @@
                                         $isSaved = in_array((string) $event->getKey(), $savedEventIds, true);
                                     @endphp
 
-                                    <article wire:key="schedule-{{ $signalEntityType }}-{{ $signalEntityId }}" class="group overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-[0_20px_55px_-38px_rgba(6,95,70,0.55)] sm:p-4">
+                                    <article wire:key="schedule-{{ $signalEntityType }}-{{ $signalEntityId }}" class="living-majlis-card group overflow-hidden rounded-[1.5rem] border p-3 transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-1 hover:border-emerald-300/80 hover:shadow-[0_22px_50px_-28px_rgba(6,78,59,0.40)] sm:p-4">
                                         <div class="grid items-stretch gap-4 md:grid-cols-[16rem_minmax(0,1fr)] lg:grid-cols-[18rem_minmax(0,1fr)] xl:grid-cols-[21rem_minmax(0,1fr)] 2xl:grid-cols-[24rem_minmax(0,1fr)]">
                                             <a href="{{ $eventUrl }}" wire:navigate
                                                 data-signal-event="navigation.result_clicked"
@@ -1226,7 +1227,7 @@
                 </div>
                 @endisland
 
-                <section id="majlis-map-preview" class="mt-6 overflow-hidden rounded-2xl border border-amber-100 bg-white shadow-sm">
+                <section id="majlis-map-preview" class="living-majlis-veil mt-6 overflow-hidden rounded-[1.5rem] border shadow-sm">
                     <div class="grid gap-0 lg:grid-cols-[18rem_minmax(0,1fr)]">
                         <div class="flex items-center gap-4 p-6">
                             <div class="flex size-20 shrink-0 items-center justify-center rounded-2xl border border-emerald-100 bg-emerald-50">
@@ -1257,7 +1258,7 @@
             </section>
         </form>
 
-        <section class="mt-6 overflow-hidden rounded-2xl bg-[#062b49] px-6 py-8 text-center text-white shadow-[0_24px_70px_-45px_rgba(6,43,73,0.75)] md:px-10">
+        <section class="living-majlis-cta mt-6 overflow-hidden rounded-[1.5rem] border border-emerald-800/15 px-6 py-8 text-center text-white md:px-10">
             <div class="mx-auto max-w-3xl">
                 <h2 class="font-heading text-2xl font-bold leading-tight text-amber-100 md:text-3xl">
                     {{ __('Ilmu dah ada. Masjid dah terbuka. Surau dah hidup.') }}

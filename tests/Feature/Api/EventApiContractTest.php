@@ -142,15 +142,15 @@ it('filters events through canonical package query parameters', function () {
     }
 });
 
-it('rejects removed event filter aliases', function () {
+it('rejects unknown event filters', function () {
     Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
     ]);
 
-    foreach (['event_format', 'venue_id', 'type'] as $removedFilter) {
+    foreach (['not_a_filter', 'another_unknown_filter'] as $unknownFilter) {
         $this->getJson('/api/v1/events?'.http_build_query([
-            'filter' => [$removedFilter => 'online'],
+            'filter' => [$unknownFilter => 'online'],
         ]))->assertBadRequest();
     }
 });

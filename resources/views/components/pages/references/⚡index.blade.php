@@ -206,21 +206,33 @@ new
 @section('og_image_width', '1024')
 @section('og_image_height', '1024')
 
-<div class="relative min-h-screen">
-    <div class="relative pt-12 pb-16 bg-white border-b border-slate-100 overflow-hidden">
-        <div class="absolute inset-0 bg-emerald-50/50"></div>
-        <div class="absolute inset-0 opacity-5" style="background-image: url('{{ asset('images/pattern-bg.png') }}');"></div>
+<div data-art-direction="living-majlis" class="living-majlis-field relative min-h-screen overflow-x-clip text-slate-800">
+    <div class="relative overflow-hidden border-b border-emerald-900/[0.06]">
+        <div data-material="hero-field" class="absolute inset-0 overflow-hidden bg-[#f7f3e8]">
+            <img
+                src="{{ asset('images/speakers/penceramah-hero-background-v3.png') }}"
+                alt=""
+                aria-hidden="true"
+                class="absolute inset-0 h-full w-full object-cover object-[35%_center] sm:object-[42%_center] lg:object-center"
+                width="1672"
+                height="941"
+                loading="eager"
+                decoding="async"
+            >
+            <div class="absolute inset-0 bg-gradient-to-r from-[#fafaf7]/90 via-[#fafaf7]/45 via-44% to-transparent"></div>
+            <div class="absolute inset-0 bg-gradient-to-b from-[#fffaf0]/10 via-transparent to-[#e7eee8]/15"></div>
+        </div>
 
-        <div class="container relative mx-auto px-6 text-center lg:px-12">
-            <h1 class="mb-6 text-balance font-heading text-4xl font-extrabold tracking-tight text-slate-900 md:text-5xl">
+        <div class="relative mx-auto max-w-7xl px-5 py-14 sm:px-6 sm:py-20 lg:px-8 lg:py-16">
+            <h1 class="max-w-2xl text-balance font-heading text-4xl font-bold leading-[1.06] tracking-[-0.035em] text-emerald-950 sm:text-5xl lg:text-6xl">
                 {{ __('Sources of') }} <br class="hidden md:block" />
-                <span class="bg-linear-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">{{ __('Knowledge & Guidance') }}</span>
+                <span class="text-emerald-700">{{ __('Knowledge & Guidance') }}</span>
             </h1>
-            <p class="mx-auto max-w-2xl text-balance text-lg text-slate-600 md:text-xl">
+            <p class="mt-6 max-w-xl text-balance text-base leading-7 text-slate-600 sm:mt-7 sm:text-lg">
                 {{ __('Books, articles, videos, and reference works used across Majlis Ilmu in the ilmu360° community.') }}
             </p>
 
-            <div class="mx-auto mt-8 max-w-xl">
+            <div class="mt-9 max-w-xl">
                 <x-ui.search-bar
                     input-id="reference-search"
                     model="search"
@@ -234,7 +246,7 @@ new
         </div>
     </div>
 
-    <div class="container mx-auto mt-12 px-6 lg:px-12">
+    <div class="mx-auto max-w-7xl px-5 pt-10 pb-16 sm:px-6 lg:px-8 lg:pt-12 lg:pb-20">
         @island(name: 'reference-results', always: true)
             @php
                 $references = $this->references;
@@ -287,7 +299,7 @@ new
                     </div>
                 </div>
             @else
-                <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+                <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
                     @foreach($references as $reference)
                         @php
                             $coverUrl = $reference->getFirstMediaUrl('front_cover', 'thumb') ?: $reference->getFirstMediaUrl('back_cover', 'thumb');
@@ -303,7 +315,7 @@ new
                         <a
                             href="{{ route('references.show', $reference) }}"
                             wire:navigate
-                            class="group relative flex flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-900/8"
+                            class="living-majlis-card group relative flex flex-col overflow-hidden rounded-[1.5rem] border transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-1.5 hover:border-emerald-300/80 hover:shadow-[0_22px_50px_-28px_rgba(6,78,59,0.40)]"
                         >
                             <div class="relative flex aspect-4/5 items-center justify-center overflow-hidden bg-linear-to-br from-slate-50 to-emerald-50">
                                 @if($coverUrl)

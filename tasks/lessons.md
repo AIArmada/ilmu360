@@ -981,3 +981,14 @@
 - For a polished reference-matched CTA, put depth in layered surface treatments and keep the label and directional icon anchored so gloss does not become motion noise.
 - For footer legal-row spacing, adjust the parent footer's bottom inset rather than adding padding to the bottom row itself; `mt-auto` can amplify the apparent movement.
 - For a reference-matched CTA icon, give the symbol its own silhouette and material treatment rather than only enlarging a generic glyph; keep the surrounding container borderless and let the glow carry the depth.
+- For consistent header actions, share the same material language across surfaces but keep the primary action's color role distinct: warm gold for creation and emerald for account registration.
+- When a user refers to the menu section rather than its action, style the containing navigation surface and its dividers—not only the button inside it.
+- When a desktop/mobile navigation shares one header component, verify both surfaces separately; styling only the mobile `x-show` panel leaves the desktop header unchanged.
+- For CTA-to-footer breathing room, adjust the page wrapper's responsive bottom padding and measure the element-to-element gap; changing footer internals can move content instead of creating separation.
+- For footer column positioning, tune the shared footer container's top inset and separately measure the legal row so the main content moves without accidentally changing its bottom anchor.
+- When a visual spacing adjustment is repeated, apply it in the same measured increment and recheck both the grid offset and the legal-row clearance after each pass.
+- Keep repeated visual refinements measurable; this pass moves the footer grid in another fixed 16px increment to a verified 96px inset.
+- When reusing a reference CTA across directory pages, copy its structural hierarchy—not only its colors—so icon, eyebrow, heading, body, and single action remain visually consistent.
+- When a user tightens CTA copy after visual approval, update the source key and all locale entries together so the rendered label and translation fallback cannot drift.
+- When aligning shared hero search fields, match both the component width and visible-label treatment; a label/count row changes the perceived position even when the input component itself is shared.
+- When a control panel disrupts an image-backed hero, move the whole panel outside the hero wrapper and preserve its reactive bindings; styling it in place still leaves the visual composition crowded.

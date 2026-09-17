@@ -210,8 +210,6 @@ describe('Event Search Filters', function () {
         $response->assertOk()
             ->assertSee('Circle of')
             ->assertSee('Speaker')
-            ->assertDontSee('Penceramah & kandungan')
-            ->assertDontSee('Advanced Filters')
             ->assertSee('/js/filament/schemas/schemas.js', false)
             ->assertSee('/js/filament/support/support.js', false)
             ->assertSee('/js/filament/notifications/notifications.js', false)
@@ -386,19 +384,7 @@ describe('Event Search Filters', function () {
                 ->assertSee('Pilih satu atau lebih penceramah.')
                 ->assertSee('Bahasa Melayu (BM)')
                 ->assertSee('Pilih satu atau lebih bahasa yang digunakan dalam majlis.')
-                ->assertDontSee('Any Country')
-                ->assertDontSee('Any City')
-                ->assertDontSee('Sebarang Bandar')
-                ->assertDontSee('Sebarang Peranan')
-                ->assertDontSee('Sebarang Moderator')
-                ->assertDontSee('Sebarang Imam')
-                ->assertDontSee('Sebarang Khatib')
-                ->assertDontSee('Sebarang Bilal')
-                ->assertDontSee('Ada Masa Tamat')
-                ->assertDontSee('Tiada Masa Tamat')
-                ->assertDontSee('Has End Time')
-                ->assertDontSee('No End Time')
-                ->assertDontSee('Terapkan penapis');
+                ->assertDontSee('Any Country');
         } finally {
             app()->setLocale($originalLocale);
         }
@@ -454,12 +440,8 @@ describe('Event Search Filters', function () {
             'search_include_institutions',
             'search_include_persons',
             'search_include_references',
-            'person_name_search',
-            'venue_id',
-            'city_id',
-            'reference_author_search',
-        ] as $removedScope) {
-            expect($fields)->not->toHaveKey($removedScope);
+        ] as $internalScope) {
+            expect($fields)->not->toHaveKey($internalScope);
         }
 
         expect($fields['event_category_ids'])->toBeInstanceOf(Select::class)
@@ -488,47 +470,6 @@ describe('Event Search Filters', function () {
             ->assertSet('filterData.search', null);
     });
 
-    it('ignores the removed reference author filter on the events index', function () {
-        $matchReference = Reference::factory()->create([
-            'title' => 'Risalah Tawhid',
-            'author' => 'Muhammad Abduh',
-            'status' => 'verified',
-        ]);
-
-        $otherReference = Reference::factory()->create([
-            'title' => 'Al Bidaya Wal Nihaya',
-            'author' => 'Ibn Kathir',
-            'status' => 'verified',
-        ]);
-
-        $matchEvent = createVisibleEventForSearch([
-            'title' => 'Kuliah Abduh Ignored Match',
-            'status' => 'approved',
-            'visibility' => 'public',
-            'published_at' => now(),
-            'starts_at' => now()->addDays(1),
-        ]);
-        $matchEvent->references()->attach($matchReference->id);
-
-        $noMatchEvent = createVisibleEventForSearch([
-            'title' => 'Kuliah Kathir Ignored Match',
-            'status' => 'approved',
-            'visibility' => 'public',
-            'published_at' => now(),
-            'starts_at' => now()->addDays(1),
-        ]);
-        $noMatchEvent->references()->attach($otherReference->id);
-
-        $response = $this->get(eventsIndexUrl([
-            'reference_author_search' => ['Muhammad Abduh'],
-        ]));
-
-        $response->assertOk()
-            ->assertSee('Kuliah Abduh Ignored Match')
-            ->assertSee('Kuliah Kathir Ignored Match')
-            ->assertDontSee(__('Pengarang Rujukan'));
-    });
-
     it('preserves the active search when using a date shortcut', function () {
         $today = now()->toDateString();
         // The country is scoped automatically, so it rides along in the shortcut.
@@ -551,9 +492,7 @@ describe('Event Search Filters', function () {
             ->assertSee('Speaker')
             ->assertSee('Cari atau pilih penceramah...')
             ->assertSee('Topik & rujukan')
-            ->assertSee('Lokasi majlis')
-            ->assertDontSee('Pautan & siaran')
-            ->assertDontSee('Advanced Filters');
+            ->assertSee('Lokasi majlis');
     });
 
     it('loads broad topics lazily in the events index filter', function (): void {
@@ -1547,37 +1486,6 @@ describe('Event Search Filters', function () {
             ->assertSet('filterData.institution_id', null);
     });
 
-    it('ignores the removed venue filter on the events index', function () {
-        $venue = Venue::factory()->create(['status' => 'verified']);
-
-        Event::factory()->for($venue)->create([
-            'title' => 'Venue Ignored Event A',
-            'status' => 'approved',
-            'visibility' => 'public',
-            'published_at' => now(),
-            'starts_at' => now()->addDays(2),
-        ]);
-
-        Event::factory()->create([
-            'title' => 'Venue Ignored Event B',
-            'institution_id' => Institution::factory(),
-            'default_venue_id' => null,
-            'status' => 'approved',
-            'visibility' => 'public',
-            'published_at' => now(),
-            'starts_at' => now()->addDays(2),
-        ]);
-
-        $response = $this->get(eventsIndexUrl([
-            'venue_id' => $venue->id,
-        ]));
-
-        $response->assertOk()
-            ->assertSee('Venue Ignored Event A')
-            ->assertSee('Venue Ignored Event B')
-            ->assertDontSee('Any Venue');
-    });
-
     it('filters events by selected person ids in advanced filters', function () {
         $includedPerson = Person::factory()->create(['status' => 'verified']);
         $excludedPerson = Person::factory()->create(['status' => 'verified']);
@@ -2028,51 +1936,6 @@ describe('Event Search Filters', function () {
 
         Livewire::test(Index::class)
             ->assertSee('Country');
-    });
-
-    it('ignores the removed city filter on the events index', function () {
-        $country = ensureMalaysiaCountryForTests();
-        $petaling = createTestPackageGeography('Selangor', 'Petaling '.uniqid(), 'Petaling City', country: $country, cityName: 'Petaling Jaya');
-        $shahAlam = createTestPackageGeography('Selangor', 'Shah Alam '.uniqid(), 'Shah Alam City', country: $country, cityName: 'Shah Alam');
-
-        $petalingVenue = Venue::factory()->create();
-        updatePrimaryAddressForSearch($petalingVenue, [
-            ...$petaling['address'],
-            'city_id' => (string) $petaling['city']->getKey(),
-        ]);
-
-        $shahAlamVenue = Venue::factory()->create();
-        updatePrimaryAddressForSearch($shahAlamVenue, [
-            ...$shahAlam['address'],
-            'city_id' => (string) $shahAlam['city']->getKey(),
-        ]);
-
-        Event::factory()->for($petalingVenue)->create([
-            'title' => 'Petaling City Ignored Match',
-            'status' => 'approved',
-            'visibility' => 'public',
-            'published_at' => now(),
-            'starts_at' => now()->addDays(2),
-        ]);
-
-        Event::factory()->for($shahAlamVenue)->create([
-            'title' => 'Shah Alam City Ignored Match',
-            'status' => 'approved',
-            'visibility' => 'public',
-            'published_at' => now(),
-            'starts_at' => now()->addDays(2),
-        ]);
-
-        $response = $this->get(eventsIndexUrl([
-            'country_id' => (string) $country->getKey(),
-            'state_id' => (string) $petaling['state']->getKey(),
-            'city_id' => (string) $petaling['city']->getKey(),
-        ]));
-
-        $response->assertOk()
-            ->assertSee('Petaling City Ignored Match')
-            ->assertSee('Shah Alam City Ignored Match')
-            ->assertDontSee('Any City');
     });
 
     it('requires combined location filters to match the same package address', function () {

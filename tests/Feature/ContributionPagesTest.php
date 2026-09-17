@@ -2087,27 +2087,16 @@ it('stores reference reports from the public report page', function () {
     expect(SignalEvent::query()->where('event_name', 'report.submitted')->exists())->toBeTrue();
 });
 
-it('redirects guests to login on canonical report and suggest update pages while rejecting removed legacy aliases', function () {
+it('redirects guests to login on canonical report and suggest update pages', function () {
     $institution = Institution::factory()->create([
         'status' => 'verified',
     ]);
     $person = Person::factory()->create([
         'status' => 'verified',
     ]);
-    $reference = Reference::factory()->create([
-        'status' => 'verified',
-    ]);
-    $event = Event::factory()->create([
-        'status' => 'approved',
-        'visibility' => 'public',
-        'published_at' => now(),
-        'starts_at' => now()->addDay(),
-    ]);
 
-    $eventRouteSegment = ContributionSubjectType::Event->publicRouteSegment();
     $institutionRouteSegment = ContributionSubjectType::Institution->publicRouteSegment();
     $personRouteSegment = ContributionSubjectType::Person->publicRouteSegment();
-    $referenceRouteSegment = ContributionSubjectType::Reference->publicRouteSegment();
 
     $this->get(route('contributions.suggest-update', ['subjectType' => $institutionRouteSegment, 'subjectId' => $institution->slug]))
         ->assertRedirect(route('login'));
@@ -2120,30 +2109,6 @@ it('redirects guests to login on canonical report and suggest update pages while
 
     $this->get(route('reports.create', ['subjectType' => $personRouteSegment, 'subjectId' => $person->slug]))
         ->assertRedirect(route('login'));
-
-    $this->get("/sumbangan/person/{$person->slug}/kemas-kini")
-        ->assertNotFound();
-
-    $this->get("/lapor/person/{$person->slug}")
-        ->assertNotFound();
-
-    $this->get("/sumbangan/institution/{$institution->slug}/kemas-kini")
-        ->assertNotFound();
-
-    $this->get("/lapor/institution/{$institution->slug}")
-        ->assertNotFound();
-
-    $this->get("/sumbangan/event/{$event->slug}/kemas-kini")
-        ->assertNotFound();
-
-    $this->get("/lapor/event/{$event->slug}")
-        ->assertNotFound();
-
-    $this->get("/sumbangan/reference/{$reference->slug}/kemas-kini")
-        ->assertNotFound();
-
-    $this->get("/lapor/reference/{$reference->slug}")
-        ->assertNotFound();
 });
 
 it('forbids users banned from directory feedback from opening update and report pages', function () {

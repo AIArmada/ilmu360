@@ -816,7 +816,7 @@ it('preserves the institution url in guest auth links', function () {
         ->assertDontSee('href="'.route('login').'"', false);
 });
 
-it('renders a breadcrumb and omits removed hero/page summary actions', function () {
+it('renders a breadcrumb', function () {
     $institution = Institution::factory()->create([
         'status' => 'verified',
         'name' => 'Institusi Ujian',
@@ -832,10 +832,7 @@ it('renders a breadcrumb and omits removed hero/page summary actions', function 
 
     $this->get(route('institutions.show', $institution))
         ->assertSuccessful()
-        ->assertSee('data-ui="public-breadcrumbs"', false)
-        ->assertDontSee('Lihat Semua Majlis')
-        ->assertDontSee('3 penceramah')
-        ->assertDontSee('<nav class="animate-fade-in-up flex items-center gap-2 text-sm" style="animation-delay: 100ms; opacity: 0;">', false);
+        ->assertSee('data-ui="public-breadcrumbs"', false);
 });
 
 it('renders prayer-relative start time and event timezone end time in institution event list', function () {

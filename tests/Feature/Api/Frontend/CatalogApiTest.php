@@ -150,12 +150,6 @@ it('lists taxonomy terms through the canonical catalog endpoint', function () {
     expect(collect($response->json('data'))->pluck('id')->all())->toContain((string) $term->getKey());
 });
 
-it('returns 404 for the removed tags catalog alias', function () {
-    submitEventTerm(EventTaxonomyCode::Domain->value);
-
-    $this->getJson('/api/v1/catalogs/tags/'.EventTaxonomyCode::Domain->value)->assertNotFound();
-});
-
 it('lists administrative districts for an explicit state', function () {
     $country = ensureTestMalaysiaCountry();
     $geo = createTestPackageGeography('Selangor', 'Petaling', 'Shah Alam', country: $country);

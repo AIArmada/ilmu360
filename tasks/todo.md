@@ -3032,3 +3032,170 @@ The affected-surface run completed with 118 passing tests and 472 assertions; it
 
 - The icon now uses a custom three-person silhouette with warm gold shading, a soft ambient glow, and no decorative border.
 - Desktop and 390px mobile screenshots confirm the icon remains centered and visually balanced with the CTA copy.
+
+# Current Task: Header action polish — 2026-09-17
+
+## Plan
+
+- [x] Match the `Tambah Majlis` action to the CTA's refined beige/gold color family.
+- [x] Give the `Daftar` action a compact 3D glossy emerald treatment on desktop and mobile.
+- [x] Rebuild and verify the header states without introducing overflow.
+
+## Review / Results
+
+- Both actions now use dedicated layered highlight, inset-edge, hover, and pressed-state treatments.
+- Desktop and mobile screenshots confirm the beige `Tambah Majlis` action and glossy emerald `Daftar` action are balanced in the header and mobile menu.
+
+# Current Task: Beige mobile-menu surface — 2026-09-17
+
+## Plan
+
+- [x] Change the mobile navigation panel itself to the shared warm beige surface.
+- [x] Preserve the glossy action contrast and verify the expanded menu at 390px.
+
+## Review / Results
+
+- The expanded mobile menu now renders with a measured `rgb(246, 241, 232)` beige background and matching warm divider.
+- The glossy `Tambah Majlis` and `Daftar` actions remain distinct, with no horizontal overflow or console errors.
+
+# Current Task: Desktop header beige surface — 2026-09-17
+
+## Plan
+
+- [x] Apply the warm beige surface to the shared desktop header, not only the mobile dropdown.
+- [x] Rebuild and verify the rendered header color at desktop width.
+
+## Review / Results
+
+- The desktop header now computes to the warm beige `#f6f1e8` surface with a matching beige divider; the action buttons remain legible and glossy.
+- The 1440px browser check confirms the header width is intact, with no horizontal overflow or console errors.
+
+# Current Task: Push footer content grid downward — 2026-09-17
+
+## Plan
+
+- [x] Increase the footer content grid's top inset without changing its internal column layout.
+- [x] Verify the brand, Menu, Komuniti, and legal-row positions on desktop and mobile.
+
+## Review / Results
+
+- The main footer grid now begins 64px below the image top instead of 48px; the desktop legal row remains bottom-anchored with its 32px inset.
+- Desktop screenshot and mobile measurements confirm the content moved down while remaining overflow-free; no console errors were found.
+
+# Current Task: Push footer content further downward — 2026-09-17
+
+## Plan
+
+- [x] Add another 16px to the footer main content inset.
+- [x] Recheck the desktop and mobile grid offsets and legal-row clearance.
+
+## Review / Results
+
+- The main footer grid now begins 80px below the image top on both desktop and mobile, while the legal row keeps a 32px bottom gap.
+- Production build, screenshots, and responsive measurements pass with no overflow or console errors.
+
+# Current Task: Push footer content further down — 2026-09-17
+
+## Plan
+
+- [x] Add another 16px to the footer main content inset.
+- [x] Recheck the desktop and mobile grid offsets and legal-row clearance.
+
+## Review / Results
+
+- The main footer grid now begins 96px below the image top on desktop and mobile, while the legal row keeps a 32px bottom gap.
+- Production build, screenshot, and responsive measurements pass with no overflow or console errors.
+
+# Current Task: Increase CTA-to-footer breathing space — 2026-09-17
+
+## Plan
+
+- [x] Increase only the wrapper spacing below the suggestion CTA.
+- [x] Verify the measured gap at desktop and mobile widths.
+
+## Review / Results
+
+- The gap is now 80px at 1440px and 64px at 390px, while the CTA and footer heights remain unchanged.
+- Browser screenshot and measurements confirm the transition is more spacious; changed-file diff checks pass.
+
+# Current Task: Harmonize directory page styles — 2026-09-17
+
+## Plan
+
+- [x] Carry `/penceramah`'s responsive visual language to `/institusi`, `/rujukan`, and `/majlis` without changing their page-specific behavior.
+- [x] Align hero surfaces, content width, controls, cards, and lower call-to-action styling with the shared warm architectural system.
+- [x] Rebuild and verify all three pages at desktop and mobile widths, including overflow and console-error checks.
+
+## Review / Results
+
+- `/institusi` and `/rujukan` now use the same full-bleed architectural hero composition as `/penceramah`, with left-aligned copy and responsive search/filter surfaces.
+- `/majlis` retains its dedicated courtyard artwork while adopting the shared paper field, spacing, translucent controls, card, map, and CTA treatments.
+- `npm run build` passes; desktop and 390px browser checks show no horizontal overflow or console errors.
+
+# Current Task: Generate a dedicated institutions hero asset — 2026-09-17
+
+## Plan
+
+- [x] Generate a bright right-weighted architectural hero with a clean left text field.
+- [x] Save it as a project-local institutions asset and wire `/institusi` to use it.
+- [x] Rebuild and verify the desktop and mobile crop.
+
+## Review / Results
+
+- Added `public/images/institutions/pusat-ilmu-hero-background-v1.png` and connected it to the institutions hero.
+- The 1440px and 390px renders preserve the headline-safe left field, right-side arch/mosque focus, and responsive crop with no overflow or console errors.
+
+# Current Task: Generate an institution-card placeholder — 2026-09-17
+
+## Plan
+
+- [x] Generate a generic, symmetrical 16:9 Islamic architectural placeholder with intact side lanterns and a readable central composition.
+- [x] Save it as a project-local placeholder asset and use it only when an institution has no cover or logo media.
+- [x] Verify the card crop at desktop and mobile sizes.
+
+## Review / Results
+
+- Added `public/images/placeholders/institution-v2.png` at 1672×941 and wired the institution card fallback to it.
+- Real institution cover/logo media still takes precedence; fallback cards now use the new emerald, gold, lantern, arch, and mosque artwork.
+- Desktop and 390px mobile checks confirm the 16:9 crop, no overflow, and no console errors.
+
+# Current Task: Match institutions contribution CTA to speakers — 2026-09-17
+
+## Plan
+
+- [x] Mirror `/penceramah`'s icon-led contribution CTA structure on `/institusi`.
+- [x] Remove the pill and secondary button label, and use Malay hero copy.
+- [x] Rebuild and verify the CTA and hero at desktop and mobile widths.
+
+## Review / Results
+
+- The institutions CTA now uses the same icon-led hierarchy as `/penceramah`, with a bespoke mosque/institution icon, no pill, and one compact action label.
+- The hero paragraph is now Malay through the shared locale files; new CTA copy is locale-safe in English and Malay.
+- `npm run build` passes; desktop and 390px mobile screenshots show the expected CTA, no horizontal overflow, and no console errors.
+
+# Current Task: Align directory hero search fields — 2026-09-17
+
+## Plan
+
+- [x] Match `/institusi`'s hero search width and left content alignment to `/penceramah`.
+- [x] Remove the institution-only visible count row while preserving the location filters below it.
+- [x] Verify `/rujukan` remains aligned at desktop and mobile widths.
+
+## Review / Results
+
+- `/institusi` now uses the same 576px `max-w-xl` search field and hidden-label treatment as `/penceramah`; its filter panel remains independent below the field.
+- `/rujukan` already shared the same 576px search width and left column, so no unnecessary source change was made there.
+- Desktop and 390px checks confirm the three search fields have no horizontal overflow; the institution filter panel remains full-width within its mobile content column.
+
+# Current Task: Move institution location filters below hero — 2026-09-17
+
+## Plan
+
+- [x] Keep the institution search field inside the architectural hero.
+- [x] Move the location filter panel into a separate page-level band below the hero.
+- [x] Preserve Livewire filter bindings and verify desktop/mobile spacing.
+
+## Review / Results
+
+- The hero now ends cleanly after the search field; the location filter sits 32px below it on desktop and 28px below it on mobile.
+- Desktop and 390px checks show no horizontal overflow or console errors; the filter controls and result cards remain functional.

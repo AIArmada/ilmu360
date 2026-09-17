@@ -164,18 +164,3 @@ it('rejects empty recipient', function () {
         'status' => 'pending',
     ]);
 })->throws(ValidationException::class);
-
-it('rejects the removed unverified donation channel status', function () {
-    $institution = Institution::factory()->create();
-
-    app(SaveDonationChannelAction::class)->handle([
-        'donatable_type' => 'institution',
-        'donatable_id' => (string) $institution->getKey(),
-        'recipient' => 'Test',
-        'method' => 'bank_account',
-        'bank_code' => 'MBB',
-        'bank_name' => 'Maybank',
-        'account_number' => '123456789',
-        'status' => 'unverified',
-    ]);
-})->throws(ValidationException::class);

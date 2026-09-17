@@ -591,7 +591,7 @@ new
     </div>
 
     <!-- Main Content -->
-    <div class="mx-auto max-w-7xl px-5 pt-10 pb-10 sm:px-6 lg:px-8 lg:pt-12 lg:pb-14">
+    <div class="mx-auto max-w-7xl px-5 pt-10 pb-16 sm:px-6 lg:px-8 lg:pt-12 lg:pb-20">
         @island(name: 'person-results', always: true)
             @php
                 $persons = $this->persons;

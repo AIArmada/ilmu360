@@ -295,6 +295,88 @@ body.is-loaded .mi-bg-settled {
             0 6px 14px -8px rgba(217, 165, 20, 0.72);
     }
 
+    .living-majlis-header-button {
+        isolation: isolate;
+        position: relative;
+        overflow: hidden;
+        border: 1px solid transparent;
+        transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+    }
+
+    .living-majlis-header-button::before {
+        position: absolute;
+        top: 1px;
+        right: 1px;
+        left: 1px;
+        height: 54%;
+        border-radius: inherit;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.68), rgba(255, 255, 255, 0));
+        content: '';
+        pointer-events: none;
+    }
+
+    .living-majlis-header-button--gold {
+        border-color: rgba(255, 240, 189, 0.80);
+        background: linear-gradient(180deg, #fff6c9 0%, #f4d88f 46%, #dfb660 100%);
+        color: #063b27;
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.86),
+            inset 0 -2px 0 rgba(126, 83, 15, 0.22),
+            0 5px 0 -3px rgba(4, 54, 35, 0.60),
+            0 12px 20px -14px rgba(217, 165, 20, 0.86);
+    }
+
+    .living-majlis-header-button--emerald {
+        border-color: rgba(93, 223, 170, 0.44);
+        background: linear-gradient(180deg, #16825f 0%, #0d684b 48%, #064431 100%);
+        color: #ffffff;
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.26),
+            inset 0 -2px 0 rgba(1, 37, 25, 0.42),
+            0 5px 0 -3px rgba(3, 45, 31, 0.68),
+            0 12px 22px -14px rgba(6, 78, 59, 0.72);
+    }
+
+    .living-majlis-header-button:hover {
+        filter: saturate(1.06) brightness(1.03);
+        transform: translateY(-1px);
+    }
+
+    .living-majlis-header-button--gold:hover {
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.92),
+            inset 0 -2px 0 rgba(126, 83, 15, 0.20),
+            0 5px 0 -3px rgba(4, 54, 35, 0.60),
+            0 16px 24px -14px rgba(217, 165, 20, 0.94);
+    }
+
+    .living-majlis-header-button--emerald:hover {
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.32),
+            inset 0 -2px 0 rgba(1, 37, 25, 0.38),
+            0 5px 0 -3px rgba(3, 45, 31, 0.68),
+            0 16px 26px -14px rgba(6, 78, 59, 0.84);
+    }
+
+    .living-majlis-header-button:active {
+        filter: saturate(0.98);
+        transform: translateY(1px);
+    }
+
+    .living-majlis-header-button--gold:active {
+        box-shadow:
+            inset 0 2px 0 rgba(126, 83, 15, 0.16),
+            inset 0 -1px 0 rgba(255, 255, 255, 0.48),
+            0 5px 12px -8px rgba(217, 165, 20, 0.72);
+    }
+
+    .living-majlis-header-button--emerald:active {
+        box-shadow:
+            inset 0 2px 0 rgba(1, 37, 25, 0.32),
+            inset 0 -1px 0 rgba(255, 255, 255, 0.20),
+            0 5px 12px -8px rgba(6, 78, 59, 0.68);
+    }
+
     .living-majlis-footer {
         isolation: isolate;
         margin-top: 0 !important;
@@ -347,6 +429,9 @@ body.is-loaded .mi-bg-settled {
     .living-majlis-cta-button,
     .living-majlis-cta-button:hover,
     .living-majlis-cta-button:active,
+    .living-majlis-header-button,
+    .living-majlis-header-button:hover,
+    .living-majlis-header-button:active,
     .living-majlis-field [data-material="translucent-control"],
     .living-majlis-field [data-material="translucent-control"]:focus-within {
         transform: none !important;
