@@ -966,3 +966,7 @@
 - After making a footer edge seamless, retain a small responsive breathing gap when the next visual review shows the CTA needs separation; tune it by viewport rather than restoring the old global padding.
 - For footer legal bars, separate top breathing room from bottom anchoring; use independent padding values so the rule can sit close to the visual base without moving the main content.
 - For reference-matched CTA controls, keep directional icons visually anchored during hover and align adjacent decorative icons to the content block's centerline at the side-by-side breakpoint.
+- For reference-matched hero sections, use a dedicated full-bleed architectural asset with a controlled text-side veil so the composition remains faithful without sacrificing legibility or mobile overflow safety.
+- When a generated hero asset already contains the foreground objects, remove the previous overlay artwork rather than stacking duplicate visual subjects; keep the generated image as one responsive composition.
+- Before changing image opacity, distinguish the asset's own opacity from tint/veil overlays; tune the overlay layers first so the source image can stay fully visible and readable.
+- When a generated hero object competes with copy, regenerate the source with an explicit uninterrupted negative-space transition instead of hiding the object with a CSS veil.

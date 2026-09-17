@@ -460,7 +460,7 @@
                 <div class="living-majlis-footer-image pointer-events-none absolute inset-0 opacity-100"
                     style="background-image: url('{{ asset('images/footer-courtyard.png') }}');">
                 </div>
-                <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(2,33,22,0.16),rgba(2,33,22,0.34)_50%,rgba(2,33,22,0.16))]"></div>
+                <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(2,33,22,0.08),rgba(2,33,22,0.18)_50%,rgba(2,33,22,0.08))]"></div>
                 <div class="pointer-events-none absolute inset-0 opacity-[0.06]"
                     style="background-image: url('{{ asset('images/pattern-bg.png') }}'); background-size: 320px;">
                 </div>

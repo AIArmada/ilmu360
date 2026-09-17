@@ -515,8 +515,22 @@ new
 <div data-art-direction="living-majlis" class="living-majlis-field relative min-h-screen overflow-x-clip text-slate-800">
     <!-- Hero Section -->
     <div class="relative overflow-hidden border-b border-emerald-900/[0.06]">
-        <!-- Background layers -->
-        <div data-material="hero-field" class="absolute inset-0 bg-[radial-gradient(ellipse_at_18%_28%,rgba(5,101,82,0.10)_0%,transparent_42%),radial-gradient(ellipse_at_82%_18%,rgba(217,119,6,0.06)_0%,transparent_36%),linear-gradient(178deg,#fafaf7_0%,#f4f1e8_54%,#e7eee8_100%)]"></div>
+        <!-- Reference-matched architectural background with a clear text field on the left. -->
+        <div data-material="hero-field" class="absolute inset-0 overflow-hidden bg-[#f7f3e8]">
+            <img
+                src="{{ asset('images/speakers/penceramah-hero-background-v3.png') }}"
+                alt=""
+                aria-hidden="true"
+                class="absolute inset-0 h-full w-full object-cover object-[35%_center] sm:object-[42%_center] lg:object-center"
+                width="1672"
+                height="941"
+                loading="eager"
+                fetchpriority="high"
+                decoding="async"
+            >
+            <div class="absolute inset-0 bg-gradient-to-r from-[#fafaf7]/90 via-[#fafaf7]/45 via-44% to-transparent"></div>
+            <div class="absolute inset-0 bg-gradient-to-b from-[#fffaf0]/10 via-transparent to-[#e7eee8]/15"></div>
+        </div>
 
         <div class="relative mx-auto grid max-w-7xl items-center gap-10 px-5 py-14 sm:px-6 sm:py-20 lg:min-h-[29rem] lg:grid-cols-[minmax(0,1fr)_minmax(19rem,28rem)] lg:gap-8 lg:px-8 lg:py-16">
             <div class="relative z-10 max-w-2xl">
@@ -550,22 +564,6 @@ new
 
                 </div>
 
-            <div data-material="hero-art" class="pointer-events-none absolute -bottom-12 end-[-5rem] z-0 hidden w-[21rem] opacity-25 sm:block lg:static lg:order-last lg:flex lg:h-full lg:w-full lg:items-end lg:justify-end lg:self-stretch lg:opacity-100">
-                <div class="relative w-full max-w-[27rem] lg:max-w-[21rem] lg:-me-4">
-                    <div class="absolute inset-x-12 bottom-4 h-24 rounded-full bg-emerald-950/10 blur-3xl"></div>
-                    <img
-                        src="{{ asset('images/speakers/penceramah-hero-art.webp') }}"
-                        alt=""
-                        aria-hidden="true"
-                        width="1254"
-                        height="1254"
-                        loading="eager"
-                        fetchpriority="high"
-                        decoding="async"
-                        class="living-majlis-hero-art relative block h-auto w-full"
-                    >
-                </div>
-            </div>
         </div>
 
     </div>

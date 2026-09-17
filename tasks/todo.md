@@ -2972,3 +2972,7 @@ The affected-surface run completed with 118 passing tests and 472 assertions; it
 - Final spacing refinement restores a controlled CTA-to-footer breathing gap: 32px on mobile and 48px on desktop.
 - Bottom-bar refinement reduces footer bottom padding to 24px so the horizontal rule and legal wording sit closer to the footer base.
 - CTA interaction refinement keeps the suggestion-button arrow fixed on hover and vertically centers the CTA icon beside its text on larger screens; desktop and mobile layout checks remain overflow-free.
+- Hero refinement adds the reference-matched mosque architecture as a full-bleed background layer while preserving the foreground speaker artwork and responsive text field; verified at desktop and 390px mobile widths.
+- Hero image refinement generates and adopts `public/images/speakers/penceramah-hero-background-v2.png` from the approved art direction; the generated composition now contains the arch, mosque, microphone, Quran, books, and plants as one responsive layer.
+- Opacity refinement reduces only the hero text veil and footer image darkening overlay, restoring image detail while preserving readable content; desktop and mobile checks pass without overflow.
+- Hero source refinement adopts `penceramah-hero-background-v3.png`, removing the central vase and repairing the hard transition into the arch; desktop and 390px mobile screenshots confirm a clean text field and no horizontal overflow.
