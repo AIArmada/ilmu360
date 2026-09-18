@@ -487,7 +487,7 @@
             ></div>
         </div>
 
-        <div class="relative mx-auto max-w-7xl px-5 py-14 sm:px-6 sm:py-20 lg:px-8 lg:py-16">
+        <div class="relative mx-auto max-w-7xl px-5 pt-48 pb-14 sm:px-6 sm:pt-52 sm:pb-20 lg:px-8 lg:pt-52 lg:pb-16">
             <div class="max-w-3xl lg:max-w-[44rem]">
                 <h1 class="max-w-2xl text-balance font-heading text-4xl font-bold leading-[1.06] tracking-[-0.035em] text-emerald-950 sm:text-5xl lg:text-6xl">
                     {{ __('Temui majlis ilmu yang') }} <br class="hidden md:block" />

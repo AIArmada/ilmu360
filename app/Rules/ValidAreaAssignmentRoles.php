@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Rules;
 
+use AIArmada\Addressing\Support\AddressCountryResolver;
 use AIArmada\Addressing\Support\CountryAddressProfileResolver;
 use Closure;
 use Illuminate\Contracts\Validation\DataAwareRule;
@@ -40,6 +41,10 @@ class ValidAreaAssignmentRoles implements DataAwareRule, ValidationRule
         $country = is_array($address) ? ($address['country_id'] ?? null) : null;
 
         if (! is_string($country) || $country === '') {
+            return;
+        }
+
+        if (app(AddressCountryResolver::class)->resolve($country) === null) {
             return;
         }
 

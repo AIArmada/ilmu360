@@ -430,6 +430,8 @@ class FrontendFormContractService
                 'type' => InstitutionType::Masjid->value,
                 'address' => [
                     'country_id' => null,
+                    'state_id' => null,
+                    'city_id' => null,
                     'area_assignments' => [],
                     'line1' => null,
                     'line2' => null,
@@ -461,6 +463,8 @@ class FrontendFormContractService
                 $this->field('description', 'rich_text', required: false),
                 $this->field('address', 'object', required: true),
                 $this->field('address.country_id', 'uuid', required: true, catalog: route('api.client.catalogs.countries')),
+                $this->field('address.state_id', 'uuid', required: false, catalog: route('api.client.catalogs.states')),
+                $this->field('address.city_id', 'uuid', required: false, catalog: route('api.client.catalogs.cities')),
                 $this->field('contactMethods', 'array<object>', required: false),
                 $this->field('social_media', 'array<object>', required: false),
                 $this->field('cover', 'file', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),

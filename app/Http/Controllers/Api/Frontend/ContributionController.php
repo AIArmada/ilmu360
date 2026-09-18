@@ -167,7 +167,7 @@ class ContributionController extends FrontendController
         title: 'Create a person contribution',
         description: 'Creates a new public person contribution request using a region-level address payload plus an explicit country selection. '
             .'The payload may also set one affiliated institution and an optional position label. '
-            .'Clients must send `address.country_id`, but must not send detailed street or map keys here. '
+            .'Clients must send `address.country_id`, but must not send state, city, detailed street, or map keys here. '
             .'Duplicate persons are rejected when the normalized name, gender, title set, and country match an existing person. '
             .'Fetch `GET /forms/contributions/persons` first to discover required fields, defaults, media support, and conditional rules.',
     )]

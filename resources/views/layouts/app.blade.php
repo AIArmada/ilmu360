@@ -162,26 +162,79 @@
                 $institutionDashboardMenuLabel = __('Manage Institution');
                 $organizationDashboardMenuLabel = __('Manage Organizations');
                 $organizationCreateMenuLabel = __('Create organization');
+                $eventsNavActive = request()->routeIs('events.*');
+                $institutionsNavActive = request()->routeIs('institutions.*');
+                $personsNavActive = request()->routeIs('persons.*');
+                $useFloatingHeader = request()->routeIs('events.index', 'persons.index', 'institutions.index', 'references.index');
+                $currentLocaleLabel = str_starts_with($currentLocale, 'ms')
+                    ? 'BM'
+                    : ($publicMenuLocales[$currentLocale] ?? $supportedLocales[$currentLocale] ?? strtoupper($currentLocale));
+                $headerClass = $useFloatingHeader
+                    ? 'absolute inset-x-0 top-0 z-50 w-full transition-all'
+                    : 'sticky top-0 z-50 w-full border-b border-[#e5dccb] bg-[#f6f1e8]/95 backdrop-blur-md transition-all';
+                $navClass = $useFloatingHeader
+                    ? 'relative mx-auto mt-4 flex h-20 w-[calc(100%_-_1rem)] max-w-[120rem] items-center gap-3 rounded-[2rem] border border-[#eadfca]/90 bg-[#fffdf8]/90 px-5 shadow-[0_24px_55px_-30px_rgba(63,71,47,0.48)] backdrop-blur-xl sm:mt-6 sm:w-[calc(100%_-_3rem)] sm:px-8 lg:mt-8 lg:w-[94%] lg:gap-4 lg:px-8 xl:gap-6 xl:px-24'
+                    : 'container mx-auto flex h-20 items-center justify-between px-6 lg:px-12';
+                $logoClass = $useFloatingHeader ? 'h-12 w-auto' : 'h-12 w-auto';
+                $desktopMenuClass = 'hidden flex-1 items-center justify-center gap-7 text-sm font-medium md:flex lg:gap-10';
+                $eventsNavClass = 'relative flex h-12 items-center px-2 text-sm font-medium transition-colors after:absolute after:bottom-1 after:left-1/2 after:h-1 after:-translate-x-1/2 after:rounded-full after:bg-[#e3b537] after:transition-all '.($eventsNavActive ? 'text-[#005b3d] after:w-9' : 'text-[#37495a] after:w-0 hover:text-[#005b3d] hover:after:w-9');
+                $institutionsNavClass = 'relative flex h-12 items-center px-2 text-sm font-medium transition-colors after:absolute after:bottom-1 after:left-1/2 after:h-1 after:-translate-x-1/2 after:rounded-full after:bg-[#e3b537] after:transition-all '.($institutionsNavActive ? 'text-[#005b3d] after:w-9' : 'text-[#37495a] after:w-0 hover:text-[#005b3d] hover:after:w-9');
+                $personsNavClass = 'relative flex h-12 items-center px-2 text-sm font-medium transition-colors after:absolute after:bottom-1 after:left-1/2 after:h-1 after:-translate-x-1/2 after:rounded-full after:bg-[#e3b537] after:transition-all '.($personsNavActive ? 'text-[#005b3d] after:w-9' : 'text-[#37495a] after:w-0 hover:text-[#005b3d] hover:after:w-9');
+                $languageButtonClass = 'flex items-center gap-2 whitespace-nowrap rounded-full border border-[#dbe1dc] bg-white/50 px-3 py-1.5 text-xs font-semibold tracking-wider text-[#2d4b4c] transition-all hover:border-[#13845f] hover:text-[#006044]';
+                $addButtonClass = 'living-majlis-header-button living-majlis-header-button--gold hidden items-center justify-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold sm:inline-flex';
+                $userButtonClass = 'flex items-center gap-2 rounded-full border border-[#198663] bg-white/50 p-1 pr-3 text-[#006044] transition-all hover:bg-white/80';
+                $guestLoginClass = 'hidden items-center gap-2 whitespace-nowrap rounded-full border border-[#198663] bg-white/45 px-3 py-1.5 text-sm font-semibold text-[#006044] transition-all hover:bg-white/80 lg:inline-flex';
+                $guestRegisterClass = 'living-majlis-header-button living-majlis-header-button--emerald inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full px-5 py-2 text-sm font-semibold';
+                $mobileMenuClass = $useFloatingHeader
+                    ? 'mt-2 mx-4 rounded-3xl border border-[#eadfca] bg-[#fffdf8]/95 shadow-xl backdrop-blur-md md:hidden'
+                    : 'border-t border-[#e5dccb] bg-[#f6f1e8] md:hidden';
             @endphp
 
             <!-- Premium Header -->
             <header
-                class="sticky top-0 z-50 w-full border-b border-[#e5dccb] bg-[#f6f1e8]/95 backdrop-blur-md transition-all"
+                class="{{ $headerClass }}"
                 x-data="{ mobileMenuOpen: false }">
-                <nav class="container mx-auto flex h-20 items-center justify-between px-6 lg:px-12">
-                    <a href="{{ route('home') }}" wire:navigate class="flex items-center">
+                <nav class="{{ $navClass }}">
+                    @if($useFloatingHeader)
+                        <span aria-hidden="true" class="pointer-events-none absolute left-0 top-1/2 hidden -translate-y-1/2 opacity-70 md:block">
+                        <svg class="h-10 w-10 text-[#cda54a]" viewBox="0 0 56 56" fill="none">
+                            <g stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M1 28h10M45 28h10" stroke-width="0.8" opacity=".5" />
+                                <path d="M8 18c5-6 12-9 20-9s15 3 20 9M8 38c5 6 12 9 20 9s15-3 20-9" stroke-width="0.8" opacity=".42" />
+                                <path d="m28 10 4 13 13-5-10 10 10 10-13-5-4 13-4-13-13 5 10-10-10-10 13 5 4-13Z" fill="currentColor" fill-opacity=".035" stroke-width="1" opacity=".82" />
+                                <path d="M28 16c2 5 5 8 10 12-5 4-8 7-10 12-2-5-5-8-10-12 5-4 8-7 10-12Z" stroke-width="0.8" opacity=".72" />
+                                <path d="M28 19v18M19 28h18" stroke-width="0.65" opacity=".4" />
+                                <circle cx="28" cy="28" r="1.7" fill="currentColor" fill-opacity=".35" stroke="none" />
+                            </g>
+                        </svg>
+                        </span>
+                        <span aria-hidden="true" class="pointer-events-none absolute right-0 top-1/2 hidden -translate-y-1/2 opacity-70 md:block">
+                        <svg class="h-10 w-10 text-[#cda54a]" viewBox="0 0 56 56" fill="none">
+                            <g stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M1 28h10M45 28h10" stroke-width="0.8" opacity=".5" />
+                                <path d="M8 18c5-6 12-9 20-9s15 3 20 9M8 38c5 6 12 9 20 9s15-3 20-9" stroke-width="0.8" opacity=".42" />
+                                <path d="m28 10 4 13 13-5-10 10 10 10-13-5-4 13-4-13-13 5 10-10-10-10 13 5 4-13Z" fill="currentColor" fill-opacity=".035" stroke-width="1" opacity=".82" />
+                                <path d="M28 16c2 5 5 8 10 12-5 4-8 7-10 12-2-5-5-8-10-12 5-4 8-7 10-12Z" stroke-width="0.8" opacity=".72" />
+                                <path d="M28 19v18M19 28h18" stroke-width="0.65" opacity=".4" />
+                                <circle cx="28" cy="28" r="1.7" fill="currentColor" fill-opacity=".35" stroke="none" />
+                            </g>
+                        </svg>
+                        </span>
+                    @endif
+
+                    <a href="{{ route('home') }}" wire:navigate class="flex shrink-0 items-center">
                         <img src="{{ asset('images/logo-ilmu360.png') }}" alt="{{ config('app.name') }}" width="2172" height="724"
-                            class="h-12 w-auto">
+                            class="{{ $logoClass }}">
                     </a>
 
                     <!-- Desktop Menu -->
-                    <div class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
+                    <div class="{{ $desktopMenuClass }}">
                         <a href="{{ route('events.index') }}" wire:navigate
-                            class="hover:text-emerald-600 transition-colors relative after:absolute after:bottom-[-4px] after:left-0 after:h-[2px] after:w-0 after:bg-emerald-500 after:transition-all hover:after:w-full">{{ __('Events') }}</a>
+                            class="{{ $eventsNavClass }}">{{ __('Events') }}</a>
                         <a href="{{ route('institutions.index') }}" wire:navigate
-                            class="hover:text-emerald-600 transition-colors relative after:absolute after:bottom-[-4px] after:left-0 after:h-[2px] after:w-0 after:bg-emerald-500 after:transition-all hover:after:w-full">{{ __('Institutions') }}</a>
+                            class="{{ $institutionsNavClass }}">{{ __('Institutions') }}</a>
                         <a href="{{ route('persons.index') }}" wire:navigate
-                            class="hover:text-emerald-600 transition-colors relative after:absolute after:bottom-[-4px] after:left-0 after:h-[2px] after:w-0 after:bg-emerald-500 after:transition-all hover:after:w-full">{{ __('Speakers') }}</a>
+                            class="{{ $personsNavClass }}">{{ __('Speakers') }}</a>
                     </div>
 
                     <div class="flex items-center gap-3">
@@ -200,9 +253,14 @@
                         <div class="relative group z-50 hidden sm:block" data-language-switcher-case="title">
                             <button
                                 data-language-switcher-trigger="desktop"
-                                class="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold tracking-wider text-slate-600 hover:border-emerald-500 hover:text-emerald-600 transition-all">
-                                {{ $publicMenuLocales[$currentLocale] ?? $supportedLocales[$currentLocale] ?? strtoupper($currentLocale) }}
-                                <svg class="h-3 w-3 text-slate-400 group-hover:text-emerald-500" fill="none"
+                                aria-label="{{ __('Language') }}"
+                                class="{{ $languageButtonClass }}">
+                                <svg class="h-4 w-4 text-[#087f4f]" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                    <circle cx="12" cy="12" r="9" stroke-width="1.8" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 12h18M12 3c2.2 2.4 3.3 5.4 3.3 9S14.2 18.6 12 21c-2.2-2.4-3.3-5.4-3.3-9S9.8 5.4 12 3Z" />
+                                </svg>
+                                <span>{{ $currentLocaleLabel }}</span>
+                                <svg class="h-3 w-3 text-[#55706c] group-hover:text-[#087f4f]" fill="none"
                                     viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M19 9l-7 7-7-7" />
@@ -221,15 +279,20 @@
                         </div>
 
                         <a href="{{ route('submit-event.create') }}" wire:navigate
-                            class="living-majlis-header-button living-majlis-header-button--gold hidden items-center justify-center rounded-full px-4 py-2 text-sm font-semibold sm:inline-flex">
+                            class="{{ $addButtonClass }}">
+                            <svg class="relative z-10 h-4 w-4 rounded-full bg-[#087f4f] p-0.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-width="2.5" d="M12 6v12M6 12h12" />
+                            </svg>
                             <span class="relative z-10">{{ __('Tambah Majlis') }}</span>
                         </a>
+
+                        <span class="hidden h-8 w-px bg-[#dfd7c7] sm:block" aria-hidden="true"></span>
 
                         @auth
                             <!-- User Menu -->
                             <div class="relative group z-50 hidden sm:block">
                                 <button
-                                    class="flex items-center gap-2 rounded-full border border-slate-200 bg-white p-1 pr-3 hover:border-emerald-500 transition-all">
+                                    class="{{ $userButtonClass }}">
                                     <div
                                         class="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold uppercase">
                                         {{ substr(auth()->user()->name, 0, 1) }}
@@ -312,12 +375,18 @@
                         @else
                             <div class="flex items-center gap-2 hidden sm:flex">
                                 <a href="{{ \App\Support\Auth\IntendedRedirect::loginUrl(request()->fullUrl()) }}" wire:navigate
-                                    class="hidden lg:inline-flex text-sm font-semibold text-slate-600 hover:text-emerald-600 transition-colors px-3">
+                                    class="{{ $guestLoginClass }}">
+                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 20v-1.5a4.5 4.5 0 0 0-4.5-4.5h-3A4.5 4.5 0 0 0 4 18.5V20M10 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8-4v6m3-3h-6" />
+                                    </svg>
                                     {{ __('Log In') }}
                                 </a>
                                 <a href="{{ \App\Support\Auth\IntendedRedirect::registerUrl(request()->fullUrl()) }}" wire:navigate
-                                    class="living-majlis-header-button living-majlis-header-button--emerald inline-flex items-center justify-center rounded-full px-5 py-2 text-sm font-semibold">
+                                    class="{{ $guestRegisterClass }}">
                                     <span class="relative z-10">{{ __('Sign Up') }}</span>
+                                    <svg class="relative z-10 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 12h14m-6-6 6 6-6 6" />
+                                    </svg>
                                 </a>
                             </div>
                         @endauth
@@ -325,7 +394,7 @@
                 </nav>
 
                 <!-- Mobile Menu Dropdown -->
-                <div x-show="mobileMenuOpen" x-collapse x-cloak class="md:hidden border-t border-[#e5dccb] bg-[#f6f1e8]">
+                <div x-show="mobileMenuOpen" x-collapse x-cloak class="{{ $mobileMenuClass }}">
                     <div class="container mx-auto px-6 py-4 space-y-4">
                         <div class="flex flex-col gap-2">
                             <a href="{{ route('events.index') }}" wire:navigate

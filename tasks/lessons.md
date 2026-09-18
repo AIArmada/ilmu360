@@ -1026,3 +1026,9 @@
 - When replacing a shared image at a stable public URL, use a cache-busting filename or versioned URL so existing browser caches cannot keep the previous asset visible.
 - When placing a transparent brand asset on a dark surface, do not add an opaque contrast wrapper unless the user asks for one; preserve the asset's transparency and adjust sizing or shadow instead.
 - When replacing a shared brand asset, verify every route-specific layout as well as shared components; authentication pages may use a separate layout and bypass the main app header.
+- When a floating header feels too detached from the viewport edge, reduce its responsive top margin before changing its height, padding, or hero spacing.
+- When a header has multiple visual modes, derive the mode from explicit route names and keep the legacy mode's classes and spacing intact for every other route.
+- When matching two header modes, compare measured bar, logo, and control dimensions and share the legacy scale tokens; the visual mode should change the surface treatment, not the content scale.
+- For reference-matched header ornaments, use mirrored inline vector rosettes with layered geometric linework so the end caps remain crisp, lightweight, and independent of raster assets.
+- When an ornament should feel integrated with a navigation bar, keep the motif inside the terminal radius and reserve the logo's transparent bounds; shallow inset linework reads better than a large external badge.
+- When users ask to carry a visual treatment between header modes, share the control tokens and icon affordances while preserving each mode's positioning and surface container.

@@ -3520,6 +3520,26 @@ request). Filters morph on the fast parent response; list follows on the child r
 - Updated the public header intrinsic dimensions and verified the live header and 404 page render the new logo.
 - Square favicon and Apple touch icon files remain separate to avoid distorting the horizontal wordmark.
 
+## Reference floating public header (2026-09-19)
+
+### Plan
+
+- [x] Rework the shared public header into the floating cream navigation bar from the supplied reference.
+- [x] Preserve existing navigation, locale switching, auth actions, mobile menu, and intended redirects.
+- [x] Verify the header at public directory routes and keep hero content clear of the floating bar.
+
+### Review
+
+- Added a floating, rounded cream header with decorative geometric end ornaments, logo, active gold navigation underline, globe locale control, and styled add/login/register actions.
+- Kept the existing route targets and auth/menu behavior; active navigation follows the current route.
+- Added responsive sizing and hero top spacing for the home, events, speaker, and institution pages so the header does not crop content or cause horizontal overflow.
+- Restricted the floating mode to the exact `events.index`, `persons.index`, `institutions.index`, and `references.index` directory routes; detail pages and all other routes use the previous sticky header classes and spacing.
+- Matched the floating header to the sticky header's 80px bar, logo height, typography, button heights, and compact icon sizes while retaining its floating surface and ornaments.
+- Replaced the simple end stars with symmetrical thin-line rosette ornaments inspired by Moorish arabesque geometry and eight-point patterns.
+- Refined the ornaments into smaller inset terminal details so they connect to the bar without overlapping the logo or action controls.
+- Reused the floating header's navigation typography, active underline, pill controls, green borders, gold action styling, and locale/auth icons in the sticky header without changing its sticky layout.
+- Verification: Vite build, Blade view cache, `git diff --check`, and live `/penceramah` + `/institusi` probes pass at the available desktop viewport.
+
 ## Intake 2026-09-18: addressing package delivery (22 providers + resolution gaps)
 - [x] Verified: 59/59 providers instantiate; published config/addressing.php is empty
       so package config applies untouched; no breaking code changes (additive only).
