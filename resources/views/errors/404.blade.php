@@ -47,7 +47,7 @@
                 <div class="rounded-[2rem] border border-white/10 bg-white/5 p-6 shadow-2xl shadow-black/30 backdrop-blur-xl">
                     <div class="rounded-[1.5rem] border border-white/10 bg-slate-900/70 p-8">
                         <div class="flex items-center gap-4">
-                            <img src="{{ asset('images/milogo.webp') }}" alt="{{ config('app.name') }}" class="h-14 w-14 rounded-2xl shadow-lg">
+                            <img src="{{ asset('images/logo-ilmu360.png') }}" alt="{{ config('app.name') }}" class="h-12 w-auto max-w-[14rem]">
                             <div>
                                 <p class="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-300/80">{{ config('app.name') }}</p>
                                 <p class="mt-1 text-sm text-slate-300">{{ __('Discover lectures, classes, and gatherings across Malaysia.') }}</p>

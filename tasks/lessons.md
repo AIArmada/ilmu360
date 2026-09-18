@@ -1022,3 +1022,7 @@
 - When matching provider area names against Google components, try the primary name first and fall back to provider-authored aliases only on zero matches so ambiguity semantics (several name matches never resolve) stay intact.
 - When testing Livewire cascades, `->set()` bypasses the `disabled` attribute, so a passing cascade test does not prove a real user can click through it: pin interactive gating with rendered-markup assertions (select tag without a standalone `disabled` attribute) plus the gating method, especially for stateless country profiles.
 - When gating a cascade filter's `disabled` state, derive the parent from the country's profile (state dropdown when a state level exists, country otherwise) instead of hard-requiring `$state`, or stateless profiles render a permanently disabled filter.
+- When a user clarifies which control has a visual defect, restate the target and keep the patch isolated to that control before rechecking the rendered view.
+- When replacing a shared image at a stable public URL, use a cache-busting filename or versioned URL so existing browser caches cannot keep the previous asset visible.
+- When placing a transparent brand asset on a dark surface, do not add an opaque contrast wrapper unless the user asks for one; preserve the asset's transparency and adjust sizing or shadow instead.
+- When replacing a shared brand asset, verify every route-specific layout as well as shared components; authentication pages may use a separate layout and bypass the main app header.

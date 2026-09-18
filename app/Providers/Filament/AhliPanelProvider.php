@@ -39,7 +39,7 @@ class AhliPanelProvider extends PanelProvider
             ->domain($ahliDomain)
             ->path(filled($ahliDomain) ? '' : 'ahli')
             ->viteTheme('resources/css/filament/admin/theme.css')
-            ->brandLogo(asset('images/milogo.webp'))
+            ->brandLogo(asset('images/logo-ilmu360.png'))
             ->brandLogoHeight('3rem')
             ->login()
             ->colors([

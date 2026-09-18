@@ -2,6 +2,7 @@
 
 namespace App\Forms;
 
+use AIArmada\Addressing\Support\AddressCountryResolver;
 use App\Actions\Venues\GenerateVenueSlugAction;
 use App\Enums\VenueType;
 use App\Models\Venue;
@@ -13,6 +14,7 @@ use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class VenueFormSchema
@@ -87,28 +89,30 @@ class VenueFormSchema
      */
     public static function createOptionUsing(array $data, ?Schema $schema = null): string
     {
-        $addressData = is_array($data['address'] ?? null) ? $data['address'] : $data;
+        return DB::transaction(function () use ($data, $schema): string {
+            $addressData = is_array($data['address'] ?? null) ? $data['address'] : $data;
 
-        // Prevent VenueObserver from overriding the slug before the address is linked.
-        $venue = Venue::withoutEvents(fn () => Venue::create([
-            'id' => (string) Str::uuid(),
-            'name' => $data['name'],
-            'slug' => app(GenerateVenueSlugAction::class)->handle((string) $data['name'], $addressData),
-            'venue_type' => $data['type'],
-            'status' => 'pending',
-            'visibility' => 'public',
-        ]));
+            // Prevent VenueObserver from overriding the slug before the address is linked.
+            $venue = Venue::withoutEvents(fn () => Venue::create([
+                'id' => (string) Str::uuid(),
+                'name' => $data['name'],
+                'slug' => app(GenerateVenueSlugAction::class)->handle((string) $data['name'], $addressData),
+                'venue_type' => $data['type'],
+                'status' => 'pending',
+                'visibility' => 'public',
+            ]));
 
-        // Save media uploads (cover, gallery) via Filament's relationship-saving mechanism
-        $schema?->model($venue)->saveRelationships();
+            // Save media uploads (cover, gallery) via Filament's relationship-saving mechanism
+            $schema?->model($venue)->saveRelationships();
 
-        SharedFormSchema::createAddressFromData($venue, $addressData, allowCountryOnly: true);
-        SharedFormSchema::createSocialMediaFromData($venue, $data);
+            SharedFormSchema::createAddressFromData($venue, $addressData, allowCountryOnly: true);
+            SharedFormSchema::createSocialMediaFromData($venue, $data);
 
-        // Re-sync slug now that the address is linked (the created event fires before the pivot is set up).
-        app(GenerateVenueSlugAction::class)->syncVenueSlug($venue);
+            // Re-sync slug now that the address is linked (the created event fires before the pivot is set up).
+            app(GenerateVenueSlugAction::class)->syncVenueSlug($venue);
 
-        return (string) $venue->getKey();
+            return (string) $venue->getKey();
+        });
     }
 
     /**
@@ -116,11 +120,14 @@ class VenueFormSchema
      */
     private static function addressSchema(bool $includeLocationPicker): array
     {
+        $defaultCountryId = app(AddressCountryResolver::class)->resolveId('MY');
+
         if (! $includeLocationPicker) {
             return SharedFormSchema::addressFields(
                 requireGoogleMaps: true,
                 includeCountryField: true,
-                showCountryField: false,
+                showCountryField: true,
+                defaultCountryId: $defaultCountryId,
                 requireCountryField: true,
             );
         }
@@ -147,7 +154,8 @@ class VenueFormSchema
                     enableGoogleMapsNormalization: true,
                     enableGoogleMapsRemoteLookup: $shouldRenderLocationPicker,
                     includeCountryField: true,
-                    showCountryField: false,
+                    showCountryField: true,
+                    defaultCountryId: $defaultCountryId,
                     requireCountryField: true,
                 ),
             ])

@@ -1820,52 +1820,6 @@ class Create extends Component implements HasActions, HasForms
         return redirect()->route('submit-event.success');
     }
 
-    /**
-     * @param  array<string, mixed>  $validated
-     * @return array<string, mixed>
-     */
-    protected function normalizeScopedInstitutionState(array $validated): array
-    {
-        $institution = $this->scopedInstitution();
-
-        if (! $institution instanceof Institution) {
-            return $validated;
-        }
-
-        $validated['primary_organizer_kind'] = 'institution';
-        $validated['primary_organizer_id'] = $institution->id;
-        $validated['primary_organizer_institution_id'] = $institution->id;
-        $validated['primary_organizer_person_id'] = null;
-        $validated['location_same_as_institution'] = (bool) ($validated['location_same_as_institution'] ?? true);
-
-        if (($validated['event_format'] ?? EventFormat::Physical->value) === EventFormat::Online->value) {
-            $validated['location_type'] = 'institution';
-            $validated['location_institution_id'] = $institution->id;
-            $validated['location_venue_id'] = null;
-
-            return $validated;
-        }
-
-        if ($validated['location_same_as_institution']) {
-            $validated['location_type'] = 'institution';
-            $validated['location_institution_id'] = $institution->id;
-            $validated['location_venue_id'] = null;
-
-            return $validated;
-        }
-
-        $validated['location_type'] = 'venue';
-        $validated['location_institution_id'] = null;
-
-        if (! filled($validated['location_venue_id'] ?? null)) {
-            throw ValidationException::withMessages([
-                'data.location_venue_id' => __('Sila pilih lokasi untuk majlis ini.'),
-            ]);
-        }
-
-        return $validated;
-    }
-
     protected function shouldAutoApproveSubmission(): bool
     {
         return $this->hasScopedInstitution();

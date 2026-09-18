@@ -3475,3 +3475,59 @@ SG + ID filters stop at country → state although providers + data exist. Root 
 
 - Consumer docs sufficient (01-04, 06-12, 99 + 05 catalog all accurate for the 37 registered). Gaps: no provider-authoring guide; 22 shipped-but-unregistered providers undocumented (AF AO AR AU BR CA CM CO GH IQ KR MG MM MX MZ PE PH TH TW UA UZ VN); registration-vs-shipping unexplained; no role/type catalog; rotting enumerations in 01/02; seeders-README stub.
 - Handover prompt for docs update: addressing-docs-handoff.md (workspace root).
+
+## Split 2026-09-18: parent-filters + child-results on /institusi (filter-vs-list decoupling)
+
+Problem: every filter change runs one Livewire request that recomputes filter maps AND the
+institutions query; the dropdowns only repopulate after the slow list query finishes.
+Fix: split `pages.institutions.index` (parent: hero/search/filters, keeps all #[Url] props)
+from new `pages.institutions.results` (child: institutions query, pagination, follow, cards).
+Parent dispatches `institution-filters-updated` (filters payload) after every filter mutation;
+child `#[On]` listener `syncFilters()` applies it in its own SEPARATE request (verified in
+vendor dist: window-level subscription -> component.$wire.call("__dispatch", ...) = new
+request). Filters morph on the fast parent response; list follows on the child response.
+- [x] Add `LocationSlugResolver::idsForSlugs(array $slugs)` (pure logic moved from index)
+- [x] Create child SFC `resources/views/components/pages/institutions/⚡results.blade.php`
+- [x] Trim parent SFC (filters + dispatch only; child tag embedded)
+- [x] Migrate tests (InstitutionResultsTest 7; parent keeps cascade/dispatch; cascade ID/SG
+      list asserts converted to get() URL asserts)
+- [x] Verify: 32 parent + 7 child + 7 cascade green; Pint clean; live probe on Herd:
+      SG Wilayah change -> Kawasan paints, warm filter paint 119ms (was ~2.3s coupled),
+      no JS errors. (PHPStan full run pending at implementation time.)
+- [x] Audit selection_catalog:address:version bump wiring: HEALTHY — bustAddress() is
+      called by AddressCountryObserver, AddressCatalogObserver (City/State), and
+      AddressAreaObserver on every geography write; 24h TTL is only the backstop.
+- [x] Replicate split to venues (/tempat): pages.venues.results child + trimmed parent,
+      venue-filters-updated event, 12/12 venue suites green (incl. 2 new sync tests).
+- [ ] Replicate split to events (/majlis): QUEUED — different architecture (2035-line
+      class component, Filament Schema form filters with filterData state, ~40 #[Url]
+      props, geolocation) on a red base (pre-existing EventSearch failures). Needs its
+      own form-state design pass, not a mechanical copy. Same parent-dispatch ->
+      child-syncFilters pattern applies; payload = filterData + geo + sort snapshot.
+
+## Use supplied ilmu360° logo (2026-09-18)
+
+### Plan
+
+- [x] Replace the shared public wordmark asset with the supplied transparent logo.
+- [x] Point remaining full-logo surfaces to the shared asset and update intrinsic dimensions.
+- [x] Verify public, authentication, error, and Filament brand surfaces without changing square favicons.
+
+### Review
+
+- Replaced the shared wordmark with `public/images/logo-ilmu360.png`, using a cache-busting filename for the supplied transparent 2172×724 PNG.
+- Shared header, login/auth layouts, auth logo component, 404 page, Admin Filament panel, and Ahli Filament panel use the standard asset; the dark footer uses `public/images/logo-ilmu360-footer.png`, the supplied transparent light-background variant.
+- Updated the public header intrinsic dimensions and verified the live header and 404 page render the new logo.
+- Square favicon and Apple touch icon files remain separate to avoid distorting the horizontal wordmark.
+
+## Intake 2026-09-18: addressing package delivery (22 providers + resolution gaps)
+- [x] Verified: 59/59 providers instantiate; published config/addressing.php is empty
+      so package config applies untouched; no breaking code changes (additive only).
+- [x] Ran package migration 2001_01_01_000018 (address_resolution_gaps) on dev.
+- [x] Wired app-side gap logging: ResolveGooglePlaceSelectionAction logs per-role
+      picker misses (source google-picker) + state misses for stateful profiles;
+      names resolving anywhere never log; 4 new tests green.
+- [x] Verified: 125 green + 1 pre-existing SubmitEventLocation failure (unchanged,
+      proven via stash A/B); admin panel tests green with ResolutionGapResource.
+- [ ] Consider: full reseed now imports 22 more countries' areas (seed time + table
+      growth); gap reasons stay 'unmatched' (ambiguity detection is future work).

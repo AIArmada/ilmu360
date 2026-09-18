@@ -7,6 +7,8 @@ use App\Models\Institution;
 use App\Support\Location\LocationSlugResolver;
 use Livewire\Livewire;
 
+use function Pest\Laravel\get;
+
 it('resolves the two deepest provider area levels per country', function (): void {
     $resolver = app(LocationSlugResolver::class);
     $malaysiaId = (string) ensureTestMalaysiaCountry()->getKey();
@@ -76,6 +78,10 @@ it('filters institutions down the Indonesian province regency district cascade',
         ->set('district', (string) $bandung->slug)
         ->assertSee('Daerah')
         ->set('subdivision', (string) $cimahi->slug)
+        ->assertSet('subdivision', (string) $cimahi->slug);
+
+    get('/institusi?country=indonesia&state=jawa-barat&district='.$bandung->slug.'&subdivision='.$cimahi->slug)
+        ->assertSuccessful()
         ->assertSee('Masjid Cimahi Raya')
         ->assertDontSee('Masjid Cibinong Indah');
 });
@@ -113,6 +119,10 @@ it('filters institutions down the Singapore planning cascade without a state row
         ->set('district', (string) $central->slug)
         ->assertSee('Kawasan Perancangan')
         ->set('subdivision', (string) $bishan->slug)
+        ->assertSet('subdivision', (string) $bishan->slug);
+
+    get('/institusi?country=singapore&district='.$central->slug.'&subdivision='.$bishan->slug)
+        ->assertSuccessful()
         ->assertSee('Masjid Bishan Prihatin');
 });
 

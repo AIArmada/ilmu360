@@ -55,6 +55,7 @@ use App\Models\Reference;
 use App\Models\Series;
 use App\Models\User;
 use App\Models\Venue;
+use App\Rules\ValidAreaAssignmentRoles;
 use App\Support\Location\AddressAssignments;
 use BackedEnum;
 use Carbon\Carbon;
@@ -213,9 +214,10 @@ class ContributionEntityMutationService
                 'type' => ['sometimes', Rule::in($this->enumValues(InstitutionType::class))],
                 'description' => ['nullable'],
                 'address' => ['sometimes', 'array'],
-                'address.country_id' => ['sometimes', 'uuid', 'exists:'.config('addressing.tables.countries', 'countries').',id'],
+                'address.country_id' => ['required_with:address', 'uuid', 'exists:'.config('addressing.tables.countries', 'countries').',id'],
                 'address.state_id' => ['nullable', 'uuid', 'exists:'.config('addressing.tables.states', 'states').',id'],
-                'address.area_assignments' => ['sometimes', 'array'],
+                'address.city_id' => ['nullable', 'uuid', 'exists:'.config('addressing.tables.cities', 'cities').',id'],
+                'address.area_assignments' => ['sometimes', 'array', new ValidAreaAssignmentRoles],
                 'address.area_assignments.*' => ['nullable', 'uuid', 'exists:address_areas,id'],
                 'address.line1' => ['nullable', 'string', 'max:255'],
                 'address.line2' => ['nullable', 'string', 'max:255'],
@@ -261,9 +263,10 @@ class ContributionEntityMutationService
                 'institution_id' => ['nullable', 'uuid', 'exists:institutions,id'],
                 'institution_position' => ['nullable', 'string', 'max:255'],
                 'address' => ['sometimes', 'array'],
-                'address.country_id' => ['nullable', 'uuid', 'exists:'.config('addressing.tables.countries', 'countries').',id'],
-                'address.state_id' => ['nullable', 'uuid', 'exists:'.config('addressing.tables.states', 'states').',id'],
-                'address.area_assignments' => ['sometimes', 'array'],
+                'address.country_id' => ['required_with:address', 'uuid', 'exists:'.config('addressing.tables.countries', 'countries').',id'],
+                'address.state_id' => ['prohibited'],
+                'address.city_id' => ['prohibited'],
+                'address.area_assignments' => ['sometimes', 'array', new ValidAreaAssignmentRoles],
                 'address.area_assignments.*' => ['nullable', 'uuid', 'exists:address_areas,id'],
                 'address.line1' => ['prohibited'],
                 'address.line2' => ['prohibited'],
@@ -1418,6 +1421,9 @@ class ContributionEntityMutationService
             && $this->normalizeUuid($payload['state_id'] ?? null) !== null
             && $this->normalizeUuid($payload['state_id'] ?? null) !== $this->normalizeUuid($existingAddress->state_id);
 
+        $countryChanged = $existingAddress instanceof Address
+            && $countryId !== $this->normalizeUuid($existingAddress->country_id);
+
         if ($stateChanged && ! array_key_exists('city_id', $payload)) {
             $payload['city_id'] = null;
             $payload['city'] = null;
@@ -1445,6 +1451,7 @@ class ContributionEntityMutationService
 
         }
 
+        $assignmentsProvided = array_key_exists('area_assignments', $payload);
         $assignments = AddressAssignments::normalize((array) ($payload['area_assignments'] ?? []));
         $latitude = $payload['latitude'] ?? null;
         $longitude = $payload['longitude'] ?? null;
@@ -1476,7 +1483,14 @@ class ContributionEntityMutationService
         if ($existingAddress instanceof Address) {
             $existingAddress->fill($attributes)->save();
 
-            app(SyncAddressAreaAssignmentsAction::class)->execute($existingAddress, $assignments, $attributes['state_id'], ['source' => 'ilmu360']);
+            if ($assignmentsProvided || $stateChanged || $countryChanged) {
+                app(SyncAddressAreaAssignmentsAction::class)->execute(
+                    $existingAddress,
+                    $assignmentsProvided ? $assignments : AddressAssignments::forAddress($existingAddress),
+                    $attributes['state_id'],
+                    ['source' => 'ilmu360'],
+                );
+            }
 
             return;
         }

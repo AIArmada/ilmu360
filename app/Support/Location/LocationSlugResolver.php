@@ -168,6 +168,59 @@ final class LocationSlugResolver
         return $this->slotRolesForCountry($countryId)[1];
     }
 
+    /**
+     * Resolve filter slugs to package IDs, following the dropdown cascade:
+     * each level resolves within its parent's scope, and anything unknown
+     * resolves to null (filter ignored), like the old unknown UUIDs.
+     *
+     * Shared by the directory filter components and their results children
+     * so both resolve slugs through exactly the same maps.
+     *
+     * @param  array{search?: ?string, country?: ?string, state?: ?string, city?: ?string, locality?: ?string, district?: ?string, subdivision?: ?string}  $slugs
+     * @return array{country_id: ?string, state_id: ?string, city_id: ?string, locality_id: ?string, district_id: ?string, subdivision_id: ?string}
+     */
+    public function idsForSlugs(array $slugs): array
+    {
+        $countrySlug = self::cleanSlug($slugs['country'] ?? null);
+        $countryId = $countrySlug !== null
+            ? ($this->countryMaps()['slugToId'][$countrySlug] ?? null)
+            : null;
+
+        $stateSlug = self::cleanSlug($slugs['state'] ?? null);
+        $stateId = $countryId !== null && $stateSlug !== null
+            ? ($this->stateMaps($countryId)['slugToId'][$stateSlug] ?? null)
+            : null;
+
+        $citySlug = self::cleanSlug($slugs['city'] ?? null);
+        $cityId = $citySlug !== null
+            ? ($this->cityMaps($stateId, $countryId)['slugToId'][$citySlug] ?? null)
+            : null;
+
+        $localitySlug = self::cleanSlug($slugs['locality'] ?? null);
+        $localityId = $localitySlug !== null
+            ? ($this->localityMaps($stateId, $countryId)['slugToId'][$localitySlug] ?? null)
+            : null;
+
+        $districtSlug = self::cleanSlug($slugs['district'] ?? null);
+        $districtId = $districtSlug !== null
+            ? ($this->districtMaps($stateId, $countryId)['slugToId'][$districtSlug] ?? null)
+            : null;
+
+        $subdivisionSlug = self::cleanSlug($slugs['subdivision'] ?? null);
+        $subdivisionId = $subdivisionSlug !== null
+            ? ($this->subdivisionMaps($stateId, $districtId, $countryId)['slugToId'][$subdivisionSlug] ?? null)
+            : null;
+
+        return [
+            'country_id' => $countryId,
+            'state_id' => $stateId,
+            'city_id' => $cityId,
+            'locality_id' => $localityId,
+            'district_id' => $districtId,
+            'subdivision_id' => $subdivisionId,
+        ];
+    }
+
     /** @return array{?string, ?string} */
     private function slotRolesForCountry(?string $countryId): array
     {

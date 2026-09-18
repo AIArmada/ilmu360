@@ -29,6 +29,7 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
+use App\Rules\ValidAreaAssignmentRoles;
 use App\Services\ContributionEntityMutationService;
 use App\Support\Api\Frontend\FrontendMediaSyncService;
 use App\Support\Events\EventContributionUpdateStateMapper;
@@ -105,7 +106,9 @@ class ContributionController extends FrontendController
             'description' => ['nullable'],
             'address' => ['present', 'array'],
             'address.country_id' => ['required', 'uuid', 'exists:'.config('addressing.tables.countries', 'countries').',id'],
-            'address.area_assignments' => ['sometimes', 'array'],
+            'address.state_id' => ['nullable', 'uuid', 'exists:'.config('addressing.tables.states', 'states').',id'],
+            'address.city_id' => ['nullable', 'uuid', 'exists:'.config('addressing.tables.cities', 'cities').',id'],
+            'address.area_assignments' => ['sometimes', 'array', new ValidAreaAssignmentRoles],
             'address.area_assignments.*' => ['nullable', 'uuid', 'exists:address_areas,id'],
             'address.line1' => ['nullable', 'string', 'max:255'],
             'address.line2' => ['nullable', 'string', 'max:255'],
@@ -185,7 +188,9 @@ class ContributionController extends FrontendController
             'institution_position' => ['nullable', 'string', 'max:255'],
             'address' => ['required', 'array'],
             'address.country_id' => ['required', 'uuid', 'exists:'.config('addressing.tables.countries', 'countries').',id'],
-            'address.area_assignments' => ['sometimes', 'array'],
+            'address.state_id' => ['prohibited'],
+            'address.city_id' => ['prohibited'],
+            'address.area_assignments' => ['sometimes', 'array', new ValidAreaAssignmentRoles],
             'address.area_assignments.*' => ['nullable', 'uuid', 'exists:address_areas,id'],
             'address.line1' => ['prohibited'],
             'address.line2' => ['prohibited'],
@@ -583,14 +588,20 @@ class ContributionController extends FrontendController
             return $initialState;
         }
 
-        $personAddress = is_array($initialState['address'] ?? null)
-            ? $initialState['address']
-            : [];
+        if (! is_array($initialState['address'] ?? null)) {
+            unset($initialState['address']);
 
-        $initialState['address'] = [
-            'country_id' => $personAddress['country_id'] ?? null,
-            'area_assignments' => $personAddress['area_assignments'] ?? [],
-        ];
+            return $initialState;
+        }
+
+        $personAddress = $initialState['address'];
+        $projectedAddress = ['country_id' => $personAddress['country_id'] ?? null];
+
+        if (array_key_exists('area_assignments', $personAddress)) {
+            $projectedAddress['area_assignments'] = $personAddress['area_assignments'];
+        }
+
+        $initialState['address'] = $projectedAddress;
 
         return $initialState;
     }

@@ -23,6 +23,7 @@ use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\DB;
 
 class InstitutionFormSchema
 {
@@ -130,50 +131,52 @@ class InstitutionFormSchema
      */
     public static function createOptionUsing(array $data, ?Schema $schema = null): string
     {
-        $addressData = is_array($data['address'] ?? null) ? $data['address'] : $data;
+        return DB::transaction(function () use ($data, $schema): string {
+            $addressData = is_array($data['address'] ?? null) ? $data['address'] : $data;
 
-        $institution = Institution::create([
-            'name' => $data['name'],
-            'slug' => app(GenerateInstitutionSlugAction::class)->handle((string) $data['name'], $addressData),
-            'type' => $data['type'],
-            'description' => $data['description'] ?? null,
-            'status' => 'pending',
-        ]);
+            $institution = Institution::create([
+                'name' => $data['name'],
+                'slug' => app(GenerateInstitutionSlugAction::class)->handle((string) $data['name'], $addressData),
+                'type' => $data['type'],
+                'description' => $data['description'] ?? null,
+                'status' => 'pending',
+            ]);
 
-        $names = is_array($data['names'] ?? null) ? $data['names'] : [];
+            $names = is_array($data['names'] ?? null) ? $data['names'] : [];
 
-        $primarySelected = false;
+            $primarySelected = false;
 
-        foreach ($names as $name) {
-            $isPrimary = (bool) ($name['is_primary'] ?? true) && ! $primarySelected;
+            foreach ($names as $name) {
+                $isPrimary = (bool) ($name['is_primary'] ?? true) && ! $primarySelected;
 
-            if ($isPrimary) {
-                $primarySelected = true;
+                if ($isPrimary) {
+                    $primarySelected = true;
+                }
+
+                $institution->names()->create([
+                    'name_type' => $name['name_type'] ?? InstitutionNameType::Nickname,
+                    'full_name' => trim((string) ($name['full_name'] ?? '')),
+                    'language_code' => $name['language_code'] ?? 'ms',
+                    'is_primary' => $isPrimary,
+                ]);
             }
 
-            $institution->names()->create([
-                'name_type' => $name['name_type'] ?? InstitutionNameType::Nickname,
-                'full_name' => trim((string) ($name['full_name'] ?? '')),
-                'language_code' => $name['language_code'] ?? 'ms',
-                'is_primary' => $isPrimary,
-            ]);
-        }
+            $creator = auth()->user();
 
-        $creator = auth()->user();
+            if ($creator instanceof User) {
+                AddMemberAction::run($institution, $creator, MemberRole::Owner);
+            }
 
-        if ($creator instanceof User) {
-            AddMemberAction::run($institution, $creator, MemberRole::Owner);
-        }
+            // Save media uploads (cover, gallery) via Filament's relationship-saving mechanism
+            $schema?->model($institution)->saveRelationships();
 
-        // Save media uploads (cover, gallery) via Filament's relationship-saving mechanism
-        $schema?->model($institution)->saveRelationships();
+            SharedFormSchema::createContactsFromData($institution, $data);
+            SharedFormSchema::createAddressFromData($institution, $addressData, allowCountryOnly: true);
+            SharedFormSchema::createSocialMediaFromData($institution, $data);
+            app(GenerateInstitutionSlugAction::class)->syncInstitutionSlug($institution);
 
-        SharedFormSchema::createContactsFromData($institution, $data);
-        SharedFormSchema::createAddressFromData($institution, $addressData, allowCountryOnly: true);
-        SharedFormSchema::createSocialMediaFromData($institution, $data);
-        app(GenerateInstitutionSlugAction::class)->syncInstitutionSlug($institution);
-
-        return (string) $institution->getKey();
+            return (string) $institution->getKey();
+        });
     }
 
     /**

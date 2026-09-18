@@ -7,6 +7,7 @@ use AIArmada\Events\Models\FacilityType;
 use AIArmada\Events\Models\VenueFacility;
 use App\Models\Venue;
 use Illuminate\Support\Str;
+use Livewire\Livewire;
 
 use function Pest\Laravel\get;
 
@@ -171,4 +172,40 @@ it('shows the total venue count at the bottom of the index', function () {
         ->assertSuccessful()
         ->assertSee('Direktori Tempat')
         ->assertSee('Jumlah tempat: 2');
+});
+
+it('dispatches the filter snapshot to results when venue search changes', function () {
+    Livewire::test('pages.venues.index')
+        ->set('search', 'dewan')
+        ->assertDispatched('venue-filters-updated', filters: [
+            'search' => 'dewan',
+            'country_id' => null,
+            'state_id' => null,
+            'district_id' => null,
+            'subdivision_id' => null,
+        ]);
+});
+
+it('syncs venue results when filters update', function () {
+    Venue::factory()->create([
+        'name' => 'Dewan Sync Ujian',
+        'status' => 'verified',
+    ]);
+
+    Venue::factory()->create([
+        'name' => 'Auditorium Sync Lain',
+        'status' => 'verified',
+    ]);
+
+    Livewire::test('pages.venues.results')
+        ->call('syncFilters', ['search' => 'Sync Ujian'])
+        ->assertSee('Dewan Sync Ujian')
+        ->assertDontSee('Auditorium Sync Lain');
+});
+
+it('ignores non-string venue filter values instead of failing', function () {
+    Livewire::test('pages.venues.results')
+        ->call('syncFilters', ['search' => ['nested'], 'state_id' => 123])
+        ->assertSet('search', null)
+        ->assertSet('state_id', null);
 });

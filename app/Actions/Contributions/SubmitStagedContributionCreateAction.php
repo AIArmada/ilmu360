@@ -8,6 +8,7 @@ use App\Models\Person;
 use App\Models\User;
 use App\Services\ContributionEntityMutationService;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -33,30 +34,32 @@ class SubmitStagedContributionCreateAction
         ?callable $persistRelationships = null,
         string $validationKeyPrefix = '',
     ): Institution|Person {
-        $submissionState = $this->resolveContributionSubmissionStateAction->handle($state);
-        $state = $submissionState['state'];
+        return DB::transaction(function () use ($subjectType, $state, $user, $persistRelationships, $validationKeyPrefix): Institution|Person {
+            $submissionState = $this->resolveContributionSubmissionStateAction->handle($state);
+            $state = $submissionState['state'];
 
-        $this->ensureUniqueContributionCreateAction->handle($subjectType, $state, $validationKeyPrefix);
+            $this->ensureUniqueContributionCreateAction->handle($subjectType, $state, $validationKeyPrefix);
 
-        $entity = match ($subjectType) {
-            ContributionSubjectType::Institution => $this->contributionEntityMutationService->createInstitution($state, $user),
-            ContributionSubjectType::Person => $this->contributionEntityMutationService->createPerson($state, $user),
-            default => throw new InvalidArgumentException("Unsupported contribution subject type [{$subjectType->value}]"),
-        };
+            $entity = match ($subjectType) {
+                ContributionSubjectType::Institution => $this->contributionEntityMutationService->createInstitution($state, $user),
+                ContributionSubjectType::Person => $this->contributionEntityMutationService->createPerson($state, $user),
+                default => throw new InvalidArgumentException("Unsupported contribution subject type [{$subjectType->value}]"),
+            };
 
-        if ($persistRelationships !== null) {
-            $persistRelationships($entity);
-        }
+            if ($persistRelationships !== null) {
+                $persistRelationships($entity);
+            }
 
-        $this->submitContributionCreateRequestAction->handle(
-            $subjectType,
-            $user,
-            Arr::except($state, $this->mediaFieldsFor($subjectType)),
-            $submissionState['proposer_note'],
-            $entity,
-        );
+            $this->submitContributionCreateRequestAction->handle(
+                $subjectType,
+                $user,
+                Arr::except($state, $this->mediaFieldsFor($subjectType)),
+                $submissionState['proposer_note'],
+                $entity,
+            );
 
-        return $entity;
+            return $entity;
+        });
     }
 
     /**

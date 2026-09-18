@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\ContributionEntityMutationService;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\DB;
 
 class PersonFormSchema
 {
@@ -35,26 +36,28 @@ class PersonFormSchema
      */
     public static function createOptionUsing(array $data, ?Schema $schema = null): string
     {
-        $person = Person::create([
-            'name' => $data['name'],
-            'gender' => $data['gender'] ?? Gender::Male->value,
-            'bio' => $data['bio'] ?? null,
-            'slug' => app(GeneratePersonSlugAction::class)->handle((string) ($data['name'] ?? 'Person'), $data),
-            'status' => 'pending',
-        ]);
+        return DB::transaction(function () use ($data, $schema): string {
+            $person = Person::create([
+                'name' => $data['name'],
+                'gender' => $data['gender'] ?? Gender::Male->value,
+                'bio' => $data['bio'] ?? null,
+                'slug' => app(GeneratePersonSlugAction::class)->handle((string) ($data['name'] ?? 'Person'), $data),
+                'status' => 'pending',
+            ]);
 
-        $creator = auth()->user();
+            $creator = auth()->user();
 
-        if ($creator instanceof User) {
-            AddMemberAction::run($person, $creator, MemberRole::Owner);
-        }
+            if ($creator instanceof User) {
+                AddMemberAction::run($person, $creator, MemberRole::Owner);
+            }
 
-        // Save media uploads (avatar/cover) via Filament's relationship-saving mechanism
-        $schema?->model($person)->saveRelationships();
+            // Save media uploads (avatar/cover) via Filament's relationship-saving mechanism
+            $schema?->model($person)->saveRelationships();
 
-        app(ContributionEntityMutationService::class)->syncPersonRelations($person, $data);
-        app(GeneratePersonSlugAction::class)->syncPersonSlug($person);
+            app(ContributionEntityMutationService::class)->syncPersonRelations($person, $data);
+            app(GeneratePersonSlugAction::class)->syncPersonSlug($person);
 
-        return (string) $person->getKey();
+            return (string) $person->getKey();
+        });
     }
 }

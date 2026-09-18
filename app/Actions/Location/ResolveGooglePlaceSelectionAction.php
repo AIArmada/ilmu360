@@ -2,6 +2,7 @@
 
 namespace App\Actions\Location;
 
+use AIArmada\Addressing\Actions\LogAddressResolutionGapAction;
 use AIArmada\Addressing\Data\AddressHierarchyDefinition;
 use AIArmada\Addressing\Data\AddressLevelDefinition;
 use AIArmada\Addressing\Models\AddressArea;
@@ -105,9 +106,11 @@ class ResolveGooglePlaceSelectionAction
         $resolved = [];
         /** @var array<string, list<string>> $resolvedRolesByHierarchy */
         $resolvedRolesByHierarchy = [];
+        /** @var array<string, list<string>> $misses */
+        $misses = [];
 
-        $this->resolveStructuralLevels($hierarchies, $components, $countryId, $countryCode, $areaTreeRoot, $resolved, $resolvedRolesByHierarchy);
-        $this->resolvePostalLevels($hierarchies, $components, $postcode, $countryId, $countryCode, $areaTreeRoot, $resolved, $resolvedRolesByHierarchy);
+        $this->resolveStructuralLevels($hierarchies, $components, $countryId, $countryCode, $areaTreeRoot, $resolved, $resolvedRolesByHierarchy, $misses);
+        $this->resolvePostalLevels($hierarchies, $components, $postcode, $countryId, $countryCode, $areaTreeRoot, $resolved, $resolvedRolesByHierarchy, $misses);
         $this->recoverAncestors($hierarchies, $resolved, $resolvedRolesByHierarchy);
 
         if (! $areaTreeRoot instanceof AddressArea) {
@@ -126,6 +129,16 @@ class ResolveGooglePlaceSelectionAction
         $stateId ??= $this->resolveStateId($stateName, $countryId, $areaTreeRoot, $countryCode);
         $stateId ??= $this->recoverStateId($hierarchies, $resolved);
         $cityId = $this->resolveCityId($cityName, $stateId, $countryId, $countryCode);
+
+        $this->logResolutionGaps(
+            $misses,
+            $resolved,
+            $stateName,
+            $stateId,
+            $countryId !== null && $profiles->stateLevel($countryId) instanceof AddressLevelDefinition,
+            $countryCode,
+            $this->stringValue($payload['placeId'] ?? $payload['id'] ?? null),
+        );
 
         $assignments = [];
 
@@ -168,6 +181,117 @@ class ResolveGooglePlaceSelectionAction
     }
 
     /**
+     * Log attempted-but-unmatched Google names as resolution gaps.
+     *
+     * Gaps are logged per role, not per name: every level tries the whole
+     * candidate stack, and only the admin can tell which granularity a name
+     * denotes — attributing one name to a single guessed role would refuse
+     * matching when the guess is wrong, while sibling-role rows are ignored
+     * once and stay terminal. A name that resolved anywhere (area name or
+     * alias) never logs. Levels Google never sent are absence, not gaps.
+     * State misses use the documented `state` role, except for stateless
+     * profiles where no state can ever resolve. Logging is skipped entirely
+     * without a resolved country — a gap without a country cannot be matched
+     * to anything.
+     *
+     * @param  array<string, list<string>>  $misses
+     * @param  array<string, array{hierarchy: AddressHierarchyDefinition, level: AddressLevelDefinition, area: AddressArea}>  $resolved
+     */
+    private function logResolutionGaps(
+        array $misses,
+        array $resolved,
+        ?string $stateName,
+        ?string $stateId,
+        bool $expectsState,
+        ?string $countryCode,
+        ?string $placeId,
+    ): void {
+        if ($countryCode === null || strlen($countryCode) !== 2) {
+            return;
+        }
+
+        $resolvedNames = $this->resolvedAreaNames($resolved, $countryCode);
+        $logger = app(LogAddressResolutionGapAction::class);
+        $context = $placeId !== null ? ['place_id' => $placeId] : [];
+
+        foreach ($misses as $role => $names) {
+            if (isset($resolved[$role]) || $names === []) {
+                continue;
+            }
+
+            $value = $names[0];
+            $normalized = $this->normalizeLocationName($value, $countryCode);
+
+            if ($normalized === '' || isset($resolvedNames[$normalized]) || mb_strlen($value) > 255) {
+                continue;
+            }
+
+            $logger->execute(
+                source: 'google-picker',
+                countryCode: $countryCode,
+                role: $role,
+                value: $value,
+                context: [...$context, 'attempted' => $names],
+            );
+        }
+
+        if ($expectsState && $stateId === null && filled($stateName) && mb_strlen((string) $stateName) <= 255) {
+            $logger->execute(
+                source: 'google-picker',
+                countryCode: $countryCode,
+                role: 'state',
+                value: $stateName,
+                context: [...$context, 'attempted' => [$stateName]],
+            );
+        }
+    }
+
+    /**
+     * Normalized names and aliases of the areas this pick resolved, so a
+     * name that found its home at one level never logs a gap at another.
+     *
+     * @param  array<string, array{hierarchy: AddressHierarchyDefinition, level: AddressLevelDefinition, area: AddressArea}>  $resolved
+     * @return array<string, true>
+     */
+    private function resolvedAreaNames(array $resolved, ?string $countryCode): array
+    {
+        $names = [];
+        $areaIds = [];
+
+        foreach ($resolved as $entry) {
+            $area = $entry['area'];
+            $areaIds[] = (string) $area->getKey();
+            $normalized = $this->normalizeLocationName((string) $area->name, $countryCode);
+
+            if ($normalized !== '') {
+                $names[$normalized] = true;
+            }
+        }
+
+        if ($areaIds === []) {
+            return $names;
+        }
+
+        $aliases = AddressAreaName::query()
+            ->whereIn('address_area_id', array_values(array_unique($areaIds)))
+            ->pluck('name');
+
+        foreach ($aliases as $alias) {
+            if (! is_string($alias)) {
+                continue;
+            }
+
+            $normalized = $this->normalizeLocationName($alias, $countryCode);
+
+            if ($normalized !== '') {
+                $names[$normalized] = true;
+            }
+        }
+
+        return $names;
+    }
+
+    /**
      * Resolve every non-postal area level in hierarchy order.
      *
      * Each level matches its ordered Google candidates below the deepest
@@ -178,6 +302,7 @@ class ResolveGooglePlaceSelectionAction
      * @param  list<array{longText: string|null, shortText: string|null, types: list<string>}>  $components
      * @param  array<string, array{hierarchy: AddressHierarchyDefinition, level: AddressLevelDefinition, area: AddressArea}>  $resolved
      * @param  array<string, list<string>>  $resolvedRolesByHierarchy
+     * @param  array<string, list<string>>  $misses
      */
     private function resolveStructuralLevels(
         array $hierarchies,
@@ -187,6 +312,7 @@ class ResolveGooglePlaceSelectionAction
         ?AddressArea $areaTreeRoot,
         array &$resolved,
         array &$resolvedRolesByHierarchy,
+        array &$misses,
     ): void {
         foreach ($hierarchies as $hierarchy) {
             if ($hierarchy->key === 'postal') {
@@ -231,6 +357,8 @@ class ResolveGooglePlaceSelectionAction
                 if ($area instanceof AddressArea) {
                     $resolved[$role] = ['hierarchy' => $hierarchy, 'level' => $level, 'area' => $area];
                     $resolvedRolesByHierarchy[$hierarchy->key][] = $role;
+                } elseif ($names !== []) {
+                    $misses[$role] ??= $names;
                 }
             }
         }
@@ -247,6 +375,7 @@ class ResolveGooglePlaceSelectionAction
      * @param  list<array{longText: string|null, shortText: string|null, types: list<string>}>  $components
      * @param  array<string, array{hierarchy: AddressHierarchyDefinition, level: AddressLevelDefinition, area: AddressArea}>  $resolved
      * @param  array<string, list<string>>  $resolvedRolesByHierarchy
+     * @param  array<string, list<string>>  $misses
      */
     private function resolvePostalLevels(
         array $hierarchies,
@@ -257,6 +386,7 @@ class ResolveGooglePlaceSelectionAction
         ?AddressArea $areaTreeRoot,
         array &$resolved,
         array &$resolvedRolesByHierarchy,
+        array &$misses,
     ): void {
         $structuralResolved = false;
 
@@ -322,6 +452,8 @@ class ResolveGooglePlaceSelectionAction
                 if ($area instanceof AddressArea) {
                     $resolved[$role] = ['hierarchy' => $hierarchy, 'level' => $level, 'area' => $area];
                     $resolvedRolesByHierarchy[$hierarchy->key][] = $role;
+                } elseif ($names !== []) {
+                    $misses[$role] ??= $names;
                 }
             }
         }

@@ -791,7 +791,9 @@ class SharedFormSchema
             }
         }
 
-        $payload['area_assignments'] = AddressAssignments::normalize((array) ($normalized['area_assignments'] ?? $data['area_assignments'] ?? []));
+        if (array_key_exists('area_assignments', $data) || array_key_exists('area_assignments', $normalized)) {
+            $payload['area_assignments'] = AddressAssignments::normalize((array) ($normalized['area_assignments'] ?? $data['area_assignments'] ?? []));
+        }
 
         foreach (['line1', 'line2', 'postcode', 'state', 'city', 'waze_url'] as $field) {
             if (array_key_exists($field, $data)) {
@@ -1686,17 +1688,22 @@ class SharedFormSchema
         return $children;
     }
 
-    private static function isFederalTerritory(?string $stateId): bool
+    private static function isFederalTerritory(?string $stateId, ?string $countryId = null): bool
     {
         if ($stateId === null) {
             return false;
         }
 
-        return in_array(
-            State::query()->whereKey($stateId)->value('code'),
-            ['14', '15', '16'],
-            true,
-        );
+        $state = State::query()->whereKey($stateId)->first(['code', 'country_id']);
+
+        if (! $state instanceof State || ! in_array($state->code, ['14', '15', '16'], true)) {
+            return false;
+        }
+
+        $countryId ??= $state->country_id;
+
+        return is_string($countryId)
+            && AddressCountry::query()->whereKey($countryId)->where('iso2', 'MY')->exists();
     }
 
     private static function cityVisibleClosure(
@@ -1711,12 +1718,12 @@ class SharedFormSchema
                 return false;
             }
 
-            if (self::isFederalTerritory($stateId)) {
-                return false;
-            }
-
             $countryId = self::normalizeLocationId($includeCountryField ? $get('country_id') : $defaultCountryId)
                 ?? self::countryIdForState(self::normalizeLocationId($stateId));
+
+            if (self::isFederalTerritory(self::normalizeLocationId($stateId), $countryId)) {
+                return false;
+            }
 
             // City is redundant when the country's first cascade slot applies.
             $slot0 = $countryId === null ? null : app(LocationSlugResolver::class)->districtRoleForCountry($countryId);
@@ -1899,7 +1906,9 @@ class SharedFormSchema
             }
 
             if (! $cityQuery->exists()) {
-                $cityId = null;
+                throw ValidationException::withMessages([
+                    'address.city_id' => __('The selected city does not belong to the selected state or country.'),
+                ]);
             }
         }
 
@@ -1911,18 +1920,34 @@ class SharedFormSchema
             }
 
             if (! $areaQuery->exists()) {
-                unset($assignments[$role]);
+                throw ValidationException::withMessages([
+                    'address.area_assignments.'.$role => __('The selected area does not belong to the selected country.'),
+                ]);
             }
         }
 
         if ($stateId !== null) {
+            $stateQuery = State::query()->whereKey($stateId);
+
+            if ($countryId !== null) {
+                $stateQuery->where('country_id', $countryId);
+            }
+
+            if (! $stateQuery->exists()) {
+                throw ValidationException::withMessages([
+                    'address.state_id' => __('The selected state does not belong to the selected country.'),
+                ]);
+            }
+
             $normalized['state_id'] = $stateId;
         }
         if ($cityId !== null) {
             $normalized['city_id'] = $cityId;
         }
 
-        $normalized['area_assignments'] = $assignments;
+        if (array_key_exists('area_assignments', $original) || array_key_exists('area_assignments', $normalized)) {
+            $normalized['area_assignments'] = $assignments;
+        }
 
         return $normalized;
     }
@@ -1956,7 +1981,7 @@ class SharedFormSchema
 
         if ($city instanceof City) {
             $payload['city'] = $city->name;
-        } else {
+        } elseif (empty($payload['city'])) {
             foreach ($areas->reverse() as $area) {
                 if ($area instanceof AddressArea) {
                     $payload['city'] = $area->name;

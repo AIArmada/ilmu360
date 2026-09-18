@@ -170,7 +170,7 @@
                 x-data="{ mobileMenuOpen: false }">
                 <nav class="container mx-auto flex h-20 items-center justify-between px-6 lg:px-12">
                     <a href="{{ route('home') }}" wire:navigate class="flex items-center">
-                        <img src="{{ asset('images/logo.png') }}" alt="{{ config('app.name') }}" width="1227" height="276"
+                        <img src="{{ asset('images/logo-ilmu360.png') }}" alt="{{ config('app.name') }}" width="2172" height="724"
                             class="h-12 w-auto">
                     </a>
 
@@ -472,7 +472,13 @@
                 <div class="relative z-10 mx-auto flex min-h-[30rem] max-w-7xl flex-col px-5 pt-24 pb-8 sm:px-6 lg:px-8 lg:pt-24 lg:pb-8">
                     <div class="grid gap-10 lg:mx-auto lg:max-w-4xl lg:grid-cols-[1.35fr_0.8fr_1fr] lg:gap-16">
                         <div>
-                            <span class="font-heading text-4xl font-bold tracking-tight"><span class="text-white">ilmu</span><span class="text-gold-300">360°</span></span>
+                            <img
+                                src="{{ asset('images/logo-ilmu360-footer.png') }}"
+                                alt="{{ config('app.name') }}"
+                                width="2167"
+                                height="726"
+                                class="h-12 w-auto max-w-[14rem] drop-shadow-sm"
+                            >
                             <p class="mt-4 max-w-xs text-sm leading-6 text-emerald-100/70">
                                 {{ __('Connecting the community through knowledge. Discover classes, lectures, and gatherings across Malaysia.') }}
                             </p>

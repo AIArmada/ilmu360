@@ -188,7 +188,7 @@
                     {{-- Header --}}
                     <div class="text-center mb-8 entry-2">
                         <a href="{{ route('home') }}" wire:navigate class="inline-block">
-                            <img src="{{ asset('images/logo.png') }}" alt="{{ config('app.name') }}"
+                            <img src="{{ asset('images/logo-ilmu360.png') }}" alt="{{ config('app.name') }}"
                                 class="h-16 w-auto mx-auto">
                         </a>
 

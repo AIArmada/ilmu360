@@ -122,7 +122,8 @@
                     <div class="relative px-6 py-8 sm:px-10 sm:py-9">
                         <div class="mb-8 text-center entry-2">
                             <a href="{{ route('home') }}" aria-label="{{ config('app.name') }}" class="inline-flex flex-col items-center leading-none">
-                                <span class="font-heading text-[3.25rem] font-semibold tracking-[-0.09em] text-[#24384a] sm:text-[3.5rem]">ilmu<span class="text-[#39a55e]">360</span><sup class="relative -top-5 ml-0.5 text-[1.25rem] tracking-normal text-[#efbc32]">°</sup></span>
+                                <img src="{{ asset('images/logo-ilmu360.png') }}" alt="{{ config('app.name') }}"
+                                    width="2172" height="724" class="h-16 w-auto max-w-[14rem]">
                                 <span class="mt-2 text-[0.6rem] font-semibold tracking-[0.34em] text-[#637387]">ILMU · AMAL · KOMUNITI</span>
                             </a>
 
