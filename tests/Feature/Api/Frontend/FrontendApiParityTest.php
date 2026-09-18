@@ -1367,7 +1367,7 @@ it('returns card image metadata on public events index responses', function () {
         ->and(data_get($posterItem, 'persons.0.gender'))->toBe('male')
         ->and(data_get($posterItem, 'persons.0.pivot'))->toBeNull()
         ->and($placeholderResponse->json('data.0.has_poster'))->toBeFalse()
-        ->and($placeholderResponse->json('data.0.card_image_url'))->toContain('images/placeholders/event.png')
+        ->and($placeholderResponse->json('data.0.card_image_url'))->toContain('images/placeholders/event-square-v1.png')
         ->and($placeholderResponse->json('data.0.poster_url'))->toBeNull();
 });
 

@@ -201,35 +201,42 @@ new
 @section('title', __('Reference Directory') . ' - ' . config('app.name'))
 @section('meta_description', __('Browse books, articles, videos, and source references connected to public knowledge events.'))
 @section('og_url', route('references.index'))
-@section('og_image', asset('images/default-mosque-hero.png'))
+@section('og_image', asset('images/references/rujukan-hero-background-v1.png'))
 @section('og_image_alt', __('Reference directory'))
 @section('og_image_width', '1024')
 @section('og_image_height', '1024')
 
 <div data-art-direction="living-majlis" class="living-majlis-field relative min-h-screen overflow-x-clip text-slate-800">
-    <div class="relative overflow-hidden border-b border-emerald-900/[0.06]">
+    <div class="relative isolate overflow-hidden border-b border-emerald-900/[0.06]">
         <div data-material="hero-field" class="absolute inset-0 overflow-hidden bg-[#f7f3e8]">
             <img
-                src="{{ asset('images/speakers/penceramah-hero-background-v3.png') }}"
+                src="{{ asset('images/references/rujukan-hero-background-v1.png') }}"
                 alt=""
                 aria-hidden="true"
                 class="absolute inset-0 h-full w-full object-cover object-[35%_center] sm:object-[42%_center] lg:object-center"
-                width="1672"
-                height="941"
+                width="1916"
+                height="821"
                 loading="eager"
                 decoding="async"
             >
-            <div class="absolute inset-0 bg-gradient-to-r from-[#fafaf7]/90 via-[#fafaf7]/45 via-44% to-transparent"></div>
-            <div class="absolute inset-0 bg-gradient-to-b from-[#fffaf0]/10 via-transparent to-[#e7eee8]/15"></div>
+            <div
+                class="absolute inset-0"
+                style="background: linear-gradient(90deg, rgba(255,253,248,.96) 0%, rgba(255,253,248,.90) 26%, rgba(255,253,248,.68) 45%, rgba(255,253,248,.22) 62%, transparent 72%);"
+            ></div>
         </div>
 
         <div class="relative mx-auto max-w-7xl px-5 py-14 sm:px-6 sm:py-20 lg:px-8 lg:py-16">
             <h1 class="max-w-2xl text-balance font-heading text-4xl font-bold leading-[1.06] tracking-[-0.035em] text-emerald-950 sm:text-5xl lg:text-6xl">
-                {{ __('Sources of') }} <br class="hidden md:block" />
-                <span class="text-emerald-700">{{ __('Knowledge & Guidance') }}</span>
+                {{ __('Discover sources of') }} <br class="hidden md:block" />
+                <span class="relative inline-block text-emerald-700">
+                    {{ __('knowledge you can trust') }}
+                    <svg class="absolute -bottom-2 left-0 h-3.5 w-full text-amber-500/80" viewBox="0 0 320 18" preserveAspectRatio="none" aria-hidden="true">
+                        <path d="M4 13C79 5 218 4 316 10" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" />
+                    </svg>
+                </span>
             </h1>
             <p class="mt-6 max-w-xl text-balance text-base leading-7 text-slate-600 sm:mt-7 sm:text-lg">
-                {{ __('Books, articles, videos, and reference works used across Majlis Ilmu in the ilmu360° community.') }}
+                {{ __('Terokai kitab, buku, artikel dan bahan rujukan pilihan untuk menyokong perjalanan ilmu anda.') }}
             </p>
 
             <div class="mt-9 max-w-xl">
@@ -251,7 +258,6 @@ new
             @php
                 $references = $this->references;
                 $search = $this->search;
-                $referenceTotal = $references->total();
                 $referenceLoadingTarget = 'search,clearSearch,gotoPage,setPage,nextPage,previousPage';
             @endphp
 
@@ -361,15 +367,9 @@ new
                 </div>
 
                 <div class="mt-16">
-                    {{ $references->links() }}
+                    {{ $references->links('vendor.livewire.directory-pagination') }}
                 </div>
 
-                <div class="mt-6 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-4 text-center shadow-sm">
-                    <p class="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">{{ __('Direktori Rujukan') }}</p>
-                    <p class="mt-2 text-sm font-semibold text-slate-600">
-                        {{ __('Jumlah rujukan: :count', ['count' => number_format($referenceTotal)]) }}
-                    </p>
-                </div>
             @endif
                 </div>
             </div>

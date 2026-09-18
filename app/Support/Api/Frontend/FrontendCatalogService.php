@@ -20,6 +20,7 @@ use App\Models\Reference;
 use App\Models\Space;
 use App\Models\User;
 use App\Models\Venue;
+use App\Support\Location\LocationSlugResolver;
 use App\Support\Search\InstitutionSearchService;
 use App\Support\Search\PersonSearchService;
 use App\Support\Submission\EntitySubmissionAccess;
@@ -63,6 +64,10 @@ class FrontendCatalogService
             return [];
         }
 
+        if (app(LocationSlugResolver::class)->stateMaps($countryId)['options'] === []) {
+            return [];
+        }
+
         return State::query()
             ->where('country_id', $countryId)
             ->orderBy('name')
@@ -102,47 +107,70 @@ class FrontendCatalogService
     }
 
     /**
-     * First configured administrative-area options for administrative_district.
+     * First cascade-slot area options for the country (administrative level-1).
+     *
+     * The underlying role follows the country's provider profile; the
+     * endpoint name stays a stable slot identifier for API clients.
      *
      * @return list<array{id: string, label: string, type: string, level: int|null}>
      */
     public function administrativeDistricts(?string $countryId, ?string $stateId = null): array
     {
-        if (is_string($stateId) && $stateId !== '') {
-            return $this->roleAreaOptions(
-                $countryId ?? $this->countryIdForState($stateId),
-                'administrative_district',
-                $stateId,
-            );
+        if (($countryId === null || $countryId === '') && is_string($stateId) && $stateId !== '') {
+            $countryId = $this->countryIdForState($stateId);
         }
 
-        return $this->roleAreaOptions($countryId, 'administrative_district');
+        if (! is_string($countryId) || $countryId === '') {
+            return [];
+        }
+
+        $role = app(LocationSlugResolver::class)->districtRoleForCountry($countryId);
+
+        if ($role === null) {
+            return [];
+        }
+
+        return $this->roleAreaOptions($countryId, $role, $stateId);
     }
 
     /**
-     * Next configured administrative-area options under the selected district.
+     * Second cascade-slot area options under the selected parent (administrative level-2).
+     *
+     * The underlying role follows the country's provider profile; the
+     * endpoint name stays a stable slot identifier for API clients.
      *
      * @return list<array{id: string, label: string, type: string, level: int|null}>
      */
     public function administrativeSubdivisions(?string $districtId, ?string $countryId = null, ?string $stateId = null): array
     {
-        if (is_string($districtId) && $districtId !== '') {
-            return $this->roleAreaOptions($countryId, 'administrative_subdivision', $districtId);
+        $hasDistrict = is_string($districtId) && $districtId !== '';
+        $hasState = is_string($stateId) && $stateId !== '';
+
+        if ($countryId === null || $countryId === '') {
+            $countryId = $hasDistrict
+                ? $this->countryIdForArea($districtId)
+                : ($hasState ? $this->countryIdForState($stateId) : null);
         }
 
-        if (is_string($stateId) && $stateId !== '') {
-            return $this->roleAreaOptions(
-                $countryId ?? $this->countryIdForState($stateId),
-                'administrative_subdivision',
-                $stateId,
-            );
+        if (! is_string($countryId) || $countryId === '') {
+            return [];
         }
 
-        if (is_string($countryId) && $countryId !== '') {
-            return $this->roleAreaOptions($countryId, 'administrative_subdivision');
+        $role = app(LocationSlugResolver::class)->subdivisionRoleForCountry($countryId);
+
+        if ($role === null) {
+            return [];
         }
 
-        return [];
+        if ($hasDistrict) {
+            return $this->roleAreaOptions($countryId, $role, $districtId);
+        }
+
+        if ($hasState) {
+            return $this->roleAreaOptions($countryId, $role, $stateId);
+        }
+
+        return $this->roleAreaOptions($countryId, $role);
     }
 
     /**
@@ -207,6 +235,17 @@ class FrontendCatalogService
         $countryId = State::query()->whereKey($stateId)->value('country_id');
 
         return is_string($countryId) ? $countryId : null;
+    }
+
+    private function countryIdForArea(string $areaId): ?string
+    {
+        $countryId = AddressArea::query()->whereKey($areaId)->value('country_id');
+
+        if (is_string($countryId) && $countryId !== '') {
+            return $countryId;
+        }
+
+        return $this->countryIdForState($areaId);
     }
 
     /**

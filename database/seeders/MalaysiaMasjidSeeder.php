@@ -129,13 +129,15 @@ class MalaysiaMasjidSeeder extends Seeder
 
             // Create address with the administrative district assignment when available.
             try {
+                $postalLocality = $this->postalLocalityForStateText($state, $nama.' '.$alamat);
+
                 $this->seedPrimaryPackageAddress($inst, $this->packageAddressAttributes([
                     'line1' => $alamat ?: null,
                     'postcode' => null,
                     'country_id' => $malaysia?->id,
                     'latitude' => null,
                     'longitude' => null,
-                ], $state, $district));
+                ], $state, $district, null, $postalLocality));
             } catch (\Exception $e) {
                 $this->command->warn("Failed to create address for {$nama}: ".$e->getMessage());
             }

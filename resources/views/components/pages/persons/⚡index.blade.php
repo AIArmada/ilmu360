@@ -536,7 +536,7 @@ new
 
 <div data-art-direction="living-majlis" class="living-majlis-field relative min-h-screen overflow-x-clip text-slate-800">
     <!-- Hero Section -->
-    <div class="relative overflow-hidden border-b border-emerald-900/[0.06]">
+    <div class="relative isolate overflow-hidden border-b border-emerald-900/[0.06]">
         <!-- Reference-matched architectural background with a clear text field on the left. -->
         <div data-material="hero-field" class="absolute inset-0 overflow-hidden bg-[#f7f3e8]">
             <img
@@ -550,11 +550,10 @@ new
                 fetchpriority="high"
                 decoding="async"
             >
-            <div class="absolute inset-0 bg-gradient-to-r from-[#fafaf7]/90 via-[#fafaf7]/45 via-44% to-transparent"></div>
-            <div class="absolute inset-0 bg-gradient-to-b from-[#fffaf0]/10 via-transparent to-[#e7eee8]/15"></div>
+            <div class="absolute inset-0 bg-gradient-to-r from-[#fffdf8]/78 via-[#fffdf8]/24 to-transparent"></div>
         </div>
 
-        <div class="relative mx-auto grid max-w-7xl items-center gap-10 px-5 py-14 sm:px-6 sm:py-20 lg:min-h-[29rem] lg:grid-cols-[minmax(0,1fr)_minmax(19rem,28rem)] lg:gap-8 lg:px-8 lg:py-16">
+        <div class="relative mx-auto max-w-7xl px-5 py-14 sm:px-6 sm:py-20 lg:px-8 lg:py-16">
             <div class="relative z-10 max-w-2xl">
                     <h1 class="mt-6 max-w-3xl font-heading text-4xl font-bold leading-[1.06] tracking-[-0.035em] text-emerald-950 sm:text-5xl lg:text-6xl">
                         {{ __('Meet speakers who are') }}
@@ -841,12 +840,6 @@ new
                                     </span>
                                 @endif
 
-                                <!-- Arrow affordance -->
-                                <div class="absolute inset-x-3 bottom-3 hidden items-center justify-end gap-2 text-white sm:flex">
-                                    <svg class="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1.5 motion-reduce:transition-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-5-5 5 5-5 5" />
-                                    </svg>
-                                </div>
                             </div>
 
                             <!-- Content area -->
@@ -934,14 +927,14 @@ new
 
                 <!-- Pagination -->
                 @if($persons->hasPages())
-                    <div id="person-pagination" class="mt-10 rounded-2xl border border-slate-200/80 bg-white px-5 py-4">
-                        {{ $persons->links(data: ['scrollTo' => '#person-results']) }}
+                    <div id="person-pagination" class="mt-8 px-1 sm:mt-10">
+                        {{ $persons->links('vendor.livewire.directory-pagination', data: ['scrollTo' => '#person-results']) }}
                     </div>
                 @endif
             @endif
 
             <!-- Community Contribution CTA -->
-            <section class="relative mt-14 sm:mt-20">
+            <section class="relative mt-16 sm:mt-20">
                 <div data-material="opaque-cta" class="living-majlis-cta relative overflow-hidden rounded-[1.5rem] border border-emerald-800/15 px-6 py-10 text-white sm:px-8 md:px-10 md:py-11">
                     <!-- One quiet field texture keeps the dark CTA grounded. -->
                     <div class="absolute inset-0 opacity-[0.08]" style="background-image: radial-gradient(circle at 1.5px 1.5px, rgba(255,255,255,.70) 1px, transparent 0); background-size: 22px 22px;"></div>

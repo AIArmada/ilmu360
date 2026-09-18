@@ -177,11 +177,11 @@ All under prefix `/api/v1`. Routes grouped by auth middleware as defined in `rou
 | 13 | GET | `/v1/catalogs/countries` | `CatalogController@countries` | List countries |
 | 14 | GET | `/v1/catalogs/states` | `CatalogController@states` | List states |
 | 15 | GET | `/v1/catalogs/cities` | `CatalogController@cities` | List cities |
-| 16 | GET | `/v1/catalogs/admin-area-level-1` | `CatalogController@adminAreaLevel1` | List districts |
-| 17 | GET | `/v1/catalogs/admin-area-level-2` | `CatalogController@adminAreaLevel2` | List subdistricts |
+| 16 | GET | `/v1/catalogs/administrative-districts` | `CatalogController@administrativeDistricts` | List districts |
+| 17 | GET | `/v1/catalogs/administrative-subdivisions` | `CatalogController@administrativeSubdivisions` | List subdistricts |
 | 18 | GET | `/v1/catalogs/languages` | `CatalogController@languages` | List languages |
 | 19 | GET | `/v1/catalogs/taxonomy-terms/{type}` | `CatalogController@taxonomyTerms` | List taxonomy terms |
-| 20 | GET | `/v1/catalogs/tags/{type}` | `CatalogController@tags` | List tags by type |
+| 20 | — | `/v1/catalogs/tags/{type}` (removed) | — | Removed; use `taxonomy-terms/{type}` (row 19) |
 | 21 | GET | `/v1/catalogs/references` | `CatalogController@references` | List references |
 | 22 | GET | `/v1/catalogs/submit-institutions` | `CatalogController@submitInstitutions` | List institutions for forms |
 | 23 | GET | `/v1/catalogs/submit-persons` | `CatalogController@submitPersons` | List persons for forms |

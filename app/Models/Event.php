@@ -1993,14 +1993,14 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
         $this->addMediaCollection('cover')
             ->useDisk(config('media-library.disk_name'))
             ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
-            ->useFallbackUrl(asset('images/placeholders/event.png'))
+            ->useFallbackUrl(asset('images/placeholders/event-square-v1.png'))
             ->withResponsiveImages()
             ->singleFile();
 
         $this->addMediaCollection('poster')
             ->useDisk(config('media-library.disk_name'))
             ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
-            ->useFallbackUrl(asset('images/placeholders/event.png'))
+            ->useFallbackUrl(asset('images/placeholders/event-square-v1.png'))
             ->withResponsiveImages()
             ->singleFile();
 
@@ -2212,7 +2212,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
     {
         $coverUrl = $this->preferredMediaUrl($this->getFirstMedia('cover'), ['thumb']);
 
-        return $coverUrl ?? asset('images/placeholders/event.png');
+        return $coverUrl ?? asset('images/placeholders/event-square-v1.png');
     }
 
     /**
@@ -2241,7 +2241,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
             }
         }
 
-        return asset('images/placeholders/event.png');
+        return asset('images/placeholders/event-square-v1.png');
     }
 
     /**

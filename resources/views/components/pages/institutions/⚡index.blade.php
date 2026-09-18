@@ -8,13 +8,15 @@ use App\Models\Institution;
 use App\Models\User;
 use App\Services\ShareTrackingService;
 use App\Support\Auth\IntendedRedirect;
-use App\Support\Cache\SelectionCatalogCache;
+use App\Support\Location\LocationSlugResolver;
 use App\Support\Location\VisitorCountryResolver;
 use App\Support\Search\InstitutionSearchService;
 use App\Support\Timezone\UserDateTimeFormatter;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
@@ -29,15 +31,23 @@ class extends Component
 {
     use WithPagination;
 
-    private bool $defaultCountryIdResolved = false;
+    private bool $defaultCountrySlugResolved = false;
 
-    private ?string $resolvedDefaultCountryId = null;
+    private ?string $resolvedDefaultCountrySlug = null;
+
+    /**
+     * @var array{country_id: ?string, state_id: ?string, city_id: ?string, district_id: ?string, subdivision_id: ?string, locality_id: ?string}|null
+     */
+    private ?array $memoizedLocationIds = null;
 
     public function mount(): void
     {
-        if ($this->country_id === null) {
-            $this->country_id = $this->defaultCountryId();
+        if ($this->country === null) {
+            $this->country = $this->defaultCountrySlug();
         }
+
+        $this->normalizeLocationSlugs();
+        $this->autoSelectSingleLocationChildren();
 
         $user = auth()->user();
 
@@ -53,20 +63,28 @@ class extends Component
     #[Url]
     public ?string $search = null;
 
+    /**
+     * Location filters as URL slugs (country=malaysia&state=johor). Queries
+     * still filter by IDs via locationIds(); slugs resolve through cached
+     * maps scoped exactly like the dropdowns that offer them.
+     */
     #[Url]
-    public ?string $country_id = null;
+    public ?string $country = null;
 
     #[Url]
-    public ?string $state_id = null;
+    public ?string $state = null;
 
     #[Url]
-    public ?string $city_id = null;
+    public ?string $city = null;
 
     #[Url]
-    public ?string $administrative_district_id = null;
+    public ?string $locality = null;
 
     #[Url]
-    public ?string $administrative_subdivision_id = null;
+    public ?string $district = null;
+
+    #[Url]
+    public ?string $subdivision = null;
 
     /**
      * @var list<string>
@@ -80,19 +98,21 @@ class extends Component
         $baseQuery = $this->baseInstitutionsQuery();
 
         if ($search === null) {
-            return $baseQuery
+            $paginator = $baseQuery
                 ->publicDirectoryOrder()
                 ->paginate(12)
                 ->withQueryString();
+        } else {
+            $directMatches = $this->directSearch($search);
+
+            $paginator = $directMatches->total() > 0 || mb_strlen($search) < 3
+                ? $directMatches
+                : $this->fuzzySearch($search);
         }
 
-        $directMatches = $this->directSearch($search);
+        $this->attachNextPublicEvents($paginator->items());
 
-        if ($directMatches->total() > 0 || mb_strlen($search) < 3) {
-            return $directMatches;
-        }
-
-        return $this->fuzzySearch($search);
+        return $paginator;
     }
 
     private function baseInstitutionsQuery(): Builder
@@ -100,15 +120,76 @@ class extends Component
         return $this->scopedInstitutionsQuery()
             ->select('institutions.*')
             ->selectSub($this->publicEventCountSubquery(), 'events_count')
-            ->selectSub($this->nextPublicEventQuery()->select('events.slug'), 'next_event_slug')
-            ->selectSub($this->nextPublicEventQuery()->select('events.title'), 'next_event_title')
-            ->selectSub($this->nextPublicEventQuery()->select('next_event_occurrences.starts_at'), 'next_event_starts_at')
+            ->selectSub($this->nextPublicEventQuery()->select('events.id'), 'next_event_id')
             ->with([
                 'addresses.state',
                 'addresses.city',
                 'addresses.areaAssignments.area',
                 'media',
             ]);
+    }
+
+    /**
+     * Hydrate the next-event card fields for one page of institutions in a
+     * single batched query. The listing only needs these three columns for
+     * the visible page, so repeating the same correlated LIMIT 1 subquery
+     * three times per row only triples that work — and each repetition
+     * evaluates its own "now", which can mix columns from different events
+     * at the boundary. Selecting the winning id per row and resolving its
+     * columns once keeps every card internally consistent.
+     *
+     * @param  array<int, Institution>  $institutions
+     */
+    private function attachNextPublicEvents(array $institutions): void
+    {
+        if ($institutions === []) {
+            return;
+        }
+
+        $nextEventIds = collect($institutions)
+            ->map(static fn (Institution $institution): mixed => $institution->getAttribute('next_event_id'))
+            ->filter()
+            ->map(static fn (mixed $id): string => (string) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        /** @var EloquentCollection<int, Event> $details */
+        $details = $nextEventIds === []
+            ? new EloquentCollection
+            : $this->nextPublicEventDetails($nextEventIds)->keyBy(static fn (Event $event): string => (string) $event->getKey());
+
+        foreach ($institutions as $institution) {
+            $detail = $details->get((string) $institution->getAttribute('next_event_id'));
+
+            $institution->setAttribute('next_event_slug', $detail?->getAttribute('slug'));
+            $institution->setAttribute('next_event_title', $detail?->getAttribute('title'));
+            $institution->setAttribute('next_event_starts_at', $detail?->getAttribute('next_event_starts_at'));
+            $institution->offsetUnset('next_event_id');
+        }
+    }
+
+    /**
+     * Resolve the card columns for already-selected next events. The id
+     * already identifies the earliest future (event, occurrence) pair per
+     * institution, so the event's minimum future occurrence start is exactly
+     * that pair's start — no tie-break needed for the timestamp itself.
+     *
+     * @param  list<string>  $eventIds
+     * @return EloquentCollection<int, Event>
+     */
+    private function nextPublicEventDetails(array $eventIds): EloquentCollection
+    {
+        $occurrencesTable = config('events.database.tables.event_occurrences', 'event_occurrences');
+
+        return Event::query()
+            ->select('events.id', 'events.slug', 'events.title')
+            ->selectRaw('min("'.$occurrencesTable.'"."starts_at") as next_event_starts_at')
+            ->join("{$occurrencesTable}", "{$occurrencesTable}.event_id", '=', 'events.id')
+            ->whereIn('events.id', $eventIds)
+            ->where("{$occurrencesTable}.starts_at", '>=', now())
+            ->groupBy('events.id', 'events.slug', 'events.title')
+            ->get();
     }
 
     private function scopedInstitutionsQuery(): Builder
@@ -124,13 +205,23 @@ class extends Component
      */
     private function publicEventCountSubquery(): Builder
     {
+        $occurrencesTable = config('events.database.tables.event_occurrences', 'event_occurrences');
+
         return Event::query()
             ->selectRaw('count(*)')
             ->whereColumn('events.institution_id', 'institutions.id')
             ->whereNotNull('events.published_at')
             ->whereIn('events.status', Event::PUBLIC_STATUSES)
             ->where('events.visibility', EventVisibility::Public->value)
-            ->whereHas('occurrences');
+            // A plain table EXISTS, not whereHas('occurrences'): the occurrence
+            // relation carries the event-owner global scope, which degrades to
+            // a tautological nested EXISTS in this public global context. The
+            // next-event lookup below already bypasses it with a plain join.
+            ->whereExists(function (QueryBuilder $query) use ($occurrencesTable): void {
+                $query->selectRaw('1')
+                    ->from($occurrencesTable)
+                    ->whereColumn("{$occurrencesTable}.event_id", 'events.id');
+            });
     }
 
     /**
@@ -307,21 +398,27 @@ class extends Component
     #[Computed]
     public function countries(): array
     {
-        return app(SelectionCatalogCache::class)->countryOptions();
+        return $this->locationSlugResolver()->countryMaps()['options'];
     }
 
     #[Computed]
     public function states(): array
     {
-        $countryId = $this->normalizedLocationId($this->country_id);
+        $countryId = $this->locationIds()['country_id'];
 
-        return SharedFormSchema::stateOptionsForCountry($countryId);
+        if ($countryId === null) {
+            return [];
+        }
+
+        return $this->locationSlugResolver()->stateMaps($countryId)['options'];
     }
 
     #[Computed]
     public function districts(): array
     {
-        return SharedFormSchema::districtOptionsForState($this->state_id, $this->country_id);
+        $ids = $this->locationIds();
+
+        return $this->locationSlugResolver()->districtMaps($ids['state_id'], $ids['country_id'])['options'];
     }
 
     #[Computed]
@@ -330,63 +427,177 @@ class extends Component
         // A city is never a valid first step in the cascade. The admin form
         // only exposes it after a state is selected, and Malaysia does not
         // expose it at all once its district/local-area profile applies.
-        if (! filled($this->state_id)) {
+        if (! filled($this->state)) {
+            return [];
+        }
+
+        $ids = $this->locationIds();
+
+        if ($this->localities() !== []) {
             return [];
         }
 
         // Follow the admin address form: once a country's profile exposes
         // district/local-area hierarchy, City is redundant and must not be
-        // offered as a parallel filter. Malaysia uses this path.
+        // offered as a parallel filter. Malaysia uses the role-specific path;
+        // other provider countries resolve through their own area slots.
         if (
-            SharedFormSchema::shouldShowDistrictField($this->state_id, $this->country_id)
-            || SharedFormSchema::shouldShowSubdistrictField($this->state_id, null, $this->country_id)
+            SharedFormSchema::shouldShowDistrictField($ids['state_id'], $ids['country_id'])
+            || SharedFormSchema::shouldShowSubdistrictField($ids['state_id'], null, $ids['country_id'])
+            || $this->districts() !== []
         ) {
             return [];
         }
 
-        return SharedFormSchema::cityOptionsForState($this->state_id, $this->country_id);
+        return $this->locationSlugResolver()->cityMaps($ids['state_id'], $ids['country_id'])['options'];
+    }
+
+    #[Computed]
+    public function localities(): array
+    {
+        if (! filled($this->state)) {
+            return [];
+        }
+
+        $ids = $this->locationIds();
+
+        return $this->locationSlugResolver()->localityMaps($ids['state_id'], $ids['country_id'])['options'];
     }
 
     #[Computed]
     public function subdistricts(): array
     {
-        if (! filled($this->state_id)) {
+        // Slot 2 needs its parent: the slot-1 selection when the first slot
+        // exists, otherwise the state (federal-territory-style profiles, and
+        // provider countries whose cascade skips State entirely).
+        if ($this->districts() !== []) {
+            if (! filled($this->district)) {
+                return [];
+            }
+        } elseif (! filled($this->state)) {
             return [];
         }
 
-        // For states with a district hierarchy, mukim is the child filter and
-        // must not be offered until a district has been selected. Federal
-        // territories intentionally skip district and expose local areas
-        // directly under the selected state.
-        if (
-            SharedFormSchema::shouldShowDistrictField($this->state_id, $this->country_id)
-            && ! filled($this->administrative_district_id)
-        ) {
-            return [];
-        }
+        $ids = $this->locationIds();
 
-        return SharedFormSchema::subdistrictOptionsForSelection($this->state_id, $this->administrative_district_id, $this->country_id);
+        return $this->locationSlugResolver()->subdivisionMaps($ids['state_id'], $ids['district_id'], $ids['country_id'])['options'];
     }
 
     public function stateLabel(): string
     {
-        return SharedFormSchema::locationLevelLabel($this->country_id, 'state_id', __('State / Federal Territory'));
+        return SharedFormSchema::locationLevelLabel($this->locationIds()['country_id'], 'state_id', __('State / Province'));
     }
 
     public function districtLabel(): string
     {
-        return SharedFormSchema::locationLevelLabel($this->country_id, 'administrative_district', __('District'));
+        $countryId = $this->locationIds()['country_id'];
+        $role = $this->locationSlugResolver()->districtRoleForCountry($countryId);
+
+        return $role === null
+            ? __('District')
+            : SharedFormSchema::locationLevelLabel($countryId, $role, __('District'));
     }
 
     public function subdistrictLabel(): string
     {
-        return SharedFormSchema::locationLevelLabel($this->country_id, 'administrative_subdivision', __('Subdivision'));
+        $countryId = $this->locationIds()['country_id'];
+        $role = $this->locationSlugResolver()->subdivisionRoleForCountry($countryId);
+
+        return $role === null
+            ? __('Subdivision')
+            : SharedFormSchema::locationLevelLabel($countryId, $role, __('Subdivision'));
+    }
+
+    public function localityLabel(): string
+    {
+        return SharedFormSchema::locationLevelLabel($this->locationIds()['country_id'], 'postal_locality', __('Locality / Precinct / Kampung'));
     }
 
     public function isParentlessAreaProfileSelection(): bool
     {
-        return SharedFormSchema::shouldShowSubdistrictField($this->state_id, null, $this->country_id)
-            && ! SharedFormSchema::shouldShowDistrictField($this->state_id, $this->country_id);
+        $ids = $this->locationIds();
+
+        return SharedFormSchema::shouldShowSubdistrictField($ids['state_id'], null, $ids['country_id'])
+            && ! SharedFormSchema::shouldShowDistrictField($ids['state_id'], $ids['country_id']);
+    }
+
+    public function isDistrictFilterDisabled(): bool
+    {
+        if ($this->districts() === []) {
+            return true;
+        }
+
+        // Slot 1 hangs off the state dropdown when the country has a state
+        // level, otherwise directly off the country (stateless profiles like
+        // Singapore, where $state can never be filled).
+        return $this->states() !== []
+            ? ! filled($this->state)
+            : ! filled($this->country);
+    }
+
+    private function autoSelectSingleLocationChildren(): void
+    {
+        if (! filled($this->state)) {
+            return;
+        }
+
+        $localities = $this->localities();
+
+        if ($localities !== []) {
+            $this->autoSelectSingleSlug('locality', $localities);
+
+            return;
+        }
+
+        $districts = $this->districts();
+
+        if ($districts !== [] && ! $this->isParentlessAreaProfileSelection()) {
+            if (! filled($this->district)) {
+                $this->autoSelectSingleSlug('district', $districts);
+            }
+
+            if (filled($this->district)) {
+                $this->autoSelectSingleSlug('subdivision', $this->subdistricts());
+            }
+
+            return;
+        }
+
+        $subdistricts = $this->subdistricts();
+
+        if ($subdistricts !== []) {
+            $this->autoSelectSingleSlug('subdivision', $subdistricts);
+
+            return;
+        }
+
+        $this->autoSelectSingleSlug('city', $this->cities());
+    }
+
+    /**
+     * @param  array<string, string>  $options
+     */
+    private function autoSelectSingleSlug(string $property, array $options): void
+    {
+        if (count($options) !== 1 || filled($this->{$property})) {
+            return;
+        }
+
+        $value = array_key_first($options);
+
+        if (! is_string($value)) {
+            return;
+        }
+
+        match ($property) {
+            'city' => $this->city = $value,
+            'district' => $this->district = $value,
+            'subdivision' => $this->subdivision = $value,
+            'locality' => $this->locality = $value,
+            default => null,
+        };
+
+        $this->memoizedLocationIds = null;
     }
 
     private function normalizedSearch(): ?string
@@ -405,31 +616,51 @@ class extends Component
         $this->resetPage();
     }
 
-    public function updatedCountryId(): void
+    public function updatedCountry(): void
     {
-        $this->state_id = null;
-        $this->city_id = null;
-        $this->administrative_district_id = null;
-        $this->administrative_subdivision_id = null;
+        $this->state = null;
+        $this->city = null;
+        $this->locality = null;
+        $this->district = null;
+        $this->subdivision = null;
+        $this->memoizedLocationIds = null;
         $this->resetPage();
     }
 
-    public function updatedStateId(): void
+    public function updatedState(): void
     {
-        $this->city_id = null;
-        $this->administrative_district_id = null;
-        $this->administrative_subdivision_id = null;
+        $this->city = null;
+        $this->locality = null;
+        $this->district = null;
+        $this->subdivision = null;
+        $this->memoizedLocationIds = null;
+        $this->autoSelectSingleLocationChildren();
         $this->resetPage();
     }
 
-    public function updatedAdministrativeDistrictId(): void
+    public function updatedDistrict(): void
     {
-        $this->administrative_subdivision_id = null;
+        $this->subdivision = null;
+        $this->memoizedLocationIds = null;
+        $this->autoSelectSingleLocationChildren();
         $this->resetPage();
     }
 
-    public function updatedAdministrativeSubdivisionId(): void
+    public function updatedSubdivision(): void
     {
+        $this->memoizedLocationIds = null;
+        $this->resetPage();
+    }
+
+    public function updatedCity(): void
+    {
+        $this->memoizedLocationIds = null;
+        $this->resetPage();
+    }
+
+    public function updatedLocality(): void
+    {
+        $this->memoizedLocationIds = null;
         $this->resetPage();
     }
 
@@ -442,11 +673,13 @@ class extends Component
     public function clearFilters(): void
     {
         $this->search = null;
-        $this->country_id = null;
-        $this->state_id = null;
-        $this->city_id = null;
-        $this->administrative_district_id = null;
-        $this->administrative_subdivision_id = null;
+        $this->country = null;
+        $this->state = null;
+        $this->city = null;
+        $this->locality = null;
+        $this->district = null;
+        $this->subdivision = null;
+        $this->memoizedLocationIds = null;
         $this->resetPage();
     }
 
@@ -513,17 +746,19 @@ class extends Component
 
     private function applyLocationScope(Builder $query): Builder
     {
-        $countryId = $this->normalizedLocationId($this->country_id);
-        $stateId = $this->normalizedLocationId($this->state_id);
-        $cityId = $this->normalizedLocationId($this->city_id);
-        $adminArea1Id = $this->normalizedLocationId($this->administrative_district_id);
-        $adminArea2Id = $this->normalizedLocationId($this->administrative_subdivision_id);
+        $ids = $this->locationIds();
+        $countryId = $ids['country_id'];
+        $stateId = $ids['state_id'];
+        $cityId = $ids['city_id'];
+        $localityId = $ids['locality_id'];
+        $adminArea1Id = $ids['district_id'];
+        $adminArea2Id = $ids['subdivision_id'];
 
-        if ($countryId === null && $stateId === null && $cityId === null && $adminArea1Id === null && $adminArea2Id === null) {
+        if ($countryId === null && $stateId === null && $cityId === null && $localityId === null && $adminArea1Id === null && $adminArea2Id === null) {
             return $query;
         }
 
-        return $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $stateId, $cityId, $adminArea1Id, $adminArea2Id): void {
+        return $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $stateId, $cityId, $localityId, $adminArea1Id, $adminArea2Id): void {
             if ($countryId !== null) {
                 $addressQuery->where('country_id', $countryId);
             }
@@ -536,44 +771,146 @@ class extends Component
                 $addressQuery->where('city_id', $cityId);
             }
 
-            if ($adminArea1Id !== null) {
+            if ($localityId !== null) {
                 $addressQuery->whereHas('areaAssignments', fn (Builder $assignmentQuery) => $assignmentQuery
-                    ->where('role', 'administrative_district')->where('address_area_id', $adminArea1Id));
+                    ->where('role', 'postal_locality')->where('address_area_id', $localityId));
             }
 
-            if ($adminArea2Id !== null) {
+            $districtRole = $this->locationSlugResolver()->districtRoleForCountry($countryId);
+            $subdivisionRole = $this->locationSlugResolver()->subdivisionRoleForCountry($countryId);
+
+            if ($adminArea1Id !== null && $districtRole !== null) {
                 $addressQuery->whereHas('areaAssignments', fn (Builder $assignmentQuery) => $assignmentQuery
-                    ->where('role', 'administrative_subdivision')->where('address_area_id', $adminArea2Id));
+                    ->where('role', $districtRole)->where('address_area_id', $adminArea1Id));
+            }
+
+            if ($adminArea2Id !== null && $subdivisionRole !== null) {
+                $addressQuery->whereHas('areaAssignments', fn (Builder $assignmentQuery) => $assignmentQuery
+                    ->where('role', $subdivisionRole)->where('address_area_id', $adminArea2Id));
             }
         });
     }
 
-    private function normalizedLocationId(?string $value): ?string
+    /**
+     * Resolve the URL slugs to package IDs, following the dropdown cascade:
+     * each level resolves within its parent's scope, and anything unknown
+     * resolves to null (filter ignored), like the old unknown UUIDs.
+     *
+     * @return array{country_id: ?string, state_id: ?string, city_id: ?string, locality_id: ?string, district_id: ?string, subdivision_id: ?string}
+     */
+    private function locationIds(): array
     {
-        if (! is_string($value)) {
-            return null;
+        if ($this->memoizedLocationIds !== null) {
+            return $this->memoizedLocationIds;
         }
 
-        $normalized = trim($value);
+        $resolver = $this->locationSlugResolver();
 
-        if ($normalized === '' || ! Str::isUuid($normalized)) {
-            return null;
-        }
+        $countrySlug = LocationSlugResolver::cleanSlug($this->country);
+        $countryId = $countrySlug !== null
+            ? ($resolver->countryMaps()['slugToId'][$countrySlug] ?? null)
+            : null;
 
-        return $normalized;
+        $stateSlug = LocationSlugResolver::cleanSlug($this->state);
+        $stateId = $countryId !== null && $stateSlug !== null
+            ? ($resolver->stateMaps($countryId)['slugToId'][$stateSlug] ?? null)
+            : null;
+
+        $citySlug = LocationSlugResolver::cleanSlug($this->city);
+        $cityId = $citySlug !== null
+            ? ($resolver->cityMaps($stateId, $countryId)['slugToId'][$citySlug] ?? null)
+            : null;
+
+        $localitySlug = LocationSlugResolver::cleanSlug($this->locality);
+        $localityId = $localitySlug !== null
+            ? ($resolver->localityMaps($stateId, $countryId)['slugToId'][$localitySlug] ?? null)
+            : null;
+
+        $districtSlug = LocationSlugResolver::cleanSlug($this->district);
+        $districtId = $districtSlug !== null
+            ? ($resolver->districtMaps($stateId, $countryId)['slugToId'][$districtSlug] ?? null)
+            : null;
+
+        $subdivisionSlug = LocationSlugResolver::cleanSlug($this->subdivision);
+        $subdivisionId = $subdivisionSlug !== null
+            ? ($resolver->subdivisionMaps($stateId, $districtId, $countryId)['slugToId'][$subdivisionSlug] ?? null)
+            : null;
+
+        return $this->memoizedLocationIds = [
+            'country_id' => $countryId,
+            'state_id' => $stateId,
+            'city_id' => $cityId,
+            'locality_id' => $localityId,
+            'district_id' => $districtId,
+            'subdivision_id' => $subdivisionId,
+        ];
     }
 
-    private function defaultCountryId(): ?string
+    /**
+     * Null out slugs that resolve to nothing so the dropdown selections stay
+     * consistent with the applied scope. Runs on the
+     * initial request only; later updates always carry valid dropdown slugs.
+     */
+    private function normalizeLocationSlugs(): void
     {
-        if ($this->defaultCountryIdResolved) {
-            return $this->resolvedDefaultCountryId;
+        $this->country = LocationSlugResolver::cleanSlug($this->country);
+        $this->state = LocationSlugResolver::cleanSlug($this->state);
+        $this->city = LocationSlugResolver::cleanSlug($this->city);
+        $this->locality = LocationSlugResolver::cleanSlug($this->locality);
+        $this->district = LocationSlugResolver::cleanSlug($this->district);
+        $this->subdivision = LocationSlugResolver::cleanSlug($this->subdivision);
+
+        $ids = $this->locationIds();
+
+        if ($this->country !== null && $ids['country_id'] === null) {
+            $this->country = null;
         }
 
-        $this->defaultCountryIdResolved = true;
+        if ($this->state !== null && $ids['state_id'] === null) {
+            $this->state = null;
+        }
+
+        if ($this->city !== null && $ids['city_id'] === null) {
+            $this->city = null;
+        }
+
+        if ($this->locality !== null && $ids['locality_id'] === null) {
+            $this->locality = null;
+        }
+
+        if ($this->district !== null && $ids['district_id'] === null) {
+            $this->district = null;
+        }
+
+        if ($this->subdivision !== null && $ids['subdivision_id'] === null) {
+            $this->subdivision = null;
+        }
+
+        $this->memoizedLocationIds = null;
+    }
+
+    private function locationSlugResolver(): LocationSlugResolver
+    {
+        return app(LocationSlugResolver::class);
+    }
+
+    private function defaultCountrySlug(): ?string
+    {
+        if ($this->defaultCountrySlugResolved) {
+            return $this->resolvedDefaultCountrySlug;
+        }
+
+        $this->defaultCountrySlugResolved = true;
 
         // Shared with the /majlis directory: the edge geo header (Cloudflare
         // CF-IPCountry) is the cheapest GeoIP, no mmdb/api needed when behind CF.
-        return $this->resolvedDefaultCountryId = app(VisitorCountryResolver::class)->resolve();
+        $countryId = app(VisitorCountryResolver::class)->resolve();
+
+        if ($countryId === null) {
+            return $this->resolvedDefaultCountrySlug = null;
+        }
+
+        return $this->resolvedDefaultCountrySlug = $this->locationSlugResolver()->countryMaps()['idToSlug'][$countryId] ?? null;
     }
 };
 ?>
@@ -592,33 +929,27 @@ class extends Component
     $countries = $this->countries;
     $states = $this->states;
     $cities = $this->cities;
+    $localities = $this->localities;
     $districts = $this->districts;
     $subdistricts = $this->subdistricts;
-    $countryId = $this->country_id;
-    $stateId = $this->state_id;
-    $cityId = $this->city_id;
-    $adminArea1Id = $this->administrative_district_id;
-    $adminArea2Id = $this->administrative_subdivision_id;
+    $country = $this->country;
+    $state = $this->state;
+    $city = $this->city;
+    $locality = $this->locality;
+    $district = $this->district;
+    $subdivision = $this->subdivision;
     $isParentlessAreaProfile = $this->isParentlessAreaProfileSelection();
     $stateLabel = $this->stateLabel();
     $districtLabel = $this->districtLabel();
     $subdistrictLabel = $this->subdistrictLabel();
-    $defaultCountryId = $this->defaultCountryId();
-    $hasScopedFilters = ($countryId !== $defaultCountryId && filled($countryId)) || filled($stateId) || filled($cityId) || filled($adminArea1Id) || filled($adminArea2Id);
-    $activeLocationFilterCount = collect([
-        $countryId !== $defaultCountryId ? $countryId : null,
-        $stateId,
-        $cityId,
-        $adminArea1Id,
-        $adminArea2Id,
-    ])->filter(static fn (mixed $value): bool => filled($value))->count();
+    $localityLabel = $this->localityLabel();
+    $defaultCountry = $this->defaultCountrySlug();
     $submitInstitutionUrl = route('contributions.submit-institution');
-    $institutionTotal = $institutions->total();
 @endphp
 
 <div data-art-direction="living-majlis" class="living-majlis-field relative min-h-screen overflow-x-clip text-slate-800">
         <!-- Hero Section -->
-        <div class="relative overflow-hidden border-b border-emerald-900/[0.06]">
+        <div class="relative isolate overflow-hidden border-b border-emerald-900/[0.06]">
             <div data-material="hero-field" class="absolute inset-0 overflow-hidden bg-[#f7f3e8]">
                 <img
                     src="{{ asset('images/institutions/pusat-ilmu-hero-background-v1.png') }}"
@@ -630,14 +961,18 @@ class extends Component
                     loading="eager"
                     decoding="async"
                 >
-                <div class="absolute inset-0 bg-gradient-to-r from-[#fafaf7]/90 via-[#fafaf7]/45 via-44% to-transparent"></div>
-                <div class="absolute inset-0 bg-gradient-to-b from-[#fffaf0]/10 via-transparent to-[#e7eee8]/15"></div>
+                <div class="absolute inset-0 bg-gradient-to-r from-[#fffdf8]/78 via-[#fffdf8]/24 to-transparent"></div>
             </div>
 
             <div class="relative mx-auto max-w-7xl px-5 py-14 sm:px-6 sm:py-20 lg:px-8 lg:py-16">
                  <h1 class="max-w-2xl font-heading text-4xl font-bold leading-[1.06] tracking-[-0.035em] text-emerald-950 text-balance sm:text-5xl lg:text-6xl">
                     {{ __('Centers of') }} <br class="hidden md:block" />
-                    <span class="text-emerald-700">{{ __('Knowledge & Community') }}</span>
+                    <span class="relative inline-block text-emerald-700">
+                        {{ __('Knowledge & Community') }}
+                        <svg class="absolute -bottom-2 left-0 h-3.5 w-full text-amber-500/80" viewBox="0 0 320 18" preserveAspectRatio="none" aria-hidden="true">
+                            <path d="M4 13C79 5 218 4 316 10" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" />
+                        </svg>
+                    </span>
                 </h1>
                 <p class="mt-6 max-w-xl text-base leading-7 text-slate-600 text-balance sm:mt-7 sm:text-lg">
                     {{ __('Connect with the mosques, suraus, and educational centers nurturing our community.') }}
@@ -658,21 +993,8 @@ class extends Component
             </div>
         </div>
 
-        <div class="relative z-10 mx-auto max-w-7xl px-5 py-7 sm:px-6 sm:py-8 lg:px-8">
-            <div data-institution-filters class="living-majlis-veil mx-auto max-w-4xl rounded-[1.5rem] p-5 text-left sm:p-6">
-                        <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
-                            <div class="flex items-center gap-2">
-                                <span class="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100">
-                                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 21a9 9 0 100-18 9 9 0 000 18Zm0 0c2.25-2.15 3.5-5.15 3.5-9S14.25 5.15 12 3m0 18c-2.25-2.15-3.5-5.15-3.5-9S9.75 5.15 12 3m-8.5 9h17" /></svg>
-                                </span>
-                                <div>
-                                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800/70">{{ __('Filter by location') }}</p>
-                                </div>
-                            </div>
-                            @if($activeLocationFilterCount > 0)
-                                <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 ring-1 ring-emerald-100">{{ $activeLocationFilterCount }} {{ __('active') }}</span>
-                            @endif
-                        </div>
+        <div class="relative z-10 mx-auto max-w-7xl px-5 py-5 sm:px-6 sm:py-6 lg:px-8">
+            <div data-institution-filters class="mx-auto max-w-4xl text-left">
                         <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
                         <div>
                             <label for="institution-country-filter" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -680,13 +1002,13 @@ class extends Component
                             </label>
                             <flux:select
                                 id="institution-country-filter"
-                                wire:model.live="country_id"
+                                wire:model.live="country"
                                 size="sm"
                                 class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 shadow-sm transition-[border-color,box-shadow,background-color] hover:border-emerald-300 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                             >
-                                <flux:select.option value="" :selected="$countryId === null">{{ __('All countries') }}</flux:select.option>
-                                @foreach($countries as $id => $name)
-                                    <flux:select.option value="{{ $id }}" :selected="(string) $id === $countryId">{{ $name }}</flux:select.option>
+                                <flux:select.option value="" :selected="$country === null">{{ __('All countries') }}</flux:select.option>
+                                @foreach($countries as $slug => $name)
+                                    <flux:select.option value="{{ $slug }}" :selected="(string) $slug === $country">{{ $name }}</flux:select.option>
                                 @endforeach
                             </flux:select>
                         </div>
@@ -698,14 +1020,34 @@ class extends Component
                             </label>
                             <flux:select
                                 id="institution-state-filter"
-                                wire:model.live="state_id"
-                                :disabled="! filled($countryId)"
+                                wire:model.live="state"
+                                :disabled="! filled($country)"
                                 size="sm"
                                 class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 shadow-sm transition-[border-color,box-shadow,background-color] hover:border-emerald-300 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                             >
                                 <flux:select.option value="">{{ __('All :level', ['level' => $stateLabel]) }}</flux:select.option>
-                                @foreach($states as $id => $name)
-                                    <flux:select.option value="{{ $id }}">{{ $name }}</flux:select.option>
+                                @foreach($states as $slug => $name)
+                                    <flux:select.option value="{{ $slug }}">{{ $name }}</flux:select.option>
+                                @endforeach
+                            </flux:select>
+                        </div>
+                        @endif
+
+                        @if($localities !== [])
+                        <div>
+                            <label for="institution-locality-filter" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                {{ $localityLabel }}
+                            </label>
+                            <flux:select
+                                id="institution-locality-filter"
+                                wire:model.live="locality"
+                                :disabled="! filled($state)"
+                                size="sm"
+                                class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 shadow-sm transition-[border-color,box-shadow,background-color] hover:border-emerald-300 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                            >
+                                <flux:select.option value="">{{ __('All :level', ['level' => $localityLabel]) }}</flux:select.option>
+                                @foreach($localities as $slug => $name)
+                                    <flux:select.option value="{{ $slug }}">{{ $name }}</flux:select.option>
                                 @endforeach
                             </flux:select>
                         </div>
@@ -718,14 +1060,14 @@ class extends Component
                             </label>
                             <flux:select
                                 id="institution-city-filter"
-                                wire:model.live="city_id"
-                                :disabled="! filled($stateId)"
+                                wire:model.live="city"
+                                :disabled="! filled($state)"
                                 size="sm"
                                 class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 shadow-sm transition-[border-color,box-shadow,background-color] hover:border-emerald-300 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                             >
                                 <flux:select.option value="">{{ __('All cities') }}</flux:select.option>
-                                @foreach($cities as $id => $name)
-                                    <flux:select.option value="{{ $id }}">{{ $name }}</flux:select.option>
+                                @foreach($cities as $slug => $name)
+                                    <flux:select.option value="{{ $slug }}">{{ $name }}</flux:select.option>
                                 @endforeach
                             </flux:select>
                         </div>
@@ -738,14 +1080,14 @@ class extends Component
                                 </label>
                                 <flux:select
                                     id="institution-district-filter"
-                                    wire:model.live="administrative_district_id"
-                                    :disabled="! filled($stateId)"
+                                    wire:model.live="district"
+                                    :disabled="$this->isDistrictFilterDisabled()"
                                     size="sm"
                                     class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 shadow-sm transition-[border-color,box-shadow,background-color] hover:border-emerald-300 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                                 >
                                     <flux:select.option value="">{{ __('All :level', ['level' => $districtLabel]) }}</flux:select.option>
-                                    @foreach($districts as $id => $name)
-                                        <flux:select.option value="{{ $id }}">{{ $name }}</flux:select.option>
+                                    @foreach($districts as $slug => $name)
+                                        <flux:select.option value="{{ $slug }}">{{ $name }}</flux:select.option>
                                     @endforeach
                                 </flux:select>
                             </div>
@@ -758,32 +1100,20 @@ class extends Component
                             </label>
                             <flux:select
                                 id="institution-subdistrict-filter"
-                                wire:model.live="administrative_subdivision_id"
-                                :disabled="$isParentlessAreaProfile ? ! filled($stateId) : ! filled($adminArea1Id)"
+                                wire:model.live="subdivision"
+                                :disabled="$isParentlessAreaProfile ? ! filled($state) : ! filled($district)"
                                 size="sm"
                                 class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 shadow-sm transition-[border-color,box-shadow,background-color] hover:border-emerald-300 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                             >
                                 <flux:select.option value="">{{ __('All :level', ['level' => $subdistrictLabel]) }}</flux:select.option>
-                                @foreach($subdistricts as $id => $name)
-                                    <flux:select.option value="{{ $id }}">{{ $name }}</flux:select.option>
+                                @foreach($subdistricts as $slug => $name)
+                                    <flux:select.option value="{{ $slug }}">{{ $name }}</flux:select.option>
                                 @endforeach
                             </flux:select>
                         </div>
                         @endif
                         </div>
 
-	                    <div class="mt-5 flex justify-end border-t border-slate-200/80 pt-4">
-	                        @if($hasScopedFilters)
-	                            <button
-	                                type="button"
-	                                wire:click="clearFilters"
-	                                class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-bold text-red-500 transition hover:bg-red-50 hover:text-red-600 focus:outline-none focus:ring-4 focus:ring-red-500/10"
-	                            >
-	                                <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" d="M6 6l8 8M14 6l-8 8" /></svg>
-	                                {{ __('Clear Location Scope') }}
-	                            </button>
-	                        @endif
-	                    </div>
             </div>
         </div>
 
@@ -791,7 +1121,7 @@ class extends Component
             @island(name: 'institution-results', always: true)
                 @php
                     $institutions = $this->institutions;
-                    $institutionLoadingTarget = 'search,country_id,state_id,city_id,administrative_district_id,administrative_subdivision_id,clearSearch,clearFilters';
+                    $institutionLoadingTarget = 'search,country,state,city,locality,district,subdivision,clearSearch,clearFilters';
                     $formatInstitutionLocation = static function ($addressModel): string {
                         $parts = \App\Support\Location\AddressHierarchyFormatter::parts($addressModel);
 
@@ -932,7 +1262,7 @@ class extends Component
                 </div>
 
 		                <div class="mt-16">
-		                    {{ $institutions->withQueryString()->links() }}
+	                    {{ $institutions->withQueryString()->links('vendor.livewire.directory-pagination') }}
 		                </div>
 
 	            @endif

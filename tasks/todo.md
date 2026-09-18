@@ -1,3 +1,18 @@
+# Match institution hero underline
+
+## Plan
+
+- [x] Trace the existing `/penceramah` underline treatment.
+- [x] Reuse it on the `/institusi` hero heading and verify both directory pages.
+
+# Polish header menu button edge
+
+## Plan
+
+- [x] Inspect the live header buttons and trace the shared glossy material styles.
+- [x] Remove the hard lower offset edge while preserving the highlight and soft depth.
+- [x] Rebuild the frontend bundle and verify the live rendering.
+
 # Design event authoring workflow for occurrences, sessions, registration, tickets, and seats
 
 ## Plan
@@ -3199,3 +3214,264 @@ The affected-surface run completed with 118 passing tests and 472 assertions; it
 
 - The hero now ends cleanly after the search field; the location filter sits 32px below it on desktop and 28px below it on mobile.
 - Desktop and 390px checks show no horizontal overflow or console errors; the filter controls and result cards remain functional.
+
+# Current Task: Simplify institution location filter presentation — 2026-09-17
+
+## Plan
+
+- [x] Remove the translucent rounded section treatment from the location filter.
+- [x] Keep the compact heading, controls, and light divider on the page surface.
+- [x] Rebuild and verify the result at desktop and mobile widths.
+
+## Review / Results
+
+- The filter now reads as a compact page-level control row with no background container, rounded card, or shadow.
+- Desktop and 390px screenshots confirm the layout stays compact and overflow-free; the existing Livewire filter controls remain intact.
+
+# Current Task: Remove remaining filter chrome — 2026-09-17
+
+## Plan
+
+- [x] Remove the “Filter by location” heading treatment.
+- [x] Remove the horizontal divider beneath the location controls.
+- [x] Rebuild and verify the compact desktop/mobile presentation.
+
+## Review / Results
+
+- The location selects now stand alone without the section heading or divider; active-filter clearing remains available when a scoped filter is selected.
+- Desktop and 390px screenshots show no overflow or console errors.
+
+# Current Task: Refine Malay location label — 2026-09-17
+
+## Plan
+
+- [x] Replace “Mukim / Daerah kecil / Bandar / Pekan” with “Mukim / Bandar / Pekan” in Malay locales.
+- [x] Verify the translation files remain clean.
+
+## Review / Results
+
+- Updated both `ms` and `ms_MY` translations without changing the underlying location filter behavior.
+
+# Current Task: Localize location-scope clear action — 2026-09-17
+
+## Plan
+
+- [x] Add Malay translations for “Clear Location Scope” in both Malay locales.
+- [x] Preserve the shared key for English and all existing filter actions.
+
+## Review / Results
+
+- The action now renders as “Kosongkan Skop Lokasi” under `ms` and `ms_MY`.
+
+# Current Task: Localize active-filter count — 2026-09-18
+
+## Plan
+
+- [x] Add the shared `active` translation key.
+- [x] Render the dynamic count as “2 aktif” in Malay locales while retaining “2 active” in English.
+
+## Review / Results
+
+- The institution filter’s dynamic active-count suffix is now locale-aware without changing the count logic.
+
+# Current Task: Correct Malaysia location-filter hierarchy — 2026-09-18
+
+## Plan
+
+- [x] Reproduce the Putrajaya filter cascade and inspect the canonical address profile, area roles, and stored records.
+- [x] Verify the administrative hierarchy against authoritative Malaysian/Putrajaya sources.
+- [x] Define and implement generic child-field behavior: hide empty levels and auto-select a level with one child, while resolving federal-territory profiles to their configured child role.
+- [x] Add regression coverage at the correct application seam and verify the institution filter in the browser at desktop and mobile widths.
+
+## Review / Results
+
+- Putrajaya now uses the configured `postal_locality` children, which are precincts, instead of the generic `cities` row.
+- Empty child levels remain hidden; singleton children are selected automatically through the cascade.
+- Location filtering uses the `postal_locality` assignment role, so selecting a precinct filters institutions by the canonical address data.
+- Added regression coverage for multi-precinct federal territories, singleton locality selection, and the existing Malaysia cascade.
+- Verification: `vendor/bin/pest --parallel tests/Feature/InstitutionIndexTest.php` passed with 37 tests and 190 assertions; the live Putrajaya page shows 20 precinct options and no city, district, or subdivision field.
+
+# Current Task: Verify location-filter query and search integration — 2026-09-18
+
+## Plan
+
+- [x] Trace the base listing, direct search, fuzzy search, pagination, URL state, and Livewire update paths.
+- [x] Add regression coverage proving precinct filters constrain each search mode and dynamic filter changes.
+- [x] Verify the Livewire requests and rendered URL state in the browser.
+
+## Review / Results
+
+- All listing and search paths continue through the same scoped institution query; fuzzy candidate IDs are narrowed by the active postal-locality filter before pagination.
+- Direct search, fuzzy search, URL query state, and Livewire locality changes are covered by the federal-territory regression test.
+- Verification: the focused test passed with 19 assertions; the full institution feature file passed with 37 tests and 202 assertions; browser Livewire update requests returned HTTP 200 with no console errors.
+
+# Current Task: Seed federal-territory postal localities — 2026-09-18
+
+## Plan
+
+- [x] Trace the existing institution seeders and package address-assignment helper.
+- [x] Add canonical `postal_locality` precinct assignments for Putrajaya, Kuala Lumpur, and Labuan seed data where applicable.
+- [x] Add focused seeder regression coverage and run formatting, static analysis, and affected tests.
+
+## Review / Results
+
+- Shared seeder address helpers now resolve postal children through the package's `postal` hierarchy and assign them with the `postal_locality` role.
+- Institution, postcode-import, and optional legacy Malaysia mosque seeders now populate matching postal localities without replacing administrative assignments.
+- Added a Putrajaya fixture proving `Presint 3` resolves to the canonical `Precinct 3` assignment.
+- Verification: focused seeder tests passed (2 tests, 19 assertions), institution directory tests passed (37 tests, 202 assertions), Pint passed, and focused PHPStan reported no errors.
+
+# Current Task: Generic location cascade on /institusi (SG/ID pilot) — 2026-09-18
+
+## Problem
+
+SG + ID filters stop at country → state although providers + data exist. Root cause (verified): `LocationSlugResolver::districtMaps/subdivisionMaps`, the index labels, and `applyLocationScope` hardcode MY roles (`administrative_district`, `administrative_subdivision`); SG uses `region`/`planning_area`, ID uses `regency`/`district` → zero options → rows hidden. Downstream mechanics (`areaQueryForRole`, parent bridging, relationships) are already role-generic.
+
+## Plan
+
+- [ ] `LocationSlugResolver`: add `districtRoleForCountry()` / `subdivisionRoleForCountry()` — exact MY roles first (bit-identical MY incl. URLs; required: MY lists `division` first structurally and has 17 division areas), else structural order of the administrative-hierarchy area levels; no-provider countries keep legacy strings.
+- [ ] Same file: `districtMaps`/`subdivisionMaps` (options + slugs) consume resolved roles; `stateMaps` returns empty when a provider exists without a state-kind level (SG CDC suppression — provider authoritative, no country hardcode).
+- [ ] Institusi blade only: `districtLabel`/`subdistrictLabel` + `applyLocationScope` roles from resolver; `cities()` gate also hides when the area cascade is active (no-op for MY). No render-markup changes (options-driven). Locality slot stays MY-only.
+- [ ] Lang: `Province`→`Provinsi`, `Regency / City`→`Kabupaten / Kota`, `Planning Region`→`Wilayah Perancangan`, `Planning Area`→`Kawasan Perancangan` in en/ms/ms_MY (MS wording provisional — copy-tweakable).
+- [ ] New `tests/Feature/InstitutionLocationCascadeTest.php` (do NOT touch peer-edited `InstitutionIndexTest.php`): ID 3-level cascade + end-to-end scoping proof, SG region→area + CDC suppression, MY regression pins.
+- [ ] Gates: new tests + `LocationSlugResolverTest` + `InstitutionIndexTest` (run-only) + Pint + scoped PHPStan.
+
+## Out of scope
+
+- Persons/references (verified: don't use this cascade), Filament forms (fixed MY schema), prod SG assignment backfill (data task via OneMap), SG CDC URLs (degrade to ignored filter).
+
+## Review / Results
+
+- `LocationSlugResolver` now resolves slot roles per country (exact MY roles first, else structural admin-hierarchy order); `stateMaps` suppresses State for providers without a state-kind level (SG CDCs hidden, provider-authoritative).
+- Institusi blade: labels, `applyLocationScope` roles, and the city-gate read resolved roles; `subdistricts()` gate generalized (slot-1 selection when slot 1 exists, else state) — required for SG's stateless cascade, parity-verified for MY by case analysis.
+- Labels now provider-driven: ID `Provinsi` → `Kabupaten / Kota` → `Daerah`; SG `Wilayah Perancangan` → `Kawasan Perancangan`; MY unchanged. New MS/EN keys added (MS planning wording provisional).
+- Verification: new `InstitutionLocationCascadeTest` 4/4 (ID 3-level + scoping proof, SG cascade + CDC suppression, MY/legacy pins), `LocationSlugResolverTest` 5/5, `InstitutionIndexTest` 37/37, Pint + scoped PHPStan clean. Live dev-data proof: SG 5 regions → Central 22 planning areas.
+- Audit follow-up: added city-gate suppression test (ID city row hidden while Kabupaten/Kota active) → 5/5; documented the 'administrative'-hierarchy-key preference. Audit verdict: slot-role exact-first shim + blade/labels/translations correctly app-side; recommend upstreaming only a `levelForRole($country, $role)` lookup (3 copies exist: package SyncAction, filament-addressing, app SharedFormSchema).
+- Legacy removal (dev, no prod): dropped exact-first pinning + fake default roles. Slots are now purely provider-driven — the two deepest area levels (finest + parent) — and nullable for unprofiled countries. Verified against seed data that first-two would collapse MY filtering (Johor/Selangor: 0 divisions); deepest-two keeps MY/ID/SG behavior identical. Cascade 5/5 (21 assertions), peer InstitutionIndexTest 37/37, Pint clean; scoped PHPStan clean on a cleared-cache re-run (an earlier run flaked with transient "severe errors / incomplete" — environmental, not from this change).
+- Package integration: deleted app `SharedFormSchema::profileLevelForRole()` (rule text now exists only in package `roleForLevel()`); all 5 call sites delegate to `levelForRole()`, and two shed the `?? ''` null-country hack (mixed param takes null). Verified: package request-caches profiles so HTTP load is unchanged; state-kind exclusion is nil-impact (every caller guards kind/parentKey after, or never queries a state fallback key). Gates: cascade+labels 11/11, peer InstitutionIndexTest 37/37, Pint + scoped PHPStan clean. Follow-up closed in package: SyncAction rejects non-area roles pre-transaction ("not an assignable area role"); verified gate in place, app gates green (cascade+labels 11/11, ContributionWorkflowService 10/10) — no app change needed. Independent one-pass probe via pest --agent (9 assertions, /tmp/sync-probe.php): valid role persists 1 row; state_id → "not an assignable area role" + 0 rows; unknown role → "not defined by the country address profile" + 0 rows; mixed payload → state_id message + 0 rows (atomic).
+- Live proof /institusi (real Chromium via pest browser + curl): SG stateless cascade Wilayah→Kawasan (5 regions, 22 areas under Central), ID Provinsi→Kabupaten/Kota→Daerah (6 + 10 live), MY unchanged; seeded probe institution appeared under Bishan filter and vanished under Geylang (dev restored to SG:0 after). No-JS-errors on all pages. Note: no Chrome MCP in this session — used pest-plugin-browser against the live Herd host instead.
+- Rollout to venues (/tempat): slot roles + state gate + provider labels via LocationSlugResolver; props renamed administrative_district_id→district_id (dev, no legacy); new VenueLocationCascadeTest 3/3, VenueIndexTest 7/7.
+- Rollout to catalog API: administrative-districts/subdivisions endpoints resolve slot roles per country (SG regions/planning areas, ID regency/district), states endpoint gated for stateless providers; endpoint/param names kept as stable slot identifiers. New CatalogLocationCascadeTest 3/3; AdminApiTest 83/83, peer FrontendApiParityTest 102/102 run-only.
+- Rollout to events index: dynamic Filament slot selects (area_assignments.<role>) with provider labels, state label + stateless gate, generalized reset cascade; scope path untouched (already role-generic). New EventLocationCascadeTest 3/3. EventSearchTest 102 pass + 4 pre-existing failures proven via stash (fail identically without any cascade changes).
+- Sweep: persons index is state-only (no cascade), submit-event is venue-based (no manual cascade), entry forms use package AddressFormSchema (already profile-driven) — nothing further to port. Gates: Pint + scoped PHPStan clean.
+- Page coverage check (/rujukan, /penceramah, /majlis, /): /majlis IS events.index (ported) — live-verified ID regency + SG region→planning_area fields with correct labels, no SG state; /rujukan has zero location filtering; /penceramah state-UUID scope only (no cascade UI); / homepage has no cascade (geolocation + unscoped sections only). No further ports needed.
+- Entry-form port (both /sumbangan pages + admin + venue forms via shared regionalLocationFields): area fields now the union of all providers' roles (11 fields, MY hierarchy first) with per-country visibility, state select gated for stateless providers (SG falls back to the existing free-text state input), city gate + resets + parent resolution generalized to slots. Mirrors the package AddressFormSchema mechanism (static union + runtime visibility). New ContributionLocationCascadeTest 3/3; caught + fixed a real bug of mine (slug-keyed stateMaps options fed to ID-based selects) with a new resolver stateOptionsForCountry() + unit pins. Sweep: 118 pass + 1 pre-existing failure (named-param, proven via stash). Google picker stays MY-typed (needs per-country component mapping — separate project). /hantar-majlis picks existing venues only — no manual cascade, nothing to port.
+
+# Current Task: Match the login page to the supplied visual reference — 2026-09-18
+
+## Plan
+
+- [x] Replace the auth layout background with a clean reference-derived architectural image and preserve real HTML form behavior.
+- [x] Rebuild the login card, branding, supporting copy, controls, and responsive spacing to match the reference composition.
+- [x] Keep redirect-aware auth links and all validation/form semantics intact.
+- [x] Verify the rendered page at desktop, compile Blade views and assets, and check the diff. The responsive layout uses mobile-first stacking and a wide-desktop-only side note.
+
+## Review / Results
+
+- Added `public/images/auth/login-background-v1.png`, derived from the supplied courtyard reference with the baked-in card and text removed.
+- Rebuilt `resources/views/layouts/auth.blade.php` around the full-bleed scene, responsive card shell, side editorial note, subtle card pattern, and reference-matched brand treatment.
+- Updated `resources/views/livewire/auth/login.blade.php` with the reference copy hierarchy, field icons, static sign-in arrow, validation-preserving inputs, and lifelong-learning quote.
+- Preserved the existing Fortify login POST, Google-login conditional, password reset redirect, registration redirect, CSRF protection, and validation messages.
+- Verification: Blade templates cached successfully, Vite production assets built successfully, browser AX state retained all login controls and redirect-aware links, and desktop screenshots match the intended composition.
+
+# Current Task: Match `/penceramah` pagination to the supplied reference — 2026-09-18
+
+## Plan
+
+- [ ] Inspect the current rendered paginator and identify the existing view/classes without changing pagination behavior.
+- [ ] Match the reference geometry, active/inactive/arrow states, range text, and spacing responsively.
+- [ ] Verify desktop rendering and ensure page/query navigation remains intact.
+
+## Review / Results
+
+- [x] Replaced the global Livewire paginator presentation only for `/penceramah` with a scoped custom view: separate compact controls, emerald active page, white inactive/arrow buttons, and reference-style range text.
+- [x] Removed the paginator's visible panel and tightened the gap before the suggestion CTA to match the supplied composition.
+- [x] Verified Livewire navigation from page 1 to page 2 (`Memaparkan 13–24 daripada 30 keputusan`) and back to page 1 in the browser.
+- [x] Verification: Blade templates cached successfully, Vite production assets built successfully, and `git diff --check` passed.
+
+## Follow-up adjustment
+
+- [x] Increased the responsive top margin on the suggestion CTA so the space after pagination is visibly calmer while leaving the paginator controls unchanged.
+
+# Current Task: Connect footer social profiles — 2026-09-18
+
+## Plan
+
+- [x] Replace placeholder footer social targets with the supplied X, Instagram, and TikTok profiles.
+- [x] Keep the footer icon set limited to platforms with confirmed official URLs and open external profiles safely.
+- [x] Verify the rendered footer links and cache the Blade views.
+
+## Review / Results
+
+- Footer now shows matching X, Instagram, and TikTok icons with the supplied URLs, `target="_blank"`, and `rel="noopener noreferrer"`.
+- Removed the unused Facebook and YouTube placeholder links.
+- Verification: the rendered footer exposes exactly the three supplied destinations, browser console has no errors, Blade templates cached successfully, and `git diff --check` passed.
+
+## Follow-up adjustment
+
+- [x] Increased the responsive top margin above the “Cadangkan penceramah” section again, leaving the pagination controls and their internal alignment unchanged.
+
+# Current Task: Share the reference pagination across directory pages — 2026-09-18
+
+## Plan
+
+- [ ] Reuse the same custom Livewire paginator view for `/institusi`, `/rujukan`, and `/majlis` without changing their query or URL behavior.
+- [ ] Preserve each page's existing pagination container spacing and scroll target while matching the shared control styling.
+- [ ] Cache/build the updated views and verify the rendered paginator output on the directory pages.
+
+## Review / Results
+
+- [x] Added the shared `vendor.livewire.directory-pagination` view and routed `/penceramah`, `/institusi`, `/rujukan`, and `/majlis` through it.
+- [x] Preserved each page's existing paginator data, query-string handling, and spacing wrapper; only the rendered control view changed.
+- [x] Verified the HTML response from all four Herd URLs contains the compact shared paginator classes and Malay range label markup.
+- [x] Verification: Blade templates cached successfully, Vite production assets built successfully, and `git diff --check` passed.
+
+# Current Task: Generalize Google place picker to provider-driven resolution — 2026-09-18
+
+## Plan
+
+- [x] Derive Google component mapping from provider hierarchy shape (no per-country branches) in a new `GooglePlaceComponentMapper`.
+- [x] Rewrite `ResolveGooglePlaceSelectionAction` around provider roles/types/levels: provisional root for omitted countries, ordered candidate matching, postcode-pivot postal lookup, ancestor recovery, alias + prefix-tolerant names, state/city text fallbacks.
+- [x] Generalize the picker trait null-merge to all entry roles; widen `SharedFormSchema::entryAreaRoles()` to public.
+- [x] Rewrite ID fixtures to realistic provider data; add SG, alias, and unprofiled-country tests; update the two exact-key trait tests.
+- [x] Verify: unit + picker + cascade suites, Pint, PHPStan, legacy-action sensitivity check, live tinker probe on real MY/ID/SG data incl. rolled-back Sync gate check.
+
+## Review / Results
+
+- ID picks now resolve `regency`/`district` roles against real `regency`/`city`/`district` types; SG picks resolve `region`/`planning_area` stateless with `state` text fallback; postal levels resolve via the generic postcode pivot.
+- MY parity: all 6 pre-existing tests pass unchanged; production FT roots now resolve through the `Kuala Lumpur` provider alias.
+- Verification: 12/12 unit, picker + cascade suites green (1 pre-existing `searchInstitutionOptions` named-param failure proven via stash), Pint clean, PHPStan clean on changed files, new tests fail 6/6 against the legacy action, live probe resolves all four payloads Sync-accepted.
+
+# Current Task: Picker gap surfacing (unresolved-name logging) — 2026-09-18 — PLAN (awaiting approval)
+
+## Plan
+
+- [ ] Collect picker misses during `ResolveGooglePlaceSelectionAction::handle()` (state-root miss, per-area-level miss after all recovery incl. postcode pivot, ambiguity flagged by reason) and flush once at the end inside try/catch so logging never breaks a pick.
+- [ ] Persist one row per (country_code, role, normalized value) in a new `place_resolution_gaps` table (uuid PK, no FKs): raw value, hits counter, first/last seen, sample place reference. Skip city (text fallback is by design) and absent components (no attempt, no gap).
+- [ ] Add `php artisan addressing:place-gaps [--country=] [--days=30]` reporting top gaps by hits; no auto-delete (stale gaps fall off by recency; reappearance = regression signal).
+- [ ] Tests: gap row on unresolvable pick, repeat pick bumps hits not rows, ambiguity reason, clean pick logs nothing; plus command test.
+- [ ] Verify: new tests + full unit file, Pint, PHPStan on touched files, live tinker demo (force ID gap, run command, clean up demo rows).
+
+## Decisions for user
+
+- Storage: DB table (recommended, grouped review across 100s of providers) vs log-channel-only (cheaper, grep-based).
+- Report: artisan only in v1 (recommended) vs include a Filament page now.
+
+## Out of scope
+
+- Auto-alias creation, notifications, auto-suggesting which alias/prefix to add.
+
+## Update 2026-09-18: gap work moved to commerce packages
+
+- Direction settled: `addressing` owns gap table + log/match/ignore actions + report/export commands; `filament-addressing` owns the review-and-match resource; app later adds only the picker collector (source `google-picker`).
+- Read both packages fully first; handoff prompt rewritten as a two-workstream commerce task with promotion export/prune folded in: /tmp/package-gap-logging-handoff.md.
+
+## Fix 2026-09-18: SG /institusi cascade stranded by state-gated district filter
+
+- Root cause: the district (slot-1) select was `:disabled="! filled($state)"`; Singapore has no state level so `$state` can never fill and the Wilayah dropdown stayed disabled, hiding Kawasan forever. Data layer was fine (5 regions resolve).
+- Fix: new `isDistrictFilterDisabled()` on the index component (slot 1 hangs off state dropdown when the country has states, else off country); blade uses it. Venues/events already gate correctly; persons/references/home have no area filters.
+- Tests: 2 new in InstitutionLocationCascadeTest (SG select enabled in logic + rendered markup; MY stays gated until state picked). Existing SG cascade test missed it because `->set()` bypasses `disabled`. Verified live: SG Wilayah (5, enabled) -> Kawasan (22 under Central, enabled). Suites: cascade 7/7, index 37/37.
+
+## Audit 2026-09-18: addressing package docs vs 59 shipped providers
+
+- Consumer docs sufficient (01-04, 06-12, 99 + 05 catalog all accurate for the 37 registered). Gaps: no provider-authoring guide; 22 shipped-but-unregistered providers undocumented (AF AO AR AU BR CA CM CO GH IQ KR MG MM MX MZ PE PH TH TW UA UZ VN); registration-vs-shipping unexplained; no role/type catalog; rotting enumerations in 01/02; seeders-README stub.
+- Handover prompt for docs update: addressing-docs-handoff.md (workspace root).

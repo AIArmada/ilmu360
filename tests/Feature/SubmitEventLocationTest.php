@@ -5,6 +5,7 @@ use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventVisibility;
 use App\Enums\InstitutionNameType;
+use App\Forms\SharedFormSchema;
 use App\Livewire\Pages\Events\Index;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
@@ -234,9 +235,5 @@ it('keeps picker area assignment keys present for nested event locations', funct
                 ['longText' => 'Jalan Event', 'shortText' => 'Jalan Event', 'types' => ['route']],
             ],
         ])
-        ->assertSet('data.address.area_assignments', [
-            'administrative_district' => null,
-            'administrative_subdivision' => null,
-            'postal_locality' => null,
-        ]);
+        ->assertSet('data.address.area_assignments', array_fill_keys(SharedFormSchema::entryAreaRoles(), null));
 });

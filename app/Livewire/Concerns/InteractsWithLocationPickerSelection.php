@@ -6,7 +6,6 @@ namespace App\Livewire\Concerns;
 
 use App\Actions\Location\ResolveGooglePlaceSelectionAction;
 use App\Forms\SharedFormSchema;
-use App\Support\Location\AddressAssignments;
 
 trait InteractsWithLocationPickerSelection
 {
@@ -25,11 +24,10 @@ trait InteractsWithLocationPickerSelection
             'fallbackCountryId' => $currentAddress['country_id'] ?? null,
         ]));
 
-        $resolvedAddress['area_assignments'] = array_merge([
-            AddressAssignments::ADMINISTRATIVE_DISTRICT => null,
-            AddressAssignments::ADMINISTRATIVE_SUBDIVISION => null,
-            AddressAssignments::POSTAL_LOCALITY => null,
-        ], $resolvedAddress['area_assignments'] ?? []);
+        $resolvedAddress['area_assignments'] = array_merge(
+            array_fill_keys(SharedFormSchema::entryAreaRoles(), null),
+            $resolvedAddress['area_assignments'] ?? [],
+        );
 
         data_set($this, $statePath, array_merge($currentAddress, $resolvedAddress, [
             'cascade_reset_guard' => SharedFormSchema::publicLocationPickerCascadeResetGuard(),

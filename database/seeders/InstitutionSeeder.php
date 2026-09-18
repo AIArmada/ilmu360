@@ -69,6 +69,9 @@ class InstitutionSeeder extends Seeder
                 ?? ($states->isNotEmpty() ? $states->random() : null);
             $district = $state instanceof State ? $this->randomDistrictForState($state) : null;
             $subdistrict = $this->randomSubdistrictForDistrict($district);
+            $postalLocality = $state instanceof State
+                ? $this->postalLocalityForStateText($state, $data['line1'])
+                : null;
 
             $inst = Institution::firstOrCreate(
                 ['name' => $data['name']],
@@ -98,7 +101,7 @@ class InstitutionSeeder extends Seeder
                 'country_id' => $malaysia?->id,
                 'latitude' => $data['lat'],
                 'longitude' => $data['lng'],
-            ], $state, $district, $subdistrict));
+            ], $state, $district, $subdistrict, $postalLocality));
 
             // Skip authorization for speed
             // $inst->ensureAuthzScope();
@@ -135,6 +138,7 @@ class InstitutionSeeder extends Seeder
                     $state = $states->random();
                     $district = $this->randomDistrictForState($state);
                     $subdistrict = $this->randomSubdistrictForDistrict($district);
+                    $postalLocality = $this->randomPostalLocalityForState($state);
 
                     $this->seedPrimaryPackageAddress($institution, $this->packageAddressAttributes([
                         'line1' => $institution->primaryAddress()?->line1,
@@ -143,7 +147,7 @@ class InstitutionSeeder extends Seeder
                         'country_id' => $malaysia?->id,
                         'latitude' => $institution->primaryAddress()?->latitude,
                         'longitude' => $institution->primaryAddress()?->longitude,
-                    ], $state, $district, $subdistrict));
+                    ], $state, $district, $subdistrict, $postalLocality));
                 }
 
                 // Skip authorization setup for speed - will be set up on first access

@@ -162,18 +162,20 @@ class MalaysiaPoskodMasjidSeeder extends Seeder
                 return $institution;
             });
 
-            Addressable::withoutEvents(function () use ($institution, $record, $state, $district, $subdistrict): void {
-                $packageStateId = AddressAreaStateBridge::stateIdForArea($state);
+            $packageStateId = AddressAreaStateBridge::stateIdForArea($state);
+            $postalLocality = $this->postalLocalityForStateText($packageStateId, $this->searchableText($record));
 
+            Addressable::withoutEvents(function () use ($institution, $record, $district, $subdistrict, $packageStateId, $postalLocality): void {
                 $this->seedPrimaryPackageAddress($institution, [
                     'line1' => $this->nullableString($record['Alamat']),
                     'postcode' => $this->normalizePostcode($record['Poskod']),
                     'country_id' => (string) $this->malaysia->getKey(),
                     'state_id' => $packageStateId,
-                    // Product: area_1 = district, area_2 = subdistrict.
+                    // Keep administrative and postal/address geography assignments separate.
                     'area_assignments' => array_filter([
                         'administrative_district' => $district?->getKey(),
                         'administrative_subdivision' => $subdistrict?->getKey(),
+                        'postal_locality' => $postalLocality?->getKey(),
                     ]),
                 ]);
             });

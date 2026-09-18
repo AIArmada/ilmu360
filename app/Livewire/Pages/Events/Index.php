@@ -30,6 +30,7 @@ use App\Services\EventSearchService;
 use App\Services\PublicScheduleDiscoveryService;
 use App\Support\Auth\IntendedRedirect;
 use App\Support\Language\MalaysiaLanguageCatalog;
+use App\Support\Location\LocationSlugResolver;
 use App\Support\Location\PublicGeolocationPermission;
 use App\Support\Location\VisitorCountryResolver;
 use App\Support\Timezone\UserDateTimeFormatter;
@@ -69,14 +70,14 @@ class Index extends Component implements HasForms
     use WithPagination;
 
     /**
-     * Area roles with filter selects. Form state always carries these keys
-     * (null-filled) so nested bindings resolve; search criteria stay sparse.
+     * Area roles with fixed filter selects. Form state always carries these
+     * keys (null-filled) so nested bindings resolve; search criteria stay
+     * sparse. The district/subdivision cascade slots resolve per country and
+     * are merged in by {@see areaAssignmentRoles()}.
      */
-    private const array AREA_ASSIGNMENT_ROLES = [
+    private const array FIXED_AREA_ASSIGNMENT_ROLES = [
         'administrative_division',
         'postal_locality',
-        'administrative_district',
-        'administrative_subdivision',
     ];
 
     #[Url]
@@ -301,11 +302,10 @@ class Index extends Component implements HasForms
      * chosen one.
      *
      * The country carries no implicit meaning on its own — it only widens the
-     * address cascade. When the resolved country has a Geography provider
-     * (Malaysia, for example) the state, district, subdivision, division and
-     * locality fields are populated by SharedFormSchema and revealed by their
-     * `visible()` guards. Countries without a provider simply leave those
-     * levels empty.
+     * address cascade. The state, cascade-slot, division and locality fields
+     * follow the resolved country's provider profile and are revealed by
+     * their `visible()` guards. Countries without a provider simply leave
+     * those levels empty.
      */
     private function applyDefaultCountryScope(): void
     {
@@ -501,11 +501,12 @@ class Index extends Component implements HasForms
                             ->live(),
 
                         Select::make('state_id')
-                            ->label(__('Negeri'))
+                            ->label($this->stateLabel())
                             ->placeholder(__('Pilih negeri'))
                             ->searchable()
                             ->preload()
                             ->disabled(fn (): bool => ! filled($this->country_id))
+                            ->visible(fn (): bool => ! filled($this->country_id) || $this->states->isNotEmpty())
                             ->options(fn (): array => $this->states
                                 ->mapWithKeys(fn (State $state): array => [(string) $state->getKey() => (string) $state->name])
                                 ->all())
@@ -544,38 +545,7 @@ class Index extends Component implements HasForms
                             ->extraAttributes(['data-signal-control' => 'area_assignments.postal_locality'])
                             ->live(),
 
-                        Select::make('area_assignments.administrative_district')
-                            ->label(__('Daerah'))
-                            ->placeholder(__('Pilih daerah'))
-                            ->searchable()
-                            ->disabled(fn (): bool => ! filled($this->country_id) && ! filled($this->state_id))
-                            ->visible(fn (): bool => SharedFormSchema::shouldShowDistrictField($this->state_id, $this->country_id))
-                            ->getSearchResultsUsing(fn (Get $get, string $search): array => $this->searchAreaOptions(
-                                role: 'administrative_district',
-                                countryId: $this->normalizeNullableString($get('country_id')),
-                                stateId: $this->normalizeNullableString($get('state_id')),
-                                search: $search,
-                            ))
-                            ->getOptionLabelUsing(fn (?string $value): ?string => $this->areaOptionLabel($value))
-                            ->extraAttributes(['data-signal-control' => 'area_assignments.administrative_district'])
-                            ->live(),
-
-                        Select::make('area_assignments.administrative_subdivision')
-                            ->label(__('Bandar / Mukim / Zon'))
-                            ->placeholder(__('Semua kawasan'))
-                            ->searchable()
-                            ->disabled(fn (): bool => ! filled($this->country_id) && ! filled($this->state_id))
-                            ->visible(fn (): bool => SharedFormSchema::shouldShowSubdistrictField($this->state_id, $this->area_assignments['administrative_district'] ?? null, $this->country_id))
-                            ->getSearchResultsUsing(fn (Get $get, string $search): array => $this->searchAreaOptions(
-                                role: 'administrative_subdivision',
-                                countryId: $this->normalizeNullableString($get('country_id')),
-                                stateId: $this->normalizeNullableString($get('state_id')),
-                                districtId: $this->normalizeAreaAssignments($get('area_assignments'))['administrative_district'] ?? null,
-                                search: $search,
-                            ))
-                            ->getOptionLabelUsing(fn (?string $value): ?string => $this->areaOptionLabel($value))
-                            ->extraAttributes(['data-signal-control' => 'area_assignments.administrative_subdivision'])
-                            ->live(),
+                        ...$this->areaSlotSelects(),
 
                         Select::make('institution_id')
                             ->label(__('Institution'))
@@ -758,16 +728,27 @@ class Index extends Component implements HasForms
 
     public function updatedFilterData(mixed $value = null, ?string $key = null): void
     {
+        [$slot0, $slot1] = $this->slotRoles();
+
         if ($key === 'country_id') {
             $this->filterData['state_id'] = null;
             $this->filterData['area_assignments'] = $this->withAreaAssignmentDefaults([]);
         } elseif ($key === 'state_id') {
             $this->filterData['area_assignments'] = $this->withAreaAssignmentDefaults([]);
         } elseif ($key === 'area_assignments.administrative_division') {
-            $this->filterData['area_assignments']['administrative_district'] = null;
-            $this->filterData['area_assignments']['administrative_subdivision'] = null;
-        } elseif ($key === 'area_assignments.administrative_district') {
-            $this->filterData['area_assignments']['administrative_subdivision'] = null;
+            // A slot colliding with the fixed division field defers to it
+            // (see areaSlotSelects) and is never cleared here.
+            if ($slot0 !== null && $slot0 !== 'administrative_division') {
+                $this->filterData['area_assignments'][$slot0] = null;
+            }
+
+            if ($slot1 !== null && $slot1 !== 'administrative_division') {
+                $this->filterData['area_assignments'][$slot1] = null;
+            }
+        } elseif ($slot0 !== null && $key === "area_assignments.{$slot0}") {
+            if ($slot1 !== null) {
+                $this->filterData['area_assignments'][$slot1] = null;
+            }
         }
 
         $normalized = $this->normalizedFilterData($this->filterData);
@@ -958,6 +939,10 @@ class Index extends Component implements HasForms
             return collect();
         }
 
+        if (app(LocationSlugResolver::class)->stateMaps($this->country_id)['options'] === []) {
+            return collect();
+        }
+
         return State::query()
             ->where('country_id', $this->country_id)
             ->orderBy('name')
@@ -984,6 +969,138 @@ class Index extends Component implements HasForms
     }
 
     /**
+     * Area roles with filter selects: the fixed division/locality roles plus
+     * the country's resolved cascade-slot roles.
+     *
+     * @return list<string>
+     */
+    private function areaAssignmentRoles(): array
+    {
+        return array_values(array_unique(array_merge(
+            self::FIXED_AREA_ASSIGNMENT_ROLES,
+            array_filter($this->slotRoles()),
+        )));
+    }
+
+    /**
+     * Cascade-slot roles for the selected country. The slots show the two
+     * deepest area levels of the country's provider profile; a null slot
+     * renders no field.
+     *
+     * @return array{?string, ?string}
+     */
+    private function slotRoles(): array
+    {
+        $countryId = $this->normalizeNullableString($this->country_id);
+        $resolver = app(LocationSlugResolver::class);
+
+        return [
+            $resolver->districtRoleForCountry($countryId),
+            $resolver->subdivisionRoleForCountry($countryId),
+        ];
+    }
+
+    public function stateLabel(): string
+    {
+        return SharedFormSchema::locationLevelLabel($this->normalizeNullableString($this->country_id), 'state_id', __('State / Province'));
+    }
+
+    public function districtLabel(): string
+    {
+        $countryId = $this->normalizeNullableString($this->country_id);
+        $role = app(LocationSlugResolver::class)->districtRoleForCountry($countryId);
+
+        return $role === null
+            ? __('District')
+            : SharedFormSchema::locationLevelLabel($countryId, $role, __('District'));
+    }
+
+    public function subdistrictLabel(): string
+    {
+        $countryId = $this->normalizeNullableString($this->country_id);
+        $role = app(LocationSlugResolver::class)->subdivisionRoleForCountry($countryId);
+
+        return $role === null
+            ? __('Subdivision')
+            : SharedFormSchema::locationLevelLabel($countryId, $role, __('Subdivision'));
+    }
+
+    /**
+     * Cascade-slot selects for the selected country. Slots whose role
+     * collides with a fixed field (division) defer to that field.
+     *
+     * @return list<Select>
+     */
+    private function areaSlotSelects(): array
+    {
+        [$slot0, $slot1] = $this->slotRoles();
+
+        $selects = [];
+
+        if ($slot0 !== null && ! in_array($slot0, self::FIXED_AREA_ASSIGNMENT_ROLES, true)) {
+            $districtLabel = $this->districtLabel();
+
+            $selects[] = Select::make("area_assignments.{$slot0}")
+                ->label($districtLabel)
+                ->placeholder(__('All :level', ['level' => $districtLabel]))
+                ->searchable()
+                ->disabled(fn (): bool => ! filled($this->country_id) && ! filled($this->state_id))
+                ->visible(fn (): bool => SharedFormSchema::areaOptionsForRole($this->country_id, $slot0, $this->state_id) !== [])
+                ->getSearchResultsUsing(fn (Get $get, string $search): array => $this->searchAreaOptions(
+                    role: $slot0,
+                    countryId: $this->normalizeNullableString($get('country_id')),
+                    stateId: $this->normalizeNullableString($get('state_id')),
+                    search: $search,
+                ))
+                ->getOptionLabelUsing(fn (?string $value): ?string => $this->areaOptionLabel($value))
+                ->extraAttributes(['data-signal-control' => "area_assignments.{$slot0}"])
+                ->live();
+        }
+
+        if ($slot1 !== null && ! in_array($slot1, self::FIXED_AREA_ASSIGNMENT_ROLES, true)) {
+            $subdistrictLabel = $this->subdistrictLabel();
+
+            $selects[] = Select::make("area_assignments.{$slot1}")
+                ->label($subdistrictLabel)
+                ->placeholder(__('All :level', ['level' => $subdistrictLabel]))
+                ->searchable()
+                ->disabled(fn (): bool => ! filled($this->country_id) && ! filled($this->state_id))
+                ->visible(fn (): bool => $this->subdivisionSlotOptions() !== [])
+                ->getSearchResultsUsing(fn (Get $get, string $search): array => $this->searchAreaOptions(
+                    role: $slot1,
+                    countryId: $this->normalizeNullableString($get('country_id')),
+                    stateId: $this->normalizeNullableString($get('state_id')),
+                    districtId: $this->normalizeAreaAssignments($get('area_assignments'))[$slot0 ?? ''] ?? null,
+                    search: $search,
+                ))
+                ->getOptionLabelUsing(fn (?string $value): ?string => $this->areaOptionLabel($value))
+                ->extraAttributes(['data-signal-control' => "area_assignments.{$slot1}"])
+                ->live();
+        }
+
+        return $selects;
+    }
+
+    /**
+     * @return array<int|string, string>
+     */
+    private function subdivisionSlotOptions(): array
+    {
+        [, $slot1] = $this->slotRoles();
+
+        if ($slot1 === null) {
+            return [];
+        }
+
+        return $this->searchAreaOptions(
+            role: $slot1,
+            countryId: $this->normalizeNullableString($this->country_id),
+            stateId: $this->normalizeNullableString($this->state_id),
+            districtId: $this->normalizeAreaAssignments($this->area_assignments)[$this->slotRoles()[0] ?? ''] ?? null,
+        );
+    }
+
+    /**
      * @return array<string, string>
      */
     private function searchAreaOptions(
@@ -997,11 +1114,14 @@ class Index extends Component implements HasForms
             return [];
         }
 
-        $options = match ($role) {
-            'administrative_district' => SharedFormSchema::districtOptionsForState($stateId, $countryId),
-            'administrative_subdivision' => SharedFormSchema::subdistrictOptionsForSelection($stateId, $districtId, $countryId),
-            default => SharedFormSchema::areaOptionsForRole($countryId, $role, $stateId),
-        };
+        $slot1 = app(LocationSlugResolver::class)->subdivisionRoleForCountry($countryId);
+
+        // The second slot searches under the selected first-slot area,
+        // falling back to the state (or the whole country) so deep areas
+        // stay directly searchable without selecting every parent first.
+        $parentId = $slot1 !== null && $role === $slot1 ? ($districtId ?? $stateId) : $stateId;
+
+        $options = SharedFormSchema::areaOptionsForRole($countryId, $role, $parentId);
 
         return $this->filterAreaOptions($options, $search);
     }
@@ -1800,9 +1920,13 @@ class Index extends Component implements HasForms
      */
     private function weekendDateRange(CarbonInterface $today): array
     {
-        $weekendStart = ($today->isSaturday() || $today->isSunday())
-            ? $today->copy()
-            : $today->copy()->next(CarbonInterface::SATURDAY);
+        // On Sunday the weekend began yesterday: anchor on Saturday so the
+        // range stays Sat + Sun instead of drifting into Monday. Past
+        // Saturday events stay excluded because the discovery layer drops
+        // leaves that already ended for the upcoming time scope.
+        $weekendStart = $today->isSunday()
+            ? $today->copy()->subDay()
+            : ($today->isSaturday() ? $today->copy() : $today->copy()->next(CarbonInterface::SATURDAY));
 
         // Inclusive Sat + Sun; the search layer extends starts_before to end-of-day.
         return [$weekendStart, $weekendStart->copy()->addDay()];
@@ -1855,7 +1979,7 @@ class Index extends Component implements HasForms
      */
     private function withAreaAssignmentDefaults(array $assignments): array
     {
-        return $assignments + array_fill_keys(self::AREA_ASSIGNMENT_ROLES, null);
+        return $assignments + array_fill_keys($this->areaAssignmentRoles(), null);
     }
 
     private function normalizeNullableString(mixed $value): ?string

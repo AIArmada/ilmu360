@@ -472,7 +472,7 @@ class Index extends Component
     {
         return match ($filterKey) {
             'country_id' => __('Country'),
-            'state_id' => __('State / Federal Territory'),
+            'state_id' => __('State / Province'),
             'city_id' => __('City'),
             'area_assignments' => __('Administrative Areas'),
             'institution_id' => __('Institution'),

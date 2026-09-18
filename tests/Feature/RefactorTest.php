@@ -49,5 +49,5 @@ test('event card image url uses default placeholder', function (): void {
         $event->update(['institution_id' => null]);
     });
 
-    $this->assertEquals(asset('images/placeholders/event.png'), $event->card_image_url);
+    $this->assertEquals(asset('images/placeholders/event-square-v1.png'), $event->card_image_url);
 });

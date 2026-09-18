@@ -6,6 +6,7 @@ use AIArmada\Addressing\Actions\SyncAddressAreaAssignmentsAction;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressAreaAssignment;
+use AIArmada\Addressing\Models\AddressAreaRelationship;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\State;
 use AIArmada\Addressing\Support\AddressAreaStateBridge;
@@ -164,6 +165,53 @@ trait SeedsPackageAddresses
     }
 
     /**
+     * @return Collection<int, AddressArea>
+     */
+    protected function postalLocalitiesForState(State|string|null $state): Collection
+    {
+        $postalRootId = AddressAreaStateBridge::areaIdForState($state, 'postal');
+
+        if ($postalRootId === null) {
+            return collect();
+        }
+
+        return AddressArea::query()
+            ->whereIn('id', AddressAreaRelationship::query()
+                ->where('parent_address_area_id', $postalRootId)
+                ->where('relationship_type', 'contains')
+                ->where('hierarchy_type', 'postal')
+                ->select('child_address_area_id'))
+            ->where('is_active', true)
+            ->whereIn('type', ['locality', 'precinct'])
+            ->orderBy('name')
+            ->get();
+    }
+
+    protected function randomPostalLocalityForState(State|string|null $state): ?AddressArea
+    {
+        $localities = $this->postalLocalitiesForState($state);
+
+        return $localities->isEmpty() ? null : $localities->random();
+    }
+
+    protected function postalLocalityForStateText(State|string|null $state, ?string $text): ?AddressArea
+    {
+        $needle = $this->normalizePostalLocalityLookup($text);
+
+        if ($needle === '') {
+            return null;
+        }
+
+        return $this->postalLocalitiesForState($state)->first(
+            function (AddressArea $area) use ($needle): bool {
+                $candidate = $this->normalizePostalLocalityLookup($area->name);
+
+                return $candidate !== '' && ($candidate === $needle || str_contains($needle, $candidate));
+            },
+        );
+    }
+
+    /**
      * Build package-native address attributes.
      *
      * @param  array<string, mixed>  $attributes
@@ -174,6 +222,7 @@ trait SeedsPackageAddresses
         ?State $state = null,
         ?AddressArea $district = null,
         ?AddressArea $subdistrict = null,
+        ?AddressArea $postalLocality = null,
     ): array {
         if ($state instanceof State) {
             $attributes['state_id'] = (string) $state->getKey();
@@ -187,6 +236,10 @@ trait SeedsPackageAddresses
 
         if ($subdistrict instanceof AddressArea) {
             $attributes['area_assignments']['administrative_subdivision'] = (string) $subdistrict->getKey();
+        }
+
+        if ($postalLocality instanceof AddressArea) {
+            $attributes['area_assignments']['postal_locality'] = (string) $postalLocality->getKey();
         }
 
         return $attributes;
@@ -321,5 +374,14 @@ trait SeedsPackageAddresses
             ->implode(', ');
 
         return $attributes;
+    }
+
+    private function normalizePostalLocalityLookup(?string $value): string
+    {
+        $normalized = Str::upper((string) $value);
+        $normalized = preg_replace('/\\bPRESINT\\b/', 'PRECINCT', $normalized) ?? $normalized;
+        $normalized = preg_replace('/[^A-Z0-9]+/', ' ', $normalized) ?? $normalized;
+
+        return trim(preg_replace('/\\s+/', ' ', $normalized) ?? $normalized);
     }
 }

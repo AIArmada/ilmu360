@@ -992,3 +992,33 @@
 - When a user tightens CTA copy after visual approval, update the source key and all locale entries together so the rendered label and translation fallback cannot drift.
 - When aligning shared hero search fields, match both the component width and visible-label treatment; a label/count row changes the perceived position even when the input component itself is shared.
 - When a control panel disrupts an image-backed hero, move the whole panel outside the hero wrapper and preserve its reactive bindings; styling it in place still leaves the visual composition crowded.
+- When a user asks for a filter to feel compact, remove the section surface itself—not just its size—and retain only the semantic heading, controls, and one quiet divider.
+- When a user removes the remaining filter chrome, let the controls stand alone and keep only stateful affordances such as the active count and clear action when they are actually needed.
+- For localized copy corrections, update every active regional locale while preserving the shared source key so UI behavior and translation lookup remain unchanged.
+- For UI action localization, add the shared key to the base locale as well as each active regional locale so fallback and translation catalogs stay complete.
+- For dynamic UI fragments built from a count plus a suffix, localize the suffix key directly so the number remains unchanged and the rendered phrase follows the active locale.
+- For Malaysian federal-territory directory filters, keep postal localities/precincts separate from administrative mukim or city options; use the configured hierarchy role and cover empty and singleton child cascades with URL/filter regression tests.
+- When adding a dynamic location filter, verify the unfiltered paginator, direct search, fuzzy search, URL query state, and Livewire property updates all reuse the same scoped base query; testing only the dropdown rendering can miss search paths that bypass the filter.
+- When a directory filter is backed by address-area roles, seed data must assign the same role used by the query; storing only state/city or administrative areas leaves valid postal-locality options unable to match seeded records.
+- When matching full-bleed directory heroes, compare the actual rendered text field against the calmest sibling page; a visually continuous image still needs a localized text-side veil and a bounded search measure for reliable desktop and mobile readability.
+- When removing a hero eyebrow label, remove its dependent top margin as well so the heading does not retain an artificial gap.
+- For hero copy revisions, preserve the established two-part hierarchy: dark-green lead-in, green emphasis, and a yellow underline anchored to the emphasized phrase.
+- When a user removes a page-level promotional block, delete the whole CTA surface and its actions so no orphaned spacing or unused query payload remains.
+- When a directory needs a distinct hero, pair its own crop-safe raster asset with localized hero copy and preserve the sibling pages' calm text-side composition.
+- When a generated hero still exposes scene detail beneath copy, preserve the continuous artwork and use a localized text-side fade before altering the source image.
+- Keep directory hero headings on one shared responsive scale and add explicit desktop line breaks when the emphasized phrase should form the second visual line.
+- When removing a directory summary surface, remove its derived count variable with the markup so the page ends cleanly without dead view data.
+- When removing a footer destination, delete only its shared navigation item and keep route availability elsewhere unchanged.
+- When shortening localized control copy, update each active locale value while preserving the source key and its reactive behavior.
+- When simplifying a card affordance, remove only the targeted decorative cue and preserve the card link and primary action semantics.
+- When matching a reference auth screen, keep the scene as a real background asset and the form as live HTML; bake only decorative artwork into the image so redirects, validation, focus, and responsive layout remain functional.
+- For reference-matched pagination, scope a custom Livewire view to the target directory instead of changing the global paginator; preserve wire navigation and validate both the visual states and the rendered range after changing pages.
+- When the user asks for more space after a reference-matched paginator, adjust the CTA section's top margin rather than changing pagination control geometry or the paginator's internal layout.
+- For footer social links, keep the visible icon set aligned with confirmed official destinations; remove stale placeholder platforms instead of leaving `#` links that look interactive but do nothing.
+- When a repeated spacing request still feels too tight, increase only the downstream section margin in the same responsive breakpoint pair; do not distort the paginator's control spacing.
+- When several directory pages need identical pagination styling, route each paginator to one shared custom Livewire view while preserving each page's existing `withQueryString()` and scroll data.
+- When generalizing picker geography for many country providers, derive Google component mapping from provider hierarchy shape (postal vs administrative, area depth) with zero country branches; keep country knowledge to additive data escape hatches (name-prefix strips, provider aliases) with safe defaults.
+- When a picker payload may omit the country, resolve a provisional hierarchy root first under a legacy type scope to discover the country, then re-resolve authoritatively under the loaded profile's state types.
+- When matching provider area names against Google components, try the primary name first and fall back to provider-authored aliases only on zero matches so ambiguity semantics (several name matches never resolve) stay intact.
+- When testing Livewire cascades, `->set()` bypasses the `disabled` attribute, so a passing cascade test does not prove a real user can click through it: pin interactive gating with rendered-markup assertions (select tag without a standalone `disabled` attribute) plus the gating method, especially for stateless country profiles.
+- When gating a cascade filter's `disabled` state, derive the parent from the country's profile (state dropdown when a state level exists, country otherwise) instead of hard-requiring `$state`, or stateless profiles render a permanently disabled filter.

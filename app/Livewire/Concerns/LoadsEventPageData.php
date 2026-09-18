@@ -133,9 +133,11 @@ trait LoadsEventPageData
      */
     private function weekendDateRange(CarbonInterface $today): array
     {
-        $weekendStart = $today->isSaturday() || $today->isSunday()
-            ? $today->copy()
-            : $today->copy()->next(Carbon::SATURDAY);
+        // On Sunday the weekend began yesterday: anchor on Saturday so the
+        // window stays Sat + Sun instead of drifting into Monday.
+        $weekendStart = $today->isSunday()
+            ? $today->copy()->subDay()
+            : ($today->isSaturday() ? $today->copy() : $today->copy()->next(Carbon::SATURDAY));
 
         return [$weekendStart, $weekendStart->copy()->addDays(2)->startOfDay()];
     }

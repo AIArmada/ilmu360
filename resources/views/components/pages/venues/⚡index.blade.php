@@ -2,6 +2,7 @@
 
 use App\Forms\SharedFormSchema;
 use App\Models\Venue;
+use App\Support\Location\LocationSlugResolver;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -28,10 +29,10 @@ new
         public ?string $state_id = null;
 
         #[Url]
-        public ?string $administrative_district_id = null;
+        public ?string $district_id = null;
 
         #[Url]
-        public ?string $administrative_subdivision_id = null;
+        public ?string $subdivision_id = null;
 
         #[Computed]
         public function venues(): LengthAwarePaginatorContract
@@ -52,27 +53,79 @@ new
         #[Computed]
         public function states(): array
         {
-            $countryId = $this->normalizedLocationId($this->country_id);
-
-            return SharedFormSchema::stateOptionsForCountry($countryId);
+            return $this->locationSlugResolver()->stateOptionsForCountry($this->normalizedLocationId($this->country_id));
         }
 
         #[Computed]
         public function districts(): array
         {
-            return SharedFormSchema::districtOptionsForState($this->state_id, $this->country_id);
+            $countryId = $this->normalizedLocationId($this->country_id);
+            $role = $this->locationSlugResolver()->districtRoleForCountry($countryId);
+
+            if ($role === null) {
+                return [];
+            }
+
+            return SharedFormSchema::areaOptionsForRole($countryId, $role, $this->normalizedLocationId($this->state_id));
         }
 
         #[Computed]
         public function subdistricts(): array
         {
-            return SharedFormSchema::subdistrictOptionsForSelection($this->state_id, $this->administrative_district_id, $this->country_id);
+            $countryId = $this->normalizedLocationId($this->country_id);
+            $role = $this->locationSlugResolver()->subdivisionRoleForCountry($countryId);
+
+            if ($role === null) {
+                return [];
+            }
+
+            $parentId = $this->normalizedLocationId($this->district_id)
+                ?? ($this->isParentlessAreaProfileSelection() ? $this->normalizedLocationId($this->state_id) : null);
+
+            if ($parentId === null) {
+                return [];
+            }
+
+            return SharedFormSchema::areaOptionsForRole($countryId, $role, $parentId);
         }
 
         public function isParentlessAreaProfileSelection(): bool
         {
-            return SharedFormSchema::shouldShowSubdistrictField($this->state_id, null, $this->country_id)
-                && ! SharedFormSchema::shouldShowDistrictField($this->state_id, $this->country_id);
+            if ($this->districts() !== []) {
+                return false;
+            }
+
+            $countryId = $this->normalizedLocationId($this->country_id);
+            $role = $this->locationSlugResolver()->subdivisionRoleForCountry($countryId);
+            $stateId = $this->normalizedLocationId($this->state_id);
+
+            return $role !== null && $stateId !== null
+                && SharedFormSchema::areaOptionsForRole($countryId, $role, $stateId) !== [];
+        }
+
+        public function stateLabel(): string
+        {
+            return SharedFormSchema::locationLevelLabel($this->normalizedLocationId($this->country_id), 'state_id', __('State / Province'));
+        }
+
+        public function districtLabel(): string
+        {
+            $countryId = $this->normalizedLocationId($this->country_id);
+            $role = $this->locationSlugResolver()->districtRoleForCountry($countryId);
+
+            return $role === null
+                ? __('District')
+                : SharedFormSchema::locationLevelLabel($countryId, $role, __('District'));
+        }
+
+        public function subdistrictLabel(): string
+        {
+            $countryId = $this->normalizedLocationId($this->country_id);
+            $role = $this->locationSlugResolver()->subdivisionRoleForCountry($countryId);
+
+            return $role === null
+                ? __('Subdivision')
+                : SharedFormSchema::locationLevelLabel($countryId, $role, __('Subdivision'));
         }
 
         public function updatedSearch(): void
@@ -83,25 +136,25 @@ new
         public function updatedCountryId(): void
         {
             $this->state_id = null;
-            $this->administrative_district_id = null;
-            $this->administrative_subdivision_id = null;
+            $this->district_id = null;
+            $this->subdivision_id = null;
             $this->resetPage();
         }
 
         public function updatedStateId(): void
         {
-            $this->administrative_district_id = null;
-            $this->administrative_subdivision_id = null;
+            $this->district_id = null;
+            $this->subdivision_id = null;
             $this->resetPage();
         }
 
-        public function updatedAdministrativeDistrictId(): void
+        public function updatedDistrictId(): void
         {
-            $this->administrative_subdivision_id = null;
+            $this->subdivision_id = null;
             $this->resetPage();
         }
 
-        public function updatedAdministrativeSubdivisionId(): void
+        public function updatedSubdivisionId(): void
         {
             $this->resetPage();
         }
@@ -117,8 +170,8 @@ new
             $this->search = null;
             $this->country_id = null;
             $this->state_id = null;
-            $this->administrative_district_id = null;
-            $this->administrative_subdivision_id = null;
+            $this->district_id = null;
+            $this->subdivision_id = null;
             $this->resetPage();
         }
 
@@ -167,14 +220,17 @@ new
         {
             $countryId = $this->normalizedLocationId($this->country_id);
             $stateId = $this->normalizedLocationId($this->state_id);
-            $adminArea1Id = $this->normalizedLocationId($this->administrative_district_id);
-            $adminArea2Id = $this->normalizedLocationId($this->administrative_subdivision_id);
+            $adminArea1Id = $this->normalizedLocationId($this->district_id);
+            $adminArea2Id = $this->normalizedLocationId($this->subdivision_id);
 
             if ($countryId === null && $stateId === null && $adminArea1Id === null && $adminArea2Id === null) {
                 return $query;
             }
 
-            return $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $stateId, $adminArea1Id, $adminArea2Id): void {
+            $districtRole = $this->locationSlugResolver()->districtRoleForCountry($countryId);
+            $subdivisionRole = $this->locationSlugResolver()->subdivisionRoleForCountry($countryId);
+
+            return $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $stateId, $adminArea1Id, $adminArea2Id, $districtRole, $subdivisionRole): void {
                 if ($countryId !== null) {
                     $addressQuery->where('country_id', $countryId);
                 }
@@ -183,16 +239,21 @@ new
                     $addressQuery->where('state_id', $stateId);
                 }
 
-                if ($adminArea1Id !== null) {
+                if ($adminArea1Id !== null && $districtRole !== null) {
                     $addressQuery->whereHas('areaAssignments', fn (Builder $assignmentQuery) => $assignmentQuery
-                        ->where('role', 'administrative_district')->where('address_area_id', $adminArea1Id));
+                        ->where('role', $districtRole)->where('address_area_id', $adminArea1Id));
                 }
 
-                if ($adminArea2Id !== null) {
+                if ($adminArea2Id !== null && $subdivisionRole !== null) {
                     $addressQuery->whereHas('areaAssignments', fn (Builder $assignmentQuery) => $assignmentQuery
-                        ->where('role', 'administrative_subdivision')->where('address_area_id', $adminArea2Id));
+                        ->where('role', $subdivisionRole)->where('address_area_id', $adminArea2Id));
                 }
             });
+        }
+
+        private function locationSlugResolver(): LocationSlugResolver
+        {
+            return app(LocationSlugResolver::class);
         }
 
         private function normalizedSearch(): ?string
@@ -240,12 +301,15 @@ new
     $subdistricts = $this->subdistricts;
     $countryId = $this->country_id;
     $stateId = $this->state_id;
-    $adminArea1Id = $this->administrative_district_id;
-    $adminArea2Id = $this->administrative_subdivision_id;
+    $adminArea1Id = $this->district_id;
+    $adminArea2Id = $this->subdivision_id;
+    $stateLabel = $this->stateLabel();
+    $districtLabel = $this->districtLabel();
+    $subdistrictLabel = $this->subdistrictLabel();
     $isParentlessAreaProfile = $this->isParentlessAreaProfileSelection();
     $hasScopedFilters = filled($countryId) || filled($stateId) || filled($adminArea1Id) || filled($adminArea2Id);
     $venueTotal = $venues->total();
-    $venueLoadingTarget = 'search,country_id,state_id,administrative_district_id,administrative_subdivision_id,clearSearch,clearFilters';
+    $venueLoadingTarget = 'search,country_id,state_id,district_id,subdivision_id,clearSearch,clearFilters';
     $formatVenueLocation = static function ($addressModel): string {
         $parts = \App\Support\Location\AddressHierarchyFormatter::parts($addressModel);
 
@@ -297,35 +361,37 @@ new
                 </div>
 
                 <div class="mt-4 grid grid-cols-1 gap-3 text-left md:grid-cols-2 xl:grid-cols-3">
-                    <div>
-                        <label for="venue-state-filter" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            {{ __('Negeri') }}
-                        </label>
-                        <select
-                            id="venue-state-filter"
-                            wire:model.live="state_id"
-                            @disabled(! filled($countryId))
-                            class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
-                        >
-                            <option value="">{{ __('Semua Negeri') }}</option>
-                            @foreach($states as $id => $name)
-                                <option value="{{ $id }}">{{ $name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+                    @if(! filled($countryId) || $states !== [])
+                        <div>
+                            <label for="venue-state-filter" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                {{ $stateLabel }}
+                            </label>
+                            <select
+                                id="venue-state-filter"
+                                wire:model.live="state_id"
+                                @disabled(! filled($countryId))
+                                class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                            >
+                                <option value="">{{ __('All :level', ['level' => $stateLabel]) }}</option>
+                                @foreach($states as $id => $name)
+                                    <option value="{{ $id }}">{{ $name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
 
                     @unless($isParentlessAreaProfile)
                         <div>
                             <label for="venue-district-filter" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                {{ __('Daerah') }}
+                                {{ $districtLabel }}
                             </label>
                             <select
                                 id="venue-district-filter"
-                                    wire:model.live="administrative_district_id"
-                                @disabled(! filled($stateId))
+                                    wire:model.live="district_id"
+                                @disabled($districts === [])
                                 class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                             >
-                                <option value="">{{ __('Semua Daerah') }}</option>
+                                <option value="">{{ __('All :level', ['level' => $districtLabel]) }}</option>
                                 @foreach($districts as $id => $name)
                                     <option value="{{ $id }}">{{ $name }}</option>
                                 @endforeach
@@ -335,15 +401,15 @@ new
 
                     <div>
                         <label for="venue-subdistrict-filter" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            {{ __('Bandar / Mukim / Zon') }}
+                            {{ $subdistrictLabel }}
                         </label>
                         <select
                             id="venue-subdistrict-filter"
-                            wire:model.live="administrative_subdivision_id"
-                            @disabled($isParentlessAreaProfile ? ! filled($stateId) : ! filled($adminArea1Id))
+                            wire:model.live="subdivision_id"
+                            @disabled($subdistricts === [])
                             class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                         >
-                            <option value="">{{ __('Semua Bandar / Mukim / Zon') }}</option>
+                            <option value="">{{ __('All :level', ['level' => $subdistrictLabel]) }}</option>
                             @foreach($subdistricts as $id => $name)
                                 <option value="{{ $id }}">{{ $name }}</option>
                             @endforeach

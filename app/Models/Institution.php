@@ -426,15 +426,26 @@ class Institution extends Model implements AuditableContract, Followable, HasMed
             return;
         }
 
+        $phraseSearch = "%{$normalizedSearch}%";
         $wildcardSearch = '%'.str_replace(' ', '%', $normalizedSearch).'%';
-        $query->where(function (Builder $innerQuery) use ($normalizedSearch, $wildcardSearch): void {
-            $innerQuery
-                ->whereLike('institutions.name', "%{$normalizedSearch}%")
-                ->orWhereLike('institutions.name', $wildcardSearch);
+        $query->where(function (Builder $innerQuery) use ($phraseSearch, $wildcardSearch): void {
+            $innerQuery->whereLike('institutions.name', $phraseSearch);
 
-            $innerQuery->orWhereHas('names', fn (Builder $nameQuery): Builder => $nameQuery
-                ->whereLike('full_name', "%{$normalizedSearch}%")
-                ->orWhereLike('full_name', $wildcardSearch));
+            // Single-word searches produce identical phrase and wildcard
+            // patterns; repeating the predicate only doubles the filter work.
+            if ($wildcardSearch !== $phraseSearch) {
+                $innerQuery->orWhereLike('institutions.name', $wildcardSearch);
+            }
+
+            $innerQuery->orWhereHas('names', function (Builder $nameQuery) use ($phraseSearch, $wildcardSearch): Builder {
+                $nameQuery->whereLike('full_name', $phraseSearch);
+
+                if ($wildcardSearch !== $phraseSearch) {
+                    $nameQuery->orWhereLike('full_name', $wildcardSearch);
+                }
+
+                return $nameQuery;
+            });
         });
     }
 

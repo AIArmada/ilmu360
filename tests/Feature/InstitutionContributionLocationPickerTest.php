@@ -4,6 +4,7 @@ use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
+use App\Forms\SharedFormSchema;
 use App\Livewire\Pages\Contributions\SubmitInstitution;
 use App\Livewire\Pages\Contributions\SubmitPerson;
 use App\Models\Institution;
@@ -257,11 +258,7 @@ it('keeps the area assignment keys present when a place resolves no areas', func
                 ['longText' => 'Jalan Test', 'shortText' => 'Jalan Test', 'types' => ['route']],
             ],
         ])
-        ->assertSet('data.address.area_assignments', [
-            'administrative_district' => null,
-            'administrative_subdivision' => null,
-            'postal_locality' => null,
-        ]);
+        ->assertSet('data.address.area_assignments', array_fill_keys(SharedFormSchema::entryAreaRoles(), null));
 });
 
 it('persists the resolved city id when the city field is hidden', function () {

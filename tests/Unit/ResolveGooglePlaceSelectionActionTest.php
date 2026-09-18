@@ -1,10 +1,13 @@
 <?php
 
 use AIArmada\Addressing\Models\AddressArea;
+use AIArmada\Addressing\Models\AddressAreaName;
+use AIArmada\Addressing\Models\AddressAreaPostalCode;
 use AIArmada\Addressing\Models\AddressAreaRelationship;
 use AIArmada\Addressing\Models\AddressAreaRole;
 use AIArmada\Addressing\Models\AddressAreaStateLink;
 use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Addressing\Models\PostalCode;
 use AIArmada\Addressing\Models\State;
 use AIArmada\Addressing\Support\AddressAreaHierarchyResolver;
 use App\Actions\Location\ResolveGooglePlaceSelectionAction;
@@ -49,7 +52,7 @@ function ensureMalaysiaStateForPlaceResolution(string $name = 'Selangor'): array
 /**
  * @return array{package: State, area: AddressArea}
  */
-function ensureStateForPlaceResolution(string $countryIso2, string $countryName, string $stateName, ?AddressCountry $country = null): array
+function ensureStateForPlaceResolution(string $countryIso2, string $countryName, string $stateName, ?AddressCountry $country = null, string $areaType = 'state'): array
 {
     $country ??= ensureCountryForPlaceResolution($countryIso2, $countryName);
     $packageState = State::query()->firstOrCreate(
@@ -60,7 +63,7 @@ function ensureStateForPlaceResolution(string $countryIso2, string $countryName,
         $stateName,
         1,
         country: $country,
-        type: 'state',
+        type: $areaType,
     );
 
     return ['package' => $packageState, 'area' => $area];
@@ -276,9 +279,14 @@ it('resolves federal territory provider localities through the postal role', fun
 
 it('resolves non-malaysia geography using the picker country component', function () {
     $country = ensureCountryForPlaceResolution('ID', 'Indonesia');
-    $state = ensureStateForPlaceResolution('ID', 'Indonesia', 'DKI Jakarta', $country);
-    $district = createTestAddressArea('Jakarta Pusat', 2, parent: $state['area'], country: $country, type: 'district');
-    $subdistrict = createTestAddressArea('Gambir', 3, parent: $district, country: $country, type: 'subdistrict');
+    $state = ensureStateForPlaceResolution('ID', 'Indonesia', 'DKI Jakarta', $country, 'province');
+    $regency = createTestAddressArea('Kota Jakarta Pusat', 2, parent: $state['area'], country: $country, type: 'city');
+    $district = createTestAddressArea('Gambir', 3, parent: $regency, country: $country, type: 'district');
+    AddressAreaStateLink::query()->create([
+        'address_area_id' => $state['area']->id,
+        'state_id' => $state['package']->id,
+        'hierarchy_type' => 'administrative',
+    ]);
 
     $payload = app(ResolveGooglePlaceSelectionAction::class)->handle([
         'location' => [
@@ -290,23 +298,30 @@ it('resolves non-malaysia geography using the picker country component', functio
             ['longText' => 'Gambir', 'shortText' => 'Gambir', 'types' => ['locality', 'political']],
             ['longText' => '10110', 'shortText' => '10110', 'types' => ['postal_code']],
             ['longText' => 'Jakarta Pusat', 'shortText' => 'Jakarta Pusat', 'types' => ['administrative_area_level_2', 'political']],
-            ['longText' => 'DKI Jakarta', 'shortText' => 'DKI Jakarta', 'types' => ['administrative_area_level_1', 'political']],
+            ['longText' => 'Jakarta', 'shortText' => 'Jakarta', 'types' => ['administrative_area_level_1', 'political']],
             ['longText' => 'Indonesia', 'shortText' => 'ID', 'types' => ['country', 'political']],
         ],
     ]);
 
     expect($payload['country_id'])->toBe((string) $country->id)
         ->and($payload['state_id'])->toBe((string) $state['package']->id)
-        ->and(data_get($payload, 'area_assignments.administrative_district'))->toBe((string) $district->id)
-        ->and(data_get($payload, 'area_assignments.administrative_subdivision'))->toBe((string) $subdistrict->id)
+        ->and(data_get($payload, 'area_assignments.regency'))->toBe((string) $regency->id)
+        ->and(data_get($payload, 'area_assignments.district'))->toBe((string) $district->id)
+        ->and(data_get($payload, 'area_assignments.administrative_district'))->toBeNull()
+        ->and(data_get($payload, 'area_assignments.administrative_subdivision'))->toBeNull()
         ->and($payload['postcode'])->toBe('10110');
 });
 
 it('uses the current country fallback when the picker payload omits the country component', function () {
     $country = ensureCountryForPlaceResolution('ID', 'Indonesia');
-    $state = ensureStateForPlaceResolution('ID', 'Indonesia', 'DKI Jakarta', $country);
-    $district = createTestAddressArea('Jakarta Pusat', 2, parent: $state['area'], country: $country, type: 'district');
-    $subdistrict = createTestAddressArea('Gambir', 3, parent: $district, country: $country, type: 'subdistrict');
+    $state = ensureStateForPlaceResolution('ID', 'Indonesia', 'DKI Jakarta', $country, 'province');
+    $regency = createTestAddressArea('Kota Jakarta Pusat', 2, parent: $state['area'], country: $country, type: 'city');
+    $district = createTestAddressArea('Gambir', 3, parent: $regency, country: $country, type: 'district');
+    AddressAreaStateLink::query()->create([
+        'address_area_id' => $state['area']->id,
+        'state_id' => $state['package']->id,
+        'hierarchy_type' => 'administrative',
+    ]);
 
     $payload = app(ResolveGooglePlaceSelectionAction::class)->handle([
         'fallbackCountryId' => (string) $country->id,
@@ -319,12 +334,161 @@ it('uses the current country fallback when the picker payload omits the country 
             ['longText' => 'Gambir', 'shortText' => 'Gambir', 'types' => ['locality', 'political']],
             ['longText' => '10110', 'shortText' => '10110', 'types' => ['postal_code']],
             ['longText' => 'Jakarta Pusat', 'shortText' => 'Jakarta Pusat', 'types' => ['administrative_area_level_2', 'political']],
-            ['longText' => 'DKI Jakarta', 'shortText' => 'DKI Jakarta', 'types' => ['administrative_area_level_1', 'political']],
+            ['longText' => 'Jakarta', 'shortText' => 'Jakarta', 'types' => ['administrative_area_level_1', 'political']],
         ],
     ]);
 
     expect($payload['country_id'])->toBe((string) $country->id)
         ->and($payload['state_id'])->toBe((string) $state['package']->id)
-        ->and(data_get($payload, 'area_assignments.administrative_district'))->toBe((string) $district->id)
-        ->and(data_get($payload, 'area_assignments.administrative_subdivision'))->toBe((string) $subdistrict->id);
+        ->and(data_get($payload, 'area_assignments.regency'))->toBe((string) $regency->id)
+        ->and(data_get($payload, 'area_assignments.district'))->toBe((string) $district->id);
+});
+
+it('resolves singapore planning areas and postcode-linked postal levels without a state', function () {
+    $country = ensureTestAddressCountry(
+        iso2: 'SG',
+        name: 'Singapore',
+        iso3: 'SGP',
+        timezones: ['Asia/Singapore'],
+        phoneCode: '65',
+    );
+    $region = createTestAddressArea('Central Region', 1, country: $country, type: 'region');
+    $planningArea = createTestAddressArea('Bishan', 2, parent: $region, country: $country, type: 'planning_area');
+    $postalDistrict = createTestAddressArea('Postal District 19', 1, country: $country, type: 'postal_district');
+    $postalSector = createTestAddressArea('Postal Sector 57', 2, parent: $postalDistrict, country: $country, type: 'postal_sector');
+    AddressAreaRelationship::query()->create([
+        'parent_address_area_id' => $postalDistrict->id,
+        'child_address_area_id' => $postalSector->id,
+        'relationship_type' => 'contains',
+        'hierarchy_type' => 'postal',
+        'source' => 'tests',
+    ]);
+    $postalCode = PostalCode::query()->create([
+        'country_code' => 'SG',
+        'code' => '570123',
+        'is_active' => true,
+    ]);
+    AddressAreaPostalCode::query()->create([
+        'address_area_id' => $postalSector->id,
+        'postal_code_id' => $postalCode->id,
+        'source' => 'tests',
+        'relationship_type' => 'served_by',
+        'is_primary' => true,
+    ]);
+
+    $payload = app(ResolveGooglePlaceSelectionAction::class)->handle([
+        'location' => ['lat' => 1.3507, 'lng' => 103.8488],
+        'addressComponents' => [
+            ['longText' => 'Bishan Street 22', 'shortText' => 'Bishan Street 22', 'types' => ['route']],
+            ['longText' => 'Bishan', 'shortText' => 'Bishan', 'types' => ['sublocality_level_1', 'sublocality', 'political']],
+            ['longText' => '570123', 'shortText' => '570123', 'types' => ['postal_code']],
+            ['longText' => 'Singapore', 'shortText' => 'Singapore', 'types' => ['locality', 'political']],
+            ['longText' => 'Singapore', 'shortText' => 'SG', 'types' => ['administrative_area_level_1', 'political']],
+            ['longText' => 'Singapore', 'shortText' => 'SG', 'types' => ['country', 'political']],
+        ],
+    ]);
+
+    expect($payload['country_id'])->toBe((string) $country->id)
+        ->and($payload['state_id'])->toBeNull()
+        ->and($payload['state'])->toBe('Singapore')
+        ->and(data_get($payload, 'area_assignments.planning_area'))->toBe((string) $planningArea->id)
+        ->and(data_get($payload, 'area_assignments.region'))->toBe((string) $region->id)
+        ->and(data_get($payload, 'area_assignments.postal_sector'))->toBe((string) $postalSector->id)
+        ->and(data_get($payload, 'area_assignments.postal_district'))->toBe((string) $postalDistrict->id)
+        ->and($payload['postcode'])->toBe('570123');
+});
+
+it('leaves singapore postal levels empty without a registered postcode', function () {
+    $country = ensureTestAddressCountry(
+        iso2: 'SG',
+        name: 'Singapore',
+        iso3: 'SGP',
+        timezones: ['Asia/Singapore'],
+        phoneCode: '65',
+    );
+    $region = createTestAddressArea('Central Region', 1, country: $country, type: 'region');
+    $planningArea = createTestAddressArea('Bishan', 2, parent: $region, country: $country, type: 'planning_area');
+
+    $payload = app(ResolveGooglePlaceSelectionAction::class)->handle([
+        'location' => ['lat' => 1.3507, 'lng' => 103.8488],
+        'addressComponents' => [
+            ['longText' => 'Bishan', 'shortText' => 'Bishan', 'types' => ['sublocality_level_1', 'sublocality', 'political']],
+            ['longText' => 'Singapore', 'shortText' => 'Singapore', 'types' => ['locality', 'political']],
+            ['longText' => 'Singapore', 'shortText' => 'SG', 'types' => ['administrative_area_level_1', 'political']],
+            ['longText' => 'Singapore', 'shortText' => 'SG', 'types' => ['country', 'political']],
+        ],
+    ]);
+
+    expect($payload['country_id'])->toBe((string) $country->id)
+        ->and($payload['state_id'])->toBeNull()
+        ->and(data_get($payload, 'area_assignments.planning_area'))->toBe((string) $planningArea->id)
+        ->and(data_get($payload, 'area_assignments.region'))->toBe((string) $region->id)
+        ->and(data_get($payload, 'area_assignments.postal_sector'))->toBeNull()
+        ->and(data_get($payload, 'area_assignments.postal_district'))->toBeNull();
+});
+
+it('resolves federal territory roots through provider aliases', function () {
+    $country = ensureCountryForPlaceResolution('MY', 'Malaysia');
+    $packageState = State::query()->firstOrCreate(
+        ['country_id' => $country->getKey(), 'name' => 'WP Kuala Lumpur'],
+        ['code' => '14'],
+    );
+    $root = createTestAddressArea('Wilayah Persekutuan Kuala Lumpur', 1, country: $country, type: 'wilayah_persekutuan');
+    AddressAreaName::query()->create([
+        'address_area_id' => $root->id,
+        'name' => 'Kuala Lumpur',
+        'source' => 'tests',
+        'name_type' => 'common',
+        'is_preferred' => true,
+    ]);
+    AddressAreaStateLink::query()->create([
+        'address_area_id' => $root->id,
+        'state_id' => $packageState->id,
+        'hierarchy_type' => 'administrative',
+    ]);
+    $subdistrict = createTestAddressArea('Setiawangsa', 3, parent: $root, country: $country, type: 'subdistrict');
+
+    $payload = app(ResolveGooglePlaceSelectionAction::class)->handle([
+        'location' => ['lat' => 3.1732, 'lng' => 101.7391],
+        'addressComponents' => [
+            ['longText' => 'Jalan Setiawangsa', 'shortText' => 'Jalan Setiawangsa', 'types' => ['route']],
+            ['longText' => '54200', 'shortText' => '54200', 'types' => ['postal_code']],
+            ['longText' => 'Setiawangsa', 'shortText' => 'Setiawangsa', 'types' => ['locality', 'political']],
+            ['longText' => 'Kuala Lumpur', 'shortText' => 'Kuala Lumpur', 'types' => ['administrative_area_level_1', 'political']],
+        ],
+    ]);
+
+    expect($payload['country_id'])->toBe((string) $country->id)
+        ->and($payload['state_id'])->toBe((string) $packageState->id)
+        ->and(data_get($payload, 'area_assignments.administrative_district'))->toBeNull()
+        ->and(data_get($payload, 'area_assignments.administrative_subdivision'))->toBe((string) $subdistrict->id)
+        ->and($payload['postcode'])->toBe('54200');
+});
+
+it('falls back to text for countries without a provider', function () {
+    $country = ensureTestAddressCountry(
+        iso2: 'TH',
+        name: 'Thailand',
+        iso3: 'THA',
+        timezones: ['Asia/Bangkok'],
+        phoneCode: '66',
+    );
+
+    $payload = app(ResolveGooglePlaceSelectionAction::class)->handle([
+        'location' => ['lat' => 13.7563, 'lng' => 100.5018],
+        'addressComponents' => [
+            ['longText' => 'Pathum Wan', 'shortText' => 'Pathum Wan', 'types' => ['locality', 'political']],
+            ['longText' => '10330', 'shortText' => '10330', 'types' => ['postal_code']],
+            ['longText' => 'Bangkok', 'shortText' => 'Bangkok', 'types' => ['administrative_area_level_1', 'political']],
+            ['longText' => 'Thailand', 'shortText' => 'TH', 'types' => ['country', 'political']],
+        ],
+    ]);
+
+    expect($payload['country_id'])->toBe((string) $country->id)
+        ->and($payload['state_id'])->toBeNull()
+        ->and($payload['state'])->toBe('Bangkok')
+        ->and($payload['city_id'])->toBeNull()
+        ->and($payload['city'])->toBe('Pathum Wan')
+        ->and($payload['area_assignments'])->toBe([])
+        ->and($payload['postcode'])->toBe('10330');
 });

@@ -1,9 +1,13 @@
 <?php
 
+use AIArmada\Addressing\Models\AddressArea;
+use AIArmada\Addressing\Models\AddressAreaRelationship;
+use AIArmada\Addressing\Models\AddressAreaStateLink;
 use App\Models\Institution;
 use App\Support\Institutions\GeneratedPoskodInstitutionData;
 use Database\Seeders\MalaysiaPoskodMasjidSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 
 uses(RefreshDatabase::class);
 
@@ -72,6 +76,61 @@ it('imports a postcode csv fixture against the production geography seed', funct
     expect($junkSarawak)->not()->toBeNull();
     expect($junkSarawak?->slug)->toBe('masjid-nurulllllllllllll-6082');
     expect($junkSarawak->primaryAddress()?->state)->toBe('Sarawak');
+});
+
+it('assigns a Putrajaya precinct when importing a postcode row', function () {
+    $fixturePath = base_path('tests/Fixtures/poskod_putrajaya_test_fixture.csv');
+    $country = ensureTestMalaysiaCountry();
+    $geography = createTestPackageGeography(
+        stateName: 'Wilayah Persekutuan Putrajaya',
+        districtName: 'Putrajaya',
+        country: $country,
+    );
+    createTestPackageGeography(
+        stateName: 'Sarawak',
+        districtName: 'Betong',
+        country: $country,
+    );
+
+    AddressAreaStateLink::query()->create([
+        'address_area_id' => $geography['area_tree_root']->getKey(),
+        'state_id' => $geography['state']->getKey(),
+        'hierarchy_type' => 'postal',
+    ]);
+
+    $precinct = AddressArea::query()->create([
+        'country_id' => $country->getKey(),
+        'country_code' => 'MY',
+        'parent_id' => $geography['area_tree_root']->getKey(),
+        'type' => 'precinct',
+        'level' => 2,
+        'name' => 'Precinct 3',
+        'slug' => 'precinct-3',
+        'source' => 'tests',
+        'source_id' => (string) Str::ulid(),
+        'parent_source_id' => $geography['area_tree_root']->source_id,
+    ]);
+
+    AddressAreaRelationship::query()->create([
+        'parent_address_area_id' => $geography['area_tree_root']->getKey(),
+        'child_address_area_id' => $precinct->getKey(),
+        'relationship_type' => 'contains',
+        'hierarchy_type' => 'postal',
+        'source' => 'tests',
+    ]);
+
+    $seeder = new MalaysiaPoskodMasjidSeeder($fixturePath);
+    $seeder->run();
+
+    $institution = Institution::query()
+        ->where('slug', GeneratedPoskodInstitutionData::canonicalSlug('MASJID PRESINT 3', '9001'))
+        ->with(['addresses.areaAssignments'])
+        ->first();
+
+    expect($institution)->not()->toBeNull()
+        ->and($institution?->primaryAddress()?->areaAssignments
+            ->firstWhere('role', 'postal_locality')?->address_area_id)
+        ->toBe((string) $precinct->getKey());
 });
 
 /**

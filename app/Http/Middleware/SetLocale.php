@@ -31,7 +31,7 @@ class SetLocale
         }
 
         App::setLocale($locale);
-        App::setFallbackLocale($locale === 'ar' ? 'en' : (string) config('app.fallback_locale'));
+        App::setFallbackLocale((string) config('app.fallback_locale'));
         Carbon::setLocale($locale);
 
         return $next($request);

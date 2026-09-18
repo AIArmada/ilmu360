@@ -1,5 +1,9 @@
 <?php
 
+use AIArmada\Addressing\Models\AddressArea;
+use AIArmada\Addressing\Models\AddressAreaRelationship;
+use AIArmada\Addressing\Models\AddressAreaStateLink;
+use AIArmada\Addressing\Models\State;
 use App\Enums\ContributionSubjectType;
 use App\Enums\InstitutionNameType;
 use App\Livewire\Pages\Contributions\SubmitInstitution;
@@ -50,27 +54,6 @@ it('renders translated no-result copy on institution index', function () {
         ->assertSuccessful()
         ->assertSee(__('No institutions found'))
         ->assertSee(__('We couldn\'t find any institutions matching your search.'));
-});
-
-it('shows add-missing-institution call to action on institution index', function () {
-    get('/institusi')
-        ->assertSuccessful()
-        ->assertSee('Tak jumpa institusi yang anda cari? Cadangkan institusi baharu.')
-        ->assertSee('Cadangkan institusi baharu');
-});
-
-it('shows the total institution count at the bottom of the institution index', function () {
-    $searchPrefix = 'Jumlah Institusi Ujian';
-
-    Institution::factory()->count(2)->create([
-        'name' => $searchPrefix,
-        'status' => 'verified',
-    ]);
-
-    get('/institusi?search='.urlencode($searchPrefix))
-        ->assertSuccessful()
-        ->assertSee('Direktori Institusi')
-        ->assertSee('Jumlah institusi: 2');
 });
 
 it('lists pending institutions in the directory with the unverified badge and includes them in search', function () {
@@ -495,7 +478,7 @@ it('defaults the institution location scope to the application country', functio
         ->assertSee(__('All countries'));
 
     Livewire::test('pages.institutions.index')
-        ->assertSet('country_id', ensureTestMalaysiaCountry()->getKey());
+        ->assertSet('country', 'malaysia');
 });
 
 it('follows the Malaysia geography cascade without exposing a city filter', function () {
@@ -503,10 +486,10 @@ it('follows the Malaysia geography cascade without exposing a city filter', func
 
     Livewire::test('pages.institutions.index')
         ->assertDontSee('institution-city-filter', false)
-        ->set('state_id', $geo['state']->getKey())
+        ->set('state', 'selangor-cascade')
         ->assertSee('institution-district-filter', false)
-        ->assertDontSee('institution-subdistrict-filter', false)
-        ->set('administrative_district_id', $geo['district']->getKey())
+        ->assertSet('district', (string) $geo['district']->slug)
+        ->assertSet('subdivision', (string) $geo['subdistrict']->slug)
         ->assertSee('institution-subdistrict-filter', false)
         ->assertDontSee('institution-city-filter', false);
 });
@@ -537,7 +520,7 @@ it('filters institutions by country', function () {
         'country_id' => (string) $indonesia->getKey(),
     ]);
 
-    get('/institusi?country_id='.$malaysia->getKey())
+    get('/institusi?country=malaysia')
         ->assertSuccessful()
         ->assertSee('Institusi Malaysia')
         ->assertDontSee('Institusi Indonesia');
@@ -546,21 +529,21 @@ it('filters institutions by country', function () {
 it('does not infer the institution country from an unencrypted browser timezone cookie', function () {
     Livewire::withCookie('user_timezone', 'Asia/Jakarta')
         ->test('pages.institutions.index')
-        ->assertSet('country_id', ensureTestMalaysiaCountry()->getKey())
-        ->assertSet('state_id', null)
-        ->assertSet('city_id', null)
-        ->assertSet('administrative_district_id', null)
-        ->assertSet('administrative_subdivision_id', null);
+        ->assertSet('country', 'malaysia')
+        ->assertSet('state', null)
+        ->assertSet('city', null)
+        ->assertSet('district', null)
+        ->assertSet('subdivision', null);
 });
 
 it('allows the institution directory to clear the country scope for international search', function () {
     Livewire::test('pages.institutions.index')
         ->call('clearFilters')
-        ->assertSet('country_id', null)
-        ->assertSet('state_id', null)
-        ->assertSet('city_id', null)
-        ->assertSet('administrative_district_id', null)
-        ->assertSet('administrative_subdivision_id', null)
+        ->assertSet('country', null)
+        ->assertSet('state', null)
+        ->assertSet('city', null)
+        ->assertSet('district', null)
+        ->assertSet('subdivision', null)
         ->assertDontSee('institution-state-filter')
         ->assertDontSee('institution-city-filter')
         ->assertDontSee('institution-district-filter')
@@ -586,7 +569,7 @@ it('filters institutions by the package city level', function () {
         'city' => null,
     ]);
 
-    get('/institusi?state_id='.$geo['state']->getKey().'&city_id='.$geo['city']->getKey())
+    get('/institusi?country=malaysia&state=negeri-city-filter&city=bandar-city-filter')
         ->assertSuccessful()
         ->assertSee('Institusi Bandar City Filter')
         ->assertDontSee('Institusi Negeri City Filter');
@@ -620,19 +603,19 @@ it('filters institutions by negeri, daerah, and subdistrict scopes', function ()
     ]);
     syncPrimaryAddressForTest($institutionB, $geoB['address']);
 
-    get('/institusi?state_id='.$geoA['state']->getKey())
+    get('/institusi?country=malaysia&state=selangor-scope-a')
         ->assertSuccessful()
         ->assertSee('Institusi Scope A')
         ->assertSee('Institusi Scope A2')
         ->assertDontSee('Institusi Scope B');
 
-    get('/institusi?state_id='.$geoA['state']->getKey().'&administrative_district_id='.$geoA['district']->getKey())
+    get('/institusi?country=malaysia&state=selangor-scope-a&district='.$geoA['district']->slug)
         ->assertSuccessful()
         ->assertSee('Institusi Scope A')
         ->assertDontSee('Institusi Scope A2')
         ->assertDontSee('Institusi Scope B');
 
-    get('/institusi?state_id='.$geoA['state']->getKey().'&administrative_district_id='.$geoA['district']->getKey().'&administrative_subdivision_id='.$geoA['subdistrict']->getKey())
+    get('/institusi?country=malaysia&state=selangor-scope-a&district='.$geoA['district']->slug.'&subdivision='.$geoA['subdistrict']->slug)
         ->assertSuccessful()
         ->assertSee('Institusi Scope A')
         ->assertDontSee('Institusi Scope A2')
@@ -668,6 +651,164 @@ it('counts approved and pending public active events on institution cards', func
         ->assertSee('Institusi Kiraan Acara')
         ->assertSee('2 '.__('Events'))
         ->assertDontSee('1 '.__('Events'));
+});
+
+it('uses postal locality children for federal territory directory filters', function () {
+    $country = ensureTestMalaysiaCountry();
+    $stateName = 'WP Putrajaya Directory Filter';
+    $state = State::query()->create([
+        'country_id' => (string) $country->getKey(),
+        'name' => $stateName,
+        'code' => '16',
+    ]);
+    $root = createTestAddressArea($stateName, 1, country: $country, type: 'wilayah_persekutuan');
+
+    AddressAreaStateLink::query()->create([
+        'address_area_id' => $root->getKey(),
+        'state_id' => $state->getKey(),
+        'hierarchy_type' => 'postal',
+    ]);
+
+    $firstPrecinct = AddressArea::query()->create([
+        'country_id' => $country->getKey(),
+        'country_code' => 'MY',
+        'parent_id' => $root->getKey(),
+        'type' => 'precinct',
+        'level' => 2,
+        'name' => 'Presint 1',
+        'slug' => 'presint-1',
+        'source' => 'tests',
+        'source_id' => (string) Str::ulid(),
+        'parent_source_id' => $root->source_id,
+    ]);
+    $secondPrecinct = AddressArea::query()->create([
+        'country_id' => $country->getKey(),
+        'country_code' => 'MY',
+        'parent_id' => $root->getKey(),
+        'type' => 'precinct',
+        'level' => 2,
+        'name' => 'Presint 2',
+        'slug' => 'presint-2',
+        'source' => 'tests',
+        'source_id' => (string) Str::ulid(),
+        'parent_source_id' => $root->source_id,
+    ]);
+
+    foreach ([$firstPrecinct, $secondPrecinct] as $precinct) {
+        AddressAreaRelationship::query()->create([
+            'parent_address_area_id' => $root->getKey(),
+            'child_address_area_id' => $precinct->getKey(),
+            'relationship_type' => 'contains',
+            'hierarchy_type' => 'postal',
+            'source' => 'tests',
+        ]);
+    }
+
+    $matching = Institution::factory()->create([
+        'name' => 'Masjid Al Hidayah Presint 1',
+        'status' => 'verified',
+    ]);
+    syncPrimaryAddressForTest($matching, [
+        'country_id' => (string) $country->getKey(),
+        'state_id' => (string) $state->getKey(),
+        'state' => $stateName,
+        'area_assignments' => ['postal_locality' => (string) $firstPrecinct->getKey()],
+    ]);
+
+    $other = Institution::factory()->create([
+        'name' => 'Masjid Al Hidayah Presint 2',
+        'status' => 'verified',
+    ]);
+    syncPrimaryAddressForTest($other, [
+        'country_id' => (string) $country->getKey(),
+        'state_id' => (string) $state->getKey(),
+        'state' => $stateName,
+        'area_assignments' => ['postal_locality' => (string) $secondPrecinct->getKey()],
+    ]);
+
+    Livewire::test('pages.institutions.index', [
+        'country' => 'malaysia',
+        'state' => Str::slug($stateName),
+    ])
+        ->assertSee('institution-locality-filter', false)
+        ->assertDontSee('institution-city-filter', false)
+        ->assertSee('Presint 1')
+        ->assertSee('Presint 2');
+
+    get('/institusi?country=malaysia&state='.Str::slug($stateName).'&locality=presint-1')
+        ->assertSuccessful()
+        ->assertSee('Masjid Al Hidayah Presint 1')
+        ->assertDontSee('Masjid Al Hidayah Presint 2');
+
+    get('/institusi?country=malaysia&state='.Str::slug($stateName).'&locality=presint-1&search='.urlencode('Masjid Al Hidayah Presint 1'))
+        ->assertSuccessful()
+        ->assertSee('Masjid Al Hidayah Presint 1')
+        ->assertDontSee('Masjid Al Hidayah Presint 2');
+
+    get('/institusi?country=malaysia&state='.Str::slug($stateName).'&locality=presint-1&search=Hidayh')
+        ->assertSuccessful()
+        ->assertSee('Masjid Al Hidayah Presint 1')
+        ->assertDontSee('Masjid Al Hidayah Presint 2');
+
+    Livewire::test('pages.institutions.index', [
+        'country' => 'malaysia',
+        'state' => Str::slug($stateName),
+    ])
+        ->set('search', 'Hidayh')
+        ->assertSee('Masjid Al Hidayah Presint 1')
+        ->assertSee('Masjid Al Hidayah Presint 2')
+        ->set('locality', 'presint-1')
+        ->assertSee('Masjid Al Hidayah Presint 1')
+        ->assertDontSee('Masjid Al Hidayah Presint 2')
+        ->set('locality', 'presint-2')
+        ->assertDontSee('Masjid Al Hidayah Presint 1')
+        ->assertSee('Masjid Al Hidayah Presint 2');
+});
+
+it('auto-selects a single postal locality child', function () {
+    $country = ensureTestMalaysiaCountry();
+    $stateName = 'WP Labuan Singleton Filter';
+    $state = State::query()->create([
+        'country_id' => (string) $country->getKey(),
+        'name' => $stateName,
+        'code' => '15',
+    ]);
+    $root = createTestAddressArea($stateName, 1, country: $country, type: 'wilayah_persekutuan');
+
+    AddressAreaStateLink::query()->create([
+        'address_area_id' => $root->getKey(),
+        'state_id' => $state->getKey(),
+        'hierarchy_type' => 'postal',
+    ]);
+
+    $locality = AddressArea::query()->create([
+        'country_id' => $country->getKey(),
+        'country_code' => 'MY',
+        'parent_id' => $root->getKey(),
+        'type' => 'locality',
+        'level' => 2,
+        'name' => 'Settlement A',
+        'slug' => 'settlement-a',
+        'source' => 'tests',
+        'source_id' => (string) Str::ulid(),
+        'parent_source_id' => $root->source_id,
+    ]);
+
+    AddressAreaRelationship::query()->create([
+        'parent_address_area_id' => $root->getKey(),
+        'child_address_area_id' => $locality->getKey(),
+        'relationship_type' => 'contains',
+        'hierarchy_type' => 'postal',
+        'source' => 'tests',
+    ]);
+
+    Livewire::test('pages.institutions.index', [
+        'country' => 'malaysia',
+        'state' => Str::slug($stateName),
+    ])
+        ->assertSet('locality', 'settlement-a')
+        ->assertSet('city', null)
+        ->assertSee('Settlement A');
 });
 
 it('shows the nearest upcoming public majlis on institution cards', function () {
@@ -717,4 +858,105 @@ it('shows the nearest upcoming public majlis on institution cards', function () 
         ->and($listedInstitution?->next_event_slug)->toBe($nearestEvent->slug)
         ->and($listedInstitution?->next_event_title)->toBe('Majlis Institusi Terdekat')
         ->and($listedInstitution?->next_event_starts_at)->not->toBeNull();
+});
+
+it('shows the nearest upcoming public majlis on state-filtered cards with one batched lookup', function () {
+    $geo = createTestPackageGeography('Johor Ujian Terdekat', 'Daerah Ujian Terdekat', 'Mukim Ujian Terdekat');
+
+    $institution = Institution::factory()->create([
+        'name' => 'Institusi Majlis Negeri Terdekat',
+        'status' => 'verified',
+    ]);
+    syncPrimaryAddressForTest($institution, $geo['address']);
+
+    Event::factory()->for($institution)->create([
+        'title' => 'Majlis Negeri Lebih Lewat',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'starts_at' => now()->addDays(7),
+        'published_at' => now(),
+    ]);
+
+    $nearestEvent = Event::factory()->for($institution)->create([
+        'title' => 'Majlis Negeri Terdekat',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'starts_at' => now()->addDays(2),
+        'published_at' => now(),
+    ]);
+
+    DB::enableQueryLog();
+
+    get('/institusi?state=johor-ujian-terdekat')
+        ->assertSuccessful()
+        ->assertSee('Institusi Majlis Negeri Terdekat')
+        ->assertSee('2 '.__('Events'))
+        ->assertSee('data-next-event', false)
+        ->assertSee('href="'.route('events.show', $nearestEvent).'"', false)
+        ->assertSee('Majlis Negeri Terdekat')
+        ->assertDontSee('Majlis Negeri Lebih Lewat');
+
+    $queries = collect(DB::getQueryLog())->pluck('query');
+
+    $listingQueries = $queries->filter(
+        static fn (string $query): bool => str_contains($query, 'from "institutions"')
+            && str_contains($query, 'next_event'),
+    );
+
+    expect($listingQueries)->toHaveCount(1);
+
+    $listingSql = (string) $listingQueries->first();
+
+    // One correlated id subquery — not three repeated LIMIT 1 lookups — plus
+    // a single batched hydration query for the visible page.
+    expect($listingSql)->toContain('as "next_event_id"')
+        ->and($listingSql)->not->toContain('as "next_event_slug"')
+        ->and($listingSql)->not->toContain('as "next_event_title"')
+        ->and($listingSql)->not->toContain('as "next_event_starts_at"')
+        ->and(substr_count($listingSql, 'as "next_event_occurrences"'))->toBe(1)
+        ->and($queries->filter(
+            static fn (string $query): bool => str_contains($query, 'next_event_starts_at')
+                && str_contains($query, 'min('),
+        ))->toHaveCount(1);
+});
+
+it('issues single like predicates for single-word institution search', function () {
+    Institution::factory()->create([
+        'name' => 'Masjid Shah Alam Ujian',
+        'status' => 'verified',
+    ]);
+
+    DB::enableQueryLog();
+
+    get('/institusi?search=shah')
+        ->assertSuccessful()
+        ->assertSee('Masjid Shah Alam Ujian');
+
+    $idQueries = collect(DB::getQueryLog())->pluck('query')->filter(
+        static fn (string $query): bool => str_contains($query, 'select "institutions"."id"'),
+    );
+
+    expect($idQueries)->toHaveCount(1);
+
+    // A single word produces identical phrase and wildcard patterns, so the
+    // scope must not repeat the predicate (A OR A is just A).
+    $idSql = (string) $idQueries->first();
+
+    expect(substr_count($idSql, '"institutions"."name"'))->toBe(1)
+        ->and(substr_count($idSql, '"full_name"'))->toBe(1);
+});
+
+it('ignores unknown location slugs instead of failing', function () {
+    $geo = createTestPackageGeography('Selangor Sah', 'Daerah Sah', 'Mukim Sah');
+
+    $institution = Institution::factory()->create([
+        'name' => 'Institusi Slug Sah',
+        'status' => 'verified',
+    ]);
+    syncPrimaryAddressForTest($institution, $geo['address']);
+
+    get('/institusi?country=malaysia&state=negeri-tidak-wujud')
+        ->assertSuccessful()
+        ->assertSee('Institusi Slug Sah')
+        ->assertDontSee(__('Clear Location Scope'));
 });

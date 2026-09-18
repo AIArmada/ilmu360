@@ -258,11 +258,6 @@
 
         return $value !== null && $value !== '';
     });
-    $todayQuery = array_replace($savedSearchQuery, [
-        'starts_after' => now()->toDateString(),
-        'starts_before' => now()->toDateString(),
-        'time_scope' => 'all',
-    ]);
     $searchShareUrl = $hasActiveFilters ? route('events.index', $savedSearchQuery) : null;
     $searchShareText = __('Explore these ilmu360° search results on :app', ['app' => config('app.name')]);
     $searchShareData = $searchShareUrl !== null
@@ -479,23 +474,29 @@
             await this.copyEventLink(eventId, url);
         },
     }">
-    <section class="relative overflow-hidden border-b border-emerald-900/[0.06]">
-        <div class="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(245,158,11,0.12),transparent_32%),linear-gradient(90deg,#fffdf8_0%,#fffaf0_52%,#f2f8f4_100%)]"></div>
-        <div class="absolute inset-y-0 right-0 hidden w-[48%] overflow-hidden lg:block">
-            <div class="absolute inset-0 rounded-bl-[11rem] bg-slate-200">
-                <img src="{{ asset('images/hero-bg.png') }}" alt="{{ __('Masjid pada waktu senja') }}" class="h-full w-full object-cover">
-                <div class="absolute inset-0 bg-gradient-to-l from-transparent via-white/5 to-white/60"></div>
-            </div>
+    <section class="relative isolate overflow-hidden border-b border-emerald-900/[0.06]">
+        <div class="absolute inset-0 bg-[#f7f3e8]">
+            <img
+                src="{{ asset('images/events/majlis-hero-background-v1.png') }}"
+                alt="{{ __('Laman masjid pada waktu keemasan') }}"
+                class="h-full w-full object-cover object-[35%_center] lg:object-center"
+            >
+            <div
+                class="absolute inset-0"
+                style="background: linear-gradient(90deg, rgba(255,253,248,.94) 0%, rgba(255,253,248,.88) 25%, rgba(255,253,248,.60) 44%, rgba(255,253,248,.15) 58%, transparent 68%);"
+            ></div>
         </div>
-        <div class="pointer-events-none absolute right-[35%] top-6 hidden h-72 w-72 rounded-full border border-amber-200/50 opacity-40 lg:block"></div>
-        <div class="pointer-events-none absolute right-[38%] top-14 hidden h-52 w-52 rounded-full border border-emerald-200/60 opacity-40 lg:block"></div>
 
         <div class="relative mx-auto max-w-7xl px-5 py-14 sm:px-6 sm:py-20 lg:px-8 lg:py-16">
-            <div class="max-w-4xl">
-                <p class="text-xs font-bold uppercase tracking-[0.26em] text-emerald-700">{{ __('Majlis Ilmu') }}</p>
-                <h1 class="mt-4 font-heading text-5xl font-bold leading-none tracking-normal text-emerald-950 md:text-7xl">
-                    {{ __('Cari Majlis Ilmu') }}
-                    <span class="sr-only">{{ __('Circle of Knowledge') }}</span>
+            <div class="max-w-3xl lg:max-w-[44rem]">
+                <h1 class="max-w-2xl text-balance font-heading text-4xl font-bold leading-[1.06] tracking-[-0.035em] text-emerald-950 sm:text-5xl lg:text-6xl">
+                    {{ __('Temui majlis ilmu yang') }} <br class="hidden md:block" />
+                    <span class="relative inline-block text-emerald-700">
+                        {{ __('dekat dengan anda') }}
+                        <svg class="absolute -bottom-2 left-0 h-3.5 w-full text-amber-500/80" viewBox="0 0 320 18" preserveAspectRatio="none" aria-hidden="true">
+                            <path d="M4 13C79 5 218 4 316 10" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" />
+                        </svg>
+                    </span>
                 </h1>
                 <p class="mt-5 max-w-2xl text-lg leading-8 text-slate-700">
                     {{ __('Cari ikut lokasi, masa, topik, penceramah atau institusi.') }}
@@ -507,7 +508,7 @@
                     data-signal-component="events_index_filters"
                     data-signal-control="filter_form"
                     data-signal-props='@json(['surface' => 'events_index'])'
-                    class="mt-8 max-w-3xl">
+                    class="mt-8 max-w-2xl">
                     <x-ui.search-bar
                         input-id="event-search"
                         model="filterData.search"
@@ -1220,7 +1221,7 @@
                             </div>
 
                             <div class="mt-6">
-                                {{ $events->withQueryString()->links() }}
+                                {{ $events->withQueryString()->links('vendor.livewire.directory-pagination') }}
                             </div>
                         @endif
                     </div>
@@ -1258,33 +1259,5 @@
             </section>
         </form>
 
-        <section class="living-majlis-cta mt-6 overflow-hidden rounded-[1.5rem] border border-emerald-800/15 px-6 py-8 text-center text-white md:px-10">
-            <div class="mx-auto max-w-3xl">
-                <h2 class="font-heading text-2xl font-bold leading-tight text-amber-100 md:text-3xl">
-                    {{ __('Ilmu dah ada. Masjid dah terbuka. Surau dah hidup.') }}
-                    <span class="block text-amber-200">{{ __('Sekarang, mari bantu lebih ramai orang sampai.') }}</span>
-                </h2>
-                <div class="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
-                    <a href="{{ route('events.index', $todayQuery) }}" wire:navigate class="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-emerald-600">
-                        <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-                        </svg>
-                        {{ __('Cari Majlis Hari Ini') }}
-                    </a>
-                    <a href="{{ route('home') }}" wire:navigate class="inline-flex items-center justify-center gap-2 rounded-xl border border-white/25 bg-white px-5 py-3 text-sm font-bold text-slate-900 transition hover:bg-amber-50">
-                        <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V3.75m0 12.75 3.75-3.75M12 16.5l-3.75-3.75M4.5 20.25h15" />
-                        </svg>
-                        {{ __('Download Ilmu360') }}
-                    </a>
-                    <a href="{{ route('submit-event.create') }}" wire:navigate class="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-200/60 px-5 py-3 text-sm font-bold text-amber-100 transition hover:bg-white/10">
-                        <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M4.5 19.5h15a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5h-15A1.5 1.5 0 0 0 3 6v12a1.5 1.5 0 0 0 1.5 1.5Z" />
-                        </svg>
-                        {{ __('Hantar Majlis') }}
-                    </a>
-                </div>
-            </div>
-        </section>
     </main>
 </div>
