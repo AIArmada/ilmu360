@@ -1,3 +1,32 @@
+# Fix event-detail location attribute error (2026-09-19)
+
+## Plan
+
+- [x] Trace the missing `EventLocation` address attribute from the pasted exception.
+- [x] Switch the event detail location rendering to the canonical related address.
+- [x] Register `EventLocation` in the application morph map so canonical address lookup works.
+- [x] Verify the failing event URL, Blade cache, formatting, and focused event-detail tests.
+
+## Review
+
+- The event detail page no longer reads address columns directly from `EventLocation`, whose table stores location references rather than address fields.
+- Location address, coordinates, map links, and directions now resolve from the related canonical address, with venue/institution fallback preserved.
+- The exact failing event URL renders successfully; browser console is clean, Blade cache succeeds, Pint passes, and `EventShowPageTest` passes 37 tests with 138 assertions.
+
+# Reorder `/majlis` event-card information (2026-09-19)
+
+## Plan
+
+- [x] Inspect the existing event-card data and compare its information hierarchy with the supplied reference.
+- [x] Reorder only the event-card content and actions; leave the rest of `/majlis` unchanged.
+- [x] Verify the rendered card at the available tablet viewport, cache the Blade view, and rebuild the frontend.
+
+## Review
+
+- The card now leads with programme identity and title, keeps status/save controls at the heading edge, follows with category/date, location, time, speaker, description, and tags, and places the primary detail action on the right side of the footer action row.
+- Removed the event-image scale transform on card hover while retaining the card-level hover feedback.
+- Removed the `/majlis` moderation status-note section and its unused pending/cancelled visibility state.
+
 # Match institution hero underline
 
 ## Plan
@@ -3551,3 +3580,28 @@ request). Filters morph on the fast parent response; list follows on the child r
       proven via stash A/B); admin panel tests green with ResolutionGapResource.
 - [ ] Consider: full reseed now imports 22 more countries' areas (seed time + table
       growth); gap reasons stay 'unmatched' (ambiguity detection is future work).
+
+## Route `/majlis` cards to schedule leaves (2026-09-19)
+
+### Plan
+
+- [x] Confirm the existing discovery service lists public occurrences and meaningful sessions as schedule leaves.
+- [x] Remove event-level programme links from the listing cards.
+- [x] Verify the leaf destinations and focused schedule discovery coverage.
+
+### Review
+
+- `/majlis` keeps using `PublicScheduleLeaf`, so each card represents either an occurrence or a session.
+- Card image, title, and detail action now navigate only to the occurrence/session route; the parent programme hub remains directly accessible but is no longer a card destination.
+
+## Align `/rujukan` hero with floating header (2026-09-19)
+
+### Plan
+
+- [x] Compare rujukan hero spacing with the other floating-header directory pages.
+- [x] Reserve the shared responsive header space above the rujukan title.
+- [x] Verify the change is limited to the rujukan hero.
+
+### Review
+
+- `/rujukan` now uses the same `pt-48` / `sm:pt-52` / `lg:pt-52` top spacing as `/majlis`, `/penceramah`, and `/institusi`, while preserving its existing bottom spacing and hero design.

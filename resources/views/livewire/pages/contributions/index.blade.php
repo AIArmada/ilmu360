@@ -38,7 +38,7 @@
 >
     {{-- Page header --}}
     <div class="relative overflow-hidden border-b border-slate-200 bg-gradient-to-br from-slate-50 via-white to-emerald-50/30">
-        <div class="pointer-events-none absolute inset-0 bg-[size:300px] opacity-[0.025]" style="background-image: url('{{ asset('images/pattern-bg.png') }}');"></div>
+        <div class="pointer-events-none absolute inset-0 bg-[size:300px] opacity-[0.025]" style="background-image: url('{{ asset('images/pattern-bg.jpg') }}');"></div>
         <div class="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
             <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>

@@ -268,7 +268,7 @@ new
             <div class="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/50 to-transparent"
                 aria-hidden="true"></div>
             <div class="absolute inset-0 opacity-[0.03]"
-                style="background-image: url('{{ asset('images/pattern-bg.png') }}'); background-size: 200px;"></div>
+                style="background-image: url('{{ asset('images/pattern-bg.jpg') }}'); background-size: 200px;"></div>
         </div>
 
         {{-- ── CONTENT ── --}}

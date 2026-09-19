@@ -18,7 +18,7 @@
     <main class="relative isolate flex min-h-screen items-center overflow-hidden">
         <div class="absolute inset-0">
             <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.25),_transparent_42%),radial-gradient(circle_at_bottom_right,_rgba(20,184,166,0.18),_transparent_34%),linear-gradient(180deg,#020617_0%,#0f172a_100%)]"></div>
-            <div class="absolute inset-0 opacity-[0.08]" style="background-image:url('{{ asset('images/pattern-bg.png') }}');background-size:360px"></div>
+            <div class="absolute inset-0 opacity-[0.08]" style="background-image:url('{{ asset('images/pattern-bg.jpg') }}');background-size:360px"></div>
         </div>
 
         <div class="relative mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 py-16 lg:flex-row lg:items-center lg:justify-between lg:px-12">

@@ -57,7 +57,7 @@
 @endphp
 
 <div class="relative min-h-screen bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.12),transparent_38%),linear-gradient(180deg,#f8fafc_0%,#ffffff_38%,#f8fafc_100%)] pb-24 pt-24">
-    <div class="absolute inset-x-0 top-0 h-[34rem] opacity-[0.04]" style="background-image: url('{{ asset('images/pattern-bg.png') }}');"></div>
+    <div class="absolute inset-x-0 top-0 h-[34rem] opacity-[0.04]" style="background-image: url('{{ asset('images/pattern-bg.jpg') }}');"></div>
 
     <div class="container relative mx-auto px-6 lg:px-12">
         <section class="overflow-hidden rounded-[2rem] border border-emerald-100/80 bg-white/90 shadow-[0_35px_90px_-55px_rgba(15,118,110,0.55)] backdrop-blur">

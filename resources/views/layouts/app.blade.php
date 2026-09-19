@@ -121,7 +121,7 @@
         <!-- Background Gradients -->
         <div class="pointer-events-none absolute inset-0 z-0">
             <div class="absolute inset-0 opacity-[0.03]"
-                style="background-image: url('{{ asset('images/pattern-bg.png') }}'); background-size: 400px;">
+                style="background-image: url('{{ asset('images/pattern-bg.jpg') }}'); background-size: 400px;">
             </div>
             <div
                 class="absolute -top-40 left-[10%] h-[35rem] w-[35rem] rounded-full bg-emerald-500/10 blur-[100px] animate-pulse">
@@ -527,11 +527,11 @@
             <!-- Living Majlis Footer -->
             <footer class="living-majlis-footer relative mt-20 overflow-hidden bg-emerald-950 text-emerald-50">
                 <div class="living-majlis-footer-image pointer-events-none absolute inset-0 opacity-100"
-                    style="background-image: url('{{ asset('images/footer-courtyard-v4.png') }}');">
+                    style="background-image: url('{{ asset('images/footer-courtyard-v4.jpg') }}');">
                 </div>
                 <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(2,33,22,0.08),rgba(2,33,22,0.18)_50%,rgba(2,33,22,0.08))]"></div>
                 <div class="pointer-events-none absolute inset-0 opacity-[0.06]"
-                    style="background-image: url('{{ asset('images/pattern-bg.png') }}'); background-size: 320px;">
+                    style="background-image: url('{{ asset('images/pattern-bg.jpg') }}'); background-size: 320px;">
                 </div>
                 <div class="pointer-events-none absolute inset-0 opacity-[0.055]"
                     style="background-image: radial-gradient(circle at 1.5px 1.5px, rgba(255,255,255,0.75) 1px, transparent 0); background-size: 22px 22px;">
@@ -578,7 +578,7 @@
                             <h3 class="font-heading text-sm font-bold text-white">{{ __('Menu') }}</h3>
                             <ul class="mt-4 space-y-3 text-sm text-emerald-100/70">
                                 <li><a href="{{ route('events.index') }}" wire:navigate
-                                        class="transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">{{ __('Upcoming Events') }}</a>
+                                        class="transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">{{ __('Majlis') }}</a>
                                 </li>
                                 <li><a href="{{ route('institutions.index') }}" wire:navigate
                                         class="transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">{{ __('Institutions') }}</a>

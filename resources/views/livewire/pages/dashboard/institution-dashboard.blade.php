@@ -187,7 +187,7 @@
             @else
                 <section class="relative overflow-hidden rounded-lg border border-emerald-950/10 bg-[#fffcf4] shadow-sm">
                     <img src="{{ $institutionImageUrl }}" alt="" class="pointer-events-none absolute bottom-0 right-0 hidden h-full w-1/2 object-cover opacity-15 lg:block">
-                    <div class="pointer-events-none absolute inset-0 bg-[size:280px] opacity-[0.035]" style="background-image: url('{{ asset('images/pattern-bg.png') }}');"></div>
+                    <div class="pointer-events-none absolute inset-0 bg-[size:280px] opacity-[0.035]" style="background-image: url('{{ asset('images/pattern-bg.jpg') }}');"></div>
 
                     <div class="relative grid gap-6 p-5 sm:p-7 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,24rem)] lg:items-start lg:p-8">
                         <div class="min-w-0">

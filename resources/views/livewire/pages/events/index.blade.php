@@ -861,20 +861,10 @@
                     @php
                         $events = $this->scheduleItems;
                         $savedEventIds = $this->savedEventIds;
-                        $showPendingStatusNote = $events->contains(fn (\App\Data\PublicScheduleLeaf $leaf): bool => $leaf->event->status instanceof \App\States\EventStatus\Pending);
-                        $showCancelledStatusNote = $events->contains(fn (\App\Data\PublicScheduleLeaf $leaf): bool => $leaf->event->status instanceof \App\States\EventStatus\Cancelled);
                         $eventLoadingTarget = 'filterData,setLocation,clearLocation,clearAllFilters,toggleSave,gotoPage,setPage';
                     @endphp
 
                 <div class="mt-5 min-h-[42rem]" wire:transition="event-results">
-                    @if($showPendingStatusNote || $showCancelledStatusNote)
-                        <x-public.moderation-status-note
-                            :show-pending="$showPendingStatusNote"
-                            :show-cancelled="$showCancelledStatusNote"
-                            class="mb-5"
-                        />
-                    @endif
-
                     <div wire:loading.delay.short wire:target="{{ $eventLoadingTarget }}" class="space-y-4">
                         @foreach(range(1, 4) as $index)
                             <article class="animate-pulse rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
@@ -1006,6 +996,7 @@
                                                 ->filter()
                                                 ->implode(', ');
                                         $personText = $personText !== '' ? $personText : __('Penceramah akan diumumkan');
+                                        $cardDescription = trim((string) ($primarySession?->summary ?: $event->summary ?: $event->description_text));
                                         $cardStart = $scheduleLeaf->startsAt();
                                         $cardTimingExpression = $primarySession?->timeExpressions->firstWhere('anchor_type', 'prayer')
                                             ?? $primaryOccurrence?->timeExpressions->firstWhere('anchor_type', 'prayer')
@@ -1043,7 +1034,6 @@
                                                 ? 'https://www.google.com/maps/dir/?api=1&destination='.$addressModel->latitude.','.$addressModel->longitude
                                                 : null);
                                         $eventUrl = $scheduleLeaf->url();
-                                        $programmeUrl = route('events.show', $event);
                                         $signalEntityType = $scheduleLeaf->entityType();
                                         $signalEntityId = $scheduleLeaf->id();
                                         $isSaved = in_array((string) $event->getKey(), $savedEventIds, true);
@@ -1061,7 +1051,7 @@
                                                 class="relative block w-full overflow-hidden rounded-xl bg-slate-100 shadow-sm ring-1 ring-slate-900/5 {{ $eventCardImageAspectClass }}"
                                                 data-cover-aspect="{{ $eventCardImageAspectRatio }}"
                                                 data-testid="event-card-image-frame">
-                                                <img src="{{ $eventCardImageUrl }}" alt="{{ $scheduleTitle }}" loading="lazy" class="h-full w-full object-cover transition duration-500 group-hover:scale-105">
+                                                <img src="{{ $eventCardImageUrl }}" alt="{{ $scheduleTitle }}" loading="lazy" class="h-full w-full object-cover">
                                                 <span class="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-slate-950/35 to-transparent"></span>
                                                 <span class="absolute bottom-3 left-3 rounded-lg px-2.5 py-1.5 text-[11px] font-bold shadow-sm {{ $formatBadgeClass }}">{{ $formatLabel }}</span>
                                                 @if(isset($event->distance_km))
@@ -1070,54 +1060,62 @@
                                             </a>
 
                                             <div class="flex min-h-full min-w-0 flex-col">
-                                                <div class="flex items-start justify-between gap-3" data-testid="event-card-badge-row">
-                                                    <div class="flex min-w-0 flex-wrap items-center gap-2">
-                                                        <span class="inline-flex items-center rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-800" data-testid="event-card-type-badge">
-                                                            {{ $eventCategoryLabel }}
-                                                        </span>
-                                                        <time class="inline-flex items-center rounded-full border border-amber-100 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-800" data-testid="event-card-date-badge" datetime="{{ $cardStart?->toIso8601String() }}">
-                                                            {{ $cardStart ? \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($cardStart, 'j M') : __('TBC') }}
-                                                        </time>
-                                                    </div>
-                                                    <span class="max-w-[9rem] shrink-0 rounded-lg border px-2.5 py-1.5 text-right text-[11px] font-semibold leading-4 {{ $statusBadgeClass }}">
-                                                        <span class="block">{{ $statusBadgeLabel }}</span>
-                                                        @if($statusTimeLabel)
-                                                            <span class="mt-0.5 block font-normal opacity-75">{{ $statusTimeLabel }}</span>
+                                                <div class="flex items-start justify-between gap-3" data-testid="event-card-heading-row">
+                                                    <div class="min-w-0">
+                                                        <p class="line-clamp-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                                                            {{ $primarySession ? __('Sesi') : __('Majlis') }} · {{ $event->title }}
+                                                        </p>
+                                                        <a href="{{ $eventUrl }}" wire:navigate
+                                                            data-signal-event="navigation.result_clicked"
+                                                            data-signal-category="navigation"
+                                                            data-signal-component="events_index_results"
+                                                            data-signal-control="event_card_title"
+                                                            data-signal-entity-type="{{ $signalEntityType }}"
+                                                            data-signal-entity-id="{{ $signalEntityId }}"
+                                                            class="mt-1 block" data-testid="event-card-title-link">
+                                                            <h3 class="line-clamp-2 min-h-[2.6rem] font-heading text-xl font-bold leading-tight text-emerald-950 transition group-hover:text-emerald-800 lg:text-[1.35rem]">
+                                                                {{ $scheduleTitle }}
+                                                            </h3>
+                                                        </a>
+                                                        @if($event->reference_study_subtitle)
+                                                            <p class="mt-1 line-clamp-1 text-xs font-semibold italic text-slate-500">{{ $event->reference_study_subtitle }}</p>
                                                         @endif
-                                                    </span>
+                                                    </div>
+                                                    <div class="flex shrink-0 items-start gap-2">
+                                                        <span class="max-w-[9rem] rounded-lg border px-2.5 py-1.5 text-right text-[11px] font-semibold leading-4 {{ $statusBadgeClass }}">
+                                                            <span class="block">{{ $statusBadgeLabel }}</span>
+                                                            @if($statusTimeLabel)
+                                                                <span class="mt-0.5 block font-normal opacity-75">{{ $statusTimeLabel }}</span>
+                                                            @endif
+                                                        </span>
+                                                        <button type="button" wire:click="toggleSave('{{ $event->getKey() }}')"
+                                                            aria-label="{{ $isSaved ? __('Disimpan') : __('Simpan') }}"
+                                                            title="{{ $isSaved ? __('Disimpan') : __('Simpan') }}"
+                                                            data-signal-event="engagement.event_save_clicked"
+                                                            data-signal-category="engagement"
+                                                            data-signal-component="events_index_results"
+                                                            data-signal-control="save"
+                                                            data-signal-entity-type="event"
+                                                            data-signal-entity-id="{{ $event->id }}"
+                                                            data-signal-props='@json(['currently_saved' => $isSaved])'
+                                                            class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2">
+                                                            <svg aria-hidden="true" class="size-4" fill="{{ $isSaved ? 'currentColor' : 'none' }}" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16l-7-3.5L5 21V5Z" />
+                                                            </svg>
+                                                        </button>
+                                                    </div>
                                                 </div>
 
-                                                <p class="mt-3 line-clamp-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
-                                                    <a href="{{ $programmeUrl }}" wire:navigate class="transition hover:text-emerald-800">{{ __('Program') }} · {{ $event->title }}</a>
-                                                </p>
-
-                                                <a href="{{ $eventUrl }}" wire:navigate
-                                                    data-signal-event="navigation.result_clicked"
-                                                    data-signal-category="navigation"
-                                                    data-signal-component="events_index_results"
-                                                    data-signal-control="event_card_title"
-                                                    data-signal-entity-type="{{ $signalEntityType }}"
-                                                    data-signal-entity-id="{{ $signalEntityId }}"
-                                                    class="block" data-testid="event-card-title-link">
-                                                    <h3 class="line-clamp-2 min-h-[2.6rem] font-heading text-xl font-bold leading-tight text-emerald-950 transition group-hover:text-emerald-800 lg:text-[1.35rem]">
-                                                        {{ $scheduleTitle }}
-                                                    </h3>
-                                                </a>
-
-                                                @if($event->reference_study_subtitle)
-                                                    <p class="mt-1 line-clamp-1 text-xs font-semibold italic text-slate-500">{{ $event->reference_study_subtitle }}</p>
-                                                @endif
+                                                <div class="mt-3 flex flex-wrap items-center gap-2" data-testid="event-card-badge-row">
+                                                    <span class="inline-flex items-center rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-800" data-testid="event-card-type-badge">
+                                                        {{ $eventCategoryLabel }}
+                                                    </span>
+                                                    <time class="inline-flex items-center rounded-full border border-amber-100 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-800" data-testid="event-card-date-badge" datetime="{{ $cardStart?->toIso8601String() }}">
+                                                        {{ $cardStart ? \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($cardStart, 'j M') : __('TBC') }}
+                                                    </time>
+                                                </div>
 
                                                 <dl class="mt-3 space-y-2 text-xs leading-5 text-slate-600">
-                                                    <div class="flex min-w-0 gap-2">
-                                                        <dt class="mt-0.5 shrink-0 text-slate-400">
-                                                            <span class="sr-only">{{ __('Penceramah') }}</span>
-                                                            <svg aria-hidden="true" class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 1 1 7.5 0ZM4.5 20.25a8.25 8.25 0 1 1 15 0" />
-                                                            </svg>
-                                                        </dt>
-                                                        <dd class="min-w-0 truncate">{{ $personText }}</dd>
-                                                    </div>
                                                     <div class="flex min-w-0 gap-2">
                                                         <dt class="mt-0.5 shrink-0 text-slate-400">
                                                             <span class="sr-only">{{ __('Lokasi') }}</span>
@@ -1141,7 +1139,20 @@
                                                         </dt>
                                                         <dd class="truncate">{{ $cardTimingText }}</dd>
                                                     </div>
+                                                    <div class="flex min-w-0 gap-2">
+                                                        <dt class="mt-0.5 shrink-0 text-slate-400">
+                                                            <span class="sr-only">{{ __('Penceramah') }}</span>
+                                                            <svg aria-hidden="true" class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 1 1 7.5 0ZM4.5 20.25a8.25 8.25 0 1 1 15 0" />
+                                                            </svg>
+                                                        </dt>
+                                                        <dd class="min-w-0 truncate">{{ $personText }}</dd>
+                                                    </div>
                                                 </dl>
+
+                                                @if($cardDescription !== '')
+                                                    <p class="mt-3 line-clamp-2 text-xs leading-5 text-slate-600">{{ $cardDescription }}</p>
+                                                @endif
 
                                                 <div class="mt-3 flex max-h-8 flex-wrap gap-2 overflow-hidden">
                                                     @foreach($languageChips as $languageChip)
@@ -1152,35 +1163,8 @@
                                                     @endforeach
                                                 </div>
 
-                                                <div class="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
-                                                    <a href="{{ $eventUrl }}" wire:navigate class="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-emerald-800 px-3 text-[11px] font-bold leading-tight text-white transition hover:bg-emerald-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 focus-visible:ring-offset-2">
-                                                        <svg aria-hidden="true" class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" d="m13.5 4.5 7.5 7.5m0 0-7.5 7.5M21 12H3" />
-                                                        </svg>
-                                                        {{ __('Lihat Detail') }}
-                                                    </a>
-                                                    <a href="{{ $programmeUrl }}" wire:navigate aria-label="{{ __('Program') }}" title="{{ __('Program') }}" class="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 text-[11px] font-semibold leading-tight text-slate-600 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 focus-visible:ring-offset-2">
-                                                        <svg aria-hidden="true" class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3.75h10.5A1.5 1.5 0 0 1 18.75 5.25v13.5a1.5 1.5 0 0 1-1.5 1.5H6.75a1.5 1.5 0 0 1-1.5-1.5V5.25a1.5 1.5 0 0 1 1.5-1.5Zm3 4.5h4.5m-4.5 3h4.5m-4.5 3h3" />
-                                                        </svg>
-                                                        <span class="hidden md:inline">{{ __('Program') }}</span>
-                                                    </a>
-                                                    <button type="button" wire:click="toggleSave('{{ $event->getKey() }}')"
-                                                        aria-label="{{ $isSaved ? __('Disimpan') : __('Simpan') }}"
-                                                        title="{{ $isSaved ? __('Disimpan') : __('Simpan') }}"
-                                                        data-signal-event="engagement.event_save_clicked"
-                                                        data-signal-category="engagement"
-                                                        data-signal-component="events_index_results"
-                                                        data-signal-control="save"
-                                                        data-signal-entity-type="event"
-                                                        data-signal-entity-id="{{ $event->id }}"
-                                                        data-signal-props='@json(['currently_saved' => $isSaved])'
-                                                        class="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 text-[11px] font-semibold leading-tight text-slate-600 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2">
-                                                        <svg aria-hidden="true" class="size-4" fill="{{ $isSaved ? 'currentColor' : 'none' }}" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16l-7-3.5L5 21V5Z" />
-                                                        </svg>
-                                                        <span class="hidden md:inline">{{ $isSaved ? __('Disimpan') : __('Simpan') }}</span>
-                                                    </button>
+                                                <div class="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
+                                                    <div class="flex min-w-0 flex-wrap items-center gap-2">
                                                     <button type="button" @click="shareEvent(@js($signalEntityId), @js($eventUrl), @js($scheduleTitle))"
                                                         aria-label="{{ __('Kongsi') }}"
                                                         title="{{ __('Kongsi') }}"
@@ -1190,7 +1174,7 @@
                                                         data-signal-control="share_event"
                                                         data-signal-entity-type="{{ $signalEntityType }}"
                                                         data-signal-entity-id="{{ $signalEntityId }}"
-                                                        class="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 text-[11px] font-semibold leading-tight text-slate-600 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 focus-visible:ring-offset-2">
+                                                        class="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 text-[11px] font-semibold leading-tight text-slate-600 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 focus-visible:ring-offset-2">
                                                         <svg aria-hidden="true" class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                             <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314" />
                                                         </svg>
@@ -1206,13 +1190,20 @@
                                                             data-signal-control="open_maps"
                                                             data-signal-entity-type="{{ $signalEntityType }}"
                                                             data-signal-entity-id="{{ $signalEntityId }}"
-                                                            class="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 text-[11px] font-semibold leading-tight text-slate-600 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 focus-visible:ring-offset-2">
+                                                            class="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 text-[11px] font-semibold leading-tight text-slate-600 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 focus-visible:ring-offset-2">
                                                             <svg aria-hidden="true" class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                                 <path stroke-linecap="round" stroke-linejoin="round" d="m12 19.5 7.5-4.125V4.875L12 9 4.5 4.875v10.5L12 19.5Zm0 0V9" />
                                                             </svg>
                                                             <span class="hidden md:inline">{{ __('Buka Maps') }}</span>
                                                         </a>
                                                     @endif
+                                                    </div>
+                                                    <a href="{{ $eventUrl }}" wire:navigate class="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-emerald-800 px-3 text-[11px] font-bold leading-tight text-white transition hover:bg-emerald-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 focus-visible:ring-offset-2">
+                                                        <svg aria-hidden="true" class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="m13.5 4.5 7.5 7.5m0 0-7.5 7.5M21 12H3" />
+                                                        </svg>
+                                                        {{ __('Lihat Detail') }}
+                                                    </a>
                                                 </div>
                                             </div>
                                         </div>

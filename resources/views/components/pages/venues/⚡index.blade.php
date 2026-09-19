@@ -224,7 +224,7 @@ new
 <div class="relative min-h-screen">
     <div class="relative pt-12 pb-16 bg-white border-b border-slate-100 overflow-hidden">
         <div class="absolute inset-0 bg-emerald-50/50"></div>
-        <div class="absolute inset-0 opacity-5" style="background-image: url('{{ asset('images/pattern-bg.png') }}');"></div>
+        <div class="absolute inset-0 opacity-5" style="background-image: url('{{ asset('images/pattern-bg.jpg') }}');"></div>
 
         <div class="container relative mx-auto px-6 text-center lg:px-12">
             <h1 class="mb-6 text-balance font-heading text-4xl font-extrabold tracking-tight text-slate-900 md:text-5xl">

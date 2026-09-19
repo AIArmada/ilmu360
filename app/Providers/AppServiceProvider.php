@@ -22,6 +22,7 @@ use AIArmada\Contacting\Models\SocialProfile;
 use AIArmada\Customers\Models\Customer;
 use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventAccessPolicy;
+use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventRegistrationParticipant;
 use AIArmada\Events\Models\EventSession;
@@ -359,6 +360,7 @@ class AppServiceProvider extends ServiceProvider
             'package_event' => PackageEvent::class,
             'event_access_policy' => EventAccessPolicy::class,
             'event_key_person' => EventKeyPerson::class,
+            'event_location' => EventLocation::class,
             'event_occurrence' => EventOccurrence::class,
             'event_submission' => EventSubmission::class,
             'event_session' => EventSession::class,

@@ -45,25 +45,22 @@
     $mergedLocationLabel = $detail->locationLabel($mergedLocationRecord);
     $displayStartsAt = $singleOccurrence?->starts_at ?? $event->starts_at;
     $displayEndsAt = $singleOccurrence?->ends_at ?? $event->ends_at;
+    $locationAddress = $mergedLocationRecord?->primaryAddress();
     $venueAddress = $event->venue?->primaryAddress();
     $institutionAddress = $event->institution?->primaryAddress();
-    $locationSnapshotLines = array_filter([
-        $mergedLocationRecord?->line1,
-        $mergedLocationRecord?->line2,
-        $mergedLocationRecord?->postcode,
-        $mergedLocationRecord?->city,
-        $mergedLocationRecord?->state,
-    ]);
-    $primaryAddress = $locationSnapshotLines !== [] ? null : ($venueAddress ?? $institutionAddress);
-    $lat = $mergedLocationRecord?->latitude ?? $venueAddress?->latitude ?? $venueAddress?->lat ?? $institutionAddress?->latitude ?? $institutionAddress?->lat;
-    $lng = $mergedLocationRecord?->longitude ?? $venueAddress?->longitude ?? $venueAddress?->lng ?? $institutionAddress?->longitude ?? $institutionAddress?->lng;
+    $primaryAddress = $locationAddress ?? ($venueAddress ?? $institutionAddress);
+    $lat = $primaryAddress?->latitude ?? $primaryAddress?->lat;
+    $lng = $primaryAddress?->longitude ?? $primaryAddress?->lng;
     $addressDisplayLines = \App\Support\Location\AddressHierarchyFormatter::displayLines($primaryAddress);
     $locationParts = \App\Support\Location\AddressHierarchyFormatter::parts($primaryAddress);
     $locationState = $locationParts[1] ?? null;
     $locationDistrict = $locationParts[0] ?? null;
     $locationShortLabel = $primaryAddress !== null
         ? implode(', ', array_filter($locationDistrict !== $locationState ? [$locationDistrict, $locationState] : [$locationState]))
-        : implode(', ', array_filter([$mergedLocationRecord?->city, $mergedLocationRecord?->state]));
+        : '';
+    $locationDirections = is_array($locationAddress?->metadata)
+        ? ($locationAddress->metadata['directions'] ?? null)
+        : null;
     $mapQuery = implode(', ', array_filter([
         $event->venue?->name ?? $event->institution?->name,
         $mergedLocationLabel,
@@ -71,11 +68,11 @@
         $primaryAddress?->line2,
         $addressDisplayLines['locality'] ?? null,
         $addressDisplayLines['regional'] ?? null,
-        $mergedLocationRecord?->city,
-        $mergedLocationRecord?->state,
+        $primaryAddress?->city,
+        $primaryAddress?->state,
     ]));
     $normalizedMapQuery = null;
-    $locationMapUrl = $mergedLocationRecord?->google_maps_url ?? $primaryAddress?->google_maps_url;
+    $locationMapUrl = $primaryAddress?->google_maps_url;
     if (filled($locationMapUrl)) {
         $queryString = parse_url((string) $locationMapUrl, PHP_URL_QUERY);
         if (is_string($queryString) && $queryString !== '') {
@@ -92,11 +89,11 @@
     $mapEmbedUrl = filled($normalizedMapQuery)
         ? 'https://www.google.com/maps?q=' . urlencode((string) $normalizedMapQuery) . '&output=embed'
         : null;
-    $wazeNavUrl = filled($mergedLocationRecord?->waze_url ?? $primaryAddress?->waze_url)
-        ? (string) ($mergedLocationRecord?->waze_url ?? $primaryAddress?->waze_url)
+    $wazeNavUrl = filled($primaryAddress?->waze_url)
+        ? (string) $primaryAddress->waze_url
         : ($lat !== null && $lng !== null ? "https://www.waze.com/ul?ll={$lat},{$lng}&navigate=yes" : null);
-    $googleMapsNavUrl = filled($mergedLocationRecord?->google_maps_url ?? $primaryAddress?->google_maps_url)
-        ? (string) ($mergedLocationRecord?->google_maps_url ?? $primaryAddress?->google_maps_url)
+    $googleMapsNavUrl = filled($primaryAddress?->google_maps_url)
+        ? (string) $primaryAddress->google_maps_url
         : ($lat !== null && $lng !== null ? "https://www.google.com/maps/dir/?api=1&destination={$lat},{$lng}" : null);
 
     $galleryImages = $this->galleryImages;
@@ -659,12 +656,8 @@
                                         <span class="block">{{ implode(', ', array_filter([$primaryAddress->postcode, $addressDisplayLines['locality'] ?? null])) }}</span>
                                         @if(filled($addressDisplayLines['regional'] ?? null))<span class="block">{{ $addressDisplayLines['regional'] }}</span>@endif
                                     </address>
-                                @elseif($locationSnapshotLines !== [])
-                                    <address class="mt-4 not-italic leading-7 text-slate-600">
-                                        @foreach($locationSnapshotLines as $locationSnapshotLine)<span class="block">{{ $locationSnapshotLine }}</span>@endforeach
-                                    </address>
                                 @endif
-                                @if($mergedLocationRecord?->directions)<p class="mt-4 text-sm leading-6 text-slate-600"><span class="font-bold text-[#173c34]">{{ __('Arah') }}:</span> {{ $mergedLocationRecord->directions }}</p>@endif
+                                @if($locationDirections)<p class="mt-4 text-sm leading-6 text-slate-600"><span class="font-bold text-[#173c34]">{{ __('Arah') }}:</span> {{ $locationDirections }}</p>@endif
                                 <div class="mt-5 flex flex-wrap gap-2">
                                     @if($wazeNavUrl)<a href="{{ $wazeNavUrl }}" target="_blank" rel="noopener" data-signal-event="navigation.external_link_clicked" data-signal-category="navigation" data-signal-component="event_detail_location" data-signal-control="waze" data-signal-entity-type="event" data-signal-entity-id="{{ $event->id }}" class="inline-flex items-center gap-2 rounded-xl bg-[#e8f7fa] px-3 py-2 text-sm font-bold text-cyan-800 transition hover:bg-cyan-100">Waze <span aria-hidden="true">↗</span></a>@endif
                                     @if($googleMapsNavUrl)<a href="{{ $googleMapsNavUrl }}" target="_blank" rel="noopener" data-signal-event="navigation.external_link_clicked" data-signal-category="navigation" data-signal-component="event_detail_location" data-signal-control="google_maps" data-signal-entity-type="event" data-signal-entity-id="{{ $event->id }}" class="inline-flex items-center gap-2 rounded-xl bg-[#eef2ff] px-3 py-2 text-sm font-bold text-indigo-800 transition hover:bg-indigo-100">Google Maps <span aria-hidden="true">↗</span></a>@endif

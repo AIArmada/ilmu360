@@ -92,7 +92,7 @@ new
         {{-- Background Layer --}}
         <div class="absolute inset-0 z-0 bg-slate-950">
             {{-- Islamic Pattern Base --}}
-            <div class="absolute inset-0 bg-pattern-islamic opacity-5 mix-blend-overlay" style="background-image: url('{{ asset('images/pattern-bg.png') }}');"></div>
+            <div class="absolute inset-0 bg-pattern-islamic opacity-5 mix-blend-overlay" style="background-image: url('{{ asset('images/pattern-bg.jpg') }}');"></div>
 
             {{-- Aurora Gradients --}}
             <div class="absolute top-[-20%] left-[-10%] w-[70vw] h-[70vw] rounded-full bg-emerald-900/40 blur-[120px] mix-blend-screen animate-float"></div>
@@ -443,7 +443,7 @@ new
                 {{-- CTA for guests to register --}}
                 <div class="mt-16 relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-600 to-teal-600 p-10 text-center">
                     {{-- Background pattern --}}
-                    <div class="absolute inset-0 opacity-10" style="background-image: url('{{ asset('images/pattern-bg.png') }}');"></div>
+                    <div class="absolute inset-0 opacity-10" style="background-image: url('{{ asset('images/pattern-bg.jpg') }}');"></div>
                     <div class="relative z-10">
                         <h3 class="font-heading text-2xl sm:text-3xl font-bold text-white mb-3">{{ __('Daftar Sekarang — Percuma Selamanya') }}</h3>
                         <p class="text-emerald-100 mb-8 max-w-xl mx-auto">{{ __('Simpan majlis kegemaran, ikuti penceramah, dan dapatkan peringatan majlis ilmu berdekatan anda.') }}</p>
@@ -506,7 +506,7 @@ new
     {{-- ═══════════════════════════════════════════════════════ --}}
     <section class="relative py-24 overflow-hidden bg-slate-950">
         {{-- Background Effects --}}
-        <div class="absolute inset-0 bg-pattern-islamic opacity-5 mix-blend-overlay" style="background-image: url('{{ asset('images/pattern-bg.png') }}');"></div>
+        <div class="absolute inset-0 bg-pattern-islamic opacity-5 mix-blend-overlay" style="background-image: url('{{ asset('images/pattern-bg.jpg') }}');"></div>
         <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-emerald-900/20 rounded-full blur-[120px]"></div>
         <div class="absolute top-1/2 left-1/3 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gold-900/10 rounded-full blur-[100px]"></div>
         <div class="absolute inset-0 opacity-20 mix-blend-overlay" style="background-image: url('{{ asset('images/noise.svg') }}');"></div>

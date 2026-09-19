@@ -33,12 +33,16 @@ class Session extends Component
 
     public function mount(Event $event, string $occurrenceSlug, string $sessionSlug): void
     {
+        $discovery = app(PublicScheduleDiscoveryService::class);
+
+        // Resolve the occurrence first: it loads the public schedule set, so
+        // the reachability check below reuses the loaded relation instead of
+        // issuing its own exists query.
+        $occurrence = $discovery->findOccurrence($event, $occurrenceSlug);
+
         if (! $this->isPublicEvent($event)) {
             abort(404);
         }
-
-        $discovery = app(PublicScheduleDiscoveryService::class);
-        $occurrence = $discovery->findOccurrence($event, $occurrenceSlug);
 
         if (! $occurrence instanceof EventOccurrence || ! PublicSchedulePolicy::isPublicOccurrence($occurrence)) {
             abort(404);
@@ -50,7 +54,7 @@ class Session extends Component
             abort(404);
         }
 
-        $event->load($discovery->publicRelations());
+        $event->loadMissing($discovery->occurrencePageRelations());
 
         /** @var EventOccurrence|null $loadedOccurrence */
         $loadedOccurrence = $event->occurrences->firstWhere('id', $occurrence->getKey());

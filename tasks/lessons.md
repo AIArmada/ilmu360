@@ -1032,3 +1032,10 @@
 - For reference-matched header ornaments, use mirrored inline vector rosettes with layered geometric linework so the end caps remain crisp, lightweight, and independent of raster assets.
 - When an ornament should feel integrated with a navigation bar, keep the motif inside the terminal radius and reserve the logo's transparent bounds; shallow inset linework reads better than a large external badge.
 - When users ask to carry a visual treatment between header modes, share the control tokens and icon affordances while preserving each mode's positioning and surface container.
+- When matching a reference card hierarchy, keep existing event actions and semantics but reorder them around the scan path: identity/title, status, place/time, people, supporting copy, tags, then the primary action.
+- When a card hover treatment is rejected, remove the image transform itself while preserving the card's border, shadow, and lift feedback.
+- When removing a page-level status notice, remove its derived visibility flags with the notice so the Livewire view has no dead presentation state.
+- When an event location uses the shared addressing trait, do not read address columns directly from `EventLocation`; resolve its canonical related address and register the model in the app morph map before calling `primaryAddress()`.
+- When a listing is backed by schedule leaves, remove secondary parent-aggregate links too; otherwise the primary card destination may be correct while the eyebrow or footer still bypasses the leaf route.
+- When a floating public header overlays directory hero content, every floating-mode directory must reserve the same responsive top space; a shorter page-specific hero padding lets the shared menu cover its title.
+- When changing a footer navigation label, edit the footer's source translation key only; keep the destination route and other page headings unchanged.

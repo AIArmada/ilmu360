@@ -11,8 +11,9 @@
         $locationName = $location?->venue?->name ?? $event->institution?->name ?? $event->venue?->name;
         $spaceName = \App\Support\Spaces\SpaceLocationPresenter::name($location);
         $locationLabel = collect([$locationName, $spaceName])->filter(fn (mixed $value): bool => is_string($value) && trim($value) !== '')->implode(' · ');
-        $locationVenue = $location?->venue_id !== null ? \App\Models\Venue::query()->find($location->venue_id) : null;
+        $locationVenue = $location?->venue_id !== null ? \App\Models\Venue::query()->with('addresses.areaAssignments.area')->find($location->venue_id) : null;
         $addressModel = $locationVenue?->primaryAddress() ?? $event->institution?->primaryAddress() ?? $event->venue?->primaryAddress();
+        $addressModel?->loadMissing('areaAssignments.area');
         $mapUrl = filled($addressModel?->google_maps_url)
             ? (string) $addressModel->google_maps_url
             : (filled($addressModel?->latitude) && filled($addressModel?->longitude)
@@ -44,7 +45,7 @@
         <div class="grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(20rem,.85fr)] lg:items-stretch">
             <div class="relative min-h-[22rem] overflow-hidden rounded-[2rem] bg-emerald-950 shadow-[0_28px_80px_-44px_rgba(6,78,59,.7)]">
                 @if($heroImageUrl)
-                    <img src="{{ $heroImageUrl }}" alt="{{ $occurrence->title ?: $event->title }}" class="absolute inset-0 h-full w-full object-cover">
+                    <img src="{{ $heroImageUrl }}" alt="{{ $occurrence->title ?: $event->title }}" fetchpriority="high" class="absolute inset-0 h-full w-full object-cover">
                     <div class="absolute inset-0 bg-gradient-to-tr from-emerald-950/95 via-emerald-950/35 to-transparent"></div>
                 @else
                     <div class="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(251,191,36,.34),transparent_28%),linear-gradient(135deg,#064e3b,#022c22)]"></div>

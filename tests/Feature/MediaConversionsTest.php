@@ -135,7 +135,7 @@ it('returns fallback URL when Event has no poster', function () {
 
     $fallbackUrl = $event->getFirstMediaUrl('poster');
 
-    expect($fallbackUrl)->toContain('images/placeholders/event-square-v1.png');
+    expect($fallbackUrl)->toContain('images/placeholders/event-square-v1.jpg');
 });
 
 it('uses thumb conversion in Event card_image_url accessor', function () {
@@ -194,7 +194,7 @@ it('falls back to placeholder in recommendation_image_url accessor when cover is
     $event->addMedia(fakeGeneratedImageUpload('poster.png', 1200, 1500))
         ->toMediaCollection('poster');
 
-    expect($event->recommendation_image_url)->toContain('images/placeholders/event-square-v1.png');
+    expect($event->recommendation_image_url)->toContain('images/placeholders/event-square-v1.jpg');
 });
 
 it('uses institution logo when Event has no poster', function () {
@@ -212,7 +212,7 @@ it('falls back to placeholder in Event card_image_url when no media exists', fun
 
     $cardUrl = $event->card_image_url;
 
-    expect($cardUrl)->toContain('images/placeholders/event-square-v1.png');
+    expect($cardUrl)->toContain('images/placeholders/event-square-v1.jpg');
 });
 
 // ---------------------------------------------------------------

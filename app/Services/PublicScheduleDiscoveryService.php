@@ -21,6 +21,7 @@ use App\Support\Timezone\UserDateTimeFormatter;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
@@ -129,7 +130,15 @@ final class PublicScheduleDiscoveryService
 
     public function findOccurrence(Event $event, string $slug): ?EventOccurrence
     {
-        $event->loadMissing('occurrences');
+        // Load the public schedule set up front so detail mounts can reuse it
+        // via loadMissing() instead of querying occurrences twice.
+        $event->loadMissing(['occurrences' => function (Relation $query): void {
+            $this->constrainPublicSchedule($query);
+            $query
+                ->orderBy('starts_at')
+                ->orderBy('created_at')
+                ->orderBy('id');
+        }]);
 
         /** @var EventOccurrence|null $occurrence */
         $occurrence = $event->occurrences->first(
@@ -141,7 +150,14 @@ final class PublicScheduleDiscoveryService
 
     public function findSession(EventOccurrence $occurrence, string $slug): ?EventSession
     {
-        $occurrence->loadMissing('sessions');
+        $occurrence->loadMissing(['sessions' => function (Relation $query): void {
+            $this->constrainPublicSchedule($query);
+            $query
+                ->orderBy('sort_order')
+                ->orderBy('starts_at')
+                ->orderBy('created_at')
+                ->orderBy('id');
+        }]);
 
         /** @var EventSession|null $session */
         $session = $occurrence->sessions->first(
@@ -157,6 +173,70 @@ final class PublicScheduleDiscoveryService
     public function publicRelations(): array
     {
         return $this->scheduleRelations();
+    }
+
+    /**
+     * Lean relation set for the public occurrence/session detail pages.
+     *
+     * Covers exactly what those blades read (hero media, location graph,
+     * occurrence sessions + speakers). Drops card-only relations the detail
+     * pages never touch: classifications, references, event persons,
+     * languages, change announcements, and the primaryOccurrence subtree
+     * that duplicates the occurrences subtree.
+     *
+     * @return array<int|string, mixed>
+     */
+    public function occurrencePageRelations(): array
+    {
+        $scope = $this->constrainPublicSchedule(...);
+
+        return [
+            'media' => fn ($query) => $query
+                ->whereIn('collection_name', ['cover', 'poster'])
+                ->ordered(),
+            'institution',
+            'institution.media' => fn ($query) => $query
+                ->where('collection_name', 'logo')
+                ->ordered(),
+            'venue',
+            'primaryLocation.venue',
+            'primaryLocation.venueSpace',
+            'occurrences' => function (Relation $query) use ($scope): void {
+                $scope($query);
+                $query
+                    ->orderBy('starts_at')
+                    ->orderBy('created_at')
+                    ->orderBy('id');
+            },
+            'occurrences.media',
+            'occurrences.locations.venue',
+            'occurrences.locations.venueSpace',
+            'occurrences.sessions' => function (Relation $query) use ($scope): void {
+                $scope($query);
+                $query
+                    ->orderBy('sort_order')
+                    ->orderBy('starts_at')
+                    ->orderBy('created_at')
+                    ->orderBy('id');
+            },
+            'occurrences.sessions.media',
+            'occurrences.sessions.locations.venue',
+            'occurrences.sessions.locations.venueSpace',
+            'occurrences.sessions.involvements' => fn (Relation $query) => $query
+                ->where('status', 'active')
+                ->where('visibility', 'public'),
+            'occurrences.sessions.involvements.involveable' => function (MorphTo $relation): void {
+                // Cards render formatted_name per involveable; preload the full
+                // title graph so the accessor never falls back to per-person queries.
+                $relation->morphWith([
+                    Person::class => [
+                        'titleAssignments' => fn (Relation $query) => $query
+                            ->where('status', AssignmentStatus::Active)
+                            ->with('title.category'),
+                    ],
+                ]);
+            },
+        ];
     }
 
     /**
@@ -193,15 +273,25 @@ final class PublicScheduleDiscoveryService
     }
 
     /**
+     * @template TRelatedModel of Model
+     * @template TDeclaringModel of Model
+     * @template TResult
+     *
+     * @param  Relation<TRelatedModel, TDeclaringModel, TResult>  $query
+     */
+    private function constrainPublicSchedule(Relation $query): void
+    {
+        $query
+            ->whereIn('status', Event::PUBLIC_SCHEDULE_STATUSES)
+            ->whereIn('visibility', Event::PUBLIC_SCHEDULE_VISIBILITIES);
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function scheduleRelations(): array
     {
-        $publicScheduleScope = function (Relation $query): void {
-            $query
-                ->whereIn('status', Event::PUBLIC_SCHEDULE_STATUSES)
-                ->whereIn('visibility', Event::PUBLIC_SCHEDULE_VISIBILITIES);
-        };
+        $publicScheduleScope = $this->constrainPublicSchedule(...);
 
         return [
             ...$this->relationProvider->relations(),

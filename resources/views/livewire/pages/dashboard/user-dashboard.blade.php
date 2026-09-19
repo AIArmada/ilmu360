@@ -152,7 +152,7 @@
                 ->take(3)
                 ->values()
                 ->all(),
-            'image' => asset('images/pattern-bg.png'),
+            'image' => asset('images/pattern-bg.jpg'),
         ],
     ];
 
@@ -190,7 +190,7 @@
 <div class="min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-[#f7f3ea] pb-0">
     <section class="relative max-w-[100vw] overflow-hidden border-b border-[#eadfca] bg-[#fbf8f1]">
         <div class="pointer-events-none absolute inset-0 opacity-[0.16]"
-            style="background-image: url('{{ asset('images/pattern-bg.png') }}'); background-position: center; background-size: 420px;"></div>
+            style="background-image: url('{{ asset('images/pattern-bg.jpg') }}'); background-position: center; background-size: 420px;"></div>
         <div class="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#fbf8f1] via-[#fbf8f1]/96 to-[#f6efe0]/90"></div>
         <div class="container relative mx-auto px-6 py-10 lg:px-12 lg:py-14">
             <div data-testid="dashboard-hero-shell" class="relative overflow-hidden rounded-[2rem] border border-[#eadfca] bg-white/80 shadow-[0_30px_70px_-40px_rgba(11,42,66,0.45)] backdrop-blur-sm">
@@ -215,7 +215,7 @@
                     <div class="relative border-t border-[#eadfca] lg:border-t-0 lg:border-l lg:border-l-[#eadfca]/80">
                         <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.95),_transparent_58%)]"></div>
                         <div class="absolute inset-0 opacity-25"
-                            style="background-image: url('{{ asset('images/pattern-bg.png') }}'); background-position: center; background-size: 300px;"></div>
+                            style="background-image: url('{{ asset('images/pattern-bg.jpg') }}'); background-position: center; background-size: 300px;"></div>
 
                         <div class="relative h-full p-4 sm:p-5 lg:p-6">
                             <div data-testid="dashboard-hero-media" class="overflow-hidden rounded-[1.75rem] border border-white/70 bg-[#f8f1e2] shadow-2xl shadow-amber-950/10">
@@ -613,7 +613,7 @@
 
                 <section class="relative overflow-hidden rounded-lg border border-emerald-900 bg-emerald-900 p-6 text-white shadow-sm">
                     <div class="pointer-events-none absolute inset-0 bg-repeat opacity-15"
-                        style="background-image: url('{{ asset('images/pattern-bg.png') }}'); background-size: 260px;"></div>
+                        style="background-image: url('{{ asset('images/pattern-bg.jpg') }}'); background-size: 260px;"></div>
                     <div class="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/0 via-white/0 to-black/10"></div>
                     <div class="relative">
                     <h2 class="font-heading text-2xl font-bold">{{ __('Sebarkan ilmu, luaskan manfaat.') }}</h2>
@@ -662,7 +662,7 @@
 
     <section class="relative mt-2 overflow-hidden bg-[#08243b] px-4 py-8 text-white sm:px-6">
         <div class="absolute inset-0 bg-cover bg-center opacity-15"
-            style="background-image: url('{{ asset('images/pattern-bg.png') }}');"></div>
+            style="background-image: url('{{ asset('images/pattern-bg.jpg') }}');"></div>
         <div class="absolute inset-0 bg-gradient-to-b from-white/0 via-white/0 to-black/10"></div>
         <div class="container relative mx-auto flex flex-col items-center gap-5 text-center lg:px-12">
             <h2 class="max-w-4xl font-heading text-2xl font-bold leading-snug md:text-3xl">
