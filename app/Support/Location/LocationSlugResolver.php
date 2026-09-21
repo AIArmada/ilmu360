@@ -99,14 +99,21 @@ final class LocationSlugResolver
     }
 
     /**
+     * Locality maps scoped through addressing's parent resolution.
+     *
+     * The parent is the package-resolved scope (a picked district where
+     * links prove the narrowing, else the state root), so these maps list
+     * exactly the options the dropdown offers.
+     *
+     * @param  array<string, ?string>  $areaIds
      * @return array{slugToId: array<string, string>, idToSlug: array<string, string>, options: array<string, string>}
      */
-    public function localityMaps(?string $stateId, ?string $countryId): array
+    public function localityMaps(?string $stateId, ?string $countryId, array $areaIds = []): array
     {
-        return $this->mapsFor(
-            'localities:'.($stateId ?? 'any').':'.($countryId ?? 'any'),
-            static fn (): array => SharedFormSchema::areaOptionsForRole($countryId, 'postal_locality', $stateId),
-            static fn (): array => SharedFormSchema::areaSlugsForRole($countryId, 'postal_locality', $stateId),
+        return $this->areaMapsForRole(
+            $countryId,
+            'postal_locality',
+            $this->areaParentIdForRole($countryId, 'postal_locality', $stateId, $areaIds),
         );
     }
 
@@ -147,6 +154,124 @@ final class LocationSlugResolver
     }
 
     /**
+     * @return list<AddressLevelDefinition>
+     */
+    public function areaLevelsForCountry(?string $countryId): array
+    {
+        return $countryId === null ? [] : $this->administrativeAreaLevels($countryId);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function areaRolesForCountry(?string $countryId): array
+    {
+        return array_values(array_filter(array_map(
+            static fn (AddressLevelDefinition $level): ?string => $level->assignmentRole,
+            $this->areaLevelsForCountry($countryId),
+        )));
+    }
+
+    /**
+     * @return array{slugToId: array<string, string>, idToSlug: array<string, string>, options: array<string, string>}
+     */
+    public function areaMapsForRole(?string $countryId, string $role, ?string $parentId = null): array
+    {
+        if ($countryId === null) {
+            return ['slugToId' => [], 'idToSlug' => [], 'options' => []];
+        }
+
+        return $this->mapsFor(
+            "areas:{$countryId}:{$role}:".($parentId ?? 'root'),
+            static fn (): array => SharedFormSchema::areaOptionsForRole($countryId, $role, $parentId),
+            static fn (): array => SharedFormSchema::areaSlugsForRole($countryId, $role, $parentId),
+        );
+    }
+
+    /**
+     * Resolve a role's provider parent through addressing.
+     *
+     * The cascade truth (declared chain, link-proven narrowing, state
+     * fallback) lives in the package; the probe keeps the flip consistent
+     * with the option maps the dropdowns render.
+     *
+     * @param  array<string, ?string>  $areaIds
+     */
+    public function areaParentIdForRole(?string $countryId, string $role, ?string $stateId, array $areaIds = []): ?string
+    {
+        if ($countryId === null) {
+            return null;
+        }
+
+        return app(CountryAddressProfileResolver::class)->parentAreaIdForRole(
+            $countryId,
+            $role,
+            $stateId,
+            $areaIds,
+            fn (string $probeRole, string $probeParentId): bool => $this->areaMapsForRole($countryId, $probeRole, $probeParentId)['options'] !== [],
+        );
+    }
+
+    /**
+     * Roles to clear when a role changes, per addressing.
+     *
+     * @return list<string>
+     */
+    public function areaSuccessorRolesForCountry(?string $countryId, string $role): array
+    {
+        if ($countryId === null) {
+            return [];
+        }
+
+        return app(CountryAddressProfileResolver::class)->successorRoles($countryId, $role);
+    }
+
+    /**
+     * Role gating a filter: the declared parent, except region-parented
+     * roles gate on an explicitly refinedBy role or the nearest preceding
+     * area level where addressing proves the narrowing is structural in
+     * the selected state.
+     */
+    public function areaEffectiveParentRoleForCountry(?string $countryId, string $role, ?string $stateId): ?string
+    {
+        if ($countryId === null) {
+            return null;
+        }
+
+        $parent = app(CountryAddressProfileResolver::class)->effectiveParentLevel($countryId, $role, $stateId);
+
+        if (! $parent instanceof AddressLevelDefinition) {
+            return null;
+        }
+
+        return $parent->kind === 'state' ? 'state' : $parent->assignmentRole;
+    }
+
+    /**
+     * @param  array<string, ?string>  $slugs
+     * @return array<string, ?string>
+     */
+    public function areaIdsForSlugs(?string $countryId, ?string $stateId, array $slugs): array
+    {
+        $ids = [];
+
+        foreach ($this->areaRolesForCountry($countryId) as $role) {
+            $slug = self::cleanSlug($slugs[$role] ?? null);
+
+            if ($slug === null) {
+                $ids[$role] = null;
+
+                continue;
+            }
+
+            $parentId = $this->areaParentIdForRole($countryId, $role, $stateId, $ids);
+            $ids[$role] = $this->areaMapsForRole($countryId, $role, $parentId)['slugToId'][$slug] ?? null;
+        }
+
+        return $ids;
+    }
+
+    /**
      * Area role behind the first cascade slot ("district") for a country.
      *
      * Null when the country has no provider area levels, in which case the
@@ -176,8 +301,8 @@ final class LocationSlugResolver
      * Shared by the directory filter components and their results children
      * so both resolve slugs through exactly the same maps.
      *
-     * @param  array{search?: ?string, country?: ?string, state?: ?string, city?: ?string, locality?: ?string, district?: ?string, subdivision?: ?string}  $slugs
-     * @return array{country_id: ?string, state_id: ?string, city_id: ?string, locality_id: ?string, district_id: ?string, subdivision_id: ?string}
+     * @param  array{search?: ?string, country?: ?string, state?: ?string, city?: ?string, locality?: ?string, district?: ?string, subdivision?: ?string, areas?: array<string, ?string>}  $slugs
+     * @return array{country_id: ?string, state_id: ?string, city_id: ?string, locality_id: ?string, district_id: ?string, subdivision_id: ?string, area_ids: array<string, ?string>}
      */
     public function idsForSlugs(array $slugs): array
     {
@@ -196,20 +321,28 @@ final class LocationSlugResolver
             ? ($this->cityMaps($stateId, $countryId)['slugToId'][$citySlug] ?? null)
             : null;
 
+        $areaSlugs = is_array($slugs['areas'] ?? null) ? $slugs['areas'] : [];
+        $legacyRoles = $this->slotRolesForCountry($countryId);
+
+        if (($legacyDistrict = self::cleanSlug($slugs['district'] ?? null)) !== null && $legacyRoles[0] !== null) {
+            $areaSlugs[$legacyRoles[0]] ??= $legacyDistrict;
+        }
+
+        if (($legacySubdivision = self::cleanSlug($slugs['subdivision'] ?? null)) !== null && $legacyRoles[1] !== null) {
+            $areaSlugs[$legacyRoles[1]] ??= $legacySubdivision;
+        }
+
+        $areaIds = $this->areaIdsForSlugs($countryId, $stateId, $areaSlugs);
+
         $localitySlug = self::cleanSlug($slugs['locality'] ?? null);
         $localityId = $localitySlug !== null
-            ? ($this->localityMaps($stateId, $countryId)['slugToId'][$localitySlug] ?? null)
+            ? ($this->localityMaps($stateId, $countryId, $areaIds)['slugToId'][$localitySlug] ?? null)
             : null;
 
-        $districtSlug = self::cleanSlug($slugs['district'] ?? null);
-        $districtId = $districtSlug !== null
-            ? ($this->districtMaps($stateId, $countryId)['slugToId'][$districtSlug] ?? null)
-            : null;
-
-        $subdivisionSlug = self::cleanSlug($slugs['subdivision'] ?? null);
-        $subdivisionId = $subdivisionSlug !== null
-            ? ($this->subdivisionMaps($stateId, $districtId, $countryId)['slugToId'][$subdivisionSlug] ?? null)
-            : null;
+        $districtRole = $legacyRoles[0];
+        $subdivisionRole = $legacyRoles[1];
+        $districtId = $districtRole !== null ? ($areaIds[$districtRole] ?? null) : null;
+        $subdivisionId = $subdivisionRole !== null ? ($areaIds[$subdivisionRole] ?? null) : null;
 
         return [
             'country_id' => $countryId,
@@ -218,6 +351,7 @@ final class LocationSlugResolver
             'locality_id' => $localityId,
             'district_id' => $districtId,
             'subdivision_id' => $subdivisionId,
+            'area_ids' => $areaIds,
         ];
     }
 
@@ -235,15 +369,21 @@ final class LocationSlugResolver
         $roles = [null, null];
 
         if ($countryId !== null) {
+            $levels = $this->areaLevelsForCountry($countryId);
+
+            // Nested hierarchies need the first linked pair so the second
+            // slot can be scoped by the first (for example, Indonesia's
+            // regency → district cascade). Flat hierarchies keep the two
+            // deepest slots, preserving the existing Malaysia behavior.
+            $structuralLevels = count($levels) >= 2
+                && $levels[1]->parentKey === $levels[0]->key
+                ? array_slice($levels, 0, 2)
+                : array_slice($levels, -2);
+
             $structural = array_map(
                 static fn (AddressLevelDefinition $level): ?string => $level->assignmentRole,
-                $this->administrativeAreaLevels($countryId),
+                $structuralLevels,
             );
-
-            // The two slots show the two deepest area levels: the finest
-            // granularity the provider offers and its parent, so the cascade
-            // always narrows to the smallest area. A lone level anchors the
-            // first slot with the state as its parent.
             $count = count($structural);
 
             if ($count >= 2) {
@@ -261,35 +401,16 @@ final class LocationSlugResolver
      *
      * Prefers the hierarchy keyed 'administrative' (the package convention
      * all current providers follow), else the first hierarchy holding an
-     * area level with an assignment role. Levels without a role cannot
-     * back a filter, so they are skipped.
+     * area level. Levels without a role cannot back a filter, so they are
+     * skipped.
      *
      * @return list<AddressLevelDefinition>
      */
     private function administrativeAreaLevels(string $countryId): array
     {
-        $hierarchies = app(CountryAddressProfileResolver::class)->hierarchies($countryId);
-        $selected = null;
-
-        foreach ($hierarchies as $hierarchy) {
-            if ($hierarchy->key === 'administrative') {
-                $selected = $hierarchy;
-
-                break;
-            }
-        }
-
-        if ($selected === null) {
-            foreach ($hierarchies as $hierarchy) {
-                foreach ($hierarchy->levels as $level) {
-                    if ($level->kind === 'area' && $level->assignmentRole !== null) {
-                        $selected = $hierarchy;
-
-                        break 2;
-                    }
-                }
-            }
-        }
+        $resolver = app(CountryAddressProfileResolver::class);
+        $selected = $resolver->hierarchy($countryId, 'administrative')
+            ?? $resolver->firstAreaHierarchy($countryId);
 
         if ($selected === null) {
             return [];

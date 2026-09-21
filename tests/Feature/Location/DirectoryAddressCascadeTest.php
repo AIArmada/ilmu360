@@ -34,13 +34,15 @@ it('reveals the provider address levels once a state is chosen', function (): vo
         ->set('filterData.state_id', (string) $geography['state']->getKey())
         ->assertSee(__('Daerah'));
 
-    // The subdivision level (Bandar / Mukim / Zon) only reveals once a district
-    // is chosen — that completes the Malaysia provider cascade.
+    // The subdivision level only reveals once a district is chosen — that
+    // completes the Malaysia provider cascade. The fixture subdivision is
+    // subdistrict-typed, so the precise label reads Daerah Kecil.
     Livewire::test(Index::class)
         ->set('filterData.country_id', (string) $country->getKey())
         ->set('filterData.state_id', (string) $geography['state']->getKey())
         ->set('filterData.area_assignments.administrative_district', (string) $geography['district']->getKey())
-        ->assertSee(__('Bandar / Mukim / Zon'));
+        ->assertSee('Daerah Kecil')
+        ->assertDontSee('Bandar / Mukim / Zon');
 });
 
 it('keeps the provider address levels collapsed for a country without a geography provider', function (): void {

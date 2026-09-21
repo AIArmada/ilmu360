@@ -109,7 +109,8 @@ it('shows district and subdistrict on the lokasi tab', function () {
             ->assertSuccessful()
             ->assertSee('Daerah')
             ->assertSee('Batu Pahat')
-            ->assertSee('Mukim / Kawasan')
+            ->assertSee('Mukim / Bandar / Pekan')
+            ->assertDontSee('Mukim / Kawasan')
             ->assertSee('Bandar Penggaram');
     });
 });
@@ -153,7 +154,8 @@ it('shows the postal locality as the mukim when the address only has a locality'
         $this->actingAs($administrator)
             ->get(InstitutionResource::getUrl('view', ['record' => $institution]))
             ->assertSuccessful()
-            ->assertSee('Mukim / Kawasan')
+            ->assertSee('Lokaliti / Presint / Kampung')
+            ->assertDontSee('Mukim / Kawasan')
             ->assertSee('Titiwangsa');
     });
 });

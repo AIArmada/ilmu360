@@ -6,6 +6,7 @@ use AIArmada\Addressing\Data\AddressLocationData;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\State;
+use AIArmada\Addressing\Support\AddressAreaStateBridge;
 use AIArmada\Addressing\Support\AddressLocationScope;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Contracts\EngagementManager;
@@ -514,7 +515,7 @@ class Index extends Component implements HasForms
                             ->live(),
 
                         Select::make('area_assignments.administrative_division')
-                            ->label(__('Division / Bahagian'))
+                            ->label(fn (): string => $this->divisionLabel())
                             ->placeholder(__('Any Division'))
                             ->searchable()
                             ->disabled(fn (): bool => ! filled($this->country_id) && ! filled($this->state_id))
@@ -530,7 +531,7 @@ class Index extends Component implements HasForms
                             ->live(),
 
                         Select::make('area_assignments.postal_locality')
-                            ->label(__('Locality / Kampung'))
+                            ->label(fn (): string => $this->localityLabel())
                             ->placeholder(__('Any Locality'))
                             ->searchable()
                             ->disabled(fn (): bool => ! filled($this->country_id) && ! filled($this->state_id))
@@ -1012,7 +1013,7 @@ class Index extends Component implements HasForms
 
         return $role === null
             ? __('District')
-            : SharedFormSchema::locationLevelLabel($countryId, $role, __('District'));
+            : SharedFormSchema::locationLevelLabel($countryId, $role, __('District'), $this->normalizeNullableString($this->state_id));
     }
 
     public function subdistrictLabel(): string
@@ -1022,7 +1023,40 @@ class Index extends Component implements HasForms
 
         return $role === null
             ? __('Subdivision')
-            : SharedFormSchema::locationLevelLabel($countryId, $role, __('Subdivision'));
+            : SharedFormSchema::locationLevelLabel($countryId, $role, __('Subdivision'), $this->normalizeNullableString($this->state_id), $this->normalizeAreaAssignments($this->area_assignments));
+    }
+
+    public function divisionLabel(): string
+    {
+        return SharedFormSchema::locationLevelLabel(
+            $this->normalizeNullableString($this->country_id),
+            'administrative_division',
+            __('Division / Bahagian'),
+            $this->normalizeNullableString($this->state_id),
+            $this->normalizeAreaAssignments($this->area_assignments),
+        );
+    }
+
+    public function localityLabel(): string
+    {
+        return SharedFormSchema::locationLevelLabel(
+            $this->normalizeNullableString($this->country_id),
+            'postal_locality',
+            __('Locality'),
+            $this->normalizeNullableString($this->state_id),
+            $this->normalizeAreaAssignments($this->area_assignments),
+        );
+    }
+
+    public function stateChipLabel(): string
+    {
+        $areaId = AddressAreaStateBridge::areaIdForState($this->normalizeNullableString($this->state_id));
+
+        if ($areaId !== null && AddressArea::query()->whereKey($areaId)->value('type') === 'wilayah_persekutuan') {
+            return __('WP');
+        }
+
+        return __('Negeri');
     }
 
     /**
@@ -1038,11 +1072,9 @@ class Index extends Component implements HasForms
         $selects = [];
 
         if ($slot0 !== null && ! in_array($slot0, self::FIXED_AREA_ASSIGNMENT_ROLES, true)) {
-            $districtLabel = $this->districtLabel();
-
             $selects[] = Select::make("area_assignments.{$slot0}")
-                ->label($districtLabel)
-                ->placeholder(__('All :level', ['level' => $districtLabel]))
+                ->label(fn (): string => $this->districtLabel())
+                ->placeholder(fn (): string => __('All :level', ['level' => $this->districtLabel()]))
                 ->searchable()
                 ->disabled(fn (): bool => ! filled($this->country_id) && ! filled($this->state_id))
                 ->visible(fn (): bool => SharedFormSchema::areaOptionsForRole($this->country_id, $slot0, $this->state_id) !== [])
@@ -1058,11 +1090,9 @@ class Index extends Component implements HasForms
         }
 
         if ($slot1 !== null && ! in_array($slot1, self::FIXED_AREA_ASSIGNMENT_ROLES, true)) {
-            $subdistrictLabel = $this->subdistrictLabel();
-
             $selects[] = Select::make("area_assignments.{$slot1}")
-                ->label($subdistrictLabel)
-                ->placeholder(__('All :level', ['level' => $subdistrictLabel]))
+                ->label(fn (): string => $this->subdistrictLabel())
+                ->placeholder(fn (): string => __('All :level', ['level' => $this->subdistrictLabel()]))
                 ->searchable()
                 ->disabled(fn (): bool => ! filled($this->country_id) && ! filled($this->state_id))
                 ->visible(fn (): bool => $this->subdivisionSlotOptions() !== [])

@@ -137,7 +137,8 @@ it('shows district and subdistrict on the lokasi tab', function () {
             ->assertSuccessful()
             ->assertSee('Daerah')
             ->assertSee('Batu Pahat')
-            ->assertSee('Mukim / Kawasan')
+            ->assertSee('Mukim / Bandar / Pekan')
+            ->assertDontSee('Mukim / Kawasan')
             ->assertSee('Bandar Penggaram');
     });
 });

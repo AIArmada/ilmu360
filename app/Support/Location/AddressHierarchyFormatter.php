@@ -6,6 +6,7 @@ use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\State;
+use App\Forms\SharedFormSchema;
 
 final class AddressHierarchyFormatter
 {
@@ -125,6 +126,30 @@ final class AddressHierarchyFormatter
     {
         return self::roleAreaName($address, AddressAssignments::ADMINISTRATIVE_SUBDIVISION)
             ?? self::roleAreaName($address, AddressAssignments::POSTAL_LOCALITY);
+    }
+
+    public static function roleAreaLabel(?Address $address, string $role, string $fallback): string
+    {
+        if (! $address instanceof Address) {
+            return $fallback;
+        }
+
+        return SharedFormSchema::locationLevelLabel(
+            $address->getAttribute('country_id') ?? $address->getAttribute('country_code'),
+            $role,
+            $fallback,
+            $address->getAttribute('state_id'),
+            AddressAssignments::forAddress($address),
+        );
+    }
+
+    public static function subdivisionOrLocalityLabel(?Address $address, string $fallback = 'Mukim / Kawasan'): string
+    {
+        if (self::roleAreaName($address, AddressAssignments::ADMINISTRATIVE_SUBDIVISION) !== null) {
+            return self::roleAreaLabel($address, AddressAssignments::ADMINISTRATIVE_SUBDIVISION, $fallback);
+        }
+
+        return self::roleAreaLabel($address, AddressAssignments::POSTAL_LOCALITY, $fallback);
     }
 
     private static function loadedAreaName(Address $address, string $role): ?string

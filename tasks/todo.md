@@ -3605,3 +3605,45 @@ request). Filters morph on the fast parent response; list follows on the child r
 ### Review
 
 - `/rujukan` now uses the same `pt-48` / `sm:pt-52` / `lg:pt-52` top spacing as `/majlis`, `/penceramah`, and `/institusi`, while preserving its existing bottom spacing and hero design.
+
+## Homepage redesign to match supplied reference (2026-09-19)
+
+### Plan
+
+- [x] Rebuild the homepage as a focused discovery landing page rather than a second event directory.
+- [x] Add the reference-led hero, category strip, featured/map section, speaker section, statistics, and community CTA.
+- [x] Verify the implementation section-by-section at desktop size and inspect the responsive variants.
+
+### Review
+
+- The homepage now follows the supplied reference's discovery flow: hero search, category strip, featured majlis/map, speakers, statistics, community CTA, and footer.
+- Desktop browser verification passed section-by-section after the hero asset was revised so the seated learner looks toward the mosque.
+- The existing `/majlis` route remains available; retiring it is intentionally deferred.
+
+## Bring `/majlis` geography filter to homepage (2026-09-20)
+
+### Plan
+
+- [x] Reuse the canonical country, state, and address-area roles already used by `/majlis`.
+- [x] Add a compact responsive location disclosure to the homepage hero search.
+- [x] Submit homepage search and geography values to `/majlis` and verify the rendered page.
+
+### Review
+
+- The homepage location control now exposes country, state, division/locality, and provider-resolved cascade areas when available.
+- Native named controls submit the existing `country_id`, `state_id`, and `area_assignments[...]` query keys to the event listing.
+- Verified Blade compilation, the production asset build, the rendered homepage, and the accessible expand/collapse state of the location control.
+
+## Match `/majlis` filters on homepage (2026-09-20)
+
+### Plan
+
+- [x] Reuse the existing `/majlis` filter component behavior and all filter sections on the homepage.
+- [x] Remove the superseded geography-only homepage filter markup and state.
+- [x] Verify both `/` and `/majlis` render and expose the same filter groups.
+
+### Review
+
+- The homepage now mounts the same Livewire filter behavior as `/majlis`, including date, format, time, location, language, speaker, topic/reference, audience, and nearby-location controls.
+- The old geography-only controls and temporary placeholder markup were removed.
+- Both routes return successfully, and the expanded homepage filter accessibility tree matches the `/majlis` filter groups.

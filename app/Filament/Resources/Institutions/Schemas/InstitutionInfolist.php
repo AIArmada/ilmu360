@@ -110,11 +110,11 @@ class InstitutionInfolist
                                             ->state(fn (?Institution $record): ?string => $record?->primaryAddress()?->city)
                                             ->placeholder('-'),
                                         TextEntry::make('address.district')
-                                            ->label('Daerah')
+                                            ->label(fn (?Institution $record): string => AddressHierarchyFormatter::roleAreaLabel($record?->primaryAddress(), AddressAssignments::ADMINISTRATIVE_DISTRICT, 'Daerah'))
                                             ->state(fn (?Institution $record): ?string => AddressHierarchyFormatter::roleAreaName($record?->primaryAddress(), AddressAssignments::ADMINISTRATIVE_DISTRICT))
                                             ->placeholder('-'),
                                         TextEntry::make('address.subdistrict')
-                                            ->label('Mukim / Kawasan')
+                                            ->label(fn (?Institution $record): string => AddressHierarchyFormatter::subdivisionOrLocalityLabel($record?->primaryAddress()))
                                             ->state(fn (?Institution $record): ?string => AddressHierarchyFormatter::subdivisionOrLocalityName($record?->primaryAddress()))
                                             ->placeholder('-'),
                                         TextEntry::make('address.state')

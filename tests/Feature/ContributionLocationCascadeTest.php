@@ -39,7 +39,7 @@ it('builds Indonesian area fields on the institution contribution form', functio
 
     expect($fields)->toHaveKey('area_assignments.regency')
         ->and($fields)->toHaveKey('area_assignments.district')
-        ->and($fields['area_assignments.regency']->getLabel())->toBe('Kabupaten / Kota')
+        ->and($fields['area_assignments.regency']->getLabel())->toBe('Kabupaten')
         ->and($fields['area_assignments.regency']->isVisible())->toBeTrue()
         ->and($fields['state_id']->isVisible())->toBeTrue();
 });
@@ -72,7 +72,7 @@ it('hides the state select for stateless Singapore on the contribution form', fu
         ->and($fields['state']->isVisible())->toBeTrue();
 });
 
-it('keeps the Malaysian entry fields unchanged', function (): void {
+it('labels the Malaysian entry fields precisely', function (): void {
     app()->setLocale('ms');
 
     $geo = createTestPackageGeography('Selangor', 'Petaling', 'Subang');
@@ -87,7 +87,7 @@ it('keeps the Malaysian entry fields unchanged', function (): void {
     expect($fields)->toHaveKey('area_assignments.administrative_district')
         ->and($fields)->toHaveKey('area_assignments.administrative_subdivision')
         ->and($fields)->toHaveKey('area_assignments.postal_locality')
-        ->and($fields['area_assignments.administrative_district']->getLabel())->toBe('Daerah / Jajahan')
+        ->and($fields['area_assignments.administrative_district']->getLabel())->toBe('Daerah')
         ->and($fields['area_assignments.administrative_district']->isVisible())->toBeTrue()
         ->and($fields['state_id']->isVisible())->toBeTrue();
 });

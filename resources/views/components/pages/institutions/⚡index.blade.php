@@ -17,7 +17,7 @@ class extends Component
     private ?string $resolvedDefaultCountrySlug = null;
 
     /**
-     * @var array{country_id: ?string, state_id: ?string, city_id: ?string, district_id: ?string, subdivision_id: ?string, locality_id: ?string}|null
+     * @var array{country_id: ?string, state_id: ?string, city_id: ?string, district_id: ?string, subdivision_id: ?string, locality_id: ?string, area_ids: array<string, ?string>}|null
      */
     private ?array $memoizedLocationIds = null;
 
@@ -28,6 +28,7 @@ class extends Component
         }
 
         $this->normalizeLocationSlugs();
+        $this->syncLegacyAreaProperties();
         $this->autoSelectSingleLocationChildren();
     }
 
@@ -51,11 +52,17 @@ class extends Component
     #[Url]
     public ?string $locality = null;
 
-    #[Url]
     public ?string $district = null;
 
-    #[Url]
     public ?string $subdivision = null;
+
+    /**
+     * Provider-defined area slugs keyed by their assignment roles.
+     *
+     * @var array<string, ?string>
+     */
+    #[Url]
+    public array $areas = [];
 
     #[Computed]
     public function countries(): array
@@ -123,7 +130,61 @@ class extends Component
 
         $ids = $this->locationIds();
 
-        return $this->locationSlugResolver()->localityMaps($ids['state_id'], $ids['country_id'])['options'];
+        if (! $this->isLocalityFilterOpen($ids)) {
+            return [];
+        }
+
+        return $this->locationSlugResolver()->localityMaps($ids['state_id'], $ids['country_id'], $ids['area_ids'])['options'];
+    }
+
+    /**
+     * @return list<array{role: string, label: string, value: ?string, options: array<string, string>}>
+     */
+    #[Computed]
+    public function areaFilters(): array
+    {
+        $ids = $this->locationIds();
+        $countryId = $ids['country_id'];
+
+        if ($countryId === null) {
+            return [];
+        }
+
+        $filters = [];
+        $hasVisibleFilter = false;
+
+        foreach ($this->locationSlugResolver()->areaRolesForCountry($countryId) as $role) {
+            if (! $this->isAreaFilterOpen($role)) {
+                break;
+            }
+
+            $options = $this->areaOptionsForRole($role);
+
+            if ($options === []) {
+                if ($hasVisibleFilter) {
+                    break;
+                }
+
+                // Some provider profiles describe a level that is already
+                // represented by the selected state relation. Skip that
+                // non-selectable level and start at the first populated one.
+                continue;
+            }
+
+            $filters[] = [
+                'role' => $role,
+                'label' => SharedFormSchema::locationLevelLabel($countryId, $role, __('Administrative area'), $ids['state_id'], $ids['area_ids']),
+                'value' => $this->areas[$role] ?? null,
+                'options' => $options,
+            ];
+            $hasVisibleFilter = true;
+
+            if (! filled($this->areas[$role] ?? null)) {
+                break;
+            }
+        }
+
+        return $filters;
     }
 
     #[Computed]
@@ -152,27 +213,29 @@ class extends Component
 
     public function districtLabel(): string
     {
-        $countryId = $this->locationIds()['country_id'];
-        $role = $this->locationSlugResolver()->districtRoleForCountry($countryId);
+        $ids = $this->locationIds();
+        $role = $this->locationSlugResolver()->districtRoleForCountry($ids['country_id']);
 
         return $role === null
             ? __('District')
-            : SharedFormSchema::locationLevelLabel($countryId, $role, __('District'));
+            : SharedFormSchema::locationLevelLabel($ids['country_id'], $role, __('District'), $ids['state_id'], $ids['area_ids']);
     }
 
     public function subdistrictLabel(): string
     {
-        $countryId = $this->locationIds()['country_id'];
-        $role = $this->locationSlugResolver()->subdivisionRoleForCountry($countryId);
+        $ids = $this->locationIds();
+        $role = $this->locationSlugResolver()->subdivisionRoleForCountry($ids['country_id']);
 
         return $role === null
             ? __('Subdivision')
-            : SharedFormSchema::locationLevelLabel($countryId, $role, __('Subdivision'));
+            : SharedFormSchema::locationLevelLabel($ids['country_id'], $role, __('Subdivision'), $ids['state_id'], $ids['area_ids']);
     }
 
     public function localityLabel(): string
     {
-        return SharedFormSchema::locationLevelLabel($this->locationIds()['country_id'], 'postal_locality', __('Locality / Precinct / Kampung'));
+        $ids = $this->locationIds();
+
+        return SharedFormSchema::locationLevelLabel($ids['country_id'], 'postal_locality', __('Locality / Precinct / Kampung'), $ids['state_id'], $ids['area_ids']);
     }
 
     public function isParentlessAreaProfileSelection(): bool
@@ -211,29 +274,60 @@ class extends Component
             return;
         }
 
-        $districts = $this->districts();
+        $this->syncLegacyAreaProperties();
+    }
 
-        if ($districts !== [] && ! $this->isParentlessAreaProfileSelection()) {
-            if (! filled($this->district)) {
-                $this->autoSelectSingleSlug('district', $districts);
-            }
+    /**
+     * @return array<string, string>
+     */
+    private function areaOptionsForRole(string $role): array
+    {
+        $ids = $this->locationIds();
+        $countryId = $ids['country_id'];
 
-            if (filled($this->district)) {
-                $this->autoSelectSingleSlug('subdivision', $this->subdistricts());
-            }
-
-            return;
+        if ($countryId === null) {
+            return [];
         }
 
-        $subdistricts = $this->subdistricts();
+        $parentId = $this->locationSlugResolver()->areaParentIdForRole(
+            $countryId,
+            $role,
+            $ids['state_id'],
+            $ids['area_ids'],
+        );
 
-        if ($subdistricts !== []) {
-            $this->autoSelectSingleSlug('subdivision', $subdistricts);
+        return $this->locationSlugResolver()->areaMapsForRole($countryId, $role, $parentId)['options'];
+    }
 
-            return;
-        }
+    private function isAreaFilterOpen(string $role): bool
+    {
+        $ids = $this->locationIds();
+        $countryId = $ids['country_id'];
+        $parentRole = $this->locationSlugResolver()->areaEffectiveParentRoleForCountry($countryId, $role, $ids['state_id']);
 
-        $this->autoSelectSingleSlug('city', $this->cities());
+        return match ($parentRole) {
+            'state' => filled($this->state),
+            null => true,
+            default => filled($this->areas[$parentRole] ?? null),
+        };
+    }
+
+    /**
+     * @param  array{country_id: ?string, state_id: ?string, area_ids: array<string, ?string>}  $ids
+     */
+    private function isLocalityFilterOpen(array $ids): bool
+    {
+        $parentRole = $this->locationSlugResolver()->areaEffectiveParentRoleForCountry(
+            $ids['country_id'] ?? null,
+            'postal_locality',
+            $ids['state_id'] ?? null,
+        );
+
+        return match ($parentRole) {
+            'state' => filled($this->state),
+            null => true,
+            default => filled($this->areas[$parentRole] ?? null),
+        };
     }
 
     /**
@@ -274,6 +368,7 @@ class extends Component
         $this->locality = null;
         $this->district = null;
         $this->subdivision = null;
+        $this->areas = [];
         $this->memoizedLocationIds = null;
         $this->syncResults();
     }
@@ -284,6 +379,7 @@ class extends Component
         $this->locality = null;
         $this->district = null;
         $this->subdivision = null;
+        $this->areas = [];
         $this->memoizedLocationIds = null;
         $this->autoSelectSingleLocationChildren();
         $this->syncResults();
@@ -291,6 +387,14 @@ class extends Component
 
     public function updatedDistrict(): void
     {
+        $this->syncLegacyAreaPropertiesToAreas();
+        $countryId = $this->locationIds()['country_id'];
+        $districtRole = $this->locationSlugResolver()->districtRoleForCountry($countryId);
+
+        if ($districtRole !== null) {
+            $this->resetAreaDescendants($districtRole);
+        }
+
         $this->subdivision = null;
         $this->memoizedLocationIds = null;
         $this->autoSelectSingleLocationChildren();
@@ -299,7 +403,20 @@ class extends Component
 
     public function updatedSubdivision(): void
     {
+        $this->syncLegacyAreaPropertiesToAreas();
         $this->memoizedLocationIds = null;
+        $this->syncResults();
+    }
+
+    public function updatedAreas(mixed $value, ?string $key = null): void
+    {
+        if ($key !== null) {
+            $this->resetAreaDescendants($key);
+        }
+
+        $this->syncLegacyAreaProperties();
+        $this->memoizedLocationIds = null;
+        $this->autoSelectSingleLocationChildren();
         $this->syncResults();
     }
 
@@ -330,12 +447,13 @@ class extends Component
         $this->locality = null;
         $this->district = null;
         $this->subdivision = null;
+        $this->areas = [];
         $this->memoizedLocationIds = null;
         $this->syncResults();
     }
 
     /**
-     * @return array{country_id: ?string, state_id: ?string, city_id: ?string, locality_id: ?string, district_id: ?string, subdivision_id: ?string}
+     * @return array{country_id: ?string, state_id: ?string, city_id: ?string, locality_id: ?string, district_id: ?string, subdivision_id: ?string, area_ids: array<string, ?string>}
      */
     private function locationIds(): array
     {
@@ -350,11 +468,11 @@ class extends Component
      * The filter snapshot shared with the results child: same shape for the
      * initial mount params and every later sync dispatch.
      *
-     * @return array{search: ?string, country: ?string, state: ?string, city: ?string, locality: ?string, district: ?string, subdivision: ?string}
+     * @return array{search: ?string, country: ?string, state: ?string, city: ?string, locality: ?string, district: ?string, subdivision: ?string, areas?: array<string, ?string>}
      */
     public function filterPayload(): array
     {
-        return [
+        $payload = [
             'search' => $this->search,
             'country' => $this->country,
             'state' => $this->state,
@@ -363,6 +481,12 @@ class extends Component
             'district' => $this->district,
             'subdivision' => $this->subdivision,
         ];
+
+        if ($this->areas !== []) {
+            $payload['areas'] = $this->areas;
+        }
+
+        return $payload;
     }
 
     private function syncResults(): void
@@ -383,6 +507,13 @@ class extends Component
         $this->locality = LocationSlugResolver::cleanSlug($this->locality);
         $this->district = LocationSlugResolver::cleanSlug($this->district);
         $this->subdivision = LocationSlugResolver::cleanSlug($this->subdivision);
+        $this->areas = array_filter(
+            array_map(
+                static fn (mixed $value): ?string => LocationSlugResolver::cleanSlug(is_string($value) ? $value : null),
+                $this->areas,
+            ),
+            static fn (?string $value): bool => $value !== null,
+        );
 
         $ids = $this->locationIds();
 
@@ -410,7 +541,61 @@ class extends Component
             $this->subdivision = null;
         }
 
+        foreach (array_keys($this->areas) as $role) {
+            if (($ids['area_ids'][$role] ?? null) === null) {
+                unset($this->areas[$role]);
+            }
+        }
+
         $this->memoizedLocationIds = null;
+        $this->syncLegacyAreaPropertiesToAreas();
+    }
+
+    private function syncLegacyAreaPropertiesToAreas(): void
+    {
+        $countryId = $this->locationIds()['country_id'];
+        $roles = [
+            $this->locationSlugResolver()->districtRoleForCountry($countryId),
+            $this->locationSlugResolver()->subdivisionRoleForCountry($countryId),
+        ];
+
+        if ($roles[0] !== null && filled($this->district)) {
+            $this->areas[$roles[0]] = $this->district;
+        }
+
+        if ($roles[1] !== null && filled($this->subdivision)) {
+            $this->areas[$roles[1]] = $this->subdivision;
+        }
+    }
+
+    private function syncLegacyAreaProperties(): void
+    {
+        $countryId = $this->locationIds()['country_id'];
+        $roles = [
+            $this->locationSlugResolver()->districtRoleForCountry($countryId),
+            $this->locationSlugResolver()->subdivisionRoleForCountry($countryId),
+        ];
+
+        if ($roles[0] !== null) {
+            $this->district = $this->areas[$roles[0]] ?? null;
+        }
+
+        if ($roles[1] !== null) {
+            $this->subdivision = $this->areas[$roles[1]] ?? null;
+        }
+    }
+
+    private function resetAreaDescendants(string $role): void
+    {
+        $countryId = $this->locationIds()['country_id'];
+
+        foreach ($this->locationSlugResolver()->areaSuccessorRolesForCountry($countryId, $role) as $successor) {
+            unset($this->areas[$successor]);
+
+            if ($successor === 'postal_locality') {
+                $this->locality = null;
+            }
+        }
     }
 
     private function locationSlugResolver(): LocationSlugResolver
@@ -453,20 +638,13 @@ class extends Component
     $states = $this->states;
     $cities = $this->cities;
     $localities = $this->localities;
-    $districts = $this->districts;
-    $subdistricts = $this->subdistricts;
     $country = $this->country;
     $state = $this->state;
     $city = $this->city;
     $locality = $this->locality;
-    $district = $this->district;
-    $subdivision = $this->subdivision;
-    $isParentlessAreaProfile = $this->isParentlessAreaProfileSelection();
+    $areaFilters = $this->areaFilters;
     $stateLabel = $this->stateLabel();
-    $districtLabel = $this->districtLabel();
-    $subdistrictLabel = $this->subdistrictLabel();
     $localityLabel = $this->localityLabel();
-    $defaultCountry = $this->defaultCountrySlug();
     $submitInstitutionUrl = route('contributions.submit-institution');
 @endphp
 
@@ -517,8 +695,8 @@ class extends Component
         </div>
 
         <div class="relative z-10 mx-auto max-w-7xl px-5 py-5 sm:px-6 sm:py-6 lg:px-8">
-            <div data-institution-filters class="mx-auto max-w-4xl text-left">
-                        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div data-institution-filters class="mx-auto max-w-5xl text-left">
+                        <div class="flex flex-wrap justify-center gap-4 *:w-full md:*:w-[calc(50%_-_0.5rem)] lg:*:w-[calc(20%_-_0.8rem)]">
                         <div>
                             <label for="institution-country-filter" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
                                 {{ __('Country') }}
@@ -556,26 +734,6 @@ class extends Component
                         </div>
                         @endif
 
-                        @if($localities !== [])
-                        <div>
-                            <label for="institution-locality-filter" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                {{ $localityLabel }}
-                            </label>
-                            <flux:select
-                                id="institution-locality-filter"
-                                wire:model.live="locality"
-                                :disabled="! filled($state)"
-                                size="sm"
-                                class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 shadow-sm transition-[border-color,box-shadow,background-color] hover:border-emerald-300 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
-                            >
-                                <flux:select.option value="">{{ __('All :level', ['level' => $localityLabel]) }}</flux:select.option>
-                                @foreach($localities as $slug => $name)
-                                    <flux:select.option value="{{ $slug }}">{{ $name }}</flux:select.option>
-                                @endforeach
-                            </flux:select>
-                        </div>
-                        @endif
-
                         @if($cities !== [])
                         <div>
                             <label for="institution-city-filter" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -596,40 +754,46 @@ class extends Component
                         </div>
                         @endif
 
-                    @if($districts !== [] && ! $isParentlessAreaProfile)
-                            <div>
-                                <label for="institution-district-filter" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                    {{ $districtLabel }}
+                        @foreach($areaFilters as $areaFilterIndex => $areaFilter)
+                            @php
+                                $areaFilterId = match ($areaFilterIndex) {
+                                    0 => 'institution-district-filter',
+                                    1 => 'institution-subdistrict-filter',
+                                    default => 'institution-area-'.$areaFilter['role'].'-filter',
+                                };
+                            @endphp
+                            <div wire:key="institution-area-filter-{{ $areaFilter['role'] }}">
+                                <label for="{{ $areaFilterId }}" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                    {{ $areaFilter['label'] }}
                                 </label>
                                 <flux:select
-                                    id="institution-district-filter"
-                                    wire:model.live="district"
-                                    :disabled="$this->isDistrictFilterDisabled()"
+                                    id="{{ $areaFilterId }}"
+                                    wire:model.live="areas.{{ $areaFilter['role'] }}"
                                     size="sm"
                                     class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 shadow-sm transition-[border-color,box-shadow,background-color] hover:border-emerald-300 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                                 >
-                                    <flux:select.option value="">{{ __('All :level', ['level' => $districtLabel]) }}</flux:select.option>
-                                    @foreach($districts as $slug => $name)
+                                    <flux:select.option value="">{{ __('All :level', ['level' => $areaFilter['label']]) }}</flux:select.option>
+                                    @foreach($areaFilter['options'] as $slug => $name)
                                         <flux:select.option value="{{ $slug }}">{{ $name }}</flux:select.option>
                                     @endforeach
                                 </flux:select>
                             </div>
-                        @endif
+                        @endforeach
 
-                        @if($subdistricts !== [])
+                        @if($localities !== [])
                         <div>
-                            <label for="institution-subdistrict-filter" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                {{ $subdistrictLabel }}
+                            <label for="institution-locality-filter" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                {{ $localityLabel }}
                             </label>
                             <flux:select
-                                id="institution-subdistrict-filter"
-                                wire:model.live="subdivision"
-                                :disabled="$isParentlessAreaProfile ? ! filled($state) : ! filled($district)"
+                                id="institution-locality-filter"
+                                wire:model.live="locality"
+                                :disabled="! filled($state)"
                                 size="sm"
                                 class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 shadow-sm transition-[border-color,box-shadow,background-color] hover:border-emerald-300 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                             >
-                                <flux:select.option value="">{{ __('All :level', ['level' => $subdistrictLabel]) }}</flux:select.option>
-                                @foreach($subdistricts as $slug => $name)
+                                <flux:select.option value="">{{ __('All :level', ['level' => $localityLabel]) }}</flux:select.option>
+                                @foreach($localities as $slug => $name)
                                     <flux:select.option value="{{ $slug }}">{{ $name }}</flux:select.option>
                                 @endforeach
                             </flux:select>

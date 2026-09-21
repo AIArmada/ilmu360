@@ -4,7 +4,6 @@ namespace App\Forms;
 
 use AIArmada\Addressing\Actions\SyncAddressAreaAssignmentsAction;
 use AIArmada\Addressing\Contracts\CountryAddressProfile;
-use AIArmada\Addressing\Data\AddressHierarchyDefinition;
 use AIArmada\Addressing\Data\AddressLevelDefinition;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
@@ -49,9 +48,6 @@ class SharedFormSchema
 {
     private static ?string $cacheScope = null;
 
-    /** @var array<string, list<AddressHierarchyDefinition>> */
-    private static array $countryHierarchies = [];
-
     /** @var array<string, array<int|string, string>> */
     private static array $countryOptions = [];
 
@@ -85,7 +81,6 @@ class SharedFormSchema
         }
 
         self::$cacheScope = $scope;
-        self::$countryHierarchies = [];
         self::$countryOptions = [];
         self::$stateOptions = [];
         self::$cityOptions = [];
@@ -1321,43 +1316,6 @@ class SharedFormSchema
     }
 
     /**
-     * Cache country profile resolution for the lifetime of this request.
-     *
-     * Filament evaluates location labels, visibility, and options closures
-     * repeatedly while hydrating a form. The resolver itself performs a
-     * country lookup on every call, so repeating it can exhaust the request
-     * timeout on a slow database connection.
-     *
-     * @return list<AddressHierarchyDefinition>
-     */
-    private static function countryHierarchies(string $countryId): array
-    {
-        self::ensureCacheScope();
-
-        return self::$countryHierarchies[$countryId]
-            ??= app(CountryAddressProfileResolver::class)->hierarchies($countryId);
-    }
-
-    private static function parentLevelForRole(string $countryId, string $role): ?AddressLevelDefinition
-    {
-        $definition = app(CountryAddressProfileResolver::class)->levelForRole($countryId, $role);
-
-        if (! $definition instanceof AddressLevelDefinition || $definition->parentKey === null) {
-            return null;
-        }
-
-        foreach (self::countryHierarchies($countryId) as $hierarchy) {
-            foreach ($hierarchy->levels as $level) {
-                if ($level->key === $definition->parentKey) {
-                    return $level;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    /**
      * Resolve package State id from stored AddressArea ids through explicit package mappings.
      */
     /** @param array<string, mixed> $assignments */
@@ -1534,6 +1492,8 @@ class SharedFormSchema
                     $includeCountryField ? $get('country_id') : $defaultCountryId,
                     $role,
                     __('Administrative area'),
+                    $get('state_id'),
+                    self::formAreaIds($get, $includeCountryField ? $get('country_id') : $defaultCountryId),
                 ))
                 ->options(fn (Get $get): array => self::areaOptionsForRole(
                     $includeCountryField ? $get('country_id') : $defaultCountryId,
@@ -1596,8 +1556,9 @@ class SharedFormSchema
      *
      * Fields are built once per request; per-country `visible()` closures
      * reveal only the selected country's roles, so no build-time country is
-     * needed. The Malaysian hierarchy leads in level order to preserve the
-     * existing field order; remaining roles follow alphabetically.
+     * needed. Order follows provider registration with each provider's
+     * canonical hierarchy order, so every country's fields render in
+     * addressing's cascade order.
      *
      * @return list<string>
      */
@@ -1633,14 +1594,7 @@ class SharedFormSchema
             }
         }
 
-        $leading = ['administrative_division', 'administrative_district', 'administrative_subdivision', 'postal_locality'];
-        $rest = array_values(array_diff(array_unique($roles), $leading));
-        sort($rest);
-
-        return self::$entryAreaRoles = array_values(array_unique(array_merge(
-            array_values(array_intersect($leading, $roles)),
-            $rest,
-        )));
+        return self::$entryAreaRoles = array_values(array_unique($roles));
     }
 
     /**
@@ -1664,28 +1618,7 @@ class SharedFormSchema
             return [];
         }
 
-        $resolver = app(CountryAddressProfileResolver::class);
-        $definition = $resolver->levelForRole($countryId, $role);
-
-        if (! $definition instanceof AddressLevelDefinition) {
-            return [];
-        }
-
-        $children = [];
-
-        foreach (self::entryAreaRoles() as $candidate) {
-            if ($candidate === $role) {
-                continue;
-            }
-
-            $candidateDefinition = $resolver->levelForRole($countryId, $candidate);
-
-            if ($candidateDefinition instanceof AddressLevelDefinition && $candidateDefinition->parentKey === $definition->key) {
-                $children[] = $candidate;
-            }
-        }
-
-        return $children;
+        return app(CountryAddressProfileResolver::class)->successorRoles($countryId, $role);
     }
 
     private static function isFederalTerritory(?string $stateId, ?string $countryId = null): bool
@@ -1741,15 +1674,16 @@ class SharedFormSchema
     private static function areaVisible(Get $get, mixed $countryId, string $role): bool
     {
         $countryId = self::normalizeLocationId($countryId) ?? self::countryIdForState(self::normalizeLocationId($get('state_id')));
-        $resolver = app(LocationSlugResolver::class);
-        $slot0 = $countryId === null ? null : $resolver->districtRoleForCountry($countryId);
-        $slot1 = $countryId === null ? null : $resolver->subdivisionRoleForCountry($countryId);
+        $stateId = self::normalizeLocationId($get('state_id'));
+        $gate = $countryId === null
+            ? null
+            : app(LocationSlugResolver::class)->areaEffectiveParentRoleForCountry($countryId, $role, $stateId);
 
-        if (
-            $slot1 !== null && $slot0 !== null && $role === $slot1
-            && self::areaOptionsForRole($countryId, $slot0, self::normalizeLocationId($get('state_id'))) !== []
-            && ! filled($get("area_assignments.{$slot0}"))
-        ) {
+        if ($gate === 'state' && ! filled($stateId)) {
+            return false;
+        }
+
+        if ($gate !== null && $gate !== 'state' && ! filled($get("area_assignments.{$gate}"))) {
             return false;
         }
 
@@ -1763,47 +1697,48 @@ class SharedFormSchema
     private static function areaParentIdForRole(Get $get, mixed $countryId, string $role): mixed
     {
         $countryId = self::normalizeLocationId($countryId);
-        $slot0 = $countryId === null ? null : app(LocationSlugResolver::class)->districtRoleForCountry($countryId);
-        $slot1 = $countryId === null ? null : app(LocationSlugResolver::class)->subdivisionRoleForCountry($countryId);
 
-        if ($slot1 !== null && $slot0 !== null && $role === $slot1) {
-            $districtId = $get("area_assignments.{$slot0}");
-
-            if (filled($districtId)) {
-                return $districtId;
-            }
-        }
-
-        $definition = app(CountryAddressProfileResolver::class)->levelForRole($countryId, $role);
-
-        if (! $definition instanceof AddressLevelDefinition || $definition->parentKey === null) {
+        if ($countryId === null) {
             return null;
         }
 
-        $parentDefinition = self::parentLevelForRole($countryId ?? '', $role);
+        $areaIds = self::formAreaIds($get, $countryId);
 
-        if ($parentDefinition?->kind === 'state') {
-            return AddressAreaStateBridge::areaIdForState(
-                self::normalizeLocationId($get('state_id')),
-                $definition->hierarchyType ?? 'administrative',
-            );
+        return app(CountryAddressProfileResolver::class)->parentAreaIdForRole(
+            $countryId,
+            $role,
+            self::normalizeLocationId($get('state_id')),
+            $areaIds,
+            static fn (string $probeRole, string $probeParentId): bool => self::areaOptionsForRole($countryId, $probeRole, $probeParentId) !== [],
+        );
+    }
+
+    /**
+     * @return array<string, ?string>
+     */
+    private static function formAreaIds(Get $get, mixed $countryId): array
+    {
+        $countryId = self::normalizeLocationId($countryId);
+
+        if ($countryId === null) {
+            return [];
         }
 
-        foreach (self::entryAreaRoles() as $parentRole) {
-            $parent = app(CountryAddressProfileResolver::class)->levelForRole($countryId, $parentRole);
+        $areaIds = [];
 
-            if ($parent instanceof AddressLevelDefinition && $parent->key === $definition->parentKey) {
-                return $get("area_assignments.{$parentRole}");
-            }
+        foreach (app(CountryAddressProfileResolver::class)->assignmentRoles($countryId) as $areaRole) {
+            $areaIds[$areaRole] = self::normalizeLocationId($get("area_assignments.{$areaRole}"));
         }
 
-        return null;
+        return $areaIds;
     }
 
     private static function levelLabel(
         mixed $countryId,
         string $role,
         string $fallback,
+        mixed $stateId = null,
+        array $areaIds = [],
     ): string {
         $countryId = self::normalizeLocationId($countryId);
 
@@ -1811,9 +1746,14 @@ class SharedFormSchema
             return $fallback;
         }
 
-        $level = app(CountryAddressProfileResolver::class)->levelForRole($countryId, $role);
+        $label = app(CountryAddressProfileResolver::class)->levelLabel(
+            $countryId,
+            $role,
+            self::normalizeLocationId($stateId),
+            $areaIds,
+        );
 
-        return $level instanceof AddressLevelDefinition ? __($level->label) : $fallback;
+        return $label === null ? $fallback : __($label);
     }
 
     /**
@@ -1835,8 +1775,10 @@ class SharedFormSchema
         int|string|null $countryId,
         string $storageColumn,
         string $fallback,
+        int|string|null $stateId = null,
+        array $areaIds = [],
     ): string {
-        return self::levelLabel($countryId, $storageColumn, $fallback);
+        return self::levelLabel($countryId, $storageColumn, $fallback, $stateId, $areaIds);
     }
 
     private static function countryCascadeResetScript(): string

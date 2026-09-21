@@ -18,6 +18,7 @@ use App\Enums\EventPrayerTime;
 use App\Enums\NotificationFrequency;
 use App\Enums\TimingMode;
 use App\Exceptions\SavedSearchLimitReachedException;
+use App\Forms\SharedFormSchema;
 use App\Livewire\Concerns\InteractsWithToasts;
 use App\Models\Institution;
 use App\Models\Person;
@@ -470,9 +471,12 @@ class Index extends Component
 
     private function capturedFilterLabel(string $filterKey): string
     {
+        if ($filterKey === 'state_id') {
+            return SharedFormSchema::locationLevelLabel($this->filters['country_id'] ?? null, 'state_id', __('State / Province'));
+        }
+
         return match ($filterKey) {
             'country_id' => __('Country'),
-            'state_id' => __('State / Province'),
             'city_id' => __('City'),
             'area_assignments' => __('Administrative Areas'),
             'institution_id' => __('Institution'),
@@ -522,13 +526,13 @@ class Index extends Component
                     continue;
                 }
 
-                $label = match ($role) {
-                    'administrative_division' => __('Division / Bahagian'),
-                    'administrative_district' => __('District'),
-                    'administrative_subdivision' => __('Subdistrict / Local Area'),
-                    'postal_locality' => __('Postal Locality'),
-                    default => str($role)->replace('_', ' ')->headline()->toString(),
-                };
+                $label = SharedFormSchema::locationLevelLabel(
+                    $this->filters['country_id'] ?? null,
+                    $role,
+                    Str::headline($role),
+                    $this->filters['state_id'] ?? null,
+                    $filterValue,
+                );
                 $values[] = $label.': '.($this->adminAreaName((string) $areaId) ?? (string) $areaId);
             }
 

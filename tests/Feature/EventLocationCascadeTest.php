@@ -83,7 +83,7 @@ it('builds Indonesian slot fields and filters events down the cascade', function
 
     expect($fields)->toHaveKey('area_assignments.regency')
         ->and($fields)->toHaveKey('area_assignments.district')
-        ->and($fields['area_assignments.regency']->getLabel())->toBe('Kabupaten / Kota')
+        ->and($fields['area_assignments.regency']->getLabel())->toBe('Kabupaten')
         ->and($fields['area_assignments.district']->getLabel())->toBe('Daerah');
 
     $titles = $component->instance()->events->getCollection()->pluck('title')->all();

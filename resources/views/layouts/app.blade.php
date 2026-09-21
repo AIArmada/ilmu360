@@ -165,29 +165,49 @@
                 $eventsNavActive = request()->routeIs('events.*');
                 $institutionsNavActive = request()->routeIs('institutions.*');
                 $personsNavActive = request()->routeIs('persons.*');
+                $useHomeHeader = request()->routeIs('home');
                 $useFloatingHeader = request()->routeIs('events.index', 'persons.index', 'institutions.index', 'references.index');
+                $useOverlayHeader = $useHomeHeader || $useFloatingHeader;
                 $currentLocaleLabel = str_starts_with($currentLocale, 'ms')
                     ? 'BM'
                     : ($publicMenuLocales[$currentLocale] ?? $supportedLocales[$currentLocale] ?? strtoupper($currentLocale));
-                $headerClass = $useFloatingHeader
+                $headerClass = $useOverlayHeader
                     ? 'absolute inset-x-0 top-0 z-50 w-full transition-all'
                     : 'sticky top-0 z-50 w-full border-b border-[#e5dccb] bg-[#f6f1e8]/95 backdrop-blur-md transition-all';
-                $navClass = $useFloatingHeader
+                $navClass = $useHomeHeader
+                    ? 'relative mx-auto flex h-20 w-full max-w-[120rem] items-center gap-3 px-5 sm:px-8 lg:gap-5 lg:px-14 xl:px-16'
+                    : ($useFloatingHeader
                     ? 'relative mx-auto mt-4 flex h-20 w-[calc(100%_-_1rem)] max-w-[120rem] items-center gap-3 rounded-[2rem] border border-[#eadfca]/90 bg-[#fffdf8]/90 px-5 shadow-[0_24px_55px_-30px_rgba(63,71,47,0.48)] backdrop-blur-xl sm:mt-6 sm:w-[calc(100%_-_3rem)] sm:px-8 lg:mt-8 lg:w-[94%] lg:gap-4 lg:px-8 xl:gap-6 xl:px-24'
-                    : 'container mx-auto flex h-20 items-center justify-between px-6 lg:px-12';
-                $logoClass = $useFloatingHeader ? 'h-12 w-auto' : 'h-12 w-auto';
-                $desktopMenuClass = 'hidden flex-1 items-center justify-center gap-7 text-sm font-medium md:flex lg:gap-10';
-                $eventsNavClass = 'relative flex h-12 items-center px-2 text-sm font-medium transition-colors after:absolute after:bottom-1 after:left-1/2 after:h-1 after:-translate-x-1/2 after:rounded-full after:bg-[#e3b537] after:transition-all '.($eventsNavActive ? 'text-[#005b3d] after:w-9' : 'text-[#37495a] after:w-0 hover:text-[#005b3d] hover:after:w-9');
-                $institutionsNavClass = 'relative flex h-12 items-center px-2 text-sm font-medium transition-colors after:absolute after:bottom-1 after:left-1/2 after:h-1 after:-translate-x-1/2 after:rounded-full after:bg-[#e3b537] after:transition-all '.($institutionsNavActive ? 'text-[#005b3d] after:w-9' : 'text-[#37495a] after:w-0 hover:text-[#005b3d] hover:after:w-9');
-                $personsNavClass = 'relative flex h-12 items-center px-2 text-sm font-medium transition-colors after:absolute after:bottom-1 after:left-1/2 after:h-1 after:-translate-x-1/2 after:rounded-full after:bg-[#e3b537] after:transition-all '.($personsNavActive ? 'text-[#005b3d] after:w-9' : 'text-[#37495a] after:w-0 hover:text-[#005b3d] hover:after:w-9');
-                $languageButtonClass = 'flex items-center gap-2 whitespace-nowrap rounded-full border border-[#dbe1dc] bg-white/50 px-3 py-1.5 text-xs font-semibold tracking-wider text-[#2d4b4c] transition-all hover:border-[#13845f] hover:text-[#006044]';
+                    : 'container mx-auto flex h-20 items-center justify-between px-6 lg:px-12');
+                $logoClass = $useHomeHeader ? 'h-10 w-auto drop-shadow-[0_2px_10px_rgba(0,0,0,0.35)]' : 'h-12 w-auto';
+                $desktopMenuClass = $useHomeHeader
+                    ? 'hidden flex-1 items-center justify-center gap-6 text-sm font-medium text-white md:flex lg:gap-10'
+                    : 'hidden flex-1 items-center justify-center gap-7 text-sm font-medium md:flex lg:gap-10';
+                $eventsNavClass = $useHomeHeader
+                    ? 'relative flex h-12 items-center px-2 text-sm font-medium text-white/90 transition-colors hover:text-white'
+                    : 'relative flex h-12 items-center px-2 text-sm font-medium transition-colors after:absolute after:bottom-1 after:left-1/2 after:h-1 after:-translate-x-1/2 after:rounded-full after:bg-[#e3b537] after:transition-all '.($eventsNavActive ? 'text-[#005b3d] after:w-9' : 'text-[#37495a] after:w-0 hover:text-[#005b3d] hover:after:w-9');
+                $institutionsNavClass = $useHomeHeader
+                    ? 'relative flex h-12 items-center px-2 text-sm font-medium text-white/90 transition-colors hover:text-white'
+                    : 'relative flex h-12 items-center px-2 text-sm font-medium transition-colors after:absolute after:bottom-1 after:left-1/2 after:h-1 after:-translate-x-1/2 after:rounded-full after:bg-[#e3b537] after:transition-all '.($institutionsNavActive ? 'text-[#005b3d] after:w-9' : 'text-[#37495a] after:w-0 hover:text-[#005b3d] hover:after:w-9');
+                $personsNavClass = $useHomeHeader
+                    ? 'relative flex h-12 items-center px-2 text-sm font-medium text-white/90 transition-colors hover:text-white'
+                    : 'relative flex h-12 items-center px-2 text-sm font-medium transition-colors after:absolute after:bottom-1 after:left-1/2 after:h-1 after:-translate-x-1/2 after:rounded-full after:bg-[#e3b537] after:transition-all '.($personsNavActive ? 'text-[#005b3d] after:w-9' : 'text-[#37495a] after:w-0 hover:text-[#005b3d] hover:after:w-9');
+                $languageButtonClass = $useHomeHeader
+                    ? 'flex items-center gap-2 whitespace-nowrap rounded-full border border-white/30 bg-black/10 px-3 py-1.5 text-xs font-semibold tracking-wider text-white transition-all hover:border-white/70 hover:bg-black/20'
+                    : 'flex items-center gap-2 whitespace-nowrap rounded-full border border-[#dbe1dc] bg-white/50 px-3 py-1.5 text-xs font-semibold tracking-wider text-[#2d4b4c] transition-all hover:border-[#13845f] hover:text-[#006044]';
                 $addButtonClass = 'living-majlis-header-button living-majlis-header-button--gold hidden items-center justify-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold sm:inline-flex';
                 $userButtonClass = 'flex items-center gap-2 rounded-full border border-[#198663] bg-white/50 p-1 pr-3 text-[#006044] transition-all hover:bg-white/80';
-                $guestLoginClass = 'hidden items-center gap-2 whitespace-nowrap rounded-full border border-[#198663] bg-white/45 px-3 py-1.5 text-sm font-semibold text-[#006044] transition-all hover:bg-white/80 lg:inline-flex';
-                $guestRegisterClass = 'living-majlis-header-button living-majlis-header-button--emerald inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full px-5 py-2 text-sm font-semibold';
-                $mobileMenuClass = $useFloatingHeader
+                $guestLoginClass = $useHomeHeader
+                    ? 'hidden items-center gap-2 whitespace-nowrap rounded-full border border-white/80 bg-black/10 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-white/10 lg:inline-flex'
+                    : 'hidden items-center gap-2 whitespace-nowrap rounded-full border border-[#198663] bg-white/45 px-3 py-1.5 text-sm font-semibold text-[#006044] transition-all hover:bg-white/80 lg:inline-flex';
+                $guestRegisterClass = $useHomeHeader
+                    ? 'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full bg-[#0e8a63] px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-black/20 transition-all hover:bg-[#13a574]'
+                    : 'living-majlis-header-button living-majlis-header-button--emerald inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full px-5 py-2 text-sm font-semibold';
+                $mobileMenuClass = $useHomeHeader
+                    ? 'mt-2 mx-4 rounded-3xl border border-white/20 bg-[#062e22]/95 text-white shadow-xl backdrop-blur-md md:hidden'
+                    : ($useFloatingHeader
                     ? 'mt-2 mx-4 rounded-3xl border border-[#eadfca] bg-[#fffdf8]/95 shadow-xl backdrop-blur-md md:hidden'
-                    : 'border-t border-[#e5dccb] bg-[#f6f1e8] md:hidden';
+                    : 'border-t border-[#e5dccb] bg-[#f6f1e8] md:hidden');
             @endphp
 
             <!-- Premium Header -->
@@ -229,18 +249,24 @@
 
                     <!-- Desktop Menu -->
                     <div class="{{ $desktopMenuClass }}">
-                        <a href="{{ route('events.index') }}" wire:navigate
-                            class="{{ $eventsNavClass }}">{{ __('Events') }}</a>
-                        <a href="{{ route('institutions.index') }}" wire:navigate
-                            class="{{ $institutionsNavClass }}">{{ __('Institutions') }}</a>
-                        <a href="{{ route('persons.index') }}" wire:navigate
-                            class="{{ $personsNavClass }}">{{ __('Speakers') }}</a>
+                        @if($useHomeHeader)
+                            <a href="{{ route('institutions.index') }}" wire:navigate class="{{ $institutionsNavClass }}">{{ __('Institutions') }}</a>
+                            <a href="{{ route('persons.index') }}" wire:navigate class="{{ $personsNavClass }}">{{ __('Speakers') }}</a>
+                        @elseif($useFloatingHeader)
+                            <a href="{{ route('institutions.index') }}" wire:navigate
+                                class="{{ $institutionsNavClass }}">{{ __('Institutions') }}</a>
+                            <a href="{{ route('persons.index') }}" wire:navigate
+                                class="{{ $personsNavClass }}">{{ __('Speakers') }}</a>
+                        @else
+                            <a href="{{ route('events.index') }}" wire:navigate
+                                class="{{ $eventsNavClass }}">{{ __('Events') }}</a>
+                        @endif
                     </div>
 
                     <div class="flex items-center gap-3">
                         <!-- Mobile Menu Button -->
                         <button @click="mobileMenuOpen = !mobileMenuOpen"
-                            class="md:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors">
+                            class="md:hidden rounded-lg p-2 {{ $useHomeHeader ? 'text-white hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100' }} transition-colors">
                             <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path x-show="!mobileMenuOpen" stroke-linecap="round" stroke-linejoin="round"
                                     stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -255,12 +281,12 @@
                                 data-language-switcher-trigger="desktop"
                                 aria-label="{{ __('Language') }}"
                                 class="{{ $languageButtonClass }}">
-                                <svg class="h-4 w-4 text-[#087f4f]" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                    <svg class="h-4 w-4 {{ $useHomeHeader ? 'text-white' : 'text-[#087f4f]' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                     <circle cx="12" cy="12" r="9" stroke-width="1.8" />
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 12h18M12 3c2.2 2.4 3.3 5.4 3.3 9S14.2 18.6 12 21c-2.2-2.4-3.3-5.4-3.3-9S9.8 5.4 12 3Z" />
                                 </svg>
                                 <span>{{ $currentLocaleLabel }}</span>
-                                <svg class="h-3 w-3 text-[#55706c] group-hover:text-[#087f4f]" fill="none"
+                                <svg class="h-3 w-3 {{ $useHomeHeader ? 'text-white/70 group-hover:text-white' : 'text-[#55706c] group-hover:text-[#087f4f]' }}" fill="none"
                                     viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M19 9l-7 7-7-7" />
@@ -285,6 +311,16 @@
                             </svg>
                             <span class="relative z-10">{{ __('Tambah Majlis') }}</span>
                         </a>
+
+                        @if($useHomeHeader)
+                            <a href="{{ route('search.index') }}" wire:navigate aria-label="{{ __('Search') }}"
+                                class="hidden h-10 w-10 items-center justify-center rounded-full text-white transition hover:bg-white/10 sm:inline-flex">
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                    <circle cx="11" cy="11" r="6.75" stroke-width="1.8" />
+                                    <path stroke-linecap="round" stroke-width="1.8" d="m16 16 4.5 4.5" />
+                                </svg>
+                            </a>
+                        @endif
 
                         <span class="hidden h-8 w-px bg-[#dfd7c7] sm:block" aria-hidden="true"></span>
 
@@ -397,8 +433,10 @@
                 <div x-show="mobileMenuOpen" x-collapse x-cloak class="{{ $mobileMenuClass }}">
                     <div class="container mx-auto px-6 py-4 space-y-4">
                         <div class="flex flex-col gap-2">
-                            <a href="{{ route('events.index') }}" wire:navigate
-                                class="block py-2 text-base font-semibold text-slate-700 hover:text-emerald-600">{{ __('Events') }}</a>
+                            @if(!$useFloatingHeader)
+                                <a href="{{ route('events.index') }}" wire:navigate
+                                    class="block py-2 text-base font-semibold text-slate-700 hover:text-emerald-600">{{ __('Events') }}</a>
+                            @endif
                             <a href="{{ route('institutions.index') }}" wire:navigate
                                 class="block py-2 text-base font-semibold text-slate-700 hover:text-emerald-600">{{ __('Institutions') }}</a>
                             <a href="{{ route('persons.index') }}" wire:navigate

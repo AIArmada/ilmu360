@@ -181,11 +181,11 @@ class PersonInfolist
                                             ->state(fn (?Person $record): ?string => $record?->primaryAddress()?->city)
                                             ->placeholder('-'),
                                         TextEntry::make('address.district')
-                                            ->label('Daerah')
+                                            ->label(fn (?Person $record): string => AddressHierarchyFormatter::roleAreaLabel($record?->primaryAddress(), AddressAssignments::ADMINISTRATIVE_DISTRICT, 'Daerah'))
                                             ->state(fn (?Person $record): ?string => AddressHierarchyFormatter::roleAreaName($record?->primaryAddress(), AddressAssignments::ADMINISTRATIVE_DISTRICT))
                                             ->placeholder('-'),
                                         TextEntry::make('address.subdistrict')
-                                            ->label('Mukim / Kawasan')
+                                            ->label(fn (?Person $record): string => AddressHierarchyFormatter::subdivisionOrLocalityLabel($record?->primaryAddress()))
                                             ->state(fn (?Person $record): ?string => AddressHierarchyFormatter::subdivisionOrLocalityName($record?->primaryAddress()))
                                             ->placeholder('-'),
                                         TextEntry::make('address.state')

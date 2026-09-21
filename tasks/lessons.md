@@ -1039,3 +1039,13 @@
 - When a listing is backed by schedule leaves, remove secondary parent-aggregate links too; otherwise the primary card destination may be correct while the eyebrow or footer still bypasses the leaf route.
 - When a floating public header overlays directory hero content, every floating-mode directory must reserve the same responsive top space; a shorter page-specific hero padding lets the shared menu cover its title.
 - When changing a footer navigation label, edit the footer's source translation key only; keep the destination route and other page headings unchanged.
+- For a reference-led hero, keep the learner's gaze direction intentional: use an asset edit that preserves the composition while making the person visibly look toward the knowledge landmark rather than down at an object.
+- When a shared floating header is limited to directory pages, keep its primary directory link and add the sibling Institusi and Penceramah destinations; do not let the homepage-only menu condition remove them from the floating variant.
+- When the floating header is intentionally limited to sibling directories, omit its Majlis link in both desktop and mobile variants; keep that link only in the regular sticky header.
+- For image-led hero sections, keep the photographic asset visible: avoid stacking a strong grain layer with opaque gradients, because the result reads as dull noise instead of immersive depth.
+- For wide hero assets with a subject near the edge, tune `object-position` toward that subject instead of accepting a centered crop that trims the focal figure.
+- Keep homepage header navigation intentional and compact; remove secondary informational links from the header when the hero already provides the primary discovery actions.
+- Keep homepage location controls wired to the canonical `/majlis` country/state/address-area query keys and addressing roles rather than duplicating geography hierarchy logic.
+- When copying an existing filter surface, reuse its layout and spacing exactly; do not add a new disclosure pattern, extra helper cards, or additional actions that make the copied control feel heavier than the source.
+- When a user corrects a filter request to “exactly as the existing page,” copy every source filter section and preserve its interaction model; remove temporary reduced versions and dead fallback markup before verification.
+- When a user says an addressing provider is authoritative, derive the complete cascade from its ordered levels and parent keys; do not hardcode a fixed pair of “district/subdivision” slots or invent country-specific hierarchy rules.

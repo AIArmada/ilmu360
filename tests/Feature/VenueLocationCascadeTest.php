@@ -53,7 +53,8 @@ it('filters venues down the Indonesian cascade with provider labels', function (
         ->assertSuccessful()
         ->assertSee((string) $province->getKey(), false)
         ->assertSee('Provinsi')
-        ->assertSee('Kabupaten / Kota')
+        ->assertSee('Kabupaten')
+        ->assertDontSee('Kabupaten / Kota')
         ->assertSee('Daerah')
         ->assertSee('Dewan Cimahi Raya')
         ->assertDontSee('Dewan Cibinong Indah');
@@ -124,7 +125,8 @@ it('keeps the Malaysian venue cascade filtering by district and subdivision', fu
     ]))
         ->assertSuccessful()
         ->assertSee('Daerah')
-        ->assertSee('Mukim')
+        ->assertSee('Daerah Kecil')
+        ->assertDontSee('Mukim / Bandar / Pekan')
         ->assertSee('Petaling')
         ->assertSee('Dewan Subang Jaya')
         ->assertDontSee('Dewan Tebrau Indah');

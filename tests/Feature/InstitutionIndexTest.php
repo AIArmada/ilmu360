@@ -341,9 +341,11 @@ it('follows the Malaysia geography cascade without exposing a city filter', func
         ->assertDontSee('institution-city-filter', false)
         ->set('state', 'selangor-cascade')
         ->assertSee('institution-district-filter', false)
-        ->assertSet('district', (string) $geo['district']->slug)
-        ->assertSet('subdivision', (string) $geo['subdistrict']->slug)
+        ->assertDontSee('institution-subdistrict-filter', false)
+        ->assertSet('areas.administrative_district', null)
+        ->set('areas.administrative_district', (string) $geo['district']->slug)
         ->assertSee('institution-subdistrict-filter', false)
+        ->assertSet('areas.administrative_subdivision', null)
         ->assertDontSee('institution-city-filter', false);
 });
 
@@ -462,13 +464,13 @@ it('filters institutions by negeri, daerah, and subdistrict scopes', function ()
         ->assertSee('Institusi Scope A2')
         ->assertDontSee('Institusi Scope B');
 
-    get('/institusi?country=malaysia&state=selangor-scope-a&district='.$geoA['district']->slug)
+    get('/institusi?country=malaysia&state=selangor-scope-a&areas[administrative_district]='.$geoA['district']->slug)
         ->assertSuccessful()
         ->assertSee('Institusi Scope A')
         ->assertDontSee('Institusi Scope A2')
         ->assertDontSee('Institusi Scope B');
 
-    get('/institusi?country=malaysia&state=selangor-scope-a&district='.$geoA['district']->slug.'&subdivision='.$geoA['subdistrict']->slug)
+    get('/institusi?country=malaysia&state=selangor-scope-a&areas[administrative_district]='.$geoA['district']->slug.'&areas[administrative_subdivision]='.$geoA['subdistrict']->slug)
         ->assertSuccessful()
         ->assertSee('Institusi Scope A')
         ->assertDontSee('Institusi Scope A2')

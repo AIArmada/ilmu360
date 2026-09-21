@@ -27,7 +27,7 @@ new class extends Component
     use WithPagination;
 
     /**
-     * @var array{country_id: ?string, state_id: ?string, city_id: ?string, district_id: ?string, subdivision_id: ?string, locality_id: ?string}|null
+     * @var array{country_id: ?string, state_id: ?string, city_id: ?string, district_id: ?string, subdivision_id: ?string, locality_id: ?string, area_ids: array<string, ?string>}|null
      */
     private ?array $memoizedLocationIds = null;
 
@@ -52,12 +52,17 @@ new class extends Component
     public ?string $subdivision = null;
 
     /**
+     * @var array<string, ?string>
+     */
+    public array $areas = [];
+
+    /**
      * @var list<string>
      */
     public array $followingInstitutionIds = [];
 
     /**
-     * @param  array{search?: ?string, country?: ?string, state?: ?string, city?: ?string, locality?: ?string, district?: ?string, subdivision?: ?string}  $filters
+     * @param  array{search?: ?string, country?: ?string, state?: ?string, city?: ?string, locality?: ?string, district?: ?string, subdivision?: ?string, areas?: array<string, ?string>}  $filters
      */
     public function mount(array $filters = []): void
     {
@@ -82,7 +87,7 @@ new class extends Component
     }
 
     /**
-     * @param  array{search?: ?string, country?: ?string, state?: ?string, city?: ?string, locality?: ?string, district?: ?string, subdivision?: ?string}  $filters
+     * @param  array{search?: ?string, country?: ?string, state?: ?string, city?: ?string, locality?: ?string, district?: ?string, subdivision?: ?string, areas?: array<string, ?string>}  $filters
      */
     #[On('institution-filters-updated')]
     public function syncFilters(array $filters): void
@@ -93,7 +98,7 @@ new class extends Component
     }
 
     /**
-     * @param  array{search?: ?string, country?: ?string, state?: ?string, city?: ?string, locality?: ?string, district?: ?string, subdivision?: ?string}  $filters
+     * @param  array{search?: ?string, country?: ?string, state?: ?string, city?: ?string, locality?: ?string, district?: ?string, subdivision?: ?string, areas?: array<string, ?string>}  $filters
      */
     private function applyFilters(array $filters): void
     {
@@ -106,6 +111,13 @@ new class extends Component
         $this->locality = LocationSlugResolver::cleanSlug($this->filterString($filters, 'locality'));
         $this->district = LocationSlugResolver::cleanSlug($this->filterString($filters, 'district'));
         $this->subdivision = LocationSlugResolver::cleanSlug($this->filterString($filters, 'subdivision'));
+        $this->areas = array_filter(
+            array_map(
+                static fn (mixed $value): ?string => LocationSlugResolver::cleanSlug(is_string($value) ? $value : null),
+                is_array($filters['areas'] ?? null) ? $filters['areas'] : [],
+            ),
+            static fn (?string $value): bool => $value !== null,
+        );
     }
 
     private function filterString(array $filters, string $key): ?string
@@ -487,14 +499,13 @@ new class extends Component
         $stateId = $ids['state_id'];
         $cityId = $ids['city_id'];
         $localityId = $ids['locality_id'];
-        $adminArea1Id = $ids['district_id'];
-        $adminArea2Id = $ids['subdivision_id'];
+        $areaIds = $ids['area_ids'];
 
-        if ($countryId === null && $stateId === null && $cityId === null && $localityId === null && $adminArea1Id === null && $adminArea2Id === null) {
+        if ($countryId === null && $stateId === null && $cityId === null && $localityId === null && ! array_filter($areaIds)) {
             return $query;
         }
 
-        return $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $stateId, $cityId, $localityId, $adminArea1Id, $adminArea2Id): void {
+        return $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $stateId, $cityId, $localityId, $areaIds): void {
             if ($countryId !== null) {
                 $addressQuery->where('country_id', $countryId);
             }
@@ -512,23 +523,19 @@ new class extends Component
                     ->where('role', 'postal_locality')->where('address_area_id', $localityId));
             }
 
-            $districtRole = $this->locationSlugResolver()->districtRoleForCountry($countryId);
-            $subdivisionRole = $this->locationSlugResolver()->subdivisionRoleForCountry($countryId);
+            foreach ($areaIds as $role => $areaId) {
+                if ($areaId === null) {
+                    continue;
+                }
 
-            if ($adminArea1Id !== null && $districtRole !== null) {
                 $addressQuery->whereHas('areaAssignments', fn (Builder $assignmentQuery) => $assignmentQuery
-                    ->where('role', $districtRole)->where('address_area_id', $adminArea1Id));
-            }
-
-            if ($adminArea2Id !== null && $subdivisionRole !== null) {
-                $addressQuery->whereHas('areaAssignments', fn (Builder $assignmentQuery) => $assignmentQuery
-                    ->where('role', $subdivisionRole)->where('address_area_id', $adminArea2Id));
+                    ->where('role', $role)->where('address_area_id', $areaId));
             }
         });
     }
 
     /**
-     * @return array{country_id: ?string, state_id: ?string, city_id: ?string, locality_id: ?string, district_id: ?string, subdivision_id: ?string}
+     * @return array{country_id: ?string, state_id: ?string, city_id: ?string, locality_id: ?string, district_id: ?string, subdivision_id: ?string, area_ids: array<string, ?string>}
      */
     private function locationIds(): array
     {
@@ -544,6 +551,7 @@ new class extends Component
             'locality' => $this->locality,
             'district' => $this->district,
             'subdivision' => $this->subdivision,
+            'areas' => $this->areas,
         ]);
     }
 
@@ -716,4 +724,3 @@ new class extends Component
 
     </div>
 </div>
-

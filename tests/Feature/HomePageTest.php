@@ -18,7 +18,7 @@ it('displays the homepage successfully', function () {
     $response->assertSee('Cari');
     $response->assertSee('Majlis');
     $response->assertSee('Ilmu');
-    $response->assertSee('Berdekatan Saya');
+    $response->assertSee('Majlis Berdekatan');
     $response->assertDontSee('grainy-gradients.vercel.app', false);
 });
 

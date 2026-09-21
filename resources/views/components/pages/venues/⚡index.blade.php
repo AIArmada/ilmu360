@@ -92,17 +92,24 @@ new
 
             return $role === null
                 ? __('District')
-                : SharedFormSchema::locationLevelLabel($countryId, $role, __('District'));
+                : SharedFormSchema::locationLevelLabel($countryId, $role, __('District'), $this->normalizedLocationId($this->state_id));
         }
 
         public function subdistrictLabel(): string
         {
             $countryId = $this->normalizedLocationId($this->country_id);
             $role = $this->locationSlugResolver()->subdivisionRoleForCountry($countryId);
+            $districtRole = $this->locationSlugResolver()->districtRoleForCountry($countryId);
 
-            return $role === null
-                ? __('Subdivision')
-                : SharedFormSchema::locationLevelLabel($countryId, $role, __('Subdivision'));
+            if ($role === null) {
+                return __('Subdivision');
+            }
+
+            $areaIds = $districtRole === null
+                ? []
+                : [$districtRole => $this->normalizedLocationId($this->district_id)];
+
+            return SharedFormSchema::locationLevelLabel($countryId, $role, __('Subdivision'), $this->normalizedLocationId($this->state_id), $areaIds);
         }
 
         public function updatedSearch(): void
