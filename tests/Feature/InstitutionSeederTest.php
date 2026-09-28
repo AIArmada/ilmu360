@@ -1,8 +1,8 @@
 <?php
 
+use AIArmada\Addressing\Database\Seeders\AddressingSeeder;
 use AIArmada\Addressing\Database\Seeders\MalaysiaPostalCodeSeeder;
 use App\Models\User;
-use Database\Seeders\AddressingSeeder;
 use Database\Seeders\AdvancedEventSeeder;
 use Database\Seeders\AIArmada\FoundationSeeder;
 use Database\Seeders\DatabaseSeeder;

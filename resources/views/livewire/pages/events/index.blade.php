@@ -165,50 +165,12 @@
     $postalLocalityLabel = filled($areaAssignments['postal_locality'] ?? null) ? $this->areaOptionLabel((string) $areaAssignments['postal_locality']) : null;
     $districtLabel = filled($districtAreaId) ? $this->areaOptionLabel((string) $districtAreaId) : null;
     $subdivisionLabel = filled($subdivisionAreaId) ? $this->areaOptionLabel((string) $subdivisionAreaId) : null;
-    $prayerTimeLabel = \App\Enums\EventPrayerTime::tryFrom((string) $prayerTime)?->getLabel() ?? $prayerTime;
+    $prayerTimeLabels = collect((array) $prayerTime)
+        ->filter(static fn (mixed $value): bool => is_string($value) && $value !== '')
+        ->map(static fn (string $value): string => \App\Enums\EventPrayerTime::tryFrom($value)?->getLabel() ?? $value)
+        ->all();
     $timingModeLabel = \App\Enums\TimingMode::tryFrom((string) $timingMode)?->label();
-    $activeFilterCount = collect([
-        filled($search),
-        $hasCountryScope,
-        filled($stateId),
-        filled($areaAssignments['administrative_division'] ?? null),
-        filled($districtAreaId),
-        filled($subdivisionAreaId),
-        filled($areaAssignments['postal_locality'] ?? null),
-        filled($institutionId),
-        count($selectedLanguageCodes) > 0,
-        count($selectedEventCategories) > 0,
-        count($selectedEventFormats) > 0,
-        filled($gender),
-        count($selectedAgeGroups) > 0,
-        $childrenAllowed !== null,
-        $isMuslimOnly !== null,
-        count($selectedPersonIds) > 0,
-        count($selectedKeyPersonRoles) > 0,
-        count($selectedPersonInChargeIds) > 0,
-        filled($personInChargeSearch),
-        filled($personNameSearch),
-        count($selectedModeratorIds) > 0,
-        count($selectedImamIds) > 0,
-        count($selectedKhatibIds) > 0,
-        count($selectedBilalIds) > 0,
-        count($selectedDisciplineTagIds) > 0,
-        count($selectedDomainTagIds) > 0,
-        count($selectedSourceTagIds) > 0,
-        count($selectedIssueTagIds) > 0,
-        count($selectedReferenceIds) > 0,
-        filled($startsAfter),
-        filled($startsBefore),
-        filled($prayerTime),
-        filled($timingMode),
-        filled($startsTimeFrom),
-        filled($startsTimeUntil),
-        $this->has_event_url !== null,
-        $this->has_live_url !== null,
-        $this->has_end_time !== null,
-        $timeScope !== 'upcoming',
-        filled($lat),
-    ])->filter()->count();
+    $activeFilterCount = $this->activeFilterCount();
     $hasActiveFilters = $activeFilterCount > 0;
     $savedSearchQuery = array_filter([
         'search' => $search,
@@ -282,7 +244,7 @@
             initiallyGranted: @js($showsGeolocationControls),
             cookieName: @js(\App\Support\Location\PublicGeolocationPermission::COOKIE_NAME),
         }),
-        filtersOpen: @js($hasActiveFilters),
+        filtersOpen: $wire.entangle('filtersPanelOpen'),
         locating: false,
         locationNotice: null,
         copiedShareLink: false,
@@ -617,7 +579,7 @@
 
                         <div x-show="locationNotice" x-cloak x-text="locationNotice" class="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold leading-5 text-amber-800"></div>
 
-                        <div class="mi-filter-shell">
+                        <div class="mi-filter-shell" wire:key="event-filter-form-{{ $filterFormVersion }}">
                             {{ $this->form }}
                         </div>
 
@@ -763,9 +725,9 @@
                             @if($isMuslimOnly !== null)
                                 <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Muslim Sahaja') }}: {{ $isMuslimOnly ? __('Ya') : __('Tidak') }}</span>
                             @endif
-                            @if($prayerTime)
+                            @foreach($prayerTimeLabels as $prayerTimeLabel)
                                 <span class="inline-flex items-center rounded-full border border-amber-100 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800">{{ __('Waktu solat') }}: {{ $prayerTimeLabel }}</span>
-                            @endif
+                            @endforeach
                             @if($timingModeLabel)
                                 <span class="inline-flex items-center rounded-full border border-amber-100 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800">{{ __('Mod masa') }}: {{ $timingModeLabel }}</span>
                             @endif

@@ -68,6 +68,7 @@ class TypesenseEventDiscovery implements EventDiscoveryAdapter
         $sortBy = match ($sort) {
             'relevance' => '_text_match:desc,starts_at:asc',
             'distance' => 'starts_at:asc',
+            'popular' => 'saves_count:desc,starts_at:asc',
             default => 'starts_at:asc',
         };
 

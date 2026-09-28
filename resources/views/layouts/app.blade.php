@@ -184,30 +184,45 @@
                     ? 'hidden flex-1 items-center justify-center gap-6 text-sm font-medium text-white md:flex lg:gap-10'
                     : 'hidden flex-1 items-center justify-center gap-7 text-sm font-medium md:flex lg:gap-10';
                 $eventsNavClass = $useHomeHeader
-                    ? 'relative flex h-12 items-center px-2 text-sm font-medium text-white/90 transition-colors hover:text-white'
+                    ? 'relative flex h-12 items-center px-2 text-sm font-medium text-white/90 transition-colors after:absolute after:bottom-1 after:left-1/2 after:h-1 after:-translate-x-1/2 after:rounded-full after:bg-[#e3b537] after:transition-all after:w-0 hover:text-white hover:after:w-9'
                     : 'relative flex h-12 items-center px-2 text-sm font-medium transition-colors after:absolute after:bottom-1 after:left-1/2 after:h-1 after:-translate-x-1/2 after:rounded-full after:bg-[#e3b537] after:transition-all '.($eventsNavActive ? 'text-[#005b3d] after:w-9' : 'text-[#37495a] after:w-0 hover:text-[#005b3d] hover:after:w-9');
                 $institutionsNavClass = $useHomeHeader
-                    ? 'relative flex h-12 items-center px-2 text-sm font-medium text-white/90 transition-colors hover:text-white'
+                    ? 'relative flex h-12 items-center px-2 text-sm font-medium text-white/90 transition-colors after:absolute after:bottom-1 after:left-1/2 after:h-1 after:-translate-x-1/2 after:rounded-full after:bg-[#e3b537] after:transition-all after:w-0 hover:text-white hover:after:w-9'
                     : 'relative flex h-12 items-center px-2 text-sm font-medium transition-colors after:absolute after:bottom-1 after:left-1/2 after:h-1 after:-translate-x-1/2 after:rounded-full after:bg-[#e3b537] after:transition-all '.($institutionsNavActive ? 'text-[#005b3d] after:w-9' : 'text-[#37495a] after:w-0 hover:text-[#005b3d] hover:after:w-9');
                 $personsNavClass = $useHomeHeader
-                    ? 'relative flex h-12 items-center px-2 text-sm font-medium text-white/90 transition-colors hover:text-white'
+                    ? 'relative flex h-12 items-center px-2 text-sm font-medium text-white/90 transition-colors after:absolute after:bottom-1 after:left-1/2 after:h-1 after:-translate-x-1/2 after:rounded-full after:bg-[#e3b537] after:transition-all after:w-0 hover:text-white hover:after:w-9'
                     : 'relative flex h-12 items-center px-2 text-sm font-medium transition-colors after:absolute after:bottom-1 after:left-1/2 after:h-1 after:-translate-x-1/2 after:rounded-full after:bg-[#e3b537] after:transition-all '.($personsNavActive ? 'text-[#005b3d] after:w-9' : 'text-[#37495a] after:w-0 hover:text-[#005b3d] hover:after:w-9');
                 $languageButtonClass = $useHomeHeader
-                    ? 'flex items-center gap-2 whitespace-nowrap rounded-full border border-white/30 bg-black/10 px-3 py-1.5 text-xs font-semibold tracking-wider text-white transition-all hover:border-white/70 hover:bg-black/20'
-                    : 'flex items-center gap-2 whitespace-nowrap rounded-full border border-[#dbe1dc] bg-white/50 px-3 py-1.5 text-xs font-semibold tracking-wider text-[#2d4b4c] transition-all hover:border-[#13845f] hover:text-[#006044]';
+                    ? 'living-majlis-header-button living-majlis-header-button--glass flex items-center gap-2 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold tracking-wider text-white transition-all'
+                    : 'flex items-center gap-2 whitespace-nowrap rounded-full border border-[#dbe1dc] bg-white/50 px-3 py-1.5 text-xs font-semibold tracking-wider text-[#2d4b4c] transition-all group-hover:border-[#006044] group-hover:bg-[#006044] group-hover:text-white group-hover:shadow-[0_6px_16px_-8px_rgba(0,96,68,0.7)]';
                 $addButtonClass = 'living-majlis-header-button living-majlis-header-button--gold hidden items-center justify-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold sm:inline-flex';
                 $userButtonClass = 'flex items-center gap-2 rounded-full border border-[#198663] bg-white/50 p-1 pr-3 text-[#006044] transition-all hover:bg-white/80';
                 $guestLoginClass = $useHomeHeader
-                    ? 'hidden items-center gap-2 whitespace-nowrap rounded-full border border-white/80 bg-black/10 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-white/10 lg:inline-flex'
-                    : 'hidden items-center gap-2 whitespace-nowrap rounded-full border border-[#198663] bg-white/45 px-3 py-1.5 text-sm font-semibold text-[#006044] transition-all hover:bg-white/80 lg:inline-flex';
+                    ? 'living-majlis-header-button living-majlis-header-button--glass hidden items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold text-white transition-all lg:inline-flex'
+                    : 'hidden items-center gap-2 whitespace-nowrap rounded-full border border-[#198663] bg-white/45 px-3 py-1.5 text-sm font-semibold text-[#006044] transition-all hover:border-[#006044] hover:bg-[#006044] hover:text-white hover:shadow-[0_6px_16px_-8px_rgba(0,96,68,0.7)] lg:inline-flex';
                 $guestRegisterClass = $useHomeHeader
-                    ? 'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full bg-[#0e8a63] px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-black/20 transition-all hover:bg-[#13a574]'
+                    ? 'living-majlis-header-button inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full bg-[#0e8a63] px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-black/20 transition-all hover:bg-[#13a574]'
                     : 'living-majlis-header-button living-majlis-header-button--emerald inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full px-5 py-2 text-sm font-semibold';
                 $mobileMenuClass = $useHomeHeader
                     ? 'mt-2 mx-4 rounded-3xl border border-white/20 bg-[#062e22]/95 text-white shadow-xl backdrop-blur-md md:hidden'
                     : ($useFloatingHeader
                     ? 'mt-2 mx-4 rounded-3xl border border-[#eadfca] bg-[#fffdf8]/95 shadow-xl backdrop-blur-md md:hidden'
                     : 'border-t border-[#e5dccb] bg-[#f6f1e8] md:hidden');
+                $mobileNavLinkClass = $useHomeHeader
+                    ? 'relative text-white after:absolute after:bottom-1 after:left-0 after:h-1 after:w-0 after:rounded-full after:bg-[#e3b537] after:transition-all hover:text-emerald-200 hover:after:w-9'
+                    : 'relative text-slate-700 after:absolute after:bottom-1 after:left-0 after:h-1 after:w-0 after:rounded-full after:bg-[#e3b537] after:transition-all hover:text-emerald-600 hover:after:w-9';
+                $mobileMenuButtonClass = $useHomeHeader
+                    ? 'living-majlis-header-button border border-white/30 text-white'
+                    : 'living-majlis-header-button border border-slate-200 text-slate-700';
+                $mobileMenuDangerClass = $useHomeHeader
+                    ? 'living-majlis-header-button border border-red-300/60 text-red-200'
+                    : 'living-majlis-header-button border border-red-200 text-red-600';
+                $mobileMenuStrongTextClass = $useHomeHeader
+                    ? 'text-white'
+                    : 'text-slate-900';
+                $mobileMenuMutedTextClass = $useHomeHeader
+                    ? 'text-white/70'
+                    : 'text-slate-500';
             @endphp
 
             <!-- Premium Header -->
@@ -243,31 +258,25 @@
                     @endif
 
                     <a href="{{ route('home') }}" wire:navigate class="flex shrink-0 items-center">
-                        <img src="{{ asset('images/logo-ilmu360.png') }}" alt="{{ config('app.name') }}" width="2172" height="724"
+                        <img src="{{ asset($useHomeHeader ? 'images/logo-ilmu360-footer.png' : 'images/logo-ilmu360.png') }}" alt="{{ config('app.name') }}" width="{{ $useHomeHeader ? 2167 : 2172 }}" height="{{ $useHomeHeader ? 726 : 724 }}"
                             class="{{ $logoClass }}">
                     </a>
 
                     <!-- Desktop Menu -->
                     <div class="{{ $desktopMenuClass }}">
-                        @if($useHomeHeader)
-                            <a href="{{ route('institutions.index') }}" wire:navigate class="{{ $institutionsNavClass }}">{{ __('Institutions') }}</a>
-                            <a href="{{ route('persons.index') }}" wire:navigate class="{{ $personsNavClass }}">{{ __('Speakers') }}</a>
-                        @elseif($useFloatingHeader)
-                            <a href="{{ route('institutions.index') }}" wire:navigate
-                                class="{{ $institutionsNavClass }}">{{ __('Institutions') }}</a>
-                            <a href="{{ route('persons.index') }}" wire:navigate
-                                class="{{ $personsNavClass }}">{{ __('Speakers') }}</a>
-                        @else
-                            <a href="{{ route('events.index') }}" wire:navigate
-                                class="{{ $eventsNavClass }}">{{ __('Events') }}</a>
-                        @endif
+                        <a href="{{ route('events.index') }}" wire:navigate
+                            class="{{ $eventsNavClass }}">{{ __('Events') }}</a>
+                        <a href="{{ route('institutions.index') }}" wire:navigate
+                            class="{{ $institutionsNavClass }}">{{ __('Institutions') }}</a>
+                        <a href="{{ route('persons.index') }}" wire:navigate
+                            class="{{ $personsNavClass }}">{{ __('Speakers') }}</a>
                     </div>
 
                     <div class="flex items-center gap-3">
                         <!-- Mobile Menu Button -->
                         <button @click="mobileMenuOpen = !mobileMenuOpen"
-                            class="md:hidden rounded-lg p-2 {{ $useHomeHeader ? 'text-white hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100' }} transition-colors">
-                            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            class="living-majlis-header-button md:hidden rounded-lg p-2 {{ $useHomeHeader ? 'text-white hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100' }} transition-colors">
+                            <svg class="relative z-10 w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path x-show="!mobileMenuOpen" stroke-linecap="round" stroke-linejoin="round"
                                     stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                                 <path x-show="mobileMenuOpen" x-cloak stroke-linecap="round" stroke-linejoin="round"
@@ -281,12 +290,12 @@
                                 data-language-switcher-trigger="desktop"
                                 aria-label="{{ __('Language') }}"
                                 class="{{ $languageButtonClass }}">
-                                    <svg class="h-4 w-4 {{ $useHomeHeader ? 'text-white' : 'text-[#087f4f]' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                    <svg class="relative z-10 h-4 w-4 {{ $useHomeHeader ? 'text-white' : 'text-[#087f4f] group-hover:text-white' }} transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                     <circle cx="12" cy="12" r="9" stroke-width="1.8" />
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 12h18M12 3c2.2 2.4 3.3 5.4 3.3 9S14.2 18.6 12 21c-2.2-2.4-3.3-5.4-3.3-9S9.8 5.4 12 3Z" />
                                 </svg>
-                                <span>{{ $currentLocaleLabel }}</span>
-                                <svg class="h-3 w-3 {{ $useHomeHeader ? 'text-white/70 group-hover:text-white' : 'text-[#55706c] group-hover:text-[#087f4f]' }}" fill="none"
+                                <span class="relative z-10">{{ $currentLocaleLabel }}</span>
+                                <svg class="relative z-10 h-3 w-3 {{ $useHomeHeader ? 'text-white/70 group-hover:text-white' : 'text-[#55706c] group-hover:text-white' }} transition-colors" fill="none"
                                     viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M19 9l-7 7-7-7" />
@@ -297,8 +306,14 @@
                                 @foreach ($publicMenuLocales as $locale => $label)
                                     <a href="{{ route('locale.switch', $locale) }}"
                                         data-language-switcher-option="{{ $locale }}"
-                                        class="flex items-center justify-between rounded-lg px-3 py-2 text-xs font-semibold tracking-wider {{ $locale === $currentLocale ? 'bg-emerald-50 text-emerald-700' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900' }}">
+                                        @if($locale === $currentLocale) aria-current="true" @endif
+                                        class="flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-xs font-semibold tracking-wider transition-colors {{ $locale === $currentLocale ? 'bg-[#006044] text-white shadow-[0_4px_10px_-4px_rgba(0,96,68,0.7)]' : 'text-slate-500 hover:bg-amber-100 hover:text-[#7e530f] hover:shadow-sm' }}">
                                         {{ $label }}
+                                        @if($locale === $currentLocale)
+                                            <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                                            </svg>
+                                        @endif
                                     </a>
                                 @endforeach
                             </div>
@@ -309,18 +324,8 @@
                             <svg class="relative z-10 h-4 w-4 rounded-full bg-[#087f4f] p-0.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-width="2.5" d="M12 6v12M6 12h12" />
                             </svg>
-                            <span class="relative z-10">{{ __('Tambah Majlis') }}</span>
+                            <span class="relative z-10">{{ __('Add Event') }}</span>
                         </a>
-
-                        @if($useHomeHeader)
-                            <a href="{{ route('search.index') }}" wire:navigate aria-label="{{ __('Search') }}"
-                                class="hidden h-10 w-10 items-center justify-center rounded-full text-white transition hover:bg-white/10 sm:inline-flex">
-                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                                    <circle cx="11" cy="11" r="6.75" stroke-width="1.8" />
-                                    <path stroke-linecap="round" stroke-width="1.8" d="m16 16 4.5 4.5" />
-                                </svg>
-                            </a>
-                        @endif
 
                         <span class="hidden h-8 w-px bg-[#dfd7c7] sm:block" aria-hidden="true"></span>
 
@@ -412,10 +417,10 @@
                             <div class="flex items-center gap-2 hidden sm:flex">
                                 <a href="{{ \App\Support\Auth\IntendedRedirect::loginUrl(request()->fullUrl()) }}" wire:navigate
                                     class="{{ $guestLoginClass }}">
-                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                    <svg class="relative z-10 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 20v-1.5a4.5 4.5 0 0 0-4.5-4.5h-3A4.5 4.5 0 0 0 4 18.5V20M10 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8-4v6m3-3h-6" />
                                     </svg>
-                                    {{ __('Log In') }}
+                                    <span class="relative z-10">{{ __('Log In') }}</span>
                                 </a>
                                 <a href="{{ \App\Support\Auth\IntendedRedirect::registerUrl(request()->fullUrl()) }}" wire:navigate
                                     class="{{ $guestRegisterClass }}">
@@ -433,25 +438,23 @@
                 <div x-show="mobileMenuOpen" x-collapse x-cloak class="{{ $mobileMenuClass }}">
                     <div class="container mx-auto px-6 py-4 space-y-4">
                         <div class="flex flex-col gap-2">
-                            @if(!$useFloatingHeader)
-                                <a href="{{ route('events.index') }}" wire:navigate
-                                    class="block py-2 text-base font-semibold text-slate-700 hover:text-emerald-600">{{ __('Events') }}</a>
-                            @endif
+                            <a href="{{ route('events.index') }}" wire:navigate
+                                class="block py-2 text-base font-semibold {{ $mobileNavLinkClass }}">{{ __('Events') }}</a>
                             <a href="{{ route('institutions.index') }}" wire:navigate
-                                class="block py-2 text-base font-semibold text-slate-700 hover:text-emerald-600">{{ __('Institutions') }}</a>
+                                class="block py-2 text-base font-semibold {{ $mobileNavLinkClass }}">{{ __('Institutions') }}</a>
                             <a href="{{ route('persons.index') }}" wire:navigate
-                                class="block py-2 text-base font-semibold text-slate-700 hover:text-emerald-600">{{ __('Speakers') }}</a>
+                                class="block py-2 text-base font-semibold {{ $mobileNavLinkClass }}">{{ __('Speakers') }}</a>
                         </div>
                         <div class="border-t border-[#e5dccb] pt-4 flex flex-col gap-3">
                             <a href="{{ route('submit-event.create') }}" wire:navigate
                                 class="living-majlis-header-button living-majlis-header-button--gold block w-full rounded-xl px-4 py-3 text-center text-sm font-semibold">
-                                <span class="relative z-10">{{ __('Tambah Majlis') }}</span>
+                                <span class="relative z-10">{{ __('Add Event') }}</span>
                             </a>
                             @guest
                                 <div class="grid grid-cols-2 gap-3">
                                     <a href="{{ \App\Support\Auth\IntendedRedirect::loginUrl(request()->fullUrl()) }}" wire:navigate
-                                        class="flex items-center justify-center rounded-lg border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700">
-                                        {{ __('Log In') }}
+                                        class="flex items-center justify-center rounded-lg px-4 py-3 text-sm font-semibold {{ $mobileMenuButtonClass }}">
+                                        <span class="relative z-10">{{ __('Log In') }}</span>
                                     </a>
                                     <a href="{{ \App\Support\Auth\IntendedRedirect::registerUrl(request()->fullUrl()) }}" wire:navigate
                                         class="living-majlis-header-button living-majlis-header-button--emerald flex items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold">
@@ -465,22 +468,22 @@
                                         {{ substr(auth()->user()->name, 0, 1) }}
                                     </div>
                                     <div class="flex-1 min-w-0">
-                                        <p class="text-sm font-bold text-slate-900 truncate">{{ auth()->user()->name }}</p>
-                                        <p class="text-xs text-slate-500 truncate">{{ auth()->user()->email }}</p>
+                                        <p class="text-sm font-bold truncate {{ $mobileMenuStrongTextClass }}">{{ auth()->user()->name }}</p>
+                                        <p class="text-xs truncate {{ $mobileMenuMutedTextClass }}">{{ auth()->user()->email }}</p>
                                     </div>
                                 </div>
                                 <div class="space-y-3 border-t border-slate-100 pt-4">
                                     <div class="space-y-2">
                                         <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{{ $homeMenuHeading }}</p>
                                         <a href="{{ route('dashboard') }}" wire:navigate
-                                            class="block rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">
-                                            {{ $dashboardMenuLabel }}
+                                            class="block rounded-lg px-4 py-2 text-sm font-semibold {{ $mobileMenuButtonClass }}">
+                                            <span class="relative z-10">{{ $dashboardMenuLabel }}</span>
                                         </a>
                                         <a href="{{ route('dashboard.notifications') }}" wire:navigate
-                                            class="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">
-                                            <span>{{ $inboxMenuLabel }}</span>
+                                            class="flex items-center justify-between rounded-lg px-4 py-2 text-sm font-semibold {{ $mobileMenuButtonClass }}">
+                                            <span class="relative z-10">{{ $inboxMenuLabel }}</span>
                                             @if($notificationUnreadCount > 0)
-                                                <span class="inline-flex min-w-6 items-center justify-center rounded-full bg-emerald-600 px-2 py-0.5 text-xs font-semibold text-white">
+                                                <span class="relative z-10 inline-flex min-w-6 items-center justify-center rounded-full bg-emerald-600 px-2 py-0.5 text-xs font-semibold text-white">
                                                     {{ $notificationUnreadCount }}
                                                 </span>
                                             @endif
@@ -489,43 +492,43 @@
                                     <div class="space-y-2 border-t border-slate-100 pt-4">
                                         <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{{ $workspaceMenuHeading }}</p>
                                         <a href="{{ route('contributions.index') }}" wire:navigate
-                                            class="block rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">
-                                            {{ $contributionsMenuLabel }}
+                                            class="block rounded-lg px-4 py-2 text-sm font-semibold {{ $mobileMenuButtonClass }}">
+                                            <span class="relative z-10">{{ $contributionsMenuLabel }}</span>
                                         </a>
                                         @if($hasInstitutionDashboardAccess)
                                             <a href="{{ route('dashboard.institutions') }}" wire:navigate
-                                                class="block rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">
-                                                {{ $institutionDashboardMenuLabel }}
+                                                class="block rounded-lg px-4 py-2 text-sm font-semibold {{ $mobileMenuButtonClass }}">
+                                                <span class="relative z-10">{{ $institutionDashboardMenuLabel }}</span>
                                             </a>
                                         @endif
                                         <a href="{{ route('dashboard.organizations.create') }}" wire:navigate
-                                            class="block rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">
-                                            {{ $organizationCreateMenuLabel }}
+                                            class="block rounded-lg px-4 py-2 text-sm font-semibold {{ $mobileMenuButtonClass }}">
+                                            <span class="relative z-10">{{ $organizationCreateMenuLabel }}</span>
                                         </a>
                                         @if($hasOrganizationDashboardAccess)
                                             <a href="{{ route('dashboard.organizations.index') }}" wire:navigate
-                                                class="block rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">
-                                                {{ $organizationDashboardMenuLabel }}
+                                                class="block rounded-lg px-4 py-2 text-sm font-semibold {{ $mobileMenuButtonClass }}">
+                                                <span class="relative z-10">{{ $organizationDashboardMenuLabel }}</span>
                                             </a>
                                         @endif
                                         @if($hasManagedWorkspaceAccess && ! $hasOrganizationDashboardAccess)
                                             <a href="{{ route('dashboard.organizations.index') }}" wire:navigate
-                                                class="block rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">
-                                                {{ __('Manage Workspaces') }}
+                                                class="block rounded-lg px-4 py-2 text-sm font-semibold {{ $mobileMenuButtonClass }}">
+                                                <span class="relative z-10">{{ __('Manage Workspaces') }}</span>
                                             </a>
                                         @endif
                                     </div>
                                     <div class="space-y-2 border-t border-slate-100 pt-4">
                                         <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{{ $accountMenuHeading }}</p>
                                         <a href="{{ route('dashboard.account-settings') }}" wire:navigate
-                                            class="block rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">
-                                            {{ $settingsMenuLabel }}
+                                            class="block rounded-lg px-4 py-2 text-sm font-semibold {{ $mobileMenuButtonClass }}">
+                                            <span class="relative z-10">{{ $settingsMenuLabel }}</span>
                                         </a>
                                         <form method="POST" action="{{ route('logout') }}">
                                             @csrf
                                             <button type="submit"
-                                                class="w-full rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-600">
-                                                {{ __('Log Out') }}
+                                                class="w-full rounded-lg px-4 py-2 text-sm font-semibold {{ $mobileMenuDangerClass }}">
+                                                <span class="relative z-10">{{ __('Log Out') }}</span>
                                             </button>
                                         </form>
                                     </div>
@@ -539,10 +542,15 @@
                             </p>
                             <div class="flex flex-wrap gap-2">
                                 @foreach ($publicMenuLocales as $locale => $label)
+                                    @php
+                                        $languagePillClass = $useHomeHeader
+                                            ? ($locale === $currentLocale ? 'border-emerald-300/60 bg-emerald-400/20 text-emerald-100' : 'border-white/25 text-white/80')
+                                            : ($locale === $currentLocale ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-100 text-slate-600');
+                                    @endphp
                                     <a href="{{ route('locale.switch', $locale) }}"
                                         data-language-switcher-option="{{ $locale }}"
-                                        class="px-3 py-1.5 rounded-full text-xs font-medium border {{ $locale === $currentLocale ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'border-slate-100 text-slate-600' }}">
-                                        {{ $label }}
+                                        class="living-majlis-header-button px-3 py-1.5 rounded-full text-xs font-medium border {{ $languagePillClass }}">
+                                        <span class="relative z-10">{{ $label }}</span>
                                     </a>
                                 @endforeach
                             </div>

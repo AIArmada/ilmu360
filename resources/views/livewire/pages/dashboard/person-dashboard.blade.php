@@ -44,7 +44,7 @@
                         data-signal-entity-id="{{ $person->id }}"
                         class="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700"
                     >
-                        + {{ __('Tambah Majlis') }}
+                        + {{ __('Add Event') }}
                     </a>
                 @endif
             </div>

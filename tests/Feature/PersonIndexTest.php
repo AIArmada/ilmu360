@@ -480,7 +480,9 @@ it('exposes directory status semantics and aligned loading skeleton markup', fun
         ->assertSee('aria-busy', false)
         ->assertSee('aria-pressed="true"', false)
         ->assertSee(__('Verified'))
-        ->assertSee(trans_choice('upcoming majlis|upcoming majlis', 0), false)
+        ->assertSee('0 '.__('Events'))
+        ->assertDontSee(__('View profile & majlis'))
+        ->assertDontSee('mt-4 flex items-center gap-2.5 text-xs text-slate-500', false)
         ->assertSee('motion-safe:animate-pulse', false)
         ->assertSee('sm:aspect-[3/4]', false);
 });

@@ -138,6 +138,50 @@ class extends Component
     }
 
     /**
+     * Merged subdivision + locality control, or null when addressing says
+     * to render them separately. Values are prefixed with their kind so a
+     * pick resolves back into the right backing property. When legacy URLs
+     * carry both slugs, the subdivision wins the display slot.
+     *
+     * @return array{role: string, label: string, value: ?string, subdivisions: array<string, string>, localities: array<string, string>}|null
+     */
+    #[Computed]
+    public function groupedSubdivisionLocality(): ?array
+    {
+        $ids = $this->locationIds();
+
+        if (! $this->locationSlugResolver()->shouldGroupSubdivisionLocality($ids['country_id'], $ids['state_id'])) {
+            return null;
+        }
+
+        $subdivision = null;
+
+        foreach ($this->areaFilters() as $filter) {
+            if ($filter['role'] === 'administrative_subdivision') {
+                $subdivision = $filter;
+            }
+        }
+
+        $localities = $this->localities();
+
+        if ($subdivision === null || $subdivision['options'] === [] || $localities === []) {
+            return null;
+        }
+
+        $subdivisionSlug = $this->areas['administrative_subdivision'] ?? null;
+
+        return [
+            'role' => 'administrative_subdivision',
+            'label' => $subdivision['label'].' / '.$this->localityLabel(),
+            'value' => $subdivisionSlug !== null
+                ? 'subdivision:'.$subdivisionSlug
+                : ($this->locality !== null ? 'locality:'.$this->locality : null),
+            'subdivisions' => $subdivision['options'],
+            'localities' => $localities,
+        ];
+    }
+
+    /**
      * @return list<array{role: string, label: string, value: ?string, options: array<string, string>}>
      */
     #[Computed]
@@ -263,6 +307,27 @@ class extends Component
     private function autoSelectSingleLocationChildren(): void
     {
         if (! filled($this->state)) {
+            return;
+        }
+
+        $grouped = $this->groupedSubdivisionLocality();
+
+        if ($grouped !== null) {
+            if (count($grouped['subdivisions']) + count($grouped['localities']) === 1 && $grouped['value'] === null) {
+                $single = count($grouped['subdivisions']) === 1
+                    ? array_key_first($grouped['subdivisions'])
+                    : array_key_first($grouped['localities']);
+
+                if (is_string($single)) {
+                    if (count($grouped['subdivisions']) === 1) {
+                        $this->areas[$grouped['role']] = $single;
+                        $this->syncLegacyAreaProperties();
+                    } else {
+                        $this->locality = $single;
+                    }
+                }
+            }
+
             return;
         }
 
@@ -428,6 +493,48 @@ class extends Component
 
     public function updatedLocality(): void
     {
+        $this->memoizedLocationIds = null;
+        $this->syncResults();
+    }
+
+    public function selectGroupedSubdivisionLocality(?string $value): void
+    {
+        $role = $this->locationSlugResolver()->subdivisionRoleForCountry($this->locationIds()['country_id']);
+
+        if ($role !== 'administrative_subdivision') {
+            return;
+        }
+
+        $kind = null;
+        $slug = null;
+
+        if (is_string($value) && $value !== '' && str_contains($value, ':')) {
+            [$kind, $slug] = explode(':', $value, 2);
+        }
+
+        if ($kind === 'locality' && is_string($slug) && $slug !== '') {
+            $this->areas[$role] = null;
+            $this->locality = $slug;
+            $this->syncLegacyAreaProperties();
+            $this->memoizedLocationIds = null;
+            $this->syncResults();
+
+            return;
+        }
+
+        if ($kind === 'subdivision' && is_string($slug) && $slug !== '') {
+            $this->areas[$role] = $slug;
+            // Single-choice control: a subdivision pick always drops the
+            // locality, even though addressing keeps them independent.
+            $this->locality = null;
+            $this->updatedAreas($slug, $role);
+
+            return;
+        }
+
+        $this->areas[$role] = null;
+        $this->locality = null;
+        $this->syncLegacyAreaProperties();
         $this->memoizedLocationIds = null;
         $this->syncResults();
     }
@@ -643,7 +750,9 @@ class extends Component
     $city = $this->city;
     $locality = $this->locality;
     $areaFilters = $this->areaFilters;
+    $groupedSubdivisionLocality = $this->groupedSubdivisionLocality;
     $stateLabel = $this->stateLabel();
+    $subdivisionLabel = $this->subdistrictLabel();
     $localityLabel = $this->localityLabel();
     $submitInstitutionUrl = route('contributions.submit-institution');
 @endphp
@@ -755,6 +864,7 @@ class extends Component
                         @endif
 
                         @foreach($areaFilters as $areaFilterIndex => $areaFilter)
+                            @continue($groupedSubdivisionLocality !== null && $areaFilter['role'] === 'administrative_subdivision')
                             @php
                                 $areaFilterId = match ($areaFilterIndex) {
                                     0 => 'institution-district-filter',
@@ -780,7 +890,31 @@ class extends Component
                             </div>
                         @endforeach
 
-                        @if($localities !== [])
+                        @if($groupedSubdivisionLocality !== null)
+                        <div>
+                            <label for="institution-subdivision-locality-filter" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                {{ $groupedSubdivisionLocality['label'] }}
+                            </label>
+                            <flux:select
+                                id="institution-subdivision-locality-filter"
+                                wire:change="selectGroupedSubdivisionLocality($event.target.value)"
+                                size="sm"
+                                class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 shadow-sm transition-[border-color,box-shadow,background-color] hover:border-emerald-300 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                            >
+                                <flux:select.option value="" :selected="$groupedSubdivisionLocality['value'] === null">{{ __('All :level', ['level' => $groupedSubdivisionLocality['label']]) }}</flux:select.option>
+                                <flux:select.group :label="$subdivisionLabel">
+                                    @foreach($groupedSubdivisionLocality['subdivisions'] as $slug => $name)
+                                        <flux:select.option value="subdivision:{{ $slug }}" :selected="$groupedSubdivisionLocality['value'] === 'subdivision:'.$slug">{{ $name }}</flux:select.option>
+                                    @endforeach
+                                </flux:select.group>
+                                <flux:select.group :label="$localityLabel">
+                                    @foreach($groupedSubdivisionLocality['localities'] as $slug => $name)
+                                        <flux:select.option value="locality:{{ $slug }}" :selected="$groupedSubdivisionLocality['value'] === 'locality:'.$slug">{{ $name }}</flux:select.option>
+                                    @endforeach
+                                </flux:select.group>
+                            </flux:select>
+                        </div>
+                        @elseif($localities !== [])
                         <div>
                             <label for="institution-locality-filter" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
                                 {{ $localityLabel }}

@@ -44,6 +44,108 @@
         $reference->publisherValue(),
         filled($reference->year) ? (string) $reference->year : null,
     ]);
+    $upcomingEvents = $this->upcomingEvents;
+    $pastEvents = $this->pastEvents;
+    $upcomingTotal = $this->upcomingTotal;
+    $pastTotal = $this->pastTotal;
+    $showPendingEventStatusNotice = $upcomingEvents->concat($pastEvents)->contains(
+        fn (\App\Models\Event $event): bool => (string) $event->status === 'pending'
+    );
+    $showCancelledEventStatusNotice = $upcomingEvents->concat($pastEvents)->contains(
+        fn (\App\Models\Event $event): bool => (string) $event->status === 'cancelled'
+    );
+
+    $resolveEventCategoryLabel = static fn (\App\Models\Event $event): string => app(\App\Support\Events\EventCategoryPresenter::class)->forEvent($event)[0]['path'] ?? __('Umum');
+
+    $resolveVenueLocation = static function (\App\Models\Event $event): string {
+        $venueName = $event->venue?->name;
+        $address = $event->venue?->primaryAddress();
+        $parts = \App\Support\Location\AddressHierarchyFormatter::parts($address);
+        $addressValue = implode(', ', array_filter($parts));
+
+        if (filled($venueName) && filled($addressValue)) {
+            return $venueName . ' • ' . $addressValue;
+        }
+
+        if (filled($venueName)) {
+            return (string) $venueName;
+        }
+
+        return $addressValue;
+    };
+
+    $joinEventPeopleNames = static function (\Illuminate\Support\Collection $names): string {
+        return $names->join(', ', ' dan ');
+    };
+
+    $resolveEventPersonAvatarStack = static function (\App\Models\Event $event): array {
+        $avatars = $event->persons
+            ->map(function (\App\Models\Person $person): array {
+                return [
+                    'name' => trim((string) ($person->formatted_name !== '' ? $person->formatted_name : $person->name)),
+                    'url' => $person->public_avatar_url,
+                ];
+            })
+            ->filter(fn (array $avatar): bool => $avatar['name'] !== '' && $avatar['url'] !== '')
+            ->unique('name')
+            ->values();
+
+        return [
+            'items' => $avatars->take(3)->values(),
+            'overflow' => max(0, $avatars->count() - 3),
+        ];
+    };
+
+    $resolveEventPeople = static function (\App\Models\Event $event) use ($joinEventPeopleNames): array {
+        $personSummary = $event->persons
+            ->map(fn (\App\Models\Person $person): string => trim((string) ($person->formatted_name !== '' ? $person->formatted_name : $person->name)))
+            ->filter(fn (string $name): bool => $name !== '')
+            ->unique()
+            ->values();
+
+        $roleSummary = $event->keyPeople
+            ->filter(function (\App\Models\EventKeyPerson $keyPerson): bool {
+                $role = $keyPerson->role_code;
+                $role = $role instanceof \App\Enums\EventKeyPersonRole
+                    ? $role
+                    : \App\Enums\EventKeyPersonRole::tryFrom((string) $role);
+
+                return $keyPerson->visibility === 'public' && $role !== \App\Enums\EventKeyPersonRole::Speaker;
+            })
+            ->groupBy(function (\App\Models\EventKeyPerson $keyPerson): string {
+                $role = $keyPerson->role_code;
+
+                return $role instanceof \App\Enums\EventKeyPersonRole
+                    ? $role->value
+                    : (string) $role;
+            })
+            ->map(function (\Illuminate\Support\Collection $keyPeople, string $role) use ($joinEventPeopleNames): ?string {
+                $names = $keyPeople
+                    ->map(fn (\App\Models\EventKeyPerson $keyPerson): string => trim((string) ($keyPerson->display_name
+                        ?: $keyPerson->person?->formatted_name
+                        ?: $keyPerson->person?->name
+                        ?: '')))
+                    ->filter(fn (string $name): bool => $name !== '')
+                    ->unique()
+                    ->values();
+
+                if ($names->isEmpty()) {
+                    return null;
+                }
+
+                $roleLabel = \App\Enums\EventKeyPersonRole::tryFrom($role)?->getLabel()
+                    ?? \Illuminate\Support\Str::headline($role);
+
+                return $roleLabel . ': ' . $joinEventPeopleNames($names);
+            })
+            ->filter()
+            ->implode(' • ');
+
+        return [
+            'persons' => $personSummary->isNotEmpty() ? $joinEventPeopleNames($personSummary) : '',
+            'roles' => $roleSummary,
+        ];
+    };
 @endphp
 
 <div class="min-h-screen bg-slate-50/90">
@@ -141,6 +243,414 @@
                             @endguest
                         </div>
                     </div>
+                </section>
+
+                <section class="scroll-reveal reveal-up revealed space-y-6">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                        <div>
+                            <p class="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700">{{ __('Jadual Rujukan') }}</p>
+                            <h2 class="mt-1 font-heading text-3xl font-bold text-emerald-950">{{ __('Majlis Akan Datang') }}</h2>
+                            <p class="mt-2 text-sm leading-6 text-slate-500">{{ __('Majlis yang menggunakan rujukan ini.') }}</p>
+                        </div>
+
+                        @if($upcomingEvents->isNotEmpty())
+                            <span class="inline-flex w-fit shrink-0 items-center gap-2 rounded-full border-emerald-300 bg-emerald-100 text-emerald-900 shadow-emerald-200/80 hover:bg-emerald-200 px-3 py-1.5 text-xs font-bold shadow-sm">
+                                <span class="relative flex h-2 w-2"><span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-600"></span></span>
+                                {{ trans_choice(
+                                    $upcomingDateFilter === 'all' ? ':count majlis aktif' : ':count majlis dipaparkan',
+                                    $upcomingTotal,
+                                    ['count' => number_format($upcomingTotal)]
+                                ) }}
+                            </span>
+                        @endif
+                    </div>
+
+                    <div class="flex w-full min-w-0 items-center justify-center gap-2 sm:gap-3">
+                        <div class="min-w-0 flex-1 overflow-x-auto overscroll-x-contain pb-1 [scrollbar-color:#86bfae_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-emerald-50 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-emerald-300">
+                            <flux:radio.group
+                                variant="segmented"
+                                size="sm"
+                                wire:model.live="upcomingDateFilter"
+                                wire:loading.attr="disabled"
+                                wire:target="upcomingDateFilter,applyCustomDateRange,clearUpcomingDateFilter"
+                                aria-label="{{ __('Tapis majlis akan datang') }}"
+                                data-signal-event="navigation.upcoming_date_filter_changed"
+                                data-signal-component="reference_detail_upcoming_events"
+                                data-signal-control="date_filter"
+                                class="w-max min-w-max"
+                            >
+                                @foreach([
+                                    'all' => __('Semua'),
+                                    'today' => __('Hari ini'),
+                                    'tomorrow' => __('Esok'),
+                                    'this_week' => __('Minggu ini'),
+                                    'this_weekend' => __('Hujung minggu'),
+                                    'next_week' => __('Minggu depan'),
+                                    'this_month' => __('Bulan ini'),
+                                    'next_month' => __('Bulan depan'),
+                                ] as $filter => $label)
+                                    <flux:radio
+                                        value="{{ $filter }}"
+                                        class="!text-emerald-950 hover:!text-emerald-800 dark:!text-emerald-950 dark:hover:!text-emerald-800 data-checked:!bg-emerald-700 data-checked:!text-white dark:data-checked:!bg-emerald-700 dark:data-checked:!text-white"
+                                    >
+                                        {{ $label }}
+                                    </flux:radio>
+                                @endforeach
+                            </flux:radio.group>
+                        </div>
+
+                        <div class="shrink-0">
+                            <flux:modal.trigger name="custom-date-range">
+                                <flux:button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    square
+                                    icon="calendar-days"
+                                    aria-label="{{ __('Tentukan tarikh') }}"
+                                    aria-pressed="{{ $upcomingDateFilter === 'custom' ? 'true' : 'false' }}"
+                                    class="shrink-0 rounded-full! {{ $upcomingDateFilter === 'custom' ? 'bg-emerald-100! text-emerald-800! ring-1 ring-emerald-200!' : 'text-emerald-700! hover:bg-emerald-50!' }}"
+                                />
+                            </flux:modal.trigger>
+                        </div>
+
+                        <span
+                            class="hidden size-7 shrink-0 items-center justify-center"
+                            wire:loading.class.remove="hidden"
+                            wire:target="upcomingDateFilter,applyCustomDateRange,clearUpcomingDateFilter"
+                            role="status"
+                            aria-live="polite"
+                            aria-atomic="true"
+                        >
+                            <span
+                                wire:loading.class.remove="hidden"
+                                wire:target="upcomingDateFilter,applyCustomDateRange,clearUpcomingDateFilter"
+                                class="hidden size-4 animate-spin rounded-full border-2 border-emerald-200 border-t-emerald-700"
+                                style="animation-duration: 700ms"
+                                aria-label="{{ __('Menapis...') }}"
+                            ></span>
+                        </span>
+                    </div>
+
+                    <flux:modal
+                        wire:model="showCustomDateRange"
+                        name="custom-date-range"
+                        class="max-w-xl bg-white! text-emerald-950! ring-emerald-100! shadow-[0_24px_70px_-35px_rgba(6,78,59,0.35)]!"
+                    >
+                        <div class="space-y-6 text-emerald-950">
+                            <div>
+                                <flux:heading size="lg" class="text-emerald-950!">{{ __('Tentukan tarikh') }}</flux:heading>
+                                <flux:subheading class="text-slate-500!">{{ __('Pilih tarikh mula dan tarikh akhir untuk menapis majlis akan datang.') }}</flux:subheading>
+                            </div>
+
+                            <div class="grid gap-4 sm:grid-cols-2">
+                                <flux:field>
+                                    <flux:label class="text-slate-700!">{{ __('Tarikh mula') }}</flux:label>
+                                    <flux:input
+                                        type="date"
+                                        wire:model="customStartDate"
+                                        class:input="bg-white! text-emerald-950! border-slate-200! border-b-slate-300! dark:bg-white! dark:text-emerald-950! dark:border-slate-200! dark:border-b-slate-300! placeholder:text-slate-400! dark:placeholder:text-slate-400!"
+                                        class="bg-white! text-emerald-950! ring-slate-200! dark:bg-white! dark:text-emerald-950! dark:ring-slate-200!"
+                                        style="color-scheme: light"
+                                    />
+                                </flux:field>
+
+                                <flux:field>
+                                    <flux:label class="text-slate-700!">{{ __('Tarikh akhir') }}</flux:label>
+                                    <flux:input
+                                        type="date"
+                                        wire:model="customEndDate"
+                                        min="{{ $customStartDate }}"
+                                        class:input="bg-white! text-emerald-950! border-slate-200! border-b-slate-300! dark:bg-white! dark:text-emerald-950! dark:border-slate-200! dark:border-b-slate-300! placeholder:text-slate-400! dark:placeholder:text-slate-400!"
+                                        class="bg-white! text-emerald-950! ring-slate-200! dark:bg-white! dark:text-emerald-950! dark:ring-slate-200!"
+                                        style="color-scheme: light"
+                                    />
+                                </flux:field>
+                            </div>
+
+                            @error('customDateRange')
+                                <p class="text-xs font-semibold text-red-600">{{ $message }}</p>
+                            @enderror
+
+                            <div class="flex justify-end gap-2">
+                                <flux:modal.close>
+                                    <flux:button type="button" variant="ghost" class="text-emerald-700! hover:bg-emerald-50! dark:text-emerald-700!">{{ __('Batal') }}</flux:button>
+                                </flux:modal.close>
+                                <flux:button
+                                    type="button"
+                                    variant="primary"
+                                    color="emerald"
+                                    wire:click="applyCustomDateRange"
+                                    wire:loading.attr="disabled"
+                                    wire:target="applyCustomDateRange"
+                                    class="bg-emerald-600! text-white! hover:bg-emerald-700!"
+                                >
+                                    {{ __('Tapis tarikh') }}
+                                </flux:button>
+                            </div>
+                        </div>
+                    </flux:modal>
+
+                    <x-public.moderation-status-note
+                        :show-pending="$showPendingEventStatusNotice"
+                        :show-cancelled="$showCancelledEventStatusNotice"
+                    />
+
+                    <div
+                        class="space-y-4"
+                        wire:loading.class="opacity-60"
+                        wire:loading.attr="aria-busy"
+                        wire:target="upcomingDateFilter,applyCustomDateRange,clearUpcomingDateFilter"
+                    >
+                        @foreach($upcomingEvents as $event)
+                            @php
+                                $venueLocation = $resolveVenueLocation($event);
+                                $eventPeople = $resolveEventPeople($event);
+                                $personAvatarStack = $resolveEventPersonAvatarStack($event);
+                                $eventTypeLabel = $resolveEventCategoryLabel($event);
+                                $bookReferenceTitle = $event->reference_study_subtitle;
+                                $eventFormatValue = $event->delivery_mode?->value ?? $event->delivery_mode;
+                                $isRemoteEvent = in_array($eventFormatValue, ['online', 'hybrid'], true);
+                                $isPendingEvent = (string) $event->status === 'pending';
+                                $isCancelledEvent = (string) $event->status === 'cancelled';
+                            @endphp
+
+                            <a
+                                href="{{ route('events.show', $event) }}"
+                                wire:key="upcoming-{{ $event->id }}"
+                                wire:navigate
+                                class="group relative flex overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md"
+                            >
+                                <div class="flex w-[4.5rem] shrink-0 flex-col items-center justify-center bg-gradient-to-b {{ $isCancelledEvent ? 'from-rose-600 to-rose-800' : ($isPendingEvent ? 'from-amber-600 to-amber-800' : ($isRemoteEvent ? 'from-sky-600 to-sky-800' : 'from-emerald-600 to-emerald-800')) }} p-3 text-white sm:w-24">
+                                    <span class="text-[10px] font-bold uppercase tracking-widest text-white/80">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($event->starts_at, 'l') }}</span>
+                                    <span class="font-heading text-3xl font-black leading-none sm:text-4xl">{{ \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'd') }}</span>
+                                    <span class="mt-1 text-[11px] font-bold tracking-wide text-white/80">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($event->starts_at, 'F') }}</span>
+                                </div>
+
+                                <div class="flex flex-1 flex-col gap-3 p-4 sm:p-5">
+                                    <div class="flex items-start justify-between gap-4">
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-900">
+                                                {{ $eventTypeLabel }}
+                                            </span>
+
+                                            @if($isPendingEvent)
+                                                <span class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800">
+                                                    {{ __('Menunggu Kelulusan') }}
+                                                </span>
+                                            @endif
+
+                                            @if($isCancelledEvent)
+                                                <span class="inline-flex items-center rounded-full bg-rose-100 px-2.5 py-0.5 text-[11px] font-semibold text-rose-800">
+                                                    {{ __('Dibatalkan') }}
+                                                </span>
+                                            @endif
+                                        </div>
+
+                                        @if($personAvatarStack['items']->isNotEmpty())
+                                            <div class="flex -space-x-3" aria-label="{{ __('Penceramah') }}">
+                                                @foreach($personAvatarStack['items'] as $avatar)
+                                                    <img
+                                                        src="{{ $avatar['url'] }}"
+                                                        alt="{{ $avatar['name'] }}"
+                                                        title="{{ $avatar['name'] }}"
+                                                        class="h-9 w-9 rounded-full object-cover ring-2 ring-white shadow-sm sm:h-11 sm:w-11"
+                                                    >
+                                                @endforeach
+
+                                                @if($personAvatarStack['overflow'] > 0)
+                                                    <span class="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-[10px] font-semibold text-slate-600 ring-2 ring-white shadow-sm sm:h-11 sm:w-11 sm:text-[11px]">
+                                                        +{{ $personAvatarStack['overflow'] }}
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        @endif
+                                    </div>
+
+                                    <div class="space-y-2">
+                                        <h3 class="font-heading text-lg font-bold text-slate-950 transition group-hover:text-emerald-700">
+                                            {{ $event->title }}
+                                        </h3>
+
+                                        @if($bookReferenceTitle)
+                                            <p class="pl-3 text-sm font-bold italic text-slate-500 sm:pl-4">
+                                                {{ $bookReferenceTitle }}
+                                            </p>
+                                        @endif
+                                    </div>
+
+                                    <div class="space-y-1.5 text-sm text-slate-500">
+                                        <div class="flex items-center gap-2">
+                                            <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            <span>{{ $event->timing_display !== '' ? $event->timing_display : \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'h:i A') }}</span>
+
+                                            @if($event->ends_at)
+                                                <span class="text-slate-300">-</span>
+                                                <span>{{ \App\Support\Timezone\UserDateTimeFormatter::format($event->ends_at, 'h:i A') }}</span>
+                                            @endif
+                                        </div>
+
+                                        @if($eventPeople['persons'] !== '')
+                                            <div class="flex items-start gap-2">
+                                                <svg class="mt-0.5 h-4 w-4 shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.742-.479 3 3 0 00-4.682-2.72m.94 3.198v.75c0 .414-.336.75-.75.75H4.75a.75.75 0 01-.75-.75v-.75a4.5 4.5 0 014.5-4.5h4.5a4.5 4.5 0 014.5 4.5z" />
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 7.5a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                                                </svg>
+                                                <span class="line-clamp-2">{{ $eventPeople['persons'] }}</span>
+                                            </div>
+                                        @endif
+
+                                        @if($eventPeople['roles'] !== '')
+                                            <div class="flex items-start gap-2">
+                                                <svg class="mt-0.5 h-4 w-4 shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.008v.008H3.75V6.75zm0 5.25h.008v.008H3.75V12zm0 5.25h.008v.008H3.75v-.008z" />
+                                                </svg>
+                                                <span class="line-clamp-2">{{ $eventPeople['roles'] }}</span>
+                                            </div>
+                                        @endif
+
+                                        @if($venueLocation !== '' && ! $isRemoteEvent)
+                                            <div class="flex items-center gap-2">
+                                                <svg class="h-4 w-4 shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                                                </svg>
+                                                <span class="line-clamp-1">{{ $venueLocation }}</span>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                            </a>
+                        @endforeach
+
+                        @if($upcomingEvents->isEmpty())
+                            <div class="rounded-2xl border border-dashed border-slate-200 bg-white p-10 text-center">
+                                <h3 class="font-heading text-xl font-bold text-emerald-950">
+                                    {{ $upcomingDateFilter === 'all' ? __('Belum ada majlis akan datang') : __('Tiada majlis untuk tempoh ini') }}
+                                </h3>
+                                <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
+                                    {{ $upcomingDateFilter === 'all'
+                                        ? __('Ikuti rujukan ini untuk mengetahui apabila jadual majlis baharu diterbitkan.')
+                                        : __('Cuba tempoh lain atau paparkan semua majlis akan datang.') }}
+                                </p>
+
+                                @if($upcomingDateFilter !== 'all')
+                                    <button
+                                        type="button"
+                                        wire:click="clearUpcomingDateFilter"
+                                        wire:loading.attr="disabled"
+                                        wire:target="upcomingDateFilter,applyCustomDateRange,clearUpcomingDateFilter"
+                                        class="mt-5 inline-flex items-center justify-center rounded-xl bg-emerald-700 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-emerald-600 disabled:cursor-wait disabled:opacity-60"
+                                    >
+                                        {{ __('Tunjukkan semua majlis') }}
+                                    </button>
+                                @endif
+                            </div>
+                        @endif
+
+                        @if($upcomingTotal > $upcomingEvents->count())
+                            <div class="text-center">
+                                <button
+                                    type="button"
+                                    wire:click="loadMoreUpcoming"
+                                    wire:loading.attr="disabled"
+                                    class="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-700"
+                                >
+                                    {{ __('Lihat Lagi') }}
+                                </button>
+                            </div>
+                        @endif
+                    </div>
+
+                    @if($pastEvents->isNotEmpty())
+                        <div class="space-y-4 pt-4">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-lg font-semibold text-slate-900">{{ __('Lepas') }}</h3>
+
+                                @if($pastTotal > $pastEvents->count())
+                                    <button
+                                        type="button"
+                                        wire:click="loadMorePast"
+                                        wire:loading.attr="disabled"
+                                        class="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-700"
+                                    >
+                                        {{ __('Lihat Lagi') }}
+                                    </button>
+                                @endif
+                            </div>
+
+                            @foreach($pastEvents as $event)
+                                @php
+                                    $venueLocation = $resolveVenueLocation($event);
+                                    $eventPeople = $resolveEventPeople($event);
+                                    $bookReferenceTitle = $event->reference_study_subtitle;
+                                    $eventFormatValue = $event->delivery_mode?->value ?? $event->delivery_mode;
+                                    $isRemoteEvent = in_array($eventFormatValue, ['online', 'hybrid'], true);
+                                @endphp
+
+                                <a
+                                    href="{{ route('events.show', $event) }}"
+                                    wire:key="past-{{ $event->id }}"
+                                    wire:navigate
+                                    class="group relative flex overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md"
+                                >
+                                    <div class="flex w-[4.5rem] shrink-0 flex-col items-center justify-center bg-gradient-to-b from-slate-700 to-slate-900 p-3 text-white sm:w-24">
+                                        <span class="text-[10px] font-bold uppercase tracking-widest text-white/80">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($event->starts_at, 'l') }}</span>
+                                        <span class="font-heading text-3xl font-black leading-none sm:text-4xl">{{ \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'd') }}</span>
+                                        <span class="mt-1 text-[11px] font-bold tracking-wide text-white/80">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($event->starts_at, 'F') }}</span>
+                                    </div>
+
+                                    <div class="flex flex-1 flex-col gap-3 p-4 sm:p-5">
+                                        <h3 class="font-heading text-lg font-bold text-slate-950 transition group-hover:text-emerald-700">
+                                            {{ $event->title }}
+                                        </h3>
+
+                                        @if($bookReferenceTitle)
+                                            <p class="pl-3 text-sm font-bold italic text-slate-500 sm:pl-4">
+                                                {{ $bookReferenceTitle }}
+                                            </p>
+                                        @endif
+
+                                        <div class="space-y-1.5 text-sm text-slate-500">
+                                            <div class="flex items-center gap-2">
+                                                <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                <span>{{ $event->timing_display !== '' ? $event->timing_display : \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'h:i A') }}</span>
+
+                                                @if($event->ends_at)
+                                                    <span class="text-slate-300">-</span>
+                                                    <span>{{ \App\Support\Timezone\UserDateTimeFormatter::format($event->ends_at, 'h:i A') }}</span>
+                                                @endif
+                                            </div>
+
+                                            @if($eventPeople['persons'] !== '')
+                                                <div class="flex items-start gap-2">
+                                                    <svg class="mt-0.5 h-4 w-4 shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.742-.479 3 3 0 00-4.682-2.72m.94 3.198v.75c0 .414-.336.75-.75.75H4.75a.75.75 0 01-.75-.75v-.75a4.5 4.5 0 014.5-4.5h4.5a4.5 4.5 0 014.5 4.5z" />
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 7.5a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                                                    </svg>
+                                                    <span class="line-clamp-2">{{ $eventPeople['persons'] }}</span>
+                                                </div>
+                                            @endif
+
+                                            @if($venueLocation !== '' && ! $isRemoteEvent)
+                                                <div class="flex items-center gap-2">
+                                                    <svg class="h-4 w-4 shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                                                    </svg>
+                                                    <span class="line-clamp-1">{{ $venueLocation }}</span>
+                                                </div>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </a>
+                            @endforeach
+                        </div>
+                    @endif
                 </section>
 
                 @if($reference->parentReference || $reference->childReferences->isNotEmpty())

@@ -217,6 +217,19 @@ describe('Event Search Filters', function () {
             ->assertDontSee('/js/filament/tables/tables.js', false);
     });
 
+    it('counts active filters and opens the panel only when filters narrow the results', function (): void {
+        $fresh = Livewire::test(Index::class)
+            ->assertSet('filtersPanelOpen', false);
+
+        expect($fresh->instance()->activeFilterCount())->toBe(0);
+
+        $filtered = Livewire::withQueryParams(['gender' => EventGenderRestriction::MenOnly->value])
+            ->test(Index::class)
+            ->assertSet('filtersPanelOpen', true);
+
+        expect($filtered->instance()->activeFilterCount())->toBe(1);
+    });
+
     it('uses the first session timing expression on event cards', function (): void {
         config(['scout.driver' => 'database']);
 
@@ -1376,7 +1389,7 @@ describe('Event Search Filters', function () {
             ->not->toContain('Live Search Irsyad');
     });
 
-    it('filters events by prayer_time enum value in advanced filters', function () {
+    it('filters events by multiple prayer_time enum values in advanced filters', function () {
         createVisibleEventForSearch([
             'title' => 'Enum Filter Match',
             'status' => 'approved',
@@ -1386,6 +1399,17 @@ describe('Event Search Filters', function () {
             'timing_mode' => TimingMode::PrayerRelative,
             'prayer_reference' => PrayerReference::Maghrib,
             'prayer_display_text' => 'Selepas Maghrib',
+        ]);
+
+        createVisibleEventForSearch([
+            'title' => 'Enum Filter Isyak Match',
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now(),
+            'starts_at' => now()->addDays(2),
+            'timing_mode' => TimingMode::PrayerRelative,
+            'prayer_reference' => PrayerReference::Isha,
+            'prayer_display_text' => 'Selepas Isyak',
         ]);
 
         createVisibleEventForSearch([
@@ -1400,11 +1424,15 @@ describe('Event Search Filters', function () {
         ]);
 
         $response = $this->get(eventsIndexUrl([
-            'prayer_time' => EventPrayerTime::SelepasMaghrib->value,
+            'prayer_time' => [
+                EventPrayerTime::SelepasMaghrib->value,
+                EventPrayerTime::SelepasIsyak->value,
+            ],
         ]));
 
         $response->assertOk()
             ->assertSee('Enum Filter Match')
+            ->assertSee('Enum Filter Isyak Match')
             ->assertDontSee('Enum Filter No Match');
     });
 

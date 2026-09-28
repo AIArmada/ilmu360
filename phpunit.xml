@@ -27,6 +27,7 @@
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="APP_ROUTES_CACHE" value="bootstrap/cache/routes.testing.php"/>
         <env name="BLAZE_ENABLED" value="false"/>
+        <env name="VIEW_COMPILED_PATH" value="storage/framework/views/testing"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>

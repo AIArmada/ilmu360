@@ -484,8 +484,8 @@
                                     'tomorrow' => __('Esok'),
                                     'this_week' => __('Minggu ini'),
                                     'this_weekend' => __('Hujung minggu'),
-                                    'this_month' => __('Bulan ini'),
                                     'next_week' => __('Minggu depan'),
+                                    'this_month' => __('Bulan ini'),
                                     'next_month' => __('Bulan depan'),
                                 ] as $filter => $label)
                                     <flux:radio
@@ -506,7 +506,7 @@
                                     size="sm"
                                     square
                                     icon="calendar-days"
-                                    aria-label="{{ __('Pilih julat tarikh') }}"
+                                    aria-label="{{ __('Tentukan tarikh') }}"
                                     aria-pressed="{{ $upcomingDateFilter === 'custom' ? 'true' : 'false' }}"
                                     class="shrink-0 rounded-full! {{ $upcomingDateFilter === 'custom' ? 'bg-emerald-100! text-emerald-800! ring-1 ring-emerald-200!' : 'text-emerald-700! hover:bg-emerald-50!' }}"
                                 />
@@ -538,7 +538,7 @@
                     >
                         <div class="space-y-6 text-emerald-950">
                             <div>
-                                <flux:heading size="lg" class="text-emerald-950!">{{ __('Pilih julat tarikh') }}</flux:heading>
+                                <flux:heading size="lg" class="text-emerald-950!">{{ __('Tentukan tarikh') }}</flux:heading>
                                 <flux:subheading class="text-slate-500!">{{ __('Pilih tarikh mula dan tarikh akhir untuk menapis majlis akan datang.') }}</flux:subheading>
                             </div>
 

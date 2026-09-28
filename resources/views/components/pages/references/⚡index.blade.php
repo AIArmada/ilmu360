@@ -1,11 +1,21 @@
 <?php
 
+use App\Enums\DawahShareOutcomeType;
+use App\Enums\EventVisibility;
+use App\Models\Event;
 use App\Models\Reference;
+use App\Models\User;
+use App\Services\ShareTrackingService;
+use App\Support\Auth\IntendedRedirect;
 use App\Support\Search\ReferenceSearchService;
+use App\Support\Timezone\UserDateTimeFormatter;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
@@ -23,30 +33,50 @@ new
         #[Url]
         public ?string $search = null;
 
+        /**
+         * @var list<string>
+         */
+        public array $followingReferenceIds = [];
+
+        public function mount(): void
+        {
+            $user = auth()->user();
+
+            if (! $user instanceof User) {
+                return;
+            }
+
+            $this->followingReferenceIds = $user->followingReferences()
+                ->pluck((new Reference)->qualifyColumn('id'))
+                ->map(static fn (mixed $id): string => (string) $id)
+                ->values()
+                ->all();
+        }
+
         #[Computed]
         public function references(): LengthAwarePaginatorContract
         {
             $search = $this->normalizedSearch();
 
             if ($search === null) {
-                return $this->baseReferencesQuery()
+                $paginator = $this->baseReferencesQuery()
                     ->root()
                     ->orderBy('references.title')
                     ->paginate(12)
                     ->withQueryString();
-            }
-
-            if (mb_strlen($search) < self::MIN_SEARCH_LENGTH) {
+            } elseif (mb_strlen($search) < self::MIN_SEARCH_LENGTH) {
                 return $this->emptyPaginator();
+            } else {
+                $directMatches = $this->directSearch($search);
+
+                $paginator = $directMatches->total() > 0
+                    ? $directMatches
+                    : $this->fuzzySearch($search);
             }
 
-            $directMatches = $this->directSearch($search);
+            $this->attachNextPublicEvents($paginator->items());
 
-            if ($directMatches->total() > 0) {
-                return $directMatches;
-            }
-
-            return $this->fuzzySearch($search);
+            return $paginator;
         }
 
         public function updatedSearch(): void
@@ -60,10 +90,73 @@ new
             $this->resetPage();
         }
 
+        public function toggleFollow(string $referenceId): void
+        {
+            $user = auth()->user();
+
+            if (! $user instanceof User) {
+                $this->redirect(
+                    IntendedRedirect::loginUrl(route('references.index', absolute: false)),
+                    navigate: true,
+                );
+
+                return;
+            }
+
+            $reference = $this->followableReference($referenceId);
+
+            if ($reference === null) {
+                return;
+            }
+
+            $referenceId = (string) $reference->getKey();
+
+            if ($user->isFollowing($reference)) {
+                $user->unfollow($reference);
+                $this->followingReferenceIds = array_values(array_filter(
+                    $this->followingReferenceIds,
+                    static fn (mixed $id): bool => (string) $id !== $referenceId,
+                ));
+
+                return;
+            }
+
+            $user->follow($reference);
+
+            if (! in_array($referenceId, $this->followingReferenceIds, true)) {
+                $this->followingReferenceIds[] = $referenceId;
+            }
+
+            app(ShareTrackingService::class)->recordOutcome(
+                type: DawahShareOutcomeType::ReferenceFollow,
+                outcomeKey: 'reference_follow:user:'.$user->id.':reference:'.$reference->id,
+                subject: $reference,
+                actor: $user,
+                request: request(),
+                metadata: [
+                    'reference_id' => $reference->id,
+                ],
+            );
+        }
+
+        private function followableReference(string $referenceId): ?Reference
+        {
+            if (! Str::isUuid($referenceId)) {
+                return null;
+            }
+
+            return Reference::query()
+                ->active()
+                ->whereKey($referenceId)
+                ->first();
+        }
+
         private function baseReferencesQuery(bool $includeParts = false): Builder
         {
             $query = Reference::query()
                 ->active()
+                ->select('references.*')
+                ->selectSub($this->nextPublicEventQuery()->select('events.id'), 'next_event_id')
                 ->withCount(['events' => function (Builder $query): void {
                     $query->active();
                 }])
@@ -80,6 +173,91 @@ new
             }
 
             return $query;
+        }
+
+        /**
+         * Hydrate the next-event card fields for one page of references in a
+         * single batched query. The listing only needs these three columns for
+         * the visible page, so repeating the same correlated LIMIT 1 subquery
+         * three times per row only triples that work — and each repetition
+         * evaluates its own "now", which can mix columns from different events
+         * at the boundary. Selecting the winning id per row and resolving its
+         * columns once keeps every card internally consistent.
+         *
+         * @param  array<int, Reference>  $references
+         */
+        private function attachNextPublicEvents(array $references): void
+        {
+            if ($references === []) {
+                return;
+            }
+
+            $nextEventIds = collect($references)
+                ->map(static fn (Reference $reference): mixed => $reference->getAttribute('next_event_id'))
+                ->filter()
+                ->map(static fn (mixed $id): string => (string) $id)
+                ->unique()
+                ->values()
+                ->all();
+
+            /** @var EloquentCollection<int, Event> $details */
+            $details = $nextEventIds === []
+                ? new EloquentCollection
+                : $this->nextPublicEventDetails($nextEventIds)->keyBy(static fn (Event $event): string => (string) $event->getKey());
+
+            foreach ($references as $reference) {
+                $detail = $details->get((string) $reference->getAttribute('next_event_id'));
+
+                $reference->setAttribute('next_event_slug', $detail?->getAttribute('slug'));
+                $reference->setAttribute('next_event_title', $detail?->getAttribute('title'));
+                $reference->setAttribute('next_event_starts_at', $detail?->getAttribute('next_event_starts_at'));
+                $reference->offsetUnset('next_event_id');
+            }
+        }
+
+        /**
+         * Resolve the card columns for already-selected next events. The id
+         * already identifies the earliest future (event, occurrence) pair per
+         * reference, so the event's minimum future occurrence start is exactly
+         * that pair's start — no tie-break needed for the timestamp itself.
+         *
+         * @param  list<string>  $eventIds
+         * @return EloquentCollection<int, Event>
+         */
+        private function nextPublicEventDetails(array $eventIds): EloquentCollection
+        {
+            $occurrencesTable = config('events.database.tables.event_occurrences', 'event_occurrences');
+
+            return Event::query()
+                ->select('events.id', 'events.slug', 'events.title')
+                ->selectRaw('min("'.$occurrencesTable.'"."starts_at") as next_event_starts_at')
+                ->join("{$occurrencesTable}", "{$occurrencesTable}.event_id", '=', 'events.id')
+                ->whereIn('events.id', $eventIds)
+                ->where("{$occurrencesTable}.starts_at", '>=', now())
+                ->groupBy('events.id', 'events.slug', 'events.title')
+                ->get();
+        }
+
+        /**
+         * @return Builder<Event>
+         */
+        private function nextPublicEventQuery(): Builder
+        {
+            $occurrencesTable = config('events.database.tables.event_occurrences', 'event_occurrences');
+            $eventReferencesTable = config('events.database.tables.event_references', 'event_references');
+
+            return Event::query()
+                ->join("{$occurrencesTable} as next_event_occurrences", 'next_event_occurrences.event_id', '=', 'events.id')
+                ->join("{$eventReferencesTable} as next_event_references", 'next_event_references.event_id', '=', 'events.id')
+                ->whereColumn('next_event_references.referenceable_id', 'references.id')
+                ->where('next_event_references.referenceable_type', (new Reference)->getMorphClass())
+                ->where('next_event_occurrences.starts_at', '>=', now())
+                ->whereNotNull('events.published_at')
+                ->whereIn('events.status', Event::PUBLIC_STATUSES)
+                ->where('events.visibility', EventVisibility::Public->value)
+                ->orderBy('next_event_occurrences.starts_at')
+                ->orderBy('events.id')
+                ->limit(1);
         }
 
         private function directSearch(string $search): LengthAwarePaginatorContract
@@ -316,53 +494,98 @@ new
                                 $reference->publisher,
                                 $reference->year,
                             ], fn (mixed $value): bool => filled($value)));
+                            $nextEventStartsAt = filled($reference->next_event_starts_at)
+                                ? CarbonImmutable::parse((string) $reference->next_event_starts_at, 'UTC')
+                                : null;
+                            $isFollowing = in_array((string) $reference->getKey(), $followingReferenceIds, true);
                         @endphp
 
-                        <a
-                            href="{{ route('references.show', $reference) }}"
-                            wire:navigate
+                        <article
+                            wire:key="reference-{{ $reference->id }}"
                             class="living-majlis-card group relative flex flex-col overflow-hidden rounded-[1.5rem] border transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-1.5 hover:border-emerald-300/80 hover:shadow-[0_22px_50px_-28px_rgba(6,78,59,0.40)]"
                         >
-                            <div class="relative flex aspect-4/5 items-center justify-center overflow-hidden bg-linear-to-br from-slate-50 to-emerald-50">
-                                @if($coverUrl)
-                                    <img src="{{ $coverUrl }}" alt="{{ $reference->title }}" class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" width="200" height="280" loading="lazy">
-                                    <div class="absolute inset-0 bg-linear-to-t from-slate-900/55 via-slate-900/10 to-transparent"></div>
-                                @else
-                                    <svg class="h-20 w-20 text-emerald-200 transition-transform duration-700 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                                    </svg>
-                                @endif
-
-                                <span class="absolute left-4 top-4 rounded-full bg-white/95 px-3 py-1 text-xs font-bold text-emerald-700 shadow-sm ring-1 ring-emerald-100">
-                                    {{ $typeLabel }}
-                                </span>
-                            </div>
-
-                            <div class="flex flex-1 flex-col p-6">
-                                <h3 class="mb-2 line-clamp-2 font-heading text-lg font-bold leading-tight text-slate-900 transition-colors group-hover:text-emerald-700">
-                                    {{ $reference->title }}
-                                </h3>
-
-                                @if($metaParts !== [])
-                                    <p class="mb-4 line-clamp-3 text-sm font-medium leading-6 text-slate-600">
-                                        {{ implode(' / ', $metaParts) }}
-                                    </p>
-                                @else
-                                    <p class="mb-4 line-clamp-3 text-sm font-medium leading-6 text-slate-500">
-                                        {{ __('Reference details will be updated soon.') }}
-                                    </p>
-                                @endif
-
-                                <div class="mt-auto flex items-center justify-center border-t border-slate-100 pt-5">
-                                    <span class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">
-                                        <svg class="h-3.5 w-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            <a
+                                href="{{ route('references.show', $reference) }}"
+                                wire:navigate
+                                class="relative flex flex-1 flex-col"
+                            >
+                                <div class="relative flex aspect-4/5 items-center justify-center overflow-hidden bg-linear-to-br from-slate-50 to-emerald-50">
+                                    @if($coverUrl)
+                                        <img src="{{ $coverUrl }}" alt="{{ $reference->title }}" class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" width="200" height="280" loading="lazy">
+                                        <div class="absolute inset-0 bg-linear-to-t from-slate-900/55 via-slate-900/10 to-transparent"></div>
+                                    @else
+                                        <svg class="h-20 w-20 text-emerald-200 transition-transform duration-700 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                                         </svg>
-                                        {{ $reference->events_count }} {{ __('Events') }}
+                                    @endif
+
+                                    <span class="absolute left-4 top-4 rounded-full bg-white/95 px-3 py-1 text-xs font-bold text-emerald-700 shadow-sm ring-1 ring-emerald-100">
+                                        {{ $typeLabel }}
                                     </span>
                                 </div>
+
+                                <div class="flex flex-1 flex-col p-6 pb-0">
+                                    <h3 class="mb-2 line-clamp-2 font-heading text-lg font-bold leading-tight text-slate-900 transition-colors group-hover:text-emerald-700">
+                                        {{ $reference->title }}
+                                    </h3>
+
+                                    @if($metaParts !== [])
+                                        <p class="mb-4 line-clamp-3 text-sm font-medium leading-6 text-slate-600">
+                                            {{ implode(' / ', $metaParts) }}
+                                        </p>
+                                    @else
+                                        <p class="mb-4 line-clamp-3 text-sm font-medium leading-6 text-slate-500">
+                                            {{ __('Reference details will be updated soon.') }}
+                                        </p>
+                                    @endif
+                                </div>
+                            </a>
+                            @if($nextEventStartsAt instanceof CarbonImmutable && filled($reference->next_event_slug) && filled($reference->next_event_title))
+                                <a
+                                    data-next-event
+                                    href="{{ route('events.show', ['event' => $reference->next_event_slug]) }}"
+                                    wire:navigate
+                                    class="mx-6 mt-4 block min-w-0 border-t border-slate-100 pt-4 transition-colors duration-200 hover:border-emerald-200 hover:bg-emerald-50/30 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/15"
+                                >
+                                    <span class="min-w-0">
+                                        <span class="block text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">{{ __('Next event') }}</span>
+                                        <span class="mt-1 block truncate text-[11px] font-semibold text-slate-700 sm:text-xs">
+                                            {{ UserDateTimeFormatter::translatedFormat($nextEventStartsAt, 'j M') }}
+                                            <span class="text-slate-300" aria-hidden="true">·</span>
+                                            {{ $reference->next_event_title }}
+                                        </span>
+                                    </span>
+                                </a>
+                            @endif
+                            <div class="mt-auto flex items-center justify-between gap-3 border-t border-slate-100 px-6 pb-6 pt-5">
+                                <span class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">
+                                    <svg class="h-3.5 w-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    {{ $reference->events_count }} {{ __('Events') }}
+                                </span>
+                                <button
+                                    type="button"
+                                    wire:click.stop.prevent="toggleFollow('{{ $reference->id }}')"
+                                    wire:loading.attr="disabled"
+                                    data-follow-icon="reference"
+                                    data-follow-state="{{ $isFollowing ? 'following' : 'not-following' }}"
+                                    aria-label="{{ $isFollowing ? __('Nyahikut') : __('Ikuti') }}"
+                                    aria-pressed="{{ $isFollowing ? 'true' : 'false' }}"
+                                    class="grid h-9 w-9 shrink-0 place-items-center rounded-xl border transition-colors duration-200 disabled:cursor-wait disabled:opacity-60 {{ $isFollowing ? 'border-emerald-200 bg-emerald-50 text-emerald-700 group-hover:border-emerald-300 group-hover:bg-emerald-100' : 'border-slate-200 bg-white text-slate-400 group-hover:border-emerald-200 group-hover:text-emerald-700' }}"
+                                >
+                                    @if($isFollowing)
+                                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                            <path d="M6.75 4.5A2.25 2.25 0 0 1 9 2.25h6a2.25 2.25 0 0 1 2.25 2.25V21L12 17.25 6.75 21V4.5Z" />
+                                        </svg>
+                                    @else
+                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 4.5A2.25 2.25 0 0 1 9 2.25h6a2.25 2.25 0 0 1 2.25 2.25V21L12 17.25 6.75 21V4.5Z" />
+                                        </svg>
+                                    @endif
+                                </button>
                             </div>
-                        </a>
+                        </article>
                     @endforeach
                 </div>
 

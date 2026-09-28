@@ -248,6 +248,19 @@ final class LocationSlugResolver
     }
 
     /**
+     * Whether subdivision + locality share one grouped control, per the
+     * addressing default (same gate) unless the app ungroups them.
+     */
+    public function shouldGroupSubdivisionLocality(?string $countryId, ?string $stateId): bool
+    {
+        if ($countryId === null) {
+            return false;
+        }
+
+        return app(CountryAddressProfileResolver::class)->shouldGroupSubdivisionLocality($countryId, $stateId);
+    }
+
+    /**
      * @param  array<string, ?string>  $slugs
      * @return array<string, ?string>
      */

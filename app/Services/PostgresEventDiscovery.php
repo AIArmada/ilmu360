@@ -395,19 +395,59 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
         }
 
         $timingMode = $this->normalizeTimingModeFilter($filters['timing_mode'] ?? null);
-        $prayerTime = $this->normalizePrayerTimeFilter($filters['prayer_time'] ?? null);
+        $prayerTimes = $this->normalizePrayerTimeFilters($filters['prayer_time'] ?? null);
 
-        if ($prayerTime !== null && $timingMode !== TimingMode::Absolute->value) {
+        if ($prayerTimes !== [] && $timingMode !== TimingMode::Absolute->value) {
             $queryBuilder
-                ->whereHas('timeExpressions', function (Builder $prayerQuery) use ($prayerTime): void {
+                ->whereHas('timeExpressions', function (Builder $prayerQuery) use ($prayerTimes): void {
                     $prayerQuery->where('time_mode', TimingMode::PrayerRelative->value);
                     $prayerQuery->where('anchor_type', 'prayer');
 
-                    $prayerQuery->where(function (Builder $inner) use ($prayerTime): void {
-                        $inner->whereLike('display_label', "%{$prayerTime}%");
+                    $prayerQuery->where(function (Builder $inner) use ($prayerTimes): void {
+                        foreach ($prayerTimes as $prayerTime) {
+                            $inner->orWhere(function (Builder $matchingPrayerQuery) use ($prayerTime): void {
+                                $prayerTimeEnum = EventPrayerTime::tryFrom($prayerTime);
 
-                        if (($prayerReference = $this->resolvePrayerReferenceFromFilter($prayerTime)) instanceof PrayerReference) {
-                            $inner->orWhere('anchor_code', $prayerReference->value);
+                                if ($prayerTimeEnum instanceof EventPrayerTime) {
+                                    $prayerReference = $prayerTimeEnum->toPrayerReference();
+                                    $prayerLabel = mb_strtolower($prayerTimeEnum->getLabel());
+
+                                    if ($prayerReference instanceof PrayerReference) {
+                                        $offset = $prayerTimeEnum->getDefaultOffset();
+                                        $relation = $offset !== null && $offset->minutes() < 0 ? 'before' : 'after';
+
+                                        $matchingPrayerQuery
+                                            ->where('relation', $relation)
+                                            ->where(function (Builder $prayerMatch) use ($prayerLabel, $prayerReference): void {
+                                                $prayerMatch
+                                                    ->where('anchor_code', $prayerReference->value)
+                                                    ->orWhereLike('display_label', "%{$prayerLabel}%");
+                                            });
+
+                                        if ($prayerTimeEnum === EventPrayerTime::SelepasIsyak) {
+                                            $matchingPrayerQuery->where(function (Builder $offsetQuery): void {
+                                                $offsetQuery
+                                                    ->whereNull('offset_minutes')
+                                                    ->orWhere('offset_minutes', '!=', 60);
+                                            });
+                                        } elseif ($prayerTimeEnum === EventPrayerTime::SelepasTarawih) {
+                                            $matchingPrayerQuery->where('offset_minutes', 60);
+                                        }
+
+                                        return;
+                                    }
+
+                                    $matchingPrayerQuery->whereLike('display_label', "%{$prayerLabel}%");
+
+                                    return;
+                                }
+
+                                $matchingPrayerQuery->whereLike('display_label', "%{$prayerTime}%");
+
+                                if (($prayerReference = $this->resolvePrayerReferenceFromFilter($prayerTime)) instanceof PrayerReference) {
+                                    $matchingPrayerQuery->orWhere('anchor_code', $prayerReference->value);
+                                }
+                            });
                         }
                     });
                 });
@@ -598,6 +638,15 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
                     END",
                     ["%{$query}%"]
                 )
+                ->orderByRaw("{$startsAtColumn} asc");
+
+            return;
+        }
+
+        if ($sort === 'popular') {
+            $queryBuilder
+                ->withCount('savedBy')
+                ->orderByDesc('saved_by_count')
                 ->orderByRaw("{$startsAtColumn} asc");
 
             return;
@@ -1049,25 +1098,31 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
         return $normalized === '' ? null : $normalized;
     }
 
-    protected function normalizePrayerTimeFilter(mixed $value): ?string
+    /**
+     * @return list<string>
+     */
+    protected function normalizePrayerTimeFilters(mixed $value): array
     {
-        if (! is_string($value)) {
-            return null;
+        $values = is_array($value) ? $value : [$value];
+        $normalizedPrayerTimes = [];
+
+        foreach ($values as $prayerTime) {
+            if (! is_string($prayerTime)) {
+                continue;
+            }
+
+            $normalized = mb_strtolower(trim($prayerTime));
+
+            if ($normalized === '') {
+                continue;
+            }
+
+            $enum = EventPrayerTime::tryFrom($normalized);
+            $normalized = $enum instanceof EventPrayerTime ? $enum->value : $normalized;
+            $normalizedPrayerTimes[$normalized] = $normalized;
         }
 
-        $normalized = mb_strtolower(trim($value));
-
-        if ($normalized === '') {
-            return null;
-        }
-
-        $enum = EventPrayerTime::tryFrom($normalized);
-
-        if ($enum instanceof EventPrayerTime) {
-            return mb_strtolower($enum->getLabel());
-        }
-
-        return $normalized;
+        return array_values($normalizedPrayerTimes);
     }
 
     protected function normalizeTimingModeFilter(mixed $value): ?string

@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use AIArmada\Addressing\Database\Seeders\AddressingSeeder;
 use AIArmada\Addressing\Database\Seeders\MalaysiaPostalCodeSeeder;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Models\Institution;

@@ -241,6 +241,13 @@
     "Hantar Majlis untuk Semakan": "Submit Event for Review",
     "Hanya fail PDF, JPEG, PNG, atau WEBP dibenarkan.": "Only PDF, JPEG, PNG, or WEBP files are allowed.",
     "Header or banner image": "Header or banner image",
+    "Hari ini": "Today",
+    "Hujung minggu": "This weekend",
+    "Esok": "Tomorrow",
+    "Minggu ini": "This week",
+    "Minggu depan": "Next week",
+    "Bulan ini": "This month",
+    "Bulan depan": "Next month",
     "Help others find knowledge circles by submitting a verified event. Our team will review and publish quickly.": "Help others find knowledge circles by submitting a verified event. Our team will review and publish quickly.",
     "Highest trust": "Highest trust",
     "Highlight": "Highlight",
@@ -1411,5 +1418,7 @@
     "Make owner": "Make owner",
     "Speaker ownership transferred.": "Speaker ownership transferred.",
     "Wrong information": "Wrong information",
-    "A contribution request for this record is already pending. Please wait for it to be reviewed before submitting another.": "A contribution request for this record is already pending. Please wait for it to be reviewed before submitting another."
+    "A contribution request for this record is already pending. Please wait for it to be reviewed before submitting another.": "A contribution request for this record is already pending. Please wait for it to be reviewed before submitting another.",
+    "Manage Workspaces": "Manage Workspaces",
+    "Platform terbesar untuk mencari kuliah, ceramah, tazkirah, dan majlis ilmu di seluruh Malaysia. Cari yang berdekatan dengan anda.": "The largest platform to find courses, sermons, tazkirah, and knowledge-based majlis across Malaysia. Find the one near you."
 }

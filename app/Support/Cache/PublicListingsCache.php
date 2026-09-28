@@ -8,9 +8,10 @@ class PublicListingsCache
 {
     public function bustHomepageStats(): void
     {
-        Cache::forget('home.stats.events.upcoming');
-        Cache::forget('home.stats.persons.upcoming');
-        Cache::forget('home.stats.institutions.upcoming');
+        Cache::forget('home.stats.events.active');
+        Cache::forget('home.stats.persons.active');
+        Cache::forget('home.stats.institutions.active');
+        Cache::forget('home.stats.references.active');
     }
 
     public function bustMajlisListing(): void

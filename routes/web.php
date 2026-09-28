@@ -42,7 +42,6 @@ use App\Livewire\Pages\MembershipApplications\Create as CreateMembershipApplicat
 use App\Livewire\Pages\MembershipApplications\Index as MembershipApplicationsIndex;
 use App\Livewire\Pages\Reports\Create as CreateReportPage;
 use App\Livewire\Pages\SavedSearches\Index;
-use App\Livewire\Pages\Search\Index as SearchIndex;
 use App\Livewire\Pages\SubmitEvent\Create;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Session\Middleware\StartSession;
@@ -76,9 +75,6 @@ Route::get('/kongsi/{provider}', [DawahShareController::class, 'redirect'])
 // Authentication is handled by Fortify
 
 // Events (with search rate limiting)
-Route::livewire('/carian', SearchIndex::class)
-    ->middleware('throttle:search')
-    ->name('search.index');
 Route::livewire('/majlis', 'pages.events.index')
     ->middleware('throttle:search')
     ->name('events.index');

@@ -3647,3 +3647,255 @@ request). Filters morph on the fast parent response; list follows on the child r
 - The homepage now mounts the same Livewire filter behavior as `/majlis`, including date, format, time, location, language, speaker, topic/reference, audience, and nearby-location controls.
 - The old geography-only controls and temporary placeholder markup were removed.
 - Both routes return successfully, and the expanded homepage filter accessibility tree matches the `/majlis` filter groups.
+
+## Match homepage community CTA with supplied reference (2026-09-26)
+
+### Plan
+
+- [x] Create a panoramic dusk skyline background for the community CTA, guided by the supplied screenshot.
+- [x] Recompose only this section with the left-aligned message and actions, a readable image overlay, and the four benefit links.
+- [x] Verify the crop and text contrast at desktop and mobile sizes, then build the frontend.
+
+### Review
+
+- The homepage CTA now uses a dedicated Kuala Lumpur sunset and lake image with the seated figure on the right, gold serif headline, paired actions, supporting quote, and four benefit icons.
+- Existing destination routes and labels are preserved. The CTA stacks for narrow screens and retains visible keyboard focus outlines.
+- Pint passed; Blade view caching and the Vite production build completed. Desktop and mobile browser previews showed the intended composition, with no browser console errors.
+
+## Brighten homepage hero background to match supplied reference (2026-09-26)
+
+### Plan
+
+- [x] Generate a clear-sky daylight version of the current mosque hero using the screenshot as a brightness and mood reference.
+- [x] Update the homepage hero and social preview to use the new image and its actual dimensions.
+- [x] Build the frontend and inspect the hero in the browser.
+
+### Review
+
+- Replaced the dusk hero with `hero-mosque-v4.png`: bright blue late-morning sky, clear mosque detail, the learner at right, and a shaded left area for the headline.
+- The homepage image and social preview now use the 1891 × 831 asset; the rest of the hero layout and search remain intact.
+- Pint, Blade view caching, the Vite production build, and `git diff --check` passed. The refreshed desktop homepage shows the clear blue sky and mosque composition behind the existing hero copy.
+
+## Keep homepage hero headline to two lines (2026-09-26)
+
+### Plan
+
+- [x] Give the headline enough width and tune its responsive display size to keep the second phrase together on desktop.
+- [x] Rebuild and inspect the live homepage at desktop width to confirm the two-line composition.
+
+### Review
+
+- The homepage hero now renders “Dekatkan Diri,” / “Dekat dengan Ilmu” as two lines at desktop width, with a responsive size and width for smaller screens.
+- Pint, Blade view caching, Vite build, and `git diff --check` passed; the refreshed desktop browser view confirms the two-line heading.
+
+## Darken homepage hero text side (2026-09-27)
+
+### Plan
+
+- [x] Increase the left-side hero veil while fading it before the bright mosque and sky.
+- [x] Rebuild and inspect text contrast and image brightness in the browser.
+
+### Review
+
+- Strengthened the left-side gradient for clearer white and gold hero copy; it fades back toward the bright mosque and sky.
+- Pint, Blade view caching, Vite build, and `git diff --check` passed. The refreshed browser preview confirms the darker text field while preserving the bright center scene.
+
+## Strengthen homepage hero text contrast (2026-09-27)
+
+### Plan
+
+- [x] Extend a stronger dark gradient across the headline area and fade it before the mosque center.
+- [x] Rebuild and inspect the updated contrast in the live browser.
+
+### Review
+
+- Extended the dark veil across the full headline area, with a clear fade before the central mosque and sky.
+- Pint, Blade view caching, Vite build, and `git diff --check` passed; the refreshed browser screenshot shows the stronger contrast.
+
+## Match homepage speaker feature with supplied reference (2026-09-27)
+
+### Plan
+
+- [x] Create a panoramic speaker-stage background with a dark teal text field, open book across the portraits, and warm quote field.
+- [x] Recompose only the “Tokoh Ilmu, Lebih Dekat” section to match the reference’s eyebrow, two-line title, CTA, five linked portraits, and right-side quote.
+- [x] Keep the stats block and speaker destinations intact; verify responsive rendering, Blade compilation, and the production asset build.
+
+### Review
+
+- Added `public/images/home/speaker-feature-v1.png` and rebuilt the section around the dark-to-cream book backdrop, compact two-line heading, gold CTA, five portrait cards, and right-side quote.
+- Curated the five reference profiles in the same order using existing active person records and retained their profile routes. Their records have no uploaded avatar media, so the app's default speaker avatars remain in place.
+- Kept the stats section unchanged. Blade caching, the Vite production build, and `git diff --check` passed; a 1024px browser preview confirmed the desktop composition and the 390px DOM check showed no horizontal overflow.
+
+## Include homepage statistics in the speaker feature (2026-09-27)
+
+### Plan
+
+- [x] Move the existing live statistics bar into the “Tokoh Ilmu, Lebih Dekat” section and overlap the lower edge as in the reference.
+- [x] Remove the standalone stats wrapper while preserving all five metrics and their current data sources.
+- [x] Rebuild and inspect the combined section, cache Blade views, and check the diff.
+
+### Review
+
+- The existing Livewire statistics bar now sits inside the speaker section and overlaps its lower edge; the separate wrapper is removed.
+- Kept the dynamic event, speaker, and institution counts plus the Malaysia coverage and community metrics. The refreshed browser preview shows all five metrics together with the speaker feature.
+- Blade caching, the Vite production build, and `git diff --check` passed.
+
+## Brighten community CTA background to match the reference (2026-09-27)
+
+### Plan
+
+- [x] Create a brighter, clearer golden-hour version while preserving the lake, skyline, and seated figure.
+- [x] Switch the CTA to the versioned image path, tune the overlays to keep the brighter scene visible, and verify the rendered section.
+- [x] Cache Blade views and check the final diff.
+
+### Review
+
+- Added `public/images/home/community-lake-cta-v2.png`, a brighter clear-sky golden-hour edit of the existing lake, Kuala Lumpur skyline, and seated figure. Reduced the CTA veils so the skyline and sky remain visible while the copy area stays readable.
+- Updated the CTA asset reference. The refreshed browser preview shows the lighter scene; Blade caching, the Vite production build, and `git diff --check` passed.
+
+## Improve community CTA quote contrast (2026-09-27)
+
+### Plan
+
+- [x] Strengthen the quote’s local text contrast over the brighter image without darkening the overall scene.
+- [x] Rebuild and inspect the rendered quote; cache Blade views and check the diff.
+
+### Review
+
+- Changed the quote to a brighter, heavier white treatment with a strong local shadow, preserving the lighter image across the rest of the section.
+- The refreshed browser preview shows the quote clearly over the bright sky; Blade caching, the Vite build, and `git diff --check` passed.
+
+## Add breathing room above speaker section statistics (2026-09-27)
+
+### Plan
+
+- [x] Remove the negative top margin so the stats bar has a clear gap below the speaker cards.
+- [x] Rebuild and inspect the spacing; cache Blade views and check the diff.
+
+### Review
+
+- Removed the negative top margin; the section’s existing vertical padding now leaves a clear gap below the speaker portraits before the stats bar.
+- The refreshed browser preview confirms the space. Blade caching, the Vite build, and `git diff --check` passed.
+
+## Use the footer logo in the homepage header only (2026-09-27)
+
+### Plan
+
+- [x] Use the brighter footer logo asset for the homepage header, gated by the existing homepage-header condition.
+- [x] Preserve the current logo on every other header and verify the homepage and another route.
+- [x] Cache Blade views, rebuild, and check the diff.
+
+### Review
+
+- The header now uses the footer logo asset only when the existing `useHomeHeader` route flag is active; other routes still use the standard logo.
+- Browser previews confirmed the brighter mark on the dark homepage hero and the original mark on `/institusi`. Blade caching, the Vite build, and `git diff --check` passed.
+
+## Show a real event location in the homepage map panel (2026-09-27)
+
+### Plan
+
+- [x] Replace the decorative map in “Majlis Berdekatan” with a Google Maps embed centered on a public upcoming event location.
+- [x] Reuse public event-location coordinates and Google Maps URLs; show the selected event and address with a directions link.
+- [x] Preserve a clear empty state when no physical event location is available; compile Blade views and inspect the homepage.
+
+### Review
+
+- The homepage panel was connected to the upcoming event’s Google Maps location and directions. The local preview exposed inconsistent sample data: its saved coordinates pointed offshore while the address identified Perlis.
+
+## Temporarily hide the homepage map panel (2026-09-27)
+
+### Plan
+
+- [x] Comment out the map panel and remove its computed lookup from the rendered homepage.
+- [x] Expand the upcoming event cards across the available row and verify the homepage.
+- [x] Cache Blade views, rebuild assets, and check the diff.
+
+### Review
+
+- The map panel remains in a Blade comment for later restoration. The featured event cards now use the full row. Blade caching, the Vite build, and `git diff --check` passed; the refreshed preview confirmed the map is hidden.
+
+## Add homepage search categories and connected Majlis quick filters (2026-09-27)
+
+### Plan
+
+- [x] Add Majlis, Institusi, and Penceramah radio choices above the hero search; submit the search term to the matching existing route.
+- [x] Keep the quick filters below the radios and show them, plus the detailed filter panel, only while Majlis is selected.
+- [x] Connect each quick filter to the Livewire filter state and keep the active shortcut synchronized when detailed filters change.
+- [x] Add high-signal tracking for category and quick-filter selections; preserve existing homepage design and navigation behavior.
+- [x] Build and inspect the rendered homepage, compile Blade views, and check the diff.
+
+### Review
+
+- The hero now defaults to Majlis and routes the search term to `/majlis`, `/institusi`, or `/penceramah` according to the selected radio. Quick filters stay beneath the search controls and the detailed filter panel only appears for Majlis.
+- Quick presets now update the existing Livewire filters, and changes in the detailed panel update the matching hero shortcut. Sunday overlap resolves to the shortcut the user chose; Popular is reflected in the detailed sort control and supported by both discovery backends.
+- Browser checks confirmed the radio visibility behavior, date shortcut to detailed filter sync, reverse date selection to a single matching shortcut, and Popular to sort sync. Pint, Blade view caching, Vite build, and `git diff --check` passed.
+- PHPStan was attempted, but the repository analysis stalled while consuming the remaining disk space. Its generated result cache was cleared; no PHPStan result is available.
+
+## Make Waktu Solat multi-select and define Malam Ini (2026-09-27)
+
+### Plan
+
+- [x] Allow multiple prayer-time selections in the event filter and preserve them in normalized filter and URL state.
+- [x] Match events against any selected prayer time in both public discovery paths.
+- [x] Define Malam Ini as today's events after Maghrib or after Isyak, and keep the quick-filter highlight synchronized with those exact selections.
+- [x] Preserve legacy prayer-label keyword URLs and cover multi-selection with an event-search regression test.
+- [x] Format PHP, compile Blade views, and review the focused diff.
+
+### Review
+
+- The prayer-time selector stores a list of `EventPrayerTime` values, while existing label-keyword URLs remain usable. Search matches any selected prayer, respecting before/after relations and keeping the distinct Tarawih offset separate from Selepas Isyak.
+- Malam Ini now applies today's range with Selepas Maghrib and Selepas Isyak; the hero shortcut only appears active while that date and both prayer selections remain in place. Switching to another date shortcut clears the prayer choices that Malam Ini added.
+- Pint, PHP syntax checks, Blade view caching, and `git diff --check` passed. The focused prayer filter run passes 2 tests with 7 assertions, and the Malam Ini shortcut test passes with 6 assertions.
+- Targeted PHPStan analysis of the changed PHP files did not finish within 4.5 minutes and was stopped; no PHPStan result is available.
+
+## Use the reference date intervals in homepage quick filters (2026-09-28)
+
+### Plan
+
+- [x] Replace the homepage's old date shortcuts with Hari ini, Esok, Minggu ini, Hujung minggu, Bulan ini, Minggu depan, and Bulan depan.
+- [x] Keep Malam Ini, Berdekatan, and Popular, and connect each date interval to the detailed filter state below the hero.
+- [x] Add localized labels and regression coverage for the displayed presets, shared filter state, and Malam Ini behavior.
+- [x] Run focused tests, format modified PHP, compile Blade views, and check the diff.
+
+### Review
+
+- The seven date intervals now match the detailed filter's named shortcuts, including a complete next-month range. Malam Ini remains separate and still selects both Selepas Maghrib and Selepas Isyak; Berdekatan and Popular remain available.
+- Updated the existing homepage assertions to reflect the hidden map panel and the new state-based filter controls. Added locale values for English, Malay, Malay (Malaysia), and Javanese.
+- Pint, Blade view caching, translation JSON parsing, and `git diff --check` passed. `HomePageTest` passes with 14 tests and 103 assertions. A broad TIA run was interrupted after expanding to 284 files and running for more than 13 minutes, so it did not produce a final suite result.
+
+## Show all three discovery destinations in every public header (2026-09-28)
+
+### Plan
+
+- [x] Render Majlis, Institusi, and Penceramah in desktop and mobile menus on homepage, floating directory, and regular headers.
+- [x] Keep each item connected to its existing named route and retain localized labels and route-active styling.
+- [x] Compile Blade views, confirm the three route paths, and check the diff.
+
+### Review
+
+- Every desktop and mobile header variant now includes the three discovery destinations. Each link keeps its named route, localized label, and active styling; the homepage and floating directory layouts no longer omit Majlis. The homepage mobile dropdown uses light link text against its dark surface.
+- The shared Signals tracker remains responsible for public page and browser interaction collection. Blade caching, route inspection, and `git diff --check` pass; no tests were run.
+
+## Simplify homepage event quick filters (2026-09-28)
+
+### Plan
+
+- [x] Remove Berdekatan and Popular from the homepage quick-filter row and remove icons from its remaining buttons.
+- [x] Hide the Dekat saya action in the homepage filter panel while retaining manual location filters and the /majlis action.
+- [x] Compile Blade views, inspect the homepage controls, and check the focused diff.
+
+### Review
+
+- The homepage now shows only its date and Malam Ini quick filters as text-only buttons. The homepage filter component hides the nearby-search helper and action through an explicit option; other uses keep the default nearby action.
+- Blade caching, Pint, and `git diff --check` passed. Browser DOM inspection confirmed eight text-only quick filters and no nearby button on the homepage, while `/majlis` still renders “Dekat saya”. No tests were run.
+
+## Replace the homepage speaker-section quote (2026-09-28)
+
+### Plan
+
+- [x] Replace the quote with “Ilmu dikongsi, kebaikan dirasai.” while preserving its current layout.
+- [x] Compile Blade views and check the diff.
+
+### Review
+
+- Replaced the speaker-section quote and left its styling and layout unchanged. Blade caching and `git diff --check` passed.

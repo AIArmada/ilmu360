@@ -171,7 +171,7 @@ final class EventDiscoveryCriteriaFactory
      */
     private function requiresDatabaseFiltering(array $filters): bool
     {
-        return $this->normalizeText($filters['prayer_time'] ?? null) !== null
+        return $this->arrayValue($filters['prayer_time'] ?? null) !== []
             || $this->arrayValue($filters['language_codes'] ?? null) !== []
             || $this->arrayValue($filters['reference_author_search'] ?? null) !== []
             || $this->normalizeText($filters['person_in_charge_search'] ?? null) !== null

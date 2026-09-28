@@ -8,12 +8,14 @@
 <div
     data-art-direction="living-majlis"
     class="living-majlis-field text-slate-900"
+    x-init="window.dispatchEvent(new CustomEvent('home-quick-filter-state-updated', { detail: { activeQuickFilters: @js($this->activeHomeQuickFilters()) } }))"
+    x-on:home-quick-filter-selected.window="handleHomeQuickFilter($event.detail)"
     x-data="{
         ...window.ilmu360.geolocationPermission({
             initiallyGranted: @js($showsGeolocationControls),
             cookieName: @js(\App\Support\Location\PublicGeolocationPermission::COOKIE_NAME),
         }),
-        filtersOpen: @js($hasActiveFilters),
+        filtersOpen: $wire.entangle('filtersPanelOpen'),
         locating: false,
         locationNotice: null,
         setLocationNotice(message) {
@@ -21,6 +23,14 @@
         },
         clearLocationNotice() {
             this.locationNotice = null;
+        },
+        handleHomeQuickFilter(detail) {
+            if (! detail?.quickFilterKey) return;
+            this.filtersOpen = true;
+
+            if (detail.quickFilterKey === 'nearby') {
+                this.locate();
+            }
         },
         async locate() {
             if (this.locating) return;
@@ -63,7 +73,13 @@
         },
     }"
 >
-    <form wire:submit.prevent class="space-y-5">
+    <form wire:submit.prevent
+        data-signal-change-event="filter.changed"
+        data-signal-category="filter"
+        data-signal-component="events_index_filters"
+        data-signal-control="filter_form"
+        data-signal-props='@json(['surface' => 'homepage'])'
+        class="space-y-5">
         <section class="living-majlis-veil overflow-hidden rounded-[1.5rem] border shadow-[0_20px_50px_-35px_rgba(15,23,42,0.55)]">
             <div class="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between md:p-5">
                 <div class="flex min-w-0 items-start gap-3">
@@ -120,35 +136,45 @@
                                 </svg>
                                 <h2 class="font-heading text-sm font-bold text-emerald-950">{{ __('Lokasi') }}</h2>
                             </div>
-                            <p class="mt-1 text-xs leading-5 text-slate-600">{{ __('Cari majlis berdekatan anda atau pilih lokasi tertentu.') }}</p>
-                        </div>
-                        <div class="flex flex-wrap items-center gap-2 sm:justify-end">
-                            <button type="button" @click="locate" :disabled="locating"
-                                data-testid="near-me-button"
-                                data-signal-event="search.nearby_requested"
-                                data-signal-category="search"
-                                data-signal-component="events_index_filters"
-                                data-signal-control="near_me"
-                                class="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-white px-3.5 text-sm font-bold text-emerald-800 transition hover:border-emerald-300 hover:bg-emerald-50 disabled:cursor-wait disabled:opacity-70">
-                                <svg class="size-4" :class="locating ? 'animate-spin' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                                    <path x-show="! locating" stroke-linecap="round" stroke-linejoin="round" d="M12 21s7-4.438 7-11a7 7 0 1 0-14 0c0 6.562 7 11 7 11Z" />
-                                    <path x-show="! locating" stroke-linecap="round" stroke-linejoin="round" d="M12 10.5h.01" />
-                                    <circle x-show="locating" class="opacity-25" cx="12" cy="12" r="10" stroke-width="4"></circle>
-                                    <path x-show="locating" class="opacity-75" stroke-width="4" d="M22 12a10 10 0 0 0-10-10"></path>
-                                </svg>
-                                <span x-text="locating ? '{{ __('Locating...') }}' : '{{ __('Dekat saya') }}'"></span>
-                            </button>
-                            @if($lat)
-                                <button type="button" wire:click="clearLocation" class="inline-flex min-h-11 items-center rounded-xl px-3 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 hover:text-rose-700">
-                                    {{ __('Clear') }}
-                                </button>
+                            @if($showNearbyButton)
+                                <p class="mt-1 text-xs leading-5 text-slate-600">{{ __('Cari majlis berdekatan anda atau pilih lokasi tertentu.') }}</p>
                             @endif
                         </div>
+                        @if($showNearbyButton || $lat)
+                            <div class="flex flex-wrap items-center gap-2 sm:justify-end">
+                                @if($showNearbyButton)
+                                    <button type="button" @click="locate" :disabled="locating"
+                                        data-testid="near-me-button"
+                                        data-signal-event="search.nearby_requested"
+                                        data-signal-category="search"
+                                        data-signal-component="events_index_filters"
+                                        data-signal-control="near_me"
+                                        class="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-white px-3.5 text-sm font-bold text-emerald-800 transition hover:border-emerald-300 hover:bg-emerald-50 disabled:cursor-wait disabled:opacity-70">
+                                        <svg class="size-4" :class="locating ? 'animate-spin' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                            <path x-show="! locating" stroke-linecap="round" stroke-linejoin="round" d="M12 21s7-4.438 7-11a7 7 0 1 0-14 0c0 6.562 7 11 7 11Z" />
+                                            <path x-show="! locating" stroke-linecap="round" stroke-linejoin="round" d="M12 10.5h.01" />
+                                            <circle x-show="locating" class="opacity-25" cx="12" cy="12" r="10" stroke-width="4"></circle>
+                                            <path x-show="locating" class="opacity-75" stroke-width="4" d="M22 12a10 10 0 0 0-10-10"></path>
+                                        </svg>
+                                        <span x-text="locating ? '{{ __('Locating...') }}' : '{{ __('Dekat saya') }}'"></span>
+                                    </button>
+                                @endif
+                                @if($lat)
+                                    <button type="button" wire:click="clearLocation" class="inline-flex min-h-11 items-center rounded-xl px-3 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 hover:text-rose-700">
+                                        {{ __('Clear') }}
+                                    </button>
+                                @endif
+                            </div>
+                        @endif
                     </div>
 
                     <div x-show="locationNotice" x-cloak x-text="locationNotice" class="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold leading-5 text-amber-800"></div>
 
-                    <div class="mi-filter-shell">
+                    <div class="mi-filter-shell" wire:key="event-filter-form-{{ $filterFormVersion }}">
+                        <div class="mb-5 max-w-xs">
+                            <p class="mb-2 text-xs font-bold text-slate-700">{{ __('Susun') }}</p>
+                            {{ $this->sortForm }}
+                        </div>
                         {{ $this->form }}
                     </div>
 

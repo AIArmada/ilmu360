@@ -170,11 +170,6 @@
             'icon' => 'M21 21l-5.2-5.2M10.8 18a7.2 7.2 0 100-14.4 7.2 7.2 0 000 14.4z',
         ],
         [
-            'label' => __('Terokai peta ilmu'),
-            'url' => route('search.index'),
-            'icon' => 'M9 18l-6 3V6l6-3m0 15l6 3m-6-3V3m6 18l6-3V3l-6 3m0 15V6',
-        ],
-        [
             'label' => __('Hantar majlis baharu'),
             'url' => route('submit-event.create'),
             'icon' => 'M12 5v14m7-7H5',
@@ -354,7 +349,7 @@
                 </section>
 
                 <section id="ikuti" class="rounded-lg border border-[#eadfca] bg-white p-5 shadow-sm">
-                    <div class="flex items-center justify-between gap-4">
+                    <div class="flex items-center gap-4">
                         <div class="flex items-center gap-3">
                             <span class="flex size-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
                                 <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
@@ -363,7 +358,6 @@
                             </span>
                             <h2 class="font-heading text-2xl font-bold text-[#0b2a42]">{{ __('Ikuti') }}</h2>
                         </div>
-                        <a href="{{ route('search.index') }}" wire:navigate class="text-sm font-semibold text-emerald-800 transition hover:text-emerald-950">{{ __('Uruskan semua') }}</a>
                     </div>
 
                     <div class="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

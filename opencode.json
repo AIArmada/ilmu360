@@ -11,17 +11,6 @@
                 "boost:mcp"
             ]
         },
-        "herd": {
-            "type": "local",
-            "enabled": true,
-            "command": [
-                "php",
-                "/Applications/Herd.app/Contents/Resources/herd-mcp.phar"
-            ],
-            "environment": {
-                "SITE_PATH": "/Users/Saiffil/Herd/ilmu360"
-            }
-        },
         "codebase-memory-mcp": {
             "type": "local",
             "enabled": true,

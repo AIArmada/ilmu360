@@ -5,7 +5,7 @@ use Livewire\Component;
 new class extends Component {};
 ?>
 
-@section('title', __('Tambah Majlis') . ' - ' . config('app.name'))
+@section('title', __('Add Event') . ' - ' . config('app.name'))
 @section('meta_description', __('Hantar maklumat majlis ilmu untuk semakan komuniti. Muat naik poster, isi manual, atau wakili institusi dengan mudah.'))
 
 @php
@@ -72,7 +72,7 @@ new class extends Component {};
         <div class="container relative z-10 mx-auto px-6 py-14 lg:px-12 lg:py-20">
             <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_25rem] lg:items-end">
                 <div class="max-w-4xl">
-                    <p class="text-xs font-bold uppercase tracking-[0.26em] text-emerald-800">{{ __('Tambah Majlis') }}</p>
+                    <p class="text-xs font-bold uppercase tracking-[0.26em] text-emerald-800">{{ __('Add Event') }}</p>
                     <h1 class="mt-5 max-w-4xl font-heading text-5xl font-bold leading-[0.98] tracking-normal text-emerald-950 md:text-7xl">
                         {{ __('Ada majlis ilmu') }}
                         <span class="block">{{ __('yang patut orang tahu?') }}</span>

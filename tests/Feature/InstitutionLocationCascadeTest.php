@@ -256,6 +256,7 @@ it('keeps the subdivision filter state-gated where no districts exist', function
         ->set('state', 'kl-gate')
         ->assertSee('wire:model.live="areas.administrative_subdivision"', false)
         ->assertDontSee('wire:model.live="areas.administrative_district"', false)
+        ->assertDontSee('id="institution-subdivision-locality-filter"', false)
         ->assertSee('Mukim KL Gate');
 
     expect($test->instance()->areaFilters()[0]['label'])->toBe('Mukim');
@@ -287,10 +288,14 @@ it('labels a precinct-only federal territory precisely', function (): void {
 
     $test = Livewire::test('pages.institutions.index')
         ->set('country', 'malaysia')
-        ->set('state', 'putrajaya-gate');
+        ->set('state', 'putrajaya-gate')
+        ->assertSee('id="institution-locality-filter"', false)
+        ->assertDontSee('id="institution-subdivision-locality-filter"', false)
+        ->assertSee('Precinct 9 Gate');
 
     expect($test->instance()->areaFilters())->toBe([])
-        ->and($test->instance()->localityLabel())->toBe('Presint');
+        ->and($test->instance()->localityLabel())->toBe('Presint')
+        ->and($test->instance()->groupedSubdivisionLocality())->toBeNull();
 });
 
 it('gates the Malaysian locality filter on the district where districts own locality rows', function (): void {
@@ -329,18 +334,65 @@ it('gates the Malaysian locality filter on the district where districts own loca
         ->set('country', 'malaysia')
         ->set('state', 'johor-locality-gate')
         ->assertSee('id="institution-district-filter"', false)
+        ->assertDontSee('id="institution-subdivision-locality-filter"', false)
         ->assertDontSee('id="institution-locality-filter"', false);
 
     $test->set('areas.administrative_district', (string) $geo['district']->slug)
-        ->assertSee('id="institution-locality-filter"', false)
+        ->assertSee('id="institution-subdivision-locality-filter"', false)
+        ->assertDontSee('id="institution-subdistrict-filter"', false)
+        ->assertDontSee('id="institution-locality-filter"', false)
+        ->assertSee('Parit Sulong Gate')
         ->assertSee('Semerah Gate')
         ->assertDontSee('Gelang Patah Gate');
 
-    $test->set('locality', (string) $localTown->slug)
+    expect($test->instance()->groupedSubdivisionLocality())->not->toBeNull()
+        ->and($test->instance()->groupedSubdivisionLocality()['subdivisions'])->toHaveKey((string) $geo['subdistrict']->slug)
+        ->and($test->instance()->groupedSubdivisionLocality()['localities'])->toHaveKey((string) $localTown->slug);
+
+    $test->call('selectGroupedSubdivisionLocality', 'locality:'.$localTown->slug)
         ->assertSet('locality', (string) $localTown->slug)
+        ->call('selectGroupedSubdivisionLocality', 'subdivision:'.$geo['subdistrict']->slug)
+        ->assertSet('areas.administrative_subdivision', (string) $geo['subdistrict']->slug)
+        ->assertSet('locality', null)
         ->set('areas.administrative_district', (string) $otherDistrict->slug)
+        ->assertSet('areas.administrative_subdivision', null)
         ->assertSet('locality', null)
         ->assertSee('Gelang Patah Gate')
         ->assertSee('Ulu Choh Gate')
-        ->assertDontSee('Semerah Gate');
+        ->assertDontSee('Semerah Gate')
+        ->assertDontSee('Parit Sulong Gate');
+});
+
+it('renders separate subdivision and locality filters when the app ungroups them', function (): void {
+    $geo = createTestPackageGeography('Johor Ungrouped Gate', 'Batu Pahat Ungrouped', 'Parit Sulong Ungrouped');
+    $localTown = createTestAddressArea('Semerah Ungrouped', 3, country: $geo['country'], type: 'locality');
+
+    $linkPostal = static function (AddressArea $parent, AddressArea $child): void {
+        AddressAreaRelationship::query()->create([
+            'parent_address_area_id' => $parent->getKey(),
+            'child_address_area_id' => $child->getKey(),
+            'relationship_type' => 'contains',
+            'hierarchy_type' => 'postal',
+            'source' => 'tests',
+        ]);
+    };
+
+    $linkPostal($geo['district'], $localTown);
+    $linkPostal($geo['area_tree_root'], $localTown);
+
+    config(['addressing.fields.group_subdivision_locality' => false]);
+
+    try {
+        Livewire::test('pages.institutions.index')
+            ->set('country', 'malaysia')
+            ->set('state', 'johor-ungrouped-gate')
+            ->set('areas.administrative_district', (string) $geo['district']->slug)
+            ->assertSee('id="institution-subdistrict-filter"', false)
+            ->assertSee('id="institution-locality-filter"', false)
+            ->assertDontSee('id="institution-subdivision-locality-filter"', false)
+            ->assertSee('Parit Sulong Ungrouped')
+            ->assertSee('Semerah Ungrouped');
+    } finally {
+        config(['addressing.fields.group_subdivision_locality' => true]);
+    }
 });

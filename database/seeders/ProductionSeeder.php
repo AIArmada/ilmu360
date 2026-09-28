@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use AIArmada\Addressing\Database\Seeders\AddressingSeeder;
 use AIArmada\Addressing\Database\Seeders\MalaysiaPostalCodeSeeder;
 use Illuminate\Database\Seeder;
 

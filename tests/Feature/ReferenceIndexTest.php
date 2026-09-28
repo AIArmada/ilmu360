@@ -1,7 +1,11 @@
 <?php
 
+use App\Models\Event;
 use App\Models\Reference;
+use App\Models\User;
 use App\Support\Search\ReferenceSearchService;
+use App\Support\Timezone\UserDateTimeFormatter;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 
@@ -169,4 +173,108 @@ it('refreshes cached reference search results when a reference becomes verified'
 
     expect($searchService->publicSearchIds('menunggu pengesahan'))
         ->toContain((string) $reference->id);
+});
+
+it('shows the nearest upcoming public majlis on reference cards', function () {
+    $reference = Reference::factory()->create([
+        'title' => 'Rujukan Majlis Terdekat',
+    ]);
+
+    $laterEvent = Event::factory()->create([
+        'title' => 'Majlis Rujukan Lebih Lewat',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now(),
+        'starts_at' => now()->addDays(7),
+    ]);
+    $laterEvent->references()->attach($reference->id);
+
+    $nearestEvent = Event::factory()->create([
+        'title' => 'Majlis Rujukan Terdekat',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now(),
+        'starts_at' => now()->addDays(2),
+    ]);
+    $nearestEvent->references()->attach($reference->id);
+
+    $pastEvent = Event::factory()->create([
+        'title' => 'Majlis Rujukan Lalu',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDays(8),
+        'starts_at' => now()->subDays(7),
+    ]);
+    $pastEvent->references()->attach($reference->id);
+
+    $component = Livewire::test('pages.references.index');
+
+    $listedReference = collect($component->instance()->references->items())
+        ->firstWhere('id', $reference->id);
+    $listedReferenceDate = CarbonImmutable::parse(
+        (string) data_get($listedReference, 'next_event_starts_at'),
+        'UTC',
+    );
+
+    $component
+        ->assertSee('data-next-event', false)
+        ->assertSee('href="'.route('events.show', $nearestEvent).'"', false)
+        ->assertSee(__('Next event'))
+        ->assertSee(UserDateTimeFormatter::translatedFormat($listedReferenceDate, 'j M'))
+        ->assertDontSee(UserDateTimeFormatter::translatedFormat($listedReferenceDate, 'j M Y'))
+        ->assertSee('Majlis Rujukan Terdekat')
+        ->assertDontSee('Majlis Rujukan Lebih Lewat')
+        ->assertDontSee('Majlis Rujukan Lalu')
+        ->assertSee('3 '.__('Events'));
+
+    expect($listedReference)->not->toBeNull()
+        ->and($listedReference?->next_event_slug)->toBe($nearestEvent->slug)
+        ->and($listedReference?->next_event_title)->toBe('Majlis Rujukan Terdekat')
+        ->and($listedReference?->next_event_starts_at)->not->toBeNull();
+});
+
+it('allows authenticated users to follow and unfollow a reference from the directory card', function () {
+    $user = User::factory()->create();
+    $reference = Reference::factory()->create([
+        'title' => 'Rujukan Ikutan Direktori',
+        'status' => 'verified',
+    ]);
+
+    $component = Livewire::actingAs($user)
+        ->test('pages.references.index')
+        ->assertSee('<article', false)
+        ->assertSee('data-follow-state="not-following"', false)
+        ->assertSee('aria-label="Ikuti"', false)
+        ->assertSee('wire:click.stop.prevent="toggleFollow(\''.$reference->id.'\')"', false)
+        ->call('toggleFollow', (string) $reference->id)
+        ->assertSet('followingReferenceIds', [(string) $reference->id])
+        ->assertSee('data-follow-state="following"', false)
+        ->assertSee('aria-pressed="true"', false);
+
+    expect($user->isFollowing($reference))->toBeTrue();
+
+    $component
+        ->call('toggleFollow', (string) $reference->id)
+        ->assertSet('followingReferenceIds', [])
+        ->assertSee('data-follow-state="not-following"', false)
+        ->assertSee('aria-pressed="false"', false);
+
+    expect($user->isFollowing($reference))->toBeFalse();
+});
+
+it('hydrates an existing reference follow in the directory card', function () {
+    $user = User::factory()->create();
+    $reference = Reference::factory()->create([
+        'title' => 'Rujukan Telah Diikuti',
+        'status' => 'verified',
+    ]);
+
+    $user->follow($reference);
+
+    Livewire::actingAs($user)
+        ->test('pages.references.index')
+        ->assertSet('followingReferenceIds', [(string) $reference->id])
+        ->assertSee('data-follow-state="following"', false)
+        ->assertSee('aria-pressed="true"', false)
+        ->assertSee('fill="currentColor"', false);
 });

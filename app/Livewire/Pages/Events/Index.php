@@ -215,7 +215,7 @@ class Index extends Component implements HasForms
     public ?string $starts_before = null;
 
     /**
-     * Single-select date shortcut (Semua | Hari ini | Esok | … | Julat tersuai).
+     * Single-select date shortcut (Semua | Hari ini | Esok | … | Tentukan tarikh).
      *
      * Form-only state (kept out of the URL on purpose): the canonical date range
      * travels as `starts_after`/`starts_before`, so saved searches and shared URLs
@@ -227,8 +227,11 @@ class Index extends Component implements HasForms
     #[Url]
     public ?string $time_scope = null;
 
+    /**
+     * @var list<string>|string|null
+     */
     #[Url]
-    public ?string $prayer_time = null;
+    public array|string|null $prayer_time = [];
 
     #[Url]
     public ?string $timing_mode = null;
@@ -272,6 +275,23 @@ class Index extends Component implements HasForms
     public array $filterData = [];
 
     /**
+     * Bumped on every full reset so the filter form subtree is replaced
+     * instead of morphed. Filament selects keep their visible label in
+     * Alpine state, which a morph does not refresh when server-side state
+     * is cleared to empty.
+     */
+    public int $filterFormVersion = 0;
+
+    /**
+     * Whether the collapsible filter panel is open. Initialized once from
+     * the active-filter state, then entangled with Alpine: panel visibility
+     * must never be derived per-render, or every server update whose count
+     * crosses zero re-initializes Alpine and snaps the panel shut (or pops
+     * it open while typing the first search character).
+     */
+    public bool $filtersPanelOpen = false;
+
+    /**
      * @var array<string, Collection<int, string>>
      */
     private array $activeTaxonomyIdCache = [];
@@ -296,6 +316,7 @@ class Index extends Component implements HasForms
         $this->fillPublicPropertiesFromFilters($normalized);
         $this->filterData = $normalized;
         $this->filterData['area_assignments'] = $this->withAreaAssignmentDefaults($normalized['area_assignments']);
+        $this->filtersPanelOpen = $this->hasActiveFilters();
     }
 
     /**
@@ -328,6 +349,66 @@ class Index extends Component implements HasForms
         return app(VisitorCountryResolver::class)->resolve();
     }
 
+    /**
+     * Count of active filters for the /majlis results page. Every narrowing
+     * selection counts; the automatic visitor-country scope does not. The
+     * homepage component overrides this to also exclude its defaults.
+     */
+    public function activeFilterCount(): int
+    {
+        $areaAssignments = $this->area_assignments;
+        $defaultCountryId = $this->defaultCountryId();
+        $hasCountryScope = filled($this->country_id) && $this->country_id !== $defaultCountryId;
+
+        return collect([
+            filled($this->search),
+            $hasCountryScope,
+            filled($this->state_id),
+            filled($areaAssignments['administrative_division'] ?? null),
+            filled($areaAssignments['administrative_district'] ?? null),
+            filled($areaAssignments['administrative_subdivision'] ?? null),
+            filled($areaAssignments['postal_locality'] ?? null),
+            filled($this->institution_id),
+            count(array_filter((array) $this->language_codes)) > 0,
+            count(array_filter((array) $this->event_category_ids)) > 0,
+            count(array_filter((array) $this->event_format)) > 0,
+            filled($this->gender),
+            count(array_filter((array) $this->age_group)) > 0,
+            $this->children_allowed !== null,
+            $this->is_muslim_only !== null,
+            count(array_filter((array) $this->person_ids)) > 0,
+            count(array_filter((array) $this->key_person_roles)) > 0,
+            count(array_filter((array) $this->person_in_charge_ids)) > 0,
+            filled($this->person_in_charge_search),
+            filled($this->person_name_search),
+            count(array_filter((array) $this->moderator_ids)) > 0,
+            count(array_filter((array) $this->imam_ids)) > 0,
+            count(array_filter((array) $this->khatib_ids)) > 0,
+            count(array_filter((array) $this->bilal_ids)) > 0,
+            count(array_filter((array) $this->discipline_tag_ids)) > 0,
+            count(array_filter((array) $this->domain_tag_ids)) > 0,
+            count(array_filter((array) $this->source_tag_ids)) > 0,
+            count(array_filter((array) $this->issue_tag_ids)) > 0,
+            count(array_filter((array) $this->reference_ids)) > 0,
+            filled($this->starts_after),
+            filled($this->starts_before),
+            filled($this->prayer_time),
+            filled($this->timing_mode),
+            filled($this->starts_time_from),
+            filled($this->starts_time_until),
+            $this->has_event_url !== null,
+            $this->has_live_url !== null,
+            $this->has_end_time !== null,
+            ($this->time_scope ?? 'upcoming') !== 'upcoming',
+            filled($this->lat),
+        ])->filter()->count();
+    }
+
+    public function hasActiveFilters(): bool
+    {
+        return $this->activeFilterCount() > 0;
+    }
+
     public function showsGeolocationControls(): bool
     {
         return app(PublicGeolocationPermission::class)->isGranted();
@@ -344,6 +425,7 @@ class Index extends Component implements HasForms
                     ->options(fn (): array => [
                         'time' => __('Terbaru'),
                         'relevance' => __('Relevance'),
+                        'popular' => __('Popular'),
                         ...($this->lat !== null && $this->lng !== null ? ['distance' => __('Distance')] : []),
                     ])
                     ->extraAttributes(['data-signal-change-event' => 'filter.sort_changed'])
@@ -373,10 +455,10 @@ class Index extends Component implements HasForms
                                 'tomorrow' => __('Esok'),
                                 'this_week' => __('Minggu ini'),
                                 'this_weekend' => __('Hujung minggu'),
-                                'this_month' => __('Bulan ini'),
                                 'next_week' => __('Minggu depan'),
+                                'this_month' => __('Bulan ini'),
                                 'next_month' => __('Bulan depan'),
-                                'custom' => __('Julat tersuai'),
+                                'custom' => __('Tentukan tarikh'),
                             ])
                             ->default('all')
                             ->selectablePlaceholder(false)
@@ -447,7 +529,7 @@ class Index extends Component implements HasForms
                             ])
                             ->afterStateUpdated(function (mixed $state, Set $set): void {
                                 if ($state !== TimingMode::PrayerRelative->value) {
-                                    $set('prayer_time', null);
+                                    $set('prayer_time', []);
                                 }
 
                                 if ($state !== TimingMode::Absolute->value) {
@@ -460,6 +542,7 @@ class Index extends Component implements HasForms
                         Select::make('prayer_time')
                             ->label(__('Prayer Time'))
                             ->placeholder(__('Any'))
+                            ->multiple()
                             ->visible(fn (Get $get): bool => $get('timing_mode') === TimingMode::PrayerRelative->value)
                             ->searchable()
                             ->options(collect(EventPrayerTime::cases())
@@ -817,6 +900,7 @@ class Index extends Component implements HasForms
         $this->fillPublicPropertiesFromFilters($normalized);
         $this->filterData = $normalized;
         $this->filterData['area_assignments'] = $this->withAreaAssignmentDefaults($normalized['area_assignments']);
+        $this->filterFormVersion++;
 
         $this->resetPage();
     }
@@ -830,7 +914,7 @@ class Index extends Component implements HasForms
 
     public function setSort(string $sort): void
     {
-        if (! in_array($sort, ['time', 'relevance', 'distance'], true)) {
+        if (! in_array($sort, ['time', 'relevance', 'popular', 'distance'], true)) {
             return;
         }
 
@@ -1625,10 +1709,10 @@ class Index extends Component implements HasForms
      */
     private function defaultFilterData(): array
     {
-        $prayerTime = filled($this->prayer_time) ? $this->prayer_time : null;
+        $prayerTime = $this->normalizePrayerTimeSelections($this->prayer_time);
 
         if ($this->timing_mode === TimingMode::Absolute->value) {
-            $prayerTime = null;
+            $prayerTime = [];
         }
 
         return [
@@ -1661,7 +1745,7 @@ class Index extends Component implements HasForms
             'starts_before' => null,
             'date_shortcut' => 'all',
             'time_scope' => 'upcoming',
-            'prayer_time' => null,
+            'prayer_time' => [],
             'timing_mode' => null,
             'starts_time_from' => null,
             'starts_time_until' => null,
@@ -1685,10 +1769,10 @@ class Index extends Component implements HasForms
 
         $languageCodes = $this->normalizeStringArray($this->language_codes);
 
-        $prayerTime = filled($this->prayer_time) ? $this->prayer_time : null;
+        $prayerTime = $this->normalizePrayerTimeSelections($this->prayer_time);
 
         if ($this->timing_mode === TimingMode::Absolute->value) {
-            $prayerTime = null;
+            $prayerTime = [];
         }
 
         $dateShortcut = $this->effectiveDateShortcut($this->date_shortcut, $this->starts_after, $this->starts_before);
@@ -1737,7 +1821,7 @@ class Index extends Component implements HasForms
             'lat' => filled($this->lat) ? $this->lat : null,
             'lng' => filled($this->lng) ? $this->lng : null,
             'radius_km' => max(1, min(1000, $this->radius_km)),
-            'sort' => in_array($this->sort, ['time', 'relevance', 'distance'], true) ? $this->sort : $defaults['sort'],
+            'sort' => in_array($this->sort, ['time', 'relevance', 'popular', 'distance'], true) ? $this->sort : $defaults['sort'],
         ];
     }
 
@@ -1809,7 +1893,7 @@ class Index extends Component implements HasForms
 
         $sort = (string) ($normalized['sort'] ?? $defaults['sort']);
 
-        if (! in_array($sort, ['time', 'relevance', 'distance'], true)) {
+        if (! in_array($sort, ['time', 'relevance', 'popular', 'distance'], true)) {
             $sort = (string) $defaults['sort'];
         }
 
@@ -1821,7 +1905,7 @@ class Index extends Component implements HasForms
 
         $startsTimeFrom = $this->normalizeTimeString($normalized['starts_time_from'] ?? null);
         $startsTimeUntil = $this->normalizeTimeString($normalized['starts_time_until'] ?? null);
-        $prayerTime = filled($normalized['prayer_time']) ? (string) $normalized['prayer_time'] : null;
+        $prayerTime = $this->normalizePrayerTimeSelections($normalized['prayer_time'] ?? []);
 
         if ($timingMode !== TimingMode::Absolute->value) {
             $startsTimeFrom = null;
@@ -1829,7 +1913,7 @@ class Index extends Component implements HasForms
         }
 
         if ($timingMode === TimingMode::Absolute->value) {
-            $prayerTime = null;
+            $prayerTime = [];
         }
 
         $dateShortcut = $this->effectiveDateShortcut($normalized['date_shortcut'] ?? null, $normalized['starts_after'] ?? null, $normalized['starts_before'] ?? null);
@@ -1923,6 +2007,7 @@ class Index extends Component implements HasForms
         }
 
         $today = UserDateTimeFormatter::userNow()->startOfDay();
+        $nextMonthStart = $today->copy()->startOfMonth()->addMonth();
 
         [$after, $before] = match ($shortcut) {
             'today' => [$today, $today],
@@ -1931,7 +2016,7 @@ class Index extends Component implements HasForms
             'this_weekend' => $this->weekendDateRange($today),
             'this_month' => [$today->copy()->startOfMonth(), $today->copy()->endOfMonth()],
             'next_week' => [$today->copy()->startOfWeek()->addWeek(), $today->copy()->endOfWeek()->addWeek()],
-            'next_month' => [$today->copy()->startOfMonth()->addMonth(), $today->copy()->endOfMonth()->addMonth()],
+            'next_month' => [$nextMonthStart, $nextMonthStart->copy()->endOfMonth()],
             default => [null, null],
         };
 
@@ -1965,7 +2050,7 @@ class Index extends Component implements HasForms
     /**
      * @return list<string>
      */
-    private function normalizeStringArray(mixed $value): array
+    protected function normalizeStringArray(mixed $value): array
     {
         if ($value === null || $value === '') {
             return [];
@@ -1974,6 +2059,33 @@ class Index extends Component implements HasForms
         $values = is_array($value) ? $value : [$value];
 
         return array_values(array_filter(array_map(strval(...), $values), static fn (string $item): bool => $item !== ''));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function normalizePrayerTimeSelections(mixed $value): array
+    {
+        $values = is_array($value) ? $value : [$value];
+        $prayerTimes = [];
+
+        foreach ($values as $prayerTime) {
+            if (! is_string($prayerTime)) {
+                continue;
+            }
+
+            $normalizedPrayerTime = mb_strtolower(trim($prayerTime));
+
+            if ($normalizedPrayerTime === '') {
+                continue;
+            }
+
+            $prayerTimeEnum = EventPrayerTime::tryFrom($normalizedPrayerTime);
+            $normalizedValue = $prayerTimeEnum?->value ?? trim($prayerTime);
+            $prayerTimes[$normalizedPrayerTime] = $normalizedValue;
+        }
+
+        return array_values(array_unique($prayerTimes));
     }
 
     /**
@@ -2012,7 +2124,7 @@ class Index extends Component implements HasForms
         return $assignments + array_fill_keys($this->areaAssignmentRoles(), null);
     }
 
-    private function normalizeNullableString(mixed $value): ?string
+    protected function normalizeNullableString(mixed $value): ?string
     {
         if (! filled($value)) {
             return null;
@@ -2042,7 +2154,7 @@ class Index extends Component implements HasForms
         }
     }
 
-    private function normalizeNullableBoolean(mixed $value): ?bool
+    protected function normalizeNullableBoolean(mixed $value): ?bool
     {
         if ($value === null || $value === '') {
             return null;

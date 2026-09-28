@@ -63,9 +63,10 @@ function primeMajlisListingCache(): array
 function primeHomepageStatsCache(): array
 {
     $keys = [
-        'home.stats.events.upcoming',
-        'home.stats.persons.upcoming',
-        'home.stats.institutions.upcoming',
+        'home.stats.events.active',
+        'home.stats.persons.active',
+        'home.stats.institutions.active',
+        'home.stats.references.active',
     ];
 
     foreach ($keys as $key) {

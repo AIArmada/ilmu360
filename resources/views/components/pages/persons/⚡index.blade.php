@@ -858,18 +858,6 @@ new
                                     </p>
                                 @endif
 
-                                <div class="mt-4 flex items-center gap-2.5 text-xs text-slate-500" aria-label="{{ trans_choice(':count upcoming majlis|:count upcoming majlis', $person->events_count, ['count' => number_format($person->events_count)]) }}">
-                                    <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-gold-50 text-gold-600 ring-1 ring-gold-100">
-                                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2Z" />
-                                        </svg>
-                                    </span>
-                                    <span>
-                                        <strong class="font-bold text-slate-800">{{ number_format($person->events_count) }}</strong>
-                                        {{ trans_choice('upcoming majlis|upcoming majlis', $person->events_count) }}
-                                    </span>
-                                </div>
-
                             </div>
                         </a>
                             @if($person->next_event_starts_at instanceof CarbonImmutable && filled($person->next_event_slug) && filled($person->next_event_title))
@@ -889,17 +877,14 @@ new
                                     </span>
                                 </a>
                             @endif
-                            <div class="flex items-center justify-between gap-3 px-4 pb-4 pt-4 sm:px-5 sm:pb-5">
-                                <a
-                                    href="{{ route('persons.show', $person) }}"
-                                    wire:navigate
-                                    class="inline-flex min-w-0 items-center gap-2 text-xs font-bold text-emerald-700 transition-colors duration-200 group-hover:text-emerald-600 sm:text-sm"
+                            <div class="flex items-center justify-between gap-3 border-t border-slate-100 px-4 pb-4 pt-4 sm:px-5 sm:pb-5">
+                                <span
+                                    aria-label="{{ trans_choice(':count upcoming majlis|:count upcoming majlis', $person->events_count, ['count' => number_format($person->events_count)]) }}"
+                                    class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200"
                                 >
-                                    {{ __('View profile & majlis') }}
-                                    <svg class="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1 motion-reduce:transition-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-5-5 5 5-5 5" />
-                                    </svg>
-                                </a>
+                                    <svg class="h-3.5 w-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                    {{ $person->events_count }} {{ __('Events') }}
+                                </span>
                                 <button
                                     type="button"
                                     wire:click.stop.prevent="toggleFollow('{{ $person->id }}')"

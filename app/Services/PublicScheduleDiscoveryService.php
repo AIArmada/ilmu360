@@ -506,21 +506,23 @@ final class PublicScheduleDiscoveryService
             return false;
         }
 
-        $prayerTime = is_string($filters['prayer_time'] ?? null) ? mb_strtolower($filters['prayer_time']) : null;
-        $prayerTimeEnum = is_string($filters['prayer_time'] ?? null)
-            ? EventPrayerTime::tryFrom($filters['prayer_time'])
-            : null;
-        $prayerReference = $prayerTimeEnum?->toPrayerReference()?->value;
+        $prayerTimeFilter = $filters['prayer_time'] ?? null;
+        $prayerTimes = is_array($prayerTimeFilter)
+            ? $prayerTimeFilter
+            : (is_string($prayerTimeFilter) ? [$prayerTimeFilter] : []);
+        $prayerTimes = array_values(array_filter(
+            $prayerTimes,
+            static fn (mixed $prayerTime): bool => is_string($prayerTime) && trim($prayerTime) !== '',
+        ));
 
-        if ($prayerTime !== null && $prayerTime !== '' && ! $expressions->contains(function (mixed $expression) use ($prayerTime): bool {
-            return str_contains(mb_strtolower((string) $expression->display_label), $prayerTime)
-                || str_contains(mb_strtolower((string) $expression->anchor_code), $prayerTime);
-        }) && ! $expressions->contains(function (mixed $expression) use ($prayerTimeEnum, $prayerReference): bool {
-            return $prayerTimeEnum instanceof EventPrayerTime
-                && (
-                    mb_strtolower((string) $expression->display_label) === mb_strtolower($prayerTimeEnum->getLabel())
-                    || ($prayerReference !== null && (string) $expression->anchor_code === $prayerReference)
-                );
+        if ($prayerTimes !== [] && ! $expressions->contains(function (mixed $expression) use ($prayerTimes): bool {
+            foreach ($prayerTimes as $prayerTime) {
+                if (is_string($prayerTime) && $this->matchesPrayerTimeExpression($expression, $prayerTime)) {
+                    return true;
+                }
+            }
+
+            return false;
         })) {
             return false;
         }
@@ -544,6 +546,43 @@ final class PublicScheduleDiscoveryService
         }
 
         return true;
+    }
+
+    private function matchesPrayerTimeExpression(mixed $expression, string $prayerTime): bool
+    {
+        $normalizedPrayerTime = mb_strtolower(trim($prayerTime));
+        $prayerTimeEnum = EventPrayerTime::tryFrom($normalizedPrayerTime);
+        $displayLabel = mb_strtolower((string) $expression->display_label);
+        $anchorCode = (string) $expression->anchor_code;
+
+        if (! $prayerTimeEnum instanceof EventPrayerTime) {
+            return str_contains($displayLabel, $normalizedPrayerTime)
+                || str_contains(mb_strtolower($anchorCode), $normalizedPrayerTime);
+        }
+
+        $prayerReference = $prayerTimeEnum->toPrayerReference()?->value;
+
+        if ($prayerReference === null) {
+            return str_contains($displayLabel, mb_strtolower($prayerTimeEnum->getLabel()));
+        }
+
+        $offset = $prayerTimeEnum->getDefaultOffset();
+        $relation = $offset !== null && $offset->minutes() < 0 ? 'before' : 'after';
+
+        if ((string) $expression->relation !== $relation) {
+            return false;
+        }
+
+        if ($prayerTimeEnum === EventPrayerTime::SelepasIsyak && (int) $expression->offset_minutes === 60) {
+            return false;
+        }
+
+        if ($prayerTimeEnum === EventPrayerTime::SelepasTarawih && (int) $expression->offset_minutes !== 60) {
+            return false;
+        }
+
+        return $anchorCode === $prayerReference
+            || str_contains($displayLabel, mb_strtolower($prayerTimeEnum->getLabel()));
     }
 
     /** @return Collection<int, mixed> */
