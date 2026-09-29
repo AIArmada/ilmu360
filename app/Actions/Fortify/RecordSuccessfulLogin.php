@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Fortify;
 
+use App\Actions\Auth\ClaimGuestSubmissionsAction;
 use App\Models\User;
 use App\Services\Signals\ProductSignalsService;
 use Closure;
@@ -19,6 +20,10 @@ final class RecordSuccessfulLogin
 
         if ($user instanceof User) {
             app(ProductSignalsService::class)->recordLogin($user, $request, 'password');
+
+            ClaimGuestSubmissionsAction::flashNotice(
+                ClaimGuestSubmissionsAction::run($user)
+            );
         }
 
         return $response;

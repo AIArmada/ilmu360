@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  LaunchAgent for the ilmu360-local-dev Cloudflare Tunnel.
+
+  Install (run from the project root; the sed substitutes your $HOME into
+  the log paths, which launchd does not expand itself):
+    mkdir -p ~/.cloudflared ~/Library/LaunchAgents
+    cloudflared tunnel token ilmu360-local-dev > ~/.cloudflared/ilmu360-tunnel-token
+    chmod 600 ~/.cloudflared/ilmu360-tunnel-token
+    sed "s#/Users/Saiffil#$HOME#" scripts/launchd/com.ilmu360.cloudflared.plist \
+        > ~/Library/LaunchAgents/com.ilmu360.cloudflared.plist
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.ilmu360.cloudflared.plist
+
+  Status:  tail -f ~/.cloudflared/ilmu360-tunnel.log
+  Stop:    launchctl bootout gui/$(id -u)/com.ilmu360.cloudflared
+  Start:   launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.ilmu360.cloudflared.plist
+  Remove:  launchctl bootout gui/$(id -u)/com.ilmu360.cloudflared
+           rm ~/Library/LaunchAgents/com.ilmu360.cloudflared.plist
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.ilmu360.cloudflared</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/opt/homebrew/bin/cloudflared</string>
+    <string>tunnel</string>
+    <string>--no-autoupdate</string>
+    <string>run</string>
+    <string>--token-file</string>
+    <string>/Users/Saiffil/.cloudflared/ilmu360-tunnel-token</string>
+  </array>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>StandardOutPath</key><string>/Users/Saiffil/.cloudflared/ilmu360-tunnel.log</string>
+  <key>StandardErrorPath</key><string>/Users/Saiffil/.cloudflared/ilmu360-tunnel.log</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
+</dict>
+</plist>

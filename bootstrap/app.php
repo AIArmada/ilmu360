@@ -32,6 +32,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'current.organization' => CurrentOrganizationMiddleware::class,
         ]);
+
+        // Cloudflare Tunnel terminates public TLS at the edge and forwards to
+        // Herd over loopback. Trust loopback proxies only so forwarded
+        // headers (proto/host/ip) are honored without trusting the open internet.
+        $middleware->trustProxies(at: ['127.0.0.1', '::1']);
         $middleware->encryptCookies(except: [
             'user_timezone',
             PublicGeolocationPermission::COOKIE_NAME,

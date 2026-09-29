@@ -998,6 +998,9 @@ it('keeps a prayer-relative event schedule unchanged when a visitor updates othe
         'institution_id' => $institution->id,
         'description' => 'Original description',
         'starts_at' => $startsAt,
+        // Explicit: factory ends_at is random and can predate the overridden
+        // starts_at, which the schedule validation correctly rejects.
+        'ends_at' => $startsAt->addHours(2),
     ]);
     $event->setPrimaryOrganizer($institution);
 

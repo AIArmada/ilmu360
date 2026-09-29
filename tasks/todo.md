@@ -3899,3 +3899,86 @@ request). Filters morph on the fast parent response; list follows on the child r
 ### Review
 
 - Replaced the speaker-section quote and left its styling and layout unchanged. Blade caching and `git diff --check` passed.
+
+## Google OAuth dev bridge via Cloudflare Tunnel (2026-09-29)
+
+### Inspection findings (no changes yet)
+
+- Serving: Laravel Herd 1.30.1, nginx on 127.0.0.1:80/443, `ilmu360` site secured (PHP 8.5), http→301 to https. PHP 8.5.10, Laravel 13.31.0.
+- Tunnel origin must be `https://ilmu360.test:443` with `noTLSVerify` (service hostname sets Host+SNI automatically; plain-http origin would 301-break on this secured site).
+- Socialite v5.31 + Fortify installed. Existing convention: `/oauth/{provider}/redirect` + `/oauth/{provider}/callback` (google only), `SocialiteController`, `ResolveSocialiteUserAction`, `SocialAccount` model on `socialite` table (provider+provider_id, verified-email-only linking) — §7 already implemented, no migration needed.
+- `Socialite::stateless() + with(['state' => $opaque])` verified against vendor source: custom opaque state goes into the auth URL, session state is skipped, `hasInvalidState()` returns false when stateless. `FakeProvider::__call` forwards `stateless()` so tests keep working.
+- `.env` already has `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` set; `GOOGLE_REDIRECT_URI` missing (config already supports it). `APP_URL=https://ilmu360.test`, `SESSION_DOMAIN=.ilmu360.test` (dev-host cookies rejected by browsers — fine, callback is sessionless), `CACHE_STORE=redis` (redis up on 6379). No trusted proxies configured.
+- `cloudflared` 2026.9.3 installed. Existing tunnels (`kakkay`, `kakkay-local`, `nusavue-local`) belong to other projects — none reusable. `~/.cloudflared/config.yml` is the kakkay-local config; must not disturb it.
+- Cloudflare MCP: `ilmu360.com` zone active (id `6e986c…ad2f`, account `Saiffil Fariz`), `dev.ilmu360.com` DNS free.
+
+### Plan
+
+- [x] Cloudflare (MCP): created tunnel `ilmu360-local-dev` (`be06b6f9-…ef98`, remote-managed ingress); ingress `dev.ilmu360.com → https://ilmu360.test:443` (`noTLSVerify` + `httpHostHeader: ilmu360.test`), catch-all 404; proxied CNAME `dev → <tunnel-id>.cfargotunnel.com`.
+- [x] Local: token via `cloudflared tunnel token` into gitignored `.cloudflared/` (+ `~/.cloudflared` path for user install); verified 4 connections + `curl https://dev.ilmu360.com/up` → 200.
+- [x] Env: set `GOOGLE_REDIRECT_URI=https://dev.ilmu360.com/oauth/google/callback` in `.env`; added block to `.env.example`.
+- [x] Laravel: trust proxies on loopback only (`bootstrap/app.php`); no global security relaxations.
+- [x] Laravel: new `App\Support\Auth\OAuthTransactionStore` (cache-backed opaque OAuth state 10 min TTL + hashed one-time handoff 2 min TTL, atomic `pull` consume).
+- [x] Laravel: `SocialiteController::redirect` issues server-side state and uses stateless driver; `callback` validates state fail-closed, resolves user via existing action, same-host → existing login flow, cross-host → handoff redirect to `APP_URL/oauth/{provider}/complete?token=…`; new `complete` action consumes handoff once, logs in, redirects to sanitized relative intended URL. Added `socialite.complete` route. Bridge-mode errors redirect to canonical login (callback host has no session).
+- [x] Tests: updated `SocialiteAuthTest` to redirect→state→callback; new `GoogleOAuthHandoffTest` (14 tests); suites green + Pint clean; PHPStan run pending/verified separately.
+- [x] Live verify: both hosts 200 with Google button; `/oauth/google/redirect` 302s to Google with dev `redirect_uri`; bad state/token through dev host → `https://ilmu360.test/login`; probe confirmed `secure:true`, real client IP, `X-Forwarded-Proto:https` through tunnel (probe removed).
+- [x] Ergonomics: `scripts/dev-tunnel.sh` + `composer tunnel`, `scripts/launchd/com.ilmu360.cloudflared.plist` template, `docs/dev-google-oauth-tunnel.md`.
+
+### Decisions (approved)
+
+1. Reuse `/oauth/*` convention — callback is `https://dev.ilmu360.com/oauth/google/callback`, plus new `/oauth/google/complete`.
+2. LaunchAgent auto-start approved, but sandbox blocks installing outside the repo — plist template + one-time install commands in docs; user runs them.
+
+### Review
+
+- Bridge mode is config-driven (`services.google.redirect` host ≠ `app.url` host): local dev takes the handoff path, production keeps the exact same-host flow. No migration — `socialite` identities table and verified-email linking already existed; transactions live in Redis cache.
+- Key fix found live: cloudflared preserves the original Host by default, so the ingress needs `httpHostHeader: ilmu360.test` for Herd routing; Laravel sees the public host via `X-Forwarded-Host` once loopback proxies are trusted.
+- Error redirects in bridge mode target canonical `https://ilmu360.test/login` because the bridge host cannot hold a session (its `SESSION_DOMAIN=.ilmu360.test` cookies are rejected).
+- Remaining manual steps: install LaunchAgent (docs), register the redirect URI in Google Cloud Console, then click through Google once.
+
+## Silent guest-submission claiming on email verification (2026-09-29)
+
+### Plan
+
+- [x] Wrote `tests/Feature/ClaimGuestSubmissionsTest.php` first and watched all 10 fail (missing action), then implemented to green.
+- [x] Added `App\Actions\Auth\ClaimGuestSubmissionsAction` (AsAction): no-op unless verified email; match guest submissions by submitter email contact (case-insensitive); set submitter morph + null `created_by`; return count.
+- [x] Added `App\Listeners\Auth\ClaimGuestSubmissionsOnVerified` (auto-discovered like `RecordVerifiedEmail`): claim + success toast on `Verified`.
+- [x] Hooked password logins (`RecordSuccessfulLogin`) and OAuth logins (`SocialiteController::loginUser`): claim + toast (idempotent; also catches post-verification guest submissions).
+- [x] Ran focused suites (new 10/10, EmailLifecycle, Socialite 9/9, Handoff 14/14, AuthActions 9/9, EventPolicy 30/30, AdaptiveForm 14/14), Pint clean, scoped PHPStan clean.
+
+### Review
+
+- Event listeners need no registration: the framework EventServiceProvider auto-discovers `app/Listeners` by `handle()` type-hint (verified at runtime).
+- Submission email contacts are guest-submitter-only (single live writer, guest-only), so matching any email contact on a guest submission is precise.
+- Root fix: `App\Models\EventSubmission::newFactory()` now returns the app factory — the inherited package `newFactory()` silently built package instances without app traits (existing tests imported the app model but received package instances).
+- Pre-existing failure (not mine): `ContributionPagesTest` prayer-schedule test fails 1/80 in full-file parallel runs on the clean tree too (verified via stash); passes in isolation. Unrelated surface (SuggestUpdate end_time validation, no submissions/auth involved).
+
+## Fix order-dependent ContributionPagesTest prayer failure (2026-09-29)
+
+### Plan
+
+- [x] Bisected 80 tests to a minimal pair (locale test 619 + prayer test 985), then proved via instrumentation the trigger was factory RNG draw position, not leaked state.
+- [x] Root cause: the test overrode `starts_at` but left `ends_at` to the factory (70% null / 30% random); random values predate the overridden start, and `AdminEventTimeMapper` correctly rejects persisting that incoherent schedule.
+- [x] Fix: explicit `'ends_at' => $startsAt->addHours(2)` in the test (mirrors the neighboring multi-day test, which already sets both). No app-code change — the validation behaved correctly.
+- [x] Audited other `kuliahMaghrib`/`prayerRelative` test usages (DashboardPages display-only, FrontendApiParity explicit ends_at) — no other latent flakes.
+- [x] Full file green 80/80 (563 assertions); temp instrumentation removed; Pint clean.
+
+### Review
+
+- Bisection can mislead under RNG-position dependence: the "polluter" test only shifted the global faker draw count. Instrumentation showing inverted clean/polluted values exposed it.
+- Faker draws come from process-global mt_rand state, so factory randomness is position-dependent within a run — tests overriding one schedule field must pin the other.
+
+## Codex review findings round 1 (2026-09-29)
+
+### Plan
+
+- [x] P1 login CSRF via bearer state/handoff: bind flows to the initiating browser with a `__Host-oauth_v` verifier cookie (checked at same-host callback and at handoff redemption).
+- [x] P2 concurrent replay: guard `Cache::pull` with a short `Cache::lock` in both consume paths; contention fails closed.
+- [x] P2 dropped session intended URL: `complete()` now falls back to the session's pre-login destination before home.
+- [x] P2 lost bridge toasts: off-host errors carry a code to canonical `/oauth/error/{code}`, which flashes into the working session.
+- [x] Found live that session toasts never rendered anywhere: `@include` of the Blaze-compiled `toast-stack` outputs nothing; switched the 3 layouts to `<x-ui.toast-stack />` + regression test.
+- [x] Rejected sub-finding: `markEmailAsVerified()` does not dispatch `Verified`, so the claim listener never runs in the OAuth flow (verified in code).
+
+### Review
+
+- 20/20 handoff tests; Pint + scoped PHPStan clean; live-verified cookie flags, error carry, and toast render.

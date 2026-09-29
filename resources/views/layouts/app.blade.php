@@ -568,7 +568,8 @@
 
             @livewire('notifications')
 
-            @include('components.ui.toast-stack')
+            {{-- Tag invocation: @include renders Blaze-compiled components empty. --}}
+            <x-ui.toast-stack />
 
             <!-- Living Majlis Footer -->
             <footer class="living-majlis-footer relative mt-20 overflow-hidden bg-emerald-950 text-emerald-50">

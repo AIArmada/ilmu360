@@ -7,7 +7,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $title ?? config('app.name') }}</title>
+    <title>@yield('title', $title ?? config('app.name'))</title>
 
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('images/favicon-32x32.png') }}">
     <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('images/favicon-16x16.png') }}">
@@ -138,7 +138,8 @@
                         </div>
 
                         <div data-toast-root class="hidden" aria-hidden="true"></div>
-                        @include('components.ui.toast-stack')
+                        {{-- Tag invocation: @include renders Blaze-compiled components empty. --}}
+                        <x-ui.toast-stack />
                     </div>
 
                     <div class="border-t border-emerald-950/[0.06] bg-[#f1f5f1]/80 px-6 py-4 text-center entry-4 sm:px-10">

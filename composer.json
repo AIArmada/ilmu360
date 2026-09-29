@@ -141,6 +141,10 @@
             "@php artisan config:clear --ansi",
             "./pest --parallel --tia --compact"
         ],
+        "tunnel": [
+            "Composer\\Config::disableProcessTimeout",
+            "./scripts/dev-tunnel.sh"
+        ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi",

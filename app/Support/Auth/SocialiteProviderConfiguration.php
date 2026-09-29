@@ -25,6 +25,24 @@ final class SocialiteProviderConfiguration
     }
 
     /**
+     * Whether the provider callback arrives on a different hostname than the
+     * canonical application URL (e.g. the dev.ilmu360.com tunnel bridge).
+     *
+     * In that case the browser carries no application session on the callback
+     * host, so the callback must hand the authenticated user back to the
+     * canonical host with a one-time token instead of logging in directly.
+     */
+    public static function usesCrossDomainCallback(string $provider): bool
+    {
+        $redirectHost = parse_url((string) (self::serviceConfig($provider)['redirect'] ?? ''), PHP_URL_HOST);
+        $appHost = parse_url((string) config('app.url'), PHP_URL_HOST);
+
+        return is_string($redirectHost) && $redirectHost !== ''
+            && is_string($appHost) && $appHost !== ''
+            && $redirectHost !== $appHost;
+    }
+
+    /**
      * @return array<string, mixed>|null
      */
     private static function serviceConfig(string $provider): ?array

@@ -208,7 +208,8 @@
 
                     <div data-toast-root class="hidden" aria-hidden="true"></div>
 
-                    @include('components.ui.toast-stack')
+                    {{-- Tag invocation: @include renders Blaze-compiled components empty. --}}
+                    <x-ui.toast-stack />
 
                 </div>
 

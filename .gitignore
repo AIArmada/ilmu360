@@ -31,3 +31,4 @@ Thumbs.db
 backup-*-resource/
 screenshots/
 tasks/*.png
+/.cloudflared/

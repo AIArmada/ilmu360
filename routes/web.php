@@ -60,6 +60,12 @@ Route::get('/oauth/{provider}/redirect', [SocialiteController::class, 'redirect'
 Route::get('/oauth/{provider}/callback', [SocialiteController::class, 'callback'])
     ->name('socialite.callback')
     ->whereIn('provider', ['google']);
+Route::get('/oauth/{provider}/complete', [SocialiteController::class, 'complete'])
+    ->name('socialite.complete')
+    ->whereIn('provider', ['google']);
+Route::get('/oauth/error/{code}', [SocialiteController::class, 'error'])
+    ->name('socialite.error')
+    ->where('code', '[a-z]+');
 
 Route::get('/kongsi/payload', [DawahShareController::class, 'payload'])
     ->middleware('throttle:share-tracking')

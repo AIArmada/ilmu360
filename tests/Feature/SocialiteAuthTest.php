@@ -2,6 +2,7 @@
 
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Support\Auth\OAuthTransactionStore;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Socialite\Facades\Socialite;
@@ -10,6 +11,7 @@ use Laravel\Socialite\Two\User as SocialiteUser;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    config()->set('app.url', 'https://ilmu360.test');
     config()->set('services.google.client_id', 'google-client-id');
     config()->set('services.google.client_secret', 'google-client-secret');
     config()->set('services.google.redirect', 'https://ilmu360.test/oauth/google/callback');
@@ -32,6 +34,9 @@ it('redirects to google with the account chooser prompt when the provider is con
             'redirect_uri' => 'https://ilmu360.test/oauth/google/callback',
             'prompt' => 'select_account',
         ]);
+
+    expect($query['state'] ?? null)->toBeString()->toHaveLength(64);
+    $response->assertCookie(OAuthTransactionStore::VERIFIER_COOKIE);
 });
 
 it('does not expose google sign-in when the provider is not configured', function () {
@@ -97,6 +102,8 @@ it('redirects to the intended page after registration', function () {
 it('redirects to the intended page after google sign-in', function () {
     $target = route('persons.index', absolute: false);
 
+    $state = googleOAuthState(['redirect' => $target]);
+
     Socialite::fake('google', SocialiteUser::fake([
         'id' => 'google-intended-123',
         'name' => 'Jane Intended',
@@ -105,15 +112,14 @@ it('redirects to the intended page after google sign-in', function () {
         'email_verified' => true,
     ]));
 
-    $this->get(route('socialite.redirect', ['provider' => 'google', 'redirect' => $target]))
-        ->assertRedirect();
-
-    $response = $this->get(route('socialite.callback', ['provider' => 'google']));
+    $response = $this->get(route('socialite.callback', ['provider' => 'google', 'state' => $state]));
 
     $response->assertRedirect($target);
 });
 
 it('creates a user and social account on callback', function () {
+    $state = googleOAuthState();
+
     Socialite::fake('google', SocialiteUser::fake([
         'id' => 'google-123',
         'name' => 'Jane Doe',
@@ -122,7 +128,7 @@ it('creates a user and social account on callback', function () {
         'email_verified' => true,
     ]));
 
-    $response = $this->get(route('socialite.callback', ['provider' => 'google']));
+    $response = $this->get(route('socialite.callback', ['provider' => 'google', 'state' => $state]));
 
     $response->assertRedirect(route('home'));
 
@@ -151,6 +157,8 @@ it('links a social account to an existing user', function () {
         'email_verified_at' => null,
     ]);
 
+    $state = googleOAuthState();
+
     Socialite::fake('google', SocialiteUser::fake([
         'id' => 'google-456',
         'name' => 'Existing User',
@@ -159,7 +167,7 @@ it('links a social account to an existing user', function () {
         'email_verified' => true,
     ]));
 
-    $response = $this->get(route('socialite.callback', ['provider' => 'google']));
+    $response = $this->get(route('socialite.callback', ['provider' => 'google', 'state' => $state]));
 
     $response->assertRedirect(route('home'));
 
@@ -191,6 +199,8 @@ it('verifies an existing user when signing in through an existing google social 
         'avatar_url' => 'https://example.com/old-avatar.jpg',
     ]);
 
+    $state = googleOAuthState();
+
     Socialite::fake('google', SocialiteUser::fake([
         'id' => 'google-789',
         'name' => 'Linked User',
@@ -199,7 +209,7 @@ it('verifies an existing user when signing in through an existing google social 
         'email_verified' => true,
     ]));
 
-    $response = $this->get(route('socialite.callback', ['provider' => 'google']));
+    $response = $this->get(route('socialite.callback', ['provider' => 'google', 'state' => $state]));
 
     $response->assertRedirect(route('home'));
 

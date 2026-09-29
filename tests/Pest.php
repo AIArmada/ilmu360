@@ -15,6 +15,7 @@ use AIArmada\Events\Models\EventTerm;
 use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Signals\Models\TrackedProperty;
+use App\Support\Auth\OAuthTransactionStore;
 use App\Support\Cache\PublicListingsCache;
 use Database\Seeders\AIArmada\EventTaxonomySeeder;
 use Database\Seeders\TitleCategorySeeder;
@@ -31,6 +32,8 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\ParallelTesting;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Laravel\Socialite\Facades\Socialite;
+use Laravel\Socialite\Two\User as SocialiteUser;
 use Livewire\Livewire;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
@@ -687,4 +690,79 @@ function createTestPackageGeography(
             'city' => $cityName ?? $subdistrictName,
         ],
     ];
+}
+
+/**
+ * Start a Google OAuth flow through the redirect endpoint and return the
+ * opaque state issued for the provider callback.
+ *
+ * Must run before Socialite::fake() so the real driver builds the auth URL.
+ *
+ * @param  array<string, mixed>  $parameters
+ */
+function googleOAuthState(array $parameters = []): string
+{
+    $response = test()->get(route('socialite.redirect', ['provider' => 'google', ...$parameters]));
+    $response->assertRedirect();
+
+    // The test client does not persist cookies across requests the way a
+    // browser does, so carry the encrypted verifier cookie forward
+    // explicitly (resent verbatim, exactly as a browser would).
+    foreach ($response->headers->getCookies() as $cookie) {
+        if ($cookie->getName() === OAuthTransactionStore::VERIFIER_COOKIE) {
+            test()->withUnencryptedCookie($cookie->getName(), (string) $cookie->getValue());
+        }
+    }
+
+    parse_str((string) parse_url((string) $response->headers->get('Location'), PHP_URL_QUERY), $query);
+
+    $state = $query['state'] ?? null;
+
+    if (! is_string($state) || $state === '') {
+        test()->fail('Google OAuth redirect did not issue a state parameter.');
+    }
+
+    return $state;
+}
+
+/**
+ * Run a cross-domain Google OAuth callback and return the handoff token.
+ *
+ * Requires bridge-mode configuration (services.google.redirect on a different
+ * host than app.url). Asserts the callback redirects to the canonical
+ * complete endpoint instead of logging in on the callback host.
+ *
+ * @param  array<string, mixed>  $socialUserAttributes
+ * @param  array<string, mixed>  $redirectParameters
+ */
+function googleOAuthHandoffToken(array $socialUserAttributes = [], array $redirectParameters = []): string
+{
+    $state = googleOAuthState($redirectParameters);
+
+    Socialite::fake('google', SocialiteUser::fake([
+        'id' => 'google-bridge-123',
+        'name' => 'Bridge User',
+        'email' => 'bridge@example.com',
+        'avatar' => 'https://example.com/bridge.jpg',
+        'email_verified' => true,
+        ...$socialUserAttributes,
+    ]));
+
+    $response = test()->get(route('socialite.callback', ['provider' => 'google', 'state' => $state]));
+    $response->assertRedirect();
+
+    $location = (string) $response->headers->get('Location');
+    $expected = rtrim((string) config('app.url'), '/').'/oauth/google/complete?token=';
+
+    test()->assertStringStartsWith($expected, $location);
+
+    parse_str((string) parse_url($location, PHP_URL_QUERY), $query);
+
+    $token = $query['token'] ?? null;
+
+    if (! is_string($token) || $token === '') {
+        test()->fail('Cross-domain callback did not issue a handoff token.');
+    }
+
+    return $token;
 }
