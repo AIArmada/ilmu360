@@ -37,7 +37,6 @@ use App\Models\Language;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
-use App\Models\Venue;
 use App\Services\Ai\EventMediaExtractionService;
 use App\Services\Captcha\TurnstileVerifier;
 use App\States\EventStatus\Approved;
@@ -47,6 +46,7 @@ use App\States\EventStatus\Pending;
 use App\Support\Cache\SelectionCatalogCache;
 use App\Support\Language\MalaysiaLanguageCatalog;
 use App\Support\Submission\EntitySubmissionAccess;
+use App\Support\Submission\SubmitterContactRules;
 use BackedEnum;
 use Carbon\CarbonInterface;
 use Closure;
@@ -347,13 +347,16 @@ class Create extends Component implements HasActions, HasForms
     /**
      * @return array<string, string>
      */
-    protected function cachedSubmitVenueOptions(): array
+    protected function cachedSubmitVenueOptions(?string $countryId = null): array
     {
-        return Cache::remember($this->submitCacheKey('submit_venues'), 60, fn (): array => Venue::query()
-            ->whereIn('status', ['verified', 'pending'])
-            ->whereIn('status', ['verified', 'pending'])
-            ->pluck('name', 'id')
-            ->all());
+        return Cache::remember(
+            $this->submitCacheKey('submit_venues_'.($countryId ?? 'all')),
+            60,
+            fn (): array => app(EntitySubmissionAccess::class)->venueQuery($countryId)
+                ->orderBy('name')
+                ->pluck('name', 'id')
+                ->all(),
+        );
     }
 
     public function extractEventFromMedia(EventMediaExtractionService $eventMediaExtractionService): void
@@ -508,7 +511,7 @@ class Create extends Component implements HasActions, HasForms
     ): Wizard {
         return Wizard::make([
             $this->buildEventInfoStep(),
-            $this->buildCategoriesStep(),
+            $this->buildScheduleStep(),
             $this->buildOrganizerLocationStep($hasScopedInstitution, $hasScopedInstitutionJs),
             $this->buildPersonsMediaStep(),
             $this->buildReviewStep($hasScopedInstitution),
@@ -534,218 +537,211 @@ class Create extends Component implements HasActions, HasForms
 
     private function buildEventInfoStep(): Step
     {
-        return Step::make(__('Maklumat Majlis'))
+        return Step::make(__('Majlis & Topik'))
             ->icon('heroicon-o-document-text')
-            ->schema($this->getEventInfoFields());
+            ->schema([...$this->getEventAboutFields(), ...$this->getTopicDetailFields()]);
     }
 
     /**
      * @return array<int, mixed>
      */
-    private function getEventInfoFields(): array
+    private function getEventAboutFields(): array
     {
         return [
-            Select::make('event_category_ids')
-                ->label(__('Jenis Majlis'))
-                ->placeholder(__('Pilih kategori…'))
-                ->required()
-                ->live()
-                ->afterStateUpdatedJs($this->progressUpdateJs())
-                ->afterStateUpdated(function (mixed $state, Set $set, Get $get): void {
-                    if ($this->hasCommunityCategorySelection($state)) {
-                        $set('event_format', EventFormat::Physical->value);
-                    }
-
-                    $this->applyContextualDefaults($get, $set);
-                })
-                ->options(app(EventCategoryCatalog::class)->options())
-                ->preload()
-                ->native(false)
-                ->dynamicOptions(false),
-
-            $this->domainTopicField(),
-
-            Select::make('title')
-                ->native(false)
-                ->label(__('Tajuk Majlis'))
-                ->required()
-                ->searchable()
-                ->allowHtml()
-                ->live()
-                ->afterStateUpdatedJs($this->progressUpdateJs())
-                ->getSearchResultsUsing(function (string $search): array {
-                    if ($search === '' || $search === '0') {
-                        return [];
-                    }
-
-                    $results = Event::query()
-                        ->whereLike('title', "%{$search}%")
-                        ->where('status', 'approved')
-                        ->limit(10)
-                        ->pluck('title', 'title')
-                        ->toArray();
-
-                    $exactMatch = collect($results)->contains(fn ($value) => mb_strtolower($value) === mb_strtolower($search));
-
-                    if (! $exactMatch) {
-                        $results = ["__quick_add__{$search}" => "<span class='text-primary-600'>+ ".__('Tambah')." '{$search}'</span>"] + $results;
-                    }
-
-                    return $results;
-                })
-                ->getOptionLabelUsing(function ($value): ?string {
-                    if (str_starts_with($value, '__quick_add__')) {
-                        return substr($value, strlen('__quick_add__'));
-                    }
-
-                    return $value;
-                })
-                ->afterStateUpdated(function (mixed $state, Set $set): void {
-                    if (is_string($state) && str_starts_with($state, '__quick_add__')) {
-                        $state = substr($state, strlen('__quick_add__'));
-                        $set('title', $state);
-                    }
-
-                    if (! is_string($state) || blank($state)) {
-                        return;
-                    }
-
-                    $existingEvent = Event::query()
-                        ->where('title', $state)
-                        ->where('status', 'approved')
-                        ->with(['classifications', 'references'])
-                        ->latest()
-                        ->first();
-
-                    if (! $existingEvent) {
-                        return;
-                    }
-
-                    $termsByTaxonomy = $existingEvent->classifications->groupBy('taxonomy_code');
-
-                    $set('event_category_ids', $termsByTaxonomy->get('event_category', collect())->pluck('event_term_id')->filter()->values()->first());
-
-                    if ($termsByTaxonomy->has(EventTaxonomyCode::Domain->value)) {
-                        $set('domain_tags', $termsByTaxonomy->get(EventTaxonomyCode::Domain->value)->pluck('event_term_id')->filter()->values()->first());
-                    }
-                    if ($termsByTaxonomy->has(EventTaxonomyCode::Discipline->value)) {
-                        $set('discipline_tags', $termsByTaxonomy->get(EventTaxonomyCode::Discipline->value)->pluck('event_term_id')->filter()->values()->all());
-                    }
-                    if ($termsByTaxonomy->has(EventTaxonomyCode::Source->value)) {
-                        $set('source_tags', $termsByTaxonomy->get(EventTaxonomyCode::Source->value)->pluck('event_term_id')->filter()->values()->all());
-                    }
-                    if ($termsByTaxonomy->has(EventTaxonomyCode::Issue->value)) {
-                        $set('issue_tags', $termsByTaxonomy->get(EventTaxonomyCode::Issue->value)->pluck('event_term_id')->filter()->values()->all());
-                    }
-
-                    if ($existingEvent->references->isNotEmpty()) {
-                        $set(
-                            'references',
-                            $existingEvent->references
-                                ->pluck('referenceable_id')
-                                ->filter()
-                                ->values()
-                                ->all(),
-                        );
-                    }
-                })
-                ->placeholder(__('Cari atau masukkan tajuk majlis...')),
-
-            RichEditor::make('description')
-                ->label(__('Keterangan'))
-                ->maxLength(5000)
-                ->disableToolbarButtons(['table'])
-                ->floatingToolbars([])
-                ->placeholder(__('Terangkan mengenai majlis, topik yang akan dikupas, dll.')),
-
-            Grid::make(['default' => 1, 'sm' => 2, 'md' => 8])
+            Section::make(__('Tentang Majlis'))
                 ->schema([
-                    Select::make('submission_country_id')
+                    Select::make('title')
                         ->native(false)
-                        ->label(__('Country'))
+                        ->label(__('Tajuk Majlis'))
                         ->required()
-                        ->options(fn (): array => app(SelectionCatalogCache::class)->rememberAddressOptions(
-                            'countries',
-                            static fn (): array => AddressCountry::query()
-                                ->orderBy('name')
-                                ->pluck('name', 'id')
-                                ->all(),
-                        ))
                         ->searchable()
+                        ->allowHtml()
+                        ->live()
+                        ->afterStateUpdatedJs($this->progressUpdateJs())
+                        ->getSearchResultsUsing(function (string $search): array {
+                            if ($search === '' || $search === '0') {
+                                return [];
+                            }
+
+                            $results = Event::query()
+                                ->whereLike('title', "%{$search}%")
+                                ->where('status', 'approved')
+                                ->limit(10)
+                                ->pluck('title', 'title')
+                                ->toArray();
+
+                            $exactMatch = collect($results)->contains(fn ($value) => mb_strtolower($value) === mb_strtolower($search));
+
+                            if (! $exactMatch) {
+                                $results = ["__quick_add__{$search}" => "<span class='text-primary-600'>+ ".__('Tambah')." '{$search}'</span>"] + $results;
+                            }
+
+                            return $results;
+                        })
+                        ->getOptionLabelUsing(function ($value): ?string {
+                            if (str_starts_with($value, '__quick_add__')) {
+                                return substr($value, strlen('__quick_add__'));
+                            }
+
+                            return $value;
+                        })
+                        ->afterStateUpdated(function (mixed $state, Set $set): void {
+                            if (is_string($state) && str_starts_with($state, '__quick_add__')) {
+                                $state = substr($state, strlen('__quick_add__'));
+                                $set('title', $state);
+                            }
+
+                            if (! is_string($state) || blank($state)) {
+                                return;
+                            }
+
+                            $existingEvent = Event::query()
+                                ->where('title', $state)
+                                ->where('status', 'approved')
+                                ->with(['classifications', 'references'])
+                                ->latest()
+                                ->first();
+
+                            if (! $existingEvent) {
+                                return;
+                            }
+
+                            $termsByTaxonomy = $existingEvent->classifications->groupBy('taxonomy_code');
+
+                            $set('event_category_ids', $termsByTaxonomy->get('event_category', collect())->pluck('event_term_id')->filter()->values()->first());
+
+                            if ($termsByTaxonomy->has(EventTaxonomyCode::Domain->value)) {
+                                $set('domain_tags', $termsByTaxonomy->get(EventTaxonomyCode::Domain->value)->pluck('event_term_id')->filter()->values()->first());
+                            }
+                            if ($termsByTaxonomy->has(EventTaxonomyCode::Discipline->value)) {
+                                $set('discipline_tags', $termsByTaxonomy->get(EventTaxonomyCode::Discipline->value)->pluck('event_term_id')->filter()->values()->all());
+                            }
+                            if ($termsByTaxonomy->has(EventTaxonomyCode::Source->value)) {
+                                $set('source_tags', $termsByTaxonomy->get(EventTaxonomyCode::Source->value)->pluck('event_term_id')->filter()->values()->all());
+                            }
+                            if ($termsByTaxonomy->has(EventTaxonomyCode::Issue->value)) {
+                                $set('issue_tags', $termsByTaxonomy->get(EventTaxonomyCode::Issue->value)->pluck('event_term_id')->filter()->values()->all());
+                            }
+
+                            if ($existingEvent->references->isNotEmpty()) {
+                                $set(
+                                    'references',
+                                    $existingEvent->references
+                                        ->pluck('referenceable_id')
+                                        ->filter()
+                                        ->values()
+                                        ->all(),
+                                );
+                            }
+                        })
+                        ->placeholder(__('Cari atau masukkan tajuk majlis...')),
+
+                    Select::make('event_category_ids')
+                        ->label(__('Jenis Majlis'))
+                        ->placeholder(__('Pilih kategori…'))
+                        ->required()
+                        ->live()
+                        ->afterStateUpdatedJs($this->progressUpdateJs())
+                        ->afterStateUpdated(function (mixed $state, Set $set, Get $get): void {
+                            if ($this->hasCommunityCategorySelection($state)) {
+                                $set('event_format', EventFormat::Physical->value);
+                            }
+
+                            $this->applyContextualDefaults($get, $set);
+                        })
+                        ->options(app(EventCategoryCatalog::class)->options())
                         ->preload()
-                        ->live()
-                        ->afterStateUpdatedJs($this->progressUpdateJs())
-                        ->afterStateUpdated(function (Get $get, Set $set): void {
-                            $this->applyContextualDefaults($get, $set);
-                        })
-                        ->columnSpan(['default' => 1, 'md' => 2]),
-
-                    DatePicker::make('event_date')
-                        ->label(__('Tarikh'))
-                        ->required()
-                        ->native()
-                        ->minDate(now()->startOfDay())
-                        ->live()
-                        ->afterStateUpdatedJs($this->progressUpdateJs())
-                        ->afterStateUpdated(function (Get $get, Set $set): void {
-                            $this->applyContextualDefaults($get, $set);
-                        })
-                        ->columnSpan(['default' => 1, 'md' => 2]),
-
-                    Select::make('prayer_time')
                         ->native(false)
-                        ->label(__('Waktu'))
-                        ->required()
-                        ->live()
-                        ->default(EventPrayerTime::LainWaktu->value)
-                        ->afterStateUpdatedJs(<<<'JS'
+                        ->dynamicOptions(false),
+
+                    $this->domainTopicField(),
+
+                    RichEditor::make('description')
+                        ->label(__('Keterangan'))
+                        ->maxLength(5000)
+                        ->disableToolbarButtons(['table'])
+                        ->floatingToolbars([])
+                        ->placeholder(__('Terangkan mengenai majlis, topik yang akan dikupas, dll.')),
+                ]),
+        ];
+    }
+
+    /**
+     * @return array<int, mixed>
+     */
+    private function getScheduleFields(): array
+    {
+        return [
+            Section::make(__('Tarikh & Masa'))
+                ->schema([
+                    Grid::make(['default' => 1, 'sm' => 2, 'md' => 8])
+                        ->schema([
+                            DatePicker::make('event_date')
+                                ->label(__('Tarikh'))
+                                ->required()
+                                ->native()
+                                ->minDate(now()->startOfDay())
+                                ->live()
+                                ->afterStateUpdatedJs($this->progressUpdateJs())
+                                ->afterStateUpdated(function (Get $get, Set $set): void {
+                                    $this->applyContextualDefaults($get, $set);
+                                })
+                                ->columnSpan(['default' => 1, 'md' => 2]),
+
+                            Select::make('prayer_time')
+                                ->native(false)
+                                ->label(__('Waktu'))
+                                ->required()
+                                ->live()
+                                ->default(EventPrayerTime::LainWaktu->value)
+                                ->afterStateUpdatedJs(<<<'JS'
                                     if ($state !== 'lain_waktu') {
                                         $set('custom_time', null)
                                     }
                                 JS)
-                        ->afterStateUpdatedJs($this->progressUpdateJs())
-                        ->options(function (Get $get): array {
-                            $eventDate = $get('event_date');
+                                ->afterStateUpdatedJs($this->progressUpdateJs())
+                                ->options(function (Get $get): array {
+                                    $eventDate = $get('event_date');
 
-                            return collect(EventPrayerTime::cases())
-                                ->filter(function (EventPrayerTime $case) use ($eventDate, $get) {
-                                    if (! $eventDate) {
-                                        return ! in_array($case, [EventPrayerTime::SebelumJumaat, EventPrayerTime::SelepasJumaat, EventPrayerTime::SelepasTarawih], true);
-                                    }
+                                    return collect(EventPrayerTime::cases())
+                                        ->filter(function (EventPrayerTime $case) use ($eventDate, $get) {
+                                            if (! $eventDate) {
+                                                return ! in_array($case, [EventPrayerTime::SebelumJumaat, EventPrayerTime::SelepasJumaat, EventPrayerTime::SelepasTarawih], true);
+                                            }
 
-                                    $timezone = $this->resolveSubmissionTimezone($get('submission_country_id'));
-                                    $date = Carbon::parse($eventDate, $timezone)->startOfDay();
+                                            $timezone = $this->resolveSubmissionTimezone($get('submission_country_id'));
+                                            $date = Carbon::parse($eventDate, $timezone)->startOfDay();
 
-                                    if ($case === EventPrayerTime::SebelumJumaat) {
-                                        return $date->isFriday();
-                                    }
+                                            if ($case === EventPrayerTime::SebelumJumaat) {
+                                                return $date->isFriday();
+                                            }
 
-                                    if ($case === EventPrayerTime::SelepasJumaat) {
-                                        return $date->isFriday();
-                                    }
+                                            if ($case === EventPrayerTime::SelepasJumaat) {
+                                                return $date->isFriday();
+                                            }
 
-                                    if ($case === EventPrayerTime::SelepasTarawih) {
-                                        return $this->isRamadhan($date, $timezone);
-                                    }
+                                            if ($case === EventPrayerTime::SelepasTarawih) {
+                                                return $this->isRamadhan($date, $timezone);
+                                            }
 
-                                    return true;
+                                            return true;
+                                        })
+                                        ->mapWithKeys(fn (EventPrayerTime $case) => [$case->value => $case->getLabel()])
+                                        ->toArray();
                                 })
-                                ->mapWithKeys(fn (EventPrayerTime $case) => [$case->value => $case->getLabel()])
-                                ->toArray();
-                        })
-                        ->columnSpan(['default' => 1, 'md' => 2]),
+                                ->columnSpan(['default' => 1, 'md' => 2]),
 
-                    TimePicker::make('custom_time')
-                        ->label(__('Masa Mula'))
-                        ->helperText(__('Pilih masa mula majlis'))
-                        ->timezone('UTC')
-                        ->native()
-                        ->seconds(false)
-                        ->minutesStep(5)
-                        ->afterStateUpdatedJs(str_replace(
-                            '__END_TIME_VALIDATION_MESSAGE__',
-                            Js::from(__('Masa akhir mestilah selepas masa mula.'))->toHtml(),
-                            <<<'JS'
+                            TimePicker::make('custom_time')
+                                ->label(__('Masa Mula'))
+                                ->helperText(__('Pilih masa mula majlis'))
+                                ->timezone('UTC')
+                                ->native()
+                                ->seconds(false)
+                                ->minutesStep(5)
+                                ->afterStateUpdatedJs(str_replace(
+                                    '__END_TIME_VALIDATION_MESSAGE__',
+                                    Js::from(__('Masa akhir mestilah selepas masa mula.'))->toHtml(),
+                                    <<<'JS'
                                     const customTime = $state;
                                     const endTime = $get('end_time');
                                     const prayerTime = $get('prayer_time');
@@ -766,46 +762,46 @@ class Create extends Component implements HasActions, HasForms
                                         }
                                     }
                                 JS
-                        ))
-                        ->afterStateUpdatedJs($this->progressUpdateJs())
-                        ->visible(fn (Get $get): bool => $this->isPrayerTime($get('prayer_time'), EventPrayerTime::LainWaktu))
-                        ->required(fn (Get $get): bool => $this->isPrayerTime($get('prayer_time'), EventPrayerTime::LainWaktu))
-                        ->markAsRequired()
-                        ->columnSpan(['default' => 1, 'md' => 2])
-                        ->rule(fn (Get $get): Closure => function (string $attribute, $value, Closure $fail) use ($get) {
-                            $eventDate = $get('event_date');
-                            $timezone = $this->resolveSubmissionTimezone($get('submission_country_id'));
-                            $now = Carbon::now($timezone);
+                                ))
+                                ->afterStateUpdatedJs($this->progressUpdateJs())
+                                ->visible(fn (Get $get): bool => $this->isPrayerTime($get('prayer_time'), EventPrayerTime::LainWaktu))
+                                ->required(fn (Get $get): bool => $this->isPrayerTime($get('prayer_time'), EventPrayerTime::LainWaktu))
+                                ->markAsRequired()
+                                ->columnSpan(['default' => 1, 'md' => 2])
+                                ->rule(fn (Get $get): Closure => function (string $attribute, $value, Closure $fail) use ($get) {
+                                    $eventDate = $get('event_date');
+                                    $timezone = $this->resolveSubmissionTimezone($get('submission_country_id'));
+                                    $now = Carbon::now($timezone);
 
-                            if (! $eventDate || ! $value) {
-                                return;
-                            }
+                                    if (! $eventDate || ! $value) {
+                                        return;
+                                    }
 
-                            $eventDay = Carbon::parse($eventDate, $timezone)->startOfDay();
+                                    $eventDay = Carbon::parse($eventDate, $timezone)->startOfDay();
 
-                            if ($eventDay->isSameDay($now)) {
-                                $timeParts = explode(':', $value);
-                                $selectedTime = $eventDay->copy()
-                                    ->setHour((int) $timeParts[0])
-                                    ->setMinute((int) $timeParts[1]);
+                                    if ($eventDay->isSameDay($now)) {
+                                        $timeParts = explode(':', $value);
+                                        $selectedTime = $eventDay->copy()
+                                            ->setHour((int) $timeParts[0])
+                                            ->setMinute((int) $timeParts[1]);
 
-                                if ($selectedTime->lessThan($now)) {
-                                    $fail(__('Masa yang dipilih tidak boleh pada masa lalu untuk majlis hari ini.'));
-                                }
-                            }
-                        }),
+                                        if ($selectedTime->lessThan($now)) {
+                                            $fail(__('Masa yang dipilih tidak boleh pada masa lalu untuk majlis hari ini.'));
+                                        }
+                                    }
+                                }),
 
-                    TimePicker::make('end_time')
-                        ->label(__('Masa Akhir'))
-                        ->helperText(__('Pilihan: Bila majlis dijangka tamat.'))
-                        ->timezone('UTC')
-                        ->native()
-                        ->seconds(false)
-                        ->minutesStep(5)
-                        ->afterStateUpdatedJs(str_replace(
-                            '__END_TIME_VALIDATION_MESSAGE__',
-                            Js::from(__('Masa akhir mestilah selepas masa mula.'))->toHtml(),
-                            <<<'JS'
+                            TimePicker::make('end_time')
+                                ->label(__('Masa Akhir'))
+                                ->helperText(__('Pilihan: Bila majlis dijangka tamat.'))
+                                ->timezone('UTC')
+                                ->native()
+                                ->seconds(false)
+                                ->minutesStep(5)
+                                ->afterStateUpdatedJs(str_replace(
+                                    '__END_TIME_VALIDATION_MESSAGE__',
+                                    Js::from(__('Masa akhir mestilah selepas masa mula.'))->toHtml(),
+                                    <<<'JS'
                                     const customTime = $get('custom_time');
                                     const endTime = $state;
                                     const prayerTime = $get('prayer_time');
@@ -841,94 +837,57 @@ class Create extends Component implements HasActions, HasForms
                                         }
                                     }
                                 JS
-                        ))
-                        ->columnSpan(['default' => 1, 'md' => 2])
-                        ->rule(fn (Get $get): Closure => function (string $attribute, $value, Closure $fail) use ($get) {
-                            if (! $value) {
-                                return;
-                            }
+                                ))
+                                ->columnSpan(['default' => 1, 'md' => 2])
+                                ->rule(fn (Get $get): Closure => function (string $attribute, $value, Closure $fail) use ($get) {
+                                    if (! $value) {
+                                        return;
+                                    }
 
-                            $prayerTimeRaw = $get('prayer_time');
-                            $startTime = $this->resolveStartTimeForComparison(
-                                $prayerTimeRaw,
-                                $get('custom_time')
-                            );
+                                    $prayerTimeRaw = $get('prayer_time');
+                                    $startTime = $this->resolveStartTimeForComparison(
+                                        $prayerTimeRaw,
+                                        $get('custom_time')
+                                    );
 
-                            if ($startTime === null) {
-                                return;
-                            }
+                                    if ($startTime === null) {
+                                        return;
+                                    }
 
-                            $startParts = explode(':', $startTime);
-                            $endParts = explode(':', (string) $value);
+                                    $startParts = explode(':', $startTime);
+                                    $endParts = explode(':', (string) $value);
 
-                            $startMinutes = ((int) $startParts[0]) * 60 + ((int) ($startParts[1] ?? 0));
-                            $endMinutes = ((int) $endParts[0]) * 60 + ((int) ($endParts[1] ?? 0));
+                                    $startMinutes = ((int) $startParts[0]) * 60 + ((int) ($startParts[1] ?? 0));
+                                    $endMinutes = ((int) $endParts[0]) * 60 + ((int) ($endParts[1] ?? 0));
 
-                            if ($endMinutes <= $startMinutes) {
-                                $fail(__('Masa akhir mestilah selepas masa mula.'));
-                            }
-                        }),
+                                    if ($endMinutes <= $startMinutes) {
+                                        $fail(__('Masa akhir mestilah selepas masa mula.'));
+                                    }
+                                }),
+                        ]),
                 ]),
 
-            Grid::make(['default' => 1, 'sm' => 2])
+            Section::make(__('Kehadiran'))
                 ->schema([
-                    Radio::make('event_format')
-                        ->label(__('Format Majlis'))
-                        ->required()
-                        ->options(EventFormat::class)
-                        ->default(EventFormat::Physical)
-                        ->disableOptionWhen(
-                            fn (string $value, Get $get): bool => $this->hasCommunityCategorySelection($get('event_category_ids'))
-                            && $value !== EventFormat::Physical->value
-                        )
-                        ->afterStateUpdatedJs($this->progressUpdateJs())
-                        ->inline(),
+                    Grid::make(['default' => 1, 'sm' => 2])
+                        ->schema([
+                            Select::make('gender')
+                                ->native(false)
+                                ->label(__('Jantina'))
+                                ->required()
+                                ->options(EventGenderRestriction::class)
+                                ->default(EventGenderRestriction::All)
+                                ->afterStateUpdatedJs($this->progressUpdateJs()),
 
-                    Radio::make('visibility')
-                        ->label(__('Keterlihatan'))
-                        ->required()
-                        ->options(EventVisibility::class)
-                        ->default(EventVisibility::Public)
-                        ->afterStateUpdatedJs($this->progressUpdateJs())
-                        ->hidden()
-                        ->dehydratedWhenHidden()
-                        ->inline(),
-
-                    TextInput::make('event_url')
-                        ->label(__('Pautan Majlis'))
-                        ->url()
-                        ->maxLength(255)
-                        ->placeholder(__('https://example.com/event')),
-
-                    TextInput::make('live_url')
-                        ->label(__('Pautan Siaran Langsung'))
-                        ->url()
-                        ->maxLength(255)
-                        ->placeholder(__('https://youtube.com/...'))
-                        ->visibleJs(<<<'JS'
-                                    ['online', 'hybrid'].includes($get('event_format'))
-                                    JS),
-                ]),
-
-            Grid::make(['default' => 1, 'sm' => 2])
-                ->schema([
-                    Select::make('gender')
-                        ->native(false)
-                        ->label(__('Jantina'))
-                        ->required()
-                        ->options(EventGenderRestriction::class)
-                        ->default(EventGenderRestriction::All)
-                        ->afterStateUpdatedJs($this->progressUpdateJs()),
-
-                    Select::make('age_group')
-                        ->native(false)
-                        ->label(__('Peringkat Umur'))
-                        ->placeholder(__('Pilih peringkat umur'))
-                        ->required()
-                        ->options(EventAgeGroup::class)
-                        ->closeOnSelect()
-                        ->multiple()
-                        ->afterStateUpdatedJs(<<<'JS'
+                            Select::make('age_group')
+                                ->native(false)
+                                ->label(__('Peringkat Umur'))
+                                ->placeholder(__('Pilih peringkat umur'))
+                                ->required()
+                                ->options(EventAgeGroup::class)
+                                ->closeOnSelect()
+                                ->multiple()
+                                ->afterStateUpdatedJs(<<<'JS'
                             const ageGroups = Array.isArray($state) ? $state : [];
                             const previousAgeGroups = Array.isArray($old) ? $old : [];
                             const allAges = 'all_ages';
@@ -953,70 +912,69 @@ class Create extends Component implements HasActions, HasForms
                                 $set('children_allowed', true);
                             }
                         JS)
-                        ->afterStateUpdatedJs($this->progressUpdateJs())
-                        ->afterStateUpdated(function (mixed $state, Set $set): void {
-                            $normalizedAgeGroups = $this->normalizeAgeGroupState($state);
-                            $ageGroups = $this->normalizeAgeGroupSelection($normalizedAgeGroups);
+                                ->afterStateUpdatedJs($this->progressUpdateJs())
+                                ->afterStateUpdated(function (mixed $state, Set $set): void {
+                                    $normalizedAgeGroups = $this->normalizeAgeGroupState($state);
+                                    $ageGroups = $this->normalizeAgeGroupSelection($normalizedAgeGroups);
 
-                            if ($ageGroups !== $normalizedAgeGroups) {
-                                $set('age_group', $ageGroups);
-                            }
+                                    if ($ageGroups !== $normalizedAgeGroups) {
+                                        $set('age_group', $ageGroups);
+                                    }
 
-                            if (
-                                in_array(EventAgeGroup::Children->value, $ageGroups, true) ||
-                                in_array(EventAgeGroup::AllAges->value, $ageGroups, true)
-                            ) {
-                                $set('children_allowed', true);
-                            }
-                        }),
+                                    if (
+                                        in_array(EventAgeGroup::Children->value, $ageGroups, true) ||
+                                        in_array(EventAgeGroup::AllAges->value, $ageGroups, true)
+                                    ) {
+                                        $set('children_allowed', true);
+                                    }
+                                }),
 
-                    Select::make('languages')
-                        ->native(false)
-                        ->label(__('Bahasa'))
-                        ->helperText(__('Bahasa yang akan digunakan dalam majlis.'))
-                        ->placeholder(__('Pilih bahasa'))
-                        ->closeOnSelect()
-                        ->multiple()
-                        ->required()
-                        ->searchable()
-                        ->preload()
-                        ->options(fn (): array => $this->cachedSubmitLanguageOptions())
-                        ->afterStateUpdatedJs($this->progressUpdateJs()),
+                            Select::make('languages')
+                                ->native(false)
+                                ->label(__('Bahasa'))
+                                ->helperText(__('Bahasa yang akan digunakan dalam majlis.'))
+                                ->placeholder(__('Pilih bahasa'))
+                                ->closeOnSelect()
+                                ->multiple()
+                                ->required()
+                                ->searchable()
+                                ->preload()
+                                ->options(fn (): array => $this->cachedSubmitLanguageOptions())
+                                ->afterStateUpdatedJs($this->progressUpdateJs()),
 
-                    Toggle::make('children_allowed')
-                        ->label(__('Kanak-kanak Dibenarkan'))
-                        ->helperText(__('Adakah ibu bapa boleh membawa anak kecil ke majlis ini?'))
-                        ->default(true)
-                        ->inline(false)
-                        ->disabled(function (Get $get): bool {
-                            $ageGroups = $this->normalizeAgeGroupState($get('age_group'));
+                            Toggle::make('children_allowed')
+                                ->label(__('Kanak-kanak Dibenarkan'))
+                                ->helperText(__('Adakah ibu bapa boleh membawa anak kecil ke majlis ini?'))
+                                ->default(true)
+                                ->inline(false)
+                                ->disabled(function (Get $get): bool {
+                                    $ageGroups = $this->normalizeAgeGroupState($get('age_group'));
 
-                            return in_array(EventAgeGroup::Children->value, $ageGroups, true) ||
-                                in_array(EventAgeGroup::AllAges->value, $ageGroups, true);
-                        })
-                        ->extraAlpineAttributes([
-                            'x-bind:disabled' => <<<'JS'
+                                    return in_array(EventAgeGroup::Children->value, $ageGroups, true) ||
+                                        in_array(EventAgeGroup::AllAges->value, $ageGroups, true);
+                                })
+                                ->extraAlpineAttributes([
+                                    'x-bind:disabled' => <<<'JS'
                                 ($get('age_group') || []).includes('children') || ($get('age_group') || []).includes('all_ages')
                             JS,
-                        ])
-                        ->dehydrated(),
+                                ])
+                                ->dehydrated(),
 
-                    Toggle::make('is_muslim_only')
-                        ->label(__('Terbuka untuk Muslim Sahaja'))
-                        ->helperText(__('Jika tidak ditanda, majlis dianggap terbuka kepada Muslim dan bukan Muslim.'))
-                        ->visible(fn (Get $get): bool => $this->hasAgamaKerohanianTopic($get('domain_tags')))
-                        ->inline(false)
-                        ->default(false),
+                            Toggle::make('is_muslim_only')
+                                ->label(__('Terbuka untuk Muslim Sahaja'))
+                                ->helperText(__('Jika tidak ditanda, majlis dianggap terbuka kepada Muslim dan bukan Muslim.'))
+                                ->inline(false)
+                                ->default(false),
+                        ]),
                 ]),
         ];
     }
 
-    private function buildCategoriesStep(): Step
+    private function buildScheduleStep(): Step
     {
-        return Step::make(__('Topik & Rujukan'))
-            ->icon('heroicon-o-tag')
-            ->visible(fn (Get $get): bool => $this->hasAgamaKerohanianTopic($get('domain_tags')))
-            ->schema($this->getCategoryFields());
+        return Step::make(__('Tarikh, Masa & Kehadiran'))
+            ->icon('heroicon-o-clock')
+            ->schema($this->getScheduleFields());
     }
 
     private function domainTopicField(): Select
@@ -1053,64 +1011,67 @@ class Create extends Component implements HasActions, HasForms
     /**
      * @return array<int, mixed>
      */
-    private function getCategoryFields(): array
+    private function getTopicDetailFields(): array
     {
         return [
-            Grid::make(['default' => 1, 'sm' => 2])
+            Section::make(__('Topik & Klasifikasi'))
+                ->visible(fn (Get $get): bool => $this->hasAgamaKerohanianTopic($get('domain_tags')))
                 ->schema([
-                    Select::make('discipline_tags')
-                        ->native(false)
-                        ->label(__('Topik lebih khusus'))
-                        ->helperText(__('Optional. Contoh: Tafsir, Matematik, atau Machine Learning.'))
-                        ->placeholder(__('Pilih atau taip untuk tambah bidang…'))
-                        ->multiple()
-                        ->searchable()
-                        ->preload()
-                        ->allowHtml()
-                        ->options(fn (Get $get): array => $this->disciplineOptionsForDomain(
-                            is_string($domain = $get('domain_tags')) ? $domain : null,
-                        ))
-                        ->getSearchResultsUsing(function (string $search, ?Get $get = null): array {
-                            if (blank($search)) {
-                                return [];
-                            }
+                    Grid::make(['default' => 1, 'sm' => 2])
+                        ->schema([
+                            Select::make('discipline_tags')
+                                ->native(false)
+                                ->label(__('Topik lebih khusus'))
+                                ->helperText(__('Optional. Contoh: Tafsir, Matematik, atau Machine Learning.'))
+                                ->placeholder(__('Pilih atau taip untuk tambah bidang…'))
+                                ->multiple()
+                                ->searchable()
+                                ->preload()
+                                ->allowHtml()
+                                ->options(fn (Get $get): array => $this->disciplineOptionsForDomain(
+                                    is_string($domain = $get('domain_tags')) ? $domain : null,
+                                ))
+                                ->getSearchResultsUsing(function (string $search, ?Get $get = null): array {
+                                    if (blank($search)) {
+                                        return [];
+                                    }
 
-                            $domainId = $get instanceof Get ? (is_string($d = $get('domain_tags')) ? $d : null) : null;
-                            $taxonomyId = EventTaxonomy::query()->where('code', EventTaxonomyCode::Discipline->value)->value('id');
-                            $results = EventTerm::query()
-                                ->where('event_taxonomy_id', $taxonomyId)
-                                ->where('is_active', true)
-                                ->when($domainId !== null, fn (Builder $query) => $query->where(function (Builder $query) use ($domainId): void {
-                                    $query->whereJsonContains('metadata->domain_ids', $domainId)
-                                        ->orWhereNull('metadata->domain_ids');
-                                }))
-                                ->whereLike('name', "%{$search}%")
-                                ->orderBy('sort_order')
-                                ->limit(20)
-                                ->pluck('name', 'id')
-                                ->toArray();
+                                    $domainId = $get instanceof Get ? (is_string($d = $get('domain_tags')) ? $d : null) : null;
+                                    $taxonomyId = EventTaxonomy::query()->where('code', EventTaxonomyCode::Discipline->value)->value('id');
+                                    $results = EventTerm::query()
+                                        ->where('event_taxonomy_id', $taxonomyId)
+                                        ->where('is_active', true)
+                                        ->when($domainId !== null, fn (Builder $query) => $query->where(function (Builder $query) use ($domainId): void {
+                                            $query->whereJsonContains('metadata->domain_ids', $domainId)
+                                                ->orWhereNull('metadata->domain_ids');
+                                        }))
+                                        ->whereLike('name', "%{$search}%")
+                                        ->orderBy('sort_order')
+                                        ->limit(20)
+                                        ->pluck('name', 'id')
+                                        ->toArray();
 
-                            return ["__quick_add__{$search}" => "<span class='text-primary-600'>+ ".__('Tambah')." '{$search}'</span>"] + $results;
-                        })
-                        ->getOptionLabelsUsing(function (array $values): array {
-                            $labels = [];
-                            $uuids = [];
+                                    return ["__quick_add__{$search}" => "<span class='text-primary-600'>+ ".__('Tambah')." '{$search}'</span>"] + $results;
+                                })
+                                ->getOptionLabelsUsing(function (array $values): array {
+                                    $labels = [];
+                                    $uuids = [];
 
-                            foreach ($values as $value) {
-                                if (is_string($value) && ! Str::isUuid($value)) {
-                                    $labels[$value] = $value;
-                                } else {
-                                    $uuids[] = $value;
-                                }
-                            }
+                                    foreach ($values as $value) {
+                                        if (is_string($value) && ! Str::isUuid($value)) {
+                                            $labels[$value] = $value;
+                                        } else {
+                                            $uuids[] = $value;
+                                        }
+                                    }
 
-                            if ($uuids !== []) {
-                                $labels = array_merge($labels, EventTerm::whereIn('id', $uuids)->pluck('name', 'id')->all());
-                            }
+                                    if ($uuids !== []) {
+                                        $labels = array_merge($labels, EventTerm::whereIn('id', $uuids)->pluck('name', 'id')->all());
+                                    }
 
-                            return $labels;
-                        })
-                        ->afterStateUpdatedJs(<<<'JS'
+                                    return $labels;
+                                })
+                                ->afterStateUpdatedJs(<<<'JS'
                                     if (Array.isArray($state)) {
                                         const hasQuickAdd = $state.some(v => typeof v === 'string' && v.startsWith('__quick_add__'));
                                         if (hasQuickAdd) {
@@ -1125,93 +1086,93 @@ class Create extends Component implements HasActions, HasForms
                                         }
                                     }
                                 JS),
-                ]),
+                        ]),
 
-            Grid::make(['default' => 1, 'sm' => 2])
-                ->schema([
-                    Select::make('source_tags')
-                        ->closeOnSelect()
-                        ->label(__('Sumber Utama'))
-                        ->helperText(__('Pilih sumber rujukan utama (jika ada).'))
-                        ->placeholder(__('Pilih sumber…'))
-                        ->multiple()
-                        ->preload()
-                        ->searchable(false)
-                        ->native(false)
-                        ->getOptionLabelsUsing(function (array $values): array {
-                            $labels = [];
-                            $uuids = [];
+                    Grid::make(['default' => 1, 'sm' => 2])
+                        ->schema([
+                            Select::make('source_tags')
+                                ->closeOnSelect()
+                                ->label(__('Sumber Utama'))
+                                ->helperText(__('Pilih sumber rujukan utama (jika ada).'))
+                                ->placeholder(__('Pilih sumber…'))
+                                ->multiple()
+                                ->preload()
+                                ->searchable(false)
+                                ->native(false)
+                                ->getOptionLabelsUsing(function (array $values): array {
+                                    $labels = [];
+                                    $uuids = [];
 
-                            foreach ($values as $value) {
-                                if (is_string($value) && ! Str::isUuid($value)) {
-                                    $labels[$value] = $value;
-                                } else {
-                                    $uuids[] = $value;
-                                }
-                            }
+                                    foreach ($values as $value) {
+                                        if (is_string($value) && ! Str::isUuid($value)) {
+                                            $labels[$value] = $value;
+                                        } else {
+                                            $uuids[] = $value;
+                                        }
+                                    }
 
-                            if ($uuids !== []) {
-                                $labels = array_merge($labels, EventTerm::whereIn('id', $uuids)->pluck('name', 'id')->all());
-                            }
+                                    if ($uuids !== []) {
+                                        $labels = array_merge($labels, EventTerm::whereIn('id', $uuids)->pluck('name', 'id')->all());
+                                    }
 
-                            return $labels;
-                        })
-                        ->options(fn (): array => $this->cachedSubmitTagOptions(
-                            type: EventTaxonomyCode::Source,
-                            cachePrefix: 'submit_tags_source',
-                            statuses: ['verified', 'pending'],
-                        )),
+                                    return $labels;
+                                })
+                                ->options(fn (): array => $this->cachedSubmitTagOptions(
+                                    type: EventTaxonomyCode::Source,
+                                    cachePrefix: 'submit_tags_source',
+                                    statuses: ['verified', 'pending'],
+                                )),
 
-                    Select::make('issue_tags')
-                        ->native(false)
-                        ->label(__('Tema / Isu'))
-                        ->helperText(__('Pilih tema supaya mudah dicari.'))
-                        ->placeholder(__('Pilih atau taip untuk tambah tema…'))
-                        ->multiple()
-                        ->searchable()
-                        ->preload()
-                        ->allowHtml()
-                        ->options(fn (): array => $this->cachedSubmitTagOptions(
-                            type: EventTaxonomyCode::Issue,
-                            cachePrefix: 'submit_tags_issue_verified',
-                            statuses: ['verified'],
-                        ))
-                        ->getSearchResultsUsing(function (string $search): array {
-                            if (blank($search)) {
-                                return [];
-                            }
+                            Select::make('issue_tags')
+                                ->native(false)
+                                ->label(__('Tema / Isu'))
+                                ->helperText(__('Pilih tema supaya mudah dicari.'))
+                                ->placeholder(__('Pilih atau taip untuk tambah tema…'))
+                                ->multiple()
+                                ->searchable()
+                                ->preload()
+                                ->allowHtml()
+                                ->options(fn (): array => $this->cachedSubmitTagOptions(
+                                    type: EventTaxonomyCode::Issue,
+                                    cachePrefix: 'submit_tags_issue_verified',
+                                    statuses: ['verified'],
+                                ))
+                                ->getSearchResultsUsing(function (string $search): array {
+                                    if (blank($search)) {
+                                        return [];
+                                    }
 
-                            $taxonomyId = EventTaxonomy::query()->where('code', EventTaxonomyCode::Issue->value)->value('id');
-                            $results = EventTerm::query()
-                                ->where('event_taxonomy_id', $taxonomyId)
-                                ->where('is_active', true)
-                                ->whereLike('name', "%{$search}%")
-                                ->orderBy('sort_order')
-                                ->limit(20)
-                                ->pluck('name', 'id')
-                                ->toArray();
+                                    $taxonomyId = EventTaxonomy::query()->where('code', EventTaxonomyCode::Issue->value)->value('id');
+                                    $results = EventTerm::query()
+                                        ->where('event_taxonomy_id', $taxonomyId)
+                                        ->where('is_active', true)
+                                        ->whereLike('name', "%{$search}%")
+                                        ->orderBy('sort_order')
+                                        ->limit(20)
+                                        ->pluck('name', 'id')
+                                        ->toArray();
 
-                            return ["__quick_add__{$search}" => "<span class='text-primary-600'>+ ".__('Tambah')." '{$search}'</span>"] + $results;
-                        })
-                        ->getOptionLabelsUsing(function (array $values): array {
-                            $labels = [];
-                            $uuids = [];
+                                    return ["__quick_add__{$search}" => "<span class='text-primary-600'>+ ".__('Tambah')." '{$search}'</span>"] + $results;
+                                })
+                                ->getOptionLabelsUsing(function (array $values): array {
+                                    $labels = [];
+                                    $uuids = [];
 
-                            foreach ($values as $value) {
-                                if (is_string($value) && ! Str::isUuid($value)) {
-                                    $labels[$value] = $value;
-                                } else {
-                                    $uuids[] = $value;
-                                }
-                            }
+                                    foreach ($values as $value) {
+                                        if (is_string($value) && ! Str::isUuid($value)) {
+                                            $labels[$value] = $value;
+                                        } else {
+                                            $uuids[] = $value;
+                                        }
+                                    }
 
-                            if ($uuids !== []) {
-                                $labels = array_merge($labels, EventTerm::whereIn('id', $uuids)->pluck('name', 'id')->all());
-                            }
+                                    if ($uuids !== []) {
+                                        $labels = array_merge($labels, EventTerm::whereIn('id', $uuids)->pluck('name', 'id')->all());
+                                    }
 
-                            return $labels;
-                        })
-                        ->afterStateUpdatedJs(<<<'JS'
+                                    return $labels;
+                                })
+                                ->afterStateUpdatedJs(<<<'JS'
                                     if (Array.isArray($state)) {
                                         const hasQuickAdd = $state.some(v => typeof v === 'string' && v.startsWith('__quick_add__'));
                                         if (hasQuickAdd) {
@@ -1226,109 +1187,115 @@ class Create extends Component implements HasActions, HasForms
                                         }
                                     }
                                 JS),
+                        ]),
                 ]),
 
-            Select::make('references')
-                ->label(__('Rujukan Kitab'))
-                ->helperText(__('Pilih kitab atau buku rujukan yang digunakan (jika ada).'))
-                ->placeholder(__('Cari atau pilih rujukan…'))
-                ->multiple()
-                ->closeOnSelect()
-                ->searchable()
-                ->preload()
-                ->native(false)
-                ->relationship('references', 'title', fn (Builder $query) => Reference::applyPublicVisibility($query))
-                ->createOptionForm([
-                    TextInput::make('title')
-                        ->label(__('Tajuk Kitab / Buku'))
-                        ->required()
-                        ->maxLength(255)
-                        ->placeholder(__('cth: Riyadhus Solihin, Ihya Ulumiddin')),
-                    TextInput::make('author')
-                        ->label(__('Pengarang'))
-                        ->maxLength(255)
-                        ->placeholder(__('cth: Imam Nawawi, Imam Ghazali')),
-                    Select::make('type')
-                        ->native(false)
-                        ->label(__('Jenis'))
-                        ->options(ReferenceType::class)
-                        ->default(ReferenceType::Book->value),
-                    TextInput::make('publication_year')
-                        ->label(__('Tahun Terbitan'))
-                        ->numeric()
-                        ->minValue(1000)
-                        ->maxValue((int) now()->addYears(1)->format('Y'))
-                        ->placeholder(__('cth: 2018')),
-                    TextInput::make('publisher')
-                        ->label(__('Penerbit'))
-                        ->maxLength(255)
-                        ->placeholder(__('cth: Dar al-Kutub')),
-                    TextInput::make('reference_url')
-                        ->label(__('Pautan Rujukan'))
-                        ->url()
-                        ->maxLength(255)
-                        ->placeholder(__('https://...')),
-                    SpatieMediaLibraryFileUpload::make('front_cover')
-                        ->label(__('Muka Depan'))
-                        ->collection('front_cover')
-                        ->image()
-                        ->imageEditor()
-                        ->conversion('thumb')
-                        ->responsiveImages(),
-                    SpatieMediaLibraryFileUpload::make('back_cover')
-                        ->label(__('Muka Belakang'))
-                        ->collection('back_cover')
-                        ->image()
-                        ->imageEditor()
-                        ->conversion('thumb')
-                        ->responsiveImages(),
-                    SpatieMediaLibraryFileUpload::make('gallery')
-                        ->label(__('Galeri'))
-                        ->collection('gallery')
+            Section::make(__('Rujukan Kitab'))
+                ->visible(fn (Get $get): bool => $this->hasAgamaKerohanianTopic($get('domain_tags')))
+                ->collapsible()
+                ->schema([
+                    Select::make('references')
+                        ->label(__('Rujukan Kitab'))
+                        ->helperText(__('Pilih kitab atau buku rujukan yang digunakan (jika ada).'))
+                        ->placeholder(__('Cari atau pilih rujukan…'))
                         ->multiple()
-                        ->image()
-                        ->imageEditor()
-                        ->conversion('gallery_thumb')
-                        ->responsiveImages()
-                        ->maxFiles(5)
-                        ->helperText(__('Sehingga 5 gambar tambahan')),
-                    Textarea::make('description')
-                        ->label(__('Keterangan Ringkas'))
-                        ->rows(3)
-                        ->placeholder(__('Nota ringkas tentang rujukan ini…'))
-                        ->columnSpanFull(),
-                ])
-                ->createOptionUsing(function (array $data, Schema $schema): string {
-                    $reference = Reference::create([
-                        'title' => $data['title'],
-                        'slug' => app(GenerateReferenceSlugAction::class)->handle((string) ($data['title'] ?? '')),
-                        'author' => $data['author'] ?? null,
-                        'type' => $data['type'] ?? ReferenceType::Book->value,
-                        'year' => filled($data['publication_year'] ?? null) ? (string) $data['publication_year'] : null,
-                        'publisher' => $data['publisher'] ?? null,
-                        'description' => $data['description'] ?? null,
-                        'is_canonical' => false,
-                        'status' => 'pending',
-                        'published_at' => now(),
-                    ]);
+                        ->closeOnSelect()
+                        ->searchable()
+                        ->preload()
+                        ->native(false)
+                        ->relationship('references', 'title', fn (Builder $query) => Reference::applyPublicVisibility($query))
+                        ->createOptionForm([
+                            TextInput::make('title')
+                                ->label(__('Tajuk Kitab / Buku'))
+                                ->required()
+                                ->maxLength(255)
+                                ->placeholder(__('cth: Riyadhus Solihin, Ihya Ulumiddin')),
+                            TextInput::make('author')
+                                ->label(__('Pengarang'))
+                                ->maxLength(255)
+                                ->placeholder(__('cth: Imam Nawawi, Imam Ghazali')),
+                            Select::make('type')
+                                ->native(false)
+                                ->label(__('Jenis'))
+                                ->options(ReferenceType::class)
+                                ->default(ReferenceType::Book->value),
+                            TextInput::make('publication_year')
+                                ->label(__('Tahun Terbitan'))
+                                ->numeric()
+                                ->minValue(1000)
+                                ->maxValue((int) now()->addYears(1)->format('Y'))
+                                ->placeholder(__('cth: 2018')),
+                            TextInput::make('publisher')
+                                ->label(__('Penerbit'))
+                                ->maxLength(255)
+                                ->placeholder(__('cth: Dar al-Kutub')),
+                            TextInput::make('reference_url')
+                                ->label(__('Pautan Rujukan'))
+                                ->url()
+                                ->maxLength(255)
+                                ->placeholder(__('https://...')),
+                            SpatieMediaLibraryFileUpload::make('front_cover')
+                                ->label(__('Muka Depan'))
+                                ->collection('front_cover')
+                                ->image()
+                                ->imageEditor()
+                                ->conversion('thumb')
+                                ->responsiveImages(),
+                            SpatieMediaLibraryFileUpload::make('back_cover')
+                                ->label(__('Muka Belakang'))
+                                ->collection('back_cover')
+                                ->image()
+                                ->imageEditor()
+                                ->conversion('thumb')
+                                ->responsiveImages(),
+                            SpatieMediaLibraryFileUpload::make('gallery')
+                                ->label(__('Galeri'))
+                                ->collection('gallery')
+                                ->multiple()
+                                ->image()
+                                ->imageEditor()
+                                ->conversion('gallery_thumb')
+                                ->responsiveImages()
+                                ->maxFiles(5)
+                                ->helperText(__('Sehingga 5 gambar tambahan')),
+                            Textarea::make('description')
+                                ->label(__('Keterangan Ringkas'))
+                                ->rows(3)
+                                ->placeholder(__('Nota ringkas tentang rujukan ini…'))
+                                ->columnSpanFull(),
+                        ])
+                        ->createOptionUsing(function (array $data, Schema $schema): string {
+                            $reference = Reference::create([
+                                'title' => $data['title'],
+                                'slug' => app(GenerateReferenceSlugAction::class)->handle((string) ($data['title'] ?? '')),
+                                'author' => $data['author'] ?? null,
+                                'type' => $data['type'] ?? ReferenceType::Book->value,
+                                'year' => filled($data['publication_year'] ?? null) ? (string) $data['publication_year'] : null,
+                                'publisher' => $data['publisher'] ?? null,
+                                'description' => $data['description'] ?? null,
+                                'is_canonical' => false,
+                                'status' => 'pending',
+                                'published_at' => now(),
+                            ]);
 
-                    $schema->model($reference)->saveRelationships();
+                            $schema->model($reference)->saveRelationships();
 
-                    if (! empty($data['reference_url'])) {
-                        $reference->socialProfiles()->create([
-                            'platform' => 'website',
-                            'url' => $data['reference_url'],
-                        ]);
-                    }
+                            if (! empty($data['reference_url'])) {
+                                $reference->socialProfiles()->create([
+                                    'platform' => 'website',
+                                    'url' => $data['reference_url'],
+                                ]);
+                            }
 
-                    return (string) $reference->getKey();
-                }),
+                            return (string) $reference->getKey();
+                        }),
+                ]),
         ];
     }
 
     private function buildOrganizerLocationStep(bool $hasScopedInstitution, string $hasScopedInstitutionJs): Step
     {
-        return Step::make(__('Penganjur & Lokasi'))
+        return Step::make(__('Format, Penganjur & Lokasi'))
             ->icon('heroicon-o-building-office')
             ->schema($this->getOrganizerLocationFields($hasScopedInstitution, $hasScopedInstitutionJs));
     }
@@ -1339,6 +1306,72 @@ class Create extends Component implements HasActions, HasForms
     private function getOrganizerLocationFields(bool $hasScopedInstitution, string $hasScopedInstitutionJs): array
     {
         return [
+            Section::make(__('Negara'))
+                ->schema([
+                    Select::make('submission_country_id')
+                        ->native(false)
+                        ->label(__('Country'))
+                        ->required()
+                        ->options(fn (): array => app(SelectionCatalogCache::class)->rememberAddressOptions(
+                            'countries',
+                            static fn (): array => AddressCountry::query()
+                                ->orderBy('name')
+                                ->pluck('name', 'id')
+                                ->all(),
+                        ))
+                        ->searchable()
+                        ->preload()
+                        ->live()
+                        ->afterStateUpdatedJs($this->progressUpdateJs())
+                        ->afterStateUpdated(function (Get $get, Set $set): void {
+                            $this->applyContextualDefaults($get, $set);
+                            $this->clearCountryMismatchedEntitySelections($get, $set);
+                        }),
+                ]),
+
+            Section::make(__('Format & Pautan'))
+                ->schema([
+                    Grid::make(['default' => 1, 'sm' => 2])
+                        ->schema([
+                            Radio::make('event_format')
+                                ->label(__('Format Majlis'))
+                                ->required()
+                                ->options(EventFormat::class)
+                                ->default(EventFormat::Physical)
+                                ->disableOptionWhen(
+                                    fn (string $value, Get $get): bool => $this->hasCommunityCategorySelection($get('event_category_ids'))
+                                    && $value !== EventFormat::Physical->value
+                                )
+                                ->afterStateUpdatedJs($this->progressUpdateJs())
+                                ->inline(),
+
+                            Radio::make('visibility')
+                                ->label(__('Keterlihatan'))
+                                ->required()
+                                ->options(EventVisibility::class)
+                                ->default(EventVisibility::Public)
+                                ->afterStateUpdatedJs($this->progressUpdateJs())
+                                ->hidden()
+                                ->dehydratedWhenHidden()
+                                ->inline(),
+
+                            TextInput::make('event_url')
+                                ->label(__('Pautan Majlis'))
+                                ->url()
+                                ->maxLength(255)
+                                ->placeholder(__('https://example.com/event')),
+
+                            TextInput::make('live_url')
+                                ->label(__('Pautan Siaran Langsung'))
+                                ->url()
+                                ->maxLength(255)
+                                ->placeholder(__('https://youtube.com/...'))
+                                ->visibleJs(<<<'JS'
+                                    ['online', 'hybrid'].includes($get('event_format'))
+                                    JS),
+                        ]),
+                ]),
+
             Section::make(__('Penganjur'))
                 ->schema([
                     Hidden::make('primary_organizer_id')
@@ -1381,7 +1414,9 @@ class Create extends Component implements HasActions, HasForms
                     Select::make('primary_organizer_institution_id')
                         ->native(false)
                         ->label(__('Institusi'))
-                        ->options(fn (): array => $this->availableInstitutionOptions())
+                        ->options(fn (Get $get): array => $this->availableInstitutionOptions(
+                            $this->resolveSubmissionCountryId($get('submission_country_id')),
+                        ))
                         ->searchable()
                         ->preload()
                         ->disabled($hasScopedInstitution)
@@ -1485,7 +1520,9 @@ class Create extends Component implements HasActions, HasForms
                     Select::make('location_institution_id')
                         ->native(false)
                         ->label(__('Institusi'))
-                        ->options(fn (): array => $this->availableInstitutionOptions())
+                        ->options(fn (Get $get): array => $this->availableInstitutionOptions(
+                            $this->resolveSubmissionCountryId($get('submission_country_id')),
+                        ))
                         ->searchable()
                         ->preload()
                         ->visibleJs("! {$hasScopedInstitutionJs} && (\$get('primary_organizer_kind') === 'person' || !\$get('location_same_as_institution')) && \$get('location_type') === 'institution'")
@@ -1497,7 +1534,9 @@ class Create extends Component implements HasActions, HasForms
                     Select::make('location_venue_id')
                         ->native(false)
                         ->label(__('Lokasi'))
-                        ->options(fn (): array => $this->cachedSubmitVenueOptions())
+                        ->options(fn (Get $get): array => $this->cachedSubmitVenueOptions(
+                            $this->resolveSubmissionCountryId($get('submission_country_id')),
+                        ))
                         ->searchable()
                         ->preload()
                         ->visibleJs("({$hasScopedInstitutionJs} && !\$get('location_same_as_institution')) || (! {$hasScopedInstitutionJs} && (\$get('primary_organizer_kind') === 'person' || !\$get('location_same_as_institution')) && \$get('location_type') === 'venue')")
@@ -1735,7 +1774,18 @@ class Create extends Component implements HasActions, HasForms
                                 TextInput::make('submitter_phone')
                                     ->label(__('Telefon'))
                                     ->tel()
-                                    ->maxLength(20)
+                                    ->maxLength(SubmitterContactRules::PHONE_MAX_LENGTH)
+                                    ->placeholder('+60123456789')
+                                    ->helperText(__('cth: +60123456789 atau 03-12345678'))
+                                    ->rule(static fn (): Closure => static function (string $attribute, mixed $value, Closure $fail): void {
+                                        if (! filled($value)) {
+                                            return;
+                                        }
+
+                                        if (! SubmitterContactRules::isValidPhone($value)) {
+                                            $fail(__('Nombor telefon tidak sah. Sila semak semula.'));
+                                        }
+                                    })
                                     ->afterStateUpdatedJs($this->progressUpdateJs())
                                     ->extraAlpineAttributes([
                                         'x-bind:required' => <<<'JS'
@@ -1786,9 +1836,7 @@ class Create extends Component implements HasActions, HasForms
         }
 
         $state['captcha_token'] = $this->data['captcha_token'] ?? null;
-        $state['is_muslim_only'] = $this->isReligiousContext(
-            $state['domain_tags'] ?? [],
-        ) && (bool) ($state['is_muslim_only'] ?? false);
+        $state['is_muslim_only'] = (bool) ($state['is_muslim_only'] ?? false);
 
         $eventContainer = $this->selectedEventContainer();
         $result = app(SubmitFrontendEventAction::class)->handle(
@@ -2579,10 +2627,6 @@ class Create extends Component implements HasActions, HasForms
 
     protected function applyContextualDefaults(Get $get, Set $set): void
     {
-        if (! $this->isReligiousContext($get('domain_tags'))) {
-            $set('is_muslim_only', false);
-        }
-
         if (! $this->isPrayerTimeAvailable(
             $get('prayer_time'),
             $get('event_date'),
@@ -2600,6 +2644,51 @@ class Create extends Component implements HasActions, HasForms
         if ($this->isPrayerTime($get('prayer_time'), EventPrayerTime::LainWaktu) && blank($get('custom_time'))) {
             $set('custom_time', self::DEFAULT_SUBMISSION_TIME);
         }
+    }
+
+    protected function clearCountryMismatchedEntitySelections(Get $get, Set $set): void
+    {
+        $countryId = $this->resolveSubmissionCountryId($get('submission_country_id'));
+
+        if ($countryId === null) {
+            return;
+        }
+
+        $access = app(EntitySubmissionAccess::class);
+
+        if (! $this->hasScopedInstitution()) {
+            $organizerInstitutionId = $this->normalizeNullableUuid($get('primary_organizer_institution_id'));
+
+            if ($organizerInstitutionId !== null && ! $access->institutionBelongsToCountry($organizerInstitutionId, $countryId)) {
+                $set('primary_organizer_institution_id', null);
+                $set('primary_organizer_id', null);
+            }
+
+            $locationInstitutionId = $this->normalizeNullableUuid($get('location_institution_id'));
+
+            if ($locationInstitutionId !== null && ! $access->institutionBelongsToCountry($locationInstitutionId, $countryId)) {
+                $set('location_institution_id', null);
+                $set('space_ids', []);
+            }
+        }
+
+        $locationVenueId = $this->normalizeNullableUuid($get('location_venue_id'));
+
+        if ($locationVenueId !== null && ! $access->venueBelongsToCountry($locationVenueId, $countryId)) {
+            $set('location_venue_id', null);
+            $set('space_ids', []);
+        }
+    }
+
+    protected function normalizeNullableUuid(mixed $value): ?string
+    {
+        if (! is_scalar($value)) {
+            return null;
+        }
+
+        $value = trim((string) $value);
+
+        return $value !== '' && Str::isUuid($value) ? $value : null;
     }
 
     protected function isPrayerTimeAvailable(mixed $value, mixed $eventDate, mixed $countryId): bool
@@ -2718,7 +2807,7 @@ class Create extends Component implements HasActions, HasForms
     /**
      * @return array<string, string>
      */
-    protected function availableInstitutionOptions(): array
+    protected function availableInstitutionOptions(?string $countryId = null): array
     {
         if (($institution = $this->scopedInstitution()) instanceof Institution) {
             return [$institution->id => $institution->display_name];
@@ -2728,14 +2817,18 @@ class Create extends Component implements HasActions, HasForms
         $submitter = $this->submitterUser();
 
         if (! $submitter instanceof User) {
-            return Cache::remember('submit_institutions', 60, fn (): array => $access->institutionQueryForSubmitter(null)
-                ->orderBy('name')
-                ->with('names')->get(['institutions.id', 'institutions.name'])
-                ->mapWithKeys(fn (Institution $institution): array => [(string) $institution->id => $institution->display_name])
-                ->all());
+            return Cache::remember(
+                'submit_institutions_'.($countryId ?? 'all'),
+                60,
+                fn (): array => $access->institutionQueryForSubmitter(null, $countryId)
+                    ->orderBy('name')
+                    ->with('names')->get(['institutions.id', 'institutions.name'])
+                    ->mapWithKeys(fn (Institution $institution): array => [(string) $institution->id => $institution->display_name])
+                    ->all(),
+            );
         }
 
-        return $access->institutionQueryForSubmitter($submitter)
+        return $access->institutionQueryForSubmitter($submitter, $countryId)
             ->orderBy('name')
             ->with('names')->get(['institutions.id', 'institutions.name'])
             ->mapWithKeys(fn (Institution $institution): array => [(string) $institution->id => $institution->display_name])

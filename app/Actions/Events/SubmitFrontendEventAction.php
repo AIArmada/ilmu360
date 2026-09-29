@@ -20,6 +20,7 @@ use App\Models\Person;
 use App\Models\User;
 use App\Support\Events\OrganizerResolver;
 use App\Support\Submission\EntitySubmissionAccess;
+use App\Support\Submission\SubmitterContactRules;
 use BackedEnum;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -72,8 +73,10 @@ class SubmitFrontendEventAction
         }
 
         $this->assertSubmissionEntitiesAreAccessible($validated, $submitter, $validationKeyPrefix);
+        $this->assertSubmitterContactsAreValid($validated, $submitter, $validationKeyPrefix);
 
         $submissionCountryId = $this->resolveSubmissionCountryId($validated);
+        $this->assertSubmissionEntitiesMatchCountry($validated, $submissionCountryId, $scopedInstitution, $validationKeyPrefix);
         $startsAt = $this->resolveStartsAt($validated);
         $timezone = $this->resolveSubmissionTimezone($validated, $submissionCountryId);
 
@@ -319,6 +322,83 @@ class SubmitFrontendEventAction
                     $this->validationKey('persons', $validationKeyPrefix) => __('Senarai penceramah mengandungi pilihan yang tidak dibenarkan untuk penghantaran ini.'),
                 ]);
             }
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    private function assertSubmissionEntitiesMatchCountry(array $validated, string $submissionCountryId, ?Institution $scopedInstitution, string $validationKeyPrefix = ''): void
+    {
+        $organizerType = $this->resolvePrimaryOrganizerKind($validated['primary_organizer_id'] ?? null);
+        $primaryOrganizerId = (string) ($validated['primary_organizer_id'] ?? '');
+        $eventFormat = $this->normalizeEnumValue($validated['event_format'] ?? null, EventFormat::Physical->value);
+        $requiresLocationChoice = $organizerType === 'person' || ! ($validated['location_same_as_institution'] ?? true);
+        $locationType = (string) ($validated['location_type'] ?? 'institution');
+
+        $isScopedOrganizer = $scopedInstitution instanceof Institution
+            && $organizerType === 'institution'
+            && $primaryOrganizerId === (string) $scopedInstitution->getKey();
+
+        if ($organizerType === 'institution' && $primaryOrganizerId !== '' && ! $isScopedOrganizer
+            && ! $this->entitySubmissionAccess->institutionBelongsToCountry($primaryOrganizerId, $submissionCountryId)) {
+            throw ValidationException::withMessages([
+                $this->validationKey('primary_organizer_id', $validationKeyPrefix) => __('Institusi penganjur tidak berada di negara yang dipilih.'),
+            ]);
+        }
+
+        $locationInstitutionId = (string) ($validated['location_institution_id'] ?? '');
+        $usesLocationInstitution = $eventFormat !== EventFormat::Online->value
+            && $requiresLocationChoice
+            && $locationType === 'institution';
+        $isScopedLocation = $scopedInstitution instanceof Institution
+            && $locationInstitutionId === (string) $scopedInstitution->getKey();
+
+        if ($usesLocationInstitution && $locationInstitutionId !== '' && ! $isScopedLocation
+            && ! $this->entitySubmissionAccess->institutionBelongsToCountry($locationInstitutionId, $submissionCountryId)) {
+            throw ValidationException::withMessages([
+                $this->validationKey('location_institution_id', $validationKeyPrefix) => __('Institusi lokasi tidak berada di negara yang dipilih.'),
+            ]);
+        }
+
+        $locationVenueId = (string) ($validated['location_venue_id'] ?? '');
+        $usesLocationVenue = $eventFormat !== EventFormat::Online->value
+            && $requiresLocationChoice
+            && $locationType === 'venue';
+
+        if ($usesLocationVenue && $locationVenueId !== ''
+            && ! $this->entitySubmissionAccess->venueBelongsToCountry($locationVenueId, $submissionCountryId)) {
+            throw ValidationException::withMessages([
+                $this->validationKey('location_venue_id', $validationKeyPrefix) => __('Lokasi tempat tidak berada di negara yang dipilih.'),
+            ]);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    private function assertSubmitterContactsAreValid(array $validated, ?User $submitter, string $validationKeyPrefix = ''): void
+    {
+        $email = $validated['submitter_email'] ?? null;
+        $phone = $validated['submitter_phone'] ?? null;
+
+        if (! $submitter instanceof User && ! filled($email) && ! filled($phone)) {
+            throw ValidationException::withMessages([
+                $this->validationKey('submitter_email', $validationKeyPrefix) => __('Either submitter email or submitter phone is required.'),
+                $this->validationKey('submitter_phone', $validationKeyPrefix) => __('Either submitter email or submitter phone is required.'),
+            ]);
+        }
+
+        if (filled($email) && ! SubmitterContactRules::isValidEmail($email)) {
+            throw ValidationException::withMessages([
+                $this->validationKey('submitter_email', $validationKeyPrefix) => __('Alamat e-mel tidak sah. Sila semak semula.'),
+            ]);
+        }
+
+        if (filled($phone) && ! SubmitterContactRules::isValidPhone($phone)) {
+            throw ValidationException::withMessages([
+                $this->validationKey('submitter_phone', $validationKeyPrefix) => __('Nombor telefon tidak sah. Sila semak semula.'),
+            ]);
         }
     }
 

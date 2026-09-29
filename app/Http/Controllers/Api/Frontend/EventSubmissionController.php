@@ -13,6 +13,7 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Models\User;
 use App\Support\Api\Frontend\FrontendMediaSyncService;
+use App\Support\Submission\SubmitterContactRules;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
@@ -158,17 +159,19 @@ class EventSubmissionController extends FrontendController
      */
     private function assertGuestContactRules(array $validated, ?User $user): void
     {
-        if ($user instanceof User) {
-            return;
-        }
-
         $hasEmail = filled($validated['submitter_email'] ?? null);
         $hasPhone = filled($validated['submitter_phone'] ?? null);
 
-        if (! $hasEmail && ! $hasPhone) {
+        if (! $user instanceof User && ! $hasEmail && ! $hasPhone) {
             throw ValidationException::withMessages([
                 'submitter_email' => __('Either submitter email or submitter phone is required.'),
                 'submitter_phone' => __('Either submitter email or submitter phone is required.'),
+            ]);
+        }
+
+        if ($hasPhone && ! SubmitterContactRules::isValidPhone($validated['submitter_phone'] ?? null)) {
+            throw ValidationException::withMessages([
+                'submitter_phone' => __('Nombor telefon tidak sah. Sila semak semula.'),
             ]);
         }
     }

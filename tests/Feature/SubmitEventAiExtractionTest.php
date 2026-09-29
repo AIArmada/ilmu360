@@ -57,7 +57,9 @@ it('extracts media data with AI and moves the wizard to review step', function (
         ->assertSet('data.children_allowed', false)
         ->assertSet('data.domain_tags', $domainTag->id)
         ->assertSet('data.source_tags', [$sourceTag->id])
-        ->assertWizardCurrentStep(4);
+        // Review is always the 5th visible step: the religious topic detail is
+        // a conditional section now, not a conditional step.
+        ->assertWizardCurrentStep(5);
 
     $state = $component->get('data');
 

@@ -349,7 +349,7 @@ new
                     <button type="submit" class="mt-1 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#087f59] px-7 text-sm font-bold text-white transition hover:bg-[#056747] sm:mt-0 sm:w-auto">{{ __('Cari') }}<span aria-hidden="true">→</span></button>
                 </form>
 
-                <div x-show="searchType === 'majlis'" x-cloak class="mt-5 flex max-w-4xl flex-wrap gap-2">
+                <div x-show="searchType === 'majlis'" class="mt-5 flex max-w-4xl flex-wrap gap-2">
                     @foreach($quickFilters as $filter)
                         <button
                             type="button"

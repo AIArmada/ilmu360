@@ -23,6 +23,15 @@
         border-radius: 0.75rem;
     }
 
+    /* Let step labels wrap to two or three lines so all five steps fit without scrolling. */
+    @media (min-width: 768px) {
+        .fi-sc-wizard-header .fi-sc-wizard-header-step-text {
+            width: auto;
+            max-width: 7rem;
+            white-space: normal;
+        }
+    }
+
     .fi-sc-wizard-header::-webkit-scrollbar {
         height: 3px;
     }

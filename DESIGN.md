@@ -1,307 +1,561 @@
----
-name: ilmu360°
-description: The trusted directory of verified Islamic speakers and events in Malaysia.
-colors:
-  emerald-700: "#007a42"
-  emerald-800: "#00572e"
-  emerald-900: "#00371c"
-  emerald-950: "#00190b"
-  emerald-500: "#00bb7a"
-  emerald-100: "#e0f9ed"
-  emerald-50: "#f3fdf8"
-  gold-400: "#d9a514"
-  gold-500: "#c18200"
-  gold-600: "#9c6600"
-  gold-100: "#feedc9"
-  gold-50: "#fbf4e6"
-  slate-900: "#07121e"
-  slate-800: "#142332"
-  slate-700: "#2a3c4f"
-  slate-600: "#42576e"
-  slate-500: "#667d94"
-  slate-400: "#95a7ba"
-  slate-300: "#c7d2de"
-  slate-200: "#e0e5eb"
-  slate-100: "#f3f5f8"
-  slate-50: "#fbfcfd"
-  paper: "#fafaf7"
-  surface-warm: "#f4f1e8"
-typography:
-  display:
-    fontFamily: "Outfit, ui-sans-serif, system-ui, sans-serif"
-    fontSize: "clamp(2.5rem, 6vw, 4rem)"
-    fontWeight: 700
-    lineHeight: 1.06
-    letterSpacing: "-0.035em"
-  headline:
-    fontFamily: "Outfit, ui-sans-serif, system-ui, sans-serif"
-    fontSize: "clamp(1.875rem, 4vw, 3rem)"
-    fontWeight: 700
-    lineHeight: 1.1
-    letterSpacing: "-0.03em"
-  title:
-    fontFamily: "Outfit, ui-sans-serif, system-ui, sans-serif"
-    fontSize: "1.125rem"
-    fontWeight: 700
-    lineHeight: 1.2
-    letterSpacing: "-0.02em"
-  body:
-    fontFamily: "Outfit, ui-sans-serif, system-ui, sans-serif"
-    fontSize: "1rem"
-    fontWeight: 400
-    lineHeight: 1.6
-    letterSpacing: "normal"
-  label:
-    fontFamily: "Outfit, ui-sans-serif, system-ui, sans-serif"
-    fontSize: "0.75rem"
-    fontWeight: 700
-    letterSpacing: "0.20em"
-rounded:
-  sm: "0.5rem"
-  md: "1rem"
-  lg: "1.5rem"
-  pill: "1.5rem"
-  cta: "1.25rem"
-spacing:
-  xs: "0.5rem"
-  sm: "1rem"
-  md: "1.25rem"
-  lg: "2rem"
-  xl: "3rem"
-  section: "5rem"
-components:
-  button-primary:
-    backgroundColor: "{colors.emerald-800}"
-    textColor: "#FFFFFF"
-    rounded: "{rounded.md}"
-    padding: "0.875rem 1.25rem"
-  button-primary-hover:
-    backgroundColor: "{colors.emerald-700}"
-    textColor: "#FFFFFF"
-  button-ghost:
-    backgroundColor: "transparent"
-    textColor: "{colors.emerald-700}"
-    rounded: "{rounded.md}"
-    padding: "0.875rem 1.25rem"
-  button-ghost-hover:
-    backgroundColor: "{colors.emerald-50}"
-    textColor: "{colors.emerald-700}"
-  input-search:
-    backgroundColor: "rgba(255,255,255,0.9)"
-    textColor: "{colors.slate-900}"
-    rounded: "{rounded.pill}"
-    padding: "0.375rem"
-  card-verified:
-    backgroundColor: "#FFFFFF"
-    textColor: "{colors.emerald-950}"
-    rounded: "{rounded.lg}"
-    padding: "1.25rem"
-  card-verified-hover:
-    backgroundColor: "#FFFFFF"
-    textColor: "{colors.emerald-700}"
-  chip-verified:
-    backgroundColor: "rgba(224,249,237,0.8)"
-    textColor: "{colors.emerald-800}"
-    rounded: "9999px"
-    padding: "0.5rem 0.875rem"
+# ilmu360 — Design System & Direction (v2, reviewed)
+
+**Product:** ilmu360, a Malay-language platform for discovering Islamic talks, classes, speakers and institutions in Malaysia.
+**Status:** v2. Reviews the three original directions, measures them, and consolidates them into one buildable system. The originals are preserved in Appendix A.
+**Contrast figures** in this file were computed (WCAG 2.x relative luminance), not estimated.
+
 ---
 
-# Design System: ilmu360°
-
-## 1. Overview
-
-**Creative North Star: "The Golden Directory"**
-
-ilmu360° is the trusted, curated directory of verified Islamic speakers and events in Malaysia. The visual system is premium, luminous, and warm — a reference platform that feels authoritative without being cold, scholarly without being austere. Every surface should feel like it was hand-curated: the gold accents signal value, the emerald core signals trust, and the warm paper background carries the Islamic scholarly tradition into a modern interface.
-
-The system rejects generic SaaS aesthetics. No blue-gray dashboards, no sterile whites, no flat utilitarian density. Depth comes from warm emerald-tinted glows, not gray drop shadows. Interaction states feel crafted, not mechanical — gold accents appear on hover, cards lift with warm halos, and focus rings carry the brand color. The interface glows with verified knowledge.
-
-This is a product register (functional directory, not marketing), so clarity comes before decoration. But clarity here does not mean austerity — the warm palette, rounded shapes, and luminous depth make the directory feel like a place worth returning to, not a form to fill out.
-
-**Key Characteristics:**
-- Warm paper background (#fafaf7) carries the Islamic scholarly tradition without being cream/sand cliché
-- Emerald 700–950 as the trust core (verified, authoritative, deep)
-- Gold 400–500 as the luminous accent (premium signal, interaction reward)
-- Rounded 1.25–1.5rem shapes on primary surfaces (crafted, not sharp)
-- Warm emerald-tinted glows replace gray drop shadows on interactive depth
-- Outfit font across the system (geometric sans, single family for cohesion)
-
-## 2. Colors: The Golden Directory Palette
-
-The palette pairs a deep emerald core (trust, verification, authority) with a luminous gold accent (premium, curation, reward). Warm neutrals carry the body; cool slate carries text. The emerald is used generously for structure; the gold is used sparingly for emphasis — its rarity is the point.
-
-### Primary
-
-- **Deep Emerald** (#00572e / oklch(0.38 0.14 165)): The trust anchor. Used on verified badges, primary buttons, and the darkest surface in the CTA section. Reads as authoritative Islamic green without being garish.
-- **Trust Emerald** (#007a42 / oklch(0.48 0.18 165)): The primary action color. Buttons, links, active nav, and the verified status chip text. The brand's main interactive voice.
-- **Emerald Ink** (#00371c / oklch(0.28 0.10 165)): Headline text on light surfaces. Deeper than black, carries the green lineage into typography.
-
-### Secondary
-
-- **Luminous Gold** (#d9a514 / oklch(0.75 0.15 85)): The accent that signals premium. Used on hover underlines, arrow icons on interaction, badge accents, and the "Cadangkan" CTA hover state. Never used for body text or large fills.
-- **Royal Gold** (#c18200 / oklch(0.65 0.18 85)): The deeper gold for CTA labels and eyebrow text on dark surfaces. Pairs with emerald-950 backgrounds.
-
-### Neutral
-
-- **Warm Paper** (#fafaf7): The body background. Warm off-white at near-zero chroma — not cream, not sand, not parchment. The canvas the directory sits on.
-- **Warm Sand** (#f4f1e8): Secondary surface tone used in hero gradient tails and subtle section transitions.
-- **Pure Surface** (#FFFFFF): Cards, inputs, modals. The contrast layer against the warm paper body.
-- **Slate Ink** (#07121e / oklch(0.18 0.03 250)): Body text. Cool slate, not pure black, for reduced harshness on warm backgrounds.
-- **Slate Muted** (#667d94 / oklch(0.58 0.045 250)): Secondary text, captions, metadata. Maintains 4.5:1 contrast on warm paper.
-
-### Named Rules
-
-**The Luminous Restraint Rule.** Gold covers ≤10% of any screen. It appears on accents, hover states, and verified signals — never as a background fill or body text color. Its rarity is what makes it read as premium.
-
-**The Warm-Not-Cream Rule.** The body background stays at chroma ≈ 0.005–0.012 toward emerald's hue (165), never toward the warm-neutral band (hue 40–100, chroma < 0.06) that reads as cream/sand/parchment. Warmth comes from the hue family of the brand, not from a default warm-neutral tint.
-
-**The Emerald Gradient Floor.** The deepest surface in any composition is emerald-950 (#00190b), used for the community CTA section. It is the visual anchor that grounds the lighter sections above. Never replace with pure black or slate-950.
-
-## 3. Typography
-
-**Display Font:** Outfit (with ui-sans-serif, system-ui fallback)
-**Body Font:** Outfit (same family, weight differentiation)
-
-**Character:** A single geometric sans-serif family across the entire system. Outfit carries both display and body — cohesion over contrast. Weight (400 → 700) and tight tracking (-0.02 to -0.035em) provide hierarchy without switching faces. The geometric structure feels modern; the warm emerald ink color ties it to the scholarly tradition.
-
-### Hierarchy
-
-- **Display** (700, clamp(2.5rem, 6vw, 4rem), line-height 1.06, letter-spacing -0.035em): Hero page headlines only. Two lines maximum. Always emerald-950 or emerald-700, never slate.
-- **Headline** (700, clamp(1.875rem, 4vw, 3rem), line-height 1.1, letter-spacing -0.03em): Section headers within pages. "Direktori Penceramah", "Hasil carian".
-- **Title** (700, 1.125rem, line-height 1.2, letter-spacing -0.02em): Card titles, list item names. Speaker names, event titles.
-- **Body** (400, 1rem, line-height 1.6): Paragraphs, descriptions, form labels. Capped at 65–75ch on long-form. Slate-600 on warm paper.
-- **Label** (700, 0.75rem, letter-spacing 0.20em, uppercase): Eyebrows and status chips. "DIREKTORI DISAHKAN", "SUMBANGAN KOMUNITI". Used sparingly — one named kicker per page, never on every section.
-
-### Named Rules
-
-**The Single Family Rule.** Outfit is the only typeface. Hierarchy comes from weight, size, and tracking — never from introducing a second family. This is cohesion, not limitation.
-
-**The Display Tracking Floor.** Display letter-spacing never goes below -0.04em. Tighter tracking makes letters touch and reads as cramped, not designed. -0.035em is the floor; -0.02 to -0.03em is the comfort zone.
-
-**The One Kicker Rule.** Tiny uppercase tracked eyebrows (the "01 · ABOUT" pattern) appear on at most one section per page as a deliberate brand signal. Putting them above every section is the saturated AI scaffold and is prohibited.
-
-## 4. Elevation
-
-**Philosophy: Luminous Glow.** Depth in this system is not conveyed by gray drop shadows. Interactive surfaces lift with warm emerald-tinted glows that make the directory feel like it is lit from within — the "luminous" in The Golden Directory. Rest states are flat or carry only a hairline border; depth appears as a response to state (hover, focus, elevation), never as default decoration.
-
-Glow shadows use emerald-tinted rgba (e.g. `rgba(6,78,59,0.40)`) at high blur values (30–80px) and negative spread, creating a halo rather than a hard cast. The glow intensifies on hover. Gold-tinted glows (rgba(217,165,20,...)) appear only on the most premium CTA surfaces.
-
-### Shadow Vocabulary
-
-- **Card Rest** (`box-shadow: none; border: 1px solid rgba(224,229,235,0.80)`): Repeated cards stay flat and legible. Elevation is earned through focus or hover, not default decoration.
-- **Card Hover Glow** (`box-shadow: 0 22px 50px -28px rgba(6,78,59,0.40)`): The signature hover state. Emerald-tinted halo, card lifts -translate-y-1.5. This is the luminous depth in action.
-- **Hero Search Veil** (`background: rgba(255,255,255,0.80); backdrop-filter: blur(18px)`): The primary search material. An emerald-tinted hairline and inset highlight define the control; focus may intensify the emerald halo.
-- **Editorial Folio Glow** (`box-shadow: 0 30px 80px -42px rgba(0,25,11,0.88)`): The single directory signature surface. Deep, quiet, and architectural — never repeated as a card treatment.
-- **CTA Deep Glow** (`box-shadow: 0 28px 80px -38px rgba(6,78,59,0.85)`): The emerald-950 CTA section. Maximum glow intensity — the section feels anchored and luminous against the warm paper body.
-
-### Named Rules
-
-**The No-Gray-Shadow Rule.** Drop shadows never use pure black or pure gray rgba. Every shadow is tinted toward emerald (interactive surfaces) or warm neutral (structural surfaces). Gray shadows read as SaaS default; tinted shadows read as brand.
-
-**The Glow-On-State Rule.** Shadows appear only on hover, focus, or elevated sections — never as default card decoration. A card at rest carries a hairline border (border-slate-200/80) or nothing. The glow is earned through interaction.
-
-**The One Border Pairing Rule.** An element has either a border OR a shadow, never both as decoration. The "ghost card" pattern (1px border + soft wide drop shadow) is prohibited. Pick one.
-
-## 5. Components
-
-### Buttons
-
-- **Shape:** Rounded medium (1rem / 16px) for standard buttons; full pill (1.5rem) for search container and chips. Never 24px+ on buttons — that reads as over-rounded.
-- **Primary:** Emerald-800 background (#00572e), white text, 0.875rem 1.25rem padding, 0.875rem (14px) font-weight 700. Hover: emerald-700 + -translate-y-0.5 + intensified glow shadow. Active: returns to baseline. Focus-visible: 4px emerald-600/10 ring.
-- **Ghost / Secondary:** Transparent background, emerald-700 text, 2px emerald-200 border. Hover: emerald-50 background + emerald-300 border + -translate-y-0.5. Used for secondary actions ("Cadangkan penceramah" alongside primary "Lihat semua").
-- **CTA Button** (on emerald-950 surface): White background, emerald-900 text, 1.25rem radius. Hover: amber-50 background + arrow translate-x-1.5. This is the luminous inversion — the white button glows against the dark emerald surface.
-
-### Cards (Verified Speaker Card)
-
-- **Corner Style:** Large radius (1.5rem / 24px). Crafted, not sharp.
-- **Background:** Pure white (#FFFFFF) against warm paper body. The contrast layer.
-- **Border:** Hairline border-slate-200/80 at rest. Never 1px solid + shadow together.
-- **Shadow Strategy:** Card Rest at default → Card Hover Glow on hover. Card lifts -translate-y-1.5. Border shifts to emerald-300/80. Title color shifts emerald-950 → emerald-700.
-- **Internal Padding:** 1.25rem (20px) on content area. Image fills its container edge-to-edge.
-- **Image Treatment:** Object-cover, object-top (portraits). Dot pattern overlay at 35% opacity behind image for fallback. Gradient fade (emerald-950/80 → transparent) at bottom over image. Verified badge top-left, "Penceramah" label bottom-left, arrow bottom-right.
-- **Hover Micro-interactions:** Portraits remain stable to preserve the folio identity. Arrow icons translate-x-1 over 300ms; title color transitions over 200ms; card lift and glow are the primary reward. Staggering is optional and must not delay readable content.
-
-### Inputs / Search
-
-- **Style:** Use the `.living-majlis-veil` material for the pill container: high-alpha white veil (approximately 0.78–0.92), emerald-tinted hairline rule, restrained 18px blur, and an opaque fallback. The icon container remains emerald-50 with an emerald-700 icon and 2xl radius (1rem).
-- **Focus:** Scale 1.01 + border emerald-300 + 4px emerald-600/10 ring + intensified glow shadow. The entire container breathes on focus.
-- **Clear Button:** 10×10 (2.5rem) circular, slate-200 border, slate-400 icon. Hover: rose-50 background + rose-600 icon. Appears only when search is filled.
-
-### Navigation
-
-- **Style:** Top nav with emerald-950 text on transparent/warm-paper background. Active state: emerald-700 text + underline.
-- **Mobile:** Hamburger menu, full-screen overlay, emerald-950 text on warm paper.
-- **wire:navigate:** All internal links use wire:navigate for SPA-style transitions. Hover states must not shift layout bounds.
-
-### Chips / Status Badges
-
-- **Verified Chip:** emerald-50/80 background, emerald-800 text, full pill, 0.5rem 0.875rem padding, 0.75rem (12px) font-weight 700 uppercase 0.20em tracking. Lead with checkmark icon. Appears top-left on speaker card images.
-- **Live Pulse Indicator:** Small emerald dot (1.5–2px) with animate-ping ring. Used in "Direktori Disahkan" eyebrow and "Semua profil disahkan" badge. Signals active curation.
-
-### Signature Component: The Editorial Folio
-
-The hero's right-column folio is the signature surface. It carries a real portrait or editorial asset, an emerald field, a restrained gold rule, and one concise trust message. It creates a sense of a curated register without turning the directory into a statistics dashboard. The folio may use a single ambient emerald halo because it is the page's architectural anchor; the repeated speaker grid remains flat at rest.
-
-## 6. Do's and Don'ts
-
-### Do:
-
-- **Do** use emerald-tinted glow shadows (`rgba(6,78,59,...)`) for all interactive depth. The glow is the brand.
-- **Do** cap gold accents at ≤10% of any screen. Gold is the luminous signal, not a fill color.
-- **Do** use warm paper (#fafaf7) as the body background. It carries the scholarly tradition without falling into the cream/sand cliché.
-- **Do** pair hairline borders (slate-200/80) OR glow shadows on cards — never both as decoration.
-- **Do** lift cards -translate-y-1.5 on hover with an intensified emerald glow. The lift is the interaction reward.
-- **Do** use Outfit across the entire system. Weight and tracking provide hierarchy.
-- **Do** use the verified chip pattern (emerald-50 bg, emerald-800 text, checkmark icon) consistently wherever verification is signaled.
-- **Do** respect `prefers-reduced-motion` — every animation needs a crossfade or instant fallback.
-
-### Don't:
-
-- **Don't** use generic SaaS blue/gray dashboards. The platform must feel distinctly Islamic in aesthetic — emerald and gold, not blue and gray.
-- **Don't** use gray drop shadows (rgba(0,0,0,...) or rgba(15,23,42,...) beyond structural base shadows). Gray shadows read as default; tinted shadows read as brand.
-- **Don't** use border-left or border-right greater than 1px as a colored accent stripe on cards, list items, or alerts. Side-stripe borders are prohibited.
-- **Don't** apply gradient text (background-clip: text + gradient background). Use a single solid color; emphasize via weight or size.
-- **Don't** put tiny uppercase tracked eyebrows above every section. One named kicker per page as a deliberate brand signal; more than that is the AI scaffold.
-- **Don't** use glassmorphism decoratively (blurs and glass cards as default). Rare and purposeful, or nothing.
-- **Don't** use hero-metric templates (big number + small label + supporting stats + gradient accent). SaaS cliché.
-- **Don't** use identical card grids with icon + heading + text repeated endlessly. Vary the rhythm.
-- **Don't** use border-radius 32px+ on cards, sections, or inputs. Cards top out at 1.5rem (24px); over-rounding reads as inexperienced.
-- **Don't** pair 1px border + wide drop shadow (blur ≥16px) on the same element. The ghost-card pattern is prohibited.
-- **Don't** use hand-drawn / sketchy SVG illustrations or crudely-drawn scenes. If a real asset cannot be rendered, ship no illustration.
-- **Don't** use diagonal stripe backgrounds (repeating-linear-gradient) or decorative grid overlays as default decoration.
-- **Don't** use dark patterns or urgency tricks. The trust is earned through verification, not manufactured through pressure.
-- **Don't** introduce a second typeface. Outfit is the single family; hierarchy comes from weight and tracking alone.
-
-## 7. Living Majlis Extension
-
-The Golden Directory becomes more distinctive when it behaves like a living archive rather than a collection of SaaS panels. The **Living Majlis** layer gives pages an editorial rhythm: a folio to establish trust, a clear index to support discovery, and gathering signals that invite the next step.
-
-### The signature: the editorial folio
-
-- Use one substantial folio per directory hero as the page's memorable visual anchor.
-- The folio may combine a real portrait/asset, an emerald field, a restrained gold rule, and compact metadata.
-- The folio is not a statistics card. Trust is communicated through visible verification and evidence, not inflated numbers.
-- Do not repeat the folio treatment on every card; repetition turns a signature into decoration.
-
-### Translucency is an instrument
-
-- Use translucent surfaces only for controls or intentional editorial overlays: search, filters, sorting, navigation rails, and similar interaction layers.
-- Keep speaker and event cards opaque (`#ffffff` or a clearly opaque theme surface) so names, dates, and trust signals remain legible.
-- The canonical control material uses a high-alpha white veil (approximately 0.78–0.92), an emerald-tinted rule, and restrained blur (approximately 18px).
-- Every translucent surface must have an opaque fallback for unsupported `backdrop-filter`, `prefers-reduced-transparency`, forced-colors mode, and low-power/mobile contexts.
-- The generic `.glass` and `.glass-dark` utilities are legacy conveniences, not the canonical Living Majlis material.
-
-### Editorial rhythm and motion
-
-- Prefer one strong composition over a stack of identical glass panels: folio → search/filter → index → contribution invitation.
-- Use hairline rules, image crops, and whitespace to create the feeling of a curated register; do not add numbered decoration or repeated uppercase kickers.
-- Motion is a single quiet reward: a folio reveal, a card lift, or a focused control glow. It must never delay content or shift layout bounds.
-- `prefers-reduced-motion: reduce` removes transforms, blur transitions, and ambient animation while preserving state and hierarchy.
-
-### Accessibility and material safeguards
-
-- Maintain visible `:focus-visible` rings and at least 44px interactive targets for controls.
-- Never rely on translucency, color, blur, or gold alone to communicate verification, selection, or availability.
-- Forced-colors mode replaces decorative gradients, noise, blur, and shadows with system Canvas/CanvasText surfaces and explicit borders.
-- The repeated-card rule remains: use a hairline border **or** an ambient shadow at rest, never a gray ghost-card combination. A single folio or CTA may use a subtle hairline plus emerald halo as an intentional compositional anchor, but that pairing must not spread to the grid.
-- Keep gold below 10% of a screen and reserve it for annotation, verified accents, and interaction rewards.
+## 0. Decision Summary
+
+| Question | Decision |
+|---|---|
+| Which direction? | **None of the three as-is. Build a unified system** using A's job-to-be-done and warmth, B's prayer-anchored time rail and reading discipline, and C's serif voice and trust modules. |
+| Front door of the product | **Events (majlis), anchored to prayer time.** People and institutions are the trust layer beneath, not the hero. |
+| Accent | Emerald `#047857` only. One filled emerald action per screen. |
+| Nav CTA "Hantar Majlis" | Near-black pill, so it never competes with the hero search button. |
+| Radius | 24px cards, 12px inputs and media (concentric), pill controls. 4px only in Reading mode. |
+| Type | Soft serif for headlines, friendly geometric sans for UI, Naskh for Arabic. |
+| Scope | Desktop **and mobile**. Most usage will be a phone in someone's hand between Maghrib and Isyak. |
+
+---
+
+## 1. Review
+
+### 1.1 What is already right (keep)
+
+- **One accent color.** Emerald `#047857` (Tailwind emerald-700) passes AA on every surface used: 5.03 on cream, 5.48 on white, and white text on it is 5.48.
+- **Warm neutrals** and generous whitespace suit the audience and topic.
+- **No faces or photorealistic people.** A sound reverence policy (see §11).
+- **The Avoid lists.** Precise and useful. Preserved in Appendix A.
+- **Prayer-anchored schedule strip (Direction B).** The single most domain-native idea across all three prompts.
+- **Malay copy quality.** "Majlis Ilmu Berhampiran Anda", "Ketenangan Melalui Ilmu" and "Dengar. Faham. Amal." are all strong.
+
+### 1.2 Findings and fixes
+
+| # | Priority | Finding | Evidence | Fix |
+|---|---|---|---|---|
+| 1 | P0 | The directions differ in **information architecture**, not just skin (A: Majlis/Institusi/Penceramah; B: Majlis/Kitab/Penceramah; A leads with events, B with time, C with people). They cannot be compared fairly. | Prompts | One canonical IA and page; directions become skins plus modules to borrow (§3). |
+| 2 | P0 | **White cards on cream are nearly invisible** in A. | White vs `#f9f4f2` = **1.09:1** | 1px divider border plus soft shadow (§4, §7). |
+| 3 | P0 | **Control borders too faint** in B. Hairline `#dedbd6` is fine for dividers but fails for inputs. | `#dedbd6` vs `#faf9f6` = **1.31:1**; WCAG 1.4.11 needs 3:1 | `--border-strong: #8c867e` for controls (3.30 on cream, 3.60 on white). |
+| 4 | P0 | **Prayer-relative time exists only in B.** Malaysian majlis are announced as "Selepas Maghrib", not "8:15 PM". | Domain knowledge | Promote to a global pattern: rail plus prayer-relative time on every card (§7). |
+| 5 | P0 | **A's event cards omit the speaker.** People decide by who is speaking. | A card spec | Speaker line added to the card. |
+| 6 | P0 | **Arabic and Quranic text handling is unspecified.** Image models garble it, B's italic voice can be applied to it, and pattern fills can become disrespectful. | Prompts | Explicit rules in §10 and §11. |
+| 7 | P1 | Three "primary" actions compete: A's dark-green "Hantar Majlis" pill sits above the search. "Dark-green" is also not a token. | A prompt | One filled emerald action per view ("Cari"). Nav CTA becomes an ink pill. |
+| 8 | P1 | **"Warm stone gray" (C) is unspecified**, and the common stone `#78716c` fails on cream. | `#78716c` on `#f9f4f2` = **4.40:1** | `--ink-muted: #6b645e` (5.33 cream, 5.82 white). |
+| 9 | P1 | No mobile, no states (hover, focus, disabled, empty, error, cancelled, full). | All prompts | §7 and §8. |
+| 10 | P1 | 24px radius with dense content wastes space and looks unresolved when nested. | A and C | Concentric radii (24 outer, 12 inner) and a spacing rule. |
+| 11 | P1 | C's stats (1,200+ / 300 / 150) are placeholders. On a religious platform, an inflated number is a trust failure. | C prompt | Real numbers only, placed low on the page as proof. |
+| 12 | P1 | Mockup-only constraints ("no dark mode", "no people") read as product rules. | All prompts | Clarified in §11 and §12. |
+| 13 | P2 | Three separate type systems and three near-identical inks (`#111111`, `#17191c`, `#2d2c2b`). | Prompts | Converged to one stack and two inks (§5). |
+| 14 | P2 | B's "whisper-light" headline risks thin rendering on low-DPI phones. | B prompt | Regular weight serif at 56px+ for display; never below 400. |
+| 15 | P2 | Prompts ask for too much legible text, which is the main cause of garbled output. | Prompts | Text budget rule (§13). |
+
+---
+
+## 2. Strategic Frame and Principles
+
+If ilmu360 is the operating system for Muslim civil society in Malaysia, the design is not a listings page. It is the visible face of a graph: **majlis ↔ penceramah ↔ institusi ↔ kitab ↔ siri (series)**.
+
+### 2.1 Principles
+
+1. **Waktu-first.** Time is prayer-anchored. The default view is the next prayer window, not a date picker.
+2. **Kepercayaan (trust) is visible.** Verification, freshness and organizer identity are UI, not fine print.
+3. **Tenang (calm).** Restraint is the brand. No pop-ups, no autoplay, no red notification badges, no scarcity pressure.
+4. **Hormat (reverence).** Sacred text and imagery are handled with rules, never decoration (§11).
+5. **Boleh dibaca semua (legible to all).** Wide age range, mid-range phones, variable networks.
+
+### 2.2 Second-order design implications
+
+- **The entity graph is the navigation.** Every majlis links to its penceramah, institusi, kitab and siri. Cross-links are first-class modules ("Lagi daripada penceramah ini", "Majlis di masjid ini"), not footnotes.
+- **A wrong listing costs someone an evening and the platform its credibility.** Trust primitives are required: "Disahkan" badge, "Dikemas kini {masa}" stamp, cancelled and changed states.
+- **Most majlis recur** (weekly kuliah). Model "Setiap Rabu" and series as a primary card attribute; it turns one visit into a habit.
+- **Supply is part of the design.** Organizers already have a poster (WhatsApp and Instagram). The "Hantar Majlis" flow should start from a poster upload and confirm fields, not a blank form.
+- **WhatsApp is the distribution layer.** Every majlis needs a generated share card (1200×630) built from these tokens, plus a clean "Kongsi ke WhatsApp" text template.
+- **Seasonality.** Ramadan is a theme mode: the prayer rail extends with Sahur, Berbuka, Tarawih and Qiamullail.
+- **Identity.** Generic "Islamic geometric" reads Middle Eastern. Add Malay-Islamic motifs (awan larat, pucuk rebung, songket-inspired borders) to the pattern set so the platform feels Malaysian (§11).
+
+---
+
+## 3. Recommended Direction: Unified System
+
+### 3.1 Borrow map
+
+| From | Take | Leave |
+|---|---|---|
+| **A · Headspace-calm** | Cream canvas, white 24px cards, pill chips, events-first discovery, friendly search | Speaker-less cards, low density, "dark-green" ambiguity |
+| **B · Intercom-editorial** | Prayer-anchored time rail, hairline dividers, serif italic voice (Malay only), light editorial rigor, **Reading mode** for kitab and references | 4px corners and zero shadow as the global skin, light-weight display type, list-only browsing |
+| **C · Steep-serif authority** | Regular-weight serif headlines, scholar cards, institution list, stat chips, ink pill CTA, "Dengar. Faham. Amal." | People-first hero, placeholder stats, card-in-card nesting |
+
+### 3.2 Copy map (each direction's headline gets a job)
+
+| Slot | Copy |
+|---|---|
+| Home H1 | **Majlis Ilmu Berhampiran Anda** |
+| Brand tagline (footer, About, share cards) | **Dengar. Faham. Amal.** |
+| Editorial and campaign hero (About, Kitab landing, Ramadan) | **Ketenangan Melalui Ilmu** |
+
+### 3.3 Two surface modes
+
+| Mode | Used for | Rules |
+|---|---|---|
+| **Card mode** (default) | Discovery, speakers, institutions | Cream canvas, white 24px cards, soft shadow plus divider border, pills |
+| **Reading mode** | Kitab, references, articles, verse and hadith blocks | Canvas `#faf9f6`, 4px corners, hairline dividers, no shadows, serif body, 60–72 character measure |
+
+---
+
+## 4. Design Tokens
+
+```css
+:root {
+  /* Surfaces */
+  --canvas: #f9f4f2;          /* page background (Reading mode: #faf9f6) */
+  --surface: #ffffff;         /* cards, inputs */
+  --divider: #e5ded8;         /* decorative only (1.2–1.3:1) */
+  --border-strong: #8c867e;   /* inputs, controls: 3.30 on canvas, 3.60 on surface */
+
+  /* Ink */
+  --ink-strong: #17191c;      /* headings, ink buttons (17.6:1) */
+  --ink: #2d2c2b;             /* body (12.8:1 on canvas) */
+  --ink-muted: #6b645e;       /* labels, meta (5.33 canvas, 5.82 surface) */
+
+  /* Accent: the only brand color */
+  --emerald-50:  #ecfdf5;
+  --emerald-100: #d1fae5;
+  --emerald-700: #047857;     /* primary */
+  --emerald-800: #065f46;     /* hover (white text 7.68:1) */
+  --emerald-900: #064e3b;     /* pressed */
+
+  /* Status (functional only, never decorative) */
+  --error:    #b42318;        /* on white 6.57:1 */
+  --warn-ink: #92400e;
+  --warn-bg:  #fef3c7;        /* 6.37:1 together */
+
+  /* Imagery only, never used for text */
+  --pattern-emerald:    #6f9c8a;
+  --pattern-sand:       #e6d5b8;
+  --pattern-terracotta: #c9825f;
+
+  /* Radius */
+  --r-card: 24px;   --r-media: 12px;  --r-input: 12px;
+  --r-pill: 999px;  --r-read: 4px;    /* Reading mode only */
+
+  /* Shadow (soft, never heavier) */
+  --shadow-1: 0 1px 2px rgba(45,44,43,.05), 0 6px 20px rgba(45,44,43,.06);
+  --shadow-2: 0 2px 4px rgba(45,44,43,.06), 0 12px 32px rgba(45,44,43,.10);
+
+  /* Spacing: 4px base */
+  --s-1: 4px;  --s-2: 8px;  --s-3: 12px; --s-4: 16px; --s-5: 24px;
+  --s-6: 32px; --s-7: 48px; --s-8: 64px; --s-9: 96px;
+
+  /* Motion */
+  --ease: cubic-bezier(.2,.7,.2,1);  --t-fast: 150ms;  --t-base: 200ms;
+}
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+```
+
+**Rules**
+- Emerald usage: primary button, active/selected state, focus ring, one highlight card per view, small tag punctuation. Never body text blocks, never backgrounds larger than a chip or one highlight card.
+- Inks converged from `#111111` / `#17191c` / `#2d2c2b` into two: `--ink-strong` and `--ink`.
+- Names are semantic so a dark theme can be added later. **Not in v1.** Reading mode is the first candidate (night reading).
+
+### 4.1 Verified contrast
+
+| Pair | Ratio | Result |
+|---|---|---|
+| Emerald `#047857` on cream `#f9f4f2` | 5.03 | AA ✓ |
+| Emerald on white | 5.48 | AA ✓ |
+| Emerald on canvas B `#faf9f6` | 5.21 | AA ✓ |
+| White on emerald (button) | 5.48 | AA ✓ |
+| White on emerald-800 (hover) | 7.68 | AAA ✓ |
+| Emerald-800 on emerald-50 (chip) | 7.29 | AAA ✓ |
+| Body `#2d2c2b` on cream | 12.78 | AAA ✓ |
+| Ink-strong `#17191c` on white | 17.61 | AAA ✓ |
+| Muted `#6b645e` on cream / white | 5.33 / 5.82 | AA ✓ |
+| B's muted `#585858` on `#faf9f6` | 6.76 | AA ✓ |
+| Error `#b42318` on white | 6.57 | AA ✓ |
+| Border-strong `#8c867e` on cream / white | 3.30 / 3.60 | UI ≥ 3:1 ✓ |
+| Common stone `#78716c` on cream | **4.40** | ✗ avoid |
+| Divider `#e5ded8` on white | 1.33 | Decorative only |
+| White card on cream | **1.09** | Needs border plus shadow |
+| Disabled `#a8a29e` on white | 2.52 | Inactive only, never for meaning |
+
+---
+
+## 5. Typography
+
+| Role | Font (recommended, swappable) | Fallback |
+|---|---|---|
+| Display and headings | **Fraunces**, regular 400, `SOFT` ~50, `WONK` off | `"Iowan Old Style", Georgia, serif` |
+| UI and body | **Figtree** | `system-ui, -apple-system, "Segoe UI", Roboto, sans-serif` |
+| Arabic | **Noto Naskh Arabic** (or Amiri) | `"Traditional Arabic", serif` |
+
+Any equivalent works; what matters is the pairing logic: soft serif for voice, geometric sans for scanning, Naskh for scripture. All three are open-licensed on Google Fonts.
+
+| Style | Desktop | Mobile |
+|---|---|---|
+| Display (H1) | Serif 400, 56/62, −0.01em | 36/42 |
+| H2 | Serif 400, 36/44 | 28/36 |
+| Card title | Sans 600, 20/28 (2-line clamp) | 19/26 |
+| Body | Sans 400, **17/28** | 17/28 |
+| Meta and labels | Sans 500, 14/20 (floor 13) | 14/20 |
+| Arabic | 24/44 (line-height ≥ 1.8) | 22/40 |
+
+**Rules**
+- `font-variant-numeric: tabular-nums` for dates, times and counts.
+- `text-wrap: balance` on headings; `overflow-wrap: anywhere` on titles (long Malay compounds and names).
+- No all-caps and no letter-spacing on Malay or Arabic text.
+- Serif italic (per Direction B) is allowed for **Malay sublines and quotes only. Never italicize Arabic.**
+- Display weight never below 400.
+
+---
+
+## 6. Layout and Responsive
+
+| Token | Value |
+|---|---|
+| Breakpoints | 640 / 1024 / 1280 |
+| Container | max 1200px, page padding 24 (desktop), 20 (tablet), 16 (mobile) |
+| Grid | 12-col, gutter 24 (desktop) / 16 (mobile) |
+| Event grid | 3 cols ≥ 1024, 2 cols 640–1023, 1 col < 640 |
+| Section rhythm | 64–96px desktop, 40–56px mobile |
+| Touch targets | **44×44px** (WCAG 2.2 AA minimum is 24px; 44 is the design target) |
+
+---
+
+## 7. Components
+
+### 7.1 Buttons
+
+| Variant | Spec | Use |
+|---|---|---|
+| **Primary** | 48px, pill, `--emerald-700` bg, white text. Hover `--emerald-800`, pressed `--emerald-900` | "Cari" only, plus confirm actions inside flows. **One per view.** |
+| **Ink** | 48px (36 compact), pill, `--ink-strong` bg, white text | Nav "Hantar Majlis" |
+| **Secondary** | 40px, pill, 1.5px `--border-strong` outline, `--ink-strong` text | "Ikuti", "Tapis", "Lihat lagi" |
+| **Ghost** | Text only, `--ink`, underline on hover | Tertiary links |
+
+**Focus (all interactive):** `outline: 2px solid var(--emerald-700); outline-offset: 2px`. **Disabled:** `--divider` bg with `--ink-muted` text, `aria-disabled`.
+
+### 7.2 Top navigation
+
+- Desktop: 64px, sticky, 1px `--divider` appears on scroll. Wordmark "ilmu360" left. Links **Majlis · Penceramah · Institusi · Kitab**. Right: language toggle `BM | EN` (EN optional in v1) and the ink pill **Hantar Majlis**.
+- Mobile: 56px top bar (wordmark and compact "Hantar Majlis" pill), plus 64px bottom tab bar **Utama · Cari · Disimpan · Akaun** *(recommended; validate)*.
+- Active link: `--ink-strong` weight 600 plus 2px underline. Never color alone.
+
+### 7.3 Search
+
+- 56px, pill, white, 1.5px `--border-strong`, `--shadow-1`. Segments: text input (placeholder **"Cari majlis, penceramah atau masjid"**), location segment (**"Lokasi anda"** with "Guna lokasi saya"), and the emerald **"Cari"** button inside the right end.
+- Mobile: stacks to input plus a location chip row beneath; "Cari" becomes full width.
+- Placeholder `--ink-muted` (5.82 on white).
+
+### 7.4 Category chips and filters
+
+- Chips: 40px, pill, white with 1px `--border-strong`. Types: **Kuliah, Ceramah, Kelas, Kursus**.
+- Selected: `--emerald-700` bg, white text, **plus a check icon** (not color alone).
+- "Tapis" (secondary button) opens a sheet with: Tarikh, Waktu solat, Bahasa, Sesuai untuk (Semua, Muslimah, Muslimin, Keluarga, Kanak-kanak), Percuma, Dalam talian.
+- Mobile: chips scroll horizontally with edge fade; never wrap to more than one row.
+
+### 7.5 Prayer-time rail (signature component)
+
+- Single-select toggle group: **Subuh · Zohor · Asar · Maghrib · Isyak**. Each segment: label (sans 600 15/20), `{waktu}` in tabular numerals, and `{n} majlis`.
+- **Default = the next upcoming prayer window** ("Seterusnya"), time-aware.
+- Active: `--emerald-800` text plus 2px `--emerald-700` underline. Inactive: `--ink-muted`.
+- Data: local prayer times by zone (e.g. JAKIM e-Solat zone data or equivalent). Do not hard-code times.
+- Semantics: radio-group or `aria-pressed` toggles. Mobile: horizontal scroll-snap.
+- Ramadan mode appends **Sahur, Berbuka, Tarawih, Qiamullail**.
+
+### 7.6 Event card (Majlis)
+
+```
+┌────────────────────────────────────┐  surface, 24px radius, 1px divider, shadow-1
+│ ┌────────────────────────────────┐ │  media 16:10, 12px radius (concentric),
+│ │ [3 Okt]                  [save]│ │  pattern fallback; date badge TL, save TR
+│ │        pattern / poster        │ │
+│ └────────────────────────────────┘ │
+│  [Percuma] [Berulang]               │  ≤ 2 tags
+│  Kuliah Maghrib: Tafsir …          │  card title, 2-line clamp
+│  Ustaz {Nama}                       │  speaker with honorific
+│  Selepas Maghrib · 8.30 malam       │  prayer-relative first, clock second
+│  Masjid {Nama} · {Kawasan} · 2.4 km │  venue · area · distance (if location on)
+└────────────────────────────────────┘
+```
+
+- Padding 12 around the media, 16 for the text block. **Inner radius = outer radius − padding (24 − 12 = 12).**
+- The whole card is one link (title is the accessible name). Save is a separate 44px control. Nested interactive elements are not allowed inside the link.
+- Hierarchy: **what → who → when → where.**
+
+| State | Treatment |
+|---|---|
+| Hover | `translateY(-2px)`, `--shadow-2`, 160ms |
+| Focus-visible | Standard focus ring around the card |
+| **Penuh** | Neutral tag "Penuh"; card stays clickable |
+| **Dibatalkan** | Banner on media in `--error` with icon; media desaturated; time line replaced by "Dibatalkan" |
+| **Dikemas kini** | Warn tag "Dikemas kini" if time or venue changed in the last 48h |
+| **Siaran Langsung** | Emerald dot plus label (no pulse under reduced motion) |
+| **Berulang** | "Setiap Rabu" in place of a single date |
+| Loading | Skeleton with identical geometry |
+| Empty (list) | "Tiada majlis ditemui." Offer: widen radius, clear filters, "Hantar Majlis" |
+| Error | "Tidak dapat memuatkan majlis. Cuba lagi." with a secondary retry button |
+
+### 7.7 Scholar card (from C)
+
+- Surface, 24px radius, padding 20. 56px circular monogram (initials in serif, tinted from sand or emerald-100, chosen deterministically from the name). Speaker-supplied photo optional, monogram fallback always.
+- Name with title (sans 600 18), "{n} majlis", secondary pill **"Ikuti"**.
+- **Highlight variant:** `--emerald-50` bg with 1px `--emerald-100` border. **Max one per view.**
+
+### 7.8 Institution row (from C)
+
+- Two-column list ≥ 1024, one column below. Row: 48px geometric glyph, name, area label (`--ink-muted`), type tag (Masjid, Surau, Madrasah, Universiti), **"Disahkan" badge** (emerald check plus text) when verified. `--divider` between rows. No card-in-card.
+
+### 7.9 Stat chips (from C)
+
+- Pill, white, serif number 24 plus sans label ("Majlis", "Penceramah", "Institusi"). **Real, live figures only.** Placed in the trust band, never in the hero.
+
+### 7.10 Footer
+
+- Wordmark, tagline **"Dengar. Faham. Amal."**, links, language toggle. Slim on mobile.
+
+---
+
+## 8. Page: Discovery Home
+
+### 8.1 Desktop (1440 × 900)
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│ ilmu360   Majlis  Penceramah  Institusi  Kitab        BM|EN [Hantar Majlis] │ 64
+├──────────────────────────────────────────────────────────────────────┤
+│                    Majlis Ilmu Berhampiran Anda                      │ H1 serif 56
+│     ( Cari majlis, penceramah atau masjid | Lokasi anda | [Cari] )   │ search 56
+│         (Kuliah) (Ceramah) (Kelas) (Kursus)   (Tapis)               │ chips 40
+├──────────────────────────────────────────────────────────────────────┤
+│ Hari Ini ▾                                        Senarai | Peta     │
+│ [ Subuh ][ Zohor ][ Asar ][ Maghrib ▔▔ ][ Isyak ]   prayer rail     │
+│ ┌────────┐ ┌────────┐ ┌────────┐                                    │
+│ │ card   │ │ card   │ │ card   │   3-col grid (first row peeks      │
+│ └────────┘ └────────┘ └────────┘   above the fold)                  │
+│                        (Lihat lagi)                                  │
+├──────────────────────────────────────────────────────────────────────┤
+│ Penceramah:  [scholar] [scholar*] [scholar]      (* highlight)       │
+│ Institusi:   two-column list with Disahkan badges                    │
+│ Stat chips:  {n} Majlis · {n} Penceramah · {n} Institusi             │
+├──────────────────────────────────────────────────────────────────────┤
+│ Footer — Dengar. Faham. Amal.                                        │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+### 8.2 Mobile (390 × 844)
+
+1. Top bar 56: wordmark and compact "Hantar Majlis" pill.
+2. H1 at 36/42, left-aligned.
+3. Search stacked, then a horizontal chip row.
+4. Prayer rail: horizontal scroll-snap, next prayer pre-selected.
+5. Single-column event cards; skeleton while loading.
+6. Trust band: horizontal scroller for scholars, single-column institutions, stat chips wrap two per row.
+7. Bottom tab bar 64: Utama · Cari · Disimpan · Akaun.
+
+### 8.3 Page inventory
+
+| Page | Primary object | Mode | Key modules |
+|---|---|---|---|
+| Home | Majlis | Card | Search, rail, event grid, trust band |
+| Majlis detail | One majlis | Card | Poster viewer, waktu, venue and map, "Kongsi ke WhatsApp", "Tambah ke kalendar", series and speaker cross-links, freshness stamp |
+| Penceramah profile | Speaker | Card | Monogram or photo, upcoming majlis, kitab discussed, "Ikuti" |
+| Institusi profile | Masjid or surau | Card | "Disahkan", weekly schedule (recurring), map, upcoming majlis |
+| Kitab and references | Text | **Reading** | Serif list, references, verse blocks |
+| Hantar Majlis | Submission | Card | Poster-first upload, confirm fields, preview card |
+
+---
+
+## 9. Motion
+
+- 150–200ms `--ease` for hover, focus and state changes. Sheets slide 240ms.
+- No autoplay, carousels that auto-advance, parallax, or looping animation.
+- Respect `prefers-reduced-motion` (see tokens).
+
+---
+
+## 10. Content and Localization
+
+**Language:** Malay first (`lang="ms"`), English toggle later. Arabic blocks carry `lang="ar" dir="rtl"`.
+
+| Item | Rule |
+|---|---|
+| Time | Prayer-relative first, clock second, Malay style with period: "Selepas Maghrib · 8.30 malam" |
+| Date | "Sabtu, 3 Okt 2026" (day, date, month, year). Hijri optional on detail pages, format `{hari} {bulan Hijrah} {tahun}H` |
+| Days | Isnin, Selasa, Rabu, Khamis, **Jumaat**, Sabtu, Ahad |
+| Months | Jan, Feb, **Mac**, Apr, Mei, Jun, Jul, **Ogos**, Sep, **Okt**, Nov, **Dis** |
+| Numbers | "1,200+" comma thousands. Tabular numerals |
+| Honorifics | Preserve exactly as submitted: Ustaz, Ustazah, Dato', Datuk, Dr., Prof., Tuan Guru, Habib, Syeikh. Never auto-abbreviate or reorder |
+| Copy tone | Calm, respectful, plain. No urgency language, no exclamation clusters |
+
+**Canonical copy**
+
+| Context | Text |
+|---|---|
+| Wordmark | ilmu360 |
+| Nav | Majlis, Penceramah, Institusi, Kitab |
+| CTA | Hantar Majlis |
+| Home H1 | Majlis Ilmu Berhampiran Anda |
+| Search placeholder | Cari majlis, penceramah atau masjid |
+| Search button | Cari |
+| Categories | Kuliah, Ceramah, Kelas, Kursus |
+| Prayer slots | Subuh, Zohor, Asar, Maghrib, Isyak |
+| Tags | Percuma, Berulang, Penuh, Dibatalkan, Dikemas kini, Disahkan, Siaran Langsung, Dalam Talian |
+| Actions | Tapis, Ikuti, Simpan, Lihat lagi, Kongsi ke WhatsApp |
+| Tagline | Dengar. Faham. Amal. |
+| Campaign | Ketenangan Melalui Ilmu |
+
+**Arabic typography**
+- Naskh font, 22–24px minimum, line-height ≥ 1.8, right-aligned.
+- Never italic, never letter-spaced, never uppercase-transformed, never truncated with an ellipsis, never wrapped mid-word.
+- Always show a source in Malay beside scripture or hadith, e.g. "Surah Al-Baqarah: 255".
+- Use verified text only. Never type Arabic from memory.
+
+---
+
+## 11. Imagery and Reverence
+
+**Mockups vs. product.** "No people" and "no dark mode" were mockup-generation constraints. In the product: speaker photos are allowed when supplied by the speaker (monogram fallback), and organizer posters are shown on detail pages. Cards never depend on imagery to make sense.
+
+**Pattern library**
+- Seamless SVG tiles, generated in code (not by image models), max 3 colors from the imagery palette, low contrast so badges and text stay legible.
+- Two families: Islamic geometric (star and girih grids) and **Malay-Islamic motifs** (awan larat, pucuk rebung, songket-inspired borders). The second family is the differentiator.
+- Assigned deterministically per majlis ID or category so a card looks the same every visit.
+
+**Sacred-text rules**
+- Never use Quranic verses, "Allah", or the Prophet's name in calligraphy as decoration, background, watermark, pattern fill, or in cropped or truncated containers.
+- Never place scripture beside ads, promotions, or transactional UI.
+- **Never let an image model generate Arabic script.** Garbled Arabic is inaccurate and disrespectful. Mockups contain no Arabic; real Arabic is typeset from verified text.
+- No depictions of prophets or companions. No human figures in illustration.
+
+---
+
+## 12. Accessibility and Performance
+
+**Accessibility (WCAG 2.2 AA)**
+- Contrast per §4.1. Controls have 3:1 borders. Focus is always visible.
+- 44px targets. Base text 17px. Layout survives 200% zoom and 320px width.
+- Active and selected states use more than color (underline, check, weight).
+- Skip link "Langkau ke kandungan". Landmarks on every page. Toggle groups have accessible names.
+- One link per card; no nested interactive elements.
+- Screen-reader strings in Malay; Arabic spans carry `lang="ar"`.
+
+**Performance (mid-range phones, variable networks)**
+- Card media ≤ 60 KB (AVIF or WebP), lazy-loaded below the fold, fixed aspect ratio (no layout shift).
+- Patterns are inline SVG or CSS, not raster.
+- Self-host fonts, subset Latin (Malay needs only basic Latin) and Arabic separately; `font-display: swap`.
+- Skeletons match final geometry.
+
+---
+
+## 13. Prompt Kit (image-model mockups)
+
+Use these for mood and composition only. **Build the real UI in HTML/CSS**; image models cannot be trusted with Malay text.
+
+### 13.1 Rules
+
+1. Start with a **FORMAT** line: flat, front-on, no device frame, no browser chrome, no perspective.
+2. **Text budget:** at most ~15 legible strings. Single words are safe; keep phrases to ≤ 5 words, and allow at most 3 longer phrases. Everything else is "gray placeholder bars, no letters".
+3. Quote every string that must be rendered, spelled exactly.
+4. No Arabic script anywhere.
+5. Keep the Avoid line. Generate 4 variants, pick the one with correct text, and re-run with fewer words if any headline is garbled.
+
+### 13.2 Unified, desktop
+
+```
+Flat, front-on UI mockup of a desktop web page, 16:9 landscape (1440x900). No device frame, no browser chrome, no perspective, no scene.
+
+Product: "ilmu360", a Malay-language platform for discovering Islamic talks and classes.
+
+Style: warm cream page background (#f9f4f2), white rounded cards (24px radius) with a thin warm-gray border and a very soft shadow, pill buttons and chips. Warm dark text (#2d2c2b). One accent only: deep emerald #047857. Headline in a soft, regular-weight serif; UI text in a friendly geometric sans. Generous whitespace, calm.
+
+Layout, top to bottom:
+1. Slim top nav: wordmark "ilmu360" on the left; links "Majlis", "Penceramah", "Institusi", "Kitab"; on the right a near-black pill button "Hantar Majlis".
+2. Centered serif headline "Majlis Ilmu Berhampiran Anda". Beneath it a wide white pill search bar with placeholder "Cari majlis, penceramah atau masjid" and an emerald pill button "Cari" at its right end.
+3. Centered row of four pill chips: "Kuliah", "Ceramah", "Kelas", "Kursus".
+4. A segmented row of five prayer-time slots: "Subuh", "Zohor", "Asar", "Maghrib", "Isyak". "Maghrib" is active: emerald text with a thin emerald underline.
+5. A 3-column grid of event cards. Each card has a rounded image area with an abstract geometric pattern, a small white date badge (day number and month), then a title, a speaker line, a time line and a mosque line. Show these as gray placeholder bars, except the first card's title, which reads "Kuliah Maghrib".
+6. Slim footer strip.
+
+Text rule: render ONLY the quoted strings above as legible text. All other text is neutral gray placeholder bars with no letters.
+
+Imagery: abstract Islamic geometric patterns in muted emerald, sand and terracotta. No people, no faces, no photographs, no Arabic script or calligraphy anywhere.
+
+Avoid: purple or blue gradients, glassmorphism, dark mode, heavy shadows, garbled or misspelled text, photorealistic people, cluttered or dense layout, more than one accent color.
+```
+
+### 13.3 Unified, mobile
+
+```
+Flat, front-on UI mockup of a mobile web page, portrait 390x844. No phone frame, no status-bar notch scene, no perspective.
+
+Product: "ilmu360", a Malay-language platform for discovering Islamic talks and classes.
+
+Style: warm cream background (#f9f4f2), white rounded cards (24px radius, thin warm-gray border, very soft shadow), pill chips. Warm dark text (#2d2c2b). One accent: deep emerald #047857. Soft regular-weight serif headline, friendly geometric sans for UI.
+
+Layout, top to bottom:
+1. Top bar: wordmark "ilmu360" on the left, a small near-black pill "Hantar Majlis" on the right.
+2. Left-aligned serif headline "Majlis Ilmu Berhampiran Anda".
+3. White pill search field with placeholder "Cari majlis, penceramah atau masjid", then a full-width emerald pill button "Cari".
+4. Horizontally scrolling pill chips: "Kuliah", "Ceramah", "Kelas", "Kursus".
+5. Horizontally scrolling prayer-time slots: "Subuh", "Zohor", "Asar", "Maghrib", "Isyak", with "Maghrib" active in emerald with a thin underline.
+6. Two stacked event cards: rounded pattern image area, date badge, then gray placeholder bars for title, speaker, time and mosque. First card's title reads "Kuliah Maghrib".
+7. Bottom tab bar with four simple icons and gray placeholder labels.
+
+Text rule: render ONLY the quoted strings as legible text; everything else is gray placeholder bars.
+
+Imagery: abstract Islamic geometric patterns in muted emerald, sand and terracotta. No people, no faces, no Arabic script.
+
+Avoid: gradients, glassmorphism, dark mode, heavy shadows, garbled or misspelled text, photorealistic people, clutter, more than one accent color.
+```
+
+### 13.4 Edits for the original A / B / C prompts
+
+If you keep generating the originals, apply these:
+
+1. Prepend the FORMAT line from §13.2 (no device frame, browser chrome or perspective).
+2. Add the text rule (only quoted strings legible; all else gray bars).
+3. **A:** replace "dark-green pill button" with "pill button in deep emerald #047857 with white text"; add a speaker line to each event card; add prayer-relative time.
+4. **B:** state that ink text is `#111111` on `#faf9f6`, and that control outlines use a darker gray (`#8c867e`), not the hairline; keep italics off any Arabic.
+5. **C:** replace "warm stone gray" with `#6b645e`; label the stat chips as placeholder if the numbers are not yet real.
+6. All: add "No Arabic script or calligraphy anywhere" and use the canonical nav from §10.
+
+---
+
+## 14. Open Decisions
+
+| # | Decision | Recommendation |
+|---|---|---|
+| 1 | Confirm events-first as the front door | Yes. Trust modules sit beneath. |
+| 2 | Nav CTA styling and label | Ink pill. Test **"Hantar Majlis"** against **"Hebahkan Majlis"** (benefit-led). |
+| 3 | Font selection and licensing | Fraunces + Figtree + Noto Naskh Arabic. All are open-licensed. |
+| 4 | Speaker photos | Allow when speaker-supplied, monogram fallback. |
+| 5 | Stat chips | Ship only with live numbers. Otherwise omit. |
+| 6 | Mobile bottom tab bar | Adopt; validate with a five-user tap test. |
+| 7 | English toggle in v1 | Defer; design for it now (no hard-coded widths). |
+| 8 | Ramadan mode | Plan tokens and rail extension now; ship seasonally. |
+
+---
+
+## Appendix A: Original Directions (preserved)
+
+The source specs, unchanged, for reference and for continued image generation.
+
+### A · Headspace-calm — warmth and serenity
+- **Canvas** cream `#f9f4f2`; cards white, 24px radius; text warm dark `#2d2c2b`; accent emerald `#047857` for the primary button and small accents only; image palette muted emerald, sand, terracotta; rounded geometric sans; soft shadows only.
+- **Layout** slim nav ("ilmu360"; Majlis, Institusi, Penceramah; dark-green pill "Hantar Majlis") → headline **"Majlis Ilmu Berhampiran Anda"** with rounded search → pill chips (Kuliah, Ceramah, Kelas, Kursus) → 3-column event cards (image, date badge, title, mosque, time) → footer strip.
+- **Avoid** purple or blue gradients, glassmorphism, dark mode, heavier-than-soft shadows, garbled text, photorealistic people, cluttered layout.
+
+### B · Intercom-editorial — reverent reading
+- **Canvas** off-white `#faf9f6`; ink `#111111`; muted `#585858`; hairline borders `#dedbd6`; 4px corners; no shadows; one accent emerald `#047857` (active schedule item, tag punctuation); light sans for UI plus one serif italic voice for quotes and verse references.
+- **Layout** minimal bar ("ilmu360"; Majlis, Kitab, Penceramah; solid black "Hantar Majlis") → oversized light headline **"Ketenangan Melalui Ilmu"** with italic serif subline → prayer-anchored schedule strip (Subuh, Zohor, Asar, Maghrib, Isyak) → stacked talk list (date, serif title, speaker with honorific, venue) → kitab references list → minimal footer.
+- **Avoid** rounded bubbly cards, gradients, drop shadows, colorful illustration, more than one accent, garbled text, dark mode.
+
+### C · Steep-serif authority — scholars and institutions
+- **Canvas** paper white `#ffffff`; ink `#17191c`; muted warm stone gray; regular-weight serif display; large soft cards 24px radius; pill controls; barely-there shadows; single accent emerald `#047857` (chips, active states, one highlight card); clean sans for body and UI.
+- **Layout** centered nav ("ilmu360"; black pill "Hantar Majlis") → serif headline **"Dengar. Faham. Amal."** → three scholar cards (circular monogram avatars, names with titles, talk counts, follow buttons) → two-column institution list (mosque and surau names with area labels) → stat chips (1,200+ Majlis, 300 Penceramah, 150 Institusi) → footer. Monograms and geometric fills in warm neutrals; no faces.
+- **Avoid** bold heavy headlines, gradients, saturated colors beyond the emerald, photorealistic people, garbled text, dark mode, card-in-card nesting.
+
+### Generation tip (original)
+Image models mangle Malay and Arabic script. Zoom into text after generating; if a headline is garbled, re-run with fewer words on screen.

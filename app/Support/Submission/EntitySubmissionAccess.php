@@ -2,9 +2,12 @@
 
 namespace App\Support\Submission;
 
+use AIArmada\Addressing\Data\AddressLocationData;
+use AIArmada\Addressing\Support\AddressLocationScope;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
+use App\Models\Venue;
 use Illuminate\Database\Eloquent\Builder;
 
 final class EntitySubmissionAccess
@@ -17,12 +20,12 @@ final class EntitySubmissionAccess
     /**
      * @return Builder<Institution>
      */
-    public function institutionQueryForSubmitter(?User $user): Builder
+    public function institutionQueryForSubmitter(?User $user, ?string $countryId = null): Builder
     {
         /** @var Builder<Institution> $query */
         $query = Institution::query();
 
-        return $this->constrainInstitutionQueryForSubmitter($query, $user);
+        return $this->constrainInstitutionQueryForSubmitter($query, $user, $countryId);
     }
 
     /**
@@ -54,9 +57,9 @@ final class EntitySubmissionAccess
      * @param  Builder<Institution>  $query
      * @return Builder<Institution>
      */
-    public function constrainInstitutionQueryForSubmitter(Builder $query, ?User $user): Builder
+    public function constrainInstitutionQueryForSubmitter(Builder $query, ?User $user, ?string $countryId = null): Builder
     {
-        return $query
+        $query
             ->whereIn('status', self::ALLOWED_ENTITY_STATUSES)
             ->whereIn('status', ['verified', 'pending'])
             ->where(function (Builder $visibilityQuery) use ($user): void {
@@ -66,6 +69,28 @@ final class EntitySubmissionAccess
                     $visibilityQuery->orWhereHas('members', fn (Builder $memberQuery): Builder => $memberQuery->whereKey($user->getKey()));
                 }
             });
+
+        if (filled($countryId)) {
+            app(AddressLocationScope::class)->apply($query, new AddressLocationData(countryId: $countryId));
+        }
+
+        return $query;
+    }
+
+    /**
+     * @return Builder<Venue>
+     */
+    public function venueQuery(?string $countryId = null): Builder
+    {
+        /** @var Builder<Venue> $query */
+        $query = Venue::query()
+            ->whereIn('status', self::ALLOWED_ENTITY_STATUSES);
+
+        if (filled($countryId)) {
+            app(AddressLocationScope::class)->apply($query, new AddressLocationData(countryId: $countryId));
+        }
+
+        return $query;
     }
 
     /**
@@ -104,6 +129,20 @@ final class EntitySubmissionAccess
     {
         return $this->personQueryForSubmitter($user)
             ->whereKey($personId)
+            ->exists();
+    }
+
+    public function institutionBelongsToCountry(string $institutionId, string $countryId): bool
+    {
+        return app(AddressLocationScope::class)
+            ->apply(Institution::query()->whereKey($institutionId), new AddressLocationData(countryId: $countryId))
+            ->exists();
+    }
+
+    public function venueBelongsToCountry(string $venueId, string $countryId): bool
+    {
+        return app(AddressLocationScope::class)
+            ->apply(Venue::query()->whereKey($venueId), new AddressLocationData(countryId: $countryId))
             ->exists();
     }
 }

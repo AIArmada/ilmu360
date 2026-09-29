@@ -3112,6 +3112,8 @@ it('accepts any valid submission country uuid for frontend event submissions', f
 
     $disabledCountryId = (string) ensureTestAddressCountry('SG', 'Singapore', 'SGP', ['Asia/Singapore'], '65')->getKey();
 
+    syncPrimaryAddressForTest($institution, ['country_id' => $disabledCountryId]);
+
     $payload = [
         'title' => 'Frontend API Invalid Country Event',
         'description' => 'API description',
@@ -3141,6 +3143,19 @@ it('accepts any valid submission country uuid for frontend event submissions', f
     ]))
         ->assertCreated()
         ->assertJsonPath('data.event.title', 'Frontend API Invalid Country Event');
+
+    $malaysianInstitution = Institution::factory()->create([
+        'status' => 'verified',
+        'allow_public_event_submission' => true,
+    ]);
+
+    $this->postJson(route('api.client.submit-event.store'), array_merge($payload, [
+        'title' => 'Frontend API Mismatched Country Event',
+        'submission_country_id' => $disabledCountryId,
+        'primary_organizer_id' => $malaysianInstitution->getKey(),
+    ]))
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['primary_organizer_id']);
 });
 
 it('requires guest event submissions to include email or phone', function () {

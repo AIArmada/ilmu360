@@ -317,7 +317,16 @@ This means a complete event in ilmu360° is understood not only as user content,
 
 This section treats the current `/hantar-majlis` flow as the canonical baseline for minimum event completeness.
 
-## 5.1 Step 1: Info Majlis
+## 5.1 Step 1: Majlis & Topik
+
+### Title
+Meaning:
+- the main public identity of the event
+- what users recognize, share, and search for
+
+Why it matters:
+- title is one of the strongest signals of whether two sessions are actually the same event or different child events
+- title matching also pre-fills category and topic selections when a matching approved event exists, so it is asked first
 
 ### Event Type
 Meaning:
@@ -328,13 +337,9 @@ Why it matters:
 - strongly shapes event identity
 - not merely classification for backend filtering
 
-### Title
+### Domain Tags
 Meaning:
-- the main public identity of the event
-- what users recognize, share, and search for
-
-Why it matters:
-- title is one of the strongest signals of whether two sessions are actually the same event or different child events
+- broad knowledge category
 
 ### Description
 Meaning:
@@ -344,6 +349,28 @@ Meaning:
 
 Why it matters:
 - often necessary to distinguish one child session from another within the same umbrella program
+
+### Discipline Tags
+Meaning:
+- more specific field of study or subject matter
+
+### Source Tags
+Meaning:
+- primary source tradition or textual basis
+
+### Issue Tags
+Meaning:
+- public themes or topics for discovery
+
+### References
+Meaning:
+- the books or materials actually being referenced
+
+Why this classification block matters:
+- this makes many ilmu360° events content-bearing teaching units, not generic meetups
+- references can absolutely differ between child sessions under the same parent event
+
+## 5.2 Step 2: Tarikh, Masa & Kehadiran
 
 ### Event Date
 Meaning:
@@ -367,34 +394,6 @@ Meaning:
 
 Why it matters:
 - useful operationally, but not always required to define the event identity
-
-### Event Format
-Meaning:
-- physical, online, or hybrid
-
-Why it matters:
-- format changes location and participation expectations
-
-### Visibility
-Meaning:
-- who can discover or access the event
-
-Why it matters:
-- affects publication and dissemination, not just backend access control
-
-### Event URL
-Meaning:
-- canonical or supporting public link for more information
-
-Why it matters:
-- often helpful but not fundamental to event identity
-
-### Live URL
-Meaning:
-- participation endpoint for online or hybrid events
-
-Why it matters:
-- can be essential for actual attendance
 
 ### Gender
 Meaning:
@@ -424,6 +423,7 @@ Meaning:
 
 Why it matters:
 - not cosmetic; directly affects access and expectation
+- driven by target audience or location sensitivity, so it is available for all topics rather than gated by religious content
 
 ### Language
 Meaning:
@@ -432,33 +432,35 @@ Meaning:
 Why it matters:
 - especially important for multilingual Malaysian audience discovery and suitability
 
-## 5.2 Step 2: Kategori & Bidang
+## 5.3 Step 3: Format, Penganjur & Lokasi
 
-### Domain Tags
+### Event Format
 Meaning:
-- broad knowledge category
+- physical, online, or hybrid
 
-### Discipline Tags
+Why it matters:
+- format changes location and participation expectations
+
+### Visibility
 Meaning:
-- more specific field of study or subject matter
+- who can discover or access the event
 
-### Source Tags
+Why it matters:
+- affects publication and dissemination, not just backend access control
+
+### Event URL
 Meaning:
-- primary source tradition or textual basis
+- canonical or supporting public link for more information
 
-### Issue Tags
+Why it matters:
+- often helpful but not fundamental to event identity
+
+### Live URL
 Meaning:
-- public themes or topics for discovery
+- participation endpoint for online or hybrid events
 
-### References
-Meaning:
-- the books or materials actually being referenced
-
-Why this whole step matters:
-- this makes many ilmu360° events content-bearing teaching units, not generic meetups
-- references can absolutely differ between child sessions under the same parent event
-
-## 5.3 Step 3: Penganjur & Lokasi
+Why it matters:
+- can be essential for actual attendance
 
 ### Organizer Type
 Meaning:

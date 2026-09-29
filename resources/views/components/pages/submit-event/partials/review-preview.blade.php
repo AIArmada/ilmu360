@@ -74,7 +74,17 @@
         return (string) $value;
     };
 
+    $valueClass = static function (string $rendered) use ($dash): string {
+        return $rendered === $dash ? 'text-slate-400' : 'font-medium text-slate-900';
+    };
+
+    $dtClass = 'text-xs font-medium text-slate-500';
+    $ddBase = 'mt-1 text-sm leading-relaxed break-words';
+
     $submissionCountryId = is_string($get('submission_country_id')) ? $get('submission_country_id') : null;
+    $submissionCountryName = filled($submissionCountryId)
+        ? (string) (app(AddressCountryResolver::class)->resolve($submissionCountryId)?->name ?? '')
+        : '';
     $previewTimezone = app(AddressCountryResolver::class)->timezoneFor($submissionCountryId)
         ?? config('app.timezone', 'UTC');
 
@@ -87,7 +97,7 @@
             $timeValue = (string) $value;
 
             if (preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $timeValue) === 1) {
-                return $timeValue;
+                return Carbon::parse($timeValue)->format('h:i A');
             }
 
             $parsed = Carbon::parse($timeValue);
@@ -205,9 +215,38 @@
         ->filter()
         ->all();
 
-    $personIds = $asList($get('persons'));
-    $personMap = Person::query()->whereIn('id', $personIds)->pluck('name', 'id')->toArray();
-    $personLabels = collect($personIds)
+    $primaryOrganizerId = $get('primary_organizer_id');
+    $primaryOrganizerKind = $get('primary_organizer_kind');
+
+    if (! in_array($primaryOrganizerKind, ['institution', 'person'], true) && filled($primaryOrganizerId)) {
+        if (Institution::query()->whereKey($primaryOrganizerId)->exists()) {
+            $primaryOrganizerKind = 'institution';
+        } elseif (Person::query()->whereKey($primaryOrganizerId)->exists()) {
+            $primaryOrganizerKind = 'person';
+        }
+    }
+
+    $organizerKindLabel = $primaryOrganizerKind === 'person'
+        ? __('Penceramah')
+        : ($primaryOrganizerKind === 'institution' ? __('Institusi') : $dash);
+
+    $selectedPersonIds = $asList($get('persons'));
+    $personIds = collect($selectedPersonIds)
+        ->push($primaryOrganizerKind === 'person' ? ($get('primary_organizer_person_id') ?: $primaryOrganizerId) : null)
+        ->merge(collect((array) $get('other_key_people'))->map(
+            fn (mixed $keyPerson): mixed => is_array($keyPerson) ? ($keyPerson['involveable_id'] ?? null) : null,
+        ))
+        ->filter(fn (mixed $id): bool => filled($id) && Str::isUuid((string) $id))
+        ->map(fn (mixed $id): string => (string) $id)
+        ->unique()
+        ->values()
+        ->all();
+    $personMap = Person::query()
+        ->whereIn('id', $personIds)
+        ->get()
+        ->mapWithKeys(fn (Person $person): array => [(string) $person->id => $person->formatted_name])
+        ->toArray();
+    $personLabels = collect($selectedPersonIds)
         ->map(fn (mixed $id): ?string => $personMap[$id] ?? null)
         ->filter()
         ->all();
@@ -233,38 +272,43 @@
         ->values()
         ->all();
 
-    $primaryOrganizerId = $get('primary_organizer_id');
-    $primaryOrganizerKind = $get('primary_organizer_kind');
-
-    if (! in_array($primaryOrganizerKind, ['institution', 'person'], true) && filled($primaryOrganizerId)) {
-        if (Institution::query()->whereKey($primaryOrganizerId)->exists()) {
-            $primaryOrganizerKind = 'institution';
-        } elseif (Person::query()->whereKey($primaryOrganizerId)->exists()) {
-            $primaryOrganizerKind = 'person';
-        }
-    }
-
     $institutionIds = collect([
         $primaryOrganizerKind === 'institution' ? $primaryOrganizerId : $get('primary_organizer_institution_id'),
         $get('location_institution_id'),
     ])
-        ->filter()
+        ->filter(fn (mixed $id): bool => filled($id) && Str::isUuid((string) $id))
+        ->map(fn (mixed $id): string => (string) $id)
+        ->unique()
         ->values()
         ->all();
     $institutionMap = Institution::query()
         ->whereIn('id', $institutionIds)
-        ->pluck('name', 'id')
+        ->with('names')
+        ->get()
+        ->mapWithKeys(fn (Institution $institution): array => [(string) $institution->id => $institution->display_name])
         ->toArray();
 
     $venueId = $get('location_venue_id');
     $venueName = filled($venueId) ? Venue::query()->whereKey($venueId)->value('name') : null;
 
-    $spaceId = $get('space_id');
-    $spaceName = filled($spaceId) ? Space::query()->whereKey($spaceId)->value('name') : null;
+    $spaceIds = collect($asList($get('space_ids')))
+        ->merge($asList($get('space_id')))
+        ->filter(fn (mixed $id): bool => filled($id) && Str::isUuid((string) $id))
+        ->map(fn (mixed $id): string => (string) $id)
+        ->unique()
+        ->values()
+        ->all();
+    $spaceMap = $spaceIds === []
+        ? []
+        : Space::query()->whereIn('id', $spaceIds)->pluck('name', 'id')->toArray();
+    $spaceLabels = collect($spaceIds)
+        ->map(fn (string $id): ?string => isset($spaceMap[$id]) ? (string) $spaceMap[$id] : null)
+        ->filter()
+        ->all();
 
     $organizerName = $primaryOrganizerKind === 'institution'
         ? ($institutionMap[(string) $primaryOrganizerId] ?? null)
-        : (Person::query()->whereKey($get('primary_organizer_person_id') ?: $primaryOrganizerId)->value('name'));
+        : ($personMap[(string) ($get('primary_organizer_person_id') ?: $primaryOrganizerId)] ?? null);
 
     $locationLabel = null;
     if ($toScalar($get('event_format')) === EventFormat::Online->value) {
@@ -277,159 +321,174 @@
         $locationLabel = $venueName;
     }
 
+    $eventUrl = $toScalar($get('event_url'));
+    $liveUrl = $toScalar($get('live_url'));
+
     $galleryCount = count($asList($get('gallery')));
     $hasCover = filled($get('cover'));
     $hasPoster = filled($get('poster'));
 @endphp
 
-<div class="space-y-4">
-    <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
-        <h4 class="text-sm font-semibold text-slate-900">{{ __('Maklumat Majlis') }}</h4>
-        <dl class="mt-3 grid gap-3 text-sm md:grid-cols-2">
+<div class="divide-y divide-slate-200/70">
+    <section class="pb-6">
+        <h4 class="text-sm font-semibold text-emerald-950">{{ __('Majlis & Topik') }}</h4>
+        <dl class="mt-5 grid gap-x-6 gap-y-5 text-sm md:grid-cols-2">
             <div>
-                <dt class="text-slate-500">{{ __('Tajuk Majlis') }}</dt>
-                <dd class="font-medium text-slate-900">{{ $toLabel($get('title')) }}</dd>
+                <dt class="{{ $dtClass }}">{{ __('Tajuk Majlis') }}</dt>
+                <dd class="{{ $ddBase }} {{ $valueClass($toLabel($get('title'))) }}">{{ $toLabel($get('title')) }}</dd>
             </div>
             <div>
-                <dt class="text-slate-500">{{ __('Jenis Majlis') }}</dt>
-                <dd class="font-medium text-slate-900">{{ $toJoined($eventTypeLabels) }}</dd>
+                <dt class="{{ $dtClass }}">{{ __('Jenis Majlis') }}</dt>
+                <dd class="{{ $ddBase }} {{ $valueClass($toJoined($eventTypeLabels)) }}">{{ $toJoined($eventTypeLabels) }}</dd>
             </div>
             <div>
-                <dt class="text-slate-500">{{ __('Tarikh') }}</dt>
-                <dd class="font-medium text-slate-900">{{ $toLabel($eventDate) }}</dd>
+                <dt class="{{ $dtClass }}">{{ __('Topik / Bidang') }}</dt>
+                <dd class="{{ $ddBase }} {{ $valueClass($toJoined($domainLabels)) }}">{{ $toJoined($domainLabels) }}</dd>
             </div>
             <div>
-                <dt class="text-slate-500">{{ __('Waktu') }}</dt>
-                <dd class="font-medium text-slate-900">{{ $toLabel($prayerTimeLabel) }}</dd>
+                <dt class="{{ $dtClass }}">{{ __('Topik Lebih Khusus') }}</dt>
+                <dd class="{{ $ddBase }} {{ $valueClass($toJoined($disciplineLabels)) }}">{{ $toJoined($disciplineLabels) }}</dd>
+            </div>
+            <div>
+                <dt class="{{ $dtClass }}">{{ __('Sumber Utama') }}</dt>
+                <dd class="{{ $ddBase }} {{ $valueClass($toJoined($sourceLabels)) }}">{{ $toJoined($sourceLabels) }}</dd>
+            </div>
+            <div>
+                <dt class="{{ $dtClass }}">{{ __('Tema / Isu') }}</dt>
+                <dd class="{{ $ddBase }} {{ $valueClass($toJoined($issueLabels)) }}">{{ $toJoined($issueLabels) }}</dd>
+            </div>
+            <div class="md:col-span-2">
+                <dt class="{{ $dtClass }}">{{ __('Rujukan Kitab') }}</dt>
+                <dd class="{{ $ddBase }} {{ $valueClass($toJoined($referenceLabels)) }}">{{ $toJoined($referenceLabels) }}</dd>
+            </div>
+            <div class="md:col-span-2">
+                <dt class="{{ $dtClass }}">{{ __('Keterangan') }}</dt>
+                <dd class="mt-1 max-w-3xl space-y-2 break-words text-sm leading-7 {{ filled($get('description')) ? 'font-medium text-slate-900' : 'text-slate-400' }}">{!! filled($get('description')) ? $get('description') : $dash !!}</dd>
+            </div>
+        </dl>
+    </section>
+
+    <section class="py-6">
+        <h4 class="text-sm font-semibold text-emerald-950">{{ __('Tarikh, Masa & Kehadiran') }}</h4>
+        <dl class="mt-5 grid gap-x-6 gap-y-5 text-sm md:grid-cols-2">
+            <div>
+                <dt class="{{ $dtClass }}">{{ __('Tarikh') }}</dt>
+                <dd class="{{ $ddBase }} {{ $valueClass($toLabel($eventDate)) }}">{{ $toLabel($eventDate) }}</dd>
+            </div>
+            <div>
+                <dt class="{{ $dtClass }}">{{ __('Waktu') }}</dt>
+                <dd class="{{ $ddBase }} {{ $valueClass($toLabel($prayerTimeLabel)) }}">{{ $toLabel($prayerTimeLabel) }}</dd>
             </div>
             @if ($showCustomTime)
                 <div>
-                    <dt class="text-slate-500">{{ __('Masa Mula') }}</dt>
-                    <dd class="font-medium text-slate-900">{{ $toTimeLabel($get('custom_time')) }}</dd>
+                    <dt class="{{ $dtClass }}">{{ __('Masa Mula') }}</dt>
+                    <dd class="{{ $ddBase }} {{ $valueClass($toTimeLabel($get('custom_time'))) }}">{{ $toTimeLabel($get('custom_time')) }}</dd>
                 </div>
             @endif
             <div>
-                <dt class="text-slate-500">{{ __('Masa Akhir') }}</dt>
-                <dd class="font-medium text-slate-900">{{ $toTimeLabel($get('end_time')) }}</dd>
+                <dt class="{{ $dtClass }}">{{ __('Masa Akhir') }}</dt>
+                <dd class="{{ $ddBase }} {{ $valueClass($toTimeLabel($get('end_time'))) }}">{{ $toTimeLabel($get('end_time')) }}</dd>
             </div>
             <div>
-                <dt class="text-slate-500">{{ __('Format Majlis') }}</dt>
-                <dd class="font-medium text-slate-900">{{ $toLabel($formatEnum?->label()) }}</dd>
+                <dt class="{{ $dtClass }}">{{ __('Jantina') }}</dt>
+                <dd class="{{ $ddBase }} {{ $valueClass($toLabel($genderEnum?->getLabel())) }}">{{ $toLabel($genderEnum?->getLabel()) }}</dd>
             </div>
             <div>
-                <dt class="text-slate-500">{{ __('Keterlihatan') }}</dt>
-                <dd class="font-medium text-slate-900">{{ $toLabel($visibilityEnum?->getLabel()) }}</dd>
+                <dt class="{{ $dtClass }}">{{ __('Peringkat Umur') }}</dt>
+                <dd class="{{ $ddBase }} {{ $valueClass($toJoined($ageGroupLabels)) }}">{{ $toJoined($ageGroupLabels) }}</dd>
             </div>
             <div>
-                <dt class="text-slate-500">{{ __('Pautan Majlis') }}</dt>
-                <dd class="font-medium text-slate-900">{{ $toLabel($get('event_url')) }}</dd>
+                <dt class="{{ $dtClass }}">{{ __('Kanak-kanak Dibenarkan') }}</dt>
+                <dd class="{{ $ddBase }} font-medium text-slate-900">{{ (bool) $get('children_allowed') ? __('Ya') : __('Tidak') }}</dd>
             </div>
             <div>
-                <dt class="text-slate-500">{{ __('Pautan Siaran Langsung') }}</dt>
-                <dd class="font-medium text-slate-900">{{ $toLabel($get('live_url')) }}</dd>
-            </div>
-            <div>
-                <dt class="text-slate-500">{{ __('Jantina') }}</dt>
-                <dd class="font-medium text-slate-900">{{ $toLabel($genderEnum?->getLabel()) }}</dd>
-            </div>
-            <div>
-                <dt class="text-slate-500">{{ __('Peringkat Umur') }}</dt>
-                <dd class="font-medium text-slate-900">{{ $toJoined($ageGroupLabels) }}</dd>
-            </div>
-            <div>
-                <dt class="text-slate-500">{{ __('Kanak-kanak Dibenarkan') }}</dt>
-                <dd class="font-medium text-slate-900">{{ (bool) $get('children_allowed') ? __('Ya') : __('Tidak') }}</dd>
-            </div>
-            @if ($hasReligiousContext)
-                <div>
-                    <dt class="text-slate-500">{{ __('Terbuka untuk Muslim Sahaja') }}</dt>
-                    <dd class="font-medium text-slate-900">{{ (bool) $get('is_muslim_only') ? __('Ya') : __('Tidak') }}</dd>
-                </div>
-            @endif
-            <div class="md:col-span-2">
-                <dt class="text-slate-500">{{ __('Bahasa') }}</dt>
-                <dd class="font-medium text-slate-900">{{ $toJoined($languageLabels) }}</dd>
+                <dt class="{{ $dtClass }}">{{ __('Terbuka untuk Muslim Sahaja') }}</dt>
+                <dd class="{{ $ddBase }} font-medium text-slate-900">{{ (bool) $get('is_muslim_only') ? __('Ya') : __('Tidak') }}</dd>
             </div>
             <div class="md:col-span-2">
-                <dt class="text-slate-500">{{ __('Keterangan') }}</dt>
-                <dd class="font-medium text-slate-900">{!! filled($get('description')) ? $get('description') : $dash !!}</dd>
+                <dt class="{{ $dtClass }}">{{ __('Bahasa') }}</dt>
+                <dd class="{{ $ddBase }} {{ $valueClass($toJoined($languageLabels)) }}">{{ $toJoined($languageLabels) }}</dd>
             </div>
         </dl>
-    </div>
+    </section>
 
-    <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
-        <h4 class="text-sm font-semibold text-slate-900">{{ __('Topik & Rujukan') }}</h4>
-        <dl class="mt-3 grid gap-3 text-sm md:grid-cols-2">
+    <section class="py-6">
+        <h4 class="text-sm font-semibold text-emerald-950">{{ __('Format, Penganjur & Lokasi') }}</h4>
+        <dl class="mt-5 grid gap-x-6 gap-y-5 text-sm md:grid-cols-2">
             <div>
-                <dt class="text-slate-500">{{ __('Kategori') }}</dt>
-                <dd class="font-medium text-slate-900">{{ $toJoined($domainLabels) }}</dd>
+                <dt class="{{ $dtClass }}">{{ __('Negara') }}</dt>
+                <dd class="{{ $ddBase }} {{ $valueClass($toLabel($submissionCountryName)) }}">{{ $toLabel($submissionCountryName) }}</dd>
             </div>
             <div>
-                <dt class="text-slate-500">{{ __('Bidang Ilmu') }}</dt>
-                <dd class="font-medium text-slate-900">{{ $toJoined($disciplineLabels) }}</dd>
+                <dt class="{{ $dtClass }}">{{ __('Format Majlis') }}</dt>
+                <dd class="{{ $ddBase }} {{ $valueClass($toLabel($formatEnum?->label())) }}">{{ $toLabel($formatEnum?->label()) }}</dd>
             </div>
             <div>
-                <dt class="text-slate-500">{{ __('Sumber Utama') }}</dt>
-                <dd class="font-medium text-slate-900">{{ $toJoined($sourceLabels) }}</dd>
+                <dt class="{{ $dtClass }}">{{ __('Keterlihatan') }}</dt>
+                <dd class="{{ $ddBase }} {{ $valueClass($toLabel($visibilityEnum?->getLabel())) }}">{{ $toLabel($visibilityEnum?->getLabel()) }}</dd>
             </div>
             <div>
-                <dt class="text-slate-500">{{ __('Tema / Isu') }}</dt>
-                <dd class="font-medium text-slate-900">{{ $toJoined($issueLabels) }}</dd>
-            </div>
-            <div class="md:col-span-2">
-                <dt class="text-slate-500">{{ __('Rujukan Kitab') }}</dt>
-                <dd class="font-medium text-slate-900">{{ $toJoined($referenceLabels) }}</dd>
-            </div>
-        </dl>
-    </div>
-
-    <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
-        <h4 class="text-sm font-semibold text-slate-900">{{ __('Penganjur & Lokasi') }}</h4>
-        <dl class="mt-3 grid gap-3 text-sm md:grid-cols-2">
-            <div>
-                <dt class="text-slate-500">{{ __('Jenis Penganjur') }}</dt>
-                <dd class="font-medium text-slate-900">
-                    {{ $primaryOrganizerKind === 'speaker' ? __('Penceramah') : ($primaryOrganizerKind === 'institution' ? __('Institusi') : $dash) }}
+                <dt class="{{ $dtClass }}">{{ __('Pautan Majlis') }}</dt>
+                <dd class="{{ $ddBase }} {{ $eventUrl !== '' ? 'font-medium' : 'text-slate-400' }}">
+                    @if ($eventUrl !== '')
+                        <a href="{{ $eventUrl }}" target="_blank" rel="noopener" class="break-all text-emerald-700 underline decoration-emerald-200 underline-offset-2 hover:text-emerald-900">{{ $eventUrl }}</a>
+                    @else
+                        {{ $dash }}
+                    @endif
                 </dd>
             </div>
             <div>
-                <dt class="text-slate-500">{{ __('Penganjur') }}</dt>
-                <dd class="font-medium text-slate-900">{{ $toLabel($organizerName) }}</dd>
+                <dt class="{{ $dtClass }}">{{ __('Pautan Siaran Langsung') }}</dt>
+                <dd class="{{ $ddBase }} {{ $liveUrl !== '' ? 'font-medium' : 'text-slate-400' }}">
+                    @if ($liveUrl !== '')
+                        <a href="{{ $liveUrl }}" target="_blank" rel="noopener" class="break-all text-emerald-700 underline decoration-emerald-200 underline-offset-2 hover:text-emerald-900">{{ $liveUrl }}</a>
+                    @else
+                        {{ $dash }}
+                    @endif
+                </dd>
             </div>
             <div>
-                <dt class="text-slate-500">{{ __('Lokasi') }}</dt>
-                <dd class="font-medium text-slate-900">{{ $toLabel($locationLabel) }}</dd>
+                <dt class="{{ $dtClass }}">{{ __('Jenis Penganjur') }}</dt>
+                <dd class="{{ $ddBase }} {{ $valueClass($organizerKindLabel) }}">{{ $organizerKindLabel }}</dd>
             </div>
             <div>
-                <dt class="text-slate-500">{{ __('Ruang') }}</dt>
-                <dd class="font-medium text-slate-900">{{ $toLabel($spaceName) }}</dd>
+                <dt class="{{ $dtClass }}">{{ __('Penganjur') }}</dt>
+                <dd class="{{ $ddBase }} {{ $valueClass($toLabel($organizerName)) }}">{{ $toLabel($organizerName) }}</dd>
             </div>
-            <div class="md:col-span-2">
-                <dt class="text-slate-500">{{ __('Pilih Penceramah') }}</dt>
-                <dd class="font-medium text-slate-900">{{ $toJoined($personLabels) }}</dd>
+            <div>
+                <dt class="{{ $dtClass }}">{{ __('Lokasi') }}</dt>
+                <dd class="{{ $ddBase }} {{ $valueClass($toLabel($locationLabel)) }}">{{ $toLabel($locationLabel) }}</dd>
             </div>
-            <div class="md:col-span-2">
-                <dt class="text-slate-500">{{ __('Peranan Lain') }}</dt>
-                <dd class="font-medium text-slate-900">{{ $toJoined($otherKeyPeopleLabels) }}</dd>
+            <div>
+                <dt class="{{ $dtClass }}">{{ __('Ruang') }}</dt>
+                <dd class="{{ $ddBase }} {{ $valueClass($toJoined($spaceLabels)) }}">{{ $toJoined($spaceLabels) }}</dd>
             </div>
         </dl>
-    </div>
+    </section>
 
-    <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
-        <h4 class="text-sm font-semibold text-slate-900">{{ __('Penceramah & Media') }}</h4>
-        <dl class="mt-3 grid gap-3 text-sm md:grid-cols-2">
-            <div>
-                <dt class="text-slate-500">{{ __('Gambar Cover Majlis') }}</dt>
-                <dd class="font-medium text-slate-900">{{ $hasCover ? __('Ya') : __('Tidak') }}</dd>
+    <section class="pt-6">
+        <h4 class="text-sm font-semibold text-emerald-950">{{ __('Penceramah & Media') }}</h4>
+        <dl class="mt-5 grid gap-x-6 gap-y-5 text-sm md:grid-cols-2">
+            <div class="md:col-span-2">
+                <dt class="{{ $dtClass }}">{{ __('Pilih Penceramah') }}</dt>
+                <dd class="{{ $ddBase }} {{ $valueClass($toJoined($personLabels)) }}">{{ $toJoined($personLabels) }}</dd>
+            </div>
+            <div class="md:col-span-2">
+                <dt class="{{ $dtClass }}">{{ __('Peranan Lain') }}</dt>
+                <dd class="{{ $ddBase }} {{ $valueClass($toJoined($otherKeyPeopleLabels)) }}">{{ $toJoined($otherKeyPeopleLabels) }}</dd>
             </div>
             <div>
-                <dt class="text-slate-500">{{ __('Poster Hebahan') }}</dt>
-                <dd class="font-medium text-slate-900">{{ $hasPoster ? __('Ya') : __('Tidak') }}</dd>
+                <dt class="{{ $dtClass }}">{{ __('Gambar Cover Majlis') }}</dt>
+                <dd class="{{ $ddBase }} font-medium text-slate-900">{{ $hasCover ? __('Ya') : __('Tidak') }}</dd>
             </div>
             <div>
-                <dt class="text-slate-500">{{ __('Galeri') }}</dt>
-                <dd class="font-medium text-slate-900">{{ $galleryCount > 0 ? (string) $galleryCount : $dash }}</dd>
+                <dt class="{{ $dtClass }}">{{ __('Poster Hebahan') }}</dt>
+                <dd class="{{ $ddBase }} font-medium text-slate-900">{{ $hasPoster ? __('Ya') : __('Tidak') }}</dd>
+            </div>
+            <div>
+                <dt class="{{ $dtClass }}">{{ __('Galeri') }}</dt>
+                <dd class="{{ $ddBase }} {{ $valueClass($galleryCount > 0 ? (string) $galleryCount : $dash) }}">{{ $galleryCount > 0 ? (string) $galleryCount : $dash }}</dd>
             </div>
         </dl>
-    </div>
+    </section>
 </div>

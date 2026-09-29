@@ -3968,6 +3968,20 @@ request). Filters morph on the fast parent response; list follows on the child r
 - Bisection can mislead under RNG-position dependence: the "polluter" test only shifted the global faker draw count. Instrumentation showing inverted clean/polluted values exposed it.
 - Faker draws come from process-global mt_rand state, so factory randomness is position-dependent within a run — tests overriding one schedule field must pin the other.
 
+## Fix homepage hero headline movement on reload (2026-09-30)
+
+### Plan
+
+- [x] Capture headline geometry during reload and identify the triggering style or initialization: quick filters uncloaking moved the headline upward by 54px.
+- [x] Apply the smallest fix preserving the settled hero composition and existing interactions: render the default-visible quick filters immediately while keeping `x-show`.
+- [x] Verify fresh and repeat loads at desktop and mobile sizes; review the diff and relevant checks.
+
+### Review
+
+- Browser geometry stayed constant throughout fresh loads and reloads at 1440px and 390px, with JavaScript delayed by 500ms. Desktop headline top: 209.52px; mobile: 135.98px. Before the fix desktop moved from 263.52px to 209.52px.
+- Switching to Institusi/Penceramah still hides the quick filters; switching back to Majlis restores them. No browser JavaScript errors. Desktop/mobile screenshots and `git diff --check` passed.
+- This one-line layout fix does not change product workflows or tracking and needs no new application test. Full PHPStan was stopped after several minutes without progress; its configured paths do not include the changed Blade markup, and no PHP logic changed.
+
 ## Codex review findings round 1 (2026-09-29)
 
 ### Plan

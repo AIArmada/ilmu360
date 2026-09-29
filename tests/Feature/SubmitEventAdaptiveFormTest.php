@@ -91,29 +91,33 @@ it('keeps waktu available for every event and does not classify by category alon
         ->set('data.prayer_time', EventPrayerTime::LainWaktu->value);
 
     $component
-        ->assertFormFieldHidden('is_muslim_only')
+        ->assertFormFieldVisible('is_muslim_only')
         ->assertFormFieldVisible('prayer_time')
         ->assertFormFieldVisible('custom_time')
-        ->assertSet('data.is_muslim_only', false)
+        ->assertSet('data.is_muslim_only', true)
         ->assertSet('data.prayer_time', EventPrayerTime::LainWaktu->value)
         ->set('data.custom_time', '20:00')
         ->assertSet('data.custom_time', '20:00');
 });
 
-it('shows the topic and reference step only for the religious topic', function (): void {
+it('shows the topic detail sections only for the religious topic', function (): void {
     app(EventTaxonomySeeder::class)->run();
     app(EventTopicSeeder::class)->run();
 
-    $stepKey = 'topik-rujukan::data::wizard-step';
     $component = Livewire::test(Create::class);
 
     $component
-        ->assertSchemaComponentVisible($stepKey)
+        ->assertSee('Topik & Klasifikasi')
+        ->assertFormFieldVisible('discipline_tags')
+        ->assertFormFieldVisible('references')
         ->set('data.event_category_ids', [eventCategoryId('aktiviti_keagamaan')])
         ->set('data.domain_tags', adaptiveSubmitEventTopicId('pendidikan'))
-        ->assertSchemaComponentHidden($stepKey)
+        ->assertDontSee('Topik & Klasifikasi')
+        ->assertDontSee('Topik lebih khusus')
         ->set('data.domain_tags', adaptiveSubmitEventTopicId('agama-kerohanian'))
-        ->assertSchemaComponentVisible($stepKey);
+        ->assertSee('Topik & Klasifikasi')
+        ->assertFormFieldVisible('discipline_tags')
+        ->assertFormFieldVisible('references');
 });
 
 it('hydrates single-select taxonomy defaults when duplicating an event', function (): void {
@@ -337,4 +341,58 @@ it('normalizes quick-added titles on the server before calculating progress', fu
         ->set('data.title', '__quick_add__Chrome progress test');
 
     $component->assertSet('data.title', 'Chrome progress test');
+});
+
+it('groups the regrouped wizard into labeled steps and sections', function (): void {
+    app(EventTaxonomySeeder::class)->run();
+    app(EventTopicSeeder::class)->run();
+
+    Livewire::test(Create::class)
+        ->assertSee('Majlis & Topik')
+        ->assertSee('Tarikh, Masa & Kehadiran')
+        ->assertSee('Format, Penganjur & Lokasi')
+        ->assertSee('Tentang Majlis')
+        ->assertSee('Tarikh & Masa')
+        ->assertSee('Format & Pautan')
+        ->assertSee('Kehadiran')
+        ->assertSee('Topik & Klasifikasi')
+        ->assertSee('Rujukan Kitab');
+});
+
+it('persists the muslim-only choice for non-religious topics', function (): void {
+    fakePrayerTimesApi();
+    app(EventTaxonomySeeder::class)->run();
+    app(EventTopicSeeder::class)->run();
+
+    $institution = Institution::factory()->create(['status' => 'verified']);
+    $person = Person::factory()->create(['status' => 'verified']);
+
+    setSubmitEventFormState(
+        Livewire::test(Create::class),
+        [
+            'title' => 'Muslim Only Non Religious Event',
+            'domain_tags' => [adaptiveSubmitEventTopicId('pendidikan')],
+            'event_category_ids' => [eventCategoryId('kelas_kursus')],
+            'event_date' => now()->addDays(5)->toDateString(),
+            'prayer_time' => EventPrayerTime::SelepasMaghrib->value,
+            'description' => 'Location sensitive community class.',
+            'event_format' => EventFormat::Physical->value,
+            'visibility' => EventVisibility::Public->value,
+            'gender' => EventGenderRestriction::All->value,
+            'age_group' => [EventAgeGroup::AllAges->value],
+            'languages' => [languageId('ms')],
+            'primary_organizer_id' => $institution->id,
+            'persons' => [$person->id],
+            'is_muslim_only' => true,
+            'submitter_name' => 'Test User',
+            'submitter_email' => 'test@example.com',
+        ],
+    )
+        ->call('submit')
+        ->assertHasNoErrors()
+        ->assertRedirect(route('submit-event.success'));
+
+    $event = Event::where('title', 'Muslim Only Non Religious Event')->firstOrFail();
+
+    expect((bool) $event->is_muslim_only)->toBeTrue();
 });
