@@ -317,7 +317,7 @@ This means a complete event in ilmu360° is understood not only as user content,
 
 This section treats the current `/hantar-majlis` flow as the canonical baseline for minimum event completeness.
 
-## 5.1 Step 1: Maklumat Majlis
+## 5.1 Step 1: Info Majlis
 
 ### Event Type
 Meaning:

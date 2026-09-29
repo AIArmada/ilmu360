@@ -55,7 +55,7 @@
 </style>
 @endpush
 
-<div class="min-h-screen bg-gradient-to-b from-emerald-50/80 via-[#f6f8f6] to-[#f6f8f6] py-10 pb-32 sm:py-14">
+<div class="min-h-screen bg-gradient-to-b from-emerald-50/80 via-[#f6f8f6] to-[#f6f8f6] pt-48 pb-32 sm:pt-52 lg:pt-52">
     <div class="container mx-auto px-6 lg:px-12">
         <div class="mx-auto max-w-6xl xl:max-w-7xl">
             @if(($eventContainer = $this->selectedEventContainer()) instanceof \App\Models\Event)

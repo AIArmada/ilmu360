@@ -166,7 +166,7 @@
                 $institutionsNavActive = request()->routeIs('institutions.*');
                 $personsNavActive = request()->routeIs('persons.*');
                 $useHomeHeader = request()->routeIs('home');
-                $useFloatingHeader = request()->routeIs('events.index', 'persons.index', 'institutions.index', 'references.index');
+                $useFloatingHeader = request()->routeIs('events.index', 'persons.index', 'institutions.index', 'references.index', 'submit-event.create');
                 $useOverlayHeader = $useHomeHeader || $useFloatingHeader;
                 $currentLocaleLabel = str_starts_with($currentLocale, 'ms')
                     ? 'BM'

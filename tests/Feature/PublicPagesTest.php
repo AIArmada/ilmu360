@@ -82,6 +82,17 @@ it('uses homepage-like vertical spacing on the public listing pages', function (
     });
 });
 
+it('uses the floating menu header on the submit-event form like the speaker directory', function () {
+    $this->get(route('persons.index'))
+        ->assertSuccessful()
+        ->assertSee('rounded-[2rem]', false);
+
+    $this->get(route('submit-event.create'))
+        ->assertSuccessful()
+        ->assertSee('rounded-[2rem]', false)
+        ->assertSee('pt-48', false);
+});
+
 it('renders accessible labels on the public submit-event form', function () {
     $this->get(route('submit-event.create'))
         ->assertSuccessful()
