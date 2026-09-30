@@ -1074,3 +1074,5 @@
 - For a seamless shared footer, check page-specific background overrides too; their lower surface must match the footer transition color, including pages with decorative hero backgrounds.
 
 - When adjusting a footer join, check the preceding page padding along with the artwork’s built-in empty space; avoid stacking a large page bottom spacer on the footer transition.
+
+- When a user asks for quieter image composition behind footer text, edit the artwork itself rather than adding CSS panels or washes; preserve surrounding scenery and tailor the calm zones to each breakpoint.

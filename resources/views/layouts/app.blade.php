@@ -573,9 +573,9 @@
             <footer class="living-majlis-footer relative mt-20 overflow-hidden text-emerald-50">
                 <div class="living-majlis-footer-scene pointer-events-none absolute inset-0">
                     <picture>
-                        <source media="(max-width: 639px)" srcset="{{ asset('images/footer-courtyard-v13-mobile.png') }}">
-                        <source media="(max-width: 1023px)" srcset="{{ asset('images/footer-courtyard-v13-tablet.png') }}">
-                        <img src="{{ asset('images/footer-courtyard-v12-seamless.png') }}" alt="" aria-hidden="true" loading="lazy" class="living-majlis-footer-art">
+                        <source media="(max-width: 639px)" srcset="{{ asset('images/footer-courtyard-v14-mobile.png') }}">
+                        <source media="(max-width: 1023px)" srcset="{{ asset('images/footer-courtyard-v14-tablet.png') }}">
+                        <img src="{{ asset('images/footer-courtyard-v14-desktop.png') }}" alt="" aria-hidden="true" loading="lazy" class="living-majlis-footer-art">
                     </picture>
                 </div>
                 <div class="living-majlis-footer-content relative z-10 mx-auto flex flex-col">

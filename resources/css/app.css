@@ -536,15 +536,6 @@ body.is-loaded .mi-bg-settled {
         }
     }
 
-    @media (max-width: 1023px) {
-        .living-majlis-footer-scene::after {
-            position: absolute;
-            inset: 30% 0 0;
-            background: linear-gradient(180deg, transparent, rgba(0, 35, 29, 0.45) 35%, rgba(0, 35, 29, 0.5));
-            content: '';
-        }
-    }
-
     @media (min-width: 640px) and (max-width: 1023px) {
         .living-majlis-footer-content {
             width: min(68%, 38rem);
@@ -555,6 +546,14 @@ body.is-loaded .mi-bg-settled {
 
         .living-majlis-footer-grid {
             gap: 3rem 4rem;
+        }
+
+        .living-majlis-footer-grid > nav {
+            text-align: center;
+        }
+
+        .living-majlis-footer-grid > nav > span {
+            margin-inline: auto;
         }
 
         .living-majlis-footer-grid > div:first-child {
@@ -594,6 +593,14 @@ body.is-loaded .mi-bg-settled {
 
         .living-majlis-footer-grid {
             gap: 2.25rem 1.25rem;
+        }
+
+        .living-majlis-footer-grid > nav {
+            text-align: center;
+        }
+
+        .living-majlis-footer-grid > nav > span {
+            margin-inline: auto;
         }
 
         .living-majlis-footer-grid > div:first-child {

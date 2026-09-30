@@ -4061,3 +4061,11 @@ request). Filters morph on the fast parent response; list follows on the child r
 
 - Dedicated tablet/mobile artwork selected with picture sources at 640px/1024px; compact desktop spacing at 1024–1279px and single-column navigation below 360px. Centered smaller-screen branding, 44px mobile link targets, and a contrast layer keep copy clear.
 - Checked 320, 390, 639, 640, 768, 1023, 1024, 1280, 1920px: correct assets, 11 links, no overflow or browser errors. Final mobile/tablet refinements visually verified; build and diff check passed. Cosmetic scope: no workflow/tracking changes.
+
+## Footer text clarity (2026-09-30)
+
+- [x] Regenerate desktop/tablet/mobile artwork with naturally quieter emerald text zones, retaining scenic architecture and the seamless ivory edge.
+- [x] Remove CSS text washes and small-screen dark overlay so clarity comes from the artwork.
+- [x] Build and verify all three compositions in the browser.
+
+- Installed v14 desktop/tablet/mobile generated images with calmer text zones and softer legal-row floor reflections. Removed CSS washes/overlays; retained the seamless top-edge blend. Production build and diff check passed; 1920/768/390px rendered the correct assets without overflow or browser errors.
