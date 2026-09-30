@@ -404,7 +404,7 @@ it('lists every speaker name below the location on the featured homepage cards',
     $expectedSpeakers = collect([$firstSpeaker, $secondSpeaker, $thirdSpeaker, $fourthSpeaker])
         ->map(fn (Person $speaker): string => $speaker->refresh()->formatted_name)
         ->join(', ');
-    $expectedLocation = 'Masjid Ujian Penempatan, Shah Alam, Selangor';
+    $expectedLocation = ['Masjid Ujian Penempatan', 'Shah Alam, Selangor'];
     $expectedRange = UserDateTimeFormatter::format($event->refresh()->starts_at, 'g:i A')
         .' — '
         .UserDateTimeFormatter::format($event->ends_at, 'g:i A');
@@ -435,13 +435,13 @@ it('lists every speaker name below the location on the featured homepage cards',
     $this->get('/')
         ->assertSuccessful()
         ->assertSee('Kuliah Pelbagai Penceramah')
-        ->assertSee($expectedLocation)
+        ->assertSeeInOrder($expectedLocation)
         ->assertSee($expectedRange)
-        ->assertSee('Surau Ujian Cawangan, Perlis')
+        ->assertSeeInOrder(['Surau Ujian Cawangan', 'Perlis'])
         ->assertDontSee('40000')
         ->assertDontSee('21003')
         ->assertDontSee('No 1, Jalan Ujian')
-        ->assertSeeInOrder([$expectedLocation, $expectedSpeakers])
+        ->assertSeeInOrder([...$expectedLocation, $expectedSpeakers])
         ->assertSee('Penceramah jemputan')
         ->assertSee('data-testid="homepage-featured-card-speaker-avatars"', false)
         ->assertSee('+1')

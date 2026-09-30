@@ -97,8 +97,8 @@ it('renders accessible labels on the public submit-event form', function () {
     $this->get(route('submit-event.create'))
         ->assertSuccessful()
         ->assertSee('Hantar Majlis')
-        ->assertSee('Percuma untuk dihantar')
-        ->assertSee('Semakan sebelum diterbitkan')
+        ->assertDontSee('Percuma untuk dihantar')
+        ->assertDontSee('Semakan sebelum diterbitkan')
         ->assertSee('aria-label="Fizikal"', false)
         ->assertSee('aria-label="Dalam talian"', false)
         ->assertSee('aria-label="Hibrid"', false);
@@ -162,8 +162,8 @@ it('renders the submit-event upload copy in the selected locale', function () {
         ->get(route('submit-event.create'))
         ->assertSuccessful()
         ->assertSee('Submit Event')
-        ->assertSee('Free to submit')
-        ->assertSee('Reviewed before publication')
+        ->assertDontSee('Free to submit')
+        ->assertDontSee('Reviewed before publication')
         ->assertSee('Have a poster? Let us help fill it in.')
         ->assertSee('Upload poster')
         ->assertDontSee('Ada poster? Biar kami bantu isi.');
@@ -420,7 +420,9 @@ it('renders the date and event-type badges on public events index cards', functi
         ->assertSee('data-testid="event-card-date-badge"', false)
         ->assertSeeInOrder([
             'data-cover-aspect=',
+            'data-testid="event-card-approval-badge"',
             'data-testid="event-card-type-badge"',
+            'data-testid="event-card-format-badge"',
             'data-testid="event-card-date-badge"',
         ], false);
 });

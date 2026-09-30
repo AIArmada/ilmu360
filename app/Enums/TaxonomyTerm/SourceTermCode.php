@@ -8,18 +8,20 @@ enum SourceTermCode: string
 {
     case AlQuran = 'al-quran';
     case Hadith = 'hadith';
-    case Fatwa = 'fatwa';
-    case Kajian = 'kajian';
     case Ulama = 'ulama';
+    case Fatwa = 'fatwa';
+    case Qias = 'qias';
+    case Kajian = 'kajian';
 
     public function label(): string
     {
         return match ($this) {
             self::AlQuran => 'Al-Quran',
-            self::Hadith => 'Hadith',
+            self::Hadith => 'Al-Sunnah (Hadith)',
+            self::Ulama => "Ijma' Ulama",
             self::Fatwa => 'Fatwa',
+            self::Qias => 'Qias',
             self::Kajian => 'Kajian',
-            self::Ulama => 'Ulama',
         };
     }
 }

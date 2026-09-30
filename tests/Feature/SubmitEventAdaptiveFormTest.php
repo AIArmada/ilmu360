@@ -103,22 +103,23 @@ it('keeps waktu available for every event and does not classify by category alon
         ->assertSet('data.custom_time', '20:00');
 });
 
-it('shows the topic detail sections only for the religious topic', function (): void {
+it('shows the topic detail fields only for the religious topic', function (): void {
     app(EventTaxonomySeeder::class)->run();
     app(EventTopicSeeder::class)->run();
 
     $component = Livewire::test(Create::class);
 
     $component
-        ->assertSee('Topik & Klasifikasi')
+        ->assertSee('Topik lebih khusus')
         ->assertFormFieldVisible('discipline_tags')
         ->assertFormFieldVisible('references')
         ->set('data.event_category_ids', [eventCategoryId('aktiviti_keagamaan')])
         ->set('data.domain_tags', adaptiveSubmitEventTopicId('pendidikan'))
-        ->assertDontSee('Topik & Klasifikasi')
         ->assertDontSee('Topik lebih khusus')
+        ->assertFormFieldHidden('discipline_tags')
+        ->assertFormFieldHidden('references')
         ->set('data.domain_tags', adaptiveSubmitEventTopicId('agama-kerohanian'))
-        ->assertSee('Topik & Klasifikasi')
+        ->assertSee('Topik lebih khusus')
         ->assertFormFieldVisible('discipline_tags')
         ->assertFormFieldVisible('references');
 });
@@ -354,15 +355,12 @@ it('groups the regrouped wizard into labeled steps and sections', function (): v
         ->assertSee('Majlis & Topik')
         ->assertSee('Tarikh, Masa & Kehadiran')
         ->assertSee('Format, Penganjur & Lokasi')
-        ->assertSee('Tentang Majlis')
         ->assertSee('Tarikh & Masa')
         ->assertSee('Format & Pautan')
-        ->assertSee('Kehadiran')
-        ->assertSee('Topik & Klasifikasi')
-        ->assertSee('Rujukan Kitab');
+        ->assertSee('Kehadiran');
 });
 
-it('keeps every Majlis & Topik section expanded without a collapse toggle', function (): void {
+it('renders the Majlis & Topik step without section containers', function (): void {
     app(EventTaxonomySeeder::class)->run();
     app(EventTopicSeeder::class)->run();
 
@@ -374,15 +372,10 @@ it('keeps every Majlis & Topik section expanded without a collapse toggle', func
 
     expect($firstStep)->toBeInstanceOf(Step::class);
 
-    $collapsibleBySection = collect($firstStep->getChildComponents())
-        ->filter(fn (object $component): bool => $component instanceof Section)
-        ->mapWithKeys(fn (Section $section): array => [(string) $section->getHeading() => $section->isCollapsible()]);
+    $sections = collect($firstStep->getChildComponents())
+        ->filter(fn (object $component): bool => $component instanceof Section);
 
-    expect($collapsibleBySection->all())->toBe([
-        __('Tentang Majlis') => false,
-        __('Topik & Klasifikasi') => false,
-        __('Rujukan Kitab') => false,
-    ]);
+    expect($sections)->toBeEmpty();
 });
 
 it('persists the muslim-only choice for non-religious topics', function (): void {

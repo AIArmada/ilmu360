@@ -4069,3 +4069,15 @@ request). Filters morph on the fast parent response; list follows on the child r
 - [x] Build and verify all three compositions in the browser.
 
 - Installed v14 desktop/tablet/mobile generated images with calmer text zones and softer legal-row floor reflections. Removed CSS washes/overlays; retained the seamless top-edge blend. Production build and diff check passed; 1920/768/390px rendered the correct assets without overflow or browser errors.
+
+## Event-card facts and location (2026-09-30)
+
+- [x] Review shared card, callers, approval semantics, location formatting, and tracking.
+- [x] Group type/format in the card body; place approval on the image; preserve lifecycle notices and distance.
+- [x] Split location lines, reuse canonical geography formatting, and clarify online attendance.
+- [x] Verify affected tests, formatting, production build, and diff.
+- [ ] Complete live mobile/desktop visual verification when the local site/browser responds.
+
+Plan reviewed against the requested layout. Existing save/share interactions and Signals remain unchanged.
+
+Review: Type and format share a neutral fact row above the title. Approval uses green/amber icons on the image; lifecycle changes remain separate. Location uses two lines, canonical city/state formatting removes duplicates, online-only hides physical attendance location, and hybrid adds online availability. Existing save/share tracking is preserved. Six new regression cases plus affected existing coverage: 16 initially passed, one obsolete combined-location assertion corrected and passed (17 total). Pint, production build, and diff check passed. Full PHPStan was interrupted due resource pressure; scope changes are Blade, translation JSON, and tests (tests are excluded by project PHPStan config). Live verification remains blocked by in-app browser timeouts and a local HTTPS request timeout; Octane reload confirmed no Octane server is running.

@@ -684,11 +684,6 @@
                                             : \App\Enums\EventFormat::tryFrom((string) $event->delivery_mode);
                                         $formatValue = $eventFormat?->value ?? \App\Enums\EventFormat::Physical->value;
                                         $formatLabel = $eventFormat?->getLabel() ?? __('Physical');
-                                        $formatBadgeClass = match ($formatValue) {
-                                            \App\Enums\EventFormat::Online->value => 'bg-sky-700 text-white',
-                                            \App\Enums\EventFormat::Hybrid->value => 'bg-teal-700 text-white',
-                                            default => 'bg-emerald-800 text-white',
-                                        };
                                         $scheduleLocation = $primarySession?->locations->first()
                                             ?? $primaryOccurrence->locations->first()
                                             ?? $event->primaryLocation;
@@ -709,17 +704,7 @@
                                                 ->implode(' · ');
                                         }
                                         $locationPrimaryText = is_string($primaryLocationName) && $primaryLocationName !== '' ? $primaryLocationName : null;
-                                        $explicitCity = trim((string) ($addressModel?->city ?? ''));
-                                        $stateText = \App\Support\Location\AddressHierarchyFormatter::format($addressModel, ['state']);
-                                        $fallbackHierarchyText = \App\Support\Location\AddressHierarchyFormatter::format($addressModel, ['city', 'state']);
-
-                                        if ($explicitCity !== '') {
-                                            $locationSecondaryText = collect([$explicitCity, $stateText !== '' ? $stateText : null])
-                                                ->filter()
-                                                ->implode(', ');
-                                        } else {
-                                            $locationSecondaryText = $fallbackHierarchyText !== '' ? $fallbackHierarchyText : null;
-                                        }
+                                        $locationSecondaryText = \App\Support\Location\AddressHierarchyFormatter::format($addressModel, ['city', 'state']) ?: null;
 
                                         if ($locationPrimaryText === null && $locationSecondaryText === null) {
                                             $locationPrimaryText = $formatValue === \App\Enums\EventFormat::Online->value ? __('Online') : __('Location pending');
@@ -734,9 +719,7 @@
                                                 ? (string) $event->timing_display
                                                 : ($cardStart ? \App\Support\Timezone\UserDateTimeFormatter::format($cardStart, 'g:i A') : __('TBC')));
                                         $scheduleStatus = $primarySession?->status ?? $primaryOccurrence->status;
-                                        $statusBadgeLabel = $event->status instanceof \App\States\EventStatus\Pending
-                                            ? __('Menunggu Kelulusan')
-                                            : ($eventChangeBadgeLabel ?? __('Confirmed'));
+                                        $statusBadgeLabel = $eventChangeBadgeLabel;
                                         $statusBadgeClass = $event->status instanceof \App\States\EventStatus\Pending
                                             ? 'border-amber-100 bg-amber-50 text-amber-700'
                                             : (in_array((string) $scheduleStatus, ['postponed', 'rescheduled'], true) || $event->status instanceof \App\States\EventStatus\Cancelled
@@ -758,7 +741,6 @@
                                         :status-label="$statusBadgeLabel"
                                         :status-class="$statusBadgeClass"
                                         :format-label="$formatLabel"
-                                        :format-class="$formatBadgeClass"
                                         :location-primary="$locationPrimaryText"
                                         :location-secondary="$locationSecondaryText"
                                         :distance-km="isset($event->distance_km) ? $event->distance_km : null"

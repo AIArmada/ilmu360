@@ -68,6 +68,7 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Callout;
 use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
@@ -550,121 +551,190 @@ class Create extends Component implements HasActions, HasForms
     private function getEventAboutFields(): array
     {
         return [
-            Section::make(__('Tentang Majlis'))
+            Select::make('title')
+                ->native(false)
+                ->label(__('Tajuk Majlis'))
+                ->required()
+                ->searchable()
+                ->allowHtml()
+                ->live()
+                ->afterStateUpdatedJs($this->progressUpdateJs())
+                ->getSearchResultsUsing(function (string $search): array {
+                    if ($search === '' || $search === '0') {
+                        return [];
+                    }
+
+                    $results = Event::query()
+                        ->whereLike('title', "%{$search}%")
+                        ->where('status', 'approved')
+                        ->limit(10)
+                        ->pluck('title', 'title')
+                        ->toArray();
+
+                    $exactMatch = collect($results)->contains(fn ($value) => mb_strtolower($value) === mb_strtolower($search));
+
+                    if (! $exactMatch) {
+                        $results = ["__quick_add__{$search}" => "<span class='text-primary-600'>+ ".__('Tambah')." '{$search}'</span>"] + $results;
+                    }
+
+                    return $results;
+                })
+                ->getOptionLabelUsing(function ($value): ?string {
+                    if (str_starts_with($value, '__quick_add__')) {
+                        return substr($value, strlen('__quick_add__'));
+                    }
+
+                    return $value;
+                })
+                ->afterStateUpdated(function (mixed $state, Set $set): void {
+                    if (is_string($state) && str_starts_with($state, '__quick_add__')) {
+                        $state = substr($state, strlen('__quick_add__'));
+                        $set('title', $state);
+                    }
+
+                    if (! is_string($state) || blank($state)) {
+                        return;
+                    }
+
+                    $existingEvent = Event::query()
+                        ->where('title', $state)
+                        ->where('status', 'approved')
+                        ->with(['classifications', 'references'])
+                        ->latest()
+                        ->first();
+
+                    if (! $existingEvent) {
+                        return;
+                    }
+
+                    $termsByTaxonomy = $existingEvent->classifications->groupBy('taxonomy_code');
+
+                    $set('event_category_ids', $termsByTaxonomy->get('event_category', collect())->pluck('event_term_id')->filter()->values()->first());
+
+                    if ($termsByTaxonomy->has(EventTaxonomyCode::Domain->value)) {
+                        $set('domain_tags', $termsByTaxonomy->get(EventTaxonomyCode::Domain->value)->pluck('event_term_id')->filter()->values()->first());
+                    }
+                    if ($termsByTaxonomy->has(EventTaxonomyCode::Discipline->value)) {
+                        $set('discipline_tags', $termsByTaxonomy->get(EventTaxonomyCode::Discipline->value)->pluck('event_term_id')->filter()->values()->all());
+                    }
+                    if ($termsByTaxonomy->has(EventTaxonomyCode::Source->value)) {
+                        $set('source_tags', $termsByTaxonomy->get(EventTaxonomyCode::Source->value)->pluck('event_term_id')->filter()->values()->all());
+                    }
+                    if ($termsByTaxonomy->has(EventTaxonomyCode::Issue->value)) {
+                        $set('issue_tags', $termsByTaxonomy->get(EventTaxonomyCode::Issue->value)->pluck('event_term_id')->filter()->values()->all());
+                    }
+
+                    if ($existingEvent->references->isNotEmpty()) {
+                        $set(
+                            'references',
+                            $existingEvent->references
+                                ->pluck('referenceable_id')
+                                ->filter()
+                                ->values()
+                                ->all(),
+                        );
+                    }
+                })
+                ->placeholder(__('Cari atau masukkan tajuk majlis...')),
+
+            Select::make('event_category_ids')
+                ->label(__('Jenis Majlis'))
+                ->placeholder(__('Pilih kategori…'))
+                ->required()
+                ->live()
+                ->afterStateUpdatedJs($this->progressUpdateJs())
+                ->afterStateUpdated(function (mixed $state, Set $set, Get $get): void {
+                    if ($this->hasCommunityCategorySelection($state)) {
+                        $set('event_format', EventFormat::Physical->value);
+                    }
+
+                    $this->applyContextualDefaults($get, $set);
+                })
+                ->options(app(EventCategoryCatalog::class)->options())
+                ->preload()
+                ->native(false)
+                ->dynamicOptions(false),
+
+            $this->domainTopicField(),
+
+            Grid::make(['default' => 1, 'sm' => 2])
+                ->visible(fn (Get $get): bool => $this->hasAgamaKerohanianTopic($get('domain_tags')))
                 ->schema([
-                    Select::make('title')
+                    Select::make('discipline_tags')
                         ->native(false)
-                        ->label(__('Tajuk Majlis'))
-                        ->required()
+                        ->label(__('Topik lebih khusus'))
+                        ->helperText(__('Contoh: Tafsir, Fiqh, atau Sirah.'))
+                        ->placeholder(__('Pilih atau taip untuk tambah bidang…'))
+                        ->multiple()
                         ->searchable()
+                        ->preload()
                         ->allowHtml()
-                        ->live()
-                        ->afterStateUpdatedJs($this->progressUpdateJs())
-                        ->getSearchResultsUsing(function (string $search): array {
-                            if ($search === '' || $search === '0') {
+                        ->options(fn (Get $get): array => $this->disciplineOptionsForDomain(
+                            is_string($domain = $get('domain_tags')) ? $domain : null,
+                        ))
+                        ->getSearchResultsUsing(function (string $search, ?Get $get = null): array {
+                            if (blank($search)) {
                                 return [];
                             }
 
-                            $results = Event::query()
-                                ->whereLike('title', "%{$search}%")
-                                ->where('status', 'approved')
-                                ->limit(10)
-                                ->pluck('title', 'title')
+                            $domainId = $get instanceof Get ? (is_string($d = $get('domain_tags')) ? $d : null) : null;
+                            $taxonomyId = EventTaxonomy::query()->where('code', EventTaxonomyCode::Discipline->value)->value('id');
+                            $results = EventTerm::query()
+                                ->where('event_taxonomy_id', $taxonomyId)
+                                ->where('is_active', true)
+                                ->when($domainId !== null, fn (Builder $query) => $query->where(function (Builder $query) use ($domainId): void {
+                                    $query->whereJsonContains('metadata->domain_ids', $domainId)
+                                        ->orWhereNull('metadata->domain_ids');
+                                }))
+                                ->whereLike('name', "%{$search}%")
+                                ->orderBy('sort_order')
+                                ->limit(20)
+                                ->pluck('name', 'id')
                                 ->toArray();
 
-                            $exactMatch = collect($results)->contains(fn ($value) => mb_strtolower($value) === mb_strtolower($search));
-
-                            if (! $exactMatch) {
-                                $results = ["__quick_add__{$search}" => "<span class='text-primary-600'>+ ".__('Tambah')." '{$search}'</span>"] + $results;
-                            }
-
-                            return $results;
+                            return ["__quick_add__{$search}" => "<span class='text-primary-600'>+ ".__('Tambah')." '{$search}'</span>"] + $results;
                         })
-                        ->getOptionLabelUsing(function ($value): ?string {
-                            if (str_starts_with($value, '__quick_add__')) {
-                                return substr($value, strlen('__quick_add__'));
+                        ->getOptionLabelsUsing(function (array $values): array {
+                            $labels = [];
+                            $uuids = [];
+
+                            foreach ($values as $value) {
+                                if (is_string($value) && ! Str::isUuid($value)) {
+                                    $labels[$value] = $value;
+                                } else {
+                                    $uuids[] = $value;
+                                }
                             }
 
-                            return $value;
+                            if ($uuids !== []) {
+                                $labels = array_merge($labels, EventTerm::whereIn('id', $uuids)->pluck('name', 'id')->all());
+                            }
+
+                            return $labels;
                         })
-                        ->afterStateUpdated(function (mixed $state, Set $set): void {
-                            if (is_string($state) && str_starts_with($state, '__quick_add__')) {
-                                $state = substr($state, strlen('__quick_add__'));
-                                $set('title', $state);
+                        ->afterStateUpdatedJs(<<<'JS'
+                            if (Array.isArray($state)) {
+                                const hasQuickAdd = $state.some(v => typeof v === 'string' && v.startsWith('__quick_add__'));
+                                if (hasQuickAdd) {
+                                    const cleaned = $state.map(v => (typeof v === 'string' && v.startsWith('__quick_add__')) ? v.substring(13) : v);
+                                    $set('discipline_tags', cleaned);
+                                    $nextTick(() => {
+                                        const wrapper = $el.querySelector('[wire\\:ignore]');
+                                        if (wrapper) {
+                                            Alpine.$data(wrapper)?.select?.closeDropdown();
+                                        }
+                                    });
+                                }
                             }
-
-                            if (! is_string($state) || blank($state)) {
-                                return;
-                            }
-
-                            $existingEvent = Event::query()
-                                ->where('title', $state)
-                                ->where('status', 'approved')
-                                ->with(['classifications', 'references'])
-                                ->latest()
-                                ->first();
-
-                            if (! $existingEvent) {
-                                return;
-                            }
-
-                            $termsByTaxonomy = $existingEvent->classifications->groupBy('taxonomy_code');
-
-                            $set('event_category_ids', $termsByTaxonomy->get('event_category', collect())->pluck('event_term_id')->filter()->values()->first());
-
-                            if ($termsByTaxonomy->has(EventTaxonomyCode::Domain->value)) {
-                                $set('domain_tags', $termsByTaxonomy->get(EventTaxonomyCode::Domain->value)->pluck('event_term_id')->filter()->values()->first());
-                            }
-                            if ($termsByTaxonomy->has(EventTaxonomyCode::Discipline->value)) {
-                                $set('discipline_tags', $termsByTaxonomy->get(EventTaxonomyCode::Discipline->value)->pluck('event_term_id')->filter()->values()->all());
-                            }
-                            if ($termsByTaxonomy->has(EventTaxonomyCode::Source->value)) {
-                                $set('source_tags', $termsByTaxonomy->get(EventTaxonomyCode::Source->value)->pluck('event_term_id')->filter()->values()->all());
-                            }
-                            if ($termsByTaxonomy->has(EventTaxonomyCode::Issue->value)) {
-                                $set('issue_tags', $termsByTaxonomy->get(EventTaxonomyCode::Issue->value)->pluck('event_term_id')->filter()->values()->all());
-                            }
-
-                            if ($existingEvent->references->isNotEmpty()) {
-                                $set(
-                                    'references',
-                                    $existingEvent->references
-                                        ->pluck('referenceable_id')
-                                        ->filter()
-                                        ->values()
-                                        ->all(),
-                                );
-                            }
-                        })
-                        ->placeholder(__('Cari atau masukkan tajuk majlis...')),
-
-                    Select::make('event_category_ids')
-                        ->label(__('Jenis Majlis'))
-                        ->placeholder(__('Pilih kategori…'))
-                        ->required()
-                        ->live()
-                        ->afterStateUpdatedJs($this->progressUpdateJs())
-                        ->afterStateUpdated(function (mixed $state, Set $set, Get $get): void {
-                            if ($this->hasCommunityCategorySelection($state)) {
-                                $set('event_format', EventFormat::Physical->value);
-                            }
-
-                            $this->applyContextualDefaults($get, $set);
-                        })
-                        ->options(app(EventCategoryCatalog::class)->options())
-                        ->preload()
-                        ->native(false)
-                        ->dynamicOptions(false),
-
-                    $this->domainTopicField(),
-
-                    RichEditor::make('description')
-                        ->label(__('Keterangan'))
-                        ->maxLength(5000)
-                        ->disableToolbarButtons(['table'])
-                        ->floatingToolbars([])
-                        ->placeholder(__('Terangkan mengenai majlis, topik yang akan dikupas, dll.')),
+                        JS),
                 ]),
+
+            RichEditor::make('description')
+                ->label(__('Keterangan'))
+                ->maxLength(5000)
+                ->disableToolbarButtons(['table'])
+                ->floatingToolbars([])
+                ->placeholder(__('Terangkan mengenai majlis, topik yang akan dikupas, dll.')),
         ];
     }
 
@@ -1016,86 +1086,14 @@ class Create extends Component implements HasActions, HasForms
     private function getTopicDetailFields(): array
     {
         return [
-            Section::make(__('Topik & Klasifikasi'))
+            Group::make()
                 ->visible(fn (Get $get): bool => $this->hasAgamaKerohanianTopic($get('domain_tags')))
                 ->schema([
-                    Grid::make(['default' => 1, 'sm' => 2])
-                        ->schema([
-                            Select::make('discipline_tags')
-                                ->native(false)
-                                ->label(__('Topik lebih khusus'))
-                                ->helperText(__('Optional. Contoh: Tafsir, Matematik, atau Machine Learning.'))
-                                ->placeholder(__('Pilih atau taip untuk tambah bidang…'))
-                                ->multiple()
-                                ->searchable()
-                                ->preload()
-                                ->allowHtml()
-                                ->options(fn (Get $get): array => $this->disciplineOptionsForDomain(
-                                    is_string($domain = $get('domain_tags')) ? $domain : null,
-                                ))
-                                ->getSearchResultsUsing(function (string $search, ?Get $get = null): array {
-                                    if (blank($search)) {
-                                        return [];
-                                    }
-
-                                    $domainId = $get instanceof Get ? (is_string($d = $get('domain_tags')) ? $d : null) : null;
-                                    $taxonomyId = EventTaxonomy::query()->where('code', EventTaxonomyCode::Discipline->value)->value('id');
-                                    $results = EventTerm::query()
-                                        ->where('event_taxonomy_id', $taxonomyId)
-                                        ->where('is_active', true)
-                                        ->when($domainId !== null, fn (Builder $query) => $query->where(function (Builder $query) use ($domainId): void {
-                                            $query->whereJsonContains('metadata->domain_ids', $domainId)
-                                                ->orWhereNull('metadata->domain_ids');
-                                        }))
-                                        ->whereLike('name', "%{$search}%")
-                                        ->orderBy('sort_order')
-                                        ->limit(20)
-                                        ->pluck('name', 'id')
-                                        ->toArray();
-
-                                    return ["__quick_add__{$search}" => "<span class='text-primary-600'>+ ".__('Tambah')." '{$search}'</span>"] + $results;
-                                })
-                                ->getOptionLabelsUsing(function (array $values): array {
-                                    $labels = [];
-                                    $uuids = [];
-
-                                    foreach ($values as $value) {
-                                        if (is_string($value) && ! Str::isUuid($value)) {
-                                            $labels[$value] = $value;
-                                        } else {
-                                            $uuids[] = $value;
-                                        }
-                                    }
-
-                                    if ($uuids !== []) {
-                                        $labels = array_merge($labels, EventTerm::whereIn('id', $uuids)->pluck('name', 'id')->all());
-                                    }
-
-                                    return $labels;
-                                })
-                                ->afterStateUpdatedJs(<<<'JS'
-                                    if (Array.isArray($state)) {
-                                        const hasQuickAdd = $state.some(v => typeof v === 'string' && v.startsWith('__quick_add__'));
-                                        if (hasQuickAdd) {
-                                            const cleaned = $state.map(v => (typeof v === 'string' && v.startsWith('__quick_add__')) ? v.substring(13) : v);
-                                            $set('discipline_tags', cleaned);
-                                            $nextTick(() => {
-                                                const wrapper = $el.querySelector('[wire\\:ignore]');
-                                                if (wrapper) {
-                                                    Alpine.$data(wrapper)?.select?.closeDropdown();
-                                                }
-                                            });
-                                        }
-                                    }
-                                JS),
-                        ]),
-
                     Grid::make(['default' => 1, 'sm' => 2])
                         ->schema([
                             Select::make('source_tags')
                                 ->closeOnSelect()
                                 ->label(__('Sumber Utama'))
-                                ->helperText(__('Pilih sumber rujukan utama (jika ada).'))
                                 ->placeholder(__('Pilih sumber…'))
                                 ->multiple()
                                 ->preload()
@@ -1190,14 +1188,10 @@ class Create extends Component implements HasActions, HasForms
                                     }
                                 JS),
                         ]),
-                ]),
 
-            Section::make(__('Rujukan Kitab'))
-                ->visible(fn (Get $get): bool => $this->hasAgamaKerohanianTopic($get('domain_tags')))
-                ->schema([
                     Select::make('references')
                         ->label(__('Rujukan Kitab'))
-                        ->helperText(__('Pilih kitab atau buku rujukan yang digunakan (jika ada).'))
+                        ->helperText(__('Kitab atau buku rujukan yang digunakan.'))
                         ->placeholder(__('Cari atau pilih rujukan…'))
                         ->multiple()
                         ->closeOnSelect()

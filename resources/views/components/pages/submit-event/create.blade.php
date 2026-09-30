@@ -103,9 +103,6 @@
 
             <header class="mx-auto mb-8 max-w-3xl text-center sm:mb-10">
                 <h1 class="font-heading text-4xl font-bold leading-tight text-slate-950 sm:text-5xl">{{ __('Hantar Majlis') }}</h1>
-                <p class="mt-4 text-base leading-7 text-slate-600 sm:text-lg">
-                    {{ __('Percuma untuk dihantar') }} · {{ __('Semakan sebelum diterbitkan') }}
-                </p>
             </header>
 
             <section class="mb-8 overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-[0_24px_70px_-50px_rgba(6,95,70,0.65)]" aria-labelledby="poster-assist-title">

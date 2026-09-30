@@ -430,12 +430,11 @@
     "Pilih jika majlis ini hanya terbuka untuk penganut agama Islam.": "Choose if this event is only open to Muslims.",
     "Pilih kategori ceramah utama. Boleh pilih lebih daripada satu.": "Select the main talk category. Can choose more than one.",
     "Pilih kategori…": "Select category…",
-    "Pilih kitab atau buku rujukan yang digunakan (jika ada).": "Select the book or reference book used (if any).",
+    "Kitab atau buku rujukan yang digunakan.": "The kitab or reference books used.",
     "Pilih masa mula majlis": "Select the event start time",
     "Pilih peringkat umur": "Select age groups",
     "Pilih ruang…": "Select space…",
     "Pilih siri": "Select series",
-    "Pilih sumber rujukan utama (jika ada).": "Select the primary reference source (if available).",
     "Pilih sumber…": "Select source…",
     "Pilih tema supaya mudah dicari.": "Choose a theme so it's easy to find.",
     "Platform": "Platform",
@@ -589,7 +588,7 @@
     "Pilihan ini optional. Pilih topik yang paling sesuai.": "Optional. Choose the most relevant topic.",
     "Maksimum 3 topik sahaja.": "Maximum 3 topics only.",
     "Topik lebih khusus": "More specific topic",
-    "Optional. Contoh: Tafsir, Matematik, atau Machine Learning.": "Optional. Example: Tafsir, Mathematics, or Machine Learning.",
+    "Contoh: Tafsir, Fiqh, atau Sirah.": "Example: Tafsir, Fiqh, or Sirah.",
     "Tempat": "Venue",
     "Temui kuliah, ceramah, dan majlis ilmu di seluruh Malaysia. Dari masjid ke masjid, diimarahkan oleh para asatizah.": "Discover lectures, talks, and knowledge gatherings across Malaysia. From mosque to mosque, enlivened by scholars.",
     "Terangkan mengenai majlis, topik yang akan dikupas, dll.": "Describe the event, topics that will be covered, and other key details.",
@@ -1429,5 +1428,9 @@
     "Wrong information": "Wrong information",
     "A contribution request for this record is already pending. Please wait for it to be reviewed before submitting another.": "A contribution request for this record is already pending. Please wait for it to be reviewed before submitting another.",
     "Manage Workspaces": "Manage Workspaces",
-    "Platform terbesar untuk mencari kuliah, ceramah, tazkirah, dan majlis ilmu di seluruh Malaysia. Cari yang berdekatan dengan anda.": "The largest platform to find courses, sermons, tazkirah, and knowledge-based majlis across Malaysia. Find the one near you."
+    "Platform terbesar untuk mencari kuliah, ceramah, tazkirah, dan majlis ilmu di seluruh Malaysia. Cari yang berdekatan dengan anda.": "The largest platform to find courses, sermons, tazkirah, and knowledge-based majlis across Malaysia. Find the one near you.",
+    "Diluluskan": "Approved",
+    "Diluluskan untuk paparan di ilmu360°": "Approved for listing on ilmu360°",
+    "Menunggu kelulusan untuk paparan di ilmu360°": "Awaiting approval for listing on ilmu360°",
+    "Turut tersedia dalam talian": "Also available online"
 }
