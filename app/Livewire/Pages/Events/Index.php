@@ -38,7 +38,6 @@ use App\Support\Timezone\UserDateTimeFormatter;
 use Carbon\CarbonInterface;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -782,29 +781,6 @@ class Index extends Component implements HasForms
                                 '1' => __('Yes'),
                                 '0' => __('No'),
                             ])
-                            ->live(),
-                    ]),
-
-                Section::make(__('Lokasi berdekatan'))
-                    ->extraAttributes(['class' => 'mi-advanced-filter-group'])
-                    ->visible(fn (): bool => filled($this->lat))
-                    ->schema([
-                        TextInput::make('radius_km')
-                            ->label(__('Radius'))
-                            ->helperText(__('Digunakan apabila mencari majlis berdekatan lokasi anda.'))
-                            ->numeric()
-                            ->minValue(1)
-                            ->maxValue(1000)
-                            ->step(1)
-                            ->suffix('km')
-                            ->extraAttributes(['data-signal-control' => 'radius_km'])
-                            ->extraFieldWrapperAttributes(fn (): array => [
-                                'data-testid' => 'nearby-radius-inline',
-                                'x-cloak' => true,
-                                'x-bind:hidden' => '! geolocationPermitted',
-                                ...(! $this->showsGeolocationControls() ? ['hidden' => true] : []),
-                            ])
-                            ->visible(fn (): bool => filled($this->lat))
                             ->live(),
                     ]),
             ]);

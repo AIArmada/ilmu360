@@ -12,6 +12,7 @@ use App\Support\Auth\IntendedRedirect;
 use App\Support\Auth\OAuthTransactionStore;
 use App\Support\Auth\SocialiteProviderConfiguration;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\AbstractProvider as OAuthTwoProvider;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -82,7 +83,7 @@ class SocialiteController extends Controller
         );
 
         if ($transaction === null) {
-            return $this->loginErrorRedirect($provider, 'expired');
+            return $this->loginErrorRedirect($provider, 'expired', ['reason' => 'state_invalid']);
         }
 
         $bridge = SocialiteProviderConfiguration::usesCrossDomainCallback($provider);
@@ -95,7 +96,7 @@ class SocialiteController extends Controller
             request()->cookie(OAuthTransactionStore::VERIFIER_COOKIE),
             $transaction['verifier_hash']
         )) {
-            return $this->loginErrorRedirect($provider, 'expired');
+            return $this->loginErrorRedirect($provider, 'expired', ['reason' => 'callback_verifier_mismatch']);
         }
 
         try {
@@ -106,8 +107,11 @@ class SocialiteController extends Controller
             }
 
             $socialUser = $socialiteProvider->user();
-        } catch (\Throwable) {
-            return $this->loginErrorRedirect($provider, 'failed');
+        } catch (\Throwable $exception) {
+            return $this->loginErrorRedirect($provider, 'failed', [
+                'exception' => $exception::class,
+                'message' => $exception->getMessage(),
+            ]);
         }
 
         $result = $resolveSocialiteUserAction->handle($provider, $socialUser);
@@ -157,7 +161,7 @@ class SocialiteController extends Controller
         );
 
         if ($handoff === null) {
-            return $this->loginErrorRedirect($provider, 'expired');
+            return $this->loginErrorRedirect($provider, 'expired', ['reason' => 'handoff_invalid']);
         }
 
         // Only the browser that started the flow holds the verifier cookie;
@@ -166,13 +170,13 @@ class SocialiteController extends Controller
             request()->cookie(OAuthTransactionStore::VERIFIER_COOKIE),
             $handoff['verifier_hash']
         )) {
-            return $this->loginErrorRedirect($provider, 'expired');
+            return $this->loginErrorRedirect($provider, 'expired', ['reason' => 'complete_verifier_mismatch']);
         }
 
         $user = User::query()->find($handoff['user_id']);
 
         if (! $user instanceof User) {
-            return $this->loginErrorRedirect($provider, 'failed');
+            return $this->loginErrorRedirect($provider, 'failed', ['reason' => 'user_missing']);
         }
 
         $this->loginUser($user, $provider, $handoff['created_account']);
@@ -205,8 +209,19 @@ class SocialiteController extends Controller
         ]);
     }
 
-    private function loginErrorRedirect(string $provider, string $error): RedirectResponse
+    private function loginErrorRedirect(string $provider, string $error, array $context = []): RedirectResponse
     {
+        // Single funnel for every OAuth failure: log the non-sensitive code
+        // so silent-looking sign-in failures stay diagnosable server-side.
+        Log::warning('Socialite sign-in failed', [
+            'provider' => $provider,
+            'code' => $error,
+            'step' => request()->route()?->getName() ?? 'unknown',
+            'host' => request()->getHost(),
+            'verifier_present' => request()->hasCookie(OAuthTransactionStore::VERIFIER_COOKIE),
+            ...$context,
+        ]);
+
         // Off-host bridge errors cannot flash into a session the browser will
         // never send back (its cookies are rejected), so carry a non-sensitive
         // error code to the canonical host instead.
@@ -255,5 +270,10 @@ class SocialiteController extends Controller
         if ($createdAccount) {
             app(ShareTrackingService::class)->recordSignup($user, request());
         }
+
+        Log::info('Socialite sign-in completed', [
+            'provider' => $provider,
+            'created_account' => $createdAccount,
+        ]);
     }
 }

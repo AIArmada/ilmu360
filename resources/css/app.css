@@ -9,27 +9,6 @@
 @source '../**/*.blade.php';
 @source '../**/*.js';
 
-/* Metric-tuned Outfit fallback (Arial + overrides) so display=swap swaps without layout shift. */
-@font-face {
-    font-family: 'Outfit Fallback';
-    src: local('Arial');
-    size-adjust: 99.26%;
-    ascent-override: 100.74%;
-    descent-override: 26.19%;
-    line-gap-override: 0%;
-    font-weight: 300 600;
-}
-
-@font-face {
-    font-family: 'Outfit Fallback';
-    src: local('Arial Bold');
-    size-adjust: 98.65%;
-    ascent-override: 101.37%;
-    descent-override: 26.36%;
-    line-gap-override: 0%;
-    font-weight: 700;
-}
-
 /* Bottom-anchored decor rides page-height growth during load; reveal once settled. */
 .mi-bg-settled {
     display: none;
@@ -40,8 +19,13 @@ body.is-loaded .mi-bg-settled {
 }
 
 @theme {
-    --font-heading: 'Outfit', 'Outfit Fallback', ui-sans-serif, system-ui, sans-serif;
-    --font-sans: 'Outfit', 'Outfit Fallback', ui-sans-serif, system-ui, sans-serif;
+    /* DESIGN.md §5: soft serif voice (Fraunces), geometric sans for scanning (Figtree), Naskh for Arabic. */
+    --font-sans: 'Figtree', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --font-heading: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+    --font-serif: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+    --font-arabic: 'Noto Naskh Arabic', 'Traditional Arabic', serif;
+    --font-heading--font-variation-settings: 'SOFT' 50, 'WONK' 0;
+    --font-serif--font-variation-settings: 'SOFT' 50, 'WONK' 0;
 
     /* Filament compatibility - 'color' is used internally */
     --color-color-50: oklch(0.985 0 0);
@@ -111,7 +95,7 @@ body.is-loaded .mi-bg-settled {
     --color-primary-light: var(--color-emerald-400);
     --color-secondary: var(--color-gold-500);
     --color-secondary-dark: var(--color-gold-600);
-    --color-background: var(--color-emerald-100);
+    --color-background: #f2e9d5; /* matches the footer image top transition for a seamless body→footer join */
     --color-surface: var(--color-white);
     --color-text-main: var(--color-slate-900);
     --color-text-muted: var(--color-slate-500);
@@ -119,6 +103,15 @@ body.is-loaded .mi-bg-settled {
     /* Accents for that "Premium" feel */
     --color-accent-gold: var(--color-gold-500);
     --color-accent-purple: oklch(0.7 0.18 300);
+}
+
+/* DESIGN.md §5/§10: Arabic renders in Naskh — never italic, letter-spaced, uppercased or tightly leaded. */
+:lang(ar) {
+    font-family: var(--font-arabic);
+    font-style: normal;
+    letter-spacing: 0;
+    line-height: 1.8;
+    text-transform: none;
 }
 
 [x-cloak] {
@@ -402,33 +395,264 @@ body.is-loaded .mi-bg-settled {
     }
 
     .living-majlis-footer {
+        background: linear-gradient(180deg, #f4f1e8 6rem, #003d34 18rem);
         isolation: isolate;
         margin-top: 0 !important;
     }
 
-    .living-majlis-footer::before {
-        position: absolute;
-        z-index: 1;
-        top: 0;
-        right: 0;
-        left: 0;
-        height: 3.25rem;
-        background: linear-gradient(180deg, color-mix(in srgb, var(--living-sand, #f4f1e8) 32%, transparent), transparent);
-        content: '';
-        pointer-events: none;
+    .living-majlis-footer-art {
+        width: 100%;
+        height: 100%;
+        object-fit: fill;
+        mask-image: linear-gradient(180deg, transparent 8%, #000 28%);
     }
 
-    .living-majlis-footer-image {
-        background-position: center bottom;
-        background-repeat: no-repeat;
-        background-size: cover;
+    .living-majlis-footer-content {
+        width: min(100% - 3rem, 80rem);
+        padding-top: 12rem;
+        padding-bottom: 2.5rem;
+    }
+
+    .living-majlis-footer-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 2.5rem 1.5rem;
+    }
+
+    .living-majlis-footer-grid > div:first-child {
+        grid-column: 1 / -1;
+    }
+
+    .living-majlis-footer-logo {
+        height: 3.25rem;
+        max-width: 15rem;
+    }
+
+    .living-majlis-footer-description {
+        max-width: 30rem;
+        margin-top: 1.5rem;
+        font-size: 1rem;
+        line-height: 1.7;
+    }
+
+    .living-majlis-footer-socials {
+        margin-top: 1.25rem;
+        gap: 0.875rem;
+    }
+
+    .living-majlis-footer-social {
+        width: 3rem;
+        height: 3rem;
+        border-color: rgba(151, 205, 184, 0.35);
+        color: #f7e6bd;
+        background: rgba(0, 44, 37, 0.3);
+    }
+
+    .living-majlis-footer-heading {
+        font-size: 1.5rem;
+        line-height: 1.2;
+    }
+
+    .living-majlis-footer-links {
+        margin-top: 1.25rem;
+        font-size: 1rem;
+        line-height: 1.5;
+    }
+
+    .living-majlis-footer-links > li + li {
+        margin-top: 0.875rem;
+    }
+
+    .living-majlis-footer-rule {
+        margin-top: 3rem;
+        color: #e8c37b;
+    }
+
+    .living-majlis-footer-bottom {
+        flex-direction: column;
+        align-items: center;
+        padding-top: 1rem;
+        font-size: 0.875rem;
     }
 
     @media (min-width: 1024px) {
-        .living-majlis-footer-image {
-            background-size: 100% 100%;
+        .living-majlis-footer-bottom {
+            flex-direction: row;
+            justify-content: space-between;
+        }
+
+        .living-majlis-footer-content {
+            width: min(67.3%, 80rem);
+            min-height: max(36rem, 42.85vw);
+            padding-top: max(16rem, 20vw);
+            padding-bottom: 3.3vw;
+        }
+
+        .living-majlis-footer-grid {
+            grid-template-columns: 1.8fr 1px 0.7fr 1px 1fr;
+            gap: clamp(2rem, 4.3vw, 5.125rem);
+        }
+
+        .living-majlis-footer-grid > div:first-child {
+            grid-column: auto;
+        }
+
+        .living-majlis-footer-logo {
+            height: clamp(3.5rem, 4.2vw, 5rem);
+            max-width: 18rem;
+        }
+
+        .living-majlis-footer-description {
+            margin-top: 0.75rem;
+        }
+
+        .living-majlis-footer-description,
+        .living-majlis-footer-links {
+            font-size: clamp(1rem, 1.1vw, 1.3125rem);
+        }
+
+        .living-majlis-footer-heading {
+            font-size: clamp(1.5rem, 1.5vw, 1.8125rem);
+        }
+
+        .living-majlis-footer-social {
+            width: clamp(2.75rem, 3vw, 3.5rem);
+            height: clamp(2.75rem, 3vw, 3.5rem);
+        }
+
+        .living-majlis-footer-rule {
+            margin-top: auto;
+            padding-top: 3.5rem;
         }
     }
+
+    @media (min-width: 1024px) and (max-width: 1279px) {
+        .living-majlis-footer-content {
+            width: 80%;
+            padding-top: 15rem;
+        }
+
+        .living-majlis-footer-grid {
+            gap: 1.75rem;
+        }
+    }
+
+    @media (max-width: 1023px) {
+        .living-majlis-footer-scene::after {
+            position: absolute;
+            inset: 30% 0 0;
+            background: linear-gradient(180deg, transparent, rgba(0, 35, 29, 0.45) 35%, rgba(0, 35, 29, 0.5));
+            content: '';
+        }
+    }
+
+    @media (min-width: 640px) and (max-width: 1023px) {
+        .living-majlis-footer-content {
+            width: min(68%, 38rem);
+            min-height: 53rem;
+            padding-top: 15rem;
+            padding-bottom: 3rem;
+        }
+
+        .living-majlis-footer-grid {
+            gap: 3rem 4rem;
+        }
+
+        .living-majlis-footer-grid > div:first-child {
+            text-align: center;
+        }
+
+        .living-majlis-footer-grid > div:first-child > div {
+            justify-content: center;
+        }
+
+        .living-majlis-footer-description {
+            margin-inline: auto;
+            max-width: 29rem;
+        }
+
+        .living-majlis-footer-logo {
+            height: 4rem;
+        }
+
+        .living-majlis-footer-rule {
+            margin-top: auto;
+            padding-top: 3rem;
+        }
+
+        .living-majlis-footer-bottom {
+            flex-direction: column;
+            text-align: center;
+        }
+    }
+
+    @media (max-width: 639px) {
+        .living-majlis-footer-content {
+            width: calc(100% - 3rem);
+            padding-top: 13rem;
+            padding-bottom: 2rem;
+        }
+
+        .living-majlis-footer-grid {
+            gap: 2.25rem 1.25rem;
+        }
+
+        .living-majlis-footer-grid > div:first-child {
+            text-align: center;
+        }
+
+        .living-majlis-footer-grid > div:first-child > div {
+            justify-content: center;
+        }
+
+        .living-majlis-footer-description {
+            margin-top: 1rem;
+        }
+
+        .living-majlis-footer-heading {
+            font-size: 1.25rem;
+        }
+
+        .living-majlis-footer-links {
+            font-size: 0.9375rem;
+        }
+
+        .living-majlis-footer-links a {
+            display: inline-flex;
+            align-items: center;
+            min-height: 2.75rem;
+        }
+
+        .living-majlis-footer-links > li + li {
+            margin-top: 0.25rem;
+        }
+
+        .living-majlis-footer-bottom {
+            align-items: center;
+            text-align: center;
+            font-size: 0.8125rem;
+        }
+
+        .living-majlis-footer-bottom > div {
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+    }
+
+    @media (max-width: 359px) {
+        .living-majlis-footer-grid {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        .living-majlis-footer-grid nav {
+            text-align: center;
+        }
+
+        .living-majlis-footer-grid nav > span {
+            margin-inline: auto;
+        }
+    }
+
+
 
 }
 

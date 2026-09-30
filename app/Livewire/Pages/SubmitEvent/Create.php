@@ -93,6 +93,8 @@ use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
 use RuntimeException;
 use Throwable;
+use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
+use Ysfkaya\FilamentPhoneInput\PhoneInputNumberType;
 
 #[Layout('layouts.app')]
 class Create extends Component implements HasActions, HasForms
@@ -1192,7 +1194,6 @@ class Create extends Component implements HasActions, HasForms
 
             Section::make(__('Rujukan Kitab'))
                 ->visible(fn (Get $get): bool => $this->hasAgamaKerohanianTopic($get('domain_tags')))
-                ->collapsible()
                 ->schema([
                     Select::make('references')
                         ->label(__('Rujukan Kitab'))
@@ -1771,11 +1772,11 @@ class Create extends Component implements HasActions, HasForms
                                     ])
                                     ->required(fn (Get $get) => ! auth()->check() && empty($get('submitter_phone'))),
 
-                                TextInput::make('submitter_phone')
+                                PhoneInput::make('submitter_phone')
                                     ->label(__('Telefon'))
-                                    ->tel()
-                                    ->maxLength(SubmitterContactRules::PHONE_MAX_LENGTH)
-                                    ->placeholder('+60123456789')
+                                    ->initialCountry('MY')
+                                    ->displayNumberFormat(PhoneInputNumberType::INTERNATIONAL)
+                                    ->inputNumberFormat(PhoneInputNumberType::E164)
                                     ->helperText(__('cth: +60123456789 atau 03-12345678'))
                                     ->rule(static fn (): Closure => static function (string $attribute, mixed $value, Closure $fail): void {
                                         if (! filled($value)) {
@@ -1787,11 +1788,6 @@ class Create extends Component implements HasActions, HasForms
                                         }
                                     })
                                     ->afterStateUpdatedJs($this->progressUpdateJs())
-                                    ->extraAlpineAttributes([
-                                        'x-bind:required' => <<<'JS'
-                                            ! $get('submitter_email')
-                                        JS,
-                                    ])
                                     ->required(fn (Get $get) => ! auth()->check() && empty($get('submitter_email'))),
                             ]),
                     ])

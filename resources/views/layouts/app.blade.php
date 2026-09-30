@@ -43,9 +43,7 @@
     <link rel="icon" type="image/x-icon" href="{{ asset('images/favicon.ico') }}">
     <link rel="apple-touch-icon" href="{{ asset('images/apple-touch-icon.png') }}">
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    @include('partials.font-links')
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script>
@@ -179,7 +177,7 @@
                     : ($useFloatingHeader
                     ? 'relative mx-auto mt-4 flex h-20 w-[calc(100%_-_1rem)] max-w-[120rem] items-center gap-3 rounded-[2rem] border border-[#eadfca]/90 bg-[#fffdf8]/90 px-5 shadow-[0_24px_55px_-30px_rgba(63,71,47,0.48)] backdrop-blur-xl sm:mt-6 sm:w-[calc(100%_-_3rem)] sm:px-8 lg:mt-8 lg:w-[94%] lg:gap-4 lg:px-8 xl:gap-6 xl:px-24'
                     : 'container mx-auto flex h-20 items-center justify-between px-6 lg:px-12');
-                $logoClass = $useHomeHeader ? 'h-10 w-auto drop-shadow-[0_2px_10px_rgba(0,0,0,0.35)]' : 'h-12 w-auto';
+                $logoClass = $useHomeHeader ? 'h-12 w-auto drop-shadow-[0_2px_10px_rgba(0,0,0,0.35)]' : 'h-12 w-auto';
                 $desktopMenuClass = $useHomeHeader
                     ? 'hidden flex-1 items-center justify-center gap-6 text-sm font-medium text-white md:flex lg:gap-10'
                     : 'hidden flex-1 items-center justify-center gap-7 text-sm font-medium md:flex lg:gap-10';
@@ -572,58 +570,75 @@
             <x-ui.toast-stack />
 
             <!-- Living Majlis Footer -->
-            <footer class="living-majlis-footer relative mt-20 overflow-hidden bg-emerald-950 text-emerald-50">
-                <div class="living-majlis-footer-image pointer-events-none absolute inset-0 opacity-100"
-                    style="background-image: url('{{ asset('images/footer-courtyard-v4.jpg') }}');">
+            <footer class="living-majlis-footer relative mt-20 overflow-hidden text-emerald-50">
+                <div class="living-majlis-footer-scene pointer-events-none absolute inset-0">
+                    <picture>
+                        <source media="(max-width: 639px)" srcset="{{ asset('images/footer-courtyard-v13-mobile.png') }}">
+                        <source media="(max-width: 1023px)" srcset="{{ asset('images/footer-courtyard-v13-tablet.png') }}">
+                        <img src="{{ asset('images/footer-courtyard-v12-seamless.png') }}" alt="" aria-hidden="true" loading="lazy" class="living-majlis-footer-art">
+                    </picture>
                 </div>
-                <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(2,33,22,0.08),rgba(2,33,22,0.18)_50%,rgba(2,33,22,0.08))]"></div>
-                <div class="pointer-events-none absolute inset-0 opacity-[0.06]"
-                    style="background-image: url('{{ asset('images/pattern-bg.jpg') }}'); background-size: 320px;">
-                </div>
-                <div class="pointer-events-none absolute inset-0 opacity-[0.055]"
-                    style="background-image: radial-gradient(circle at 1.5px 1.5px, rgba(255,255,255,0.75) 1px, transparent 0); background-size: 22px 22px;">
-                </div>
-                <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_150%_at_8%_0%,rgba(16,185,129,0.14),transparent_58%)]"></div>
-
-                <div class="relative z-10 mx-auto flex min-h-[30rem] max-w-7xl flex-col px-5 pt-24 pb-8 sm:px-6 lg:px-8 lg:pt-24 lg:pb-8">
-                    <div class="grid gap-10 lg:mx-auto lg:max-w-4xl lg:grid-cols-[1.35fr_0.8fr_1fr] lg:gap-16">
+                <div class="living-majlis-footer-content relative z-10 mx-auto flex flex-col">
+                    <div class="living-majlis-footer-grid grid">
                         <div>
-                            <img
-                                src="{{ asset('images/logo-ilmu360-footer.png') }}"
-                                alt="{{ config('app.name') }}"
-                                width="2167"
-                                height="726"
-                                class="h-12 w-auto max-w-[14rem] drop-shadow-sm"
-                            >
-                            <p class="mt-4 max-w-xs text-sm leading-6 text-emerald-100/70">
+                            <div class="flex items-start">
+                                <img
+                                    src="{{ asset('images/logo-ilmu360-footer.png') }}"
+                                    alt="{{ config('app.name') }}"
+                                    width="2167"
+                                    height="726"
+                                    class="living-majlis-footer-logo w-auto drop-shadow-sm"
+                                >
+                                <span class="mt-0.5 text-sm font-semibold text-gold-300" aria-hidden="true">™</span>
+                            </div>
+                            <p class="living-majlis-footer-description text-white/85"
+                                style="text-shadow: 0 1px 3px rgba(2,33,22,0.8), 0 0 14px rgba(2,33,22,0.45);">
                                 {{ __('Connecting the community through knowledge. Discover classes, lectures, and gatherings across Malaysia.') }}
                             </p>
 
-                            <div class="mt-6 flex items-center gap-3">
+                            <div class="living-majlis-footer-socials flex items-center">
                                 <a href="https://x.com/ilmu360" target="_blank" rel="noopener noreferrer" aria-label="X"
-                                    class="text-emerald-100/60 transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">
-                                    <svg class="h-[1.05rem] w-[1.05rem]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                    class="living-majlis-footer-social flex items-center justify-center rounded-full border transition-colors duration-200 hover:border-gold-300 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">
+                                    <svg class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                                         <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817-5.966 6.817H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.451-6.231Zm-1.161 17.52h1.833L7.084 4.126H5.117l11.966 15.644Z" />
                                     </svg>
                                 </a>
                                 <a href="https://www.instagram.com/ilmu.360" target="_blank" rel="noopener noreferrer" aria-label="Instagram"
-                                    class="text-emerald-100/60 transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">
-                                    <svg class="h-[1.05rem] w-[1.05rem]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                    class="living-majlis-footer-social flex items-center justify-center rounded-full border transition-colors duration-200 hover:border-gold-300 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">
+                                    <svg class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                                         <path d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0Zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03Zm0 3.678c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162ZM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4Zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.794.646-1.439 1.44-1.439.793-.001 1.44.645 1.44 1.439Z" />
                                     </svg>
                                 </a>
                                 <a href="https://www.tiktok.com/@ilmu.360" target="_blank" rel="noopener noreferrer" aria-label="TikTok"
-                                    class="text-emerald-100/60 transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">
-                                    <svg class="h-[1.05rem] w-[1.05rem]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                    class="living-majlis-footer-social flex items-center justify-center rounded-full border transition-colors duration-200 hover:border-gold-300 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">
+                                    <svg class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                                         <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07Z" />
+                                    </svg>
+                                </a>
+                                {{-- TODO: replace with the official ilmu360 YouTube channel URL. --}}
+                                <a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer" aria-label="YouTube"
+                                    class="living-majlis-footer-social flex items-center justify-center rounded-full border transition-colors duration-200 hover:border-gold-300 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">
+                                    <svg class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
                                     </svg>
                                 </a>
                             </div>
                         </div>
 
+                        <div class="hidden lg:flex lg:items-stretch lg:justify-center" aria-hidden="true">
+                            <span class="relative block w-px self-stretch bg-linear-to-b from-transparent via-gold-300/60 to-transparent">
+                                <span class="absolute left-1/2 top-1/2 block h-5 w-5 -translate-x-1/2 -translate-y-1/2 text-gold-300"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+                                    <path d="m20 2 5 7 8-2v8l5 5-5 5v8l-8-2-5 7-5-7-8 2v-8l-5-5 5-5V7l8 2Z" />
+                                    <path d="m20 10 3 6 7 4-7 4-3 6-3-6-7-4 7-4Z" />
+                                    <circle cx="20" cy="20" r="3" />
+                                </svg></span>
+                            </span>
+                        </div>
+
                         <nav aria-label="{{ __('Menu') }}">
-                            <h3 class="font-heading text-sm font-bold text-white">{{ __('Menu') }}</h3>
-                            <ul class="mt-4 space-y-3 text-sm text-emerald-100/70">
+                            <h3 class="living-majlis-footer-heading font-heading font-semibold text-white">{{ __('Menu') }}</h3>
+                            <span class="mt-2.5 block h-[2px] w-10 bg-gold-300/80" aria-hidden="true"></span>
+                            <ul class="living-majlis-footer-links text-white/85">
                                 <li><a href="{{ route('events.index') }}" wire:navigate
                                         class="transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">{{ __('Majlis') }}</a>
                                 </li>
@@ -639,9 +654,20 @@
                             </ul>
                         </nav>
 
+                        <div class="hidden lg:flex lg:items-stretch lg:justify-center" aria-hidden="true">
+                            <span class="relative block w-px self-stretch bg-linear-to-b from-transparent via-gold-300/60 to-transparent">
+                                <span class="absolute left-1/2 top-1/2 block h-5 w-5 -translate-x-1/2 -translate-y-1/2 text-gold-300"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+                                    <path d="m20 2 5 7 8-2v8l5 5-5 5v8l-8-2-5 7-5-7-8 2v-8l-5-5 5-5V7l8 2Z" />
+                                    <path d="m20 10 3 6 7 4-7 4-3 6-3-6-7-4 7-4Z" />
+                                    <circle cx="20" cy="20" r="3" />
+                                </svg></span>
+                            </span>
+                        </div>
+
                         <nav aria-label="{{ __('Community') }}">
-                            <h3 class="font-heading text-sm font-bold text-white">{{ __('Community') }}</h3>
-                            <ul class="mt-4 space-y-3 text-sm text-emerald-100/70">
+                            <h3 class="living-majlis-footer-heading font-heading font-semibold text-white">{{ __('Community') }}</h3>
+                            <span class="mt-2.5 block h-[2px] w-10 bg-gold-300/80" aria-hidden="true"></span>
+                            <ul class="living-majlis-footer-links text-white/85">
                                 <li><a href="{{ route('about') }}" wire:navigate
                                         class="transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">{{ __('About Us') }}</a>
                                 </li>
@@ -668,8 +694,20 @@
 
                     </div>
 
+                    <div class="living-majlis-footer-rule flex items-center gap-3" aria-hidden="true">
+                        <span class="h-px flex-1 bg-linear-to-r from-transparent via-gold-300/60 to-gold-300/60"></span>
+                        <span class="relative block h-6 w-6 shrink-0">
+                            <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+                                    <path d="m20 2 5 7 8-2v8l5 5-5 5v8l-8-2-5 7-5-7-8 2v-8l-5-5 5-5V7l8 2Z" />
+                                    <path d="m20 10 3 6 7 4-7 4-3 6-3-6-7-4 7-4Z" />
+                                    <circle cx="20" cy="20" r="3" />
+                                </svg>
+                        </span>
+                        <span class="h-px flex-1 bg-linear-to-l from-transparent via-gold-300/60 to-gold-300/60"></span>
+                    </div>
+
                     <div
-                        class="mt-auto flex flex-col gap-4 pt-6 text-xs text-emerald-100/55 sm:flex-row sm:items-center sm:justify-between">
+                        class="living-majlis-footer-bottom flex gap-4 text-white/70">
                         <p>&copy; {{ date('Y') }} ilmu360°. {{ __('All rights reserved.') }}</p>
                         <div class="flex items-center gap-3">
                             <span>{{ __('Privacy') }}</span>

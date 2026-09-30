@@ -335,16 +335,12 @@
 
                                     @if((string) $institution->status === 'verified')
                                         <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-100 px-2.5 py-1 text-[10px] font-bold text-emerald-800">
-                                            <svg class="h-3.5 w-3.5 text-emerald-700" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                                <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.051l-7.5 9.75a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.897 3.896 6.976-9.07a.75.75 0 0 1 1.051-.142Z" clip-rule="evenodd" />
-                                            </svg>
+                                            <flux:icon.check variant="mini" class="size-3.5 text-emerald-700" />
                                             {{ __('Disahkan') }}
                                         </span>
                                     @elseif((string) $institution->status === 'pending')
                                         <span class="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-100 px-2.5 py-1 text-[10px] font-bold text-amber-800">
-                                            <svg class="h-3.5 w-3.5 text-amber-600" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                                                <path fill-rule="evenodd" d="M12 2.25a.75.75 0 0 1 .66.4l9 15.75a.75.75 0 0 1-.66 1.125H3a.75.75 0 0 1-.66-1.125l9-15.75a.75.75 0 0 1 .66-.4Zm0 6a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Zm0 7.5a.9.9 0 1 0 0 1.8.9.9 0 0 0 0-1.8Z" clip-rule="evenodd" />
-                                            </svg>
+                                            <flux:icon.exclamation-triangle variant="solid" class="size-3.5 text-amber-600" />
                                             {{ __('Belum disahkan') }}
                                         </span>
                                     @endif
@@ -356,10 +352,7 @@
 
                                 @if($locationString !== '')
                                     <p class="flex items-start gap-2 text-sm leading-6 text-slate-600 sm:text-base">
-                                        <svg class="mt-0.5 h-5 w-5 shrink-0 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
-                                        </svg>
+                                        <flux:icon.map-pin class="mt-0.5 size-5 shrink-0 text-amber-600" />
                                         <span>{{ $locationString }}</span>
                                     </p>
                                 @endif
@@ -680,9 +673,7 @@
 
                                     <div class="space-y-1.5 text-sm text-slate-500">
                                         <div class="flex items-center gap-2">
-                                            <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
+                                            <flux:icon.clock class="size-4 text-slate-400" />
                                             <span>{{ $event->timing_display !== '' ? $event->timing_display : \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'h:i A') }}</span>
 
                                             @if($event->ends_at)
@@ -693,29 +684,21 @@
 
                                         @if($eventPeople['persons'] !== '')
                                             <div class="flex items-start gap-2">
-                                                <svg class="mt-0.5 h-4 w-4 shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.742-.479 3 3 0 00-4.682-2.72m.94 3.198v.75c0 .414-.336.75-.75.75H4.75a.75.75 0 01-.75-.75v-.75a4.5 4.5 0 014.5-4.5h4.5a4.5 4.5 0 014.5 4.5z" />
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 7.5a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
-                                                </svg>
+                                                <flux:icon.users class="mt-0.5 size-4 shrink-0 text-slate-400" />
                                                 <span class="line-clamp-2">{{ $eventPeople['persons'] }}</span>
                                             </div>
                                         @endif
 
                                         @if($eventPeople['roles'] !== '')
                                             <div class="flex items-start gap-2">
-                                                <svg class="mt-0.5 h-4 w-4 shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.008v.008H3.75V6.75zm0 5.25h.008v.008H3.75V12zm0 5.25h.008v.008H3.75v-.008z" />
-                                                </svg>
+                                                <flux:icon.list-bullet class="mt-0.5 size-4 shrink-0 text-slate-400" />
                                                 <span class="line-clamp-2">{{ $eventPeople['roles'] }}</span>
                                             </div>
                                         @endif
 
                                         @if($venueLocation !== '' && ! $isRemoteEvent)
                                             <div class="flex items-center gap-2">
-                                                <svg class="h-4 w-4 shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                                                </svg>
+                                                <flux:icon.map-pin class="size-4 shrink-0 text-slate-400" />
                                                 <span class="line-clamp-1">{{ $venueLocation }}</span>
                                             </div>
                                         @endif
@@ -814,9 +797,7 @@
 
                                         <div class="space-y-1.5 text-sm text-slate-500">
                                             <div class="flex items-center gap-2">
-                                                <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                </svg>
+                                                <flux:icon.clock class="size-4 text-slate-400" />
                                                 <span>{{ $event->timing_display !== '' ? $event->timing_display : \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'h:i A') }}</span>
 
                                                 @if($event->ends_at)
@@ -827,20 +808,14 @@
 
                                             @if($eventPeople['persons'] !== '')
                                                 <div class="flex items-start gap-2">
-                                                    <svg class="mt-0.5 h-4 w-4 shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.742-.479 3 3 0 00-4.682-2.72m.94 3.198v.75c0 .414-.336.75-.75.75H4.75a.75.75 0 01-.75-.75v-.75a4.5 4.5 0 014.5-4.5h4.5a4.5 4.5 0 014.5 4.5z" />
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 7.5a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
-                                                    </svg>
+                                                    <flux:icon.users class="mt-0.5 size-4 shrink-0 text-slate-400" />
                                                     <span class="line-clamp-2">{{ $eventPeople['persons'] }}</span>
                                                 </div>
                                             @endif
 
                                             @if($venueLocation !== '' && ! $isRemoteEvent)
                                                 <div class="flex items-center gap-2">
-                                                    <svg class="h-4 w-4 shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                                                    </svg>
+                                                    <flux:icon.map-pin class="size-4 shrink-0 text-slate-400" />
                                                     <span class="line-clamp-1">{{ $venueLocation }}</span>
                                                 </div>
                                             @endif

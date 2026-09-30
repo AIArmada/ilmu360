@@ -3996,3 +3996,68 @@ request). Filters morph on the fast parent response; list follows on the child r
 ### Review
 
 - 20/20 handoff tests; Pint + scoped PHPStan clean; live-verified cookie flags, error carry, and toast render.
+
+# Design v2 typography + icons preview (2026-09-30)
+
+## Plan
+
+- [x] Swap the public font stack to DESIGN.md §5: Fraunces (display, SOFT 50 / WONK off), Figtree (UI/body), Noto Naskh Arabic.
+- [x] Load via one shared `partials/font-links` include (app, auth, simple auth, 404, 500) and update `@theme` tokens + `:lang(ar)` rules in `app.css`.
+- [x] Replace Amiri usage with Noto Naskh (`font-arabic`, `lang="ar" dir="rtl"`) and serif display/quote usage with `font-serif`.
+- [x] Standardize icons on `flux:icon` (Heroicons, already bundled) — no new dependency.
+- [x] Add temporary `/design-preview` specimen page (type scale, icon grid, in-context samples).
+- [x] Build frontend and verify home, login, 404 and preview pages render with the new fonts.
+
+## Review
+
+- Public pages now render Fraunces headings (`font-heading`), Figtree UI/body, and Naskh Arabic; Arabic blocks carry `lang="ar" dir="rtl"` and are guarded against italic/letter-spacing/uppercase/tight leading via `:lang(ar)`.
+- Headings keep their existing weights (many are bold); DESIGN.md prefers regular 400 display — left for a per-component pass if approved.
+- Self-hosting/subsetting (§12) and metric-matched fallbacks were deferred; fonts load from Google Fonts CDN for now.
+- Verification: `/`, `/login`, 404 and `/design-preview` all render with the new font link; built CSS contains the three families, `font-arabic`, and Fraunces variation settings; Pint clean.
+
+# Design v2 icons on content cards (2026-09-30)
+
+## Plan
+
+- [x] Inventory inline SVG icons inside content cards (home, /majlis, speaker/institution/reference/series cards, detail-page event cards).
+- [x] Replace them with `flux:icon.*` (Heroicons) per the DESIGN.md vocabulary, keeping existing sizes/colors and hover behaviour.
+- [x] Toggle controls (Simpan/Ikuti) now switch `variant` solid/outline instead of duplicating inline paths.
+- [x] Rebuild assets and verify every affected page renders with flux icons.
+
+## Review
+
+- Converted: home featured card (map-pin/user/clock/bookmark); /majlis card (bookmark/map-pin/clock/user/share/map/arrow-right); speaker, institution and reference cards (mini check, solid warning, map-pin, calendar, bookmark follow); series card + series show event cards (photo/check/clock/map-pin/building-library/chevron-right); event show related cards (chevron-right/book-open/link/document-text); institution/person detail event cards and status badges.
+- Left as-is (out of card scope): nav/footer/filters/modals, hero info panels, profile action buttons, contact and donation cards (brand icons), dashboards, admin.
+- Verified: `/`, `/majlis`, `/penceramah/*`, `/institusi/*`, `/rujukan/*`, `/siri/*` and reference/event detail pages render 200 with `data-flux-icon` present; old inline icon paths absent from converted files.
+
+## Match footer to supplied courtyard reference (2026-09-30)
+
+### Plan
+
+- [x] Prepare reference-matched courtyard artwork without text or UI.
+- [x] Match responsive footer proportions, typography, social buttons, and gold ornaments while retaining existing destinations.
+- [x] Build assets and visually verify desktop/mobile rendering and links.
+
+### Review
+
+- Cosmetic scope only; existing workflow destinations and tracking remain unchanged.
+
+- Reused the matching clean v5 courtyard asset; preserved all 11 existing links and support-email logic.
+- Production build passed; desktop (1440px), tablet (768px), and mobile (390px) rendered with loaded artwork, no horizontal overflow, and no JavaScript errors. `git diff --check` passed. Cosmetic-only changes require no new behavior tests.
+
+## Seamless footer image join (2026-09-30)
+
+- [x] Identify the body base and composited background colors.
+- [x] Regenerate courtyard artwork with a pattern-free upper edge matching the section endpoint #F4F1E8.
+- [x] Blend the join with the page and verify desktop/mobile output.
+
+- Body base is #F2E9D5, but the content section gradient ends at #F4F1E8. Generated v12 artwork without upper patterns and blended it into an exact #F4F1E8 surface. Desktop/mobile verified; production build and diff check passed.
+
+## Footer compositions across breakpoints (2026-09-30)
+
+- [x] Create separate tablet and mobile courtyard artwork with the same pattern-free ivory join.
+- [x] Adapt mobile, tablet, compact desktop, and wide desktop content proportions.
+- [x] Build and verify at breakpoint boundaries and small mobile widths.
+
+- Dedicated tablet/mobile artwork selected with picture sources at 640px/1024px; compact desktop spacing at 1024–1279px and single-column navigation below 360px. Centered smaller-screen branding, 44px mobile link targets, and a contrast layer keep copy clear.
+- Checked 320, 390, 639, 640, 768, 1023, 1024, 1280, 1920px: correct assets, 11 links, no overflow or browser errors. Final mobile/tablet refinements visually verified; build and diff check passed. Cosmetic scope: no workflow/tracking changes.

@@ -823,7 +823,7 @@ class UserDashboard extends Component
             'date_key' => $dateKey,
             'time_label' => $timeLabel,
             'secondary_label' => $secondaryLabel,
-            'image_url' => $event instanceof Event ? $event->card_image_url : asset('images/placeholders/event-square-v1.jpg'),
+            'image_url' => $event instanceof Event ? $event->card_image_url : asset('images/placeholders/event-wide-v1.jpg'),
             'status' => $status,
             'status_label' => $this->translatedEventWorkflowStatusLabel($status),
             'status_class' => $this->eventStatusClass($status),

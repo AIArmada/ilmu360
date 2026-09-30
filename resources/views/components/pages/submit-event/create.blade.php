@@ -6,6 +6,20 @@
 
 @push('head')
 <style>
+    .living-majlis-field.submit-event-background {
+        background-color: var(--living-sand);
+        background-image: url('{{ asset('images/hantar-majlis-top-background-v1.png') }}');
+        background-position: center top;
+        background-repeat: no-repeat;
+        background-size: max(100%, 64rem) auto;
+    }
+
+    @media (forced-colors: active) {
+        .living-majlis-field.submit-event-background {
+            background: Canvas;
+        }
+    }
+
     /* Keep the wizard calm and usable on smaller screens. */
     .fi-sc-wizard-header {
         overflow-x: auto;
@@ -64,7 +78,7 @@
 </style>
 @endpush
 
-<div class="min-h-screen bg-gradient-to-b from-emerald-50/80 via-[#f6f8f6] to-[#f6f8f6] pt-48 pb-32 sm:pt-52 lg:pt-52">
+<div data-art-direction="living-majlis" class="living-majlis-field submit-event-background min-h-screen pt-48 pb-6 sm:pt-52 sm:pb-8 lg:pt-52">
     <div class="container mx-auto px-6 lg:px-12">
         <div class="mx-auto max-w-6xl xl:max-w-7xl">
             @if(($eventContainer = $this->selectedEventContainer()) instanceof \App\Models\Event)

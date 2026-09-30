@@ -7,6 +7,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as SocialiteUser;
+use Symfony\Component\HttpFoundation\Cookie as SymfonyCookie;
 
 uses(RefreshDatabase::class);
 
@@ -221,4 +222,46 @@ it('verifies an existing user when signing in through an existing google social 
         'provider_id' => 'google-789',
         'avatar_url' => 'https://example.com/new-avatar.jpg',
     ]);
+});
+
+it('loads the livewire runtime on the login page so toasts and alpine widgets render', function () {
+    // The auth layout once shipped only @livewireScriptConfig (config JSON,
+    // no runtime), which left every Alpine-driven widget on /login dead —
+    // including the error toasts OAuth failures flash.
+    $this->get(route('login'))
+        ->assertOk()
+        ->assertSee('livewire.js', false);
+});
+
+it('loads the livewire runtime on the register page so toasts and alpine widgets render', function () {
+    $this->get(route('register'))
+        ->assertOk()
+        ->assertSee('livewire.js', false);
+});
+
+it('sets the verifier cookie without a domain attribute so browsers accept the __Host- prefix', function () {
+    // Cookie::make() backfills a null domain from the CookieJar default
+    // (config session.domain in production), and any Domain attribute makes
+    // browsers reject __Host- cookies outright — breaking every OAuth
+    // completion with verifier_mismatch. Pin the production-like default
+    // explicitly: the jar singleton resolves at boot, so a config override
+    // here would not reproduce the backfill and this would pass vacuously.
+    $session = config('session');
+    app('cookie')->setDefaultPathAndDomain($session['path'], '.ilmu360.test', $session['secure'], $session['same_site'] ?? null);
+
+    $response = $this->get(route('socialite.redirect', ['provider' => 'google']));
+
+    $verifier = collect($response->headers->getCookies())
+        ->first(fn (SymfonyCookie $cookie) => $cookie->getName() === OAuthTransactionStore::VERIFIER_COOKIE);
+
+    expect($verifier)->not->toBeNull();
+    expect($verifier->getDomain())->toBeNull();
+    expect($verifier->isSecure())->toBeTrue();
+    expect($verifier->getPath())->toBe('/');
+
+    $raw = collect($response->headers->all('set-cookie'))
+        ->first(fn (string $header) => str_starts_with($header, OAuthTransactionStore::VERIFIER_COOKIE.'='));
+
+    expect($raw)->not->toBeNull();
+    expect(strtolower((string) strstr((string) $raw, ';')))->not->toContain('domain=');
 });

@@ -90,9 +90,7 @@
 
             <div class="mt-4 grid gap-2 text-sm text-slate-500">
                 <p class="flex items-center gap-2">
-                    <svg class="h-4 w-4 shrink-0 {{ $accentClass }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                    </svg>
+                    <flux:icon.clock class="size-4 shrink-0 {{ $accentClass }}" />
                     <span>
                         {{ $event->timing_display !== '' ? $event->timing_display : \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'h:i A') }}
                         @if($event->ends_at)
@@ -104,10 +102,7 @@
 
                 @if($eventLocation !== '' && ! $isRemoteEvent)
                     <p class="flex items-start gap-2">
-                        <svg class="mt-0.5 h-4 w-4 shrink-0 {{ $accentClass }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
-                        </svg>
+                        <flux:icon.map-pin class="mt-0.5 size-4 shrink-0 {{ $accentClass }}" />
                         <span class="line-clamp-2">{{ $eventLocation }}</span>
                     </p>
                 @endif
@@ -116,9 +111,7 @@
             <div class="mt-5 flex items-center justify-between border-t border-slate-100 pt-4">
                 <span class="text-xs font-semibold text-slate-400">{{ __('Lihat maklumat penuh majlis') }}</span>
                 <span class="grid h-9 w-9 place-items-center rounded-full {{ $arrowClass }} transition group-hover:translate-x-1 group-hover:text-white">
-                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-5-5 5 5-5 5" />
-                    </svg>
+                    <flux:icon.arrow-right class="size-4" />
                 </span>
             </div>
         </div>

@@ -620,11 +620,7 @@ new
                                                 @endif
                                                 <div class="space-y-1 text-sm text-slate-500">
                                                     <div class="flex items-center gap-1.5">
-                                                        <svg class="size-3.5 text-slate-400" fill="none" viewBox="0 0 24 24"
-                                                            stroke="currentColor" stroke-width="2">
-                                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                                d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                        </svg>
+                                                        <flux:icon.clock class="size-3.5 text-slate-400" />
                                                         {{ $resolveEventTimeDisplay($event) }}
                                                         @if($event->ends_at)
                                                             <span
@@ -633,22 +629,12 @@ new
                                                     </div>
                                                     @if($venueLocation && $eventFormatValue !== 'online')
                                                         <div class="flex items-center gap-1.5">
-                                                            <svg class="size-3.5 shrink-0 text-slate-400" fill="none"
-                                                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                                    d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                                    d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 0115 0z" />
-                                                            </svg>
+                                                            <flux:icon.map-pin class="size-3.5 shrink-0 text-slate-400" />
                                                             <span class="line-clamp-1">{{ $venueLocation }}</span>
                                                         </div>
                                                     @elseif($event->institution && $eventFormatValue !== 'online')
                                                         <div class="flex items-center gap-1.5">
-                                                            <svg class="size-3.5 shrink-0 text-slate-400" fill="none"
-                                                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                                    d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6M4.5 9.75v10.5h15V9.75" />
-                                                            </svg>
+                                                            <flux:icon.building-library class="size-3.5 shrink-0 text-slate-400" />
                                                             {{ $event->institution->name }}
                                                         </div>
                                                     @endif
@@ -658,11 +644,7 @@ new
                                             <div class="hidden items-center pr-5 sm:flex">
                                                 <div
                                                     class="flex size-8 items-center justify-center rounded-full bg-slate-100 text-slate-400 transition-all duration-300 group-hover:bg-emerald-100 group-hover:text-emerald-600">
-                                                    <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                                        stroke-width="2">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                                                    </svg>
+                                                    <flux:icon.chevron-right class="size-4" />
                                                 </div>
                                             </div>
                                         </a>
@@ -746,11 +728,7 @@ new
                                                 @endif
                                                 <div class="space-y-1 text-sm text-slate-500">
                                                     <div class="flex items-center gap-1.5">
-                                                        <svg class="size-3.5 text-slate-400" fill="none" viewBox="0 0 24 24"
-                                                            stroke="currentColor" stroke-width="2">
-                                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                                d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                        </svg>
+                                                        <flux:icon.clock class="size-3.5 text-slate-400" />
                                                         {{ $resolveEventTimeDisplay($event) }}
                                                         @if($event->ends_at)
                                                             <span
@@ -759,22 +737,12 @@ new
                                                     </div>
                                                     @if($pastVenueLocation && $eventFormatValue !== 'online')
                                                         <div class="flex items-center gap-1.5">
-                                                            <svg class="size-3.5 shrink-0 text-slate-400" fill="none"
-                                                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                                    d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                                    d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 0115 0z" />
-                                                            </svg>
+                                                            <flux:icon.map-pin class="size-3.5 shrink-0 text-slate-400" />
                                                             <span class="line-clamp-1">{{ $pastVenueLocation }}</span>
                                                         </div>
                                                     @elseif($event->institution && $eventFormatValue !== 'online')
                                                         <div class="flex items-center gap-1.5">
-                                                            <svg class="size-3.5 shrink-0 text-slate-400" fill="none"
-                                                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                                    d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6M4.5 9.75v10.5h15V9.75" />
-                                                            </svg>
+                                                            <flux:icon.building-library class="size-3.5 shrink-0 text-slate-400" />
                                                             {{ $event->institution->name }}
                                                         </div>
                                                     @endif
@@ -783,11 +751,7 @@ new
                                             <div class="hidden items-center pr-5 sm:flex">
                                                 <div
                                                     class="flex size-8 items-center justify-center rounded-full bg-slate-100 text-slate-400 transition-all duration-300 group-hover:bg-slate-200 group-hover:text-slate-600">
-                                                    <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                                        stroke-width="2">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                                                    </svg>
+                                                    <flux:icon.chevron-right class="size-4" />
                                                 </div>
                                             </div>
                                         </a>

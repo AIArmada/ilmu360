@@ -6,6 +6,8 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Livewire\Livewire;
+use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
+use Ysfkaya\FilamentPhoneInput\PhoneInputNumberType;
 
 it('keeps organizer synchronization in the browser without live requests', function (): void {
     Livewire::test(Create::class)
@@ -52,10 +54,14 @@ it('keeps repeater person linking and guest contact requirements client-side', f
 
             return true;
         })
-        ->assertFormFieldExists('submitter_phone', function (TextInput $field): bool {
+        ->assertFormFieldExists('submitter_phone', function (PhoneInput $field): bool {
+            // PhoneInput extends the base Field, which has no
+            // extraAlpineAttributes support; the conditional
+            // required() closure below remains the enforcement.
             expect($field->isLive())->toBeFalse()
-                ->and($field->getExtraAlpineAttributes())
-                ->toHaveKey('x-bind:required');
+                ->and($field->getInitialCountry())->toBe('MY')
+                ->and($field->getDisplayNumberFormat())->toBe(PhoneInputNumberType::INTERNATIONAL->value)
+                ->and($field->getInputNumberFormat())->toBe(PhoneInputNumberType::E164->value);
 
             return true;
         });

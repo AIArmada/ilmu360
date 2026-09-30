@@ -37,7 +37,6 @@ use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
@@ -444,7 +443,6 @@ describe('Event Search Filters', function () {
             'person_ids',
             'starts_after',
             'starts_before',
-            'radius_km',
         ] as $name) {
             expect($fields)->toHaveKey($name);
         }
@@ -462,7 +460,6 @@ describe('Event Search Filters', function () {
             ->and($fields['person_ids'])->toBeInstanceOf(Select::class)
             ->and($fields['starts_after'])->toBeInstanceOf(DatePicker::class)
             ->and($fields['starts_before'])->toBeInstanceOf(DatePicker::class)
-            ->and($fields['radius_km'])->toBeInstanceOf(TextInput::class)
             ->and($sortFields['sort'])->toBeInstanceOf(Select::class);
     });
 

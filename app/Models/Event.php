@@ -1993,7 +1993,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
         $this->addMediaCollection('cover')
             ->useDisk(config('media-library.disk_name'))
             ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
-            ->useFallbackUrl(asset('images/placeholders/event-square-v1.jpg'))
+            ->useFallbackUrl(asset('images/placeholders/event-wide-v1.jpg'))
             ->withResponsiveImages()
             ->singleFile();
 
@@ -2212,7 +2212,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
     {
         $coverUrl = $this->preferredMediaUrl($this->getFirstMedia('cover'), ['thumb']);
 
-        return $coverUrl ?? asset('images/placeholders/event-square-v1.jpg');
+        return $coverUrl ?? asset('images/placeholders/event-wide-v1.jpg');
     }
 
     /**
@@ -2241,7 +2241,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
             }
         }
 
-        return asset('images/placeholders/event-square-v1.jpg');
+        return asset('images/placeholders/event-wide-v1.jpg');
     }
 
     /**
@@ -2312,7 +2312,11 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
             return $this->poster_display_aspect_ratio;
         }
 
-        return '1:1';
+        if ($this->institution?->hasMedia('logo')) {
+            return '1:1';
+        }
+
+        return '16:9';
     }
 
     public function getPosterOrientationAttribute(): string

@@ -17,6 +17,9 @@ use App\Models\User;
 use Database\Seeders\AIArmada\EventTaxonomySeeder;
 use Database\Seeders\AIArmada\EventTopicSeeder;
 use Filament\Forms\Components\Select;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Wizard;
+use Filament\Schemas\Components\Wizard\Step;
 use Livewire\Livewire;
 
 function adaptiveSubmitEventTopicId(string $code): string
@@ -357,6 +360,29 @@ it('groups the regrouped wizard into labeled steps and sections', function (): v
         ->assertSee('Kehadiran')
         ->assertSee('Topik & Klasifikasi')
         ->assertSee('Rujukan Kitab');
+});
+
+it('keeps every Majlis & Topik section expanded without a collapse toggle', function (): void {
+    app(EventTaxonomySeeder::class)->run();
+    app(EventTopicSeeder::class)->run();
+
+    $wizard = Livewire::test(Create::class)->instance()->getForm('form')->getComponents()[0];
+
+    expect($wizard)->toBeInstanceOf(Wizard::class);
+
+    $firstStep = $wizard->getChildComponents()[0];
+
+    expect($firstStep)->toBeInstanceOf(Step::class);
+
+    $collapsibleBySection = collect($firstStep->getChildComponents())
+        ->filter(fn (object $component): bool => $component instanceof Section)
+        ->mapWithKeys(fn (Section $section): array => [(string) $section->getHeading() => $section->isCollapsible()]);
+
+    expect($collapsibleBySection->all())->toBe([
+        __('Tentang Majlis') => false,
+        __('Topik & Klasifikasi') => false,
+        __('Rujukan Kitab') => false,
+    ]);
 });
 
 it('persists the muslim-only choice for non-religious topics', function (): void {

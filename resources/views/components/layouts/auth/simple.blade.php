@@ -14,11 +14,7 @@
     <link rel="icon" type="image/x-icon" href="{{ asset('images/favicon.ico') }}">
     <link rel="apple-touch-icon" href="{{ asset('images/apple-touch-icon.png') }}">
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Amiri:wght@400;700&display=swap"
-        rel="stylesheet">
+    @include('partials.font-links')
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @fluxAppearance
@@ -26,10 +22,6 @@
     @stack('head')
 
     <style>
-        .font-amiri {
-            font-family: 'Amiri', serif;
-        }
-
         /* Islamic geometric diamond pattern */
         .auth-pattern {
             background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23d4a853' stroke-width='0.5' opacity='0.1'%3E%3Cpath d='M30 0 L60 30 L30 60 L0 30Z'/%3E%3Cpath d='M30 10 L50 30 L30 50 L10 30Z'/%3E%3C/g%3E%3C/svg%3E");
@@ -193,7 +185,7 @@
                         </a>
 
                         <div class="mt-6 space-y-2">
-                            <h2 class="font-amiri text-2xl text-emerald-900" style="direction: rtl;">بِسْمِ ٱللَّهِ
+                            <h2 class="font-arabic text-2xl text-emerald-900" lang="ar" dir="rtl">بِسْمِ ٱللَّهِ
                                 ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ</h2>
                             <p class="text-slate-500 text-sm font-medium tracking-wide uppercase">
                                 {{ __('ILMU ITU CAHAYA') }}

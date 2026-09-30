@@ -176,7 +176,7 @@ it('resolves the supported aspect ratio for the image used on event cards', func
     expect($coverEvent->card_image_aspect_ratio)->toBe('16:9')
         ->and($posterEvent->card_image_aspect_ratio)->toBe('3:4')
         ->and($squareEvent->card_image_aspect_ratio)->toBe('1:1')
-        ->and(Event::factory()->create()->card_image_aspect_ratio)->toBe('1:1');
+        ->and(Event::factory()->create()->card_image_aspect_ratio)->toBe('16:9');
 });
 
 it('uses Event cover in recommendation_image_url accessor', function () {
@@ -194,7 +194,7 @@ it('falls back to placeholder in recommendation_image_url accessor when cover is
     $event->addMedia(fakeGeneratedImageUpload('poster.png', 1200, 1500))
         ->toMediaCollection('poster');
 
-    expect($event->recommendation_image_url)->toContain('images/placeholders/event-square-v1.jpg');
+    expect($event->recommendation_image_url)->toContain('images/placeholders/event-wide-v1.jpg');
 });
 
 it('uses institution logo when Event has no poster', function () {
@@ -212,7 +212,7 @@ it('falls back to placeholder in Event card_image_url when no media exists', fun
 
     $cardUrl = $event->card_image_url;
 
-    expect($cardUrl)->toContain('images/placeholders/event-square-v1.jpg');
+    expect($cardUrl)->toContain('images/placeholders/event-wide-v1.jpg');
 });
 
 // ---------------------------------------------------------------

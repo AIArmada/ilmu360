@@ -244,7 +244,7 @@ it('renders public event poster containers using the poster aspect ratio', funct
         ->assertSee('data-poster-aspect="3:4"', false);
 });
 
-it('uses a square placeholder aspect ratio for public events index cards without posters', function () {
+it('uses a wide placeholder aspect ratio for public events index cards without posters', function () {
     $institution = Institution::factory()->create([
         'status' => 'verified',
     ]);
@@ -262,7 +262,7 @@ it('uses a square placeholder aspect ratio for public events index cards without
     $this->get(route('events.index', ['search' => 'Tanpa Poster']))
         ->assertSuccessful()
         ->assertSee('Majlis Tanpa Poster')
-        ->assertSee('data-cover-aspect="1:1"', false);
+        ->assertSee('data-cover-aspect="16:9"', false);
 });
 
 it('uses the real person avatar in public person share metadata and preview', function () {
@@ -398,7 +398,7 @@ it('shows comma-separated location hierarchy text on public events index cards',
         ->assertDontSee('Shah Alam, Petaling & Selangor');
 });
 
-it('renders the date and event-type badges below the poster on public events index cards', function () {
+it('renders the date and event-type badges on public events index cards', function () {
     $institution = Institution::factory()->create([
         'name' => 'Masjid Sultan Salahudin Abdul Aziz Shah',
         'status' => 'verified',
@@ -416,13 +416,12 @@ it('renders the date and event-type badges below the poster on public events ind
 
     $this->get(route('events.index', ['search' => 'Diskusi Dhuha']))
         ->assertSuccessful()
-        ->assertSee('data-testid="event-card-badge-row"', false)
-        ->assertSee('data-testid="event-card-date-badge"', false)
         ->assertSee('data-testid="event-card-type-badge"', false)
+        ->assertSee('data-testid="event-card-date-badge"', false)
         ->assertSeeInOrder([
             'data-cover-aspect=',
-            'data-testid="event-card-badge-row"',
-            'data-testid="event-card-title-link"',
+            'data-testid="event-card-type-badge"',
+            'data-testid="event-card-date-badge"',
         ], false);
 });
 

@@ -1069,3 +1069,8 @@
 - Never derive Alpine visibility state per-render from a server-computed value (`filtersOpen: @js($hasActiveFilters)`): any Livewire update whose value differs re-initializes the Alpine component and snaps UI state (closes an open panel on reset, pops a closed panel open on the first search keystroke). Own the state in a boolean Livewire prop initialized once in `mount()`, bind with `$wire.entangle()`, and let subsequent updates leave it alone.
 - Before building on any review finding (human or AI), verify its core premise against the actual code path; round-4's "ResolveSocialiteUserAction fires Verified on the bridge host" was false (`markEmailAsVerified()` dispatches nothing), which produced a dead carry-count feature and a failing test that round-5 had to unwind. Read the action/listener/event chain first, then decide.
 - Never pipe a test runner through `tail` when the verdict matters: the pipeline exit code is `tail`'s, not the runner's, so failures hide behind exit 0. Redirect full output to a file and echo the runner's real exit code (`./pest ... > /tmp/x.log 2>&1; echo "exit: $?"`).
+- When matching a footer image to the page, inspect both the computed body color and composited pixels; regenerate a pattern-free upper edge and blend it into the actual page background rather than trusting the image's cream tone.
+
+- For a seamless shared footer, check page-specific background overrides too; their lower surface must match the footer transition color, including pages with decorative hero backgrounds.
+
+- When adjusting a footer join, check the preceding page padding along with the artwork’s built-in empty space; avoid stacking a large page bottom spacer on the footer transition.

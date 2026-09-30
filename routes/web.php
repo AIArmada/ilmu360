@@ -223,3 +223,6 @@ Route::get('/peta-laman-penceramah.xml', [SitemapController::class, 'persons'])-
 Route::view('/welcome', 'welcome', [
     'canRegister' => Features::enabled(Features::registration()),
 ])->name('welcome');
+
+// Temporary DESIGN.md v2 preview for fonts and icons. Safe to delete.
+Route::view('/design-preview', 'design-preview')->name('design-preview');

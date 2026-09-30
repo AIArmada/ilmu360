@@ -573,7 +573,7 @@
                                         <span class="mt-1 block truncate text-sm text-slate-500">{{ $person->titleAssignments->first()->title->name }}</span>
                                     @endif
                                 </span>
-                                <svg class="ml-auto size-5 shrink-0 text-slate-300 transition group-hover:translate-x-1 group-hover:text-[#b27b1b]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+                                <flux:icon.chevron-right class="ml-auto size-5 shrink-0 text-slate-300 transition group-hover:translate-x-1 group-hover:text-[#b27b1b]" />
                             </a>
                         @endforeach
                     </div>
@@ -622,13 +622,13 @@
                     <div class="grid gap-5">
                         @foreach($event->references as $reference)
                             <a href="{{ route('references.show', $reference) }}" class="group flex gap-4 rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-[#b27b1b]/50 hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#173c34]">
-                                <span class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[#173c34] text-[#f2c867]"><svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332 0 4.5 0" /></svg></span>
+                                <span class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[#173c34] text-[#f2c867]"><flux:icon.book-open class="size-5" /></span>
                                 <span class="min-w-0">
                                     <span class="block font-heading text-xl font-semibold text-[#173c34] group-hover:text-[#b27b1b]">{{ $reference->title }}</span>
                                     @if(filled($reference->author))<span class="mt-1 block text-sm text-slate-500">{{ $reference->author }}</span>@endif
                                     @if(filled($reference->publisher))<span class="mt-1 block text-xs text-slate-400">{{ $reference->publisher }}</span>@endif
                                 </span>
-                                <svg class="ml-auto mt-1 size-5 shrink-0 text-slate-300 transition group-hover:translate-x-1 group-hover:text-[#b27b1b]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+                                <flux:icon.chevron-right class="ml-auto mt-1 size-5 shrink-0 text-slate-300 transition group-hover:translate-x-1 group-hover:text-[#b27b1b]" />
                             </a>
                         @endforeach
                     </div>
@@ -689,14 +689,14 @@
                     <div class="mt-6 grid gap-3 sm:grid-cols-2">
                         @foreach($linkEntries as $linkEntry)
                             <a href="{{ $linkEntry['link']->url }}" target="_blank" rel="noopener" data-signal-event="navigation.external_link_clicked" data-signal-category="navigation" data-signal-component="event_detail_resources" data-signal-control="event_link" data-signal-entity-type="event" data-signal-entity-id="{{ $event->id }}" class="group flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4 transition hover:-translate-y-0.5 hover:border-[#b27b1b]/50 hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#173c34]">
-                                <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#e8f0e8] text-[#173c34]"><svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 010 6.624m-2.38 0a4.5 4.5 0 010-6.624m-3.31 1.19l-1.26 1.26a4.5 4.5 0 106.36 6.364l1.26-1.26m1.19-3.31l1.26-1.26a4.5 4.5 0 00-6.36-6.364l-1.26 1.26" /></svg></span>
+                                <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#e8f0e8] text-[#173c34]"><flux:icon.link class="size-4" /></span>
                                 <span class="min-w-0"><span class="block font-semibold text-[#173c34] group-hover:text-[#b27b1b]">{{ $detail->linkTypeLabel($linkEntry['link']) }}</span>@if($linkScopeCount > 1)<span class="mt-1 block text-xs text-slate-500">{{ $linkEntry['scope_label'] }}</span>@endif</span>
                                 <span class="ml-auto shrink-0 text-sm font-bold text-[#b27b1b]" aria-hidden="true">↗</span>
                             </a>
                         @endforeach
                         @foreach($materialEntries as $material)
                             <a href="{{ $material->url }}" target="_blank" rel="noopener" data-signal-event="navigation.external_link_clicked" data-signal-category="navigation" data-signal-component="event_detail_resources" data-signal-control="material" data-signal-entity-type="event" data-signal-entity-id="{{ $event->id }}" class="group flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4 transition hover:-translate-y-0.5 hover:border-[#b27b1b]/50 hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#173c34]">
-                                <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#fff6df] text-[#b27b1b]"><svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 5.75A2.75 2.75 0 017.75 3h8.5A2.75 2.75 0 0119 5.75v12.5A2.75 2.75 0 0116.25 21h-8.5A2.75 2.75 0 015 18.25V5.75zM8 7h8M8 11h8M8 15h5" /></svg></span>
+                                <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#fff6df] text-[#b27b1b]"><flux:icon.document-text class="size-4" /></span>
                                 <span class="min-w-0"><span class="block font-semibold text-[#173c34] group-hover:text-[#b27b1b]">{{ $material->title }}</span>@if(filled($material->notes))<span class="mt-1 block text-xs text-slate-500">{{ $material->notes }}</span>@endif</span>
                                 <span class="ml-auto shrink-0 text-sm font-bold text-[#b27b1b]" aria-hidden="true">↗</span>
                             </a>

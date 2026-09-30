@@ -26,7 +26,9 @@ new
             return Event::active()
                 ->whereBetween('starts_at', [now(), now()->copy()->addDays(14)])
                 ->with([
+                    'classifications.term',
                     'institution',
+                    'references',
                     'institution.addresses.areaAssignments.area',
                     'institution.addresses.state',
                     'persons.media',
@@ -372,7 +374,7 @@ new
 
     {{-- Geography filter --}}
     <section x-show="searchType === 'majlis'" x-cloak class="relative z-20 mx-auto max-w-7xl px-5 py-4 sm:px-6 lg:px-8">
-        <livewire:components.event-filters :quick-filter-ranges="$eventDateLinks" :show-nearby-button="false" />
+        <livewire:components.event-filters :quick-filter-ranges="$eventDateLinks" :show-nearby-button="true" />
     </section>
 
     {{-- Featured events --}}
@@ -383,36 +385,17 @@ new
                 @if($this->featuredEvents->isNotEmpty())
                     <div class="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                         @foreach($this->featuredEvents as $event)
-                            @php
-                                $eventSpeakers = $event->persons->unique('id');
-                                $eventSpeakerNames = $eventSpeakers->pluck('formatted_name')->filter()->join(', ');
-                                $speakerAvatarItems = $eventSpeakers
-                                    ->map(fn (\App\Models\Person $person): array => [
-                                        'name' => trim((string) ($person->formatted_name !== '' ? $person->formatted_name : $person->name)),
-                                        'url' => $person->public_avatar_url,
-                                    ])
-                                    ->filter(fn (array $avatar): bool => $avatar['name'] !== '' && $avatar['url'] !== '')
-                                    ->values();
-                                $speakerAvatarOverflow = max(0, $speakerAvatarItems->count() - 3);
-                                $speakerAvatarItems = $speakerAvatarItems->take(3)->values();
-                                $eventDate = $event->starts_at ? UserDateTimeFormatter::format($event->starts_at, 'd') : '--';
-                                $eventMonth = $event->starts_at ? UserDateTimeFormatter::translatedFormat($event->starts_at, 'M') : '';
-                                $eventTime = $event->starts_at ? $event->timing_display : '';
-                                $viewerTimezone = UserDateTimeFormatter::resolveTimezone();
 
-                                if ($eventTime !== ''
-                                    && $event->starts_at instanceof CarbonInterface
-                                    && $event->ends_at instanceof CarbonInterface
-                                    && $event->ends_at->gt($event->starts_at)
-                                    && $event->ends_at->copy()->timezone($viewerTimezone)->isSameDay($event->starts_at->copy()->timezone($viewerTimezone))
-                                ) {
-                                    $eventTime .= ' — '.UserDateTimeFormatter::format($event->ends_at, 'g:i A');
-                                }
-                                $eventLocation = $event->institution?->name ?? __('Seluruh Malaysia');
-                                $eventLocationSubtitle = AddressHierarchyFormatter::format($event->institution?->primaryAddress());
+                            @php
                                 $isSaved = in_array((string) $event->getKey(), $this->savedEventIds, true);
                             @endphp
-                            <article wire:key="home-featured-{{ $event->id }}" class="group relative flex flex-col overflow-hidden rounded-2xl border border-[#e5e8df] bg-white shadow-[0_12px_30px_-18px_rgba(24,53,43,0.35)] transition hover:-translate-y-1 hover:shadow-[0_20px_38px_-18px_rgba(24,53,43,0.45)]"><a href="{{ route('events.show', $event) }}" wire:navigate class="flex flex-1 flex-col"><div class="relative aspect-[1.35] overflow-hidden bg-[#dfe9df]"><img src="{{ $event->card_image_url }}" alt="{{ $event->title }}" loading="lazy" class="h-full w-full object-cover transition duration-500 group-hover:scale-[1.02]"><span class="absolute left-3 top-3 rounded-full bg-[#087f59] px-2.5 py-1 text-[0.63rem] font-bold text-white shadow">{{ $event->eventType?->name ?? __('Kuliah') }}</span></div><div class="px-4 pt-4"><div class="flex items-center gap-3"><div class="flex h-14 w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-[#f2f8f1] text-[#087f59]"><span class="text-[0.58rem] font-bold uppercase tracking-widest">{{ $eventMonth }}</span><span class="font-heading text-xl font-bold leading-none">{{ $eventDate }}</span></div><div class="min-w-0"><h3 class="line-clamp-2 font-heading text-base font-bold leading-tight text-[#142f28]">{{ $event->title }}</h3></div></div><div class="mt-4 space-y-2 text-sm text-[#56716a]"><p class="flex items-start gap-2"><svg class="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#087f59]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-width="1.8" d="M12 21s7-5.2 7-11a7 7 0 1 0-14 0c0 5.8 7 11 7 11Z"/><circle cx="12" cy="10" r="2.2" stroke-width="1.8"/></svg><span class="line-clamp-2">{{ $eventLocation }}{{ $eventLocationSubtitle !== '' ? ', '.$eventLocationSubtitle : '' }}</span></p><p class="flex items-center gap-2">@if($speakerAvatarItems->isNotEmpty())<span class="flex shrink-0 -space-x-2" data-testid="homepage-featured-card-speaker-avatars" aria-label="{{ __('Penceramah') }}">@foreach($speakerAvatarItems as $avatar)<img src="{{ $avatar['url'] }}" alt="{{ $avatar['name'] }}" title="{{ $avatar['name'] }}" loading="lazy" class="h-9 w-9 rounded-full object-cover ring-2 ring-white shadow-sm" />@endforeach@if($speakerAvatarOverflow > 0)<span class="flex h-9 w-9 items-center justify-center rounded-full bg-[#f2f8f1] text-xs font-bold text-[#087f59] ring-2 ring-white shadow-sm">+{{ $speakerAvatarOverflow }}</span>@endif</span>@else<svg class="h-5 w-5 shrink-0 text-[#087f59]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 1 1 7.5 0ZM4.5 20.25a8.25 8.25 0 1 1 15 0" /></svg>@endif<span data-testid="homepage-featured-card-speakers" class="line-clamp-2">{{ $eventSpeakerNames !== '' ? $eventSpeakerNames : __('Penceramah jemputan') }}</span></p></div></div></a><div class="mt-auto flex items-center justify-between gap-3 border-t border-slate-100 px-4 pb-4 pt-4"><p class="flex min-w-0 items-center gap-2"><svg class="h-3.5 w-3.5 shrink-0 text-[#087f59]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="8" stroke-width="1.8"/><path stroke-linecap="round" stroke-width="1.8" d="M12 7v5l3 2"/></svg><span class="truncate font-semibold text-[#087f59]">{{ $eventTime }}</span></p><button type="button" wire:click.stop.prevent="toggleSave('{{ $event->getKey() }}')" wire:loading.attr="disabled" data-save-icon="event" data-save-state="{{ $isSaved ? 'saved' : 'unsaved' }}" aria-label="{{ $isSaved ? __('Disimpan') : __('Simpan') }}" aria-pressed="{{ $isSaved ? 'true' : 'false' }}" title="{{ $isSaved ? __('Disimpan') : __('Simpan') }}" data-signal-event="engagement.event_save_clicked" data-signal-category="engagement" data-signal-component="home_featured_events" data-signal-control="save" data-signal-entity-type="event" data-signal-entity-id="{{ $event->id }}" data-signal-props='@json(['currently_saved' => $isSaved])' class="grid h-9 w-9 shrink-0 place-items-center rounded-xl border transition-colors duration-200 disabled:cursor-wait disabled:opacity-60 {{ $isSaved ? 'border-[#087f59] bg-[#087f59] text-white' : 'border-slate-200 bg-white text-slate-400 group-hover:border-emerald-200 group-hover:text-emerald-700' }}">@if($isSaved)<svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.75 4.5A2.25 2.25 0 0 1 9 2.25h6a2.25 2.25 0 0 1 2.25 2.25V21L12 17.25 6.75 21V4.5Z" /></svg>@else<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 4.5A2.25 2.25 0 0 1 9 2.25h6a2.25 2.25 0 0 1 2.25 2.25V21L12 17.25 6.75 21V4.5Z" /></svg>@endif</button></div></article>
+                            <x-events.card
+                                :event="$event"
+                                :is-saved="$isSaved"
+                                signal-component="home_featured_events"
+                                testid-prefix="homepage-featured-card"
+                                :wire-key="'home-featured-'.$event->id"
+                            />
                         @endforeach
                     </div>
                 @else

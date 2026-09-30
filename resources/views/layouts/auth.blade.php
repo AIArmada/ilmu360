@@ -14,11 +14,7 @@
     <link rel="icon" type="image/x-icon" href="{{ asset('images/favicon.ico') }}">
     <link rel="apple-touch-icon" href="{{ asset('images/apple-touch-icon.png') }}">
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Amiri:wght@400;700&display=swap"
-        rel="stylesheet">
+    @include('partials.font-links')
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @fluxAppearance
@@ -27,10 +23,6 @@
     @stack('head')
 
     <style>
-        .font-amiri {
-            font-family: 'Amiri', serif;
-        }
-
         .auth-pattern {
             background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23d4a853' stroke-width='0.5' opacity='0.1'%3E%3Cpath d='M30 0 L60 30 L30 60 L0 30Z'/%3E%3Cpath d='M30 10 L50 30 L30 50 L10 30Z'/%3E%3C/g%3E%3C/svg%3E");
             background-size: 60px 60px;
@@ -107,7 +99,7 @@
         <div class="relative z-10 mx-auto flex min-h-screen w-full max-w-[1600px] items-start justify-center px-4 py-5 sm:px-6 sm:py-8 lg:px-10 lg:py-16">
             {{-- Editorial side note, intentionally hidden before very wide desktop widths. --}}
             <aside class="absolute left-[10%] top-[29%] hidden w-48 -translate-y-1/2 text-amber-100 xl:block">
-                <p class="font-amiri text-[2rem] leading-[1.05]">Ilmu<br>Menyinari<br>Kehidupan</p>
+                <p class="font-serif text-[2rem] leading-[1.05]">Ilmu<br>Menyinari<br>Kehidupan</p>
                 <div class="my-5 h-px w-8 bg-amber-300/90"></div>
                 <p class="max-w-[10rem] text-sm leading-6 text-amber-50/80">Lebih dekat dengan ilmu, lebih baik untuk esok.</p>
             </aside>
@@ -128,7 +120,7 @@
                             </a>
 
                             <div class="mt-7 space-y-2">
-                                <h2 class="font-amiri text-[1.8rem] leading-none text-emerald-900" style="direction: rtl;">بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ</h2>
+                                <h2 class="font-arabic text-[1.8rem] text-emerald-900" lang="ar" dir="rtl">بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ</h2>
                                 <div class="mx-auto h-1 w-10 rounded-full bg-amber-400"></div>
                             </div>
                         </div>
@@ -150,7 +142,7 @@
         </div>
     </div>
 
-    @livewireScriptConfig
+    @livewireScripts
     @fluxScripts
     @stack('scripts')
 </body>

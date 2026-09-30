@@ -9,9 +9,7 @@
     <title>{{ __('Page Not Found') }} - {{ config('app.name') }}</title>
     <meta name="description" content="{{ __('The page you are looking for could not be found.') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    @include('partials.font-links')
 </head>
 
 <body class="min-h-screen bg-slate-950 font-sans text-white antialiased">

@@ -104,6 +104,6 @@
             </div>
         @endif
 
-        <p class="pt-1 text-center font-amiri text-[0.95rem] italic text-[#8da0af]">“Menuntut ilmu adalah perjalanan seumur hidup.”</p>
+        <p class="pt-1 text-center font-serif text-[0.95rem] italic text-[#8da0af]">“Menuntut ilmu adalah perjalanan seumur hidup.”</p>
     </div>
 @endsection

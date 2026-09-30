@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Support\Auth;
 
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Cookie as SymfonyCookie;
 
@@ -156,10 +155,13 @@ final class OAuthTransactionStore
      */
     public static function verifierCookie(string $verifier): SymfonyCookie
     {
-        return Cookie::make(
+        // Build the raw Symfony cookie directly: Cookie::make() backfills a
+        // null domain from config('session.domain'), and any Domain attribute
+        // makes browsers reject __Host- cookies outright.
+        return new SymfonyCookie(
             self::VERIFIER_COOKIE,
             $verifier,
-            (int) (self::STATE_TTL_SECONDS / 60),
+            time() + self::STATE_TTL_SECONDS,
             '/',
             null,
             true,

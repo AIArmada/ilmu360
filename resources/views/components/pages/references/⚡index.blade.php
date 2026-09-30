@@ -502,21 +502,19 @@ new
 
                         <article
                             wire:key="reference-{{ $reference->id }}"
-                            class="living-majlis-card group relative flex flex-col overflow-hidden rounded-[1.5rem] border transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-1.5 hover:border-emerald-300/80 hover:shadow-[0_22px_50px_-28px_rgba(6,78,59,0.40)]"
+                            class="living-majlis-card group relative flex flex-col overflow-hidden rounded-[1.5rem] border border-emerald-200 transition-[border-color,background-color,box-shadow,transform] duration-300 hover:-translate-y-1.5 hover:border-amber-200 hover:bg-amber-100 hover:shadow-[0_22px_50px_-28px_rgba(217,165,20,0.40)]"
                         >
                             <a
                                 href="{{ route('references.show', $reference) }}"
                                 wire:navigate
-                                class="relative flex flex-1 flex-col"
+                                class="flex flex-1 flex-col after:absolute after:inset-0"
                             >
                                 <div class="relative flex aspect-4/5 items-center justify-center overflow-hidden bg-linear-to-br from-slate-50 to-emerald-50">
                                     @if($coverUrl)
                                         <img src="{{ $coverUrl }}" alt="{{ $reference->title }}" class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" width="200" height="280" loading="lazy">
                                         <div class="absolute inset-0 bg-linear-to-t from-slate-900/55 via-slate-900/10 to-transparent"></div>
                                     @else
-                                        <svg class="h-20 w-20 text-emerald-200 transition-transform duration-700 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                                        </svg>
+                                        <flux:icon.book-open class="size-20 text-emerald-200 transition-transform duration-700 group-hover:scale-110" />
                                     @endif
 
                                     <span class="absolute left-4 top-4 rounded-full bg-white/95 px-3 py-1 text-xs font-bold text-emerald-700 shadow-sm ring-1 ring-emerald-100">
@@ -545,11 +543,11 @@ new
                                     data-next-event
                                     href="{{ route('events.show', ['event' => $reference->next_event_slug]) }}"
                                     wire:navigate
-                                    class="mx-6 mt-4 block min-w-0 border-t border-slate-100 pt-4 transition-colors duration-200 hover:border-emerald-200 hover:bg-emerald-50/30 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/15"
+                                    class="group/next relative z-10 mx-6 mt-4 block min-w-0 border-t border-slate-100 pb-4 pt-4 transition-colors duration-200 group-hover:border-amber-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/15"
                                 >
                                     <span class="min-w-0">
                                         <span class="block text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">{{ __('Next event') }}</span>
-                                        <span class="mt-1 block truncate text-[11px] font-semibold text-slate-700 sm:text-xs">
+                                        <span class="mt-1 block truncate text-[11px] font-semibold text-slate-700 transition-colors group-hover/next:font-bold group-hover/next:text-emerald-800 sm:text-xs">
                                             {{ UserDateTimeFormatter::translatedFormat($nextEventStartsAt, 'j M') }}
                                             <span class="text-slate-300" aria-hidden="true">·</span>
                                             {{ $reference->next_event_title }}
@@ -557,11 +555,9 @@ new
                                     </span>
                                 </a>
                             @endif
-                            <div class="mt-auto flex items-center justify-between gap-3 border-t border-slate-100 px-6 pb-6 pt-5">
+                            <div class="mt-auto flex items-center justify-between gap-3 border-t border-slate-100 px-6 pb-6 pt-5 group-hover:border-amber-200">
                                 <span class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">
-                                    <svg class="h-3.5 w-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                    </svg>
+                                    <flux:icon.calendar class="size-3.5 text-emerald-500" />
                                     {{ $reference->events_count }} {{ __('Events') }}
                                 </span>
                                 <button
@@ -572,17 +568,9 @@ new
                                     data-follow-state="{{ $isFollowing ? 'following' : 'not-following' }}"
                                     aria-label="{{ $isFollowing ? __('Nyahikut') : __('Ikuti') }}"
                                     aria-pressed="{{ $isFollowing ? 'true' : 'false' }}"
-                                    class="grid h-9 w-9 shrink-0 place-items-center rounded-xl border transition-colors duration-200 disabled:cursor-wait disabled:opacity-60 {{ $isFollowing ? 'border-emerald-200 bg-emerald-50 text-emerald-700 group-hover:border-emerald-300 group-hover:bg-emerald-100' : 'border-slate-200 bg-white text-slate-400 group-hover:border-emerald-200 group-hover:text-emerald-700' }}"
+                                    class="relative z-10 grid h-9 w-9 shrink-0 place-items-center rounded-xl border transition-colors duration-200 disabled:cursor-wait disabled:opacity-60 {{ $isFollowing ? 'border-emerald-200 bg-emerald-50 text-emerald-700 group-hover:border-emerald-300 group-hover:bg-emerald-100' : 'border-slate-200 bg-white text-slate-400 group-hover:border-emerald-200 group-hover:text-[#087f59] hover:border-emerald-200 hover:bg-emerald-100 hover:text-[#087f59] hover:shadow-sm' }}"
                                 >
-                                    @if($isFollowing)
-                                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                                            <path d="M6.75 4.5A2.25 2.25 0 0 1 9 2.25h6a2.25 2.25 0 0 1 2.25 2.25V21L12 17.25 6.75 21V4.5Z" />
-                                        </svg>
-                                    @else
-                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 4.5A2.25 2.25 0 0 1 9 2.25h6a2.25 2.25 0 0 1 2.25 2.25V21L12 17.25 6.75 21V4.5Z" />
-                                        </svg>
-                                    @endif
+                                    <flux:icon.bookmark class="size-4" :variant="$isFollowing ? 'solid' : 'outline'" />
                                 </button>
                             </div>
                         </article>
