@@ -189,7 +189,7 @@ class EditUser extends EditRecord
             MemberSubjectType::Institution => $user->institutions->map(fn (Institution $institution): string => $institution->name)->values()->all(),
             MemberSubjectType::Person => $user->persons->map(fn (Person $person): string => $person->name)->values()->all(),
             MemberSubjectType::Event => $user->memberEvents->map(fn (Event $event): string => $event->title)->values()->all(),
-            MemberSubjectType::Reference => $user->references->map(fn (Reference $reference): string => $reference->title)->values()->all(),
+            MemberSubjectType::Reference => $user->references->map(fn (Reference $reference): string => $reference->displayTitle())->values()->all(),
             MemberSubjectType::Organization => $user->organizations->map(fn (Organization $organization): string => $organization->name)->values()->all(),
         };
     }
@@ -203,8 +203,8 @@ class EditUser extends EditRecord
         $freshUser->load([
             'institutions' => fn ($query) => $query->orderBy('name'),
             'persons' => fn ($query) => $query->orderBy('name'),
-            'memberEvents' => fn ($query) => $query->orderBy('title'),
-            'references' => fn ($query) => $query->orderBy('title'),
+            'memberEvents' => fn ($query) => $query->with('parentReference.parentReference')->orderBy('title'),
+            'references' => fn ($query) => $query->with('parentReference.parentReference')->orderBy('title'),
             'organizations' => fn ($query) => $query->orderBy('name'),
         ]);
 

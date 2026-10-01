@@ -85,7 +85,7 @@
                     <div class="rounded-xl border border-gray-200 px-4 py-3 text-sm dark:border-white/10">
                         <div class="flex items-start justify-between gap-3">
                             <a class="font-medium text-primary-600 hover:underline" href="{{ ReferenceResource::getUrl('edit', ['record' => $reference], panel: 'admin') }}">
-                                {{ $reference->title }}
+                                {{ $reference->displayTitle() }}
                             </a>
                             <span class="text-xs text-gray-500">
                                 {{ $referenceRoles !== '' ? $referenceRoles : 'No role' }}

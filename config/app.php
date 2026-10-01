@@ -91,6 +91,7 @@ return [
 
     'supported_locales' => [
         'ms' => 'Melayu',
+        'id' => 'Bahasa Indonesia',
         'en' => 'English',
         'ar' => 'العربية',
         'zh' => '中文',

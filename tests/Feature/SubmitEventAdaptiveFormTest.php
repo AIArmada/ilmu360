@@ -103,7 +103,7 @@ it('keeps waktu available for every event and does not classify by category alon
         ->assertSet('data.custom_time', '20:00');
 });
 
-it('shows the topic detail fields only for the religious topic', function (): void {
+it('shows discipline and issue fields for every domain but source and references only for the religious topic', function (): void {
     app(EventTaxonomySeeder::class)->run();
     app(EventTopicSeeder::class)->run();
 
@@ -112,15 +112,21 @@ it('shows the topic detail fields only for the religious topic', function (): vo
     $component
         ->assertSee('Topik lebih khusus')
         ->assertFormFieldVisible('discipline_tags')
+        ->assertFormFieldVisible('issue_tags')
+        ->assertFormFieldVisible('source_tags')
         ->assertFormFieldVisible('references')
         ->set('data.event_category_ids', [eventCategoryId('aktiviti_keagamaan')])
         ->set('data.domain_tags', adaptiveSubmitEventTopicId('pendidikan'))
-        ->assertDontSee('Topik lebih khusus')
-        ->assertFormFieldHidden('discipline_tags')
+        ->assertSee('Topik lebih khusus')
+        ->assertFormFieldVisible('discipline_tags')
+        ->assertFormFieldVisible('issue_tags')
+        ->assertFormFieldHidden('source_tags')
         ->assertFormFieldHidden('references')
         ->set('data.domain_tags', adaptiveSubmitEventTopicId('agama-kerohanian'))
         ->assertSee('Topik lebih khusus')
         ->assertFormFieldVisible('discipline_tags')
+        ->assertFormFieldVisible('issue_tags')
+        ->assertFormFieldVisible('source_tags')
         ->assertFormFieldVisible('references');
 });
 

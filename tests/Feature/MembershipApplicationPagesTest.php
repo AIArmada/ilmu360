@@ -11,6 +11,7 @@ use App\Models\Institution;
 use App\Models\MembershipApplication;
 use App\Models\Person;
 use App\Models\User;
+use App\Support\Membership\MembershipApplicationPresenter;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Illuminate\Http\UploadedFile;
@@ -38,7 +39,7 @@ it('redirects guests to login for membership application routes', function () {
 
 it('lets authenticated users submit a claim with applied role and relationship', function () {
     $user = User::factory()->create();
-    $institution = Institution::factory()->create(['status' => 'verified']);
+    $institution = Institution::factory()->create(['status' => 'verified', 'type' => 'masjid']);
 
     Livewire::actingAs($user)
         ->test(CreateMembershipApplicationPage::class, [
@@ -67,9 +68,9 @@ it('lets authenticated users submit a claim with applied role and relationship',
         ->and($claim->getMedia('evidence'))->toHaveCount(2);
 });
 
-it('uses institution-specific relationship options on the public claim form', function () {
+it('uses mosque relationship options for masjid institutions', function () {
     $user = User::factory()->create();
-    $institution = Institution::factory()->create(['status' => 'verified']);
+    $institution = Institution::factory()->create(['status' => 'verified', 'type' => 'masjid']);
 
     Livewire::actingAs($user)
         ->test(CreateMembershipApplicationPage::class, [
@@ -80,12 +81,82 @@ it('uses institution-specific relationship options on the public claim form', fu
             expect($field->getOptions())->toBe([
                 'imam' => 'Imam',
                 'bilal' => 'Bilal',
+                'chairman' => 'Pengerusi',
+                'deputy_chairman' => 'Timbalan Pengerusi',
+                'secretary' => 'Setiausaha',
+                'assistant_secretary' => 'Timbalan Setiausaha',
                 'committee_member' => 'Ahli Jawatan Kuasa',
-                'employee' => 'Pekerja',
+                'officer' => 'Pegawai',
+                'kariah' => 'Kariah',
+                'other' => 'Lain-lain',
             ]);
 
             return true;
         });
+});
+
+it('uses school relationship options for sekolah institutions', function () {
+    $user = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified', 'type' => 'sekolah']);
+
+    Livewire::actingAs($user)
+        ->test(CreateMembershipApplicationPage::class, [
+            'subjectType' => MemberSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->getKey(),
+        ])
+        ->assertFormFieldExists('relationship', function (Select $field): bool {
+            expect($field->getOptions())->toBe([
+                'principal' => 'Pengetua',
+                'teacher' => 'Guru',
+                'employee' => 'Pekerja',
+                'other' => 'Lain-lain',
+            ]);
+
+            return true;
+        });
+});
+
+it('uses person relationship options for person subjects', function () {
+    $user = User::factory()->create();
+    $person = Person::factory()->create(['status' => 'verified']);
+
+    Livewire::actingAs($user)
+        ->test(CreateMembershipApplicationPage::class, [
+            'subjectType' => MemberSubjectType::Person->publicRouteSegment(),
+            'subjectId' => $person->slug,
+        ])
+        ->assertFormFieldExists('relationship', function (Select $field): bool {
+            expect($field->getOptions())->toBe([
+                'self' => 'Diri Sendiri',
+                'family_member' => 'Ahli keluarga',
+                'student' => 'Anak murid',
+                'personal_assistant' => 'Pembantu Peribadi',
+                'team_member' => 'Ahli Pasukan',
+                'other' => 'Lain-lain',
+            ]);
+
+            return true;
+        });
+});
+
+it('rejects a relationship from another institution template', function () {
+    $user = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified', 'type' => 'sekolah']);
+
+    Livewire::actingAs($user)
+        ->test(CreateMembershipApplicationPage::class, [
+            'subjectType' => MemberSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->getKey(),
+        ])
+        ->fillForm([
+            'applied_role' => MemberRole::Editor->value,
+            'relationship' => 'imam',
+            'evidence' => [UploadedFile::fake()->image('proof.png')],
+        ])
+        ->call('submit')
+        ->assertHasErrors(['data.relationship']);
+
+    expect(MembershipApplication::query()->where('applicant_id', $user->getKey())->exists())->toBeFalse();
 });
 
 it('uses the account phone input and exposes the applicant notes field', function () {
@@ -182,7 +253,7 @@ it('requires applied role and relationship on the public claim form', function (
 
 it('requires evidence for membership claims', function (): void {
     $user = User::factory()->create();
-    $institution = Institution::factory()->create(['status' => 'verified']);
+    $institution = Institution::factory()->create(['status' => 'verified', 'type' => 'sekolah']);
 
     Livewire::actingAs($user)
         ->test(CreateMembershipApplicationPage::class, [
@@ -238,6 +309,110 @@ it('rejects forged membership role and relationship values', function () {
         ->set('data.relationship', 'self')
         ->call('submit')
         ->assertHasErrors(['data.applied_role']);
+});
+
+it('requires relationship detail when Other is selected', function () {
+    $user = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified', 'type' => 'masjid']);
+
+    Livewire::actingAs($user)
+        ->test(CreateMembershipApplicationPage::class, [
+            'subjectType' => MemberSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->getKey(),
+        ])
+        ->fillForm([
+            'applied_role' => MemberRole::Editor->value,
+            'relationship' => 'other',
+            'evidence' => [UploadedFile::fake()->image('proof.png')],
+        ])
+        ->call('submit')
+        ->assertHasErrors(['data.relationship_detail']);
+
+    expect(MembershipApplication::query()->where('applicant_id', $user->getKey())->exists())->toBeFalse();
+});
+
+it('stores the relationship detail with Other claims', function () {
+    $user = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified', 'type' => 'masjid']);
+
+    Livewire::actingAs($user)
+        ->test(CreateMembershipApplicationPage::class, [
+            'subjectType' => MemberSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->getKey(),
+        ])
+        ->fillForm([
+            'applied_role' => MemberRole::Editor->value,
+            'relationship' => 'other',
+            'relationship_detail' => 'Menantu kepada imam',
+            'evidence' => [UploadedFile::fake()->image('proof.png')],
+        ])
+        ->call('submit')
+        ->assertRedirect(route('membership-applications.index'));
+
+    $claim = MembershipApplication::query()->where('applicant_id', $user->getKey())->firstOrFail();
+
+    expect($claim->meta['relationship'])->toBe('other')
+        ->and($claim->meta['relationship_detail'])->toBe('Menantu kepada imam')
+        ->and($claim->justification)->toContain('Menantu kepada imam');
+});
+
+it('shows the relationship detail next to Other for moderators', function () {
+    $institution = Institution::factory()->create(['status' => 'verified', 'type' => 'sekolah']);
+    $claim = MembershipApplication::factory()
+        ->for($institution, 'subject')
+        ->create([
+            'meta' => ['relationship' => 'other', 'relationship_detail' => 'Bekas pelajar'],
+        ]);
+
+    expect(MembershipApplicationPresenter::relationshipLabel($claim))->toBe('Lain-lain (Bekas pelajar)');
+});
+
+it('stores an optional family detail and shows it in the relationship label', function () {
+    $user = User::factory()->create();
+    $person = Person::factory()->create(['status' => 'verified']);
+
+    Livewire::actingAs($user)
+        ->test(CreateMembershipApplicationPage::class, [
+            'subjectType' => MemberSubjectType::Person->publicRouteSegment(),
+            'subjectId' => $person->slug,
+        ])
+        ->fillForm([
+            'applied_role' => MemberRole::Editor->value,
+            'relationship' => 'family_member',
+            'relationship_detail' => 'Isteri',
+            'evidence' => [UploadedFile::fake()->image('proof.png')],
+        ])
+        ->call('submit')
+        ->assertRedirect(route('membership-applications.index'));
+
+    $claim = MembershipApplication::query()->where('applicant_id', $user->getKey())->firstOrFail();
+
+    expect($claim->meta['relationship_detail'])->toBe('Isteri')
+        ->and(MembershipApplicationPresenter::relationshipLabel($claim))->toBe('Ahli keluarga (Isteri)');
+});
+
+it('ignores relationship detail for options that do not accept it', function () {
+    $user = User::factory()->create();
+    $person = Person::factory()->create(['status' => 'verified']);
+
+    Livewire::actingAs($user)
+        ->test(CreateMembershipApplicationPage::class, [
+            'subjectType' => MemberSubjectType::Person->publicRouteSegment(),
+            'subjectId' => $person->slug,
+        ])
+        ->fillForm([
+            'applied_role' => MemberRole::Editor->value,
+            'relationship' => 'team_member',
+            'relationship_detail' => 'Forged detail',
+            'evidence' => [UploadedFile::fake()->image('proof.png')],
+        ])
+        ->call('submit')
+        ->assertRedirect(route('membership-applications.index'));
+
+    $claim = MembershipApplication::query()->where('applicant_id', $user->getKey())->firstOrFail();
+
+    expect($claim->meta['relationship_detail'])->toBeNull()
+        ->and(MembershipApplicationPresenter::relationshipLabel($claim))->toBe('Ahli Pasukan');
 });
 
 it('renders the public membership claim page in Malay without a side-by-side layout', function () {

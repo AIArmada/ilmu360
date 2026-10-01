@@ -6,6 +6,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Membership\DiscardMembershipApplicationAction;
 use App\Actions\Membership\SubmitMembershipApplicationAction;
+use App\Enums\InstitutionType;
 use App\Enums\MemberSubjectType;
 use App\Livewire\Concerns\InteractsWithToasts;
 use App\Models\Institution;
@@ -16,6 +17,7 @@ use App\Support\Membership\MembershipApplicationPresenter;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Schemas\Components\Section;
@@ -94,6 +96,7 @@ class Create extends Component implements HasForms
         $user = auth()->user();
         $needsPhone = $user instanceof User && blank($user->phone);
         $subjectType = MemberSubjectType::tryFrom($this->subjectType);
+        $institutionType = $this->subjectInstitutionType();
 
         return $schema
             ->model(new MembershipApplication)
@@ -126,9 +129,10 @@ class Create extends Component implements HasForms
                             ),
                         Select::make('relationship')
                             ->label(__('Your relationship with :subject', ['subject' => $this->context['subject_label']]))
-                            ->options(MembershipApplicationPresenter::relationshipOptions($subjectType))
-                            ->rule(Rule::in(array_keys(MembershipApplicationPresenter::relationshipOptions($subjectType))))
+                            ->options(MembershipApplicationPresenter::relationshipOptions($subjectType, $institutionType))
+                            ->rule(Rule::in(array_keys(MembershipApplicationPresenter::relationshipOptions($subjectType, $institutionType))))
                             ->required()
+                            ->live()
                             ->native(false)
                             ->default($subjectType === MemberSubjectType::Institution ? null : 'self')
                             ->disabled(fn (Get $get): bool => $subjectType !== MemberSubjectType::Institution && $get('applied_role') === MemberRole::Owner->value)
@@ -137,6 +141,12 @@ class Create extends Component implements HasForms
                                     ? ['x-bind:disabled' => "\$get('applied_role') === 'owner'"]
                                     : []
                             ),
+                        TextInput::make('relationship_detail')
+                            ->label(__('Specify your relationship'))
+                            ->placeholder(__('cth. Menantu, jiran, bekas pelajar'))
+                            ->maxLength(120)
+                            ->visible(fn (Get $get): bool => MembershipApplicationPresenter::acceptsRelationshipDetail((string) $get('relationship')))
+                            ->required(fn (Get $get): bool => $get('relationship') === MembershipApplicationPresenter::OTHER_RELATIONSHIP),
                         PhoneInput::make('phone')
                             ->label(__('Phone Number'))
                             ->initialCountry('MY')
@@ -203,10 +213,20 @@ class Create extends Component implements HasForms
             $relationship = 'self';
         }
 
-        $relationshipOptions = MembershipApplicationPresenter::relationshipOptions($subjectType);
+        $relationshipOptions = MembershipApplicationPresenter::relationshipOptions($subjectType, $this->subjectInstitutionType());
 
         if (! array_key_exists($relationship, $relationshipOptions)) {
             $this->addError('data.relationship', __('Please select a valid relationship.'));
+
+            return;
+        }
+
+        $relationshipDetail = MembershipApplicationPresenter::acceptsRelationshipDetail($relationship)
+            ? trim((string) ($state['relationship_detail'] ?? ''))
+            : '';
+
+        if ($relationship === MembershipApplicationPresenter::OTHER_RELATIONSHIP && $relationshipDetail === '') {
+            $this->addError('data.relationship_detail', __('Please specify your relationship.'));
 
             return;
         }
@@ -216,15 +236,22 @@ class Create extends Component implements HasForms
             ? trim((string) $state['phone'])
             : null;
 
+        $relationshipLabel = $relationshipOptions[$relationship];
+
+        if ($relationshipDetail !== '') {
+            $relationshipLabel = sprintf('%s (%s)', $relationshipLabel, $relationshipDetail);
+        }
+
         $justification = sprintf(
             'Applying as %s. Relationship: %s.',
             __($memberRole->label()),
-            $relationshipOptions[$relationship],
+            $relationshipLabel,
         );
 
         $meta = [
             'applied_role' => $appliedRole,
             'relationship' => $relationship,
+            'relationship_detail' => $relationshipDetail !== '' ? $relationshipDetail : null,
             'notes' => $notes !== '' ? $notes : null,
         ];
 
@@ -290,6 +317,17 @@ class Create extends Component implements HasForms
         } catch (Throwable $cleanupException) {
             report($cleanupException);
         }
+    }
+
+    private function subjectInstitutionType(): ?InstitutionType
+    {
+        if (! $this->subject instanceof Institution) {
+            return null;
+        }
+
+        $type = $this->subject->type;
+
+        return $type instanceof InstitutionType ? $type : InstitutionType::tryFrom((string) $type);
     }
 
     private function canonicalSubjectId(): string

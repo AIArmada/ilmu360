@@ -148,7 +148,7 @@ class ViewUser extends ViewRecord
                 'memberEvents' => fn ($query) => $query
                     ->with(['institution:id,name', 'venue:id,name'])
                     ->orderByDesc('created_at'),
-                'references' => fn ($query) => $query->orderBy('title'),
+                'references' => fn ($query) => $query->with('parentReference.parentReference')->orderBy('title'),
                 'savedSearches' => fn ($query) => $query->latest(),
             ]);
         });

@@ -7,6 +7,7 @@ use AIArmada\FilamentSeating\RelationManagers\SeatMapsRelationManager;
 use AIArmada\FilamentTicketing\RelationManagers\TicketTypesRelationManager;
 use App\Filament\Resources\Events\EventAdminContextFormExtension;
 use App\Filament\Resources\Events\RelationManagers\ReferencesRelationManager;
+use App\Filament\Resources\EventTerms\TermDomainMappingExtension;
 
 return [
     'navigation' => [
@@ -28,6 +29,9 @@ return [
         'event_form_extensions' => [
             EventAdminContextFormExtension::class,
             DefaultEventMediaExtension::class,
+        ],
+        'term_form_extensions' => [
+            TermDomainMappingExtension::class,
         ],
         'event_relation_managers' => [
             ReferencesRelationManager::class,

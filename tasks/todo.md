@@ -4140,6 +4140,25 @@ Plan reviewed against the requested layout. Existing save/share interactions and
 
 Review: Type and format share a neutral fact row above the title. Approval uses green/amber icons on the image; lifecycle changes remain separate. Location uses two lines, canonical city/state formatting removes duplicates, online-only hides physical attendance location, and hybrid adds online availability. Existing save/share tracking is preserved. Six new regression cases plus affected existing coverage: 16 initially passed, one obsolete combined-location assertion corrected and passed (17 total). Pint, production build, and diff check passed. Full PHPStan was interrupted due resource pressure; scope changes are Blade, translation JSON, and tests (tests are excluded by project PHPStan config). Live verification remains blocked by in-app browser timeouts and a local HTTPS request timeout; Octane reload confirmed no Octane server is running.
 
+## Admin domain mapping for discipline terms (2026-09-30)
+
+- [x] Add generic `term_form_extensions` hook to the `filament-events` package (contract + resource wiring + config default + docs), mirroring `event_form_extensions`.
+- [x] Add app `TermDomainMappingExtension` with a `Topik / Bidang` multi-select, visible only when taxonomy = discipline; hydrates from and saves into `metadata.domain_ids` (empty selection stores global, never `[]`); registered in app `config/filament-events.php`.
+- [x] Tests in `tests/Feature/EventTermDomainMappingTest.php`: hook wiring, visibility gating, metadata persistence/clearing, submit-form domain filtering.
+- [x] Verify: 6/6 new tests pass (page-level visibility + create round-trip + persistence + submit filtering); Pint clean; PHPStan level 6 clean (fixed a `Collection::make(mixed)` template inference error by narrowing to array first).
+
+Scope notes: Topik lebih khusus ungated for all topics (2026-10-01); Sumber/Rujukan stay Agama-gated (Tema/Isu ungated separately below). Table-column display dropped — no table hook in the package, form field suffices. Package changes are uncommitted in the `commerce` repo working tree.
+
+## Tema/Isu per-domain behavior (2026-10-01)
+
+- [x] Ungate Tema/Isu for all topics; keep Sumber + Rujukan Agama-gated (gates moved from group to individual fields).
+- [x] Filter Tema/Isu options + search by selected domain (mapped + global); generalized `taxonomyTermOptionsForDomain()` shared with discipline.
+- [x] Admin Domain Mapping section now covers discipline + issue taxonomies.
+- [x] Tests: gating matrix (discipline/issue always visible; source/references Agama-only), issue domain filtering, admin issue mapping.
+- [x] Confirm Pint + PHPStan on touched files (clean; one earlier PHPStan "severe error" was a parallel-worker flake, clean rerun passes).
+
+Note: `EventIssueSeeder` never writes metadata, so all seeded issues are global and keep showing everywhere — no data migration. Watch: `EventDisciplineSeeder` re-stamps `metadata` on re-seed, which would revert admin remaps of seeded disciplines.
+
 ## Move approval below card imagery (2026-10-01)
 
 - [x] Move approval into the wrapping facts row, right aligned; preserve its state, icon, color, and explanatory title.
@@ -4149,3 +4168,20 @@ Review: Type and format share a neutral fact row above the title. Approval uses 
 Review: Approval now follows type and format in normal document flow with right alignment and natural wrapping, preserving the green/amber styling and icons. Focused card-order test passed (4 assertions), Pint and production build passed, and diff check passed. Browser preview remains unavailable due an in-app browser timeout.
 
 Cosmetic presentation only; no tracking changes are needed.
+
+## Membership claim relationship lists (2026-10-01)
+
+- [x] Per-institution-type options (mosque/school/generic templates + null-type fallback); person list gains Family member.
+- [x] Other-with-write-in: conditional required `relationship_detail` (120 chars), stored in meta, frozen into justification.
+- [x] Moderator display via `relationshipLabel()` merged-map lookup + `Other (detail)` format; old values stay readable.
+- [x] Translations for Chairman/Teacher/Principal/Family member/Specify/placeholder/error (en + ms, matching existing membership vocabulary coverage).
+- [x] Tests: per-type option arrays, cross-template rejection, Other required/stored/justified, moderator label; pinned random factory types. 31 passed; Pint + PHPStan clean.
+
+## Indonesian locale (2026-10-01)
+
+- [x] Registered `id` (Bahasa Indonesia) in switcher locales + `supported_locales` (works via existing SetLocale middleware/session flow).
+- [x] Bootstrapped `resources/lang/id.json` from ms.json (1623 keys, byte-identical keys); 709 values adjusted via reviewed ms->id pairs (script: /tmp/build-id-locale.php, full diff: /tmp/id-changes.log).
+- [x] Tests: IndonesianLocaleTest (registration, Surau->Musala + key translations, ms/id key parity); added id to translation-coverage locale list. 6 passed; Pint clean.
+- [ ] Native-speaker review pass over /tmp/id-changes.log (known residuals: semak/semakan, e-mel, Kuliah, Kariah, Derma/Sumbangan, Peringatan reminder-vs-warning, Sejarah discipline-vs-history, senang/susah, sebarang, kira, mata, baki, Ahli Tim, perbarui-terbaru phrasing).
+- [ ] Decide currency display for Indonesian users (amounts still RM; product decision, not translation).
+- [ ] Optional later: add id to public_menu_locales + id framework strings (validation.php etc.).

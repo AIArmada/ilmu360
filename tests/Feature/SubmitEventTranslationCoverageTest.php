@@ -24,7 +24,7 @@ it('returns translated labels for submit-event enums', function () {
 });
 
 it('contains pakistan and bangladesh keys in all locale files', function () {
-    foreach (['en', 'ms', 'ms_MY', 'ar', 'jv', 'ta', 'zh'] as $locale) {
+    foreach (['en', 'ms', 'ms_MY', 'ar', 'jv', 'ta', 'zh', 'id'] as $locale) {
         $translations = json_decode(file_get_contents(base_path("resources/lang/{$locale}.json")), true);
 
         expect($translations)->toBeArray()

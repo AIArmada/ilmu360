@@ -333,7 +333,7 @@
                         <div class="rounded-xl border border-gray-200 p-4 dark:border-white/10">
                             <div class="flex items-start justify-between gap-3">
                                 <a href="{{ $this->referenceUrl($reference) }}" class="font-medium text-primary-600 hover:underline">
-                                    {{ $reference->title }}
+                                    {{ $reference->displayTitle() }}
                                 </a>
                                 <x-filament::badge :color="$this->entityStatusBadgeColor($reference->status)">{{ $this->humanLabel($reference->status) }}</x-filament::badge>
                             </div>

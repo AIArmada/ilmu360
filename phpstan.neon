@@ -17,6 +17,9 @@ parameters:
     reportUnmatchedIgnoredErrors: true
     treatPhpDocTypesAsCertain: false
 
+    parallel:
+        maximumNumberOfProcesses: 8
+
     excludePaths:
         analyse:
             - bootstrap/cache/*

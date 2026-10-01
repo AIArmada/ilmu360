@@ -325,9 +325,9 @@ class Create extends Component implements HasActions, HasForms
     /**
      * @return array<string, string>
      */
-    public function disciplineOptionsForDomain(?string $domainId): array
+    public function taxonomyTermOptionsForDomain(EventTaxonomyCode $type, ?string $domainId): array
     {
-        $taxonomyId = EventTaxonomy::query()->where('code', EventTaxonomyCode::Discipline->value)->value('id');
+        $taxonomyId = EventTaxonomy::query()->where('code', $type->value)->value('id');
 
         if ($taxonomyId === null || $domainId === null) {
             return [];
@@ -657,18 +657,18 @@ class Create extends Component implements HasActions, HasForms
             $this->domainTopicField(),
 
             Grid::make(['default' => 1, 'sm' => 2])
-                ->visible(fn (Get $get): bool => $this->hasAgamaKerohanianTopic($get('domain_tags')))
                 ->schema([
                     Select::make('discipline_tags')
                         ->native(false)
                         ->label(__('Topik lebih khusus'))
-                        ->helperText(__('Contoh: Tafsir, Fiqh, atau Sirah.'))
+                        ->helperText(__('Contoh: Tafsir, Matematik, atau Machine Learning.'))
                         ->placeholder(__('Pilih atau taip untuk tambah bidang…'))
                         ->multiple()
                         ->searchable()
                         ->preload()
                         ->allowHtml()
-                        ->options(fn (Get $get): array => $this->disciplineOptionsForDomain(
+                        ->options(fn (Get $get): array => $this->taxonomyTermOptionsForDomain(
+                            EventTaxonomyCode::Discipline,
                             is_string($domain = $get('domain_tags')) ? $domain : null,
                         ))
                         ->getSearchResultsUsing(function (string $search, ?Get $get = null): array {
@@ -1086,11 +1086,11 @@ class Create extends Component implements HasActions, HasForms
     {
         return [
             Group::make()
-                ->visible(fn (Get $get): bool => $this->hasAgamaKerohanianTopic($get('domain_tags')))
                 ->schema([
                     Grid::make(['default' => 1, 'sm' => 2])
                         ->schema([
                             Select::make('source_tags')
+                                ->visible(fn (Get $get): bool => $this->hasAgamaKerohanianTopic($get('domain_tags')))
                                 ->closeOnSelect()
                                 ->label(__('Sumber Utama'))
                                 ->placeholder(__('Pilih sumber…'))
@@ -1131,20 +1131,24 @@ class Create extends Component implements HasActions, HasForms
                                 ->searchable()
                                 ->preload()
                                 ->allowHtml()
-                                ->options(fn (): array => $this->cachedSubmitTagOptions(
-                                    type: EventTaxonomyCode::Issue,
-                                    cachePrefix: 'submit_tags_issue_verified',
-                                    statuses: ['verified'],
+                                ->options(fn (Get $get): array => $this->taxonomyTermOptionsForDomain(
+                                    EventTaxonomyCode::Issue,
+                                    is_string($domain = $get('domain_tags')) ? $domain : null,
                                 ))
-                                ->getSearchResultsUsing(function (string $search): array {
+                                ->getSearchResultsUsing(function (string $search, ?Get $get = null): array {
                                     if (blank($search)) {
                                         return [];
                                     }
 
+                                    $domainId = $get instanceof Get ? (is_string($d = $get('domain_tags')) ? $d : null) : null;
                                     $taxonomyId = EventTaxonomy::query()->where('code', EventTaxonomyCode::Issue->value)->value('id');
                                     $results = EventTerm::query()
                                         ->where('event_taxonomy_id', $taxonomyId)
                                         ->where('is_active', true)
+                                        ->when($domainId !== null, fn (Builder $query) => $query->where(function (Builder $query) use ($domainId): void {
+                                            $query->whereJsonContains('metadata->domain_ids', $domainId)
+                                                ->orWhereNull('metadata->domain_ids');
+                                        }))
                                         ->whereLike('name', "%{$search}%")
                                         ->orderBy('sort_order')
                                         ->limit(20)
@@ -1189,6 +1193,7 @@ class Create extends Component implements HasActions, HasForms
                         ]),
 
                     Select::make('references')
+                        ->visible(fn (Get $get): bool => $this->hasAgamaKerohanianTopic($get('domain_tags')))
                         ->label(__('Rujukan Kitab'))
                         ->helperText(__('Kitab atau buku rujukan yang digunakan.'))
                         ->placeholder(__('Cari atau pilih rujukan…'))
