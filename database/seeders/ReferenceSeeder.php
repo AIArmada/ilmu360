@@ -4,8 +4,13 @@ namespace Database\Seeders;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventReference;
+use AIArmada\Persons\Enums\Gender;
+use AIArmada\References\Enums\ReferenceContributorRole;
+use App\Actions\Persons\GeneratePersonSlugAction;
 use App\Enums\ReferenceType;
+use App\Enums\SpeakerStatus;
 use App\Models\Event;
+use App\Models\Person;
 use App\Models\Reference;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -36,12 +41,11 @@ class ReferenceSeeder extends Seeder
             [
                 'key' => 'riyadhus-solihin',
                 'title' => 'Riyadhus Solihin',
-                'author' => 'Imam al-Nawawi',
+                'authors' => [['Imam al-Nawawi', Gender::Male]],
                 'type' => ReferenceType::Book->value,
                 'year' => 1251,
                 'publisher' => 'Dar al-Minhaj',
                 'description' => 'Himpunan hadis adab dan targhib yang sering digunakan dalam kuliah umum.',
-                'is_canonical' => true,
                 'status' => 'verified',
                 'url' => 'https://sunnah.com/riyadussalihin',
                 'language' => 'ar',
@@ -53,12 +57,11 @@ class ReferenceSeeder extends Seeder
             [
                 'key' => 'al-arbain-an-nawawi',
                 'title' => "Al-Arba'in al-Nawawiyyah",
-                'author' => 'Imam al-Nawawi',
+                'authors' => [['Imam al-Nawawi', Gender::Male]],
                 'type' => ReferenceType::Book->value,
                 'year' => 1257,
                 'publisher' => 'Dar Ibn Kathir',
                 'description' => '40 hadis asas Islam, akidah, ibadah, dan akhlak.',
-                'is_canonical' => true,
                 'status' => 'verified',
                 'url' => 'https://sunnah.com/nawawi40',
                 'language' => 'ar',
@@ -66,12 +69,11 @@ class ReferenceSeeder extends Seeder
             [
                 'key' => 'tafsir-ibn-kathir',
                 'title' => 'Tafsir Ibn Kathir',
-                'author' => 'Imam Ibn Kathir',
+                'authors' => [['Imam Ibn Kathir', Gender::Male]],
                 'type' => ReferenceType::Book->value,
                 'year' => 1370,
                 'publisher' => 'Dar Tayyibah',
                 'description' => 'Rujukan tafsir bil-ma\'thur untuk pengajian al-Quran.',
-                'is_canonical' => true,
                 'status' => 'verified',
                 'url' => 'https://quran.com/tafsirs/en-tafsir-ibn-kathir',
                 'language' => 'ar',
@@ -79,12 +81,11 @@ class ReferenceSeeder extends Seeder
             [
                 'key' => 'tafsir-al-saadi',
                 'title' => "Tafsir al-Sa'di",
-                'author' => 'Abd al-Rahman al-Sa\'di',
+                'authors' => [["Abd al-Rahman al-Sa'di", Gender::Male]],
                 'type' => ReferenceType::Book->value,
                 'year' => 2003,
                 'publisher' => 'Muassasah al-Risalah',
                 'description' => 'Tafsir ringkas kontemporari yang mudah difahami.',
-                'is_canonical' => false,
                 'status' => 'verified',
                 'url' => 'https://quran.com/tafsirs/en-tafsir-assadi',
                 'language' => 'ar',
@@ -92,12 +93,11 @@ class ReferenceSeeder extends Seeder
             [
                 'key' => 'bulugh-al-maram',
                 'title' => 'Bulugh al-Maram',
-                'author' => 'Ibn Hajar al-Asqalani',
+                'authors' => [['Ibn Hajar al-Asqalani', Gender::Male]],
                 'type' => ReferenceType::Book->value,
                 'year' => 1442,
                 'publisher' => 'Dar al-Salam',
                 'description' => 'Kompilasi hadis hukum untuk fiqh ibadah dan muamalat.',
-                'is_canonical' => true,
                 'status' => 'verified',
                 'url' => 'https://sunnah.com/bulugh',
                 'language' => 'ar',
@@ -109,12 +109,11 @@ class ReferenceSeeder extends Seeder
             [
                 'key' => 'fiqh-al-manhaji',
                 'title' => 'Fiqh al-Manhaji',
-                'author' => 'Dr. Mustafa al-Khin et al.',
+                'authors' => [['Dr. Mustafa al-Khin', Gender::Male], ['Dr. Mustafa al-Bugha', Gender::Male]],
                 'type' => ReferenceType::Book->value,
                 'year' => 2018,
                 'publisher' => 'Pustaka Salam',
                 'description' => 'Rujukan fiqh berstruktur untuk kelas asas dan menengah.',
-                'is_canonical' => false,
                 'status' => 'verified',
                 'url' => 'https://example.com/fiqh-al-manhaji',
                 'language' => 'ms',
@@ -122,12 +121,11 @@ class ReferenceSeeder extends Seeder
             [
                 'key' => 'sirah-ibn-hisham',
                 'title' => 'Sirah Ibn Hisham',
-                'author' => 'Ibn Hisham',
+                'authors' => [['Ibn Hisham', Gender::Male]],
                 'type' => ReferenceType::Book->value,
                 'year' => 1398,
                 'publisher' => 'Dar al-Jil',
                 'description' => 'Rujukan utama sejarah kehidupan Rasulullah SAW.',
-                'is_canonical' => true,
                 'status' => 'verified',
                 'url' => 'https://archive.org/details/ibn-hisham-sirah',
                 'language' => 'ar',
@@ -135,12 +133,11 @@ class ReferenceSeeder extends Seeder
             [
                 'key' => 'ar-raheeq-al-makhtum',
                 'title' => 'Ar-Raheeq Al-Makhtum',
-                'author' => 'Safi-ur-Rahman al-Mubarakpuri',
+                'authors' => [['Safi-ur-Rahman al-Mubarakpuri', Gender::Male]],
                 'type' => ReferenceType::Book->value,
                 'year' => 2002,
                 'publisher' => 'Darussalam',
                 'description' => 'Sirah kontemporari yang lazim digunakan untuk kuliah umum.',
-                'is_canonical' => false,
                 'status' => 'verified',
                 'url' => 'https://example.com/ar-raheeq-al-makhtum',
                 'language' => 'ms',
@@ -148,12 +145,11 @@ class ReferenceSeeder extends Seeder
             [
                 'key' => 'hikam-ibn-ataillah',
                 'title' => 'Al-Hikam Ibn Ataillah',
-                'author' => 'Ibn Ataillah al-Sakandari',
+                'authors' => [['Ibn Ataillah al-Sakandari', Gender::Male]],
                 'type' => ReferenceType::Book->value,
                 'year' => 1300,
                 'publisher' => 'Dar al-Kutub al-Ilmiyyah',
                 'description' => 'Teks tazkiyah dan akhlak yang sering disyarahkan.',
-                'is_canonical' => true,
                 'status' => 'verified',
                 'url' => 'https://example.com/al-hikam',
                 'language' => 'ar',
@@ -161,12 +157,11 @@ class ReferenceSeeder extends Seeder
             [
                 'key' => 'bidayatul-hidayah',
                 'title' => 'Bidayatul Hidayah',
-                'author' => 'Imam al-Ghazali',
+                'authors' => [['Imam al-Ghazali', Gender::Male]],
                 'type' => ReferenceType::Book->value,
                 'year' => 1200,
                 'publisher' => 'Dar al-Minhaj',
                 'description' => 'Panduan adab harian dan penyucian jiwa.',
-                'is_canonical' => true,
                 'status' => 'verified',
                 'url' => 'https://example.com/bidayatul-hidayah',
                 'language' => 'ar',
@@ -174,12 +169,11 @@ class ReferenceSeeder extends Seeder
             [
                 'key' => 'adab-menuntut-ilmu-article',
                 'title' => 'Adab Menuntut Ilmu Menurut Ulama',
-                'author' => 'Majlis Ilmu Editorial',
+                'authors' => [],
                 'type' => ReferenceType::Article->value,
                 'year' => 2025,
                 'publisher' => 'Majlis Ilmu',
                 'description' => 'Artikel rujukan ringkas untuk modul pengenalan pelajar baharu.',
-                'is_canonical' => false,
                 'status' => 'pending',
                 'url' => 'https://example.com/adab-menuntut-ilmu',
                 'language' => 'ms',
@@ -187,12 +181,11 @@ class ReferenceSeeder extends Seeder
             [
                 'key' => 'kuliah-maghrib-video',
                 'title' => 'Kuliah Maghrib: Tadabbur Surah Al-Kahfi',
-                'author' => 'Ustaz Jemputan',
+                'authors' => [['Ustaz Jemputan', Gender::Male]],
                 'type' => ReferenceType::Video->value,
                 'year' => 2024,
                 'publisher' => 'Majlis Ilmu TV',
                 'description' => 'Rakaman kuliah contoh untuk rujukan penyediaan kandungan.',
-                'is_canonical' => false,
                 'status' => 'pending',
                 'url' => 'https://example.com/kuliah-maghrib-video',
                 'language' => 'ms',
@@ -204,12 +197,11 @@ class ReferenceSeeder extends Seeder
             [
                 'key' => 'modul-remaja-masjid',
                 'title' => 'Modul Remaja Masjid Kontemporari',
-                'author' => 'Panel Tarbiah Komuniti',
+                'authors' => [],
                 'type' => ReferenceType::Other->value,
                 'year' => 2026,
                 'publisher' => 'Komuniti Setempat',
                 'description' => 'Modul komuniti tempatan untuk sesi mentoring remaja.',
-                'is_canonical' => false,
                 'status' => 'pending',
                 'url' => 'https://example.com/modul-remaja-masjid',
                 'language' => 'ms',
@@ -221,7 +213,6 @@ class ReferenceSeeder extends Seeder
         foreach ($references as $referenceData) {
             $reference = Reference::query()->firstOrNew([
                 'title' => $referenceData['title'],
-                'author' => $referenceData['author'],
             ]);
 
             $reference->fill([
@@ -229,7 +220,6 @@ class ReferenceSeeder extends Seeder
                 'year' => $referenceData['year'],
                 'publisher' => $referenceData['publisher'],
                 'description' => $referenceData['description'],
-                'is_canonical' => $referenceData['is_canonical'],
                 'status' => $referenceData['status'],
                 'published_at' => $reference->published_at ?? now(),
                 'url' => $referenceData['url'],
@@ -237,12 +227,43 @@ class ReferenceSeeder extends Seeder
             ]);
             $reference->save();
 
+            $this->syncAuthors($reference, $referenceData['authors']);
             $this->syncSocialProfiles($reference, $referenceData['links'] ?? []);
 
             $referenceIdsByKey[$referenceData['key']] = (string) $reference->getKey();
         }
 
         return $referenceIdsByKey;
+    }
+
+    /**
+     * Link verified author persons (authorship only: never speaker activation,
+     * event submission, or directory visibility).
+     *
+     * @param  array<int, array{0: string, 1: Gender}>  $authors
+     */
+    private function syncAuthors(Reference $reference, array $authors): void
+    {
+        $authorIds = [];
+
+        foreach ($authors as [$name, $gender]) {
+            $person = Person::query()->where('name', $name)->first();
+
+            if (! $person instanceof Person) {
+                $person = Person::query()->create([
+                    'name' => $name,
+                    'gender' => $gender->value,
+                    'slug' => app(GeneratePersonSlugAction::class)->handle($name, ['name' => $name]),
+                    'status' => 'verified',
+                    'speaker_status' => SpeakerStatus::Inactive->value,
+                    'allow_public_event_submission' => false,
+                ]);
+            }
+
+            $authorIds[] = (string) $person->getKey();
+        }
+
+        $reference->syncContributors(ReferenceContributorRole::Author, (new Person)->getMorphClass(), $authorIds);
     }
 
     /**

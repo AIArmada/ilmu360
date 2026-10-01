@@ -18,7 +18,7 @@ final class SelectionCatalogCache
 
     private const string TITLES_VERSION_KEY = 'selection_catalog:titles:version:v1';
 
-    private const string LANGUAGES_VERSION_KEY = 'selection_catalog:languages:version:v1';
+    private const string LANGUAGES_VERSION_KEY = 'selection_catalog:languages:version:v2';
 
     private const string ADDRESS_VERSION_KEY = 'selection_catalog:address:version:v1';
 
@@ -101,6 +101,66 @@ final class SelectionCatalogCache
             ->all());
 
         return $options;
+    }
+
+    /**
+     * Full language catalog keyed by code with friendly native-inclusive labels.
+     *
+     * @return array<string, string>
+     */
+    public function languageSelectOptions(): array
+    {
+        return collect($this->languageRows())
+            ->mapWithKeys(static fn (array $language): array => [
+                $language['code'] => self::languageDisplayLabel($language['name'], $language['native'] ?? null),
+            ])
+            ->all();
+    }
+
+    public function languageLabel(?string $code): ?string
+    {
+        if (! is_string($code) || trim($code) === '') {
+            return null;
+        }
+
+        return $this->languageLabelsForCodes([$code])[$code] ?? null;
+    }
+
+    /**
+     * @param  list<string>  $codes
+     * @return array<string, string>
+     */
+    public function languageLabelsForCodes(array $codes): array
+    {
+        $wanted = [];
+
+        foreach ($codes as $code) {
+            if (is_string($code) && trim($code) !== '') {
+                $wanted[$code] = true;
+            }
+        }
+
+        if ($wanted === []) {
+            return [];
+        }
+
+        return collect($this->languageRows())
+            ->filter(static fn (array $language): bool => isset($wanted[$language['code']]))
+            ->mapWithKeys(static fn (array $language): array => [
+                $language['code'] => self::languageDisplayLabel($language['name'], $language['native'] ?? null),
+            ])
+            ->all();
+    }
+
+    private static function languageDisplayLabel(string $name, ?string $native): string
+    {
+        $native = trim((string) $native);
+
+        if ($native === '' || mb_strtolower($native) === mb_strtolower($name)) {
+            return $name;
+        }
+
+        return "{$name} ({$native})";
     }
 
     /**
@@ -227,20 +287,21 @@ final class SelectionCatalogCache
     }
 
     /**
-     * @return list<array{id: string, code: string, name: string}>
+     * @return list<array{id: string, code: string, name: string, native: string|null}>
      */
     private function languageRows(): array
     {
         $version = $this->version(self::LANGUAGES_VERSION_KEY);
 
-        /** @var list<array{id: string, code: string, name: string}> $rows */
+        /** @var list<array{id: string, code: string, name: string, native: string|null}> $rows */
         $rows = Cache::remember("selection_catalog:languages:rows:{$version}", self::CATALOG_TTL_SECONDS, static fn (): array => Language::query()
             ->orderBy('name')
-            ->get(['id', 'code', 'name'])
+            ->get(['id', 'code', 'name', 'native'])
             ->map(static fn (Language $language): array => [
                 'id' => (string) $language->getKey(),
                 'code' => (string) $language->code,
                 'name' => (string) $language->name,
+                'native' => $language->native !== null ? (string) $language->native : null,
             ])
             ->values()
             ->all());

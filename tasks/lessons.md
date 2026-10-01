@@ -1,5 +1,7 @@
 # Lessons
 
+- When the user requests schema changes by editing original migrations only, modify the creation migration directly; do not add upgrade migrations, legacy aliases, compatibility guards, or backfills.
+
 ## Runtime receipt presentation
 
 - A paid event order should have an authenticated online receipt first, with a Download PDF action that renders from immutable order/payment/discount/tax snapshots at request time. Avoid storing duplicate PDF artifacts by default; use the same receipt presenter for HTML and PDF, with authorization scoped to the purchaser or an authorized organizer/finance role.
@@ -1076,3 +1078,13 @@
 - When adjusting a footer join, check the preceding page padding along with the artwork’s built-in empty space; avoid stacking a large page bottom spacer on the footer transition.
 
 - When a user asks for quieter image composition behind footer text, edit the artwork itself rather than adding CSS panels or washes; preserve surrounding scenery and tailor the calm zones to each breakpoint.
+
+- Keep event-card approval badges in the content facts row when images need to remain unobstructed; use right alignment with wrapping on narrow cards instead of an image overlay.
+
+- Keep reference part choices concept-based and localized: Jilid/Volume and Bahagian/Part are translations of two concepts, not four separate options. Show the resulting title in quick create so hierarchy choices are understandable before saving.
+- Never add manual `sort_order` for a new relation when AGENTS mandates `spatie/eloquent-sortable`: without that dependency, ship unordered set semantics with stable ID/name presentation instead of a user-controlled persisted order.
+- Keep observer invariant cleanup outside title/slug branches so simultaneous title+hierarchy updates cannot retain illegal links; unset loaded relations and re-cover with a simultaneous-change regression.
+- Never invent identity in quick-create: validate trimmed nonblank name server-side, leave gender nullable with enum check, and assert no fallback name/default gender is stored.
+- Enforce catalog codes at the model boundary (normalize blank→null, `exists` check), not only in actions/forms; change factory defaults to null and seed catalogs explicitly in fixtures.
+- Use `array_key_exists` for nullable collection inputs so explicit null/[] clear while omitted preserves; cover both with admin-form regressions.
+- Verify package test location before claiming none: commerce package tests live in `commerce/tests/src/<Package>`, not under the package dir.

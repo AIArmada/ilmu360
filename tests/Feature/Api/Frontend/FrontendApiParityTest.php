@@ -2162,20 +2162,27 @@ it('supports server-side filtering to only followed persons in the frontend pers
 it('returns the total followed reference count for the filtered reference query, not just the current page', function () {
     $user = User::factory()->create();
 
-    $followedReferences = Reference::factory()->count(2)->create([
+    $nawawi = Person::factory()->create([
+        'name' => 'Imam Nawawi',
         'status' => 'verified',
-        'author' => 'Imam Nawawi',
     ]);
 
-    Reference::factory()->create([
+    $ibnHajar = Person::factory()->create([
+        'name' => 'Ibn Hajar',
+        'status' => 'verified',
+    ]);
+
+    $followedReferences = Reference::factory()->withAuthors([(string) $nawawi->getKey()])->count(2)->create([
+        'status' => 'verified',
+    ]);
+
+    Reference::factory()->withAuthors([(string) $nawawi->getKey()])->create([
         'title' => 'Unfollowed Reference',
-        'author' => 'Imam Nawawi',
         'status' => 'verified',
     ]);
 
-    Reference::factory()->create([
+    Reference::factory()->withAuthors([(string) $ibnHajar->getKey()])->create([
         'title' => 'Outside Search Scope',
-        'author' => 'Ibn Hajar',
         'status' => 'verified',
     ]);
 
@@ -2229,7 +2236,12 @@ it('falls back to the original front cover url in reference directory serializat
                 'slug' => 'reference-cover-fallback',
                 'title' => 'Reference Cover Fallback',
                 'parent_id' => null,
-                'author' => null,
+                'record_kind' => 'work',
+                'edition_number' => null,
+                'edition_label' => null,
+                'isbn' => null,
+                'language' => null,
+                'url' => null,
                 'type' => null,
                 'publisher' => null,
                 'year' => null,
@@ -2352,7 +2364,6 @@ it('falls back to indexed reference search when typesense fails', function () {
     $matchingReference = Reference::factory()->create([
         'title' => 'Rujukan Fallback',
         'slug' => 'rujukan-fallback-agama',
-        'author' => 'Imam Contoh',
         'description' => 'Syarahan tajwid dan adab',
         'status' => 'verified',
     ]);
@@ -3340,9 +3351,13 @@ it('serializes venue and reference detail payloads with core metadata for mobile
     ]);
     $venue->addMedia(fakeGeneratedImageUpload('venue-dto-cover.jpg', 1600, 900))->toMediaCollection('cover');
 
-    $reference = Reference::factory()->create([
+    $dtoAuthor = Person::factory()->create([
+        'name' => 'Penulis API',
+        'status' => 'verified',
+    ]);
+
+    $reference = Reference::factory()->withAuthors([(string) $dtoAuthor->getKey()])->create([
         'title' => 'Rujukan DTO API',
-        'author' => 'Penulis API',
         'type' => 'book',
         'publisher' => 'Penerbit API',
         'year' => 2024,
@@ -3384,7 +3399,8 @@ it('serializes venue and reference detail payloads with core metadata for mobile
         ->and(data_get($venueItem, 'contacts.0.value'))->toBe('+60399887766')
         ->and(data_get($venueItem, 'social_media.0.resolved_url'))->toBe('https://venue.example.test')
         ->and(data_get($referenceItem, 'title'))->toBe('Rujukan DTO API')
-        ->and(data_get($referenceItem, 'author'))->toBe('Penulis API')
+        ->and(data_get($referenceItem, 'authors.0.name'))->toBe('Penulis API')
+        ->and(data_get($referenceItem, 'author_ids'))->toBe([(string) $dtoAuthor->getKey()])
         ->and(data_get($referenceItem, 'publication_year'))->toBe('2024')
         ->and(data_get($referenceItem, 'is_following'))->toBeTrue()
         ->and(data_get($referenceItem, 'media.front_cover_url'))->toBeString()->not->toBe('')

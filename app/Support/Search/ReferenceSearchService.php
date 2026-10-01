@@ -2,11 +2,18 @@
 
 namespace App\Support\Search;
 
+use AIArmada\CommerceSupport\Support\ConnectionDriver;
 use AIArmada\CommerceSupport\Support\StringSimilarity;
+use AIArmada\References\Enums\ReferenceContributorRole;
 use App\Contracts\PublicDiscoveryAdapter;
+use App\Models\Person;
 use App\Models\Reference;
+use Illuminate\Contracts\Database\Query\Expression as ExpressionContract;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Database\Query\Expression;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class ReferenceSearchService implements PublicDiscoveryAdapter
@@ -186,17 +193,37 @@ class ReferenceSearchService implements PublicDiscoveryAdapter
      */
     private function publicFuzzySearchIdsFromDatabase(string $normalizedSearch, float $minimumScore): array
     {
-        return Reference::query()
+        $rows = Reference::query()
             ->active()
-            ->select(['id', 'title', 'author'])
+            ->select(['id', 'title', 'parent_id', 'publisher', 'edition_label', 'edition_number', 'isbn', 'language', 'year'])
             ->tap(fn (Builder $query): Builder => $this->applyFuzzyCandidateFilter($query, $normalizedSearch))
             ->tap(fn (Builder $query): Builder => $this->applyFuzzyCandidateOrdering($query, $normalizedSearch))
             ->limit($this->typesenseResultLimit())
-            ->get()
-            ->map(function (Reference $reference) use ($normalizedSearch): array {
+            ->get();
+
+        return $this->scoreFuzzyCandidates($rows, $normalizedSearch, $minimumScore);
+    }
+
+    /**
+     * @param  EloquentCollection<int, Reference>  $rows
+     * @return list<string>
+     */
+    private function scoreFuzzyCandidates(EloquentCollection $rows, string $normalizedSearch, float $minimumScore): array
+    {
+        $authorNames = $this->inheritedAuthorNamesByReferenceId($rows);
+
+        return $rows
+            ->map(function (Reference $reference) use ($normalizedSearch, $authorNames): array {
                 $candidates = array_values(array_filter([
                     StringSimilarity::normalize((string) $reference->title),
-                    StringSimilarity::normalize((string) ($reference->author ?? '')),
+                    StringSimilarity::normalize($authorNames[(string) $reference->getKey()] ?? ''),
+                    StringSimilarity::normalize((string) ($reference->publisher ?? '')),
+                    StringSimilarity::normalize((string) ($reference->edition_label ?? '')),
+                    StringSimilarity::normalize((string) ($reference->edition_number ?? '')),
+                    StringSimilarity::normalize((string) ($reference->isbn ?? '')),
+                    StringSimilarity::normalize((string) ($reference->language ?? '')),
+                    StringSimilarity::normalize((string) ($reference->year ?? '')),
+
                 ], static fn (string $candidate): bool => $candidate !== ''));
 
                 $scoreCandidates = [];
@@ -234,48 +261,122 @@ class ReferenceSearchService implements PublicDiscoveryAdapter
     {
         $model = $query->getModel();
 
-        return (clone $query)
+        $rows = (clone $query)
             ->reorder()
             ->select([
                 $model->qualifyColumn($model->getKeyName()),
                 $model->qualifyColumn('title'),
-                $model->qualifyColumn('author'),
+                $model->qualifyColumn('parent_id'),
+                $model->qualifyColumn('publisher'),
+                $model->qualifyColumn('edition_label'),
+                $model->qualifyColumn('edition_number'),
+                $model->qualifyColumn('isbn'),
+                $model->qualifyColumn('language'),
+                $model->qualifyColumn('year'),
+
             ])
             ->tap(fn (Builder $builder): Builder => $this->applyFuzzyCandidateFilter($builder, $normalizedSearch))
             ->tap(fn (Builder $builder): Builder => $this->applyFuzzyCandidateOrdering($builder, $normalizedSearch))
             ->limit($this->typesenseResultLimit())
-            ->get()
-            ->map(function (Reference $reference) use ($normalizedSearch): array {
-                $candidates = array_values(array_filter([
-                    StringSimilarity::normalize((string) $reference->title),
-                    StringSimilarity::normalize((string) ($reference->author ?? '')),
-                ], static fn (string $candidate): bool => $candidate !== ''));
+            ->get();
 
-                $scoreCandidates = [];
+        return $this->scoreFuzzyCandidates($rows, $normalizedSearch, $minimumScore);
+    }
 
-                foreach ($candidates as $candidate) {
-                    $scoreCandidates[] = $this->fuzzyScore($normalizedSearch, $candidate);
+    /**
+     * Author display names for fuzzy scoring, resolved through the owning
+     * work (two hierarchy levels) in a fixed handful of queries.
+     *
+     * @param  EloquentCollection<int, Reference>  $rows
+     * @return array<string, string>
+     */
+    private function inheritedAuthorNamesByReferenceId(EloquentCollection $rows): array
+    {
+        if ($rows->isEmpty()) {
+            return [];
+        }
 
-                    $tokens = array_values(array_filter(
-                        explode(' ', $candidate),
-                        static fn (string $token): bool => mb_strlen($token) >= 2,
-                    ));
-
-                    foreach ($tokens as $token) {
-                        $scoreCandidates[] = $this->fuzzyScore($normalizedSearch, $token);
-                    }
-                }
-
-                return [
-                    'id' => (string) $reference->id,
-                    'score' => $scoreCandidates === [] ? 0.0 : max($scoreCandidates),
-                ];
-            })
-            ->filter(static fn (array $candidate): bool => $candidate['score'] >= $minimumScore)
-            ->sortByDesc('score')
-            ->pluck('id')
+        $parentIds = $rows
+            ->map(static fn (Reference $reference): ?string => $reference->parent_id !== null ? (string) $reference->parent_id : null)
+            ->filter()
+            ->unique()
             ->values()
             ->all();
+
+        /** @var array<string, string|null> $grandparentByParent */
+        $grandparentByParent = $parentIds === []
+            ? []
+            : Reference::query()->whereKey($parentIds)
+                ->pluck('parent_id', 'id')
+                ->map(static fn (mixed $id): ?string => $id !== null ? (string) $id : null)
+                ->all();
+
+        $ownerByReference = [];
+
+        foreach ($rows as $reference) {
+            $referenceId = (string) $reference->getKey();
+            $parentId = $reference->parent_id !== null ? (string) $reference->parent_id : null;
+            $grandparentId = $parentId !== null ? ($grandparentByParent[$parentId] ?? null) : null;
+
+            $ownerByReference[$referenceId] = $grandparentId ?? $parentId ?? $referenceId;
+        }
+
+        $namesByOwner = $this->authorNamesByOwnerId(array_values(array_unique($ownerByReference)));
+        $namesByReference = [];
+
+        foreach ($ownerByReference as $referenceId => $ownerId) {
+            $namesByReference[$referenceId] = $namesByOwner[$ownerId] ?? '';
+        }
+
+        return $namesByReference;
+    }
+
+    /**
+     * @param  list<string>  $ownerIds
+     * @return array<string, string>
+     */
+    private function authorNamesByOwnerId(array $ownerIds): array
+    {
+        if ($ownerIds === []) {
+            return [];
+        }
+
+        $contributorsTable = (string) config(
+            'references.database.tables.reference_contributors',
+            'reference_contributors',
+        );
+
+        $rows = DB::table($contributorsTable.' as reference_author_link')
+            ->join('persons as reference_author_person', 'reference_author_person.id', '=', 'reference_author_link.contributor_id')
+            ->whereIn('reference_author_link.reference_id', $ownerIds)
+            ->where('reference_author_link.role', ReferenceContributorRole::Author->value)
+            ->where('reference_author_link.contributor_type', (new Person)->getMorphClass())
+            ->orderBy('reference_author_link.contributor_id')
+            ->get([
+                'reference_author_link.reference_id',
+                'reference_author_person.name',
+                'reference_author_person.middle_name',
+                'reference_author_person.family_name',
+            ]);
+
+        $namesByOwner = [];
+
+        foreach ($rows as $row) {
+            $name = trim(implode(' ', array_filter([
+                (string) ($row->name ?? ''),
+                (string) ($row->middle_name ?? ''),
+                (string) ($row->family_name ?? ''),
+            ], static fn (string $part): bool => $part !== '')));
+
+            if ($name === '') {
+                continue;
+            }
+
+            $ownerId = (string) $row->reference_id;
+            $namesByOwner[$ownerId] = trim(($namesByOwner[$ownerId] ?? '').' '.$name);
+        }
+
+        return $namesByOwner;
     }
 
     /**
@@ -294,10 +395,19 @@ class ReferenceSearchService implements PublicDiscoveryAdapter
             $innerQuery
                 ->whereLike('references.title', "%{$normalizedSearch}%")
                 ->orWhereLike('references.title', $collapsedWildcardSearch)
-                ->orWhereLike('references.author', "%{$normalizedSearch}%")
+                ->orWhereAuthorNameLike("%{$normalizedSearch}%")
                 ->orWhereLike('references.publisher', "%{$normalizedSearch}%")
                 ->orWhereLike('references.description', "%{$normalizedSearch}%")
+                ->orWhereLike('references.edition_label', "%{$normalizedSearch}%")
+                ->orWhereLike($this->numericSearchColumn($innerQuery, 'edition_number'), "%{$normalizedSearch}%")
+                ->orWhereLike('references.isbn', "%{$normalizedSearch}%")
+                ->orWhereLike('references.language', "%{$normalizedSearch}%")
+                ->orWhereLike($this->numericSearchColumn($innerQuery, 'year'), "%{$normalizedSearch}%")
                 ->orWherePartTextLike("%{$normalizedSearch}%");
+
+            if (preg_match('/^(?:cetakan|edisi|edition)\s+(\d+)$/i', $normalizedSearch, $editionMatch) === 1) {
+                $innerQuery->orWhere('references.edition_number', (int) $editionMatch[1]);
+            }
 
             if (count($searchTokens) < 2) {
                 return;
@@ -308,9 +418,14 @@ class ReferenceSearchService implements PublicDiscoveryAdapter
                     $tokenQuery->where(function (Builder $singleTokenQuery) use ($token): void {
                         $singleTokenQuery
                             ->whereLike('references.title', "%{$token}%")
-                            ->orWhereLike('references.author', "%{$token}%")
+                            ->orWhereAuthorNameLike("%{$token}%")
                             ->orWhereLike('references.publisher', "%{$token}%")
                             ->orWhereLike('references.description', "%{$token}%")
+                            ->orWhereLike('references.edition_label', "%{$token}%")
+                            ->orWhereLike($this->numericSearchColumn($singleTokenQuery, 'edition_number'), "%{$token}%")
+                            ->orWhereLike('references.isbn', "%{$token}%")
+                            ->orWhereLike('references.language', "%{$token}%")
+                            ->orWhereLike($this->numericSearchColumn($singleTokenQuery, 'year'), "%{$token}%")
                             ->orWherePartTextLike("%{$token}%");
                     });
                 }
@@ -334,9 +449,25 @@ class ReferenceSearchService implements PublicDiscoveryAdapter
             foreach ($patterns as $pattern) {
                 $candidateQuery
                     ->orWhereLike('references.title', $pattern)
-                    ->orWhereLike('references.author', $pattern);
+                    ->orWhereAuthorNameLike($pattern)
+                    ->orWhereLike('references.publisher', $pattern)
+                    ->orWhereLike('references.edition_label', $pattern)
+                    ->orWhereLike('references.isbn', $pattern)
+                    ->orWhereLike('references.language', $pattern)
+                    ->orWhereLike($this->numericSearchColumn($candidateQuery, 'edition_number'), $pattern);
             }
         });
+    }
+
+    /**
+     * @param  Builder<Reference>  $query
+     */
+    private function numericSearchColumn(Builder $query, string $column): ExpressionContract
+    {
+        $wrapped = $query->getQuery()->getGrammar()->wrap($query->getModel()->qualifyColumn($column));
+        $cast = ConnectionDriver::name($query->getConnection()) === 'mysql' ? 'CHAR' : 'TEXT';
+
+        return new Expression('CAST('.$wrapped.' AS '.$cast.')');
     }
 
     /**
@@ -375,7 +506,7 @@ class ReferenceSearchService implements PublicDiscoveryAdapter
 
         $rawResults = Reference::search($search)
             ->options([
-                'query_by' => 'title,author,search_text',
+                'query_by' => 'title,authors,search_text',
                 'per_page' => $this->typesenseResultLimit(),
                 ...$options,
             ])

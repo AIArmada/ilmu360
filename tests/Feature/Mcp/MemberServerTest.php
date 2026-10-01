@@ -207,7 +207,6 @@ it('searches member references by descriptive public terms through MCP list reco
 
     $matchingReference->update([
         'title' => 'Rujukan Tajwid',
-        'author' => 'Imam Contoh',
         'description' => 'Syarahan tajwid dan adab',
     ]);
 
@@ -659,7 +658,8 @@ it('returns member update schema for references with surfaced mutation semantics
 
                 return data_get($fieldMap->get('front_cover'), 'mcp_upload.shape') === 'file_descriptor'
                     && data_get($fieldMap->get('gallery'), 'mcp_upload.shape') === 'array<file_descriptor>'
-                    && data_get($fieldMap->get('author'), 'clear_semantics.explicit_null') === 'clear_to_null'
+                    && data_get($fieldMap->get('author_ids'), 'collection_semantics.explicit_null') === 'clear_collection'
+                    && data_get($fieldMap->get('author_ids'), 'collection_semantics.submitted_array') === 'replace_relation_sync'
                     && data_get($fieldMap->get('publication_year'), 'normalization.empty_string_at_mutation_layer') === 'null'
                     && data_get($fieldMap->get('social_media'), 'collection_semantics.submitted_array') === 'replace_collection'
                     && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to') === 'x'

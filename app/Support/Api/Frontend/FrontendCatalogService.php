@@ -12,6 +12,7 @@ use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Events\ResolveAdvancedBuilderContextAction;
 use App\Contracts\SpaceEligibilityResolver;
 use App\Enums\MemberSubjectType;
+use App\Forms\ReferenceAuthorFormSchema;
 use App\Forms\SharedFormSchema;
 use App\Models\Institution;
 use App\Models\Language;
@@ -308,20 +309,23 @@ class FrontendCatalogService
      */
     public function references(?string $search = null, int $limit = 50): array
     {
-        $query = Reference::query()->active()->orderBy('title');
+        $query = Reference::query()->active()->with('parentReference.parentReference')->orderBy('title');
         $normalizedSearch = trim((string) $search);
 
         if ($normalizedSearch !== '') {
             $query->where(function (Builder $referenceQuery) use ($normalizedSearch): void {
                 $referenceQuery
                     ->whereLike('title', '%'.$normalizedSearch.'%')
-                    ->orWherePartTextLike('%'.$normalizedSearch.'%');
+                    ->orWherePartTextLike('%'.$normalizedSearch.'%')
+                    ->orWhereLike('edition_label', '%'.$normalizedSearch.'%')
+                    ->orWhereLike('publisher', '%'.$normalizedSearch.'%')
+                    ->orWhereLike('isbn', '%'.$normalizedSearch.'%');
             });
         }
 
         return $query
             ->limit($limit)
-            ->get(['id', 'title', 'parent_id', 'metadata'])
+            ->get(['id', 'title', 'parent_id', 'record_kind', 'reference_parts', 'metadata', 'edition_number', 'edition_label', 'publisher', 'year'])
             ->map(fn (Reference $reference): array => [
                 'id' => (string) $reference->id,
                 'label' => $reference->displayTitle(),
@@ -378,6 +382,23 @@ class FrontendCatalogService
                 'label' => $person->formatted_name,
             ])
             ->all();
+    }
+
+    /**
+     * Pending/verified persons selectable as reference authors (no speaker-only scope).
+     *
+     * @return list<array{id: string, label: string}>
+     */
+    public function referenceAuthors(?string $search = null, int $limit = 50): array
+    {
+        $options = ReferenceAuthorFormSchema::searchOptions(trim((string) $search), $limit);
+        $items = [];
+
+        foreach ($options as $id => $label) {
+            $items[] = ['id' => $id, 'label' => $label];
+        }
+
+        return $items;
     }
 
     /**

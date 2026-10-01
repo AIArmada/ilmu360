@@ -85,7 +85,7 @@ final readonly class SaveAdminEventAction
     public function formStateForRecord(Event $event): array
     {
         $event->loadMissing([
-            'references:id,title',
+            'references.parentReference.parentReference',
             'series:id,title',
             'classifications',
             'keyPeople.person',

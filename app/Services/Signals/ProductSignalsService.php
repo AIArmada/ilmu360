@@ -9,6 +9,8 @@ use AIArmada\Signals\Contracts\SignalEventIngestor;
 use AIArmada\Signals\Models\SignalEvent;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Models\Event;
+use App\Models\Person;
+use App\Models\Reference;
 use App\Models\Report;
 use App\Models\User;
 use App\Support\Signals\ProductSignalsClientContext;
@@ -119,6 +121,42 @@ final readonly class ProductSignalsService
         );
     }
 
+    public function recordReferenceQuickCreated(Reference $reference, ?Request $request = null): ?SignalEvent
+    {
+        $user = $request?->user();
+
+        return $this->record(
+            request: $request,
+            eventName: 'reference.quick_created',
+            eventCategory: 'contribution',
+            user: $user instanceof User ? $user : null,
+            properties: [
+                'reference_id' => (string) $reference->getKey(),
+                'record_kind' => $reference->recordKindValue(),
+                'parent_id' => $reference->parentIdValue(),
+                'status' => (string) $reference->status,
+                'source' => 'event_reference_picker',
+            ],
+        );
+    }
+
+    public function recordAuthorQuickCreated(Person $person, ?Request $request = null): ?SignalEvent
+    {
+        $user = $request?->user();
+
+        return $this->record(
+            request: $request,
+            eventName: 'author.quick_created',
+            eventCategory: 'contribution',
+            user: $user instanceof User ? $user : null,
+            properties: [
+                'person_id' => (string) $person->getKey(),
+                'status' => (string) $person->status,
+                'source' => 'reference_author_picker',
+            ],
+        );
+    }
+
     public function recordReportSubmitted(Report $report, ?Request $request = null): ?SignalEvent
     {
         $user = $request?->user();
@@ -133,7 +171,7 @@ final readonly class ProductSignalsService
                 'entity_type' => (string) $report->entity_type,
                 'entity_id' => (string) $report->entity_id,
                 'category' => (string) $report->category,
-                'status' => (string) $report->status,
+                'status' => (string) $report->getAttribute('status'),
             ],
             anonymousId: (string) $report->reporter_fingerprint,
         );

@@ -4,6 +4,7 @@ use App\Enums\ReferenceType;
 use App\Models\Reference;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Validation\ValidationException;
 
 uses(RefreshDatabase::class);
 
@@ -80,6 +81,7 @@ it('normalizes part fields for book references with a parent', function () {
 
     $reference = Reference::factory()->create([
         'type' => ReferenceType::Book->value,
+        'record_kind' => 'part',
         'parent_id' => $parent->id,
         'part_type' => 'jilid',
         'part_number' => '2',
@@ -93,24 +95,16 @@ it('normalizes part fields for book references with a parent', function () {
         ->and($reference->fresh()->partNumberValue())->toBe('2');
 });
 
-it('clears part fields for non-book references even when parent_id is set', function () {
-    $parent = Reference::factory()->create([
-        'type' => ReferenceType::Book->value,
-    ]);
+it('rejects editions and parts for non-book references', function () {
+    $parent = Reference::factory()->create(['type' => ReferenceType::Book->value]);
 
-    $reference = Reference::factory()->create([
+    expect(fn () => Reference::factory()->create([
         'type' => ReferenceType::Article->value,
+        'record_kind' => 'part',
         'parent_id' => $parent->id,
         'part_type' => 'jilid',
-        'part_number' => 2,
-        'part_label' => 'My Label',
-    ]);
-
-    expect($reference->parent_id)->toBeNull()
-        ->and($reference->partTypeValue())->toBeNull()
-        ->and($reference->partNumberValue())->toBeNull()
-        ->and($reference->partLabelValue())->toBeNull()
-        ->and($reference->reference_parts)->toBeNull();
+        'part_number' => '2',
+    ]))->toThrow(ValidationException::class);
 });
 
 it('clears part fields when parent_id is blank for book references', function () {

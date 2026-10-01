@@ -90,6 +90,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/references', [CatalogController::class, 'references'])->name('references');
             Route::get('/submit-institutions', [CatalogController::class, 'submitInstitutions'])->name('submit-institutions');
             Route::get('/submit-persons', [CatalogController::class, 'submitPersons'])->name('submit-persons');
+            Route::get('/reference-authors', [CatalogController::class, 'referenceAuthors'])->name('reference-authors');
             Route::get('/venues', [CatalogController::class, 'venues'])->name('venues');
             Route::get('/spaces', [CatalogController::class, 'spaces'])->name('spaces');
             Route::get('/membership-application-subjects/{subjectType}', [CatalogController::class, 'membershipClaimSubjects'])

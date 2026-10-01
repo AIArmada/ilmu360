@@ -281,7 +281,7 @@ Notes:
 - `DELETE /user` now keeps a sanitized deleted-account snapshot for the admin grace-period restore flow while still revoking transient credentials immediately.
 - `GET /me/events/going` and `GET /me/events/saved` now use simple pagination metadata (`page`, `per_page`, `has_more`, `next_page`) and do not expose `total`.
 - `GET /events/{event}` now serializes linked references with normalized cover aliases (`media.front_cover_url`, `front_cover_url`, `cover_url`, `thumb_url`) so native clients can render reference cards without depending on a second reference-detail request.
-- Public reference reads now support family-aware behavior: root references aggregate linked child-part events, child references can opt into whole-family event aggregation, and directory/search payloads expose `display_title`, `parent_reference_id`, `part_type`, `part_number`, `part_label`, and `is_part` so clients can distinguish a whole book from a specific part.
+- Public reference reads support work → edition → part and unknown-edition work → part. Work selections include all visible descendants, edition selections include their visible parts, and part selections remain exact. `include_family=true` expands detail events to the entire work family. Directory/search payloads expose explicit `record_kind`, `parent_id`, edition metadata, ISBN, language, primary URL, and `display_title`.
 
 Controllers:
 - `app/Http/Controllers/Api/*`

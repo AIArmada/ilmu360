@@ -507,19 +507,19 @@ Interactive API docs are available on the API host under `/docs`, with the gener
 | `GET` | `/institutions/{institutionKey}` | Public institution detail by slug or UUID |
 | `GET` | `/persons` | Public person listing filters; person directory items include `status` and `is_active` in the default payload |
 | `GET` | `/persons/{personKey}` | Public person detail by slug or UUID |
-| `GET` | `/references` | Public reference listing filters; default directory pages show root/standalone references, while searched child parts can also appear. Reference directory items include `display_title`, `parent_reference_id`, `part_type`, `part_number`, `part_label`, `is_part`, `author`, `type`, `publisher`, `publication_year`, `status`, `events_count`, `front_cover_url`, and `is_following` in the default payload |
+| `GET` | `/references` | Public reference listing filters; default directory pages show root/standalone references, while searched editions and parts can also appear. Reference directory items include `display_title`, `parent_id`, `record_kind`, `edition_number`, `edition_label`, `isbn`, `language`, `language_label`, `url`, `part_type`, `part_number`, `part_label`, `is_part`, `authors`, `author_ids`, `type`, `publisher`, `publication_year`, `status`, `events_count`, `front_cover_url`, and `is_following` in the default payload |
 | `GET` | `/inspirations/random` | Random active inspiration payload with category and media metadata |
 | `GET` | `/venues/{venueKey}` | Public venue detail by slug or UUID |
-| `GET` | `/references/{referenceKey}` | Public reference detail by slug or UUID; child-part detail accepts `include_all_parts=true` to aggregate the whole book family |
+| `GET` | `/references/{referenceKey}` | Public reference detail by slug or UUID; `include_family=true` aggregates events across the entire work family |
 | `GET` | `/series/{series}` | Public series detail |
 
 Notes:
 
 - **Visibility rule:** public resources use their own visibility scopes. References returned by `/references` and `/references/{referenceKey}` must have `published_at IS NOT NULL` and `status IN ('verified', 'pending')`; an approved/published timestamp alone does not make another moderation status public. To access all records including drafts, use the admin surface.
 - Public person directory list items expose `status` and `is_active` alongside the existing summary fields. Keep client logic aligned with those canonical fields instead of inferring alternate aliases.
-- Public reference directory list items expose `display_title`, `parent_reference_id`, `part_type`, `part_number`, `part_label`, `is_part`, `author`, `type`, `publisher`, `publication_year`, `status`, `events_count`, `front_cover_url`, and `is_following` by default. `display_title` is the safest client-facing label because child parts can render as values like `Riyadhus Solihin — Jilid 2`.
+- Public reference directory list items expose `display_title`, `parent_id`, `record_kind`, `edition_number`, `edition_label`, `isbn`, `language`, `language_label`, `url`, `part_type`, `part_number`, `part_label`, `is_part`, `authors`, `author_ids`, `type`, `publisher`, `publication_year`, `status`, `events_count`, `front_cover_url`, and `is_following` by default. Use `display_title` for work-, edition-, and part-aware labels. `authors` is the effective author list (`id`, `name`, `slug`) inherited from the root work; `language_label` is the friendly language name for the `language` code.
 - Default `/references` pagination intentionally hides child parts unless the client is actively searching. Search queries can return both root books and matching child parts.
-- `GET /references/{referenceKey}` now returns the same part metadata in the `reference` payload. Root books aggregate events from the whole family by default. Child parts return only exact-part events by default, but clients can opt into whole-book aggregation with `include_all_parts=true`.
+- `GET /references/{referenceKey}` returns the same bibliographic and hierarchy metadata. Work detail aggregates all visible descendants; edition detail includes its visible parts; part detail is exact. `include_family=true` requests the entire work family from any family member.
 - The public event index supports `filter[reference_ids][]=<reference-uuid>` so native clients can paginate all public events for a given reference without relying on the capped preview lists from `GET /references/{referenceKey}`. When the supplied UUID is a root book reference, the filter automatically expands to child parts; when it is already a child part reference, filtering remains exact to that part.
 - When clients need an exact timeline split around the current moment (for example, separating `Majlis Akan Datang` from `Majlis Terdahulu` on reference event screens), the public event index also accepts ISO 8601 timestamp filters through `filter[starts_at_after]` and `filter[starts_at_before]`.
 - These detail payloads now mirror the web client media collections and public-contact visibility rules.
@@ -970,7 +970,8 @@ Nested collection item contracts for institutions:
 ### Reference-specific update rules
 
 - Reference `PUT` still requires `title`, `type`, and `status`.
-- `author`, `publication_year`, and `publisher` are normalized string scalars: omit to preserve, send `null` to clear, and raw HTTP empty strings also clear because request middleware normalizes them to `null` before persistence.
+- `language`, `publication_year`, and `publisher` are normalized string scalars: omit to preserve, send `null` to clear, and raw HTTP empty strings also clear because request middleware normalizes them to `null` before persistence. Non-blank `language` values must exist in the `languages` catalog (`code`).
+- `author_ids` is a replacement relation of pending/verified person IDs: omit to preserve, send `null` or `[]` to clear, and send the full ordered list when changing. Authorship is stored on works only; editions and parts inherit the root work's authors and ignore `author_ids` input.
 - `social_media` uses destructive replacement semantics: omit to preserve, send `null` or `[]` to clear, and resend the full collection when editing.
 - Handle-style social platforms may canonicalize submitted URLs or handles into stored `username`, with persisted `url` returned as `null` after normalization.
 - For Twitter / X, use the canonical write value `twitter`.
@@ -1484,7 +1485,7 @@ Important exceptions and mixed-semantic reminders:
 
 - Speaker updates still require `name`, `gender`, and `status`, but `address` remains optional; if you send it, include `address.country_id`, and never use `address = {}` as a no-op.
 - Venue updates are sparse; `name`, `type`, and `status` are not required on update. `address = {}` deletes the stored venue address.
-- Reference updates still require `title`, `type`, and `status`, while optional normalized scalars like `author` and `publisher` clear to `null` when you send `null`.
+- Reference updates still require `title`, `type`, and `status`, while optional normalized scalars like `language` and `publisher` clear to `null` when you send `null`. `author_ids` accepts pending/verified person IDs and is stored on works only.
 - For social-media writes across institutions, persons, venues, and references, use `twitter` as the canonical write value for Twitter / X.
 
 ### Search result scope

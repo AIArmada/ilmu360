@@ -4,7 +4,6 @@ namespace App\Forms;
 
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
-use App\Actions\References\GenerateReferenceSlugAction;
 use App\Contracts\EventCategoryCatalog;
 use App\Contracts\EventCategoryPolicyResolver;
 use App\Contracts\SpaceEligibilityResolver;
@@ -15,11 +14,9 @@ use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventTaxonomyCode;
 use App\Enums\EventVisibility;
-use App\Enums\ReferenceType;
 use App\Forms\Components\Select;
 use App\Models\Institution;
 use App\Models\Person;
-use App\Models\Reference;
 use App\Models\Series;
 use App\Models\Venue;
 use App\Support\Cache\SelectionCatalogCache;
@@ -28,7 +25,6 @@ use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
-use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
@@ -259,92 +255,12 @@ class EventContributionFormSchema
                     Select::make('reference_ids')
                         ->label(__('Rujukan Kitab / Buku'))
                         ->placeholder(__('Cari atau pilih rujukan…'))
-                        ->options(fn (): array => Reference::query()
-                            ->active()
-                            ->orderBy('title')
-                            ->get(['id', 'title', 'parent_id', 'metadata'])
-                            ->mapWithKeys(fn (Reference $reference): array => [(string) $reference->id => $reference->displayTitle()])
-                            ->all())
                         ->multiple()
                         ->searchable()
-                        ->preload()
-                        ->createOptionForm([
-                            TextInput::make('title')
-                                ->label(__('Tajuk Kitab / Buku'))
-                                ->required()
-                                ->maxLength(255),
-                            TextInput::make('author')
-                                ->label(__('Pengarang'))
-                                ->maxLength(255),
-                            Select::make('type')
-                                ->label(__('Jenis'))
-                                ->options(ReferenceType::class)
-                                ->default(ReferenceType::Book->value),
-                            TextInput::make('publication_year')
-                                ->label(__('Tahun Terbitan'))
-                                ->numeric()
-                                ->minValue(1000)
-                                ->maxValue((int) now()->addYears(1)->format('Y')),
-                            TextInput::make('publisher')
-                                ->label(__('Penerbit'))
-                                ->maxLength(255),
-                            TextInput::make('reference_url')
-                                ->label(__('Pautan Rujukan'))
-                                ->url()
-                                ->maxLength(255),
-                            SpatieMediaLibraryFileUpload::make('front_cover')
-                                ->label(__('Muka Depan'))
-                                ->collection('front_cover')
-                                ->image()
-                                ->imageEditor()
-                                ->conversion('thumb')
-                                ->responsiveImages(),
-                            SpatieMediaLibraryFileUpload::make('back_cover')
-                                ->label(__('Muka Belakang'))
-                                ->collection('back_cover')
-                                ->image()
-                                ->imageEditor()
-                                ->conversion('thumb')
-                                ->responsiveImages(),
-                            SpatieMediaLibraryFileUpload::make('gallery')
-                                ->label(__('Galeri'))
-                                ->collection('gallery')
-                                ->multiple()
-                                ->image()
-                                ->imageEditor()
-                                ->conversion('gallery_thumb')
-                                ->responsiveImages()
-                                ->maxFiles(5),
-                            Textarea::make('description')
-                                ->label(__('Keterangan Ringkas'))
-                                ->rows(3)
-                                ->columnSpanFull(),
-                        ])
-                        ->createOptionUsing(function (array $data, Schema $schema): string {
-                            $reference = Reference::create([
-                                'title' => $data['title'],
-                                'slug' => app(GenerateReferenceSlugAction::class)->handle((string) ($data['title'] ?? '')),
-                                'author' => $data['author'] ?? null,
-                                'type' => $data['type'] ?? ReferenceType::Book->value,
-                                'year' => filled($data['publication_year'] ?? null) ? (string) $data['publication_year'] : null,
-                                'publisher' => $data['publisher'] ?? null,
-                                'description' => $data['description'] ?? null,
-                                'is_canonical' => false,
-                                'status' => 'pending',
-                                'published_at' => now(),
-                            ]);
-
-                            $schema->model($reference)->saveRelationships();
-
-                            if (! empty($data['reference_url'])) {
-                                $reference->socialProfiles()->create([
-                                    'platform' => 'website',
-                                    'url' => $data['reference_url'],
-                                ]);
-                            }
-
-                            return (string) $reference->getKey();
-                        })
+                        ->getSearchResultsUsing(fn (string $search): array => ReferenceFormSchema::searchOptions($search))
+                        ->getOptionLabelsUsing(fn (array $values): array => ReferenceFormSchema::selectedLabels($values))
+                        ->createOptionForm(ReferenceFormSchema::quickCreateComponents())
+                        ->createOptionUsing(fn (array $data, Schema $schema): string => ReferenceFormSchema::createPending($data, $schema))
                         ->columnSpanFull(),
                 ])
                 ->columns(['default' => 1, 'sm' => 2]),

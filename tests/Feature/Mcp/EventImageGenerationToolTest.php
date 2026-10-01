@@ -558,7 +558,6 @@ function eventImageGenerationEventFixture(?Institution $institution = null): arr
 
     $reference = Reference::factory()->create([
         'title' => 'Tafsir Ibn Kathir',
-        'author' => 'Imam Ibn Kathir',
         'type' => ReferenceType::Book->value,
         'status' => 'verified',
     ]);

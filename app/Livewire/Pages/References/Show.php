@@ -137,7 +137,8 @@ class Show extends Component
         ];
 
         /** @var EventBuilder $query */
-        $query = $this->reference->events()->getQuery();
+        $query = Event::query()->whereHas('references', fn (Builder $references): Builder => $references
+            ->whereIn('references.id', $this->reference->defaultEventReferenceIds()));
 
         return $query
             ->active()
@@ -203,8 +204,11 @@ class Show extends Component
             $this->reference->load([
                 'media',
                 'socialProfiles',
-                'parentReference' => fn ($query) => $query->active(),
-                'childReferences' => fn ($query) => $query->active(),
+                'authors.titleAssignments.title.category',
+                'parentReference.authors.titleAssignments.title.category',
+                'parentReference.parentReference.authors.titleAssignments.title.category',
+                'parentReference' => fn ($query) => $query->active()->with(['parentReference' => fn ($parent) => $parent->active()]),
+                'childReferences' => fn ($query) => $query->active()->with(['parentReference.parentReference', 'childReferences' => fn ($parts) => $parts->active()->with('parentReference.parentReference')]),
             ]);
         });
     }

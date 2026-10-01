@@ -624,8 +624,8 @@
                             <a href="{{ route('references.show', $reference) }}" class="group flex gap-4 rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-[#b27b1b]/50 hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#173c34]">
                                 <span class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[#173c34] text-[#f2c867]"><flux:icon.book-open class="size-5" /></span>
                                 <span class="min-w-0">
-                                    <span class="block font-heading text-xl font-semibold text-[#173c34] group-hover:text-[#b27b1b]">{{ $reference->title }}</span>
-                                    @if(filled($reference->author))<span class="mt-1 block text-sm text-slate-500">{{ $reference->author }}</span>@endif
+                                    <span class="block font-heading text-xl font-semibold text-[#173c34] group-hover:text-[#b27b1b]">{{ $reference->displayTitle() }}</span>
+                                    @if(filled($reference->effectiveAuthorNames()))<span class="mt-1 block text-sm text-slate-500">{{ $reference->effectiveAuthorNames() }}</span>@endif
                                     @if(filled($reference->publisher))<span class="mt-1 block text-xs text-slate-400">{{ $reference->publisher }}</span>@endif
                                 </span>
                                 <flux:icon.chevron-right class="ml-auto mt-1 size-5 shrink-0 text-slate-300 transition group-hover:translate-x-1 group-hover:text-[#b27b1b]" />

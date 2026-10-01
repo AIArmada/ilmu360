@@ -197,7 +197,6 @@ it('matches richer public search behavior for persons, institutions, and referen
 
     $matchingReference = Reference::factory()->create([
         'title' => 'Rujukan Tajwid',
-        'author' => 'Imam Contoh',
         'description' => 'Syarahan tajwid dan adab',
         'status' => 'verified',
     ]);
@@ -2118,7 +2117,8 @@ it('surfaces venue and reference update semantics through admin MCP write schema
             ->where('data.schema.fields', function ($fields): bool {
                 $fieldMap = collect($fields)->keyBy('name');
 
-                return data_get($fieldMap->get('author'), 'clear_semantics.explicit_null') === 'clear_to_null'
+                return data_get($fieldMap->get('author_ids'), 'collection_semantics.explicit_null') === 'clear_collection'
+                    && data_get($fieldMap->get('author_ids'), 'collection_semantics.submitted_array') === 'replace_relation_sync'
                     && data_get($fieldMap->get('publication_year'), 'normalization.empty_string_at_mutation_layer') === 'null'
                     && data_get($fieldMap->get('social_media'), 'collection_semantics.submitted_array') === 'replace_collection'
                     && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to') === 'x'

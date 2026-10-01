@@ -13,6 +13,7 @@ use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\Institution;
 use App\Models\Person;
+use App\Models\Reference;
 use App\Models\Report;
 use App\Models\User;
 use App\Support\Location\AddressHierarchyFormatter;
@@ -176,7 +177,7 @@ class Index extends Component implements HasForms
         }
 
         if ($event->references->isNotEmpty()) {
-            $details[] = __('References: :names', ['names' => $event->references->pluck('title')->join(', ')]);
+            $details[] = __('References: :names', ['names' => $event->references->map(fn (Reference $reference): string => $reference->displayTitle())->join(', ')]);
         }
 
         return $details;

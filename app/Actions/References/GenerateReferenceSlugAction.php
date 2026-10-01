@@ -60,6 +60,6 @@ class GenerateReferenceSlugAction
 
     public function forReference(Reference $reference): string
     {
-        return $this->handle($reference->title, (string) $reference->getKey());
+        return $this->handle($reference->displayTitle(), (string) $reference->getKey());
     }
 }

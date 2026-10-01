@@ -16,6 +16,7 @@ use App\Models\Reference;
 use App\Models\User;
 use App\Services\ContributionEntityMutationService;
 use App\Support\Authz\MemberPermissionGate;
+use Database\Seeders\LanguageSeeder;
 use Illuminate\Support\Facades\Notification;
 
 beforeEach(function () {
@@ -165,6 +166,8 @@ it('rejects institution create requests and notifies the proposer', function () 
 });
 
 it('captures original data for update requests and applies approved reference updates', function () {
+    $this->seed(LanguageSeeder::class);
+
     $proposer = User::factory()->create();
     $reviewer = User::factory()->create();
     $reference = Reference::factory()->create([
@@ -178,6 +181,10 @@ it('captures original data for update requests and applies approved reference up
         [
             'title' => 'Updated Title',
             'description' => 'Revised description',
+            'isbn' => '978-0-306-40615-7',
+            'language' => 'ms',
+            'url' => 'https://example.com/reference',
+            'publication_year' => 2024,
         ],
         'Fixing stale metadata.',
     );
@@ -194,7 +201,11 @@ it('captures original data for update requests and applies approved reference up
 
     expect($request->status)->toBe(ContributionRequestStatus::Approved)
         ->and($reference->title)->toBe('Updated Title')
-        ->and($reference->description)->toBe('Revised description');
+        ->and($reference->description)->toBe('Revised description')
+        ->and($reference->isbn)->toBe('9780306406157')
+        ->and($reference->language)->toBe('ms')
+        ->and($reference->url)->toBe('https://example.com/reference')
+        ->and($reference->year)->toBe(2024);
 });
 
 it('applies structured institution updates through approval', function () {

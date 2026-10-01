@@ -169,9 +169,23 @@ final class PublicDirectorySchemasTransformer implements DocumentTransformer
             ->addProperty('slug', new StringType)
             ->addProperty('title', new StringType)
             ->addProperty('display_title', new StringType)
-            ->addProperty('author', (new StringType)->nullable(true))
+            ->addProperty('authors', (new ArrayType)->setItems(
+                (new ObjectType)
+                    ->addProperty('id', new StringType)
+                    ->addProperty('name', new StringType)
+                    ->addProperty('slug', new StringType)
+            ))
+            ->addProperty('author_ids', (new ArrayType)->setItems(new StringType))
             ->addProperty('type', (new StringType)->nullable(true))
-            ->addProperty('parent_reference_id', (new StringType)->nullable(true))
+            ->addProperty('parent_id', (new StringType)->nullable(true))
+            ->addProperty('record_kind', new StringType)
+            ->addProperty('edition_number', (new IntegerType)->nullable(true))
+            ->addProperty('edition_label', (new StringType)->nullable(true))
+            ->addProperty('isbn', (new StringType)->nullable(true))
+            ->addProperty('language', (new StringType)->nullable(true))
+            ->addProperty('language_label', (new StringType)->nullable(true))
+            ->addProperty('url', (new StringType)->nullable(true))
+
             ->addProperty('part_type', (new StringType)->nullable(true))
             ->addProperty('part_number', (new StringType)->nullable(true))
             ->addProperty('part_label', (new StringType)->nullable(true))
@@ -190,9 +204,18 @@ final class PublicDirectorySchemasTransformer implements DocumentTransformer
                 'slug',
                 'title',
                 'display_title',
-                'author',
+                'authors',
+                'author_ids',
                 'type',
-                'parent_reference_id',
+                'parent_id',
+                'record_kind',
+                'edition_number',
+                'edition_label',
+                'isbn',
+                'language',
+                'language_label',
+                'url',
+
                 'part_type',
                 'part_number',
                 'part_label',

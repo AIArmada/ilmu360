@@ -13,6 +13,7 @@ use App\Models\EventKeyPerson;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
+use App\Support\Cache\SelectionCatalogCache;
 use App\Support\Events\EventCategoryPresenter;
 use App\Support\Location\AddressHierarchyFormatter;
 use App\Support\Spaces\SpaceLocationPresenter;
@@ -151,7 +152,7 @@ class EventPayloadData extends Data
         }
 
         if ($event->relationLoaded('references')) {
-            $event->references->loadMissing('media');
+            $event->references->loadMissing(['media', 'parentReference.parentReference', 'authors.titleAssignments.title.category', 'parentReference.authors.titleAssignments.title.category', 'parentReference.parentReference.authors.titleAssignments.title.category']);
 
             $payload['references'] = $event->references
                 ->values()
@@ -234,9 +235,21 @@ class EventPayloadData extends Data
         $media = ReferenceDetailMediaData::fromModel($reference)->toArray();
         $frontCoverUrl = $media['front_cover_url'] !== '' ? $media['front_cover_url'] : null;
         $backCoverUrl = $media['back_cover_url'] !== '' ? $media['back_cover_url'] : null;
+        $authors = $reference->effectiveAuthorsStructured();
 
         return [
             ...$payload,
+            'display_title' => $reference->displayTitle(),
+            'authors' => $authors,
+            'author_ids' => array_column($authors, 'id'),
+            'parent_id' => $reference->parent_id,
+            'record_kind' => $reference->recordKindValue(),
+            'edition_number' => $reference->edition_number,
+            'edition_label' => $reference->edition_label,
+            'isbn' => $reference->isbn,
+            'language' => $reference->language,
+            'language_label' => app(SelectionCatalogCache::class)->languageLabel($reference->language),
+            'url' => $reference->url,
             'media' => $media,
             'front_cover_url' => $frontCoverUrl,
             'back_cover_url' => $backCoverUrl,

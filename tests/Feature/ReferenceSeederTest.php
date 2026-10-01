@@ -3,6 +3,7 @@
 use App\Enums\ReferenceType;
 use App\Models\Event;
 use App\Models\Reference;
+use Database\Seeders\LanguageSeeder;
 use Database\Seeders\ReferenceSeeder;
 
 it('seeds references using submit-event compatible fields and links', function () {
@@ -11,6 +12,7 @@ it('seeds references using submit-event compatible fields and links', function (
         'title' => 'Kuliah Maghrib: Tafsir Juz Amma',
     ]);
 
+    $this->seed(LanguageSeeder::class);
     $this->seed(ReferenceSeeder::class);
 
     $types = Reference::query()->pluck('type')->unique()->values()->all();
@@ -46,6 +48,7 @@ it('attaches seeded references to approved events via event_reference pivot', fu
         'title' => 'Kuliah Maghrib: Tafsir Juz Amma',
     ]);
 
+    $this->seed(LanguageSeeder::class);
     $this->seed(ReferenceSeeder::class);
 
     $event->refresh()->load('references');

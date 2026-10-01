@@ -605,7 +605,7 @@ final readonly class ShareTrackingUrlService
             'reference:'.$reference->id,
             route('references.show', $reference),
             route('references.show', $reference),
-            $reference->title,
+            $reference->displayTitle(),
             ['reference' => $reference->slug],
         );
     }

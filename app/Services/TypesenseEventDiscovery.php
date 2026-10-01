@@ -438,6 +438,6 @@ class TypesenseEventDiscovery implements EventDiscoveryAdapter
     {
         $referenceIds = $this->uuidFilterValues($value);
 
-        return Reference::expandRootReferenceIdsForFiltering($referenceIds);
+        return Reference::expandReferenceIdsForFiltering($referenceIds);
     }
 }

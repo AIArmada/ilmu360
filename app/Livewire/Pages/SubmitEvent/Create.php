@@ -11,7 +11,6 @@ use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use AIArmada\FilamentEvents\Resources\EventResource;
 use App\Actions\Events\SubmitFrontendEventAction;
-use App\Actions\References\GenerateReferenceSlugAction;
 use App\Contracts\EventCategoryCatalog;
 use App\Contracts\EventCategoryPolicyResolver;
 use App\Contracts\SpaceEligibilityResolver;
@@ -22,11 +21,11 @@ use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventTaxonomyCode;
 use App\Enums\EventVisibility;
-use App\Enums\ReferenceType;
 use App\Enums\TaxonomyTerm\DomainTermCode;
 use App\Forms\Components\Select;
 use App\Forms\InstitutionFormSchema;
 use App\Forms\PersonFormSchema;
+use App\Forms\ReferenceFormSchema;
 use App\Forms\VenueFormSchema;
 use App\Livewire\Concerns\InteractsWithLocationPickerSelection;
 use App\Models\Event;
@@ -1196,94 +1195,12 @@ class Create extends Component implements HasActions, HasForms
                         ->multiple()
                         ->closeOnSelect()
                         ->searchable()
-                        ->preload()
                         ->native(false)
-                        ->relationship('references', 'title', fn (Builder $query) => Reference::applyPublicVisibility($query))
-                        ->createOptionForm([
-                            TextInput::make('title')
-                                ->label(__('Tajuk Kitab / Buku'))
-                                ->required()
-                                ->maxLength(255)
-                                ->placeholder(__('cth: Riyadhus Solihin, Ihya Ulumiddin')),
-                            TextInput::make('author')
-                                ->label(__('Pengarang'))
-                                ->maxLength(255)
-                                ->placeholder(__('cth: Imam Nawawi, Imam Ghazali')),
-                            Select::make('type')
-                                ->native(false)
-                                ->label(__('Jenis'))
-                                ->options(ReferenceType::class)
-                                ->default(ReferenceType::Book->value),
-                            TextInput::make('publication_year')
-                                ->label(__('Tahun Terbitan'))
-                                ->numeric()
-                                ->minValue(1000)
-                                ->maxValue((int) now()->addYears(1)->format('Y'))
-                                ->placeholder(__('cth: 2018')),
-                            TextInput::make('publisher')
-                                ->label(__('Penerbit'))
-                                ->maxLength(255)
-                                ->placeholder(__('cth: Dar al-Kutub')),
-                            TextInput::make('reference_url')
-                                ->label(__('Pautan Rujukan'))
-                                ->url()
-                                ->maxLength(255)
-                                ->placeholder(__('https://...')),
-                            SpatieMediaLibraryFileUpload::make('front_cover')
-                                ->label(__('Muka Depan'))
-                                ->collection('front_cover')
-                                ->image()
-                                ->imageEditor()
-                                ->conversion('thumb')
-                                ->responsiveImages(),
-                            SpatieMediaLibraryFileUpload::make('back_cover')
-                                ->label(__('Muka Belakang'))
-                                ->collection('back_cover')
-                                ->image()
-                                ->imageEditor()
-                                ->conversion('thumb')
-                                ->responsiveImages(),
-                            SpatieMediaLibraryFileUpload::make('gallery')
-                                ->label(__('Galeri'))
-                                ->collection('gallery')
-                                ->multiple()
-                                ->image()
-                                ->imageEditor()
-                                ->conversion('gallery_thumb')
-                                ->responsiveImages()
-                                ->maxFiles(5)
-                                ->helperText(__('Sehingga 5 gambar tambahan')),
-                            Textarea::make('description')
-                                ->label(__('Keterangan Ringkas'))
-                                ->rows(3)
-                                ->placeholder(__('Nota ringkas tentang rujukan ini…'))
-                                ->columnSpanFull(),
-                        ])
-                        ->createOptionUsing(function (array $data, Schema $schema): string {
-                            $reference = Reference::create([
-                                'title' => $data['title'],
-                                'slug' => app(GenerateReferenceSlugAction::class)->handle((string) ($data['title'] ?? '')),
-                                'author' => $data['author'] ?? null,
-                                'type' => $data['type'] ?? ReferenceType::Book->value,
-                                'year' => filled($data['publication_year'] ?? null) ? (string) $data['publication_year'] : null,
-                                'publisher' => $data['publisher'] ?? null,
-                                'description' => $data['description'] ?? null,
-                                'is_canonical' => false,
-                                'status' => 'pending',
-                                'published_at' => now(),
-                            ]);
-
-                            $schema->model($reference)->saveRelationships();
-
-                            if (! empty($data['reference_url'])) {
-                                $reference->socialProfiles()->create([
-                                    'platform' => 'website',
-                                    'url' => $data['reference_url'],
-                                ]);
-                            }
-
-                            return (string) $reference->getKey();
-                        }),
+                        ->relationship('references', 'title', fn (Builder $query) => Reference::applyPublicVisibility($query)->with('parentReference.parentReference'))
+                        ->getSearchResultsUsing(fn (string $search): array => ReferenceFormSchema::searchOptions($search))
+                        ->getOptionLabelsUsing(fn (array $values): array => ReferenceFormSchema::selectedLabels($values))
+                        ->createOptionForm(ReferenceFormSchema::quickCreateComponents())
+                        ->createOptionUsing(fn (array $data, Schema $schema): string => ReferenceFormSchema::createPending($data, $schema)),
                 ]),
         ];
     }
@@ -2046,7 +1963,7 @@ class Create extends Component implements HasActions, HasForms
         $duplicateEvent = Event::query()
             ->with([
                 'classifications',
-                'references:id,title',
+                'references.parentReference.parentReference',
                 'languages:id,code',
                 'persons',
                 'keyPeople.person',

@@ -332,7 +332,8 @@ Fetch the live schema first so the client sees the current enum values and allow
     "payload": {
       "title": "Riyadhus Solihin",
       "type": "book",
-      "parent_reference_id": "0195f51f-70d6-70e5-bf9d-bc2e04b64f7a",
+      "parent_id": "0195f51f-70d6-70e5-bf9d-bc2e04b64f7a",
+      "record_kind": "part",
       "part_type": "jilid",
       "part_number": "2",
       "part_label": "Jilid 2"
@@ -723,7 +724,8 @@ Keyword `query` also expands to institution, speaker/key-person, and reference m
     "payload": {
       "title": "Riyadhus Solihin",
       "type": "book",
-      "parent_reference_id": "0195f51f-70d6-70e5-bf9d-bc2e04b64f7a",
+      "parent_id": "0195f51f-70d6-70e5-bf9d-bc2e04b64f7a",
+      "record_kind": "part",
       "part_type": "jilid",
       "part_number": "2",
       "part_label": "Jilid Kedua"

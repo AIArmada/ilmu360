@@ -354,7 +354,7 @@ class EventController extends Controller
                 });
             }),
             AllowedFilter::callback('reference_ids', function (Builder $query, mixed $value): void {
-                $referenceIds = Reference::expandRootReferenceIdsForFiltering(
+                $referenceIds = Reference::expandReferenceIdsForFiltering(
                     collect($this->normalizeArrayFilter($value))
                         ->map(static fn (mixed $referenceId): string => $referenceId)
                         ->filter(static fn (string $referenceId): bool => $referenceId !== '')

@@ -574,7 +574,6 @@ it('resolves the same reference ids for public and scoped search flows when the 
 
     $reference = Reference::factory()->create([
         'title' => 'Bulugh al-Maram',
-        'author' => 'Imam Contoh',
         'description' => 'Syarahan fiqh dan hadith',
         'status' => 'verified',
     ]);
@@ -599,7 +598,6 @@ it('resolves the same reference ids for public and scoped search flows when the 
 it('falls back to database reference search when typesense lookup fails', function () {
     $reference = Reference::factory()->create([
         'title' => 'Riyadus Solihin',
-        'author' => 'Imam Nawawi',
         'description' => 'Himpunan hadith',
         'slug' => 'riyadus-solihin',
         'status' => 'verified',
@@ -652,7 +650,6 @@ it('keeps split-token reference search when the database driver is configured', 
 
     $reference = Reference::factory()->create([
         'title' => 'Bulugh al-Maram',
-        'author' => 'Ibn Hajar',
         'status' => 'verified',
     ]);
 

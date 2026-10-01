@@ -158,6 +158,19 @@ class CatalogController extends FrontendController
     }
 
     #[Endpoint(
+        title: 'List reference authors catalog',
+        description: 'Returns pending/verified person options selectable as reference authors, without speaker-only scoping.',
+    )]
+    public function referenceAuthors(Request $request): JsonResponse
+    {
+        return response()->json([
+            'data' => $this->catalogs->referenceAuthors(
+                $request->string('q')->toString(),
+            ),
+        ]);
+    }
+
+    #[Endpoint(
         title: 'List venues catalog',
         description: 'Returns venue options for public search and write flows, optionally filtered by the `q` query parameter.',
     )]

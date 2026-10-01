@@ -14,6 +14,8 @@ use AIArmada\Events\Models\VenueSpaceType;
 use AIArmada\FilamentAddressing\Resources\AddressAreaResource;
 use AIArmada\FilamentEvents\Resources\EventResource;
 use AIArmada\Persons\Enums\Gender;
+use AIArmada\References\Enums\ReferenceRecordKind;
+use AIArmada\References\Rules\Isbn;
 use App\Actions\DonationChannels\SaveDonationChannelAction;
 use App\Actions\Events\SaveAdminEventAction;
 use App\Actions\Inspirations\SaveInspirationAction;
@@ -520,7 +522,7 @@ class AdminResourceMutationService
             ],
             ReferenceResource::class => [
                 'type' => ReferenceType::Book->value,
-                'is_canonical' => false,
+                'record_kind' => ReferenceRecordKind::Work->value,
                 'status' => 'verified',
                 'social_media' => [],
                 'clear_front_cover' => false,
@@ -653,7 +655,7 @@ class AdminResourceMutationService
                 'entity_id' => (string) $record->entity_id,
                 'category' => (string) $record->category,
                 'description' => $record->description,
-                'status' => (string) $record->status,
+                'status' => (string) $record->getAttribute('status'),
                 'reporter_id' => $record->reporter_id !== null ? (string) $record->reporter_id : null,
                 'handled_by' => $record->handled_by !== null ? (string) $record->handled_by : null,
                 'resolution_note' => $record->resolution_note,
@@ -697,7 +699,6 @@ class AdminResourceMutationService
         }
 
         if ($record instanceof Reference) {
-            $defaults['is_canonical'] = (bool) $record->is_canonical;
             $defaults['status'] = $record->status;
             $defaults['clear_front_cover'] = false;
             $defaults['clear_back_cover'] = false;
@@ -1364,26 +1365,36 @@ class AdminResourceMutationService
     {
         return [
             $this->field('title', 'string', required: true, maxLength: 255),
-            $this->field('author', 'string', required: false, maxLength: 255, meta: $this->trimmedStringMutationMeta()),
+            $this->field('author_ids', 'array<string>', required: false, meta: $this->relationCollectionMeta(
+                'authors',
+                submittedArray: 'replace_relation_sync',
+                ordering: 'input_order',
+                safeClientStrategy: 'omit_field_to_preserve_or_send_full_relation_ids',
+            )),
             $this->field('type', 'string', required: true, default: ReferenceType::Book->value, allowedValues: $this->enumValues(ReferenceType::class)),
-            $this->field('parent_reference_id', 'string', required: false, meta: [
+            $this->field('parent_id', 'string', required: false, meta: [
                 'relation' => 'references',
-                'accepted_parent_scope' => 'root_book_references_only',
+                'accepted_parent_scope' => 'work_or_edition_books',
                 'mutation_semantics' => 'replace_scalar',
                 'clear_semantics' => [
                     'omitted' => 'preserve_existing',
-                    'explicit_null' => 'convert_to_root_reference_and_clear_part_fields',
+                    'explicit_null' => 'clear_parent_requires_work_record_kind',
                 ],
             ]),
+            $this->field('record_kind', 'string', required: false, default: ReferenceRecordKind::Work->value, allowedValues: $this->enumValues(ReferenceRecordKind::class)),
+            $this->field('edition_number', 'integer', required: false),
+            $this->field('edition_label', 'string', required: false, maxLength: 255),
+            $this->field('isbn', 'string', required: false, maxLength: 20),
+            $this->field('language', 'string', required: false, maxLength: 10, meta: $this->trimmedStringMutationMeta()),
+            $this->field('url', 'url', required: false, maxLength: 255),
             $this->field('part_type', 'string', required: false, default: ReferencePartType::Jilid->value, allowedValues: $this->enumValues(ReferencePartType::class), meta: [
-                'used_when' => 'parent_reference_id_is_present_and_type_is_book',
+                'used_when' => 'record_kind_is_part',
             ]),
             $this->field('part_number', 'string', required: false, maxLength: 255, meta: $this->trimmedStringMutationMeta()),
             $this->field('part_label', 'string', required: false, maxLength: 255, meta: $this->trimmedStringMutationMeta()),
-            $this->field('publication_year', 'string', required: false, maxLength: 255, meta: $this->trimmedStringMutationMeta()),
+            $this->field('publication_year', 'integer', required: false, meta: $this->trimmedStringMutationMeta()),
             $this->field('publisher', 'string', required: false, maxLength: 255, meta: $this->trimmedStringMutationMeta()),
             $this->field('description', 'string', required: false),
-            $this->field('is_canonical', 'boolean', required: false, default: false),
             $this->field('status', 'string', required: true, default: 'verified', allowedValues: ['pending', 'verified', 'inactive']),
             $this->field('social_media', 'array<object>', required: false, meta: $this->socialMediaCollectionMeta()),
             $this->field('front_cover', 'file', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
@@ -2248,16 +2259,22 @@ class AdminResourceMutationService
 
         return [
             'title' => [$required, 'string', 'max:255'],
-            'author' => ['nullable', 'string', 'max:255'],
+            'author_ids' => ['sometimes', 'nullable', 'array'],
+            'author_ids.*' => ['uuid', Rule::exists('persons', 'id')->whereIn('status', ['verified', 'pending'])],
             'type' => [$required, Rule::enum(ReferenceType::class)],
-            'parent_reference_id' => ['nullable', 'uuid', Rule::exists('references', 'id')->whereNull('parent_id')->where('type', ReferenceType::Book->value)],
+            'parent_id' => ['nullable', 'uuid', Rule::exists('references', 'id')->where('type', ReferenceType::Book->value)->whereIn('record_kind', ['work', 'edition'])],
+            'record_kind' => ['sometimes', Rule::enum(ReferenceRecordKind::class)],
+            'edition_number' => ['nullable', 'integer', 'min:1'],
+            'edition_label' => ['nullable', 'string', 'max:255'],
+            'isbn' => ['nullable', 'string', 'max:20', new Isbn],
+            'language' => ['nullable', 'string', 'max:10', Rule::exists('languages', 'code')],
             'part_type' => ['nullable', Rule::enum(ReferencePartType::class)],
             'part_number' => ['nullable', 'string', 'max:255'],
             'part_label' => ['nullable', 'string', 'max:255'],
-            'publication_year' => ['nullable', 'string', 'max:255'],
+            'publication_year' => ['nullable', 'integer', 'min:-3000', 'max:'.((int) now()->year + 5)],
             'publisher' => ['nullable', 'string', 'max:255'],
+            'url' => ['nullable', 'url:http,https', 'max:255'],
             'description' => ['nullable', 'string'],
-            'is_canonical' => ['sometimes', 'boolean'],
             'status' => [$required, Rule::in(['pending', 'verified', 'inactive'])],
             'social_media' => ['nullable', 'array'],
             'social_media.*.platform' => ['required_with:social_media.*.handle,social_media.*.url', Rule::enum(SocialPlatform::class)],

@@ -127,9 +127,13 @@ it('only indexes active verified or pending institutions', function () {
 
 it('builds the reference searchable payload and only indexes published verified or pending references', function () {
     withGlobalOwnerContext(function (): void {
-        $reference = Reference::factory()->create([
+        $author = Person::factory()->create([
+            'name' => 'Dr. Ahmad',
+            'status' => 'verified',
+        ]);
+
+        $reference = Reference::factory()->withAuthors([(string) $author->getKey()])->create([
             'title' => 'Tafsir Al-Hikmah',
-            'author' => 'Dr. Ahmad',
             'publisher' => 'Pustaka Hikmah',
             'description' => '<p>Rujukan utama kuliah.</p>',
             'year' => '2020',
@@ -141,6 +145,7 @@ it('builds the reference searchable payload and only indexes published verified 
         expect($reference->fresh()->shouldBeSearchable())->toBeTrue()
             ->and($payload)->toHaveKey('id', (string) $reference->id)
             ->and($payload)->toHaveKey('title', 'Tafsir Al-Hikmah')
+            ->and($payload['authors'])->toContain('Dr. Ahmad')
             ->and($payload)->toHaveKey('description', 'Rujukan utama kuliah.')
             ->and($payload['search_text'])->toContain('Dr. Ahmad')
             ->and($payload['search_text'])->toContain('Pustaka Hikmah')

@@ -3,14 +3,17 @@
 namespace App\Observers;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\References\Models\ReferenceContributor;
 use App\Actions\Events\GenerateEventSlugAction;
 use App\Actions\Persons\GeneratePersonSlugAction;
 use App\Actions\Slugs\SyncSlugRedirectAction;
 use App\Models\Person;
+use App\Models\Reference;
 use App\Observers\Concerns\SyncsCurrentAndPreviousValues;
 use App\Support\Cache\PublicDirectoryCacheVersion;
 use App\Support\Cache\PublicListingsCache;
 use App\Support\Search\PersonSearchService;
+use App\Support\Search\ReferenceSearchService;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
 class PersonObserver implements ShouldHandleEventsAfterCommit
@@ -24,6 +27,7 @@ class PersonObserver implements ShouldHandleEventsAfterCommit
         protected PublicDirectoryCacheVersion $publicDirectoryCacheVersion,
         protected PublicListingsCache $publicListingsCache,
         protected PersonSearchService $personSearchService,
+        protected ReferenceSearchService $referenceSearchService,
     ) {}
 
     public function saved(Person $person): void
@@ -53,6 +57,10 @@ class PersonObserver implements ShouldHandleEventsAfterCommit
             $this->personSearchService->bustPublicSearchCache();
         }
 
+        if ($person->wasRecentlyCreated || $person->wasChanged(['name', 'middle_name', 'family_name', 'slug'])) {
+            $this->reindexAuthoredReferences($person);
+        }
+
         $this->publicListingsCache->bustHomepageStats();
         $this->publicListingsCache->bustMajlisListing();
         $this->publicDirectoryCacheVersion->bumpPerson();
@@ -68,5 +76,38 @@ class PersonObserver implements ShouldHandleEventsAfterCommit
         $this->publicListingsCache->bustHomepageStats();
         $this->publicListingsCache->bustMajlisListing();
         $this->publicDirectoryCacheVersion->bumpPerson();
+    }
+
+    private function reindexAuthoredReferences(Person $person): void
+    {
+        $referenceIds = ReferenceContributor::query()
+            ->where('contributor_type', $person->getMorphClass())
+            ->where('contributor_id', $person->getKey())
+            ->distinct()
+            ->pluck('reference_id')
+            ->map(static fn (mixed $id): string => (string) $id)
+            ->all();
+
+        if ($referenceIds === []) {
+            return;
+        }
+
+        $this->referenceSearchService->bustPublicSearchCache();
+
+        $rootIds = [];
+
+        foreach (Reference::query()->whereKey($referenceIds)->get(['id', 'parent_id', 'record_kind']) as $reference) {
+            $rootIds[] = $reference->isRootReference()
+                ? (string) $reference->getKey()
+                : ($reference->familyRootId() ?? (string) $reference->getKey());
+        }
+
+        foreach (array_values(array_unique($rootIds)) as $rootId) {
+            $root = Reference::query()->whereKey($rootId)->first();
+
+            if ($root instanceof Reference) {
+                $root->reindexFamily();
+            }
+        }
     }
 }

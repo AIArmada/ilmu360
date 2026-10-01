@@ -33,15 +33,40 @@ class ReferenceObserver implements ShouldHandleEventsAfterCommit
 
     public function updated(Reference $reference): void
     {
-        if (! $reference->wasChanged('title')) {
-            return;
+        $titleChanged = $reference->wasChanged('title');
+        $hierarchyChanged = $reference->wasChanged(['parent_id', 'record_kind', 'edition_number', 'edition_label', 'publisher', 'year', 'reference_parts']);
+
+        if ($reference->wasChanged(['record_kind', 'parent_id']) && ! $reference->isRootReference()) {
+            $reference->authorLinks()->delete();
+            $reference->unsetRelation('authorLinks');
+            $reference->unsetRelation('authors');
+
+            if ($reference->shouldBeSearchable()) {
+                $reference->searchable();
+            } else {
+                $reference->unsearchable();
+            }
         }
 
-        $this->syncCurrentAndPreviousString(
-            $reference->title,
-            $reference->getPrevious()['title'] ?? null,
-            fn (string $title): bool => $this->generateReferenceSlugAction->syncReferenceSlugsForTitle($title),
-        );
+        if ($hierarchyChanged) {
+            $this->generateReferenceSlugAction->syncReferenceSlug($reference);
+            foreach ($reference->childReferences()->with('parentReference.parentReference')->get() as $child) {
+                $this->generateReferenceSlugAction->syncReferenceSlug($child);
+                if ($child->shouldBeSearchable()) {
+                    $child->searchable();
+                } else {
+                    $child->unsearchable();
+                }
+            }
+        }
+
+        if ($titleChanged) {
+            $this->syncCurrentAndPreviousString(
+                $reference->title,
+                $reference->getPrevious()['title'] ?? null,
+                fn (string $title): bool => $this->generateReferenceSlugAction->syncReferenceSlugsForTitle($title),
+            );
+        }
     }
 
     public function deleted(Reference $reference): void

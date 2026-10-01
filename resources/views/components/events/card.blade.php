@@ -107,12 +107,6 @@
                 <span class="absolute inset-0 bg-black/15" aria-hidden="true"></span>
             @endif
             <img src="{{ $event->card_image_url }}" alt="{{ $cardTitle }}" loading="lazy" class="relative h-full w-full {{ $eventCardImageAspectRatio === '16:9' ? 'object-cover' : 'object-contain' }}">
-            @if($cardApprovalLabel !== null)
-                <span data-testid="event-card-approval-badge" title="{{ $cardApprovalPending ? __('Menunggu kelulusan untuk paparan di ilmu360°') : __('Diluluskan untuk paparan di ilmu360°') }}" class="absolute right-3 top-3 z-10 inline-flex max-w-[calc(100%-1.5rem)] items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold shadow-sm {{ $cardApprovalPending ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-emerald-200 bg-emerald-50 text-emerald-800' }}">
-                    @if($cardApprovalPending)<flux:icon.clock class="size-3.5 shrink-0" />@else<flux:icon.check-circle class="size-3.5 shrink-0" />@endif
-                    {{ $cardApprovalLabel }}
-                </span>
-            @endif
             @if($distanceKm !== null)
                 <span class="absolute bottom-3 right-3 rounded-full bg-white/95 px-2.5 py-1 text-xs font-bold text-emerald-800 shadow-sm">{{ number_format((float) $distanceKm, 1) }} km</span>
             @endif
@@ -124,6 +118,12 @@
                     @if($cardFormat === \App\Enums\EventFormat::Online)<flux:icon.video-camera class="size-3.5 shrink-0" />@elseif($cardFormat === \App\Enums\EventFormat::Hybrid)<flux:icon.globe-alt class="size-3.5 shrink-0" />@else<flux:icon.map-pin class="size-3.5 shrink-0" />@endif
                     {{ $cardFormatLabel }}
                 </span>
+                @if($cardApprovalLabel !== null)
+                    <span data-testid="event-card-approval-badge" title="{{ $cardApprovalPending ? __('Menunggu kelulusan untuk paparan di ilmu360°') : __('Diluluskan untuk paparan di ilmu360°') }}" class="relative z-10 ml-auto inline-flex max-w-full items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold {{ $cardApprovalPending ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-emerald-200 bg-emerald-50 text-emerald-800' }}">
+                        @if($cardApprovalPending)<flux:icon.clock class="size-3.5 shrink-0" />@else<flux:icon.check-circle class="size-3.5 shrink-0" />@endif
+                        {{ $cardApprovalLabel }}
+                    </span>
+                @endif
             </div>
             <div class="flex items-center gap-3">
                 <div class="flex h-14 w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-[#f2f8f1] text-[#087f59]" data-testid="event-card-date-badge">

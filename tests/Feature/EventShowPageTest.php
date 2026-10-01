@@ -770,9 +770,13 @@ describe('Event Show Page Location & Contact Info', function () {
             'starts_at' => now()->addDay(),
         ]);
 
-        $reference = Reference::factory()->create([
+        $author = Person::factory()->create([
+            'name' => 'Imam al-Nawawi',
+            'status' => 'verified',
+        ]);
+
+        $reference = Reference::factory()->withAuthors([(string) $author->getKey()])->create([
             'title' => 'Matan Al-Arbain',
-            'author' => 'Imam al-Nawawi',
         ]);
 
         $event->references()->attach($reference->id);
@@ -782,6 +786,7 @@ describe('Event Show Page Location & Contact Info', function () {
         $response->assertOk()
             ->assertSee(__('References'))
             ->assertSee('Matan Al-Arbain')
+            ->assertSee('Imam al-Nawawi')
             ->assertSee('class="grid gap-5"', false)
             ->assertDontSee('class="grid gap-5 sm:grid-cols-2"', false);
     });

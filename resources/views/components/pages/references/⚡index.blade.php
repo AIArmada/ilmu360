@@ -157,12 +157,15 @@ new
                 ->active()
                 ->select('references.*')
                 ->selectSub($this->nextPublicEventQuery()->select('events.id'), 'next_event_id')
-                ->withCount(['events' => function (Builder $query): void {
-                    $query->active();
-                }])
+                ->selectSub(Reference::constrainEventReferenceSubtree(Event::query()->active())
+                    ->selectRaw('COUNT(DISTINCT events.id)'), 'events_count')
                 // Cards only read front/back covers, so skip the gallery
                 // collection instead of loading every media row per page.
                 ->with([
+                    'parentReference.parentReference',
+                    'authors.titleAssignments.title.category',
+                    'parentReference.authors.titleAssignments.title.category',
+                    'parentReference.parentReference.authors.titleAssignments.title.category',
                     'media' => function (MorphMany $relation): void {
                         $relation->whereIn('collection_name', ['front_cover', 'back_cover']);
                     },
@@ -244,13 +247,9 @@ new
         private function nextPublicEventQuery(): Builder
         {
             $occurrencesTable = config('events.database.tables.event_occurrences', 'event_occurrences');
-            $eventReferencesTable = config('events.database.tables.event_references', 'event_references');
 
-            return Event::query()
+            return Reference::constrainEventReferenceSubtree(Event::query())
                 ->join("{$occurrencesTable} as next_event_occurrences", 'next_event_occurrences.event_id', '=', 'events.id')
-                ->join("{$eventReferencesTable} as next_event_references", 'next_event_references.event_id', '=', 'events.id')
-                ->whereColumn('next_event_references.referenceable_id', 'references.id')
-                ->where('next_event_references.referenceable_type', (new Reference)->getMorphClass())
                 ->where('next_event_occurrences.starts_at', '>=', now())
                 ->whereNotNull('events.published_at')
                 ->whereIn('events.status', Event::PUBLIC_STATUSES)
@@ -490,7 +489,7 @@ new
                             $referenceType = \App\Enums\ReferenceType::tryFrom((string) $reference->type);
                             $typeLabel = $referenceType?->getLabel() ?? (filled($reference->type) ? \Illuminate\Support\Str::headline((string) $reference->type) : __('Reference'));
                             $metaParts = array_values(array_filter([
-                                $reference->author,
+                                $reference->effectiveAuthorNames(),
                                 $reference->publisher,
                                 $reference->year,
                             ], fn (mixed $value): bool => filled($value)));
@@ -511,7 +510,7 @@ new
                             >
                                 <div class="relative flex aspect-4/5 items-center justify-center overflow-hidden bg-linear-to-br from-slate-50 to-emerald-50">
                                     @if($coverUrl)
-                                        <img src="{{ $coverUrl }}" alt="{{ $reference->title }}" class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" width="200" height="280" loading="lazy">
+                                        <img src="{{ $coverUrl }}" alt="{{ $reference->displayTitle() }}" class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" width="200" height="280" loading="lazy">
                                         <div class="absolute inset-0 bg-linear-to-t from-slate-900/55 via-slate-900/10 to-transparent"></div>
                                     @else
                                         <flux:icon.book-open class="size-20 text-emerald-200 transition-transform duration-700 group-hover:scale-110" />
@@ -524,7 +523,7 @@ new
 
                                 <div class="flex flex-1 flex-col p-6 pb-0">
                                     <h3 class="mb-2 line-clamp-2 font-heading text-lg font-bold leading-tight text-slate-900 transition-colors group-hover:text-emerald-700">
-                                        {{ $reference->title }}
+                                        {{ $reference->displayTitle() }}
                                     </h3>
 
                                     @if($metaParts !== [])

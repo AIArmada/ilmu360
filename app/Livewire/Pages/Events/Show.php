@@ -179,7 +179,7 @@ class Show extends Component
                         Reference::applyPublicVisibility($query->getQuery());
                     }
 
-                    $query->with('media');
+                    $query->with(['media', 'authors.titleAssignments.title.category', 'parentReference.authors.titleAssignments.title.category', 'parentReference.parentReference.authors.titleAssignments.title.category']);
                 },
                 'links' => $publicLinkScope,
                 'materials' => $publicMaterialScope,

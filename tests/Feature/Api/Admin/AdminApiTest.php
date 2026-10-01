@@ -322,7 +322,6 @@ it('uses the richer person institution and reference search behavior on the admi
 
     $matchingReference = Reference::factory()->create([
         'title' => 'Rujukan Tajwid',
-        'author' => 'Imam Contoh',
         'description' => 'Syarahan tajwid dan adab',
         'status' => 'verified',
     ]);
@@ -2781,14 +2780,26 @@ it('exposes admin reference write schema and can create and update references th
         ->assertJsonPath('data.schema.content_type', 'multipart/form-data')
         ->assertJsonPath('data.schema.defaults.type', 'book');
 
+    Language::query()->firstOrCreate(
+        ['code' => 'ms'],
+        ['name' => 'Malay', 'native' => 'Bahasa Melayu', 'dir' => 'ltr'],
+    );
+
+    $author = Person::factory()->create([
+        'name' => 'Admin API Author',
+        'status' => 'verified',
+    ]);
+
     $createResponse = $this->postJson('/api/v1/admin/references', [
         'title' => 'Admin API Reference',
-        'author' => 'Admin API Author',
+        'author_ids' => [(string) $author->getKey()],
         'type' => 'book',
-        'publication_year' => '2024',
+        'publication_year' => 2024,
         'publisher' => 'Admin API Press',
+        'isbn' => '978-0-306-40615-7',
+        'language' => 'ms',
+        'url' => 'https://example.com/references/admin-api-reference',
         'description' => 'Admin API reference description.',
-        'is_canonical' => true,
         'status' => 'verified',
         'social_media' => [
             [
@@ -2806,17 +2817,23 @@ it('exposes admin reference write schema and can create and update references th
 
     expect($reference->title)->toBe('Admin API Reference')
         ->and($reference->slug)->toBe('admin-api-reference')
-        ->and($reference->is_canonical)->toBeTrue()
+        ->and($reference->record_kind)->toBe('work')
+        ->and($reference->isbn)->toBe('9780306406157')
+        ->and($reference->language)->toBe('ms')
+        ->and($reference->url)->toBe('https://example.com/references/admin-api-reference')
         ->and($reference->status)->toBe('verified')
         ->and($reference->published_at)->not->toBeNull()
         ->and((string) $reference->status)->toBeIn(['verified', 'pending'])
+        ->and($reference->authorIdsValue())->toBe([(string) $author->getKey()])
         ->and($reference->socialProfiles)->toHaveCount(1)
         ->and($reference->socialProfiles->first()?->platform)->toBe('website');
 
     $this->getJson('/api/v1/admin/references/'.$referenceRouteKey)
         ->assertOk()
         ->assertJsonPath('data.record.route_key', $referenceRouteKey)
-        ->assertJsonPath('data.record.attributes.slug', 'admin-api-reference');
+        ->assertJsonPath('data.record.attributes.slug', 'admin-api-reference')
+        ->assertJsonPath('data.record.attributes.author_ids', [(string) $author->getKey()])
+        ->assertJsonPath('data.record.attributes.authors.0.name', 'Admin API Author');
 
     $this->getJson('/api/v1/admin/references/'.$referenceId)->assertNotFound();
 
@@ -2826,14 +2843,18 @@ it('exposes admin reference write schema and can create and update references th
         ->assertJsonPath('data.schema.endpoint', '/api/v1/admin/references/'.$referenceRouteKey)
         ->assertJsonPath('data.schema.defaults.title', 'Admin API Reference');
 
+    $editor = Person::factory()->create([
+        'name' => 'Admin API Editor',
+        'status' => 'verified',
+    ]);
+
     $this->putJson('/api/v1/admin/references/'.$referenceRouteKey, [
         'title' => 'Admin API Reference Updated',
-        'author' => 'Admin API Editor',
+        'author_ids' => [(string) $editor->getKey()],
         'type' => 'article',
         'publication_year' => null,
         'publisher' => 'Admin API Review',
         'description' => 'Updated admin API reference description.',
-        'is_canonical' => false,
         'status' => 'inactive',
         'social_media' => [
             [
@@ -2844,7 +2865,9 @@ it('exposes admin reference write schema and can create and update references th
     ])->assertOk()
         ->assertJsonPath('data.record.attributes.title', 'Admin API Reference Updated')
         ->assertJsonPath('data.record.attributes.slug', 'admin-api-reference-updated')
-        ->assertJsonPath('data.record.attributes.type', 'article');
+        ->assertJsonPath('data.record.attributes.type', 'article')
+        ->assertJsonPath('data.record.attributes.author_ids', [(string) $editor->getKey()])
+        ->assertJsonPath('data.record.attributes.authors.0.name', 'Admin API Editor');
 
     $reference = withGlobalOwnerContext(
         fn (): Reference => $reference->refresh()->load('socialProfiles'),
@@ -2855,7 +2878,6 @@ it('exposes admin reference write schema and can create and update references th
         ->and($reference->type)->toBe('article')
         ->and($reference->year)->toBeNull()
         ->and($reference->publisher)->toBe('Admin API Review')
-        ->and($reference->is_canonical)->toBeFalse()
         ->and((string) $reference->status)->toBe('inactive')
         ->and($reference->socialProfiles)->toHaveCount(1)
         ->and($reference->socialProfiles->first()?->platform)->toBe('youtube');
@@ -2882,8 +2904,10 @@ it('surfaces reference update semantics and social-media normalization rules thr
 
     $fields = collect($schema['fields'] ?? [])->keyBy('name');
 
-    expect(data_get($fields->get('author'), 'clear_semantics.explicit_null'))->toBe('clear_to_null')
-        ->and(data_get($fields->get('author'), 'normalization.empty_string_at_mutation_layer'))->toBe('null')
+    expect(data_get($fields->get('author_ids'), 'collection_semantics.explicit_null'))->toBe('clear_collection')
+        ->and(data_get($fields->get('author_ids'), 'collection_semantics.submitted_array'))->toBe('replace_relation_sync')
+        ->and(data_get($fields->get('language'), 'clear_semantics.explicit_null'))->toBe('clear_to_null')
+        ->and(data_get($fields->get('language'), 'normalization.empty_string_at_mutation_layer'))->toBe('null')
         ->and(data_get($fields->get('publication_year'), 'clear_semantics.explicit_null'))->toBe('clear_to_null')
         ->and(data_get($fields->get('publisher'), 'clear_semantics.explicit_null'))->toBe('clear_to_null')
         ->and(data_get($fields->get('social_media'), 'collection_semantics.explicit_null'))->toBe('clear_collection')
@@ -2896,9 +2920,14 @@ it('clears normalized reference scalars and replaces canonicalized social media 
     $admin = adminApiUser('super_admin');
     Sanctum::actingAs($admin);
 
+    $oldAuthor = Person::factory()->create([
+        'name' => 'Penulis Lama',
+        'status' => 'verified',
+    ]);
+
     $createResponse = $this->postJson('/api/v1/admin/references', [
         'title' => 'Admin API Reference Collections',
-        'author' => 'Penulis Lama',
+        'author_ids' => [(string) $oldAuthor->getKey()],
         'type' => 'book',
         'publication_year' => '2024',
         'publisher' => 'Penerbit Lama',
@@ -2920,7 +2949,7 @@ it('clears normalized reference scalars and replaces canonicalized social media 
 
     $this->putJson('/api/v1/admin/references/'.$referenceRouteKey, [
         'title' => 'Admin API Reference Collections Updated',
-        'author' => null,
+        'author_ids' => null,
         'type' => 'book',
         'publication_year' => '',
         'publisher' => '',
@@ -2931,7 +2960,8 @@ it('clears normalized reference scalars and replaces canonicalized social media 
         ]],
     ])->assertOk()
         ->assertJsonPath('data.record.attributes.title', 'Admin API Reference Collections Updated')
-        ->assertJsonPath('data.record.attributes.author', null)
+        ->assertJsonPath('data.record.attributes.author_ids', [])
+        ->assertJsonPath('data.record.attributes.authors', [])
         ->assertJsonPath('data.record.attributes.publication_year', null)
         ->assertJsonPath('data.record.attributes.publisher', null)
         ->assertJsonPath('data.record.attributes.social_media.0.platform', 'youtube')
@@ -2944,7 +2974,7 @@ it('clears normalized reference scalars and replaces canonicalized social media 
 
     $updatedReferenceRouteKey = (string) $reference->getRouteKey();
 
-    expect($reference->author)->toBeNull()
+    expect($reference->authorIdsValue())->toBe([])
         ->and($reference->year)->toBeNull()
         ->and($reference->publisher)->toBeNull()
         ->and($reference->socialProfiles)->toHaveCount(1)
@@ -3837,3 +3867,67 @@ it('rejects unauthenticated batch update requests', function () {
         'items' => [['record_key' => 'some-key', 'payload' => ['name' => 'Test']]],
     ])->assertUnauthorized();
 });
+
+it('creates edition and part references with an explicit parent through the admin api', function () {
+    Sanctum::actingAs(adminApiUser('super_admin'));
+
+    Language::query()->firstOrCreate(
+        ['code' => 'ar'],
+        ['name' => 'Arabic', 'native' => 'العربية', 'dir' => 'rtl'],
+    );
+
+    $work = Reference::factory()->create(['title' => 'Edition API Work', 'type' => 'book', 'status' => 'verified']);
+
+    $editionResponse = $this->postJson('/api/v1/admin/references', [
+        'title' => $work->title,
+        'type' => 'book',
+        'record_kind' => 'edition',
+        'parent_id' => $work->id,
+        'edition_number' => 3,
+        'publisher' => 'Edition Press',
+        'publication_year' => 2024,
+        'isbn' => '9780306406157',
+        'language' => 'ar',
+        'url' => 'https://example.com/edition-api-work',
+        'status' => 'verified',
+    ])->assertCreated();
+    $edition = withGlobalOwnerContext(fn (): Reference => Reference::query()->where('slug', $editionResponse->json('data.record.route_key'))->firstOrFail());
+
+    expect($edition->parent_id)->toBe((string) $work->id)
+        ->and($edition->record_kind)->toBe('edition')
+        ->and($edition->edition_number)->toBe(3)
+        ->and($edition->isbn)->toBe('9780306406157')
+        ->and($edition->socialProfiles()->count())->toBe(0);
+
+    $partResponse = $this->postJson('/api/v1/admin/references', [
+        'title' => $work->title,
+        'type' => 'book',
+        'record_kind' => 'part',
+        'parent_id' => $edition->id,
+        'part_type' => 'jilid',
+        'part_number' => '2',
+        'status' => 'verified',
+    ])->assertCreated();
+    $part = withGlobalOwnerContext(fn (): Reference => Reference::query()->where('slug', $partResponse->json('data.record.route_key'))->firstOrFail());
+
+    expect($part->parent_id)->toBe((string) $edition->id)
+        ->and($part->isPart())->toBeTrue()
+        ->and($part->displayTitle())->toContain('Edition API Work', 'Cetakan 3', 'Jilid 2');
+});
+
+it('returns 422 for invalid reference bibliographic inputs through the admin api', function (string $field, mixed $value) {
+    Sanctum::actingAs(adminApiUser('super_admin'));
+
+    $this->postJson('/api/v1/admin/references', [
+        'title' => 'Invalid Bibliographic Reference',
+        'type' => 'book',
+        'status' => 'verified',
+        $field => $value,
+    ])->assertUnprocessable()->assertJsonValidationErrors($field);
+})->with([
+    'ISBN checksum' => ['isbn', '9780306406158'],
+    'edition number' => ['edition_number', 0],
+    'language length' => ['language', 'long-language-code'],
+    'URL scheme' => ['url', 'ftp://example.com/reference'],
+    'year format' => ['publication_year', 'not-a-year'],
+]);

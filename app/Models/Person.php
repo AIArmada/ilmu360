@@ -16,12 +16,14 @@ use AIArmada\Persons\Enums\Gender;
 use AIArmada\Persons\Models\CredentialAssignment;
 use AIArmada\Persons\Models\PersonName;
 use AIArmada\Persons\Models\TitleAssignment;
+use AIArmada\References\Models\ReferenceContributor;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\SpeakerStatus;
 use App\Models\Concerns\AuditsModelChanges;
 use App\Models\Concerns\HasDonationChannels;
 use App\Models\Concerns\HasLanguages;
 use App\Support\Search\PersonSearchService;
+use BackedEnum;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -37,6 +39,7 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Laravel\Scout\Searchable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 use RuntimeException;
@@ -47,6 +50,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
+ * @property string $status
  * @property bool $allow_public_event_submission
  * @property CarbonImmutable|null $last_state_change_at
  * @property CarbonImmutable|null $verified_at
@@ -274,9 +278,20 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
             : $formattedBase;
     }
 
+    public function statusValue(): string
+    {
+        $status = $this->getAttribute('status');
+
+        if ($status instanceof BackedEnum) {
+            return (string) $status->value;
+        }
+
+        return (string) $status;
+    }
+
     public function shouldBeSearchable(): bool
     {
-        return in_array((string) $this->status, ['verified', 'pending'], true)
+        return in_array($this->statusValue(), ['verified', 'pending'], true)
             && $this->speaker_status === SpeakerStatus::Active;
     }
 
@@ -330,7 +345,7 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
             'person_names' => implode(' ', $alternativeNames),
             'search_text' => $searchableText,
             'slug' => (string) $this->slug,
-            'status' => (string) $this->status,
+            'status' => $this->statusValue(),
             'gender' => $this->gender instanceof Gender ? $this->gender->value : $this->gender,
             'country_code' => $address?->country_code,
             'city' => $address?->city,
@@ -361,19 +376,32 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
     #[\Override]
     protected static function booted(): void
     {
+        static::deleting(function (Person $person): void {
+            $authorsReferences = ReferenceContributor::query()
+                ->where('contributor_type', $person->getMorphClass())
+                ->where('contributor_id', $person->getKey())
+                ->exists();
+
+            if ($authorsReferences) {
+                throw ValidationException::withMessages([
+                    'person' => __('This person is linked as a reference contributor and cannot be deleted.'),
+                ]);
+            }
+        });
+
         static::saving(function (Person $person) {
             if ($person->isDirty('status')) {
                 $now = now();
                 $person->last_state_change_at = $now;
 
-                match ((string) $person->status) {
+                match ($person->statusValue()) {
                     'verified' => $person->verified_at ??= $now,
                     'rejected' => $person->rejected_at ??= $now,
                     'inactive' => $person->published_at ??= $now,
                     default => null,
                 };
 
-                if ((string) $person->status === 'verified') {
+                if ($person->statusValue() === 'verified') {
                     $person->verified_by ??= auth()->id();
                 }
             }

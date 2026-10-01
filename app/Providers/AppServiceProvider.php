@@ -37,7 +37,6 @@ use AIArmada\Inventory\Models\InventoryMovement;
 use AIArmada\Membership\Contracts\MembershipApplicationNotifier;
 use AIArmada\Membership\Contracts\MembershipHook;
 use AIArmada\Orders\Models\Order;
-use AIArmada\Orders\Models\OrderAddress;
 use AIArmada\Orders\Models\OrderItem;
 use AIArmada\Orders\Models\OrderNote;
 use AIArmada\Orders\Models\OrderPayment;
@@ -48,6 +47,7 @@ use AIArmada\Persons\Models\PersonName;
 use AIArmada\Persons\Models\Title;
 use AIArmada\Persons\Models\TitleAssignment;
 use AIArmada\Persons\Models\TitleCategory;
+use AIArmada\References\Models\ReferenceContributor;
 use AIArmada\Signals\Models\TrackedProperty;
 use AIArmada\Ticketing\Models\TicketType;
 use App\Actions\Slugs\ResolvePublicSlugAction;
@@ -100,6 +100,7 @@ use App\Observers\LanguageObserver;
 use App\Observers\PersonNameObserver;
 use App\Observers\PersonObserver;
 use App\Observers\PersonTitleObserver;
+use App\Observers\ReferenceContributorObserver;
 use App\Observers\ReferenceObserver;
 use App\Observers\TitleCategoryObserver;
 use App\Observers\VenueObserver;
@@ -366,7 +367,6 @@ class AppServiceProvider extends ServiceProvider
             'event_session' => EventSession::class,
             'checkout_session' => CheckoutSession::class,
             'order' => Order::class,
-            'order_address' => OrderAddress::class,
             'order_item' => OrderItem::class,
             'order_note' => OrderNote::class,
             'order_payment' => OrderPayment::class,
@@ -514,6 +514,7 @@ class AppServiceProvider extends ServiceProvider
         TitleAssignment::observe(PersonTitleObserver::class);
         TitleCategory::observe(TitleCategoryObserver::class);
         Reference::observe(ReferenceObserver::class);
+        ReferenceContributor::observe(ReferenceContributorObserver::class);
         Venue::observe(VenueObserver::class);
 
         app()->instance($registrationKey, true);

@@ -1,4 +1,62 @@
+## Reference language select + person-linked authors (2026-10-01)
+
+Executor: Muse CLI `muse-spark-1.3-contributor`, reasoning effort `max`. Codex reviewed the implementation, requested corrections, integrated the package changes, and audited the live application.
+
+- [x] Edit original reference migrations: remove author text; add UUID polymorphic contributor links and author/editor/translator roles, without constraints or manual ordering.
+- [x] Use the existing languages catalog for a searchable, preloaded select, native-inclusive labels, and canonical code validation at every write boundary.
+- [x] Select multiple person authors on works; inherit authors on editions/parts; expose structured authors through APIs, public pages, search, and admin/contribution forms.
+- [x] Provide minimal author quick create: validated name, optional gender/biography, pending person, inactive speaker, no ownership or event-submission privileges, and confirmed creation Signal.
+- [x] Enforce contributor UUID/role integrity, explicit clearing versus omitted author inputs, direct-model language validation, reference reindex/cache invalidation, and linked-person deletion protection.
+- [x] Correct case-sensitive PostgreSQL author matching in the picker and inherited reference search; verify lowercase `nawawi` finds Imam al-Nawawi in the live form.
+- [x] Reset and reseed the authorized local database, clear caches, regenerate autoloading, compile views, and inspect the resulting schema.
+- [x] Consolidate final author/search verification result.
+
+### Audit review
+
+Final search fix: `ReferenceAuthorsTest` passed all 30 cases (227 assertions). The broader author/search filter passed 319 cases and failed eight in EventSearchTest (five known baseline), SubmitEventLocationTest (unknown named cityId), DawahShareImpactTest (missing attribution cookie), and EventFilterSelectDietTest (missing location label). The latter three were outside this change and were not baseline-reproduced; no reference/author failure occurred. Final two-source-file PHPStan level 6 and Pint passed. Lowercase search was independently verified on the live PostgreSQL form; SQLite coverage alone would not catch PostgreSQL case sensitivity. Logs: `logs-case-search-{pest,focused,phpstan,pint}.txt`.
+
+No compatibility aliases, legacy storage, or backfill were added. Package code remains independent of app person policy. Contributors are an unordered set. Author quick create never merges people solely by name; duplicate labels are distinguished by slug. Work-to-child conversion removes own author links even when the title changes in the same update. Author-name validation rejects non-string input before trimming. Language choices include the full catalog rather than only previously used languages.
+
+Saved verification logs live in `/tmp/ilmu360-author-review/`: reference authors/forms/editions/family/seeder 57 passed; admin API reference filter 10 passed; contribution workflow 10 passed; frontend parity 102 passed; commerce reference package 61 passed; final author validation/language/translation coverage 45 passed (296 assertions). PHPStan level 6 passed for core changed app/package code, the additional 19 affected PHP files, and the two refinement test files. Pint, locale JSON validation, and both repositories' diff checks passed.
+
+The broader initial test run had five EventSearch failures reproduced on pristine HEAD (`logs-headcheck7.txt`). Its sixth failure was a partial strict-mode DTO test fixture and was corrected; all 102 frontend parity cases then passed. Do not describe the unrelated search failures as introduced by this task.
+
+The local rebuild completed successfully. Inspected references has no author text column; contributor IDs are UUIDs, with no sort column or foreign-key constraints. Seeded public reference detail renders person authors and language labels. Local Scout uses the collection driver, so no persistent index import is required. The attempted CLI Scout import was blocked by OwnerContext and is not claimed successful. Staging and production were not rebuilt.
+
+Live quick-create verification confirmed the DB language choices and German (Deutsch) selection, minimal author form, and lowercase author search against PostgreSQL. No browser-created person/reference records were saved. Temporary audit tab closed; the user's original reference tab remains open. Autoload generation and Blade view compilation succeeded.
+
 # Fix event-detail location attribute error (2026-09-19)
+
+## Simplify reference quick create part choices (2026-10-01)
+
+- [x] Keep two translated section types, default to Jilid, and clarify number/custom name.
+- [x] Show a reactive quick-create title preview using the model's display rules.
+- [x] Verify preview parity, form behavior, formatting, and PHPStan.
+
+
+Review: reduced the app part vocabulary to two localized concepts, clarified number/custom name, and added the quick-create preview using Reference::displayTitle(). The existing 10 form cases pass; all five new localized preview/save parity cases pass. PHPStan, Pint, translation JSON and diff checks pass. Verified the live modal has only Jilid/Bahagian, defaults to Jilid and renders the numbered preview. Existing confirmed quick-create tracking remains sufficient; preview changes add no new workflow outcome.
+
+## Reference editions implementation (2026-10-01)
+
+- [x] Review gap report against package and app creation, mutation, search, and display paths.
+- [x] Confirm work → edition → part, unknown-edition work → part, immediate pending visibility, and local reset/reseed authorization.
+- [x] Resolve canonical and ISBN policy with the owner.
+- [x] Edit original package schema and implement typed hierarchy, field validation, and package regression coverage.
+- [x] Generalize app hierarchy expansion, display titles, semantic slugs, save action, factory, and seed data.
+- [x] Unify parent_id and reference URL storage across admin, submit, contribution, and API forms/contracts.
+- [x] Extend hierarchy-aware public detail/directory/search, API DTOs/schemas, and admin presentation.
+- [x] Verify affected reference/submission/contribution tests, Pint, PHPStan, views, and frontend build.
+- [x] Reset/reseed the local database and verify the fresh application.
+
+Design reviewed: use record_kind (work/edition/part), edition_number and edition_label. Work selections include visible descendants; edition selections include their visible parts; part selections match only the exact part. include_family explicitly requests the whole work family. Keep generic hierarchy/validation in the references package, book-only and Malay display policy in the app. references.url is the primary source link; social links remain additional links. No aliases, compatibility paths, backfills, or new alter migrations. Preserve existing contribution authorization and Signals workflows; add creation tracking only where a new confirmed workflow is introduced.
+
+### Verification review
+
+Implemented work → edition → part and work → part, shared admin/submission/contribution forms, canonical parent_id/source URL, ISBN checksum validation, typed API/search contracts, subtree event filtering, hierarchy presentation, and confirmed quick-create Signals. Removed is_canonical; the work record supplies identity without declaring any edition universally preferred. Original package migration changed directly; no compatibility aliases or backfills were added.
+
+Affected application reference/admin/submission/contribution/API tests pass after repairing failures; package reference coverage passes (56 tests). The added edition-change search regression passes. Final event-reference contract checks pass (4 tests), person parity passes (1 test, 40 assertions), and report/admin telemetry checks pass (3 tests, 82 assertions). PHPStan level 6 passes for changed application and package code; Pint, Blade cache, frontend build, and both repositories' diff checks pass.
+
+The local database was rebuilt. Verified the new record_kind/edition_number/edition_label schema and removal of is_canonical, with seeded application data present (13 references, 115 events, 68 users, 134 saved searches and 57 registrations). The live reference directory and detail page render successfully. Staging and production databases were not reset. Generic package changes live in the sibling commerce repository; application policy and UI changes live in ilmu360.
 
 ## Plan
 
@@ -4081,3 +4139,13 @@ request). Filters morph on the fast parent response; list follows on the child r
 Plan reviewed against the requested layout. Existing save/share interactions and Signals remain unchanged.
 
 Review: Type and format share a neutral fact row above the title. Approval uses green/amber icons on the image; lifecycle changes remain separate. Location uses two lines, canonical city/state formatting removes duplicates, online-only hides physical attendance location, and hybrid adds online availability. Existing save/share tracking is preserved. Six new regression cases plus affected existing coverage: 16 initially passed, one obsolete combined-location assertion corrected and passed (17 total). Pint, production build, and diff check passed. Full PHPStan was interrupted due resource pressure; scope changes are Blade, translation JSON, and tests (tests are excluded by project PHPStan config). Live verification remains blocked by in-app browser timeouts and a local HTTPS request timeout; Octane reload confirmed no Octane server is running.
+
+## Move approval below card imagery (2026-10-01)
+
+- [x] Move approval into the wrapping facts row, right aligned; preserve its state, icon, color, and explanatory title.
+- [x] Update the existing card-order assertion for the approved layout.
+- [x] Verify focused rendering test, formatting, build, and diff.
+
+Review: Approval now follows type and format in normal document flow with right alignment and natural wrapping, preserving the green/amber styling and icons. Focused card-order test passed (4 assertions), Pint and production build passed, and diff check passed. Browser preview remains unavailable due an in-app browser timeout.
+
+Cosmetic presentation only; no tracking changes are needed.

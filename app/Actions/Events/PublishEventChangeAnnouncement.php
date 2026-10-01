@@ -359,7 +359,7 @@ class PublishEventChangeAnnouncement
             'venue:id,name,slug',
             'primaryLocation.venueSpace:id,name,slug',
             'personKeyPeople.person:id,name,slug',
-            'references:id,title,slug',
+            'references.parentReference.parentReference',
         ];
     }
 
@@ -401,7 +401,7 @@ class PublishEventChangeAnnouncement
             'references' => $event->references
                 ->map(fn (Reference $reference): array => [
                     'id' => (string) $reference->getKey(),
-                    'title' => $reference->title,
+                    'title' => $reference->displayTitle(),
                     'slug' => $reference->slug,
                 ])
                 ->values()

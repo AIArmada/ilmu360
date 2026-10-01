@@ -40,8 +40,10 @@
     $referenceRouteSegment = \App\Enums\ContributionSubjectType::Reference->publicRouteSegment();
     $metadataItems = array_filter([
         $referenceTypeLabel !== '' ? $referenceTypeLabel : null,
-        $reference->authorValue(),
+        $reference->effectiveAuthorNames(),
         $reference->publisherValue(),
+        filled($reference->isbn) ? 'ISBN '.$reference->isbn : null,
+        filled($reference->language) ? __('Bahasa').': '.(app(\App\Support\Cache\SelectionCatalogCache::class)->languageLabel($reference->language) ?? $reference->language) : null,
         filled($reference->year) ? (string) $reference->year : null,
     ]);
     $upcomingEvents = $this->upcomingEvents;
@@ -658,6 +660,9 @@
                         <h2 class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">{{ __('Keluarga Rujukan') }}</h2>
 
                         <div class="mt-4 space-y-4">
+                            @if($reference->parentReference?->parentReference)
+                                <a href="{{ route('references.show', $reference->parentReference->parentReference) }}" wire:navigate class="text-sm font-semibold text-emerald-700">{{ $reference->parentReference->parentReference->displayTitle() }}</a>
+                            @endif
                             @if($reference->parentReference)
                                 <div class="rounded-2xl border border-slate-200 p-4">
                                     <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{{ __('Rujukan Induk') }}</p>
@@ -673,7 +678,7 @@
 
                             @if($reference->childReferences->isNotEmpty())
                                 <div class="rounded-2xl border border-slate-200 p-4">
-                                    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{{ __('Bahagian Berkaitan') }}</p>
+                                    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{{ $reference->isEdition() ? __('Bahagian Edisi Ini') : __('Edisi dan Bahagian') }}</p>
                                     <ul class="mt-3 space-y-3">
                                         @foreach($reference->childReferences as $childReference)
                                             <li>
@@ -684,6 +689,15 @@
                                                 >
                                                     {{ $childReference->displayTitle() }}
                                                 </a>
+                                                @if($childReference->isEdition() && $childReference->childReferences->isNotEmpty())
+                                                    <ul class="mt-3 space-y-2 border-l border-slate-200 pl-4">
+                                                        @foreach($childReference->childReferences as $editionPart)
+                                                            <li>
+                                                                <a href="{{ route('references.show', $editionPart) }}" wire:navigate class="text-sm text-slate-600 hover:text-emerald-700">{{ $editionPart->displayTitle() }}</a>
+                                                            </li>
+                                                        @endforeach
+                                                    </ul>
+                                                @endif
                                             </li>
                                         @endforeach
                                     </ul>

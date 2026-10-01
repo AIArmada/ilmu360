@@ -20,8 +20,8 @@ it('renders the public reference index hero and search copy', function () {
 
     get('/rujukan')
         ->assertSuccessful()
-        ->assertSee(__('Sources of'))
-        ->assertSee(__('Knowledge & Guidance'))
+        ->assertSee(__('Discover sources of'))
+        ->assertSee(__('knowledge you can trust'))
         ->assertSee(__('Search references...'));
 });
 
@@ -99,7 +99,7 @@ it('shows the reference empty state and clear icon button', function () {
         ->assertSee('aria-label="Clear search"', false);
 });
 
-it('shows the total reference count at the bottom of the index', function () {
+it('renders every matching reference in the index', function () {
     $searchPrefix = 'Jumlah Rujukan Ujian';
 
     Reference::factory()->count(2)->create([
@@ -107,10 +107,11 @@ it('shows the total reference count at the bottom of the index', function () {
         'status' => 'verified',
     ]);
 
-    get('/rujukan?search='.urlencode($searchPrefix))
+    $response = get('/rujukan?search='.urlencode($searchPrefix))
         ->assertSuccessful()
-        ->assertSee('Direktori Rujukan')
-        ->assertSee('Jumlah rujukan: 2');
+        ->assertSee('Direktori Rujukan');
+
+    expect(substr_count($response->getContent(), 'wire:key="reference-'))->toBe(2);
 });
 
 it('skips the search query for short reference queries', function () {

@@ -237,7 +237,6 @@ it('shows the redesigned followed-entity category cards on the dashboard', funct
 
     $reference = Reference::factory()->create([
         'title' => 'Menu Reference',
-        'author' => 'Menu Author',
     ]);
 
     app(EngagementManager::class)->bookmark($user, $savedEvent);

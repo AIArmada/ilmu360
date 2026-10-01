@@ -988,15 +988,23 @@ describe('Event Search Filters', function () {
     });
 
     it('searches events by reference author when the reference is attached', function () {
-        $matchReference = Reference::factory()->create([
-            'title' => 'Kitab Al Fiqh',
-            'author' => 'Qudama AlMaqdisi Unique',
+        $matchAuthor = Person::factory()->create([
+            'name' => 'Qudama AlMaqdisi Unique',
             'status' => 'verified',
         ]);
 
-        $otherReference = Reference::factory()->create([
+        $otherAuthor = Person::factory()->create([
+            'name' => 'Taymiyya AlHanbali Unique',
+            'status' => 'verified',
+        ]);
+
+        $matchReference = Reference::factory()->withAuthors([(string) $matchAuthor->getKey()])->create([
+            'title' => 'Kitab Al Fiqh',
+            'status' => 'verified',
+        ]);
+
+        $otherReference = Reference::factory()->withAuthors([(string) $otherAuthor->getKey()])->create([
             'title' => 'Kitab Al Aqidah',
-            'author' => 'Taymiyya AlHanbali Unique',
             'status' => 'verified',
         ]);
 
@@ -1031,15 +1039,23 @@ describe('Event Search Filters', function () {
     });
 
     it('filters events by reference_author_search filter', function () {
-        $matchReference = Reference::factory()->create([
-            'title' => 'Risalah Tawhid',
-            'author' => 'Muhammad Abduh',
+        $matchAuthor = Person::factory()->create([
+            'name' => 'Muhammad Abduh',
             'status' => 'verified',
         ]);
 
-        $otherReference = Reference::factory()->create([
+        $otherAuthor = Person::factory()->create([
+            'name' => 'Ibn Kathir',
+            'status' => 'verified',
+        ]);
+
+        $matchReference = Reference::factory()->withAuthors([(string) $matchAuthor->getKey()])->create([
+            'title' => 'Risalah Tawhid',
+            'status' => 'verified',
+        ]);
+
+        $otherReference = Reference::factory()->withAuthors([(string) $otherAuthor->getKey()])->create([
             'title' => 'Al Bidaya Wal Nihaya',
-            'author' => 'Ibn Kathir',
             'status' => 'verified',
         ]);
 

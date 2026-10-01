@@ -8,6 +8,7 @@ use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\FilamentEvents\Contracts\EventFormExtension;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventGenderRestriction;
+use App\Models\Reference;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -48,7 +49,8 @@ final class EventAdminContextFormExtension implements EventFormExtension
                         ->helperText('Speaker identities are stored as event involvements.'),
                     Select::make('references')
                         ->label('References')
-                        ->relationship('references', 'title')
+                        ->relationship('references', 'title', fn ($query) => $query->with('parentReference.parentReference'))
+                        ->getOptionLabelFromRecordUsing(fn (Reference $record): string => $record->displayTitle())
                         ->multiple()
                         ->searchable()
                         ->preload()

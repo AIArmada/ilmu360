@@ -4,16 +4,13 @@ namespace App\Filament\Resources\References\Schemas;
 
 use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Contacting\Support\SocialProfileConfig;
-use App\Enums\ReferencePartType;
-use App\Enums\ReferenceType;
-use App\Models\Reference;
+use App\Forms\ReferenceFormSchema;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
@@ -27,59 +24,7 @@ class ReferenceForm
             ->components([
                 Section::make('Reference Details')
                     ->components([
-                        TextInput::make('title')
-                            ->required()
-                            ->maxLength(255),
-                        TextInput::make('author')
-                            ->maxLength(255),
-                        Select::make('type')
-                            ->options(ReferenceType::class)
-                            ->default(ReferenceType::Book->value)
-                            ->required()
-                            ->live(),
-                        Select::make('parent_id')
-                            ->label('Parent Book')
-                            ->helperText('Select a root book when this reference represents a specific jilid, bahagian, or volume.')
-                            ->options(fn (?Reference $record): array => Reference::query()
-                                ->where('type', ReferenceType::Book->value)
-                                ->whereNull('parent_id')
-                                ->when($record instanceof Reference && $record->exists, fn ($query) => $query->whereKeyNot($record->getKey()))
-                                ->orderBy('title')
-                                ->pluck('title', 'id')
-                                ->all())
-                            ->searchable()
-                            ->preload()
-                            ->live()
-                            ->visible(fn (Get $get): bool => $get('type') === ReferenceType::Book)
-                            ->dehydrated(fn (Get $get): bool => $get('type') === ReferenceType::Book),
-                        Select::make('part_type')
-                            ->label('Part Type')
-                            ->options(ReferencePartType::class)
-                            ->default(ReferencePartType::Jilid->value)
-                            ->formatStateUsing(fn (ReferencePartType|string|null $state, ?Reference $record): ReferencePartType|string|null => ReferencePartType::tryFrom((string) ($record?->partTypeValue() ?? '')) ?? $state)
-                            ->visible(fn (Get $get): bool => filled($get('parent_id')))
-                            ->dehydrated(fn (Get $get): bool => filled($get('parent_id'))),
-                        TextInput::make('part_number')
-                            ->label('Part Number')
-                            ->placeholder('2')
-                            ->maxLength(255)
-                            ->formatStateUsing(fn (?string $state, ?Reference $record): ?string => $record?->partNumberValue() ?? $state)
-                            ->visible(fn (Get $get): bool => filled($get('parent_id')))
-                            ->dehydrated(fn (Get $get): bool => filled($get('parent_id'))),
-                        TextInput::make('part_label')
-                            ->label('Part Label')
-                            ->helperText('Optional display label, e.g. Jilid 2 or Bahagian Akhir.')
-                            ->maxLength(255)
-                            ->formatStateUsing(fn (?string $state, ?Reference $record): ?string => $record?->partLabelValue() ?? $state)
-                            ->visible(fn (Get $get): bool => filled($get('parent_id')))
-                            ->dehydrated(fn (Get $get): bool => filled($get('parent_id'))),
-                        TextInput::make('year')
-                            ->maxLength(255),
-                        TextInput::make('publisher')
-                            ->maxLength(255),
-                        Toggle::make('is_canonical')
-                            ->label('Canonical / Official')
-                            ->helperText('Is this a standard reference?'),
+                        ...ReferenceFormSchema::fields(publicOnly: false),
                         Select::make('status')
                             ->options([
                                 'pending' => 'Pending',
@@ -203,7 +148,7 @@ class ReferenceForm
                                     }),
                             ])
                             ->columns(2)
-                            ->orderColumn('order_column')
+                            ->orderColumn('sort_order')
                             ->collapsible()
                             ->defaultItems(0)
                             ->addActionLabel('Add Link')

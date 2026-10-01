@@ -26,6 +26,9 @@ use AIArmada\Persons\Enums\Gender;
 use AIArmada\Persons\Enums\PersonNameType;
 use AIArmada\Persons\Models\PersonName;
 use AIArmada\Persons\Models\TitleAssignment;
+use AIArmada\References\Enums\ReferenceContributorRole;
+use AIArmada\References\Enums\ReferenceRecordKind;
+use AIArmada\References\Rules\Isbn;
 use App\Actions\Events\SyncEventClassificationsAction;
 use App\Actions\Events\SyncEventScheduleAction;
 use App\Actions\Institutions\GenerateInstitutionSlugAction;
@@ -143,9 +146,18 @@ class ContributionEntityMutationService
                 'accepts_partial_updates' => true,
                 'fields' => [
                     $this->field('title', 'string', maxLength: 255),
-                    $this->field('author', 'string', maxLength: 255),
+                    $this->field('author_ids', 'array<string>', catalog: route('api.client.catalogs.reference-authors')),
                     $this->field('type', 'string', allowedValues: $this->enumValues(ReferenceType::class)),
-                    $this->field('publication_year', 'string', maxLength: 255),
+                    $this->field('parent_id', 'uuid'),
+                    $this->field('record_kind', 'string', allowedValues: $this->enumValues(ReferenceRecordKind::class)),
+                    $this->field('edition_number', 'integer'),
+                    $this->field('edition_label', 'string', maxLength: 255),
+                    $this->field('isbn', 'string', maxLength: 20),
+                    $this->field('language', 'string', maxLength: 10),
+                    $this->field('part_type', 'string', allowedValues: $this->enumValues(ReferencePartType::class)),
+                    $this->field('part_number', 'string', maxLength: 255),
+                    $this->field('part_label', 'string', maxLength: 255),
+                    $this->field('publication_year', 'integer'),
                     $this->field('publisher', 'string', maxLength: 255),
                     $this->field('description', 'string'),
                     $this->field('url', 'url'),
@@ -290,16 +302,22 @@ class ContributionEntityMutationService
             ],
             $entity instanceof Reference => [
                 'title' => ['sometimes', 'string', 'max:255'],
-                'author' => ['nullable', 'string', 'max:255'],
+                'author_ids' => ['sometimes', 'nullable', 'array'],
+                'author_ids.*' => ['uuid', Rule::exists('persons', 'id')->whereIn('status', ['verified', 'pending'])],
                 'type' => ['sometimes', Rule::in($this->enumValues(ReferenceType::class))],
-                'parent_reference_id' => ['nullable', 'uuid', Rule::exists('references', 'id')->whereNull('parent_id')->where('type', ReferenceType::Book->value)],
+                'parent_id' => ['nullable', 'uuid', Rule::exists('references', 'id')->where('type', ReferenceType::Book->value)->whereIn('record_kind', ['work', 'edition'])],
+                'record_kind' => ['sometimes', Rule::enum(ReferenceRecordKind::class)],
+                'edition_number' => ['nullable', 'integer', 'min:1'],
+                'edition_label' => ['nullable', 'string', 'max:255'],
+                'isbn' => ['nullable', 'string', 'max:20', new Isbn],
+                'language' => ['nullable', 'string', 'max:10', Rule::exists('languages', 'code')],
                 'part_type' => ['nullable', Rule::in($this->enumValues(ReferencePartType::class))],
                 'part_number' => ['nullable', 'string', 'max:255'],
                 'part_label' => ['nullable', 'string', 'max:255'],
-                'publication_year' => ['nullable', 'string', 'max:255'],
+                'publication_year' => ['nullable', 'integer', 'min:-3000', 'max:'.((int) now()->year + 5)],
                 'publisher' => ['nullable', 'string', 'max:255'],
                 'description' => ['nullable', 'string'],
-                'url' => ['nullable', 'url', 'max:255'],
+                'url' => ['nullable', 'url:http,https', 'max:255'],
                 'social_media' => ['sometimes', 'array'],
                 'social_media.*.platform' => ['required_with:social_media.*.handle,social_media.*.url', Rule::in($this->enumValues(SocialPlatform::class))],
                 'social_media.*.handle' => ['nullable', 'string', 'max:255', 'required_without:social_media.*.url'],
@@ -531,13 +549,18 @@ class ContributionEntityMutationService
     {
         $reference->fill([
             'title' => $payload['title'] ?? $reference->title,
-            'author' => array_key_exists('author', $payload) ? $this->normalizeOptionalString($payload['author']) : $reference->author,
             'type' => array_key_exists('type', $payload) ? $this->normalizeReferenceType($payload['type']) : $reference->type,
-            'parent_id' => array_key_exists('parent_reference_id', $payload) ? $this->normalizeOptionalString($payload['parent_reference_id']) : $reference->parent_id,
+            'parent_id' => array_key_exists('parent_id', $payload) ? $this->normalizeOptionalString($payload['parent_id']) : $reference->parent_id,
+            'record_kind' => $payload['record_kind'] ?? $reference->record_kind,
+            'edition_number' => array_key_exists('edition_number', $payload) ? $payload['edition_number'] : $reference->edition_number,
+            'edition_label' => array_key_exists('edition_label', $payload) ? $this->normalizeOptionalString($payload['edition_label']) : $reference->edition_label,
+            'isbn' => array_key_exists('isbn', $payload) ? $this->normalizeOptionalString($payload['isbn']) : $reference->isbn,
+            'language' => array_key_exists('language', $payload) ? $this->normalizeOptionalString($payload['language']) : $reference->language,
+
             'part_type' => array_key_exists('part_type', $payload) ? $this->normalizeOptionalString($payload['part_type']) : $reference->partTypeValue(),
             'part_number' => array_key_exists('part_number', $payload) ? $this->normalizeOptionalString($payload['part_number']) : $reference->partNumberValue(),
             'part_label' => array_key_exists('part_label', $payload) ? $this->normalizeOptionalString($payload['part_label']) : $reference->partLabelValue(),
-            'year' => array_key_exists('publication_year', $payload) ? $this->normalizeOptionalString($payload['publication_year']) : $reference->year,
+            'year' => array_key_exists('publication_year', $payload) ? (filled($payload['publication_year']) ? (int) $payload['publication_year'] : null) : $reference->year,
             'publisher' => array_key_exists('publisher', $payload) ? $this->normalizeOptionalString($payload['publisher']) : $reference->publisher,
             'description' => array_key_exists('description', $payload) ? $payload['description'] : $reference->description,
             'url' => array_key_exists('url', $payload) ? $this->normalizeOptionalString($payload['url']) : $reference->url,
@@ -546,9 +569,7 @@ class ContributionEntityMutationService
         $dirty = $reference->getDirty();
         $reference->save();
 
-        if (array_key_exists('social_media', $payload)) {
-            $this->syncSocialMedia($reference, $payload['social_media']);
-        }
+        $this->syncReferenceRelations($reference, array_intersect_key($payload, ['social_media' => true, 'author_ids' => true]));
 
         return $dirty;
     }
@@ -788,9 +809,15 @@ class ContributionEntityMutationService
 
         return [
             'title' => $reference->title,
-            'author' => $reference->author,
+            'author_ids' => $reference->authorIdsValue(),
             'type' => $reference->type,
-            'parent_reference_id' => $reference->parent_id,
+            'parent_id' => $reference->parent_id,
+            'record_kind' => $reference->record_kind,
+            'edition_number' => $reference->edition_number,
+            'edition_label' => $reference->edition_label,
+            'isbn' => $reference->isbn,
+            'language' => $reference->language,
+
             'part_type' => $reference->partTypeValue(),
             'part_number' => $reference->partNumberValue(),
             'part_label' => $reference->partLabelValue(),
@@ -1344,6 +1371,20 @@ class ContributionEntityMutationService
     {
         if (array_key_exists('social_media', $payload)) {
             $this->syncSocialMedia($reference, $payload['social_media']);
+        }
+
+        if (array_key_exists('author_ids', $payload) && $reference->isRootReference()) {
+            $authorIds = [];
+
+            foreach (is_array($payload['author_ids']) ? $payload['author_ids'] : [] as $authorId) {
+                $normalized = is_string($authorId) ? trim($authorId) : '';
+
+                if ($normalized !== '' && ! in_array($normalized, $authorIds, true)) {
+                    $authorIds[] = $normalized;
+                }
+            }
+
+            $reference->syncContributors(ReferenceContributorRole::Author, (new Person)->getMorphClass(), $authorIds);
         }
     }
 

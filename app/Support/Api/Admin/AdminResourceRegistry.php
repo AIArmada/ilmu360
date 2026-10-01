@@ -19,8 +19,10 @@ use App\Filament\Resources\Venues\VenueResource;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
+use App\Models\Reference;
 use App\Models\User;
 use App\Models\Venue;
+use App\Support\Cache\SelectionCatalogCache;
 use App\Support\Location\AddressAssignments;
 use Filament\Facades\Filament;
 use Filament\Resources\Resource;
@@ -822,6 +824,16 @@ class AdminResourceRegistry
                 : $record->socialProfiles()->get();
             $attributes['social_media'] = $profiles->map(static fn ($profile): array => $profile->toArray())->values()->all();
             unset($attributes['socialProfiles']);
+        }
+
+        if ($record instanceof Reference) {
+            $authors = $record->effectiveAuthorsStructured();
+
+            $attributes['authors'] = $authors;
+            $attributes['author_ids'] = array_column($authors, 'id');
+            $attributes['language_label'] = app(SelectionCatalogCache::class)->languageLabel($record->language);
+
+            unset($attributes['authorLinks'], $attributes['contributors']);
         }
 
         unset($attributes['addresses']);

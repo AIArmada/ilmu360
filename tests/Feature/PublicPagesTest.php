@@ -420,9 +420,9 @@ it('renders the date and event-type badges on public events index cards', functi
         ->assertSee('data-testid="event-card-date-badge"', false)
         ->assertSeeInOrder([
             'data-cover-aspect=',
-            'data-testid="event-card-approval-badge"',
             'data-testid="event-card-type-badge"',
             'data-testid="event-card-format-badge"',
+            'data-testid="event-card-approval-badge"',
             'data-testid="event-card-date-badge"',
         ], false);
 });

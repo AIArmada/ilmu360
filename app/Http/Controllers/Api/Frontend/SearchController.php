@@ -56,6 +56,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\Pivot;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -91,9 +92,18 @@ class SearchController extends FrontendController
         'slug',
         'title',
         'display_title',
-        'author',
+        'authors',
+        'author_ids',
         'type',
-        'parent_reference_id',
+        'parent_id',
+        'record_kind',
+        'edition_number',
+        'edition_label',
+        'isbn',
+        'language',
+        'language_label',
+        'url',
+
         'part_type',
         'part_number',
         'part_label',
@@ -567,7 +577,7 @@ class SearchController extends FrontendController
         abort_unless(
             $user instanceof User
                 ? $user->can('view', $record)
-                : in_array((string) $record->status, ['verified', 'pending'], true),
+                : in_array($record->getAttribute('status'), ['verified', 'pending'], true),
             404,
         );
 
@@ -723,7 +733,7 @@ class SearchController extends FrontendController
         title: 'List public references',
         description: 'Returns a paginated directory of references that have been published and are verified or pending. Supports search by title, author, or publisher, and a following filter.',
     )]
-    #[QueryParameter('fields', 'Optional comma-separated top-level list fields to return. Supported fields: id, slug, title, display_title, author, type, parent_reference_id, part_type, part_number, part_label, is_part, publisher, publication_year, status, events_count, front_cover_url, is_following.', required: false, type: 'string', infer: false, example: 'id,display_title,author,front_cover_url')]
+    #[QueryParameter('fields', 'Optional comma-separated top-level list fields to return. Supported fields: id, slug, title, display_title, authors, author_ids, type, parent_id, record_kind, edition_number, edition_label, isbn, language, language_label, url, part_type, part_number, part_label, is_part, publisher, publication_year, status, events_count, front_cover_url, is_following.', required: false, type: 'string', infer: false, example: 'id,display_title,authors,front_cover_url')]
     #[QueryParameter('search', 'Optional free-text search across public reference titles, authors, and publishers.', required: false, type: 'string', infer: false, example: 'Riyadus Solihin')]
     #[QueryParameter('following', 'When authenticated, restrict results to references followed by the current user.', required: false, type: 'boolean', infer: false, example: false)]
     #[QueryParameter('page', 'Pagination page number.', required: false, type: 'integer', infer: false, default: 1, example: 1)]
@@ -785,14 +795,14 @@ class SearchController extends FrontendController
         title: 'Get a public reference',
         description: 'Returns the public reference detail payload by slug or UUID, including upcoming and past events linked to that reference.',
     )]
-    #[QueryParameter('include_all_parts', 'For a child book part, include events from the whole book family instead of only the exact part.', required: false, type: 'boolean', infer: false, example: false)]
+    #[QueryParameter('include_family', 'Include events from the whole work family instead of the selected reference subtree.', required: false, type: 'boolean', infer: false, example: false)]
     public function showReference(Request $request, string $referenceKey): JsonResponse
     {
         $user = $this->currentUser($request);
         $now = now();
 
         $record = Reference::query()
-            ->with(['media', 'socialProfiles'])
+            ->with(['media', 'socialProfiles', 'parentReference.parentReference'])
             ->tap(fn (Builder $query): Builder => $this->slugOrUuidResolver->apply($query, 'references.slug', $referenceKey))
             ->firstOrFail();
 
@@ -803,7 +813,7 @@ class SearchController extends FrontendController
             404,
         );
 
-        $referenceEventIds = $record->isRootReference() || $request->boolean('include_all_parts')
+        $referenceEventIds = $request->boolean('include_family')
             ? $record->familyReferenceIds()
             : $record->defaultEventReferenceIds();
 
@@ -940,13 +950,6 @@ class SearchController extends FrontendController
     }
 
     /**
-     * @template TDeclaringModel of \Illuminate\Database\Eloquent\Model
-     * @template TPivot of Pivot
-     *
-     * @param  Builder<Event>|HasMany<Event, TDeclaringModel>|BelongsToMany<Event, TDeclaringModel, TPivot, 'pivot'>  $query
-     * @return array{items: list<array<string, mixed>>, total: int}
-     */
-    /**
      * @return array{items: Collection<int, EventKeyPerson>, total: int}
      */
     private function personParticipationPayload(Person $record, CarbonInterface $now, string $direction, int $perPage): array
@@ -984,16 +987,12 @@ class SearchController extends FrontendController
                     ->limit(1);
             }, '__ordered_starts_at')
             ->with([
-                'event.primaryOccurrence',
-                'event.classifications.term',
-                'event.timeExpressions',
-                'event.institution',
-                'event.institution.media',
-                'event.institution.addresses.country',
-                'event.venue.addresses.country',
-                'event.persons.media',
-                'event.media',
-                'event.references' => fn ($query) => $query->active(),
+                'event' => /** @param Relation<Event, EventKeyPerson, mixed> $query */ fn ($query) => $query->with([
+                    'primaryOccurrence', 'classifications.term', 'timeExpressions',
+                    'institution.media', 'institution.addresses.country', 'venue.addresses.country',
+                    'persons.media', 'media',
+                    'references' => fn ($references) => $references->active(),
+                ]),
             ])
             ->reorder()
             ->orderBy('__ordered_starts_at', $direction === 'upcoming' ? 'asc' : 'desc')
@@ -1005,6 +1004,13 @@ class SearchController extends FrontendController
         return ['items' => $matches, 'total' => $total];
     }
 
+    /**
+     * @template TDeclaringModel of \Illuminate\Database\Eloquent\Model
+     * @template TPivot of Pivot
+     *
+     * @param  Builder<Event>|HasMany<Event, TDeclaringModel>|BelongsToMany<Event, TDeclaringModel, TPivot, 'pivot'>  $query
+     * @return array{items: list<array<string, mixed>>, total: int}
+     */
     private function limitedEventPayloadWithTotal(Builder|HasMany|BelongsToMany $query, int $perPage): array
     {
         /** @var Collection<int, Event> $limitedEvents */
@@ -1386,7 +1392,7 @@ class SearchController extends FrontendController
      */
     private function baseReferenceQuery(?User $user = null): Builder
     {
-        $query = Reference::query();
+        $query = Reference::query()->select('references.*');
 
         if ($user instanceof User) {
             $referenceIdColumn = $query->getQuery()->getGrammar()->wrap((new Reference)->qualifyColumn('id'));
@@ -1399,14 +1405,16 @@ class SearchController extends FrontendController
         }
 
         return $query->active()
-            ->withCount(['events' => function (Builder $query): void {
-                $query
+            ->selectSub(
+                Reference::constrainEventReferenceSubtree(Event::query()
                     ->whereNotNull('events.published_at')
-                    ->whereIn('events.status', Event::PUBLIC_STATUSES)
+                    ->where('events.status', 'approved')
                     ->where('events.visibility', EventVisibility::Public)
-                    ->whereHas('occurrences');
-            }])
-            ->with(['media']);
+                    ->whereHas('occurrences'))
+                    ->selectRaw('count(distinct events.id)'),
+                'events_count',
+            )
+            ->with(['media', 'parentReference.parentReference']);
     }
 
     /**
