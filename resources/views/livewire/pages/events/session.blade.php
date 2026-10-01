@@ -5,12 +5,16 @@
         $sessionCover = $session->getFirstMedia('cover');
         $heroMedia = $sessionCover ?? $occurrenceCover ?? $eventCover;
         $heroImageUrl = $heroMedia?->getAvailableUrl(['thumb']) ?: $event->card_image_url;
-        $location = $session->locations->first() ?? $occurrence->locations->first() ?? $event->primaryLocation;
-        $locationName = $location?->venue?->name ?? $event->institution?->name ?? $event->venue?->name;
+        $ownLocation = $session->locations->first() ?? $occurrence->locations->first();
+        $location = $ownLocation ?? $event->primaryLocation;
+        $explicitVenueId = $ownLocation?->venue_id;
+        $locationVenue = $explicitVenueId !== null
+            ? ($ownLocation->relationLoaded('venue') ? $ownLocation->venue : \App\Models\Venue::query()->with('addresses.areaAssignments.area')->find($explicitVenueId))
+            : null;
+        $locationName = $locationVenue?->name ?? ($explicitVenueId !== null ? null : $event->resolvedLocationName());
         $spaceName = \App\Support\Spaces\SpaceLocationPresenter::name($location);
         $locationLabel = collect([$locationName, $spaceName])->filter(fn (mixed $value): bool => is_string($value) && trim($value) !== '')->implode(' · ');
-        $locationVenue = $location?->venue_id !== null ? \App\Models\Venue::query()->with('addresses.areaAssignments.area')->find($location->venue_id) : null;
-        $addressModel = $locationVenue?->primaryAddress() ?? $event->institution?->primaryAddress() ?? $event->venue?->primaryAddress();
+        $addressModel = $explicitVenueId !== null ? $locationVenue?->primaryAddress() : $event->resolvedLocationAddress();
         $addressModel?->loadMissing('areaAssignments.area');
         $speakers = $session->involvements
             ->map(fn ($involvement): string => $involvement->involveable instanceof \App\Models\Person

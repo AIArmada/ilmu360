@@ -398,10 +398,12 @@ final readonly class AdminShareAnalyticsService
                 $affiliate = $affiliatesById->get($visit->affiliate_id);
                 $user = $affiliate instanceof Affiliate ? $users->get($this->userIdForAffiliate($affiliate)) : null;
 
+                $visitKind = $visit->metadata['visit_kind'] ?? null;
+
                 return [
                     'visited_url' => (string) ($visit->url ?? ''),
                     'provider' => $this->providerLabel((string) ($visit->channel ?? 'direct')),
-                    'visit_kind' => str((string) ($visit->interaction_type ?? 'visit'))->replace('_', ' ')->headline()->toString(),
+                    'visit_kind' => str(is_string($visitKind) && $visitKind !== '' ? $visitKind : 'visit')->replace('_', ' ')->headline()->toString(),
                     'visitor_key' => $visit->visitor_key,
                     'sharer_name' => $user instanceof User ? $user->name : $affiliate?->name,
                     'occurred_at' => $visit->touched_at?->toDateTimeString(),

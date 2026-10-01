@@ -43,6 +43,7 @@ use App\Enums\EventPrayerTime;
 use App\Enums\EventTaxonomyCode;
 use App\Enums\EventVisibility;
 use App\Enums\InstitutionNameType;
+use App\Enums\InstitutionStatus;
 use App\Enums\InstitutionType;
 use App\Enums\PrayerOffset;
 use App\Enums\ReferencePartType;
@@ -389,7 +390,7 @@ class ContributionEntityMutationService
             ),
             'type' => $this->normalizeInstitutionType($payload['type'] ?? null),
             'description' => $payload['description'] ?? null,
-            'status' => 'pending',
+            'status' => InstitutionStatus::Pending,
             'allow_public_event_submission' => true,
         ]);
 

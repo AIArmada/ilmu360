@@ -65,13 +65,7 @@ readonly class PrayerTimeExpressionResolver implements ResolvesEventTimeExpressi
      */
     private function resolveCoordinates(Event $event): array
     {
-        $venue = $event->venue;
-
-        if ($venue === null) {
-            return $this->defaultCoordinates();
-        }
-
-        $address = $venue->primaryAddress();
+        $address = $event->resolvedLocationAddress();
 
         if ($address === null) {
             return $this->defaultCoordinates();

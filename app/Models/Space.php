@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use AIArmada\Events\Models\VenueFacility;
 use AIArmada\Events\Models\VenueSpace;
 use App\Models\Concerns\AuditsModelChanges;
 use Database\Factories\SpaceFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Validation\ValidationException;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
@@ -25,6 +27,9 @@ class Space extends VenueSpace implements AuditableContract
 
     protected static function booted(): void
     {
+        // The app event-reference guard registers BEFORE the parent
+        // deleting cleanup, so a rejected Space deletion leaves its
+        // facilities intact.
         static::deleting(function (self $space): void {
             if ($space->eventLocations()->exists()) {
                 throw ValidationException::withMessages([
@@ -32,6 +37,8 @@ class Space extends VenueSpace implements AuditableContract
                 ]);
             }
         });
+
+        parent::booted();
     }
 
     /**
@@ -44,6 +51,21 @@ class Space extends VenueSpace implements AuditableContract
         return SpaceFactory::new()
             ->count(is_numeric($count) ? $count : null)
             ->state(is_callable($count) || is_array($count) ? $count : $state);
+    }
+
+    /**
+     * Space facilities through the canonical venue_space_id column.
+     *
+     * The inherited relation leaves the foreign key implicit, which resolves
+     * from this class basename to a nonexistent space_id; pin the canonical
+     * package column explicitly.
+     *
+     * @return HasMany<VenueFacility, $this>
+     */
+    #[\Override]
+    public function facilities(): HasMany
+    {
+        return $this->hasMany(VenueFacility::class, 'venue_space_id');
     }
 
     /**

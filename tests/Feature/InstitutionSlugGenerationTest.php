@@ -6,17 +6,17 @@ use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\State;
 use App\Actions\Institutions\GenerateInstitutionSlugAction;
+use App\Actions\Institutions\SaveInstitutionAction;
 use App\Filament\Resources\Institutions\Pages\CreateInstitution;
 use App\Forms\InstitutionFormSchema;
-use App\Jobs\BackfillInstitutionSlugs;
 use App\Models\Institution;
 use App\Models\User;
 use App\Services\ContributionEntityMutationService;
-use App\Support\Cache\PublicListingsCache;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
@@ -256,40 +256,125 @@ it('uses the generated geographic slug when admins create institutions in filame
     expect($institution->slug)->toBe('masjid-sultan-salahudin-abdul-aziz-shah-shah-alam-selangor-my');
 });
 
-it('backfills existing institution slugs through the queued job logic', function () {
+it('leaves imported source-backed slugs unchanged when a same-name manual institution is created', function () {
+    $proposer = User::factory()->create();
     $geography = createInstitutionSlugGeography();
 
-    $first = createInstitutionForSlugBackfill(
-        id: '00000000-0000-0000-0000-000000000001',
-        name: 'Masjid Sultan Salahudin Abdul Aziz Shah',
-        slug: 'legacy-random-1',
-        geography: $geography,
-    );
+    $imported = Institution::factory()->create([
+        'name' => 'Masjid Sultan Salahudin Abdul Aziz Shah',
+        'slug' => 'imported-osm-slug',
+        'source' => 'openstreetmap',
+        'external_ref' => 'node/123',
+    ]);
+    attachInstitutionSlugAddress($imported, $geography);
 
-    $second = createInstitutionForSlugBackfill(
-        id: '00000000-0000-0000-0000-000000000002',
-        name: 'Masjid Sultan Salahudin Abdul Aziz Shah',
-        slug: 'legacy-random-2',
-        geography: $geography,
-    );
+    expect($imported->fresh()?->slug)->toBe('imported-osm-slug')
+        ->and($imported->fresh()?->imported_at)->not->toBeNull();
 
-    app(BackfillInstitutionSlugs::class)->handle(
-        app(GenerateInstitutionSlugAction::class),
-        app(PublicListingsCache::class),
-    );
+    $manual = app(ContributionEntityMutationService::class)->createInstitution([
+        'name' => 'Masjid Sultan Salahudin Abdul Aziz Shah',
+        'type' => 'masjid',
+        'address' => geographyAddressPayload($geography),
+    ], $proposer);
 
-    expect($first->fresh()?->slug)->toBe('masjid-sultan-salahudin-abdul-aziz-shah-shah-alam-petaling-selangor-my')
-        ->and($second->fresh()?->slug)->toBe('masjid-sultan-salahudin-abdul-aziz-shah-2-shah-alam-petaling-selangor-my');
+    expect($manual->slug)->toBe('masjid-sultan-salahudin-abdul-aziz-shah-shah-alam-petaling-selangor-my')
+        ->and($imported->fresh()?->slug)->toBe('imported-osm-slug');
 });
 
-it('queues the institution slug backfill command', function () {
-    Queue::fake();
+it('leaves imported source-backed slugs unchanged when a same-name manual institution address is edited', function () {
+    $proposer = User::factory()->create();
+    $primaryGeography = createInstitutionSlugGeography();
+    $secondaryGeography = createInstitutionSlugGeography(subdistrictName: 'Subang Jaya');
 
-    $this->artisan('institutions:queue-slug-backfill')
-        ->expectsOutput('Queued institution slug backfill job.')
-        ->assertSuccessful();
+    $imported = Institution::factory()->create([
+        'name' => 'Masjid Warisan Import',
+        'slug' => 'imported-csv-slug',
+        'source' => 'csv-feed',
+        'external_ref' => 'row-9',
+    ]);
+    attachInstitutionSlugAddress($imported, $primaryGeography);
 
-    Queue::assertPushed(BackfillInstitutionSlugs::class);
+    $manual = app(ContributionEntityMutationService::class)->createInstitution([
+        'name' => 'Masjid Warisan Import',
+        'type' => 'masjid',
+        'address' => geographyAddressPayload($primaryGeography),
+    ], $proposer);
+
+    $manual->primaryAddress()?->update([
+        'country_id' => (string) $secondaryGeography['country']->getKey(),
+        'state_id' => (string) $secondaryGeography['state']->getKey(),
+        'state' => (string) $secondaryGeography['state']->name,
+        'city' => (string) $secondaryGeography['subdistrict']->name,
+    ]);
+
+    expect($manual->fresh()?->slug)->toBe('masjid-warisan-import-subang-jaya-petaling-selangor-my')
+        ->and($imported->fresh()?->slug)->toBe('imported-csv-slug');
+});
+
+it('persists an explicit slug edit on a source-backed institution', function () {
+    $actor = User::factory()->create();
+    $imported = Institution::factory()->create([
+        'name' => 'Masjid Import Edit',
+        'slug' => 'imported-original-slug',
+        'source' => 'openstreetmap',
+        'external_ref' => 'node/456',
+    ]);
+
+    $importedAt = $imported->fresh()?->imported_at;
+
+    $updated = SaveInstitutionAction::run([
+        'name' => 'Masjid Import Edit',
+        'type' => 'masjid',
+        'slug' => 'custom-source-slug',
+    ], $actor, $imported);
+
+    expect($updated->slug)->toBe('custom-source-slug')
+        ->and($updated->fresh()?->source)->toBe('openstreetmap')
+        ->and($updated->fresh()?->external_ref)->toBe('node/456')
+        ->and($updated->fresh()?->imported_at)->toEqual($importedAt);
+});
+
+it('rejects a duplicate explicit slug on a source-backed institution', function () {
+    $actor = User::factory()->create();
+    $blocker = Institution::factory()->create();
+    $taken = (string) $blocker->refresh()->slug;
+
+    $imported = Institution::factory()->create([
+        'name' => 'Masjid Import Collision',
+        'slug' => 'imported-collision-slug',
+        'source' => 'openstreetmap',
+        'external_ref' => 'node/789',
+    ]);
+
+    expect(fn () => SaveInstitutionAction::run([
+        'name' => 'Masjid Import Collision',
+        'type' => 'masjid',
+        'slug' => $taken,
+    ], $actor, $imported))->toThrow(ValidationException::class);
+
+    expect($imported->fresh()?->slug)->toBe('imported-collision-slug');
+});
+
+it('keeps an explicit slug consistent under a real outer transaction', function () {
+    $actor = User::factory()->create();
+    $institution = Institution::factory()->create([
+        'name' => 'Masjid Outer Slug',
+        'slug' => 'masjid-outer-slug',
+    ]);
+
+    $result = DB::transaction(fn () => SaveInstitutionAction::run([
+        'name' => 'Masjid Outer Renamed',
+        'type' => 'masjid',
+        'slug' => 'masjid-outer-explicit',
+    ], $actor, $institution));
+
+    // The returned model is what API responses serialize: deferred
+    // observer regenerations run after commit, and the explicit slug
+    // re-assertion is registered after them, so the requested value is
+    // never silently replaced in the result.
+    expect($result)->toBeInstanceOf(Institution::class)
+        ->and($result->slug)->toBe('masjid-outer-explicit')
+        ->and($institution->fresh()?->slug)->toBe('masjid-outer-explicit');
 });
 
 it('skips null locality segments when generating institution slugs', function () {
@@ -382,29 +467,6 @@ function geographyAddressPayload(array $geography): array
         'line1' => 'Persiaran Masjid',
         'google_maps_url' => 'https://maps.google.com/?q=3.0738,101.5183',
     ];
-}
-
-/**
- * @param  array{
- *     country: AddressCountry,
- *     state: State,
- *     district: AddressArea,
- *     subdistrict: AddressArea
- * }  $geography
- */
-function createInstitutionForSlugBackfill(string $id, string $name, string $slug, array $geography): Institution
-{
-    $institution = Institution::unguarded(fn () => Institution::query()->create([
-        'id' => $id,
-        'type' => 'masjid',
-        'name' => $name,
-        'slug' => $slug,
-        'status' => 'verified',
-    ]));
-
-    attachInstitutionSlugAddress($institution, $geography);
-
-    return $institution->fresh(['addresses']) ?? $institution;
 }
 
 /**

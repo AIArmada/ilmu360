@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Institutions\Schemas;
 
 use AIArmada\Contacting\Enums\SocialPlatform;
+use App\Enums\InstitutionStatus;
 use App\Models\Institution;
 use App\Support\Location\AddressAssignments;
 use App\Support\Location\AddressHierarchyFormatter;
@@ -51,13 +52,7 @@ class InstitutionInfolist
                                                 TextEntry::make('status')
                                                     ->label('Status')
                                                     ->badge()
-                                                    ->color(fn (string $state): string => match ($state) {
-                                                        'pending' => 'warning',
-                                                        'verified' => 'success',
-                                                        'rejected' => 'danger',
-                                                        'inactive' => 'gray',
-                                                        default => 'gray',
-                                                    }),
+                                                    ->color(fn (mixed $state): string => $state instanceof InstitutionStatus ? $state->color() : 'gray'),
                                                 TextEntry::make('description')
                                                     ->label('Penerangan')
                                                     ->columnSpanFull()
@@ -218,13 +213,7 @@ class InstitutionInfolist
                                         TextEntry::make('status')
                                             ->label('Status')
                                             ->badge()
-                                            ->color(fn (string $state): string => match ($state) {
-                                                'pending' => 'warning',
-                                                'verified' => 'success',
-                                                'rejected' => 'danger',
-                                                'inactive' => 'gray',
-                                                default => 'gray',
-                                            }),
+                                            ->color(fn (mixed $state): string => $state instanceof InstitutionStatus ? $state->color() : 'gray'),
                                         IconEntry::make('allow_public_event_submission')
                                             ->label('Terima Penghantaran Majlis Awam')
                                             ->boolean(),
@@ -243,8 +232,8 @@ class InstitutionInfolist
                                             ->label('Perubahan Status Terakhir')
                                             ->dateTime()
                                             ->placeholder('-'),
-                                        TextEntry::make('published_at')
-                                            ->label('Diterbitkan Pada')
+                                        TextEntry::make('inactive_at')
+                                            ->label('Dinyahaktifkan Pada')
                                             ->dateTime()
                                             ->placeholder('-'),
                                         TextEntry::make('public_submission_locked_at')

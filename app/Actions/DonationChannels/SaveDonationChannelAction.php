@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\DonationChannels;
 
+use App\Enums\DonationChannelStatus;
 use App\Models\DonationChannel;
 use App\Models\Event;
 use App\Models\Institution;
@@ -36,7 +37,7 @@ final readonly class SaveDonationChannelAction
         );
 
         $method = $this->normalizeMethod($data['method'] ?? $donationChannel->method ?? ($creating ? 'bank_account' : null));
-        $status = $this->normalizeStatus($data['status'] ?? $donationChannel->status ?? ($creating ? DonationChannel::STATUS_PENDING : null));
+        $status = $this->normalizeStatus($data['status'] ?? $donationChannel->status ?? ($creating ? DonationChannelStatus::Pending : null));
 
         $donationChannel->fill(array_merge([
             'donatable_type' => $owner['type'],
@@ -56,7 +57,7 @@ final readonly class SaveDonationChannelAction
 
         $donationChannel->save();
 
-        if ((string) $donationChannel->status !== $status) {
+        if ($donationChannel->status !== $status) {
             $donationChannel->transitionStatus($status);
         }
 
@@ -174,16 +175,15 @@ final readonly class SaveDonationChannelAction
         return $method;
     }
 
-    private function normalizeStatus(mixed $value): string
+    private function normalizeStatus(mixed $value): DonationChannelStatus
     {
-        $status = $this->normalizeRequiredString($value, 'status');
+        if ($value instanceof DonationChannelStatus) {
+            return $value;
+        }
 
-        if (! in_array($status, [
-            DonationChannel::STATUS_PENDING,
-            DonationChannel::STATUS_VERIFIED,
-            DonationChannel::STATUS_REJECTED,
-            DonationChannel::STATUS_INACTIVE,
-        ], true)) {
+        $status = DonationChannelStatus::tryFrom($this->normalizeRequiredString($value, 'status'));
+
+        if (! $status instanceof DonationChannelStatus) {
             throw ValidationException::withMessages([
                 'status' => __('The selected donation channel status is invalid.'),
             ]);

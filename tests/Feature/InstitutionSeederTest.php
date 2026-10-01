@@ -13,7 +13,7 @@ use Database\Seeders\FacilityTypeSeeder;
 use Database\Seeders\InspirationSeeder;
 use Database\Seeders\InstitutionSeeder;
 use Database\Seeders\LanguageSeeder;
-use Database\Seeders\MalaysiaMasjidSeeder;
+use Database\Seeders\MalaysiaPoskodMasjidSeeder;
 use Database\Seeders\MediaLinkSeeder;
 use Database\Seeders\ModerationReviewSeeder;
 use Database\Seeders\PermissionSeeder;
@@ -83,7 +83,7 @@ it('runs the full demo seeding pipeline in the expected order', function () {
         RegistrationSeeder::class,
     ]);
 
-    expect($calledSeederBatches)->not()->toContain([MalaysiaMasjidSeeder::class]);
+    expect($calledSeederBatches)->not()->toContain([MalaysiaPoskodMasjidSeeder::class]);
 });
 
 it('optionally includes the masjid directory seeder when enabled', function () {
@@ -100,7 +100,7 @@ it('optionally includes the masjid directory seeder when enabled', function () {
 
     $seeder->run();
 
-    expect($calledSeederBatches)->toContain([MalaysiaMasjidSeeder::class]);
+    expect($calledSeederBatches)->toContain([MalaysiaPoskodMasjidSeeder::class]);
 });
 
 it('tops up demo users without duplicating on subsequent runs', function () {

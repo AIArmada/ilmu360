@@ -9,6 +9,7 @@ use App\Actions\Persons\GeneratePersonSlugAction;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
+use App\Enums\InstitutionStatus;
 use App\Forms\SharedFormSchema;
 use App\Models\ContributionRequest;
 use App\Models\Event;
@@ -163,7 +164,7 @@ class ApproveContributionRequestAction
             ),
             'type' => (string) ($payload['type'] ?? 'masjid'),
             'description' => $payload['description'] ?? null,
-            'status' => 'verified',
+            'status' => InstitutionStatus::Verified,
             'verified_at' => now(),
             'last_state_change_at' => now(),
             'allow_public_event_submission' => true,

@@ -4,6 +4,7 @@ use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventTaxonomyCode;
+use App\Enums\InstitutionStatus;
 use App\Forms\EventContributionFormSchema;
 use App\Models\Institution;
 use App\Models\Person;
@@ -119,7 +120,7 @@ it('creates pending related records from event update quick-add actions', functi
         Schema::make(),
     );
 
-    expect(Institution::query()->findOrFail($institutionId)->status)->toBe('pending')
+    expect(Institution::query()->findOrFail($institutionId)->status)->toBe(InstitutionStatus::Pending)
         ->and(Person::query()->findOrFail($personId)->status)->toBe('pending')
         ->and(Venue::query()->findOrFail($venueId)->status)->toBe('pending')
         ->and(Reference::query()->findOrFail($referenceId)->status)->toBe('pending');

@@ -413,7 +413,7 @@ it('keeps member API and MCP membership application workflows aligned', function
 function memberParityAccessContext(string $role = 'admin', string $status = 'verified'): array
 {
     $institution = Institution::factory()->create([
-        'status' => 'active',
+        'status' => $status,
     ]);
 
     $member = User::factory()->create([

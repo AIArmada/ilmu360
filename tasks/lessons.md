@@ -1088,3 +1088,7 @@
 - Enforce catalog codes at the model boundary (normalize blank→null, `exists` check), not only in actions/forms; change factory defaults to null and seed catalogs explicitly in fixtures.
 - Use `array_key_exists` for nullable collection inputs so explicit null/[] clear while omitted preserves; cover both with admin-form regressions.
 - Verify package test location before claiming none: commerce package tests live in `commerce/tests/src/<Package>`, not under the package dir.
+
+- For institution import hardening, verify whether the owner has already provided a curated replacement feed before designing a legacy CSV conversion. Use `database/seeders/masjid_feed_v1.csv`, read `source`/`external_ref` per row, consume `nama_display`/`slug` without transformations, import all `curation_status` values, and leave the old CSV untouched.
+
+- For this institution hardening task, the owner requires a clean cutover: edit original create migrations; no forward/alter migrations, schema guards, source=legacy values, legacy slug/snapshot lookup, compatibility aliases, reconciliation commands, backfills, or timestamp fallbacks. Remove any such implementation introduced during the task and leave supplied CSV files untouched.

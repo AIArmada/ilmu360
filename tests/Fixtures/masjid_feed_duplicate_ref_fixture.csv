@@ -1,0 +1,3 @@
+source,external_ref,source_no,institution_type,nama_display,slug,line1,line2,line3,city,state_name,state_code,district_name,subdistrict_name,locality_name,postcode,latitude,longitude,curation_status
+masjid-csv,101,101,masjid,Masjid Satu,masjid-satu-101,JALAN SATU,,,Shah Alam,Selangor,10,,,,,,,in_review
+masjid-csv,101,101,surau,Surau Dua,surau-dua-101,JALAN DUA,,,Shah Alam,Selangor,10,,,,,,,in_review

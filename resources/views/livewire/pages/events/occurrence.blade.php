@@ -7,12 +7,16 @@
         $sessions = $occurrence->sessions
             ->filter(fn (\AIArmada\Events\Models\EventSession $session): bool => \App\Support\Events\PublicSchedulePolicy::isMeaningfulSession($session))
             ->values();
-        $location = $occurrence->locations->first() ?? $event->primaryLocation;
-        $locationName = $location?->venue?->name ?? $event->institution?->name ?? $event->venue?->name;
+        $ownLocation = $occurrence->locations->first();
+        $location = $ownLocation ?? $event->primaryLocation;
+        $explicitVenueId = $ownLocation?->venue_id;
+        $locationVenue = $explicitVenueId !== null
+            ? ($ownLocation->relationLoaded('venue') ? $ownLocation->venue : \App\Models\Venue::query()->with('addresses.areaAssignments.area')->find($explicitVenueId))
+            : null;
+        $locationName = $locationVenue?->name ?? ($explicitVenueId !== null ? null : $event->resolvedLocationName());
         $spaceName = \App\Support\Spaces\SpaceLocationPresenter::name($location);
         $locationLabel = collect([$locationName, $spaceName])->filter(fn (mixed $value): bool => is_string($value) && trim($value) !== '')->implode(' · ');
-        $locationVenue = $location?->venue_id !== null ? \App\Models\Venue::query()->with('addresses.areaAssignments.area')->find($location->venue_id) : null;
-        $addressModel = $locationVenue?->primaryAddress() ?? $event->institution?->primaryAddress() ?? $event->venue?->primaryAddress();
+        $addressModel = $explicitVenueId !== null ? $locationVenue?->primaryAddress() : $event->resolvedLocationAddress();
         $addressModel?->loadMissing('areaAssignments.area');
         $mapUrl = filled($addressModel?->google_maps_url)
             ? (string) $addressModel->google_maps_url

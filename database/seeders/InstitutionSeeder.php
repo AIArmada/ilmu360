@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use AIArmada\Addressing\Models\State;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
+use App\Enums\InstitutionStatus;
 use App\Models\Institution;
 use Database\Seeders\Concerns\SeedsPackageAddresses;
 use Illuminate\Database\Seeder;
@@ -78,7 +79,7 @@ class InstitutionSeeder extends Seeder
                 [
                     'slug' => Str::slug($data['name']),
                     'type' => $data['type'],
-                    'status' => 'verified',
+                    'status' => InstitutionStatus::Verified,
                 ]
             );
 
@@ -128,9 +129,8 @@ class InstitutionSeeder extends Seeder
         $this->command->info('Seeding additional institutions...');
 
         foreach ($additionalTypes as $type => $count) {
-            $institutions = Institution::factory()->count($count)->create([
-                'type' => $type,
-                'status' => 'verified',
+            $institutions = Institution::factory()->count($count)->ofType($type)->create([
+                'status' => InstitutionStatus::Verified,
             ]);
 
             $institutions->each(function (Institution $institution) use ($malaysia, $states): void {

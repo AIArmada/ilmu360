@@ -1733,6 +1733,9 @@ class SharedFormSchema
         return $areaIds;
     }
 
+    /**
+     * @param  array<string, ?string>  $areaIds
+     */
     private static function levelLabel(
         mixed $countryId,
         string $role,
@@ -1771,6 +1774,9 @@ class SharedFormSchema
         return $translated;
     }
 
+    /**
+     * @param  array<string, ?string>  $areaIds
+     */
     public static function locationLevelLabel(
         int|string|null $countryId,
         string $storageColumn,

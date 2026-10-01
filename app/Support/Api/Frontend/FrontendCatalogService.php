@@ -11,6 +11,7 @@ use AIArmada\Events\Models\EventTerm;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Events\ResolveAdvancedBuilderContextAction;
 use App\Contracts\SpaceEligibilityResolver;
+use App\Enums\InstitutionStatus;
 use App\Enums\MemberSubjectType;
 use App\Forms\ReferenceAuthorFormSchema;
 use App\Forms\SharedFormSchema;
@@ -456,8 +457,8 @@ class FrontendCatalogService
     {
         return match ($subjectType) {
             MemberSubjectType::Institution => Institution::query()
-                ->where('status', 'verified')
-                ->whereIn('status', ['verified', 'pending'])
+                ->where('status', InstitutionStatus::Verified->value)
+                ->whereIn('status', InstitutionStatus::publiclyVisibleValues())
                 ->tap(fn (Builder $query): Builder => $this->applyInstitutionSearch($query, $search))
                 ->orderBy('name')
                 ->with('names')
@@ -493,7 +494,7 @@ class FrontendCatalogService
     {
         $query = Institution::query()
             ->active()
-            ->where('status', 'verified')
+            ->where('status', InstitutionStatus::Verified->value)
             ->orderBy('name');
 
         $normalizedSearch = trim($search);

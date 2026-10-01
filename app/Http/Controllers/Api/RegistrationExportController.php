@@ -222,8 +222,10 @@ class RegistrationExportController extends Controller
     }
 
     /**
-     * @param  Builder<Model>  $query
-     * @return Builder<Model>
+     * @template TModel of Model
+     *
+     * @param  Builder<TModel>  $query
+     * @return Builder<TModel>
      */
     private function activeAttendanceQuery(Builder $query): Builder
     {
@@ -231,8 +233,10 @@ class RegistrationExportController extends Controller
     }
 
     /**
-     * @param  Builder<Model>  $query
-     * @return Builder<Model>
+     * @template TModel of Model
+     *
+     * @param  Builder<TModel>  $query
+     * @return Builder<TModel>
      */
     private function attendedAttendanceQuery(Builder $query): Builder
     {
@@ -277,8 +281,10 @@ class RegistrationExportController extends Controller
     }
 
     /**
-     * @param  Builder<Model>  $query
-     * @return Builder<Model>
+     * @template TModel of Model
+     *
+     * @param  Builder<TModel>  $query
+     * @return Builder<TModel>
      */
     private function didNotAttendQuery(Builder $query): Builder
     {

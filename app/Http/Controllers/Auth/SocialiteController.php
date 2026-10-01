@@ -209,6 +209,9 @@ class SocialiteController extends Controller
         ]);
     }
 
+    /**
+     * @param  array<string, string>  $context
+     */
     private function loginErrorRedirect(string $provider, string $error, array $context = []): RedirectResponse
     {
         // Single funnel for every OAuth failure: log the non-sensitive code

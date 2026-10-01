@@ -6,6 +6,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\Contributions\CancelContributionRequestAction;
 use App\Actions\Contributions\ResolveOwnContributionRequestAction;
 use App\Enums\ContributionRequestType;
+use App\Enums\InstitutionStatus;
 use App\Enums\MemberSubjectType;
 use App\Livewire\Concerns\InteractsWithToasts;
 use App\Models\ContributionRequest;
@@ -273,8 +274,8 @@ class Index extends Component implements HasForms
     {
         return match (MemberSubjectType::tryFrom((string) $subjectType)) {
             MemberSubjectType::Institution => Institution::query()
-                ->where('status', 'verified')
-                ->whereIn('status', ['verified', 'pending'])
+                ->where('status', InstitutionStatus::Verified->value)
+                ->whereIn('status', InstitutionStatus::publiclyVisibleValues())
                 ->tap(fn (Builder $query): Builder => filled($search) ? $query->searchNameOrNickname($search) : $query)
                 ->with(['addresses'])
                 ->orderBy('name')
@@ -359,8 +360,8 @@ class Index extends Component implements HasForms
     private function resolveInstitutionMembershipApplicationOptionLabel(string $subjectId): ?string
     {
         $institution = Institution::query()
-            ->where('status', 'verified')
-            ->whereIn('status', ['verified', 'pending'])
+            ->where('status', InstitutionStatus::Verified->value)
+            ->whereIn('status', InstitutionStatus::publiclyVisibleValues())
             ->whereKey($subjectId)
             ->with(['addresses'])
             ->with('names')->first(['id', 'name']);

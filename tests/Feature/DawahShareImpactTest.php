@@ -591,7 +591,7 @@ test('opening a shared link creates an attribution and landing visit', function 
     $visit = AffiliateTouchpoint::query()->where('touchpoint_type', 'visit')->first();
 
     expect($visit)->not->toBeNull()
-        ->and($visit?->interaction_type)->toBe('landing')
+        ->and($visit?->metadata['visit_kind'] ?? null)->toBe('landing')
         ->and($visit?->subject_type)->toBe('event');
 });
 
@@ -1045,7 +1045,7 @@ test('impact dashboard top subjects use canonical affiliate subject fields', fun
         'affiliate_link_id' => $eventLink->id,
         'visitor_key' => 'event-top-subject-visitor',
         'touchpoint_type' => 'visit',
-        'interaction_type' => 'landing',
+        'metadata' => ['visit_kind' => 'landing'],
         'url' => $eventLink->destination_url,
         'touched_at' => now()->subMinutes(50),
     ]);
@@ -1061,7 +1061,7 @@ test('impact dashboard top subjects use canonical affiliate subject fields', fun
         'affiliate_link_id' => $eventLink->id,
         'visitor_key' => 'event-top-subject-visitor-2',
         'touchpoint_type' => 'visit',
-        'interaction_type' => 'landing',
+        'metadata' => ['visit_kind' => 'landing'],
         'url' => $eventLink->destination_url,
         'touched_at' => now()->subMinutes(45),
     ]);

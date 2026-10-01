@@ -19,6 +19,9 @@ use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
+/**
+ * @property string $status Current lifecycle status: open, triaged, resolved, or dismissed.
+ */
 class Report extends BaseReport implements AuditableContract, HasMedia
 {
     /** @use HasFactory<ReportFactory> */

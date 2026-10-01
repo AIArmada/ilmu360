@@ -55,7 +55,7 @@ it('filters venues down the Indonesian cascade with provider labels', function (
         ->assertSee('Provinsi')
         ->assertSee('Kabupaten')
         ->assertDontSee('Kabupaten / Kota')
-        ->assertSee('Daerah')
+        ->assertSee('Kecamatan')
         ->assertSee('Dewan Cimahi Raya')
         ->assertDontSee('Dewan Cibinong Indah');
 });

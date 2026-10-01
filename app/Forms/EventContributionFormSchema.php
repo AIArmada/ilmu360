@@ -14,6 +14,7 @@ use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventTaxonomyCode;
 use App\Enums\EventVisibility;
+use App\Enums\InstitutionStatus;
 use App\Forms\Components\Select;
 use App\Models\Institution;
 use App\Models\Person;
@@ -742,7 +743,7 @@ class EventContributionFormSchema
         self::ensureCacheScope();
 
         return self::$institutionOptionsCache ??= Institution::query()
-            ->whereIn('status', ['verified', 'pending'])
+            ->whereIn('status', InstitutionStatus::publiclyVisibleValues())
             ->orderBy('name')
             ->with('names')
             ->get(['id', 'name'])

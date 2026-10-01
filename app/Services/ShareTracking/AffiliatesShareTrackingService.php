@@ -841,7 +841,7 @@ final readonly class AffiliatesShareTrackingService
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
             'touchpoint_type' => 'visit',
-            'interaction_type' => $kind,
+            'metadata' => ['visit_kind' => $kind],
             'affiliate_link_id' => $attribution->affiliate_link_id,
             'visitor_key' => $attribution->visitor_key,
             'channel' => $attribution->channel,

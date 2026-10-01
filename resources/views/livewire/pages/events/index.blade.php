@@ -689,15 +689,13 @@
                                             ?? $event->primaryLocation;
                                         $primaryLocationName = $scheduleLocation?->venue?->name
                                             ?? $scheduleLocation?->label
-                                            ?? $event->institution?->name
-                                            ?? $event->venue?->name;
+                                            ?? $event->resolvedLocationName();
                                         $locationSpaceName = \App\Support\Spaces\SpaceLocationPresenter::name($scheduleLocation);
                                         $scheduleVenue = $scheduleLocation?->venue;
                                         $addressModel = $scheduleVenue instanceof \App\Models\Venue
                                             ? $scheduleVenue->primaryAddress()
                                             : null;
-                                        $addressModel ??= $event->institution?->primaryAddress()
-                                            ?? $event->venue?->primaryAddress();
+                                        $addressModel ??= $event->resolvedLocationAddress();
                                         if (is_string($locationSpaceName) && trim($locationSpaceName) !== '') {
                                             $primaryLocationName = collect([$primaryLocationName, $locationSpaceName])
                                                 ->filter(fn (mixed $value): bool => is_string($value) && trim($value) !== '')

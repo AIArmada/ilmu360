@@ -4,29 +4,151 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use AIArmada\Addressing\Models\Addressable;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
-use AIArmada\Addressing\Support\AddressAreaStateBridge;
+use AIArmada\Addressing\Models\City;
+use AIArmada\Addressing\Models\State;
+use AIArmada\Addressing\Support\AddressAreaHierarchyResolver;
+use AIArmada\Addressing\Support\CountryAddressProfileResolver;
+use App\Actions\Institutions\ImportInstitutionGraphAction;
+use App\Data\InstitutionData;
+use App\Enums\InstitutionStatus;
 use App\Enums\InstitutionType;
 use App\Models\Institution;
+use App\Models\InstitutionImportExclusion;
 use App\Support\Institutions\GeneratedPoskodInstitutionData;
-use Database\Seeders\Concerns\SeedsPackageAddresses;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use RuntimeException;
 
 /**
- * @phpstan-type CsvRecord array{'No.': string, 'Nama': string, 'Alamat': string, 'Negeri': string, 'Daerah': string, 'Poskod': string}
+ * Canonical national masjid-directory feed importer.
+ *
+ * Consumes database/seeders/masjid_feed_v1.csv only. Every row carries its
+ * own source/external_ref identity plus opaque curated nama_display/slug
+ * bytes, which are written as-is: no name normalization, no slug derivation,
+ * no trimming or case rewrites. Only address line1 keeps the historical
+ * normalizeAddressLine() behavior.
+ *
+ * Matching is by (source, external_ref) byte identity exclusively. New rows
+ * import as Verified; existing Pending rows refresh but stay Pending;
+ * Verified, Rejected, and Inactive rows are completely untouched, including
+ * their graphs and timestamps. Deleted source identities stay excluded
+ * through InstitutionImportExclusion even after deleted_models pruning.
+ *
+ * Lifecycle hooks stay enabled: imports run with normal model events, cache,
+ * and search side effects, and source-backed slugs are protected from
+ * regeneration by the slug generator. New Verified rows receive verified_at
+ * and last_state_change_at; pending refreshes retain their status
+ * timestamps.
+ *
+ * The whole feed is preflighted (header, width, required identity fields,
+ * max lengths, institution type, canonical state codes, coordinates and
+ * their pair shape, in-feed duplicates) before any write, so a malformed
+ * feed fails loudly with zero partial writes. Each row then imports in its
+ * own transaction holding a row lock across the identity lookup, a
+ * post-lock exclusion recheck, the moderation guard, and the write, so a
+ * row verified concurrently can never be overwritten back to Pending and
+ * an identity deleted concurrently is skipped, never recreated.
+ *
+ * @phpstan-type FeedRow array{line: int, values: array<string, string>, width: int}
  */
 class MalaysiaPoskodMasjidSeeder extends Seeder
 {
-    use SeedsPackageAddresses;
+    private const string DEFAULT_CSV_PATH = 'seeders/masjid_feed_v1.csv';
 
-    private const string DEFAULT_CSV_PATH = 'seeders/Generated_File_Final_Fixed_Poskod.csv';
+    /**
+     * @var list<string>
+     */
+    private const array EXPECTED_HEADER = [
+        'source',
+        'external_ref',
+        'source_no',
+        'institution_type',
+        'nama_display',
+        'slug',
+        'line1',
+        'line2',
+        'line3',
+        'city',
+        'state_name',
+        'state_code',
+        'district_name',
+        'subdistrict_name',
+        'locality_name',
+        'postcode',
+        'latitude',
+        'longitude',
+        'curation_status',
+    ];
+
+    /**
+     * @var list<string>
+     */
+    private const array REQUIRED_FIELDS = [
+        'source',
+        'external_ref',
+        'institution_type',
+        'nama_display',
+        'slug',
+        'state_code',
+    ];
+
+    /**
+     * Feed columns validated against the DTO/database max lengths during
+     * preflight, before the first write.
+     *
+     * @var array<string, int>
+     */
+    private const array MAX_LENGTH_FIELDS = [
+        'source' => 255,
+        'external_ref' => 255,
+        'nama_display' => 255,
+        'slug' => 255,
+        'line2' => 255,
+        'line3' => 255,
+        'city' => 255,
+        'postcode' => 20,
+    ];
+
+    private const string ROLE_DISTRICT = 'administrative_district';
+
+    private const string ROLE_SUBDISTRICT = 'administrative_subdivision';
+
+    private const string ROLE_LOCALITY = 'postal_locality';
 
     private string $csvPath;
+
+    private AddressCountry $malaysia;
+
+    private CountryAddressProfileResolver $profiles;
+
+    private AddressAreaHierarchyResolver $hierarchyResolver;
+
+    /**
+     * @var array<string, State>
+     */
+    private array $statesByCode = [];
+
+    /**
+     * Request-local resolution caches. Feed area and city names repeat
+     * heavily across rows; the lookup is cached but every unresolved
+     * occurrence is still reported per row.
+     *
+     * @var array<string, AddressArea|null>
+     */
+    private array $areaCache = [];
+
+    /**
+     * @var array<string, City|null>
+     */
+    private array $cityCache = [];
+
+    /**
+     * @var list<string>
+     */
+    private array $unresolvedAreas = [];
 
     public function __construct(?string $csvPath = null)
     {
@@ -34,95 +156,99 @@ class MalaysiaPoskodMasjidSeeder extends Seeder
     }
 
     /**
-     * @var array<string, string>
+     * Non-blank optional areas that could not be resolved to a structured
+     * area. Their feed text is retained in the address feed_geography
+     * metadata; nothing is guessed.
+     *
+     * @return list<string>
      */
-    private const array STATE_ALIASES = [
-        'N SEMBILAN' => 'Negeri Sembilan',
-        'PULAU PINANG' => 'Pulau Pinang',
-        'PENANG' => 'Pulau Pinang',
-        'MELAKA' => 'Melaka',
-        'MALACCA' => 'Melaka',
-        'KUALA LUMPUR' => 'Wilayah Persekutuan Kuala Lumpur',
-        'PUTRAJAYA' => 'Wilayah Persekutuan Putrajaya',
-        'LABUAN' => 'Wilayah Persekutuan Labuan',
-        'W P KUALA LUMPUR' => 'Wilayah Persekutuan Kuala Lumpur',
-        'W P PUTRAJAYA' => 'Wilayah Persekutuan Putrajaya',
-        'W P LABUAN' => 'Wilayah Persekutuan Labuan',
-    ];
-
-    /**
-     * @var list<string>
-     */
-    private const array ALLOWED_NULL_DISTRICT_ROWS = ['6082'];
-
-    /**
-     * @var array<int|string, string>
-     */
-    private const array DISTRICT_OVERRIDES = [
-        '500' => 'Kuala Kangsar',
-        '1880' => 'Jerantut',
-        '1882' => 'Maran',
-        '4422' => 'Kluang',
-        '4668' => 'Segamat',
-        '6034' => 'Kinta',
-        '6079' => 'Jerantut',
-        '6090' => 'Kuala Kangsar',
-        '6091' => 'Kuala Kangsar',
-        '6092' => 'Kuala Kangsar',
-        '6093' => 'Kuala Kangsar',
-        '6094' => 'Kuantan',
-        '6104' => 'Kuantan',
-        '6107' => 'Lipis',
-    ];
-
-    /**
-     * @var array<int|string, string>
-     */
-    private const array SUBDISTRICT_OVERRIDES = [
-        '1880' => 'Bandar Pusat Jengka',
-        '1882' => 'Bandar Tun Abdul Razak',
-        '6079' => 'Bandar Pusat Jengka',
-        '6091' => 'Padang Rengas',
-        '6092' => 'Padang Rengas',
-        '6093' => 'Padang Rengas',
-    ];
-
-    private AddressCountry $malaysia;
-
-    /**
-     * @var array<string, AddressArea>
-     */
-    private array $statesByKey = [];
-
-    /**
-     * @var array<string, array<string, AddressArea>>
-     */
-    private array $districtsByState = [];
-
-    /**
-     * @var array<string, array<string, AddressArea>>
-     */
-    private array $subdistrictsByDistrict = [];
-
-    /**
-     * @var array<string, array<string, AddressArea>>
-     */
-    private array $subdistrictsByState = [];
+    public function unresolvedAreaReports(): array
+    {
+        return $this->unresolvedAreas;
+    }
 
     public function run(): void
     {
-        $csvPath = $this->csvPath;
+        $this->statesByCode = [];
+        $this->areaCache = [];
+        $this->cityCache = [];
+        $this->unresolvedAreas = [];
 
-        if (! File::exists($csvPath)) {
-            throw new RuntimeException('CSV file not found: '.$csvPath);
+        $rows = $this->readFeedRows();
+
+        $this->bootGeography();
+        $this->preflight($rows);
+
+        $action = app(ImportInstitutionGraphAction::class);
+        $created = 0;
+        $refreshed = 0;
+        $excluded = 0;
+        $skipped = [
+            InstitutionStatus::Verified->value => 0,
+            InstitutionStatus::Rejected->value => 0,
+            InstitutionStatus::Inactive->value => 0,
+        ];
+
+        foreach ($rows as $row) {
+            $outcome = DB::transaction(function () use ($row, $action): string {
+                $values = $row['values'];
+                $source = $values['source'];
+                $externalRef = $values['external_ref'];
+
+                if (InstitutionImportExclusion::excludes($source, $externalRef)) {
+                    return 'excluded';
+                }
+
+                $existing = Institution::query()
+                    ->where('source', $source)
+                    ->where('external_ref', $externalRef)
+                    ->lockForUpdate()
+                    ->first();
+
+                // A concurrent delete may have committed while the lock query
+                // waited, leaving no row behind. Recheck after the locked
+                // lookup so the excluded identity is skipped, never recreated.
+                if (InstitutionImportExclusion::excludes($source, $externalRef)) {
+                    return 'excluded';
+                }
+
+                if ($existing instanceof Institution && $existing->status !== InstitutionStatus::Pending) {
+                    return $existing->status->value;
+                }
+
+                $data = InstitutionData::validateAndCreate(
+                    $this->buildPayload($row['line'], $values, $existing)
+                );
+
+                $action->handle($data, $existing);
+
+                return $existing instanceof Institution ? 'refreshed' : 'created';
+            });
+
+            match ($outcome) {
+                'created' => $created++,
+                'refreshed' => $refreshed++,
+                'excluded' => $excluded++,
+                default => $skipped[$outcome] = ($skipped[$outcome] ?? 0) + 1,
+            };
         }
 
-        $this->bootGeographyLookups();
+        $this->report($created, $refreshed, $excluded, $skipped);
+    }
 
-        $handle = fopen($csvPath, 'r');
+    /**
+     * @return list<FeedRow>
+     */
+    private function readFeedRows(): array
+    {
+        if (! File::exists($this->csvPath)) {
+            throw new RuntimeException('CSV file not found: '.$this->csvPath);
+        }
+
+        $handle = fopen($this->csvPath, 'r');
 
         if ($handle === false) {
-            throw new RuntimeException('Unable to open CSV file: '.$csvPath);
+            throw new RuntimeException('Unable to open CSV file: '.$this->csvPath);
         }
 
         $header = fgetcsv($handle, escape: '\\');
@@ -130,542 +256,364 @@ class MalaysiaPoskodMasjidSeeder extends Seeder
         if (! is_array($header)) {
             fclose($handle);
 
-            throw new RuntimeException('Unable to read CSV header: '.$csvPath);
+            throw new RuntimeException('Unable to read CSV header: '.$this->csvPath);
         }
 
-        $nullDistrictRows = [];
-        $resolvedSubdistricts = 0;
-        $imported = 0;
+        $header[0] = ltrim((string) $header[0], "\xEF\xBB\xBF");
 
-        while (($row = fgetcsv($handle, escape: '\\')) !== false) {
-            $record = $this->mapCsvRow($header, $row);
-            $state = $this->resolveState($record['Negeri']);
-            $district = $this->resolveDistrict($state, $record);
-            $subdistrict = $this->resolveSubdistrict($state, $district, $record);
-            $slug = GeneratedPoskodInstitutionData::canonicalSlug($record['Nama'], $record['No.']);
+        if ($header !== self::EXPECTED_HEADER) {
+            fclose($handle);
 
-            if (! $district instanceof AddressArea && ! $this->isFederalTerritory($state)) {
-                $nullDistrictRows[] = $record['No.'];
+            throw new RuntimeException(
+                'Unexpected feed header. Expected ['.implode(',', self::EXPECTED_HEADER).'] got ['.implode(',', $header).'].'
+            );
+        }
+
+        $rows = [];
+        $line = 1;
+
+        while (($record = fgetcsv($handle, escape: '\\')) !== false) {
+            $line++;
+
+            if ($this->isBlankLine($record)) {
+                continue;
             }
 
-            $institution = Institution::withoutEvents(function () use ($slug, $record): Institution {
-                /** @var Institution $institution */
-                $institution = Institution::query()->firstOrNew(['slug' => $slug]);
-                $institution->fill([
-                    'slug' => $slug,
-                    'name' => $record['Nama'],
-                    'type' => InstitutionType::Masjid->value,
-                    'status' => 'verified',
-                ]);
-                $institution->saveQuietly();
+            $values = [];
 
-                return $institution;
-            });
-
-            $packageStateId = AddressAreaStateBridge::stateIdForArea($state);
-            $postalLocality = $this->postalLocalityForStateText($packageStateId, $this->searchableText($record));
-
-            Addressable::withoutEvents(function () use ($institution, $record, $district, $subdistrict, $packageStateId, $postalLocality): void {
-                $this->seedPrimaryPackageAddress($institution, [
-                    'line1' => $this->nullableString($record['Alamat']),
-                    'postcode' => $this->normalizePostcode($record['Poskod']),
-                    'country_id' => (string) $this->malaysia->getKey(),
-                    'state_id' => $packageStateId,
-                    // Keep administrative and postal/address geography assignments separate.
-                    'area_assignments' => array_filter([
-                        'administrative_district' => $district?->getKey(),
-                        'administrative_subdivision' => $subdistrict?->getKey(),
-                        'postal_locality' => $postalLocality?->getKey(),
-                    ]),
-                ]);
-            });
-
-            if ($institution->slug !== $slug) {
-                $institution->forceFill(['slug' => $slug])->saveQuietly();
+            foreach (self::EXPECTED_HEADER as $index => $column) {
+                $values[$column] = (string) ($record[$index] ?? '');
             }
 
-            if ($subdistrict instanceof AddressArea) {
-                $resolvedSubdistricts++;
-            }
-
-            $imported++;
+            $rows[] = [
+                'line' => $line,
+                'values' => $values,
+                'width' => count($record),
+            ];
         }
 
         fclose($handle);
 
-        sort($nullDistrictRows);
-
-        if ($nullDistrictRows !== self::ALLOWED_NULL_DISTRICT_ROWS) {
-            throw new RuntimeException('Unexpected rows without a district mapping: '.implode(', ', $nullDistrictRows));
-        }
-
-        if ($this->command !== null) {
-            $this->command->info(sprintf(
-                'Imported %d postcode rows (%d rows with district mapping, %d rows with subdistrict mapping).',
-                $imported,
-                $imported - count($nullDistrictRows),
-                $resolvedSubdistricts,
-            ));
-        }
-    }
-
-    private function bootGeographyLookups(): void
-    {
-        $malaysia = $this->malaysiaCountry();
-
-        if (! $malaysia instanceof AddressCountry) {
-            throw new RuntimeException('Malaysia was not found. Run ProductionSeeder first.');
-        }
-
-        $this->malaysia = $malaysia;
-
-        /** @var Collection<string, AddressArea> $areas */
-        $areas = collect(AddressArea::query()
-            ->where('country_code', 'MY')
-            ->get()
-            ->all())
-            ->keyBy(fn (AddressArea $area): string => (string) $area->getKey());
-
-        /** @var Collection<int, AddressArea> $states */
-        $states = $areas
-            ->filter(fn (AddressArea $area): bool => (int) $area->level === 1)
-            ->sortBy('name')
-            ->values();
-
-        foreach ($states as $state) {
-            $stateId = (string) $state->getKey();
-            $stateNameKey = $this->normalizeKey($state->name);
-
-            $this->statesByKey[$stateNameKey] = $state;
-
-            if (str_starts_with($stateNameKey, 'WILAYAH PERSEKUTUAN ')) {
-                $this->statesByKey[str_replace('WILAYAH PERSEKUTUAN ', '', $stateNameKey)] = $state;
-            }
-
-            $this->districtsByState[$stateId] = [];
-            $this->subdistrictsByState[$stateId] = [];
-
-            $districts = $areas
-                ->filter(fn (AddressArea $area): bool => in_array($area->type, ['district', 'minor_district'], true)
-                    && $this->areaBelongsToState($area, $stateId, $areas))
-                ->sortBy('name')
-                ->values();
-
-            foreach ($districts as $district) {
-                $districtId = (string) $district->getKey();
-                $this->districtsByState[$stateId][$this->normalizeKey($district->name)] = $district;
-                $this->subdistrictsByDistrict[$districtId] = [];
-
-                $subdistricts = $areas
-                    ->filter(fn (AddressArea $area): bool => (string) $area->parent_id === $districtId
-                        && in_array($area->type, ['mukim', 'subdistrict'], true))
-                    ->sortBy('name')
-                    ->values();
-
-                foreach ($subdistricts as $subdistrict) {
-                    $this->subdistrictsByDistrict[$districtId][$this->normalizeKey($subdistrict->name)] = $subdistrict;
-                }
-            }
-
-            $stateSubdistricts = $areas
-                ->filter(fn (AddressArea $area): bool => (string) $area->parent_id === $stateId
-                    && in_array($area->type, ['mukim', 'subdistrict'], true))
-                ->sortBy('name')
-                ->values();
-
-            foreach ($stateSubdistricts as $subdistrict) {
-                $this->subdistrictsByState[$stateId][$this->normalizeKey($subdistrict->name)] = $subdistrict;
-            }
-        }
-
-        $this->ensureSubdistrict('Betong', 'Pusa');
+        return $rows;
     }
 
     /**
-     * @param  Collection<string, AddressArea>  $areas
+     * @param  array<int, string|null>  $record
      */
-    private function areaBelongsToState(AddressArea $area, string $stateId, Collection $areas): bool
+    private function isBlankLine(array $record): bool
     {
-        $parentId = is_scalar($area->parent_id) ? (string) $area->parent_id : null;
-        $visited = [];
-
-        while ($parentId !== null && $parentId !== '') {
-            if ($parentId === $stateId) {
-                return true;
-            }
-
-            if (isset($visited[$parentId])) {
+        foreach ($record as $cell) {
+            if (trim((string) $cell) !== '') {
                 return false;
             }
-
-            $visited[$parentId] = true;
-            $parent = $areas->get($parentId);
-
-            if (! $parent instanceof AddressArea) {
-                return false;
-            }
-
-            $parentId = is_scalar($parent->parent_id) ? (string) $parent->parent_id : null;
         }
 
-        return false;
+        return true;
     }
 
     /**
-     * @param  array<int, string>  $header
-     * @param  array<int, string|null>  $row
-     * @return CsvRecord
+     * @param  list<FeedRow>  $rows
      */
-    private function mapCsvRow(array $header, array $row): array
+    private function preflight(array $rows): void
     {
-        $normalizedHeader = array_map(
-            static fn (string $value): string => ltrim($value, "\xEF\xBB\xBF"),
-            $header,
-        );
+        $errors = [];
+        $seenIdentities = [];
+        $seenSlugs = [];
 
-        $mapped = array_combine($normalizedHeader, array_pad($row, count($normalizedHeader), ''));
+        foreach ($rows as $row) {
+            $line = $row['line'];
+            $values = $row['values'];
 
-        $normalized = [
-            'No.' => trim((string) ($mapped['No.'] ?? '')),
-            'Nama' => GeneratedPoskodInstitutionData::normalizeInstitutionName((string) ($mapped['Nama'] ?? '')),
-            'Alamat' => GeneratedPoskodInstitutionData::normalizeAddressLine((string) ($mapped['Alamat'] ?? '')),
-            'Negeri' => trim((string) ($mapped['Negeri'] ?? '')),
-            'Daerah' => trim((string) ($mapped['Daerah'] ?? '')),
-            'Poskod' => trim((string) ($mapped['Poskod'] ?? '')),
-        ];
+            if (($row['width'] ?? 0) !== count(self::EXPECTED_HEADER)) {
+                $errors[] = "row {$line}: expected ".count(self::EXPECTED_HEADER).' columns, got '.($row['width'] ?? 0).'.';
 
-        if ($normalized['No.'] === '' || $normalized['Nama'] === '' || $normalized['Negeri'] === '') {
-            throw new RuntimeException('Required postcode CSV fields are missing for row: '.json_encode($normalized, JSON_THROW_ON_ERROR));
-        }
-
-        return $normalized;
-    }
-
-    private function resolveState(string $rawState): AddressArea
-    {
-        $key = $this->normalizeKey($rawState);
-        $canonicalName = self::STATE_ALIASES[$key] ?? $rawState;
-        $state = $this->statesByKey[$this->normalizeKey($canonicalName)] ?? null;
-
-        if (! $state instanceof AddressArea) {
-            throw new RuntimeException('Unable to resolve state: '.$rawState);
-        }
-
-        return $state;
-    }
-
-    /**
-     * @param  CsvRecord  $record
-     */
-    private function resolveDistrict(AddressArea $state, array $record): ?AddressArea
-    {
-        if ($this->isFederalTerritory($state)) {
-            return null;
-        }
-
-        $districtName = $this->resolveDistrictName($record);
-
-        if ($districtName === null) {
-            return null;
-        }
-
-        $district = $this->districtsByState[(string) $state->getKey()][$this->normalizeKey($districtName)] ?? null;
-
-        if ($district instanceof AddressArea) {
-            return $district;
-        }
-
-        throw new RuntimeException(sprintf(
-            'Unable to resolve district "%s" for row %s (%s).',
-            $districtName,
-            $record['No.'],
-            $record['Nama'],
-        ));
-    }
-
-    /**
-     * @param  CsvRecord  $record
-     */
-    private function resolveDistrictName(array $record): ?string
-    {
-        if (isset(self::DISTRICT_OVERRIDES[$record['No.']])) {
-            return self::DISTRICT_OVERRIDES[$record['No.']];
-        }
-
-        $districtKey = $this->normalizeKey($record['Daerah']);
-
-        if ($districtKey === '') {
-            return null;
-        }
-
-        if ($districtKey === 'PUSA') {
-            return 'Betong';
-        }
-
-        if ($districtKey === 'JENGKA') {
-            return $this->inferJengkaDistrict($record);
-        }
-
-        return $record['Daerah'];
-    }
-
-    /**
-     * @param  CsvRecord  $record
-     */
-    private function inferJengkaDistrict(array $record): string
-    {
-        $searchText = $this->searchableText($record);
-        $postcode = $this->normalizePostcode($record['Poskod']);
-
-        if (
-            $this->containsAny($searchText, ['PULAU TAWAR', 'BANDAR PUSAT JENGKA', 'LEPAR UTARA', 'SUNGAI TEKAM', 'BANDAR JENGKA']) ||
-            in_array($postcode, ['27000', '27020', '27090'], true)
-        ) {
-            return 'Jerantut';
-        }
-
-        return 'Maran';
-    }
-
-    /**
-     * @param  CsvRecord  $record
-     */
-    private function resolveSubdistrict(AddressArea $state, ?AddressArea $district, array $record): ?AddressArea
-    {
-        if ($this->isFederalTerritory($state)) {
-            $overrideName = self::SUBDISTRICT_OVERRIDES[$record['No.']] ?? null;
-
-            if (is_string($overrideName)) {
-                $subdistrict = $this->lookupSubdistrictByState($state, $overrideName);
-
-                if ($subdistrict instanceof AddressArea) {
-                    return $subdistrict;
-                }
-            }
-
-            return $this->matchSubdistrictFromState($state, $this->searchableText($record));
-        }
-
-        if (! $district instanceof AddressArea) {
-            return null;
-        }
-
-        $overrideName = self::SUBDISTRICT_OVERRIDES[$record['No.']] ?? $this->resolveSpecialSubdistrictName($district, $record);
-
-        if (is_string($overrideName)) {
-            $subdistrict = $this->lookupSubdistrict($district, $overrideName);
-
-            if ($subdistrict instanceof AddressArea) {
-                return $subdistrict;
-            }
-        }
-
-        return $this->matchSubdistrictFromText($district, $this->searchableText($record));
-    }
-
-    /**
-     * @param  CsvRecord  $record
-     */
-    private function resolveSpecialSubdistrictName(AddressArea $district, array $record): ?string
-    {
-        $districtNameKey = $this->normalizeKey($district->name);
-        $districtKey = $this->normalizeKey($record['Daerah']);
-        $searchText = $this->searchableText($record);
-
-        if ($districtKey === 'PUSA' && $districtNameKey === 'BETONG') {
-            if ($this->containsAny($searchText, ['MALUDAM', 'MELUDAM'])) {
-                return 'Maludam';
-            }
-
-            if ($this->containsAny($searchText, ['TRISO'])) {
-                return 'Triso';
-            }
-
-            return 'Pusa';
-        }
-
-        if ($districtKey !== 'JENGKA') {
-            return null;
-        }
-
-        if ($districtNameKey === 'JERANTUT') {
-            if ($this->containsAny($searchText, ['PULAU TAWAR'])) {
-                return 'Pulau Tawar';
-            }
-
-            if ($this->containsAny($searchText, ['BANDAR PUSAT JENGKA', 'BANDAR JENGKA', 'LEPAR UTARA', 'SUNGAI TEKAM'])) {
-                return 'Bandar Pusat Jengka';
-            }
-        }
-
-        if ($districtNameKey === 'MARAN') {
-            if ($this->containsAny($searchText, ['CHENOR'])) {
-                return 'Chenor';
-            }
-
-            if ($this->containsAny($searchText, ['UITM', 'BANDAR TUN ABDUL RAZAK', 'ULU JEMPOL', 'FELDA JENGKA'])) {
-                return 'Bandar Tun Abdul Razak';
-            }
-        }
-
-        return null;
-    }
-
-    private function lookupSubdistrict(AddressArea $district, string $subdistrictName): ?AddressArea
-    {
-        return $this->subdistrictsByDistrict[(string) $district->getKey()][$this->normalizeKey($subdistrictName)] ?? null;
-    }
-
-    private function lookupSubdistrictByState(AddressArea $state, string $subdistrictName): ?AddressArea
-    {
-        return $this->subdistrictsByState[(string) $state->getKey()][$this->normalizeKey($subdistrictName)] ?? null;
-    }
-
-    private function matchSubdistrictFromText(AddressArea $district, string $searchText): ?AddressArea
-    {
-        $districtKey = $this->normalizeKey($district->name);
-        $matches = [];
-
-        foreach ($this->subdistrictsByDistrict[(string) $district->getKey()] ?? [] as $key => $subdistrict) {
-            if ($key === '' || in_array($key, ['BANDAR', 'KAMPUNG', 'KOTA', 'KUALA', 'MUKIM', 'PEKAN'], true)) {
                 continue;
             }
 
-            if (str_contains($searchText, $key)) {
-                $matches[] = [
-                    'key' => $key,
-                    'subdistrict' => $subdistrict,
-                    'is_same_as_district' => $key === $districtKey,
-                ];
-            }
-        }
-
-        if ($matches === []) {
-            return null;
-        }
-
-        usort($matches, static function (array $left, array $right): int {
-            if ($left['is_same_as_district'] !== $right['is_same_as_district']) {
-                return $left['is_same_as_district'] ? 1 : -1;
+            foreach (self::REQUIRED_FIELDS as $field) {
+                if (trim($values[$field]) === '') {
+                    $errors[] = "row {$line}: missing required '{$field}'.";
+                }
             }
 
-            return strlen($right['key']) <=> strlen($left['key']);
-        });
-
-        return $matches[0]['subdistrict'];
-    }
-
-    private function matchSubdistrictFromState(AddressArea $state, string $searchText): ?AddressArea
-    {
-        $matches = [];
-
-        foreach ($this->subdistrictsByState[(string) $state->getKey()] ?? [] as $key => $subdistrict) {
-            if ($key === '' || in_array($key, ['BANDAR', 'KAMPUNG', 'KOTA', 'KUALA', 'MUKIM', 'PEKAN', 'PRECINCT'], true)) {
-                continue;
+            foreach (self::MAX_LENGTH_FIELDS as $field => $max) {
+                if (mb_strlen($values[$field]) > $max) {
+                    $errors[] = "row {$line}: '{$field}' exceeds {$max} characters.";
+                }
             }
 
-            if (str_contains($searchText, $key)) {
-                $matches[] = [
-                    'key' => $key,
-                    'subdistrict' => $subdistrict,
-                ];
+            $normalizedLine1 = GeneratedPoskodInstitutionData::normalizeAddressLine($values['line1']);
+
+            if (mb_strlen($normalizedLine1) > 255) {
+                $errors[] = "row {$line}: 'line1' exceeds 255 characters.";
             }
-        }
 
-        if ($matches === []) {
-            return null;
-        }
+            $stateCode = trim($values['state_code']);
 
-        usort($matches, static fn (array $left, array $right): int => strlen($right['key']) <=> strlen($left['key']));
+            if ($stateCode !== '' && ! isset($this->statesByCode[$stateCode])) {
+                $errors[] = "row {$line}: unknown state_code '{$values['state_code']}'.";
+            }
 
-        return $matches[0]['subdistrict'];
-    }
+            $type = trim($values['institution_type']);
 
-    private function ensureSubdistrict(string $districtName, string $subdistrictName): void
-    {
-        foreach ($this->districtsByState as $districtIndex) {
-            foreach ($districtIndex as $district) {
-                if ($this->normalizeKey($district->name) !== $this->normalizeKey($districtName)) {
+            if ($type !== '' && InstitutionType::tryFrom($type) === null) {
+                $errors[] = "row {$line}: invalid institution_type '{$values['institution_type']}'.";
+            }
+
+            $latitude = trim($values['latitude']);
+            $longitude = trim($values['longitude']);
+
+            if (($latitude === '') !== ($longitude === '')) {
+                $errors[] = "row {$line}: latitude and longitude must both be present or both be blank.";
+            }
+
+            foreach (['latitude' => [-90.0, 90.0], 'longitude' => [-180.0, 180.0]] as $field => [$min, $max]) {
+                $raw = trim($values[$field]);
+
+                if ($raw === '') {
                     continue;
                 }
 
-                $subdistrict = AddressArea::query()->firstOrCreate(
-                    [
-                        'country_id' => $district->country_id,
-                        'parent_id' => $district->getKey(),
-                        'country_code' => 'MY',
-                        'type' => 'subdistrict',
-                        'level' => $district->level !== null ? $district->level + 1 : 3,
-                        'name' => $subdistrictName,
-                        'source' => 'generated_poskod_import',
-                        'source_id' => 'generated-poskod-'.strtolower($this->normalizeKey($districtName.'-'.$subdistrictName)),
-                    ],
-                    [
-                        'slug' => str($subdistrictName)->slug()->value(),
-                    ],
-                );
+                if (! is_numeric($raw) || (float) $raw < $min || (float) $raw > $max) {
+                    $errors[] = "row {$line}: invalid {$field} '{$values[$field]}'.";
+                }
+            }
 
-                $this->subdistrictsByDistrict[(string) $district->getKey()][$this->normalizeKey($subdistrict->name)] = $subdistrict;
+            $identityKey = $values['source']."\0".$values['external_ref'];
 
-                return;
+            if (isset($seenIdentities[$identityKey])) {
+                $errors[] = "row {$line}: duplicate source/external_ref already seen on row {$seenIdentities[$identityKey]}.";
+            } else {
+                $seenIdentities[$identityKey] = $line;
+            }
+
+            $slug = $values['slug'];
+
+            if ($slug !== '') {
+                if (isset($seenSlugs[$slug]) && $seenSlugs[$slug]['identity'] !== $identityKey) {
+                    $errors[] = "row {$line}: slug '{$slug}' collides with a different identity on row {$seenSlugs[$slug]['line']}.";
+                } else {
+                    $seenSlugs[$slug] = ['line' => $line, 'identity' => $identityKey];
+                }
             }
         }
 
-        throw new RuntimeException('Unable to ensure subdistrict for missing district: '.$districtName);
+        if ($errors !== []) {
+            throw new RuntimeException('Feed preflight failed with '.count($errors)." error(s):\n".implode("\n", $errors));
+        }
+    }
+
+    private function bootGeography(): void
+    {
+        $malaysia = AddressCountry::query()->where('iso2', 'MY')->first();
+
+        if (! $malaysia instanceof AddressCountry) {
+            throw new RuntimeException('Malaysia was not found. Run the addressing seeder first.');
+        }
+
+        $this->malaysia = $malaysia;
+        $this->profiles = app(CountryAddressProfileResolver::class);
+        $this->hierarchyResolver = app(AddressAreaHierarchyResolver::class);
+
+        foreach (State::query()->where('country_id', $malaysia->getKey())->get() as $state) {
+            $code = trim((string) $state->code);
+
+            if ($code !== '') {
+                $this->statesByCode[$code] = $state;
+            }
+        }
     }
 
     /**
-     * @param  CsvRecord  $record
+     * @param  array<string, string>  $values
+     * @return array<string, mixed>
      */
-    private function searchableText(array $record): string
+    private function buildPayload(int $line, array $values, ?Institution $existing): array
     {
-        return $this->normalizeKey($record['Nama'].' '.$record['Alamat']);
+        $state = $this->statesByCode[trim($values['state_code'])] ?? null;
+
+        if (! $state instanceof State) {
+            throw new RuntimeException(
+                "row {$line}: unknown state_code '{$values['state_code']}' for {$values['source']}/{$values['external_ref']}."
+            );
+        }
+
+        $identity = "{$values['source']}/{$values['external_ref']}";
+        $selectedIdsByRole = [];
+
+        $district = $this->resolveOptionalArea($line, $identity, self::ROLE_DISTRICT, $values['district_name'], $state, $selectedIdsByRole);
+
+        if ($district instanceof AddressArea) {
+            $selectedIdsByRole[self::ROLE_DISTRICT] = (string) $district->getKey();
+        }
+
+        $subdistrict = $this->resolveOptionalArea($line, $identity, self::ROLE_SUBDISTRICT, $values['subdistrict_name'], $state, $selectedIdsByRole);
+
+        if ($subdistrict instanceof AddressArea) {
+            $selectedIdsByRole[self::ROLE_SUBDISTRICT] = (string) $subdistrict->getKey();
+        }
+
+        $locality = $this->resolveOptionalArea($line, $identity, self::ROLE_LOCALITY, $values['locality_name'], $state, $selectedIdsByRole);
+
+        $cityName = trim($values['city']);
+        $city = $cityName === '' ? null : $this->findCity($cityName, $state);
+
+        return [
+            'name' => $values['nama_display'],
+            'slug' => $values['slug'],
+            'type' => trim($values['institution_type']),
+            'status' => $existing instanceof Institution
+                ? InstitutionStatus::Pending->value
+                : InstitutionStatus::Verified->value,
+            'source' => $values['source'],
+            'external_ref' => $values['external_ref'],
+            'address' => [
+                'country_id' => (string) $this->malaysia->getKey(),
+                'state_id' => (string) $state->getKey(),
+                'city_id' => $city instanceof City ? (string) $city->getKey() : null,
+                'line1' => $this->emptyToNull(GeneratedPoskodInstitutionData::normalizeAddressLine($values['line1'])),
+                'line2' => $this->emptyToNull($values['line2']),
+                'line3' => $this->emptyToNull($values['line3']),
+                'city' => $this->emptyToNull($values['city']),
+                'state' => $state->name,
+                'postcode' => $this->emptyToNull($values['postcode']),
+                'latitude' => $this->emptyToNull($values['latitude']),
+                'longitude' => $this->emptyToNull($values['longitude']),
+                'area_assignments' => array_filter([
+                    self::ROLE_DISTRICT => $district instanceof AddressArea ? (string) $district->getKey() : null,
+                    self::ROLE_SUBDISTRICT => $subdistrict instanceof AddressArea ? (string) $subdistrict->getKey() : null,
+                    self::ROLE_LOCALITY => $locality instanceof AddressArea ? (string) $locality->getKey() : null,
+                ]),
+                'metadata' => [
+                    'feed_geography' => array_filter([
+                        'district_name' => $this->emptyToNull($values['district_name']),
+                        'subdistrict_name' => $this->emptyToNull($values['subdistrict_name']),
+                        'locality_name' => $this->emptyToNull($values['locality_name']),
+                    ]),
+                ],
+            ],
+        ];
     }
 
     /**
-     * @param  list<string>  $needles
+     * Resolve an optional feed area label through the canonical country
+     * profile and hierarchy resolver: the profile scopes the lookup to the
+     * selected parent roles (so district-less states and postal refinements
+     * behave), and the resolver matches exact names case-insensitively under
+     * that scope over active, temporally valid hierarchy links. No geography
+     * is created and nothing is guessed.
+     *
+     * @param  array<string, string>  $selectedIdsByRole
      */
-    private function containsAny(string $haystack, array $needles): bool
-    {
-        return array_any($needles, fn ($needle) => str_contains($haystack, $this->normalizeKey($needle)));
-    }
+    private function resolveOptionalArea(
+        int $line,
+        string $identity,
+        string $role,
+        string $rawName,
+        State $state,
+        array $selectedIdsByRole,
+    ): ?AddressArea {
+        $name = trim($rawName);
 
-    private function normalizeKey(?string $value): string
-    {
-        $normalized = strtoupper((string) $value);
-        $normalized = str_replace(['&', '/'], [' AND ', ' '], $normalized);
-        $normalized = preg_replace('/[^A-Z0-9]+/', ' ', $normalized) ?? $normalized;
-
-        return trim(preg_replace('/\s+/', ' ', $normalized) ?? $normalized);
-    }
-
-    private function normalizePostcode(?string $postcode): ?string
-    {
-        $digits = preg_replace('/\D+/', '', (string) $postcode) ?? '';
-
-        if ($digits === '') {
+        if ($name === '') {
             return null;
         }
 
-        return str_pad($digits, 5, '0', STR_PAD_LEFT);
+        $countryId = (string) $this->malaysia->getKey();
+        $cacheKey = $role."\0".$name."\0".$state->getKey()."\0".json_encode($selectedIdsByRole);
+
+        if (! array_key_exists($cacheKey, $this->areaCache)) {
+            $this->areaCache[$cacheKey] = $this->lookupScopedArea($role, $name, $state, $selectedIdsByRole, $countryId);
+        }
+
+        $area = $this->areaCache[$cacheKey];
+
+        if (! $area instanceof AddressArea) {
+            $this->unresolvedAreas[] = "row {$line} ({$identity}): {$role} '{$name}' unresolved; feed text retained.";
+        }
+
+        return $area;
     }
 
-    private function nullableString(?string $value): ?string
+    /**
+     * @param  array<string, string>  $selectedIdsByRole
+     */
+    private function lookupScopedArea(
+        string $role,
+        string $name,
+        State $state,
+        array $selectedIdsByRole,
+        string $countryId,
+    ): ?AddressArea {
+        $definition = $this->profiles->definitionForRole($countryId, $role);
+
+        if ($definition === null) {
+            return null;
+        }
+
+        $parentId = $this->profiles->parentAreaIdForRole($countryId, $role, (string) $state->getKey(), $selectedIdsByRole);
+
+        if ($parentId === null) {
+            return null;
+        }
+
+        return $this->hierarchyResolver->resolveWithinHierarchy(
+            $name,
+            $countryId,
+            $parentId,
+            CountryAddressProfileResolver::hierarchyType($definition['hierarchy'], $definition['level']),
+            CountryAddressProfileResolver::areaTypesForLevel($definition['level']),
+        );
+    }
+
+    private function findCity(string $name, State $state): ?City
     {
-        $trimmed = trim((string) $value);
+        $key = $state->getKey()."\0".$name;
+
+        if (! array_key_exists($key, $this->cityCache)) {
+            $city = City::query()->where('state_id', $state->getKey())->where('name', $name)->first();
+            $this->cityCache[$key] = $city instanceof City ? $city : null;
+        }
+
+        return $this->cityCache[$key];
+    }
+
+    private function emptyToNull(string $value): ?string
+    {
+        $trimmed = trim($value);
 
         return $trimmed === '' ? null : $trimmed;
     }
 
-    private function isFederalTerritory(AddressArea $state): bool
+    /**
+     * @param  array<string, int>  $skipped
+     */
+    private function report(int $created, int $refreshed, int $excluded, array $skipped): void
     {
-        return in_array($this->normalizeKey($state->name), [
-            'KUALA LUMPUR',
-            'PUTRAJAYA',
-            'LABUAN',
-            'WILAYAH PERSEKUTUAN KUALA LUMPUR',
-            'WILAYAH PERSEKUTUAN PUTRAJAYA',
-            'WILAYAH PERSEKUTUAN LABUAN',
-        ], true);
+        if ($this->command === null) {
+            return;
+        }
+
+        $this->command->info(sprintf(
+            'Feed import: %d created, %d pending refreshed, %d excluded, %d verified skipped, %d rejected skipped, %d inactive skipped.',
+            $created,
+            $refreshed,
+            $excluded,
+            $skipped[InstitutionStatus::Verified->value] ?? 0,
+            $skipped[InstitutionStatus::Rejected->value] ?? 0,
+            $skipped[InstitutionStatus::Inactive->value] ?? 0,
+        ));
+
+        if ($this->unresolvedAreas !== []) {
+            $this->command->warn(count($this->unresolvedAreas).' optional area(s) unresolved; feed text retained:');
+
+            foreach (array_slice($this->unresolvedAreas, 0, 25) as $report) {
+                $this->command->warn('  '.$report);
+            }
+
+            if (count($this->unresolvedAreas) > 25) {
+                $this->command->warn('  … and '.(count($this->unresolvedAreas) - 25).' more.');
+            }
+        }
     }
 }

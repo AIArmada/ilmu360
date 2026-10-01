@@ -3,6 +3,7 @@
 namespace App\Actions\Contributions;
 
 use App\Enums\ContributionSubjectType;
+use App\Enums\InstitutionStatus;
 use App\Forms\SharedFormSchema;
 use App\Models\Institution;
 use App\Models\Person;
@@ -82,7 +83,7 @@ final readonly class EnsureUniqueContributionCreateAction
         $assignments = AddressAssignments::normalize((array) ($address['area_assignments'] ?? []));
 
         return Institution::query()
-            ->whereIn('status', ['verified', 'pending'])
+            ->whereIn('status', InstitutionStatus::publiclyVisibleValues())
             ->whereHas('addresses', function (Builder $query) use ($countryId, $stateId, $cityId, $assignments): void {
                 $query->where('country_id', $countryId);
 

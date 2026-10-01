@@ -7,6 +7,7 @@ use AIArmada\CommerceSupport\Support\CanonicalSlug;
 use AIArmada\CommerceSupport\Support\StableModelOrder;
 use AIArmada\CommerceSupport\Support\UniqueSlug;
 use App\Actions\Slugs\SyncSlugRedirectAction;
+use App\Contracts\InstitutionSlugIntent;
 use App\Models\Institution;
 use App\Support\Location\AddressAssignments;
 use Illuminate\Support\Str;
@@ -18,9 +19,10 @@ class GenerateInstitutionSlugAction
 
     public function __construct(
         private readonly SyncSlugRedirectAction $syncSlugRedirectAction,
+        private readonly InstitutionSlugIntent $slugIntent,
     ) {}
 
-    public function syncInstitutionSlugsForName(string $name): bool
+    public function syncInstitutionSlugsForName(string $name, ?string $exceptInstitutionId = null): bool
     {
         $normalizedName = trim($name);
 
@@ -30,14 +32,27 @@ class GenerateInstitutionSlugAction
 
         $institutions = Institution::query()
             ->where('institutions.name', $normalizedName)
+            ->whereNull('institutions.source')
+            ->when($exceptInstitutionId !== null, fn ($query) => $query->whereKeyNot($exceptInstitutionId))
             ->with(['addresses'])
-            ->get();
+            ->get()
+            // Transaction-scoped graph intent wins: protected rows keep
+            // their opaque curated bytes through every deferred observer.
+            ->reject(fn (Institution $institution): bool => $this->slugIntent->isProtected((string) $institution->getKey()));
 
         return StableModelOrder::sync($institutions, fn (Institution $institution): bool => $this->syncInstitutionSlug($institution));
     }
 
     public function syncInstitutionSlug(Institution $institution): bool
     {
+        if ($institution->getAttribute('source') !== null) {
+            return false;
+        }
+
+        if ($this->slugIntent->isProtected((string) $institution->getKey())) {
+            return false;
+        }
+
         $slug = $this->forInstitution($institution);
 
         return CanonicalSlug::persist($institution, $slug, $this->syncSlugRedirectAction);

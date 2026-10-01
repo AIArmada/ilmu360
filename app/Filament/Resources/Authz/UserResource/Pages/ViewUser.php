@@ -19,6 +19,7 @@ use App\Models\Reference;
 use App\Models\User;
 use App\Support\ApiDocumentation\ApiDocumentationUrlResolver;
 use App\Support\Timezone\UserDateTimeFormatter;
+use BackedEnum;
 use Carbon\CarbonInterface;
 use Filament\Actions\EditAction;
 use Filament\Notifications\Notification;
@@ -245,9 +246,11 @@ class ViewUser extends ViewRecord
         };
     }
 
-    public function entityStatusBadgeColor(?string $state): string
+    public function entityStatusBadgeColor(BackedEnum|string|null $state): string
     {
-        return match ($state) {
+        $value = $state instanceof BackedEnum ? (string) $state->value : $state;
+
+        return match ($value) {
             'verified' => 'success',
             'pending' => 'warning',
             'rejected' => 'danger',
@@ -266,8 +269,10 @@ class ViewUser extends ViewRecord
         };
     }
 
-    public function humanLabel(?string $value): string
+    public function humanLabel(BackedEnum|string|null $value): string
     {
+        $value = $value instanceof BackedEnum ? (string) $value->value : $value;
+
         return filled($value) ? Str::headline($value) : '-';
     }
 

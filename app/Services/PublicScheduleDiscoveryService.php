@@ -184,6 +184,13 @@ final class PublicScheduleDiscoveryService
      * languages, change announcements, and the primaryOccurrence subtree
      * that duplicates the occurrences subtree.
      *
+     * Package event-location relations hydrate the base package Venue,
+     * whose polymorphic addresses are not morph-mapped, so the nested
+     * package venue loads are omitted here: the event level resolves
+     * through primaryLocationVenue (application model), and occurrence /
+     * session locations receive application venues from
+     * hydrateOccurrencePageVenues(), which mounts must call after loading.
+     *
      * @return array<int|string, mixed>
      */
     public function occurrencePageRelations(): array
@@ -199,8 +206,8 @@ final class PublicScheduleDiscoveryService
                 ->where('collection_name', 'logo')
                 ->ordered(),
             'venue',
-            'primaryLocation.venue',
             'primaryLocation.venueSpace',
+            'primaryLocationVenue.addresses.areaAssignments.area',
             'occurrences' => function (Relation $query) use ($scope): void {
                 $scope($query);
                 $query
@@ -209,7 +216,6 @@ final class PublicScheduleDiscoveryService
                     ->orderBy('id');
             },
             'occurrences.media',
-            'occurrences.locations.venue',
             'occurrences.locations.venueSpace',
             'occurrences.sessions' => function (Relation $query) use ($scope): void {
                 $scope($query);
@@ -220,7 +226,6 @@ final class PublicScheduleDiscoveryService
                     ->orderBy('id');
             },
             'occurrences.sessions.media',
-            'occurrences.sessions.locations.venue',
             'occurrences.sessions.locations.venueSpace',
             'occurrences.sessions.involvements' => fn (Relation $query) => $query
                 ->where('status', 'active')
@@ -372,8 +377,23 @@ final class PublicScheduleDiscoveryService
     }
 
     /**
+     * Overwrite package location venues with application Venue models for
+     * one occurrence/session detail page. Complements
+     * occurrencePageRelations(), which omits the nested package venue loads
+     * because the base package Venue is not morph-mapped.
+     */
+    public function hydrateOccurrencePageVenues(Event $event): void
+    {
+        $this->hydrateApplicationVenues(new EloquentCollection([$event]));
+    }
+
+    /**
      * Package event-location relations hydrate the package Venue class directly.
      * Public cards use the application Venue subclass because it owns address behavior.
+     *
+     * Only loaded relations are visited, so hydration never issues lazy
+     * loads of its own; every visited location gets its venue relation set
+     * (null included) so readers never lazy-load afterwards.
      *
      * @param  EloquentCollection<int, Event>  $events
      */
@@ -391,12 +411,26 @@ final class PublicScheduleDiscoveryService
                 }
             }
 
+            if (! $event->relationLoaded('occurrences')) {
+                continue;
+            }
+
             foreach ($event->occurrences as $occurrence) {
-                foreach ($occurrence->locations as $location) {
-                    $locations->push($location);
+                if ($occurrence->relationLoaded('locations')) {
+                    foreach ($occurrence->locations as $location) {
+                        $locations->push($location);
+                    }
+                }
+
+                if (! $occurrence->relationLoaded('sessions')) {
+                    continue;
                 }
 
                 foreach ($occurrence->sessions as $session) {
+                    if (! $session->relationLoaded('locations')) {
+                        continue;
+                    }
+
                     foreach ($session->locations as $location) {
                         $locations->push($location);
                     }

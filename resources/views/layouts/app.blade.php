@@ -318,6 +318,10 @@
                         </div>
 
                         <a href="{{ route('submit-event.create') }}" wire:navigate
+                            data-signal-event="submission.event_start_clicked"
+                            data-signal-category="submission"
+                            data-signal-component="site_header"
+                            data-signal-control="add_event"
                             class="{{ $addButtonClass }}">
                             <svg class="relative z-10 h-4 w-4 rounded-full bg-[#087f4f] p-0.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-width="2.5" d="M12 6v12M6 12h12" />
@@ -445,6 +449,10 @@
                         </div>
                         <div class="border-t border-[#e5dccb] pt-4 flex flex-col gap-3">
                             <a href="{{ route('submit-event.create') }}" wire:navigate
+                                data-signal-event="submission.event_start_clicked"
+                                data-signal-category="submission"
+                                data-signal-component="site_header"
+                                data-signal-control="add_event"
                                 class="living-majlis-header-button living-majlis-header-button--gold block w-full rounded-xl px-4 py-3 text-center text-sm font-semibold">
                                 <span class="relative z-10">{{ __('Add Event') }}</span>
                             </a>

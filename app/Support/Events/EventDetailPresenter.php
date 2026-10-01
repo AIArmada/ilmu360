@@ -368,13 +368,36 @@ final class EventDetailPresenter
     public function primaryLocationFor(Event|EventOccurrence|EventSession $scope): ?EventLocation
     {
         if ($scope instanceof Event) {
-            if ($scope->relationLoaded('primaryLocation') && $scope->primaryLocation instanceof EventLocation) {
-                return $scope->primaryLocation;
+            // A loaded primaryLocation (including a loaded null) is already
+            // the canonical selection; never replace its absence with a
+            // different row from the unsorted locations collection.
+            if ($scope->relationLoaded('primaryLocation')) {
+                $location = $scope->primaryLocation;
+
+                return $location instanceof EventLocation ? $location : null;
             }
 
-            return $scope->relationLoaded('locations')
-                ? $scope->locations->firstWhere('location_role', 'primary')
-                : null;
+            if (! $scope->relationLoaded('locations')) {
+                return null;
+            }
+
+            // Mirror the canonical event-level scope and ordering
+            // (sort_order, created_at, id); occurrence/session rows never
+            // stand in for the event-level primary.
+            return $scope->locations
+                ->filter(static fn (EventLocation $location): bool => $location->location_role === 'primary'
+                    && $location->event_occurrence_id === null
+                    && $location->event_session_id === null)
+                ->sort(static fn (EventLocation $a, EventLocation $b): int => [
+                    $a->sort_order,
+                    $a->created_at?->toDateTimeString() ?? '',
+                    (string) $a->getKey(),
+                ] <=> [
+                    $b->sort_order,
+                    $b->created_at?->toDateTimeString() ?? '',
+                    (string) $b->getKey(),
+                ])
+                ->first();
         }
 
         if (! $scope->relationLoaded('locations')) {

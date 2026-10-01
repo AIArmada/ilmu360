@@ -5,10 +5,13 @@ namespace App\Actions\Institutions;
 use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Enums\InstitutionNameType;
+use App\Enums\InstitutionStatus;
 use App\Forms\SharedFormSchema;
 use App\Models\Institution;
 use App\Models\User;
 use App\Services\ContributionEntityMutationService;
+use App\Services\Signals\ProductSignalsService;
+use App\Support\Institutions\InstitutionFacilities;
 use App\Support\Media\ModelMediaSyncService;
 use App\Support\Submission\PublicSubmissionLockService;
 use BackedEnum;
@@ -26,6 +29,7 @@ final readonly class SaveInstitutionAction
         private ContributionEntityMutationService $contributionEntityMutationService,
         private GenerateInstitutionSlugAction $generateInstitutionSlugAction,
         private ModelMediaSyncService $mediaSyncService,
+        private ProductSignalsService $productSignalsService,
         private PublicSubmissionLockService $publicSubmissionLockService,
     ) {}
 
@@ -36,6 +40,7 @@ final readonly class SaveInstitutionAction
     {
         $creating = ! $institution instanceof Institution;
         $institution ??= new Institution;
+        $previousFacilities = $creating ? null : $institution->own_facilities;
 
         $address = is_array($data['address'] ?? null) ? $data['address'] : [];
         $addressProvided = array_key_exists('address', $data) && is_array($data['address'] ?? null);
@@ -68,8 +73,14 @@ final readonly class SaveInstitutionAction
             'type' => $this->institutionTypeValue($data['type'] ?? null) ?: $this->institutionTypeValue($institution),
             'name' => $this->normalizeRequiredString($data['name'] ?? $institution->name, 'Institution'),
             'description' => $data['description'] ?? $institution->description,
-            'status' => array_key_exists('status', $data) ? (string) $data['status'] : ($creating ? 'pending' : (string) $institution->status),
+            'status' => $this->normalizeStatus($data['status'] ?? null, $institution, $creating),
         ];
+
+        if (array_key_exists('facilities', $data)) {
+            $attributes['facilities'] = $this->normalizeFacilities($data['facilities']);
+        }
+
+        $explicitSlug = null;
 
         if ($creating) {
             $attributes['slug'] = $this->generateInstitutionSlugAction->handle($attributes['name'], $address);
@@ -78,6 +89,13 @@ final readonly class SaveInstitutionAction
             $institution = Institution::create($attributes);
             $this->addMemberAction->handle($institution, $actor, MemberRole::Owner);
         } else {
+            $explicitSlug = array_key_exists('slug', $data) ? $this->normalizeOptionalString($data['slug']) : null;
+
+            if ($explicitSlug !== null && $explicitSlug !== (string) $institution->slug) {
+                $this->assertSlugAvailable($explicitSlug, $institution);
+                $attributes['slug'] = $explicitSlug;
+            }
+
             $institution->fill($attributes);
             $institution->save();
         }
@@ -91,6 +109,16 @@ final readonly class SaveInstitutionAction
 
         if (! $creating) {
             $this->syncPublicSubmissionToggle($institution, $actor, $currentPublicSubmission, $requestedPublicSubmission, $validationErrorKey);
+            $this->preserveExplicitSlug($institution, $explicitSlug);
+        }
+
+        // The entire save succeeded at this point: any validation failure
+        // above threw before registering. Ingestion evaluates alerts and
+        // dispatches jobs immediately, so the signal must wait for the
+        // save's transaction to commit: a rolled-back row alone cannot
+        // retract dispatched work.
+        if (array_key_exists('facilities', $data)) {
+            $this->recordFacilitiesUpdatedAfterCommit($institution, $previousFacilities, $actor);
         }
 
         return $institution->fresh([
@@ -195,8 +223,148 @@ final readonly class SaveInstitutionAction
         $institution->unsetRelation('names');
     }
 
+    private function normalizeStatus(mixed $value, Institution $institution, bool $creating): InstitutionStatus
+    {
+        if ($value instanceof InstitutionStatus) {
+            return $value;
+        }
+
+        if ($value === null) {
+            // Persisted status is always an enum; creation starts pending.
+            return $creating ? InstitutionStatus::Pending : $institution->status;
+        }
+
+        $status = InstitutionStatus::tryFrom($this->normalizeOptionalString($value) ?? '');
+
+        if (! $status instanceof InstitutionStatus) {
+            throw ValidationException::withMessages([
+                'status' => __('The selected institution status is invalid.'),
+            ]);
+        }
+
+        return $status;
+    }
+
+    /**
+     * @return array<string, bool>|null
+     */
+    private function normalizeFacilities(mixed $value): ?array
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $errors = InstitutionFacilities::validate($value);
+
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
+
+        $normalized = InstitutionFacilities::normalize($value);
+
+        return $normalized === [] ? null : $normalized;
+    }
+
+    private function assertSlugAvailable(string $slug, Institution $institution): void
+    {
+        $taken = Institution::query()
+            ->where('slug', $slug)
+            ->whereKeyNot($institution->getKey())
+            ->exists();
+
+        if ($taken) {
+            throw ValidationException::withMessages([
+                'slug' => __('The slug is already in use.'),
+            ]);
+        }
+    }
+
+    /**
+     * Register the curated facilities outcome once, after the save's
+     * transaction commits. Map snapshots and request context are captured
+     * eagerly in the closure; nothing is held in singleton or static state.
+     * The central service re-checks the diff, so this gate only avoids
+     * registering no-op callbacks.
+     *
+     * @param  array<string, bool>|null  $previousFacilities
+     */
+    private function recordFacilitiesUpdatedAfterCommit(Institution $institution, ?array $previousFacilities, User $actor): void
+    {
+        $currentFacilities = $institution->own_facilities;
+
+        if (! self::facilitiesChanged($previousFacilities, $currentFacilities)) {
+            return;
+        }
+
+        $request = request();
+
+        $institution->getConnection()->afterCommit(function () use ($institution, $previousFacilities, $currentFacilities, $actor, $request): void {
+            $this->productSignalsService->recordInstitutionFacilitiesUpdated(
+                $institution,
+                $previousFacilities,
+                $currentFacilities,
+                $actor,
+                $request,
+            );
+        });
+    }
+
+    /**
+     * @param  array<string, bool>|null  $previousFacilities
+     * @param  array<string, bool>|null  $currentFacilities
+     */
+    private static function facilitiesChanged(?array $previousFacilities, ?array $currentFacilities): bool
+    {
+        $previous = $previousFacilities ?? [];
+        $current = $currentFacilities ?? [];
+
+        foreach (array_unique([...array_keys($previous), ...array_keys($current)]) as $code) {
+            if (($previous[$code] ?? null) !== ($current[$code] ?? null)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Re-assert an explicitly requested slug after the relation syncs: name
+     * and address observers regenerate slugs for manual institutions, which
+     * would otherwise silently discard the requested value. Registered
+     * after-commit so deferred observer regenerations run first; without an
+     * open transaction it runs immediately.
+     */
+    private function preserveExplicitSlug(Institution $institution, ?string $explicitSlug): void
+    {
+        if ($explicitSlug === null) {
+            return;
+        }
+
+        $institutionId = (string) $institution->getKey();
+
+        $institution->getConnection()->afterCommit(function () use ($institutionId, $explicitSlug): void {
+            if (Institution::query()->whereKey($institutionId)->value('slug') === $explicitSlug) {
+                return;
+            }
+
+            $fresh = Institution::query()->whereKey($institutionId)->first();
+
+            if (! $fresh instanceof Institution) {
+                return;
+            }
+
+            $this->assertSlugAvailable($explicitSlug, $fresh);
+
+            $fresh->forceFill(['slug' => $explicitSlug])->save();
+        });
+    }
+
     private function normalizeOptionalString(mixed $value): ?string
     {
+        if ($value instanceof BackedEnum) {
+            return is_string($value->value) ? $value->value : null;
+        }
+
         if (! is_string($value)) {
             return null;
         }

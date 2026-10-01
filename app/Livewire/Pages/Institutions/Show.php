@@ -8,6 +8,7 @@ use AIArmada\Addressing\Models\State;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Enums\DawahShareOutcomeType;
+use App\Enums\InstitutionStatus;
 use App\Livewire\Concerns\LoadsEventPageData;
 use App\Models\Builders\EventBuilder;
 use App\Models\Event;
@@ -47,7 +48,7 @@ class Show extends Component
         $canBypassVisibility = auth()->user()?->hasAnyRole(['super_admin', 'moderator']) ?? false;
 
         abort_unless(
-            in_array((string) $institution->status, ['verified', 'pending'], true) || $canBypassVisibility,
+            in_array($institution->status, InstitutionStatus::publiclyVisible(), true) || $canBypassVisibility,
             404,
         );
 

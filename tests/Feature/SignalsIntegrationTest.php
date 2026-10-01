@@ -49,7 +49,7 @@ it('renders the inline signal event hooks used by the package tracker', function
         ->assertSee('/api/v1/signals/collect/browser-event', false)
         ->assertSee('data-signal-submit-event="search.submitted"', false)
         ->assertSee('data-signal-event="search.nearby_requested"', false)
-        ->assertSee('data-signal-event="navigation.quick_filter_clicked"', false)
+        ->assertSee('data-signal-event="filter.quick_selected"', false)
         ->assertSee('data-signal-event="submission.event_start_clicked"', false);
 
     $this->get(route('events.index'))

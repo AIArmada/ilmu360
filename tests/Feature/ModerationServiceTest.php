@@ -3,6 +3,7 @@
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Moderation\Enums\ModerationActionType;
 use AIArmada\Signals\Models\SignalEvent;
+use App\Enums\InstitutionStatus;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\Institution;
@@ -144,8 +145,8 @@ describe('Event Approval', function () {
 
         // Package taxonomy uses EventTerm/Classification (no Spatie Tag dual-verify on approve).
         expect($person->fresh()->status)->toBe('verified')
-            ->and($organizerInstitution->fresh()->status)->toBe('verified')
-            ->and($locationInstitution->fresh()->status)->toBe('verified')
+            ->and($organizerInstitution->fresh()->status)->toBe(InstitutionStatus::Verified)
+            ->and($locationInstitution->fresh()->status)->toBe(InstitutionStatus::Verified)
             ->and($venue->fresh()->status)->toBe('verified');
     });
 

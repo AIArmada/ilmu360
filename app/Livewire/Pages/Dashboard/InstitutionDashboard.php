@@ -577,7 +577,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
                     ->with([
                         'primaryLocation.venueSpace:id,name',
                         'persons:id,name',
-                        'references:id,title',
+                        'references.parentReference.parentReference',
                     ])
                     ->withCount(['registrations as dashboard_registrations_count']);
             })

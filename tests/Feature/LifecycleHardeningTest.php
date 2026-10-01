@@ -3,6 +3,7 @@
 use AIArmada\Events\States\RegistrationStatus\Confirmed;
 use AIArmada\Events\States\RegistrationStatus\Pending;
 use AIArmada\Membership\Enums\InvitationStatus;
+use App\Enums\DonationChannelStatus;
 use App\Models\DonationChannel;
 use App\Models\Event;
 use App\Models\Institution;
@@ -63,7 +64,7 @@ it('keeps donation channel lifecycle fields behind transition methods', function
         'method' => 'bank_account',
         'bank_name' => 'Maybank',
         'account_number' => '1234567890',
-        'status' => DonationChannel::STATUS_VERIFIED,
+        'status' => DonationChannelStatus::Verified,
         'verified_at' => $forgedAt,
         'last_state_change_at' => $forgedAt,
     ]))->toThrow(MassAssignmentException::class);
@@ -71,38 +72,39 @@ it('keeps donation channel lifecycle fields behind transition methods', function
     $channel = DonationChannel::factory()->create([
         'donatable_type' => $institution->getMorphClass(),
         'donatable_id' => $institution->getKey(),
-        'status' => DonationChannel::STATUS_PENDING,
+        'status' => DonationChannelStatus::Pending,
         'verified_at' => null,
         'rejected_at' => null,
-        'published_at' => null,
+        'inactive_at' => null,
         'last_state_change_at' => null,
     ]);
 
     $channel->verify();
     $channel->refresh();
 
-    expect($channel->status)->toBe(DonationChannel::STATUS_VERIFIED)
+    expect($channel->status)->toBe(DonationChannelStatus::Verified)
         ->and($channel->verified_at)->not->toBeNull()
         ->and($channel->rejected_at)->toBeNull()
-        ->and($channel->published_at)->toBeNull()
+        ->and($channel->inactive_at)->toBeNull()
         ->and($channel->last_state_change_at)->not->toBeNull()
+        ->and($channel->getCasts()['status'])->toBe(DonationChannelStatus::class)
         ->and($channel->getCasts()['verified_at'])->toBe('immutable_datetime')
         ->and($channel->getCasts()['rejected_at'])->toBe('immutable_datetime')
-        ->and($channel->getCasts()['published_at'])->toBe('immutable_datetime')
+        ->and($channel->getCasts()['inactive_at'])->toBe('immutable_datetime')
         ->and($channel->getCasts()['last_state_change_at'])->toBe('immutable_datetime');
 
     $verifiedLastStateChange = $channel->last_state_change_at;
     $channel->reject()->refresh();
 
-    expect($channel->status)->toBe(DonationChannel::STATUS_REJECTED)
+    expect($channel->status)->toBe(DonationChannelStatus::Rejected)
         ->and($channel->rejected_at)->not->toBeNull()
         ->and($channel->last_state_change_at?->greaterThanOrEqualTo($verifiedLastStateChange))->toBeTrue();
 
     $rejectedLastStateChange = $channel->last_state_change_at;
-    $channel->publish()->refresh();
+    $channel->deactivate()->refresh();
 
-    expect($channel->status)->toBe(DonationChannel::STATUS_INACTIVE)
-        ->and($channel->published_at)->not->toBeNull()
+    expect($channel->status)->toBe(DonationChannelStatus::Inactive)
+        ->and($channel->inactive_at)->not->toBeNull()
         ->and($channel->last_state_change_at?->greaterThanOrEqualTo($rejectedLastStateChange))->toBeTrue();
 });
 

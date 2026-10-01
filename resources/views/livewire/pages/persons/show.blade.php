@@ -115,8 +115,8 @@
     $resolveEventCategoryLabel = static fn (\App\Models\Event $event): string => app(\App\Support\Events\EventCategoryPresenter::class)->forEvent($event)[0]['path'] ?? __('Umum');
 
     $resolveEventLocation = static function (\App\Models\Event $event): string {
-        $primaryLocationName = $event->venue?->name ?: $event->institution?->name;
-        $address = $event->venue?->primaryAddress() ?? $event->institution?->primaryAddress();
+        $primaryLocationName = $event->resolvedLocationName();
+        $address = $event->resolvedLocationAddress();
         $parts = \App\Support\Location\AddressHierarchyFormatter::parts($address);
 
         $locationParts = array_filter([

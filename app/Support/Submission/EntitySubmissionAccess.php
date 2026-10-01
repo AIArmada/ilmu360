@@ -4,6 +4,7 @@ namespace App\Support\Submission;
 
 use AIArmada\Addressing\Data\AddressLocationData;
 use AIArmada\Addressing\Support\AddressLocationScope;
+use App\Enums\InstitutionStatus;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
@@ -37,8 +38,7 @@ final class EntitySubmissionAccess
         $query = Institution::query();
 
         return $query
-            ->whereIn('status', self::ALLOWED_ENTITY_STATUSES)
-            ->whereIn('status', ['verified', 'pending'])
+            ->whereIn('institutions.status', InstitutionStatus::publiclyVisibleValues())
             ->whereHas('members', fn (Builder $memberQuery): Builder => $memberQuery->whereKey($user->getKey()));
     }
 
@@ -60,8 +60,7 @@ final class EntitySubmissionAccess
     public function constrainInstitutionQueryForSubmitter(Builder $query, ?User $user, ?string $countryId = null): Builder
     {
         $query
-            ->whereIn('status', self::ALLOWED_ENTITY_STATUSES)
-            ->whereIn('status', ['verified', 'pending'])
+            ->whereIn('institutions.status', InstitutionStatus::publiclyVisibleValues())
             ->where(function (Builder $visibilityQuery) use ($user): void {
                 $visibilityQuery->where('allow_public_event_submission', true);
 
@@ -84,7 +83,7 @@ final class EntitySubmissionAccess
     {
         /** @var Builder<Venue> $query */
         $query = Venue::query()
-            ->whereIn('status', self::ALLOWED_ENTITY_STATUSES);
+            ->whereIn('venues.status', self::ALLOWED_ENTITY_STATUSES);
 
         if (filled($countryId)) {
             app(AddressLocationScope::class)->apply($query, new AddressLocationData(countryId: $countryId));
@@ -100,8 +99,7 @@ final class EntitySubmissionAccess
     public function constrainPersonQueryForSubmitter(Builder $query, ?User $user): Builder
     {
         return $query
-            ->whereIn('status', self::ALLOWED_ENTITY_STATUSES)
-            ->whereIn('status', ['verified', 'pending'])
+            ->whereIn('persons.status', self::ALLOWED_ENTITY_STATUSES)
             ->where(function (Builder $visibilityQuery) use ($user): void {
                 $visibilityQuery->where('allow_public_event_submission', true);
 

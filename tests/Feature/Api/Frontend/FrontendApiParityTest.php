@@ -16,6 +16,7 @@ use App\Enums\EventKeyPersonRole;
 use App\Enums\EventVisibility;
 use App\Enums\InspirationCategory;
 use App\Enums\InstitutionNameType;
+use App\Enums\InstitutionStatus;
 use App\Enums\InstitutionType;
 use App\Enums\TimingMode;
 use App\Http\Controllers\Api\Frontend\SearchController;
@@ -1970,7 +1971,7 @@ it('creates institution contribution requests through the frontend api', functio
 
     $institution = Institution::query()->where('name', 'Masjid API')->firstOrFail();
 
-    expect($institution->status)->toBe('pending')
+    expect($institution->status)->toBe(InstitutionStatus::Pending)
         ->and($institution->members()->whereKey($user->id)->exists())->toBeFalse()
         ->and(ContributionRequest::query()->where('entity_id', $institution->getKey())->exists())->toBeTrue();
 });
@@ -2861,6 +2862,7 @@ it('allows institution member management over bearer tokens for admins without t
 it('scopes the spaces catalog to catalog rows and institution-linked rows', function () {
     $institution = Institution::factory()->create();
     $otherInstitution = Institution::factory()->create();
+    $venue = Venue::factory()->create();
 
     $globalSpace = Space::factory()->create([
         'name' => 'Global Space Catalog',
@@ -2876,7 +2878,7 @@ it('scopes the spaces catalog to catalog rows and institution-linked rows', func
     ]);
     $venueOwnedSpace = Space::factory()->create([
         'name' => 'Venue-owned Space',
-        'venue_id' => (string) Str::uuid(),
+        'venue_id' => (string) $venue->getKey(),
         'status' => 'active',
     ]);
 

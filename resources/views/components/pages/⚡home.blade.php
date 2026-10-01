@@ -120,8 +120,7 @@ new
                 $presenter = new EventDetailPresenter($event);
                 $location = $presenter->primaryLocationFor($event);
                 $address = $location?->primaryAddress()
-                    ?? $event->venue?->primaryAddress()
-                    ?? $event->institution?->primaryAddress();
+                    ?? $event->resolvedLocationAddress();
                 $latitude = $location?->latitude ?? $address?->latitude ?? $address?->lat;
                 $longitude = $location?->longitude ?? $address?->longitude ?? $address?->lng;
                 $coordinates = filled($latitude) && filled($longitude)

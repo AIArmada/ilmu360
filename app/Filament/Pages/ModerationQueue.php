@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Enums\EventEscalationType;
 use AIArmada\FilamentEvents\Resources\EventResource;
+use App\Enums\InstitutionStatus;
 use App\Models\Event;
 use App\Services\ModerationService;
 use App\States\EventStatus\Approved;
@@ -148,14 +149,8 @@ class ModerationQueue extends Page implements HasTable
                 TextColumn::make('institution.status')
                     ->label('Institution Status')
                     ->badge()
-                    ->formatStateUsing(fn ($state): string => $state ? Str::title(str_replace('_', ' ', (string) $state)) : 'None')
-                    ->color(fn ($state): string => match ((string) $state) {
-                        'verified' => 'success',
-                        'pending' => 'warning',
-                        'rejected' => 'danger',
-                        'inactive' => 'gray',
-                        default => 'gray',
-                    }),
+                    ->formatStateUsing(fn ($state): string => $state instanceof InstitutionStatus ? $state->getLabel() : 'None')
+                    ->color(fn ($state): string => $state instanceof InstitutionStatus ? $state->color() : 'gray'),
                 TextColumn::make('venue.status')
                     ->label('Venue Status')
                     ->badge()

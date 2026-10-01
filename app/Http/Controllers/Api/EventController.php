@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use AIArmada\Addressing\Support\AddressingTableResolver;
 use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Engagement\Models\Response;
 use App\Actions\Events\ResolveEventCheckInStateAction;
@@ -26,8 +27,10 @@ use App\Models\Reference;
 use App\Models\Registration;
 use App\Models\Series;
 use App\Models\User;
+use App\Models\Venue;
 use App\Services\Signals\ProductSignalsService;
 use App\Support\Api\ApiPagination;
+use App\Support\Events\PrimaryLocationSql;
 use App\Support\Events\PrimaryOccurrenceSql;
 use App\Support\Timezone\UserDateTimeFormatter;
 use Dedoc\Scramble\Attributes\Endpoint;
@@ -931,8 +934,12 @@ class EventController extends Controller
     }
 
     /**
-     * Apply all location criteria to one package address, allowing either the
-     * event venue or its institution to satisfy the complete filter.
+     * Apply all location criteria to the event's one selected primary place
+     * address: the default venue's primary address, otherwise the primary
+     * package venue's primary address when no default is set, otherwise the
+     * institution's primary address when no explicit venue marker exists. An
+     * explicit venue marker that is missing (or has no matching address)
+     * never falls back to the institution.
      *
      * @param  Builder<Model>  $query
      */
@@ -956,14 +963,105 @@ class EventController extends Controller
             return;
         }
 
-        $query->where(function (Builder $locationQuery) use ($criteria, $assignments): void {
-            $locationQuery->whereHas('venue.addresses', function (Builder $addressQuery) use ($criteria, $assignments): void {
-                $this->applyAddressCriteria($addressQuery, $criteria, $assignments);
-            });
+        $eventsTable = (new Event)->getTable();
 
-            $locationQuery->orWhereHas('institution.addresses', function (Builder $addressQuery) use ($criteria, $assignments): void {
-                $this->applyAddressCriteria($addressQuery, $criteria, $assignments);
-            });
+        $query->where(function (Builder $locationQuery) use ($criteria, $assignments, $eventsTable): void {
+            $locationQuery
+                ->where(function (Builder $defaultVenueQuery) use ($criteria, $assignments, $eventsTable): void {
+                    $defaultVenueQuery
+                        ->whereNotNull("{$eventsTable}.default_venue_id")
+                        ->whereHas('venue.addresses', function (Builder $addressQuery) use ($criteria, $assignments): void {
+                            $this->applyPrimaryOwnerAddressCriteria($addressQuery, $criteria, $assignments);
+                        });
+                })
+                ->orWhere(function (Builder $packageVenueQuery) use ($criteria, $assignments, $eventsTable): void {
+                    $packageVenueQuery
+                        ->whereNull("{$eventsTable}.default_venue_id")
+                        ->whereHas('locations', function (Builder $locationQuery) use ($criteria, $assignments): void {
+                            PrimaryLocationSql::constrainToSelected($locationQuery->getQuery());
+                            // The package venue relation hydrates the base
+                            // package model, whose polymorphic addresses are
+                            // not morph-mapped; the BelongsTo existence is
+                            // safe, and the primary address rows match
+                            // directly under the application venue morph type.
+                            $locationQuery->whereHas('venue', function (Builder $venueQuery) use ($criteria, $assignments): void {
+                                $this->applyVenuePrimaryAddressExists($venueQuery, $criteria, $assignments);
+                            });
+                        });
+                })
+                ->orWhere(function (Builder $institutionQuery) use ($criteria, $assignments, $eventsTable): void {
+                    $institutionQuery
+                        ->whereNull("{$eventsTable}.default_venue_id")
+                        ->whereDoesntHave('locations', function (Builder $locationQuery): void {
+                            PrimaryLocationSql::constrainToSelected($locationQuery->getQuery());
+                            $locationQuery->whereNotNull('venue_id');
+                        })
+                        ->whereHas('institution.addresses', function (Builder $addressQuery) use ($criteria, $assignments): void {
+                            $this->applyPrimaryOwnerAddressCriteria($addressQuery, $criteria, $assignments);
+                        });
+                });
+        });
+    }
+
+    /**
+     * @template TModel of Model
+     *
+     * @param  Builder<TModel>  $addressQuery
+     * @param  array<string, list<string>>  $criteria
+     * @param  array<string, string>  $assignments
+     */
+    private function applyPrimaryOwnerAddressCriteria(Builder $addressQuery, array $criteria, array $assignments): void
+    {
+        $addressQuery->where(AddressingTableResolver::resolve('addressables').'.is_primary', true);
+
+        $this->applyAddressCriteria($addressQuery, $criteria, $assignments);
+    }
+
+    /**
+     * Match a package-location venue's primary address rows without
+     * instantiating its polymorphic addresses relation (base package Venue
+     * is not morph-mapped). Same contract as the owner-address branches:
+     * primary addressable rows under the application venue morph type,
+     * filtered by the requested criteria and assignments.
+     *
+     * @template TModel of Model
+     *
+     * @param  Builder<TModel>  $venueQuery
+     * @param  array<string, list<string>>  $criteria
+     * @param  array<string, string>  $assignments
+     */
+    private function applyVenuePrimaryAddressExists(Builder $venueQuery, array $criteria, array $assignments): void
+    {
+        $addressesTable = AddressingTableResolver::resolve('addresses');
+        $addressablesTable = AddressingTableResolver::resolve('addressables');
+        $assignmentsTable = AddressingTableResolver::resolve('address_area_assignments');
+        $venueTable = (new Venue)->getTable();
+        $venueMorphType = (new Venue)->getMorphClass();
+
+        $venueQuery->whereExists(function ($addressQuery) use ($addressesTable, $addressablesTable, $assignmentsTable, $venueTable, $venueMorphType, $criteria, $assignments): void {
+            $addressQuery
+                ->selectRaw('1')
+                ->from($addressesTable)
+                ->join($addressablesTable, "{$addressesTable}.id", '=', "{$addressablesTable}.address_id")
+                ->whereRaw("{$addressablesTable}.addressable_id = {$venueTable}.id")
+                ->where("{$addressablesTable}.addressable_type", $venueMorphType)
+                ->where("{$addressablesTable}.is_primary", true);
+
+            foreach ($criteria as $column => $values) {
+                $addressQuery->whereIn("{$addressesTable}.{$column}", $values);
+            }
+
+            foreach ($assignments as $role => $areaId) {
+                $addressQuery->whereExists(function ($assignmentQuery) use ($assignmentsTable, $addressesTable, $role, $areaId): void {
+                    $assignmentQuery
+                        ->selectRaw('1')
+                        ->from($assignmentsTable)
+                        ->whereColumn("{$assignmentsTable}.address_id", "{$addressesTable}.id")
+                        ->where("{$assignmentsTable}.role", $role)
+                        ->where("{$assignmentsTable}.address_area_id", $areaId)
+                        ->where("{$assignmentsTable}.is_primary", true);
+                });
+            }
         });
     }
 

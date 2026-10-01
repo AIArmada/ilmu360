@@ -188,6 +188,12 @@ class Show extends Component
                 'locations' => $publicLocationScope,
                 'locations.venueSpace',
                 'primaryLocation' => $publicLocationScope,
+                'primaryLocation.venue',
+                'primaryLocationVenue.addresses.country',
+                'primaryLocationVenue.addresses.state',
+                'primaryLocationVenue.addresses.city',
+                'primaryLocationVenue.addresses.areaAssignments.area',
+                'primaryLocationVenue.contactMethods',
                 'primaryLocation.venueSpace',
                 'primaryOccurrence' => $publicScheduleScope,
                 'sessions' => function (Relation $query) use ($publicScheduleScope, $capacityRegistrationScope): void {

@@ -20,6 +20,7 @@ use App\Actions\Contributions\SubmitStagedContributionCreateAction;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
+use App\Enums\InstitutionStatus;
 use App\Models\ContributionRequest;
 use App\Models\Event;
 use App\Models\Institution;
@@ -107,7 +108,7 @@ it('submits staged institution contributions through the action layer', function
     $request = ContributionRequest::query()->latest('created_at')->first();
 
     expect($institution->name)->toBe('Masjid Beraksi')
-        ->and($institution->status)->toBe('pending')
+        ->and($institution->status)->toBe(InstitutionStatus::Pending)
         ->and($institution->members()->whereKey($proposer->id)->exists())->toBeFalse()
         ->and($request)->not->toBeNull()
         ->and($request?->entity_id)->toBe($institution->id)
@@ -284,7 +285,7 @@ it('approves staged institution create requests through the action layer without
 
     expect(Institution::query()->where('name', 'Masjid Action Pending')->count())->toBe(1)
         ->and($approvedRequest->status)->toBe(ContributionRequestStatus::Approved)
-        ->and($institution->fresh()->status)->toBe('verified')
+        ->and($institution->fresh()->status)->toBe(InstitutionStatus::Verified)
         ->and($institution->fresh()->members()->whereKey($proposer->id)->exists())->toBeFalse();
 });
 
@@ -317,7 +318,7 @@ it('approves staged create requests when the proposer relation is missing', func
     $approvedRequest = ApproveContributionRequestAction::run($request, $reviewer, 'Approved without proposer.');
 
     expect($approvedRequest->status)->toBe(ContributionRequestStatus::Approved)
-        ->and($institution->fresh()->status)->toBe('verified');
+        ->and($institution->fresh()->status)->toBe(InstitutionStatus::Verified);
 });
 
 it('cancels pending contribution requests through the action layer', function () {

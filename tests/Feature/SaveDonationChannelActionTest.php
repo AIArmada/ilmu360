@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\DonationChannels\SaveDonationChannelAction;
+use App\Enums\DonationChannelStatus;
 use App\Models\DonationChannel;
 use App\Models\Institution;
 use App\Models\Person;
@@ -32,7 +33,7 @@ it('creates a bank account donation channel', function () {
         ->and($channel->account_number)->toBe('123456789')
         ->and($channel->duitnow_type)->toBeNull()
         ->and($channel->ewallet_provider)->toBeNull()
-        ->and($channel->status)->toBe('pending');
+        ->and($channel->status)->toBe(DonationChannelStatus::Pending);
 
     $storedAccountNumber = DB::table('donation_channels')
         ->where('id', $channel->getKey())
@@ -104,7 +105,7 @@ it('updates an existing donation channel', function () {
 
     expect($updated->fresh()->recipient)->toBe('Updated Recipient')
         ->and($updated->fresh()->bank_code)->toBe('CIMB')
-        ->and($updated->fresh()->status)->toBe('verified');
+        ->and($updated->fresh()->status)->toBe(DonationChannelStatus::Verified);
 });
 
 it('assigns a channel to a person owner', function () {

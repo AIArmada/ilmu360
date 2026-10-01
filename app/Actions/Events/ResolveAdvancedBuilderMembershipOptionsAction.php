@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Events;
 
+use App\Enums\InstitutionStatus;
 use App\Models\Institution;
 use App\Models\User;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -22,7 +23,7 @@ class ResolveAdvancedBuilderMembershipOptionsAction
     {
         return [
             'institution_options' => $user->institutions()
-                ->whereIn('status', ['verified', 'pending'])
+                ->whereIn('status', InstitutionStatus::publiclyVisibleValues())
                 ->orderBy('name')
                 ->with('names')
                 ->get(['institutions.id', 'institutions.name'])

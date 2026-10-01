@@ -42,6 +42,10 @@ final class EventCardRelationshipProvider implements EventSearchRelationProvider
             'venue.addresses.city',
             'venue.addresses.areaAssignments.area',
             'primaryLocation.venue',
+            'primaryLocationVenue.addresses.country',
+            'primaryLocationVenue.addresses.state',
+            'primaryLocationVenue.addresses.city',
+            'primaryLocationVenue.addresses.areaAssignments.area',
             'primaryLocation.venueSpace',
             'latestPublishedChangeAnnouncement',
             'primaryOccurrence' => fn ($query) => $query

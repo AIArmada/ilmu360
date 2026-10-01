@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\Events\Actions\CreateEventOccurrenceAction;
 use App\Actions\References\SaveReferenceAction;
 use App\Enums\ReferenceType;
 use App\Models\Event;
@@ -86,8 +87,17 @@ it('shows edition parts and their events on the work detail page', function (): 
     $work = Reference::factory()->create(['title' => 'Kitab Keluarga', 'type' => 'book']);
     $edition = Reference::factory()->edition()->create(['title' => $work->title, 'parent_id' => $work->id, 'edition_label' => 'Edisi Semakan']);
     $part = Reference::factory()->part()->create(['title' => $work->title, 'parent_id' => $edition->id, 'part_number' => '2']);
-    $event = Event::factory()->create(['title' => 'Kuliah Edisi Semakan', 'status' => 'approved', 'starts_at' => now()->addDays(2), 'ends_at' => now()->addDays(2)->addHour()]);
+    $event = Event::factory()->create(['title' => 'Kuliah Edisi Semakan', 'status' => 'approved', 'visibility' => 'public', 'published_at' => now(), 'starts_at' => now()->addDays(2), 'ends_at' => now()->addDays(2)->addHour()]);
     $part->events()->attach($event);
+    app(CreateEventOccurrenceAction::class)->handle($event, [
+        'title' => $event->title,
+        'starts_at' => now()->addDays(2),
+        'ends_at' => now()->addDays(2)->addHour(),
+        'timezone' => 'Asia/Kuala_Lumpur',
+        'status' => 'published',
+        'visibility' => 'public',
+        'delivery_mode' => 'physical',
+    ]);
 
     $this->get(route('references.show', $work))->assertOk()->assertSee('Edisi Semakan')->assertSee('Jilid 2')->assertSee('Kuliah Edisi Semakan');
 });

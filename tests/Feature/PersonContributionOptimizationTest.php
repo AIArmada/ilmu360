@@ -38,7 +38,7 @@ it('preloads the title catalog once and reuses its shared cache on the person up
     $titleCatalogQueries = collect($queries)
         ->filter(fn (array $query): bool => str_contains($query['query'], 'from "titles"'));
     $languageCatalogQueries = collect($queries)
-        ->filter(fn (array $query): bool => str_contains($query['query'], 'select "id", "code", "name" from "languages"'));
+        ->filter(fn (array $query): bool => str_contains($query['query'], 'select "id", "code", "name", "native" from "languages"'));
     $titleField = collect($component->instance()->getForm('form')->getFlatFields())
         ->first(fn (mixed $field): bool => method_exists($field, 'getName') && $field->getName() === 'title_ids');
 

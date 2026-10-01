@@ -17,9 +17,11 @@ use App\Data\Api\Frontend\Search\ReferenceDetailData;
 use App\Data\Api\Frontend\Search\ReferenceListData;
 use App\Data\Api\Frontend\Search\SeriesDetailData;
 use App\Data\Api\Frontend\Search\VenueDetailData;
+use App\Enums\DonationChannelStatus;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventVisibility;
 use App\Enums\InspirationCategory;
+use App\Enums\InstitutionStatus;
 use App\Enums\InstitutionType;
 use App\Models\DonationChannel;
 use App\Models\Event;
@@ -493,7 +495,7 @@ class SearchController extends FrontendController
         abort_unless(
             $user instanceof User
                 ? $user->can('view', $record)
-                : in_array((string) $record->status, ['verified', 'pending'], true),
+                : in_array($record->status, InstitutionStatus::publiclyVisible(), true),
             404,
         );
 
@@ -1497,7 +1499,7 @@ class SearchController extends FrontendController
             contacts: $this->searchPayloadTransformer->contactData($institution->contactMethods),
             socialMedia: $this->searchPayloadTransformer->socialMediaData($institution->socialProfiles),
             donationChannels: $institution->donationChannels
-                ->where('status', 'verified')
+                ->where('status', DonationChannelStatus::Verified)
                 ->sortByDesc('is_default')
                 ->map(fn (DonationChannel $channel): array => $this->institutionDonationChannelData($channel))
                 ->values()

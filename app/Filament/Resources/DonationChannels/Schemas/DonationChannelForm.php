@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\DonationChannels\Schemas;
 
+use App\Enums\DonationChannelStatus;
 use App\Models\DonationChannel;
 use App\Models\Event;
 use App\Models\Institution;
@@ -110,13 +111,8 @@ class DonationChannelForm
         $components[] = Section::make('Verification')
             ->schema([
                 Select::make('status')
-                    ->options([
-                        'pending' => 'Pending',
-                        'verified' => 'Verified',
-                        'rejected' => 'Rejected',
-                        'inactive' => 'Inactive',
-                    ])
-                    ->default('pending')
+                    ->options(DonationChannelStatus::class)
+                    ->default(DonationChannelStatus::Pending)
                     ->required(),
                 Toggle::make('confirm_default_replacement')
                     ->label('Replace existing default')

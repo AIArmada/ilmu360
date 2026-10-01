@@ -7,6 +7,7 @@ use AIArmada\Contacting\Concerns\HasContactMethods;
 use AIArmada\Contacting\Concerns\HasSocialProfiles;
 use AIArmada\Events\Models\Venue as PackageVenue;
 use AIArmada\Events\Models\VenueFacility;
+use App\Enums\InstitutionVenueRole;
 use App\Enums\VenueType;
 use App\Models\Concerns\AuditsModelChanges;
 use Carbon\CarbonImmutable;
@@ -16,6 +17,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 use Spatie\DeletedModels\Models\Concerns\KeepsDeletedModels;
@@ -86,6 +88,8 @@ class Venue extends PackageVenue implements AuditableContract
     #[\Override]
     protected static function booted(): void
     {
+        parent::booted();
+
         static::saving(function (self $venue): void {
             if ($venue->isDirty('status')) {
                 $now = now();
@@ -121,12 +125,66 @@ class Venue extends PackageVenue implements AuditableContract
     }
 
     /**
+     * @return BelongsToMany<Institution, $this, InstitutionVenue, 'pivot'>
+     */
+    public function institutions(): BelongsToMany
+    {
+        return $this->belongsToMany(Institution::class, 'institution_venue')
+            ->using(InstitutionVenue::class)
+            ->withPivot(['id', 'role', 'is_primary'])
+            ->withTimestamps();
+    }
+
+    /**
+     * @return BelongsToMany<Institution, $this, InstitutionVenue, 'pivot'>
+     */
+    public function operatedByInstitutions(): BelongsToMany
+    {
+        return $this->institutions()->wherePivot('role', InstitutionVenueRole::Operated->value);
+    }
+
+    /**
+     * @return BelongsToMany<Institution, $this, InstitutionVenue, 'pivot'>
+     */
+    public function preferredByInstitutions(): BelongsToMany
+    {
+        return $this->institutions()->wherePivot('role', InstitutionVenueRole::Preferred->value);
+    }
+
+    /**
      * @param  Builder<self>  $query
      */
     #[Scope]
     protected function active(Builder $query): void
     {
         $query->whereIn('status', ['verified', 'pending']);
+    }
+
+    /**
+     * Delete the row atomically with its bridge links: ordinary
+     * Model::delete() opens no transaction of its own.
+     */
+    #[\Override]
+    public function delete(): ?bool
+    {
+        return $this->getConnection()->transaction(function (): ?bool {
+            $deleted = parent::delete();
+
+            if ($deleted) {
+                $this->deleteInstitutionVenueLinks();
+            }
+
+            return $deleted;
+        });
+    }
+
+    /**
+     * Remove this venue's institution bridge rows only; linked institutions,
+     * spaces, and venues are never touched.
+     */
+    private function deleteInstitutionVenueLinks(): void
+    {
+        InstitutionVenue::query()->where('venue_id', $this->getKey())->delete();
     }
 
     public function getPublicMainUrlAttribute(): string

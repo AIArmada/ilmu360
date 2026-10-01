@@ -7,6 +7,8 @@ use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
+use App\Enums\InstitutionStatus;
+use App\Enums\InstitutionType;
 use App\Models\Institution;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
@@ -21,9 +23,43 @@ class InstitutionFactory extends Factory
      *
      * @return array<string, mixed>
      */
+    /**
+     * Build an institution of the given type with a matching generated name.
+     *
+     * Prefer this over passing a bare 'type' attribute override, which keeps
+     * the randomly generated name and can produce a mismatched name/type pair
+     * (e.g. a "Surau ..." name stored as type madrasah).
+     */
+    public function ofType(InstitutionType|string $type): static
+    {
+        return $this->state(function () use ($type): array {
+            $value = $type instanceof InstitutionType ? $type->value : $type;
+            $name = $this->generateNameForType($value);
+
+            return [
+                'type' => $value,
+                'name' => $name,
+                'slug' => Str::slug($name).'-'.Str::lower(Str::random(7)),
+            ];
+        });
+    }
+
     public function definition(): array
     {
         $type = fake()->randomElement(['masjid', 'surau', 'madrasah']);
+        $name = $this->generateNameForType($type);
+
+        return [
+            'type' => $type,
+            'name' => $name,
+            'slug' => Str::slug($name).'-'.Str::lower(Str::random(7)),
+            'description' => fake()->optional()->paragraph(),
+            'status' => InstitutionStatus::Verified,
+        ];
+    }
+
+    protected function generateNameForType(string $type): string
+    {
         $arabicNames = [
             'Al-Ikhlas',
             'Al-Amin',
@@ -99,20 +135,11 @@ class InstitutionFactory extends Factory
             'Akademi Tahfiz '.$arabicName,
         ];
 
-        $name = match ($type) {
+        return match ($type) {
             'masjid' => fake()->randomElement($masjidNames),
             'surau' => fake()->randomElement($surauNames),
-            'madrasah' => fake()->randomElement($otherNames),
             default => fake()->randomElement($otherNames),
         };
-
-        return [
-            'type' => $type,
-            'name' => $name,
-            'slug' => Str::slug($name).'-'.Str::lower(Str::random(7)),
-            'description' => fake()->optional()->paragraph(),
-            'status' => 'verified',
-        ];
     }
 
     #[\Override]

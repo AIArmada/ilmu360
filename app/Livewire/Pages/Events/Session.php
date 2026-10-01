@@ -55,6 +55,7 @@ class Session extends Component
         }
 
         $event->loadMissing($discovery->occurrencePageRelations());
+        $discovery->hydrateOccurrencePageVenues($event);
 
         /** @var EventOccurrence|null $loadedOccurrence */
         $loadedOccurrence = $event->occurrences->firstWhere('id', $occurrence->getKey());

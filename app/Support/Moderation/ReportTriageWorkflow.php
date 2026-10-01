@@ -13,7 +13,7 @@ final class ReportTriageWorkflow
      */
     public static function availableActions(Report $report): array
     {
-        return match ((string) $report->status) {
+        return match ($report->status) {
             'open' => [
                 'triage' => self::definition(
                     label: 'Mark Triaged',

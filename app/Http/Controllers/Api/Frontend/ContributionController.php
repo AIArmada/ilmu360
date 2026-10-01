@@ -154,7 +154,7 @@ class ContributionController extends FrontendController
                     'id' => $institution->getKey(),
                     'slug' => $institution->slug,
                     'name' => $institution->name,
-                    'status' => $institution->status,
+                    'status' => $institution->status->value,
                 ],
             ],
             'meta' => [

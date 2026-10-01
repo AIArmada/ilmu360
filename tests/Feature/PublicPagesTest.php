@@ -34,10 +34,10 @@ it('loads public index pages', function () {
         ->assertSee('Majlis Ilmu')
         ->assertSee('href="'.route('submit-event.create').'"', false);
     $this->get(route('events.index'))->assertSuccessful()->assertSee('Majlis Ilmu');
-    $this->get(route('institutions.index'))->assertSuccessful()->assertSee('Majlis Ilmu');
+    $this->get(route('institutions.index'))->assertSuccessful()->assertSee('Ilmu & Komuniti');
     $this->get(route('persons.index'))->assertSuccessful()->assertSee(__('Cari ustaz, ustazah'));
     $this->get(route('venues.index'))->assertSuccessful()->assertSee('Majlis Ilmu');
-    $this->get(route('references.index'))->assertSuccessful()->assertSee('Majlis Ilmu');
+    $this->get(route('references.index'))->assertSuccessful()->assertSee('Direktori Rujukan');
     $this->get(route('submit-event.landing'))
         ->assertSuccessful()
         ->assertSee('Tambah Majlis')
@@ -660,9 +660,9 @@ it('renders optimized seo metadata on public listing pages', function () {
         ->assertSuccessful()
         ->assertSee('<title>'.config('app.name').' - Cari Kuliah &amp; Majlis Ilmu di Malaysia</title>', false)
         ->assertSee('<meta name="description" content="Platform terbesar untuk mencari kuliah, ceramah, tazkirah, dan majlis ilmu di seluruh Malaysia. Cari yang berdekatan dengan anda.">', false)
-        ->assertSee('<meta property="og:image" content="'.asset('images/default-mosque-hero.png').'">', false)
-        ->assertSee('<meta property="og:image:width" content="1024">', false)
-        ->assertSee('<meta property="og:image:height" content="1024">', false);
+        ->assertSee('<meta property="og:image" content="'.asset('images/home/hero-mosque-v4.png').'">', false)
+        ->assertSee('<meta property="og:image:width" content="1891">', false)
+        ->assertSee('<meta property="og:image:height" content="831">', false);
 
     $this->get(route('events.index'))
         ->assertSuccessful()

@@ -10,6 +10,7 @@ use App\Livewire\Pages\Events\Index as EventsIndex;
 use App\Support\Location\VisitorCountryResolver;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\On;
+use Livewire\Features\SupportAttributes\AttributeCollection;
 use Livewire\Features\SupportPageComponents\BaseLayout;
 use Livewire\Features\SupportPageComponents\BaseTitle;
 
@@ -39,7 +40,7 @@ class EventFilters extends EventsIndex
         $this->applyHomepageDefaults();
     }
 
-    public function getAttributes()
+    public function getAttributes(): AttributeCollection
     {
         return parent::getAttributes()
             ->reject(fn (object $attribute): bool => $attribute instanceof BaseLayout || $attribute instanceof BaseTitle);
@@ -173,7 +174,7 @@ class EventFilters extends EventsIndex
             $this->has_end_time !== null,
             ($this->time_scope ?? 'upcoming') !== 'upcoming',
             filled($this->lat),
-            ($this->sort ?? 'time') !== 'time',
+            $this->sort !== 'time',
         ])->filter()->count();
     }
 
@@ -264,7 +265,7 @@ class EventFilters extends EventsIndex
             $activeQuickFilters[] = 'nearby';
         }
 
-        if (($this->sort ?? 'time') === 'popular') {
+        if ($this->sort === 'popular') {
             $activeQuickFilters[] = 'popular';
         }
 

@@ -1,6 +1,6 @@
 @section('title', $institution->name . ' - ' . config('app.name'))
 @section('meta_description', \Illuminate\Support\Str::limit(trim(strip_tags((string) $institution->description)) ?: __('Lihat profil, lokasi, saluran sumbangan, dan majlis akan datang oleh :name di :app.', ['name' => $institution->name, 'app' => config('app.name')]), 160))
-@section('meta_robots', $institution->status === 'verified' ? 'index, follow' : 'noindex, nofollow')
+@section('meta_robots', $institution->status === \App\Enums\InstitutionStatus::Verified ? 'index, follow' : 'noindex, nofollow')
 @section('og_url', route('institutions.show', $institution))
 @section('og_image', $institution->public_cover_url ?: $institution->public_image_url)
 @section('og_image_alt', __('Profil institusi :name', ['name' => $institution->name]))
@@ -333,12 +333,12 @@
                                         {{ __('Institusi ilmu360°') }}
                                     </p>
 
-                                    @if((string) $institution->status === 'verified')
+                                    @if($institution->status === \App\Enums\InstitutionStatus::Verified)
                                         <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-100 px-2.5 py-1 text-[10px] font-bold text-emerald-800">
                                             <flux:icon.check variant="mini" class="size-3.5 text-emerald-700" />
                                             {{ __('Disahkan') }}
                                         </span>
-                                    @elseif((string) $institution->status === 'pending')
+                                    @elseif($institution->status === \App\Enums\InstitutionStatus::Pending)
                                         <span class="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-100 px-2.5 py-1 text-[10px] font-bold text-amber-800">
                                             <flux:icon.exclamation-triangle variant="solid" class="size-3.5 text-amber-600" />
                                             {{ __('Belum disahkan') }}
@@ -956,7 +956,7 @@
                 @endif
 
                 @php
-                    $sortedDonationChannels = $donationChannels->where('status', 'verified')->sortByDesc('is_default')->values();
+                    $sortedDonationChannels = $donationChannels->where('status', \App\Enums\DonationChannelStatus::Verified)->sortByDesc('is_default')->values();
                 @endphp
                 @if($sortedDonationChannels->isNotEmpty())
                     <section

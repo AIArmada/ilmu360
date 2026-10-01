@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\DonationChannels\Tables;
 
+use App\Enums\DonationChannelStatus;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Filament\Resources\Persons\PersonResource;
 use App\Models\Institution;
@@ -67,13 +68,7 @@ class DonationChannelsTable
                     ->searchable(['bank_name', 'ewallet_handle']),
                 TextColumn::make('status')
                     ->badge()
-                    ->color(fn ($state): string => match ($state) {
-                        'pending' => 'warning',
-                        'verified' => 'success',
-                        'rejected' => 'danger',
-                        'inactive' => 'gray',
-                        default => 'gray',
-                    })
+                    ->color(fn (mixed $state): string => $state instanceof DonationChannelStatus ? $state->color() : 'gray')
                     ->sortable(),
                 IconColumn::make('is_default')
                     ->label('Default')

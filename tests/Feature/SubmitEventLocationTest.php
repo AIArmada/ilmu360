@@ -204,7 +204,6 @@ it('matches institution alternative names in event filter search options', funct
     $results = (fn (): array => $this->searchInstitutionOptions(
         countryId: null,
         stateId: null,
-        cityId: null,
         areaAssignments: [],
         search: 'Masjid Biru',
     ))->call($component->instance());

@@ -38,6 +38,8 @@ class VenueObserver implements ShouldHandleEventsAfterCommit
 
     public function deleted(Venue $venue): void
     {
+        // Bridge rows are removed synchronously inside Venue::delete();
+        // this after-commit observer keeps derived side effects only.
         $this->syncSlugRedirectAction->purgeForModel($venue);
         $this->generateVenueSlugAction->syncVenueSlugsForName($venue->name);
         $this->publicListingsCache->bustMajlisListing();

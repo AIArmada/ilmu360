@@ -56,6 +56,7 @@ use App\Contracts\CaptchaVerifier;
 use App\Contracts\EventCategoryCatalog;
 use App\Contracts\EventCategoryPolicyResolver;
 use App\Contracts\GitHubIssueReporterContract;
+use App\Contracts\InstitutionSlugIntent;
 use App\Contracts\NullCaptchaVerifier;
 use App\Contracts\NullGitHubIssueReporter;
 use App\Contracts\ShareTrackingContract;
@@ -95,6 +96,7 @@ use App\Observers\EventOccurrenceObserver;
 use App\Observers\EventTaxonomyObserver;
 use App\Observers\EventTermObserver;
 use App\Observers\EventTimeExpressionObserver;
+use App\Observers\InstitutionImportExclusionObserver;
 use App\Observers\InstitutionObserver;
 use App\Observers\LanguageObserver;
 use App\Observers\PersonNameObserver;
@@ -114,6 +116,7 @@ use App\Services\Captcha\TurnstileVerifier;
 use App\Services\EventCategoryCatalog as DefaultEventCategoryCatalog;
 use App\Services\EventCategoryPolicy;
 use App\Services\GitHub\GitHubIssueReporter;
+use App\Services\Institutions\TransactionScopedInstitutionSlugIntent;
 use App\Services\ShareTrackingService;
 use App\Services\Spaces\DefaultSpaceEligibilityResolver;
 use App\Support\Communications\AppConsentResolver;
@@ -182,6 +185,9 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(EventCategoryCatalog::class, DefaultEventCategoryCatalog::class);
         $this->app->singleton(EventCategoryPolicyResolver::class, EventCategoryPolicy::class);
         $this->app->singleton(SpaceEligibilityResolver::class, DefaultSpaceEligibilityResolver::class);
+
+        // Request-local only: transaction-scoped slug intent must never leak across requests.
+        $this->app->scoped(InstitutionSlugIntent::class, TransactionScopedInstitutionSlugIntent::class);
 
         $this->app->singleton(PrettyPrinter::class, PrettyPrinter\Standard::class);
         $this->app->bind(McpOAuthRegisterController::class, OAuthRegisterController::class);
@@ -506,6 +512,7 @@ class AppServiceProvider extends ServiceProvider
         EventTimeExpression::observe(EventTimeExpressionObserver::class);
         EventTaxonomy::observe(EventTaxonomyObserver::class);
         Institution::observe(InstitutionObserver::class);
+        Institution::observe(InstitutionImportExclusionObserver::class);
         Language::observe(LanguageObserver::class);
         CommerceLanguage::observe(LanguageObserver::class);
         Person::observe(PersonObserver::class);

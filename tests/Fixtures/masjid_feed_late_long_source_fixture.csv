@@ -1,0 +1,3 @@
+source,external_ref,source_no,institution_type,nama_display,slug,line1,line2,line3,city,state_name,state_code,district_name,subdistrict_name,locality_name,postcode,latitude,longitude,curation_status
+masjid-csv,901,901,masjid,Masjid Valid,masjid-valid-901,JALAN VALID,,,Shah Alam,Selangor,10,,,,,,,in_review
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx,902,902,masjid,Masjid Long,masjid-long-902,JALAN LONG,,,Shah Alam,Selangor,10,,,,,,,in_review

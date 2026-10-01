@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
+use App\Enums\DonationChannelStatus;
 use App\Models\DonationChannel;
 use App\Models\User;
 
@@ -16,7 +17,7 @@ class DonationChannelPolicy
 
     public function view(?User $user, DonationChannel $donationChannel): bool
     {
-        if ($donationChannel->status === 'verified') {
+        if ($donationChannel->status === DonationChannelStatus::Verified) {
             return true;
         }
 

@@ -766,3 +766,61 @@ function googleOAuthHandoffToken(array $socialUserAttributes = [], array $redire
 
     return $token;
 }
+
+/**
+ * Canonical MY geography for the masjid-feed fixtures:
+ * Selangor (code 10, Petaling/Damansara, Shah Alam city) plus
+ * Wilayah Persekutuan Kuala Lumpur (code 14, Lembah Pantai district) and a
+ * postal 'Subang Jaya' locality under the Selangor root.
+ *
+ * @return array{selangor: array<string, mixed>, kl: array<string, mixed>, locality: AddressArea}
+ */
+function seedCanonicalMasjidFeedGeography(): array
+{
+    $country = ensureTestMalaysiaCountry();
+
+    $selangor = createTestPackageGeography(
+        stateName: 'Selangor',
+        districtName: 'Petaling',
+        subdistrictName: 'Damansara',
+        cityName: 'Shah Alam',
+        country: $country,
+    );
+    $selangor['state']->forceFill(['code' => '10'])->save();
+
+    $kl = createTestPackageGeography(
+        stateName: 'Wilayah Persekutuan Kuala Lumpur',
+        districtName: 'Lembah Pantai',
+        country: $country,
+    );
+    $kl['state']->forceFill(['code' => '14'])->save();
+
+    AddressAreaStateLink::query()->create([
+        'address_area_id' => $selangor['area_tree_root']->getKey(),
+        'state_id' => $selangor['state']->getKey(),
+        'hierarchy_type' => 'postal',
+    ]);
+
+    $locality = AddressArea::query()->create([
+        'country_id' => $country->getKey(),
+        'country_code' => 'MY',
+        'parent_id' => $selangor['area_tree_root']->getKey(),
+        'type' => 'locality',
+        'level' => 2,
+        'name' => 'Subang Jaya',
+        'slug' => 'subang-jaya-'.Str::lower(Str::random(6)),
+        'source' => 'tests',
+        'source_id' => (string) Str::ulid(),
+        'parent_source_id' => $selangor['area_tree_root']->source_id,
+    ]);
+
+    AddressAreaRelationship::query()->create([
+        'parent_address_area_id' => $selangor['area_tree_root']->getKey(),
+        'child_address_area_id' => $locality->getKey(),
+        'relationship_type' => 'contains',
+        'hierarchy_type' => 'postal',
+        'source' => 'tests',
+    ]);
+
+    return ['selangor' => $selangor, 'kl' => $kl, 'locality' => $locality];
+}

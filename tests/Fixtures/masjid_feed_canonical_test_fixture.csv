@@ -1,0 +1,7 @@
+source,external_ref,source_no,institution_type,nama_display,slug,line1,line2,line3,city,state_name,state_code,district_name,subdistrict_name,locality_name,postcode,latitude,longitude,curation_status
+masjid-csv,101,101,masjid,Masjid Negara,masjid-negara-101,JALAN PERDANA,,,Kuala Lumpur,WP Kuala Lumpur,14,,,,,,,in_review
+masjid-csv,102,102,surau,Surau Al-'Aliatul,surau-al-aliatul-102,JALAN SS2/3,,,Petaling Jaya,Selangor,10,Petaling,Damansara,,47800,3.1147000,101.6118000,curated
+osm,201,201,madrasah,Madrasah An-Nur,osm-madrasah-an-nur-201,NO 5 JALAN MASJID,,,Shah Alam,Selangor,10,Petaling,,,40000,,,needs_review
+masjid-csv,104,104,masjid,Masjid KLCC,masjid-klcc-104,JALAN AMPANG,,,Kuala Lumpur,WP Kuala Lumpur,14,Kuala Lumpur,,,50450,3.1580000,101.7123000,curated
+osm,202,202,surau,Surau Taman Subang,osm-surau-taman-subang-202,PERSIARAN SUBANG,,,Subang Jaya,Selangor,10,Petaling,Damansara,Subang Jaya,47500,3.0733000,101.5851000,in_review
+masjid-csv,106,106,masjid,Masjid Unresolved Locale,masjid-unresolved-locale-106,JALAN TEST,,,Shah Alam,Selangor,10,Petaling,Bandar Khayalan,,40000,,,in_review

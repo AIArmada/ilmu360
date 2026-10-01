@@ -30,10 +30,17 @@ class InstitutionObserver implements ShouldHandleEventsAfterCommit
         }
 
         if ($institution->wasRecentlyCreated || $institution->wasChanged('name')) {
+            // A slug explicitly changed in the same save wins over
+            // name-derived regeneration for this row; same-name peers still
+            // re-stabilize around it.
+            $exceptInstitutionId = ! $institution->wasRecentlyCreated && $institution->wasChanged('slug')
+                ? (string) $institution->getKey()
+                : null;
+
             $this->syncCurrentAndPreviousString(
                 $institution->name,
                 $institution->wasChanged('name') ? ($institution->getPrevious()['name'] ?? null) : null,
-                fn (string $name): bool => $this->generateInstitutionSlugAction->syncInstitutionSlugsForName($name),
+                fn (string $name): bool => $this->generateInstitutionSlugAction->syncInstitutionSlugsForName($name, $exceptInstitutionId),
             );
         }
 
@@ -45,6 +52,8 @@ class InstitutionObserver implements ShouldHandleEventsAfterCommit
 
     public function deleted(Institution $institution): void
     {
+        // Bridge rows are removed synchronously inside Institution::delete();
+        // this after-commit observer keeps derived side effects only.
         $this->syncSlugRedirectAction->purgeForModel($institution);
         $this->generateInstitutionSlugAction->syncInstitutionSlugsForName($institution->name);
         $this->publicListingsCache->bustHomepageStats();

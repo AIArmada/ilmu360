@@ -16,6 +16,8 @@ class FacilityTypeSeeder extends Seeder
             ['code' => 'oku', 'name' => 'OKU Access', 'sort_order' => 20],
             ['code' => 'women_section', 'name' => 'Women Section', 'sort_order' => 30],
             ['code' => 'ablution_area', 'name' => 'Ablution Area', 'sort_order' => 40],
+            ['code' => 'air_conditioning', 'name' => 'Air Conditioning', 'sort_order' => 50],
+            ['code' => 'wheelchair_access', 'name' => 'Wheelchair Access', 'sort_order' => 60],
         ] as $facility) {
             FacilityType::query()->updateOrCreate(
                 ['code' => $facility['code']],

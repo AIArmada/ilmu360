@@ -8,12 +8,18 @@ use AIArmada\Contacting\Concerns\HasContactMethods;
 use AIArmada\Contacting\Concerns\HasSocialProfiles;
 use AIArmada\Engagement\Contracts\Followable;
 use AIArmada\Engagement\Models\Follow;
+use AIArmada\Events\Enums\FacilityAvailability;
+use AIArmada\Events\Models\FacilityType;
+use AIArmada\Events\Models\VenueFacility;
 use AIArmada\Membership\Traits\HasMembers;
+use App\Enums\InstitutionStatus;
 use App\Enums\InstitutionType;
+use App\Enums\InstitutionVenueRole;
 use App\Enums\MemberSubjectType;
 use App\Models\Concerns\AuditsModelChanges;
 use App\Models\Concerns\HasDonationChannels;
 use App\Models\Concerns\HasLanguages;
+use App\Support\Institutions\InstitutionFacilities;
 use Carbon\CarbonInterface;
 use Database\Factories\InstitutionFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -28,6 +34,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 use Laravel\Scout\Searchable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 use Spatie\DeletedModels\Models\Concerns\KeepsDeletedModels;
@@ -37,7 +44,12 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
- * @property CarbonInterface|null $published_at
+ * @property InstitutionStatus $status
+ * @property CarbonInterface|null $inactive_at
+ * @property CarbonInterface|null $stale_inactive_flagged_at
+ * @property array<string, bool>|null $facilities
+ * @property array<string, bool>|null $own_facilities
+ * @property array<string, bool> $effective_facilities
  */
 class Institution extends Model implements AuditableContract, Followable, HasMedia
 {
@@ -61,12 +73,18 @@ class Institution extends Model implements AuditableContract, Followable, HasMed
         'name',
         'slug',
         'description',
+        'has_friday_prayer_permission',
+        'facilities',
+        'source',
+        'external_ref',
+        'imported_at',
 
         'status',
         'verified_at',
         'verified_by',
         'rejected_at',
-        'published_at',
+        'inactive_at',
+        'stale_inactive_flagged_at',
         'last_state_change_at',
         'allow_public_event_submission',
         'public_submission_locked_at',
@@ -78,9 +96,14 @@ class Institution extends Model implements AuditableContract, Followable, HasMed
     {
         return [
             'type' => InstitutionType::class,
+            'has_friday_prayer_permission' => 'boolean',
+            'facilities' => 'array',
+            'imported_at' => 'immutable_datetime',
+            'status' => InstitutionStatus::class,
             'verified_at' => 'immutable_datetime',
             'rejected_at' => 'immutable_datetime',
-            'published_at' => 'immutable_datetime',
+            'inactive_at' => 'immutable_datetime',
+            'stale_inactive_flagged_at' => 'immutable_datetime',
             'last_state_change_at' => 'immutable_datetime',
             'allow_public_event_submission' => 'boolean',
             'public_submission_locked_at' => 'datetime',
@@ -91,27 +114,132 @@ class Institution extends Model implements AuditableContract, Followable, HasMed
     protected static function booted(): void
     {
         static::saving(function (self $institution): void {
+            if ($institution->exists) {
+                // Create-only provenance: every existing row keeps its stored
+                // identity bytes, so a manual row never acquires provenance
+                // later and an imported row never changes identity.
+                foreach (['source', 'external_ref', 'imported_at'] as $provenanceKey) {
+                    if ($institution->isDirty($provenanceKey)) {
+                        $institution->setAttribute($provenanceKey, $institution->getOriginal($provenanceKey));
+                    }
+                }
+            } else {
+                self::assertValidProvenancePair($institution);
+
+                if ($institution->getAttribute('source') !== null && $institution->getAttribute('imported_at') === null) {
+                    $institution->setAttribute('imported_at', now());
+                }
+            }
+
+            if ($institution->isDirty('facilities')) {
+                $normalized = InstitutionFacilities::normalize($institution->getAttribute('facilities'));
+
+                $institution->setAttribute('facilities', $normalized === [] ? null : $normalized);
+            }
+
+            $rawStatus = $institution->getAttributes()['status'] ?? null;
+
+            if ($rawStatus === null && ! $institution->exists) {
+                $institution->setAttribute('status', InstitutionStatus::Pending);
+                $rawStatus = InstitutionStatus::Pending->value;
+            }
+
+            $status = $rawStatus instanceof InstitutionStatus
+                ? $rawStatus
+                : InstitutionStatus::tryFrom((string) $rawStatus);
+
+            if (! $status instanceof InstitutionStatus) {
+                throw new InvalidArgumentException(sprintf('The institution status [%s] is invalid.', (string) $rawStatus));
+            }
+
             if ($institution->isDirty('status')) {
                 $now = now();
-                $institution->last_state_change_at = $now;
 
-                match ((string) $institution->status) {
-                    'verified' => $institution->verified_at ??= $now,
-                    'rejected' => $institution->rejected_at ??= $now,
-                    'inactive' => $institution->published_at ??= $now,
-                    default => null,
-                };
+                if ($institution->exists) {
+                    // Every real transition records its timestamp anew so a later
+                    // inactivity cycle never reuses an older transition time.
+                    $institution->last_state_change_at = $now;
 
-                if ((string) $institution->status === 'verified') {
+                    match ($status) {
+                        InstitutionStatus::Pending => null,
+                        InstitutionStatus::Verified => $institution->verified_at = $now,
+                        InstitutionStatus::Rejected => $institution->rejected_at = $now,
+                        InstitutionStatus::Inactive => $institution->inactive_at = $now,
+                    };
+                } else {
+                    // Creation preserves explicitly provided fixture timestamps.
+                    $institution->last_state_change_at ??= $now;
+
+                    match ($status) {
+                        InstitutionStatus::Pending => null,
+                        InstitutionStatus::Verified => $institution->verified_at ??= $now,
+                        InstitutionStatus::Rejected => $institution->rejected_at ??= $now,
+                        InstitutionStatus::Inactive => $institution->inactive_at ??= $now,
+                    };
+                }
+
+                // Review flags belong to the latest inactivity cycle only.
+                $institution->stale_inactive_flagged_at = null;
+
+                if ($status === InstitutionStatus::Verified) {
                     $institution->verified_by ??= auth()->id();
                 }
             }
         });
     }
 
+    /**
+     * Strict source-pair validation: each key is null or a non-empty string,
+     * and both keys are set together. Identity bytes are never normalized.
+     */
+    private static function assertValidProvenancePair(self $institution): void
+    {
+        $source = $institution->getAttribute('source');
+        $externalRef = $institution->getAttribute('external_ref');
+
+        foreach (['source' => $source, 'external_ref' => $externalRef] as $key => $value) {
+            if ($value !== null && (! is_string($value) || $value === '')) {
+                throw new InvalidArgumentException("The institution {$key} must be a non-empty string or null.");
+            }
+        }
+
+        if (($source !== null) !== ($externalRef !== null)) {
+            throw new InvalidArgumentException('The institution source and external ref must be set together.');
+        }
+    }
+
+    /**
+     * Delete the row atomically with its snapshot, import exclusion, and
+     * bridge links: ordinary Model::delete() opens no transaction of its own,
+     * so without this wrapper a failed exclusion insert would leave the
+     * institution deleted and unprotected.
+     */
+    #[\Override]
+    public function delete(): ?bool
+    {
+        return $this->getConnection()->transaction(function (): ?bool {
+            $deleted = parent::delete();
+
+            if ($deleted) {
+                $this->deleteInstitutionVenueLinks();
+            }
+
+            return $deleted;
+        });
+    }
+
+    /**
+     * Remove this institution's venue bridge rows only; linked venues,
+     * spaces, and institutions are never touched.
+     */
+    private function deleteInstitutionVenueLinks(): void
+    {
+        InstitutionVenue::query()->where('institution_id', $this->getKey())->delete();
+    }
+
     public function shouldBeSearchable(): bool
     {
-        return in_array((string) $this->status, ['verified', 'pending'], true);
+        return in_array($this->status, InstitutionStatus::publiclyVisible(), true);
     }
 
     public function searchIndexShouldBeUpdated(): bool
@@ -132,7 +260,7 @@ class Institution extends Model implements AuditableContract, Followable, HasMed
     protected function makeAllSearchableUsing(Builder $query): Builder
     {
         return $query
-            ->whereIn('institutions.status', ['verified', 'pending']);
+            ->whereIn('institutions.status', InstitutionStatus::publiclyVisibleValues());
     }
 
     /**
@@ -157,7 +285,7 @@ class Institution extends Model implements AuditableContract, Followable, HasMed
             'description' => $this->searchableDescriptionText(),
             'search_text' => $this->searchableText(),
             'slug' => (string) $this->slug,
-            'status' => (string) $this->status,
+            'status' => $this->status->value,
             'country_code' => $address?->country_code,
             'city' => $address?->city,
             'state' => $address?->state,
@@ -307,6 +435,133 @@ class Institution extends Model implements AuditableContract, Followable, HasMed
     }
 
     /**
+     * @return BelongsToMany<Venue, $this, InstitutionVenue, 'pivot'>
+     */
+    public function venues(): BelongsToMany
+    {
+        return $this->belongsToMany(Venue::class, 'institution_venue')
+            ->using(InstitutionVenue::class)
+            ->withPivot(['id', 'role', 'is_primary'])
+            ->withTimestamps();
+    }
+
+    /**
+     * @return BelongsToMany<Venue, $this, InstitutionVenue, 'pivot'>
+     */
+    public function operatedVenues(): BelongsToMany
+    {
+        return $this->venues()->wherePivot('role', InstitutionVenueRole::Operated->value);
+    }
+
+    /**
+     * @return BelongsToMany<Venue, $this, InstitutionVenue, 'pivot'>
+     */
+    public function preferredVenues(): BelongsToMany
+    {
+        return $this->venues()->wherePivot('role', InstitutionVenueRole::Preferred->value);
+    }
+
+    /**
+     * Own facilities flag map (code => bool), or null when unset.
+     *
+     * @return array<string, bool>|null
+     */
+    public function getOwnFacilitiesAttribute(): ?array
+    {
+        $raw = $this->getAttribute('facilities');
+
+        if ($raw === null) {
+            return null;
+        }
+
+        return InstitutionFacilities::normalize($raw);
+    }
+
+    /**
+     * Effective facilities flag map (code => true).
+     *
+     * Merges public/available facilities from linked operated venues and
+     * linked active spaces; explicit own flags win (false removes). Only
+     * active, publicly visible operated venues and linked spaces
+     * contribute; preferred venues never inherit.
+     *
+     * @return array<string, bool>
+     */
+    public function getEffectiveFacilitiesAttribute(): array
+    {
+        $this->loadMissing(['operatedVenues.facilities.facilityType', 'spaces.facilities.facilityType']);
+
+        $merged = [];
+
+        foreach ($this->operatedVenues as $venue) {
+            if (! in_array($venue->getAttribute('status'), ['verified', 'pending'], true)) {
+                continue;
+            }
+
+            if ($venue->getAttribute('visibility') !== 'public') {
+                continue;
+            }
+
+            foreach ($venue->facilities as $facility) {
+                if ($facility->venue_space_id !== null) {
+                    continue;
+                }
+
+                $code = $this->publicAvailableFacilityCode($facility);
+
+                if ($code !== null) {
+                    $merged[$code] = true;
+                }
+            }
+        }
+
+        foreach ($this->spaces as $space) {
+            if ((string) $space->getAttribute('status') !== 'active') {
+                continue;
+            }
+
+            if ($space->getAttribute('visibility') !== 'public') {
+                continue;
+            }
+
+            foreach ($space->facilities as $facility) {
+                $code = $this->publicAvailableFacilityCode($facility);
+
+                if ($code !== null) {
+                    $merged[$code] = true;
+                }
+            }
+        }
+
+        foreach ($this->own_facilities ?? [] as $code => $enabled) {
+            if ($enabled) {
+                $merged[$code] = true;
+            } else {
+                unset($merged[$code]);
+            }
+        }
+
+        return $merged;
+    }
+
+    private function publicAvailableFacilityCode(VenueFacility $facility): ?string
+    {
+        if ($facility->availability !== FacilityAvailability::Available || $facility->visibility !== 'public') {
+            return null;
+        }
+
+        $type = $facility->facilityType;
+
+        if (! $type instanceof FacilityType || ! $type->is_active) {
+            return null;
+        }
+
+        $code = trim((string) $type->code);
+
+        return $code !== '' ? $code : null;
+    }
+
+    /**
      * @return HasMany<Event, $this>
      */
     public function events(): HasMany
@@ -411,7 +666,7 @@ class Institution extends Model implements AuditableContract, Followable, HasMed
     #[Scope]
     protected function active(Builder $query): void
     {
-        $query->whereIn('status', ['verified', 'pending']);
+        $query->whereIn('institutions.status', InstitutionStatus::publiclyVisibleValues());
     }
 
     /**

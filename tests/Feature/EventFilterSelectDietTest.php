@@ -77,7 +77,7 @@ it('shows scoped subdivision options only on search', function () {
     ], false));
 
     $response->assertOk()
-        ->assertSee('Bandar / Mukim / Zon')
+        ->assertSee('Daerah Kecil')
         ->assertDontSee($subdivisionName);
 });
 

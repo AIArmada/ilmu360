@@ -71,7 +71,7 @@ class DatabaseSeeder extends Seeder
 
         // Optional national masjid directory import.
         if ($this->shouldSeedMasjidDirectory()) {
-            $this->call([MalaysiaMasjidSeeder::class]);
+            $this->call([MalaysiaPoskodMasjidSeeder::class]);
         }
 
         $this->call([

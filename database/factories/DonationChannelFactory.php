@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\DonationChannelStatus;
 use App\Models\DonationChannel;
 use App\Models\Institution;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -28,7 +29,7 @@ class DonationChannelFactory extends Factory
             'recipient' => fake()->name(),
             'method' => $method,
             'reference_note' => fake()->optional()->sentence(),
-            'status' => fake()->randomElement(['pending', 'verified']),
+            'status' => fake()->randomElement([DonationChannelStatus::Pending, DonationChannelStatus::Verified]),
             'is_default' => false,
         ];
 
@@ -150,7 +151,7 @@ class DonationChannelFactory extends Factory
     public function verified(): static
     {
         return $this->state(fn (array $attributes) => [
-            'status' => 'verified',
+            'status' => DonationChannelStatus::Verified,
             'verified_at' => now(),
         ]);
     }

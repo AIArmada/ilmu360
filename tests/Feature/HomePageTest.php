@@ -168,7 +168,7 @@ it('renders the homepage interval shortcuts without legacy date aliases', functi
         ->assertSee('Bulan ini')
         ->assertSee('Minggu depan')
         ->assertSee('Bulan depan')
-        ->assertSee('Berdekatan')
+        ->assertSee('Dekat saya')
         ->assertSee('Popular')
         ->assertSee('Malam Ini')
         ->assertDontSee('date=today', false)
@@ -388,6 +388,7 @@ it('lists every speaker name below the location on the featured homepage cards',
         'ends_at' => $startsAt->copy()->setTime(11, 35),
         'timing_mode' => TimingMode::Absolute->value,
         'institution_id' => $institution->id,
+        'delivery_mode' => EventFormat::Physical->value,
     ]);
 
     $firstSpeaker = Person::factory()->create(['name' => 'Ahmad Albab']);
@@ -430,6 +431,7 @@ it('lists every speaker name below the location on the featured homepage cards',
         'visibility' => 'public',
         'starts_at' => now()->addDays(4),
         'institution_id' => $branchInstitution->id,
+        'delivery_mode' => EventFormat::Physical->value,
     ]);
 
     $this->get('/')

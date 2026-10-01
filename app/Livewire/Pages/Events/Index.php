@@ -19,6 +19,7 @@ use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
+use App\Enums\InstitutionStatus;
 use App\Enums\TimingMode;
 use App\Forms\SharedFormSchema;
 use App\Models\Event;
@@ -1021,7 +1022,7 @@ class Index extends Component implements HasForms
         string $search = '',
     ): array {
         $query = Institution::query()
-            ->whereIn('status', ['verified', 'pending']);
+            ->whereIn('status', InstitutionStatus::publiclyVisibleValues());
 
         $this->applyAddressLocationFilters($query, $countryId, $areaAssignments, $stateId);
         $query->searchNameOrNickname($search);
@@ -1412,7 +1413,7 @@ class Index extends Component implements HasForms
         }
 
         return Institution::query()
-            ->whereIn('status', ['verified', 'pending'])
+            ->whereIn('status', InstitutionStatus::publiclyVisibleValues())
             ->whereKey($id)
             ->with('names')->first(['id', 'name'])
             ?->display_name;
@@ -1520,7 +1521,7 @@ class Index extends Component implements HasForms
 
         $query = Institution::query()
             ->whereKey($institutionId)
-            ->whereIn('status', ['verified', 'pending']);
+            ->whereIn('status', InstitutionStatus::publiclyVisibleValues());
 
         $this->applyAddressLocationFilters($query, $countryId, $areaAssignments, $stateId);
 
@@ -2057,7 +2058,7 @@ class Index extends Component implements HasForms
             }
 
             $prayerTimeEnum = EventPrayerTime::tryFrom($normalizedPrayerTime);
-            $normalizedValue = $prayerTimeEnum?->value ?? trim($prayerTime);
+            $normalizedValue = $prayerTimeEnum->value ?? trim($prayerTime);
             $prayerTimes[$normalizedPrayerTime] = $normalizedValue;
         }
 

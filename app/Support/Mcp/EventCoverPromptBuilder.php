@@ -878,7 +878,7 @@ class EventCoverPromptBuilder
             $address = $event->venue->primaryAddress();
         }
 
-        if (! $address instanceof Address && $event->institution instanceof Institution) {
+        if (! $address instanceof Address && ! $event->hasExplicitVenueSelection() && $event->institution instanceof Institution) {
             $address = $event->institution->primaryAddress();
         }
 

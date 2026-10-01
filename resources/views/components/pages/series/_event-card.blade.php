@@ -49,8 +49,8 @@
             </span>
 
             @php
-                $locationName = $event->venue?->name ?? $event->institution?->name;
-                $locationAddress = $event->venue?->primaryAddress() ?? $event->institution?->primaryAddress();
+                $locationName = $event->resolvedLocationName();
+                $locationAddress = $event->resolvedLocationAddress();
                 $locationSubtitle = \App\Support\Location\AddressHierarchyFormatter::format($locationAddress);
             @endphp
 

@@ -2,6 +2,7 @@
 
 use AIArmada\Events\Actions\CreateEventOccurrenceAction;
 use AIArmada\Events\Actions\CreateEventSessionAction;
+use AIArmada\Events\Models\EventLocation;
 use App\Enums\EventFormat;
 use App\Livewire\Pages\Events\Index;
 use App\Models\Event;
@@ -96,6 +97,7 @@ it('renders schedule locations whose venue is the package model', function (): v
         'visibility' => 'public',
         'published_at' => now()->subDay(),
         'starts_at' => now()->addDays(2),
+        'delivery_mode' => EventFormat::Physical->value,
         'institution_id' => null,
         'default_venue_id' => null,
     ]);
@@ -203,6 +205,82 @@ it('renders occurrence and session pages when the location points at a venue', f
         ->assertOk()
         ->assertSee('Venue With Address')
         ->assertSee('Location Venue City');
+});
+
+it('renders occurrence and session pages from their own scoped location venues', function (): void {
+    $occurrenceVenue = Venue::factory()->create(['name' => 'Dewan Occurrence Own']);
+    $occurrenceVenue->primaryAddress()?->update([
+        'city' => 'Occurrence Own City',
+        'state' => 'Occurrence Own State',
+    ]);
+    $sessionVenue = Venue::factory()->create(['name' => 'Dewan Session Own']);
+    $sessionVenue->primaryAddress()?->update([
+        'city' => 'Session Own City',
+        'state' => 'Session Own State',
+    ]);
+
+    $event = Event::factory()->create([
+        'title' => 'Scoped Venue Programme',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDay(),
+        'starts_at' => now()->addDays(2),
+        'institution_id' => null,
+        'default_venue_id' => null,
+    ]);
+    $occurrence = $event->occurrences()->firstOrFail();
+    $occurrence->update(['slug' => 'scoped-venue-day']);
+
+    EventLocation::query()->create([
+        'event_id' => $event->getKey(),
+        'event_occurrence_id' => $occurrence->getKey(),
+        'event_session_id' => null,
+        'location_role' => 'primary',
+        'venue_id' => $occurrenceVenue->getKey(),
+        'visibility' => 'public',
+        'status' => 'active',
+        'sort_order' => 0,
+    ]);
+
+    $session = app(CreateEventSessionAction::class)->handle($occurrence, [
+        'title' => 'Scoped Venue Session',
+        'slug' => 'scoped-venue-session',
+        'starts_at' => now()->addDays(2)->addHour(),
+        'ends_at' => now()->addDays(2)->addHours(2),
+        'status' => 'published',
+        'visibility' => 'public',
+    ]);
+
+    EventLocation::query()->create([
+        'event_id' => $event->getKey(),
+        'event_occurrence_id' => $occurrence->getKey(),
+        'event_session_id' => $session->getKey(),
+        'location_role' => 'primary',
+        'venue_id' => $sessionVenue->getKey(),
+        'visibility' => 'public',
+        'status' => 'active',
+        'sort_order' => 0,
+    ]);
+
+    // Scoped locations resolve through application venues: the pages read
+    // names and primary addresses without touching the unmapped base
+    // package Venue polymorphic relations.
+    $this->get(route('events.occurrence', [
+        'event' => $event,
+        'occurrenceSlug' => 'scoped-venue-day',
+    ]))
+        ->assertOk()
+        ->assertSee('Dewan Occurrence Own')
+        ->assertSee('Occurrence Own City');
+
+    $this->get(route('events.session', [
+        'event' => $event,
+        'occurrenceSlug' => 'scoped-venue-day',
+        'sessionSlug' => 'scoped-venue-session',
+    ]))
+        ->assertOk()
+        ->assertSee('Dewan Session Own')
+        ->assertSee('Session Own City');
 });
 
 it('does not expose private child schedules or allow cross-parent slug traversal', function (): void {

@@ -2,7 +2,6 @@
 
 namespace App\Data\Api\Frontend\Search;
 
-use AIArmada\Addressing\Models\Address;
 use App\Enums\EventFormat;
 use App\Models\Event;
 use App\Models\Institution;
@@ -118,14 +117,8 @@ class EventListData extends Data
 
     private static function eventLocation(Event $event): ?string
     {
-        $venue = $event->venue;
-        $institution = $event->institution;
-        $primaryLocationName = $venue?->name ?: $institution?->name;
-        $address = $venue?->primaryAddress();
-
-        if (! $address instanceof Address) {
-            $address = $institution?->primaryAddress();
-        }
+        $primaryLocationName = $event->resolvedLocationName();
+        $address = $event->resolvedLocationAddress();
 
         $parts = array_values(array_filter([
             $primaryLocationName,

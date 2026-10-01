@@ -4,6 +4,7 @@ namespace App\Support\Search;
 
 use AIArmada\CommerceSupport\Support\StringSimilarity;
 use App\Contracts\PublicDiscoveryAdapter;
+use App\Enums\InstitutionStatus;
 use App\Models\Institution;
 use App\Models\InstitutionName;
 use Illuminate\Database\Eloquent\Builder;
@@ -161,7 +162,7 @@ class InstitutionSearchService implements PublicDiscoveryAdapter
     private function publicSearchIdsFromDatabase(string $normalizedSearch): array
     {
         return Institution::query()
-            ->whereIn('status', ['verified', 'pending'])
+            ->whereIn('status', InstitutionStatus::publiclyVisibleValues())
             ->select('institutions.id')
             ->tap(fn (Builder $query): Builder => $this->applyDatabaseSearch($query, $normalizedSearch))
             ->orderBy('name')
@@ -215,7 +216,7 @@ class InstitutionSearchService implements PublicDiscoveryAdapter
     private function publicFuzzySearchIdsFromDatabase(string $normalizedSearch, float $minimumScore): array
     {
         return Institution::query()
-            ->whereIn('status', ['verified', 'pending'])
+            ->whereIn('status', InstitutionStatus::publiclyVisibleValues())
             ->with('names')
             ->select(['id', 'name'])
             ->tap(fn (Builder $query): Builder => $this->applyFuzzyCandidateFilter($query, $normalizedSearch))

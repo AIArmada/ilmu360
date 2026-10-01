@@ -49,6 +49,7 @@ use App\Models\Concerns\HasDonationChannels;
 use App\States\EventStatus\EventStatus;
 use App\States\EventStatus\Pending;
 use App\Support\Authz\MemberPermissionGate;
+use App\Support\Events\PrimaryLocationSql;
 use App\Support\Location\AddressAssignments;
 use App\Support\Timezone\UserDateTimeFormatter;
 use BackedEnum;
@@ -61,6 +62,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Query\Builder as QueryBuilder;
@@ -1278,6 +1280,8 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
                 'institution.addresses',
                 'venue',
                 'venue.addresses',
+                'primaryLocation',
+                'primaryLocationVenue.addresses.areaAssignments.area',
                 'persons',
                 'keyPeople.person',
                 'references' => fn ($referenceQuery) => $referenceQuery->active(),
@@ -1308,6 +1312,8 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
             'institution.addresses.areaAssignments.area',
             'venue',
             'venue.addresses.areaAssignments.area',
+            'primaryLocation',
+            'primaryLocationVenue.addresses.areaAssignments.area',
             'persons',
             'keyPeople.person',
             'classifications',
@@ -1580,17 +1586,116 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
         return $this->belongsTo(Venue::class, 'default_venue_id');
     }
 
+    /**
+     * Whether an explicit venue is selected for this event.
+     *
+     * An explicit default venue or a primary package location with a venue
+     * always wins over the institution location; a venue without an address
+     * resolves to no address rather than falling back to the institution.
+     */
+    public function hasExplicitVenueSelection(): bool
+    {
+        return filled($this->default_venue_id) || $this->primaryLocationVenueId() !== null;
+    }
+
+    public function primaryLocationVenueId(): ?string
+    {
+        $venueId = $this->loadedPrimaryLocation()?->venue_id;
+
+        return is_string($venueId) && $venueId !== '' ? $venueId : null;
+    }
+
+    /**
+     * Primary package-location venue as the application Venue model.
+     *
+     * The package EventLocation::venue() relation always instantiates the
+     * base package Venue, whose polymorphic relations are not morph-mapped
+     * in this application (the canonical venue morph is the application
+     * model). Resolving through the application model over the same
+     * canonical intermediate scope keeps lazy and eager callers on one
+     * morph-safe row: lazy reads use first(), eager matching takes the
+     * first row per parent in this relation order.
+     *
+     * The intermediate location id is pinned to the selected canonical
+     * primary row BEFORE the inner join to venues: without the pin, a
+     * leading row with a null or missing venue drops out of the join and
+     * the relation would silently resolve a later primary row's venue.
+     * With the pin, only the selected row can match, so a null or orphan
+     * first venue resolves null for lazy and eager callers alike.
+     *
+     * @return HasOneThrough<Venue, EventLocation, $this>
+     */
+    public function primaryLocationVenue(): HasOneThrough
+    {
+        $locations = PrimaryLocationSql::table();
+
+        return $this->hasOneThrough(
+            Venue::class,
+            EventLocation::class,
+            'event_id',
+            'id',
+            'id',
+            'venue_id',
+        )
+            ->whereRaw("{$locations}.id = ".PrimaryLocationSql::selectedId($locations))
+            ->whereNull("{$locations}.event_occurrence_id")
+            ->whereNull("{$locations}.event_session_id")
+            ->where("{$locations}.location_role", 'primary')
+            ->orderBy("{$locations}.sort_order")
+            ->orderBy("{$locations}.created_at")
+            ->orderBy("{$locations}.id");
+    }
+
     public function resolvedLocationAddress(): ?Address
     {
-        if (filled($this->institution_id)) {
-            return $this->institution?->primaryAddress();
-        }
-
         if (filled($this->default_venue_id)) {
             return $this->venue?->primaryAddress();
         }
 
+        if ($this->primaryLocationVenueId() !== null) {
+            return $this->primaryLocationVenue?->primaryAddress();
+        }
+
+        if (filled($this->institution_id)) {
+            return $this->institution?->primaryAddress();
+        }
+
         return null;
+    }
+
+    public function resolvedLocationName(): ?string
+    {
+        if (filled($this->default_venue_id)) {
+            return $this->venue?->name;
+        }
+
+        if ($this->primaryLocationVenueId() !== null) {
+            return $this->primaryLocationVenue?->name;
+        }
+
+        return $this->institution?->name;
+    }
+
+    /**
+     * Event-level primary package location row, cached on first read so the
+     * venue id never queries twice for one event. The venue itself resolves
+     * through the primaryLocationVenue relation (application model); the
+     * package venue relation is deliberately left unloaded because its
+     * polymorphic relations are not morph-mapped.
+     */
+    private function loadedPrimaryLocation(): ?EventLocation
+    {
+        if ($this->relationLoaded('primaryLocation')) {
+            $location = $this->primaryLocation;
+
+            return $location instanceof EventLocation ? $location : null;
+        }
+
+        $location = $this->primaryLocation()->first();
+        $location = $location instanceof EventLocation ? $location : null;
+        $this->setRelation('primaryLocation', $location);
+
+        return $location;
     }
 
     /**

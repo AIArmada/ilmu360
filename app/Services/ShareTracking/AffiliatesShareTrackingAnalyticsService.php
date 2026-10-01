@@ -635,7 +635,7 @@ final readonly class AffiliatesShareTrackingAnalyticsService
             subjectType: $touchpoint->subject_type,
             subjectId: $this->nullableString($touchpoint->subject_id) ?? $this->nullableString($touchpoint->subject_key),
             subjectKey: $touchpoint->subject_key,
-            visitKind: (string) ($touchpoint->interaction_type ?? 'navigated'),
+            visitKind: $this->nullableString($touchpoint->metadata['visit_kind'] ?? null) ?? 'navigated',
             occurredAt: $touchpoint->touched_at,
             metadata: $touchpoint->metadata ?? [],
         );

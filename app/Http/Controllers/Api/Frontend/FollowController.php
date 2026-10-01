@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Frontend;
 
 use App\Data\Api\Frontend\Follow\FollowStateData;
 use App\Enums\DawahShareOutcomeType;
+use App\Enums\InstitutionStatus;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
@@ -120,7 +121,7 @@ class FollowController extends FrontendController
             $subject,
         );
 
-        if ($record->status !== 'verified' && ! $user->hasAnyRole(['super_admin', 'moderator'])) {
+        if ($record->status !== InstitutionStatus::Verified && ! $user->hasAnyRole(['super_admin', 'moderator'])) {
             abort(404);
         }
 

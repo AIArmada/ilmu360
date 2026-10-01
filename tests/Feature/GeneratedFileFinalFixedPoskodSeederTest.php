@@ -1,177 +1,110 @@
 <?php
 
-use AIArmada\Addressing\Models\AddressArea;
-use AIArmada\Addressing\Models\AddressAreaRelationship;
-use AIArmada\Addressing\Models\AddressAreaStateLink;
+use App\Enums\InstitutionStatus;
+use App\Enums\InstitutionType;
 use App\Models\Institution;
-use App\Support\Institutions\GeneratedPoskodInstitutionData;
 use Database\Seeders\MalaysiaPoskodMasjidSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Str;
 
 uses(RefreshDatabase::class);
 
-it('imports a postcode csv fixture against the production geography seed', function () {
-    $fixturePath = base_path('tests/Fixtures/poskod_test_fixture.csv');
+it('imports the canonical feed with opaque names, full addresses, and role assignments', function () {
+    $geo = seedCanonicalMasjidFeedGeography();
 
-    $country = ensureTestMalaysiaCountry();
-
-    /** @var array<string, array{district: string, subdistrict?: string}> $geographies */
-    $geographies = [
-        'Wilayah Persekutuan Kuala Lumpur' => ['district' => 'Kuala Lumpur'],
-        'Terengganu' => ['district' => 'Hulu Terengganu'],
-        'Perak' => ['district' => 'Kuala Kangsar'],
-        'Kedah' => ['district' => 'Pokok Sena', 'subdistrict' => 'Bukit Lada'],
-        'Sabah' => ['district' => 'Kinabatangan'],
-        'Sarawak' => ['district' => 'Betong'],
-    ];
-
-    foreach ($geographies as $stateName => $geography) {
-        createTestPackageGeography(
-            stateName: $stateName,
-            districtName: $geography['district'],
-            subdistrictName: $geography['subdistrict'] ?? null,
-            country: $country,
-        );
-    }
-
-    $seeder = new MalaysiaPoskodMasjidSeeder($fixturePath);
+    $seeder = new MalaysiaPoskodMasjidSeeder(base_path('tests/Fixtures/masjid_feed_canonical_test_fixture.csv'));
     $seeder->run();
 
-    $fixtureSlugs = slugsFromFixture($fixturePath);
+    expect(Institution::query()->count())->toBe(6)
+        ->and(Institution::query()->where('source', 'masjid-csv')->count())->toBe(4)
+        ->and(Institution::query()->where('source', 'osm')->count())->toBe(2)
+        ->and(Institution::query()->whereHas('addresses')->count())->toBe(6);
 
-    $expectedCount = count($fixtureSlugs);
-    $postcodeInstitutions = fn () => Institution::query()->whereIn('slug', $fixtureSlugs);
-    $findInstitution = fn (string $slug): ?Institution => Institution::query()
-        ->where('slug', $slug)
-        ->with(['addresses', 'addresses.areaAssignments'])
-        ->first();
+    // All curation statuses import: curation is upstream information, not app moderation.
+    expect(Institution::query()->where('slug', 'surau-al-aliatul-102')->exists())->toBeTrue()
+        ->and(Institution::query()->where('slug', 'osm-madrasah-an-nur-201')->exists())->toBeTrue()
+        ->and(Institution::query()->where('slug', 'masjid-klcc-104')->exists())->toBeTrue();
 
-    expect($expectedCount)->toBe(6)
-        ->and($postcodeInstitutions()->count())->toBe($expectedCount)
-        ->and($postcodeInstitutions()->whereHas('addresses')->count())->toBe($expectedCount);
+    // Hand-cased apostrophe bytes survive byte-identical.
+    $surau = Institution::query()->where('slug', 'surau-al-aliatul-102')->firstOrFail();
+    expect($surau->name)->toBe("Surau Al-'Aliatul")
+        ->and($surau->type)->toBe(InstitutionType::Surau)
+        ->and($surau->status)->toBe(InstitutionStatus::Verified)
+        ->and($surau->getAttribute('source'))->toBe('masjid-csv')
+        ->and($surau->getAttribute('external_ref'))->toBe('102')
+        ->and($surau->getAttribute('imported_at'))->not()->toBeNull();
 
-    $masjidNegara = $findInstitution(GeneratedPoskodInstitutionData::canonicalSlug('MASJID NEGARA', '1'));
-    expect($masjidNegara)->not()->toBeNull();
-    expect($masjidNegara->primaryAddress()?->state)->toBe('Wilayah Persekutuan Kuala Lumpur');
+    $address = $surau->primaryAddress();
+    expect($address->line1)->toBe('Jalan Ss2/3')
+        ->and($address->postcode)->toBe('47800')
+        ->and($address->city)->toBe('Petaling Jaya')
+        ->and($address->state)->toBe('Selangor')
+        ->and($address->country_code)->toBe('MY')
+        ->and((float) $address->latitude)->toBe(3.1147)
+        ->and((float) $address->longitude)->toBe(101.6118)
+        ->and((string) $address->state_id)->toBe((string) $geo['selangor']['state']->getKey())
+        ->and($address->city_id)->toBeNull();
 
-    $menora = $findInstitution(GeneratedPoskodInstitutionData::canonicalSlug('MASJID AL - MUNARIAH', '500'));
-    expect($menora)->not()->toBeNull();
-    expect($menora->primaryAddress()?->state)->toBe('Perak');
+    $assignments = $address->areaAssignments->pluck('address_area_id', 'role')->all();
+    expect($assignments['administrative_district'] ?? null)->toBe((string) $geo['selangor']['district']->getKey())
+        ->and($assignments['administrative_subdivision'] ?? null)->toBe((string) $geo['selangor']['subdistrict']->getKey())
+        ->and($assignments['postal_locality'] ?? null)->toBeNull();
 
-    $ajil = $findInstitution(GeneratedPoskodInstitutionData::canonicalSlug('MASJID AJIL', '28'));
-    expect($ajil)->not()->toBeNull();
-    expect($ajil?->name)->toBe('Masjid Ajil');
-    expect($ajil->primaryAddress()?->line1)->toBe('Ajil, Hulu Terengganu');
+    // Exact city match sets city_id.
+    $madrasah = Institution::query()->where('slug', 'osm-madrasah-an-nur-201')->firstOrFail();
+    expect($madrasah->type)->toBe(InstitutionType::Madrasah)
+        ->and((string) $madrasah->primaryAddress()?->city_id)->toBe((string) $geo['selangor']['city']->getKey());
 
-    $bracketedName = $findInstitution(GeneratedPoskodInstitutionData::canonicalSlug('[01] MASJID KAMPUNG BUKIT LADA', '5667'));
-    expect($bracketedName)->not()->toBeNull();
-    expect($bracketedName?->name)->toBe('Masjid Kampung Bukit Lada');
+    // Federal-territory row with blank optionals imports without assignments.
+    $negara = Institution::query()->where('slug', 'masjid-negara-101')->firstOrFail();
+    expect($negara->primaryAddress()?->state)->toBe('Wilayah Persekutuan Kuala Lumpur')
+        ->and($negara->primaryAddress()?->areaAssignments)->toHaveCount(0);
 
-    $estateName = $findInstitution(GeneratedPoskodInstitutionData::canonicalSlug('(ESTATE) MASJID AL-MUHAJIRIN', '6412'));
-    expect($estateName)->not()->toBeNull();
-    expect($estateName?->name)->toBe('Masjid Al-Muhajirin (ESTATE)');
+    // Postal locality resolves through the postal hierarchy link.
+    $subang = Institution::query()->where('slug', 'osm-surau-taman-subang-202')->firstOrFail();
+    expect($subang->primaryAddress()?->areaAssignments->firstWhere('role', 'postal_locality')?->address_area_id)
+        ->toBe((string) $geo['locality']->getKey());
 
-    $junkSarawak = $findInstitution(GeneratedPoskodInstitutionData::canonicalSlug('masjid nurulllllllllllll', '6082'));
-    expect($junkSarawak)->not()->toBeNull();
-    expect($junkSarawak?->slug)->toBe('masjid-nurulllllllllllll-6082');
-    expect($junkSarawak->primaryAddress()?->state)->toBe('Sarawak');
+    // Unresolved non-blank areas are reported and retain feed text.
+    $reports = $seeder->unresolvedAreaReports();
+    expect($reports)->toHaveCount(2)
+        ->and(implode("\n", $reports))->toContain("administrative_district 'Kuala Lumpur' unresolved")
+        ->and(implode("\n", $reports))->toContain("administrative_subdivision 'Bandar Khayalan' unresolved");
+
+    $klcc = Institution::query()->where('slug', 'masjid-klcc-104')->firstOrFail();
+    expect($klcc->primaryAddress()?->areaAssignments)->toHaveCount(0)
+        ->and($klcc->primaryAddress()?->postcode)->toBe('50450');
+
+    $locale = Institution::query()->where('slug', 'masjid-unresolved-locale-106')->firstOrFail();
+    $localeAssignments = $locale->primaryAddress()?->areaAssignments->pluck('address_area_id', 'role')->all() ?? [];
+    expect($localeAssignments['administrative_district'] ?? null)->toBe((string) $geo['selangor']['district']->getKey())
+        ->and($localeAssignments['administrative_subdivision'] ?? null)->toBeNull();
 });
 
-it('assigns a Putrajaya precinct when importing a postcode row', function () {
-    $fixturePath = base_path('tests/Fixtures/poskod_putrajaya_test_fixture.csv');
-    $country = ensureTestMalaysiaCountry();
-    $geography = createTestPackageGeography(
-        stateName: 'Wilayah Persekutuan Putrajaya',
-        districtName: 'Putrajaya',
-        country: $country,
-    );
-    createTestPackageGeography(
-        stateName: 'Sarawak',
-        districtName: 'Betong',
-        country: $country,
-    );
+it('fails preflight loudly with no partial writes', function (string $fixture, string $expectedMessage) {
+    $seeder = new MalaysiaPoskodMasjidSeeder(base_path("tests/Fixtures/{$fixture}"));
 
-    AddressAreaStateLink::query()->create([
-        'address_area_id' => $geography['area_tree_root']->getKey(),
-        'state_id' => $geography['state']->getKey(),
-        'hierarchy_type' => 'postal',
-    ]);
+    expect(fn () => $seeder->run())->toThrow(RuntimeException::class, $expectedMessage);
+    expect(Institution::query()->count())->toBe(0);
+})->with([
+    'missing curated name and slug' => ['masjid_feed_missing_identity_fixture.csv', "missing required 'nama_display'"],
+    'duplicate source identity' => ['masjid_feed_duplicate_ref_fixture.csv', 'duplicate source/external_ref'],
+    'duplicate slug across identities' => ['masjid_feed_duplicate_slug_fixture.csv', "slug 'shared-slug' collides with a different identity on row 2"],
+    'out-of-range coordinates' => ['masjid_feed_invalid_coords_fixture.csv', 'invalid latitude'],
+    'unknown institution type' => ['masjid_feed_invalid_type_fixture.csv', 'invalid institution_type'],
+    'short row width' => ['masjid_feed_bad_width_fixture.csv', 'expected 19 columns'],
+]);
 
-    $precinct = AddressArea::query()->create([
-        'country_id' => $country->getKey(),
-        'country_code' => 'MY',
-        'parent_id' => $geography['area_tree_root']->getKey(),
-        'type' => 'precinct',
-        'level' => 2,
-        'name' => 'Precinct 3',
-        'slug' => 'precinct-3',
-        'source' => 'tests',
-        'source_id' => (string) Str::ulid(),
-        'parent_source_id' => $geography['area_tree_root']->source_id,
-    ]);
+it('resets per-run caches and reports when the same instance runs twice', function () {
+    seedCanonicalMasjidFeedGeography();
 
-    AddressAreaRelationship::query()->create([
-        'parent_address_area_id' => $geography['area_tree_root']->getKey(),
-        'child_address_area_id' => $precinct->getKey(),
-        'relationship_type' => 'contains',
-        'hierarchy_type' => 'postal',
-        'source' => 'tests',
-    ]);
+    $seeder = new MalaysiaPoskodMasjidSeeder(base_path('tests/Fixtures/masjid_feed_canonical_test_fixture.csv'));
+    $seeder->run();
+    expect($seeder->unresolvedAreaReports())->toHaveCount(2);
 
-    $seeder = new MalaysiaPoskodMasjidSeeder($fixturePath);
+    Institution::query()->update(['status' => InstitutionStatus::Pending->value]);
+
     $seeder->run();
 
-    $institution = Institution::query()
-        ->where('slug', GeneratedPoskodInstitutionData::canonicalSlug('MASJID PRESINT 3', '9001'))
-        ->with(['addresses.areaAssignments'])
-        ->first();
-
-    expect($institution)->not()->toBeNull()
-        ->and($institution?->primaryAddress()?->areaAssignments
-            ->firstWhere('role', 'postal_locality')?->address_area_id)
-        ->toBe((string) $precinct->getKey());
+    expect($seeder->unresolvedAreaReports())->toHaveCount(2)
+        ->and(Institution::query()->count())->toBe(6);
 });
-
-/**
- * @return list<string>
- */
-function slugsFromFixture(string $fixturePath): array
-{
-    $handle = fopen($fixturePath, 'r');
-
-    if ($handle === false) {
-        return [];
-    }
-
-    $header = fgetcsv($handle, escape: '\\');
-
-    if (! is_array($header)) {
-        fclose($handle);
-
-        return [];
-    }
-
-    $normalizedHeader = array_map(
-        static fn (string $value): string => ltrim($value, "\xEF\xBB\xBF"),
-        $header,
-    );
-
-    $slugs = [];
-
-    while (($row = fgetcsv($handle, escape: '\\')) !== false) {
-        $mapped = array_combine($normalizedHeader, array_pad($row, count($normalizedHeader), ''));
-        $rowNumber = trim((string) ($mapped['No.'] ?? ''));
-        $name = (string) ($mapped['Nama'] ?? '');
-
-        if ($rowNumber === '' || $name === '') {
-            continue;
-        }
-
-        $slugs[] = GeneratedPoskodInstitutionData::canonicalSlug($name, $rowNumber);
-    }
-
-    fclose($handle);
-
-    return $slugs;
-}

@@ -7,11 +7,14 @@ use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Contacting\Support\SocialProfileConfig;
 use App\Enums\InstitutionNameType;
+use App\Enums\InstitutionStatus;
 use App\Enums\InstitutionType;
 use App\Forms\SharedFormSchema;
 use App\Models\Institution;
 use App\Models\User;
+use App\Support\Institutions\InstitutionFacilities;
 use App\Support\Submission\PublicSubmissionLockService;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
@@ -133,15 +136,54 @@ class InstitutionForm
                         requireCountryField: true,
                     ))
                     ->columns(2),
+                Section::make('Facilities')
+                    ->components([
+                        CheckboxList::make('facilities')
+                            ->label('Enabled facilities')
+                            ->options(InstitutionFacilities::options())
+                            // Read from the record: the default options state cast stringifies
+                            // the stored flag map (true becomes '1', false is dropped) before
+                            // this formatter runs, so hydrated state is already lossy.
+                            ->formatStateUsing(static fn (mixed $state, ?Institution $record): array => self::enabledFacilityCodes($record->facilities ?? $state))
+                            ->dehydrateStateUsing(static fn (mixed $state, Get $get): ?array => self::mergeFacilityLists($state, $get('facilities_disabled')))
+                            ->live()
+                            ->disableOptionWhen(fn (string $value, Get $get): bool => in_array($value, (array) $get('facilities_disabled'), true))
+                            ->columns(2)
+                            ->helperText('Facilities explicitly available at this institution. Unchecked facilities are inherited from linked operated venues and spaces.'),
+                        CheckboxList::make('facilities_disabled')
+                            ->label('Explicitly disabled facilities')
+                            ->options(InstitutionFacilities::options())
+                            ->formatStateUsing(static fn (mixed $state, ?Institution $record): array => self::disabledFacilityCodes($record?->facilities))
+                            ->dehydrated(false)
+                            ->live()
+                            ->disableOptionWhen(fn (string $value, Get $get): bool => in_array($value, (array) $get('facilities'), true))
+                            ->columns(2)
+                            ->helperText('Negative overrides: these stay off even when a linked operated venue or space provides them.'),
+                    ]),
+                Section::make('Provenance')
+                    ->components([
+                        TextInput::make('source')
+                            ->disabled()
+                            ->dehydrated(false)
+                            ->placeholder('-'),
+                        TextInput::make('external_ref')
+                            ->label('External ref')
+                            ->disabled()
+                            ->dehydrated(false)
+                            ->placeholder('-'),
+                        TextInput::make('imported_at')
+                            ->label('Imported at')
+                            ->disabled()
+                            ->dehydrated(false)
+                            ->placeholder('-')
+                            ->formatStateUsing(static fn (mixed $state): ?string => $state instanceof \DateTimeInterface ? $state->format('Y-m-d H:i:s P') : (is_string($state) ? $state : null)),
+                    ])
+                    ->visible(fn (string $operation): bool => $operation !== 'create')
+                    ->columns(3),
                 Section::make('Status')
                     ->components([
                         Select::make('status')
-                            ->options([
-                                'pending' => 'Pending',
-                                'verified' => 'Verified',
-                                'rejected' => 'Rejected',
-                                'inactive' => 'Inactive',
-                            ])
+                            ->options(InstitutionStatus::class)
                             ->required(),
                         Toggle::make('allow_public_event_submission')
                             ->label('Allow Public Event Submission')
@@ -244,6 +286,79 @@ class InstitutionForm
                             }),
                     ]),
             ]);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function enabledFacilityCodes(mixed $state): array
+    {
+        if (! is_array($state)) {
+            return [];
+        }
+
+        if (array_is_list($state)) {
+            return array_values(array_intersect(
+                array_filter($state, is_string(...)),
+                InstitutionFacilities::codes(),
+            ));
+        }
+
+        $codes = [];
+
+        foreach ($state as $code => $enabled) {
+            if ($enabled === true && is_string($code) && array_key_exists($code, InstitutionFacilities::options())) {
+                $codes[] = $code;
+            }
+        }
+
+        return $codes;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function disabledFacilityCodes(mixed $state): array
+    {
+        if (! is_array($state) || array_is_list($state)) {
+            return [];
+        }
+
+        $codes = [];
+
+        foreach ($state as $code => $enabled) {
+            if ($enabled === false && is_string($code) && array_key_exists($code, InstitutionFacilities::options())) {
+                $codes[] = $code;
+            }
+        }
+
+        return $codes;
+    }
+
+    /**
+     * Merge the enabled/disabled checkbox lists back into the canonical flag
+     * map. Disabled wins on overlap (the UI prevents overlap); an empty
+     * selection clears the map entirely.
+     *
+     * @return array<string, bool>|null
+     */
+    private static function mergeFacilityLists(mixed $enabled, mixed $disabled): ?array
+    {
+        $map = [];
+
+        foreach (is_array($enabled) ? $enabled : [] as $code) {
+            if (is_string($code) && array_key_exists($code, InstitutionFacilities::options())) {
+                $map[$code] = true;
+            }
+        }
+
+        foreach (is_array($disabled) ? $disabled : [] as $code) {
+            if (is_string($code) && array_key_exists($code, InstitutionFacilities::options())) {
+                $map[$code] = false;
+            }
+        }
+
+        return $map === [] ? null : $map;
     }
 
     private static function canManagePublicSubmissionToggle(?Institution $record, string $operation): bool

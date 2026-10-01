@@ -203,7 +203,7 @@ class EditUser extends EditRecord
         $freshUser->load([
             'institutions' => fn ($query) => $query->orderBy('name'),
             'persons' => fn ($query) => $query->orderBy('name'),
-            'memberEvents' => fn ($query) => $query->with('parentReference.parentReference')->orderBy('title'),
+            'memberEvents' => fn ($query) => $query->with(['institution:id,name', 'venue:id,name'])->orderBy('title'),
             'references' => fn ($query) => $query->with('parentReference.parentReference')->orderBy('title'),
             'organizations' => fn ($query) => $query->orderBy('name'),
         ]);

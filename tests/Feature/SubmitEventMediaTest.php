@@ -98,7 +98,7 @@ it('stores cover, poster, and gallery uploads when submitting an event', functio
     expect($event->getMedia('cover'))->toHaveCount(1);
     expect($event->getMedia('poster'))->toHaveCount(1);
     expect($event->getMedia('gallery'))->toHaveCount(2);
-    expect($event->classifications()->count())->toBe(2)
+    expect($event->classifications()->count())->toBe(3)
         ->and($event->slug)->toBe(sprintf(
             'test-event-media-upload-%s-%s',
             implode('-', $personSlugSegments),

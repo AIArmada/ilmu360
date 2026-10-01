@@ -26,8 +26,8 @@ it('exposes only supported institution lifecycle statuses in the admin form', fu
             ->assertFormFieldExists('status', function (Select $field): bool {
                 expect($field->getOptions())->toBe([
                     'pending' => 'Pending',
-                    'verified' => 'Verified',
-                    'rejected' => 'Rejected',
+                    'verified' => 'Disahkan',
+                    'rejected' => 'Ditolak',
                     'inactive' => 'Inactive',
                 ]);
 

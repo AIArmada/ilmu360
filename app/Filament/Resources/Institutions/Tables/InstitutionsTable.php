@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Institutions\Tables;
 
+use App\Enums\InstitutionStatus;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -53,12 +54,7 @@ class InstitutionsTable
                         'others' => 'Others',
                     ]),
                 SelectFilter::make('status')
-                    ->options([
-                        'pending' => 'Pending',
-                        'verified' => 'Verified',
-                        'rejected' => 'Rejected',
-                        'inactive' => 'Inactive',
-                    ]),
+                    ->options(InstitutionStatus::class),
             ])
             ->recordActions([
                 ViewAction::make(),

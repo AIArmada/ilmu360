@@ -46,9 +46,7 @@
     $displayStartsAt = $singleOccurrence?->starts_at ?? $event->starts_at;
     $displayEndsAt = $singleOccurrence?->ends_at ?? $event->ends_at;
     $locationAddress = $mergedLocationRecord?->primaryAddress();
-    $venueAddress = $event->venue?->primaryAddress();
-    $institutionAddress = $event->institution?->primaryAddress();
-    $primaryAddress = $locationAddress ?? ($venueAddress ?? $institutionAddress);
+    $primaryAddress = $locationAddress ?? $event->resolvedLocationAddress();
     $lat = $primaryAddress?->latitude ?? $primaryAddress?->lat;
     $lng = $primaryAddress?->longitude ?? $primaryAddress?->lng;
     $addressDisplayLines = \App\Support\Location\AddressHierarchyFormatter::displayLines($primaryAddress);
@@ -147,10 +145,12 @@
             ?? $event->venue?->getFirstMedia('cover')?->getAvailableUrl(['banner'])
             ?? '';
     }
-    $locationEntity = $event->venue ?? $event->institution;
+    $locationEntity = $event->venue
+        ?? (! filled($event->default_venue_id) ? $event->primaryLocationVenue : null)
+        ?? (! $event->hasExplicitVenueSelection() ? $event->institution : null);
     $locationHref = $locationEntity instanceof \App\Models\Institution
         ? route('institutions.show', $locationEntity)
-        : ($locationEntity instanceof \App\Models\Venue ? route('venues.show', $locationEntity) : null);
+        : ($locationEntity instanceof \AIArmada\Events\Models\Venue ? route('venues.show', $locationEntity) : null);
     $locationName = $locationEntity?->name ?? $mergedLocationLabel ?? ($isOnlineFormat ? __('Acara Dalam Talian') : __('Lokasi Akan Dikemaskini'));
     $locationSpaceName = $mergedLocationLabel !== $locationName ? $mergedLocationLabel : null;
     $locationContactMethods = $locationEntity?->relationLoaded('contactMethods') ? $locationEntity->contactMethods : collect();

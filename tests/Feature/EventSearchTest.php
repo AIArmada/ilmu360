@@ -207,7 +207,7 @@ describe('Event Search Filters', function () {
         $response = $this->get(eventsIndexUrl());
 
         $response->assertOk()
-            ->assertSee('Circle of')
+            ->assertSee('Temui majlis ilmu yang')
             ->assertSee('Speaker')
             ->assertSee('/js/filament/schemas/schemas.js', false)
             ->assertSee('/js/filament/support/support.js', false)
@@ -287,7 +287,7 @@ describe('Event Search Filters', function () {
         ]);
 
         Livewire::test(Index::class)
-            ->assertSee('Circle of');
+            ->assertSee('Temui majlis ilmu yang');
 
         expect(Cache::get('default_events_search_v2'))
             ->toBeNull();
@@ -312,7 +312,7 @@ describe('Event Search Filters', function () {
 
         Livewire::actingAs(User::factory()->create())
             ->test(Index::class)
-            ->assertSee('Circle of');
+            ->assertSee('Temui majlis ilmu yang');
 
         $eventHydrationQueries = collect($queries)
             ->filter(static fn (string $query): bool => str_starts_with(ltrim($query), 'select * from "events"'));
@@ -481,19 +481,34 @@ describe('Event Search Filters', function () {
     });
 
     it('preserves the active search when using a date shortcut', function () {
-        $today = now()->toDateString();
-        // The country is scoped automatically, so it rides along in the shortcut.
-        $expectedQuery = http_build_query([
-            'search' => 'fiqh',
-            'country_id' => app(VisitorCountryResolver::class)->resolve(),
-            'starts_after' => $today,
-            'starts_before' => $today,
-            'time_scope' => 'all',
-        ]);
+        $userTimezone = 'Asia/Kuala_Lumpur';
+        Carbon::setTestNow(Carbon::create(2026, 4, 16, 10, 0, 0, 'UTC'));
 
-        $this->get(eventsIndexUrl(['search' => 'fiqh']))
-            ->assertOk()
-            ->assertSee($expectedQuery);
+        try {
+            // Viewer-tz "today" — the shortcut resolves via UserDateTimeFormatter::userNow().
+            $expectedDate = Carbon::now($userTimezone)->toDateString();
+            // The country is scoped automatically, so it rides along with the shortcut.
+            $expectedCountryId = app(VisitorCountryResolver::class)->resolve();
+
+            Livewire::withCookie('user_timezone', $userTimezone)
+                ->withQueryParams(['search' => 'fiqh'])
+                ->test(Index::class)
+                ->assertSet('search', 'fiqh')
+                ->assertSet('country_id', $expectedCountryId)
+                ->set('filterData.date_shortcut', 'today')
+                ->assertSet('search', 'fiqh')
+                ->assertSet('filterData.search', 'fiqh')
+                ->assertSet('country_id', $expectedCountryId)
+                ->assertSet('filterData.country_id', $expectedCountryId)
+                ->assertSet('date_shortcut', 'today')
+                ->assertSet('filterData.date_shortcut', 'today')
+                ->assertSet('starts_after', $expectedDate)
+                ->assertSet('starts_before', $expectedDate)
+                ->assertSet('time_scope', 'upcoming')
+                ->assertSet('filterData.time_scope', 'upcoming');
+        } finally {
+            Carbon::setTestNow();
+        }
     });
 
     it('renders secondary filters directly in the events index sidebar', function () {
@@ -2465,7 +2480,6 @@ describe('Event Search Filters', function () {
             ->assertSee('Cancelled Event')
             ->assertSee('Pending Approval')
             ->assertSee('Dibatalkan')
-            ->assertSee('Semak lencana status pada setiap majlis sebelum hadir.')
             ->assertDontSee('Draft Event')
             ->assertDontSee('Private Event');
     });

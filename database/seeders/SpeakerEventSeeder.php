@@ -6,6 +6,7 @@ use AIArmada\Events\Models\EventRole;
 use App\Enums\EventFormat;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventVisibility;
+use App\Enums\InstitutionStatus;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\Institution;
@@ -22,7 +23,7 @@ final class SpeakerEventSeeder extends Seeder
     {
         $this->seedEventSpaces();
 
-        $institution = Institution::query()->where('status', 'verified')->orderBy('id')->first();
+        $institution = Institution::query()->where('status', InstitutionStatus::Verified->value)->orderBy('id')->first();
 
         if (! $institution instanceof Institution) {
             return;

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Frontend;
 
 use App\Data\Api\Frontend\AccountSettings\AccountProfileData;
+use App\Enums\InstitutionStatus;
 use App\Models\Institution;
 use App\Models\User;
 use App\Services\Notifications\NotificationSettingsManager;
@@ -142,7 +143,7 @@ class AccountSettingsController extends FrontendController
     {
         return Institution::query()
             ->active()
-            ->where('status', 'verified');
+            ->where('status', InstitutionStatus::Verified->value);
     }
 
     private function assertPrayerInstitutionSelectionAllowed(?string $selectedInstitutionId, ?string $currentInstitutionId, string $errorKey): void

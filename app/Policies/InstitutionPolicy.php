@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\InstitutionStatus;
 use App\Models\Institution;
 use App\Models\User;
 use App\Support\Authz\MemberPermissionGate;
@@ -22,7 +23,7 @@ class InstitutionPolicy
     public function view(?User $user, Institution $institution): bool
     {
         // Verified and pending institutions are publicly viewable
-        if (in_array((string) $institution->status, ['verified', 'pending'], true)) {
+        if (in_array($institution->status, InstitutionStatus::publiclyVisible(), true)) {
             return true;
         }
 

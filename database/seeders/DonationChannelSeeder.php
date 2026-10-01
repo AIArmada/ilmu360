@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\DonationChannelStatus;
 use App\Models\DonationChannel;
 use App\Models\Institution;
 use App\Models\Person;
@@ -30,7 +31,7 @@ class DonationChannelSeeder extends Seeder
                 $donationChannels[] = $this->withId(DonationChannel::factory()->bankAccount()->make([
                     'donatable_type' => 'institution',
                     'donatable_id' => $institutionId,
-                    'status' => $status === 'verified' ? 'verified' : 'pending',
+                    'status' => $status === 'verified' ? DonationChannelStatus::Verified : DonationChannelStatus::Pending,
                     'is_default' => true,
                 ]));
 
@@ -38,7 +39,7 @@ class DonationChannelSeeder extends Seeder
                     $donationChannels[] = $this->withId(DonationChannel::factory()->duitnow()->make([
                         'donatable_type' => 'institution',
                         'donatable_id' => $institutionId,
-                        'status' => $status === 'verified' ? 'verified' : 'pending',
+                        'status' => $status === 'verified' ? DonationChannelStatus::Verified : DonationChannelStatus::Pending,
                     ]));
                 }
 
@@ -46,7 +47,7 @@ class DonationChannelSeeder extends Seeder
                     $donationChannels[] = $this->withId(DonationChannel::factory()->ewallet()->make([
                         'donatable_type' => 'institution',
                         'donatable_id' => $institutionId,
-                        'status' => 'pending',
+                        'status' => DonationChannelStatus::Pending,
                     ]));
                 }
             }
@@ -58,7 +59,7 @@ class DonationChannelSeeder extends Seeder
                     $donationChannels[] = $this->withId(DonationChannel::factory()->bankAccount()->make([
                         'donatable_type' => 'person',
                         'donatable_id' => $personId,
-                        'status' => $status === 'verified' ? 'verified' : 'pending',
+                        'status' => $status === 'verified' ? DonationChannelStatus::Verified : DonationChannelStatus::Pending,
                         'is_default' => true,
                     ]));
                 }

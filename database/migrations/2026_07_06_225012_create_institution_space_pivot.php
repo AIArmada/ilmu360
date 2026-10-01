@@ -16,10 +16,22 @@ return new class extends Migration
 
             $table->primary(['institution_id', 'space_id']);
         });
+
+        Schema::create('institution_venue', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->foreignUuid('institution_id')->index();
+            $table->foreignUuid('venue_id')->index();
+            $table->string('role');
+            $table->boolean('is_primary')->default(false);
+            $table->timestampsTz();
+
+            $table->unique(['institution_id', 'venue_id'], 'institution_venue_institution_venue_unique');
+        });
     }
 
     public function down(): void
     {
+        Schema::dropIfExists('institution_venue');
         Schema::dropIfExists('institution_space');
     }
 };

@@ -24,6 +24,7 @@ final class ProductSignalSchemaRegistry
             'search.executed' => ['interaction_type', 'surface', 'query', 'filter_keys', 'filters', 'result_count', 'saved_search_id'],
             'listing.filtered' => ['interaction_type', 'surface', 'filter_keys', 'filters', 'result_count', 'saved_search_id'],
             'admin.event_cover.generated' => ['event_id', 'event_status'],
+            'admin.institution_facilities.updated' => ['institution_id', 'changed_codes', 'enabled_count', 'disabled_count', 'cleared'],
         ];
 
         if (array_key_exists($eventName, $schemas)) {

@@ -13,6 +13,7 @@ use AIArmada\Signals\Models\TrackedProperty;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
+use App\Enums\DonationChannelStatus;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventChangeSeverity;
 use App\Enums\EventChangeType;
@@ -22,6 +23,7 @@ use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
 use App\Enums\InstitutionNameType;
+use App\Enums\InstitutionStatus;
 use App\Enums\RegistrationScope;
 use App\Models\ContributionRequest;
 use App\Models\DonationChannel;
@@ -1632,7 +1634,7 @@ it('exposes donation channel write schema and can create and update donation cha
         ->and($donationChannel->ewallet_provider)->toBe('tng')
         ->and($donationChannel->ewallet_handle)->toBe('60123456789')
         ->and($donationChannel->ewallet_qr_payload)->toBe('duitnow://payment/ilmu360')
-        ->and($donationChannel->status)->toBe('inactive')
+        ->and($donationChannel->status)->toBe(DonationChannelStatus::Inactive)
         ->and($donationChannel->is_default)->toBeFalse()
         ->and($donationChannel->getMedia('qr'))->toHaveCount(0);
 });
@@ -2134,7 +2136,7 @@ it('exposes admin institution write schema and can create and update institution
     $institution = Institution::query()->findOrFail($institutionRouteKey);
 
     expect($institution->display_name)->toBe('Admin API Institution')
-        ->and($institution->status)->toBe('verified')
+        ->and($institution->status)->toBe(InstitutionStatus::Verified)
         ->and($institution->allow_public_event_submission)->toBeTrue();
 
     $this->putJson('/api/v1/admin/institutions/'.$institutionRouteKey, [

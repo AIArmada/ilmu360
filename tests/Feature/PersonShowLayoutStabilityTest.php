@@ -9,5 +9,5 @@ it('gates bottom-anchored decor on settled load and sizes the header logo', func
         ->assertSuccessful()
         ->assertSee('mi-bg-settled', false)
         ->assertSee('is-loaded', false)
-        ->assertSee('width="1227" height="276"', false);
+        ->assertSee('width="2172" height="724"', false);
 });

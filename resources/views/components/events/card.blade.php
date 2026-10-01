@@ -94,8 +94,8 @@
         $eventLocation = $locationPrimary;
         $eventLocationSubtitle = $locationSecondary ?? '';
     } else {
-        $eventLocation = $event->institution?->name ?? __('Seluruh Malaysia');
-        $eventLocationSubtitle = \App\Support\Location\AddressHierarchyFormatter::format($event->institution?->primaryAddress(), ['city', 'state']);
+        $eventLocation = $event->resolvedLocationName() ?? __('Seluruh Malaysia');
+        $eventLocationSubtitle = \App\Support\Location\AddressHierarchyFormatter::format($event->resolvedLocationAddress(), ['city', 'state']);
     }
 @endphp
 

@@ -6,6 +6,7 @@ use AIArmada\Addressing\Models\AddressAreaStateLink;
 use AIArmada\Addressing\Models\State;
 use App\Enums\ContributionSubjectType;
 use App\Enums\InstitutionNameType;
+use App\Enums\InstitutionStatus;
 use App\Livewire\Pages\Contributions\SubmitInstitution;
 use App\Models\ContributionRequest;
 use App\Models\Event;
@@ -132,7 +133,7 @@ it('allows users to submit a missing institution from institution index with pen
         ->first();
 
     expect($institution)->not->toBeNull()
-        ->and($institution?->status)->toBe('pending')
+        ->and($institution?->status)->toBe(InstitutionStatus::Pending)
         ->and($institution?->primaryAddress()?->google_maps_url)->toBe('https://www.google.com/maps/search/?api=1&query=3.139%2C101.6869&query_place_id=place_123')
         ->and($institution?->primaryAddress()?->provider_place_id)->toBe('place_123')
         ->and(abs(((float) $institution?->primaryAddress()?->latitude) - 3.1390))->toBeLessThan(0.000001)

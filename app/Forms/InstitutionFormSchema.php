@@ -7,6 +7,7 @@ use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Institutions\GenerateInstitutionSlugAction;
 use App\Enums\InstitutionNameType;
+use App\Enums\InstitutionStatus;
 use App\Enums\InstitutionType;
 use App\Models\Institution;
 use App\Models\User;
@@ -139,7 +140,7 @@ class InstitutionFormSchema
                 'slug' => app(GenerateInstitutionSlugAction::class)->handle((string) $data['name'], $addressData),
                 'type' => $data['type'],
                 'description' => $data['description'] ?? null,
-                'status' => 'pending',
+                'status' => InstitutionStatus::Pending,
             ]);
 
             $names = is_array($data['names'] ?? null) ? $data['names'] : [];

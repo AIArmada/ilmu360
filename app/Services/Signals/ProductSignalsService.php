@@ -9,6 +9,7 @@ use AIArmada\Signals\Contracts\SignalEventIngestor;
 use AIArmada\Signals\Models\SignalEvent;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Models\Event;
+use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Report;
@@ -117,6 +118,55 @@ final readonly class ProductSignalsService
                 'event_id' => (string) $event->getKey(),
                 'event_status' => (string) $event->status,
                 ...$properties,
+            ],
+        );
+    }
+
+    /**
+     * One curated outcome for an actual own-facilities change: omitted and
+     * no-op maps produce no event, so callers record only after a provided
+     * map changed and the whole save succeeded.
+     *
+     * @param  array<string, bool>|null  $previousFacilities
+     * @param  array<string, bool>|null  $currentFacilities
+     */
+    public function recordInstitutionFacilitiesUpdated(
+        Institution $institution,
+        ?array $previousFacilities,
+        ?array $currentFacilities,
+        ?User $actor = null,
+        ?Request $request = null,
+    ): ?SignalEvent {
+        $previous = $previousFacilities ?? [];
+        $current = $currentFacilities ?? [];
+
+        $changed = [];
+
+        foreach (array_unique([...array_keys($previous), ...array_keys($current)]) as $code) {
+            if (($previous[$code] ?? null) !== ($current[$code] ?? null)) {
+                $changed[] = $code;
+            }
+        }
+
+        sort($changed);
+
+        if ($changed === []) {
+            return null;
+        }
+
+        $enabledCount = count(array_filter($current));
+
+        return $this->record(
+            request: $request,
+            eventName: 'admin.institution_facilities.updated',
+            eventCategory: 'admin',
+            user: $actor,
+            properties: [
+                'institution_id' => (string) $institution->getKey(),
+                'changed_codes' => $changed,
+                'enabled_count' => $enabledCount,
+                'disabled_count' => count($current) - $enabledCount,
+                'cleared' => $currentFacilities === null,
             ],
         );
     }

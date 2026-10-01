@@ -29,6 +29,7 @@ use App\Actions\Series\SaveSeriesAction;
 use App\Actions\Spaces\SaveSpaceAction;
 use App\Actions\Venues\SaveVenueAction;
 use App\Contracts\EventCategoryCatalog;
+use App\Enums\DonationChannelStatus;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
@@ -37,6 +38,7 @@ use App\Enums\EventPrayerTime;
 use App\Enums\EventTaxonomyCode;
 use App\Enums\EventVisibility;
 use App\Enums\InspirationCategory;
+use App\Enums\InstitutionStatus;
 use App\Enums\InstitutionType;
 use App\Enums\ReferencePartType;
 use App\Enums\ReferenceType;
@@ -64,7 +66,9 @@ use App\Models\Space;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\ContributionEntityMutationService;
+use App\Support\Institutions\InstitutionFacilities;
 use BackedEnum;
+use Closure;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Http\UploadedFile;
@@ -499,7 +503,7 @@ class AdminResourceMutationService
                 'ewallet_handle' => null,
                 'ewallet_qr_payload' => null,
                 'reference_note' => null,
-                'status' => 'pending',
+                'status' => DonationChannelStatus::Pending->value,
                 'is_default' => false,
                 'clear_qr' => false,
             ],
@@ -515,7 +519,8 @@ class AdminResourceMutationService
             ],
             InstitutionResource::class => [
                 'type' => InstitutionType::Masjid->value,
-                'status' => 'pending',
+                'status' => InstitutionStatus::Pending->value,
+                'facilities' => null,
                 'clear_logo' => false,
                 'clear_cover' => false,
                 'clear_gallery' => false,
@@ -643,7 +648,7 @@ class AdminResourceMutationService
                 'ewallet_handle' => $record->ewallet_handle,
                 'ewallet_qr_payload' => $record->ewallet_qr_payload,
                 'reference_note' => $record->reference_note,
-                'status' => (string) $record->status,
+                'status' => $record->status->value,
                 'is_default' => (bool) $record->is_default,
                 'clear_qr' => false,
             ];
@@ -664,7 +669,8 @@ class AdminResourceMutationService
         }
 
         if ($record instanceof Institution) {
-            $defaults['status'] = $record->status;
+            $defaults['status'] = $record->status->value;
+            $defaults['facilities'] = $record->facilities;
             $defaults['allow_public_event_submission'] = (bool) $record->allow_public_event_submission;
             $defaults['clear_logo'] = false;
             $defaults['clear_cover'] = false;
@@ -1118,7 +1124,22 @@ class AdminResourceMutationService
             ]),
             $this->field('type', 'string', required: true, default: InstitutionType::Masjid->value, allowedValues: $this->enumValues(InstitutionType::class)),
             $this->field('description', 'string', required: false),
-            $this->field('status', 'string', required: true, allowedValues: ['pending', 'verified', 'rejected', 'inactive']),
+            $this->field('status', 'string', required: true, allowedValues: $this->enumValues(InstitutionStatus::class)),
+            $this->field('facilities', 'object', required: false, allowedValues: InstitutionFacilities::codes(), meta: [
+                'mutation_semantics' => 'replace_map_when_present',
+                'clear_semantics' => [
+                    'omitted' => 'preserve_existing',
+                    'explicit_null' => 'clear_to_null',
+                    'empty_object' => 'clear_to_null',
+                ],
+                'value_schema' => [
+                    'type' => 'object',
+                    'keys' => InstitutionFacilities::codes(),
+                    'values' => 'boolean',
+                ],
+                'unknown_keys' => 'rejected',
+                'safe_client_strategy' => 'omit_field_to_preserve_or_send_full_flag_map',
+            ]),
             $this->field('address', 'object', required: ! $updating, meta: [
                 'mutation_semantics' => 'deep_merge_when_present',
                 'clear_semantics' => [
@@ -1254,7 +1275,7 @@ class AdminResourceMutationService
             $this->field('ewallet_handle', 'string', required: false, maxLength: 255, meta: $this->trimmedStringMutationMeta()),
             $this->field('ewallet_qr_payload', 'string', required: false, meta: $this->trimmedStringMutationMeta()),
             $this->field('reference_note', 'string', required: false, meta: $this->trimmedStringMutationMeta()),
-            $this->field('status', 'string', required: true, default: 'pending', allowedValues: ['pending', 'verified', 'rejected', 'inactive']),
+            $this->field('status', 'string', required: true, default: DonationChannelStatus::Pending->value, allowedValues: $this->enumValues(DonationChannelStatus::class)),
             $this->field('is_default', 'boolean', required: false, default: false),
             $this->field('qr', 'file', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
             $this->field('clear_qr', 'boolean', required: false, default: false),
@@ -2027,7 +2048,16 @@ class AdminResourceMutationService
             'type' => ['required', Rule::enum(InstitutionType::class)],
             'names' => ['nullable', 'array'],
             'description' => ['nullable', 'string'],
-            'status' => ['required', Rule::in(['pending', 'verified', 'rejected', 'inactive'])],
+            'status' => ['required', Rule::enum(InstitutionStatus::class)],
+            'facilities' => ['nullable', 'array', function (string $attribute, mixed $value, Closure $fail): void {
+                if (! is_array($value)) {
+                    return;
+                }
+
+                foreach (InstitutionFacilities::validate($value) as $message) {
+                    $fail($message);
+                }
+            }],
             'allow_public_event_submission' => $updating ? ['sometimes', 'boolean'] : ['prohibited'],
             'address' => $addressRule,
             'address.country_id' => $updating
@@ -2086,7 +2116,7 @@ class AdminResourceMutationService
             'ewallet_handle' => ['nullable', 'string', 'max:255'],
             'ewallet_qr_payload' => ['nullable', 'string'],
             'reference_note' => ['nullable', 'string'],
-            'status' => [$required, Rule::in(['pending', 'verified', 'rejected', 'inactive'])],
+            'status' => [$required, Rule::enum(DonationChannelStatus::class)],
             'is_default' => ['sometimes', 'boolean'],
             'qr' => ['nullable', 'file', 'mimetypes:image/jpeg,image/png,image/webp', $maxUploadSize],
             'clear_qr' => ['sometimes', 'boolean'],
@@ -2186,7 +2216,7 @@ class AdminResourceMutationService
             'primary_organizer_id' => [
                 $required,
                 'uuid',
-                function (string $attribute, mixed $value, \Closure $fail): void {
+                function (string $attribute, mixed $value, Closure $fail): void {
                     if (! is_string($value)) {
                         return;
                     }

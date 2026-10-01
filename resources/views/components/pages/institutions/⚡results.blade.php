@@ -616,12 +616,12 @@ new class extends Component
                             <a href="{{ route('institutions.show', $institution) }}" wire:navigate class="flex flex-1 flex-col after:absolute after:inset-0">
                             <!-- Banner Area (16:9, cover-first) -->
                             <div class="institution-card-media aspect-video bg-slate-50 relative overflow-hidden">
-                                @if((string) $institution->status === 'verified')
+                                @if($institution->status === \App\Enums\InstitutionStatus::Verified)
                                     <span class="absolute start-2.5 top-2.5 z-10 inline-flex items-center gap-1.5 rounded-full border border-white/70 bg-white/92 px-2.5 py-1 text-[10px] font-bold text-emerald-800 shadow-sm backdrop-blur">
                                         <flux:icon.check variant="mini" class="size-3.5 text-emerald-700" />
                                         {{ __('Disahkan') }}
                                     </span>
-                                @elseif((string) $institution->status === 'pending')
+                                @elseif($institution->status === \App\Enums\InstitutionStatus::Pending)
                                     <span class="absolute start-2.5 top-2.5 z-10 inline-flex items-center gap-1.5 rounded-full border border-amber-300/70 bg-amber-50/92 px-2.5 py-1 text-[10px] font-bold text-amber-800 shadow-sm backdrop-blur">
                                         <flux:icon.exclamation-triangle variant="solid" class="size-3.5 text-amber-600" />
                                         {{ __('Belum disahkan') }}

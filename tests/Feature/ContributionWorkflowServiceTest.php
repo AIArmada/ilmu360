@@ -8,6 +8,7 @@ use App\Actions\Contributions\SubmitContributionUpdateRequestAction;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
+use App\Enums\InstitutionStatus;
 use App\Models\ContributionRequest;
 use App\Models\Event;
 use App\Models\Institution;
@@ -68,7 +69,7 @@ it('creates staged pending institution records with structured relation data', f
         ]],
     ], $proposer);
 
-    expect($institution->status)->toBe('pending')
+    expect($institution->status)->toBe(InstitutionStatus::Pending)
         ->and($institution->primaryAddress()?->line1)->toBe('Jalan Hikmah')
         ->and($institution->contactMethods()->where('value', '0123456789')->exists())->toBeTrue()
         ->and($institution->members()->whereKey($proposer->id)->exists())->toBeFalse();
@@ -110,7 +111,7 @@ it('approves institution create requests without attaching proposer membership a
     expect($approvedRequest->status)->toBe(ContributionRequestStatus::Approved)
         ->and($approvedRequest->reviewer_id)->toBe($reviewer->id)
         ->and($approvedRequest->entity_type)->toBe($institution->getMorphClass())
-        ->and($institution->status)->toBe('verified')
+        ->and($institution->status)->toBe(InstitutionStatus::Verified)
         ->and($institution->members()->whereKey($proposer->id)->exists())->toBeFalse()
         ->and(app(MemberPermissionGate::class)->canInstitution($proposer, 'institution.update', $institution))->toBeFalse();
 
@@ -139,7 +140,7 @@ it('approves staged institution create requests without creating a duplicate rec
     app(ApproveContributionRequestAction::class)->handle($request, $reviewer, 'Looks legitimate.');
 
     expect(Institution::query()->where('name', 'Masjid Pending')->count())->toBe(1)
-        ->and($institution->fresh()->status)->toBe('verified')
+        ->and($institution->fresh()->status)->toBe(InstitutionStatus::Verified)
         ->and($institution->fresh()->members()->whereKey($proposer->id)->exists())->toBeFalse();
 });
 

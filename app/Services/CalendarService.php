@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\Event;
 use App\Models\Institution;
-use App\Models\Venue;
 use Illuminate\Support\Carbon;
 
 class CalendarService
@@ -321,27 +320,17 @@ class CalendarService
     }
 
     /**
-     * Format the event location.
+     * Format the event location through the shared resolver: default venue,
+     * otherwise primary package venue, otherwise institution place.
      */
     protected function formatLocation(Event $event): string
     {
-        $parts = [];
-        $venue = $event->venue;
-        $institution = $event->institution;
+        $line1 = $event->resolvedLocationAddress()?->line1;
 
-        if ($venue instanceof Venue) {
-            $parts[] = $venue->name;
-
-            if ($venue->primaryAddress()?->line1 !== '') {
-                $parts[] = $venue->primaryAddress()?->line1;
-            }
-        } elseif ($institution instanceof Institution) {
-            $parts[] = $institution->name;
-
-            if ($institution->primaryAddress()?->line1 !== '') {
-                $parts[] = $institution->primaryAddress()?->line1;
-            }
-        }
+        $parts = array_values(array_filter([
+            $event->resolvedLocationName(),
+            is_string($line1) && trim($line1) !== '' ? $line1 : null,
+        ], static fn (mixed $value): bool => is_string($value) && $value !== ''));
 
         return implode(', ', $parts) ?: 'Online';
     }

@@ -14,6 +14,7 @@ use AIArmada\Signals\Models\TrackedProperty;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
+use App\Enums\DonationChannelStatus;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventChangeSeverity;
 use App\Enums\EventChangeType;
@@ -21,6 +22,7 @@ use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
+use App\Enums\InstitutionStatus;
 use App\Enums\PrayerOffset;
 use App\Enums\PrayerReference;
 use App\Enums\RegistrationScope;
@@ -1452,7 +1454,7 @@ it('exposes donation channel write schema and creates and updates donation chann
         ->and($donationChannel->account_number)->toBeNull()
         ->and($donationChannel->duitnow_type)->toBe('mobile')
         ->and($donationChannel->duitnow_value)->toBe('60123456789')
-        ->and($donationChannel->status)->toBe('inactive')
+        ->and($donationChannel->status)->toBe(DonationChannelStatus::Inactive)
         ->and($donationChannel->getMedia('qr'))->toHaveCount(1);
 });
 
@@ -2021,7 +2023,7 @@ it('creates and updates institutions through MCP write tools', function () {
     $originalLng = $originalAddress?->longitude;
 
     expect($institution->display_name)->toBe('Admin MCP Institution')
-        ->and($institution->status)->toBe('verified')
+        ->and($institution->status)->toBe(InstitutionStatus::Verified)
         ->and($institution->allow_public_event_submission)->toBeTrue();
 
     AdminServer::actingAs($admin)
