@@ -104,7 +104,10 @@ class EditPerson extends EditRecord
             'latitude' => $address?->latitude,
             'longitude' => $address?->longitude,
             'google_maps_url' => $address?->google_maps_url,
-            'provider_place_id' => $address?->provider_place_id,
+            'google_place_id' => $address?->google_place_id,
+            'google_feature_id' => $address?->google_feature_id,
+            'google_cid' => $address?->google_cid,
+            'google_entity_id' => $address?->google_entity_id,
             'waze_url' => $address?->waze_url,
         ]);
     }

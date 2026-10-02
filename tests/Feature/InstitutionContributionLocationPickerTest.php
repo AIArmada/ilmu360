@@ -153,7 +153,7 @@ it('keeps manual fallback mode off the places api while still normalizing pasted
 
     expect($institution)->not->toBeNull()
         ->and($institution?->primaryAddress()?->google_maps_url)->toBe('https://www.google.com/maps/search/?api=1&query=1.9089362%2C102.865462')
-        ->and($institution?->primaryAddress()?->provider_place_id)->toBeNull()
+        ->and($institution?->primaryAddress()?->google_place_id)->toBeNull()
         ->and((float) $institution?->primaryAddress()?->latitude)->toBe(1.9089362)
         ->and((float) $institution?->primaryAddress()?->longitude)->toBe(102.865462);
 
@@ -200,7 +200,7 @@ it('applies a google place selection into the nested institution address state',
         ->assertSet('data.address.state_id', (string) $state['package']->id)
         ->assertSet('data.address.area_assignments.administrative_district', (string) $district->id)
         ->assertSet('data.address.area_assignments.administrative_subdivision', (string) $subdistrict->id)
-        ->assertSet('data.address.provider_place_id', 'place_abc123')
+        ->assertSet('data.address.google_place_id', 'place_abc123')
         ->assertSet('data.address.google_maps_url', 'https://www.google.com/maps/search/?api=1&query=3.07853%2C101.52073&query_place_id=place_abc123')
         ->assertSet('data.address.google_resolution_source', 'picker')
         ->assertSet('data.address.google_resolution_status', 'resolved')
@@ -234,7 +234,7 @@ it('applies a google place selection from the person contribution institution pi
         ->assertSet('data.address.country_id', (string) $country->getKey())
         ->assertSet('data.address.line1', 'Jalan Ilmu')
         ->assertSet('data.address.postcode', '50000')
-        ->assertSet('data.address.provider_place_id', 'person_place_123')
+        ->assertSet('data.address.google_place_id', 'person_place_123')
         ->assertSet('data.address.google_resolution_source', 'picker')
         ->assertSet('data.address.latitude', 3.139)
         ->assertSet('data.address.longitude', 101.6869);

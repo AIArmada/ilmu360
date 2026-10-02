@@ -118,7 +118,7 @@ it('allows users to submit a missing institution from institution index with pen
         ->set('data.type', 'masjid')
         ->set('data.address.country_id', $country->getKey())
         ->set('data.address.google_maps_url', 'https://maps.google.com/?q=3.1390,101.6869')
-        ->set('data.address.provider_place_id', 'place_123')
+        ->set('data.address.google_place_id', 'place_123')
         ->set('data.address.latitude', 3.1390)
         ->set('data.address.longitude', 101.6869)
         ->call('submit')
@@ -135,7 +135,7 @@ it('allows users to submit a missing institution from institution index with pen
     expect($institution)->not->toBeNull()
         ->and($institution?->status)->toBe(InstitutionStatus::Pending)
         ->and($institution?->primaryAddress()?->google_maps_url)->toBe('https://www.google.com/maps/search/?api=1&query=3.139%2C101.6869&query_place_id=place_123')
-        ->and($institution?->primaryAddress()?->provider_place_id)->toBe('place_123')
+        ->and($institution?->primaryAddress()?->google_place_id)->toBe('place_123')
         ->and(abs(((float) $institution?->primaryAddress()?->latitude) - 3.1390))->toBeLessThan(0.000001)
         ->and(abs(((float) $institution?->primaryAddress()?->longitude) - 101.6869))->toBeLessThan(0.000001);
 });
@@ -163,7 +163,7 @@ it('rejects duplicate institution submissions when name and locality all match',
         ->set('data.address.area_assignments.administrative_district', $geo['address']['area_assignments']['administrative_district'])
         ->set('data.address.area_assignments.administrative_subdivision', $geo['address']['area_assignments']['administrative_subdivision'])
         ->set('data.address.google_maps_url', 'https://maps.google.com/?q=3.1390,101.6869')
-        ->set('data.address.provider_place_id', 'place_duplicate_institution')
+        ->set('data.address.google_place_id', 'place_duplicate_institution')
         ->set('data.address.latitude', 3.1390)
         ->set('data.address.longitude', 101.6869)
         ->call('submit')

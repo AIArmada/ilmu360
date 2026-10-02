@@ -36,7 +36,10 @@ class VenueSeeder extends Seeder
                 'country_id' => $malaysia?->id,
                 'latitude' => fake()->randomFloat(7, 1.0, 7.0),
                 'longitude' => fake()->randomFloat(7, 99.0, 119.0),
-                'provider_place_id' => fake()->optional()->numerify('ChI###########'),
+                'google_place_id' => fake()->optional()->numerify('ChI###########'),
+                'google_feature_id' => fake()->optional()->numerify('0x#x:0x#'),
+                'google_cid' => fake()->optional()->numerify('###################'),
+                'google_entity_id' => fake()->optional()->randomElement(['/g/abc123', '/m/xyz789']),
                 'waze_url' => fake()->optional()->url(),
             ], $state, $district, $subdistrict));
         }

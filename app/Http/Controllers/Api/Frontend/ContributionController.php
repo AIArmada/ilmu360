@@ -83,7 +83,7 @@ class ContributionController extends FrontendController
             .'The proposer is not automatically added as an institution owner, admin, editor, or member; they only receive review outcome notifications. '
             .'Duplicate institutions are rejected when the normalized name and locality match an existing institution. '
             .'Institution payloads must include an explicit address country via `address.country_id`. '
-            .'Any provided `address.google_maps_url` is normalized server-side into a canonical Google Maps URL and may populate `address.provider_place_id`, `address.latitude`, and `address.longitude` before persistence. '
+            .'Any provided `address.google_maps_url` is normalized server-side into a canonical Google Maps URL and may populate `address.google_place_id`, `address.latitude`, and `address.longitude` before persistence. `address.google_feature_id`, `address.google_cid`, and `address.google_entity_id` are accepted as manually pinned identifiers and stored verbatim. '
             .'Fetch `GET /forms/contributions/institutions` first to discover required fields, defaults, media support, and conditional rules.',
     )]
     public function storeInstitution(
@@ -116,7 +116,10 @@ class ContributionController extends FrontendController
             'address.latitude' => ['nullable', 'numeric'],
             'address.longitude' => ['nullable', 'numeric'],
             'address.google_maps_url' => ['required', 'url', 'max:255'],
-            'address.provider_place_id' => ['nullable', 'string', 'max:255'],
+            'address.google_place_id' => ['nullable', 'string', 'max:255'],
+            'address.google_feature_id' => ['nullable', 'string', 'max:255'],
+            'address.google_cid' => ['nullable', 'string', 'max:255'],
+            'address.google_entity_id' => ['nullable', 'string', 'max:255'],
             'address.waze_url' => ['nullable', 'url', 'max:255'],
             'contactMethods' => ['nullable', 'array'],
             'contacts.*.type' => ['required_with:contacts', 'string', 'max:255'],
@@ -198,7 +201,10 @@ class ContributionController extends FrontendController
             'address.latitude' => ['prohibited'],
             'address.longitude' => ['prohibited'],
             'address.google_maps_url' => ['prohibited'],
-            'address.provider_place_id' => ['prohibited'],
+            'address.google_place_id' => ['prohibited'],
+            'address.google_feature_id' => ['prohibited'],
+            'address.google_cid' => ['prohibited'],
+            'address.google_entity_id' => ['prohibited'],
             'address.waze_url' => ['prohibited'],
             'language_ids' => ['nullable', 'array'],
             'language_ids.*' => ['uuid'],
