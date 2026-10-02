@@ -7,12 +7,6 @@ parameters:
 			path: app/Actions/Events/SyncEventScheduleAction.php
 
 		-
-			message: '#^Using nullsafe property access "\?\-\>value" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Actions/Events/SyncEventScheduleAction.php
-
-		-
 			message: '#^Trait App\\Concerns\\ProfileValidationRules is used zero times and is not analysed\.$#'
 			identifier: trait.unused
 			count: 1

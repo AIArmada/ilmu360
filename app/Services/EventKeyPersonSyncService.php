@@ -2,119 +2,118 @@
 
 namespace App\Services;
 
-use AIArmada\Events\Models\EventRole;
+use AIArmada\Events\Actions\SyncEventInvolvementsAction;
+use AIArmada\Events\Models\EventSession;
 use App\Actions\Events\GenerateEventSlugAction;
 use App\Enums\EventKeyPersonRole;
 use App\Models\Event;
-use App\Models\EventKeyPerson;
-use App\Models\Person;
-use Illuminate\Support\Str;
 
 class EventKeyPersonSyncService
 {
     public function __construct(
-        private readonly GenerateEventSlugAction $generateEventSlugAction,
+        private readonly SyncEventInvolvementsAction $syncInvolvements,
+        private readonly GenerateEventSlugAction $generateEventSlug,
     ) {}
 
     /**
+     * Canonical key-person rows: role_code, involveable_type,
+     * involveable_id, display_name, visibility, notes.
+     *
      * @param  list<string>  $personIds
-     * @param  list<array<string, mixed>>  $otherKeyPeople  Canonical key-person rows.
+     * @param  list<array<string, mixed>>  $otherKeyPeople
      */
     public function sync(Event $event, array $personIds = [], array $otherKeyPeople = []): void
     {
-        $event->keyPeople()->delete();
+        $this->syncInvolvements->handle($event, $this->normalizeRows($personIds, $otherKeyPeople), $this->managedRoleCodes());
 
-        $order = 1;
-
-        $base = ['status' => 'active', 'visibility' => 'public'];
-        $roleIds = EventRole::query()->pluck('id', 'code');
-
-        foreach ($this->normalizePersonIds($personIds) as $personId) {
-            EventKeyPerson::query()->forceCreate($base + [
-                'id' => (string) Str::uuid(),
-                'event_id' => $event->id,
-                'involveable_type' => 'person',
-                'involveable_id' => $personId,
-                'event_role_id' => $roleIds->get(EventKeyPersonRole::Speaker->value),
-                'role_code' => EventKeyPersonRole::Speaker->value,
-                'sort_order' => $order++,
-            ]);
-        }
-
-        foreach ($this->normalizeKeyPeople($otherKeyPeople) as $keyPerson) {
-            EventKeyPerson::query()->forceCreate($base + [
-                'id' => (string) Str::uuid(),
-                'event_id' => $event->id,
-                'involveable_type' => $keyPerson['involveable_type'],
-                'involveable_id' => $keyPerson['involveable_id'],
-                'event_role_id' => $roleIds->get($keyPerson['role_code']),
-                'role_code' => $keyPerson['role_code'],
-                'sort_order' => $order++,
-                'visibility' => $keyPerson['visibility'],
-                'notes' => $keyPerson['notes'],
-                'display_name' => $keyPerson['display_name'],
-            ]);
-        }
-
-        $this->generateEventSlugAction->syncEventSlugsForTitle($event->title);
+        $this->generateEventSlug->syncEventSlug($event);
     }
 
     /**
-     * @param  list<string|int|mixed>  $personIds
+     * @param  list<string>  $personIds
+     * @param  list<array<string, mixed>>  $otherKeyPeople
+     */
+    public function syncSession(EventSession $session, array $personIds = [], array $otherKeyPeople = []): void
+    {
+        $this->syncInvolvements->handle($session, $this->normalizeRows($personIds, $otherKeyPeople), $this->managedRoleCodes());
+    }
+
+    /**
      * @return list<string>
      */
-    protected function normalizePersonIds(array $personIds): array
+    private function managedRoleCodes(): array
     {
-        return collect($personIds)
-            ->filter(fn (mixed $personId): bool => is_string($personId) && $personId !== '')
-            ->unique()
+        return collect(EventKeyPersonRole::cases())
+            ->map(static fn (EventKeyPersonRole $role): string => $role->value)
             ->values()
             ->all();
     }
 
     /**
-     * @param  list<array<string, mixed>>  $keyPeople
-     * @return list<array{role_code: string, involveable_type: ?string, involveable_id: ?string, display_name: ?string, visibility: string, notes: ?string}>
+     * App owns vocabulary mapping only (speaker shortcut, role filtering,
+     * visibility normalization). Identity dedupe lives in the generic
+     * SyncEventInvolvementsAction so duplicate rows are handled once.
+     *
+     * @param  list<string>  $personIds
+     * @param  list<array<string, mixed>>  $otherKeyPeople
+     * @return list<array{role_code: string, involveable_type: ?string, involveable_id: ?string, display_name: ?string, visibility: string, status: string, notes: ?string}>
      */
-    protected function normalizeKeyPeople(array $keyPeople): array
+    private function normalizeRows(array $personIds, array $otherKeyPeople): array
     {
-        return collect($keyPeople)
-            ->map(function (mixed $keyPerson): ?array {
-                $role = $keyPerson['role_code'] ?? null;
+        $rows = [];
 
-                if (! is_string($role) || EventKeyPersonRole::tryFrom($role) === null || $role === EventKeyPersonRole::Speaker->value) {
-                    return null;
-                }
+        foreach ($personIds as $personId) {
+            if (! is_string($personId) || $personId === '') {
+                continue;
+            }
 
-                $involveableId = is_string($keyPerson['involveable_id'] ?? null) && $keyPerson['involveable_id'] !== ''
-                    ? $keyPerson['involveable_id']
-                    : null;
-                $displayName = is_string($keyPerson['display_name'] ?? null) && trim($keyPerson['display_name']) !== ''
-                    ? trim($keyPerson['display_name'])
-                    : null;
+            $rows[] = [
+                'role_code' => EventKeyPersonRole::Speaker->value,
+                'involveable_type' => 'person',
+                'involveable_id' => $personId,
+                'display_name' => null,
+                'visibility' => 'public',
+                'status' => 'active',
+                'notes' => null,
+            ];
+        }
 
-                if ($involveableId === null && $displayName === null) {
-                    return null;
-                }
+        foreach ($otherKeyPeople as $entry) {
+            if (! is_array($entry)) {
+                continue;
+            }
 
-                $visibility = $keyPerson['visibility'] ?? null;
-                $visibility = is_string($visibility) && in_array($visibility, ['public', 'private'], true)
-                    ? $visibility
-                    : 'public';
+            $roleCode = $entry['role_code'] ?? null;
 
-                return [
-                    'role_code' => $role,
-                    'involveable_type' => $involveableId === null ? null : 'person',
-                    'involveable_id' => $involveableId,
-                    'display_name' => $displayName,
-                    'visibility' => $visibility,
-                    'notes' => is_string($keyPerson['notes'] ?? null) && trim($keyPerson['notes']) !== ''
-                        ? trim($keyPerson['notes'])
-                        : null,
-                ];
-            })
-            ->filter()
-            ->values()
-            ->all();
+            if (! is_string($roleCode) || EventKeyPersonRole::tryFrom($roleCode) === null) {
+                continue;
+            }
+
+            if ($roleCode === EventKeyPersonRole::Speaker->value) {
+                continue;
+            }
+
+            $personId = $entry['involveable_id'] ?? null;
+            $personId = is_string($personId) && $personId !== '' ? $personId : null;
+            $displayName = isset($entry['display_name']) && is_string($entry['display_name']) ? trim($entry['display_name']) : '';
+            $notes = isset($entry['notes']) && is_string($entry['notes']) ? trim($entry['notes']) : '';
+            $visibility = $entry['visibility'] ?? 'public';
+
+            if ($personId === null && $displayName === '') {
+                continue;
+            }
+
+            $rows[] = [
+                'role_code' => $roleCode,
+                'involveable_type' => $personId === null ? null : 'person',
+                'involveable_id' => $personId,
+                'display_name' => $displayName !== '' ? $displayName : null,
+                'visibility' => $visibility === 'private' ? 'private' : 'public',
+                'status' => 'active',
+                'notes' => $notes !== '' ? $notes : null,
+            ];
+        }
+
+        return $rows;
     }
 }

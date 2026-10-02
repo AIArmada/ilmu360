@@ -13,11 +13,16 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
 use App\Models\Venue;
+use App\Support\Submission\SubmitEventOptionsProvider;
+use App\Support\Submission\SubmitEventPrefill;
+use Database\Seeders\AIArmada\EventRoleSeeder;
 use Livewire\Livewire;
 
 beforeEach(function () {
     fakePrayerTimesApi();
     $this->user = User::factory()->create();
+
+    $this->seed(EventRoleSeeder::class);
 
     $this->domainTag = submitEventTerm('domain');
     $this->disciplineTag = submitEventTerm('discipline');
@@ -41,6 +46,78 @@ function submitEventLocationFormData(array $overrides = []): array
         'languages' => [languageId('ms')],
     ], $overrides);
 }
+
+it('prefills the existing venue when an institution organizer adds a session', function (): void {
+    $institution = Institution::factory()->create(['status' => 'verified', 'allow_public_event_submission' => true]);
+    $venue = Venue::factory()->create(['status' => 'verified']);
+    $event = Event::factory()->create([
+        'status' => 'draft',
+        'created_by_type' => $this->user->getMorphClass(),
+        'created_by_id' => $this->user->getKey(),
+        'default_venue_id' => $venue->getKey(),
+        'delivery_mode' => EventFormat::Physical,
+    ]);
+    $event->setPrimaryOrganizer($institution);
+
+    Livewire::actingAs($this->user)
+        ->withQueryParams(['event' => $event->getKey()])
+        ->test(Create::class)
+        ->assertSet('data.primary_organizer_institution_id', $institution->getKey())
+        ->assertSet('data.location_same_as_institution', false)
+        ->assertSet('data.location_type', 'venue')
+        ->assertSet('data.location_venue_id', $venue->getKey());
+});
+
+it('preserves a separate location institution when prefilling a session', function (): void {
+    $organizer = Institution::factory()->create(['status' => 'verified', 'allow_public_event_submission' => true]);
+    $location = Institution::factory()->create(['status' => 'verified', 'allow_public_event_submission' => true]);
+    $event = Event::factory()->create([
+        'institution_id' => $location->getKey(),
+        'default_venue_id' => null,
+        'delivery_mode' => EventFormat::Physical,
+    ]);
+    $event->setPrimaryOrganizer($organizer);
+
+    $defaults = SubmitEventPrefill::containerDefaults($event->fresh(), $this->user, (string) ensureTestMalaysiaCountry()->getKey());
+
+    expect($defaults)->toMatchArray([
+        'primary_organizer_institution_id' => $organizer->getKey(),
+        'location_same_as_institution' => false,
+        'location_type' => 'institution',
+        'location_institution_id' => $location->getKey(),
+    ]);
+});
+
+it('flashes actual private parent visibility after submitting a public session', function (): void {
+    $institution = Institution::factory()->create(['status' => 'verified', 'allow_public_event_submission' => true]);
+    $person = Person::factory()->create(['status' => 'verified', 'allow_public_event_submission' => true]);
+    $event = Event::factory()->create([
+        'status' => 'draft',
+        'visibility' => EventVisibility::Private,
+        'created_by_type' => $this->user->getMorphClass(),
+        'created_by_id' => $this->user->getKey(),
+    ]);
+    $event->setPrimaryOrganizer($institution);
+    $event->primaryOccurrence->update(['visibility' => 'private']);
+
+    setSubmitEventFormState(
+        Livewire::actingAs($this->user)->withQueryParams(['event' => $event->getKey()])->test(Create::class),
+        submitEventLocationFormData([
+            'title' => 'Private Parent Session Confirmation',
+            'primary_organizer_id' => $institution->getKey(),
+            'location_same_as_institution' => true,
+            'persons' => [$person->getKey()],
+            'domain_tags' => [$this->domainTag->getKey()],
+            'discipline_tags' => [$this->disciplineTag->getKey()],
+            'submitter_name' => $this->user->name,
+            'submitter_email' => $this->user->email,
+        ]),
+    )->call('submit')->assertHasNoErrors()->assertRedirect(route('submit-event.success'));
+
+    expect(session('event_parent_visibility'))->toBe('private')
+        ->and(session('event_occurrence_visibility'))->toBe('private')
+        ->and(session('event_visibility'))->toBe('public');
+});
 
 it('can submit an event as a person with an institution location', function () {
     $person = Person::factory()->create(['status' => 'verified']);
@@ -176,10 +253,8 @@ it('includes institution alternative names in submit-event option labels', funct
         'is_primary' => true,
     ]);
 
-    $component = Livewire::test(Create::class);
-
     /** @var array<string, string> $options */
-    $options = (fn (): array => $this->availableInstitutionOptions())->call($component->instance());
+    $options = app(SubmitEventOptionsProvider::class)->institutionOptions(null, null, null);
 
     expect($options)->toHaveKey($institution->id, $institution->display_name);
 });

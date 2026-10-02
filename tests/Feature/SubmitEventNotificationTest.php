@@ -13,6 +13,7 @@ use App\Models\Person;
 use App\Models\User;
 use App\Notifications\EventSubmittedNotification;
 use App\States\EventStatus\Pending;
+use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
@@ -20,6 +21,7 @@ use Livewire\Livewire;
 beforeEach(function () {
     fakePrayerTimesApi();
     $this->seed(RoleSeeder::class);
+    $this->seed(EventRoleSeeder::class);
     Notification::fake();
 });
 

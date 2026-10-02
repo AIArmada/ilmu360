@@ -34,5 +34,7 @@ final readonly class ValidatedEventSubmission
         public ?User $submitter,
         public ?Event $eventContainer,
         public array $personSlugSegments,
+        public ?string $occurrenceId = null,
+        public string $validationKeyPrefix = '',
     ) {}
 }

@@ -10,9 +10,12 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
 use App\Models\Venue;
+use Database\Seeders\AIArmada\EventRoleSeeder;
 
 beforeEach(function () {
     fakePrayerTimesApi();
+
+    $this->seed(EventRoleSeeder::class);
 });
 
 it('creates a primary organizer involvement via setPrimaryOrganizer', function () {

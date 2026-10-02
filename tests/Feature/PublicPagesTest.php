@@ -19,6 +19,7 @@ use App\Models\Reference;
 use App\Models\Series;
 use App\Models\User;
 use App\Models\Venue;
+use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\AIArmada\EventTaxonomySeeder;
 use Database\Seeders\AIArmada\EventTopicSeeder;
 use Filament\Forms\Components\Select;
@@ -175,6 +176,7 @@ it('loads public detail pages', function () {
         'visibility' => 'public',
         'published_at' => now(),
         'starts_at' => now()->addDay(),
+        'ends_at' => now()->addDay()->addHour(),
     ]);
 
     $institution = Institution::factory()->create(['status' => 'verified']);
@@ -212,6 +214,7 @@ it('renders public event poster containers using the poster aspect ratio', funct
         'visibility' => 'public',
         'published_at' => now(),
         'starts_at' => now()->addDay(),
+        'ends_at' => now()->addDay()->addHour(),
         'delivery_mode' => EventFormat::Physical->value,
         'institution_id' => $institution->id,
     ]);
@@ -224,6 +227,7 @@ it('renders public event poster containers using the poster aspect ratio', funct
         'visibility' => 'public',
         'published_at' => now(),
         'starts_at' => now()->addDays(2),
+        'ends_at' => now()->addDays(2)->addHour(),
         'delivery_mode' => EventFormat::Physical->value,
         'institution_id' => $institution->id,
     ]);
@@ -255,6 +259,7 @@ it('uses a wide placeholder aspect ratio for public events index cards without p
         'visibility' => 'public',
         'published_at' => now(),
         'starts_at' => now()->addDay(),
+        'ends_at' => now()->addDay()->addHour(),
         'delivery_mode' => EventFormat::Physical->value,
         'institution_id' => $institution->id,
     ]);
@@ -331,6 +336,7 @@ it('shows federal territory event cards on series pages with subdistrict and sta
         'visibility' => 'public',
         'published_at' => now()->subMinute(),
         'starts_at' => now()->addDay(),
+        'ends_at' => now()->addDay()->addHour(),
         'delivery_mode' => EventFormat::Physical,
         'default_venue_id' => $venue->id,
     ]);
@@ -353,6 +359,7 @@ it('uses a 16:9 placeholder aspect ratio in the shared series event card partial
         'visibility' => 'public',
         'published_at' => now()->subMinute(),
         'starts_at' => now()->addDay(),
+        'ends_at' => now()->addDay()->addHour(),
         'delivery_mode' => EventFormat::Physical,
     ]);
 
@@ -386,6 +393,7 @@ it('shows comma-separated location hierarchy text on public events index cards',
         'visibility' => 'public',
         'published_at' => now()->subMinute(),
         'starts_at' => now()->addDay(),
+        'ends_at' => now()->addDay()->addHour(),
         'delivery_mode' => EventFormat::Physical,
         'institution_id' => $institution->id,
     ]);
@@ -410,6 +418,7 @@ it('renders the date and event-type badges on public events index cards', functi
         'visibility' => 'public',
         'published_at' => now()->subMinute(),
         'starts_at' => now()->addDay(),
+        'ends_at' => now()->addDay()->addHour(),
         'delivery_mode' => EventFormat::Physical,
         'institution_id' => $institution->id,
     ]);
@@ -439,6 +448,7 @@ it('renders the book title on public event and series cards without parentheses'
         'visibility' => 'public',
         'published_at' => now()->subMinute(),
         'starts_at' => now()->addDay(),
+        'ends_at' => now()->addDay()->addHour(),
         'delivery_mode' => EventFormat::Physical,
     ]);
 
@@ -448,6 +458,7 @@ it('renders the book title on public event and series cards without parentheses'
         'visibility' => 'public',
         'published_at' => now()->subMinute(),
         'starts_at' => now()->addDays(2),
+        'ends_at' => now()->addDays(2)->addHour(),
         'delivery_mode' => EventFormat::Physical,
     ]);
 
@@ -503,6 +514,7 @@ it('renders threads in public share modals instead of line', function () {
         'visibility' => 'public',
         'published_at' => now(),
         'starts_at' => now()->addDay(),
+        'ends_at' => now()->addDay()->addHour(),
     ]);
 
     $institution = Institution::factory()->create(['status' => 'verified']);
@@ -536,6 +548,7 @@ it('does not leak share tracking javascript into public page body text', functio
         'visibility' => 'public',
         'published_at' => now(),
         'starts_at' => now()->addDay(),
+        'ends_at' => now()->addDay()->addHour(),
     ]);
 
     $institution = Institution::factory()->create(['status' => 'verified']);
@@ -602,6 +615,7 @@ it('renders event contribution links with majlis route segments', function () {
         'visibility' => 'public',
         'published_at' => now(),
         'starts_at' => now()->addDay(),
+        'ends_at' => now()->addDay()->addHour(),
     ]);
 
     $eventRouteSegment = ContributionSubjectType::Event->publicRouteSegment();
@@ -696,6 +710,7 @@ it('renders optimized seo metadata on public detail pages', function () {
         'visibility' => 'public',
         'published_at' => now(),
         'starts_at' => now()->addDay(),
+        'ends_at' => now()->addDay()->addHour(),
     ]);
 
     $institution = Institution::factory()->create([
@@ -771,6 +786,7 @@ it('loads institution detail page with upcoming event category collection', func
             'status' => 'approved',
             'visibility' => EventVisibility::Public,
             'starts_at' => now()->addDay(),
+            'ends_at' => now()->addDay()->addHour(),
             'event_category_ids' => [$eventCategory->getKey()],
             'title' => 'Institution Upcoming Event',
         ]);
@@ -804,6 +820,8 @@ it('updates submit event age group without error', function () {
 });
 
 it('records guest submissions without a submitter id', function () {
+    $this->seed(EventRoleSeeder::class);
+
     $title = 'Guest Submission '.uniqid();
     $email = 'guest@example.com';
 

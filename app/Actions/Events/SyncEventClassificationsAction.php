@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Actions\Events;
 
 use AIArmada\Events\Actions\SyncEventClassificationsAction as PackageSyncEventClassificationsAction;
+use AIArmada\Events\Models\EventClassification;
+use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Models\EventSession;
 use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventTaxonomyCode;
 use App\Models\Event;
@@ -33,20 +36,17 @@ class SyncEventClassificationsAction
      *     taxonomy_term_ids?: list<mixed>
      * }  $validated
      */
-    public function handle(Event $event, array $validated): int
+    public function handle(Event|EventOccurrence|EventSession $scope, array $validated): int
     {
         $types = [EventTaxonomyCode::Domain, EventTaxonomyCode::Source, EventTaxonomyCode::Discipline, EventTaxonomyCode::Issue];
-        $existing = $event->classifications()
-            ->whereNull('event_occurrence_id')
-            ->whereNull('event_session_id')
-            ->get(['event_taxonomy_id', 'taxonomy_code', 'event_term_id']);
+        $existing = $this->existingClassifications($scope);
         $existingByTaxonomy = $existing->groupBy(fn ($classification): string => (string) $classification->taxonomy_code);
         $categoryValues = array_key_exists('event_category_ids', $validated)
             ? $this->categoryCatalog->validateTermIds($this->toList($validated['event_category_ids']))
             : $existingByTaxonomy->get(EventCategoryCatalog::TAXONOMY_CODE, collect())->pluck('event_term_id')->map(strval(...))->all();
 
         return $this->synchronizer->handle(
-            event: $event,
+            scope: $scope,
             taxonomyValues: [
                 EventCategoryCatalog::TAXONOMY_CODE => $categoryValues,
                 EventTaxonomyCode::Domain->value => $this->valuesFor($validated, EventTaxonomyCode::Domain->value, $existingByTaxonomy),
@@ -82,6 +82,34 @@ class SyncEventClassificationsAction
                 ->values()
                 ->all(),
         );
+    }
+
+    /**
+     * @return Collection<int, EventClassification>
+     */
+    private function existingClassifications(Event|EventOccurrence|EventSession $scope): Collection
+    {
+        $query = EventClassification::query()->where('event_classifications.event_id', $scope instanceof Event ? $scope->getKey() : $scope->event_id);
+
+        if ($scope instanceof EventSession) {
+            // Session occurrence is canonically nullable; a null occurrence
+            // must constrain with whereNull, never `= null`.
+            if ($scope->event_occurrence_id === null) {
+                $query->whereNull('event_classifications.event_occurrence_id');
+            } else {
+                $query->where('event_classifications.event_occurrence_id', $scope->event_occurrence_id);
+            }
+
+            $query->where('event_classifications.event_session_id', $scope->getKey());
+        } elseif ($scope instanceof EventOccurrence) {
+            $query->where('event_classifications.event_occurrence_id', $scope->getKey())
+                ->whereNull('event_classifications.event_session_id');
+        } else {
+            $query->whereNull('event_classifications.event_occurrence_id')
+                ->whereNull('event_classifications.event_session_id');
+        }
+
+        return $query->get(['event_classifications.event_taxonomy_id', 'event_classifications.taxonomy_code', 'event_classifications.event_term_id']);
     }
 
     /**

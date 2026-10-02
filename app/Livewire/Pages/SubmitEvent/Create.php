@@ -2,99 +2,62 @@
 
 namespace App\Livewire\Pages\SubmitEvent;
 
-use AIArmada\Addressing\Models\AddressCountry;
-use AIArmada\Addressing\Support\AddressCountryResolver;
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Contacting\Enums\ContactMethodType;
-use AIArmada\Contacting\Enums\ContactPurpose;
-use AIArmada\Events\Models\EventTaxonomy;
-use AIArmada\Events\Models\EventTerm;
+use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Models\EventSession;
 use AIArmada\FilamentEvents\Resources\EventResource;
 use App\Actions\Events\SubmitFrontendEventAction;
 use App\Contracts\EventCategoryCatalog;
-use App\Contracts\EventCategoryPolicyResolver;
-use App\Contracts\SpaceEligibilityResolver;
+use App\Data\Events\SubmitEventFormContext;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
-use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventTaxonomyCode;
 use App\Enums\EventVisibility;
 use App\Enums\TaxonomyTerm\DomainTermCode;
-use App\Forms\Components\Select;
-use App\Forms\InstitutionFormSchema;
-use App\Forms\PersonFormSchema;
-use App\Forms\ReferenceFormSchema;
-use App\Forms\VenueFormSchema;
 use App\Livewire\Concerns\InteractsWithLocationPickerSelection;
 use App\Models\Event;
-use App\Models\EventKeyPerson;
 use App\Models\EventSubmission;
 use App\Models\Institution;
 use App\Models\Language;
-use App\Models\Person;
-use App\Models\Reference;
 use App\Models\User;
 use App\Services\Ai\EventMediaExtractionService;
-use App\Services\Captcha\TurnstileVerifier;
 use App\States\EventStatus\Approved;
 use App\States\EventStatus\Cancelled;
 use App\States\EventStatus\EventStatus;
 use App\States\EventStatus\Pending;
-use App\Support\Cache\SelectionCatalogCache;
-use App\Support\Language\MalaysiaLanguageCatalog;
+use App\Support\Events\OrganizerResolver;
 use App\Support\Submission\EntitySubmissionAccess;
-use App\Support\Submission\SubmitterContactRules;
-use BackedEnum;
-use Carbon\CarbonInterface;
+use App\Support\Submission\SubmitEventOptionsProvider;
+use App\Support\Submission\SubmitEventPrefill;
 use Closure;
-use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
-use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Hidden;
-use Filament\Forms\Components\Radio;
-use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\TimePicker;
-use Filament\Forms\Components\Toggle;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
-use Filament\Schemas\Components\Callout;
-use Filament\Schemas\Components\Grid;
-use Filament\Schemas\Components\Group;
-use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\Utilities\Set;
-use Filament\Schemas\Components\View as SchemaView;
 use Filament\Schemas\Components\Wizard;
 use Filament\Schemas\Components\Wizard\Step;
 use Filament\Schemas\Schema;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Carbon;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Blade;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\HtmlString;
-use Illuminate\Support\Js;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
 use RuntimeException;
+use Spatie\MediaLibrary\HasMedia;
 use Throwable;
-use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
-use Ysfkaya\FilamentPhoneInput\PhoneInputNumberType;
 
 #[Layout('layouts.app')]
 class Create extends Component implements HasActions, HasForms
@@ -103,12 +66,6 @@ class Create extends Component implements HasActions, HasForms
     use InteractsWithForms;
     use InteractsWithLocationPickerSelection;
     use WithFileUploads;
-
-    private const string REVIEW_STEP_ID = 'form.semak-sebelum-hantar::data::wizard-step';
-
-    private const string DEFAULT_SUBMISSION_TIME = '20:00';
-
-    private const string AGAMA_KEROHANIAN_CODE = DomainTermCode::AgamaKerohanian->value;
 
     public function render(): View
     {
@@ -125,7 +82,7 @@ class Create extends Component implements HasActions, HasForms
 
     public function updatedData(mixed $value, ?string $key = null): void
     {
-        if ($key !== 'event_category_ids' || ! $this->hasCommunityCategorySelection($value)) {
+        if ($key !== 'event_category_ids' || ! EventSubmissionFormSchema::hasCommunityCategorySelection($value)) {
             return;
         }
 
@@ -135,17 +92,30 @@ class Create extends Component implements HasActions, HasForms
     #[Url(as: 'step')]
     public ?string $wizardStep = null;
 
+    #[Locked]
     public ?string $eventId = null;
 
+    #[Locked]
+    public ?string $eventOccurrenceId = null;
+
+    #[Locked]
     public ?string $duplicateEventId = null;
 
+    #[Locked]
     public ?string $prefillPersonId = null;
 
+    #[Locked]
     public ?string $scopedInstitutionId = null;
 
     public ?TemporaryUploadedFile $event_source_attachment = null;
 
     protected ?Institution $resolvedScopedInstitution = null;
+
+    protected ?string $resolvedScopedInstitutionKey = null;
+
+    protected ?Event $resolvedEventContainer = null;
+
+    protected ?string $resolvedEventContainerKey = null;
 
     protected function eventForm(): Schema
     {
@@ -154,19 +124,26 @@ class Create extends Component implements HasActions, HasForms
 
     public function mount(): void
     {
-        $this->eventId = request()->query('event');
-        $this->duplicateEventId = request()->query('duplicate');
+        $this->eventId = $this->requestedEventId(request()->query('event'));
+        $this->duplicateEventId = $this->requestedEventId(request()->query('duplicate'));
         $this->prefillPersonId = $this->resolvePrefilledPersonId(request()->query('person'));
         $scopedInstitution = $this->resolveScopedInstitution(request()->query('institution'));
         $defaultLanguageId = Language::where('code', 'ms')->value('id');
-        $defaultCategoryId = $this->defaultEventTermId(EventCategoryCatalog::TAXONOMY_CODE, 'kuliah_ceramah');
-        $defaultDomainId = $this->defaultEventTermId(EventTaxonomyCode::Domain->value, DomainTermCode::AgamaKerohanian->value);
+        $mountOptions = app(SubmitEventOptionsProvider::class);
+        $defaultCategoryId = $mountOptions->defaultEventTermId(EventCategoryCatalog::TAXONOMY_CODE, 'kuliah_ceramah');
+        $defaultDomainId = $mountOptions->defaultEventTermId(EventTaxonomyCode::Domain->value, DomainTermCode::AgamaKerohanian->value);
         $defaultIsReligious = $defaultDomainId !== null;
 
         if ($scopedInstitution instanceof Institution) {
             $this->scopedInstitutionId = $scopedInstitution->id;
             $this->resolvedScopedInstitution = $scopedInstitution;
+            $user = $this->submitterUser();
+            $this->resolvedScopedInstitutionKey = $user instanceof User
+                ? $user->getKey().':'.$scopedInstitution->id
+                : null;
         }
+
+        $this->eventOccurrenceId = $this->resolveRequestedOccurrenceId(request()->query('occurrence'));
 
         $state = [
             'submitter_name' => auth()->user()?->name,
@@ -181,7 +158,7 @@ class Create extends Component implements HasActions, HasForms
             'prayer_time' => $defaultIsReligious
                 ? EventPrayerTime::SelepasMaghrib->value
                 : EventPrayerTime::LainWaktu->value,
-            'custom_time' => $defaultIsReligious ? null : self::DEFAULT_SUBMISSION_TIME,
+            'custom_time' => $defaultIsReligious ? null : EventSubmissionFormSchema::DEFAULT_SUBMISSION_TIME,
             'event_format' => EventFormat::Physical->value,
             'visibility' => EventVisibility::Public->value,
             'primary_organizer_kind' => 'institution',
@@ -190,20 +167,31 @@ class Create extends Component implements HasActions, HasForms
             'is_muslim_only' => false,
             'other_key_people' => [],
             'captcha_token' => null,
-            'submission_country_id' => $this->defaultSubmissionCountryId(),
+            'submission_country_id' => $mountOptions->defaultSubmissionCountryId(),
         ];
 
         if (($eventContainer = $this->selectedEventContainer()) instanceof Event) {
-            $state = array_replace($state, $this->eventContainerDefaults($eventContainer));
+            $state = array_replace($state, SubmitEventPrefill::containerDefaults(
+                $eventContainer,
+                $this->submitterUser(),
+                is_string($state['submission_country_id'] ?? null) ? $state['submission_country_id'] : null,
+            ));
+            $state['event_occurrence_id'] = $this->eventOccurrenceId
+                ?? $mountOptions->defaultOccurrenceId($eventContainer);
         }
 
         if (($duplicateEvent = $this->selectedDuplicateEvent()) instanceof Event) {
-            $duplicateDefaults = $this->duplicateEventDefaults($duplicateEvent);
+            $duplicateDefaults = SubmitEventPrefill::duplicateDefaults(
+                $duplicateEvent,
+                $this->submitterUser(),
+                is_string($state['submission_country_id'] ?? null) ? $state['submission_country_id'] : null,
+                includePrivatePeople: $this->canViewPrivateDuplicateDetails($duplicateEvent),
+            );
             $state = array_replace($state, $duplicateDefaults);
         }
 
         if ($scopedInstitution instanceof Institution) {
-            $state = array_replace($state, $this->scopedInstitutionDefaults($scopedInstitution));
+            $state = array_replace($state, SubmitEventPrefill::scopedDefaults($scopedInstitution));
         }
 
         if ($this->prefillPersonId !== null) {
@@ -218,9 +206,11 @@ class Create extends Component implements HasActions, HasForms
 
     protected function resolveScopedInstitution(mixed $institutionId): ?Institution
     {
-        if (! is_string($institutionId) || ! Str::isUuid($institutionId)) {
+        if ($institutionId === null || $institutionId === '') {
             return null;
         }
+
+        abort_unless(is_string($institutionId) && Str::isUuid($institutionId), 404);
 
         $user = $this->submitterUser();
 
@@ -238,23 +228,50 @@ class Create extends Component implements HasActions, HasForms
 
     protected function scopedInstitution(): ?Institution
     {
-        if ($this->resolvedScopedInstitution instanceof Institution) {
-            return $this->resolvedScopedInstitution;
-        }
-
         $institutionId = $this->scopedInstitutionId;
 
         if (! is_string($institutionId) || ! Str::isUuid($institutionId)) {
+            $this->resolvedScopedInstitution = null;
+            $this->resolvedScopedInstitutionKey = null;
+
             return null;
         }
 
-        $institution = Institution::query()->find($institutionId);
+        // Re-authorize on every request: mount-time membership must not
+        // survive revocation, deletion, or a forged Livewire update. The memo
+        // is keyed by actor + institution so test actor swaps never reuse a
+        // stale authorization.
+        $user = $this->submitterUser();
+
+        if (! $user instanceof User) {
+            $this->resolvedScopedInstitution = null;
+            $this->resolvedScopedInstitutionKey = null;
+
+            return null;
+        }
+
+        $memoKey = $user->getKey().':'.$institutionId;
+
+        if ($this->resolvedScopedInstitution instanceof Institution
+            && $this->resolvedScopedInstitutionKey === $memoKey
+        ) {
+            return $this->resolvedScopedInstitution;
+        }
+
+        $institution = app(EntitySubmissionAccess::class)
+            ->memberInstitutionQueryForSubmitter($user)
+            ->whereKey($institutionId)
+            ->first();
 
         if (! $institution instanceof Institution) {
+            $this->resolvedScopedInstitution = null;
+            $this->resolvedScopedInstitutionKey = null;
+
             return null;
         }
 
         $this->resolvedScopedInstitution = $institution;
+        $this->resolvedScopedInstitutionKey = $memoKey;
 
         return $institution;
     }
@@ -264,105 +281,10 @@ class Create extends Component implements HasActions, HasForms
         return $this->scopedInstitution() instanceof Institution;
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    protected function scopedInstitutionDefaults(Institution $institution): array
-    {
-        return [
-            'primary_organizer_kind' => 'institution',
-            'primary_organizer_id' => $institution->id,
-            'primary_organizer_institution_id' => $institution->id,
-            'primary_organizer_person_id' => null,
-            'location_same_as_institution' => true,
-            'location_type' => 'institution',
-            'location_institution_id' => $institution->id,
-            'location_venue_id' => null,
-            'space_id' => null,
-        ];
-    }
-
-    protected function submitCacheKey(string $key): string
-    {
-        return "{$key}_safe_v2";
-    }
-
-    /**
-     * @return array<int|string, string>
-     */
-    protected function cachedSubmitLanguageOptions(): array
-    {
-        return app(SelectionCatalogCache::class)->languageOptionsForCodes(
-            MalaysiaLanguageCatalog::codes(),
-            MalaysiaLanguageCatalog::labels(),
-        );
-    }
-
-    /**
-     * @param  list<string>  $statuses
-     * @return array<string, string>
-     */
-    protected function cachedSubmitTagOptions(EventTaxonomyCode $type, string $cachePrefix, array $statuses): array
-    {
-        return Cache::remember($this->submitCacheKey($cachePrefix.'_'.app()->getLocale()), 60, function () use ($type): array {
-            $taxonomyId = EventTaxonomy::query()->where('code', $type->value)->value('id');
-
-            if ($taxonomyId === null) {
-                return [];
-            }
-
-            return EventTerm::query()
-                ->where('event_taxonomy_id', $taxonomyId)
-                ->where('is_active', true)
-                ->orderBy('sort_order')
-                ->orderBy('name')
-                ->get()
-                ->mapWithKeys(fn (EventTerm $term): array => [(string) $term->id => (string) $term->name])
-                ->all();
-        });
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    public function taxonomyTermOptionsForDomain(EventTaxonomyCode $type, ?string $domainId): array
-    {
-        $taxonomyId = EventTaxonomy::query()->where('code', $type->value)->value('id');
-
-        if ($taxonomyId === null || $domainId === null) {
-            return [];
-        }
-
-        return EventTerm::query()
-            ->where('event_taxonomy_id', $taxonomyId)
-            ->where('is_active', true)
-            ->where(function (Builder $query) use ($domainId): void {
-                $query->whereJsonContains('metadata->domain_ids', $domainId)
-                    ->orWhereNull('metadata->domain_ids');
-            })
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->pluck('name', 'id')
-            ->all();
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    protected function cachedSubmitVenueOptions(?string $countryId = null): array
-    {
-        return Cache::remember(
-            $this->submitCacheKey('submit_venues_'.($countryId ?? 'all')),
-            60,
-            fn (): array => app(EntitySubmissionAccess::class)->venueQuery($countryId)
-                ->orderBy('name')
-                ->pluck('name', 'id')
-                ->all(),
-        );
-    }
-
     public function extractEventFromMedia(EventMediaExtractionService $eventMediaExtractionService): void
     {
+        $this->assertSubmissionNotRateLimited('extract', 'event_source_attachment');
+
         $maxFileSizeKb = (int) config('ai.features.event_media_extraction.max_file_size_kb', 10240);
         $acceptedMimeTypes = config('ai.features.event_media_extraction.accepted_mime_types', [
             'application/pdf',
@@ -417,7 +339,7 @@ class Create extends Component implements HasActions, HasForms
         $mergedState = array_replace($this->data ?? [], $extractedState);
         $mergedState['event_category_ids'] = $this->firstSelection($mergedState['event_category_ids'] ?? null);
         $mergedState['domain_tags'] = $this->firstSelection($mergedState['domain_tags'] ?? null);
-        $mergedState['age_group'] = $this->normalizeAgeGroupState($mergedState['age_group'] ?? []);
+        $mergedState['age_group'] = EventSubmissionFormSchema::normalizeAgeGroupState($mergedState['age_group'] ?? []);
 
         if (
             in_array(EventAgeGroup::Children->value, $mergedState['age_group'], true) ||
@@ -441,7 +363,6 @@ class Create extends Component implements HasActions, HasForms
         }
 
         $this->eventForm()->fill($mergedState);
-        $this->data = $mergedState;
 
         $wizard = $this->eventForm()->getComponent(
             fn (mixed $component): bool => $component instanceof Wizard
@@ -488,1256 +409,45 @@ class Create extends Component implements HasActions, HasForms
 
     public function form(Schema $schema): Schema
     {
-        $hasScopedInstitution = $this->hasScopedInstitution();
-        $hasScopedInstitutionJs = $hasScopedInstitution ? 'true' : 'false';
-        $isReviewStep = $this->wizardStep === self::REVIEW_STEP_ID;
-        $submitButtonLabel = $hasScopedInstitution
-            ? __('Publish Institution Event')
-            : __('Hantar Majlis untuk Semakan');
-
-        $wizard = $this->buildEventWizard($hasScopedInstitution, $hasScopedInstitutionJs, $isReviewStep, $submitButtonLabel);
-
-        return $schema
-            ->model(new Event)
-            ->schema([
-                $wizard,
-            ])
-            ->statePath('data');
-    }
-
-    private function buildEventWizard(
-        bool $hasScopedInstitution,
-        string $hasScopedInstitutionJs,
-        bool $isReviewStep,
-        string $submitButtonLabel,
-    ): Wizard {
-        return Wizard::make([
-            $this->buildEventInfoStep(),
-            $this->buildScheduleStep(),
-            $this->buildOrganizerLocationStep($hasScopedInstitution, $hasScopedInstitutionJs),
-            $this->buildPersonsMediaStep(),
-            $this->buildReviewStep($hasScopedInstitution),
-        ])
-            ->skippable()
-            ->persistStepInQueryString()
-            ->nextAction(fn (Action $action): Action => $action
-                ->label($isReviewStep ? '' : __('Seterusnya'))
-                ->livewireTarget("callSchemaComponentMethod('form.data::wizard', 'nextStep')")
-                ->hidden($isReviewStep)
-            )
-            ->submitAction(new HtmlString(Blade::render(<<<'BLADE'
-                                        <x-filament::button
-                                            type="submit"
-                                            size="lg"
-                                            color="success"
-                                            class="w-full"
-                                        >
-                                            {{ $label }}
-                                        </x-filament::button>
-                                    BLADE, ['label' => $submitButtonLabel])));
-    }
-
-    private function buildEventInfoStep(): Step
-    {
-        return Step::make(__('Majlis & Topik'))
-            ->icon('heroicon-o-document-text')
-            ->schema([...$this->getEventAboutFields(), ...$this->getTopicDetailFields()]);
-    }
-
-    /**
-     * @return array<int, mixed>
-     */
-    private function getEventAboutFields(): array
-    {
-        return [
-            Select::make('title')
-                ->native(false)
-                ->label(__('Tajuk Majlis'))
-                ->required()
-                ->searchable()
-                ->allowHtml()
-                ->live()
-                ->afterStateUpdatedJs($this->progressUpdateJs())
-                ->getSearchResultsUsing(function (string $search): array {
-                    if ($search === '' || $search === '0') {
-                        return [];
-                    }
-
-                    $results = Event::query()
-                        ->whereLike('title', "%{$search}%")
-                        ->where('status', 'approved')
-                        ->limit(10)
-                        ->pluck('title', 'title')
-                        ->toArray();
-
-                    $exactMatch = collect($results)->contains(fn ($value) => mb_strtolower($value) === mb_strtolower($search));
-
-                    if (! $exactMatch) {
-                        $results = ["__quick_add__{$search}" => "<span class='text-primary-600'>+ ".__('Tambah')." '{$search}'</span>"] + $results;
-                    }
-
-                    return $results;
-                })
-                ->getOptionLabelUsing(function ($value): ?string {
-                    if (str_starts_with($value, '__quick_add__')) {
-                        return substr($value, strlen('__quick_add__'));
-                    }
-
-                    return $value;
-                })
-                ->afterStateUpdated(function (mixed $state, Set $set): void {
-                    if (is_string($state) && str_starts_with($state, '__quick_add__')) {
-                        $state = substr($state, strlen('__quick_add__'));
-                        $set('title', $state);
-                    }
-
-                    if (! is_string($state) || blank($state)) {
-                        return;
-                    }
-
-                    $existingEvent = Event::query()
-                        ->where('title', $state)
-                        ->where('status', 'approved')
-                        ->with(['classifications', 'references'])
-                        ->latest()
-                        ->first();
-
-                    if (! $existingEvent) {
-                        return;
-                    }
-
-                    $termsByTaxonomy = $existingEvent->classifications->groupBy('taxonomy_code');
-
-                    $set('event_category_ids', $termsByTaxonomy->get('event_category', collect())->pluck('event_term_id')->filter()->values()->first());
-
-                    if ($termsByTaxonomy->has(EventTaxonomyCode::Domain->value)) {
-                        $set('domain_tags', $termsByTaxonomy->get(EventTaxonomyCode::Domain->value)->pluck('event_term_id')->filter()->values()->first());
-                    }
-                    if ($termsByTaxonomy->has(EventTaxonomyCode::Discipline->value)) {
-                        $set('discipline_tags', $termsByTaxonomy->get(EventTaxonomyCode::Discipline->value)->pluck('event_term_id')->filter()->values()->all());
-                    }
-                    if ($termsByTaxonomy->has(EventTaxonomyCode::Source->value)) {
-                        $set('source_tags', $termsByTaxonomy->get(EventTaxonomyCode::Source->value)->pluck('event_term_id')->filter()->values()->all());
-                    }
-                    if ($termsByTaxonomy->has(EventTaxonomyCode::Issue->value)) {
-                        $set('issue_tags', $termsByTaxonomy->get(EventTaxonomyCode::Issue->value)->pluck('event_term_id')->filter()->values()->all());
-                    }
-
-                    if ($existingEvent->references->isNotEmpty()) {
-                        $set(
-                            'references',
-                            $existingEvent->references
-                                ->pluck('referenceable_id')
-                                ->filter()
-                                ->values()
-                                ->all(),
-                        );
-                    }
-                })
-                ->placeholder(__('Cari atau masukkan tajuk majlis...')),
-
-            Select::make('event_category_ids')
-                ->label(__('Jenis Majlis'))
-                ->placeholder(__('Pilih kategori…'))
-                ->required()
-                ->live()
-                ->afterStateUpdatedJs($this->progressUpdateJs())
-                ->afterStateUpdated(function (mixed $state, Set $set, Get $get): void {
-                    if ($this->hasCommunityCategorySelection($state)) {
-                        $set('event_format', EventFormat::Physical->value);
-                    }
-
-                    $this->applyContextualDefaults($get, $set);
-                })
-                ->options(app(EventCategoryCatalog::class)->options())
-                ->preload()
-                ->native(false)
-                ->dynamicOptions(false),
-
-            $this->domainTopicField(),
-
-            Grid::make(['default' => 1, 'sm' => 2])
-                ->schema([
-                    Select::make('discipline_tags')
-                        ->native(false)
-                        ->label(__('Topik lebih khusus'))
-                        ->helperText(__('Contoh: Tafsir, Matematik, atau Machine Learning.'))
-                        ->placeholder(__('Pilih atau taip untuk tambah bidang…'))
-                        ->multiple()
-                        ->searchable()
-                        ->preload()
-                        ->allowHtml()
-                        ->options(fn (Get $get): array => $this->taxonomyTermOptionsForDomain(
-                            EventTaxonomyCode::Discipline,
-                            is_string($domain = $get('domain_tags')) ? $domain : null,
-                        ))
-                        ->getSearchResultsUsing(function (string $search, ?Get $get = null): array {
-                            if (blank($search)) {
-                                return [];
-                            }
-
-                            $domainId = $get instanceof Get ? (is_string($d = $get('domain_tags')) ? $d : null) : null;
-                            $taxonomyId = EventTaxonomy::query()->where('code', EventTaxonomyCode::Discipline->value)->value('id');
-                            $results = EventTerm::query()
-                                ->where('event_taxonomy_id', $taxonomyId)
-                                ->where('is_active', true)
-                                ->when($domainId !== null, fn (Builder $query) => $query->where(function (Builder $query) use ($domainId): void {
-                                    $query->whereJsonContains('metadata->domain_ids', $domainId)
-                                        ->orWhereNull('metadata->domain_ids');
-                                }))
-                                ->whereLike('name', "%{$search}%")
-                                ->orderBy('sort_order')
-                                ->limit(20)
-                                ->pluck('name', 'id')
-                                ->toArray();
-
-                            return ["__quick_add__{$search}" => "<span class='text-primary-600'>+ ".__('Tambah')." '{$search}'</span>"] + $results;
-                        })
-                        ->getOptionLabelsUsing(function (array $values): array {
-                            $labels = [];
-                            $uuids = [];
-
-                            foreach ($values as $value) {
-                                if (is_string($value) && ! Str::isUuid($value)) {
-                                    $labels[$value] = $value;
-                                } else {
-                                    $uuids[] = $value;
-                                }
-                            }
-
-                            if ($uuids !== []) {
-                                $labels = array_merge($labels, EventTerm::whereIn('id', $uuids)->pluck('name', 'id')->all());
-                            }
-
-                            return $labels;
-                        })
-                        ->afterStateUpdatedJs(<<<'JS'
-                            if (Array.isArray($state)) {
-                                const hasQuickAdd = $state.some(v => typeof v === 'string' && v.startsWith('__quick_add__'));
-                                if (hasQuickAdd) {
-                                    const cleaned = $state.map(v => (typeof v === 'string' && v.startsWith('__quick_add__')) ? v.substring(13) : v);
-                                    $set('discipline_tags', cleaned);
-                                    $nextTick(() => {
-                                        const wrapper = $el.querySelector('[wire\\:ignore]');
-                                        if (wrapper) {
-                                            Alpine.$data(wrapper)?.select?.closeDropdown();
-                                        }
-                                    });
-                                }
-                            }
-                        JS),
-                ]),
-
-            RichEditor::make('description')
-                ->label(__('Keterangan'))
-                ->maxLength(5000)
-                ->disableToolbarButtons(['table'])
-                ->floatingToolbars([])
-                ->placeholder(__('Terangkan mengenai majlis, topik yang akan dikupas, dll.')),
-        ];
-    }
-
-    /**
-     * @return array<int, mixed>
-     */
-    private function getScheduleFields(): array
-    {
-        return [
-            Section::make(__('Tarikh & Masa'))
-                ->schema([
-                    Grid::make(['default' => 1, 'sm' => 2, 'md' => 8])
-                        ->schema([
-                            DatePicker::make('event_date')
-                                ->label(__('Tarikh'))
-                                ->required()
-                                ->native()
-                                ->minDate(now()->startOfDay())
-                                ->live()
-                                ->afterStateUpdatedJs($this->progressUpdateJs())
-                                ->afterStateUpdated(function (Get $get, Set $set): void {
-                                    $this->applyContextualDefaults($get, $set);
-                                })
-                                ->columnSpan(['default' => 1, 'md' => 2]),
-
-                            Select::make('prayer_time')
-                                ->native(false)
-                                ->label(__('Waktu'))
-                                ->required()
-                                ->live()
-                                ->default(EventPrayerTime::LainWaktu->value)
-                                ->afterStateUpdatedJs(<<<'JS'
-                                    if ($state !== 'lain_waktu') {
-                                        $set('custom_time', null)
-                                    }
-                                JS)
-                                ->afterStateUpdatedJs($this->progressUpdateJs())
-                                ->options(function (Get $get): array {
-                                    $eventDate = $get('event_date');
-
-                                    return collect(EventPrayerTime::cases())
-                                        ->filter(function (EventPrayerTime $case) use ($eventDate, $get) {
-                                            if (! $eventDate) {
-                                                return ! in_array($case, [EventPrayerTime::SebelumJumaat, EventPrayerTime::SelepasJumaat, EventPrayerTime::SelepasTarawih], true);
-                                            }
-
-                                            $timezone = $this->resolveSubmissionTimezone($get('submission_country_id'));
-                                            $date = Carbon::parse($eventDate, $timezone)->startOfDay();
-
-                                            if ($case === EventPrayerTime::SebelumJumaat) {
-                                                return $date->isFriday();
-                                            }
-
-                                            if ($case === EventPrayerTime::SelepasJumaat) {
-                                                return $date->isFriday();
-                                            }
-
-                                            if ($case === EventPrayerTime::SelepasTarawih) {
-                                                return $this->isRamadhan($date, $timezone);
-                                            }
-
-                                            return true;
-                                        })
-                                        ->mapWithKeys(fn (EventPrayerTime $case) => [$case->value => $case->getLabel()])
-                                        ->toArray();
-                                })
-                                ->columnSpan(['default' => 1, 'md' => 2]),
-
-                            TimePicker::make('custom_time')
-                                ->label(__('Masa Mula'))
-                                ->helperText(__('Pilih masa mula majlis'))
-                                ->timezone('UTC')
-                                ->native()
-                                ->seconds(false)
-                                ->minutesStep(5)
-                                ->afterStateUpdatedJs(str_replace(
-                                    '__END_TIME_VALIDATION_MESSAGE__',
-                                    Js::from(__('Masa akhir mestilah selepas masa mula.'))->toHtml(),
-                                    <<<'JS'
-                                    const customTime = $state;
-                                    const endTime = $get('end_time');
-                                    const prayerTime = $get('prayer_time');
-                                    
-                                    if (prayerTime === 'lain_waktu' && customTime && endTime) {
-                                        const startParts = customTime.split(':');
-                                        const endParts = endTime.split(':');
-                                        
-                                        const startMinutes = parseInt(startParts[0]) * 60 + parseInt(startParts[1] || 0);
-                                        const endMinutes = parseInt(endParts[0]) * 60 + parseInt(endParts[1] || 0);
-                                        
-                                        if (endMinutes <= startMinutes) {
-                                            $set('end_time', null);
-                                            new FilamentNotification()
-                                                .title(__END_TIME_VALIDATION_MESSAGE__)
-                                                .warning()
-                                                .send();
-                                        }
-                                    }
-                                JS
-                                ))
-                                ->afterStateUpdatedJs($this->progressUpdateJs())
-                                ->visible(fn (Get $get): bool => $this->isPrayerTime($get('prayer_time'), EventPrayerTime::LainWaktu))
-                                ->required(fn (Get $get): bool => $this->isPrayerTime($get('prayer_time'), EventPrayerTime::LainWaktu))
-                                ->markAsRequired()
-                                ->columnSpan(['default' => 1, 'md' => 2])
-                                ->rule(fn (Get $get): Closure => function (string $attribute, $value, Closure $fail) use ($get) {
-                                    $eventDate = $get('event_date');
-                                    $timezone = $this->resolveSubmissionTimezone($get('submission_country_id'));
-                                    $now = Carbon::now($timezone);
-
-                                    if (! $eventDate || ! $value) {
-                                        return;
-                                    }
-
-                                    $eventDay = Carbon::parse($eventDate, $timezone)->startOfDay();
-
-                                    if ($eventDay->isSameDay($now)) {
-                                        $timeParts = explode(':', $value);
-                                        $selectedTime = $eventDay->copy()
-                                            ->setHour((int) $timeParts[0])
-                                            ->setMinute((int) $timeParts[1]);
-
-                                        if ($selectedTime->lessThan($now)) {
-                                            $fail(__('Masa yang dipilih tidak boleh pada masa lalu untuk majlis hari ini.'));
-                                        }
-                                    }
-                                }),
-
-                            TimePicker::make('end_time')
-                                ->label(__('Masa Akhir'))
-                                ->helperText(__('Pilihan: Bila majlis dijangka tamat.'))
-                                ->timezone('UTC')
-                                ->native()
-                                ->seconds(false)
-                                ->minutesStep(5)
-                                ->afterStateUpdatedJs(str_replace(
-                                    '__END_TIME_VALIDATION_MESSAGE__',
-                                    Js::from(__('Masa akhir mestilah selepas masa mula.'))->toHtml(),
-                                    <<<'JS'
-                                    const customTime = $get('custom_time');
-                                    const endTime = $state;
-                                    const prayerTime = $get('prayer_time');
-                                    const estimatedStartByPrayer = {
-                                        selepas_subuh: '06:30',
-                                        selepas_zuhur: '13:30',
-                                        sebelum_jumaat: '13:45',
-                                        selepas_jumaat: '14:00',
-                                        selepas_asar: '17:00',
-                                        sebelum_maghrib: '19:45',
-                                        selepas_maghrib: '20:00',
-                                        selepas_isyak: '21:30',
-                                        selepas_tarawih: '22:30',
-                                    };
-                                    
-                                    const guessedStartTime = prayerTime === 'lain_waktu'
-                                        ? customTime
-                                        : (estimatedStartByPrayer[prayerTime] ?? null);
-                                    
-                                    if (guessedStartTime && endTime) {
-                                        const startParts = guessedStartTime.split(':');
-                                        const endParts = endTime.split(':');
-                                        
-                                        const startMinutes = parseInt(startParts[0]) * 60 + parseInt(startParts[1] || 0);
-                                        const endMinutes = parseInt(endParts[0]) * 60 + parseInt(endParts[1] || 0);
-                                        
-                                        if (endMinutes <= startMinutes) {
-                                            $set('end_time', null);
-                                            new FilamentNotification()
-                                                .title(__END_TIME_VALIDATION_MESSAGE__)
-                                                .warning()
-                                                .send();
-                                        }
-                                    }
-                                JS
-                                ))
-                                ->columnSpan(['default' => 1, 'md' => 2])
-                                ->rule(fn (Get $get): Closure => function (string $attribute, $value, Closure $fail) use ($get) {
-                                    if (! $value) {
-                                        return;
-                                    }
-
-                                    $prayerTimeRaw = $get('prayer_time');
-                                    $startTime = $this->resolveStartTimeForComparison(
-                                        $prayerTimeRaw,
-                                        $get('custom_time')
-                                    );
-
-                                    if ($startTime === null) {
-                                        return;
-                                    }
-
-                                    $startParts = explode(':', $startTime);
-                                    $endParts = explode(':', (string) $value);
-
-                                    $startMinutes = ((int) $startParts[0]) * 60 + ((int) ($startParts[1] ?? 0));
-                                    $endMinutes = ((int) $endParts[0]) * 60 + ((int) ($endParts[1] ?? 0));
-
-                                    if ($endMinutes <= $startMinutes) {
-                                        $fail(__('Masa akhir mestilah selepas masa mula.'));
-                                    }
-                                }),
-                        ]),
-                ]),
-
-            Section::make(__('Kehadiran'))
-                ->schema([
-                    Grid::make(['default' => 1, 'sm' => 2])
-                        ->schema([
-                            Select::make('gender')
-                                ->native(false)
-                                ->label(__('Jantina'))
-                                ->required()
-                                ->options(EventGenderRestriction::class)
-                                ->default(EventGenderRestriction::All)
-                                ->afterStateUpdatedJs($this->progressUpdateJs()),
-
-                            Select::make('age_group')
-                                ->native(false)
-                                ->label(__('Peringkat Umur'))
-                                ->placeholder(__('Pilih peringkat umur'))
-                                ->required()
-                                ->options(EventAgeGroup::class)
-                                ->closeOnSelect()
-                                ->multiple()
-                                ->afterStateUpdatedJs(<<<'JS'
-                            const ageGroups = Array.isArray($state) ? $state : [];
-                            const previousAgeGroups = Array.isArray($old) ? $old : [];
-                            const allAges = 'all_ages';
-                            const specificAgeGroups = ['adults', 'youth', 'children', 'warga_emas'];
-                            let normalizedAgeGroups = ageGroups;
-
-                            if (ageGroups.length === 1 && ageGroups[0] === allAges) {
-                                normalizedAgeGroups = [allAges];
-                            } else if (ageGroups.includes(allAges) && ! previousAgeGroups.includes(allAges)) {
-                                normalizedAgeGroups = [allAges];
-                            } else if (ageGroups.includes(allAges)) {
-                                normalizedAgeGroups = ageGroups.filter((group) => group !== allAges);
-                            } else if (specificAgeGroups.every((group) => ageGroups.includes(group))) {
-                                normalizedAgeGroups = [allAges];
-                            }
-
-                            if (JSON.stringify(normalizedAgeGroups) !== JSON.stringify(ageGroups)) {
-                                $set('age_group', normalizedAgeGroups);
-                            }
-
-                            if (normalizedAgeGroups.includes('children') || normalizedAgeGroups.includes(allAges)) {
-                                $set('children_allowed', true);
-                            }
-                        JS)
-                                ->afterStateUpdatedJs($this->progressUpdateJs())
-                                ->afterStateUpdated(function (mixed $state, Set $set): void {
-                                    $normalizedAgeGroups = $this->normalizeAgeGroupState($state);
-                                    $ageGroups = $this->normalizeAgeGroupSelection($normalizedAgeGroups);
-
-                                    if ($ageGroups !== $normalizedAgeGroups) {
-                                        $set('age_group', $ageGroups);
-                                    }
-
-                                    if (
-                                        in_array(EventAgeGroup::Children->value, $ageGroups, true) ||
-                                        in_array(EventAgeGroup::AllAges->value, $ageGroups, true)
-                                    ) {
-                                        $set('children_allowed', true);
-                                    }
-                                }),
-
-                            Select::make('languages')
-                                ->native(false)
-                                ->label(__('Bahasa'))
-                                ->helperText(__('Bahasa yang akan digunakan dalam majlis.'))
-                                ->placeholder(__('Pilih bahasa'))
-                                ->closeOnSelect()
-                                ->multiple()
-                                ->required()
-                                ->searchable()
-                                ->preload()
-                                ->options(fn (): array => $this->cachedSubmitLanguageOptions())
-                                ->afterStateUpdatedJs($this->progressUpdateJs()),
-
-                            Toggle::make('children_allowed')
-                                ->label(__('Kanak-kanak Dibenarkan'))
-                                ->helperText(__('Adakah ibu bapa boleh membawa anak kecil ke majlis ini?'))
-                                ->default(true)
-                                ->inline(false)
-                                ->disabled(function (Get $get): bool {
-                                    $ageGroups = $this->normalizeAgeGroupState($get('age_group'));
-
-                                    return in_array(EventAgeGroup::Children->value, $ageGroups, true) ||
-                                        in_array(EventAgeGroup::AllAges->value, $ageGroups, true);
-                                })
-                                ->extraAlpineAttributes([
-                                    'x-bind:disabled' => <<<'JS'
-                                ($get('age_group') || []).includes('children') || ($get('age_group') || []).includes('all_ages')
-                            JS,
-                                ])
-                                ->dehydrated(),
-
-                            Toggle::make('is_muslim_only')
-                                ->label(__('Terbuka untuk Muslim Sahaja'))
-                                ->helperText(__('Jika tidak ditanda, majlis dianggap terbuka kepada Muslim dan bukan Muslim.'))
-                                ->inline(false)
-                                ->default(false),
-                        ]),
-                ]),
-        ];
-    }
-
-    private function buildScheduleStep(): Step
-    {
-        return Step::make(__('Tarikh, Masa & Kehadiran'))
-            ->icon('heroicon-o-clock')
-            ->schema($this->getScheduleFields());
-    }
-
-    private function domainTopicField(): Select
-    {
-        return Select::make('domain_tags')
-            ->label(__('Topik / bidang'))
-            ->helperText(__('Wajib dipilih. Bidang ini menentukan soalan tambahan yang akan dipaparkan.'))
-            ->placeholder(__('Pilih topik…'))
-            ->required()
-            ->live()
-            ->afterStateUpdatedJs($this->progressUpdateJs())
-            ->searchable(false)
-            ->preload()
-            ->native(false)
-            ->dynamicOptions(false)
-            ->getOptionLabelUsing(function ($value): ?string {
-                if (is_string($value) && ! Str::isUuid($value)) {
-                    return $value;
-                }
-
-                return EventTerm::where('id', $value)->value('name');
-            })
-            ->options(fn (): array => $this->cachedSubmitTagOptions(
-                type: EventTaxonomyCode::Domain,
-                cachePrefix: 'submit_tags_domain',
-                statuses: ['verified', 'pending'],
-            ))
-            ->afterStateUpdated(function (mixed $state, Set $set, Get $get): void {
-                $this->applyContextualDefaults($get, $set);
-                $set('discipline_tags', []);
-            });
-    }
-
-    /**
-     * @return array<int, mixed>
-     */
-    private function getTopicDetailFields(): array
-    {
-        return [
-            Group::make()
-                ->schema([
-                    Grid::make(['default' => 1, 'sm' => 2])
-                        ->schema([
-                            Select::make('source_tags')
-                                ->visible(fn (Get $get): bool => $this->hasAgamaKerohanianTopic($get('domain_tags')))
-                                ->closeOnSelect()
-                                ->label(__('Sumber Utama'))
-                                ->placeholder(__('Pilih sumber…'))
-                                ->multiple()
-                                ->preload()
-                                ->searchable(false)
-                                ->native(false)
-                                ->getOptionLabelsUsing(function (array $values): array {
-                                    $labels = [];
-                                    $uuids = [];
-
-                                    foreach ($values as $value) {
-                                        if (is_string($value) && ! Str::isUuid($value)) {
-                                            $labels[$value] = $value;
-                                        } else {
-                                            $uuids[] = $value;
-                                        }
-                                    }
-
-                                    if ($uuids !== []) {
-                                        $labels = array_merge($labels, EventTerm::whereIn('id', $uuids)->pluck('name', 'id')->all());
-                                    }
-
-                                    return $labels;
-                                })
-                                ->options(fn (): array => $this->cachedSubmitTagOptions(
-                                    type: EventTaxonomyCode::Source,
-                                    cachePrefix: 'submit_tags_source',
-                                    statuses: ['verified', 'pending'],
-                                )),
-
-                            Select::make('issue_tags')
-                                ->native(false)
-                                ->label(__('Tema / Isu'))
-                                ->helperText(__('Pilih tema supaya mudah dicari.'))
-                                ->placeholder(__('Pilih atau taip untuk tambah tema…'))
-                                ->multiple()
-                                ->searchable()
-                                ->preload()
-                                ->allowHtml()
-                                ->options(fn (Get $get): array => $this->taxonomyTermOptionsForDomain(
-                                    EventTaxonomyCode::Issue,
-                                    is_string($domain = $get('domain_tags')) ? $domain : null,
-                                ))
-                                ->getSearchResultsUsing(function (string $search, ?Get $get = null): array {
-                                    if (blank($search)) {
-                                        return [];
-                                    }
-
-                                    $domainId = $get instanceof Get ? (is_string($d = $get('domain_tags')) ? $d : null) : null;
-                                    $taxonomyId = EventTaxonomy::query()->where('code', EventTaxonomyCode::Issue->value)->value('id');
-                                    $results = EventTerm::query()
-                                        ->where('event_taxonomy_id', $taxonomyId)
-                                        ->where('is_active', true)
-                                        ->when($domainId !== null, fn (Builder $query) => $query->where(function (Builder $query) use ($domainId): void {
-                                            $query->whereJsonContains('metadata->domain_ids', $domainId)
-                                                ->orWhereNull('metadata->domain_ids');
-                                        }))
-                                        ->whereLike('name', "%{$search}%")
-                                        ->orderBy('sort_order')
-                                        ->limit(20)
-                                        ->pluck('name', 'id')
-                                        ->toArray();
-
-                                    return ["__quick_add__{$search}" => "<span class='text-primary-600'>+ ".__('Tambah')." '{$search}'</span>"] + $results;
-                                })
-                                ->getOptionLabelsUsing(function (array $values): array {
-                                    $labels = [];
-                                    $uuids = [];
-
-                                    foreach ($values as $value) {
-                                        if (is_string($value) && ! Str::isUuid($value)) {
-                                            $labels[$value] = $value;
-                                        } else {
-                                            $uuids[] = $value;
-                                        }
-                                    }
-
-                                    if ($uuids !== []) {
-                                        $labels = array_merge($labels, EventTerm::whereIn('id', $uuids)->pluck('name', 'id')->all());
-                                    }
-
-                                    return $labels;
-                                })
-                                ->afterStateUpdatedJs(<<<'JS'
-                                    if (Array.isArray($state)) {
-                                        const hasQuickAdd = $state.some(v => typeof v === 'string' && v.startsWith('__quick_add__'));
-                                        if (hasQuickAdd) {
-                                            const cleaned = $state.map(v => (typeof v === 'string' && v.startsWith('__quick_add__')) ? v.substring(13) : v);
-                                            $set('issue_tags', cleaned);
-                                            $nextTick(() => {
-                                                const wrapper = $el.querySelector('[wire\\:ignore]');
-                                                if (wrapper) {
-                                                    Alpine.$data(wrapper)?.select?.closeDropdown();
-                                                }
-                                            });
-                                        }
-                                    }
-                                JS),
-                        ]),
-
-                    Select::make('references')
-                        ->visible(fn (Get $get): bool => $this->hasAgamaKerohanianTopic($get('domain_tags')))
-                        ->label(__('Rujukan Kitab'))
-                        ->helperText(__('Kitab atau buku rujukan yang digunakan.'))
-                        ->placeholder(__('Cari atau pilih rujukan…'))
-                        ->multiple()
-                        ->closeOnSelect()
-                        ->searchable()
-                        ->native(false)
-                        ->relationship('references', 'title', fn (Builder $query) => Reference::applyPublicVisibility($query)->with('parentReference.parentReference'))
-                        ->getSearchResultsUsing(fn (string $search): array => ReferenceFormSchema::searchOptions($search))
-                        ->getOptionLabelsUsing(fn (array $values): array => ReferenceFormSchema::selectedLabels($values))
-                        ->createOptionForm(ReferenceFormSchema::quickCreateComponents())
-                        ->createOptionUsing(fn (array $data, Schema $schema): string => ReferenceFormSchema::createPending($data, $schema)),
-                ]),
-        ];
-    }
-
-    private function buildOrganizerLocationStep(bool $hasScopedInstitution, string $hasScopedInstitutionJs): Step
-    {
-        return Step::make(__('Format, Penganjur & Lokasi'))
-            ->icon('heroicon-o-building-office')
-            ->schema($this->getOrganizerLocationFields($hasScopedInstitution, $hasScopedInstitutionJs));
-    }
-
-    /**
-     * @return array<int, mixed>
-     */
-    private function getOrganizerLocationFields(bool $hasScopedInstitution, string $hasScopedInstitutionJs): array
-    {
-        return [
-            Section::make(__('Negara'))
-                ->schema([
-                    Select::make('submission_country_id')
-                        ->native(false)
-                        ->label(__('Country'))
-                        ->required()
-                        ->options(fn (): array => app(SelectionCatalogCache::class)->rememberAddressOptions(
-                            'countries',
-                            static fn (): array => AddressCountry::query()
-                                ->orderBy('name')
-                                ->pluck('name', 'id')
-                                ->all(),
-                        ))
-                        ->searchable()
-                        ->preload()
-                        ->live()
-                        ->afterStateUpdatedJs($this->progressUpdateJs())
-                        ->afterStateUpdated(function (Get $get, Set $set): void {
-                            $this->applyContextualDefaults($get, $set);
-                            $this->clearCountryMismatchedEntitySelections($get, $set);
-                        }),
-                ]),
-
-            Section::make(__('Format & Pautan'))
-                ->schema([
-                    Grid::make(['default' => 1, 'sm' => 2])
-                        ->schema([
-                            Radio::make('event_format')
-                                ->label(__('Format Majlis'))
-                                ->required()
-                                ->options(EventFormat::class)
-                                ->default(EventFormat::Physical)
-                                ->disableOptionWhen(
-                                    fn (string $value, Get $get): bool => $this->hasCommunityCategorySelection($get('event_category_ids'))
-                                    && $value !== EventFormat::Physical->value
-                                )
-                                ->afterStateUpdatedJs($this->progressUpdateJs())
-                                ->inline(),
-
-                            Radio::make('visibility')
-                                ->label(__('Keterlihatan'))
-                                ->required()
-                                ->options(EventVisibility::class)
-                                ->default(EventVisibility::Public)
-                                ->afterStateUpdatedJs($this->progressUpdateJs())
-                                ->hidden()
-                                ->dehydratedWhenHidden()
-                                ->inline(),
-
-                            TextInput::make('event_url')
-                                ->label(__('Pautan Majlis'))
-                                ->url()
-                                ->maxLength(255)
-                                ->placeholder(__('https://example.com/event')),
-
-                            TextInput::make('live_url')
-                                ->label(__('Pautan Siaran Langsung'))
-                                ->url()
-                                ->maxLength(255)
-                                ->placeholder(__('https://youtube.com/...'))
-                                ->visibleJs(<<<'JS'
-                                    ['online', 'hybrid'].includes($get('event_format'))
-                                    JS),
-                        ]),
-                ]),
-
-            Section::make(__('Penganjur'))
-                ->schema([
-                    Hidden::make('primary_organizer_id')
-                        ->afterStateUpdatedJs($this->progressUpdateJs()),
-
-                    Radio::make('primary_organizer_kind')
-                        ->label(__('Jenis Penganjur'))
-                        ->required(fn (Get $get): bool => ! $hasScopedInstitution && ! filled($get('primary_organizer_id')))
-                        ->options([
-                            'institution' => __('Institusi'),
-                            'person' => __('Penceramah'),
-
-                        ])
-                        ->default('institution')
-                        ->afterStateUpdatedJs(<<<'JS'
-                            if ($state !== 'institution') {
-                                $set('primary_organizer_institution_id', null)
-                            }
-
-                            if ($state !== 'person') {
-                                $set('primary_organizer_person_id', null)
-                            }
-
-                            $set('primary_organizer_id', null)
-                        JS)
-                        ->afterStateUpdatedJs($this->progressUpdateJs())
-                        ->inline()
-                        ->visible(! $hasScopedInstitution)
-                        ->afterStateUpdated(function (Set $set, ?string $state): void {
-                            if ($state !== 'institution') {
-                                $set('primary_organizer_institution_id', null);
-                            }
-
-                            if ($state !== 'person') {
-                                $set('primary_organizer_person_id', null);
-                            }
-                            $set('primary_organizer_id', null);
-                        }),
-
-                    Select::make('primary_organizer_institution_id')
-                        ->native(false)
-                        ->label(__('Institusi'))
-                        ->options(fn (Get $get): array => $this->availableInstitutionOptions(
-                            $this->resolveSubmissionCountryId($get('submission_country_id')),
-                        ))
-                        ->searchable()
-                        ->preload()
-                        ->disabled($hasScopedInstitution)
-                        ->dehydrated()
-                        ->visibleJs($hasScopedInstitutionJs." || \$get('primary_organizer_kind') === 'institution'")
-                        ->extraAlpineAttributes([
-                            'x-bind:required' => <<<'JS'
-                                $get('primary_organizer_kind') === 'institution' && ! $get('primary_organizer_id')
-                            JS,
-                        ])
-                        ->afterStateUpdatedJs(<<<'JS'
-                            const organizerId = $state || null;
-                            $set('primary_organizer_id', organizerId);
-
-                            if ($get('location_same_as_institution')) {
-                                $set('location_institution_id', organizerId);
-                                $set('location_venue_id', null);
-                            }
-                        JS)
-                        ->afterStateUpdatedJs($this->progressUpdateJs())
-                        ->required(fn (Get $get): bool => $this->selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')) === 'institution' && ! filled($get('primary_organizer_id')))
-                        ->afterStateUpdated(function (Get $get, Set $set, mixed $state): void {
-                            $organizerId = is_scalar($state) && trim((string) $state) !== '' ? trim((string) $state) : null;
-
-                            $set('primary_organizer_id', $organizerId);
-
-                            if ((bool) $get('location_same_as_institution')) {
-                                $set('location_institution_id', $organizerId);
-                                $set('location_venue_id', null);
-                            }
-                        })
-                        ->createOptionForm(InstitutionFormSchema::createOptionForm(includeLocationPicker: true))
-                        ->createOptionUsing(fn (array $data, Schema $schema): string => InstitutionFormSchema::createOptionUsing($data, $schema)),
-
-                    Select::make('primary_organizer_person_id')
-                        ->native(false)
-                        ->label(__('Penceramah'))
-                        ->options(fn (): array => $this->availablePersonOptions())
-                        ->searchable()
-                        ->preload()
-                        ->visibleJs("! {$hasScopedInstitutionJs} && \$get('primary_organizer_kind') === 'person'")
-                        ->extraAlpineAttributes([
-                            'x-bind:required' => <<<'JS'
-                                $get('primary_organizer_kind') === 'person' && ! $get('primary_organizer_id')
-                            JS,
-                        ])
-                        ->required(fn (Get $get): bool => $this->selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')) === 'person' && ! filled($get('primary_organizer_id')))
-                        ->afterStateUpdated(function (Set $set, mixed $state): void {
-                            $set('primary_organizer_id', is_scalar($state) && trim((string) $state) !== '' ? trim((string) $state) : null);
-                        })
-                        ->afterStateUpdatedJs(<<<'JS'
-                                                    $set('primary_organizer_id', $state || null)
-
-                                                    if ($state) {
-                                                        const currentPersons = $get('persons') || []
-                                                        if (!currentPersons.includes($state)) {
-                                                            $set('persons', [...currentPersons, $state])
-                                                        }
-                                                    }
-                                                    JS)
-                        ->afterStateUpdatedJs($this->progressUpdateJs())
-                        ->createOptionForm(PersonFormSchema::createOptionForm())
-                        ->createOptionUsing(fn (array $data, Schema $schema, Set $set, Get $get): string => PersonFormSchema::createOptionUsing($data, $schema)),
-                ]),
-
-            Section::make(__('Lokasi'))
-                ->visibleJs(<<<'JS'
-                            $get('event_format') !== 'online' && ($get('primary_organizer_kind') || $get('primary_organizer_id'))
-                            JS)
-                ->schema([
-                    Toggle::make('location_same_as_institution')
-                        ->label(__('Sama seperti institusi penganjur'))
-                        ->default(true)
-                        ->inline(false)
-                        ->visibleJs($hasScopedInstitutionJs." || \$get('primary_organizer_kind') === 'institution'")
-                        ->afterStateUpdatedJs("if ({$hasScopedInstitutionJs}) {
-                                        if (\$state) {
-                                            \$set('location_type', 'institution')
-                                            \$set('location_institution_id', \$get('primary_organizer_institution_id'))
-                                            \$set('location_venue_id', null)
-                                        } else {
-                                            \$set('location_type', 'venue')
-                                            \$set('location_institution_id', null)
-                                            \$set('space_id', null)
-                                        }
-                                    }")
-                        ->afterStateUpdatedJs($this->progressUpdateJs()),
-
-                    Radio::make('location_type')
-                        ->label(__('Jenis Lokasi'))
-                        ->options([
-                            'institution' => __('Institusi'),
-                            'venue' => __('Tempat'),
-                        ])
-                        ->inline()
-                        ->default('institution')
-                        ->visibleJs("! {$hasScopedInstitutionJs} && (\$get('primary_organizer_kind') === 'person' || !\$get('location_same_as_institution'))")
-                        ->required(fn (Get $get): bool => ($this->selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')) === 'person' || ! $get('location_same_as_institution')) && $get('event_format') !== 'online')
-                        ->afterStateUpdatedJs($this->progressUpdateJs()),
-
-                    Select::make('location_institution_id')
-                        ->native(false)
-                        ->label(__('Institusi'))
-                        ->options(fn (Get $get): array => $this->availableInstitutionOptions(
-                            $this->resolveSubmissionCountryId($get('submission_country_id')),
-                        ))
-                        ->searchable()
-                        ->preload()
-                        ->visibleJs("! {$hasScopedInstitutionJs} && (\$get('primary_organizer_kind') === 'person' || !\$get('location_same_as_institution')) && \$get('location_type') === 'institution'")
-                        ->required(fn (Get $get): bool => ($this->selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')) === 'person' || ! $get('location_same_as_institution')) && $get('location_type') === 'institution')
-                        ->afterStateUpdatedJs($this->progressUpdateJs())
-                        ->createOptionForm(InstitutionFormSchema::createOptionForm(includeLocationPicker: true))
-                        ->createOptionUsing(fn (array $data, Schema $schema): string => InstitutionFormSchema::createOptionUsing($data, $schema)),
-
-                    Select::make('location_venue_id')
-                        ->native(false)
-                        ->label(__('Lokasi'))
-                        ->options(fn (Get $get): array => $this->cachedSubmitVenueOptions(
-                            $this->resolveSubmissionCountryId($get('submission_country_id')),
-                        ))
-                        ->searchable()
-                        ->preload()
-                        ->visibleJs("({$hasScopedInstitutionJs} && !\$get('location_same_as_institution')) || (! {$hasScopedInstitutionJs} && (\$get('primary_organizer_kind') === 'person' || !\$get('location_same_as_institution')) && \$get('location_type') === 'venue')")
-                        ->required(fn (Get $get): bool => ($this->selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')) === 'person' || ! $get('location_same_as_institution')) && $get('location_type') === 'venue')
-                        ->afterStateUpdatedJs($this->progressUpdateJs())
-                        ->createOptionForm(VenueFormSchema::createOptionForm(includeLocationPicker: true))
-                        ->createOptionUsing(fn (array $data, Schema $schema): string => VenueFormSchema::createOptionUsing($data, $schema)),
-
-                    Select::make('space_ids')
-                        ->native(false)
-                        ->label(__('Ruang'))
-                        ->helperText(__('Pilih satu atau lebih ruang (cth: Dewan Utama, Ruang Solat).'))
-                        ->placeholder(__('Pilih ruang…'))
-                        ->searchable()
-                        ->preload()
-                        ->multiple()
-                        ->visibleJs("({$hasScopedInstitutionJs} && (\$get('location_same_as_institution') !== false)) || (\$get('primary_organizer_kind') === 'institution' && (\$get('location_same_as_institution') !== false)) || ((\$get('primary_organizer_kind') === 'person' || !\$get('location_same_as_institution')) && (\$get('location_type') === 'institution' || (\$get('location_type') === 'venue' && \$get('location_venue_id'))))")
-                        ->options(function (Get $get): array {
-                            $venueId = is_scalar($get('location_venue_id')) ? trim((string) $get('location_venue_id')) : '';
-
-                            if (
-                                $venueId !== ''
-                                && $get('location_type') === 'venue'
-                            ) {
-                                return app(SpaceEligibilityResolver::class)->venueQuery($venueId)
-                                    ->where('status', 'active')
-                                    ->orderBy('name')
-                                    ->pluck('name', 'id')
-                                    ->toArray();
-                            }
-
-                            $institutionId = $get('location_institution_id');
-
-                            if (! is_scalar($institutionId) || trim((string) $institutionId) === '') {
-                                $institutionId = $this->resolvedPrimaryOrganizerInstitutionId($get('primary_organizer_id'));
-                            }
-
-                            $query = is_scalar($institutionId) && trim((string) $institutionId) !== ''
-                                ? app(SpaceEligibilityResolver::class)->institutionQuery(trim((string) $institutionId))
-                                : app(SpaceEligibilityResolver::class)->catalogQuery();
-
-                            return $query
-                                ->where('status', 'active')
-                                ->orderBy('name')
-                                ->pluck('name', 'id')
-                                ->toArray();
-                        }),
-                ]),
-        ];
-    }
-
-    private function buildPersonsMediaStep(): Step
-    {
-        return Step::make(__('Penceramah & Media'))
-            ->icon('heroicon-o-user-group')
-            ->schema($this->getPersonsMediaFields());
-    }
-
-    /**
-     * @return array<int, mixed>
-     */
-    private function getPersonsMediaFields(): array
-    {
-        return [
-            Section::make(__('Penceramah'))
-                ->schema([
-                    Select::make('persons')
-                        ->native(false)
-                        ->label(__('Pilih Penceramah'))
-                        ->placeholder(__('Pilih Penceramah'))
-                        ->required(fn (Get $get): bool => $this->categoriesRequirePersons($get('event_category_ids')))
-                        ->multiple()
-                        ->closeOnSelect()
-                        ->searchable()
-                        ->preload()
-                        ->options(fn (): array => $this->availablePersonOptions())
-                        ->helperText(fn (Get $get): string => $this->categoriesRequirePersons($get('event_category_ids'))
-                            ? __('Sekurang-kurangnya seorang penceramah diperlukan untuk jenis majlis ini.')
-                            : __('Kosongkan jika majlis ini tidak mempunyai penceramah khusus.'))
-                        ->afterStateUpdatedJs($this->progressUpdateJs())
-                        ->getOptionLabelUsing(fn (mixed $value): ?string => Person::query()->find($value)?->formatted_name)
-                        ->getOptionLabelsUsing(fn (array $values): array => Person::query()
-                            ->whereIn('id', $values)
-                            ->get()
-                            ->mapWithKeys(fn (Person $person): array => [(string) $person->id => $person->formatted_name])
-                            ->toArray())
-                        ->createOptionForm(PersonFormSchema::createOptionForm())
-                        ->createOptionUsing(fn (array $data, Schema $schema): string => PersonFormSchema::createOptionUsing($data, $schema)),
-
-                    Repeater::make('other_key_people')
-                        ->label(__('Peranan Lain'))
-                        ->helperText(__('Tambahkan moderator, imam, khatib, bilal, atau PIC jika berkenaan.'))
-                        ->schema([
-                            Select::make('role_code')
-                                ->label(__('Peranan'))
-                                ->required()
-                                ->options(EventKeyPersonRole::nonSpeakerOptions())
-                                ->native(false),
-                            Select::make('involveable_id')
-                                ->native(false)
-                                ->label(__('Pautkan Profil Penceramah'))
-                                ->options(fn (): array => $this->availablePersonOptions())
-                                ->searchable()
-                                ->preload()
-                                ->afterStateUpdated(function (Set $set, mixed $state): void {
-                                    $set('display_name', null);
-                                    $set('involveable_type', filled($state) ? 'person' : null);
-                                })
-                                ->afterStateUpdatedJs(<<<'JS'
-                                                    $set('display_name', null)
-                                                    $set('involveable_type', $state ? 'person' : null)
-                                                    JS)
-                                ->getOptionLabelUsing(fn (mixed $value): ?string => Person::query()->find($value)?->formatted_name)
-                                ->createOptionForm(PersonFormSchema::createOptionForm())
-                                ->createOptionUsing(fn (array $data, Schema $schema): string => PersonFormSchema::createOptionUsing($data, $schema)),
-                            Hidden::make('involveable_type'),
-                            TextInput::make('display_name')
-                                ->label(__('Nama Paparan'))
-                                ->maxLength(255)
-                                ->extraAlpineAttributes([
-                                    'x-bind:disabled' => <<<'JS'
-                                        Boolean($get('involveable_id'))
-                                    JS,
-                                    'x-bind:required' => <<<'JS'
-                                        ! Boolean($get('involveable_id'))
-                                    JS,
-                                ])
-                                ->required(fn (Get $get): bool => blank($get('involveable_id')))
-                                ->disabled(fn (Get $get): bool => filled($get('involveable_id')))
-                                ->dehydrated(fn (Get $get): bool => blank($get('involveable_id')))
-                                ->helperText(__('Isi nama jika tiada profil penceramah dipautkan.')),
-                            Select::make('visibility')
-                                ->native(false)
-                                ->label(__('Keterlihatan'))
-                                ->options(['public' => __('Awam'), 'private' => __('Peribadi')])
-                                ->default('public')
-                                ->required(),
-                            Textarea::make('notes')
-                                ->label(__('Nota Peranan'))
-                                ->rows(2)
-                                ->maxLength(500),
-                        ])
-                        ->default([])
-                        ->afterStateUpdatedJs($this->progressUpdateJs())
-                        ->addActionLabel(__('Tambah Peranan'))
-                        ->columns(2)
-                        ->columnSpanFull(),
-                ]),
-
-            Section::make(__('Media'))
-                ->schema([
-                    SpatieMediaLibraryFileUpload::make('cover')
-                        ->label(__('Gambar Cover Majlis'))
-                        ->collection('cover')
-                        ->image()
-                        ->imageEditor()
-                        ->imageAspectRatio('16:9')
-                        ->automaticallyOpenImageEditorForAspectRatio()
-                        ->imageEditorAspectRatioOptions(['16:9', null])
-                        ->automaticallyCropImagesToAspectRatio()
-                        ->conversion('thumb')
-                        ->responsiveImages()
-                        ->helperText(__('Untuk paparan laman web dan aplikasi. Wajib 16:9, tanpa maklumat yang terlalu padat.')),
-                    SpatieMediaLibraryFileUpload::make('poster')
-                        ->label(__('Poster Hebahan'))
-                        ->collection('poster')
-                        ->image()
-                        ->imageEditor()
-                        ->imageAspectRatio('3:4')
-                        ->automaticallyOpenImageEditorForAspectRatio()
-                        ->imageEditorAspectRatioOptions(['3:4', null])
-                        ->automaticallyCropImagesToAspectRatio()
-                        ->rules(['dimensions:ratio=3/4'])
-                        ->conversion('poster_thumb')
-                        ->responsiveImages()
-                        ->helperText(__('Untuk hebahan WhatsApp, Instagram, Facebook, dan saluran luar. Wajib portrait 3:4 dan boleh mengandungi maklumat penuh.')),
-                    SpatieMediaLibraryFileUpload::make('gallery')
-                        ->label(__('Galeri'))
-                        ->collection('gallery')
-                        ->multiple()
-                        ->reorderable()
-                        ->maxFiles(10)
-                        ->image()
-                        ->imageEditor()
-                        ->conversion('gallery_thumb')
-                        ->responsiveImages()
-                        ->helperText(__('Gambar tambahan untuk galeri majlis.')),
-                ])
-                ->columns(['default' => 1, 'sm' => 2]),
-        ];
-    }
-
-    private function buildReviewStep(bool $hasScopedInstitution): Step
-    {
-        return Step::make(__('Semak & Hantar'))
-            ->id(self::REVIEW_STEP_ID)
-            ->icon('heroicon-o-paper-airplane')
-            ->schema([
-                Hidden::make('captcha_token')
-                    ->dehydrated(),
-
-                Section::make(__('Pratonton Penghantaran'))
-                    ->description(__('Semak ringkasan ini sebelum anda menghantar.'))
-                    ->schema([
-                        SchemaView::make('components.pages.submit-event.partials.review-preview')
-                            ->viewData(fn (): array => [
-                                'hasReligiousContext' => $this->isReligiousContext(
-                                    $this->data['domain_tags'] ?? [],
-                                ),
-                            ]),
-                    ]),
-
-                Section::make(__('Maklumat Anda'))
-                    ->schema([
-                        Grid::make(['default' => 1, 'sm' => 2])
-                            ->schema([
-                                TextInput::make('submitter_name')
-                                    ->label(__('Nama Anda'))
-                                    ->required()
-                                    ->afterStateUpdatedJs($this->progressUpdateJs())
-                                    ->maxLength(100),
-
-                                TextInput::make('submitter_email')
-                                    ->label(__('Email'))
-                                    ->email()
-                                    ->maxLength(255)
-                                    ->afterStateUpdatedJs($this->progressUpdateJs())
-                                    ->extraAlpineAttributes([
-                                        'x-bind:required' => <<<'JS'
-                                            ! $get('submitter_phone')
-                                        JS,
-                                    ])
-                                    ->required(fn (Get $get) => ! auth()->check() && empty($get('submitter_phone'))),
-
-                                PhoneInput::make('submitter_phone')
-                                    ->label(__('Telefon'))
-                                    ->initialCountry('MY')
-                                    ->displayNumberFormat(PhoneInputNumberType::INTERNATIONAL)
-                                    ->inputNumberFormat(PhoneInputNumberType::E164)
-                                    ->helperText(__('cth: +60123456789 atau 03-12345678'))
-                                    ->rule(static fn (): Closure => static function (string $attribute, mixed $value, Closure $fail): void {
-                                        if (! filled($value)) {
-                                            return;
-                                        }
-
-                                        if (! SubmitterContactRules::isValidPhone($value)) {
-                                            $fail(__('Nombor telefon tidak sah. Sila semak semula.'));
-                                        }
-                                    })
-                                    ->afterStateUpdatedJs($this->progressUpdateJs())
-                                    ->required(fn (Get $get) => ! auth()->check() && empty($get('submitter_email'))),
-                            ]),
-                    ])
-                    ->visible(fn () => ! auth()->check()),
-
-                Section::make(__('Nota untuk Pentadbir'))
-                    ->description(__('Pilihan: Tambah maklumat atau permintaan khas untuk moderator.'))
-                    ->schema([
-                        Textarea::make('notes')
-                            ->label(__('Nota'))
-                            ->rows(3)
-                            ->maxLength(1000)
-                            ->placeholder(__('cth: Keperluan khas, maklumat tambahan, atau apa sahaja yang perlu diketahui moderator...'))
-                            ->helperText(__('Maksimum 1000 aksara')),
-                    ])
-                    ->visible(! $hasScopedInstitution),
-
-                Callout::make($hasScopedInstitution ? __('Terbit Serta-Merta') : __('Semakan Moderator'))
-                    ->description($hasScopedInstitution
-                        ? __('Majlis institusi ini akan diterbitkan terus selepas dihantar dan tidak melalui giliran semakan moderator.')
-                        : __('Majlis anda akan disemak oleh moderator kami dalam tempoh 24-48 jam. Anda akan dimaklumkan melalui e-mel setelah majlis diluluskan.'))
-                    ->info(),
-            ]);
+        // Context is resolved fresh on every request via the component
+        // guards; the schema never retains the component instance.
+        $context = new SubmitEventFormContext(
+            scopedInstitution: $this->scopedInstitution(),
+            eventContainer: $this->selectedEventContainer(),
+            submitter: $this->submitterUser(),
+            requestedOccurrenceId: $this->eventOccurrenceId,
+        );
+
+        return (new EventSubmissionFormSchema($context, new SubmitEventOptionsProvider))
+            ->form($schema, $this->wizardStep);
     }
 
     public function submit(): mixed
     {
+        $this->assertSubmissionNotRateLimited('submit', 'data.captcha_token');
+
+        if (
+            is_string($this->scopedInstitutionId) && $this->scopedInstitutionId !== ''
+            && ! $this->scopedInstitution() instanceof Institution
+        ) {
+            throw ValidationException::withMessages([
+                'data.scoped_institution_id' => __('Anda tidak dibenarkan menghantar bagi pihak institusi ini.'),
+            ]);
+        }
+
         $state = $this->eventForm()->getState();
-        $state['age_group'] = $this->normalizeAgeGroupSelection(
-            $this->normalizeAgeGroupState($state['age_group'] ?? []),
+        // The UI canonical for category/topic is a single select (scalar),
+        // while the action/validator contract is a list. Normalize from the
+        // raw form state: getState() casts array payloads on single selects
+        // to null, so the dehydrated value cannot be trusted here.
+        $state['event_category_ids'] = EventSubmissionFormSchema::normalizeEventCategoryState($this->data['event_category_ids'] ?? null);
+        $state['domain_tags'] = EventSubmissionFormSchema::normalizeDomainTagState($this->data['domain_tags'] ?? null);
+        $state['age_group'] = EventSubmissionFormSchema::normalizeAgeGroupSelection(
+            EventSubmissionFormSchema::normalizeAgeGroupState($state['age_group'] ?? []),
         );
 
         if (($duplicateEvent = $this->selectedDuplicateEvent()) instanceof Event) {
-            $state['visibility'] = $this->duplicateEventVisibility($duplicateEvent);
+            $state['visibility'] = SubmitEventPrefill::duplicateVisibility($duplicateEvent);
         }
 
         if (
@@ -1748,7 +458,6 @@ class Create extends Component implements HasActions, HasForms
         }
 
         $state['captcha_token'] = $this->data['captcha_token'] ?? null;
-        $state['is_muslim_only'] = (bool) ($state['is_muslim_only'] ?? false);
 
         $eventContainer = $this->selectedEventContainer();
         $result = app(SubmitFrontendEventAction::class)->handle(
@@ -1757,17 +466,38 @@ class Create extends Component implements HasActions, HasForms
             submitter: $this->submitterUser(),
             eventContainer: $eventContainer,
             scopedInstitution: $this->scopedInstitution(),
-            persistRelationships: function (Event $event): void {
-                $this->eventForm()->model($event);
-                $this->eventForm()->saveRelationships();
+            persistRelationships: function (HasMedia $model): void {
+                if (! $model instanceof Model) {
+                    throw new RuntimeException('Submit-event media persistence requires an Eloquent model, '.get_class($model).' given.');
+                }
+
+                // References are owned once in the persist action for both
+                // events and sessions; only media uploads persist here.
+                $schema = $this->eventForm()->model($model);
+
+                foreach (['cover', 'poster', 'gallery'] as $field) {
+                    $component = $schema->getComponent($field, withHidden: true);
+
+                    if ($component instanceof SpatieMediaLibraryFileUpload) {
+                        $component->saveRelationships();
+                    }
+                }
             },
             validationKeyPrefix: 'data.',
         );
 
         $event = $result['event'];
 
-        session()->flash('event_title', $event->title);
+        $session = $result['session'];
+
+        session()->flash('event_title', $session instanceof EventSession ? $session->title : $event->title);
         session()->flash('event_slug', $event->slug);
+        session()->flash('event_status', (string) $event->status);
+        session()->flash('event_parent_visibility', $event->visibility->value);
+        session()->flash('event_occurrence_visibility', $session?->occurrence?->visibility);
+        session()->flash('event_session_id', $session?->getKey());
+        session()->flash('event_session_slug', $session?->slug);
+        session()->flash('event_occurrence_slug', $session?->occurrence?->slug);
         session()->flash('event_auto_approved', $result['auto_approved']);
         session()->flash('submission_institution_id', $this->scopedInstitutionId);
         session()->flash('event_visibility', $result['visibility']);
@@ -1780,181 +510,128 @@ class Create extends Component implements HasActions, HasForms
         return redirect()->route('submit-event.success');
     }
 
-    protected function shouldAutoApproveSubmission(): bool
+    /**
+     * Method-level throttle for the Livewire submit and AI-extraction paths,
+     * which the GET route throttle does not cover. Limits reuse the
+     * configured `event-submission` limiter so web and API stay aligned.
+     */
+    protected function assertSubmissionNotRateLimited(string $action, string $field): void
     {
-        return $this->hasScopedInstitution();
+        $limiter = RateLimiter::limiter('event-submission');
+        $limit = $limiter instanceof Closure ? $limiter(request()) : null;
+        $maxAttempts = $limit instanceof Limit ? (int) $limit->maxAttempts : 5;
+        $decaySeconds = $limit instanceof Limit ? (int) $limit->decaySeconds : 3600;
+        $key = 'submit-event:'.$action.':'.(string) request()->ip();
+
+        if (RateLimiter::tooManyAttempts($key, $maxAttempts)) {
+            throw ValidationException::withMessages([
+                $field => __('Terlalu banyak percubaan. Sila cuba semula dalam :seconds saat.', [
+                    'seconds' => RateLimiter::availableIn($key),
+                ]),
+            ]);
+        }
+
+        RateLimiter::hit($key, $decaySeconds);
     }
 
     protected function selectedEventContainer(): ?Event
     {
         $eventId = $this->eventId;
 
-        if (! is_string($eventId) || ! Str::isUuid($eventId)) {
+        if ($eventId === null || $eventId === '') {
+            $this->resolvedEventContainer = null;
+            $this->resolvedEventContainerKey = null;
+
             return null;
+        }
+
+        $user = $this->submitterUser();
+        $memoKey = ($user instanceof User ? (string) $user->getKey() : 'guest').':'.(string) $eventId;
+
+        if ($this->resolvedEventContainer instanceof Event
+            && $this->resolvedEventContainerKey === $memoKey
+        ) {
+            return $this->resolvedEventContainer;
+        }
+
+        // A requested container that is malformed, deleted, or unauthorized
+        // fails closed instead of silently becoming a new event.
+        if (! Str::isUuid($eventId)) {
+            abort(404);
         }
 
         $event = Event::query()
             ->with(['institution:id,name', 'accessPolicy'])
             ->find($eventId);
 
+        if (! $event instanceof Event) {
+            abort(404);
+        }
+
+        if (! $user instanceof User || ! $user->can('update', $event)) {
+            abort(403);
+        }
+
         $scopedInstitution = $this->scopedInstitution();
 
         if (
-            $event instanceof Event
-            && $scopedInstitution instanceof Institution
+            $scopedInstitution instanceof Institution
             && ! $this->eventMatchesScopedInstitution($event, $scopedInstitution)
         ) {
             abort(403);
         }
 
-        return $event instanceof Event ? $event : null;
+        $this->resolvedEventContainer = $event;
+        $this->resolvedEventContainerKey = $memoKey;
+
+        return $event;
     }
 
     protected function eventMatchesScopedInstitution(Event $event, Institution $institution): bool
     {
-        if ($event->institution_id === $institution->id) {
-            return true;
-        }
-
-        $involvement = $event->primaryOrganizerInvolvement;
-
-        return $involvement !== null
-            && $involvement->involveable_type === Institution::class
-            && $involvement->involveable_id === $institution->id;
+        // The location institution is not ownership; only the primary
+        // organizer establishes the institutional scope.
+        return OrganizerResolver::involvementMatchesInstitution(
+            $event->primaryOrganizerInvolvement,
+            $institution,
+        );
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    protected function eventContainerDefaults(Event $event): array
+    protected function resolveRequestedOccurrenceId(mixed $occurrenceId): ?string
     {
-        $event->loadMissing([
-            'classifications',
-            'references',
-            'languages',
-            'persons',
-            'keyPeople',
-            'primaryOccurrence',
-            'primaryOrganizerInvolvement',
-        ]);
-
-        $eventVisibility = $event->visibility;
-        $eventFormat = $event->delivery_mode instanceof EventFormat
-            ? $event->delivery_mode->value
-            : (is_string($event->delivery_mode) && $event->delivery_mode !== '' ? $event->delivery_mode : EventFormat::Physical->value);
-        $eventGender = $event->gender instanceof EventGenderRestriction
-            ? $event->gender->value
-            : (is_string($event->gender) && $event->gender !== '' ? $event->gender : EventGenderRestriction::All->value);
-        $classifications = $event->classifications;
-
-        $defaults = [
-            'title' => $event->title,
-            'description' => $event->description,
-            'event_category_ids' => $classifications
-                ->where('taxonomy_code', EventCategoryCatalog::TAXONOMY_CODE)
-                ->pluck('event_term_id')
-                ->filter()
-                ->first(),
-            'event_format' => $eventFormat,
-            'gender' => $eventGender,
-            'age_group' => $this->normalizeAgeGroupState($event->age_group),
-            'children_allowed' => (bool) $event->children_allowed,
-            'is_muslim_only' => (bool) $event->is_muslim_only,
-            'event_url' => $event->event_url,
-            'live_url' => $event->live_url,
-            'domain_tags' => $classifications
-                ->where('taxonomy_code', EventTaxonomyCode::Domain->value)
-                ->pluck('event_term_id')
-                ->filter()
-                ->first(),
-            'discipline_tags' => $classifications
-                ->where('taxonomy_code', EventTaxonomyCode::Discipline->value)
-                ->pluck('event_term_id')
-                ->filter()
-                ->values()
-                ->all(),
-            'source_tags' => $classifications
-                ->where('taxonomy_code', EventTaxonomyCode::Source->value)
-                ->pluck('event_term_id')
-                ->filter()
-                ->values()
-                ->all(),
-            'issue_tags' => $classifications
-                ->where('taxonomy_code', EventTaxonomyCode::Issue->value)
-                ->pluck('event_term_id')
-                ->filter()
-                ->values()
-                ->all(),
-            'references' => $event->references
-                ->pluck('id')
-                ->filter()
-                ->values()
-                ->all(),
-            'persons' => $this->duplicatePersonState($event),
-            'other_key_people' => $this->duplicateOtherKeyPeopleState($event),
-            'languages' => $event->languages
-                ->pluck('id')
-                ->map(strval(...))
-                ->values()
-                ->all(),
-            'visibility' => $eventVisibility instanceof EventVisibility
-                ? $eventVisibility->value
-                : (is_string($eventVisibility) && $eventVisibility !== '' ? $eventVisibility : EventVisibility::Public->value),
-        ];
-
-        $firstSession = is_array($event->metadata ?? null)
-            ? ($event->metadata['advanced_first_session'] ?? [])
-            : [];
-
-        if (is_array($firstSession)) {
-            $defaults = array_replace($defaults, array_filter([
-                'event_date' => $firstSession['event_date'] ?? null,
-                'prayer_time' => $firstSession['prayer_time'] ?? null,
-                'custom_time' => $firstSession['custom_time'] ?? null,
-                'end_time' => $firstSession['end_time'] ?? null,
-            ], filled(...)));
+        if ($occurrenceId === null || (is_string($occurrenceId) && trim($occurrenceId) === '')) {
+            return null;
         }
 
-        if (! array_key_exists('event_date', $defaults) && $event->primaryOccurrence?->starts_at instanceof CarbonInterface) {
-            $timezone = $this->resolveSubmissionTimezone($this->data['submission_country_id'] ?? null);
-            $startsAt = $event->primaryOccurrence->starts_at->copy()->timezone($timezone);
-            $defaults['event_date'] = $startsAt->toDateString();
-            $defaults['custom_time'] = $startsAt->format('H:i');
-            $defaults['prayer_time'] = EventPrayerTime::LainWaktu->value;
+        if (! is_string($occurrenceId) || ! Str::isUuid($occurrenceId)) {
+            abort(404);
         }
 
-        if (! array_key_exists('end_time', $defaults) && $event->primaryOccurrence?->ends_at instanceof CarbonInterface) {
-            $timezone = $this->resolveSubmissionTimezone($this->data['submission_country_id'] ?? null);
-            $defaults['end_time'] = $event->primaryOccurrence->ends_at->copy()->timezone($timezone)->format('H:i');
+        $container = $this->selectedEventContainer();
+
+        if (! $container instanceof Event) {
+            abort(404);
         }
 
-        $organizer = $event->primaryOrganizerInvolvement;
+        $occurrence = EventOccurrence::query()
+            ->whereKey($occurrenceId)
+            ->where('event_id', $container->getKey())
+            ->first();
 
-        if ($organizer?->involveable_type === Institution::class && filled($organizer->involveable_id)) {
-            $defaults['primary_organizer_kind'] = 'institution';
-            $defaults['primary_organizer_id'] = $organizer->involveable_id;
-            $defaults['primary_organizer_institution_id'] = $organizer->involveable_id;
-            $defaults['primary_organizer_person_id'] = null;
-            $defaults['location_same_as_institution'] = true;
-            $defaults['location_type'] = 'institution';
-            $defaults['location_institution_id'] = $event->institution_id ?: $organizer->involveable_id;
+        if (! $occurrence instanceof EventOccurrence || ! $this->isEligibleSessionOccurrence($occurrence)) {
+            abort(404);
         }
 
-        if ($organizer?->involveable_type === Person::class && filled($organizer->involveable_id)) {
-            $defaults['primary_organizer_kind'] = 'person';
-            $defaults['primary_organizer_id'] = $organizer->involveable_id;
-            $defaults['primary_organizer_institution_id'] = null;
-            $defaults['primary_organizer_person_id'] = $organizer->involveable_id;
-            $defaults['location_type'] = $event->default_venue_id ? 'venue' : 'institution';
-            $defaults['location_institution_id'] = $event->institution_id;
+        return (string) $occurrence->getKey();
+    }
 
-            if ($event->default_venue_id) {
-                $defaults['location_same_as_institution'] = false;
-                $defaults['location_venue_id'] = $event->default_venue_id;
-            }
-        }
-
-        return $defaults;
+    protected function isEligibleSessionOccurrence(EventOccurrence $occurrence): bool
+    {
+        return ! in_array(
+            (string) $occurrence->status,
+            [EventOccurrence::CANCELLED, EventOccurrence::COMPLETED, EventOccurrence::ARCHIVED],
+            true,
+        );
     }
 
     protected function selectedDuplicateEvent(): ?Event
@@ -1969,7 +646,7 @@ class Create extends Component implements HasActions, HasForms
             ->with([
                 'classifications',
                 'references.parentReference.parentReference',
-                'languages:id,code',
+                'languages',
                 'persons',
                 'keyPeople.person',
             ])
@@ -1982,9 +659,7 @@ class Create extends Component implements HasActions, HasForms
 
     protected function canDuplicateSourceEvent(Event $event): bool
     {
-        $user = $this->submitterUser();
-
-        if ($user instanceof User && ($user->can('update', $event) || $this->isDuplicateEventOwner($event))) {
+        if ($this->canViewPrivateDuplicateDetails($event)) {
             return true;
         }
 
@@ -1995,6 +670,13 @@ class Create extends Component implements HasActions, HasForms
         return $event->published_at !== null
             && $this->isPubliclyVisibleDuplicateStatus($event)
             && in_array($eventVisibility, [EventVisibility::Public->value, EventVisibility::Unlisted->value], true);
+    }
+
+    protected function canViewPrivateDuplicateDetails(Event $event): bool
+    {
+        $user = $this->submitterUser();
+
+        return $user instanceof User && ($user->can('update', $event) || $this->isDuplicateEventOwner($event));
     }
 
     protected function isDuplicateEventOwner(Event $event): bool
@@ -2025,276 +707,6 @@ class Create extends Component implements HasActions, HasForms
         return in_array((string) $status, Event::PUBLIC_STATUSES, true);
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    protected function duplicateEventDefaults(Event $duplicateEvent): array
-    {
-        $timezone = $this->resolveSubmissionTimezone($this->data['submission_country_id'] ?? null);
-        $eventFormat = $duplicateEvent->delivery_mode instanceof EventFormat
-            ? $duplicateEvent->delivery_mode->value
-            : (is_string($duplicateEvent->delivery_mode) ? $duplicateEvent->delivery_mode : EventFormat::Physical->value);
-        $gender = $duplicateEvent->gender instanceof EventGenderRestriction
-            ? $duplicateEvent->gender->value
-            : (is_string($duplicateEvent->gender) ? $duplicateEvent->gender : EventGenderRestriction::All->value);
-        $defaults = [
-            'title' => $duplicateEvent->title,
-            'description' => $this->duplicateEventDescription($duplicateEvent),
-            'event_category_ids' => $duplicateEvent->classifications
-                ->where('taxonomy_code', 'event_category')
-                ->pluck('event_term_id')
-                ->filter()
-                ->first(),
-            'event_format' => $eventFormat,
-            'visibility' => $this->duplicateEventVisibility($duplicateEvent),
-            'gender' => $gender,
-            'age_group' => $this->normalizeAgeGroupState($duplicateEvent->age_group),
-            'children_allowed' => (bool) $duplicateEvent->children_allowed,
-            'is_muslim_only' => (bool) $duplicateEvent->is_muslim_only,
-            'event_url' => $duplicateEvent->event_url,
-            'live_url' => $duplicateEvent->live_url,
-            'domain_tags' => $duplicateEvent->classifications
-                ->where('taxonomy_code', EventTaxonomyCode::Domain->value)
-                ->pluck('event_term_id')
-                ->first(),
-            'discipline_tags' => $duplicateEvent->classifications
-                ->where('taxonomy_code', EventTaxonomyCode::Discipline->value)
-                ->pluck('event_term_id')
-                ->values()
-                ->all(),
-            'source_tags' => $duplicateEvent->classifications
-                ->where('taxonomy_code', EventTaxonomyCode::Source->value)
-                ->pluck('event_term_id')
-                ->values()
-                ->all(),
-            'issue_tags' => $duplicateEvent->classifications
-                ->where('taxonomy_code', EventTaxonomyCode::Issue->value)
-                ->pluck('event_term_id')
-                ->values()
-                ->all(),
-            'references' => $duplicateEvent->references->pluck('id')->values()->all(),
-            'persons' => $this->duplicatePersonState($duplicateEvent),
-            'other_key_people' => $this->duplicateOtherKeyPeopleState($duplicateEvent),
-        ];
-
-        if ($duplicateEvent->languages->isNotEmpty()) {
-            $defaults['languages'] = $duplicateEvent->languages->pluck('id')->map(fn (mixed $id): string => (string) $id)->values()->all();
-        }
-
-        if ($duplicateEvent->starts_at instanceof CarbonInterface) {
-            $startsAt = $duplicateEvent->starts_at->copy()->timezone($timezone);
-            $prayerTime = $this->duplicateEventPrayerTime($duplicateEvent);
-
-            $defaults['event_date'] = $startsAt->toDateString();
-            $defaults['prayer_time'] = $prayerTime->value;
-
-            if ($prayerTime->isCustomTime()) {
-                $defaults['custom_time'] = $startsAt->format('H:i');
-            }
-        }
-
-        if ($duplicateEvent->ends_at instanceof CarbonInterface) {
-            $defaults['end_time'] = $duplicateEvent->ends_at->copy()->timezone($timezone)->format('H:i');
-        }
-
-        return array_replace($defaults, $this->duplicateOrganizerAndLocationDefaults($duplicateEvent));
-    }
-
-    protected function duplicateEventVisibility(Event $event): string
-    {
-        return $event->visibility instanceof EventVisibility
-            ? $event->visibility->value
-            : (is_string($event->visibility) && $event->visibility !== '' ? $event->visibility : EventVisibility::Public->value);
-    }
-
-    protected function duplicateEventDescription(Event $duplicateEvent): string
-    {
-        $description = $duplicateEvent->description;
-
-        if (is_string($description)) {
-            return $description;
-        }
-
-        $html = data_get($description, 'html');
-
-        if (is_string($html) && $html !== '') {
-            return $html;
-        }
-
-        $content = data_get($description, 'content');
-
-        if (is_string($content) && $content !== '') {
-            return $content;
-        }
-
-        return $duplicateEvent->description_text;
-    }
-
-    /**
-     * @return list<string>
-     */
-    protected function normalizeEventCategoryState(mixed $state): array
-    {
-        if ($state instanceof Collection) {
-            return $state
-                ->map(strval(...))
-                ->filter(fn (string $termId): bool => $termId !== '')
-                ->values()
-                ->all();
-        }
-
-        if (is_array($state)) {
-            return collect($state)
-                ->map(strval(...))
-                ->filter(fn (string $termId): bool => $termId !== '')
-                ->values()
-                ->all();
-        }
-
-        if (is_string($state) && $state !== '') {
-            return [$state];
-        }
-
-        return [];
-    }
-
-    protected function duplicateEventPrayerTime(Event $duplicateEvent): EventPrayerTime
-    {
-        $prayerDisplayText = $duplicateEvent->prayer_display_text;
-
-        if (is_string($prayerDisplayText) && $prayerDisplayText !== '') {
-            foreach (EventPrayerTime::cases() as $prayerTime) {
-                if ($prayerTime->getLabel() === $prayerDisplayText) {
-                    return $prayerTime;
-                }
-            }
-        }
-
-        $prayerReference = $duplicateEvent->prayer_reference instanceof BackedEnum
-            ? (string) $duplicateEvent->prayer_reference->value
-            : (is_string($duplicateEvent->prayer_reference) ? $duplicateEvent->prayer_reference : null);
-        $prayerOffset = $duplicateEvent->prayer_offset instanceof BackedEnum
-            ? (string) $duplicateEvent->prayer_offset->value
-            : (is_string($duplicateEvent->prayer_offset) ? $duplicateEvent->prayer_offset : null);
-
-        if (is_string($prayerReference) && $prayerReference !== '') {
-            foreach (EventPrayerTime::cases() as $prayerTime) {
-                if ($prayerTime->isCustomTime()) {
-                    continue;
-                }
-
-                if (
-                    $prayerTime->toPrayerReference()?->value === $prayerReference
-                    && $prayerTime->getDefaultOffset()?->value === $prayerOffset
-                ) {
-                    return $prayerTime;
-                }
-            }
-        }
-
-        return EventPrayerTime::LainWaktu;
-    }
-
-    /**
-     * @return list<string>
-     */
-    protected function duplicatePersonState(Event $duplicateEvent): array
-    {
-        $access = app(EntitySubmissionAccess::class);
-        $submitter = $this->submitterUser();
-
-        return $duplicateEvent->persons
-            ->pluck('id')
-            ->map(fn (mixed $personId): ?string => is_string($personId) && $access->canUsePerson($submitter, $personId) ? $personId : null)
-            ->filter()
-            ->values()
-            ->all();
-    }
-
-    /**
-     * @return list<array{role_code: string, involveable_type: ?string, involveable_id: ?string, display_name: ?string, visibility: string, notes: ?string}>
-     */
-    protected function duplicateOtherKeyPeopleState(Event $duplicateEvent): array
-    {
-        $access = app(EntitySubmissionAccess::class);
-        $submitter = $this->submitterUser();
-
-        return $duplicateEvent->keyPeople
-            ->filter(fn (EventKeyPerson $keyPerson): bool => $keyPerson->role_code !== EventKeyPersonRole::Speaker->value)
-            ->map(function (EventKeyPerson $keyPerson) use ($access, $submitter): array {
-                $personId = is_string($keyPerson->involveable_id) && $access->canUsePerson($submitter, $keyPerson->involveable_id)
-                    ? $keyPerson->involveable_id
-                    : null;
-
-                $fallbackName = $personId === null
-                    ? $keyPerson->display_name
-                    : null;
-
-                return [
-                    'role_code' => (string) $keyPerson->role_code,
-                    'involveable_type' => $personId === null ? null : 'person',
-                    'involveable_id' => $personId,
-                    'display_name' => filled($fallbackName) ? (string) $fallbackName : null,
-                    'visibility' => $keyPerson->visibility ?? 'public',
-                    'notes' => filled($keyPerson->notes) ? (string) $keyPerson->notes : null,
-                ];
-            })
-            ->values()
-            ->all();
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    protected function duplicateOrganizerAndLocationDefaults(Event $duplicateEvent): array
-    {
-        $access = app(EntitySubmissionAccess::class);
-        $submitter = $this->submitterUser();
-        $defaults = [];
-        $eventFormat = $duplicateEvent->delivery_mode instanceof EventFormat
-            ? $duplicateEvent->delivery_mode->value
-            : (is_string($duplicateEvent->delivery_mode) ? $duplicateEvent->delivery_mode : EventFormat::Physical->value);
-        $organizer = $duplicateEvent->primaryOrganizerInvolvement;
-        $organizerId = $organizer !== null ? $organizer->involveable_id : null;
-        $institutionId = is_string($duplicateEvent->institution_id) ? $duplicateEvent->institution_id : null;
-
-        if ($organizer?->involveable_type === Institution::class && $organizerId !== null && $access->canUseInstitution($submitter, $organizerId)) {
-            $defaults['primary_organizer_kind'] = 'institution';
-            $defaults['primary_organizer_id'] = $organizerId;
-            $defaults['primary_organizer_institution_id'] = $organizerId;
-            $defaults['primary_organizer_person_id'] = null;
-        }
-
-        if ($organizer?->involveable_type === Person::class && $organizerId !== null && $access->canUsePerson($submitter, $organizerId)) {
-            $defaults['primary_organizer_kind'] = 'person';
-            $defaults['primary_organizer_id'] = $organizerId;
-            $defaults['primary_organizer_institution_id'] = null;
-            $defaults['primary_organizer_person_id'] = $organizerId;
-        }
-
-        if ($eventFormat === EventFormat::Online->value) {
-            return $defaults;
-        }
-
-        if (filled($duplicateEvent->default_venue_id)) {
-            $defaults['location_same_as_institution'] = false;
-            $defaults['location_type'] = 'venue';
-            $defaults['location_venue_id'] = $duplicateEvent->default_venue_id;
-            $defaults['location_institution_id'] = null;
-
-            return $defaults;
-        }
-
-        if ($institutionId !== null && $access->canUseInstitution($submitter, $institutionId)) {
-            $defaults['location_type'] = 'institution';
-            $defaults['location_institution_id'] = $institutionId;
-            $defaults['location_same_as_institution'] = ($defaults['primary_organizer_kind'] ?? null) === 'institution'
-                && ($defaults['primary_organizer_id'] ?? null) === $institutionId;
-        }
-
-        return $defaults;
-    }
-
     public function eventManagementUrl(): ?string
     {
         $event = $this->selectedEventContainer();
@@ -2302,36 +714,6 @@ class Create extends Component implements HasActions, HasForms
         return $event instanceof Event
             ? EventResource::getUrl('view', ['record' => $event], panel: 'ahli')
             : null;
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    protected function normalizeAgeGroupState(mixed $state): array
-    {
-        if ($state instanceof Collection) {
-            $state = $state->all();
-        }
-
-        if (! is_array($state)) {
-            $state = [$state];
-        }
-
-        return collect($state)
-            ->map(function (mixed $ageGroup): ?string {
-                if ($ageGroup instanceof EventAgeGroup) {
-                    return $ageGroup->value;
-                }
-
-                if (is_string($ageGroup) && filled($ageGroup)) {
-                    return $ageGroup;
-                }
-
-                return null;
-            })
-            ->filter()
-            ->values()
-            ->all();
     }
 
     private function firstSelection(mixed $state): mixed
@@ -2343,29 +725,15 @@ class Create extends Component implements HasActions, HasForms
         return is_array($state) ? ($state[0] ?? null) : $state;
     }
 
-    /**
-     * @param  array<int, string>  $ageGroups
-     * @return array<int, string>
-     */
-    protected function normalizeAgeGroupSelection(array $ageGroups): array
+    private function requestedEventId(mixed $value): ?string
     {
-        $ageGroups = array_values(array_unique($ageGroups));
-        $specificAgeGroups = [
-            EventAgeGroup::Adults->value,
-            EventAgeGroup::Youth->value,
-            EventAgeGroup::Children->value,
-            EventAgeGroup::Seniors->value,
-        ];
-
-        if (in_array(EventAgeGroup::AllAges->value, $ageGroups, true)) {
-            return [EventAgeGroup::AllAges->value];
+        if ($value === null || $value === '') {
+            return null;
         }
 
-        if (count(array_intersect($specificAgeGroups, $ageGroups)) === count($specificAgeGroups)) {
-            return [EventAgeGroup::AllAges->value];
-        }
+        abort_unless(is_string($value) && Str::isUuid($value), 404);
 
-        return $ageGroups;
+        return $value;
     }
 
     protected function submitterUser(): ?User
@@ -2389,15 +757,14 @@ class Create extends Component implements HasActions, HasForms
 
     public function formProgress(): int
     {
-        $requiredFields = $this->requiredFieldProgressChecks();
+        $requiredFields = EventSubmissionFormSchema::requiredFieldProgressChecks(
+            $this->data ?? [],
+            $this->hasScopedInstitution(),
+            auth()->check(),
+        );
         $completed = count(array_filter($requiredFields));
 
         return (int) round(($completed / count($requiredFields)) * 100);
-    }
-
-    private function progressUpdateJs(): string
-    {
-        return "window.dispatchEvent(new CustomEvent('submit-event-progress-updated'))";
     }
 
     /**
@@ -2409,706 +776,10 @@ class Create extends Component implements HasActions, HasForms
      */
     public function clientProgressConfiguration(): array
     {
-        $staticConfiguration = Cache::remember('submit_event_client_progress_configuration', 300, function (): array {
-            $categoryCatalog = app(EventCategoryCatalog::class);
-            $speakerRequiredCategoryIds = collect($categoryCatalog->options())
-                ->keys()
-                ->filter(fn (mixed $id): bool => is_string($id) && Str::isUuid($id))
-                ->map(strval(...))
-                ->filter(fn (string $id): bool => app(EventCategoryPolicyResolver::class)->requiresSpeaker(
-                    $categoryCatalog->validateTermIds([$id]),
-                ))
-                ->values()
-                ->all();
-
-            return [
-                'speaker_required_category_ids' => $speakerRequiredCategoryIds,
-            ];
-        });
-
         return [
-            ...$staticConfiguration,
+            'speaker_required_category_ids' => app(SubmitEventOptionsProvider::class)->speakerRequiredCategoryIds(),
             'has_scoped_institution' => $this->hasScopedInstitution(),
             'is_authenticated' => auth()->check(),
         ];
-    }
-
-    /**
-     * Return one completion check for every required field currently relevant
-     * to the form state. Conditional fields are deliberately added only when
-     * their own validation rule is active.
-     *
-     * @return list<bool>
-     */
-    protected function requiredFieldProgressChecks(): array
-    {
-        $state = $this->data ?? [];
-        $categoryIds = $state['event_category_ids'] ?? [];
-        $topicIds = $state['domain_tags'] ?? [];
-        $eventFormat = $state['event_format'] ?? null;
-        $isOnline = $eventFormat instanceof EventFormat
-            ? $eventFormat === EventFormat::Online
-            : $eventFormat === EventFormat::Online->value;
-        $prayerTime = $state['prayer_time'] ?? null;
-        $organizerId = $state['primary_organizer_id'] ?? null;
-        $organizerKind = $this->selectedPrimaryOrganizerKind(
-            $state['primary_organizer_kind'] ?? null,
-            $organizerId,
-        );
-        $sameAsInstitution = (bool) ($state['location_same_as_institution'] ?? true);
-        $locationRequired = ! $isOnline && (
-            $organizerKind === 'person' || ! $sameAsInstitution
-        );
-
-        $requiredFields = [
-            $this->hasSelection($categoryIds),
-            $this->hasSelection($topicIds),
-            filled($state['title'] ?? null),
-            filled($state['submission_country_id'] ?? null),
-            filled($state['event_date'] ?? null),
-            filled($state['event_format'] ?? null),
-            filled($state['visibility'] ?? null),
-            filled($state['gender'] ?? null),
-            $this->hasSelection($state['age_group'] ?? []),
-            $this->hasSelection($state['languages'] ?? []),
-        ];
-
-        $requiredFields[] = filled($prayerTime);
-
-        if ($this->isPrayerTime($prayerTime, EventPrayerTime::LainWaktu)) {
-            $requiredFields[] = filled($state['custom_time'] ?? null);
-        }
-
-        if (! $this->hasScopedInstitution() && blank($organizerId)) {
-            $requiredFields[] = filled($state['primary_organizer_kind'] ?? null);
-
-            if ($organizerKind === 'institution') {
-                $requiredFields[] = filled($state['primary_organizer_institution_id'] ?? null);
-            }
-
-            if ($organizerKind === 'person') {
-                $requiredFields[] = filled($state['primary_organizer_person_id'] ?? null);
-            }
-        }
-
-        if ($locationRequired) {
-            $requiredFields[] = filled($state['location_type'] ?? null);
-
-            if (($state['location_type'] ?? null) === 'institution') {
-                $requiredFields[] = filled($state['location_institution_id'] ?? null);
-            }
-
-            if (($state['location_type'] ?? null) === 'venue') {
-                $requiredFields[] = filled($state['location_venue_id'] ?? null);
-            }
-        }
-
-        if ($this->hasSelection($categoryIds) && $this->categoriesRequirePersons($categoryIds)) {
-            $requiredFields[] = $this->hasSelection($state['persons'] ?? []);
-        }
-
-        $otherKeyPeople = $state['other_key_people'] ?? [];
-
-        if ($otherKeyPeople instanceof Collection) {
-            $otherKeyPeople = $otherKeyPeople->all();
-        }
-
-        if (! is_array($otherKeyPeople)) {
-            $otherKeyPeople = [];
-        }
-
-        foreach ($otherKeyPeople as $keyPerson) {
-            if (! is_array($keyPerson)) {
-                continue;
-            }
-
-            $requiredFields[] = filled($keyPerson['role_code'] ?? null);
-            $requiredFields[] = filled($keyPerson['involveable_id'] ?? null)
-                || filled($keyPerson['display_name'] ?? null);
-            $requiredFields[] = filled($keyPerson['visibility'] ?? null);
-        }
-
-        if (! auth()->check()) {
-            $requiredFields[] = filled($state['submitter_name'] ?? null);
-            $requiredFields[] = filled($state['submitter_email'] ?? null)
-                || filled($state['submitter_phone'] ?? null);
-        }
-
-        return $requiredFields;
-    }
-
-    protected function applyContextualDefaults(Get $get, Set $set): void
-    {
-        if (! $this->isPrayerTimeAvailable(
-            $get('prayer_time'),
-            $get('event_date'),
-            $get('submission_country_id'),
-        )) {
-            $set('prayer_time', null);
-            $set('custom_time', null);
-            $set('end_time', null);
-        }
-
-        if (blank($get('prayer_time'))) {
-            $set('prayer_time', EventPrayerTime::LainWaktu->value);
-        }
-
-        if ($this->isPrayerTime($get('prayer_time'), EventPrayerTime::LainWaktu) && blank($get('custom_time'))) {
-            $set('custom_time', self::DEFAULT_SUBMISSION_TIME);
-        }
-    }
-
-    protected function clearCountryMismatchedEntitySelections(Get $get, Set $set): void
-    {
-        $countryId = $this->resolveSubmissionCountryId($get('submission_country_id'));
-
-        if ($countryId === null) {
-            return;
-        }
-
-        $access = app(EntitySubmissionAccess::class);
-
-        if (! $this->hasScopedInstitution()) {
-            $organizerInstitutionId = $this->normalizeNullableUuid($get('primary_organizer_institution_id'));
-
-            if ($organizerInstitutionId !== null && ! $access->institutionBelongsToCountry($organizerInstitutionId, $countryId)) {
-                $set('primary_organizer_institution_id', null);
-                $set('primary_organizer_id', null);
-            }
-
-            $locationInstitutionId = $this->normalizeNullableUuid($get('location_institution_id'));
-
-            if ($locationInstitutionId !== null && ! $access->institutionBelongsToCountry($locationInstitutionId, $countryId)) {
-                $set('location_institution_id', null);
-                $set('space_ids', []);
-            }
-        }
-
-        $locationVenueId = $this->normalizeNullableUuid($get('location_venue_id'));
-
-        if ($locationVenueId !== null && ! $access->venueBelongsToCountry($locationVenueId, $countryId)) {
-            $set('location_venue_id', null);
-            $set('space_ids', []);
-        }
-    }
-
-    protected function normalizeNullableUuid(mixed $value): ?string
-    {
-        if (! is_scalar($value)) {
-            return null;
-        }
-
-        $value = trim((string) $value);
-
-        return $value !== '' && Str::isUuid($value) ? $value : null;
-    }
-
-    protected function isPrayerTimeAvailable(mixed $value, mixed $eventDate, mixed $countryId): bool
-    {
-        $prayerTime = $value instanceof EventPrayerTime
-            ? $value
-            : EventPrayerTime::tryFrom((string) $value);
-
-        if (! $prayerTime instanceof EventPrayerTime) {
-            return false;
-        }
-
-        if (! is_string($eventDate) || trim($eventDate) === '') {
-            return ! in_array($prayerTime, [
-                EventPrayerTime::SebelumJumaat,
-                EventPrayerTime::SelepasJumaat,
-                EventPrayerTime::SelepasTarawih,
-            ], true);
-        }
-
-        try {
-            $timezone = $this->resolveSubmissionTimezone($countryId);
-            $date = Carbon::parse($eventDate, $timezone)->startOfDay();
-        } catch (Throwable) {
-            return false;
-        }
-
-        return match ($prayerTime) {
-            EventPrayerTime::SebelumJumaat,
-            EventPrayerTime::SelepasJumaat => $date->isFriday(),
-            EventPrayerTime::SelepasTarawih => $this->isRamadhan($date, $timezone),
-            default => true,
-        };
-    }
-
-    protected function isReligiousContext(mixed $topicIds): bool
-    {
-        return $this->hasAgamaKerohanianTopic($topicIds);
-    }
-
-    private function hasAgamaKerohanianTopic(mixed $topicIds): bool
-    {
-        return in_array(
-            self::AGAMA_KEROHANIAN_CODE,
-            $this->selectedTaxonomyCodes($topicIds, EventTaxonomyCode::Domain->value),
-            true,
-        );
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function selectedTaxonomyCodes(mixed $state, string $taxonomyCode): array
-    {
-        $ids = $this->selectedIds($state);
-
-        if ($ids === []) {
-            return [];
-        }
-
-        $taxonomyId = EventTaxonomy::query()->where('code', $taxonomyCode)->value('id');
-
-        if (! is_string($taxonomyId)) {
-            return [];
-        }
-
-        return EventTerm::query()
-            ->where('event_taxonomy_id', $taxonomyId)
-            ->whereIn('id', $ids)
-            ->pluck('code')
-            ->map(strval(...))
-            ->values()
-            ->all();
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function selectedIds(mixed $state): array
-    {
-        if ($state instanceof Collection) {
-            $state = $state->all();
-        }
-
-        if (! is_array($state)) {
-            $state = [$state];
-        }
-
-        return collect($state)
-            ->filter(fn (mixed $value): bool => is_scalar($value) && Str::isUuid((string) $value))
-            ->map(fn (mixed $value): string => (string) $value)
-            ->values()
-            ->all();
-    }
-
-    protected function isPrayerTime(mixed $value, EventPrayerTime $expected): bool
-    {
-        return $value instanceof EventPrayerTime
-            ? $value === $expected
-            : $value === $expected->value;
-    }
-
-    protected function hasSelection(mixed $value): bool
-    {
-        if ($value instanceof Collection) {
-            $value = $value->all();
-        }
-
-        if (is_array($value)) {
-            return collect($value)->contains(fn (mixed $item): bool => filled($item));
-        }
-
-        return filled($value);
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    protected function availableInstitutionOptions(?string $countryId = null): array
-    {
-        if (($institution = $this->scopedInstitution()) instanceof Institution) {
-            return [$institution->id => $institution->display_name];
-        }
-
-        $access = app(EntitySubmissionAccess::class);
-        $submitter = $this->submitterUser();
-
-        if (! $submitter instanceof User) {
-            return Cache::remember(
-                'submit_institutions_'.($countryId ?? 'all'),
-                60,
-                fn (): array => $access->institutionQueryForSubmitter(null, $countryId)
-                    ->orderBy('name')
-                    ->with('names')->get(['institutions.id', 'institutions.name'])
-                    ->mapWithKeys(fn (Institution $institution): array => [(string) $institution->id => $institution->display_name])
-                    ->all(),
-            );
-        }
-
-        return $access->institutionQueryForSubmitter($submitter, $countryId)
-            ->orderBy('name')
-            ->with('names')->get(['institutions.id', 'institutions.name'])
-            ->mapWithKeys(fn (Institution $institution): array => [(string) $institution->id => $institution->display_name])
-            ->all();
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    protected function availablePersonOptions(): array
-    {
-        $access = app(EntitySubmissionAccess::class);
-        $submitter = $this->submitterUser();
-
-        if (! $submitter instanceof User) {
-            return Cache::remember('submit_persons', 60, fn (): array => $access->personQueryForSubmitter(null)
-                ->orderBy('name')
-                ->get()
-                ->mapWithKeys(fn (Person $person): array => [(string) $person->id => $person->formatted_name])
-                ->all());
-        }
-
-        return $access->personQueryForSubmitter($submitter)
-            ->orderBy('name')
-            ->get()
-            ->mapWithKeys(fn (Person $person): array => [(string) $person->id => $person->formatted_name])
-            ->all();
-    }
-
-    protected function selectedPrimaryOrganizerKind(mixed $organizerKind, mixed $primaryOrganizerId): ?string
-    {
-        if (in_array($organizerKind, ['institution', 'person'], true)) {
-            return $organizerKind;
-        }
-
-        return $this->resolvedPrimaryOrganizerType($primaryOrganizerId);
-    }
-
-    protected function resolvedPrimaryOrganizerInstitutionId(mixed $primaryOrganizerId): ?string
-    {
-        return $this->resolvedPrimaryOrganizerType($primaryOrganizerId) === 'institution'
-            ? (is_scalar($primaryOrganizerId) && trim((string) $primaryOrganizerId) !== '' ? trim((string) $primaryOrganizerId) : null)
-            : null;
-    }
-
-    protected function resolvedPrimaryOrganizerType(mixed $primaryOrganizerId): ?string
-    {
-        if (! is_scalar($primaryOrganizerId)) {
-            return null;
-        }
-
-        $organizerId = trim((string) $primaryOrganizerId);
-
-        if ($organizerId === '') {
-            return null;
-        }
-
-        if (Institution::query()->whereKey($organizerId)->exists()) {
-            return 'institution';
-        }
-
-        if (Person::query()->whereKey($organizerId)->exists()) {
-            return 'person';
-        }
-
-        return null;
-    }
-
-    /**
-     * @param  array<string, mixed>  $validated
-     */
-    protected function assertSubmissionEntitiesAreAccessible(array $validated): void
-    {
-        $access = app(EntitySubmissionAccess::class);
-        $submitter = $this->submitterUser();
-
-        $organizerType = $this->selectedPrimaryOrganizerKind(
-            $validated['primary_organizer_kind'] ?? ($this->data['primary_organizer_kind'] ?? null),
-            $validated['primary_organizer_id'] ?? ($this->data['primary_organizer_id'] ?? null),
-        );
-        $primaryOrganizerId = (string) ($validated['primary_organizer_id'] ?? ($this->data['primary_organizer_id'] ?? ''));
-        $locationInstitutionId = (string) ($validated['location_institution_id'] ?? ($this->data['location_institution_id'] ?? ''));
-
-        if ($organizerType === 'institution' && $primaryOrganizerId !== '' && ! $access->canUseInstitution($submitter, $primaryOrganizerId)) {
-            throw ValidationException::withMessages([
-                'data.primary_organizer_id' => __('Anda tidak dibenarkan memilih institusi ini untuk penghantaran majlis.'),
-            ]);
-        }
-
-        if ($organizerType === 'person' && $primaryOrganizerId !== '' && ! $access->canUsePerson($submitter, $primaryOrganizerId)) {
-            throw ValidationException::withMessages([
-                'data.primary_organizer_id' => __('Anda tidak dibenarkan memilih penceramah ini untuk penghantaran majlis.'),
-            ]);
-        }
-
-        $eventFormat = $validated['event_format'] ?? EventFormat::Physical->value;
-        $requiresLocationChoice = $organizerType === 'person' || ! ($validated['location_same_as_institution'] ?? true);
-        $usesLocationInstitution = $eventFormat !== EventFormat::Online->value
-            && $requiresLocationChoice
-            && (($validated['location_type'] ?? 'institution') === 'institution');
-
-        if ($usesLocationInstitution && $locationInstitutionId !== '' && ! $access->canUseInstitution($submitter, $locationInstitutionId)) {
-            throw ValidationException::withMessages([
-                'data.location_institution_id' => __('Anda tidak dibenarkan memilih institusi lokasi ini.'),
-            ]);
-        }
-
-        $personIds = collect(array_merge(
-            (array) ($validated['persons'] ?? []),
-            collect((array) ($validated['other_key_people'] ?? []))
-                ->pluck('involveable_id')
-                ->all(),
-            (array) ($this->data['persons'] ?? []),
-        ))
-            ->map(fn (mixed $value): ?string => filled($value) ? (string) $value : null)
-            ->filter()
-            ->unique()
-            ->values();
-
-        foreach ($personIds as $personId) {
-            if (! $access->canUsePerson($submitter, $personId)) {
-                throw ValidationException::withMessages([
-                    'data.persons' => __('Senarai penceramah mengandungi pilihan yang tidak dibenarkan untuk penghantaran ini.'),
-                ]);
-            }
-        }
-    }
-
-    protected function hasCommunityCategorySelection(mixed $categoryIds): bool
-    {
-        if ($categoryIds instanceof Collection) {
-            $categoryIds = $categoryIds->all();
-        }
-
-        if (! is_array($categoryIds)) {
-            $categoryIds = [$categoryIds];
-        }
-
-        return app(EventCategoryPolicyResolver::class)->requiresPhysicalDelivery(
-            app(EventCategoryCatalog::class)->validateTermIds($categoryIds),
-        );
-    }
-
-    protected function categoriesRequirePersons(mixed $categoryIds): bool
-    {
-        if ($categoryIds instanceof Collection) {
-            $categoryIds = $categoryIds->all();
-        }
-
-        if (! is_array($categoryIds)) {
-            $categoryIds = [$categoryIds];
-        }
-
-        return app(EventCategoryPolicyResolver::class)->requiresSpeaker(
-            app(EventCategoryCatalog::class)->validateTermIds($categoryIds),
-        );
-    }
-
-    /**
-     * Resolve the starts_at datetime from event_date and prayer_time/custom_time.
-     *
-     * @param  array{event_date: string, prayer_time: string|EventPrayerTime, custom_time?: string|null, submission_country_id?: string|null}  $validated
-     */
-    protected function resolveStartsAt(array $validated): Carbon
-    {
-        $timezone = $this->resolveSubmissionTimezone($validated['submission_country_id'] ?? null);
-        $eventDate = Carbon::parse($validated['event_date'], $timezone)->startOfDay();
-        $prayerTimeValue = $validated['prayer_time'] ?? '';
-        $prayerTime = $prayerTimeValue instanceof EventPrayerTime
-            ? $prayerTimeValue
-            : EventPrayerTime::tryFrom($prayerTimeValue);
-
-        if ($prayerTime?->isCustomTime() && ! empty($validated['custom_time'])) {
-            $time = Carbon::parse($validated['custom_time']);
-
-            return $eventDate->setTime($time->hour, $time->minute)->utc();
-        }
-
-        $defaultTimes = $this->getDefaultPrayerTimes();
-
-        $timeString = $defaultTimes[$prayerTime instanceof EventPrayerTime ? $prayerTime->value : ''] ?? '20:00';
-        $time = Carbon::parse($timeString);
-
-        return $eventDate->setTime($time->hour, $time->minute)->utc();
-    }
-
-    /**
-     * Resolve the ends_at datetime from end_time using the same date as starts_at.
-     *
-     * @param  array{end_time?: string|null}  $validated
-     */
-    protected function resolveEndsAt(array $validated, Carbon $startsAt, string $timezone): ?Carbon
-    {
-        $endTimeValue = $validated['end_time'] ?? null;
-
-        if (empty($endTimeValue)) {
-            return null;
-        }
-
-        $time = Carbon::parse($endTimeValue);
-        $startInUserTimezone = $startsAt->copy()->setTimezone($timezone);
-
-        return $startInUserTimezone->setTime($time->hour, $time->minute)->utc();
-    }
-
-    /**
-     * @param  array<string, mixed>  $validated
-     */
-    protected function validateEndsAtAfterStartsAt(array $validated, Carbon $startsAt, string $timezone): void
-    {
-        $endTimeValue = $validated['end_time'] ?? null;
-
-        if (! is_string($endTimeValue) || $endTimeValue === '') {
-            return;
-        }
-
-        $endTime = Carbon::parse($endTimeValue);
-        $startInUserTimezone = $startsAt->copy()->setTimezone($timezone);
-        $endInUserTimezone = $startInUserTimezone->copy()->setTime($endTime->hour, $endTime->minute);
-
-        if ($endInUserTimezone->lessThanOrEqualTo($startInUserTimezone)) {
-            throw ValidationException::withMessages([
-                'data.end_time' => __('Masa akhir mestilah selepas masa mula.'),
-            ]);
-        }
-    }
-
-    protected function resolveStartTimeForComparison(mixed $prayerTimeValue, mixed $customTime): ?string
-    {
-        $prayerTime = $prayerTimeValue instanceof EventPrayerTime
-            ? $prayerTimeValue
-            : EventPrayerTime::tryFrom((string) $prayerTimeValue);
-
-        if ($prayerTime?->isCustomTime()) {
-            return is_string($customTime) && $customTime !== '' ? $customTime : null;
-        }
-
-        if (! $prayerTime instanceof EventPrayerTime) {
-            return null;
-        }
-
-        return $this->getDefaultPrayerTimes()[$prayerTime->value] ?? null;
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    protected function getDefaultPrayerTimes(): array
-    {
-        return [
-            EventPrayerTime::SelepasSubuh->value => '06:30',
-            EventPrayerTime::SelepasZuhur->value => '13:30',
-            EventPrayerTime::SebelumJumaat->value => '13:45',
-            EventPrayerTime::SelepasJumaat->value => '14:00',
-            EventPrayerTime::SelepasAsar->value => '17:00',
-            EventPrayerTime::SebelumMaghrib->value => '19:45',
-            EventPrayerTime::SelepasMaghrib->value => '20:00',
-            EventPrayerTime::SelepasIsyak->value => '21:30',
-            EventPrayerTime::SelepasTarawih->value => '22:30',
-        ];
-    }
-
-    /**
-     * Check if a given date falls within Ramadhan.
-     * This uses approximate Gregorian dates for Ramadhan periods.
-     */
-    protected function isRamadhan(Carbon $date, ?string $timezone = null): bool
-    {
-        $timezone ??= $this->resolveSubmissionTimezone($this->data['submission_country_id'] ?? null);
-        $year = $date->year;
-
-        $ramadhanPeriods = [
-            2026 => ['start' => '02-18', 'end' => '03-19'],
-            2027 => ['start' => '02-07', 'end' => '03-08'],
-            2028 => ['start' => '01-27', 'end' => '02-25'],
-            2029 => ['start' => '01-16', 'end' => '02-13'],
-            2030 => ['start' => '01-05', 'end' => '02-03'],
-        ];
-
-        if (! isset($ramadhanPeriods[$year])) {
-            return false;
-        }
-
-        $period = $ramadhanPeriods[$year];
-        $startDate = Carbon::parse("{$year}-{$period['start']}", $timezone)->startOfDay();
-        $endDate = Carbon::parse("{$year}-{$period['end']}", $timezone)->endOfDay();
-
-        return $date->between($startDate, $endDate);
-    }
-
-    protected function resolveSubmissionCountryId(mixed $countryId = null): ?string
-    {
-        $resolvedCountryId = app(AddressCountryResolver::class)->resolveId($countryId);
-
-        if (is_string($resolvedCountryId)) {
-            return $resolvedCountryId;
-        }
-
-        if ($countryId === null || (is_string($countryId) && trim($countryId) === '')) {
-            return $this->defaultSubmissionCountryId();
-        }
-
-        return null;
-    }
-
-    protected function resolveSubmissionTimezone(mixed $countryId = null): string
-    {
-        return app(AddressCountryResolver::class)->timezoneFor($this->resolveSubmissionCountryId($countryId))
-            ?? config('app.timezone', 'UTC');
-    }
-
-    protected function defaultSubmissionCountryId(): ?string
-    {
-        return app(AddressCountryResolver::class)->resolveId('MY');
-    }
-
-    protected function defaultEventTermId(string $taxonomyCode, string $termCode): ?string
-    {
-        $taxonomyId = EventTaxonomy::query()->where('code', $taxonomyCode)->value('id');
-
-        if (! is_string($taxonomyId)) {
-            return null;
-        }
-
-        $termId = EventTerm::query()
-            ->where('event_taxonomy_id', $taxonomyId)
-            ->where('code', $termCode)
-            ->where('is_active', true)
-            ->value('id');
-
-        return is_string($termId) ? $termId : null;
-    }
-
-    /**
-     * @param  array{submitter_email?: string|null, submitter_phone?: string|null}  $validated
-     */
-    protected function storeSubmitterContacts(EventSubmission $submission, array $validated): void
-    {
-        $email = $validated['submitter_email'] ?? null;
-        $phone = $validated['submitter_phone'] ?? null;
-
-        if (filled($email)) {
-            $submission->contactMethods()->create([
-                'type' => ContactMethodType::Email->value,
-                'purpose' => ContactPurpose::General->value,
-                'value' => $email,
-                'is_public' => false,
-            ]);
-        }
-
-        if (filled($phone)) {
-            $submission->contactMethods()->create([
-                'type' => ContactMethodType::Phone->value,
-                'purpose' => ContactPurpose::General->value,
-                'value' => $phone,
-                'is_public' => false,
-            ]);
-        }
-    }
-
-    protected function assertCaptchaIsValid(?string $captchaToken): void
-    {
-        $verifier = app(TurnstileVerifier::class);
-
-        if (! $verifier->verify($captchaToken, request()->ip())) {
-            throw ValidationException::withMessages([
-                'data.captcha_token' => __('Sila lengkapkan pengesahan keselamatan sebelum menghantar.'),
-            ]);
-        }
     }
 }

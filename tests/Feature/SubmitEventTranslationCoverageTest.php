@@ -6,8 +6,13 @@ use App\Enums\EventFormat;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventTaxonomyCode;
 use App\Enums\ReferenceType;
+use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\AIArmada\EventTaxonomySeeder;
 use Illuminate\Support\Facades\App;
+
+beforeEach(function () {
+    $this->seed(EventRoleSeeder::class);
+});
 
 it('returns translated labels for submit-event enums', function () {
     App::setLocale('en');

@@ -9,6 +9,19 @@ new class extends Component {};
 
 @php
     $isAutoApproved = (bool) session('event_auto_approved', false);
+    $isSession = filled(session('event_session_id'));
+    $isPublished = session('event_status') === 'approved';
+    $hasPublicContainer = ! $isSession || (
+        session('event_parent_visibility') !== 'private'
+        && session('event_occurrence_visibility') !== 'private'
+    );
+    $publicUrl = null;
+
+    if ($isPublished && $hasPublicContainer && session('event_visibility') !== 'private' && filled(session('event_slug'))) {
+        $publicUrl = $isSession && filled(session('event_occurrence_slug')) && filled(session('event_session_slug'))
+            ? route('events.session', [session('event_slug'), session('event_occurrence_slug'), session('event_session_slug')])
+            : route('events.show', session('event_slug'));
+    }
     $submitAnotherRoute = session('submission_institution_id')
         ? route('dashboard.institutions.submit-event', array_filter([
             'institution' => session('submission_institution_id'),
@@ -30,7 +43,7 @@ new class extends Component {};
             </div>
 
             <h1 class="font-heading text-4xl font-bold text-slate-900 mb-4">
-                {{ $isAutoApproved ? __('Event Published!') : __('Event Submitted!') }}
+                {{ $isSession ? __('Session Added') : ($isPublished ? __('Event Published!') : __('Event Submitted!')) }}
             </h1>
 
             @if(session('event_title'))
@@ -40,9 +53,11 @@ new class extends Component {};
             @endif
 
             <p class="text-slate-500 text-lg mb-8 max-w-md mx-auto">
-                {{ $isAutoApproved
+                {{ $isSession
+                    ? __('This session has been added to :title.', ['title' => session('event_container_title')])
+                    : ($isAutoApproved
                     ? __('Majlis institusi anda telah diterbitkan terus dan kini sedia untuk diuruskan dari papan pemuka institusi.')
-                    : __('Terima kasih atas perkongsian anda! Pasukan kami akan menyemak butirannya dalam masa 24-48 jam.') }}
+                    : __('Terima kasih atas perkongsian anda! Pasukan kami akan menyemak butirannya dalam masa 24-48 jam.')) }}
             </p>
 
             @if(session('event_container_title'))
@@ -54,7 +69,7 @@ new class extends Component {};
                 </div>
             @endif
 
-            @if(session('event_slug'))
+            @if($publicUrl)
                 <div
                     class="bg-indigo-50/50 rounded-2xl p-6 shadow-sm border border-indigo-100 text-center mb-8 max-w-lg mx-auto">
                     <h3 class="font-heading text-lg font-bold text-indigo-900 mb-2">{{ __('Pautan Majlis Anda') }}</h3>
@@ -67,9 +82,9 @@ new class extends Component {};
                             {{ __('Majlis ini adalah peribadi dan hanya boleh diakses oleh anda.') }}
                         @endif
                     </p>
-                    <a href="{{ route('events.show', session('event_slug')) }}"
+                    <a href="{{ $publicUrl }}"
                         class="inline-flex items-center gap-2 text-indigo-600 font-semibold hover:text-indigo-700 hover:underline group truncate w-full justify-center">
-                        <span class="truncate">{{ route('events.show', session('event_slug')) }}</span>
+                        <span class="truncate">{{ $publicUrl }}</span>
                         <svg class="size-4 shrink-0 group-hover:translate-x-0.5 transition-transform" fill="none"
                             viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
@@ -86,9 +101,13 @@ new class extends Component {};
                         <span
                             class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 font-bold text-sm flex-shrink-0 mt-0.5">1</span>
                         <span class="text-slate-600">
-                            @if(session('event_visibility') === 'public')
+                            @if($isSession && ! $publicUrl)
+                                {{ __('This session has been added to :title.', ['title' => session('event_container_title')]) }}
+                            @elseif(! $isPublished)
+                                {{ __('Pasukan moderator kami akan menyemak butiran majlis dalam masa 24-48 jam untuk tujuan pengesahan.') }}
+                            @elseif($publicUrl && session('event_visibility') === 'public')
                                 {{ __('Majlis anda kini disiarkan dan boleh dicari secara terus oleh orang awam.') }}
-                            @elseif(session('event_visibility') === 'unlisted')
+                            @elseif($publicUrl && session('event_visibility') === 'unlisted')
                                 {{ __('Majlis anda tidak disenaraikan dalam carian awam, tetapi boleh diakses segera oleh sesiapa yang mempunyai pautan.') }}
                             @else
                                 {{ __('Majlis ini disimpan sebagai naskhah peribadi dan belum diterbitkan kepada umum.') }}
@@ -99,7 +118,7 @@ new class extends Component {};
                         <span
                             class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 font-bold text-sm flex-shrink-0 mt-0.5">2</span>
                         <span
-                            class="text-slate-600">{{ $isAutoApproved
+                            class="text-slate-600">{{ ($isPublished || $isSession)
                                 ? __('Anda boleh mengemas kini butiran majlis ini pada bila-bila masa dari papan pemuka institusi anda.')
                                 : __('Pasukan moderator kami akan menyemak butiran majlis dalam masa 24-48 jam untuk tujuan pengesahan.') }}</span>
                     </li>
@@ -107,7 +126,7 @@ new class extends Component {};
                         <span
                             class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 font-bold text-sm flex-shrink-0 mt-0.5">3</span>
                         <span
-                            class="text-slate-600">{{ $isAutoApproved
+                            class="text-slate-600">{{ $publicUrl
                                 ? __('Gunakan pautan majlis di bawah untuk kongsi terus kepada ahli kariah atau peserta.')
                                 : __('Sekiranya terdapat keperluan, kami akan menghubungi anda melalui maklumat yang telah diberikan.') }}</span>
                     </li>

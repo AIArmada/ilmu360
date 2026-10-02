@@ -17,10 +17,15 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
 use App\Support\Api\Frontend\FrontendFormContractService;
+use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 
 uses(RefreshDatabase::class);
+
+beforeEach(function () {
+    $this->seed(EventRoleSeeder::class);
+});
 
 it('prepares advanced parent program submissions with utc timestamps and resolved location ownership', function () {
     $user = User::factory()->create();
@@ -171,6 +176,7 @@ it('applies direct contribution edits without changing approved event state for 
 
     app(ApplyDirectContributionUpdateAction::class)->handle($event, [
         'starts_at' => now()->addDays(8)->toDateTimeString(),
+        'ends_at' => now()->addDays(8)->addHour()->toDateTimeString(),
     ]);
 
     expect((string) $event->fresh()->status)->toBe('approved')

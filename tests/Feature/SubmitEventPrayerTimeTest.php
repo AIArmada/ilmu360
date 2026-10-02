@@ -3,11 +3,14 @@
 declare(strict_types=1);
 
 use App\Livewire\Pages\SubmitEvent\Create;
+use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
 
 beforeEach(function () {
     Carbon::setTestNow(Carbon::parse('2026-02-01 07:00:00'));
+
+    $this->seed(EventRoleSeeder::class);
 });
 
 afterEach(function () {

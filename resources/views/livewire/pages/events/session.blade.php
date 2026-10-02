@@ -11,10 +11,11 @@
         $locationVenue = $explicitVenueId !== null
             ? ($ownLocation->relationLoaded('venue') ? $ownLocation->venue : \App\Models\Venue::query()->with('addresses.areaAssignments.area')->find($explicitVenueId))
             : null;
-        $locationName = $locationVenue?->name ?? ($explicitVenueId !== null ? null : $event->resolvedLocationName());
+        $locationInstitution = $ownLocation?->relationLoaded('locationable') && $ownLocation->locationable instanceof \App\Models\Institution ? $ownLocation->locationable : null;
+        $locationName = $locationInstitution?->display_name ?? $locationVenue?->name ?? ($explicitVenueId !== null ? null : $event->resolvedLocationName());
         $spaceName = \App\Support\Spaces\SpaceLocationPresenter::name($location);
         $locationLabel = collect([$locationName, $spaceName])->filter(fn (mixed $value): bool => is_string($value) && trim($value) !== '')->implode(' · ');
-        $addressModel = $explicitVenueId !== null ? $locationVenue?->primaryAddress() : $event->resolvedLocationAddress();
+        $addressModel = $locationInstitution?->primaryAddress() ?? ($explicitVenueId !== null ? $locationVenue?->primaryAddress() : $event->resolvedLocationAddress());
         $addressModel?->loadMissing('areaAssignments.area');
         $speakers = $session->involvements
             ->map(fn ($involvement): string => $involvement->involveable instanceof \App\Models\Person

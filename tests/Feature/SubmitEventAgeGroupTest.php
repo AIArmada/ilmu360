@@ -2,8 +2,13 @@
 
 use App\Enums\EventAgeGroup;
 use App\Livewire\Pages\SubmitEvent\Create;
+use Database\Seeders\AIArmada\EventRoleSeeder;
 use Filament\Forms\Components\Select;
 use Livewire\Livewire;
+
+beforeEach(function () {
+    $this->seed(EventRoleSeeder::class);
+});
 
 it('normalizes age-group choices in the browser without live synchronization', function (): void {
     Livewire::test(Create::class)

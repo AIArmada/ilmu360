@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Spatie\ModelStates\Transition;
+use Throwable;
 
 class ApproveEvent extends Transition implements HasColor, HasIcon, HasLabel
 {
@@ -57,19 +58,54 @@ class ApproveEvent extends Transition implements HasColor, HasIcon, HasLabel
             $this->event->save();
             $this->event->resolveEscalations();
 
-            // Auto-verify pending related records (by approving the event, moderator implicitly verifies these entities)
-            $this->verifyPendingRelatedRecords($this->event);
+            // Entity verification is a moderator authority: by approving the
+            // event, a moderator implicitly verifies these entities. An
+            // ordinary member's auto-approved publication must not grant
+            // entity verification.
+            if ($this->moderator instanceof User && $this->moderator->hasAnyRole(['moderator', 'super_admin'])) {
+                $this->verifyPendingRelatedRecords($this->event);
+            }
 
-            // Make searchable (Scout)
-            $this->event->searchable();
+            $event = $this->event;
+            $moderatorId = $this->moderator?->id;
 
-            app(EventNotificationService::class)->notifySubmissionApproved($this->event);
-            app(EventNotificationService::class)->notifyPublication($this->event);
+            // External effects only run once the surrounding transaction commits,
+            // so a rolled-back approval never indexes, notifies, or logs.
+            // Each effect is contained individually: the DB commit already
+            // succeeded, and one external failure must not mask the others.
+            DB::afterCommit(function () use ($event, $moderatorId): void {
+                try {
+                    $event->searchable();
+                } catch (Throwable $exception) {
+                    Log::warning('Event search index update failed after approval.', [
+                        'event_id' => (string) $event->getKey(),
+                        'exception' => $exception,
+                    ]);
+                }
 
-            Log::info('Event approved', [
-                'event_id' => $this->event->id,
-                'moderator_id' => $this->moderator?->id,
-            ]);
+                try {
+                    app(EventNotificationService::class)->notifySubmissionApproved($event);
+                } catch (Throwable $exception) {
+                    Log::warning('Submission-approved notification failed after approval.', [
+                        'event_id' => (string) $event->getKey(),
+                        'exception' => $exception,
+                    ]);
+                }
+
+                try {
+                    app(EventNotificationService::class)->notifyPublication($event);
+                } catch (Throwable $exception) {
+                    Log::warning('Publication notification failed after approval.', [
+                        'event_id' => (string) $event->getKey(),
+                        'exception' => $exception,
+                    ]);
+                }
+
+                Log::info('Event approved', [
+                    'event_id' => $event->id,
+                    'moderator_id' => $moderatorId,
+                ]);
+            });
 
             return $this->event;
         });
@@ -126,7 +162,7 @@ class ApproveEvent extends Transition implements HasColor, HasIcon, HasLabel
             });
 
         // Verify venue
-        $venueId = $event->default_venue_id ?? $event->default_venue_id;
+        $venueId = $event->default_venue_id;
 
         if ($venueId) {
             Venue::query()

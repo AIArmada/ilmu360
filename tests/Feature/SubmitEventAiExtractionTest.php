@@ -6,12 +6,25 @@ use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
 use App\Livewire\Pages\SubmitEvent\Create;
+use App\Models\Event;
+use App\Models\Institution;
+use App\Models\Person;
 use App\Services\Ai\EventMediaExtractionService;
+use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Mockery\MockInterface;
 
+beforeEach(function () {
+    $this->seed(EventRoleSeeder::class);
+});
+
 it('extracts media data with AI and moves the wizard to review step', function () {
+    Storage::fake('public');
+    config()->set('media-library.disk_name', 'public');
+    $institution = Institution::factory()->create(['status' => 'verified']);
+    $person = Person::factory()->create(['status' => 'verified']);
     $domainTag = submitEventTerm('domain');
     $sourceTag = submitEventTerm('source');
     $disciplineTag = submitEventTerm('discipline');
@@ -42,8 +55,13 @@ it('extracts media data with AI and moves the wizard to review step', function (
             ]);
     });
 
-    $component = Livewire::test(Create::class)
-        ->set('event_source_attachment', UploadedFile::fake()->image('poster.jpg', 1200, 1500))
+    $component = setSubmitEventFormState(Livewire::test(Create::class), [
+        'primary_organizer_id' => $institution->getKey(),
+        'persons' => [$person->getKey()],
+        'submitter_name' => 'AI Submitter',
+        'submitter_email' => 'ai-submitter@example.com',
+    ])
+        ->set('event_source_attachment', UploadedFile::fake()->image('poster.jpg', 1200, 1600))
         ->call('extractEventFromMedia')
         ->assertHasNoErrors(['event_source_attachment'])
         ->assertSet('data.title', 'Daurah Fiqh Keluarga')
@@ -67,6 +85,11 @@ it('extracts media data with AI and moves the wizard to review step', function (
     expect($state['discipline_tags'] ?? [])->toContain((string) $disciplineTag->id);
     expect($state['issue_tags'] ?? [])->toContain((string) $issueTag->id);
     expect($state['poster'] ?? null)->not->toBeNull();
+
+    $component->call('submit')->assertHasNoErrors()->assertRedirect(route('submit-event.success'));
+
+    $event = Event::query()->where('title', 'Daurah Fiqh Keluarga')->sole();
+    expect($event->getMedia('poster'))->toHaveCount(1);
 });
 
 it('rejects unsupported files before calling AI extraction', function () {

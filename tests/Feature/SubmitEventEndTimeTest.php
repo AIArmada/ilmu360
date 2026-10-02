@@ -11,12 +11,15 @@ use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
+use Database\Seeders\AIArmada\EventRoleSeeder;
 use Filament\Forms\Components\TimePicker;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
 
 beforeEach(function () {
     fakePrayerTimesApi();
+
+    $this->seed(EventRoleSeeder::class);
 });
 
 it('renders valid client-side end-time notification scripts', function (): void {

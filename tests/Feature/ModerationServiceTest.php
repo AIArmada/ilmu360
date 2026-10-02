@@ -14,6 +14,7 @@ use App\Models\Venue;
 use App\Notifications\EventSubmittedNotification;
 use App\Services\EventKeyPersonSyncService;
 use App\Services\ModerationService;
+use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -24,6 +25,7 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     $this->seed(PermissionSeeder::class);
     $this->seed(RoleSeeder::class);
+    $this->seed(EventRoleSeeder::class);
     $this->service = new ModerationService;
 });
 

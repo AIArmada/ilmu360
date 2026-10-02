@@ -6,8 +6,8 @@ use AIArmada\FilamentEvents\Resources\EventTermResource\Pages\CreateEventTerm;
 use AIArmada\FilamentEvents\Resources\EventTermResource\Pages\EditEventTerm;
 use App\Enums\EventTaxonomyCode;
 use App\Filament\Resources\EventTerms\TermDomainMappingExtension;
-use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\User;
+use App\Support\Submission\SubmitEventOptionsProvider;
 use Livewire\Livewire;
 
 function termMappingAdminUser(): User
@@ -108,14 +108,14 @@ it('filters discipline options by the selected domain', function () {
     $pendidikanOnly = submitEventTerm('discipline');
     TermDomainMappingExtension::syncDomainMapping($pendidikanOnly, [(string) $pendidikan->id]);
 
-    $options = Livewire::test(Create::class)->instance()->taxonomyTermOptionsForDomain(EventTaxonomyCode::Discipline, (string) $agama->id);
+    $options = app(SubmitEventOptionsProvider::class)->taxonomyTermOptionsForDomain(EventTaxonomyCode::Discipline, (string) $agama->id);
 
     expect($options)
         ->toHaveKey((string) $agamaOnly->id)
         ->toHaveKey((string) $global->id)
         ->not->toHaveKey((string) $pendidikanOnly->id);
 
-    $options = Livewire::test(Create::class)->instance()->taxonomyTermOptionsForDomain(EventTaxonomyCode::Discipline, (string) $pendidikan->id);
+    $options = app(SubmitEventOptionsProvider::class)->taxonomyTermOptionsForDomain(EventTaxonomyCode::Discipline, (string) $pendidikan->id);
 
     expect($options)
         ->toHaveKey((string) $pendidikanOnly->id)
@@ -135,14 +135,14 @@ it('filters issue options by the selected domain', function () {
     $pendidikanOnly = submitEventTerm('issue');
     TermDomainMappingExtension::syncDomainMapping($pendidikanOnly, [(string) $pendidikan->id]);
 
-    $options = Livewire::test(Create::class)->instance()->taxonomyTermOptionsForDomain(EventTaxonomyCode::Issue, (string) $agama->id);
+    $options = app(SubmitEventOptionsProvider::class)->taxonomyTermOptionsForDomain(EventTaxonomyCode::Issue, (string) $agama->id);
 
     expect($options)
         ->toHaveKey((string) $agamaOnly->id)
         ->toHaveKey((string) $global->id)
         ->not->toHaveKey((string) $pendidikanOnly->id);
 
-    $options = Livewire::test(Create::class)->instance()->taxonomyTermOptionsForDomain(EventTaxonomyCode::Issue, (string) $pendidikan->id);
+    $options = app(SubmitEventOptionsProvider::class)->taxonomyTermOptionsForDomain(EventTaxonomyCode::Issue, (string) $pendidikan->id);
 
     expect($options)
         ->toHaveKey((string) $pendidikanOnly->id)

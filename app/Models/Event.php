@@ -27,6 +27,7 @@ use AIArmada\Events\Models\EventRole;
 use AIArmada\Events\Models\EventSeriesItemPivot;
 use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Events\Models\VenueSpaceType;
+use AIArmada\Events\Support\EventDeleteCascade;
 use AIArmada\Membership\Traits\HasMembers;
 use AIArmada\Organizations\Models\Organization;
 use App\Contracts\EventCategoryCatalog;
@@ -249,7 +250,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
             $event->involvements()->delete();
             $event->accessPolicies()->delete();
             $event->keyPeople()->delete();
-            $event->eventReferences()->delete();
+            $event->referenceRecords()->delete();
             $event->savedBy()->delete();
             $event->goingBy()->delete();
 
@@ -274,6 +275,10 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
 
             // Note: MediaLibrary works automatically via InteractsWithMedia if we delete the model,
             // but we can also be explicit if needed.
+        });
+
+        static::deleted(function (Event $event): void {
+            EventDeleteCascade::deleteForEvent($event);
         });
     }
 
@@ -423,12 +428,53 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
             ->whereNull('event_session_id');
     }
 
+    /** @return HasMany<EventLocation, $this> */
+    #[\Override]
+    public function locations(): HasMany
+    {
+        return parent::locations()->whereNull('event_occurrence_id')->whereNull('event_session_id');
+    }
+
+    /** @return HasMany<EventLink, $this> */
+    #[\Override]
+    public function links(): HasMany
+    {
+        return parent::links()->whereNull('event_occurrence_id')->whereNull('event_session_id');
+    }
+
+    /** @return HasMany<EventAudience, $this> */
+    #[\Override]
+    public function audiences(): HasMany
+    {
+        return parent::audiences()->whereNull('event_occurrence_id')->whereNull('event_session_id');
+    }
+
+    /** @return HasMany<EventAudienceProfile, $this> */
+    #[\Override]
+    public function audienceProfiles(): HasMany
+    {
+        return parent::audienceProfiles()->whereNull('event_occurrence_id')->whereNull('event_session_id');
+    }
+
+    /**
+     * Event-level languages only; occurrence/session rows stay on their own scopes.
+     *
+     * @return HasMany<EventLanguage, $this>
+     */
+    #[\Override]
+    public function languages(): HasMany
+    {
+        return parent::languages()
+            ->whereNull('event_occurrence_id')
+            ->whereNull('event_session_id');
+    }
+
     /**
      * @return HasMany<EventLanguage, $this>
      */
     public function languageRecords(): HasMany
     {
-        return parent::languages()->select(['*']);
+        return $this->languages()->select(['*']);
     }
 
     /**
@@ -449,13 +495,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
             ])
             ->all();
 
-        $languageCodes = Language::query()
-            ->whereIn('id', $languageIds->all())
-            ->get(['id', 'code'])
-            ->sortBy(fn (Language $language): int => $languageIds->search((string) $language->id) ?: 0)
-            ->pluck('code')
-            ->filter(fn (mixed $code): bool => is_string($code) && $code !== '')
-            ->values();
+        $languageCodes = collect(Language::codesForIds($languageIds->all()));
 
         OwnerContext::withOwner($this->owner, function () use ($languageCodes): void {
             $this->languageRecords()->delete();
@@ -463,6 +503,8 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
             foreach ($languageCodes as $index => $languageCode) {
                 $this->languageRecords()->create([
                     'event_id' => (string) $this->getKey(),
+                    'event_occurrence_id' => null,
+                    'event_session_id' => null,
                     'language_code' => $languageCode,
                     'usage_type' => 'primary',
                     'is_primary' => $index === 0,
@@ -624,13 +666,12 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
             $linkType = self::LINK_TYPE_MAP[$field];
 
             if ($value !== null && $value !== '') {
-                EventLink::updateOrCreate(
+                $this->links()->updateOrCreate(
                     ['event_id' => (string) $this->getKey(), 'link_type' => $linkType],
                     ['url' => $value, 'visibility' => 'public'],
                 );
             } else {
-                EventLink::query()
-                    ->where('event_id', (string) $this->getKey())
+                $this->links()
                     ->where('link_type', $linkType)
                     ->delete();
             }
@@ -792,7 +833,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
             }
 
             if ($this->pendingAudienceProfileWrites !== []) {
-                EventAudienceProfile::updateOrCreate(
+                $this->audienceProfiles()->updateOrCreate(
                     ['event_id' => $this->id],
                     ['is_child_friendly' => $this->pendingAudienceProfileWrites['children_allowed'] ?? null],
                 );
@@ -950,12 +991,12 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
     private function syncSingleAudience(string $type, mixed $value): void
     {
         if (! in_array($value, [null, '', false], true)) {
-            EventAudience::updateOrCreate(
+            $this->audiences()->updateOrCreate(
                 ['event_id' => $this->id, 'audience_type' => $type],
                 ['value' => (string) $value],
             );
         } else {
-            EventAudience::where('event_id', $this->id)
+            $this->audiences()
                 ->where('audience_type', $type)
                 ->delete();
         }
@@ -963,7 +1004,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
 
     private function syncAgeGroupAudience(mixed $value): void
     {
-        EventAudience::where('event_id', $this->id)
+        $this->audiences()
             ->where('audience_type', 'age_group')
             ->delete();
 
@@ -974,7 +1015,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
         $values = is_array($value) ? $value : [$value];
 
         foreach (array_values($values) as $i => $v) {
-            EventAudience::create([
+            $this->audiences()->create([
                 'event_id' => $this->id,
                 'audience_type' => 'age_group',
                 'value' => (string) $v,
@@ -1023,7 +1064,9 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
                 : $this->languageRecords()->withoutOwnerScope()->get();
 
             $languageCodes = $languageRecords
-                ->filter(fn (mixed $record): bool => $record instanceof EventLanguage)
+                ->filter(fn (mixed $record): bool => $record instanceof EventLanguage
+                    && $record->event_occurrence_id === null
+                    && $record->event_session_id === null)
                 ->pluck('language_code')
                 ->filter(fn (mixed $languageCode): bool => is_string($languageCode) && $languageCode !== '')
                 ->values();
@@ -1717,6 +1760,19 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
             ->orderByPivot('sort_order');
     }
 
+    /**
+     * Event-level classifications only; occurrence/session rows stay on their own scopes.
+     *
+     * @return HasMany<EventClassification, $this>
+     */
+    #[\Override]
+    public function classifications(): HasMany
+    {
+        return parent::classifications()
+            ->whereNull('event_occurrence_id')
+            ->whereNull('event_session_id');
+    }
+
     /** @return HasMany<EventClassification, $this> */
     public function categoryClassifications(): HasMany
     {
@@ -1742,6 +1798,8 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
     {
         return $this->hasMany(EventKeyPerson::class)
             ->where('role_code', '!=', 'organizer')
+            ->whereNull('event_occurrence_id')
+            ->whereNull('event_session_id')
             ->orderBy('sort_order')
             ->orderBy('created_at');
     }
@@ -1792,6 +1850,8 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
             ->using(EventKeyPersonPivot::class)
             ->withPivotValue('involveable_type', 'person')
             ->withPivotValue('role_code', EventKeyPersonRole::Speaker->value)
+            ->wherePivotNull('event_occurrence_id')
+            ->wherePivotNull('event_session_id')
             ->withPivot(['id', 'involveable_type', 'role_code', 'sort_order', 'notes'])
             ->withTimestamps()
             ->orderByPivot('sort_order');
@@ -1799,6 +1859,8 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
 
     /**
      * Catalog references attached via package event_references pivot.
+     *
+     * Event-level rows only; occurrence/session rows stay on their own scopes.
      *
      * @return BelongsToMany<Reference, $this, EventReferencePivot, 'pivot'>
      */
@@ -1814,6 +1876,8 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
             ->withPivotValue('referenceable_type', 'reference')
             ->withPivotValue('visibility', 'public')
             ->withPivotValue('reference_type', 'book')
+            ->wherePivotNull('event_occurrence_id')
+            ->wherePivotNull('event_session_id')
             ->withPivot(['id', 'sort_order', 'visibility', 'reference_type', 'title'])
             ->withTimestamps()
             ->orderByPivot('sort_order');
@@ -1822,11 +1886,16 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
     /**
      * Raw package EventReference rows (includes non-catalog links).
      *
+     * Event-level rows only; occurrence/session rows stay on their own scopes.
+     *
      * @return HasMany<EventReference, $this>
      */
     public function eventReferences(): HasMany
     {
-        return $this->hasMany(EventReference::class)->orderBy('sort_order');
+        return $this->hasMany(EventReference::class)
+            ->whereNull('event_occurrence_id')
+            ->whereNull('event_session_id')
+            ->orderBy('sort_order');
     }
 
     /**

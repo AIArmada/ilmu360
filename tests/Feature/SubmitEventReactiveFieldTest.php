@@ -1,6 +1,10 @@
 <?php
 
+use App\Enums\EventFormat;
 use App\Livewire\Pages\SubmitEvent\Create;
+use App\Models\Space;
+use App\Models\Venue;
+use Database\Seeders\AIArmada\EventRoleSeeder;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -9,7 +13,11 @@ use Livewire\Livewire;
 use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
 use Ysfkaya\FilamentPhoneInput\PhoneInputNumberType;
 
-it('keeps organizer synchronization in the browser without live requests', function (): void {
+beforeEach(function () {
+    $this->seed(EventRoleSeeder::class);
+});
+
+it('refreshes institution space options while keeping other organizer synchronization in the browser', function (): void {
     Livewire::test(Create::class)
         ->assertFormFieldExists('primary_organizer_kind', function (Radio $field): bool {
             expect($field->isLive())->toBeFalse()
@@ -19,7 +27,7 @@ it('keeps organizer synchronization in the browser without live requests', funct
             return true;
         })
         ->assertFormFieldExists('primary_organizer_institution_id', function (Select $field): bool {
-            expect($field->isLive())->toBeFalse()
+            expect($field->isLive())->toBeTrue()
                 ->and(implode("\n", $field->getAfterStateUpdatedJs()))
                 ->toContain('primary_organizer_id', 'location_institution_id', 'location_venue_id');
 
@@ -73,4 +81,35 @@ it('defers the turnstile token until the form is submitted', function (): void {
     expect($html)
         ->toContain('wire:model="data.captcha_token"')
         ->not->toContain('wire:model.live="data.captcha_token"');
+});
+
+it('clears stale space selections and refreshes options when the venue changes', function (): void {
+    $firstVenue = Venue::factory()->create(['status' => 'verified']);
+    $secondVenue = Venue::factory()->create(['status' => 'verified']);
+    $firstSpace = Space::factory()->create(['venue_id' => $firstVenue->getKey()]);
+    $secondSpace = Space::factory()->create(['venue_id' => $secondVenue->getKey()]);
+
+    Livewire::test(Create::class)
+        ->set('data.location_same_as_institution', false)
+        ->set('data.location_type', 'venue')
+        ->set('data.location_venue_id', $firstVenue->getKey())
+        ->set('data.space_ids', [$firstSpace->getKey()])
+        ->set('data.location_venue_id', $secondVenue->getKey())
+        ->assertSet('data.space_ids', [])
+        ->assertFormFieldExists('space_ids', function (Select $field) use ($firstSpace, $secondSpace): bool {
+            expect($field->getOptions())
+                ->toHaveKey($secondSpace->getKey())
+                ->not->toHaveKey($firstSpace->getKey());
+
+            return true;
+        });
+});
+
+it('clears selected spaces when the event becomes online', function (): void {
+    $space = Space::factory()->create();
+
+    Livewire::test(Create::class)
+        ->set('data.space_ids', [$space->getKey()])
+        ->set('data.event_format', EventFormat::Online->value)
+        ->assertSet('data.space_ids', []);
 });

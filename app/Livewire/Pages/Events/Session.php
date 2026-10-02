@@ -9,9 +9,11 @@ use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
 use App\Enums\EventVisibility;
 use App\Models\Event;
+use App\Models\Institution;
 use App\Services\PublicScheduleDiscoveryService;
 use App\Support\Events\PublicSchedulePolicy;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -70,6 +72,14 @@ class Session extends Component
         if (! $loadedSession instanceof EventSession) {
             abort(404);
         }
+
+        $loadedSession->loadMissing([
+            'locations.locationable' => static function (MorphTo $relation): void {
+                $relation->morphWith([
+                    Institution::class => ['names', 'addresses.areaAssignments.area'],
+                ]);
+            },
+        ]);
 
         $this->event = $event;
         $this->occurrence = $loadedOccurrence;

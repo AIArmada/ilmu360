@@ -12,6 +12,8 @@ use App\Services\ContributionEntityMutationService;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class PersonFormSchema
 {
@@ -36,12 +38,19 @@ class PersonFormSchema
      */
     public static function createOptionUsing(array $data, ?Schema $schema = null): string
     {
+        $data['name'] = is_string($data['name'] ?? null) ? trim($data['name']) : ($data['name'] ?? null);
+        $identity = Validator::make($data, [
+            'name' => ['required', 'string', 'max:255'],
+            'gender' => ['required', Rule::enum(Gender::class)],
+        ])->validate();
+        $data = array_replace($data, $identity);
+
         return DB::transaction(function () use ($data, $schema): string {
             $person = Person::create([
                 'name' => $data['name'],
-                'gender' => $data['gender'] ?? Gender::Male->value,
+                'gender' => $data['gender'],
                 'bio' => $data['bio'] ?? null,
-                'slug' => app(GeneratePersonSlugAction::class)->handle((string) ($data['name'] ?? 'Person'), $data),
+                'slug' => app(GeneratePersonSlugAction::class)->handle((string) $data['name'], $data),
                 'status' => 'pending',
             ]);
 

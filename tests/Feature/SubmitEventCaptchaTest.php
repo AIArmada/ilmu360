@@ -11,11 +11,16 @@ use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
+use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
+
+beforeEach(function () {
+    $this->seed(EventRoleSeeder::class);
+});
 
 /**
  * @return array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, person: Person}

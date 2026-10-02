@@ -39,6 +39,7 @@ use App\Support\Search\InstitutionSearchService;
 use App\Support\Search\PersonSearchService;
 use App\Support\Search\ReferenceSearchService;
 use Database\Factories\EventKeyPersonFactory;
+use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -50,6 +51,7 @@ beforeEach(function () {
     fakePrayerTimesApi();
     withGlobalOwnerContext(function () {
         $this->seed(PermissionSeeder::class);
+        $this->seed(EventRoleSeeder::class);
         setPermissionsTeamId(null);
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     });

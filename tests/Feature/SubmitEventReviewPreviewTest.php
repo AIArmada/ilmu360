@@ -6,7 +6,13 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Space;
 use App\Models\Venue;
+use Database\Seeders\AIArmada\EventRoleSeeder;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
+
+beforeEach(function () {
+    $this->seed(EventRoleSeeder::class);
+});
 
 it('shows a submission preview section on submit event page', function () {
     $this->get(route('submit-event.create'))
@@ -97,3 +103,55 @@ it('previews resolved country, organizer, venue, spaces, and speakers on the rev
             false,
         );
 });
+
+it('does not advertise a pending submission as publicly accessible', function (string $visibility) {
+    $this->withSession([
+        'event_title' => 'Pending Submission',
+        'event_slug' => 'pending-submission',
+        'event_status' => 'pending',
+        'event_visibility' => $visibility,
+        'event_auto_approved' => false,
+    ])->get(route('submit-event.success'))
+        ->assertSuccessful()
+        ->assertSee(__('Event Submitted!'))
+        ->assertDontSee(route('events.show', 'pending-submission'))
+        ->assertDontSee(__('Majlis anda kini disiarkan dan boleh dicari secara terus oleh orang awam.'))
+        ->assertSee(__('Pasukan moderator kami akan menyemak butiran majlis dalam masa 24-48 jam untuk tujuan pengesahan.'));
+})->with(['public', 'unlisted']);
+
+it('links a published session to its own page on the submission confirmation', function () {
+    $this->withSession([
+        'event_title' => 'Added Session',
+        'event_slug' => 'parent-event',
+        'event_status' => 'approved',
+        'event_visibility' => 'public',
+        'event_auto_approved' => false,
+        'event_container_id' => (string) Str::uuid(),
+        'event_container_title' => 'Parent Event',
+        'event_session_id' => (string) Str::uuid(),
+        'event_session_slug' => 'added-session',
+        'event_occurrence_slug' => 'event-date',
+    ])->get(route('submit-event.success'))
+        ->assertSuccessful()
+        ->assertSee(__('Session Added'))
+        ->assertSee(route('events.session', ['parent-event', 'event-date', 'added-session']))
+        ->assertDontSee(__('Terima kasih atas perkongsian anda! Pasukan kami akan menyemak butirannya dalam masa 24-48 jam.'));
+});
+
+it('does not advertise a session under a private parent scope', function (string $scope) {
+    $this->withSession([
+        'event_title' => 'Private Scope Session',
+        'event_slug' => 'private-scope-event',
+        'event_status' => 'approved',
+        'event_visibility' => 'public',
+        'event_parent_visibility' => $scope === 'event' ? 'private' : 'public',
+        'event_occurrence_visibility' => $scope === 'occurrence' ? 'private' : 'public',
+        'event_session_id' => (string) Str::uuid(),
+        'event_session_slug' => 'own-session',
+        'event_occurrence_slug' => 'own-occurrence',
+    ])->get(route('submit-event.success'))
+        ->assertSuccessful()
+        ->assertDontSee(route('events.session', ['private-scope-event', 'own-occurrence', 'own-session']))
+        ->assertDontSee(__('Pasukan moderator kami akan menyemak butiran majlis dalam masa 24-48 jam untuk tujuan pengesahan.'))
+        ->assertDontSee(__('Majlis anda kini disiarkan dan boleh dicari secara terus oleh orang awam.'));
+})->with(['event', 'occurrence']);

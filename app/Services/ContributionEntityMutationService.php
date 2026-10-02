@@ -238,7 +238,10 @@ class ContributionEntityMutationService
                 'address.latitude' => ['nullable', 'numeric', 'between:-90,90'],
                 'address.longitude' => ['nullable', 'numeric', 'between:-180,180'],
                 'address.google_maps_url' => ['nullable', 'url', 'max:255'],
-                'address.provider_place_id' => ['nullable', 'string', 'max:255'],
+                'address.google_place_id' => ['nullable', 'string', 'max:255'],
+                'address.google_feature_id' => ['nullable', 'string', 'max:255'],
+                'address.google_cid' => ['nullable', 'string', 'max:255'],
+                'address.google_entity_id' => ['nullable', 'string', 'max:255'],
                 'address.waze_url' => ['nullable', 'url', 'max:255'],
                 'contactMethods' => ['sometimes', 'array'],
                 'contactMethods.*.type' => ['required_with:contactMethods.*.value', Rule::in($this->enumValues(ContactMethodType::class))],
@@ -287,7 +290,10 @@ class ContributionEntityMutationService
                 'address.latitude' => ['prohibited'],
                 'address.longitude' => ['prohibited'],
                 'address.google_maps_url' => ['prohibited'],
-                'address.provider_place_id' => ['prohibited'],
+                'address.google_place_id' => ['prohibited'],
+                'address.google_feature_id' => ['prohibited'],
+                'address.google_cid' => ['prohibited'],
+                'address.google_entity_id' => ['prohibited'],
                 'address.waze_url' => ['prohibited'],
                 'language_ids' => ['sometimes', 'array'],
                 'language_ids.*' => ['string', 'exists:languages,id'],
@@ -651,14 +657,18 @@ class ContributionEntityMutationService
         $scheduleTimezone = is_string($event->timezone) && $event->timezone !== ''
             ? $event->timezone
             : 'UTC';
+        // Persistence-state strings are UTC wall time: the contribution
+        // mapper stringifies UTC Carbons, and the package writer stores
+        // DateTime input as an absolute moment. Parsing them as schedule
+        // local time double-shifts by the UTC offset.
         $startsAt = array_key_exists('starts_at', $payload) ? $payload['starts_at'] : $currentOccurrence?->starts_at;
         $startsAt = $startsAt instanceof CarbonInterface
             ? $startsAt
-            : (is_string($startsAt) && $startsAt !== '' ? Carbon::parse($startsAt, $scheduleTimezone) : null);
+            : (is_string($startsAt) && $startsAt !== '' ? Carbon::parse($startsAt, 'UTC') : null);
         $endsAt = array_key_exists('ends_at', $payload) ? $payload['ends_at'] : $currentOccurrence?->ends_at;
         $endsAt = $endsAt instanceof CarbonInterface
             ? $endsAt
-            : (is_string($endsAt) && $endsAt !== '' ? Carbon::parse($endsAt, $scheduleTimezone) : null);
+            : (is_string($endsAt) && $endsAt !== '' ? Carbon::parse($endsAt, 'UTC') : null);
 
         app(SyncEventScheduleAction::class)->execute(
             event: $event,
@@ -1422,7 +1432,7 @@ class ContributionEntityMutationService
             $payload['latitude'] ?? null,
             $payload['longitude'] ?? null,
             $payload['google_maps_url'] ?? null,
-            $payload['provider_place_id'] ?? null,
+            $payload['google_place_id'] ?? null,
             $payload['waze_url'] ?? null,
             $allowCountryOnly ? ($payload['country_id'] ?? $payload['country_code'] ?? $payload['country_key'] ?? null) : null,
         ])->contains(fn (mixed $value): bool => filled($value));
@@ -1483,7 +1493,10 @@ class ContributionEntityMutationService
                 'latitude',
                 'longitude',
                 'google_maps_url',
-                'provider_place_id',
+                'google_place_id',
+                'google_feature_id',
+                'google_cid',
+                'google_entity_id',
                 'waze_url',
             ] as $field) {
                 if (! array_key_exists($field, $payload)) {
@@ -1497,7 +1510,10 @@ class ContributionEntityMutationService
         $assignments = AddressAssignments::normalize((array) ($payload['area_assignments'] ?? []));
         $latitude = $payload['latitude'] ?? null;
         $longitude = $payload['longitude'] ?? null;
-        $providerPlaceId = $payload['provider_place_id'] ?? null;
+        $googlePlaceId = $payload['google_place_id'] ?? null;
+        $googleFeatureId = $payload['google_feature_id'] ?? null;
+        $googleCid = $payload['google_cid'] ?? null;
+        $googleEntityId = $payload['google_entity_id'] ?? null;
         $addressMetadata = $this->resolveAddressMetadata(
             $countryId,
             $assignments,
@@ -1517,8 +1533,10 @@ class ContributionEntityMutationService
             'latitude' => $latitude !== null && $latitude !== '' ? (float) $latitude : null,
             'longitude' => $longitude !== null && $longitude !== '' ? (float) $longitude : null,
             'google_maps_url' => $payload['google_maps_url'] ?? null,
-            'provider' => filled($providerPlaceId) ? 'google' : null,
-            'provider_place_id' => $providerPlaceId,
+            'google_place_id' => $googlePlaceId,
+            'google_feature_id' => $googleFeatureId,
+            'google_cid' => $googleCid,
+            'google_entity_id' => $googleEntityId,
             'waze_url' => $payload['waze_url'] ?? null,
         ];
 
@@ -1687,7 +1705,10 @@ class ContributionEntityMutationService
             'latitude',
             'longitude',
             'google_maps_url',
-            'provider_place_id',
+            'google_place_id',
+            'google_feature_id',
+            'google_cid',
+            'google_entity_id',
             'waze_url',
         ];
 
@@ -1727,7 +1748,10 @@ class ContributionEntityMutationService
             'latitude',
             'longitude',
             'google_maps_url',
-            'provider_place_id',
+            'google_place_id',
+            'google_feature_id',
+            'google_cid',
+            'google_entity_id',
             'waze_url',
         ] as $field) {
             if (! array_key_exists($field, $addressPayload) || $addressPayload[$field] === null) {
@@ -1990,7 +2014,10 @@ class ContributionEntityMutationService
                 'latitude' => null,
                 'longitude' => null,
                 'google_maps_url' => null,
-                'provider_place_id' => null,
+                'google_place_id' => null,
+                'google_feature_id' => null,
+                'google_cid' => null,
+                'google_entity_id' => null,
                 'waze_url' => null,
             ]);
         }
@@ -2008,7 +2035,10 @@ class ContributionEntityMutationService
             'latitude' => $address->latitude,
             'longitude' => $address->longitude,
             'google_maps_url' => $address->google_maps_url,
-            'provider_place_id' => $address->provider_place_id,
+            'google_place_id' => $address->google_place_id,
+            'google_feature_id' => $address->google_feature_id,
+            'google_cid' => $address->google_cid,
+            'google_entity_id' => $address->google_entity_id,
             'waze_url' => $address->waze_url,
         ]);
     }

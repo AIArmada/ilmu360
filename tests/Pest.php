@@ -319,11 +319,6 @@ function normalizeTestAddressAttributes(array $attributes): array
     }
     unset($attributes['lng']);
 
-    if (array_key_exists('google_place_id', $attributes) && ! array_key_exists('provider_place_id', $attributes)) {
-        $attributes['provider_place_id'] = $attributes['google_place_id'];
-    }
-    unset($attributes['google_place_id']);
-
     return $attributes;
 }
 

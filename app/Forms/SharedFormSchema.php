@@ -139,7 +139,10 @@ class SharedFormSchema
 
             Hidden::make('latitude'),
             Hidden::make('longitude'),
-            Hidden::make('provider_place_id'),
+            Hidden::make('google_place_id'),
+            Hidden::make('google_feature_id'),
+            Hidden::make('google_cid'),
+            Hidden::make('google_entity_id'),
             Hidden::make('google_display_name'),
             Hidden::make('google_resolution_source'),
             Hidden::make('google_resolution_status'),
@@ -673,7 +676,7 @@ class SharedFormSchema
             $data['city_id'] ?? null,
             $data['area_assignments'] ?? [],
             $data['google_maps_url'] ?? null,
-            $data['provider_place_id'] ?? null,
+            $data['google_place_id'] ?? null,
             $data['waze_url'] ?? null,
             $data['latitude'] ?? null,
             $data['longitude'] ?? null,
@@ -710,9 +713,11 @@ class SharedFormSchema
             'city' => $data['city'] ?? null,
             'latitude' => isset($data['latitude']) && $data['latitude'] !== '' ? (float) $data['latitude'] : null,
             'longitude' => isset($data['longitude']) && $data['longitude'] !== '' ? (float) $data['longitude'] : null,
-            'provider' => 'google',
             'google_maps_url' => $data['google_maps_url'] ?? null,
-            'provider_place_id' => $data['provider_place_id'] ?? null,
+            'google_place_id' => $data['google_place_id'] ?? null,
+            'google_feature_id' => $data['google_feature_id'] ?? null,
+            'google_cid' => $data['google_cid'] ?? null,
+            'google_entity_id' => $data['google_entity_id'] ?? null,
             'waze_url' => $data['waze_url'] ?? null,
         ]);
 
@@ -743,7 +748,10 @@ class SharedFormSchema
     {
         if (! self::shouldNormalizeGoogleMaps($data)) {
             return array_merge($data, [
-                'provider_place_id' => $data['provider_place_id'] ?? null,
+                'google_place_id' => $data['google_place_id'] ?? null,
+                'google_feature_id' => $data['google_feature_id'] ?? null,
+                'google_cid' => $data['google_cid'] ?? null,
+                'google_entity_id' => $data['google_entity_id'] ?? null,
                 'google_display_name' => $data['google_display_name'] ?? null,
                 'google_resolution_source' => null,
                 'google_resolution_status' => null,
@@ -754,7 +762,10 @@ class SharedFormSchema
 
         return array_merge($data, app(NormalizeGoogleMapsInputAction::class)->handle([
             'google_maps_url' => $data['google_maps_url'] ?? null,
-            'google_place_id' => $data['provider_place_id'] ?? ($data['google_place_id'] ?? null),
+            'google_place_id' => $data['google_place_id'] ?? null,
+            'google_feature_id' => $data['google_feature_id'] ?? null,
+            'google_cid' => $data['google_cid'] ?? null,
+            'google_entity_id' => $data['google_entity_id'] ?? null,
             'country_code' => $data['country_code'] ?? null,
             'google_display_name' => $data['google_display_name'] ?? null,
             'lat' => $data['latitude'] ?? ($data['lat'] ?? null),
@@ -800,7 +811,10 @@ class SharedFormSchema
             $payload['latitude'] = $normalized['lat'] ?? null;
             $payload['longitude'] = $normalized['lng'] ?? null;
             $payload['google_maps_url'] = $normalized['google_maps_url'] ?? null;
-            $payload['provider_place_id'] = $normalized['google_place_id'] ?? null;
+            $payload['google_place_id'] = $normalized['google_place_id'] ?? null;
+            $payload['google_feature_id'] = $normalized['google_feature_id'] ?? $data['google_feature_id'] ?? null;
+            $payload['google_cid'] = $normalized['google_cid'] ?? $data['google_cid'] ?? null;
+            $payload['google_entity_id'] = $normalized['google_entity_id'] ?? $data['google_entity_id'] ?? null;
         }
 
         return self::hydrateAddressAreaLabels($payload);
@@ -857,8 +871,10 @@ class SharedFormSchema
     {
         return array_any([
             'google_maps_url',
-            'provider_place_id',
             'google_place_id',
+            'google_feature_id',
+            'google_cid',
+            'google_entity_id',
             'google_display_name',
             'latitude',
             'longitude',
@@ -876,8 +892,8 @@ class SharedFormSchema
         $data = self::expandStoredAreasForForm($data);
 
         $googleMapsUrl = is_string($data['google_maps_url'] ?? null) ? trim($data['google_maps_url']) : null;
-        $googlePlaceId = is_string($data['provider_place_id'] ?? ($data['google_place_id'] ?? null))
-            ? trim((string) ($data['provider_place_id'] ?? ($data['google_place_id'] ?? null)))
+        $googlePlaceId = is_string($data['google_place_id'] ?? null)
+            ? trim((string) $data['google_place_id'])
             : null;
         $lat = $data['latitude'] ?? ($data['lat'] ?? null);
         $lng = $data['longitude'] ?? ($data['lng'] ?? null);
@@ -912,7 +928,10 @@ class SharedFormSchema
             'google_maps_normalization_enabled' => $get('google_maps_normalization_enabled'),
         ])) {
             foreach ([
-                'provider_place_id',
+                'google_place_id',
+                'google_feature_id',
+                'google_cid',
+                'google_entity_id',
                 'google_display_name',
                 'latitude',
                 'longitude',
@@ -939,7 +958,10 @@ class SharedFormSchema
 
         $normalized = self::normalizeAddressFormState([
             'google_maps_url' => $state,
-            'google_place_id' => $get('provider_place_id'),
+            'google_place_id' => $get('google_place_id'),
+            'google_feature_id' => $get('google_feature_id'),
+            'google_cid' => $get('google_cid'),
+            'google_entity_id' => $get('google_entity_id'),
             'google_display_name' => $get('google_display_name'),
             'lat' => $get('latitude'),
             'lng' => $get('longitude'),
@@ -951,7 +973,10 @@ class SharedFormSchema
 
         foreach ([
             'google_maps_url',
-            'provider_place_id',
+            'google_place_id',
+            'google_feature_id',
+            'google_cid',
+            'google_entity_id',
             'google_display_name',
             'latitude',
             'longitude',
@@ -961,7 +986,7 @@ class SharedFormSchema
             'google_resolution_message',
         ] as $field) {
             $set($field, match ($field) {
-                'provider_place_id' => $normalized['google_place_id'] ?? null,
+                'google_place_id' => $normalized['google_place_id'] ?? null,
                 'latitude' => $normalized['lat'] ?? null,
                 'longitude' => $normalized['lng'] ?? null,
                 default => $normalized[$field] ?? null,

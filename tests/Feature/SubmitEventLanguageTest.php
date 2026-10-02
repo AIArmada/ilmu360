@@ -11,14 +11,20 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Language;
 use App\Models\Person;
+use App\Models\User;
 use App\Support\Cache\SelectionCatalogCache;
 use App\Support\Language\MalaysiaLanguageCatalog;
+use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\LanguageSeeder;
 use Filament\Forms\Components\Select;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 
 beforeEach(function () {
     fakePrayerTimesApi();
+
+    $this->seed(EventRoleSeeder::class);
 });
 
 /**
@@ -82,6 +88,51 @@ it('offers Malaysia-relevant languages in the submit form', function (): void {
             return true;
         });
 });
+
+it('resolves current language identities after a catalog is bulk replaced', function (): void {
+    $oldId = languageId('ms');
+    app(SelectionCatalogCache::class)->languageOptionsForCodes(MalaysiaLanguageCatalog::codes());
+    $currentId = (string) Str::uuid();
+    DB::table('languages')->where('id', $oldId)->update(['id' => $currentId]);
+
+    Livewire::test(Create::class)
+        ->assertSet('data.languages', [$currentId])
+        ->assertFormFieldExists('languages', function (Select $field) use ($oldId, $currentId): bool {
+            expect($field->getOptions())
+                ->toHaveKey($currentId, 'Bahasa Melayu')
+                ->not->toHaveKey($oldId);
+            expect($field->getOptionLabels())->toBe([$currentId => 'Bahasa Melayu']);
+
+            return true;
+        });
+});
+
+it('prefills catalog language identities from event-scoped language codes', function (string $queryKey): void {
+    $owner = User::factory()->create();
+    $event = Event::factory()->create([
+        'status' => 'draft',
+        'created_by_type' => $owner->getMorphClass(),
+        'created_by_id' => $owner->getKey(),
+    ]);
+    $languageIds = [languageId('ms'), languageId('ar')];
+    $event->syncLanguages($languageIds);
+
+    Livewire::actingAs($owner)
+        ->withQueryParams([$queryKey => $event->getKey()])
+        ->test(Create::class)
+        ->assertSet('data.languages', $languageIds)
+        ->assertFormFieldExists('languages', function (Select $field) use ($languageIds): bool {
+            expect($field->getOptionLabels())->toBe([
+                $languageIds[0] => 'Bahasa Melayu',
+                $languageIds[1] => 'Bahasa Arab',
+            ]);
+
+            return true;
+        });
+})->with([
+    'new session' => ['event'],
+    'duplicate event' => ['duplicate'],
+]);
 
 it('can submit event with single language', function () {
     $fixtures = submitEventLanguageFixtures();

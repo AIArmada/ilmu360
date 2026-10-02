@@ -3,6 +3,7 @@
 use App\Forms\PersonFormSchema;
 use App\Models\Institution;
 use App\Models\Person;
+use Illuminate\Validation\ValidationException;
 
 it('includes biography, cover image, and institution position fields in person create option form', function () {
     $flatten = function (array $components) use (&$flatten): array {
@@ -90,3 +91,16 @@ it('stores biography and institution pivot position when creating a person via c
         ->and($linkedInstitution?->pivot?->position)->toBe('Mudir')
         ->and((bool) $linkedInstitution?->pivot?->is_primary)->toBeTrue();
 });
+
+it('rejects blank or missing speaker identity before quick creation', function (array $identity) {
+    $count = Person::query()->count();
+
+    expect(fn () => PersonFormSchema::createOptionUsing($identity))
+        ->toThrow(ValidationException::class);
+    expect(Person::query()->count())->toBe($count);
+})->with([
+    'blank name' => [['name' => '   ', 'gender' => 'male']],
+    'missing name' => [['gender' => 'male']],
+    'missing gender' => [['name' => 'Known Speaker']],
+    'invalid gender' => [['name' => 'Known Speaker', 'gender' => 'invented']],
+]);

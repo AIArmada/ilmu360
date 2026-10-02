@@ -1,5 +1,11 @@
 <?php
 
+use Database\Seeders\AIArmada\EventRoleSeeder;
+
+beforeEach(function () {
+    $this->seed(EventRoleSeeder::class);
+});
+
 test('submit event route is not protected by event submission throttle middleware', function () {
     $route = app('router')->getRoutes()->getByName('submit-event.create');
 

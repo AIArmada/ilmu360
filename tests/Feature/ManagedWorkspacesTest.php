@@ -29,12 +29,17 @@ use App\Notifications\Membership\MemberInvitationNotification;
 use App\Support\Api\Member\MemberResourceRegistry;
 use App\Support\Authz\MemberPermissionGate;
 use App\Support\Authz\ScopedMemberRoleSeeder;
+use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
+
+beforeEach(function () {
+    $this->seed(EventRoleSeeder::class);
+});
 
 it('shows the institutions and speakers the user belongs to in the unified workspace', function (): void {
     $user = User::factory()->create();

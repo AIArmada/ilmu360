@@ -9,12 +9,18 @@ use Livewire\Livewire;
 
 function createCascadeTestEvent(Venue $venue, string $title): Event
 {
+    // ends_at must be pinned alongside starts_at: the factory's random
+    // ends_at can otherwise land before the overridden start and fail
+    // occurrence sync intermittently (~3% per event).
+    $startsAt = now()->addDays(2);
+
     return Event::factory()->for($venue)->create([
         'title' => $title,
         'status' => 'approved',
         'visibility' => 'public',
         'published_at' => now(),
-        'starts_at' => now()->addDays(2),
+        'starts_at' => $startsAt,
+        'ends_at' => $startsAt->copy()->addHours(2),
     ]);
 }
 

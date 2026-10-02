@@ -11,10 +11,13 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
+use Database\Seeders\AIArmada\EventRoleSeeder;
 use Livewire\Livewire;
 
 beforeEach(function () {
     fakePrayerTimesApi();
+
+    $this->seed(EventRoleSeeder::class);
 
     $this->domainTag = submitEventTerm('domain');
     $this->disciplineTag = submitEventTerm('discipline');
@@ -84,7 +87,9 @@ it('rejects guest submission when selected persons include locked person', funct
         ]),
     )
         ->call('submit')
-        ->assertHasErrors(['data.persons']);
+        ->assertHasErrors(['data.persons.0']);
+
+    expect(Event::query()->where('title', 'Entity Access Submission')->exists())->toBeFalse();
 });
 
 it('allows authenticated members to submit locked institution and person entities', function () {

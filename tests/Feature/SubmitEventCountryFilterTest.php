@@ -12,12 +12,16 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Venue;
 use App\Support\Submission\EntitySubmissionAccess;
+use App\Support\Submission\SubmitEventOptionsProvider;
+use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Livewire;
 
 beforeEach(function () {
     fakePrayerTimesApi();
     Cache::flush();
+
+    $this->seed(EventRoleSeeder::class);
 
     $this->domainTag = submitEventTerm('domain');
     $this->disciplineTag = submitEventTerm('discipline');
@@ -101,14 +105,14 @@ it('limits submit-event institution and venue options to the selected country', 
     $malaysiaVenue = submitEventCountryFilterVenue($this->malaysiaId);
     $singaporeVenue = submitEventCountryFilterVenue($this->singaporeId);
 
-    $component = Livewire::test(Create::class);
     $malaysiaId = $this->malaysiaId;
+    $options = app(SubmitEventOptionsProvider::class);
 
     /** @var array<string, string> $institutionOptions */
-    $institutionOptions = (fn (): array => $this->availableInstitutionOptions($malaysiaId))->call($component->instance());
+    $institutionOptions = $options->institutionOptions(null, $malaysiaId, null);
 
     /** @var array<string, string> $venueOptions */
-    $venueOptions = (fn (): array => $this->cachedSubmitVenueOptions($malaysiaId))->call($component->instance());
+    $venueOptions = $options->venueOptions($malaysiaId);
 
     expect($institutionOptions)
         ->toHaveKey((string) $malaysiaInstitution->getKey())

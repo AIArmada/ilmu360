@@ -8,11 +8,14 @@ use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\Person;
 use App\Models\Venue;
+use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
 
 beforeEach(function () {
     fakePrayerTimesApi();
+
+    $this->seed(EventRoleSeeder::class);
 });
 
 /**

@@ -106,7 +106,7 @@ it('maps a google place selection into local geography ids and address fields', 
         ->and($payload['line2'])->toBe('Seksyen 14')
         ->and($payload['postcode'])->toBe('40000')
         ->and($payload['google_maps_url'])->toBe('https://www.google.com/maps/search/?api=1&query=3.07853%2C101.52073&query_place_id=place_abc123')
-        ->and($payload['provider_place_id'])->toBe('place_abc123')
+        ->and($payload['google_place_id'])->toBe('place_abc123')
         ->and($payload['google_display_name'])->toBe('Masjid Sultan Salahuddin Abdul Aziz Shah')
         ->and($payload['google_resolution_source'])->toBe('picker')
         ->and($payload['google_resolution_status'])->toBe('resolved')

@@ -1,11 +1,13 @@
 <?php
 
+use AIArmada\Events\Actions\CreateEventOccurrenceAction;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use App\Actions\Events\SyncEventClassificationsAction;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
+use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
 use App\Livewire\Pages\SubmitEvent\Create;
@@ -13,7 +15,11 @@ use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\Institution;
 use App\Models\Person;
+use App\Models\Reference;
 use App\Models\User;
+use App\Services\EventKeyPersonSyncService;
+use App\Support\Submission\SubmitEventPrefill;
+use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\AIArmada\EventTaxonomySeeder;
 use Database\Seeders\AIArmada\EventTopicSeeder;
 use Filament\Forms\Components\Select;
@@ -21,6 +27,10 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Wizard;
 use Filament\Schemas\Components\Wizard\Step;
 use Livewire\Livewire;
+
+beforeEach(function () {
+    $this->seed(EventRoleSeeder::class);
+});
 
 function adaptiveSubmitEventTopicId(string $code): string
 {
@@ -31,6 +41,63 @@ function adaptiveSubmitEventTopicId(string $code): string
         ->where('code', $code)
         ->value('id');
 }
+
+/**
+ * @return array{event: Event, public_speaker: Person, private_speaker: Person}
+ */
+function adaptivePublicDuplicatePeopleFixtures(): array
+{
+    $event = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => EventVisibility::Public,
+        'published_at' => now(),
+    ]);
+    $publicSpeaker = Person::factory()->create(['status' => 'verified', 'allow_public_event_submission' => true]);
+    $privateSpeaker = Person::factory()->create(['status' => 'verified', 'allow_public_event_submission' => true]);
+    app(EventKeyPersonSyncService::class)->sync($event, [$publicSpeaker->getKey(), $privateSpeaker->getKey()], [
+        ['role_code' => EventKeyPersonRole::Moderator->value, 'display_name' => 'Visible Moderator', 'visibility' => 'public'],
+        ['role_code' => EventKeyPersonRole::PersonInCharge->value, 'display_name' => 'Private Contact', 'visibility' => 'private', 'notes' => 'Private organizer notes'],
+    ]);
+    $event->keyPeople()->where('involveable_id', $privateSpeaker->getKey())->update(['visibility' => 'private']);
+
+    return ['event' => $event->fresh(), 'public_speaker' => $publicSpeaker, 'private_speaker' => $privateSpeaker];
+}
+
+it('does not expose private people when publicly duplicating another event', function (?User $actor): void {
+    $fixtures = adaptivePublicDuplicatePeopleFixtures();
+    $component = Livewire::withQueryParams(['duplicate' => $fixtures['event']->getKey()]);
+
+    if ($actor instanceof User) {
+        $component = $component->actingAs($actor);
+    }
+
+    $component = $component->test(Create::class);
+
+    $component->assertSet('data.persons', [$fixtures['public_speaker']->getKey()]);
+    expect($component->get('data.other_key_people'))
+        ->toHaveCount(1)
+        ->and(array_values($component->get('data.other_key_people'))[0]['display_name'])->toBe('Visible Moderator');
+    expect($component->html())->not->toContain('Private Contact', 'Private organizer notes');
+})->with([
+    'guest' => [null],
+    'signed-in nonowner' => [fn (): User => User::factory()->create()],
+]);
+
+it('retains private people for a duplicate owner and authorized session defaults', function (): void {
+    $fixtures = adaptivePublicDuplicatePeopleFixtures();
+    $owner = User::factory()->create();
+    EventSubmission::factory()->for($fixtures['event'])->for($owner, 'submitter')->create();
+
+    $component = Livewire::actingAs($owner)
+        ->withQueryParams(['duplicate' => $fixtures['event']->getKey()])
+        ->test(Create::class);
+    $containerDefaults = SubmitEventPrefill::containerDefaults($fixtures['event'], $owner, (string) ensureTestMalaysiaCountry()->getKey());
+
+    $component->assertSet('data.persons', [$fixtures['public_speaker']->getKey(), $fixtures['private_speaker']->getKey()]);
+    expect($component->get('data.other_key_people'))->toHaveCount(2);
+    expect($containerDefaults['persons'])->toBe([$fixtures['public_speaker']->getKey(), $fixtures['private_speaker']->getKey()]);
+    expect($containerDefaults['other_key_people'])->toHaveCount(2);
+});
 
 it('defaults the driver selections and starts with sensible downstream values', function (): void {
     app(EventTaxonomySeeder::class)->run();
@@ -352,6 +419,143 @@ it('normalizes quick-added titles on the server before calculating progress', fu
 
     $component->assertSet('data.title', 'Chrome progress test');
 });
+
+it('escapes quick-added and saved titles in suggestion labels', function (): void {
+    $title = '<img src=x onerror=alert(1)> Event';
+    Event::factory()->create([
+        'title' => $title,
+        'status' => 'approved',
+        'visibility' => EventVisibility::Public,
+        'published_at' => now(),
+    ]);
+
+    Livewire::test(Create::class)
+        ->assertFormFieldExists('title', function (Select $field) use ($title): bool {
+            $savedResults = $field->getSearchResults('Event');
+            $quickResults = $field->getSearchResults('<svg onload=alert(2)>');
+
+            expect($savedResults[$title])->toContain('&lt;img')->not->toContain('<img');
+            expect(implode('', $quickResults))->toContain('&lt;svg')->not->toContain('<svg');
+
+            return true;
+        });
+});
+
+it('escapes new taxonomy labels in quick-add results and selected values', function (string $fieldName): void {
+    $label = '<img src=x onerror=alert(3)>';
+
+    Livewire::test(Create::class)
+        ->set('data.'.$fieldName, [$label])
+        ->assertFormFieldExists($fieldName, function (Select $field) use ($label): bool {
+            expect(implode('', $field->getSearchResults($label)))
+                ->toContain('&lt;img')->not->toContain('<img');
+            expect($field->getOptionLabels()[$label])
+                ->toContain('&lt;img')->not->toContain('<img');
+
+            return true;
+        });
+})->with(['discipline_tags', 'issue_tags']);
+
+it('only suggests published public approved event titles', function (): void {
+    $public = Event::factory()->create([
+        'title' => 'Visible Suggestion',
+        'status' => 'approved',
+        'visibility' => EventVisibility::Public,
+        'published_at' => now(),
+    ]);
+    $hidden = Event::factory()->count(3)->sequence(
+        ['title' => 'Private Suggestion', 'visibility' => EventVisibility::Private, 'published_at' => now()],
+        ['title' => 'Unlisted Suggestion', 'visibility' => EventVisibility::Unlisted, 'published_at' => now()],
+        ['title' => 'Unpublished Suggestion', 'visibility' => EventVisibility::Public, 'published_at' => null],
+    )->create(['status' => 'approved']);
+    $hidden->firstWhere('title', 'Unpublished Suggestion')->forceFill(['published_at' => null])->save();
+
+    Livewire::test(Create::class)
+        ->assertFormFieldExists('title', function (Select $field) use ($public, $hidden): bool {
+            $results = $field->getSearchResults('Suggestion');
+
+            expect($results)->toHaveKey($public->title);
+
+            foreach ($hidden as $event) {
+                expect($results)->not->toHaveKey($event->title);
+            }
+
+            return true;
+        });
+});
+
+it('does not resolve labels for speaker profiles the submitter cannot use', function (): void {
+    $privatePerson = Person::factory()->create([
+        'status' => 'verified',
+        'allow_public_event_submission' => false,
+    ]);
+
+    Livewire::test(Create::class)
+        ->set('data.persons', [$privatePerson->getKey()])
+        ->assertFormFieldExists('persons', function (Select $field): bool {
+            expect($field->getOptionLabels())->toBe([]);
+
+            return true;
+        });
+});
+
+it('prefills canonical reference ids when a published event title is selected', function (): void {
+    app(EventTaxonomySeeder::class)->run();
+    app(EventTopicSeeder::class)->run();
+    $reference = Reference::factory()->create();
+    $event = Event::factory()->create([
+        'title' => 'Reference Prefill Event',
+        'status' => 'approved',
+        'visibility' => EventVisibility::Public,
+        'published_at' => now(),
+    ]);
+    app(SyncEventClassificationsAction::class)->handle($event, [
+        'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
+        'domain_tags' => [adaptiveSubmitEventTopicId('agama-kerohanian')],
+    ]);
+    $event->references()->attach($reference->getKey());
+
+    Livewire::test(Create::class)
+        ->set('data.title', $event->title)
+        ->assertSet('data.references', [$reference->getKey()]);
+});
+
+it('updates the editable session schedule when another occurrence is selected', function (): void {
+    $owner = User::factory()->create();
+    $event = Event::factory()->create([
+        'created_by_type' => $owner->getMorphClass(),
+        'created_by_id' => $owner->getKey(),
+        'status' => 'draft',
+        'starts_at' => now()->addDays(4),
+    ]);
+    $startsAt = now()->addDays(8)->startOfDay()->setTime(12, 30)->utc();
+    $occurrence = app(CreateEventOccurrenceAction::class)->handle($event, [
+        'title' => 'Second Day',
+        'starts_at' => $startsAt,
+        'ends_at' => $startsAt->copy()->addHours(2),
+        'timezone' => 'UTC',
+    ]);
+
+    Livewire::actingAs($owner)
+        ->withQueryParams(['event' => $event->getKey()])
+        ->test(Create::class)
+        ->set('data.event_occurrence_id', $occurrence->getKey())
+        ->assertSet('data.event_date', $startsAt->copy()->timezone('Asia/Kuala_Lumpur')->toDateString())
+        ->assertSet('data.prayer_time', EventPrayerTime::LainWaktu->value)
+        ->assertSet('data.custom_time', $startsAt->copy()->timezone('Asia/Kuala_Lumpur')->format('H:i'))
+        ->assertSet('data.end_time', $startsAt->copy()->addHours(2)->timezone('Asia/Kuala_Lumpur')->format('H:i'));
+});
+
+it('rejects malformed submission context query parameters with a not-found response', function (string $key, mixed $value): void {
+    $this->get(route('submit-event.create', [$key => $value]))->assertNotFound();
+})->with([
+    'array event' => ['event', ['bad']],
+    'invalid event' => ['event', 'not-a-uuid'],
+    'array duplicate' => ['duplicate', ['bad']],
+    'invalid duplicate' => ['duplicate', 'not-a-uuid'],
+    'array institution' => ['institution', ['bad']],
+    'invalid institution' => ['institution', 'not-a-uuid'],
+]);
 
 it('groups the regrouped wizard into labeled steps and sections', function (): void {
     app(EventTaxonomySeeder::class)->run();

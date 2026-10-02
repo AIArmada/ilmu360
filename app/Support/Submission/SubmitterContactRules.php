@@ -2,7 +2,9 @@
 
 namespace App\Support\Submission;
 
+use App\Models\User;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 final class SubmitterContactRules
 {
@@ -14,6 +16,40 @@ final class SubmitterContactRules
     public const int PHONE_MIN_DIGITS = 7;
 
     public const int PHONE_MAX_DIGITS = 15;
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    public static function assertSubmitterContactsAreValid(array $validated, ?User $submitter, string $validationKeyPrefix = ''): void
+    {
+        $email = $validated['submitter_email'] ?? null;
+        $phone = $validated['submitter_phone'] ?? null;
+
+        if (! $submitter instanceof User && ! filled($validated['submitter_name'] ?? null)) {
+            throw ValidationException::withMessages([
+                SubmissionValues::prefixedKey('submitter_name', $validationKeyPrefix) => __('validation.required', ['attribute' => __('Nama Anda')]),
+            ]);
+        }
+
+        if (! $submitter instanceof User && ! filled($email) && ! filled($phone)) {
+            throw ValidationException::withMessages([
+                SubmissionValues::prefixedKey('submitter_email', $validationKeyPrefix) => __('Either submitter email or submitter phone is required.'),
+                SubmissionValues::prefixedKey('submitter_phone', $validationKeyPrefix) => __('Either submitter email or submitter phone is required.'),
+            ]);
+        }
+
+        if (filled($email) && ! self::isValidEmail($email)) {
+            throw ValidationException::withMessages([
+                SubmissionValues::prefixedKey('submitter_email', $validationKeyPrefix) => __('Alamat e-mel tidak sah. Sila semak semula.'),
+            ]);
+        }
+
+        if (filled($phone) && ! self::isValidPhone($phone)) {
+            throw ValidationException::withMessages([
+                SubmissionValues::prefixedKey('submitter_phone', $validationKeyPrefix) => __('Nombor telefon tidak sah. Sila semak semula.'),
+            ]);
+        }
+    }
 
     public static function isValidEmail(mixed $value): bool
     {

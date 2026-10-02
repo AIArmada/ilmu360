@@ -22,6 +22,9 @@ class NormalizeGoogleMapsInputAction
      * @return array{
      *     google_maps_url: string|null,
      *     google_place_id: string|null,
+     *     google_feature_id: string|null,
+     *     google_cid: string|null,
+     *     google_entity_id: string|null,
      *     google_display_name: string|null,
      *     lat: float|null,
      *     lng: float|null,
@@ -36,6 +39,9 @@ class NormalizeGoogleMapsInputAction
         $rawUrl = $this->normalizeString($input['google_maps_url'] ?? null);
         $displayName = $this->displayNameValue($input['google_display_name'] ?? $input['display_name'] ?? null);
         $placeId = $this->normalizePlaceId($input['google_place_id'] ?? null);
+        $featureId = $this->normalizeString($input['google_feature_id'] ?? null);
+        $cid = $this->normalizeString($input['google_cid'] ?? null);
+        $entityId = $this->normalizeString($input['google_entity_id'] ?? null);
         $lat = $this->numericValue($input['lat'] ?? null);
         $lng = $this->numericValue($input['lng'] ?? null);
         $remoteLookupEnabled = $this->remoteLookupEnabled($input['google_maps_remote_lookup_enabled'] ?? null);
@@ -139,6 +145,9 @@ class NormalizeGoogleMapsInputAction
         return [
             'google_maps_url' => $normalizedUrl,
             'google_place_id' => $placeId,
+            'google_feature_id' => $featureId,
+            'google_cid' => $cid,
+            'google_entity_id' => $entityId,
             'google_display_name' => $displayName,
             'lat' => $lat,
             'lng' => $lng,

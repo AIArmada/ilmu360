@@ -13,6 +13,7 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Models\User;
 use App\Support\Api\Frontend\FrontendMediaSyncService;
+use App\Support\Events\OrganizerResolver;
 use App\Support\Submission\SubmitterContactRules;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
@@ -21,6 +22,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Spatie\MediaLibrary\HasMedia;
 
 #[Group(
     'Event Submission',
@@ -48,6 +50,7 @@ class EventSubmissionController extends FrontendController
 
         $validated = $request->validate([
             'event_id' => ['nullable', 'uuid'],
+            'event_occurrence_id' => ['nullable', 'uuid'],
             'scoped_institution_id' => ['nullable', 'uuid'],
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable'],
@@ -116,11 +119,11 @@ class EventSubmissionController extends FrontendController
             submitter: $user,
             eventContainer: $eventContainer,
             scopedInstitution: $scopedInstitution,
-            persistRelationships: function (Event $event) use ($request, $frontendMediaSyncService): void {
-                $frontendMediaSyncService->syncSingle($event, $request->file('cover'), 'cover');
-                $frontendMediaSyncService->syncSingle($event, $request->file('poster'), 'poster');
+            persistRelationships: function (HasMedia $model) use ($request, $frontendMediaSyncService): void {
+                $frontendMediaSyncService->syncSingle($model, $request->file('cover'), 'cover');
+                $frontendMediaSyncService->syncSingle($model, $request->file('poster'), 'poster');
                 $frontendMediaSyncService->syncMultiple(
-                    $event,
+                    $model,
                     is_array($request->file('gallery')) ? $request->file('gallery') : null,
                     'gallery',
                 );
@@ -221,12 +224,11 @@ class EventSubmissionController extends FrontendController
 
     private function eventMatchesScopedInstitution(Event $event, Institution $institution): bool
     {
-        if ($event->institution_id === $institution->getKey()) {
-            return true;
-        }
-
-        $organizer = $event->organizer;
-
-        return $organizer instanceof Institution && $organizer->getKey() === $institution->getKey();
+        // The location institution is not ownership; only the primary
+        // organizer establishes the institutional scope.
+        return OrganizerResolver::involvementMatchesInstitution(
+            $event->primaryOrganizerInvolvement,
+            $institution,
+        );
     }
 }

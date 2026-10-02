@@ -22,6 +22,7 @@ use App\Models\User;
 use App\Services\ContributionEntityMutationService;
 use App\Services\EventKeyPersonSyncService;
 use App\Support\Cache\PublicListingsCache;
+use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -30,6 +31,10 @@ use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
+
+beforeEach(function () {
+    $this->seed(EventRoleSeeder::class);
+});
 
 it('generates country-based slugs for person quick-create flows', function () {
     $country = createPersonSlugCountry();

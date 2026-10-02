@@ -11,10 +11,13 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Support\Submission\SubmitterContactRules;
+use Database\Seeders\AIArmada\EventRoleSeeder;
 use Livewire\Livewire;
 
 beforeEach(function () {
     fakePrayerTimesApi();
+
+    $this->seed(EventRoleSeeder::class);
 
     $this->domainTag = submitEventTerm('domain');
     $this->disciplineTag = submitEventTerm('discipline');

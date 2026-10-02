@@ -1596,5 +1596,7 @@
     "Optional. Leave empty when the authors are unknown.": "Pilihan. Biarkan kosong jika penulis tidak diketahui.",
     "Select a parent work or edition to see its authors.": "Pilih karya atau edisi induk untuk melihat penulisnya.",
     "Unknown authors": "Penulis tidak diketahui",
-    "This person is linked as a reference contributor and cannot be deleted.": "Orang ini dipautkan sebagai penyumbang rujukan dan tidak boleh dipadamkan."
+    "This person is linked as a reference contributor and cannot be deleted.": "Orang ini dipautkan sebagai penyumbang rujukan dan tidak boleh dipadamkan.",
+    "The selected language is invalid.": "Bahasa yang dipilih tidak sah.",
+    "The selected reference is unavailable.": "Rujukan yang dipilih tidak tersedia."
 }

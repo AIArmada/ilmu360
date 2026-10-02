@@ -10,6 +10,7 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
+use Database\Seeders\AIArmada\EventRoleSeeder;
 use Filament\Forms\Components\FileUpload;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
@@ -18,6 +19,8 @@ use Livewire\Livewire;
 
 beforeEach(function () {
     fakePrayerTimesApi();
+
+    $this->seed(EventRoleSeeder::class);
 });
 
 /**
