@@ -221,7 +221,10 @@ class ApproveContributionRequestAction
             'latitude',
             'longitude',
             'google_maps_url',
-            'provider_place_id',
+            'google_place_id',
+            'google_feature_id',
+            'google_cid',
+            'google_entity_id',
             'waze_url',
         ];
 

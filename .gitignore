@@ -32,3 +32,4 @@ backup-*-resource/
 screenshots/
 tasks/*.png
 /.cloudflared/
+tests/Browser/Screenshots/
