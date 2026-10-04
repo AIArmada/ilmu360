@@ -2,9 +2,11 @@
 
 namespace App\Actions\Events;
 
+use AIArmada\Addressing\Models\Address;
 use AIArmada\Events\Enums\RegistrationMode;
 use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\Seating\Models\SeatMap;
+use App\Actions\Prayer\ResolvePrayerStartClockAction;
 use App\Contracts\EventCategoryCatalog;
 use App\Contracts\EventCategoryPolicyResolver;
 use App\Contracts\SpaceEligibilityResolver;
@@ -25,8 +27,13 @@ use App\Services\ModerationService;
 use App\Support\Events\AdminEventTimeMapper;
 use App\Support\Events\OrganizerResolver;
 use App\Support\Media\ModelMediaSyncService;
+use App\Support\Prayer\PrayerLocation;
+use App\Support\Prayer\PrayerTargetSelector;
+use App\Support\Submission\SubmissionTimingPolicy;
 use BackedEnum;
+use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon as IlluminateCarbon;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -41,6 +48,8 @@ final readonly class SaveAdminEventAction
         private SyncEventResourceRelationsAction $syncEventResourceRelationsAction,
         private ModerationService $moderationService,
         private SpaceEligibilityResolver $spaceEligibilityResolver,
+        private ResolvePrayerStartClockAction $resolveStartClock,
+        private SubmissionTimingPolicy $timing,
     ) {}
 
     /**
@@ -68,6 +77,7 @@ final readonly class SaveAdminEventAction
             'source_tags' => [],
             'issue_tags' => [],
             'primary_organizer_id' => null,
+            'submission_country_id' => null,
             'persons' => [],
             'other_key_people' => [],
             'registration_required' => false,
@@ -89,7 +99,9 @@ final readonly class SaveAdminEventAction
             'series:id,title',
             'classifications',
             'keyPeople.person',
-            'languages:id,event_id',
+            // Full accessor columns: the languages attribute override reads
+            // occurrence/session scope plus the code off this same instance.
+            'languages:id,event_id,event_occurrence_id,event_session_id,language_code',
             'accessPolicy',
             'primaryLocation.venueSpace',
             'primaryOrganizerInvolvement',
@@ -97,12 +109,22 @@ final readonly class SaveAdminEventAction
             'audiences',
             'audienceProfiles',
             'links',
+            'timeExpressions',
         ]);
+
+        $prayerExpression = $event->timeExpressions
+            ->first(fn ($expression): bool => $expression->anchor_type === 'prayer'
+                && $expression->event_occurrence_id === null
+                && $expression->event_session_id === null);
+
+        $prayerDate = $prayerExpression?->metadata['prayer']['prayer_date'] ?? null;
+        $prayerCountry = $prayerExpression?->metadata['prayer']['country'] ?? null;
 
         $timeFields = AdminEventTimeMapper::injectFormTimeFields([
             'starts_at' => $event->starts_at?->toISOString(),
             'ends_at' => $event->ends_at?->toISOString(),
             'timezone' => $event->timezone,
+            'prayer_date' => is_string($prayerDate) ? $prayerDate : null,
             'schedule_kind' => $event->schedule_kind instanceof ScheduleKind ? $event->schedule_kind->value : $event->schedule_kind,
             'timing_mode' => $event->timing_mode instanceof BackedEnum ? $event->timing_mode->value : $event->timing_mode,
             'prayer_reference' => $event->prayer_reference instanceof BackedEnum ? $event->prayer_reference->value : $event->prayer_reference,
@@ -134,6 +156,7 @@ final readonly class SaveAdminEventAction
             'live_url' => $event->live_url,
             'recording_url' => $event->recording_url,
             'primary_organizer_id' => $event->primaryOrganizerInvolvement?->involveable_id,
+            'submission_country_id' => is_string($prayerCountry) ? $this->timing->resolveSubmissionCountryId($prayerCountry) : null,
             'institution_id' => $event->institution_id,
             'venue_id' => $event->default_venue_id,
             'space_ids' => $event->locations
@@ -187,9 +210,10 @@ final readonly class SaveAdminEventAction
         $creating = ! $event instanceof Event;
         $event ??= new Event;
 
+        $recordState = $creating ? [] : $this->formStateForRecord($event);
         $state = $creating
             ? array_replace($this->defaultsForCreate(), $data)
-            : array_replace($this->formStateForRecord($event), $data);
+            : array_replace($recordState, $data);
 
         if (! $creating && array_key_exists('event_date', $data) && ! array_key_exists('end_date', $data)) {
             $state['end_date'] = null;
@@ -197,8 +221,72 @@ final readonly class SaveAdminEventAction
 
         $this->validateState($state);
 
-        $persistence = AdminEventTimeMapper::normalizeForPersistence($state);
         [$institutionId, $venueId, $spaceIds] = $this->resolveLocationState($state);
+
+        // Prayer targets are independent of the persisted physical
+        // location: online saves anchor to the organizer institution
+        // through the same selector frontend submit/preview use.
+        $organizerId = $this->normalizeOptionalString($state['primary_organizer_id'] ?? $event->primaryOrganizerInvolvement?->involveable_id);
+        $primaryOrganizer = OrganizerResolver::find($organizerId);
+        [$prayerInstitutionId, $prayerVenueId] = PrayerTargetSelector::forSave(
+            $state['event_format'] ?? EventFormat::Physical->value,
+            $primaryOrganizer,
+            $institutionId,
+            $venueId,
+        );
+
+        // Resolved once: the address feeds geo inputs and the effective
+        // country feeds both resolution and fallback persistence.
+        // Explicit country input is a deliberate override; an unchanged
+        // inherited id is provenance, not an instruction.
+        $prayerAddress = PrayerLocation::forTargets($prayerVenueId, $prayerInstitutionId);
+        $recordCountryId = $creating ? null : $this->normalizeOptionalString($recordState['submission_country_id'] ?? null);
+        $stateCountryId = $this->normalizeOptionalString($state['submission_country_id'] ?? null);
+        $explicitCountry = $creating
+            ? array_key_exists('submission_country_id', $data)
+            : $stateCountryId !== $recordCountryId;
+        $explicitCountryIso = $explicitCountry
+            ? $this->timing->countryIso2ForId($state['submission_country_id'] ?? null)
+            : null;
+        $targetsChanged = $creating || $this->prayerTargetsChanged($state, $recordState);
+        $prayerCountryIso = $this->prayerCountryIso(
+            $prayerAddress,
+            $explicitCountryIso,
+            $targetsChanged,
+            $creating ? null : $this->pinnedPrayerCountry($event),
+        );
+
+        $timezone = $this->normalizeRequiredString($state['timezone'] ?? $event->timezone, 'Asia/Kuala_Lumpur');
+
+        // Unchanged timing is determined BEFORE provider resolution and
+        // normalization: during an outage the fallback start can land after
+        // the persisted end, and the end-time comparison below would reject
+        // a title-only edit before persisted timing could be restored.
+        // Rebuilding the resolved clock from the persisted start also skips
+        // a pointless provider resolution on unrelated edits.
+        $preserveTiming = ! $creating
+            && $event->starts_at !== null
+            && $this->timingInputsUnchanged($state, $recordState, $timezone);
+
+        // Shared calendar eligibility (Friday Jumaat, Ramadan Tarawih)
+        // applies on every save: persisted timing must satisfy the
+        // current rule even when the edit touches nothing else.
+        $this->assertCalendarEligibility($state, $timezone, $prayerCountryIso);
+
+        $resolvedStart = $preserveTiming
+            ? $this->persistedStartClock($event, $timezone)
+            : $this->resolveProviderStartClock($state, $prayerAddress, $prayerCountryIso);
+
+        $persistence = AdminEventTimeMapper::normalizeForPersistence(array_merge($state, [
+            'resolved_start_clock' => $resolvedStart['clock'] ?? null,
+            'resolved_start_date' => $resolvedStart['date'] ?? null,
+            'resolved_start_instant' => $resolvedStart['starts_at'] ?? null,
+            'prayer_source' => $resolvedStart['source'] ?? null,
+            'prayer_fetched_at' => $resolvedStart['fetched_at'] ?? null,
+            'prayer_zone' => $resolvedStart['zone'] ?? null,
+            'prayer_lat' => $resolvedStart['lat'] ?? null,
+            'prayer_lng' => $resolvedStart['lng'] ?? null,
+        ]));
         $requestedStatus = $this->normalizeEventStatus(
             $state['status'] ?? ($creating ? null : (string) $event->status),
             $creating ? 'draft' : (string) $event->status,
@@ -207,12 +295,48 @@ final readonly class SaveAdminEventAction
         $schedule = [
             'starts_at' => $persistence['starts_at'] ?? null,
             'ends_at' => $persistence['ends_at'] ?? null,
-            'timezone' => $this->normalizeRequiredString($state['timezone'] ?? $event->timezone, 'Asia/Kuala_Lumpur'),
+            'timezone' => $timezone,
             'timing_mode' => $persistence['timing_mode'] ?? null,
             'prayer_reference' => $persistence['prayer_reference'] ?? null,
             'prayer_offset' => $persistence['prayer_offset'] ?? null,
             'prayer_display_text' => $persistence['prayer_display_text'] ?? null,
+            'prayer_source' => $persistence['prayer_source'] ?? null,
+            'prayer_fetched_at' => $persistence['prayer_fetched_at'] ?? null,
+            'prayer_zone' => $persistence['prayer_zone'] ?? null,
+            'prayer_lat' => $persistence['prayer_lat'] ?? null,
+            'prayer_lng' => $persistence['prayer_lng'] ?? null,
+            'prayer_country' => $resolvedStart['country'] ?? $prayerCountryIso,
         ];
+
+        // Unrelated edits (title, description, ...) must never move the
+        // event's start: a title-only save during a provider outage would
+        // otherwise overwrite a resolved 19:07 with the 20:00 estimate.
+        // The decision was taken before normalization so the end-time
+        // comparison above already ran against the persisted start.
+        if ($preserveTiming) {
+            $schedule['starts_at'] = $event->starts_at;
+            $schedule['ends_at'] = $event->ends_at;
+
+            // Normalization replaces the stored offset/display with preset
+            // defaults; unchanged timing keeps the expression's exact
+            // anchor, offset, and label instead.
+            $schedule['prayer_reference'] = $event->prayer_reference;
+            $schedule['prayer_offset'] = $event->prayer_offset;
+            $schedule['prayer_display_text'] = $event->prayer_display_text;
+
+            $prayerMeta = $event->timeExpressions
+                ->first(fn ($expression): bool => $expression->anchor_type === 'prayer')
+                ?->metadata['prayer'] ?? null;
+
+            if (is_array($prayerMeta)) {
+                $schedule['prayer_source'] = $prayerMeta['source'] ?? $schedule['prayer_source'];
+                $schedule['prayer_fetched_at'] = $prayerMeta['fetched_at'] ?? $schedule['prayer_fetched_at'];
+                $schedule['prayer_zone'] = $prayerMeta['zone'] ?? $schedule['prayer_zone'];
+                $schedule['prayer_lat'] = $prayerMeta['lat'] ?? $schedule['prayer_lat'];
+                $schedule['prayer_lng'] = $prayerMeta['lng'] ?? $schedule['prayer_lng'];
+                $schedule['prayer_country'] = $prayerMeta['country'] ?? $schedule['prayer_country'];
+            }
+        }
         $scheduleKind = ScheduleKind::tryFrom((string) ($state['schedule_kind'] ?? $event->schedule_kind)) ?? ScheduleKind::Single;
 
         $attributes = [
@@ -276,15 +400,18 @@ final readonly class SaveAdminEventAction
                 ? PrayerOffset::tryFrom((string) $schedule['prayer_offset'])?->minutes()
                 : null,
             prayerDisplayText: $schedule['prayer_display_text'],
+            prayerSource: $schedule['prayer_source'],
+            prayerFetchedAt: $schedule['prayer_fetched_at'],
+            prayerZone: $schedule['prayer_zone'] ?? null,
+            prayerDate: AdminEventTimeMapper::normalizeEventDateString($state['event_date'] ?? null, $timezone),
+            prayerLat: isset($schedule['prayer_lat']) && is_numeric($schedule['prayer_lat']) ? (float) $schedule['prayer_lat'] : null,
+            prayerLng: isset($schedule['prayer_lng']) && is_numeric($schedule['prayer_lng']) ? (float) $schedule['prayer_lng'] : null,
+            prayerVenueId: $prayerVenueId,
+            prayerInstitutionId: $prayerInstitutionId,
+            prayerCountry: $schedule['prayer_country'],
         );
 
-        $organizerId = $this->normalizeOptionalString($state['primary_organizer_id'] ?? $event->primaryOrganizerInvolvement?->involveable_id);
-        if ($organizerId) {
-            $organizer = OrganizerResolver::find($organizerId);
-            $event->setPrimaryOrganizer($organizer);
-        } else {
-            $event->setPrimaryOrganizer(null);
-        }
+        $event->setPrimaryOrganizer($organizerId !== null ? $primaryOrganizer : null);
 
         $this->syncReferences($event, $state);
         $this->syncSeries($event, $state);
@@ -325,6 +452,184 @@ final readonly class SaveAdminEventAction
     /**
      * @param  array<string, mixed>  $state
      * @return array{0: ?string, 1: ?string, 2: list<string>}
+     */
+    /**
+     * @param  array<string, mixed>  $state
+     * @return array{clock: string, date: string, source: string, fetched_at: string, zone: string|null}|null
+     */
+    /**
+     * True when every timing-relevant input matches the record's current
+     * form state. Dates normalize through the shared admin parser so a
+     * localized d/m/Y input compares equal to its stored Y-m-d.
+     *
+     * @param  array<string, mixed>  $state
+     * @param  array<string, mixed>  $recordState
+     */
+    private function timingInputsUnchanged(array $state, array $recordState, string $timezone): bool
+    {
+        $left = AdminEventTimeMapper::normalizeEventDateString($state['event_date'] ?? null, $timezone);
+        $right = AdminEventTimeMapper::normalizeEventDateString($recordState['event_date'] ?? null, $timezone);
+
+        if ($left !== $right) {
+            return false;
+        }
+
+        foreach (['prayer_time', 'custom_time', 'end_time', 'end_date', 'timezone', 'institution_id', 'venue_id', 'event_format', 'primary_organizer_id', 'submission_country_id'] as $key) {
+            if ($this->normalizeTimingScalar($state[$key] ?? null) !== $this->normalizeTimingScalar($recordState[$key] ?? null)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function normalizeTimingScalar(mixed $value): ?string
+    {
+        if ($value instanceof BackedEnum) {
+            $value = $value->value;
+        }
+
+        if (! is_scalar($value)) {
+            return null;
+        }
+
+        $value = trim((string) $value);
+
+        return $value === '' ? null : $value;
+    }
+
+    /**
+     * Rebuilds a resolved clock/date pair from the persisted start so the
+     * end-time comparison in normalization runs against real timing when
+     * inputs are unchanged. Provenance is restored from the persisted
+     * expression after normalization, never from a fresh resolution.
+     *
+     * @return array{clock: string, date: string, starts_at: string}
+     */
+    private function persistedStartClock(Event $event, string $timezone): array
+    {
+        $startsAt = Carbon::parse($event->starts_at)->setTimezone($timezone);
+
+        return [
+            'clock' => $startsAt->format('H:i'),
+            'date' => $startsAt->toDateString(),
+            'starts_at' => Carbon::parse($event->starts_at)->utc()->toIso8601String(),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $state
+     * @return array{clock: string, date: string, starts_at: string, source: string, fetched_at: string, zone: string|null}|null
+     */
+    private function resolveProviderStartClock(array $state, ?Address $address, string $countryIso): ?array
+    {
+        $prayerTime = EventPrayerTime::tryFrom((string) ($state['prayer_time'] ?? ''));
+        $timezone = (string) ($state['timezone'] ?? 'Asia/Kuala_Lumpur');
+        $eventDate = AdminEventTimeMapper::normalizeEventDateString($state['event_date'] ?? null, $timezone);
+
+        if (! $prayerTime instanceof EventPrayerTime || $eventDate === null) {
+            return null;
+        }
+
+        $location = PrayerLocation::fromAddress($address);
+
+        return $this->resolveStartClock->handle(
+            countryCode: $countryIso,
+            date: $eventDate,
+            timezone: $timezone,
+            prayerTime: $prayerTime,
+            latitude: $location['latitude'],
+            longitude: $location['longitude'],
+            stateCode: $location['stateCode'],
+            districtCandidates: $location['districtCandidates'],
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $state
+     */
+    private function assertCalendarEligibility(array $state, string $timezone, string $countryIso): void
+    {
+        $prayerTime = EventPrayerTime::tryFrom((string) ($state['prayer_time'] ?? ''));
+
+        if (! $prayerTime instanceof EventPrayerTime) {
+            return;
+        }
+
+        $eventDate = AdminEventTimeMapper::normalizeEventDateString($state['event_date'] ?? null, $timezone);
+
+        if ($eventDate === null) {
+            return;
+        }
+
+        $this->timing->assertPrayerDateIsAllowed(
+            $prayerTime,
+            IlluminateCarbon::parse($eventDate, $timezone),
+            $timezone,
+            '',
+            $countryIso,
+        );
+    }
+
+    /**
+     * Effective prayer country. Explicit input wins but must agree with
+     * the effective address, mirroring frontend submission validation.
+     * Without explicit input, changed targets follow the new address;
+     * unchanged or address-less targets retain the pinned country.
+     */
+    private function prayerCountryIso(?Address $address, ?string $explicitCountryIso, bool $targetsChanged, ?string $pinnedCountryIso): string
+    {
+        $addressCountry = PrayerLocation::fromAddress($address)['countryCode'] ?? null;
+        $addressCountry = is_string($addressCountry) && trim($addressCountry) !== '' ? $addressCountry : null;
+
+        if ($explicitCountryIso !== null) {
+            if ($addressCountry !== null && strtoupper($addressCountry) !== strtoupper($explicitCountryIso)) {
+                throw ValidationException::withMessages([
+                    'submission_country_id' => __('Negara yang dipilih tidak sepadan dengan lokasi yang dipilih.'),
+                ]);
+            }
+
+            return $explicitCountryIso;
+        }
+
+        if ($targetsChanged) {
+            return $addressCountry ?? $pinnedCountryIso ?? 'MY';
+        }
+
+        return $pinnedCountryIso ?? $addressCountry ?? 'MY';
+    }
+
+    /**
+     * @param  array<string, mixed>  $state
+     * @param  array<string, mixed>  $recordState
+     */
+    private function prayerTargetsChanged(array $state, array $recordState): bool
+    {
+        foreach (['event_format', 'primary_organizer_id', 'institution_id', 'venue_id'] as $key) {
+            if ($this->normalizeTimingScalar($state[$key] ?? null) !== $this->normalizeTimingScalar($recordState[$key] ?? null)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function pinnedPrayerCountry(Event $event): ?string
+    {
+        $event->loadMissing('timeExpressions');
+
+        $country = $event->timeExpressions
+            ->first(fn ($expression): bool => $expression->anchor_type === 'prayer'
+                && $expression->event_occurrence_id === null
+                && $expression->event_session_id === null)
+            ?->metadata['prayer']['country'] ?? null;
+
+        return is_string($country) && trim($country) !== '' ? $country : null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $state
+     * @return array{0: string|null, 1: string|null, 2: list<string>}
      */
     private function resolveLocationState(array $state): array
     {
@@ -368,6 +673,12 @@ final readonly class SaveAdminEventAction
             $message = __('Pilih institusi atau venue, bukan kedua-duanya sekali.');
             $errors['institution_id'][] = $message;
             $errors['venue_id'][] = $message;
+        }
+
+        $submissionCountryId = $this->normalizeOptionalString($state['submission_country_id'] ?? null);
+
+        if ($submissionCountryId !== null && $this->timing->resolveSubmissionCountryId($submissionCountryId) === null) {
+            $errors['submission_country_id'][] = __('The selected country is invalid.');
         }
 
         if ($spaceIds !== [] && $institutionId === null && $venueId === null) {

@@ -12,6 +12,7 @@
     use AIArmada\Events\Models\EventTerm;
     use App\Models\Venue;
     use AIArmada\Addressing\Support\AddressCountryResolver;
+    use App\Support\Submission\SubmissionTimingPolicy;
     use Illuminate\Support\Carbon;
     use Illuminate\Support\Collection;
     use Illuminate\Support\Str;
@@ -85,8 +86,14 @@
     $submissionCountryName = filled($submissionCountryId)
         ? (string) (app(AddressCountryResolver::class)->resolve($submissionCountryId)?->name ?? '')
         : '';
-    $previewTimezone = app(AddressCountryResolver::class)->timezoneFor($submissionCountryId)
-        ?? config('app.timezone', 'UTC');
+    $previewTiming = app(SubmissionTimingPolicy::class);
+    $previewCountryId = $previewTiming->resolveSubmissionCountryId($submissionCountryId);
+    $previewTimezones = $previewTiming->countryTimezones($previewCountryId);
+    $previewSubmittedTimezone = is_string($get('submission_timezone')) ? trim((string) $get('submission_timezone')) : '';
+    $previewTimezone = $previewTiming->previewSubmissionTimezone($previewCountryId, $previewSubmittedTimezone !== '' ? $previewSubmittedTimezone : null);
+    $previewTimezoneLabel = in_array($previewSubmittedTimezone, $previewTimezones, true)
+        ? $previewSubmittedTimezone
+        : (count($previewTimezones) === 1 ? $previewTimezones[0] : '');
 
     $toTimeLabel = static function (mixed $value) use ($dash, $previewTimezone): string {
         if (! filled($value)) {
@@ -418,6 +425,10 @@
             <div>
                 <dt class="{{ $dtClass }}">{{ __('Negara') }}</dt>
                 <dd class="{{ $ddBase }} {{ $valueClass($toLabel($submissionCountryName)) }}">{{ $toLabel($submissionCountryName) }}</dd>
+            </div>
+            <div>
+                <dt class="{{ $dtClass }}">{{ __('Submission timezone') }}</dt>
+                <dd class="{{ $ddBase }} {{ $valueClass($toLabel($previewTimezoneLabel)) }}">{{ $toLabel($previewTimezoneLabel) }}</dd>
             </div>
             <div>
                 <dt class="{{ $dtClass }}">{{ __('Format Majlis') }}</dt>

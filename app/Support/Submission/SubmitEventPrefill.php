@@ -17,6 +17,7 @@ use App\Models\EventKeyPerson;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
+use App\Support\Events\AdminEventTimeMapper;
 use BackedEnum;
 use Carbon\CarbonInterface;
 
@@ -116,17 +117,21 @@ final class SubmitEventPrefill
             ], filled(...)));
         }
 
+        $timing = app(SubmissionTimingPolicy::class);
+        $resolvedCountryId = $timing->resolveSubmissionCountryId($countryId);
+        $preservedTimezone = $event->primaryOccurrence->timezone ?? $event->timezone;
+        $defaults['submission_timezone'] = $timing->defaultSubmissionTimezone($resolvedCountryId, $preservedTimezone);
+        $conversionTimezone = $defaults['submission_timezone'] ?? config('app.timezone', 'UTC');
+
         if (! array_key_exists('event_date', $defaults) && $event->primaryOccurrence?->starts_at instanceof CarbonInterface) {
-            $timezone = EventSubmissionFormSchema::resolveSubmissionTimezone($countryId);
-            $startsAt = $event->primaryOccurrence->starts_at->copy()->timezone($timezone);
+            $startsAt = $event->primaryOccurrence->starts_at->copy()->timezone($conversionTimezone);
             $defaults['event_date'] = $startsAt->toDateString();
             $defaults['custom_time'] = $startsAt->format('H:i');
             $defaults['prayer_time'] = EventPrayerTime::LainWaktu->value;
         }
 
         if (! array_key_exists('end_time', $defaults) && $event->primaryOccurrence?->ends_at instanceof CarbonInterface) {
-            $timezone = EventSubmissionFormSchema::resolveSubmissionTimezone($countryId);
-            $defaults['end_time'] = $event->primaryOccurrence->ends_at->copy()->timezone($timezone)->format('H:i');
+            $defaults['end_time'] = $event->primaryOccurrence->ends_at->copy()->timezone($conversionTimezone)->format('H:i');
         }
 
         return array_replace($defaults, self::organizerLocationDefaults($event, $actor));
@@ -137,7 +142,10 @@ final class SubmitEventPrefill
      */
     public static function duplicateDefaults(Event $duplicateEvent, ?User $actor, ?string $countryId, bool $includePrivatePeople = false): array
     {
-        $timezone = EventSubmissionFormSchema::resolveSubmissionTimezone($countryId);
+        $timing = app(SubmissionTimingPolicy::class);
+        $resolvedCountryId = $timing->resolveSubmissionCountryId($countryId);
+        $conversionTimezone = $timing->defaultSubmissionTimezone($resolvedCountryId, $duplicateEvent->timezone)
+            ?? config('app.timezone', 'UTC');
         $eventFormat = $duplicateEvent->delivery_mode instanceof EventFormat
             ? $duplicateEvent->delivery_mode->value
             : (is_string($duplicateEvent->delivery_mode) ? $duplicateEvent->delivery_mode : EventFormat::Physical->value);
@@ -182,6 +190,7 @@ final class SubmitEventPrefill
             'references' => $duplicateEvent->references->pluck('id')->values()->all(),
             'persons' => self::personState($duplicateEvent, $actor, $includePrivatePeople),
             'other_key_people' => self::otherKeyPeopleState($duplicateEvent, $actor, $includePrivatePeople),
+            'submission_timezone' => $timing->defaultSubmissionTimezone($resolvedCountryId, $duplicateEvent->timezone),
         ];
 
         $languageIds = self::languageState($duplicateEvent);
@@ -191,10 +200,14 @@ final class SubmitEventPrefill
         }
 
         if ($duplicateEvent->starts_at instanceof CarbonInterface) {
-            $startsAt = $duplicateEvent->starts_at->copy()->timezone($timezone);
+            $startsAt = $duplicateEvent->starts_at->copy()->timezone($conversionTimezone);
             $prayerTime = self::duplicatePrayerTime($duplicateEvent);
 
-            $defaults['event_date'] = $startsAt->toDateString();
+            // Offsets can roll the start past midnight; prayer labels
+            // re-resolve the original prayer day, never the rolled date.
+            $defaults['event_date'] = $prayerTime->isCustomTime()
+                ? $startsAt->toDateString()
+                : (self::duplicatePrayerDate($duplicateEvent) ?? $startsAt->toDateString());
             $defaults['prayer_time'] = $prayerTime->value;
 
             if ($prayerTime->isCustomTime()) {
@@ -203,7 +216,7 @@ final class SubmitEventPrefill
         }
 
         if ($duplicateEvent->ends_at instanceof CarbonInterface) {
-            $defaults['end_time'] = $duplicateEvent->ends_at->copy()->timezone($timezone)->format('H:i');
+            $defaults['end_time'] = $duplicateEvent->ends_at->copy()->timezone($conversionTimezone)->format('H:i');
         }
 
         return array_replace($defaults, self::organizerLocationDefaults($duplicateEvent, $actor));
@@ -255,6 +268,19 @@ final class SubmitEventPrefill
         }
 
         return $duplicateEvent->description_text;
+    }
+
+    private static function duplicatePrayerDate(Event $duplicateEvent): ?string
+    {
+        $duplicateEvent->loadMissing('timeExpressions');
+
+        $prayerDate = $duplicateEvent->timeExpressions
+            ->first(fn ($expression): bool => $expression->anchor_type === 'prayer'
+                && $expression->event_occurrence_id === null
+                && $expression->event_session_id === null)
+            ?->metadata['prayer']['prayer_date'] ?? null;
+
+        return AdminEventTimeMapper::normalizePrayerDateString($prayerDate);
     }
 
     private static function duplicatePrayerTime(Event $duplicateEvent): EventPrayerTime

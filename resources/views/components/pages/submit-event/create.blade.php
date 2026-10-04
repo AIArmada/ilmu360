@@ -198,6 +198,7 @@
                         'domain_tags',
                         'title',
                         'submission_country_id',
+                        'submission_timezone',
                         'event_date',
                         'prayer_time',
                         'custom_time',
@@ -275,6 +276,14 @@
                         ];
 
                         requiredFields.push(this.isFilled(prayerTime));
+
+                        const multiTimezoneCountryIds = Array.isArray(this.config.multi_timezone_country_ids)
+                            ? this.config.multi_timezone_country_ids.map((id) => String(id))
+                            : [];
+
+                        if (multiTimezoneCountryIds.includes(String(currentState.submission_country_id ?? ''))) {
+                            requiredFields.push(this.isFilled(currentState.submission_timezone));
+                        }
 
                         if (prayerTime === 'lain_waktu') {
                             requiredFields.push(this.isFilled(currentState.custom_time));

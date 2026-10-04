@@ -6,6 +6,7 @@ use Filament\Support\Contracts\HasLabel;
 
 enum EventPrayerTime: string implements HasLabel
 {
+    case SebelumSubuh = 'sebelum_subuh';
     case SelepasSubuh = 'selepas_subuh';
     case SelepasZuhur = 'selepas_zuhur';
     case SebelumJumaat = 'sebelum_jumaat';
@@ -20,6 +21,7 @@ enum EventPrayerTime: string implements HasLabel
     public function getLabel(): string
     {
         return match ($this) {
+            self::SebelumSubuh => __('Sebelum Subuh'),
             self::SelepasSubuh => __('Selepas Subuh'),
             self::SelepasZuhur => __('Selepas Zuhur'),
             self::SebelumJumaat => __('Sebelum Jumaat'),
@@ -43,10 +45,16 @@ enum EventPrayerTime: string implements HasLabel
 
     /**
      * Get the corresponding PrayerReference for this timing.
+     *
+     * Tarawih maps to no anchor: rows store a null anchor (label-only),
+     * and every writer special-cases Tarawih before reaching this map.
+     * Returning Isha here would make discovery filters match Isyak rows
+     * for Tarawih queries, so readers fall through to label matching.
      */
     public function toPrayerReference(): ?PrayerReference
     {
         return match ($this) {
+            self::SebelumSubuh => PrayerReference::Fajr,
             self::SelepasSubuh => PrayerReference::Fajr,
             self::SelepasZuhur => PrayerReference::Dhuhr,
             self::SebelumJumaat => PrayerReference::FridayPrayer,
@@ -55,7 +63,7 @@ enum EventPrayerTime: string implements HasLabel
             self::SebelumMaghrib => PrayerReference::Maghrib,
             self::SelepasMaghrib => PrayerReference::Maghrib,
             self::SelepasIsyak => PrayerReference::Isha,
-            self::SelepasTarawih => PrayerReference::Isha,
+            self::SelepasTarawih => null,
             self::LainWaktu => null,
         };
     }
@@ -81,6 +89,10 @@ enum EventPrayerTime: string implements HasLabel
             return PrayerOffset::Before15;
         }
 
+        if ($this === self::SebelumSubuh) {
+            return PrayerOffset::Before15;
+        }
+
         return PrayerOffset::Immediately;
     }
 
@@ -97,10 +109,10 @@ enum EventPrayerTime: string implements HasLabel
             PrayerReference::Maghrib => $offset === PrayerOffset::Before15
                 ? self::SebelumMaghrib
                 : self::SelepasMaghrib,
-            PrayerReference::Isha => $offset === PrayerOffset::After60
-                ? self::SelepasTarawih
-                : self::SelepasIsyak,
-            PrayerReference::Fajr => self::SelepasSubuh,
+            PrayerReference::Isha => self::SelepasIsyak,
+            PrayerReference::Fajr => $offset === PrayerOffset::Before15
+                ? self::SebelumSubuh
+                : self::SelepasSubuh,
             PrayerReference::Dhuhr => self::SelepasZuhur,
             PrayerReference::Asr => self::SelepasAsar,
         };

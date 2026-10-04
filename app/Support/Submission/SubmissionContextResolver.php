@@ -12,6 +12,7 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
 use App\Support\Events\OrganizerResolver;
+use App\Support\Prayer\PrayerTargetSelector;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -344,7 +345,7 @@ final class SubmissionContextResolver
         Institution|Person $primaryOrganizer,
     ): array {
         if (SubmissionValues::enumValue($validated['event_format'] ?? null) === EventFormat::Online->value) {
-            return [$primaryOrganizer instanceof Institution ? (string) $primaryOrganizer->getKey() : null, null];
+            return PrayerTargetSelector::forOnline($primaryOrganizer);
         }
 
         $targetInstitutionId = null;

@@ -10,16 +10,35 @@ use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
 use AIArmada\CommerceSupport\Models\Timezone;
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
+use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Signals\Models\TrackedProperty;
+use App\Actions\Events\SyncEventScheduleAction;
+use App\Data\Prayer\PrayerTimesDTO;
+use App\Enums\EventAgeGroup;
+use App\Enums\EventFormat;
+use App\Enums\EventGenderRestriction;
+use App\Enums\EventPrayerTime;
+use App\Enums\EventVisibility;
+use App\Enums\PrayerOffset;
+use App\Enums\PrayerReference;
+use App\Enums\TimingMode;
+use App\Models\Event;
+use App\Models\Institution;
+use App\Models\Person;
+use App\Services\Prayer\PrayerProviderRegistry;
 use App\Support\Auth\OAuthTransactionStore;
 use App\Support\Cache\PublicListingsCache;
+use Carbon\CarbonImmutable;
 use Database\Seeders\AIArmada\EventTaxonomySeeder;
 use Database\Seeders\TitleCategorySeeder;
 use Database\Seeders\TitleSeeder;
+use Illuminate\Cache\ArrayStore;
+use Illuminate\Cache\Repository;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -423,6 +442,272 @@ function fakePrayerTimesApi(): void
             ],
         ], 200),
     ]);
+}
+
+function prayerCacheDto(string $date = '2026-10-15', string $source = 'jakim:v2/WLY01'): PrayerTimesDTO
+{
+    $day = CarbonImmutable::parse($date.' 00:00:00', 'UTC');
+
+    return new PrayerTimesDTO(
+        timesUtc: [
+            // Pre-dawn local clocks live on the previous UTC day, exactly
+            // as real +08 provider rows serialize them.
+            'fajr' => $day->subDay()->setTime(21, 50),
+            'sunrise' => $day->subDay()->setTime(22, 57),
+            'dhuhr' => $day->setTime(5, 2),
+            'asr' => $day->setTime(8, 18),
+            'maghrib' => $day->setTime(11, 2),
+            'isha' => $day->setTime(12, 11),
+        ],
+        source: $source,
+        fetchedAt: CarbonImmutable::now('UTC'),
+        timezoneUsed: 'Asia/Kuala_Lumpur',
+        date: $date,
+        zoneOrCell: 'WLY01',
+    );
+}
+
+/**
+ * Stamps a hand-built monthly DTO with the owning provider's current
+ * canonical fingerprint so the row survives calc pruning exactly like a
+ * provider-warmed row. Unknown sources and authoritative rows pass
+ * through unstamped.
+ */
+function prayerWithCalcFingerprint(PrayerTimesDTO $dto, string $zone = 'WLY01', string $country = 'MY'): PrayerTimesDTO
+{
+    $registry = app(PrayerProviderRegistry::class);
+
+    foreach ($registry->allProviders() as $provider) {
+        if (! str_starts_with($dto->source, $provider->key().':')) {
+            continue;
+        }
+
+        $fingerprint = $provider->calcFingerprint($registry->canonicalZoneQuery($country, $zone, $dto->date));
+
+        if ($fingerprint === null) {
+            return $dto;
+        }
+
+        return new PrayerTimesDTO(
+            timesUtc: $dto->timesUtc,
+            source: $dto->source,
+            fetchedAt: $dto->fetchedAt,
+            timezoneUsed: $dto->timezoneUsed,
+            date: $dto->date,
+            zoneOrCell: $dto->zoneOrCell,
+            calcFingerprint: $fingerprint,
+        );
+    }
+
+    return $dto;
+}
+
+/**
+ * Rewrites an event's prayer expression to the given offset through the
+ * real schedule writer, keeping provenance intact. Returns the new
+ * persisted start instant.
+ */
+function rewritePrayerExpressionOffset(Event $event, PrayerOffset $offset, CarbonImmutable $starts): CarbonImmutable
+{
+    $expression = EventTimeExpression::query()
+        ->where('event_id', $event->getKey())
+        ->where('anchor_type', 'prayer')
+        ->whereNull('event_occurrence_id')
+        ->whereNull('event_session_id')
+        ->firstOrFail();
+
+    $meta = $expression->metadata['prayer'] ?? [];
+    $meta = is_array($meta) ? $meta : [];
+
+    $scheduleKind = $event->schedule_kind;
+    $scheduleKind = $scheduleKind instanceof ScheduleKind
+        ? $scheduleKind
+        : (ScheduleKind::tryFrom((string) $scheduleKind) ?? ScheduleKind::Single);
+
+    app(SyncEventScheduleAction::class)->execute(
+        event: $event->fresh() ?? $event,
+        scheduleKind: $scheduleKind,
+        startsAt: $starts,
+        endsAt: $starts->addHours(2),
+        timezone: is_string($event->timezone) && $event->timezone !== '' ? $event->timezone : 'Asia/Kuala_Lumpur',
+        timingMode: TimingMode::PrayerRelative,
+        prayerReference: $expression->anchor_code,
+        prayerOffset: $offset->minutes(),
+        prayerDisplayText: $offset->displayText(PrayerReference::from((string) $expression->anchor_code)),
+        prayerSource: $meta['source'] ?? null,
+        prayerFetchedAt: $meta['fetched_at'] ?? null,
+        prayerZone: $meta['zone'] ?? null,
+        prayerDate: $meta['prayer_date'] ?? null,
+        prayerLat: isset($meta['lat']) && is_numeric($meta['lat']) ? (float) $meta['lat'] : null,
+        prayerLng: isset($meta['lng']) && is_numeric($meta['lng']) ? (float) $meta['lng'] : null,
+        prayerVenueId: $meta['venue_id'] ?? null,
+        prayerInstitutionId: $meta['institution_id'] ?? null,
+        prayerCountry: $meta['country'] ?? null,
+    );
+
+    return $starts;
+}
+
+/**
+ * @return array<string, PrayerTimesDTO>
+ */
+function prayerCompleteMonth(string $yearMonth, string $source = 'jakim:v2/WLY01'): array
+{
+    $start = CarbonImmutable::parse($yearMonth.'-01', 'UTC');
+    $days = [];
+
+    for ($day = 1; $day <= $start->daysInMonth; $day++) {
+        $date = $start->setDay($day)->format('Y-m-d');
+        $days[$date] = prayerCacheDto($date, $source);
+    }
+
+    return $days;
+}
+
+function refreshUmmahMonthPayload(): array
+{
+    $day = function (string $date): array {
+        return [
+            'date' => $date,
+            'prayer_times' => [
+                'imsak' => '05:30', 'fajr' => '05:40', 'sunrise' => '06:58', 'dhuhr' => '12:59',
+                'asr' => '16:15', 'maghrib' => '19:01', 'isha' => '20:10',
+            ],
+            'prayer_datetimes' => [
+                'imsak' => "{$date}T05:30:00+08:00", 'fajr' => "{$date}T05:40:00+08:00",
+                'sunrise' => "{$date}T06:58:00+08:00", 'dhuhr' => "{$date}T12:59:00+08:00",
+                'asr' => "{$date}T16:15:00+08:00", 'maghrib' => "{$date}T19:01:00+08:00",
+                'isha' => "{$date}T20:10:00+08:00",
+            ],
+        ];
+    };
+
+    return [
+        'success' => true,
+        'service' => 'prayer-times-month',
+        'data' => [
+            'timezone' => 'Asia/Kuala_Lumpur',
+            'month' => 10,
+            'year' => 2026,
+            'calculation_method' => 'JAKIM',
+            'madhab' => 'Shafi',
+            'days' => [$day('2026-10-14'), $day('2026-10-15')],
+        ],
+    ];
+}
+
+/**
+ * @return array<string, mixed>
+ */
+function refreshV2Payload(): array
+{
+    return [
+        'zone' => 'WLY01',
+        'year' => 2026,
+        'month' => 'OCT',
+        'month_number' => 10,
+        'last_updated' => null,
+        'prayers' => [
+            ['day' => 15, 'hijri' => '1448-05-04', 'imsak' => 1792014000, 'fajr' => 1792014600, 'syuruk' => 1792018620, 'dhuha' => 1792020120, 'dhuhr' => 1792040520, 'asr' => 1792052280, 'maghrib' => 1792062120, 'isha' => 1792066260],
+        ],
+    ];
+}
+
+class FailingPrayerCacheStore extends ArrayStore
+{
+    public function get($key, $default = null): mixed
+    {
+        throw new RuntimeException('Prayer cache store is down.');
+    }
+
+    public function put($key, $value, $seconds = null): bool
+    {
+        throw new RuntimeException('Prayer cache store is down.');
+    }
+
+    public function many(array $keys): array
+    {
+        throw new RuntimeException('Prayer cache store is down.');
+    }
+
+    public function putMany(array $values, $seconds = null): bool
+    {
+        throw new RuntimeException('Prayer cache store is down.');
+    }
+
+    public function increment($key, $value = 1): int|float
+    {
+        throw new RuntimeException('Prayer cache store is down.');
+    }
+
+    public function decrement($key, $value = 1): int|float
+    {
+        throw new RuntimeException('Prayer cache store is down.');
+    }
+
+    public function forever($key, $value): bool
+    {
+        throw new RuntimeException('Prayer cache store is down.');
+    }
+
+    public function forget($key): bool
+    {
+        throw new RuntimeException('Prayer cache store is down.');
+    }
+
+    public function flush(): bool
+    {
+        throw new RuntimeException('Prayer cache store is down.');
+    }
+
+    public function lock($name, $seconds = 0, $owner = null)
+    {
+        throw new RuntimeException('Prayer cache store is down.');
+    }
+}
+
+function useFailingPrayerCacheStore(): void
+{
+    Cache::extend('failing-prayer-store', fn (): Repository => new Repository(new FailingPrayerCacheStore));
+
+    // The store entry must exist: without it CacheManager throws at
+    // resolution instead of exercising the failing store itself.
+    config([
+        'cache.stores.failing-prayer-store' => ['driver' => 'failing-prayer-store'],
+        'prayer.cache.store' => 'failing-prayer-store',
+    ]);
+}
+
+function submitEventPrayerFormData(array $overrides = []): array
+{
+    $institution = Institution::factory()->create([
+        'status' => 'verified',
+        'allow_public_event_submission' => true,
+    ]);
+    $person = Person::factory()->create([
+        'status' => 'verified',
+        'allow_public_event_submission' => true,
+    ]);
+
+    return array_merge([
+        'title' => 'Prayer Submit Event',
+        'description' => 'Prayer submit test event.',
+        'event_date' => now()->addDays(5)->format('Y-m-d'),
+        'prayer_time' => EventPrayerTime::SelepasMaghrib->value,
+        'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
+        'event_format' => EventFormat::Physical->value,
+        'visibility' => EventVisibility::Public->value,
+        'gender' => EventGenderRestriction::All->value,
+        'age_group' => [EventAgeGroup::AllAges->value],
+        'languages' => [languageId('ms')],
+        'domain_tags' => [submitEventTerm('domain')->id],
+        'discipline_tags' => [submitEventTerm('discipline')->id],
+        'primary_organizer_id' => $institution->id,
+        'persons' => [$person->id],
+        'submitter_name' => 'Guest Submitter',
+        'submitter_email' => 'guest@example.com',
+        'submission_country_id' => (string) ensureTestMalaysiaCountry()->getKey(),
+    ], $overrides);
 }
 
 /**

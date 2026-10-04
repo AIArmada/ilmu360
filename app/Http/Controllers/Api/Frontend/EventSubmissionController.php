@@ -37,6 +37,7 @@ class EventSubmissionController extends FrontendController
         description: 'Creates a new event submission. '
             .'This route is create-only; use the contribution suggestion endpoints for later event updates. '
             .'Clients must provide an explicit AIArmada AddressCountry UUID using `submission_country_id`. '
+            .'When the selected country links multiple differing timezones, `submission_timezone` is required and must match one of the effective country timezones; countries with a single effective timezone resolve automatically. '
             .'Fetch `GET /forms/submit-event` first to resolve required versus optional fields, conditional rules, catalogs, and guest-contact requirements. '
             .'Event media roles are strict: `cover` is the 16:9 website/app image, while `poster` is the 3:4 external flyer image.',
     )]
@@ -97,6 +98,7 @@ class EventSubmissionController extends FrontendController
             'other_key_people.*.visibility' => ['nullable', Rule::in(['public', 'private'])],
             'other_key_people.*.notes' => ['nullable', 'string', 'max:1000'],
             'submission_country_id' => ['required', 'uuid'],
+            'submission_timezone' => ['nullable', 'string', 'max:64'],
             'submitter_name' => [$user instanceof User ? 'nullable' : 'required', 'string', 'max:255'],
             'submitter_email' => ['nullable', 'email', 'max:255'],
             'submitter_phone' => ['nullable', 'string', 'max:20'],

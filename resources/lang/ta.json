@@ -873,5 +873,11 @@
     "Nampak maklumat yang tidak tepat atau meragukan? Bantu komuniti dengan memaklumkan kepada kami.": "தவறான அல்லது சந்தேகத்திற்குரிய தகவலைக் கண்டீர்களா? எங்களுக்குத் தெரிவிப்பதன் மூலம் சமூகத்திற்கு உதவுங்கள்.",
     "Pautan Institusi": "நிறுவன இணைப்புகள்",
     "Lihat profil rasmi": "அதிகாரப்பூர்வ சுயவிவரத்தைக் காண்க",
-    "A contribution request for this record is already pending. Please wait for it to be reviewed before submitting another.": "இந்தப் பதிவுக்கான பங்களிப்பு கோரிக்கை ஏற்கனவே நிலுவையில் உள்ளது. மற்றொரு பங்களிப்பைச் சமர்ப்பிப்பதற்கு முன் அது பரிசீலிக்கப்படும் வரை காத்திருக்கவும்."
+    "A contribution request for this record is already pending. Please wait for it to be reviewed before submitting another.": "இந்தப் பதிவுக்கான பங்களிப்பு கோரிக்கை ஏற்கனவே நிலுவையில் உள்ளது. மற்றொரு பங்களிப்பைச் சமர்ப்பிப்பதற்கு முன் அது பரிசீலிக்கப்படும் வரை காத்திருக்கவும்.",
+    "Submission timezone": "நிகழ்வு நேர மண்டலம்",
+    "Select the event timezone for this country.": "இந்த நாட்டிற்கான நிகழ்வு நேர மண்டலத்தைத் தேர்ந்தெடுக்கவும்.",
+    "Pilih zon waktu…": "நேர மண்டலத்தைத் தேர்ந்தெடுக்கவும்…",
+    "Please select the event timezone.": "நிகழ்வு நேர மண்டலத்தைத் தேர்ந்தெடுக்கவும்.",
+    "The selected timezone is invalid for this country.": "தேர்ந்தெடுத்த நேர மண்டலம் இந்த நாட்டிற்கு தவறானது.",
+    "The selected country cannot accept submissions yet.": "தேர்ந்தெடுத்த நாடு இன்னும் சமர்ப்பிப்புகளை ஏற்க முடியாது."
 }

@@ -226,7 +226,10 @@ class SuggestUpdate extends Component implements HasActions, HasForms
 
             $submissionState = $resolveContributionSubmissionStateAction->handle($this->contributionForm()->getState());
             $state = $this->normalizeSubmissionState($submissionState['state']);
-            $changes = $resolveContributionChangedPayloadAction->handle($state, $this->originalData);
+            $changes = $resolveContributionChangedPayloadAction->handle(
+                $state,
+                $this->originalData + EventContributionUpdateStateMapper::provenanceOriginals($this->entity),
+            );
             $hasDirectEditMediaChange = $this->hasDirectEditMediaChange();
             $hasNewMedia = $this->hasNewMedia();
 
@@ -293,7 +296,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
      */
     private function eventSubjectSchema(): array
     {
-        $components = EventContributionFormSchema::components($this->fixedEventTimezone(), $this->canDirectEdit());
+        $components = EventContributionFormSchema::components($this->fixedEventTimezone(), $this->canDirectEdit(), $this->entity instanceof Event ? $this->entity : null);
 
         if ($this->shouldShowDirectEditMediaSection()) {
             $components[] = $this->eventDirectEditMediaSection();
@@ -908,7 +911,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             $state['end_date'] = $this->originalData['end_date'] ?? null;
         }
 
-        return EventContributionUpdateStateMapper::toPersistenceState($state);
+        return EventContributionUpdateStateMapper::toPersistenceState($state, $this->entity);
     }
 
     /**

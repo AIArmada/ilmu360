@@ -59,6 +59,10 @@ return [
         'verify_url' => env('TURNSTILE_VERIFY_URL', 'https://challenges.cloudflare.com/turnstile/v0/siteverify'),
     ],
 
+    'ummah' => [
+        'key' => env('UMMAH_API_KEY'),
+    ],
+
     'github' => [
         'issues' => [
             'enabled' => (bool) env('GITHUB_ISSUE_REPORTING_ENABLED', false),

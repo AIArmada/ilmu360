@@ -7,6 +7,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Enums\RegistrationMode as PackageRegistrationMode;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
+use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Events\Models\FacilityType;
 use AIArmada\Moderation\Enums\ModerationActionType;
 use AIArmada\Signals\Models\TrackedProperty;
@@ -41,9 +42,12 @@ use App\Models\Series;
 use App\Models\Space;
 use App\Models\User;
 use App\Models\Venue;
+use App\Services\Prayer\PrayerTimesCache;
 use App\Support\Search\PersonSearchService;
+use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\ScopedMemberRolesSeeder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\PermissionRegistrar;
@@ -3201,6 +3205,64 @@ it('exposes admin event write schema and can create and update events through th
         ->and($event->classifications->pluck('event_term_id')->all())->not->toContain($domainTag->getKey(), $disciplineTag->getKey())
         ->and($event->keyPeople)->toHaveCount(0)
         ->and($event->slug)->toContain($person->slug);
+});
+
+it('resolves admin event starts through cached provider clocks when the flag is on', function () {
+    ensureAdminApiMalaysiaCountryExists();
+    Http::preventStrayRequests();
+    config(['prayer.enabled' => true]);
+    $this->seed(EventRoleSeeder::class);
+
+    $admin = adminApiUser('super_admin');
+    Sanctum::actingAs($admin);
+
+    $institution = Institution::factory()->create([
+        'status' => 'verified',
+    ]);
+    $person = Person::factory()->create([
+        'status' => 'verified',
+    ]);
+    $reference = Reference::factory()->verified()->create();
+    $series = Series::factory()->create();
+    $domainTag = adminApiEventTerm('domain', 'Admin API Provider Domain');
+    $disciplineTag = adminApiEventTerm('discipline', 'Admin API Provider Discipline');
+
+    app(PrayerTimesCache::class)->putMonthly('WLY01', '2026-06', [
+        '2026-06-01' => prayerCacheDto('2026-06-01'),
+    ], 'MY');
+
+    $createResponse = $this->postJson('/api/v1/admin/events', adminApiEventPayload([
+        'institution' => $institution,
+        'person' => $person,
+        'reference' => $reference,
+        'series' => $series,
+        'domain_tag' => $domainTag,
+        'discipline_tag' => $disciplineTag,
+    ], [
+        'title' => 'Admin API Provider Clock Event',
+        'event_date' => '2026-06-01',
+        'prayer_time' => EventPrayerTime::SelepasMaghrib->value,
+        'custom_time' => null,
+        'end_time' => '22:30',
+    ]))->assertCreated();
+
+    Http::assertNothingSent();
+
+    $event = Event::query()->findOrFail((string) $createResponse->json('data.record.route_key'));
+
+    // Seeded DTO: maghrib 19:02 MYT + the SelepasMaghrib offset.
+    $offset = EventPrayerTime::SelepasMaghrib->getDefaultOffset()?->minutes() ?? 0;
+    $expected = Carbon::parse('2026-06-01 19:02:00', 'Asia/Kuala_Lumpur')->addMinutes($offset);
+
+    expect($event->starts_at?->copy()->timezone('Asia/Kuala_Lumpur')->format('Y-m-d H:i'))
+        ->toBe($expected->format('Y-m-d H:i'));
+
+    $expression = EventTimeExpression::query()
+        ->where('event_id', $event->getKey())
+        ->where('anchor_type', 'prayer')
+        ->first();
+
+    expect($expression?->metadata['prayer']['source'])->toBe('jakim:v2/WLY01');
 });
 
 it('surfaces event update semantics and sparse relation rules through the admin api schema', function () {

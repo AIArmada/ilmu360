@@ -33,6 +33,35 @@ enum PrayerOffset: string
     }
 
     /**
+     * Resolve the closest offset case for signed minutes.
+     *
+     * Exact matches win; otherwise the nearest case by absolute distance.
+     * Ties resolve in case order, which preserves the before/after sign.
+     */
+    public static function fromMinutes(int $signedMinutes): self
+    {
+        foreach (self::cases() as $case) {
+            if ($case->minutes() === $signedMinutes) {
+                return $case;
+            }
+        }
+
+        $closest = self::cases()[0];
+        $closestDistance = abs($signedMinutes - $closest->minutes());
+
+        foreach (self::cases() as $case) {
+            $distance = abs($signedMinutes - $case->minutes());
+
+            if ($distance < $closestDistance) {
+                $closest = $case;
+                $closestDistance = $distance;
+            }
+        }
+
+        return $closest;
+    }
+
+    /**
      * Get the offset in minutes (negative = before, positive = after).
      */
     public function minutes(): int

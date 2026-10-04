@@ -36,5 +36,11 @@ final readonly class ValidatedEventSubmission
         public array $personSlugSegments,
         public ?string $occurrenceId = null,
         public string $validationKeyPrefix = '',
+        public ?string $prayerSource = null,
+        public ?string $prayerFetchedAt = null,
+        public ?string $prayerZone = null,
+        public ?float $prayerLat = null,
+        public ?float $prayerLng = null,
+        public ?string $prayerCountry = null,
     ) {}
 }

@@ -6,11 +6,8 @@ use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\Language;
 use App\Services\EventSearchService;
-use App\Services\PrayerTimeService;
-use Carbon\Carbon;
 use Filament\Forms\Components\Select;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
 
 it('hydrates the events index language cache into the current safe payload format', function () {
@@ -89,46 +86,4 @@ it('rehydrates the current default events search cache safely from the database 
             'ids' => [(string) $firstEvent->id, (string) $secondEvent->id],
             'total' => 2,
         ]);
-});
-
-it('rehydrates cached prayer times safely from the database cache store', function () {
-    config()->set('cache.default', 'database');
-    app('cache')->setDefaultDriver('database');
-    Cache::flush();
-
-    $date = Carbon::parse('2026-07-15');
-    $timezone = 'America/New_York';
-    $service = new PrayerTimeService;
-
-    Http::fake([
-        'api.aladhan.com/*' => Http::response([
-            'data' => [
-                'timings' => [
-                    'Fajr' => '05:55',
-                    'Dhuhr' => '13:15',
-                    'Asr' => '16:40',
-                    'Maghrib' => '19:20',
-                    'Isha' => '20:35',
-                ],
-            ],
-        ]),
-    ]);
-
-    $first = $service->getPrayerTimes($date, 40.7128, -74.0060, $timezone);
-
-    expect($first)->not->toBeNull()
-        ->and($first['Maghrib'])->toBeInstanceOf(Carbon::class)
-        ->and($first['Maghrib']->format('H:i'))->toBe('19:20')
-        ->and($first['Maghrib']->timezoneName)->toBe($timezone);
-
-    Http::fake([
-        'api.aladhan.com/*' => Http::response(null, 500),
-    ]);
-
-    $second = $service->getPrayerTimes($date, 40.7128, -74.0060, $timezone);
-
-    expect($second)->not->toBeNull()
-        ->and($second['Maghrib'])->toBeInstanceOf(Carbon::class)
-        ->and($second['Maghrib']->format('H:i'))->toBe('19:20')
-        ->and($second['Maghrib']->timezoneName)->toBe($timezone);
 });

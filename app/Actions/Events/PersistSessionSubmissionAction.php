@@ -19,7 +19,9 @@ use App\Models\Institution;
 use App\Models\Language;
 use App\Models\Space;
 use App\Services\EventKeyPersonSyncService;
+use App\Services\Prayer\HardcodedPrayerFallback;
 use App\Services\PrayerTimeExpressionResolver;
+use App\Support\Events\AdminEventTimeMapper;
 use App\Support\Submission\SubmissionRelationSync;
 use App\Support\Submission\SubmissionValues;
 use BackedEnum;
@@ -152,6 +154,21 @@ final readonly class PersistSessionSubmissionAction
                 'offset_minutes' => abs($offset),
                 'display_label' => $submission->prayerDisplayText,
                 'resolver_class' => PrayerTimeExpressionResolver::class,
+                'metadata' => [
+                    'prayer' => array_filter([
+                        'source' => $submission->prayerSource ?? HardcodedPrayerFallback::SOURCE,
+                        'fetched_at' => $submission->prayerFetchedAt ?? now()->toIso8601String(),
+                        'country' => $submission->prayerCountry,
+                        'zone' => $submission->prayerZone,
+                        'prayer_date' => AdminEventTimeMapper::normalizeEventDateString($state['event_date'] ?? null, $submission->timezone),
+                        'lat' => $submission->prayerLat,
+                        'lng' => $submission->prayerLng,
+                        'venue_id' => $submission->targetVenueId,
+                        'institution_id' => $submission->targetInstitutionId,
+                    ], static fn (mixed $value): bool => $value !== null),
+                ],
+                'resolved_starts_at' => $submission->startsAt,
+                'resolved_at' => now(),
             ]);
         }
 

@@ -14,6 +14,7 @@ use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Events\SubmitFrontendEventAction;
 use App\Actions\Events\SyncEventClassificationsAction;
+use App\Data\Prayer\PrayerTimesDTO;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
@@ -27,6 +28,9 @@ use App\Models\Reference;
 use App\Models\Space;
 use App\Models\User;
 use App\Models\Venue;
+use App\Services\Prayer\JakimZoneResolver;
+use App\Services\Prayer\PrayerTimesCache;
+use Carbon\CarbonImmutable;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -763,4 +767,57 @@ it('displays the submitted session institution and its own address', function ()
         ->assertSuccessful()
         ->assertSee($location->display_name)
         ->assertSee('Distinct Submitted Session City');
+});
+
+it('retains the original prayer date on midnight-rolled session submissions', function () {
+    config(['prayer.enabled' => true]);
+
+    $owner = User::factory()->create();
+    $organizer = Person::factory()->create(['status' => 'verified', 'allow_public_event_submission' => true]);
+    $venue = Venue::factory()->create(['status' => 'verified']);
+    $venue->primaryAddress()->update(['latitude' => 3.139, 'longitude' => 101.6869]);
+    app(JakimZoneResolver::class)->rememberZone(3.139, 101.6869, 'WLY01');
+    $event = submitSessionContainer($owner, $organizer);
+
+    $eventDate = now()->addDays(6)->format('Y-m-d');
+    $yearMonth = substr($eventDate, 0, 7);
+
+    // Isha 23:58 KL + 5 rolls the start past midnight.
+    $base = prayerCacheDto($eventDate);
+    $times = $base->timesUtc;
+    $times['isha'] = CarbonImmutable::parse($eventDate.' 15:58:00', 'UTC');
+    app(PrayerTimesCache::class)->putMonthly('WLY01', $yearMonth, [$eventDate => new PrayerTimesDTO(
+        timesUtc: $times,
+        source: $base->source,
+        fetchedAt: $base->fetchedAt,
+        timezoneUsed: $base->timezoneUsed,
+        date: $base->date,
+        zoneOrCell: $base->zoneOrCell,
+    )], 'MY');
+
+    $result = app(SubmitFrontendEventAction::class)->handle(
+        state: submitSessionPayload($this->domainTag, $this->disciplineTag, [
+            'event_date' => $eventDate,
+            'prayer_time' => EventPrayerTime::SelepasIsyak->value,
+            'primary_organizer_id' => $organizer->getKey(),
+            'location_type' => 'venue',
+            'location_venue_id' => $venue->getKey(),
+            'submission_country_id' => (string) ensureTestMalaysiaCountry()->getKey(),
+        ]),
+        request: submitSessionRequest(),
+        submitter: $owner,
+        eventContainer: $event,
+    );
+
+    $session = $result['session'];
+    $expectedStart = CarbonImmutable::parse($eventDate.' 00:00:00', 'Asia/Kuala_Lumpur')->addDay()->setTime(0, 3)->utc();
+
+    expect($session->starts_at->toIso8601String())->toBe($expectedStart->toIso8601String());
+
+    $expression = EventTimeExpression::query()
+        ->where('event_session_id', $session->getKey())
+        ->where('anchor_type', 'prayer')
+        ->first();
+
+    expect($expression?->metadata['prayer']['prayer_date'] ?? null)->toBe($eventDate);
 });

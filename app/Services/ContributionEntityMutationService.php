@@ -60,6 +60,7 @@ use App\Models\Series;
 use App\Models\User;
 use App\Models\Venue;
 use App\Rules\ValidAreaAssignmentRoles;
+use App\Support\Events\AdminEventTimeMapper;
 use App\Support\Location\AddressAssignments;
 use BackedEnum;
 use Carbon\Carbon;
@@ -548,6 +549,29 @@ class ContributionEntityMutationService
         return $trimmed !== '' ? $trimmed : null;
     }
 
+    private function normalizeMetaString(mixed $value): ?string
+    {
+        return is_string($value) && trim($value) !== '' ? $value : null;
+    }
+
+    private function eventPrayerDate(Event $event): ?string
+    {
+        $meta = $event->timeExpressions->firstWhere('anchor_type', 'prayer')?->metadata['prayer'] ?? null;
+
+        return is_array($meta)
+            ? AdminEventTimeMapper::normalizePrayerDateString($meta['prayer_date'] ?? null)
+            : null;
+    }
+
+    private function resolveProvenanceFloat(mixed $payloadValue, mixed $metaValue, bool $payloadHasKey): ?float
+    {
+        if ($payloadHasKey) {
+            return is_numeric($payloadValue) ? (float) $payloadValue : null;
+        }
+
+        return is_numeric($metaValue) ? (float) $metaValue : null;
+    }
+
     /**
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
@@ -670,6 +694,15 @@ class ContributionEntityMutationService
             ? $endsAt
             : (is_string($endsAt) && $endsAt !== '' ? Carbon::parse($endsAt, 'UTC') : null);
 
+        // An explicit null reference is a real change (Tarawih stores a null
+        // anchor); only an omitted key falls back to the current anchor.
+        $prayerReference = array_key_exists('prayer_reference', $payload)
+            ? $payload['prayer_reference']
+            : $currentExpression?->anchor_code;
+
+        $currentPrayerMeta = $currentExpression?->metadata['prayer'] ?? null;
+        $currentPrayerMeta = is_array($currentPrayerMeta) ? $currentPrayerMeta : [];
+
         app(SyncEventScheduleAction::class)->execute(
             event: $event,
             scheduleKind: $scheduleKind,
@@ -677,11 +710,34 @@ class ContributionEntityMutationService
             endsAt: $endsAt,
             timezone: $scheduleTimezone,
             timingMode: $timingMode,
-            prayerReference: $payload['prayer_reference'] ?? $currentExpression?->anchor_code,
+            prayerReference: $prayerReference,
             prayerOffset: $prayerOffset,
             prayerDisplayText: array_key_exists('prayer_display_text', $payload)
                 ? $this->normalizeOptionalString($payload['prayer_display_text'])
                 : $currentExpression?->display_label,
+            prayerSource: array_key_exists('prayer_source', $payload)
+                ? $this->normalizeOptionalString($payload['prayer_source'])
+                : $this->normalizeMetaString($currentPrayerMeta['source'] ?? null),
+            prayerFetchedAt: array_key_exists('prayer_fetched_at', $payload)
+                ? $this->normalizeOptionalString($payload['prayer_fetched_at'])
+                : $this->normalizeMetaString($currentPrayerMeta['fetched_at'] ?? null),
+            prayerZone: array_key_exists('prayer_zone', $payload)
+                ? $this->normalizeOptionalString($payload['prayer_zone'])
+                : $this->normalizeMetaString($currentPrayerMeta['zone'] ?? null),
+            prayerDate: array_key_exists('prayer_date', $payload) && is_string($payload['prayer_date'])
+                ? $payload['prayer_date']
+                : $this->normalizeMetaString($currentPrayerMeta['prayer_date'] ?? null),
+            prayerLat: $this->resolveProvenanceFloat($payload['prayer_lat'] ?? null, $currentPrayerMeta['lat'] ?? null, array_key_exists('prayer_lat', $payload)),
+            prayerLng: $this->resolveProvenanceFloat($payload['prayer_lng'] ?? null, $currentPrayerMeta['lng'] ?? null, array_key_exists('prayer_lng', $payload)),
+            prayerVenueId: array_key_exists('prayer_venue_id', $payload)
+                ? $this->normalizeOptionalString($payload['prayer_venue_id'])
+                : $this->normalizeMetaString($currentPrayerMeta['venue_id'] ?? null),
+            prayerInstitutionId: array_key_exists('prayer_institution_id', $payload)
+                ? $this->normalizeOptionalString($payload['prayer_institution_id'])
+                : $this->normalizeMetaString($currentPrayerMeta['institution_id'] ?? null),
+            prayerCountry: array_key_exists('prayer_country', $payload)
+                ? $this->normalizeOptionalString($payload['prayer_country'])
+                : $this->normalizeMetaString($currentPrayerMeta['country'] ?? null),
         );
 
         if (array_key_exists('primary_organizer_id', $payload)) {
@@ -856,6 +912,7 @@ class ContributionEntityMutationService
             'primaryLocation',
             'audiences',
             'audienceProfiles',
+            'timeExpressions',
             'links',
         ]);
 
@@ -877,6 +934,10 @@ class ContributionEntityMutationService
                 ? $event->prayer_offset->value
                 : (is_string($event->prayer_offset) && $event->prayer_offset !== '' ? $event->prayer_offset : null),
             'prayer_display_text' => $event->prayer_display_text,
+            // The persisted prayer day restores the form's event_date for
+            // overnight starts (whose local day differs from the prayer
+            // day) before helper-field derivation in UI/API/originals.
+            'prayer_date' => $this->eventPrayerDate($event),
             'event_category_ids' => $event->classifications->where('taxonomy_code', EventCategoryCatalog::TAXONOMY_CODE)->pluck('event_term_id')->values()->all(),
             'gender' => $event->gender instanceof BackedEnum ? $event->gender->value : (string) $event->gender,
             'age_group' => $this->enumCollectionValues($event->age_group),

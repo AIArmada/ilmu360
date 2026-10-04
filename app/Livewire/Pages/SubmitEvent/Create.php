@@ -29,6 +29,7 @@ use App\States\EventStatus\EventStatus;
 use App\States\EventStatus\Pending;
 use App\Support\Events\OrganizerResolver;
 use App\Support\Submission\EntitySubmissionAccess;
+use App\Support\Submission\SubmissionTimingPolicy;
 use App\Support\Submission\SubmitEventOptionsProvider;
 use App\Support\Submission\SubmitEventPrefill;
 use Closure;
@@ -82,11 +83,56 @@ class Create extends Component implements HasActions, HasForms
 
     public function updatedData(mixed $value, ?string $key = null): void
     {
-        if ($key !== 'event_category_ids' || ! EventSubmissionFormSchema::hasCommunityCategorySelection($value)) {
+        if ($key === 'event_category_ids' && EventSubmissionFormSchema::hasCommunityCategorySelection($value)) {
+            $this->data['event_format'] = EventFormat::Physical->value;
+        }
+
+        $this->refreshPrayerPreview($key);
+    }
+
+    /**
+     * Prayer-clock hints for the end-time validation. Cache-only and
+     * flag-gated like submit: form keystrokes must never perform live
+     * HTTP, and hints must never disagree with persisted timing.
+     * Best-effort: any failure leaves the previous hint (or none) so
+     * hints never break input.
+     */
+    private function refreshPrayerPreview(?string $key): void
+    {
+        if (! in_array($key, ['event_date', 'submission_country_id', 'submission_timezone', 'event_format', 'location_type', 'location_institution_id', 'location_venue_id', 'location_same_as_institution', 'primary_organizer_id'], true)) {
             return;
         }
 
-        $this->data['event_format'] = EventFormat::Physical->value;
+        if (! config('prayer.enabled')) {
+            unset($this->data['prayer_preview']);
+
+            return;
+        }
+
+        try {
+            $preview = $this->buildPrayerPreviewFromState($this->data ?? []);
+        } catch (Throwable) {
+            return;
+        }
+
+        if ($preview === null) {
+            unset($this->data['prayer_preview']);
+
+            return;
+        }
+
+        $this->data['prayer_preview'] = json_encode($preview);
+    }
+
+    /**
+     * @param  array<string, mixed>  $state
+     * @return array<string, mixed>|null
+     */
+    private function buildPrayerPreviewFromState(array $state): ?array
+    {
+        // Shared with end-time validation so hints and the comparison
+        // read the same clocks from the same state mapping.
+        return app(SubmissionTimingPolicy::class)->freshPrayerPreview($state);
     }
 
     #[Url(as: 'step')]
@@ -199,6 +245,14 @@ class Create extends Component implements HasActions, HasForms
                 ...((array) ($state['persons'] ?? [])),
                 $this->prefillPersonId,
             ])->filter()->unique()->values()->all();
+        }
+
+        if (! array_key_exists('submission_timezone', $state)) {
+            $timing = app(SubmissionTimingPolicy::class);
+            $mountCountryId = is_string($state['submission_country_id'] ?? null) ? $state['submission_country_id'] : null;
+            $state['submission_timezone'] = $timing->defaultSubmissionTimezone(
+                $timing->resolveSubmissionCountryId($mountCountryId),
+            );
         }
 
         $this->eventForm()->fill($state);
@@ -772,12 +826,14 @@ class Create extends Component implements HasActions, HasForms
      *     has_scoped_institution: bool,
      *     is_authenticated: bool,
      *     speaker_required_category_ids: list<string>,
+     *     multi_timezone_country_ids: list<string>,
      * }
      */
     public function clientProgressConfiguration(): array
     {
         return [
             'speaker_required_category_ids' => app(SubmitEventOptionsProvider::class)->speakerRequiredCategoryIds(),
+            'multi_timezone_country_ids' => app(SubmitEventOptionsProvider::class)->multiTimezoneCountryIds(),
             'has_scoped_institution' => $this->hasScopedInstitution(),
             'is_authenticated' => auth()->check(),
         ];

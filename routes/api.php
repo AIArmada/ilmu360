@@ -33,6 +33,7 @@ use App\Http\Controllers\Api\Frontend\ManifestController;
 use App\Http\Controllers\Api\Frontend\MembershipApplicationController;
 use App\Http\Controllers\Api\Frontend\MobileTelemetryController;
 use App\Http\Controllers\Api\Frontend\OrganizationController;
+use App\Http\Controllers\Api\Frontend\PrayerPreviewController;
 use App\Http\Controllers\Api\Frontend\SearchController;
 use App\Http\Controllers\Api\Frontend\ShareAnalyticsController;
 use App\Http\Controllers\Api\NotificationDestinationController;
@@ -97,6 +98,9 @@ Route::prefix('v1')->group(function () {
                 ->whereIn('subjectType', MemberSubjectType::claimableRouteSegments())
                 ->name('membership-application-subjects');
             Route::get('/prayer-institutions', [CatalogController::class, 'prayerInstitutions'])->name('prayer-institutions');
+            Route::get('/prayer-preview', PrayerPreviewController::class)
+                ->middleware('throttle:60,1')
+                ->name('prayer-preview');
         });
 
         Route::get('/search', [SearchController::class, 'search'])->name('search.index');

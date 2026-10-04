@@ -27,8 +27,11 @@ use App\Forms\Components\Select;
 use App\Models\Reference;
 use App\Models\User;
 use App\Models\Venue;
+use App\Services\Prayer\HardcodedPrayerFallback;
+use App\Services\Prayer\RamadanGate;
 use App\Support\Cache\SelectionCatalogCache;
 use App\Support\Language\MalaysiaLanguageCatalog;
+use App\Support\Submission\SubmissionTimingPolicy;
 use Closure;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
@@ -1107,6 +1110,10 @@ class CreateAdvanced extends Component implements HasForms
             if ($prayerTime === EventPrayerTime::SelepasTarawih && ! $this->isRamadhan($date)) {
                 $fail(__('Pilihan waktu ini hanya boleh dipilih semasa bulan Ramadhan.'));
             }
+
+            if ($prayerTime === EventPrayerTime::SelepasZuhur && $date->isFriday()) {
+                $fail(__('Selepas Zuhur hanya boleh dipilih selain hari Jumaat.'));
+            }
         };
 
         $rules['form.end_time'][] = function (string $attribute, mixed $value, Closure $fail): void {
@@ -1429,6 +1436,10 @@ class CreateAdvanced extends Component implements HasForms
                     return $date->isFriday();
                 }
 
+                if ($case === EventPrayerTime::SelepasZuhur) {
+                    return ! $date->isFriday();
+                }
+
                 if ($case === EventPrayerTime::SelepasTarawih) {
                     return $this->isRamadhan($date);
                 }
@@ -1482,40 +1493,14 @@ class CreateAdvanced extends Component implements HasForms
     /** @return array<string, string> */
     protected function defaultPrayerTimes(): array
     {
-        return [
-            EventPrayerTime::SelepasSubuh->value => '06:30',
-            EventPrayerTime::SelepasZuhur->value => '13:30',
-            EventPrayerTime::SebelumJumaat->value => '13:45',
-            EventPrayerTime::SelepasJumaat->value => '14:00',
-            EventPrayerTime::SelepasAsar->value => '17:00',
-            EventPrayerTime::SebelumMaghrib->value => '19:45',
-            EventPrayerTime::SelepasMaghrib->value => '20:00',
-            EventPrayerTime::SelepasIsyak->value => '21:30',
-            EventPrayerTime::SelepasTarawih->value => '22:30',
-        ];
+        return HardcodedPrayerFallback::MAP;
     }
 
     protected function isRamadhan(Carbon $date): bool
     {
-        $year = $date->year;
-        $ramadhanPeriods = [
-            2026 => ['start' => '02-18', 'end' => '03-19'],
-            2027 => ['start' => '02-07', 'end' => '03-08'],
-            2028 => ['start' => '01-27', 'end' => '02-25'],
-            2029 => ['start' => '01-16', 'end' => '02-13'],
-            2030 => ['start' => '01-05', 'end' => '02-03'],
-        ];
+        $countryCode = app(SubmissionTimingPolicy::class)->countryIso2ForId($this->form['submission_country_id'] ?? null);
 
-        if (! isset($ramadhanPeriods[$year])) {
-            return false;
-        }
-
-        $timezone = $date->getTimezone()->getName();
-        $period = $ramadhanPeriods[$year];
-        $startDate = Carbon::parse("{$year}-{$period['start']}", $timezone)->startOfDay();
-        $endDate = Carbon::parse("{$year}-{$period['end']}", $timezone)->endOfDay();
-
-        return $date->between($startDate, $endDate);
+        return app(RamadanGate::class)->isRamadan($date, $date->getTimezone()->getName(), $countryCode);
     }
 
     /**

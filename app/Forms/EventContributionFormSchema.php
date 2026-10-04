@@ -16,11 +16,14 @@ use App\Enums\EventTaxonomyCode;
 use App\Enums\EventVisibility;
 use App\Enums\InstitutionStatus;
 use App\Forms\Components\Select;
+use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Series;
 use App\Models\Venue;
+use App\Services\Prayer\RamadanGate;
 use App\Support\Cache\SelectionCatalogCache;
+use App\Support\Events\EventContributionUpdateStateMapper;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Radio;
@@ -73,7 +76,7 @@ class EventContributionFormSchema
     /**
      * @return array<int, Component>
      */
-    public static function components(?string $fixedTimezone = null, bool $enforceRequired = true): array
+    public static function components(?string $fixedTimezone = null, bool $enforceRequired = true, ?Event $event = null): array
     {
         return [
             Section::make(__('Maklumat Majlis'))
@@ -109,6 +112,15 @@ class EventContributionFormSchema
                         ->options(fn (Get $get): array => self::eventPrayerTimeOptions(
                             $get('event_date'),
                             $get('timezone'),
+                            EventContributionUpdateStateMapper::effectiveOptionsCountry([
+                                'event_format' => $get('event_format'),
+                                'primary_organizer_id' => $get('primary_organizer_id'),
+                                'location_same_as_institution' => $get('location_same_as_institution'),
+                                'location_type' => $get('location_type'),
+                                'location_institution_id' => $get('location_institution_id'),
+                                'location_venue_id' => $get('location_venue_id'),
+                                'space_id' => $get('space_id'),
+                            ], $event),
                         ))
                         ->default(EventPrayerTime::LainWaktu->value)
                         ->afterStateUpdated(function (mixed $state, Set $set): void {
@@ -598,10 +610,10 @@ class EventContributionFormSchema
     /**
      * @return array<string, string>
      */
-    private static function eventPrayerTimeOptions(mixed $eventDate = null, mixed $timezone = null): array
+    private static function eventPrayerTimeOptions(mixed $eventDate = null, mixed $timezone = null, ?string $countryCode = null): array
     {
         return collect(EventPrayerTime::cases())
-            ->filter(function (EventPrayerTime $eventPrayerTime) use ($eventDate, $timezone): bool {
+            ->filter(function (EventPrayerTime $eventPrayerTime) use ($eventDate, $timezone, $countryCode): bool {
                 if ($eventDate === null || $eventDate === '') {
                     return ! in_array($eventPrayerTime, [
                         EventPrayerTime::SebelumJumaat,
@@ -620,8 +632,12 @@ class EventContributionFormSchema
                     return $resolvedDate->isFriday();
                 }
 
+                if ($eventPrayerTime === EventPrayerTime::SelepasZuhur) {
+                    return ! $resolvedDate->isFriday();
+                }
+
                 if ($eventPrayerTime === EventPrayerTime::SelepasTarawih) {
-                    return self::isRamadhan($resolvedDate);
+                    return self::isRamadhan($resolvedDate, $countryCode);
                 }
 
                 return true;
@@ -954,27 +970,9 @@ class EventContributionFormSchema
         return Carbon::parse($eventDate, $resolvedTimezone)->startOfDay();
     }
 
-    private static function isRamadhan(Carbon $date): bool
+    private static function isRamadhan(Carbon $date, ?string $countryCode = null): bool
     {
-        $year = $date->year;
-
-        $ramadhanPeriods = [
-            2026 => ['start' => '02-18', 'end' => '03-19'],
-            2027 => ['start' => '02-07', 'end' => '03-08'],
-            2028 => ['start' => '01-27', 'end' => '02-25'],
-            2029 => ['start' => '01-16', 'end' => '02-13'],
-            2030 => ['start' => '01-05', 'end' => '02-03'],
-        ];
-
-        if (! isset($ramadhanPeriods[$year])) {
-            return false;
-        }
-
-        $period = $ramadhanPeriods[$year];
-        $startDate = Carbon::parse("{$year}-{$period['start']}", $date->timezone)->startOfDay();
-        $endDate = Carbon::parse("{$year}-{$period['end']}", $date->timezone)->endOfDay();
-
-        return $date->between($startDate, $endDate);
+        return app(RamadanGate::class)->isRamadan($date, $date->tzName, $countryCode);
     }
 
     /**

@@ -3,6 +3,7 @@
 namespace App\Actions\Events;
 
 use AIArmada\Events\Models\EventSession;
+use App\Actions\Prayer\ResolvePrayerStartClockAction;
 use App\Contracts\CaptchaVerifier;
 use App\Contracts\EventCategoryCatalog;
 use App\Contracts\EventCategoryPolicyResolver;
@@ -16,12 +17,14 @@ use App\Models\EventSubmission;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
+use App\Support\Prayer\PrayerLocation;
 use App\Support\Submission\EntitySubmissionAccess;
 use App\Support\Submission\SubmissionContextResolver;
 use App\Support\Submission\SubmissionRelationSync;
 use App\Support\Submission\SubmissionTimingPolicy;
 use App\Support\Submission\SubmissionValues;
 use App\Support\Submission\SubmitterContactRules;
+use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -48,6 +51,7 @@ class SubmitFrontendEventAction
         private readonly SubmissionContextResolver $context,
         private readonly ValidateEventSubmissionInputAction $validateSubmissionInput,
         private readonly SubmissionRelationSync $relationSync,
+        private readonly ResolvePrayerStartClockAction $resolveStartClock,
     ) {}
 
     /**
@@ -92,7 +96,8 @@ class SubmitFrontendEventAction
         $validated = $this->context->normalizeSpaceSelection($validated);
 
         $submissionCountryId = $this->context->resolveSubmissionCountryId($validated, $validationKeyPrefix);
-        $timezone = $this->timing->resolveSubmissionTimezone($submissionCountryId);
+        $submissionCountryIso2 = $this->timing->countryIso2ForId($submissionCountryId);
+        $timezone = $this->timing->resolveSubmissionTimezone($submissionCountryId, $validated['submission_timezone'] ?? null, $validationKeyPrefix);
         $primaryOrganizer = $this->context->resolvePrimaryOrganizer($validated['primary_organizer_id'] ?? null);
         $organizerKind = match (true) {
             $primaryOrganizer instanceof Institution => 'institution',
@@ -127,7 +132,7 @@ class SubmitFrontendEventAction
 
         $prayerTime = $this->timing->resolvePrayerTime($validated['prayer_time'] ?? null, $validationKeyPrefix);
         $eventDate = $this->timing->parseEventDate($validated['event_date'] ?? null, $timezone, $validationKeyPrefix);
-        $this->timing->assertPrayerDateIsAllowed($prayerTime, $eventDate, $timezone, $validationKeyPrefix);
+        $this->timing->assertPrayerDateIsAllowed($prayerTime, $eventDate, $timezone, $validationKeyPrefix, $submissionCountryIso2);
 
         if (! $primaryOrganizer instanceof Institution && ! $primaryOrganizer instanceof Person) {
             throw ValidationException::withMessages([
@@ -145,12 +150,26 @@ class SubmitFrontendEventAction
         $prayerOffset = $prayerTime->getDefaultOffset();
         $prayerDisplayText = $prayerTime->isCustomTime() ? null : $prayerTime->getLabel();
 
+        // Provider-backed start clock. Null unless the flag is on and provider
+        // data is cached; the policy falls back to hardcoded estimates.
+        $resolvedStart = $this->resolveProviderStartClock(
+            $targetInstitutionId,
+            $targetVenueId,
+            $submissionCountryIso2,
+            $timezone,
+            $prayerTime,
+            $eventDate,
+        );
+
         $startsAt = $this->timing->resolveStartsAt(
             $validated['event_date'] ?? null,
             $prayerTime,
             $validated['custom_time'] ?? null,
             $timezone,
             $validationKeyPrefix,
+            $resolvedStart['clock'] ?? null,
+            $resolvedStart['date'] ?? null,
+            $resolvedStart['starts_at'] ?? null,
         );
         $this->timing->validateEndsAtAfterStartsAt($validated['end_time'] ?? null, $startsAt, $timezone, $validationKeyPrefix);
         $this->timing->validateStartsAtIsFuture($startsAt, $timezone, $prayerTime, $validationKeyPrefix);
@@ -181,6 +200,12 @@ class SubmitFrontendEventAction
             prayerReference: $prayerReference,
             prayerOffset: $prayerOffset?->minutes(),
             prayerDisplayText: $prayerDisplayText,
+            prayerSource: $resolvedStart['source'] ?? null,
+            prayerFetchedAt: $resolvedStart['fetched_at'] ?? null,
+            prayerZone: $resolvedStart['zone'] ?? null,
+            prayerLat: isset($resolvedStart['lat']) && is_numeric($resolvedStart['lat']) ? (float) $resolvedStart['lat'] : null,
+            prayerLng: isset($resolvedStart['lng']) && is_numeric($resolvedStart['lng']) ? (float) $resolvedStart['lng'] : null,
+            prayerCountry: $resolvedStart['country'] ?? $submissionCountryIso2,
             autoApproved: $autoApproved,
             sessionSubmission: $isSessionSubmission,
             submitter: $submitter,
@@ -319,6 +344,32 @@ class SubmitFrontendEventAction
 
             throw ValidationException::withMessages($messages);
         }
+    }
+
+    /**
+     * @return array{clock: string, date: string, source: string, fetched_at: string, zone: string|null}|null
+     */
+    private function resolveProviderStartClock(
+        ?string $targetInstitutionId,
+        ?string $targetVenueId,
+        ?string $submissionCountryIso2,
+        string $timezone,
+        EventPrayerTime $prayerTime,
+        CarbonInterface $eventDate,
+    ): ?array {
+        $address = PrayerLocation::forTargets($targetVenueId, $targetInstitutionId);
+        $location = PrayerLocation::fromAddress($address, $submissionCountryIso2);
+
+        return $this->resolveStartClock->handle(
+            countryCode: $location['countryCode'] ?? 'MY',
+            date: $eventDate->format('Y-m-d'),
+            timezone: $timezone,
+            prayerTime: $prayerTime,
+            latitude: $location['latitude'],
+            longitude: $location['longitude'],
+            stateCode: $location['stateCode'],
+            districtCandidates: $location['districtCandidates'],
+        );
     }
 
     private function assertCaptchaIsValid(Request $request, ?string $captchaToken, string $validationKeyPrefix = ''): void

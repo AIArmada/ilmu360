@@ -6,6 +6,7 @@ use App\Enums\EventPrayerTime;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
+use App\Services\Prayer\HardcodedPrayerFallback;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -153,16 +154,6 @@ class PrepareAdvancedParentProgramSubmissionAction
     /** @return array<string, string> */
     protected function defaultPrayerTimes(): array
     {
-        return [
-            EventPrayerTime::SelepasSubuh->value => '06:30',
-            EventPrayerTime::SelepasZuhur->value => '13:30',
-            EventPrayerTime::SebelumJumaat->value => '13:45',
-            EventPrayerTime::SelepasJumaat->value => '14:00',
-            EventPrayerTime::SelepasAsar->value => '17:00',
-            EventPrayerTime::SebelumMaghrib->value => '19:45',
-            EventPrayerTime::SelepasMaghrib->value => '20:00',
-            EventPrayerTime::SelepasIsyak->value => '21:30',
-            EventPrayerTime::SelepasTarawih->value => '22:30',
-        ];
+        return HardcodedPrayerFallback::MAP;
     }
 }

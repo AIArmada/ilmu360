@@ -873,5 +873,11 @@
     "Nampak maklumat yang tidak tepat atau meragukan? Bantu komuniti dengan memaklumkan kepada kami.": "发现不准确或可疑的信息？请告知我们，帮助社区。",
     "Pautan Institusi": "机构链接",
     "Lihat profil rasmi": "查看官方资料",
-    "A contribution request for this record is already pending. Please wait for it to be reviewed before submitting another.": "此记录已有待处理的贡献请求。请等待审核完成后再提交其他贡献。"
+    "A contribution request for this record is already pending. Please wait for it to be reviewed before submitting another.": "此记录已有待处理的贡献请求。请等待审核完成后再提交其他贡献。",
+    "Submission timezone": "活动时区",
+    "Select the event timezone for this country.": "为此国家选择活动时区。",
+    "Pilih zon waktu…": "选择时区…",
+    "Please select the event timezone.": "请选择活动时区。",
+    "The selected timezone is invalid for this country.": "所选时区对该国家无效。",
+    "The selected country cannot accept submissions yet.": "所选国家暂时无法接受提交。"
 }

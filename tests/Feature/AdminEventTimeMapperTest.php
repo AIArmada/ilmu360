@@ -105,3 +105,35 @@ it('interprets ambiguous end time after evening prayer as PM when needed', funct
 
     expect($result['ends_at']->toISOString())->toContain('2026-02-20T13:10:00');
 });
+
+it('prefers the provider-resolved start clock over hardcoded estimates', function () {
+    $result = AdminEventTimeMapper::normalizeForPersistence([
+        'event_date' => '2026-06-01',
+        'prayer_time' => EventPrayerTime::SelepasMaghrib->value,
+        'end_time' => '22:30',
+        'timezone' => 'Asia/Kuala_Lumpur',
+        'resolved_start_clock' => '19:32',
+        'prayer_source' => 'jakim:v2/WLY01',
+        'prayer_fetched_at' => '2026-05-30T00:00:00+00:00',
+    ]);
+
+    expect($result['starts_at']->toISOString())->toContain('2026-06-01T11:32:00')
+        ->and($result['prayer_source'])->toBe('jakim:v2/WLY01')
+        ->and($result['prayer_fetched_at'])->toBe('2026-05-30T00:00:00+00:00')
+        ->and($result)->not->toHaveKey('resolved_start_clock');
+});
+
+it('drops provider provenance without a resolved clock', function () {
+    $result = AdminEventTimeMapper::normalizeForPersistence([
+        'event_date' => '2026-06-01',
+        'prayer_time' => EventPrayerTime::SelepasMaghrib->value,
+        'end_time' => '22:30',
+        'timezone' => 'Asia/Kuala_Lumpur',
+        'prayer_source' => 'jakim:v2/WLY01',
+        'prayer_fetched_at' => '2026-05-30T00:00:00+00:00',
+    ]);
+
+    expect($result['starts_at']->toISOString())->toContain('2026-06-01T12:00:00')
+        ->and($result['prayer_source'])->toBeNull()
+        ->and($result['prayer_fetched_at'])->toBeNull();
+});

@@ -2,7 +2,6 @@
 
 namespace App\Support\Api\Frontend;
 
-use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Persons\Enums\Gender;
 use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventAgeGroup;
@@ -24,6 +23,7 @@ use App\Support\Documentation\DocumentationLibrary;
 use App\Support\GitHub\GitHubIssueReportContract;
 use App\Support\Location\GooglePlacesConfiguration;
 use App\Support\Mcp\McpTokenManager;
+use App\Support\Submission\SubmissionTimingPolicy;
 
 class FrontendFormContractService
 {
@@ -322,11 +322,15 @@ class FrontendFormContractService
     {
         $defaultLanguageId = Language::query()->where('code', 'ms')->value('id');
         $defaultLanguages = $defaultLanguageId === null ? [] : [(string) $defaultLanguageId];
-        $submissionCountryIds = AddressCountry::query()
-            ->orderBy('name')
-            ->pluck('id')
-            ->map(static fn (mixed $id): string => (string) $id)
-            ->all();
+        $timezoneCatalog = app(SubmissionTimingPolicy::class)->countryTimezoneCatalog();
+        $submissionCountryIds = array_keys($timezoneCatalog);
+        $multiTimezoneCountryIds = [];
+
+        foreach ($timezoneCatalog as $countryId => $timezones) {
+            if (count($timezones) > 1) {
+                $multiTimezoneCountryIds[] = $countryId;
+            }
+        }
 
         return [
             'flow' => 'submit_event',
@@ -352,6 +356,7 @@ class FrontendFormContractService
                 'other_key_people' => [],
                 'captcha_token' => null,
                 'submission_country_id' => null,
+                'submission_timezone' => null,
             ],
             'fields' => [
                 $this->field('title', 'string', required: true, maxLength: 255),
@@ -391,6 +396,10 @@ class FrontendFormContractService
                 $this->field('persons', 'array<string>', required: false, catalog: route('api.client.catalogs.submit-persons')),
                 $this->field('other_key_people', 'array<object>', required: false),
                 $this->field('submission_country_id', 'uuid', required: true, allowedValues: $submissionCountryIds),
+                $this->field('submission_timezone', 'string', required: false, maxLength: 64, meta: [
+                    'description' => 'Required when the selected submission_country_id links multiple differing timezones; must match one of the effective country timezones. Countries with a single effective timezone resolve automatically.',
+                    'options_by_country' => $timezoneCatalog,
+                ]),
                 $this->field('submitter_name', 'string', required: ! $user instanceof User, maxLength: 255),
                 $this->field('submitter_email', 'email', required: false),
                 $this->field('submitter_phone', 'string', required: false),
@@ -412,6 +421,7 @@ class FrontendFormContractService
                 ['field' => 'location_venue_id', 'required_when' => ['location_type' => ['venue']]],
                 ['field' => 'submitter_email', 'required_when_missing' => ['submitter_phone']],
                 ['field' => 'submitter_phone', 'required_when_missing' => ['submitter_email']],
+                ['field' => 'submission_timezone', 'required_when' => ['submission_country_id' => $multiTimezoneCountryIds]],
             ],
         ];
     }

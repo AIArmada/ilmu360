@@ -16,6 +16,7 @@ use App\Models\EventChangeAnnouncement;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
+use App\Services\Prayer\HardcodedPrayerFallback;
 use App\Support\Api\Frontend\FrontendFormContractService;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -153,6 +154,32 @@ it('persists the direction of prayer-relative offsets', function (): void {
     expect($expression?->relation)->toBe('before')
         ->and($expression?->offset_minutes)->toBe(15)
         ->and($event->fresh()?->prayer_offset)->toBe('before_15');
+});
+
+it('records hardcoded fetch provenance on prayer expressions', function (): void {
+    $event = Event::factory()->create();
+    $startsAt = Carbon::parse('2026-05-01 18:45:00', 'UTC');
+
+    app(SyncEventScheduleAction::class)->execute(
+        event: $event,
+        scheduleKind: ScheduleKind::Single,
+        startsAt: $startsAt,
+        endsAt: Carbon::parse('2026-05-01 20:00:00', 'UTC'),
+        timezone: 'Asia/Kuala_Lumpur',
+        timingMode: TimingMode::PrayerRelative,
+        prayerReference: 'maghrib',
+        prayerOffset: 5,
+    );
+
+    $expression = EventTimeExpression::query()
+        ->where('event_id', $event->id)
+        ->where('anchor_type', 'prayer')
+        ->first();
+
+    expect($expression?->metadata['prayer']['source'])->toBe(HardcodedPrayerFallback::SOURCE)
+        ->and($expression?->metadata['prayer']['fetched_at'])->toBeString()
+        ->and($expression?->resolved_at)->not->toBeNull()
+        ->and($expression?->resolved_starts_at?->toIso8601String())->toBe($startsAt->toIso8601String());
 });
 
 it('uses a safe database default when creating event settings without an explicit registration flag', function () {

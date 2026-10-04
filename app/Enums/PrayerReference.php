@@ -31,6 +31,17 @@ enum PrayerReference: string
     }
 
     /**
+     * Normalized provider DTO key. Jumaat has no published table; it reads Dhuhr.
+     */
+    public function dtoKey(): string
+    {
+        return match ($this) {
+            self::FridayPrayer => 'dhuhr',
+            default => $this->value,
+        };
+    }
+
+    /**
      * Get the Aladhan API field name for this prayer.
      */
     public function aladhanKey(): string

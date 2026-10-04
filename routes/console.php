@@ -65,3 +65,20 @@ Schedule::command('communications:send-digests')
     ->timezone('UTC')
     ->name('communications-send-digests')
     ->withoutOverlapping();
+
+// Warm current and next prayer months so submissions resolve from cache.
+// Already-warm months are skipped, so steady-state cost is near zero except at
+// month rollover, when the next month is still unpublished (short negative TTL).
+Schedule::command('app:prayer:prefetch')
+    ->dailyAt('03:30')
+    ->timezone('Asia/Kuala_Lumpur')
+    ->name('prayer-prefetch')
+    ->withoutOverlapping();
+
+// Prayer queue-depth backstop alert (Horizon remains the primary monitor).
+// Threshold is deliberately generous: rollover bursts stay well below it.
+Schedule::command('app:prayer:stats --alert-queue-depth=5000')
+    ->hourly()
+    ->timezone('UTC')
+    ->name('prayer-queue-depth-alert')
+    ->withoutOverlapping();

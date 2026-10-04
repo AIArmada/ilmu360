@@ -16,6 +16,7 @@ use App\Enums\TimingMode;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Services\EventKeyPersonSyncService;
+use App\Support\Events\AdminEventTimeMapper;
 use App\Support\Submission\SubmissionRelationSync;
 use Spatie\MediaLibrary\HasMedia;
 
@@ -80,6 +81,15 @@ final readonly class PersistNewEventSubmissionAction
             prayerReference: $submission->prayerReference,
             prayerOffset: $submission->prayerOffset,
             prayerDisplayText: $submission->prayerDisplayText,
+            prayerSource: $submission->prayerSource,
+            prayerFetchedAt: $submission->prayerFetchedAt,
+            prayerZone: $submission->prayerZone,
+            prayerDate: AdminEventTimeMapper::normalizeEventDateString($state['event_date'] ?? null, $submission->timezone),
+            prayerLat: $submission->prayerLat,
+            prayerLng: $submission->prayerLng,
+            prayerVenueId: $submission->targetVenueId,
+            prayerInstitutionId: $submission->targetInstitutionId,
+            prayerCountry: $submission->prayerCountry,
         );
 
         $event->setPrimaryOrganizer($submission->primaryOrganizer);

@@ -8,7 +8,9 @@ use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTimeExpression;
 use App\Enums\TimingMode;
 use App\Models\Event;
+use App\Services\Prayer\HardcodedPrayerFallback;
 use App\Services\PrayerTimeExpressionResolver;
+use App\Support\Events\AdminEventTimeMapper;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 
@@ -35,6 +37,15 @@ final readonly class SyncEventScheduleAction
         ?string $prayerReference = null,
         ?int $prayerOffset = null,
         ?string $prayerDisplayText = null,
+        ?string $prayerSource = null,
+        ?string $prayerFetchedAt = null,
+        ?string $prayerZone = null,
+        ?string $prayerDate = null,
+        ?float $prayerLat = null,
+        ?float $prayerLng = null,
+        ?string $prayerVenueId = null,
+        ?string $prayerInstitutionId = null,
+        ?string $prayerCountry = null,
     ): void {
         $attributes = ['schedule_kind' => $scheduleKind];
 
@@ -52,13 +63,13 @@ final readonly class SyncEventScheduleAction
         // The package writer re-resolves its own event instance inside its own
         // transaction; the prayer expression must commit or roll back with the
         // occurrence even for standalone callers, so orchestrate atomically.
-        $occurrence = DB::transaction(function () use ($event, $attributes, $timingMode, $prayerOffset, $prayerReference, $prayerDisplayText) {
+        $occurrence = DB::transaction(function () use ($event, $attributes, $startsAt, $timingMode, $prayerOffset, $prayerReference, $prayerDisplayText, $prayerSource, $prayerFetchedAt, $prayerZone, $prayerDate, $prayerLat, $prayerLng, $prayerVenueId, $prayerInstitutionId, $prayerCountry) {
             $synced = $this->syncPrimaryOccurrence->handle($event, $attributes);
 
             if ($timingMode === TimingMode::PrayerRelative) {
                 $offsetMinutes = $prayerOffset ?? 5;
 
-                EventTimeExpression::updateOrCreate(
+                $expression = EventTimeExpression::updateOrCreate(
                     [
                         'event_id' => $event->getKey(),
                         'event_occurrence_id' => null,
@@ -75,6 +86,42 @@ final readonly class SyncEventScheduleAction
                         'resolver_class' => PrayerTimeExpressionResolver::class,
                     ],
                 );
+
+                // Fetch provenance for the persisted clock: which source and
+                // zone produced it, defaulting to the hardcoded floor. The
+                // prayer anchor date travels too: offsets can roll the start
+                // past midnight, and reopening the form must re-resolve the
+                // original prayer day — not the rolled start day. Resolver
+                // coordinates and submission targets travel as well so
+                // re-resolution reproduces submission's cache inputs exactly
+                // (representative coords included) instead of re-deriving
+                // them from possibly coordinate-less persisted locations.
+                // The submission country travels too: the calculation
+                // identity must stay pinned to what submission resolved,
+                // never re-read from an address edited since.
+                $metadata = $expression->metadata ?? [];
+                $metadata['prayer'] = array_filter([
+                    'source' => $prayerSource ?? HardcodedPrayerFallback::SOURCE,
+                    'fetched_at' => $prayerFetchedAt ?? now()->toIso8601String(),
+                    'country' => $prayerCountry,
+                    'zone' => $prayerZone,
+                    'prayer_date' => AdminEventTimeMapper::normalizePrayerDateString($prayerDate),
+                    'lat' => $prayerLat,
+                    'lng' => $prayerLng,
+                    'venue_id' => $prayerVenueId,
+                    'institution_id' => $prayerInstitutionId,
+                ], static fn (mixed $value): bool => $value !== null);
+
+                $expression->forceFill([
+                    'metadata' => $metadata,
+                    'resolved_at' => now(),
+                ]);
+
+                if ($startsAt instanceof CarbonInterface) {
+                    $expression->forceFill(['resolved_starts_at' => $startsAt]);
+                }
+
+                $expression->save();
             } else {
                 EventTimeExpression::query()
                     ->where('event_id', $event->getKey())

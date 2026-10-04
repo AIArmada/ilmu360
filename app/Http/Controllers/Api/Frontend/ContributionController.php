@@ -419,12 +419,15 @@ class ContributionController extends FrontendController
                 $mergedState['end_date'] = null;
             }
 
-            $normalizedState = EventContributionUpdateStateMapper::toPersistenceState($mergedState);
+            $normalizedState = EventContributionUpdateStateMapper::toPersistenceState($mergedState, $entity);
         }
         $comparableSubmissionState = $entity instanceof Person
             ? $this->apiInitialState($entity, $normalizedState)
             : $normalizedState;
-        $changes = $resolveContributionChangedPayloadAction->handle($comparableSubmissionState, $comparableOriginalData);
+        $changes = $resolveContributionChangedPayloadAction->handle(
+            $comparableSubmissionState,
+            $comparableOriginalData + EventContributionUpdateStateMapper::provenanceOriginals($entity),
+        );
         $hasDirectEditMediaChange = collect($directEditMediaFields)
             ->contains(fn (string $field): bool => $request->hasFile($field));
 

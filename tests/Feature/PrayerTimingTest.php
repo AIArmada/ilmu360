@@ -3,9 +3,7 @@
 use App\Enums\PrayerOffset;
 use App\Enums\PrayerReference;
 use App\Enums\TimingMode;
-use App\Services\PrayerTimeService;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Http;
 
 beforeEach(function () {
     // Set up a fake time for consistent testing
@@ -69,105 +67,5 @@ describe('PrayerOffset Enum', function () {
 
         expect(PrayerOffset::Before15->displayText(PrayerReference::Fajr))
             ->toBe('15 minit sebelum Subuh');
-    });
-});
-
-describe('PrayerTimeService', function () {
-    it('fetches prayer times from Aladhan API', function () {
-        Http::fake([
-            'api.aladhan.com/*' => Http::response([
-                'data' => [
-                    'timings' => [
-                        'Fajr' => '05:55',
-                        'Dhuhr' => '13:15',
-                        'Asr' => '16:40',
-                        'Maghrib' => '19:20',
-                        'Isha' => '20:35',
-                    ],
-                ],
-            ]),
-        ]);
-
-        $service = new PrayerTimeService;
-        $prayerTimes = $service->getPrayerTimes(
-            Carbon::parse('2026-01-15'),
-            3.1390,
-            101.6869,
-        );
-
-        expect($prayerTimes)->toBeArray();
-        expect($prayerTimes)->toHaveKeys(['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha']);
-        expect($prayerTimes['Maghrib']->format('H:i'))->toBe('19:20');
-    });
-
-    it('calculates start time with offset', function () {
-        Http::fake([
-            'api.aladhan.com/*' => Http::response([
-                'data' => [
-                    'timings' => [
-                        'Fajr' => '05:55',
-                        'Dhuhr' => '13:15',
-                        'Asr' => '16:40',
-                        'Maghrib' => '19:20',
-                        'Isha' => '20:35',
-                    ],
-                ],
-            ]),
-        ]);
-
-        $service = new PrayerTimeService;
-        $startTime = $service->calculateStartTime(
-            Carbon::parse('2026-01-15'),
-            PrayerReference::Maghrib,
-            PrayerOffset::After15,
-            3.1390,
-            101.6869,
-        );
-
-        expect($startTime)->not->toBeNull();
-        expect($startTime->format('H:i'))->toBe('19:35'); // 19:20 + 15 minutes
-    });
-
-    it('handles Immediately offset correctly', function () {
-        Http::fake([
-            'api.aladhan.com/*' => Http::response([
-                'data' => [
-                    'timings' => [
-                        'Fajr' => '05:55',
-                        'Dhuhr' => '13:15',
-                        'Asr' => '16:40',
-                        'Maghrib' => '19:20',
-                        'Isha' => '20:35',
-                    ],
-                ],
-            ]),
-        ]);
-
-        $service = new PrayerTimeService;
-        $startTime = $service->calculateStartTime(
-            Carbon::parse('2026-01-15'),
-            PrayerReference::Isha,
-            PrayerOffset::Immediately,
-            3.1390,
-            101.6869,
-        );
-
-        expect($startTime)->not->toBeNull();
-        expect($startTime->format('H:i'))->toBe('20:40'); // 20:35 + 5 minutes buffer
-    });
-
-    it('returns null on API failure', function () {
-        Http::fake([
-            'api.aladhan.com/*' => Http::response(null, 500),
-        ]);
-
-        $service = new PrayerTimeService;
-        $prayerTimes = $service->getPrayerTimes(
-            Carbon::parse('2026-01-15'),
-            3.1390,
-            101.6869,
-        );
-
-        expect($prayerTimes)->toBeNull();
     });
 });

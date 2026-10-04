@@ -946,5 +946,11 @@
     "Speaker suggestion": "Speaker suggestion",
     "Contact Us": "Contact Us",
     "Platform terbesar untuk mencari kuliah, ceramah, tazkirah, dan majlis ilmu di seluruh Malaysia. Cari yang berdekatan dengan anda.": "Platform gedheng kanggo ngalari kuliah, ceramah, tazkirah, lan majlis ilmu ing Malaysia. Temokake sing cedhak karo kowe.",
-    "Add Event": "Add Event"
+    "Add Event": "Add Event",
+    "Submission timezone": "Zona wektu majlis",
+    "Select the event timezone for this country.": "Pilih zona wektu acara kanggo negara iki.",
+    "Pilih zon waktu…": "Pilih zona wektu…",
+    "Please select the event timezone.": "Mangga pilih zona wektu acara.",
+    "The selected timezone is invalid for this country.": "Zona wektu sing dipilih ora sah kanggo negara iki.",
+    "The selected country cannot accept submissions yet.": "Negara sing dipilih durung bisa nampa pengajuan."
 }

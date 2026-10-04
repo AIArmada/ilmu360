@@ -1613,5 +1613,11 @@
     "Jajahan Kecil": "Jajahan Kecil",
     "District / Daerah Kecil": "Daerah / Daerah Kecil",
     "The selected language is invalid.": "Bahasa yang dipilih tidak sah.",
-    "The selected reference is unavailable.": "Rujukan yang dipilih tidak tersedia."
+    "The selected reference is unavailable.": "Rujukan yang dipilih tidak tersedia.",
+    "Submission timezone": "Zon waktu majlis",
+    "Select the event timezone for this country.": "Pilih zon waktu majlis untuk negara ini.",
+    "Pilih zon waktu…": "Pilih zon waktu…",
+    "Please select the event timezone.": "Sila pilih zon waktu majlis.",
+    "The selected timezone is invalid for this country.": "Zon waktu yang dipilih tidak sah untuk negara ini.",
+    "The selected country cannot accept submissions yet.": "Negara yang dipilih belum boleh menerima penghantaran."
 }

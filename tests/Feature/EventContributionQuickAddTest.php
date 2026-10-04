@@ -159,3 +159,20 @@ it('keeps sebelum maghrib available outside ramadhan while restricting selepas t
         ->toHaveKey(EventPrayerTime::SebelumMaghrib->value)
         ->toHaveKey(EventPrayerTime::SelepasTarawih->value);
 });
+
+it('swaps zuhur for the jumaat pair on friday', function (): void {
+    $method = new ReflectionMethod(EventContributionFormSchema::class, 'eventPrayerTimeOptions');
+
+    // 2026-10-02 is a Friday; 2026-10-03 is a Saturday.
+    $friday = $method->invoke(null, '2026-10-02', 'Asia/Kuala_Lumpur');
+    $saturday = $method->invoke(null, '2026-10-03', 'Asia/Kuala_Lumpur');
+
+    expect($friday)
+        ->not->toHaveKey(EventPrayerTime::SelepasZuhur->value)
+        ->toHaveKey(EventPrayerTime::SebelumJumaat->value)
+        ->toHaveKey(EventPrayerTime::SelepasJumaat->value)
+        ->and($saturday)
+        ->toHaveKey(EventPrayerTime::SelepasZuhur->value)
+        ->not->toHaveKey(EventPrayerTime::SebelumJumaat->value)
+        ->not->toHaveKey(EventPrayerTime::SelepasJumaat->value);
+});

@@ -92,6 +92,10 @@ final readonly class ValidateEventSubmissionInputAction
             $input['location_type'] = $this->nullIfBlank($input['location_type']);
         }
 
+        if (array_key_exists('submission_timezone', $input)) {
+            $input['submission_timezone'] = $this->nullIfBlank($this->trimmedString($input['submission_timezone']));
+        }
+
         $input = $this->sanitizedUuidInputs($input);
 
         if (array_key_exists('age_group', $input)) {
@@ -206,6 +210,7 @@ final readonly class ValidateEventSubmissionInputAction
             'submitter_phone' => ['nullable', 'string', 'max:20'],
             'notes' => ['nullable', 'string', 'max:1000'],
             'description' => ['nullable', $this->descriptionRule()],
+            'submission_timezone' => ['nullable', 'string', 'max:64'],
         ];
     }
 
@@ -248,6 +253,8 @@ final readonly class ValidateEventSubmissionInputAction
             'is_muslim_only.boolean' => __('Nilai tidak sah.'),
             'location_same_as_institution.boolean' => __('Nilai tidak sah.'),
             'location_type.in' => __('Sila pilih jenis lokasi untuk majlis ini.'),
+            'submission_timezone.string' => __('The selected timezone is invalid for this country.'),
+            'submission_timezone.max' => __('The selected timezone is invalid for this country.'),
         ];
 
         foreach (['primary_organizer_id', 'location_institution_id', 'location_venue_id', 'space_id', 'event_occurrence_id'] as $field) {
@@ -314,6 +321,10 @@ final readonly class ValidateEventSubmissionInputAction
     private function normalizedState(array $state): array
     {
         $normalized = $this->sanitizedUuidInputs($state);
+
+        if (array_key_exists('submission_timezone', $normalized)) {
+            $normalized['submission_timezone'] = $this->nullIfBlank($this->trimmedString($normalized['submission_timezone']));
+        }
 
         unset($normalized['taxonomy_term_ids']);
 

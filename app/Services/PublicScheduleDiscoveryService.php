@@ -607,14 +607,6 @@ final class PublicScheduleDiscoveryService
             return false;
         }
 
-        if ($prayerTimeEnum === EventPrayerTime::SelepasIsyak && (int) $expression->offset_minutes === 60) {
-            return false;
-        }
-
-        if ($prayerTimeEnum === EventPrayerTime::SelepasTarawih && (int) $expression->offset_minutes !== 60) {
-            return false;
-        }
-
         return $anchorCode === $prayerReference
             || str_contains($displayLabel, mb_strtolower($prayerTimeEnum->getLabel()));
     }

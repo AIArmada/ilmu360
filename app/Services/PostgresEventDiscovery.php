@@ -432,16 +432,6 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
                                                     ->orWhereLike('display_label', "%{$prayerLabel}%");
                                             });
 
-                                        if ($prayerTimeEnum === EventPrayerTime::SelepasIsyak) {
-                                            $matchingPrayerQuery->where(function (Builder $offsetQuery): void {
-                                                $offsetQuery
-                                                    ->whereNull('offset_minutes')
-                                                    ->orWhere('offset_minutes', '!=', 60);
-                                            });
-                                        } elseif ($prayerTimeEnum === EventPrayerTime::SelepasTarawih) {
-                                            $matchingPrayerQuery->where('offset_minutes', 60);
-                                        }
-
                                         return;
                                     }
 

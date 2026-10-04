@@ -267,6 +267,27 @@ final class SubmitEventOptionsProvider
         return app(AddressCountryResolver::class)->resolveId('MY');
     }
 
+    /**
+     * Countries whose effective timezones require an explicit submission choice.
+     *
+     * @return list<string>
+     */
+    public function multiTimezoneCountryIds(): array
+    {
+        return Cache::remember($this->submitCacheKey('submit_diverging_timezone_countries'), 300, function (): array {
+            $catalog = app(SubmissionTimingPolicy::class)->countryTimezoneCatalog();
+            $multi = [];
+
+            foreach ($catalog as $countryId => $timezones) {
+                if (count($timezones) > 1) {
+                    $multi[] = $countryId;
+                }
+            }
+
+            return $multi;
+        });
+    }
+
     public function defaultEventTermId(string $taxonomyCode, string $termCode): ?string
     {
         $taxonomyId = EventTaxonomy::query()->where('code', $taxonomyCode)->value('id');

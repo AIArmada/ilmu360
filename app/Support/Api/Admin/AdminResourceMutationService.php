@@ -176,7 +176,9 @@ class AdminResourceMutationService
                 'defaults' => $defaults,
                 'current_media' => $record instanceof Event ? $this->mediaState($record, ['cover', 'poster', 'gallery']) : null,
                 'fields' => $this->eventFields($updating),
-                'catalogs' => [],
+                'catalogs' => [
+                    $this->catalog('submission_country_id', route('api.admin.catalogs.countries', [], false)),
+                ],
                 'conditional_rules' => [
                     ['field' => 'custom_time', 'required_when' => ['prayer_time' => [EventPrayerTime::LainWaktu->value]]],
                 ],
@@ -1698,6 +1700,14 @@ class AdminResourceMutationService
                 ],
                 'exclusive_with' => ['institution_id', 'space_id'],
             ]),
+            $this->field('submission_country_id', 'string', required: false, meta: [
+                'mutation_semantics' => 'replace_scalar',
+                'clear_semantics' => [
+                    'omitted' => 'preserve_existing_via_server_state_merge',
+                    'explicit_null' => 'clear_to_null',
+                ],
+                'relation' => 'address-countries',
+            ]),
             $this->field('space_id', 'string', required: false, meta: [
                 'mutation_semantics' => 'replace_scalar',
                 'clear_semantics' => [
@@ -2242,6 +2252,7 @@ class AdminResourceMutationService
             ],
             'institution_id' => ['nullable', 'uuid', 'exists:institutions,id'],
             'venue_id' => ['nullable', 'uuid', 'exists:venues,id'],
+            'submission_country_id' => ['nullable', 'uuid', 'exists:countries,id'],
             'space_ids' => ['nullable', 'array'],
             'space_ids.*' => ['uuid', 'exists:venue_spaces,id'],
             'persons' => ['nullable', 'array'],

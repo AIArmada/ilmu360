@@ -373,7 +373,7 @@ final class EventSubmissionFormSchema
                                 ->label(__('Tarikh'))
                                 ->required()
                                 ->native()
-                                ->minDate(fn (Get $get): string => Carbon::now(self::resolveSubmissionTimezone($get('submission_country_id')))->toDateString())
+                                ->minDate(fn (Get $get): string => Carbon::now(self::resolveSubmissionTimezone($get('submission_country_id'), $get('submission_timezone')))->toDateString())
                                 ->live()
                                 ->afterStateUpdatedJs($this->progressUpdateJs())
                                 ->afterStateUpdated(function (Get $get, Set $set): void {
@@ -396,9 +396,10 @@ final class EventSubmissionFormSchema
                                 ->options(function (Get $get): array {
                                     $eventDate = $get('event_date');
                                     $countryId = $get('submission_country_id');
+                                    $timezone = $get('submission_timezone');
 
                                     return collect(EventPrayerTime::cases())
-                                        ->filter(fn (EventPrayerTime $case): bool => $this->isPrayerTimeAvailable($case, $eventDate, $countryId))
+                                        ->filter(fn (EventPrayerTime $case): bool => $this->isPrayerTimeAvailable($case, $eventDate, $countryId, $timezone))
                                         ->mapWithKeys(fn (EventPrayerTime $case) => [$case->value => $case->getLabel()])
                                         ->toArray();
                                 })
@@ -443,7 +444,7 @@ final class EventSubmissionFormSchema
                                 ->columnSpan(['default' => 1, 'md' => 2])
                                 ->rule(fn (Get $get): Closure => function (string $attribute, $value, Closure $fail) use ($get) {
                                     $eventDate = $get('event_date');
-                                    $timezone = self::resolveSubmissionTimezone($get('submission_country_id'));
+                                    $timezone = self::resolveSubmissionTimezone($get('submission_country_id'), $get('submission_timezone'));
                                     $now = Carbon::now($timezone);
 
                                     if (! $eventDate || ! $value) {
@@ -482,24 +483,12 @@ final class EventSubmissionFormSchema
                                     const customTime = $get('custom_time');
                                     const endTime = $state;
                                     const prayerTime = $get('prayer_time');
-                                    const estimatedStartByPrayer = {
-                                        selepas_subuh: '06:30',
-                                        selepas_zuhur: '13:30',
-                                        sebelum_jumaat: '13:45',
-                                        selepas_jumaat: '14:00',
-                                        selepas_asar: '17:00',
-                                        sebelum_maghrib: '19:45',
-                                        selepas_maghrib: '20:00',
-                                        selepas_isyak: '21:30',
-                                        selepas_tarawih: '22:30',
-                                    };
-
-                                    const guessedStartTime = prayerTime === 'lain_waktu'
-                                        ? customTime
-                                        : (estimatedStartByPrayer[prayerTime] ?? null);
-
-                                    if (guessedStartTime && endTime) {
-                                        const startParts = guessedStartTime.split(':');
+                                    // Client-side only for custom times (both clocks user-entered).
+                                    // Prayer labels compare server-side against a fresh cache-only
+                                    // resolution: the hidden hint is a snapshot that deferred
+                                    // warming can supersede, so it must never clear input here.
+                                    if (prayerTime === 'lain_waktu' && customTime && endTime) {
+                                        const startParts = customTime.split(':');
                                         const endParts = endTime.split(':');
 
                                         const startMinutes = parseInt(startParts[0]) * 60 + parseInt(startParts[1] || 0);
@@ -524,7 +513,9 @@ final class EventSubmissionFormSchema
                                     $prayerTimeRaw = $get('prayer_time');
                                     $startTime = $this->resolveStartTimeForComparison(
                                         $prayerTimeRaw,
-                                        $get('custom_time')
+                                        $get('custom_time'),
+                                        $this->previewStartsForComparison($get('prayer_preview')),
+                                        $this->comparisonFormState($get)
                                     );
 
                                     if ($startTime === null) {
@@ -541,6 +532,9 @@ final class EventSubmissionFormSchema
                                         $fail(__('Masa akhir mestilah selepas masa mula.'));
                                     }
                                 }),
+
+                            Hidden::make('prayer_preview')
+                                ->dehydrated(false),
                         ]),
                 ]),
 
@@ -845,8 +839,26 @@ final class EventSubmissionFormSchema
                         ->live()
                         ->afterStateUpdatedJs($this->progressUpdateJs())
                         ->afterStateUpdated(function (Get $get, Set $set): void {
+                            $this->syncSubmissionTimezoneForCountry($get, $set);
                             $this->applyContextualDefaults($get, $set);
                             $this->clearCountryMismatchedEntitySelections($get, $set);
+                        }),
+
+                    Select::make('submission_timezone')
+                        ->native(false)
+                        ->label(__('Submission timezone'))
+                        ->helperText(__('Select the event timezone for this country.'))
+                        ->placeholder(__('Pilih zon waktu…'))
+                        ->options(fn (Get $get): array => self::submissionTimezoneOptions($get('submission_country_id')))
+                        ->searchable()
+                        ->preload()
+                        ->live()
+                        ->visible(fn (Get $get): bool => self::isSubmissionTimezoneRequired($get('submission_country_id')))
+                        ->required(fn (Get $get): bool => self::isSubmissionTimezoneRequired($get('submission_country_id')))
+                        ->dehydratedWhenHidden()
+                        ->afterStateUpdatedJs($this->progressUpdateJs())
+                        ->afterStateUpdated(function (Get $get, Set $set): void {
+                            $this->applyContextualDefaults($get, $set);
                         }),
                 ]),
 
@@ -1393,14 +1405,30 @@ final class EventSubmissionFormSchema
             return;
         }
 
-        $timezone = self::resolveSubmissionTimezone($get('submission_country_id'));
-        $startsAt = Carbon::instance($occurrence->starts_at)->setTimezone($timezone);
+        // A valid explicit choice wins; otherwise the occurrence timezone is
+        // preserved as the choice when linked to the country (prefill plan),
+        // so a later choice cannot reinterpret a UTC-derived wall clock.
+        $timing = app(SubmissionTimingPolicy::class);
+        $countryId = self::resolveSubmissionCountryId($get('submission_country_id'));
+        $submittedTimezone = $get('submission_timezone');
+        $submittedTimezone = is_string($submittedTimezone)
+            && in_array($submittedTimezone, $timing->countryTimezones($countryId), true)
+            ? $submittedTimezone
+            : null;
+        $timezone = $submittedTimezone ?? $timing->defaultSubmissionTimezone($countryId, $occurrence->timezone);
+
+        if ($submittedTimezone === null && $timezone !== null) {
+            $set('submission_timezone', $timezone);
+        }
+
+        $conversionTimezone = $timezone ?? config('app.timezone', 'UTC');
+        $startsAt = Carbon::instance($occurrence->starts_at)->setTimezone($conversionTimezone);
 
         $set('event_date', $startsAt->toDateString());
         $set('prayer_time', EventPrayerTime::LainWaktu->value);
         $set('custom_time', $startsAt->format('H:i'));
         $set('end_time', $occurrence->ends_at instanceof CarbonInterface
-            ? Carbon::instance($occurrence->ends_at)->setTimezone($timezone)->format('H:i')
+            ? Carbon::instance($occurrence->ends_at)->setTimezone($conversionTimezone)->format('H:i')
             : null);
     }
 
@@ -1426,6 +1454,7 @@ final class EventSubmissionFormSchema
             $get('prayer_time'),
             $get('event_date'),
             $get('submission_country_id'),
+            $get('submission_timezone'),
         )) {
             $set('prayer_time', null);
             $set('custom_time', null);
@@ -1486,13 +1515,30 @@ final class EventSubmissionFormSchema
         return $value !== '' && Str::isUuid($value) ? $value : null;
     }
 
-    private function isPrayerTimeAvailable(mixed $value, mixed $eventDate, mixed $countryId): bool
+    private function isPrayerTimeAvailable(mixed $value, mixed $eventDate, mixed $countryId, mixed $submittedTimezone = null): bool
     {
-        return app(SubmissionTimingPolicy::class)->isPrayerTimeAvailable(
+        $policy = app(SubmissionTimingPolicy::class);
+
+        return $policy->isPrayerTimeAvailable(
             $value,
             $eventDate,
-            self::resolveSubmissionTimezone($countryId),
+            self::resolveSubmissionTimezone($countryId, $submittedTimezone),
+            $policy->countryIso2ForId($countryId),
         );
+    }
+
+    private function syncSubmissionTimezoneForCountry(Get $get, Set $set): void
+    {
+        $countryId = app(SubmissionTimingPolicy::class)->resolveSubmissionCountryId($get('submission_country_id'));
+        $timezones = app(SubmissionTimingPolicy::class)->countryTimezones($countryId);
+
+        if (count($timezones) === 1) {
+            $set('submission_timezone', $timezones[0]);
+
+            return;
+        }
+
+        $set('submission_timezone', null);
     }
 
     private function isReligiousContext(mixed $topicIds): bool
@@ -1562,9 +1608,56 @@ final class EventSubmissionFormSchema
             : null;
     }
 
-    private function resolveStartTimeForComparison(mixed $prayerTimeValue, mixed $customTime): ?string
+    /**
+     * @param  array<string, string|null>|null  $previewStarts
+     */
+    /**
+     * @param  array<string, string|null>|null  $previewStarts
+     * @param  array<string, mixed>|null  $formState
+     */
+    private function resolveStartTimeForComparison(mixed $prayerTimeValue, mixed $customTime, ?array $previewStarts = null, ?array $formState = null): ?string
     {
-        return app(SubmissionTimingPolicy::class)->resolveStartTimeForComparison($prayerTimeValue, $customTime);
+        return app(SubmissionTimingPolicy::class)->resolveStartTimeForComparison($prayerTimeValue, $customTime, $previewStarts, $formState);
+    }
+
+    /**
+     * Current form state for a fresh cache-only comparison. The hidden
+     * hint is a snapshot that deferred warming can supersede; the rule
+     * re-resolves from live state so it never rejects what submit accepts.
+     *
+     * @return array<string, mixed>
+     */
+    private function comparisonFormState(Get $get): array
+    {
+        return [
+            'event_date' => $get('event_date'),
+            'submission_country_id' => $get('submission_country_id'),
+            'submission_timezone' => $get('submission_timezone'),
+            'event_format' => $get('event_format'),
+            'location_type' => $get('location_type'),
+            'location_institution_id' => $get('location_institution_id'),
+            'location_venue_id' => $get('location_venue_id'),
+            'location_same_as_institution' => $get('location_same_as_institution'),
+            'primary_organizer_id' => $get('primary_organizer_id'),
+        ];
+    }
+
+    /**
+     * @return array<string, string|null>|null
+     */
+    private function previewStartsForComparison(mixed $state): ?array
+    {
+        if (! is_string($state) || $state === '') {
+            return null;
+        }
+
+        $decoded = json_decode($state, true);
+
+        if (! is_array($decoded) || ! isset($decoded['starts']) || ! is_array($decoded['starts'])) {
+            return null;
+        }
+
+        return $decoded['starts'];
     }
 
     /**
@@ -1668,9 +1761,29 @@ final class EventSubmissionFormSchema
         return self::resolvedPrimaryOrganizerType($primaryOrganizerId);
     }
 
-    public static function resolveSubmissionTimezone(mixed $countryId = null): string
+    public static function resolveSubmissionTimezone(mixed $countryId = null, mixed $submittedTimezone = null): string
     {
-        return app(SubmissionTimingPolicy::class)->resolveSubmissionTimezone(self::resolveSubmissionCountryId($countryId));
+        $resolvedCountryId = app(SubmissionTimingPolicy::class)->resolveSubmissionCountryId($countryId);
+
+        return app(SubmissionTimingPolicy::class)->previewSubmissionTimezone($resolvedCountryId, $submittedTimezone);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function submissionTimezoneOptions(mixed $countryId = null): array
+    {
+        $resolvedCountryId = app(SubmissionTimingPolicy::class)->resolveSubmissionCountryId($countryId);
+        $timezones = app(SubmissionTimingPolicy::class)->countryTimezones($resolvedCountryId);
+
+        return array_combine($timezones, $timezones) ?: [];
+    }
+
+    public static function isSubmissionTimezoneRequired(mixed $countryId = null): bool
+    {
+        $resolvedCountryId = app(SubmissionTimingPolicy::class)->resolveSubmissionCountryId($countryId);
+
+        return app(SubmissionTimingPolicy::class)->submissionTimezoneRequired($resolvedCountryId);
     }
 
     /**
@@ -1700,6 +1813,8 @@ final class EventSubmissionFormSchema
             $organizerKind === 'person' || ! $sameAsInstitution
         );
 
+        $timezoneCountryId = app(SubmissionTimingPolicy::class)->resolveSubmissionCountryId($state['submission_country_id'] ?? null);
+
         $requiredFields = [
             self::hasSelection($categoryIds),
             self::hasSelection($topicIds),
@@ -1714,6 +1829,10 @@ final class EventSubmissionFormSchema
         ];
 
         $requiredFields[] = filled($prayerTime);
+
+        if (app(SubmissionTimingPolicy::class)->submissionTimezoneRequired($timezoneCountryId)) {
+            $requiredFields[] = filled($state['submission_timezone'] ?? null);
+        }
 
         if (self::isPrayerTime($prayerTime, EventPrayerTime::LainWaktu)) {
             $requiredFields[] = filled($state['custom_time'] ?? null);

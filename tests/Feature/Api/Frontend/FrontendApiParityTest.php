@@ -120,10 +120,12 @@ it('exposes corrected frontend contract metadata', function () {
         ->and($submitEventFields)->toContain('event_id', 'scoped_institution_id')
         ->and($submitEventFields)->toContain('cover', 'poster', 'gallery')
         ->and($submitEventFields)->toContain('submission_country_id')
+        ->and($submitEventFields)->toContain('submission_timezone')
         ->and($submitEventFields)->not->toContain('submission_country_code', 'submission_country_key')
         ->not->toContain('timezone')
         ->and($submitEventConditionalRules->pluck('field')->all())->not->toContain('live_url')
         ->and($submitEventConditionalRules->pluck('field')->all())->not->toContain('submission_country_id')
+        ->and($submitEventConditionalRules->pluck('field')->all())->toContain('submission_timezone')
         ->and(collect($submitEvent['fields'])->firstWhere('name', 'submission_country_id')['allowed_values'])
         ->toContain(ensureFrontendApiMalaysiaCountryExists())
         ->and(collect($submitEvent['fields'])->firstWhere('name', 'notes')['max_length'])->toBe(1000)
@@ -199,6 +201,24 @@ it('exposes corrected frontend contract metadata', function () {
         ->and($reportEvidenceField['required'] ?? null)->toBeFalse()
         ->and($reportEvidenceField['accepted_mime_types'] ?? [])->toContain('application/pdf')
         ->and($reportEvidenceField['max_files'] ?? null)->toBe(8);
+});
+
+it('exposes country-scoped submission timezone options and conditional requirement', function () {
+    $malaysiaId = ensureFrontendApiMalaysiaCountryExists();
+    $indonesiaId = (string) ensureTestAddressCountry('ID', 'Indonesia', 'IDN', ['Asia/Jakarta', 'Asia/Jayapura'], '62')->getKey();
+
+    $contract = $this->getJson(route('api.client.forms.submit-event'))
+        ->assertOk()
+        ->json('data');
+
+    $timezoneField = collect($contract['fields'])->firstWhere('name', 'submission_timezone');
+    $rule = collect($contract['conditional_rules'])->firstWhere('field', 'submission_timezone');
+
+    expect($timezoneField['options_by_country'][$indonesiaId] ?? null)->toBe(['Asia/Jakarta', 'Asia/Jayapura'])
+        ->and($timezoneField['options_by_country'][$malaysiaId] ?? null)->toBe(['Asia/Kuala_Lumpur'])
+        ->and($rule['required_when']['submission_country_id'] ?? null)->toContain($indonesiaId)
+        ->and($rule['required_when']['submission_country_id'] ?? [])->not->toContain($malaysiaId)
+        ->and($rule)->not->toHaveKey('required_when_country_has_multiple_timezones');
 });
 
 it('clamps public institution directory per_page values to the supported maximum', function () {
@@ -1868,22 +1888,28 @@ it('exposes 7-item institution detail lists with canonical address lines and qr 
         ->toMediaCollection('qr');
 
     foreach (range(1, 8) as $index) {
+        $startsAt = now()->addDays($index);
+
         Event::factory()->create([
             'institution_id' => $institution->id,
             'status' => 'approved',
             'visibility' => EventVisibility::Public->value,
             'published_at' => now()->subDay(),
-            'starts_at' => now()->addDays($index),
+            'starts_at' => $startsAt,
+            'ends_at' => $startsAt->copy()->addHour(),
         ]);
     }
 
     foreach (range(1, 8) as $index) {
+        $startsAt = now()->subDays($index);
+
         Event::factory()->create([
             'institution_id' => $institution->id,
             'status' => 'approved',
             'visibility' => EventVisibility::Public->value,
             'published_at' => now()->subDays(2),
-            'starts_at' => now()->subDays($index),
+            'starts_at' => $startsAt,
+            'ends_at' => $startsAt->copy()->addHour(),
         ]);
     }
 
@@ -1946,10 +1972,17 @@ it('does not infer country defaults for frontend form contracts', function () {
         ->json('data');
 
     $submissionCountryField = collect($submitEvent['fields'])->firstWhere('name', 'submission_country_id');
+    $submissionTimezoneField = collect($submitEvent['fields'])->firstWhere('name', 'submission_timezone');
+    $submissionTimezoneRule = collect($submitEvent['conditional_rules'] ?? [])->firstWhere('field', 'submission_timezone');
 
     expect(data_get($submitEvent, 'defaults.submission_country_id'))->toBeNull()
+        ->and(data_get($submitEvent, 'defaults.submission_timezone'))->toBeNull()
         ->and($submissionCountryField['type'])->toBe('uuid')
         ->and($submissionCountryField['allowed_values'])->toContain((string) $singapore->getKey())
+        ->and($submissionTimezoneField['type'])->toBe('string')
+        ->and($submissionTimezoneField['required'])->toBeFalse()
+        ->and($submissionTimezoneField['options_by_country'][(string) $singapore->getKey()] ?? null)->toBe([])
+        ->and($submissionTimezoneRule['required_when']['submission_country_id'] ?? null)->toBe([])
         ->and(data_get($submitInstitution, 'defaults.address.country_id'))->toBeNull();
 });
 

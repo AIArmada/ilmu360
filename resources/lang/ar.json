@@ -154,5 +154,11 @@
     "Nampak maklumat yang tidak tepat atau meragukan? Bantu komuniti dengan memaklumkan kepada kami.": "هل وجدت معلومات غير دقيقة أو مشكوكاً فيها؟ ساعد المجتمع بإبلاغنا.",
     "Pautan Institusi": "روابط المؤسسة",
     "Lihat profil rasmi": "عرض الملف الرسمي",
-    "A contribution request for this record is already pending. Please wait for it to be reviewed before submitting another.": "يوجد بالفعل طلب مساهمة لهذا السجل قيد المراجعة. يرجى الانتظار حتى تتم مراجعته قبل إرسال طلب مساهمة آخر."
+    "A contribution request for this record is already pending. Please wait for it to be reviewed before submitting another.": "يوجد بالفعل طلب مساهمة لهذا السجل قيد المراجعة. يرجى الانتظار حتى تتم مراجعته قبل إرسال طلب مساهمة آخر.",
+    "Submission timezone": "المنطقة الزمنية للفعالية",
+    "Select the event timezone for this country.": "اختر المنطقة الزمنية للفعالية لهذا البلد.",
+    "Pilih zon waktu…": "اختر المنطقة الزمنية…",
+    "Please select the event timezone.": "يرجى اختيار المنطقة الزمنية للفعالية.",
+    "The selected timezone is invalid for this country.": "المنطقة الزمنية المحددة غير صالحة لهذا البلد.",
+    "The selected country cannot accept submissions yet.": "البلد المحدد لا يمكنه قبول الإرسالات بعد."
 }

@@ -431,6 +431,19 @@ it('applies the public first-session timing rules to the advanced builder', func
         ->call('submit')
         ->assertHasErrors('form.end_time');
 
+    // 2027-03-19 is a Friday: zuhur is rejected and hidden in favor of
+    // the jumaat pair.
+    $component
+        ->set('form.event_date', '2027-03-19')
+        ->set('form.prayer_time', 'selepas_zuhur')
+        ->call('submit')
+        ->assertHasErrors('form.prayer_time');
+
+    $options = (new ReflectionMethod(CreateAdvanced::class, 'prayerTimeOptions'))->invoke($component->instance());
+
+    expect($options)->not->toHaveKey('selepas_zuhur')
+        ->toHaveKey('selepas_jumaat');
+
     $component
         ->set('form.title', 'Before Maghrib Outside Ramadan')
         ->set('form.program_starts_at', '2027-03-20T19:00')
