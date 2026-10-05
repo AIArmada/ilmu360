@@ -369,7 +369,9 @@ final readonly class AffiliatesShareTrackingService
                 return;
             }
 
-            $affiliate->links()->delete();
+            // Model deletes so the vendor callback removes the links-managed
+            // tracked rows (and their clicks); a bulk delete would orphan them.
+            $affiliate->links()->each(fn (AffiliateLink $link): ?bool => $link->delete());
             $affiliate->conversions()->delete();
             $affiliate->attributions()->each(fn (AffiliateAttribution $attribution): bool => (bool) $attribution->delete());
             $affiliate->delete();
@@ -399,16 +401,18 @@ final readonly class AffiliatesShareTrackingService
         $target = $this->shareTrackingUrlService->classifyUrl($url, $fallbackTitle);
         $resolvedOrigin = $this->resolveShareOrigin($origin);
 
+        // tracking_url is links-managed (vendor short URL); reuse matches on
+        // the persisted destination page URL instead.
         $link = AffiliateLink::query()
             ->where('affiliate_id', $affiliate->id)
-            ->where('tracking_url', $target['canonical_url'])
+            ->where('destination_url', $target['destination_url'])
             ->where('origin', $resolvedOrigin)
             ->first();
 
         if (! $link instanceof AffiliateLink && $resolvedOrigin === 'web') {
             $link = AffiliateLink::query()
                 ->where('affiliate_id', $affiliate->id)
-                ->where('tracking_url', $target['canonical_url'])
+                ->where('destination_url', $target['destination_url'])
                 ->where(function ($query): void {
                     $query
                         ->whereNull('origin')
@@ -420,7 +424,6 @@ final readonly class AffiliatesShareTrackingService
         if ($link instanceof AffiliateLink) {
             $link->fill([
                 'destination_url' => $target['destination_url'],
-                'tracking_url' => $target['canonical_url'],
                 'subject_type' => $target['subject_type'],
                 'subject_key' => $target['subject_key'],
                 'subject_id' => $target['subject_id'],
@@ -444,12 +447,13 @@ final readonly class AffiliatesShareTrackingService
             return $link;
         }
 
-        return $this->createTrackingLink->handle(
+        // tracking_url/custom_slug are prohibited inputs: the links package
+        // owns tracking_url, while custom_slug stays the app share token and
+        // is assigned directly after creation.
+        $link = $this->createTrackingLink->handle(
             affiliate: $affiliate,
             destinationUrl: $target['destination_url'],
             attributes: [
-                'tracking_url' => $target['canonical_url'],
-                'custom_slug' => $this->generateShareToken(),
                 'subject_type' => $target['subject_type'],
                 'subject_key' => $target['subject_key'],
                 'subject_id' => $target['subject_id'],
@@ -460,6 +464,11 @@ final readonly class AffiliatesShareTrackingService
                 'deactivated_at' => null,
             ],
         );
+
+        $link->custom_slug = $this->generateShareToken();
+        $link->save();
+
+        return $link;
     }
 
     private function ensureAffiliateForUser(User $user): Affiliate
@@ -989,7 +998,7 @@ final readonly class AffiliatesShareTrackingService
             subjectId: $this->nullableString($link->subject_id),
             subjectKey: (string) ($link->subject_key ?: 'page:unknown'),
             destinationUrl: (string) $link->destination_url,
-            canonicalUrl: (string) $link->tracking_url,
+            canonicalUrl: (string) $link->destination_url,
             titleSnapshot: (string) ($link->subject_title_snapshot ?: config('app.name')),
             lastSharedAt: $link->updated_at,
         );

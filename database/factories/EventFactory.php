@@ -44,6 +44,19 @@ class EventFactory extends PackageEventFactory
             }
         }
 
+        // Definition ends_at is random; a starts_at override can land after
+        // it, which the occurrence sync rejects. Coerce only the invalid
+        // combination so valid explicit windows pass through untouched.
+        $startsAt = $schedule['starts_at'] ?? null;
+        $endsAt = $schedule['ends_at'] ?? null;
+
+        if ($startsAt instanceof CarbonInterface
+            && $endsAt instanceof CarbonInterface
+            && $endsAt->lessThanOrEqualTo($startsAt)
+        ) {
+            $schedule['ends_at'] = Carbon::instance($startsAt)->addHours(2);
+        }
+
         $event = parent::newModel($attributes);
 
         if ($event instanceof Event) {
@@ -176,9 +189,10 @@ class EventFactory extends PackageEventFactory
             'timing_mode' => $isPrayerRelative ? TimingMode::PrayerRelative->value : TimingMode::Absolute->value,
             'prayer_reference' => $prayerReference?->value,
             'prayer_offset' => $prayerOffset?->value,
-            'prayer_display_text' => $prayerOffset instanceof PrayerOffset && $prayerReference instanceof PrayerReference
-                ? $prayerOffset->displayText($prayerReference)
-                : null,
+            // No lottery label: a generated label goes stale whenever the
+            // reference/offset are overridden, and the timing accessor falls
+            // back to the generic map when no explicit label is provided.
+            'prayer_display_text' => null,
 
             'gender' => fake()->randomElement(EventGenderRestriction::cases()),
             'age_group' => [fake()->randomElement(EventAgeGroup::cases())],

@@ -32,6 +32,7 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Services\ContributionEntityMutationService;
 use Carbon\CarbonImmutable;
+use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\PermissionSeeder;
 use Filament\Forms\Components\Field;
 use Filament\Forms\Components\FileUpload;
@@ -927,6 +928,10 @@ it('lets a visitor submit an event update without the normally required event fi
         'institution_id' => $institution->id,
         'description' => 'Original description',
         'starts_at' => now()->addDays(3)->setTime(20, 0),
+        // Pin absolute timing: a prayer-relative lottery draw can prefill a
+        // date-gated option (Jumaat/Tarawih) that is invalid for this date.
+        'ends_at' => now()->addDays(3)->setTime(22, 0),
+        'timing_mode' => 'absolute',
     ]);
     $event->setPrimaryOrganizer($institution);
 
@@ -1670,6 +1675,8 @@ it('prefills submit-style organizer and location fields on the event update page
 });
 
 it('normalizes submit-style organizer and location changes on the event update page', function () {
+    $this->seed(EventRoleSeeder::class);
+
     config(['events.features.owner.enabled' => false]);
     $user = User::factory()->create();
     $institution = Institution::factory()->create([

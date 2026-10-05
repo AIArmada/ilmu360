@@ -13,6 +13,7 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Venue;
 use App\Support\Cache\PublicListingsCache;
+use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
@@ -99,6 +100,8 @@ function assertHomepageStatsCacheWasCleared(array $keys): void
 }
 
 it('clears majlis listing cache when event is submitted from public submit form', function () {
+    $this->seed(EventRoleSeeder::class);
+
     $domainTag = submitEventTerm('domain');
     $disciplineTag = submitEventTerm('discipline');
     $institution = Institution::factory()->create(['status' => 'verified']);

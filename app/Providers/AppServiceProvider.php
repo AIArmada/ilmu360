@@ -356,7 +356,12 @@ class AppServiceProvider extends ServiceProvider
             }
         }
 
-        Relation::enforceMorphMap([
+        // Merged map, not enforced: organizer involvements pin fully-qualified
+        // class names (see EventOrganizerInvolvementSyncTest), and several
+        // legacy columns store them too. Newer framework versions enforce
+        // aliases on read, which fatals on those rows; the map still
+        // canonicalizes every write through getMorphClass().
+        Relation::morphMap([
             'address' => Address::class,
 
             'ai_model_pricing' => AiModelPricing::class,

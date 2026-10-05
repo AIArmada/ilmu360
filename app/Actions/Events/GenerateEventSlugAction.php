@@ -10,6 +10,8 @@ use App\Enums\EventKeyPersonRole;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
+use App\Support\Events\AdminEventTimeMapper;
+use App\Support\Events\OrganizerResolver;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -253,7 +255,10 @@ class GenerateEventSlugAction
      */
     private function personSlugSegmentsForEvent(Event $event): array
     {
-        $event->loadMissing(['persons:id,slug', 'primaryOrganizerInvolvement.involveable']);
+        // Organizer rows pin FQCN involveable types (see
+        // EventOrganizerInvolvementSyncTest), which enforced morph maps
+        // cannot resolve via MorphTo — resolve the organizer by id instead.
+        $event->loadMissing(['persons:id,slug', 'primaryOrganizerInvolvement']);
 
         $personSlugSegments = $event->persons
             ->map(function (Person $person): ?string {
@@ -271,7 +276,8 @@ class GenerateEventSlugAction
             return $personSlugSegments;
         }
 
-        $organizer = $event->primaryOrganizerInvolvement?->involveable;
+        $organizerId = $event->primaryOrganizerInvolvement?->involveable_id;
+        $organizer = $organizerId !== null ? OrganizerResolver::find((string) $organizerId) : null;
 
         if ($organizer instanceof Person && is_string($organizer->slug) && $organizer->slug !== '') {
             return [$organizer->slug];
@@ -304,6 +310,14 @@ class GenerateEventSlugAction
 
         if (! is_string($date) || trim($date) === '') {
             return null;
+        }
+
+        // Admin inputs may be localized (d/m/Y); normalize through the
+        // shared parser so slug generation accepts what the form accepts.
+        $normalized = AdminEventTimeMapper::normalizeEventDateString($date, $timezone ?: (string) config('app.timezone', 'UTC'));
+
+        if ($normalized !== null) {
+            return Carbon::parse($normalized, $timezone ?: (string) config('app.timezone', 'UTC'));
         }
 
         return Carbon::parse($date, $timezone ?: (string) config('app.timezone', 'UTC'));

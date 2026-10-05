@@ -39,6 +39,7 @@ use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
@@ -1781,7 +1782,18 @@ class SharedFormSchema
             $areaIds,
         );
 
-        return $label === null ? $fallback : __($label);
+        if ($label === null) {
+            return $fallback;
+        }
+
+        if (Lang::hasForLocale($label)) {
+            return __($label);
+        }
+
+        return implode(' / ', array_map(
+            static fn (string $typeLabel): string => __($typeLabel),
+            explode(' / ', $label),
+        ));
     }
 
     /**

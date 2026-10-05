@@ -3,8 +3,10 @@
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
+use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
 use App\Enums\InstitutionNameType;
+use App\Enums\TimingMode;
 use App\Forms\SharedFormSchema;
 use App\Livewire\Pages\Events\Index;
 use App\Livewire\Pages\SubmitEvent\Create;
@@ -94,6 +96,11 @@ it('flashes actual private parent visibility after submitting a public session',
     $event = Event::factory()->create([
         'status' => 'draft',
         'visibility' => EventVisibility::Private,
+        // Explicit window so the session prefill inherited from the parent
+        // occurrence is deterministic (the session's own end is set below).
+        'timing_mode' => TimingMode::Absolute->value,
+        'starts_at' => now()->addDays(6),
+        'ends_at' => now()->addDays(6)->addHours(2),
         'created_by_type' => $this->user->getMorphClass(),
         'created_by_id' => $this->user->getKey(),
     ]);
@@ -105,6 +112,10 @@ it('flashes actual private parent visibility after submitting a public session',
         submitEventLocationFormData([
             'title' => 'Private Parent Session Confirmation',
             'primary_organizer_id' => $institution->getKey(),
+            // Explicit session end: without it the form keeps the parent
+            // occurrence end prefill, which predates the prayer-derived
+            // start (Maghrib 19:25 in the faked API) and fails validation.
+            'end_time' => '21:00',
             'location_same_as_institution' => true,
             'persons' => [$person->getKey()],
             'domain_tags' => [$this->domainTag->getKey()],
@@ -310,4 +321,15 @@ it('keeps picker area assignment keys present for nested event locations', funct
             ],
         ])
         ->assertSet('data.address.area_assignments', array_fill_keys(SharedFormSchema::entryAreaRoles(), null));
+});
+
+it('clears a stale end time when the prayer selection moves past it', function (): void {
+    // The faked API pins Maghrib at 19:25 and Subuh at 05:50.
+    Livewire::actingAs($this->user)->test(Create::class)
+        ->set('data.end_time', '18:00')
+        ->set('data.prayer_time', EventPrayerTime::SelepasMaghrib->value)
+        ->assertSet('data.end_time', null)
+        ->set('data.end_time', '21:30')
+        ->set('data.prayer_time', EventPrayerTime::SelepasSubuh->value)
+        ->assertSet('data.end_time', '21:30');
 });

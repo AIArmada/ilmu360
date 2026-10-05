@@ -17,6 +17,7 @@ use App\Models\Reference;
 use App\Models\User;
 use App\Services\ContributionEntityMutationService;
 use App\Support\Authz\MemberPermissionGate;
+use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\LanguageSeeder;
 use Illuminate\Support\Facades\Notification;
 
@@ -258,6 +259,8 @@ it('applies structured institution updates through approval', function () {
 });
 
 it('applies structured event participant and reference updates through approval', function () {
+    $this->seed(EventRoleSeeder::class);
+
     $proposer = User::factory()->create();
     $reviewer = User::factory()->create();
     $event = Event::factory()->create([

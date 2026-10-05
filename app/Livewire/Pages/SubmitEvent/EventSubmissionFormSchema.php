@@ -378,6 +378,7 @@ final class EventSubmissionFormSchema
                                 ->afterStateUpdatedJs($this->progressUpdateJs())
                                 ->afterStateUpdated(function (Get $get, Set $set): void {
                                     $this->applyContextualDefaults($get, $set);
+                                    $this->clearIncoherentEndTime($get, $set);
                                 })
                                 ->columnSpan(['default' => 1, 'md' => 2]),
 
@@ -393,6 +394,9 @@ final class EventSubmissionFormSchema
                                     }
                                 JS)
                                 ->afterStateUpdatedJs($this->progressUpdateJs())
+                                ->afterStateUpdated(function (Get $get, Set $set): void {
+                                    $this->clearIncoherentEndTime($get, $set);
+                                })
                                 ->options(function (Get $get): array {
                                     $eventDate = $get('event_date');
                                     $countryId = $get('submission_country_id');
@@ -522,13 +526,7 @@ final class EventSubmissionFormSchema
                                         return;
                                     }
 
-                                    $startParts = explode(':', $startTime);
-                                    $endParts = explode(':', (string) $value);
-
-                                    $startMinutes = ((int) $startParts[0]) * 60 + ((int) ($startParts[1] ?? 0));
-                                    $endMinutes = ((int) $endParts[0]) * 60 + ((int) ($endParts[1] ?? 0));
-
-                                    if ($endMinutes <= $startMinutes) {
+                                    if ($this->endTimePrecedesStartTime((string) $value, $startTime)) {
                                         $fail(__('Masa akhir mestilah selepas masa mula.'));
                                     }
                                 }),
@@ -1618,6 +1616,45 @@ final class EventSubmissionFormSchema
     private function resolveStartTimeForComparison(mixed $prayerTimeValue, mixed $customTime, ?array $previewStarts = null, ?array $formState = null): ?string
     {
         return app(SubmissionTimingPolicy::class)->resolveStartTimeForComparison($prayerTimeValue, $customTime, $previewStarts, $formState);
+    }
+
+    /**
+     * Clear a prefilled end time the newly derived start has passed, so a
+     * session submit never carries a stale parent-window end into validation.
+     */
+    private function clearIncoherentEndTime(Get $get, Set $set): void
+    {
+        $endTime = $get('end_time');
+
+        if (! $endTime) {
+            return;
+        }
+
+        $startTime = $this->resolveStartTimeForComparison(
+            $get('prayer_time'),
+            $get('custom_time'),
+            $this->previewStartsForComparison($get('prayer_preview')),
+            $this->comparisonFormState($get)
+        );
+
+        if ($startTime === null) {
+            return;
+        }
+
+        if ($this->endTimePrecedesStartTime((string) $endTime, $startTime)) {
+            $set('end_time', null);
+        }
+    }
+
+    private function endTimePrecedesStartTime(string $endTime, string $startTime): bool
+    {
+        $startParts = explode(':', $startTime);
+        $endParts = explode(':', $endTime);
+
+        $startMinutes = ((int) $startParts[0]) * 60 + ((int) ($startParts[1] ?? 0));
+        $endMinutes = ((int) $endParts[0]) * 60 + ((int) ($endParts[1] ?? 0));
+
+        return $endMinutes <= $startMinutes;
     }
 
     /**

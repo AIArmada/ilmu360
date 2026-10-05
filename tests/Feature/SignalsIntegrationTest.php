@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\Events\Enums\RegistrationMode;
 use AIArmada\Signals\Models\SignalEvent;
 use AIArmada\Signals\Models\SignalIdentity;
 use AIArmada\Signals\Models\SignalSession;
@@ -68,6 +69,18 @@ it('renders event detail conversion tracking hooks', function () {
         'status' => 'approved',
         'visibility' => 'public',
         'published_at' => now(),
+    ]);
+
+    // The check-in hook only renders for events with registration, which
+    // the factory draws for 30% of events. Pin it so this test is not a
+    // lottery ticket.
+    $event->forceFill(['registration_mode' => RegistrationMode::Required->value])->save();
+    $event->accessPolicy()->create([
+        'registration_required' => true,
+        'capacity' => 100,
+        'walk_in_allowed' => false,
+        'opens_at' => now()->subDay(),
+        'closes_at' => now()->addDays(6),
     ]);
 
     $this->get(route('events.show', $event))

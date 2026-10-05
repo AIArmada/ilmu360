@@ -3108,6 +3108,7 @@ it('requires country_id when creating address areas through the admin api', func
 
 it('exposes admin event write schema and can create and update events through the api', function () {
     ensureAdminApiMalaysiaCountryExists();
+    $this->seed(EventRoleSeeder::class);
 
     $admin = adminApiUser('super_admin');
     Sanctum::actingAs($admin);
@@ -3267,6 +3268,7 @@ it('resolves admin event starts through cached provider clocks when the flag is 
 
 it('surfaces event update semantics and sparse relation rules through the admin api schema', function () {
     ensureAdminApiMalaysiaCountryExists();
+    $this->seed(EventRoleSeeder::class);
 
     $admin = adminApiUser('super_admin');
     Sanctum::actingAs($admin);
@@ -3314,6 +3316,7 @@ it('surfaces event update semantics and sparse relation rules through the admin 
 
 it('supports sparse event updates while replacing submitted relation collections through the admin api', function () {
     ensureAdminApiMalaysiaCountryExists();
+    $this->seed(EventRoleSeeder::class);
 
     $languageMalay = Language::where('code', 'ms')->first() ?? Language::query()->create([
         'code' => 'ms',
@@ -3389,6 +3392,7 @@ it('supports sparse event updates while replacing submitted relation collections
 
 it('clears event poster when clear_poster is submitted as a form-style boolean', function () {
     ensureAdminApiMalaysiaCountryExists();
+    $this->seed(EventRoleSeeder::class);
 
     $admin = adminApiUser('super_admin');
     Sanctum::actingAs($admin);

@@ -18,7 +18,11 @@
         ? \App\Support\Timezone\UserDateTimeFormatter::format($session->starts_at, 'h:i A')
         : __('TBC');
     if ($session->ends_at) {
-        $sessionTime .= ' — ' . \App\Support\Timezone\UserDateTimeFormatter::format($session->ends_at, 'h:i A');
+        $sessionViewerTimezone = \App\Support\Timezone\UserTimezoneResolver::resolve();
+        $sessionSameLocalDay = $session->starts_at
+            ? $session->starts_at->copy()->timezone($sessionViewerTimezone)->isSameDay($session->ends_at->copy()->timezone($sessionViewerTimezone))
+            : true;
+        $sessionTime .= ' — ' . \App\Support\Timezone\UserDateTimeFormatter::format($session->ends_at, $sessionSameLocalDay ? 'h:i A' : 'j M, h:i A');
     }
     $sessionLocation = $detail->primaryLocationFor($session);
     $sessionLocationLabel = $detail->locationLabel($sessionLocation);

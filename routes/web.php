@@ -93,6 +93,9 @@ Route::get('/majlis/{event:slug}/kalendar.ics', [EventsController::class, 'calen
 Route::livewire('/majlis/{event:slug}/checkout/{ticket?}', EventCheckout::class)
     ->middleware([ResolvePublicSlugRedirect::class, 'auth', 'verified', 'throttle:registration'])
     ->name('events.checkout');
+Route::get('/majlis/{event:slug}/{occurrenceSlug}/kalendar.ics', [EventsController::class, 'occurrenceCalendar'])
+    ->middleware(ResolvePublicSlugRedirect::class)
+    ->name('events.occurrence.calendar');
 Route::livewire('/majlis/{event:slug}/{occurrenceSlug}', 'pages.events.occurrence')
     ->middleware(ResolvePublicSlugRedirect::class)
     ->name('events.occurrence');
@@ -175,6 +178,9 @@ Route::middleware('auth')->group(function () {
 Route::middleware('auth')->get('/majlis/{event:slug}/pas/{pass}', EventPassController::class)
     ->middleware(ResolvePublicSlugRedirect::class)
     ->name('events.pass');
+Route::get('/majlis/{event:slug}/{occurrenceSlug}/{sessionSlug}/kalendar.ics', [EventsController::class, 'sessionCalendar'])
+    ->middleware(ResolvePublicSlugRedirect::class)
+    ->name('events.session.calendar');
 Route::livewire('/majlis/{event:slug}/{occurrenceSlug}/{sessionSlug}', 'pages.events.session')
     ->middleware(ResolvePublicSlugRedirect::class)
     ->name('events.session');

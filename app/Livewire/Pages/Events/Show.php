@@ -8,7 +8,9 @@ use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Engagement\Models\Response;
 use AIArmada\Events\Enums\RegistrationMode;
+use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventRegistration;
+use AIArmada\Events\Models\EventSession;
 use App\Actions\Events\MarkEventGoingAction;
 use App\Actions\Events\RecordEventCheckInAction;
 use App\Actions\Events\RemoveEventGoingAction;
@@ -22,9 +24,11 @@ use App\Models\EventCheckin;
 use App\Models\EventKeyPerson;
 use App\Models\EventSubmission;
 use App\Models\Institution;
+use App\Models\Language;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
+use App\Models\Venue;
 use App\Services\CalendarService;
 use App\Services\ShareTrackingService;
 use App\States\EventStatus\Approved;
@@ -32,7 +36,11 @@ use App\States\EventStatus\Cancelled;
 use App\States\EventStatus\EventStatus;
 use App\States\EventStatus\Pending;
 use App\Support\Auth\IntendedRedirect;
+use App\Support\Cache\SelectionCatalogCache;
+use App\Support\Events\EventDetailPresenter;
 use App\Support\Timezone\UserDateTimeFormatter;
+use Carbon\Carbon;
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Contracts\View\View;
@@ -72,81 +80,16 @@ class Show extends Component
 
     public function mount(Event $event): void
     {
-        $isViewable = $event->isPubliclyReachable();
-        $isOwner = $this->isEventOwner($event);
-
-        // Owners can always view their own events (drafts, pending, approved, etc)
-        if ($isOwner) {
-            // Allow access
-        }
-        // Public events: anyone can view if active and approved/pending
-        elseif ($isViewable && $event->visibility === EventVisibility::Public) {
-            // Allow access
-        }
-        // Unlisted events: anyone with link can view if active and approved/pending
-        elseif ($isViewable && $event->visibility === EventVisibility::Unlisted) {
-            // Allow access
-        }
-        // All other cases: 404
-        else {
-            abort(404);
-        }
+        $this->authorizeEventView($event);
 
         OwnerContext::withOwner(null, function () use ($event): void {
-            $publicScheduleScope = function (Relation $query) use ($event): void {
-                if ($this->isEventOwner($event)) {
-                    return;
-                }
-
-                $query
-                    ->whereIn('status', Event::PUBLIC_SCHEDULE_STATUSES)
-                    ->whereIn('visibility', Event::PUBLIC_SCHEDULE_VISIBILITIES);
-            };
-
-            $publicLocationScope = function (Relation $query) use ($event): void {
-                if ($this->isEventOwner($event)) {
-                    return;
-                }
-
-                $query
-                    ->where('status', 'active')
-                    ->where('visibility', 'public');
-            };
-
-            $publicTicketScope = function (Relation $relation): void {
-                $relation->getQuery()
-                    ->where('status', 'active')
-                    ->where('visibility', 'public')
-                    ->orderBy('sort_order')
-                    ->orderBy('name');
-            };
-
-            $publicSeatMapScope = function (Relation $relation): void {
-                $relation->getQuery()
-                    ->where('status', 'active')
-                    ->orderBy('name');
-            };
-
-            $publicLinkScope = function (Relation $relation): void {
-                $relation->getQuery()
-                    ->where('visibility', 'public')
-                    ->orderBy('sort_order')
-                    ->orderBy('label');
-            };
-
-            $publicMaterialScope = function (Relation $relation): void {
-                $relation->getQuery()
-                    ->where('visibility', 'public')
-                    ->whereNotNull('url')
-                    ->orderBy('sort_order')
-                    ->orderBy('title');
-            };
-            $capacityRegistrationScope = static function (Builder $query): void {
-                $query->whereIn(
-                    'status',
-                    config('events.lifecycle.registration.capacity_blocking_statuses', EventRegistration::CAPACITY_BLOCKING_STATUSES),
-                );
-            };
+            $publicScheduleScope = $this->publicScheduleScope($event);
+            $publicLocationScope = $this->publicLocationScope($event);
+            $publicTicketScope = $this->publicTicketScope();
+            $publicSeatMapScope = $this->publicSeatMapScope();
+            $publicLinkScope = $this->publicLinkScope();
+            $publicMaterialScope = $this->publicMaterialScope();
+            $capacityRegistrationScope = $this->capacityRegistrationScope();
 
             $event->loadCount(['registrations' => $capacityRegistrationScope]);
             $event->loadSum(['registrations' => $capacityRegistrationScope], 'total_participants');
@@ -166,17 +109,23 @@ class Show extends Component
                 'venue.addresses.city',
                 'venue.addresses.areaAssignments.area',
                 'venue.contactMethods',
+                'persons' => function (Relation $query) use ($event): void {
+                    if (! $this->isEventOwner($event)) {
+                        $query->where('event_involvements.visibility', 'public');
+                    }
+                },
                 'persons.media',
                 'persons.titleAssignments.title.category',
                 'keyPeople.person.media',
                 'keyPeople.person.titleAssignments.title.category',
-                'classifications',
+                'classifications.term',
                 'donationChannel.media',
                 'accessPolicy',
                 'series',
                 'references' => function (Relation $query) use ($event): void {
                     if (! $this->isEventOwner($event)) {
                         Reference::applyPublicVisibility($query->getQuery());
+                        $query->where(config('events.database.tables.event_references', 'event_references').'.visibility', 'public');
                     }
 
                     $query->with(['media', 'authors.titleAssignments.title.category', 'parentReference.authors.titleAssignments.title.category', 'parentReference.parentReference.authors.titleAssignments.title.category']);
@@ -226,7 +175,9 @@ class Show extends Component
                 },
                 'occurrences.locations' => $publicLocationScope,
                 'occurrences.locations.venueSpace',
-                'occurrences.accessPolicies',
+                'occurrences.accessPolicies' => static function (Relation $query): void {
+                    $query->whereNull('event_session_id');
+                },
                 'occurrences.ticketTypes' => $publicTicketScope,
                 'occurrences.ticketTypes.seatingOptions.section',
                 'occurrences.ticketTypes.inventoryLevels',
@@ -235,11 +186,10 @@ class Show extends Component
                 'occurrences.links' => $publicLinkScope,
                 'occurrences.materials' => $publicMaterialScope,
                 'occurrences.sessions.media',
-                'occurrences.sessions.involvements' => function (Relation $query) use ($event, $publicScheduleScope): void {
-                    $publicScheduleScope($query);
-
+                'occurrences.sessions.involvements' => function (Relation $query) use ($event): void {
                     if (! $this->isEventOwner($event)) {
                         $query->where('status', 'active');
+                        $query->where('visibility', 'public');
                     }
                 },
                 'occurrences.sessions.involvements.involveable',
@@ -254,13 +204,14 @@ class Show extends Component
                 'occurrences.sessions.seatMaps.sections',
                 'occurrences.sessions.links' => $publicLinkScope,
                 'occurrences.sessions.materials' => $publicMaterialScope,
-                'occurrences.timeExpressions',
+                'occurrences.timeExpressions' => static function (Relation $query): void {
+                    $query->whereNull('event_session_id');
+                },
                 'sessions.media',
-                'sessions.involvements' => function (Relation $query) use ($event, $publicScheduleScope): void {
-                    $publicScheduleScope($query);
-
+                'sessions.involvements' => function (Relation $query) use ($event): void {
                     if (! $this->isEventOwner($event)) {
                         $query->where('status', 'active');
+                        $query->where('visibility', 'public');
                     }
                 },
                 'sessions.involvements.involveable',
@@ -291,6 +242,18 @@ class Show extends Component
                 'publishedChangeAnnouncements.replacementEvent',
             ]);
 
+            $locations = $event->occurrences->flatMap(fn (EventOccurrence $occurrence) => $occurrence->locations
+                ->concat($occurrence->sessions->flatMap(fn ($session) => $session->locations)))
+                ->concat($event->sessions->flatMap(fn ($session) => $session->locations));
+            $venueIds = $locations->pluck('venue_id')->filter()->unique()->values();
+            $venues = $venueIds->isNotEmpty()
+                ? Venue::query()->with(['addresses.country', 'addresses.state', 'addresses.city', 'addresses.areaAssignments.area', 'contactMethods', 'media'])->whereKey($venueIds)->get()->keyBy('id')
+                : collect();
+
+            foreach ($locations as $location) {
+                $location->setRelation('venue', $venues->get($location->venue_id));
+            }
+
             if ($involveable = $event->primaryOrganizerInvolvement?->involveable) {
                 if ($involveable instanceof Institution) {
                     $involveable->loadMissing(['media', 'contactMethods']);
@@ -302,6 +265,17 @@ class Show extends Component
 
         $this->event = $event;
         $this->syncEngagementStates();
+    }
+
+    /**
+     * Canonical selected-scope presenter. Children override
+     * selectedOccurrence()/selectedSession() so the same boundary adapts to
+     * the date and session pages.
+     */
+    #[Computed]
+    public function detail(): EventDetailPresenter
+    {
+        return new EventDetailPresenter($this->event, $this->selectedOccurrence(), $this->selectedSession());
     }
 
     /**
@@ -367,7 +341,16 @@ class Show extends Component
     #[Computed]
     public function isPostponedWithoutConfirmedTime(): bool
     {
-        return $this->event->primaryOccurrence && in_array((string) $this->event->primaryOccurrence->status, ['postponed', 'rescheduled'], true);
+        $session = $this->selectedSession();
+
+        if ($session !== null && in_array((string) $session->status, ['postponed', 'rescheduled'], true)) {
+            return true;
+        }
+
+        $occurrence = $this->selectedOccurrence() ?? $this->event->primaryOccurrence;
+
+        return $occurrence !== null
+            && in_array((string) $occurrence->status, ['postponed', 'rescheduled'], true);
     }
 
     #[Computed]
@@ -379,6 +362,41 @@ class Show extends Component
     public function registrationMode(): RegistrationMode
     {
         return $this->event->resolvedRegistrationMode();
+    }
+
+    public function selectedOccurrence(): ?EventOccurrence
+    {
+        return null;
+    }
+
+    public function selectedSession(): ?EventSession
+    {
+        return null;
+    }
+
+    /** @return Collection<int, string> */
+    #[Computed]
+    public function languageLabels(): Collection
+    {
+        // The public languages property always resolves to catalog Language
+        // models (code/name/native) via the Event attribute override.
+        $codes = $this->event->languages
+            ->filter(fn (mixed $language): bool => $language instanceof Language)
+            ->map(fn (Language $language): ?string => $language->code)
+            ->filter(fn (mixed $code): bool => is_string($code) && $code !== '')
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($codes === []) {
+            return collect();
+        }
+
+        $labels = app(SelectionCatalogCache::class)->languageLabelsForCodes($codes);
+
+        return collect($codes)
+            ->map(fn (string $code): string => $labels[$code] ?? strtoupper($code))
+            ->values();
     }
 
     /**
@@ -401,6 +419,8 @@ class Show extends Component
     public function eventTimeStatus(): string
     {
         $now = UserDateTimeFormatter::userNow();
+        // The show page has no selected scope (both selectors return null),
+        // so the event window always applies.
         $startsAt = $this->event->starts_at;
         $endsAt = $this->effectiveEndsAt();
 
@@ -425,15 +445,32 @@ class Show extends Component
 
     protected function effectiveEndsAt(): ?CarbonInterface
     {
-        $endsAt = $this->event->ends_at;
+        $selectedSession = $this->selectedSession();
 
+        if ($selectedSession instanceof EventSession) {
+            return self::scopedEndsAt($selectedSession->starts_at, $selectedSession->ends_at);
+        }
+
+        $selectedOccurrence = $this->selectedOccurrence();
+
+        if ($selectedOccurrence instanceof EventOccurrence) {
+            return self::scopedEndsAt($selectedOccurrence->starts_at, $selectedOccurrence->ends_at);
+        }
+
+        return self::scopedEndsAt($this->event->starts_at, $this->event->ends_at);
+    }
+
+    /**
+     * Scope window end with the historical two-hour fallback, so open-ended
+     * schedules read as past once the fallback window has elapsed.
+     */
+    private static function scopedEndsAt(mixed $startsAt, mixed $endsAt): ?CarbonInterface
+    {
         if ($endsAt instanceof CarbonInterface) {
             return $endsAt;
         }
 
-        $startsAt = $this->event->starts_at;
-
-        if (! $startsAt instanceof CarbonInterface) {
+        if (! $startsAt instanceof Carbon && ! $startsAt instanceof CarbonImmutable) {
             return null;
         }
 
@@ -465,8 +502,7 @@ class Show extends Component
     public function hasAboutContent(): bool
     {
         return trim((string) $this->event->summary) !== ''
-            || $this->descriptionHtml() !== ''
-            || $this->event->classifications()->exists();
+            || $this->descriptionHtml() !== '';
     }
 
     /**
@@ -781,6 +817,112 @@ class Show extends Component
             'thumb' => $thumbnailUrl !== '' ? $thumbnailUrl : ($fullImageUrl !== '' ? $fullImageUrl : $media->getUrl()),
             'alt' => filled($media->name) ? (string) $media->name : $fallbackAlt,
         ];
+    }
+
+    /**
+     * Shared reachability gate for the event page and its schedule children:
+     * owners may always view their own events, everyone else needs a publicly
+     * reachable public or unlisted event.
+     */
+    protected function authorizeEventView(Event $event): void
+    {
+        $isViewable = $event->isPubliclyReachable();
+        $isOwner = $this->isEventOwner($event);
+
+        if ($isOwner || ($isViewable && in_array($event->visibility, [EventVisibility::Public, EventVisibility::Unlisted], true))) {
+            return;
+        }
+
+        abort(404);
+    }
+
+    protected function publicScheduleScope(Event $event): \Closure
+    {
+        return function (Relation $query) use ($event): void {
+            if ($this->isEventOwner($event)) {
+                return;
+            }
+
+            $query
+                ->whereIn('status', Event::PUBLIC_SCHEDULE_STATUSES)
+                ->whereIn('visibility', Event::PUBLIC_SCHEDULE_VISIBILITIES);
+        };
+    }
+
+    protected function publicLocationScope(Event $event): \Closure
+    {
+        return function (Relation $query) use ($event): void {
+            if ($query->getParent() instanceof EventOccurrence) {
+                $query->whereNull('event_session_id');
+            }
+
+            if ($this->isEventOwner($event)) {
+                return;
+            }
+
+            $query
+                ->where('status', 'active')
+                ->where('visibility', 'public');
+        };
+    }
+
+    protected function publicTicketScope(): \Closure
+    {
+        return function (Relation $relation): void {
+            $relation->getQuery()
+                ->where('status', 'active')
+                ->where('visibility', 'public')
+                ->orderBy('sort_order')
+                ->orderBy('name');
+        };
+    }
+
+    protected function publicSeatMapScope(): \Closure
+    {
+        return function (Relation $relation): void {
+            $relation->getQuery()
+                ->where('status', 'active')
+                ->orderBy('name');
+        };
+    }
+
+    protected function publicLinkScope(): \Closure
+    {
+        return function (Relation $relation): void {
+            if ($relation->getParent() instanceof EventOccurrence) {
+                $relation->whereNull('event_session_id');
+            }
+
+            $relation->getQuery()
+                ->where('visibility', 'public')
+                ->orderBy('sort_order')
+                ->orderBy('label');
+        };
+    }
+
+    protected function publicMaterialScope(): \Closure
+    {
+        return function (Relation $relation): void {
+            if ($relation->getParent() instanceof EventOccurrence) {
+                $relation->whereNull('event_session_id');
+            }
+
+            $relation->getQuery()
+                ->where('visibility', 'public')
+                ->whereNotNull('url')
+                ->orderBy('sort_order')
+                ->orderBy('title');
+        };
+    }
+
+    protected function capacityRegistrationScope(): \Closure
+    {
+        return static function (Builder $query): void {
+            $query->whereIn(
+                'status',
+                config('events.lifecycle.registration.capacity_blocking_statuses', EventRegistration::CAPACITY_BLOCKING_STATUSES),
+            );
+        };
     }
 
     public function render(): View

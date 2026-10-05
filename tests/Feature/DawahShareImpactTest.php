@@ -26,6 +26,7 @@ use App\Models\Series;
 use App\Models\User;
 use App\Services\ShareTrackingAnalyticsService;
 use App\Services\ShareTrackingService;
+use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -35,6 +36,8 @@ use Livewire\Livewire;
 use Tests\TestCase;
 
 beforeEach(function (): void {
+    $this->seed(EventRoleSeeder::class);
+
     $this->sharer = User::factory()->create();
 });
 
@@ -175,6 +178,30 @@ test('viewing a shareable page does not create a share link until payload is req
         ->assertOk();
 
     expect(AffiliateLink::count())->toBe(1);
+});
+
+test('deleting share tracking removes links-managed rows only for that sharer', function (): void {
+    $service = app(ShareTrackingService::class);
+    $deletedData = $service->createOrReuseLink($this->sharer, route('events.index'));
+    $otherUser = User::factory()->create();
+    $keptData = $service->createOrReuseLink($otherUser, route('events.index'));
+
+    $deletedLink = AffiliateLink::query()->findOrFail($deletedData->id);
+    $keptLink = AffiliateLink::query()->findOrFail($keptData->id);
+    $tracked = $deletedLink->trackedLink()->firstOrFail();
+    $keptTracked = $keptLink->trackedLink()->firstOrFail();
+    $click = $tracked->clicks()->create([
+        'occurred_at' => now(),
+        'ip_address' => '203.0.113.1',
+    ]);
+
+    $service->deleteUserTracking($this->sharer);
+
+    $this->assertDatabaseMissing($deletedLink->getTable(), ['id' => $deletedLink->id]);
+    $this->assertDatabaseMissing($tracked->getTable(), ['id' => $tracked->id]);
+    $this->assertDatabaseMissing($click->getTable(), ['id' => $click->id]);
+    $this->assertDatabaseHas($keptLink->getTable(), ['id' => $keptLink->id]);
+    $this->assertDatabaseHas($keptTracked->getTable(), ['id' => $keptTracked->id]);
 });
 
 test('explicit copy-link and native-share actions record outbound share touchpoints for authenticated users', function () {

@@ -3184,8 +3184,10 @@ describe('Event Detail Page', function () {
             'status' => 'verified',
         ]);
 
-        $event->persons()->attach($personOne->id);
-        $event->persons()->attach($personTwo->id);
+        // Guests only see public involvements; the app sync always writes an
+        // explicit visibility, so mirror that instead of a bare NULL attach.
+        $event->persons()->attach($personOne->id, ['visibility' => 'public']);
+        $event->persons()->attach($personTwo->id, ['visibility' => 'public']);
 
         $response = $this->get(eventShowUrl($event));
 

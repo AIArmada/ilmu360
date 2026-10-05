@@ -7,83 +7,96 @@ namespace App\Livewire\Pages\Events;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
-use App\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Services\CalendarService;
 use App\Services\PublicScheduleDiscoveryService;
 use App\Support\Events\PublicSchedulePolicy;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
-use Livewire\Component;
 
 #[Layout('layouts.app')]
-#[Title('Session Details')]
-class Session extends Component
+#[Title('Maklumat Sesi')]
+class Session extends Occurrence
 {
-    public Event $event;
-
-    public EventOccurrence $occurrence;
-
+    #[Locked]
     public EventSession $session;
 
-    public function boot(): void
+    public function mount(Event $event, string $occurrenceSlug = '', string $sessionSlug = ''): void
     {
-        OwnerContext::setForRequest(null);
-    }
+        parent::mount($event, $occurrenceSlug);
 
-    public function mount(Event $event, string $occurrenceSlug, string $sessionSlug): void
-    {
-        $discovery = app(PublicScheduleDiscoveryService::class);
-
-        // Resolve the occurrence first: it loads the public schedule set, so
-        // the reachability check below reuses the loaded relation instead of
-        // issuing its own exists query.
-        $occurrence = $discovery->findOccurrence($event, $occurrenceSlug);
-
-        if (! $this->isPublicEvent($event)) {
-            abort(404);
-        }
-
-        if (! $occurrence instanceof EventOccurrence || ! PublicSchedulePolicy::isPublicOccurrence($occurrence)) {
-            abort(404);
-        }
-
-        $session = $discovery->findSession($occurrence, $sessionSlug);
+        $session = app(PublicScheduleDiscoveryService::class)->findSession($this->occurrence, $sessionSlug);
 
         if (! $session instanceof EventSession || ! PublicSchedulePolicy::isMeaningfulSession($session)) {
             abort(404);
         }
 
-        $event->loadMissing($discovery->occurrencePageRelations());
-        $discovery->hydrateOccurrencePageVenues($event);
+        OwnerContext::withOwner(null, function () use ($session): void {
+            $session->loadMissing([
+                'media',
+                'locations' => $this->publicLocationScope($this->event),
+                'locations.venueSpace',
+                'locations.locationable' => static function (MorphTo $relation): void {
+                    $relation->morphWith([
+                        Institution::class => ['names', 'addresses.areaAssignments.area'],
+                    ]);
+                },
+                'involvements' => $this->publicInvolvementScope(),
+                'involvements.involveable' => $this->involveableEagerLoad(),
+                'involvements.role',
+                ...$this->commerceRelations(),
+            ]);
 
-        /** @var EventOccurrence|null $loadedOccurrence */
-        $loadedOccurrence = $event->occurrences->firstWhere('id', $occurrence->getKey());
+            $this->occurrence->loadMissing($this->commerceRelations());
 
-        if (! $loadedOccurrence instanceof EventOccurrence) {
-            abort(404);
+            // The selected session's own locations load after the first
+            // hydration pass, so their venues need the same application-side
+            // hydration as the rest of the schedule graph.
+            app(PublicScheduleDiscoveryService::class)->hydrateOccurrencePageVenues($this->event);
+        });
+
+        $this->session = $session;
+    }
+
+    public function selectedSession(): ?EventSession
+    {
+        return $this->session ?? null;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    #[Computed]
+    public function calendarLinks(): array
+    {
+        if ($this->eventActionsDisabled()
+            || (string) $this->selectedOccurrence()?->status === 'cancelled'
+            || (string) $this->selectedSession()?->status === 'cancelled') {
+            return [];
         }
 
-        /** @var EventSession|null $loadedSession */
-        $loadedSession = $loadedOccurrence->sessions->firstWhere('id', $session->getKey());
+        $session = $this->selectedSession();
 
-        if (! $loadedSession instanceof EventSession) {
-            abort(404);
+        if (! $session instanceof EventSession) {
+            return parent::calendarLinks();
         }
 
-        $loadedSession->loadMissing([
-            'locations.locationable' => static function (MorphTo $relation): void {
-                $relation->morphWith([
-                    Institution::class => ['names', 'addresses.areaAssignments.area'],
-                ]);
-            },
-        ]);
+        return app(CalendarService::class)->getAllCalendarLinksFor($this->event, $session, $this->selectedOccurrence());
+    }
 
-        $this->event = $event;
-        $this->occurrence = $loadedOccurrence;
-        $this->session = $loadedSession;
+    /**
+     * Session pages pay for the session leaf plus its parent date commerce;
+     * sibling sessions never widen the budget.
+     */
+    protected function loadSelectedCommerce(): void
+    {
+        // Intentionally empty: commerce loads for the selected session and its
+        // parent date in mount().
     }
 
     public function render(): View
@@ -91,16 +104,64 @@ class Session extends Component
         return view('livewire.pages.events.session');
     }
 
-    private function isPublicEvent(Event $event): bool
+    #[Computed]
+    public function descriptionHtml(): string
     {
-        $visibility = $event->visibility instanceof EventVisibility
-            ? $event->visibility->value
-            : (string) $event->visibility;
+        $description = trim((string) ($this->selectedSession()->description ?? ''));
 
-        return $event->isPubliclyReachable()
-            && in_array($visibility, [
-                EventVisibility::Public->value,
-                EventVisibility::Unlisted->value,
-            ], true);
+        return $description !== '' ? nl2br(e($description)) : parent::descriptionHtml();
+    }
+
+    /**
+     * Own poster and gallery first, then the parent date and event visuals.
+     *
+     * @return array<int, array{url: string, thumb: string, alt: string}>
+     */
+    #[Computed]
+    public function galleryImages(): array
+    {
+        $images = [];
+        $imageCounter = 1;
+        $seen = [];
+
+        $collect = function (iterable $mediaItems) use (&$images, &$imageCounter, &$seen): void {
+            foreach ($mediaItems as $media) {
+                $key = (string) $media->getKey();
+
+                if (isset($seen[$key])) {
+                    continue;
+                }
+
+                $seen[$key] = true;
+                $images[] = $this->buildGalleryImagePayload(
+                    $media,
+                    __('Photo :number', ['number' => $imageCounter++])
+                );
+            }
+        };
+
+        $session = $this->selectedSession();
+
+        if ($session instanceof EventSession) {
+            $collect($session->getMedia('poster'));
+            $collect($session->getMedia('gallery'));
+        }
+
+        $occurrence = $this->selectedOccurrence();
+
+        if ($occurrence instanceof EventOccurrence) {
+            $collect($occurrence->getMedia('poster'));
+            $collect($occurrence->getMedia('gallery'));
+        }
+
+        $collect($this->event->getMedia('gallery'));
+
+        return $images;
+    }
+
+    #[Computed]
+    public function hasAboutContent(): bool
+    {
+        return filled($this->selectedSession()?->summary) || $this->descriptionHtml() !== '';
     }
 }

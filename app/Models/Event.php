@@ -21,6 +21,7 @@ use AIArmada\Events\Models\EventInvolvement;
 use AIArmada\Events\Models\EventLanguage;
 use AIArmada\Events\Models\EventLink;
 use AIArmada\Events\Models\EventLocation;
+use AIArmada\Events\Models\EventMaterial;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventReference;
 use AIArmada\Events\Models\EventRole;
@@ -440,6 +441,13 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
     public function links(): HasMany
     {
         return parent::links()->whereNull('event_occurrence_id')->whereNull('event_session_id');
+    }
+
+    /** @return HasMany<EventMaterial, $this> */
+    #[\Override]
+    public function materials(): HasMany
+    {
+        return parent::materials()->whereNull('event_occurrence_id')->whereNull('event_session_id');
     }
 
     /** @return HasMany<EventAudience, $this> */
@@ -2242,6 +2250,12 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
     public function getTimingDisplayAttribute(): string
     {
         if ($this->isPrayerRelative()) {
+            // An explicit custom label always wins over the generic
+            // reference/offset label (e.g. a Tarawih event mistagged Isyak).
+            if ($this->prayer_display_text) {
+                return __($this->prayer_display_text);
+            }
+
             $prayerReference = $this->prayer_reference instanceof PrayerReference
                 ? $this->prayer_reference
                 : PrayerReference::tryFrom((string) $this->prayer_reference);
@@ -2252,10 +2266,6 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
 
             if ($prayerTime instanceof EventPrayerTime) {
                 return $prayerTime->getLabel();
-            }
-
-            if ($this->prayer_display_text) {
-                return $this->prayer_display_text;
             }
         }
 

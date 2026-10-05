@@ -17,7 +17,10 @@
 @endpush
 
 @php
-    $detail = new \App\Support\Events\EventDetailPresenter($event);
+    $selectedOccurrence = $this->selectedOccurrence();
+    $selectedSession = $this->selectedSession();
+    $displayTitle = $selectedSession?->title ?: ($selectedOccurrence?->title ?: $event->title);
+    $detail = $this->detail;
     $eventOccurrences = $detail->occurrences();
     $singleOccurrence = $detail->singleOccurrence();
     $singleOccurrenceSessions = $singleOccurrence ? $detail->sessionsFor($singleOccurrence) : collect();
@@ -41,14 +44,18 @@
     $singleOccurrenceLocationRecord = $singleOccurrence instanceof \AIArmada\Events\Models\EventOccurrence
         ? $detail->primaryLocationFor($singleOccurrence)
         : null;
-    $mergedLocationRecord = $singleOccurrenceLocationRecord ?? $eventLocationRecord;
+    $mergedLocationRecord = ($selectedSession ? $detail->primaryLocationFor($selectedSession) : null) ?? $singleOccurrenceLocationRecord ?? $eventLocationRecord;
     $mergedLocationLabel = $detail->locationLabel($mergedLocationRecord);
-    $displayStartsAt = $singleOccurrence?->starts_at ?? $event->starts_at;
-    $displayEndsAt = $singleOccurrence?->ends_at ?? $event->ends_at;
+    $displayStartsAt = $selectedSession?->starts_at ?? $singleOccurrence?->starts_at ?? $event->starts_at;
+    $displayEndsAt = $selectedSession?->ends_at ?? $singleOccurrence?->ends_at ?? $event->ends_at;
     $locationAddress = $mergedLocationRecord?->primaryAddress();
     $primaryAddress = $locationAddress ?? $event->resolvedLocationAddress();
-    $lat = $primaryAddress?->latitude ?? $primaryAddress?->lat;
-    $lng = $primaryAddress?->longitude ?? $primaryAddress?->lng;
+    $viewerTimezone = \App\Support\Timezone\UserTimezoneResolver::resolve();
+    $displaySameLocalDay = $displayStartsAt && $displayEndsAt
+        ? $displayStartsAt->copy()->timezone($viewerTimezone)->isSameDay($displayEndsAt->copy()->timezone($viewerTimezone))
+        : true;
+    $lat = $primaryAddress?->latitude;
+    $lng = $primaryAddress?->longitude;
     $addressDisplayLines = \App\Support\Location\AddressHierarchyFormatter::displayLines($primaryAddress);
     $locationParts = \App\Support\Location\AddressHierarchyFormatter::parts($primaryAddress);
     $locationState = $locationParts[1] ?? null;
@@ -60,7 +67,7 @@
         ? ($locationAddress->metadata['directions'] ?? null)
         : null;
     $mapQuery = implode(', ', array_filter([
-        $event->venue?->name ?? $event->institution?->name,
+        $mergedLocationRecord?->venue?->name ?? $event->venue?->name ?? $event->institution?->name,
         $mergedLocationLabel,
         $primaryAddress?->line1,
         $primaryAddress?->line2,
@@ -100,21 +107,23 @@
     $registrationMode = $this->registrationMode();
     $descriptionHtml = $this->descriptionHtml;
     $hasAboutContent = $this->hasAboutContent;
-    $eventSummary = trim((string) $event->summary);
+    $eventSummary = trim((string) ($selectedSession?->summary ?? $event->summary));
     $heroTimeExpression = $singleOccurrence
         ? ($detail->timeExpressionsFor($singleOccurrence)->first() ?? $event->timeExpressions->first())
         : $event->timeExpressions->first();
-    $eventActionsDisabled = $this->eventActionsDisabled;
+    $eventActionsDisabled = $this->eventActionsDisabled || ($selectedOccurrence !== null && $detail->scopeActionsDisabled($selectedOccurrence)) || ($selectedSession !== null && $detail->scopeActionsDisabled($selectedSession));
     $isPostponedWithoutConfirmedTime = $this->isPostponedWithoutConfirmedTime;
     $isCancelledStatus = $event->status instanceof \App\States\EventStatus\Cancelled || (string) $event->status === 'cancelled';
     $checkInState = $this->checkInState;
     $checkInActionDisabled = auth()->check() && ! $checkInState['available'] && ! $this->isCheckedIn;
-    $isOnlineFormat = (string) $event->delivery_mode === \App\Enums\EventFormat::Online->value;
-    $isHybridFormat = (string) $event->delivery_mode === \App\Enums\EventFormat::Hybrid->value;
-    $formatLabel = $event->delivery_mode instanceof \App\Enums\EventFormat
-        ? $event->delivery_mode->getLabel()
-        : ($isOnlineFormat ? __('Dalam talian') : ($isHybridFormat ? __('Hibrid') : __('Fizikal')));
-    $scheduleKindLabel = $event->schedule_kind?->label();
+    $isOnlineFormat = (string) ($selectedSession?->delivery_mode ?? $selectedOccurrence?->delivery_mode ?? $event->delivery_mode) === \App\Enums\EventFormat::Online->value;
+    $isHybridFormat = (string) ($selectedSession?->delivery_mode ?? $selectedOccurrence?->delivery_mode ?? $event->delivery_mode) === \App\Enums\EventFormat::Hybrid->value;
+    $formatLabel = $isOnlineFormat ? __('Dalam talian') : ($isHybridFormat ? __('Hibrid') : __('Fizikal'));
+    $scheduleKindLabel = match (true) {
+        $eventOccurrences->count() > 1 => __('Pelbagai tarikh'),
+        $singleOccurrenceSessions->count() > 1 => __('Pelbagai sesi'),
+        default => null,
+    };
     $eventStatus = (string) $event->status;
     $statusLabel = match ($eventStatus) {
         'pending' => __('Pending Approval'),
@@ -135,7 +144,7 @@
         '3:4' => 'aspect-[3/4]',
         default => 'aspect-[16/9]',
     };
-    $eventCoverUrl = $event->getFirstMedia('cover')?->getAvailableUrl(['banner', 'thumb']) ?? '';
+    $eventCoverUrl = ($selectedSession?->getFirstMedia('cover') ?? $selectedOccurrence?->getFirstMedia('cover') ?? $event->getFirstMedia('cover'))?->getAvailableUrl(['banner', 'thumb']) ?? '';
     $heroImage = $eventCoverUrl;
     if ($heroImage === '') {
         $heroImage = $event->institution?->getFirstMedia('cover')?->getAvailableUrl(['banner']) ?? '';
@@ -168,15 +177,16 @@
         ->filter(fn ($classification): bool => $classification->term !== null);
     $classificationLabels = $classifications->map(fn ($classification): string => (string) $classification->term->name)->unique()->values();
     $ageGroupLabels = collect($event->age_group ?? [])
-        ->map(fn ($group): ?string => is_object($group) && method_exists($group, 'getLabel') ? $group->getLabel() : (is_string($group) ? $group : null))
+        ->map(fn ($group): ?string => $group instanceof \App\Enums\EventAgeGroup ? $group->getLabel() : (is_string($group) ? \App\Enums\EventAgeGroup::tryFrom($group)?->getLabel() : null))
         ->filter()
         ->values();
     $genderLabel = $event->gender instanceof \App\Enums\EventGenderRestriction
         ? $event->gender->getLabel()
-        : null;
-    $primaryLanguage = $event->languages->first();
-    $languageLabel = $primaryLanguage?->name ?? __('Bahasa Melayu');
+        : (is_string($event->gender) ? \App\Enums\EventGenderRestriction::tryFrom($event->gender)?->getLabel() : null);
+    $languageLabels = $this->languageLabels;
+    $languageLabel = $languageLabels->implode(', ');
     $audienceLabels = $event->audiences
+        ->reject(fn ($audience): bool => in_array($audience->audience_type, ['gender', 'age_group', 'religion'], true))
         ->map(fn ($audience): ?string => filled($audience->value) ? (string) $audience->value : null)
         ->filter()
         ->values();
@@ -307,7 +317,7 @@
         <div class="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(217,164,65,0.24),transparent_30%),linear-gradient(120deg,#173c34,#102b28)]" aria-hidden="true"></div>
         <div class="absolute -right-24 -top-24 size-80 rounded-full border border-[#e1b24f]/20" aria-hidden="true"></div>
         <div class="absolute -right-10 -top-10 size-52 rounded-full border border-[#e1b24f]/15" aria-hidden="true"></div>
-        <div class="relative mx-auto grid max-w-7xl gap-10 px-5 py-12 sm:px-8 lg:grid-cols-[minmax(0,1fr)_minmax(250px,360px)] lg:items-end lg:px-12 lg:py-16">
+        <div class="relative mx-auto grid max-w-7xl gap-10 px-5 py-12 sm:px-8 {{ $eventHasPoster ? 'lg:grid-cols-[minmax(0,1fr)_minmax(250px,360px)]' : '' }} lg:items-end lg:px-12 lg:py-16">
             <div class="max-w-3xl">
                 <div class="flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.22em] text-[#f2c867]">
                     <span class="inline-flex items-center gap-2"><span class="size-2 rounded-full bg-[#f2c867]"></span>{{ __('Majlis Ilmu') }}</span>
@@ -317,13 +327,21 @@
                 </div>
                 <div class="mt-6 flex max-w-2xl items-start gap-4">
                     <span class="mt-1 hidden h-24 w-1 shrink-0 rounded-full bg-[#f2c867] sm:block" aria-hidden="true"></span>
-                    <h1 class="font-heading text-4xl font-semibold leading-[0.98] tracking-[-0.04em] sm:text-5xl lg:text-7xl">{{ $event->title }}</h1>
+                    <h1 class="font-heading text-4xl font-semibold leading-[0.98] tracking-[-0.04em] sm:text-5xl lg:text-7xl">{{ $displayTitle }}</h1>
                 </div>
+                @if($selectedOccurrence)<a href="{{ route('events.show', $event) }}" wire:navigate class="mt-4 inline-block text-sm font-semibold text-[#f2c867] underline underline-offset-4">{{ $event->title }} · {{ __('Lihat semua tarikh') }}</a>@endif
                 @if($eventSummary !== '')
                     <p class="mt-5 max-w-2xl text-base leading-7 text-white/70 sm:text-lg">{{ $eventSummary }}</p>
                 @endif
                 <div class="mt-7 flex flex-wrap items-center gap-2">
                     <span class="inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-bold {{ $statusTone }}">{{ $statusLabel }}</span>
+                    @if(!$hasRegistration && $ticketEntries->isEmpty())
+                        <span data-testid="event-walk-in-summary" class="rounded-full bg-[#f2c867] px-3 py-1.5 text-xs font-bold text-[#173c34]">{{ __('Hadir terus · Tanpa pendaftaran') }}</span>
+                    @elseif($hasPaidTickets)
+                        <a href="#admission" class="rounded-full bg-[#f2c867] px-3 py-1.5 text-xs font-bold text-[#173c34]">{{ __('Pilihan pendaftaran & tiket') }}</a>
+                    @else
+                        <a href="#admission" class="rounded-full bg-[#f2c867] px-3 py-1.5 text-xs font-bold text-[#173c34]">{{ __('Daftar kehadiran') }}</a>
+                    @endif
                     @foreach($classificationLabels->take(4) as $classificationLabel)
                         <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/80">{{ $classificationLabel }}</span>
                     @endforeach
@@ -337,19 +355,22 @@
                             <p class="text-xs font-bold uppercase tracking-[0.16em] text-white/45">{{ __('Bila') }}</p>
                             @if($displayStartsAt)
                                 <time class="mt-1 block font-semibold text-white" datetime="{{ $displayStartsAt->toIso8601String() }}">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($displayStartsAt, 'l, j F Y') }}</time>
-                                <p class="mt-1 text-white/65">{{ \App\Support\Timezone\UserDateTimeFormatter::format($displayStartsAt, 'h:i A') }}@if($displayEndsAt) — {{ \App\Support\Timezone\UserDateTimeFormatter::format($displayEndsAt, 'h:i A') }}@endif</p>
+                                <p class="mt-1 text-white/65">{{ \App\Support\Timezone\UserDateTimeFormatter::format($displayStartsAt, 'h:i A') }}@if($displayEndsAt) — {{ \App\Support\Timezone\UserDateTimeFormatter::format($displayEndsAt, $displaySameLocalDay ? 'h:i A' : 'j M, h:i A') }}@endif</p>
                                 @if($heroTimeExpression?->display_label)<p class="mt-1 text-sm font-semibold text-[#f2c867]">{{ $heroTimeExpression->display_label }}</p>@endif
                             @else
                                 <p class="mt-1 font-semibold text-white">{{ __('Tarikh Akan Dikemaskini') }}</p>
                             @endif
                         </div>
                     </div>
+                    @if(filled($event->reference_study_subtitle))
                     <div class="flex gap-3" data-testid="event-hero-reference">
                         <span class="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl border border-[#f2c867]/40 bg-[#f2c867]/10 text-[#f2c867]">
                             <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332 1.253-4.5 1.253" /></svg>
                         </span>
-                        <div><p class="text-xs font-bold uppercase tracking-[0.16em] text-white/45">{{ __('Rujukan') }}</p><p class="mt-1 font-semibold text-white">{{ $event->reference_study_subtitle ?: __('Tiada rujukan dinyatakan') }}</p></div>
+                        <div><p class="text-xs font-bold uppercase tracking-[0.16em] text-white/45">{{ __('Rujukan') }}</p><p class="mt-1 font-semibold text-white">{{ $event->reference_study_subtitle }}</p></div>
                     </div>
+                    @endif
+                    @if(!$isOnlineFormat)
                     <div class="flex gap-3 sm:col-span-2" data-testid="event-hero-location">
                         <span class="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl border border-white/15 bg-white/10 text-[#f2c867]">
                             <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg>
@@ -361,6 +382,7 @@
                             @if($locationShortLabel !== '')<p class="mt-1 text-white/65">{{ $locationShortLabel }}</p>@endif
                         </div>
                     </div>
+                    @endif
                 </div>
             </div>
             <div class="relative mx-auto w-full max-w-[360px] lg:mx-0 lg:justify-self-end">
@@ -368,15 +390,6 @@
                     <button type="button" @click="posterModalOpen = true" data-signal-event="engagement.poster_opened" data-signal-category="engagement" data-signal-component="event_detail_hero" data-signal-control="poster" data-signal-entity-type="event" data-signal-entity-id="{{ $event->id }}" class="group block w-full overflow-hidden rounded-2xl bg-[#f8f2e6] p-2 text-left shadow-2xl shadow-black/25 ring-1 ring-white/20 transition motion-safe:hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#f2c867]" aria-label="{{ __('Lihat poster penuh') }}">
                         <div class="relative overflow-hidden rounded-xl {{ $posterAspectClass }} bg-slate-900" data-poster-aspect="{{ $eventPosterDisplayAspectRatio }}"><img src="{{ $eventPosterPreviewUrl }}" alt="{{ $event->title }}" class="size-full object-contain" loading="eager"><span class="absolute bottom-3 right-3 rounded-full bg-[#173c34]/85 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-sm">{{ __('Lihat poster') }}</span></div>
                     </button>
-                @else
-                    <div class="relative overflow-hidden rounded-2xl border border-white/15 bg-white/[0.04] p-6">
-                        <div class="absolute right-5 top-5 size-20 rounded-full border border-[#f2c867]/25" aria-hidden="true"></div>
-                        <div class="absolute right-10 top-10 size-10 rounded-full bg-[#f2c867]/15" aria-hidden="true"></div>
-                        <p class="text-xs font-bold uppercase tracking-[0.2em] text-[#f2c867]">{{ __('Program') }}</p>
-                        <p class="mt-16 max-w-[12rem] font-heading text-3xl leading-none text-white/90">{{ __('Catatan majlis') }}</p>
-                        <p class="mt-4 text-sm leading-6 text-white/55">{{ __('Satu ruang untuk masa, manusia, tempat dan ilmu yang akan dikongsi.') }}</p>
-                        <div class="mt-10 h-px bg-white/15"></div><p class="mt-4 text-xs font-bold uppercase tracking-[0.15em] text-white/40">ilmu360°</p>
-                    </div>
                 @endif
             </div>
         </div>
@@ -385,7 +398,7 @@
     <div class="relative z-20 mx-auto -mt-5 max-w-7xl px-5 sm:px-8 lg:px-12">
         <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl shadow-slate-900/10">
             <div class="flex flex-wrap items-center gap-2">
-                @if(!$eventActionsDisabled && (!$event->starts_at || !$event->starts_at->isPast()))
+                @if(!$eventActionsDisabled && (!$displayStartsAt || !$displayStartsAt->isPast()))
                     <button type="button" wire:click="toggleGoing" wire:loading.attr="disabled" data-signal-event="engagement.event_going_clicked" data-signal-category="engagement" data-signal-component="event_detail_actions" data-signal-control="going" data-signal-entity-type="event" data-signal-entity-id="{{ $event->id }}" data-signal-props='@json(['currently_going' => $this->isGoing])' class="inline-flex items-center gap-2 rounded-xl bg-[#173c34] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#21594c] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#173c34]">
                         <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         {{ $this->isGoing ? __('Hadir') : __('Akan Hadir') }} @if($this->goingCount > 0)<span class="rounded-full bg-white/15 px-2 py-0.5 text-xs">{{ $this->goingCount }}</span>@endif
@@ -397,16 +410,20 @@
                     <button type="button" wire:click="toggleSave" wire:loading.attr="disabled" data-signal-event="engagement.event_save_clicked" data-signal-category="engagement" data-signal-component="event_detail_actions" data-signal-control="save" data-signal-entity-type="event" data-signal-entity-id="{{ $event->id }}" data-signal-props='@json(['currently_saved' => $this->isSaved])' class="inline-flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-bold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#173c34] {{ $this->isSaved ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50' }}">
                         <svg class="size-4 {{ $this->isSaved ? 'fill-current' : '' }}" viewBox="0 0 24 24" fill="{{ $this->isSaved ? 'currentColor' : 'none' }}" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg>{{ $this->isSaved ? __('Disimpan') : __('Simpan') }}
                     </button>
+                    @if($hasRegistration || $ticketEntries->isNotEmpty())
                     <button type="button" wire:click="checkIn" wire:loading.attr="disabled" @disabled($checkInActionDisabled) data-signal-event="engagement.event_check_in_clicked" data-signal-category="engagement" data-signal-component="event_detail_actions" data-signal-control="check_in" data-signal-entity-type="event" data-signal-entity-id="{{ $event->id }}" data-signal-props='@json(['available' => !$checkInActionDisabled, 'checked_in' => $this->isCheckedIn])' @if($checkInActionDisabled && filled($checkInState['reason'])) title="{{ $checkInState['reason'] }}" @endif class="inline-flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-bold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#173c34] {{ $this->isCheckedIn ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : ($checkInActionDisabled ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400' : 'border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50') }}">
                         <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>{{ $this->isCheckedIn ? __('Sudah Check-in') : __('Check-in') }}
                     </button>
+                    @endif
                 @else
                     <button type="button" wire:click="toggleSave" wire:loading.attr="disabled" data-signal-event="engagement.event_save_clicked" data-signal-category="engagement" data-signal-component="event_detail_actions" data-signal-control="save" data-signal-entity-type="event" data-signal-entity-id="{{ $event->id }}" data-signal-props='@json(['currently_saved' => false])' class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#173c34]">
                         <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg>{{ __('Simpan') }}
                     </button>
+                    @if($hasRegistration || $ticketEntries->isNotEmpty())
                     <button type="button" wire:click="checkIn" wire:loading.attr="disabled" data-signal-event="engagement.event_check_in_clicked" data-signal-category="engagement" data-signal-component="event_detail_actions" data-signal-control="check_in" data-signal-entity-type="event" data-signal-entity-id="{{ $event->id }}" data-signal-props='@json(['available' => false, 'checked_in' => false])' class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-500 transition hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#173c34]">
                         <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>{{ __('Check-in') }}
                     </button>
+                    @endif
                     <a href="{{ \App\Support\Auth\IntendedRedirect::registerUrl(route('events.show', $event)) }}" class="inline-flex items-center rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-[#173c34] hover:text-[#173c34]">{{ __('Daftar Akaun') }}</a>
                     <a href="{{ \App\Support\Auth\IntendedRedirect::loginUrl(route('events.show', $event)) }}" class="inline-flex items-center rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-[#173c34] hover:text-[#173c34]">{{ __('Log Masuk') }}</a>
                 @endauth
@@ -481,7 +498,7 @@
                     <div class="flex items-end justify-between gap-4 border-b border-[#173c34]/15 pb-4">
                         <div>
                             <p class="text-xs font-bold uppercase tracking-[0.2em] text-[#b27b1b]">{{ __('Konteks') }}</p>
-                            <h2 class="mt-2 font-heading text-3xl font-semibold tracking-tight text-[#173c34]">{{ __('About this Event') }}</h2>
+                            <h2 class="mt-2 font-heading text-3xl font-semibold tracking-tight text-[#173c34]">{{ __('Tentang majlis') }}</h2>
                         </div>
                         <span class="hidden font-mono text-xs text-slate-400 sm:block">01 / 06</span>
                     </div>
@@ -552,7 +569,7 @@
                     <div class="flex items-end justify-between gap-4 border-b border-[#173c34]/15 pb-4">
                         <div>
                             <p class="text-xs font-bold uppercase tracking-[0.2em] text-[#b27b1b]">{{ __('People') }}</p>
-                            <h2 class="mt-2 font-heading text-3xl font-semibold tracking-tight text-[#173c34]">{{ __('Speakers') }}</h2>
+                            <h2 class="mt-2 font-heading text-3xl font-semibold tracking-tight text-[#173c34]">{{ __('Penceramah') }}</h2>
                         </div>
                         <span class="hidden font-mono text-xs text-slate-400 sm:block">03 / 06</span>
                     </div>
@@ -640,7 +657,7 @@
                     <div class="flex items-end justify-between gap-4 border-b border-[#173c34]/15 pb-4">
                         <div>
                             <p class="text-xs font-bold uppercase tracking-[0.2em] text-[#b27b1b]">{{ __('Practical details') }}</p>
-                            <h2 class="mt-2 font-heading text-3xl font-semibold tracking-tight text-[#173c34]">{{ __('Location') }}</h2>
+                            <h2 class="mt-2 font-heading text-3xl font-semibold tracking-tight text-[#173c34]">{{ __('Lokasi') }}</h2>
                         </div>
                     </div>
                     <div class="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -724,28 +741,30 @@
 
         <aside class="space-y-5 lg:sticky lg:top-6 lg:self-start">
             <section class="rounded-2xl bg-[#173c34] p-6 text-white shadow-xl shadow-[#173c34]/15">
-                <p class="text-xs font-bold uppercase tracking-[0.2em] text-[#f2c867]">{{ __('At a glance') }}</p>
+                <p class="text-xs font-bold uppercase tracking-[0.2em] text-[#f2c867]">{{ __('Maklumat majlis') }}</p>
                 <div class="mt-6 space-y-5">
                     <div><p class="text-xs font-bold uppercase tracking-[0.14em] text-white/45">{{ __('Format') }}</p><p class="mt-1 font-semibold">{{ $formatLabel }}</p></div>
-                    <div><p class="text-xs font-bold uppercase tracking-[0.14em] text-white/45">{{ __('Bahasa') }}</p><p class="mt-1 font-semibold">{{ $languageLabel }}</p></div>
+                    @if($languageLabels->isNotEmpty())<div><p class="text-xs font-bold uppercase tracking-[0.14em] text-white/45">{{ __('Bahasa') }}</p><p class="mt-1 font-semibold">{{ $languageLabel }}</p></div>@endif
                     @if($eventOccurrences->count() > 1)<div><p class="text-xs font-bold uppercase tracking-[0.14em] text-white/45">{{ __('Jadual') }}</p><p class="mt-1 font-semibold">{{ $eventOccurrences->count() }} {{ __('tarikh') }}</p></div>@endif
-                    @if($genderLabel)<div><p class="text-xs font-bold uppercase tracking-[0.14em] text-white/45">{{ __('Audience') }}</p><p class="mt-1 font-semibold">{{ $genderLabel }}</p></div>@endif
-                    @if($ageGroupLabels->isNotEmpty())<div><p class="text-xs font-bold uppercase tracking-[0.14em] text-white/45">{{ __('Age group') }}</p><p class="mt-1 font-semibold">{{ $ageGroupLabels->implode(', ') }}</p></div>@endif
+                    @if($genderLabel)<div><p class="text-xs font-bold uppercase tracking-[0.14em] text-white/45">{{ __('Kehadiran') }}</p><p class="mt-1 font-semibold">{{ $genderLabel }}</p></div>@endif
+                    @if($ageGroupLabels->isNotEmpty())<div><p class="text-xs font-bold uppercase tracking-[0.14em] text-white/45">{{ __('Peringkat umur') }}</p><p class="mt-1 font-semibold">{{ $ageGroupLabels->implode(', ') }}</p></div>@endif
                 </div>
                 @if($audienceLabels->isNotEmpty())<div class="mt-6 border-t border-white/15 pt-5"><p class="text-xs font-bold uppercase tracking-[0.14em] text-white/45">{{ __('Sasaran') }}</p><div class="mt-3 flex flex-wrap gap-2">@foreach($audienceLabels as $audienceLabel)<span class="rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/80">{{ $audienceLabel }}</span>@endforeach</div></div>@endif
+                @if($event->is_muslim_only)<p class="mt-5 rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold">{{ __('Untuk Muslim sahaja') }}</p>@endif
+                @if($event->children_allowed === false)<p class="mt-5 rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold">{{ __('Kanak-kanak tidak dibenarkan') }}</p>@endif
                 @if($audienceProfile?->is_child_friendly)<p class="mt-5 rounded-xl bg-[#f2c867]/15 px-3 py-2 text-xs font-semibold text-[#f7d98b]">{{ __('Mesra kanak-kanak') }}</p>@endif
             </section>
 
             @if($hasAdmissionDetails)
                 @php
-                    $ticketRequired = $ticketEntries->isNotEmpty() || $policyEntries->contains(fn (array $entry): bool => (bool) $entry['policy']->ticket_required);
+                    $ticketRequired = $ticketEntries->contains(fn (array $entry): bool => $detail->admissionKind($entry['ticket']) === 'ticket') || $policyEntries->contains(fn (array $entry): bool => (bool) $entry['policy']->ticket_required);
                     $approvalRequired = $policyEntries->contains(fn (array $entry): bool => (bool) $entry['policy']->approval_required);
                     $waitlistEnabled = $policyEntries->contains(fn (array $entry): bool => (bool) $entry['policy']->waitlist_enabled);
                     $seatingRequiredByPolicy = $policyEntries->contains(fn (array $entry): bool => (bool) $entry['policy']->seating_required);
                     $ticketScopeCount = $ticketEntries->pluck('scope_label')->unique()->count();
                 @endphp
                 <section id="admission" data-testid="event-admission-section" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                    <p class="text-xs font-bold uppercase tracking-[0.2em] text-[#b27b1b]">{{ __('Admission') }}</p>
+                    <p class="text-xs font-bold uppercase tracking-[0.2em] text-[#b27b1b]">{{ __('Kemasukan') }}</p>
                     <h2 class="mt-2 font-heading text-2xl font-semibold text-[#173c34]">{{ __('Cara masuk') }}</h2>
                     <div class="mt-4 flex flex-wrap gap-2">
                         @if($ticketRequired)<span class="rounded-full bg-[#e8f0e8] px-2.5 py-1.5 text-xs font-bold text-[#173c34]">{{ __('Tiket / pas') }}</span>@endif
@@ -758,87 +777,12 @@
                     @if($ticketEntries->isNotEmpty())
                         <div class="mt-5 space-y-3">
                             @foreach($ticketEntries as $ticketEntry)
-                                @php
-                                    $ticket = $ticketEntry['ticket'];
-                                    $ticketPrice = $ticket->price === null || (int) $ticket->price === 0
-                                        ? __('Percuma')
-                                        : \AIArmada\CommerceSupport\Support\MoneyFormatter::formatMinor((int) $ticket->price, $ticket->currency ?: 'MYR');
-                                    $ticketSeatingMode = $ticket->seating_mode;
-                                    $ticketSections = $ticket->seatingOptions
-                                        ->map(fn ($option) => $option->section?->name)
-                                        ->filter()
-                                        ->unique()
-                                        ->values();
-                                @endphp
-                                <article class="rounded-2xl border border-slate-200 bg-[#fbfaf7] p-4">
-                                    <div class="flex items-start justify-between gap-3">
-                                        <div class="min-w-0">
-                                            <h3 class="font-semibold text-[#173c34]">{{ $ticket->name }}</h3>
-                                            @if($ticketScopeCount > 1 || $ticketEntry['scope_type'] !== 'event')<p class="mt-1 text-xs font-semibold text-slate-500">{{ __('Untuk') }}: {{ $ticketEntry['scope_label'] }}</p>@endif
-                                        </div>
-                                        <span class="shrink-0 text-sm font-bold text-[#b27b1b]">{{ $ticketPrice }}</span>
-                                    </div>
-                                    @if(filled($ticket->description))<p class="mt-2 text-sm leading-6 text-slate-600">{{ $ticket->description }}</p>@endif
-                                    <div class="mt-3 flex flex-wrap gap-x-3 gap-y-2 text-xs font-semibold text-slate-500">
-                                        @if($ticketSeatingMode && $ticketSeatingMode->requiresAllocation())<span>{{ $ticketSeatingMode->label() }}</span>@endif
-                                        @if($ticket->admits_quantity > 1)<span>{{ __('Masuk untuk') }} {{ $ticket->admits_quantity }} {{ __('orang') }}</span>@endif
-                                        @if($ticket->min_quantity !== null || $ticket->max_quantity !== null) <span>{{ __('Kuantiti') }} {{ $ticket->min_quantity ?? 1 }}@if($ticket->max_quantity !== null) — {{ $ticket->max_quantity }}@endif</span>@endif
-                                        @if($ticketEntry['inventory_configured'])<span class="{{ $ticketEntry['inventory_available'] === 0 ? 'text-rose-600' : 'text-emerald-700' }}">{{ $ticketEntry['inventory_available'] === 0 ? __('Habis') : $ticketEntry['inventory_available'].' '.__('tersedia') }}</span>@endif
-                                    </div>
-                                    @if($ticketSections->isNotEmpty())<p class="mt-3 text-xs font-semibold text-slate-500">{{ __('Seksyen') }}: {{ $ticketSections->implode(', ') }}</p>@endif
-                                    @if($ticket->sales_starts_at || $ticket->sales_ends_at)<p class="mt-3 border-t border-slate-200 pt-3 text-xs text-slate-500">@if($ticket->sales_starts_at){{ __('Dibuka') }} {{ \App\Support\Timezone\UserDateTimeFormatter::format($ticket->sales_starts_at, 'j M, h:i A') }}@endif @if($ticket->sales_ends_at) · {{ __('Tutup') }} {{ \App\Support\Timezone\UserDateTimeFormatter::format($ticket->sales_ends_at, 'j M, h:i A') }}@endif</p>@endif
-                                    @php
-                                        $ticketSalesOpen = (! $ticket->sales_starts_at || $ticket->sales_starts_at->isPast())
-                                            && (! $ticket->sales_ends_at || $ticket->sales_ends_at->isFuture());
-                                        $ticketHasCapacity = ! $ticketEntry['inventory_configured'] || $ticketEntry['inventory_available'] === null || $ticketEntry['inventory_available'] > 0;
-                                        $ticketCanCheckout = ! $eventActionsDisabled
-                                            && $ticket->status === 'active'
-                                            && $ticket->isPubliclyVisible()
-                                            && $ticketSalesOpen
-                                            && $ticketHasCapacity
-                                            && ((int) ($ticket->price ?? 0) === 0 || \App\Support\Commerce\EventCommerceModes::publicPaidCheckoutEnabled());
-                                    @endphp
-                                    @if($ticketCanCheckout)
-                                        <a href="{{ route('events.checkout', ['event' => $event, 'ticket' => $ticket->getKey()]) }}"
-                                            data-signal-event="commerce.event_checkout_started"
-                                            data-signal-category="commerce"
-                                            data-signal-component="event_detail_ticket"
-                                            data-signal-control="buy_ticket"
-                                            data-signal-entity-type="ticket_type"
-                                            data-signal-entity-id="{{ $ticket->getKey() }}"
-                                            data-signal-props='@json(['scope_type' => $ticketEntry['scope_type'], 'price' => (int) ($ticket->price ?? 0)])'
-                                            class="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-[#173c34] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#21594c] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#173c34]">
-                                            {{ (int) ($ticket->price ?? 0) > 0 ? __('Buy ticket') : __('Register with this ticket') }}
-                                        </a>
-                                    @elseif($ticket->sales_ends_at && $ticket->sales_ends_at->isPast())
-                                        <p class="mt-4 rounded-xl bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-600">{{ __('Ticket sales have closed.') }}</p>
-                                    @elseif($ticketEntry['inventory_configured'] && $ticketEntry['inventory_available'] === 0)
-                                        <p class="mt-4 rounded-xl bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700">{{ __('Sold out') }}</p>
-                                    @endif
-                                </article>
+                                @include('livewire.pages.events.partials.admission-ticket-card', ['ticketEntry' => $ticketEntry, 'ticketScopeCount' => $ticketScopeCount, 'detail' => $detail, 'event' => $event, 'eventActionsDisabled' => $eventActionsDisabled])
                             @endforeach
                         </div>
                     @endif
 
-                    @if($capacityEntries->isNotEmpty())
-                        <div class="mt-5 border-t border-slate-100 pt-5">
-                            <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">{{ __('Kapasiti') }}</p>
-                            <div class="mt-3 space-y-3">
-                                @foreach($capacityEntries as $capacityEntry)
-                                    @php
-                                        $capacityPercent = $capacityEntry['capacity'] > 0 ? min(100, (int) round(($capacityEntry['reserved'] / $capacityEntry['capacity']) * 100)) : 0;
-                                    @endphp
-                                    <div>
-                                        <div class="flex items-center justify-between gap-3 text-xs font-semibold text-slate-600">
-                                            <span>{{ $capacityEntry['scope_type'] === 'event' ? __('Keseluruhan majlis') : $capacityEntry['scope_label'] }}</span>
-                                            <span>{{ $capacityEntry['reserved'] }} / {{ $capacityEntry['capacity'] }}</span>
-                                        </div>
-                                        <div class="mt-2 h-2 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full {{ $capacityPercent >= 100 ? 'bg-rose-500' : 'bg-[#b27b1b]' }}" style="width: {{ $capacityPercent }}%"></div></div>
-                                    </div>
-                                @endforeach
-                            </div>
-                        </div>
-                    @endif
+                    @include('livewire.pages.events.partials.admission-capacity', ['capacityEntries' => $capacityEntries])
 
                     @if($approvalRequired || $waitlistEnabled || $policyEntries->contains(fn (array $entry): bool => filled($entry['policy']->notes)))
                         <div class="mt-5 space-y-2 border-t border-slate-100 pt-5">
@@ -863,13 +807,13 @@
             @if($hasRegistration)
                 @php
                     $registrationPolicy = $registrationEntry['policy'] ?? null;
-                    $registrationScope = $registrationEntry['scope'] ?? ($eventOccurrences->count() === 1 && $singleOccurrence ? $singleOccurrence : $event);
+                    $registrationScope = $registrationEntry['scope'] ?? $event;
                     $registrationCapacity = $detail->capacityFor($registrationScope);
                     $registrationReserved = $detail->participantCount($registrationScope);
                     $registrationClosed = $registrationPolicy?->closes_at && $registrationPolicy->closes_at->isPast();
                     $registrationNotOpen = $registrationPolicy?->opens_at && $registrationPolicy->opens_at->isFuture();
                     $registrationAtCapacity = $registrationCapacity !== null && $registrationReserved >= $registrationCapacity;
-                    $registrationCanUseFreeForm = ! $paymentRequired && $ticketEntries->isEmpty() && ! $eventActionsDisabled;
+                    $registrationCanUseFreeForm = ! $paymentRequired && $ticketEntries->isEmpty() && ! $eventActionsDisabled && $registrationScope instanceof \App\Models\Event;
                 @endphp
                 <section id="register" data-testid="event-registration-section" class="rounded-2xl border border-[#b27b1b]/35 bg-[#fff9ed] p-6 shadow-sm">
                     <p class="text-xs font-bold uppercase tracking-[0.2em] text-[#b27b1b]">{{ $registrationPolicy?->registration_required ? __('Registration Required') : __('Registration') }}</p>
@@ -895,33 +839,15 @@
                     $seatMapScopeCount = $seatMapEntries->pluck('scope_label')->unique()->count();
                 @endphp
                 <section id="seating" data-testid="event-seating-section" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                    <p class="text-xs font-bold uppercase tracking-[0.2em] text-[#b27b1b]">{{ __('Seating') }}</p>
+                    <p class="text-xs font-bold uppercase tracking-[0.2em] text-[#b27b1b]">{{ __('Tempat duduk') }}</p>
                     <h2 class="mt-2 font-heading text-2xl font-semibold text-[#173c34]">{{ __('Tempat duduk') }}</h2>
-                    @if($seatMapEntries->isNotEmpty())
-                        <div class="mt-5 space-y-3">
-                            @foreach($seatMapEntries as $seatMapEntry)
-                                <div class="rounded-xl border border-slate-200 bg-[#fbfaf7] p-4">
-                                    <div class="flex items-start justify-between gap-3">
-                                        <div><p class="font-semibold text-[#173c34]">{{ $seatMapEntry['seat_map']->name }}</p>@if($seatMapScopeCount > 1 || $seatMapEntry['scope_type'] !== 'event')<p class="mt-1 text-xs text-slate-500">{{ __('Untuk') }}: {{ $seatMapEntry['scope_label'] }}</p>@endif</div>
-                                        <span class="shrink-0 text-right text-xs font-semibold text-slate-500">{{ $seatMapEntry['section_count'] }} {{ __('seksyen') }}<span class="block mt-1">{{ $seatMapEntry['section_capacity'] }} {{ __('tempat') }}</span></span>
-                                    </div>
-                                    @if($seatMapEntry['seat_map']->sections->isNotEmpty())
-                                        <div class="mt-3 flex flex-wrap gap-2">
-                                            @foreach($seatMapEntry['seat_map']->sections as $section)<span class="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-600">{{ $section->name }} · {{ $section->capacity }}</span>@endforeach
-                                        </div>
-                                    @endif
-                                </div>
-                            @endforeach
-                        </div>
-                    @else
-                        <p class="mt-4 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-3 text-sm leading-6 text-slate-600">{{ __('Tempat duduk disokong untuk tiket ini, tetapi pelan tempat duduk belum dipaparkan.') }}</p>
-                    @endif
+                    @include('livewire.pages.events.partials.admission-seat-maps', ['seatMapEntries' => $seatMapEntries, 'seatMapScopeCount' => $seatMapScopeCount])
                 </section>
             @endif
 
             @if($organizer && (!$institutionSameAsLocation || $organizer->getKey() !== $locationEntity?->getKey()))
                 <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                    <p class="text-xs font-bold uppercase tracking-[0.2em] text-[#b27b1b]">{{ __('Host') }}</p>
+                    <p class="text-xs font-bold uppercase tracking-[0.2em] text-[#b27b1b]">{{ __('Penganjur') }}</p>
                     @if($organizerHref)<a href="{{ $organizerHref }}" class="mt-2 block font-heading text-xl font-semibold text-[#173c34] hover:text-[#b27b1b]">{{ $organizer->name }}</a>@else<p class="mt-2 font-heading text-xl font-semibold text-[#173c34]">{{ $organizer->name }}</p>@endif
                     <p class="mt-2 text-sm leading-6 text-slate-600">{{ __('Penganjur majlis') }}</p>
                 </section>

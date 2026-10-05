@@ -12,7 +12,11 @@
         ? \App\Support\Timezone\UserDateTimeFormatter::format($occurrence->starts_at, 'h:i A')
         : __('TBC');
     if ($occurrence->ends_at) {
-        $occurrenceTime .= ' — ' . \App\Support\Timezone\UserDateTimeFormatter::format($occurrence->ends_at, 'h:i A');
+        $occurrenceViewerTimezone = \App\Support\Timezone\UserTimezoneResolver::resolve();
+        $occurrenceSameLocalDay = $occurrence->starts_at
+            ? $occurrence->starts_at->copy()->timezone($occurrenceViewerTimezone)->isSameDay($occurrence->ends_at->copy()->timezone($occurrenceViewerTimezone))
+            : true;
+        $occurrenceTime .= ' — ' . \App\Support\Timezone\UserDateTimeFormatter::format($occurrence->ends_at, $occurrenceSameLocalDay ? 'h:i A' : 'j M, h:i A');
     }
     $occurrenceLocation = $detail->primaryLocationFor($occurrence);
     $occurrenceLocationLabel = $detail->locationLabel($occurrenceLocation);

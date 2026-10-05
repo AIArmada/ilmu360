@@ -25,6 +25,7 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Services\ContributionEntityMutationService;
 use App\Services\EventKeyPersonSyncService;
+use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -202,6 +203,8 @@ it('creates an event slug redirect even when the old slug was never visited', fu
 });
 
 it('redirects old event slugs when a related person slug changes', function () {
+    $this->seed(EventRoleSeeder::class);
+
     $person = Person::factory()->create([
         'name' => 'Habib Umar',
         'slug' => 'habib-umar',

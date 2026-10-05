@@ -12,7 +12,9 @@ use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\FilamentEvents\Resources\EventResource;
 use AIArmada\Seating\Enums\SeatingMode;
 use App\Actions\Events\SyncEventScheduleAction;
+use App\Enums\EventFormat;
 use App\Enums\EventKeyPersonRole;
+use App\Enums\ReferenceType;
 use App\Enums\TimingMode;
 use App\Livewire\Pages\Events\Show;
 use App\Models\Event;
@@ -162,6 +164,9 @@ describe('Event Show Page Going Feature', function () {
             'visibility' => 'public',
             'published_at' => now()->subWeek(),
             'starts_at' => now()->subDay(),
+            // Pin a past end: the definition lottery draws future absolute
+            // ends 30% of the time, which legitimately reads as happening now.
+            'ends_at' => now()->subDay()->addHour(),
         ]);
 
         $this->get(route('events.show', $event))
@@ -546,6 +551,29 @@ it('merges a single occurrence without sessions into the event presentation', fu
         ->assertDontSee('Tiada sesi berasingan untuk tarikh ini.');
 });
 
+it('keeps ticketless event registration available without an access policy', function (): void {
+    $event = Event::factory()->create([
+        'title' => 'Ticketless Single Date Registration',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDay(),
+        'timing_mode' => 'absolute',
+        'starts_at' => now()->addDay(),
+        'ends_at' => now()->addDay()->addHours(2),
+        'pricing_mode' => 'free',
+        'registration_mode' => 'required',
+    ]);
+    $event->accessPolicy()->delete();
+
+    expect($event->occurrences()->count())->toBe(1);
+
+    $this->get(route('events.show', $event))
+        ->assertOk()
+        ->assertSee('data-signal-control="register_open"', false)
+        ->assertSee('href="'.route('events.checkout', ['event' => $event]).'"', false)
+        ->assertDontSee(__('Pilih tiket di atas untuk meneruskan pendaftaran.'));
+});
+
 it('merges a single session into a single occurrence without redundant hierarchy labels', function (): void {
     $event = Event::factory()->create([
         'title' => 'Majlis Dengan Satu Program',
@@ -798,6 +826,9 @@ describe('Event Show Page Location & Contact Info', function () {
 
         $reference = Reference::factory()->create([
             'title' => 'Al-Hikam',
+            // The hero block keys on the book reference; the factory draws
+            // the type at random, so pin it for a deterministic render.
+            'type' => ReferenceType::Book->value,
         ]);
 
         $event = Event::factory()->create([
@@ -806,6 +837,9 @@ describe('Event Show Page Location & Contact Info', function () {
             'published_at' => now()->subDay(),
             'starts_at' => now()->addDay(),
             'default_venue_id' => $venue->id,
+            // Online events (25% of the factory draw) hide the location
+            // chip, so pin a physical format for the ordering assertion.
+            'delivery_mode' => EventFormat::Physical,
         ]);
 
         $event->references()->attach($reference->id);

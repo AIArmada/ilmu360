@@ -24,6 +24,8 @@ class EventKeyPersonPivot extends Pivot
         'id',
         'event_id',
         'role_code',
+        'status',
+        'visibility',
         'sort_order',
         'notes',
     ];

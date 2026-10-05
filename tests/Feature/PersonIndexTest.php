@@ -17,6 +17,7 @@ use App\Services\EventKeyPersonSyncService;
 use App\Support\Search\PersonSearchService;
 use App\Support\Timezone\UserDateTimeFormatter;
 use Carbon\CarbonImmutable;
+use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -814,6 +815,8 @@ it('redirects guests to login when opening add person form', function () {
 });
 
 it('counts only upcoming public events on the person index cards', function () {
+    $this->seed(EventRoleSeeder::class);
+
     $person = Person::factory()->create([
         'name' => 'Person Dengan Majlis Akan Datang',
         'status' => 'verified',
@@ -887,6 +890,8 @@ it('counts only upcoming public events on the person index cards', function () {
 });
 
 it('can filter the person directory to speakers with upcoming public events', function () {
+    $this->seed(EventRoleSeeder::class);
+
     $upcomingSpeaker = Person::factory()->create([
         'name' => 'Speaker Dengan Majlis Akan Datang',
         'status' => 'verified',

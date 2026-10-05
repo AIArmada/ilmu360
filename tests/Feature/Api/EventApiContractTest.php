@@ -784,6 +784,10 @@ it('serializes event detail payloads with poster metadata and included persons',
     $event = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
+        // Explicit start: the definition draws starts_at between now and
+        // +2 months, which always lands after this fixed March end and
+        // yields an invalid window the occurrence sync rejects.
+        'starts_at' => Carbon::parse('2026-03-14 20:15:00', 'UTC'),
         'ends_at' => Carbon::parse('2026-03-14 22:15:00', 'UTC'),
     ]);
 

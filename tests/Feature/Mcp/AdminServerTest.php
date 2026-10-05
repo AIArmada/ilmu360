@@ -77,6 +77,7 @@ use App\Support\GitHub\GitHubIssueReportContract;
 use App\Support\Mcp\McpDocumentationPreflight;
 use App\Support\Mcp\McpTokenManager;
 use App\Support\Search\PersonSearchService;
+use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
@@ -2210,6 +2211,8 @@ it('surfaces event series and donation channel update semantics through admin MC
 });
 
 it('creates and updates events through MCP write tools', function () {
+    $this->seed(EventRoleSeeder::class);
+
     ensureMcpMalaysiaCountryExists();
 
     $admin = adminMcpUser('super_admin');
@@ -2399,6 +2402,8 @@ it('emulates production yasin create flow with validate-only then actual create'
 });
 
 it('creates a tazkirah event with person_keys via admin-create-event', function () {
+    $this->seed(EventRoleSeeder::class);
+
     ensureMcpMalaysiaCountryExists();
 
     $admin = adminMcpUser('super_admin');
@@ -4037,6 +4042,8 @@ it('batch-updates admin resource records via the admin-batch-update-records MCP 
 });
 
 it('batch-creates events via the admin-batch-create-events MCP tool with person_keys and reference_keys resolved', function () {
+    $this->seed(EventRoleSeeder::class);
+
     $admin = adminMcpUser('super_admin');
 
     $person = Person::factory()->create([
@@ -4175,6 +4182,8 @@ it('batch-creates events with validate_only via admin-batch-create-events withou
 });
 
 it('updates an event via the admin-update-event MCP tool with person_keys resolved', function () {
+    $this->seed(EventRoleSeeder::class);
+
     $admin = adminMcpUser('super_admin');
 
     $event = adminMcpStableEvent([
@@ -4240,6 +4249,8 @@ it('detaches persons and references when empty route-key arrays are provided via
 });
 
 it('preserves persons and references when route-key arrays are omitted via admin-update-event', function () {
+    $this->seed(EventRoleSeeder::class);
+
     $admin = adminMcpUser('super_admin');
 
     $event = adminMcpStableEvent([
@@ -4298,6 +4309,8 @@ it('updates an event with validate_only via admin-update-event without persistin
 });
 
 it('batch-updates events and resolves person_keys via admin-batch-update-events', function () {
+    $this->seed(EventRoleSeeder::class);
+
     $admin = adminMcpUser('super_admin');
 
     $eventA = adminMcpStableEvent([
@@ -4337,6 +4350,8 @@ it('batch-updates events and resolves person_keys via admin-batch-update-events'
 });
 
 it('batch-updates events detach or preserve persons and references based on route-key array presence', function () {
+    $this->seed(EventRoleSeeder::class);
+
     $admin = adminMcpUser('super_admin');
 
     $eventToDetach = adminMcpStableEvent([

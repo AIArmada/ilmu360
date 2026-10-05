@@ -371,7 +371,7 @@ final readonly class AffiliatesShareTrackingAnalyticsService
             subjectId: $this->nullableString($link->subject_id),
             subjectKey: (string) ($link->subject_key ?: 'page:unknown'),
             destinationUrl: (string) $link->destination_url,
-            canonicalUrl: (string) $link->tracking_url,
+            canonicalUrl: (string) $link->destination_url,
             titleSnapshot: (string) ($link->subject_title_snapshot ?: config('app.name')),
             lastSharedAt: $link->updated_at,
             outboundShares: $this->outboundSharesQueryForLink($link->id)->count(),

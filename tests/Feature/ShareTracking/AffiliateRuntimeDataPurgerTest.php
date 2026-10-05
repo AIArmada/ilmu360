@@ -15,6 +15,7 @@ it('skips the destructive purge unless explicitly enabled', function (): void {
     DB::table($affiliateTable)->insert([
         'id' => (string) Str::uuid(),
         'code' => 'KEEP-001',
+        'handle' => 'keep-affiliate',
         'name' => 'Keep Affiliate',
         'created_at' => now(),
         'updated_at' => now(),
@@ -37,6 +38,7 @@ it('purges configured affiliate runtime data before launch', function (): void {
     DB::table($affiliateTable)->insert([
         'id' => $affiliateId,
         'code' => 'AFF-001',
+        'handle' => 'temporary-affiliate',
         'name' => 'Temporary affiliate',
         'created_at' => $now,
         'updated_at' => $now,

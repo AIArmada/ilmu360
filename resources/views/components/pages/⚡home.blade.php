@@ -121,8 +121,8 @@ new
                 $location = $presenter->primaryLocationFor($event);
                 $address = $location?->primaryAddress()
                     ?? $event->resolvedLocationAddress();
-                $latitude = $location?->latitude ?? $address?->latitude ?? $address?->lat;
-                $longitude = $location?->longitude ?? $address?->longitude ?? $address?->lng;
+                $latitude = $location?->latitude ?? $address?->latitude;
+                $longitude = $location?->longitude ?? $address?->longitude;
                 $coordinates = filled($latitude) && filled($longitude)
                     ? (string) $latitude . ',' . (string) $longitude
                     : null;
