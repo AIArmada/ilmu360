@@ -20,17 +20,9 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Tests\Support\InstitutionGraphWriteFailure;
 
 uses(RefreshDatabase::class);
-
-/**
- * Process-local switch that makes the next institution-name write throw,
- * proving graph-write atomicity without touching the database state.
- */
-final class InstitutionGraphWriteFailure
-{
-    public static bool $fail = false;
-}
 
 it('writes a full valid graph without owner membership', function () {
     $geo = seedInstitutionGraphGeography();

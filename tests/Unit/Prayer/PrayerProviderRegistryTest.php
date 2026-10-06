@@ -1,91 +1,15 @@
 <?php
 
 use App\Contracts\NullPrayerTimesProvider;
-use App\Contracts\PrayerTimesProvider;
 use App\Data\Prayer\PrayerQuery;
-use App\Data\Prayer\PrayerTimesDTO;
 use App\Services\Prayer\PrayerProviderRegistry;
 use App\Services\Prayer\ProviderUnavailable;
 use Illuminate\Support\Facades\Cache;
+use Tests\Support\Prayer\StubPrayerProviderAlpha;
+use Tests\Support\Prayer\StubPrayerProviderBeta;
 use Tests\TestCase;
 
 uses(TestCase::class);
-
-class StubPrayerProviderAlpha implements PrayerTimesProvider
-{
-    public function key(): string
-    {
-        return 'alpha';
-    }
-
-    public function supports(string $countryCode): bool
-    {
-        return true;
-    }
-
-    public function requiresZone(): bool
-    {
-        return false;
-    }
-
-    public function cacheIdentitySegment(PrayerQuery $query): string
-    {
-        return 'alpha';
-    }
-
-    public function isSourceCurrent(string $source, string $countryCode): bool
-    {
-        return true;
-    }
-
-    public function calcFingerprint(PrayerQuery $query): ?string
-    {
-        return null;
-    }
-
-    public function dailyPrayers(PrayerQuery $query): PrayerTimesDTO
-    {
-        throw new ProviderUnavailable('stub');
-    }
-}
-
-class StubPrayerProviderBeta implements PrayerTimesProvider
-{
-    public function key(): string
-    {
-        return 'beta';
-    }
-
-    public function supports(string $countryCode): bool
-    {
-        return $countryCode !== 'MY';
-    }
-
-    public function requiresZone(): bool
-    {
-        return false;
-    }
-
-    public function cacheIdentitySegment(PrayerQuery $query): string
-    {
-        return 'beta';
-    }
-
-    public function isSourceCurrent(string $source, string $countryCode): bool
-    {
-        return true;
-    }
-
-    public function calcFingerprint(PrayerQuery $query): ?string
-    {
-        return null;
-    }
-
-    public function dailyPrayers(PrayerQuery $query): PrayerTimesDTO
-    {
-        throw new ProviderUnavailable('stub');
-    }
-}
 
 beforeEach(function () {
     config()->set('prayer.provider_map', [

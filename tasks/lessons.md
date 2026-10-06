@@ -1,5 +1,7 @@
 # Lessons
 
+- When asked to finalize a complete system plan, do not narrow it to a minimum launch or push requested capabilities into a later backlog. Sequence dependencies within the complete scope, and ask only about business decisions that change the system contract.
+
 - When the user requests schema changes by editing original migrations only, modify the creation migration directly; do not add upgrade migrations, legacy aliases, compatibility guards, or backfills.
 
 ## Runtime receipt presentation
@@ -1161,3 +1163,5 @@ Do not turn organizer identity selection into speaker/institution membership onb
 - Session-submit `end_time` prefill is parent-derived: `SubmitEventPrefill` seeds it from the parent occurrence ends (KL-converted `H:i`), while start derives from the session's own event_date+prayer. Tests submitting sessions with a different date/prayer must set an explicit coherent `end_time` (Maghrib fakes at 19:25, so 21:00 is safe). Fixed 2026-10-05 for real users too: `prayer_time`/`event_date` now run a server `afterStateUpdated` (`clearIncoherentEndTime`) reusing the rule's own cache-only resolvers, so a stale end is cleared at change-time instead of failing at submit.
 - `Show::eventTimeStatus()` has no production caller (tests only) — audited 2026-10-05 and deliberately left: tested public API the display refactor may still wire; dropping it would delete ancient pinned behavior for no gain.
 - Contribution-update tests must pin absolute timing when timing is incidental: an unpinned factory event can draw FridayPrayer/Tarawih, prefilling a date-gated `prayer_time` option (Jumaat only on Fridays, Tarawih only in Ramadan) that fails validation for the test's fixed date (~12% flake).
+
+- For this share/reward implementation, the selected researcher/executor is Muse CLI `muse-spark-1.3-contributor` at maximum effort; Codex owns planning/review/audit. Enforce clean-cutover edits to original migrations, without compatibility shims, old-schema repair/backfill or transitional callers. Finish and verify all reward modes in the app before extraction/refactor; never add a speculative rewards package first.

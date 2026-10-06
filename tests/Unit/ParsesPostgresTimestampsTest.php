@@ -1,28 +1,10 @@
 <?php
 
-use AIArmada\CommerceSupport\Concerns\ParsesPostgresTimestamps;
-use Illuminate\Database\Eloquent\Model;
+use Tests\Support\NativeDateModel;
+use Tests\Support\OptimizedDateModel;
 use Tests\TestCase;
 
 uses(TestCase::class);
-
-class NativeDateModel extends Model
-{
-    public function parseDate(mixed $value): mixed
-    {
-        return $this->asDateTime($value);
-    }
-}
-
-class OptimizedDateModel extends Model
-{
-    use ParsesPostgresTimestamps;
-
-    public function parseDate(mixed $value): mixed
-    {
-        return $this->asDateTime($value);
-    }
-}
 
 it('parses identically to native Laravel across timestamp shapes', function (string $value) {
     $native = (new NativeDateModel)->parseDate($value);

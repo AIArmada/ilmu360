@@ -4488,3 +4488,51 @@ Continuation session (2026-10-04, new session picking up last session's close): 
 - Flake hunt on the new test file: two distinct intermittent modes root-caused, both factory randomness — (a) unpinned schedule keys attach a second random expression (70%-prayer-relative mix), intermittently matching anchor filters; (b) unpinned `ends_at` from the absolute-mode 30% can precede a pinned `starts_at` and throw from SyncPrimaryEventOccurrenceAction. Fixed by pinning the full schedule; 15/15 green. Lesson recorded in tasks/lessons.md.
 - Peer-WIP diagnosis (2 PublicScheduleDiscoveryTest failures): reproduced fresh (missing 'View programme' / 'Occurrence Own City' strings, pages 200 OK), proved mechanism-free (purge diff only reachable behind a non-empty prayer_time filter; detail routes bypass discovery search) and zero prayer terms in the 1,241-insertion presenter/page/blade rework diffs. Left untouched as out of scope.
 - Scope green after fix: 229 prayer-unit + 16 prayer-feature files, Pint clean, PHPStan same 4 peer-WIP errors. Self-audit cycle clean → submitted read-only completion audit to gpt-6.1-sol high (/tmp/codex-round9-prompt.md → /tmp/codex-review9.txt), covering R8-1..R8-7 verification + Tarawih 1448 + Subuh + Friday-Zuhur + purge + Tarawih-filter fix + full-surface re-audit.
+## Share & dawah complete-system plan review (2026-10-06)
+
+- [x] Read the mission audit, technical audit, product/design rules, and current app/package sources; verify commit drift.
+- [x] Commission independent ledger and mission reviews; challenge measurement, privacy, atomicity, claim, and reversal assumptions.
+- [x] Finalize one complete delivery plan with technical and plain-language descriptions; sequence dependencies without deferring requested features.
+- [x] Save a standalone HTML report beside the original commerce audit; validate navigation, responsive layout, print styles, and source references.
+- [x] Record fresh scoped test evidence and review limitations; preserve source audits and application behavior.
+
+Scope correction: user requires the fully developed system in this plan, with no features moved to a later backlog, and all recognition/points/badges/cash/redeemable-benefit modes available for setup. This task reviews and writes the plan, not the application implementation.
+
+### Review result
+
+Created `/Users/Saiffil/Herd/commerce/audits/share-dawah-final-plan-2026-10-06.html` with complete architecture, measurement/retention rules, seven dependency work packages, all reward modes, program setup/finance/redemption/appeals, correction and recovery, acceptance gates, original 27-item crosswalk and current source evidence. Corrected browser-vs-attribution identity, PostgreSQL collision recovery/package atomicity, persisted registration-to-attendance attribution, claim security, distinct-participant privacy thresholds, enrollment/version acceptance and spent-budget recovery. Original audits have unchanged SHA-256 hashes.
+
+Fresh parallel no-TIA baseline: DawahShareImpactTest 42 passed/305 assertions; ShareAnalyticsApiTest 4 passed/37 assertions; SignalsIntegrationTest affiliate filter 2 passed/7 assertions. Total 48 cases/349 assertions; logs `/tmp/share-plan-review-{impact,api,signals}-20261006.log`. Initial combined-file command was rejected by ParaTest before test execution; files then ran once individually. Existing tests use SQLite in-memory and do not prove the proposed production concurrency/payment guarantees. No app code or live data changed.
+
+HTML integrity: unique IDs, resolved section/evidence anchors and 24 existing local source links; 390px mobile and 1280px desktop have no page overflow. Text contrast exceeds 4.5:1; print styling inspected in browser. Decorative side stripes/repeated kickers removed; workflow/dependency numbering intentionally retained. No design-rule suppression. Preserve the concurrently changed composer.lock; this review did not edit it.
+
+## Complete share/dawah + configurable rewards implementation — Muse execution
+
+Human authorized Muse CLI `muse-spark-1.3-contributor` at `max` reasoning effort for researcher/executor/implementor. Codex owns planning, independent review and audit. Implement the complete current scope: trustworthy facts, secure guest claims, short URLs/cards, private impact/growth/stewardship, program setup/enrollment, recognition/points/badges, cash/benefits, appeals/reversal/recovery and release verification. Build cohesive rewards in the app first; verify every mode before a generic rewards extraction/refactor. No premature new package.
+
+### Non-negotiable execution constraints
+
+- Strict clean cutover only: no backwards compatibility, aliases, obsolete API/schema paths, transitional adapters, historical remapping/backfills or old-schema repair commands. Edit original creation migrations for existing table changes; new tables receive creation migrations. UUIDs, no DB FK/check/cascade constraints, no SoftDeletes.
+- Do not reset/migrate/delete live application databases, activate monetary programs or send external messages/payments. Tests use isolated databases. Runtime new-record delivery/provider reconciliation is required and differs from forbidden historical schema repair.
+- Preserve pre-existing source/dependency/test changes and concurrent work. Baseline patches/status are in `/Users/Saiffil/.codex/logs/ilmu360-share-rewards-20261006/`. Do not stash/reset/clean/checkout files or rewrite history; no commits/push without task need.
+- All implementation code is authored by selected Muse CLI model at max; Codex writes plan/review instructions, checks source/diffs and verification, and sends fixes to Muse. No replacement model or unrelated new agents.
+- No new external dependencies without authorization; reuse installed package APIs. Generic package changes must migrate their caller surface and pass commercial regression coverage.
+- Every changed behavior needs meaningful regression coverage. Fresh parallel Pest, appropriate browser/API parity, PGSQL/MariaDB race paths, Pint and PHPStan6; capture logs/exit codes, never rerun merely to reread output.
+
+### Ordered execution and audit gates
+
+- [ ] Research: Muse current source/caller/schema/fixture map, framework docs, reuse and missing generic APIs, transactional boundaries and first bounded slice.
+- [ ] Codex review: reconcile Muse findings with HTML plan and final user choices; finalize file-level slice instructions and blockers/defaults.
+- [ ] WP1: eligibility/profile boundaries/privacy; Codex source audit + targeted verification.
+- [ ] WP2: canonical atomic facts, immutable browser attribution, source attendance inheritance, correction and durable effects; Codex race/crash review.
+- [ ] WP3: complete short links/cards + secure guest claim/login/signup continuity; Codex ownership/UI/preview audit.
+- [ ] WP4: truthful bounded reporting, real growth reader, fraud stewardship, preferences and privacy-safe feedback/community totals; Codex ledger/API/UI audit.
+- [ ] WP5: full program setup/version/enrollment/terms, awards, points/badges/milestones, budgets and appeals; Codex policy/ledger/cap audit.
+- [ ] WP6: generic cash award adapter, payout orchestration, provider readiness/reconciliation, benefit stock/redemption/fulfillment and post-fulfillment recovery; Codex finance/isolation audit.
+- [ ] WP7: complete journey/multi-mode setup→fulfillment→correction, fresh affected app/package suites, format/PHPStan6, browser/mobile, supported DB races and operational drill.
+- [ ] Final Codex independent audit with source evidence against every required behavior; fix material findings through Muse and reverify only changed concerns.
+- [ ] Confirm completed-mode extraction boundary and perform any authorized generic package refactor only after complete app-system acceptance; no transitional duplicate ledgers or migration backfills.
+
+### Progress / evidence
+
+Verified Muse model profile resolves `muse-spark-1.3-contributor`, effort `max`. Read-only research dispatched with persistent JSONL/stderr/exit files. Source HTML: `/Users/Saiffil/Herd/commerce/audits/share-dawah-final-plan-2026-10-06.html`. Preserve prior review baseline (48 cases/349 assertions, SQLite) as historical evidence; it is not proof of new implementation.

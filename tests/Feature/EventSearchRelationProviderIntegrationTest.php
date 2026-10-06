@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use AIArmada\Events\Contracts\EventSearchRelationProvider;
 use App\Contracts\EventCategoryCatalog;
 use App\Data\EventDiscoveryCriteriaFactory;
 use App\Models\Event;
@@ -13,18 +12,7 @@ use App\Support\EventDiscovery\FuzzyEventMatcher;
 use App\Support\Search\InstitutionSearchService;
 use App\Support\Search\PersonSearchService;
 use App\Support\Search\ReferenceSearchService;
-
-final class RecordingEventSearchRelationProvider implements EventSearchRelationProvider
-{
-    public int $calls = 0;
-
-    public function relations(): array
-    {
-        $this->calls++;
-
-        return ['languageRecords'];
-    }
-}
+use Tests\Support\RecordingEventSearchRelationProvider;
 
 it('makes PostgreSQL discovery consume the injected relation provider', function (): void {
     $provider = new RecordingEventSearchRelationProvider;
