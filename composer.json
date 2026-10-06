@@ -56,7 +56,7 @@
         "filament/spatie-laravel-settings-plugin": "^5.7",
         "http-interop/http-factory-guzzle": "^1.2",
         "itsgoingd/clockwork": "^5.3",
-        "laravel/ai": "^0.11.0",
+        "laravel/ai": "^1.1",
         "laravel/fortify": "^1.37",
         "laravel/framework": "^13.20",
         "laravel/horizon": "^5.47",

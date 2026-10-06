@@ -13,6 +13,7 @@ use Laravel\Ai\Prompts\EmbeddingsPrompt;
 use Laravel\Ai\Providers\Provider;
 use Laravel\Ai\Responses\AgentResponse;
 use Laravel\Ai\Responses\Data\Meta;
+use Laravel\Ai\Responses\Data\TextUsage;
 use Laravel\Ai\Responses\Data\Usage;
 use Laravel\Ai\Responses\EmbeddingsResponse;
 
@@ -47,11 +48,11 @@ it('records token usage and cost for prompted agents using pricing catalog', fun
     $response = new AgentResponse(
         invocationId: 'inv-agent-1',
         text: 'Structured output',
-        usage: new Usage(
-            promptTokens: 1000,
-            completionTokens: 500,
-            cacheWriteInputTokens: 100,
+        usage: new TextUsage(
+            inputTokens: 1150,
+            outputTokens: 525,
             cacheReadInputTokens: 50,
+            cacheWriteInputTokens: 100,
             reasoningTokens: 25,
         ),
         meta: new Meta(provider: 'openai', model: 'gpt-test'),
@@ -81,6 +82,13 @@ it('records token usage and cost for prompted agents using pricing catalog', fun
             'cost_source' => 'pricing_catalog',
             'pricing_id' => $pricing->id,
             'has_usage_data' => true,
+        ])
+        ->and($usageLog->meta['usage_payload'])->toMatchArray([
+            'input_tokens' => 1150,
+            'output_tokens' => 525,
+            'cache_read_input_tokens' => 50,
+            'cache_write_input_tokens' => 100,
+            'reasoning_tokens' => 25,
         ]);
 });
 
@@ -125,9 +133,9 @@ it('prefers tier-specific pricing when model includes a tier suffix', function (
     $response = new AgentResponse(
         invocationId: 'inv-tier-1',
         text: 'Summary',
-        usage: new Usage(
-            promptTokens: 1000,
-            completionTokens: 500,
+        usage: new TextUsage(
+            inputTokens: 1000,
+            outputTokens: 500,
         ),
         meta: new Meta(provider: 'openrouter', model: 'deepseek/deepseek-chat-v3-0324:free'),
     );
@@ -166,7 +174,7 @@ it('records embedding usage even when pricing is not configured', function () {
 
     $response = new EmbeddingsResponse(
         embeddings: [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]],
-        tokens: 321,
+        usage: new Usage(inputTokens: 321),
         meta: new Meta(provider: 'openai', model: 'text-embedding-test'),
     );
 
@@ -214,7 +222,7 @@ it('does not record usage logs when ai usage tracking is disabled', function () 
     $response = new AgentResponse(
         invocationId: 'inv-agent-2',
         text: 'Summary',
-        usage: new Usage(promptTokens: 50, completionTokens: 20),
+        usage: new TextUsage(inputTokens: 50, outputTokens: 20),
         meta: new Meta(provider: 'openai', model: 'gpt-test'),
     );
 

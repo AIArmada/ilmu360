@@ -10,6 +10,7 @@ use Laravel\Ai\Events\EmbeddingsGenerated;
 use Laravel\Ai\Events\ImageGenerated;
 use Laravel\Ai\Events\Reranked;
 use Laravel\Ai\Events\TranscriptionGenerated;
+use Laravel\Ai\Responses\Data\TextUsage;
 
 class AiUsageLedger
 {
@@ -62,13 +63,7 @@ class AiUsageLedger
             operation: $event instanceof AgentStreamed ? 'agent_stream' : 'agent_prompt',
             provider: $this->normalizeProvider($event->response->meta->provider, null),
             model: $this->normalizeModel($event->response->meta->model, $event->prompt->model),
-            tokenData: [
-                'input_tokens' => $usage->promptTokens,
-                'output_tokens' => $usage->completionTokens,
-                'cache_write_input_tokens' => $usage->cacheWriteInputTokens,
-                'cache_read_input_tokens' => $usage->cacheReadInputTokens,
-                'reasoning_tokens' => $usage->reasoningTokens,
-            ],
+            tokenData: $this->tokenDataFromTextUsage($usage),
             usagePayload: $usagePayload,
             meta: [
                 'event_class' => $event::class,
@@ -90,13 +85,7 @@ class AiUsageLedger
             operation: 'image_generation',
             provider: $this->normalizeProvider($event->response->meta->provider, $event->provider->name()),
             model: $this->normalizeModel($event->response->meta->model, $event->model),
-            tokenData: [
-                'input_tokens' => $usage->promptTokens,
-                'output_tokens' => $usage->completionTokens,
-                'cache_write_input_tokens' => $usage->cacheWriteInputTokens,
-                'cache_read_input_tokens' => $usage->cacheReadInputTokens,
-                'reasoning_tokens' => $usage->reasoningTokens,
-            ],
+            tokenData: $this->tokenDataFromTextUsage($usage),
             usagePayload: $usagePayload,
             meta: [
                 'event_class' => $event::class,
@@ -120,13 +109,7 @@ class AiUsageLedger
             operation: 'transcription_generation',
             provider: $this->normalizeProvider($event->response->meta->provider, $event->provider->name()),
             model: $this->normalizeModel($event->response->meta->model, $event->model),
-            tokenData: [
-                'input_tokens' => $usage->promptTokens,
-                'output_tokens' => $usage->completionTokens,
-                'cache_write_input_tokens' => $usage->cacheWriteInputTokens,
-                'cache_read_input_tokens' => $usage->cacheReadInputTokens,
-                'reasoning_tokens' => $usage->reasoningTokens,
-            ],
+            tokenData: $this->tokenDataFromTextUsage($usage),
             usagePayload: $usagePayload,
             meta: [
                 'event_class' => $event::class,
@@ -141,10 +124,8 @@ class AiUsageLedger
      */
     protected function payloadFromEmbeddingsGenerated(EmbeddingsGenerated $event): array
     {
-        $usagePayload = [
-            'prompt_tokens' => $event->response->tokens,
-            'completion_tokens' => 0,
-        ];
+        $usage = $event->response->usage;
+        $usagePayload = $usage->toArray();
 
         return $this->buildPayload(
             invocationId: $event->invocationId,
@@ -152,8 +133,8 @@ class AiUsageLedger
             provider: $this->normalizeProvider($event->response->meta->provider, $event->provider->name()),
             model: $this->normalizeModel($event->response->meta->model, $event->model),
             tokenData: [
-                'input_tokens' => $event->response->tokens,
-                'output_tokens' => 0,
+                'input_tokens' => $usage->inputTokens,
+                'output_tokens' => $usage->outputTokens,
                 'cache_write_input_tokens' => 0,
                 'cache_read_input_tokens' => 0,
                 'reasoning_tokens' => 0,
@@ -217,6 +198,34 @@ class AiUsageLedger
                 'mime' => $event->response->mimeType(),
             ],
         );
+    }
+
+    /**
+     * Normalize provider-reported text usage into disjoint billable buckets.
+     *
+     * Since laravel/ai 1.0, input tokens include cached and cache-written
+     * tokens while output tokens include reasoning tokens. The stored columns
+     * keep their pre-1.0 meaning (base-rate buckets) so cost math and
+     * historical rows stay comparable; raw provider totals are preserved in
+     * the usage payload.
+     *
+     * @return array{
+     *     input_tokens: int,
+     *     output_tokens: int,
+     *     cache_write_input_tokens: int|null,
+     *     cache_read_input_tokens: int|null,
+     *     reasoning_tokens: int|null
+     * }
+     */
+    protected function tokenDataFromTextUsage(TextUsage $usage): array
+    {
+        return [
+            'input_tokens' => $usage->uncachedInputTokens(),
+            'output_tokens' => $usage->outputTokens - ($usage->reasoningTokens ?? 0),
+            'cache_write_input_tokens' => $usage->cacheWriteInputTokens,
+            'cache_read_input_tokens' => $usage->cacheReadInputTokens,
+            'reasoning_tokens' => $usage->reasoningTokens,
+        ];
     }
 
     /**
