@@ -12,4 +12,5 @@ enum NotificationFamily: string
     case EventReminders = 'event_reminders';
     case RegistrationCheckin = 'registration_checkin';
     case SubmissionWorkflow = 'submission_workflow';
+    case Sharing = 'sharing';
 }

@@ -12,8 +12,8 @@
         $pageTitle = $decodeMeta(trim($__env->yieldContent('title', config('app.name'))));
         $pageDescription = $decodeMeta(trim($__env->yieldContent('meta_description', $defaultMetaDescription)));
         $defaultOgImage = asset('images/default-mosque-hero.png');
-        $pageUrl = trim($__env->yieldContent('og_url', url()->current()));
-        $pageOgImage = trim($__env->yieldContent('og_image', $defaultOgImage));
+        $pageUrl = $decodeMeta(trim($__env->yieldContent('og_url', url()->current())));
+        $pageOgImage = $decodeMeta(trim($__env->yieldContent('og_image', $defaultOgImage)));
         $pageOgImageAlt = $decodeMeta(trim($__env->yieldContent('og_image_alt', $pageTitle !== '' ? $pageTitle : config('app.name'))));
         $pageOgImageWidth = trim($__env->yieldContent('og_image_width', '1024'));
         $pageOgImageHeight = trim($__env->yieldContent('og_image_height', '1024'));

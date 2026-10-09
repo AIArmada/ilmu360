@@ -16,25 +16,27 @@ class UserDateTimeFormatter
     public static function format(
         CarbonInterface|string|null $dateTime,
         string $format = 'h:i A',
-        ?Request $request = null
+        ?Request $request = null,
+        ?string $timezone = null
     ): string {
         if (! $dateTime instanceof CarbonInterface) {
             return '';
         }
 
-        return $dateTime->copy()->timezone(self::resolveTimezone($request))->format($format);
+        return $dateTime->copy()->timezone($timezone ?? self::resolveTimezone($request))->format($format);
     }
 
     public static function translatedFormat(
         CarbonInterface|string|null $dateTime,
         string $format = 'l, j F Y',
-        ?Request $request = null
+        ?Request $request = null,
+        ?string $timezone = null
     ): string {
         if (! $dateTime instanceof CarbonInterface) {
             return '';
         }
 
-        return $dateTime->copy()->timezone(self::resolveTimezone($request))->translatedFormat($format);
+        return $dateTime->copy()->timezone($timezone ?? self::resolveTimezone($request))->translatedFormat($format);
     }
 
     public static function userNow(?Request $request = null): CarbonInterface

@@ -153,6 +153,24 @@ class NotificationCatalog
                     NotificationTrigger::SubmissionRemoderated->value,
                 ],
             ],
+            NotificationFamily::Sharing->value => [
+                'key' => NotificationFamily::Sharing->value,
+                'label' => __('notifications.families.sharing.label'),
+                'description' => __('notifications.families.sharing.description'),
+                'default_cadence' => NotificationCadence::Weekly,
+                'allowed_channels' => [
+                    NotificationChannel::Email->value,
+                    NotificationChannel::InApp->value,
+                    NotificationChannel::Push->value,
+                ],
+                'default_channels' => [
+                    NotificationChannel::Email->value,
+                    NotificationChannel::InApp->value,
+                ],
+                'triggers' => [
+                    NotificationTrigger::ShareGratitudeDigest->value,
+                ],
+            ],
         ];
     }
 
@@ -377,6 +395,15 @@ class NotificationCatalog
                 [NotificationChannel::Email->value, NotificationChannel::InApp->value, NotificationChannel::Push->value],
                 [NotificationChannel::Email->value, NotificationChannel::InApp->value],
                 NotificationPriority::Medium,
+            ),
+            NotificationTrigger::ShareGratitudeDigest->value => self::buildTriggerDefinition(
+                NotificationTrigger::ShareGratitudeDigest,
+                NotificationFamily::Sharing,
+                'share_gratitude_digest',
+                NotificationCadence::Weekly,
+                [NotificationChannel::Email->value, NotificationChannel::InApp->value, NotificationChannel::Push->value],
+                [NotificationChannel::Email->value, NotificationChannel::InApp->value],
+                NotificationPriority::Low,
             ),
         ];
     }

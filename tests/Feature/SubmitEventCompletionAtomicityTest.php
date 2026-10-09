@@ -26,12 +26,12 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Services\EventKeyPersonSyncService;
 use App\Services\ModerationService;
+use Carbon\CarbonInterface;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -122,9 +122,7 @@ it('persists guest contacts privately with NONE admission and a single UTC occur
         ->and($occurrences->sole()->starts_at->setTimezone('UTC')->format('Y-m-d H:i'))->toBe($eventDate.' 12:00');
 });
 
-it('does not poison a valid submission when share tracking fails', function () {
-    Log::spy();
-
+it('rolls back the submission when share tracking fails', function () {
     $tracker = $this->mock(ShareTrackingContract::class);
     $tracker->shouldReceive('recordOutcome')->once()->andThrow(new RuntimeException('tracking down'));
 
@@ -132,7 +130,7 @@ it('does not poison a valid submission when share tracking fails', function () {
     $person = Person::factory()->create(['status' => 'verified', 'allow_public_event_submission' => true]);
     $venue = Venue::factory()->create(['status' => 'verified']);
 
-    setSubmitEventFormState(
+    $component = setSubmitEventFormState(
         Livewire::actingAs($user)->test(Create::class),
         submitAtomicityPayload($this->domainTag, $this->disciplineTag, [
             'title' => 'Tracking Failure Submission',
@@ -142,25 +140,28 @@ it('does not poison a valid submission when share tracking fails', function () {
             'location_venue_id' => $venue->getKey(),
             'submission_country_id' => (string) ensureTestMalaysiaCountry()->getKey(),
         ]),
-    )
-        ->call('submit')
-        ->assertHasNoErrors()
-        ->assertRedirect();
+    );
 
-    expect(Event::query()->where('title', 'Tracking Failure Submission')->exists())->toBeTrue();
+    try {
+        $component->call('submit');
+        $this->fail('Share tracking failure must roll back the submission.');
+    } catch (RuntimeException $exception) {
+        expect($exception->getMessage())->toBe('tracking down');
+    }
 
-    Log::shouldHaveReceived('warning')->with('Share outcome tracking failed for an event submission.', Mockery::type('array'))->once();
+    expect(Event::query()->where('title', 'Tracking Failure Submission')->exists())->toBeFalse();
 });
 
-it('records the share outcome once a submission commits', function () {
+it('records the share outcome in the submission transaction', function () {
     $tracker = $this->mock(ShareTrackingContract::class);
     $tracker->shouldReceive('recordOutcome')->once()->with(
         DawahShareOutcomeType::EventSubmission,
-        Mockery::pattern('/^event_submission:submission:/'),
+        Mockery::pattern('/^share-outcome:event_submission:submission:/'),
         Mockery::type(Event::class),
         Mockery::type(User::class),
         Mockery::type(Request::class),
         Mockery::on(fn (array $metadata): bool => isset($metadata['submission_id'])),
+        Mockery::type(CarbonInterface::class),
     );
 
     $user = User::factory()->create();

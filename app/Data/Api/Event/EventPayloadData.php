@@ -13,6 +13,7 @@ use App\Models\EventKeyPerson;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
+use App\Services\ShareCards\ShareCardService;
 use App\Support\Cache\SelectionCatalogCache;
 use App\Support\Events\EventCategoryPresenter;
 use App\Support\Location\AddressHierarchyFormatter;
@@ -70,6 +71,7 @@ class EventPayloadData extends Data
             'is_muslim_only' => $event->is_muslim_only,
             'reference_study_subtitle' => $event->reference_study_subtitle,
             'card_image_url' => $event->card_image_url,
+            'share_card_url' => app(ShareCardService::class)->cardUrl($event),
             'poster_url' => self::preferredMediaUrl($event->getFirstMedia('poster'), ['poster_thumb']),
             'has_poster' => $event->hasMedia('poster'),
             'starts_at_local' => self::localDateTimeString($event->starts_at),
@@ -383,6 +385,7 @@ class EventPayloadData extends Data
             'status' => (string) $event->getRawOriginal('status'),
             'poster_url' => self::preferredMediaUrl($event->getFirstMedia('poster'), ['poster_thumb']),
             'card_image_url' => $event->card_image_url,
+            'share_card_url' => app(ShareCardService::class)->cardUrl($event),
         ];
     }
 

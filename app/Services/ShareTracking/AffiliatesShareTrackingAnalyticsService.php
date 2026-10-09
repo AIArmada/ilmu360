@@ -9,14 +9,19 @@ use AIArmada\Affiliates\Models\AffiliateAttribution;
 use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
+use AIArmada\Affiliates\States\ConversionStatus;
 use App\Data\ShareTracking\ShareTrackingLinkData;
 use App\Data\ShareTracking\ShareTrackingOutcomeData;
 use App\Data\ShareTracking\ShareTrackingVisitData;
+use App\Models\ShareGuestClaim;
 use App\Models\User;
+use App\Support\Share\ShareMetricReader;
+use App\Support\ShareTracking\ShareTrackingMeasurement;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use InvalidArgumentException;
 
 final readonly class AffiliatesShareTrackingAnalyticsService
 {
@@ -28,7 +33,7 @@ final readonly class AffiliatesShareTrackingAnalyticsService
      * @return array{
      *     outbound_shares: int,
      *     visits: int,
-     *     unique_visitors: int,
+     *     distinct_browsers: int,
      *     signups: int,
      *     event_registrations: int,
      *     event_checkins: int,
@@ -38,17 +43,21 @@ final readonly class AffiliatesShareTrackingAnalyticsService
      */
     public function summaryForUser(User $user): array
     {
-        $affiliate = $this->affiliateForUser($user);
+        if (! ShareTrackingMeasurement::isConfigured()) {
+            return $this->emptySummary();
+        }
 
-        if (! $affiliate instanceof Affiliate) {
+        $affiliateIds = $this->affiliateIdsForUser($user);
+
+        if ($affiliateIds === []) {
             return $this->emptySummary();
         }
 
         return $this->summaryFromCollections(
-            $this->outboundSharesQuery($affiliate)->get(),
-            $this->visitTouchpointsQuery($affiliate)->get(),
-            $this->conversionsQuery($affiliate)->get(),
-            $this->landingAttributionsQuery($affiliate)->get(),
+            $this->outboundSharesQuery($affiliateIds)->get(),
+            $this->visitTouchpointsQuery($affiliateIds)->get(),
+            $this->conversionsQuery($affiliateIds)->get(),
+            $this->landingAttributionsQuery($affiliateIds)->get(),
         );
     }
 
@@ -58,7 +67,7 @@ final readonly class AffiliatesShareTrackingAnalyticsService
      *     label: string,
      *     outbound_shares: int,
      *     visits: int,
-     *     unique_visitors: int,
+     *     distinct_browsers: int,
      *     outcomes: int,
      *     signups: int,
      *     event_registrations: int,
@@ -68,16 +77,20 @@ final readonly class AffiliatesShareTrackingAnalyticsService
      */
     public function providerBreakdownForUser(User $user): Collection
     {
-        $affiliate = $this->affiliateForUser($user);
-
-        if (! $affiliate instanceof Affiliate) {
+        if (! ShareTrackingMeasurement::isConfigured()) {
             return collect();
         }
 
-        $outboundShares = $this->outboundSharesQuery($affiliate)->get();
-        $visits = $this->visitTouchpointsQuery($affiliate)->get();
-        $conversions = $this->conversionsQuery($affiliate)->get();
-        $attributions = $this->landingAttributionsQuery($affiliate)->get();
+        $affiliateIds = $this->affiliateIdsForUser($user);
+
+        if ($affiliateIds === []) {
+            return collect();
+        }
+
+        $outboundShares = $this->outboundSharesQuery($affiliateIds)->get();
+        $visits = $this->visitTouchpointsQuery($affiliateIds)->get();
+        $conversions = $this->conversionsQuery($affiliateIds)->get();
+        $attributions = $this->landingAttributionsQuery($affiliateIds)->get();
 
         return $this->providerBreakdown($outboundShares, $visits, $conversions, $attributions);
     }
@@ -92,16 +105,18 @@ final readonly class AffiliatesShareTrackingAnalyticsService
         string $status = 'all',
         string $outcomeType = 'all',
     ): Collection {
-        $affiliate = $this->affiliateForUser($user);
+        $affiliateIds = $this->affiliateIdsForUser($user);
 
-        if (! $affiliate instanceof Affiliate) {
+        if ($affiliateIds === []) {
             return collect();
         }
 
+        $withholdMeasurements = ! ShareTrackingMeasurement::isConfigured();
+
         $links = AffiliateLink::query()
-            ->where('affiliate_id', $affiliate->id)
+            ->whereIn('affiliate_id', $affiliateIds)
             ->get()
-            ->map(fn (AffiliateLink $link): ShareTrackingLinkData => $this->buildLinkData($link))
+            ->map(fn (AffiliateLink $link): ShareTrackingLinkData => $this->buildLinkData($link, $withholdMeasurements))
             ->when(
                 filled($subjectType) && $subjectType !== 'all',
                 fn (Collection $collection): Collection => $collection->filter(
@@ -132,13 +147,17 @@ final readonly class AffiliatesShareTrackingAnalyticsService
      */
     public function recentOutcomesForUser(User $user, int $limit = 12): Collection
     {
-        $affiliate = $this->affiliateForUser($user);
-
-        if (! $affiliate instanceof Affiliate) {
+        if (! ShareTrackingMeasurement::isConfigured()) {
             return collect();
         }
 
-        return $this->conversionsQuery($affiliate)
+        $affiliateIds = $this->affiliateIdsForUser($user);
+
+        if ($affiliateIds === []) {
+            return collect();
+        }
+
+        return $this->conversionsQuery($affiliateIds)
             ->latest('occurred_at')
             ->limit($limit)
             ->get()
@@ -147,25 +166,29 @@ final readonly class AffiliatesShareTrackingAnalyticsService
 
     public function findLinkForUser(User $user, string $linkId): ?ShareTrackingLinkData
     {
-        $affiliate = $this->affiliateForUser($user);
+        $affiliateIds = $this->affiliateIdsForUser($user);
 
-        if (! $affiliate instanceof Affiliate) {
+        if ($affiliateIds === []) {
             return null;
         }
 
         $link = AffiliateLink::query()
-            ->where('affiliate_id', $affiliate->id)
+            ->whereIn('affiliate_id', $affiliateIds)
             ->whereKey($linkId)
             ->first();
 
-        return $link instanceof AffiliateLink ? $this->buildLinkData($link) : null;
+        if (! $link instanceof AffiliateLink) {
+            return null;
+        }
+
+        return $this->buildLinkData($link, ! ShareTrackingMeasurement::isConfigured());
     }
 
     /**
      * @return array{
      *     outbound_shares: int,
      *     visits: int,
-     *     unique_visitors: int,
+     *     distinct_browsers: int,
      *     outcomes: int,
      *     signups: int,
      *     event_registrations: int,
@@ -175,10 +198,23 @@ final readonly class AffiliatesShareTrackingAnalyticsService
      */
     public function summaryForLink(ShareTrackingLinkData $link): array
     {
+        if (! ShareTrackingMeasurement::isConfigured()) {
+            return [
+                'outbound_shares' => 0,
+                'visits' => 0,
+                'distinct_browsers' => 0,
+                'outcomes' => 0,
+                'signups' => 0,
+                'event_registrations' => 0,
+                'event_checkins' => 0,
+                'event_submissions' => 0,
+            ];
+        }
+
         return [
             'outbound_shares' => $link->outboundShares,
             'visits' => $link->visitsCount,
-            'unique_visitors' => $this->uniqueVisitorsForLink($link->id),
+            'distinct_browsers' => $this->distinctBrowsersForLink($link->id),
             'outcomes' => $link->outcomesCount,
             'signups' => $link->signupsCount,
             'event_registrations' => $link->eventRegistrationsCount,
@@ -193,7 +229,7 @@ final readonly class AffiliatesShareTrackingAnalyticsService
      *     label: string,
      *     outbound_shares: int,
      *     visits: int,
-     *     unique_visitors: int,
+     *     distinct_browsers: int,
      *     outcomes: int,
      *     signups: int,
      *     event_registrations: int,
@@ -203,6 +239,10 @@ final readonly class AffiliatesShareTrackingAnalyticsService
      */
     public function providerBreakdownForLink(ShareTrackingLinkData $link): Collection
     {
+        if (! ShareTrackingMeasurement::isConfigured()) {
+            return collect();
+        }
+
         $outboundShares = $this->outboundSharesQueryForLink($link->id)->get();
         $visits = $this->visitTouchpointsQueryForLink($link->id)->get();
         $conversions = $this->conversionsQueryForLink($link->id)->get();
@@ -214,20 +254,42 @@ final readonly class AffiliatesShareTrackingAnalyticsService
     /**
      * @return Collection<int, array{date: string, visits: int, outcomes: int, signups: int, event_registrations: int, event_checkins: int, event_submissions: int}>
      */
-    public function dailyPerformanceForLink(ShareTrackingLinkData $link, int $days = 14): Collection
+    public function dailyPerformanceForLink(ShareTrackingLinkData $link, int $days = 14, ?string $timezone = null): Collection
     {
-        $fromDate = now()->subDays(max($days - 1, 0))->startOfDay();
+        if (! ShareTrackingMeasurement::isConfigured()) {
+            return collect();
+        }
+
+        $timezone ??= (string) config('app.timezone', 'UTC');
+
+        try {
+            $tz = new \DateTimeZone($timezone);
+        } catch (\Throwable) {
+            throw new InvalidArgumentException('Viewer timezone must be a valid identifier.');
+        }
+
+        $today = Carbon::now($tz)->startOfDay();
+        $fromDate = $today->copy()->subDays(max($days - 1, 0));
+        $fromUtc = $fromDate->copy()->setTimezone('UTC');
+
+        $bucket = static function (mixed $instant) use ($tz, $today): string {
+            if ($instant instanceof CarbonInterface) {
+                return Carbon::parse($instant)->setTimezone($tz)->toDateString();
+            }
+
+            return $today->toDateString();
+        };
 
         $visits = $this->visitTouchpointsQueryForLink($link->id)
-            ->where('touched_at', '>=', $fromDate)
+            ->where('touched_at', '>=', $fromUtc)
             ->get()
-            ->groupBy(fn (AffiliateTouchpoint $touchpoint): string => optional($touchpoint->touched_at)?->toDateString() ?? now()->toDateString())
+            ->groupBy(fn (AffiliateTouchpoint $touchpoint): string => $bucket($touchpoint->touched_at))
             ->map(fn (Collection $collection): int => $collection->count());
 
         $outcomes = $this->conversionsQueryForLink($link->id)
-            ->where('occurred_at', '>=', $fromDate)
+            ->where('occurred_at', '>=', $fromUtc)
             ->get()
-            ->groupBy(fn (AffiliateConversion $conversion): string => optional($conversion->occurred_at)?->toDateString() ?? now()->toDateString());
+            ->groupBy(fn (AffiliateConversion $conversion): string => $bucket($conversion->occurred_at));
 
         return collect(range(0, max($days - 1, 0)))
             ->map(function (int $offset) use ($fromDate, $visits, $outcomes): array {
@@ -251,6 +313,10 @@ final readonly class AffiliatesShareTrackingAnalyticsService
      */
     public function outcomeBreakdownForLink(ShareTrackingLinkData $link): Collection
     {
+        if (! ShareTrackingMeasurement::isConfigured()) {
+            return collect();
+        }
+
         return $this->conversionsQueryForLink($link->id)
             ->get()
             ->groupBy('conversion_type')
@@ -264,6 +330,10 @@ final readonly class AffiliatesShareTrackingAnalyticsService
      */
     public function recentVisitsForLink(ShareTrackingLinkData $link, int $limit = 20): Collection
     {
+        if (! ShareTrackingMeasurement::isConfigured()) {
+            return collect();
+        }
+
         return $this->visitTouchpointsQueryForLink($link->id)
             ->latest('touched_at')
             ->limit($limit)
@@ -276,6 +346,10 @@ final readonly class AffiliatesShareTrackingAnalyticsService
      */
     public function recentOutcomesForLink(ShareTrackingLinkData $link, int $limit = 20): Collection
     {
+        if (! ShareTrackingMeasurement::isConfigured()) {
+            return collect();
+        }
+
         return $this->conversionsQueryForLink($link->id)
             ->latest('occurred_at')
             ->limit($limit)
@@ -293,6 +367,15 @@ final readonly class AffiliatesShareTrackingAnalyticsService
      */
     public function activityWindowForLink(ShareTrackingLinkData $link): array
     {
+        if (! ShareTrackingMeasurement::isConfigured()) {
+            return [
+                'first_seen_at' => null,
+                'last_visit_at' => null,
+                'last_outcome_at' => null,
+                'latest_activity_at' => null,
+            ];
+        }
+
         $firstSeen = $this->landingAttributionsQueryForLink($link->id)->min('first_seen_at');
         $lastVisit = $this->visitTouchpointsQueryForLink($link->id)->max('touched_at');
         $lastOutcome = $this->conversionsQueryForLink($link->id)->max('occurred_at');
@@ -317,6 +400,25 @@ final readonly class AffiliatesShareTrackingAnalyticsService
     }
 
     /**
+     * Read scope for a user: their primary member profile plus every
+     * guest profile they actively claimed. Revoked claims (deleted
+     * history) are excluded: detached history is never readable.
+     *
+     * @return list<string>
+     */
+    private function affiliateIdsForUser(User $user): array
+    {
+        $primary = $this->affiliateForUser($user);
+
+        $ids = $primary instanceof Affiliate ? [(string) $primary->getKey()] : [];
+
+        return array_values(array_unique([
+            ...$ids,
+            ...ShareGuestClaim::activeGuestAffiliateIdsForClaimant((string) $user->getKey()),
+        ]));
+    }
+
+    /**
      * @param  Collection<int, AffiliateConversion>  $collection
      * @return array{outcome_type: string, label: string, count: int}
      */
@@ -337,7 +439,7 @@ final readonly class AffiliatesShareTrackingAnalyticsService
      * @return array{
      *     outbound_shares: int,
      *     visits: int,
-     *     unique_visitors: int,
+     *     distinct_browsers: int,
      *     signups: int,
      *     event_registrations: int,
      *     event_checkins: int,
@@ -347,20 +449,82 @@ final readonly class AffiliatesShareTrackingAnalyticsService
      */
     private function summaryFromCollections(Collection $outboundShares, Collection $visits, Collection $conversions, Collection $attributions): array
     {
+        $valid = $conversions->filter(fn (AffiliateConversion $conversion): bool => $this->isValidConversion($conversion));
+
+        $browserKeys = $attributions
+            ->pluck('visitor_key')
+            ->merge($visits->pluck('visitor_key'))
+            ->filter(fn (mixed $value): bool => is_string($value) && $value !== '')
+            ->unique();
+
         return [
             'outbound_shares' => $outboundShares->count(),
             'visits' => $visits->count(),
-            'unique_visitors' => $attributions->pluck('cookie_value')->filter()->unique()->count(),
-            'signups' => $conversions->where('conversion_type', 'signup')->count(),
-            'event_registrations' => $conversions->where('conversion_type', 'event_registration')->count(),
-            'event_checkins' => $conversions->where('conversion_type', 'event_checkin')->count(),
-            'event_submissions' => $conversions->where('conversion_type', 'event_submission')->count(),
-            'total_outcomes' => $conversions->count(),
+            'distinct_browsers' => $browserKeys->count(),
+            'signups' => $valid->where('conversion_type', 'signup')->count(),
+            'event_registrations' => $valid->where('conversion_type', 'event_registration')->count(),
+            'event_checkins' => $valid->where('conversion_type', 'event_checkin')->count(),
+            'event_submissions' => $valid->where('conversion_type', 'event_submission')->count(),
+            'total_outcomes' => $valid->count(),
         ];
     }
 
-    private function buildLinkData(AffiliateLink $link): ShareTrackingLinkData
+    private function isValidConversion(AffiliateConversion $conversion): bool
     {
+        $status = $conversion->status;
+
+        $value = $status instanceof ConversionStatus
+            ? $status->getValue()
+            : (string) $status;
+
+        // Currently valid only: pending (unknown), rejected, and
+        // reversed (historical) outcomes are never mixed into valid
+        // counts. Same definition as ShareMetricReader.
+        return in_array($value, ShareMetricReader::VALID_STATUSES, true);
+    }
+
+    private function reportingStart(): ?CarbonInterface
+    {
+        $raw = ShareTrackingMeasurement::reportingStart();
+
+        if ($raw === null) {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($raw, 'UTC');
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function buildLinkData(AffiliateLink $link, bool $withholdMeasurements = false): ShareTrackingLinkData
+    {
+        // Pre-declaration, link identity stays usable for share-again while
+        // every measurement is withheld as uncertified.
+        if ($withholdMeasurements) {
+            return new ShareTrackingLinkData(
+                id: (string) $link->id,
+                backend: 'affiliates',
+                subjectType: (string) ($link->subject_type ?: 'page'),
+                subjectId: $this->nullableString($link->subject_id),
+                subjectKey: (string) ($link->subject_key ?: 'page:unknown'),
+                destinationUrl: (string) $link->destination_url,
+                canonicalUrl: (string) $link->destination_url,
+                titleSnapshot: (string) ($link->subject_title_snapshot ?: config('app.name')),
+                lastSharedAt: $link->updated_at,
+                outboundShares: 0,
+                visitsCount: 0,
+                outcomesCount: 0,
+                signupsCount: 0,
+                eventRegistrationsCount: 0,
+                eventCheckinsCount: 0,
+                eventSubmissionsCount: 0,
+                latestVisitAt: null,
+                latestOutcomeAt: null,
+            );
+        }
+
         $visits = $this->visitTouchpointsQueryForLink($link->id)->get();
         $conversions = $this->conversionsQueryForLink($link->id)->get();
 
@@ -415,12 +579,14 @@ final readonly class AffiliatesShareTrackingAnalyticsService
         };
     }
 
-    private function uniqueVisitorsForLink(string $linkId): int
+    private function distinctBrowsersForLink(string $linkId): int
     {
-        return $this->landingAttributionsQueryForLink($linkId)
-            ->get()
-            ->pluck('cookie_value')
-            ->filter()
+        $attributionKeys = $this->landingAttributionsQueryForLink($linkId)->get()->pluck('visitor_key');
+        $visitKeys = $this->visitTouchpointsQueryForLink($linkId)->get()->pluck('visitor_key');
+
+        return $attributionKeys
+            ->merge($visitKeys)
+            ->filter(fn (mixed $value): bool => is_string($value) && $value !== '')
             ->unique()
             ->count();
     }
@@ -435,7 +601,7 @@ final readonly class AffiliatesShareTrackingAnalyticsService
      *     label: string,
      *     outbound_shares: int,
      *     visits: int,
-     *     unique_visitors: int,
+     *     distinct_browsers: int,
      *     outcomes: int,
      *     signups: int,
      *     event_registrations: int,
@@ -457,7 +623,7 @@ final readonly class AffiliatesShareTrackingAnalyticsService
                     'label' => $this->providerLabel($provider),
                     'outbound_shares' => $providerOutbound->count(),
                     'visits' => $providerVisits->count(),
-                    'unique_visitors' => $this->uniqueVisitorsForProvider($providerVisits, $providerAttributions),
+                    'distinct_browsers' => $this->distinctBrowsersForProvider($providerVisits, $providerAttributions),
                     'outcomes' => $providerConversions->count(),
                     'signups' => $providerConversions->where('conversion_type', 'signup')->count(),
                     'event_registrations' => $providerConversions->where('conversion_type', 'event_registration')->count(),
@@ -501,19 +667,11 @@ final readonly class AffiliatesShareTrackingAnalyticsService
      * @param  Collection<int, AffiliateTouchpoint>  $visits
      * @param  Collection<int, AffiliateAttribution>  $attributions
      */
-    private function uniqueVisitorsForProvider(Collection $visits, Collection $attributions): int
+    private function distinctBrowsersForProvider(Collection $visits, Collection $attributions): int
     {
-        $visitVisitorKeys = $visits
+        return $visits
             ->pluck('visitor_key')
-            ->filter(fn (mixed $value): bool => is_string($value) && $value !== '')
-            ->unique();
-
-        if ($visitVisitorKeys->isNotEmpty()) {
-            return $visitVisitorKeys->count();
-        }
-
-        return $attributions
-            ->pluck('cookie_value')
+            ->merge($attributions->pluck('visitor_key'))
             ->filter(fn (mixed $value): bool => is_string($value) && $value !== '')
             ->unique()
             ->count();
@@ -528,41 +686,69 @@ final readonly class AffiliatesShareTrackingAnalyticsService
     }
 
     /**
+     * @param  list<string>  $affiliateIds
      * @return Builder<AffiliateTouchpoint>
      */
-    private function outboundSharesQuery(Affiliate $affiliate): Builder
+    private function outboundSharesQuery(array $affiliateIds): Builder
     {
-        return AffiliateTouchpoint::query()
-            ->where('affiliate_id', $affiliate->id)
+        $query = AffiliateTouchpoint::query()
+            ->whereIn('affiliate_id', $affiliateIds)
             ->where('touchpoint_type', 'outbound_share');
+
+        if ($this->reportingStart() instanceof CarbonInterface) {
+            $query->where('touched_at', '>=', $this->reportingStart());
+        }
+
+        return $query;
     }
 
     /**
+     * @param  list<string>  $affiliateIds
      * @return Builder<AffiliateTouchpoint>
      */
-    private function visitTouchpointsQuery(Affiliate $affiliate): Builder
+    private function visitTouchpointsQuery(array $affiliateIds): Builder
     {
-        return AffiliateTouchpoint::query()
-            ->where('affiliate_id', $affiliate->id)
+        $query = AffiliateTouchpoint::query()
+            ->whereIn('affiliate_id', $affiliateIds)
             ->where('touchpoint_type', 'visit');
+
+        if ($this->reportingStart() instanceof CarbonInterface) {
+            $query->where('touched_at', '>=', $this->reportingStart());
+        }
+
+        return $query;
     }
 
     /**
+     * @param  list<string>  $affiliateIds
      * @return Builder<AffiliateConversion>
      */
-    private function conversionsQuery(Affiliate $affiliate): Builder
+    private function conversionsQuery(array $affiliateIds): Builder
     {
-        return AffiliateConversion::query()->where('affiliate_id', $affiliate->id);
+        $query = AffiliateConversion::query()->whereIn('affiliate_id', $affiliateIds);
+
+        if ($this->reportingStart() instanceof CarbonInterface) {
+            $query->where('occurred_at', '>=', $this->reportingStart());
+        }
+
+        return $query->whereIn('status', ShareMetricReader::VALID_STATUSES);
     }
 
     /**
+     * @param  list<string>  $affiliateIds
      * @return Builder<AffiliateAttribution>
      */
-    private function landingAttributionsQuery(Affiliate $affiliate): Builder
+    private function landingAttributionsQuery(array $affiliateIds): Builder
     {
-        return AffiliateAttribution::query()
-            ->where('affiliate_id', $affiliate->id)
+        $query = AffiliateAttribution::query()
+            ->whereIn('affiliate_id', $affiliateIds)
             ->where('attribution_type', 'landing');
+
+        if ($this->reportingStart() instanceof CarbonInterface) {
+            $query->where('first_seen_at', '>=', $this->reportingStart());
+        }
+
+        return $query;
     }
 
     /**
@@ -570,9 +756,15 @@ final readonly class AffiliatesShareTrackingAnalyticsService
      */
     private function outboundSharesQueryForLink(string $linkId): Builder
     {
-        return AffiliateTouchpoint::query()
+        $query = AffiliateTouchpoint::query()
             ->where('touchpoint_type', 'outbound_share')
             ->where('affiliate_link_id', $linkId);
+
+        if ($this->reportingStart() instanceof CarbonInterface) {
+            $query->where('touched_at', '>=', $this->reportingStart());
+        }
+
+        return $query;
     }
 
     /**
@@ -580,9 +772,15 @@ final readonly class AffiliatesShareTrackingAnalyticsService
      */
     private function visitTouchpointsQueryForLink(string $linkId): Builder
     {
-        return AffiliateTouchpoint::query()
+        $query = AffiliateTouchpoint::query()
             ->where('touchpoint_type', 'visit')
             ->where('affiliate_link_id', $linkId);
+
+        if ($this->reportingStart() instanceof CarbonInterface) {
+            $query->where('touched_at', '>=', $this->reportingStart());
+        }
+
+        return $query;
     }
 
     /**
@@ -590,7 +788,13 @@ final readonly class AffiliatesShareTrackingAnalyticsService
      */
     private function conversionsQueryForLink(string $linkId): Builder
     {
-        return AffiliateConversion::query()->where('affiliate_link_id', $linkId);
+        $query = AffiliateConversion::query()->where('affiliate_link_id', $linkId);
+
+        if ($this->reportingStart() instanceof CarbonInterface) {
+            $query->where('occurred_at', '>=', $this->reportingStart());
+        }
+
+        return $query->whereIn('status', ShareMetricReader::VALID_STATUSES);
     }
 
     /**
@@ -598,9 +802,15 @@ final readonly class AffiliatesShareTrackingAnalyticsService
      */
     private function landingAttributionsQueryForLink(string $linkId): Builder
     {
-        return AffiliateAttribution::query()
+        $query = AffiliateAttribution::query()
             ->where('attribution_type', 'landing')
             ->where('affiliate_link_id', $linkId);
+
+        if ($this->reportingStart() instanceof CarbonInterface) {
+            $query->where('first_seen_at', '>=', $this->reportingStart());
+        }
+
+        return $query;
     }
 
     private function mapOutcome(AffiliateConversion $conversion): ShareTrackingOutcomeData
@@ -609,17 +819,12 @@ final readonly class AffiliatesShareTrackingAnalyticsService
             id: (string) $conversion->id,
             backend: 'affiliates',
             linkId: $this->nullableString($conversion->affiliate_link_id) ?? '',
-            attributionId: $conversion->affiliate_attribution_id,
-            sharerUserId: $conversion->sharer_user_id,
-            actorUserId: $conversion->actor_user_id,
             outcomeType: (string) ($conversion->conversion_type ?: 'unknown'),
             subjectType: $conversion->subject_type,
             subjectId: $this->nullableString($conversion->subject_id) ?? $this->nullableString($conversion->subject_key),
             subjectKey: $conversion->subject_key,
-            outcomeKey: $this->nullableString($conversion->external_reference) ?? '',
             linkTitleSnapshot: $this->nullableString($conversion->subject_title_snapshot),
             occurredAt: $conversion->occurred_at,
-            metadata: $conversion->metadata ?? [],
         );
     }
 
@@ -629,15 +834,12 @@ final readonly class AffiliatesShareTrackingAnalyticsService
             id: (string) $touchpoint->id,
             backend: 'affiliates',
             linkId: $this->nullableString($touchpoint->affiliate_link_id) ?? '',
-            attributionId: $touchpoint->affiliate_attribution_id,
-            visitorKey: $touchpoint->visitor_key,
-            visitedUrl: (string) ($touchpoint->url ?? ''),
             subjectType: $touchpoint->subject_type,
             subjectId: $this->nullableString($touchpoint->subject_id) ?? $this->nullableString($touchpoint->subject_key),
             subjectKey: $touchpoint->subject_key,
             visitKind: $this->nullableString($touchpoint->metadata['visit_kind'] ?? null) ?? 'navigated',
+            channel: $this->nullableString($touchpoint->channel),
             occurredAt: $touchpoint->touched_at,
-            metadata: $touchpoint->metadata ?? [],
         );
     }
 
@@ -663,7 +865,7 @@ final readonly class AffiliatesShareTrackingAnalyticsService
      * @return array{
      *     outbound_shares: int,
      *     visits: int,
-     *     unique_visitors: int,
+     *     distinct_browsers: int,
      *     signups: int,
      *     event_registrations: int,
      *     event_checkins: int,
@@ -676,7 +878,7 @@ final readonly class AffiliatesShareTrackingAnalyticsService
         return [
             'outbound_shares' => 0,
             'visits' => 0,
-            'unique_visitors' => 0,
+            'distinct_browsers' => 0,
             'signups' => 0,
             'event_registrations' => 0,
             'event_checkins' => 0,

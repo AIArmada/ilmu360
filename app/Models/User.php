@@ -21,6 +21,7 @@ use App\Models\Concerns\AuditsModelChanges;
 use App\Models\Concerns\HasUserRestoration;
 use App\Notifications\Auth\ResetPasswordNotification;
 use App\Notifications\Auth\VerifyEmailNotification;
+use App\Notifications\Channels\DigestMailChannel;
 use App\Notifications\Channels\InboxChannel;
 use App\Support\Submission\PublicSubmissionLockService;
 use Database\Factories\UserFactory;
@@ -508,6 +509,10 @@ class User extends Authenticatable implements AuditableContract, CanInteract, Fi
             return (string) $this->getKey();
         }
 
+        if ($driver === DigestMailChannel::class) {
+            return $this->routeNotificationForMail($notification instanceof Notification ? $notification : null);
+        }
+
         return $this->traitRouteNotificationFor($driver, $notification);
     }
 
@@ -639,8 +644,12 @@ class User extends Authenticatable implements AuditableContract, CanInteract, Fi
             return $timezone;
         }
 
-        return is_string($this->timezone) && $this->timezone !== ''
-            ? $this->timezone
+        // Auth guards may hand over partially loaded instances; a missing
+        // key falls back instead of fataling under strict attributes.
+        $stored = array_key_exists('timezone', $this->attributes) ? $this->attributes['timezone'] : null;
+
+        return is_string($stored) && $stored !== ''
+            ? $stored
             : (string) config('app.timezone', 'UTC');
     }
 

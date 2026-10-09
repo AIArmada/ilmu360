@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use AIArmada\Engagement\Contracts\EngagementCounterService;
 use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Models\Bookmark;
+use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Data\Api\EventEngagement\EventEngagementListItemData;
 use App\Data\Api\EventSave\EventSaveStateData;
 use App\Enums\DawahShareOutcomeType;
@@ -14,10 +15,12 @@ use App\Models\Event;
 use App\Models\User;
 use App\Services\ShareTrackingService;
 use App\Support\Api\ApiPagination;
+use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 #[Group('Event Save', 'Authenticated saved-event endpoints for listing and idempotent event save state management.')]
@@ -71,9 +74,32 @@ class EventSaveController extends Controller
         }
 
         $user = $this->currentUser($request);
-        $bookmark = app(EngagementManager::class)->bookmark($user, $event);
 
-        if (! $bookmark) {
+        $result = DB::transaction(function () use ($user, $event, $request): array {
+            $bookmark = app(EngagementManager::class)->bookmark($user, $event);
+
+            if (! $bookmark) {
+                return ['bookmark' => null, 'created' => false];
+            }
+
+            $created = $bookmark->wasRecentlyCreated;
+
+            if ($created) {
+                app(ShareTrackingService::class)->recordOutcome(
+                    type: DawahShareOutcomeType::EventSave,
+                    businessKey: ShareOutcomeBusinessKey::eventSave((string) $bookmark->getKey()),
+                    subject: $event,
+                    actor: $user,
+                    request: $request,
+                    metadata: ['subject_id' => $event->getKey(), 'subject_type' => $event->getMorphClass()],
+                    occurredAt: $bookmark->created_at,
+                );
+            }
+
+            return ['bookmark' => $bookmark, 'created' => $created];
+        });
+
+        if (! $result['bookmark']) {
             return response()->json([
                 'error' => [
                     'code' => 'not_found',
@@ -82,20 +108,9 @@ class EventSaveController extends Controller
             ], 404);
         }
 
-        $created = $bookmark->wasRecentlyCreated;
+        $created = $result['created'];
         app(EngagementCounterService::class)->recalculateBookmarks($event);
         $savesCount = Bookmark::forBookmarkable($event)->active()->count();
-
-        if ($created) {
-            app(ShareTrackingService::class)->recordOutcome(
-                type: DawahShareOutcomeType::EventSave,
-                outcomeKey: 'event_save:user:'.$user->getKey().':event:'.$event->getKey(),
-                subject: $event,
-                actor: $user,
-                request: $request,
-                metadata: ['subject_id' => $event->getKey(), 'subject_type' => $event->getMorphClass()],
-            );
-        }
 
         return response()->json([
             'message' => $created ? 'Event saved successfully.' : 'Event already saved.',
@@ -116,8 +131,23 @@ class EventSaveController extends Controller
     public function destroy(Request $request, Event $event): JsonResponse
     {
         $user = $this->currentUser($request);
-        $wasSaved = Bookmark::forBookmarker($user)->forBookmarkable($event)->active()->exists();
-        app(EngagementManager::class)->removeBookmark($user, $event);
+
+        $wasSaved = DB::transaction(function () use ($user, $event, $request): bool {
+            $bookmark = Bookmark::forBookmarker($user)->forBookmarkable($event)->active()->lockForUpdate()->first();
+            $wasSaved = $bookmark instanceof Bookmark;
+            app(EngagementManager::class)->removeBookmark($user, $event);
+
+            if ($wasSaved && $bookmark instanceof Bookmark) {
+                app(ReverseShareOutcomeAction::class)->handle(
+                    ShareOutcomeBusinessKey::eventSave((string) $bookmark->getKey()),
+                    'save_removed',
+                    $user,
+                    $request,
+                );
+            }
+
+            return $wasSaved;
+        });
         app(EngagementCounterService::class)->recalculateBookmarks($event);
         $savesCount = Bookmark::forBookmarkable($event)->active()->count();
 

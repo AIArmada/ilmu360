@@ -12,7 +12,11 @@ use AIArmada\Ticketing\Actions\AddTicketTypeToCartAction;
 use AIArmada\Ticketing\Models\TicketType;
 use App\Models\Event;
 use App\Models\User;
+use App\Services\ShareTrackingService;
 use App\Support\Commerce\EventCommerceModes;
+use Carbon\CarbonInterface;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 /**
@@ -25,6 +29,7 @@ final class PrepareEventCheckoutAction
         private readonly CartManagerInterface $cartManager,
         private readonly AddTicketTypeToCartAction $addTicketTypeToCart,
         private readonly CheckoutServiceInterface $checkoutService,
+        private readonly ShareTrackingService $shareTracking,
     ) {}
 
     /**
@@ -40,6 +45,7 @@ final class PrepareEventCheckoutAction
         array $agreement = [],
         ?string $discountCode = null,
         ?string $idempotencyKey = null,
+        ?Request $request = null,
     ): CheckoutSession {
         $this->ensureCheckoutCanStart($event, $ticketType, $quantity, $participants);
 
@@ -48,14 +54,63 @@ final class PrepareEventCheckoutAction
         $normalizedDiscountCode = $this->normalizeCode($discountCode);
         $idempotencyKey = $this->normalizeIdempotencyKey($idempotencyKey);
 
-        if ($idempotencyKey !== null) {
-            $existing = $this->findExistingCheckout($buyer, $idempotencyKey);
+        return DB::transaction(function () use (
+            $event,
+            $ticketType,
+            $quantity,
+            $participants,
+            $buyer,
+            $agreement,
+            $normalizedDiscountCode,
+            $idempotencyKey,
+            $scopeIds,
+            $currency,
+            $request,
+        ): CheckoutSession {
+            User::query()->whereKey($buyer->getKey())->lockForUpdate()->firstOrFail();
 
-            if ($existing instanceof CheckoutSession) {
-                return $existing;
+            if ($idempotencyKey !== null) {
+                $existing = $this->findExistingCheckout($buyer, $idempotencyKey);
+
+                if ($existing instanceof CheckoutSession) {
+                    return $existing;
+                }
             }
-        }
 
+            return $this->createCheckoutSession(
+                event: $event,
+                ticketType: $ticketType,
+                quantity: $quantity,
+                participants: $participants,
+                buyer: $buyer,
+                agreement: $agreement,
+                normalizedDiscountCode: $normalizedDiscountCode,
+                idempotencyKey: $idempotencyKey,
+                scopeIds: $scopeIds,
+                currency: $currency,
+                request: $request,
+            );
+        }, 3);
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $participants
+     * @param  array<string, mixed>  $agreement
+     * @param  array<string, mixed>  $scopeIds
+     */
+    private function createCheckoutSession(
+        Event $event,
+        TicketType $ticketType,
+        int $quantity,
+        array $participants,
+        User $buyer,
+        array $agreement,
+        ?string $normalizedDiscountCode,
+        ?string $idempotencyKey,
+        array $scopeIds,
+        string $currency,
+        ?Request $request,
+    ): CheckoutSession {
         $cart = $this->cartManager->getCartInstance(
             (string) config('events.features.commerce.checkout.cart_instance', 'event-checkout'),
         );
@@ -105,6 +160,15 @@ final class PrepareEventCheckoutAction
         }
 
         $session = $this->checkoutService->startCheckout($cartId);
+
+        // The checkout session is the authoritative server-created paid
+        // intent. Freeze the participant attribution decision here, before
+        // the external payment handoff, so payment-confirmation callbacks
+        // inherit this persisted decision instead of reading callback
+        // request cookies or a late token.
+        $attribution = $this->shareTracking->resolveActiveAttribution($request ?? request());
+        $occurredAt = $session->created_at instanceof CarbonInterface ? $session->created_at : now();
+
         $paymentData = $session->payment_data ?? [];
         $paymentData['checkout_actor'] = [
             'type' => $buyer->getMorphClass(),
@@ -115,6 +179,11 @@ final class PrepareEventCheckoutAction
             'ticket_type_id' => (string) $ticketType->getKey(),
             'agreement' => $agreement,
             'idempotency_key' => $idempotencyKey,
+        ];
+        $paymentData['share_provenance'] = [
+            'intent_id' => (string) $session->getKey(),
+            'attribution_id' => $attribution?->id,
+            'occurred_at' => $occurredAt->toIso8601String(),
         ];
 
         $session->forceFill([

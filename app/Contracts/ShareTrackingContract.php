@@ -9,6 +9,7 @@ use App\Data\ShareTracking\ShareTrackingLinkData;
 use App\Data\ShareTracking\ShareTrackingOutcomeData;
 use App\Enums\DawahShareOutcomeType;
 use App\Models\User;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 
@@ -69,11 +70,38 @@ interface ShareTrackingContract
      */
     public function recordOutcome(
         DawahShareOutcomeType $type,
-        string $outcomeKey,
+        string $businessKey,
         ?Model $subject = null,
         ?User $actor = null,
         ?Request $request = null,
         array $metadata = [],
+        ?CarbonInterface $occurredAt = null,
+    ): ?ShareTrackingOutcomeData;
+
+    /**
+     * @param  array<string, mixed>  $metadata
+     */
+    public function recordInheritedOutcome(
+        DawahShareOutcomeType $type,
+        string $businessKey,
+        string $sourceBusinessKey,
+        ?Model $subject = null,
+        ?User $actor = null,
+        array $metadata = [],
+        ?CarbonInterface $occurredAt = null,
+    ): ?ShareTrackingOutcomeData;
+
+    /**
+     * @param  array<string, mixed>  $metadata
+     */
+    public function recordCheckoutInheritedOutcome(
+        DawahShareOutcomeType $type,
+        string $businessKey,
+        ?string $persistedAttributionId,
+        ?Model $subject = null,
+        ?User $actor = null,
+        array $metadata = [],
+        ?CarbonInterface $occurredAt = null,
     ): ?ShareTrackingOutcomeData;
 
     public function createOrReuseLink(User $user, string $url, ?string $fallbackTitle = null, ?string $origin = null): ShareTrackingLinkData;

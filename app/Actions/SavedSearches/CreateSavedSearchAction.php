@@ -8,7 +8,9 @@ use App\Models\SavedSearch;
 use App\Models\User;
 use App\Services\ShareTrackingService;
 use App\Support\SavedSearches\SavedSearchFilterNormalizer;
+use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 final readonly class CreateSavedSearchAction
@@ -27,23 +29,26 @@ final readonly class CreateSavedSearchAction
      */
     public function handle(User $user, array $attributes, ?Request $request = null): SavedSearch
     {
-        if ($user->savedSearches()->count() >= self::MAX_SAVED_SEARCHES_PER_USER) {
-            throw new SavedSearchLimitReachedException(self::MAX_SAVED_SEARCHES_PER_USER);
-        }
+        return DB::transaction(function () use ($user, $attributes, $request): SavedSearch {
+            if ($user->savedSearches()->count() >= self::MAX_SAVED_SEARCHES_PER_USER) {
+                throw new SavedSearchLimitReachedException(self::MAX_SAVED_SEARCHES_PER_USER);
+            }
 
-        $savedSearch = $user->savedSearches()->create($this->normalizeAttributes($attributes));
+            $savedSearch = $user->savedSearches()->create($this->normalizeAttributes($attributes));
 
-        $this->shareTrackingService->recordOutcome(
-            type: DawahShareOutcomeType::SavedSearchCreated,
-            outcomeKey: 'saved_search_created:saved_search:'.$savedSearch->id,
-            actor: $user,
-            request: $request ?? request(),
-            metadata: [
-                'saved_search_id' => $savedSearch->id,
-            ],
-        );
+            $this->shareTrackingService->recordOutcome(
+                type: DawahShareOutcomeType::SavedSearchCreated,
+                businessKey: ShareOutcomeBusinessKey::savedSearch((string) $savedSearch->getKey()),
+                actor: $user,
+                request: $request ?? request(),
+                metadata: [
+                    'saved_search_id' => $savedSearch->getKey(),
+                ],
+                occurredAt: $savedSearch->created_at ?? now(),
+            );
 
-        return $savedSearch;
+            return $savedSearch;
+        });
     }
 
     /**

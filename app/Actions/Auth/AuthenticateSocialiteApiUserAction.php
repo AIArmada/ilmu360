@@ -7,6 +7,7 @@ use App\Services\ShareTrackingService;
 use App\Services\Signals\ProductSignalsService;
 use App\Support\Auth\SocialiteProviderConfiguration;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\AbstractProvider;
@@ -46,17 +47,24 @@ final readonly class AuthenticateSocialiteApiUserAction
             ]);
         }
 
-        $result = $this->resolveSocialiteUserAction->handle($provider, $socialUser);
+        // The signup source and its attributed-or-unattributed receipt
+        // freeze in one transaction: a failure after user creation must
+        // never leave a receipt-less account open to late credit.
+        $result = DB::transaction(function () use ($provider, $socialUser, $request): array {
+            $resolved = $this->resolveSocialiteUserAction->handle($provider, $socialUser);
+
+            if ($resolved['created_account']) {
+                $this->shareTrackingService->recordSignup($resolved['user'], $request);
+            }
+
+            return $resolved;
+        });
         $user = $result['user'];
         $createdAccount = $result['created_account'];
 
         $accessToken = $user->createToken($deviceName)->plainTextToken;
 
         $this->productSignalsService->recordLogin($user, $request, $provider.'_api_token', $createdAccount);
-
-        if ($createdAccount) {
-            $this->shareTrackingService->recordSignup($user, $request);
-        }
 
         return [
             'user' => $user,

@@ -1,0 +1,89 @@
+{
+    "manifest_version": 1,
+    "purpose": "Pinned multilingual title fonts for the WP3 share-card renderer leaf. No system fonts are used; rendering is confined to this directory.",
+    "upstream": "https://github.com/google/fonts",
+    "upstream_commit": "587df9bc0168395fa1f780dee770cba04225a7bb",
+    "upstream_commit_date": "2026-10-07T10:05:07Z",
+    "license": "SIL Open Font License, Version 1.1",
+    "license_reference": "https://openfontlicense.org",
+    "downloaded_at": "2026-10-07T19:03:00+08:00",
+    "fonts": [
+        {
+            "family": "Noto Sans",
+            "file": "NotoSans[wdth,wght].ttf",
+            "upstream_path": "ofl/notosans/NotoSans[wdth,wght].ttf",
+            "bytes": 2049096,
+            "sha256": "bfb7bb691513f12e734dc346c03a03f784912432d7e3fa8e56efcf906fe86b3d",
+            "font_version": "Version 2.015",
+            "license_file": "OFL-NotoSans.txt",
+            "serves_locales": ["ms", "id", "en", "jv"],
+            "serves_scripts": ["Latin"],
+            "notes": "Base family for Latin titles, digits and card chrome. Variable wdth/wght; Bold/Medium named instances verified via local fontconfig."
+        },
+        {
+            "family": "Noto Sans Arabic",
+            "file": "NotoSansArabic[wdth,wght].ttf",
+            "upstream_path": "ofl/notosansarabic/NotoSansArabic[wdth,wght].ttf",
+            "bytes": 844676,
+            "sha256": "63111b5b2e074dd48cc67692e0a2726d86ee94c1c37fe8598257b7b4e87e869e",
+            "font_version": "Version 2.012",
+            "license_file": "OFL-NotoSansArabic.txt",
+            "serves_locales": ["ar", "ms", "id"],
+            "serves_scripts": ["Arabic", "Jawi"],
+            "notes": "Covers Arabic plus Jawi extensions U+0686 U+06A0 U+06A4 U+0762 U+06CF U+06BD (verified in cmap). Joining verified with HarfBuzz."
+        },
+        {
+            "family": "Noto Sans SC",
+            "file": "NotoSansSC[wght].ttf",
+            "upstream_path": "ofl/notosanssc/NotoSansSC[wght].ttf",
+            "bytes": 17772300,
+            "sha256": "a3041811a78c361b1de50f953c805e0244951c21c5bd412f7232ef0d899af0da",
+            "font_version": "Version 2.004-H2",
+            "license_file": "OFL-NotoSansSC.txt",
+            "serves_locales": ["zh"],
+            "serves_scripts": ["Han (Simplified presentation)"],
+            "notes": "Locale zh renders with Simplified-Chinese glyph presentation. Traditional-only text falls back to shared Han glyphs; no Traditional-specific variant is vendored."
+        },
+        {
+            "family": "Noto Sans Tamil",
+            "file": "NotoSansTamil[wdth,wght].ttf",
+            "upstream_path": "ofl/notosanstamil/NotoSansTamil[wdth,wght].ttf",
+            "bytes": 340668,
+            "sha256": "aa3a9b321f4b0bb2c40203ffbde9af89713227866e0e13f76e5b9eeea727cf88",
+            "font_version": "Version 2.004",
+            "license_file": "OFL-NotoSansTamil.txt",
+            "serves_locales": ["ta"],
+            "serves_scripts": ["Tamil"],
+            "notes": "Conjunct composition verified with HarfBuzz (no dotted-circle placeholders)."
+        },
+        {
+            "family": "Noto Sans Javanese",
+            "file": "NotoSansJavanese[wght].ttf",
+            "upstream_path": "ofl/notosansjavanese/NotoSansJavanese[wght].ttf",
+            "bytes": 252904,
+            "sha256": "0bcb88de05a855aec38471d6317e860fa2a40d1c3ca93f2736b7c34ad9288d90",
+            "font_version": "Version 2.005",
+            "license_file": "OFL-NotoSansJavanese.txt",
+            "serves_locales": ["jv"],
+            "serves_scripts": ["Javanese"],
+            "notes": "Javanese-script (hanacaraka, U+A980-U+A9DF) fallback for locale jv. Latin-script Javanese uses Noto Sans; script is resolved per run by the shaper, never assumed from locale alone."
+        }
+    ],
+    "licenses": [
+        {"file": "OFL-NotoSans.txt", "bytes": 4396, "sha256": "cee9892f9f0cc8fe882c9e9537ee6a89621d86ee7ceaf70b02e2b2b1c25c061a"},
+        {"file": "OFL-NotoSansArabic.txt", "bytes": 4382, "sha256": "07fc70bfeb985cc1a87a8587d0a0c80bab11c86c9dc3fd95b6f0cb332f983e96"},
+        {"file": "OFL-NotoSansJavanese.txt", "bytes": 4384, "sha256": "8a5665bd3b16a64f953b24a71f12e298f5233be8a4ed17424129c5524a397892"},
+        {"file": "OFL-NotoSansSC.txt", "bytes": 4388, "sha256": "1c05c68c34f9708415aada51f17e1b0092d2cea709bf4a94cd38114f9e73d7d9"},
+        {"file": "OFL-NotoSansTamil.txt", "bytes": 4381, "sha256": "f8ff8ce7d0a81bf8d5e121c635ef027250c531f2fd37d5988b8dd6e45f19d7f1"}
+    ],
+    "support_policy": {
+        "locales": ["ms", "id", "en", "ar", "zh", "ta", "jv"],
+        "locale_note": "Locale selects shaping base direction, alignment, language hint and base family only. It is not a translation claim: card copy is supplied verbatim by the caller.",
+        "javanese": "Locale jv does not imply Latin. Hanacaraka runs shape via Noto Sans Javanese through shaper fallback; Latin runs use Noto Sans.",
+        "jawi": "Jawi titles are Arabic-script titles; the six Jawi extension codepoints are covered by Noto Sans Arabic (see notes).",
+        "digits": "Latin and Arabic-Indic digits are covered; mixed digits inside RTL text follow Unicode bidi (no manual reordering).",
+        "emoji": "Not supported: no emoji font is vendored. Emoji input refuses with a typed unsupported_text non-render (never a .notdef box, never a silent strip); callers should avoid emoji in card text and use the honest cover fallback on refusal.",
+        "symbols": "U+2713 check mark is absent from the Noto Sans base family but covered via fallback; verified state stays text-only by copy choice. Degree sign, middle dot, ellipsis, en dash and joiners are covered. Any visible character without a glyph in the pinned set refuses as unsupported_text, never tofu.",
+        "forbidden_sources": "No Apple, macOS system or third-party mirror fonts. Any file not listed here must fail readiness verification."
+    }
+}

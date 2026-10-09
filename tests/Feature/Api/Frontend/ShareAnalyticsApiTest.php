@@ -5,6 +5,10 @@ use App\Models\Event;
 use App\Models\User;
 use Laravel\Sanctum\Sanctum;
 
+beforeEach(function (): void {
+    config(['dawah-share.reporting.reporting_start' => '2026-10-01']);
+});
+
 it('returns authenticated share analytics dashboard and link detail data for mobile clients', function () {
     $user = User::factory()->create();
     Sanctum::actingAs($user);
@@ -91,7 +95,10 @@ it('allows guest mobile clients to record share tracking through the api', funct
         ->assertOk()
         ->json();
 
-    $this->postJson(route('api.client.share.track'), [
+    $this->withHeader(
+        (string) config('dawah-share.guest_credential.header', 'X-Dawah-Guest-Credential'),
+        (string) data_get($payload, 'guest_credential'),
+    )->postJson(route('api.client.share.track'), [
         'provider' => 'native_share',
         'tracking_token' => (string) data_get($payload, 'tracking_token'),
     ])->assertNoContent();

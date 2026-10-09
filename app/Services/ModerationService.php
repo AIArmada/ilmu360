@@ -2,7 +2,10 @@
 
 namespace App\Services;
 
+use App\Actions\ShareTracking\ReverseEventParticipationOutcomesAction;
+use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Models\Event;
+use App\Models\EventSubmission;
 use App\Models\User;
 use App\Services\Signals\ProductSignalsService;
 use App\States\EventStatus\Approved;
@@ -11,6 +14,8 @@ use App\States\EventStatus\Draft;
 use App\States\EventStatus\NeedsChanges;
 use App\States\EventStatus\Pending;
 use App\States\EventStatus\Rejected;
+use App\Support\ShareTracking\ShareOutcomeBusinessKey;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -18,6 +23,10 @@ use Illuminate\Support\Facades\Log;
  */
 class ModerationService
 {
+    public function __construct(
+        private readonly ReverseShareOutcomeAction $reverseShareOutcome,
+    ) {}
+
     /**
      * Submit an event for moderation.
      */
@@ -63,6 +72,11 @@ class ModerationService
 
     /**
      * Reject an event.
+     *
+     * Rejection invalidates the event-scope submission outcomes in the
+     * same transaction: source qualification is the submission state,
+     * and a rejected submission never qualified. Session submissions
+     * keep their own scope and are never cascaded from the event.
      */
     public function reject(
         Event $event,
@@ -71,14 +85,37 @@ class ModerationService
         ?string $note = null
     ): void {
         $previousStatus = (string) $event->status;
-        $event->status->transitionTo(Rejected::class, $moderator, $reasonCode, $note);
-        $event->refresh();
+
+        DB::transaction(function () use ($event, $moderator, $reasonCode, $note): void {
+            $event->status->transitionTo(Rejected::class, $moderator, $reasonCode, $note);
+            $event->refresh();
+
+            EventSubmission::query()
+                ->where('event_id', $event->getKey())
+                ->whereNull('event_session_id')
+                ->lockForUpdate()
+                ->pluck('id')
+                ->each(function (mixed $submissionId) use ($moderator): void {
+                    $this->reverseShareOutcome->handle(
+                        ShareOutcomeBusinessKey::eventSubmission((string) $submissionId),
+                        'submission_rejected',
+                        $moderator,
+                        request(),
+                    );
+                });
+        });
 
         app(ProductSignalsService::class)->recordModerationTransition($event, 'rejected', $moderator, $previousStatus, $reasonCode, $note, request());
     }
 
     /**
      * Cancel an event while keeping it visible to users.
+     *
+     * Cancellation preserves history — source rows and frozen receipts
+     * stay — but the event's participation outcomes no longer qualify:
+     * registrations and check-ins reverse in the same transaction as the
+     * canonical status transition, cancelling pending effects. Event
+     * contributions such as submissions keep their own qualification.
      */
     public function cancel(
         Event $event,
@@ -86,8 +123,17 @@ class ModerationService
         ?string $note = null
     ): void {
         $previousStatus = (string) $event->status;
-        $event->status->transitionTo(Cancelled::class, $moderator, $note);
-        $event->refresh();
+
+        DB::transaction(function () use ($event, $moderator, $note): void {
+            $event->status->transitionTo(Cancelled::class, $moderator, $note);
+            $event->refresh();
+
+            app(ReverseEventParticipationOutcomesAction::class)->forEvent(
+                $event,
+                $moderator,
+                'event_cancelled',
+            );
+        });
 
         app(ProductSignalsService::class)->recordModerationTransition($event, 'cancelled', $moderator, $previousStatus, note: $note, request: request());
     }

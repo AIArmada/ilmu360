@@ -13,9 +13,8 @@ use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\User;
 use App\Services\ModerationService;
+use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
-use Throwable;
 
 final readonly class CompleteFrontendEventSubmissionAction
 {
@@ -37,6 +36,7 @@ final readonly class CompleteFrontendEventSubmissionAction
         ?User $submitter,
         bool $sessionSubmission,
         bool $autoApproved,
+        ?Request $request = null,
     ): void {
         if (! $submitter instanceof User) {
             $this->storeSubmitterContacts($submission, $state);
@@ -45,6 +45,19 @@ final readonly class CompleteFrontendEventSubmissionAction
         // Session submissions attach to an existing container; the parent
         // keeps its admission defaults and lifecycle state untouched.
         if ($sessionSubmission) {
+            $this->shareTracking->recordOutcome(
+                type: DawahShareOutcomeType::EventSubmission,
+                businessKey: ShareOutcomeBusinessKey::eventSubmission((string) $submission->getKey()),
+                subject: $event,
+                actor: $submitter,
+                request: $request ?? request(),
+                metadata: [
+                    'submission_id' => $submission->getKey(),
+                    'session_submission' => true,
+                ],
+                occurredAt: $submission->created_at ?? now(),
+            );
+
             return;
         }
 
@@ -59,38 +72,18 @@ final readonly class CompleteFrontendEventSubmissionAction
         } elseif ((string) $event->status === 'draft') {
             $this->moderation->submitForModeration($event);
         }
-    }
 
-    /**
-     * Emit best-effort external effects after the submission commits.
-     * Failures here must never poison an already valid submission.
-     *
-     * @param  array<string, mixed>  $state
-     */
-    public function handleAfterCommit(
-        Event $event,
-        EventSubmission $submission,
-        array $state,
-        Request $request,
-        ?User $submitter,
-    ): void {
-        try {
-            $this->shareTracking->recordOutcome(
-                type: DawahShareOutcomeType::EventSubmission,
-                outcomeKey: 'event_submission:submission:'.$submission->getKey(),
-                subject: $event,
-                actor: $submitter,
-                request: $request,
-                metadata: [
-                    'submission_id' => $submission->getKey(),
-                ],
-            );
-        } catch (Throwable $exception) {
-            Log::warning('Share outcome tracking failed for an event submission.', [
-                'submission_id' => (string) $submission->getKey(),
-                'exception' => $exception,
-            ]);
-        }
+        $this->shareTracking->recordOutcome(
+            type: DawahShareOutcomeType::EventSubmission,
+            businessKey: ShareOutcomeBusinessKey::eventSubmission((string) $submission->getKey()),
+            subject: $event,
+            actor: $submitter,
+            request: $request ?? request(),
+            metadata: [
+                'submission_id' => $submission->getKey(),
+            ],
+            occurredAt: $submission->created_at ?? now(),
+        );
     }
 
     /**

@@ -26,7 +26,7 @@ beforeEach(function () {
     $this->seed(PermissionSeeder::class);
     $this->seed(RoleSeeder::class);
     $this->seed(EventRoleSeeder::class);
-    $this->service = new ModerationService;
+    $this->service = app(ModerationService::class);
 });
 
 describe('Event Submission', function () {

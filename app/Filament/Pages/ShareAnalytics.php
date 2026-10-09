@@ -6,6 +6,7 @@ namespace App\Filament\Pages;
 
 use AIArmada\FilamentSignals\Pages\PageViewsReport;
 use App\Services\ShareTracking\AdminShareAnalyticsService;
+use App\Support\ShareTracking\ShareTrackingMeasurement;
 use BackedEnum;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
@@ -33,7 +34,7 @@ final class ShareAnalytics extends Page
             'shared_links' => 0,
             'outbound_shares' => 0,
             'visits' => 0,
-            'unique_visitors' => 0,
+            'distinct_browsers' => 0,
             'signups' => 0,
             'event_registrations' => 0,
             'event_checkins' => 0,
@@ -49,9 +50,12 @@ final class ShareAnalytics extends Page
 
     public ?string $signalsReportUrl = null;
 
+    public string $measurementStatus = 'not_configured';
+
     public function mount(AdminShareAnalyticsService $analytics): void
     {
         $this->report = $analytics->dashboard();
+        $this->measurementStatus = ShareTrackingMeasurement::status();
         $this->signalsReportUrl = class_exists(PageViewsReport::class)
             ? PageViewsReport::getUrl(panel: 'admin')
             : null;

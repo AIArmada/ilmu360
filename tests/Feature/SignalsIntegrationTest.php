@@ -10,9 +10,9 @@ use App\Enums\DawahShareOutcomeType;
 use App\Models\Event;
 use App\Models\User;
 use App\Services\ShareTrackingService;
-use App\Services\Signals\AffiliateSignalsBridge;
+use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Illuminate\Http\Request;
-use Mockery\MockInterface;
+use Illuminate\Support\Str;
 
 it('registers the signals package migrations with the application', function () {
     $provider = new SignalsServiceProvider(app());
@@ -112,7 +112,7 @@ it('accepts signals page view ingestion for the default tracked property', funct
         ->count())->toBe(1);
 });
 
-it('records signals events when affiliate attribution and attributed outcomes occur', function () {
+it('records authoritative share outcomes without writing unread share-fact telemetry to signals', function () {
     $sharer = User::factory()->create();
     $visitor = User::factory()->create();
     $event = Event::factory()->create([
@@ -131,50 +131,11 @@ it('records signals events when affiliate attribution and attributed outcomes oc
     $request->cookies->set((string) config('dawah-share.cookie.name'), (string) $cookie?->getValue());
     $request->setUserResolver(fn (): User => $visitor);
 
-    $shareService->recordOutcome(
-        DawahShareOutcomeType::EventSave,
-        'signals-test:event-save:'.$visitor->id.':'.$event->id,
-        $event,
-        $visitor,
-        $request,
-    );
-
-    expect(SignalEvent::query()->where('event_name', 'affiliate.attributed')->exists())->toBeTrue();
-    expect(SignalEvent::query()->where('event_name', 'affiliate.conversion.recorded')->exists())->toBeTrue();
-    expect(SignalEvent::query()
-        ->withoutOwnerScope()
-        ->whereIn('event_name', ['affiliate.attributed', 'affiliate.conversion.recorded'])
-        ->whereNotNull('owner_id')
-        ->exists())->toBeFalse();
-});
-
-it('does not break affiliate-backed outcomes when signals ingestion fails', function () {
-    $this->mock(AffiliateSignalsBridge::class, function (MockInterface $mock): void {
-        $mock->shouldReceive('recordAffiliateAttributed')->andThrow(new RuntimeException('Signals affiliate attribution failed.'));
-        $mock->shouldReceive('recordAffiliateConversionRecorded')->andThrow(new RuntimeException('Signals affiliate conversion failed.'));
-    });
-
-    $sharer = User::factory()->create();
-    $visitor = User::factory()->create();
-    $event = Event::factory()->create([
-        'status' => 'approved',
-        'visibility' => 'public',
-    ]);
-    $shareService = app(ShareTrackingService::class);
-    $sharedUrl = $shareService->attributedUrl($sharer, route('events.show', $event), $event->title);
-
-    $landingResponse = $this->get($sharedUrl);
-    $cookie = $landingResponse->getCookie(config('dawah-share.cookie.name'));
-
-    expect($cookie)->not->toBeNull();
-
-    $request = Request::create(route('events.show', $event), 'GET');
-    $request->cookies->set((string) config('dawah-share.cookie.name'), (string) $cookie?->getValue());
-    $request->setUserResolver(fn (): User => $visitor);
+    $businessKey = ShareOutcomeBusinessKey::eventSave((string) Str::uuid());
 
     $outcome = $shareService->recordOutcome(
         DawahShareOutcomeType::EventSave,
-        'signals-test-safe:event-save:'.$visitor->id.':'.$event->id,
+        $businessKey,
         $event,
         $visitor,
         $request,
@@ -182,6 +143,56 @@ it('does not break affiliate-backed outcomes when signals ingestion fails', func
 
     expect($outcome)->not->toBeNull();
     expect($outcome?->outcomeType)->toBe(DawahShareOutcomeType::EventSave->value);
+
+    $this->assertDatabaseHas('affiliate_conversions', [
+        'conversion_type' => DawahShareOutcomeType::EventSave->value,
+        'external_reference' => $businessKey,
+    ]);
+
+    // Share facts have zero blind Signals producers until the named
+    // producer and its real reader ship together.
+    expect(SignalEvent::query()->where('event_name', 'affiliate.attributed')->exists())->toBeFalse();
+    expect(SignalEvent::query()->where('event_name', 'affiliate.conversion.recorded')->exists())->toBeFalse();
+});
+
+it('records authoritative share outcomes when signals delivery is unavailable', function () {
+    TrackedProperty::query()->delete();
+
+    $sharer = User::factory()->create();
+    $visitor = User::factory()->create();
+    $event = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => 'public',
+    ]);
+    $shareService = app(ShareTrackingService::class);
+    $sharedUrl = $shareService->attributedUrl($sharer, route('events.show', $event), $event->title);
+
+    $landingResponse = $this->get($sharedUrl);
+    $cookie = $landingResponse->getCookie(config('dawah-share.cookie.name'));
+
+    expect($cookie)->not->toBeNull();
+
+    $request = Request::create(route('events.show', $event), 'GET');
+    $request->cookies->set((string) config('dawah-share.cookie.name'), (string) $cookie?->getValue());
+    $request->setUserResolver(fn (): User => $visitor);
+
+    $businessKey = ShareOutcomeBusinessKey::eventSave((string) Str::uuid());
+
+    $outcome = $shareService->recordOutcome(
+        DawahShareOutcomeType::EventSave,
+        $businessKey,
+        $event,
+        $visitor,
+        $request,
+    );
+
+    expect($outcome)->not->toBeNull();
+    expect($outcome?->outcomeType)->toBe(DawahShareOutcomeType::EventSave->value);
+
+    $this->assertDatabaseHas('affiliate_conversions', [
+        'conversion_type' => DawahShareOutcomeType::EventSave->value,
+        'external_reference' => $businessKey,
+    ]);
 });
 
 it('accepts signals identity ingestion for the default tracked property', function () {

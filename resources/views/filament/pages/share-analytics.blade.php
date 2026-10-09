@@ -9,6 +9,12 @@
     @endphp
 
     <div class="space-y-6">
+        @if ($measurementStatus === 'not_configured')
+            <div class="rounded-xl border border-amber-300 bg-amber-50 p-4">
+                <p class="text-sm font-semibold text-amber-800">{{ __('Reporting is not configured yet. Measurements appear after the operator declares a reporting start.') }}</p>
+            </div>
+        @endif
+
         <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div class="max-w-3xl space-y-1">
                 <p class="text-sm text-gray-500">{{ __('Superadmin view of affiliate-backed Dawah Share performance across all users and shared links.') }}</p>
@@ -38,14 +44,14 @@
                 <p class="mt-2 text-sm text-gray-500">{{ __('Attributed visit touchpoints after share landings.') }}</p>
             </div>
             <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">{{ __('Unique Visitors') }}</p>
-                <p class="mt-3 text-3xl font-semibold text-gray-950">{{ number_format($summary['unique_visitors'] ?? 0) }}</p>
-                <p class="mt-2 text-sm text-gray-500">{{ __('Unique landing cookies across all affiliate attributions.') }}</p>
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">{{ __('Distinct Browsers') }}</p>
+                <p class="mt-3 text-3xl font-semibold text-gray-950">{{ number_format($summary['distinct_browsers'] ?? 0) }}</p>
+                <p class="mt-2 text-sm text-gray-500">{{ __('Estimated browsers across marked share profiles. Not a count of people.') }}</p>
             </div>
             <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">{{ __('Total Outcomes') }}</p>
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">{{ __('Valid Outcomes') }}</p>
                 <p class="mt-3 text-3xl font-semibold text-gray-950">{{ number_format($summary['total_outcomes'] ?? 0) }}</p>
-                <p class="mt-2 text-sm text-gray-500">{{ __('Attributed registrations, follows, saves, check-ins, and submissions.') }}</p>
+                <p class="mt-2 text-sm text-gray-500">{{ __('Currently valid attributed outcomes. Reversed, rejected, and pending outcomes are excluded.') }}</p>
             </div>
         </div>
 
@@ -71,12 +77,12 @@
                                     <p class="mt-1 font-semibold text-gray-950">{{ number_format((int) $provider['visits']) }}</p>
                                 </div>
                                 <div>
-                                    <p class="text-xs uppercase tracking-[0.16em] text-gray-400">{{ __('Outcomes') }}</p>
+                                    <p class="text-xs uppercase tracking-[0.16em] text-gray-400">{{ __('Valid outcomes') }}</p>
                                     <p class="mt-1 font-semibold text-gray-950">{{ number_format((int) $provider['outcomes']) }}</p>
                                 </div>
                                 <div>
-                                    <p class="text-xs uppercase tracking-[0.16em] text-gray-400">{{ __('Visitors') }}</p>
-                                    <p class="mt-1 font-semibold text-gray-950">{{ number_format((int) $provider['unique_visitors']) }}</p>
+                                    <p class="text-xs uppercase tracking-[0.16em] text-gray-400">{{ __('Browsers') }}</p>
+                                    <p class="mt-1 font-semibold text-gray-950">{{ number_format((int) $provider['distinct_browsers']) }}</p>
                                 </div>
                                 <div>
                                     <p class="text-xs uppercase tracking-[0.16em] text-gray-400">{{ __('Signups') }}</p>
@@ -102,8 +108,8 @@
                                 <th class="pb-3 pr-4">{{ __('Code') }}</th>
                                 <th class="pb-3 pr-4">{{ __('Links') }}</th>
                                 <th class="pb-3 pr-4">{{ __('Visits') }}</th>
-                                <th class="pb-3 pr-4">{{ __('Visitors') }}</th>
-                                <th class="pb-3 pr-4">{{ __('Outcomes') }}</th>
+                                <th class="pb-3 pr-4">{{ __('Browsers') }}</th>
+                                <th class="pb-3 pr-4">{{ __('Valid outcomes') }}</th>
                                 <th class="pb-3">{{ __('Last Activity') }}</th>
                             </tr>
                         </thead>
@@ -117,7 +123,7 @@
                                     <td class="py-3 pr-4 text-gray-600">{{ $sharer['affiliate_code'] }}</td>
                                     <td class="py-3 pr-4 text-gray-950">{{ number_format((int) $sharer['links']) }}</td>
                                     <td class="py-3 pr-4 text-gray-950">{{ number_format((int) $sharer['visits']) }}</td>
-                                    <td class="py-3 pr-4 text-gray-950">{{ number_format((int) $sharer['unique_visitors']) }}</td>
+                                    <td class="py-3 pr-4 text-gray-950">{{ number_format((int) $sharer['distinct_browsers']) }}</td>
                                     <td class="py-3 pr-4 text-gray-950">{{ number_format((int) $sharer['outcomes']) }}</td>
                                     <td class="py-3 text-gray-600">{{ $sharer['last_activity_at'] ?? '—' }}</td>
                                 </tr>
@@ -144,8 +150,8 @@
                             <th class="pb-3 pr-4">{{ __('Sharer') }}</th>
                             <th class="pb-3 pr-4">{{ __('Outbounds') }}</th>
                             <th class="pb-3 pr-4">{{ __('Visits') }}</th>
-                            <th class="pb-3 pr-4">{{ __('Visitors') }}</th>
-                            <th class="pb-3 pr-4">{{ __('Outcomes') }}</th>
+                            <th class="pb-3 pr-4">{{ __('Browsers') }}</th>
+                            <th class="pb-3 pr-4">{{ __('Valid outcomes') }}</th>
                             <th class="pb-3">{{ __('Last Shared') }}</th>
                         </tr>
                     </thead>
@@ -162,7 +168,7 @@
                                 <td class="py-3 pr-4 text-gray-600">{{ $link['sharer_name'] ?? '—' }}</td>
                                 <td class="py-3 pr-4 text-gray-950">{{ number_format((int) $link['outbound_shares']) }}</td>
                                 <td class="py-3 pr-4 text-gray-950">{{ number_format((int) $link['visits']) }}</td>
-                                <td class="py-3 pr-4 text-gray-950">{{ number_format((int) $link['unique_visitors']) }}</td>
+                                <td class="py-3 pr-4 text-gray-950">{{ number_format((int) $link['distinct_browsers']) }}</td>
                                 <td class="py-3 pr-4 text-gray-950">{{ number_format((int) $link['outcomes']) }}</td>
                                 <td class="py-3 text-gray-600">{{ $link['last_shared_at'] ?? '—' }}</td>
                             </tr>
@@ -179,7 +185,7 @@
         <div class="grid gap-6 xl:grid-cols-2">
             <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
                 <h2 class="text-base font-semibold text-gray-950">{{ __('Recent Visits') }}</h2>
-                <p class="mt-1 text-sm text-gray-500">{{ __('Latest attributed traffic observed across tracked share links.') }}</p>
+                <p class="mt-1 text-sm text-gray-500">{{ __('Latest coarse browser activity across marked share links. Exact pages are never shown.') }}</p>
 
                 <div class="mt-4 space-y-3">
                     @forelse ($recentVisits as $visit)
@@ -187,7 +193,7 @@
                             <div class="flex items-start justify-between gap-4">
                                 <div>
                                     <p class="font-medium text-gray-950">{{ $visit['sharer_name'] ?? '—' }}</p>
-                                    <p class="mt-1 break-all text-xs text-gray-500">{{ $visit['visited_url'] }}</p>
+                                    <p class="mt-1 text-xs text-gray-500">{{ $visit['subject'] }} · {{ $visit['provider'] }}</p>
                                 </div>
                                 <span class="text-xs uppercase tracking-[0.16em] text-gray-400">{{ $visit['provider'] }}</span>
                             </div>
@@ -203,7 +209,7 @@
             </section>
 
             <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                <h2 class="text-base font-semibold text-gray-950">{{ __('Recent Outcomes') }}</h2>
+                <h2 class="text-base font-semibold text-gray-950">{{ __('Recent Valid Outcomes') }}</h2>
                 <p class="mt-1 text-sm text-gray-500">{{ __('Latest attributed outcomes recorded against tracked links.') }}</p>
 
                 <div class="mt-4 space-y-3">

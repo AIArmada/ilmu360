@@ -67,7 +67,7 @@ class UserDashboard extends Component
     /**
      * @return array{
      *     visits: int,
-     *     unique_visitors: int,
+     *     distinct_browsers: int,
      *     signups: int,
      *     event_registrations: int,
      *     total_outcomes: int

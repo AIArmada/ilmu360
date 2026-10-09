@@ -6,6 +6,7 @@ use AIArmada\CommerceSupport\Support\CanonicalSlug;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\Events\GenerateEventSlugAction;
 use App\Actions\Slugs\SyncSlugRedirectAction;
+use App\Jobs\RenderShareCardJob;
 use App\Models\Event;
 use App\Observers\Concerns\SyncsCurrentAndPreviousValues;
 use App\Support\Cache\PublicDirectoryCacheVersion;
@@ -46,6 +47,10 @@ class EventObserver implements ShouldHandleEventsAfterCommit
         $this->publicListingsCache->bustHomepageStats();
         $this->publicListingsCache->bustMajlisListing();
         $this->publicDirectoryCacheVersion->bumpForEvent($event);
+
+        if ($event->isPubliclyReachable()) {
+            RenderShareCardJob::prewarmForEvent($event->getKey());
+        }
     }
 
     public function updated(Event $event): void
@@ -65,6 +70,24 @@ class EventObserver implements ShouldHandleEventsAfterCommit
                 $event->getPrevious()['slug'] ?? null,
                 $this->syncSlugRedirectAction,
             );
+        }
+
+        if ($event->isPubliclyReachable() && $event->wasChanged([
+            'title',
+            'status',
+            'published_at',
+            'cancelled_at',
+            'visibility',
+            'timezone',
+            'starts_at',
+            'ends_at',
+            'prayer_reference',
+            'prayer_offset',
+            'prayer_display_text',
+            'institution_id',
+            'default_venue_id',
+        ])) {
+            RenderShareCardJob::prewarmForEvent($event->getKey());
         }
 
         $needsSlugSync = $event->wasChanged(['title', 'timezone']);

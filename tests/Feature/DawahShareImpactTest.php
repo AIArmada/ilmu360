@@ -39,6 +39,8 @@ beforeEach(function (): void {
     $this->seed(EventRoleSeeder::class);
 
     $this->sharer = User::factory()->create();
+
+    config(['dawah-share.reporting.reporting_start' => '2026-10-01']);
 });
 
 function dawahShareTrackingToken(TestCase $testCase, User $sharer, string $url, ?string $title = null): string
@@ -70,7 +72,11 @@ function dawahShareLandingCookie(TestCase $testCase, User $sharer, string $url, 
         ->assertOk()
         ->json();
 
-    $landingResponse = $testCase->get($payload['url']);
+    // WP3 cutover: the emitted share URL is a branded short redirect, so
+    // the harness traverses the mandated 302 hop (same as
+    // wp1LandingCookie). Every assertion below still reads the
+    // destination landing exactly as before.
+    $landingResponse = $testCase->followingRedirects()->get($payload['url']);
     $cookie = $landingResponse->getCookie(config('dawah-share.cookie.name'));
 
     auth()->logout();
@@ -164,8 +170,17 @@ test('viewing a shareable page does not create a share link until payload is req
             'title' => $event->title,
         ]));
 
-    $response->assertOk()
-        ->assertJsonPath('url', fn (string $url): bool => str_contains($url, 'share='));
+    $response->assertOk();
+
+    // WP3 cutover: the emitted share URL is a branded short redirect;
+    // the share token crosses the mandated 302 hop, never the payload.
+    $sharedUrl = (string) $response->json('url');
+
+    expect($sharedUrl)->toStartWith(url('/k/'));
+
+    $hopTarget = (string) $this->get($sharedUrl)->assertRedirect()->headers->get('Location');
+
+    expect($hopTarget)->toContain('share=');
 
     expect(AffiliateLink::count())->toBe(1);
 
@@ -180,7 +195,7 @@ test('viewing a shareable page does not create a share link until payload is req
     expect(AffiliateLink::count())->toBe(1);
 });
 
-test('deleting share tracking removes links-managed rows only for that sharer', function (): void {
+test('deleting share tracking detaches links-managed rows only for that sharer', function (): void {
     $service = app(ShareTrackingService::class);
     $deletedData = $service->createOrReuseLink($this->sharer, route('events.index'));
     $otherUser = User::factory()->create();
@@ -198,10 +213,23 @@ test('deleting share tracking removes links-managed rows only for that sharer', 
     $service->deleteUserTracking($this->sharer);
 
     $this->assertDatabaseMissing($deletedLink->getTable(), ['id' => $deletedLink->id]);
-    $this->assertDatabaseMissing($tracked->getTable(), ['id' => $tracked->id]);
-    $this->assertDatabaseMissing($click->getTable(), ['id' => $click->id]);
+
+    // WP3 cutover (accepted Wp3ShortLinkTest contract): the deleted
+    // sharer's managed row survives as a scrubbed minimal public
+    // redirect with its subject repointed at the nil UUID, so the
+    // short URL keeps opening with zero credit and no private identity.
+    // Its clicks survive on the detached row, unlinked from the user.
+    $this->assertDatabaseHas($tracked->getTable(), [
+        'id' => $tracked->id,
+        'name' => 'Detached share redirect',
+        'subject_id' => '00000000-0000-0000-0000-000000000000',
+    ]);
+    $this->assertDatabaseHas($click->getTable(), ['id' => $click->id]);
     $this->assertDatabaseHas($keptLink->getTable(), ['id' => $keptLink->id]);
-    $this->assertDatabaseHas($keptTracked->getTable(), ['id' => $keptTracked->id]);
+    $this->assertDatabaseHas($keptTracked->getTable(), [
+        'id' => $keptTracked->id,
+        'subject_id' => $keptLink->id,
+    ]);
 });
 
 test('explicit copy-link and native-share actions record outbound share touchpoints for authenticated users', function () {
@@ -266,18 +294,26 @@ test('share payload includes a tracking token for authenticated and anonymous sh
         ->assertOk()
         ->json();
 
-    parse_str((string) parse_url((string) data_get($authenticatedPayload, 'url'), PHP_URL_QUERY), $shareQuery);
+    // WP3 cutover: the emitted URLs are branded short redirects; the
+    // share token and origin cross the mandated 302 hop.
+    $authenticatedHop = (string) $this->get((string) data_get($authenticatedPayload, 'url'))->assertRedirect()->headers->get('Location');
+
+    parse_str((string) parse_url($authenticatedHop, PHP_URL_QUERY), $shareQuery);
     $shareToken = (string) ($shareQuery['share'] ?? '');
 
     expect(preg_match('/^[a-z0-9]{16}$/', $shareToken))->toBe(1)
         ->and($shareToken)->toBe((string) data_get($authenticatedPayload, 'tracking_token'));
 
-    expect((string) data_get($authenticatedPayload, 'url'))->not->toContain('origin=web');
+    expect($authenticatedHop)->not->toContain('origin=web');
+
+    $guestHop = (string) $this->get((string) data_get($guestPayload, 'url'))->assertRedirect()->headers->get('Location');
 
     expect(data_get($authenticatedPayload, 'tracking_token'))->toBeString()->not->toBe('')
         ->and(data_get($guestPayload, 'tracking_token'))->toBeString()->not->toBe('')
-        ->and((string) data_get($guestPayload, 'url'))->toContain((string) data_get($guestPayload, 'tracking_token'))
-        ->and((string) data_get($guestPayload, 'url'))->not->toContain('origin=web');
+        ->and($guestHop)->toContain((string) data_get($guestPayload, 'tracking_token'))
+        ->and($guestHop)->not->toContain('origin=web')
+        ->and(data_get($authenticatedPayload, 'guest_credential'))->toBeNull()
+        ->and(data_get($guestPayload, 'guest_credential'))->toBeString()->not->toBe('');
 });
 
 test('share payload resolves reference slugs without UUID casting errors', function () {
@@ -286,7 +322,7 @@ test('share payload resolves reference slugs without UUID casting errors', funct
         'status' => 'verified',
     ]);
 
-    $this->actingAs($this->sharer)
+    $referencePayload = $this->actingAs($this->sharer)
         ->getJson(route('dawah-share.payload', [
             'url' => route('references.show', $reference),
             'text' => 'Share this reference',
@@ -294,7 +330,16 @@ test('share payload resolves reference slugs without UUID casting errors', funct
         ]))
         ->assertOk()
         ->assertJsonPath('tracking_token', fn (mixed $token): bool => is_string($token) && $token !== '')
-        ->assertJsonPath('url', fn (mixed $url): bool => is_string($url) && str_contains($url, 'share='));
+        ->json();
+
+    // WP3 cutover: branded short redirect; the share token crosses the hop.
+    $referenceUrl = (string) data_get($referencePayload, 'url');
+
+    expect($referenceUrl)->toStartWith(url('/k/'));
+
+    $referenceHop = (string) $this->get($referenceUrl)->assertRedirect()->headers->get('Location');
+
+    expect($referenceHop)->toContain('share=');
 });
 
 test('share redirect resolves non uuid reference slugs without server errors', function () {
@@ -316,7 +361,7 @@ test('share redirect resolves non uuid reference slugs without server errors', f
 
     $sharedUrl = dawahShareExtractSharedUrlFromWhatsAppRedirect($redirectResponse);
 
-    $this->get($sharedUrl)->assertOk();
+    $this->followingRedirects()->get($sharedUrl)->assertOk();
 
     $link = AffiliateLink::query()->firstOrFail();
 
@@ -374,11 +419,16 @@ test('api share payload exposes origin-aware mobile and native share data', func
     parse_str((string) parse_url((string) data_get($iosPayload, 'channel_urls.copy_link'), PHP_URL_QUERY), $copyLinkQuery);
     parse_str((string) parse_url((string) data_get($iosPayload, 'channel_urls.native_share'), PHP_URL_QUERY), $nativeShareQuery);
 
+    // WP3 cutover: origin crosses the short-redirect hop, not the payload.
+    $iosHop = (string) $this->get((string) data_get($iosPayload, 'url'))->assertRedirect()->headers->get('Location');
+    $copyLinkHop = (string) $this->get((string) data_get($iosPayload, 'channel_urls.copy_link'))->assertRedirect()->headers->get('Location');
+    $ipadHop = (string) $this->get((string) data_get($ipadOsPayload, 'url'))->assertRedirect()->headers->get('Location');
+
     expect(data_get($iosPayload, 'origin'))->toBe('iosapp')
         ->and(data_get($iosPayload, 'supported_channels'))->toContain('copy_link', 'native_share', 'whatsapp')
         ->and(data_get($iosPayload, 'supported_origins'))->toContain('web', 'iosapp', 'android', 'macapp')
-        ->and((string) data_get($iosPayload, 'url'))->toContain('origin=iosapp')
-        ->and((string) data_get($iosPayload, 'channel_urls.copy_link'))->toContain('origin=iosapp')
+        ->and($iosHop)->toContain('origin=iosapp')
+        ->and($copyLinkHop)->toContain('origin=iosapp')
         ->and(data_get($copyLinkQuery, config('dawah-share.provider_query_parameter', 'channel')))->toBe('copy_link')
         ->and(data_get($nativeShareQuery, config('dawah-share.provider_query_parameter', 'channel')))->toBe('native_share')
         ->and(data_get($iosPayload, 'native_share.url'))->toBe(data_get($iosPayload, 'channel_urls.native_share'))
@@ -386,7 +436,7 @@ test('api share payload exposes origin-aware mobile and native share data', func
         ->and((string) data_get($iosPayload, 'tracking_token'))->toBe((string) data_get($repeatedIosPayload, 'tracking_token'))
         ->and((string) data_get($iosPayload, 'tracking_token'))->not->toBe((string) data_get($androidPayload, 'tracking_token'))
         ->and(data_get($ipadOsPayload, 'origin'))->toBe('ipados')
-        ->and((string) data_get($ipadOsPayload, 'url'))->toContain('origin=ipados');
+        ->and($ipadHop)->toContain('origin=ipados');
 });
 
 test('share origin is stored on links outbound shares and landing attributions', function () {
@@ -424,7 +474,7 @@ test('share origin is stored on links outbound shares and landing attributions',
 
     expect($outboundTouchpoint->origin)->toBe('android');
 
-    $this->get((string) data_get($payload, 'channel_urls.copy_link'))->assertOk();
+    $this->followingRedirects()->get((string) data_get($payload, 'channel_urls.copy_link'))->assertOk();
 
     $attribution = AffiliateAttribution::query()->latest('first_seen_at')->firstOrFail();
     $visit = AffiliateTouchpoint::query()
@@ -451,11 +501,13 @@ test('landing attributions preserve copy and native share channels', function (s
         ->assertOk()
         ->json();
 
-    $landingUrl = $payload['url'].'&'.http_build_query([
+    // The emitted share URL is a branded redirect without its own query
+    // string; recipient-side parameters join with the correct separator.
+    $landingUrl = $payload['url'].(str_contains($payload['url'], '?') ? '&' : '?').http_build_query([
         (string) config('dawah-share.provider_query_parameter', 'channel') => $provider,
     ]);
 
-    $this->get($landingUrl)->assertOk();
+    $this->followingRedirects()->get($landingUrl)->assertOk();
 
     $attribution = AffiliateAttribution::query()->latest('first_seen_at')->firstOrFail();
     $visit = AffiliateTouchpoint::query()
@@ -506,8 +558,13 @@ test('share redirects record outbound shares for guest callers', function () {
 
     $location = (string) $response->headers->get('Location');
 
+    // WP3 cutover: the provider intent carries the short URL; the share
+    // token crosses the short-redirect hop.
+    $sharedUrl = dawahShareExtractSharedUrlFromWhatsAppRedirect($response);
+    $hopTarget = (string) $this->get($sharedUrl)->assertRedirect()->headers->get('Location');
+
     expect($location)->toContain('whatsapp')
-        ->and($location)->toContain((string) config('dawah-share.query_parameter', 'share'));
+        ->and($hopTarget)->toContain((string) config('dawah-share.query_parameter', 'share'));
 
     expect(AffiliateTouchpoint::query()->where('touchpoint_type', 'outbound_share')->count())->toBe(1);
 });
@@ -527,11 +584,16 @@ test('share tracking records outbound shares for guest callers', function () {
         ->json();
 
     $trackingToken = (string) data_get($payload, 'tracking_token');
+    $guestCredential = (string) data_get($payload, 'guest_credential');
 
-    $this->postJson(route('dawah-share.track'), [
-        'provider' => 'copy_link',
-        'tracking_token' => $trackingToken,
-    ])->assertNoContent();
+    expect($guestCredential)->toBeString()->not->toBe('');
+
+    $this->withHeader((string) config('dawah-share.guest_credential.header', 'X-Dawah-Guest-Credential'), $guestCredential)
+        ->postJson(route('dawah-share.track'), [
+            'provider' => 'copy_link',
+            'tracking_token' => $trackingToken,
+        ])
+        ->assertNoContent();
 
     expect(AffiliateTouchpoint::query()->where('touchpoint_type', 'outbound_share')->count())->toBe(1);
 });
@@ -608,7 +670,7 @@ test('opening a shared link creates an attribution and landing visit', function 
         ->assertOk()
         ->json();
 
-    $response = $this->get($payload['url']);
+    $response = $this->followingRedirects()->get($payload['url']);
 
     $response->assertOk();
     expect($response->getCookie(config('dawah-share.cookie.name')))->not->toBeNull();
@@ -637,7 +699,7 @@ test('new signups are attributed after a shared landing', function () {
         ->assertOk()
         ->json();
 
-    $landingResponse = $this->get($payload['url']);
+    $landingResponse = $this->followingRedirects()->get($payload['url']);
     $cookie = $landingResponse->getCookie(config('dawah-share.cookie.name'));
 
     expect($cookie)->not->toBeNull();
@@ -646,6 +708,9 @@ test('new signups are attributed after a shared landing', function () {
     $request->cookies->set(config('dawah-share.cookie.name'), $cookie?->getValue());
     app()->instance('request', $request);
 
+    // Canonical subject fields only: the frozen visitor_key must keep
+    // matching the landing cookie, or the accepted browser-winner check
+    // (selection + visitor_key + landing type) honestly refuses credit.
     AffiliateAttribution::query()->latest('first_seen_at')->firstOrFail()->forceFill([
         'subject_type' => 'event',
         'subject_key' => 'event:canonical-signup-subject',
@@ -655,7 +720,6 @@ test('new signups are attributed after a shared landing', function () {
         'attribution_type' => 'landing',
         'channel' => 'direct',
         'sharer_user_id' => $this->sharer->id,
-        'visitor_key' => 'signup-subject-visitor',
     ])->save();
 
     $newUser = app(CreateNewUser::class)->create([
@@ -670,7 +734,7 @@ test('new signups are attributed after a shared landing', function () {
     $this->assertDatabaseHas('affiliate_conversions', [
         'conversion_type' => 'signup',
         'subject_title_snapshot' => $event->title,
-        'external_reference' => 'signup:user:'.$newUser->id,
+        'external_reference' => 'share-outcome:signup:user:'.$newUser->id,
         'actor_user_id' => $newUser->id,
         'sharer_user_id' => $this->sharer->id,
         'subject_type' => 'event',
@@ -703,13 +767,17 @@ test('event registrations are attributed after a shared landing', function () {
         ->assertOk()
         ->json();
 
-    $landingResponse = $this->get($payload['url']);
+    $landingResponse = $this->followingRedirects()->get($payload['url']);
 
     $landingResponse->assertOk();
 
     $cookie = $landingResponse->getCookie(config('dawah-share.cookie.name'));
 
     expect($cookie)->not->toBeNull();
+
+    // The registrant is a guest: drop the sharer session so this request
+    // is not misattributed as authenticated self-referral credit.
+    auth()->forgetGuards();
 
     $response = $this
         ->withCredentials()
@@ -754,7 +822,7 @@ test('event saves and going actions are attributed through authenticated api act
         ->assertOk()
         ->json();
 
-    $landingResponse = $this->get($payload['url']);
+    $landingResponse = $this->followingRedirects()->get($payload['url']);
     $cookie = $landingResponse->getCookie(config('dawah-share.cookie.name'));
 
     expect($cookie)->not->toBeNull();
@@ -798,7 +866,7 @@ test('saved-search creation is attributed after a shared search landing', functi
         ->assertOk()
         ->json();
 
-    $landingResponse = $this->get($payload['url']);
+    $landingResponse = $this->followingRedirects()->get($payload['url']);
     $cookie = $landingResponse->getCookie(config('dawah-share.cookie.name'));
 
     expect($cookie)->not->toBeNull();
@@ -850,7 +918,7 @@ test('event check-ins are attributed after a shared landing', function () {
 
     $this->assertDatabaseHas('affiliate_conversions', [
         'conversion_type' => 'event_checkin',
-        'external_reference' => 'event_checkin:checkin:'.$checkin->id,
+        'external_reference' => 'share-outcome:event_checkin:checkin:'.$checkin->id,
         'sharer_user_id' => $this->sharer->id,
         'actor_user_id' => $visitor->id,
         'subject_id' => $event->id,
@@ -881,7 +949,7 @@ test('event submissions are attributed after a shared landing', function () {
 
     $this->assertDatabaseHas('affiliate_conversions', [
         'conversion_type' => 'event_submission',
-        'external_reference' => 'event_submission:submission:'.$submission->id,
+        'external_reference' => 'share-outcome:event_submission:submission:'.$submission->id,
         'sharer_user_id' => $this->sharer->id,
         'subject_id' => $event->id,
     ]);
@@ -900,13 +968,14 @@ test('follow actions are attributed across supported public followable pages', f
         ->call('toggleFollow')
         ->assertSet('isFollowing', true);
 
-    $this->assertDatabaseHas('affiliate_conversions', [
-        'conversion_type' => $outcomeType,
-        'external_reference' => $outcomeType.':user:'.$visitor->id.':'.$subjectKey.':'.$record->id,
-        'sharer_user_id' => $this->sharer->id,
-        'actor_user_id' => $visitor->id,
-        'subject_id' => $record->id,
-    ]);
+    $conversion = AffiliateConversion::query()
+        ->where('conversion_type', $outcomeType)
+        ->where('actor_user_id', $visitor->id)
+        ->where('subject_id', $record->id)
+        ->firstOrFail();
+
+    expect($conversion->sharer_user_id)->toBe((string) $this->sharer->id)
+        ->and($conversion->external_reference)->toStartWith('share-outcome:'.$outcomeType.':follow:');
 })->with(fn (): array => [
     'institution follow' => ['pages.institutions.show', 'institutions.show', 'institution', fn () => Institution::factory()->create([
         'status' => 'verified',
@@ -996,21 +1065,28 @@ test('impact dashboard highlights event check-ins and submissions', function () 
         ->where('destination_url', route('submit-event.create'))
         ->firstOrFail();
 
-    $this->actingAs($this->sharer)
-        ->get(route('dashboard.dawah-impact'))
-        ->assertOk()
-        ->assertSee('Event Check-ins')
-        ->assertSee(__('Event Submissions'));
+    $previousLocale = app()->getLocale();
+    app()->setLocale('en');
 
-    $this->actingAs($this->sharer)
-        ->get(route('dashboard.dawah-impact.links.show', ['link' => $eventLink->id]))
-        ->assertOk()
-        ->assertSee('Event Check-ins');
+    try {
+        $this->actingAs($this->sharer)
+            ->get(route('dashboard.dawah-impact'))
+            ->assertOk()
+            ->assertSee('Recorded Check-ins')
+            ->assertSee(__('Event Submissions'));
 
-    $this->actingAs($this->sharer)
-        ->get(route('dashboard.dawah-impact.links.show', ['link' => $submissionLink->id]))
-        ->assertOk()
-        ->assertSee(__('Event Submissions'));
+        $this->actingAs($this->sharer)
+            ->get(route('dashboard.dawah-impact.links.show', ['link' => $eventLink->id]))
+            ->assertOk()
+            ->assertSee('Recorded Check-ins');
+
+        $this->actingAs($this->sharer)
+            ->get(route('dashboard.dawah-impact.links.show', ['link' => $submissionLink->id]))
+            ->assertOk()
+            ->assertSee(__('Event Submissions'));
+    } finally {
+        app()->setLocale($previousLocale);
+    }
 });
 
 test('impact dashboard top subjects use canonical affiliate subject fields', function () {
@@ -1243,7 +1319,7 @@ test('impact dashboard exposes provider channel performance', function () {
 
     $sharedUrl = dawahShareExtractSharedUrlFromWhatsAppRedirect($redirectResponse);
 
-    $landingResponse = $this->get($sharedUrl);
+    $landingResponse = $this->followingRedirects()->get($sharedUrl);
     $cookie = $landingResponse->getCookie(config('dawah-share.cookie.name'));
 
     expect($cookie)->not->toBeNull();
@@ -1271,7 +1347,7 @@ test('impact dashboard exposes provider channel performance', function () {
         ->and($providerBreakdown->first()['provider'])->toBe('whatsapp')
         ->and($providerBreakdown->first()['outbound_shares'])->toBe(1)
         ->and($providerBreakdown->first()['visits'])->toBe(1)
-        ->and($providerBreakdown->first()['unique_visitors'])->toBe(1)
+        ->and($providerBreakdown->first()['distinct_browsers'])->toBe(1)
         ->and($providerBreakdown->first()['outcomes'])->toBe(1);
 
     $this->actingAs($this->sharer)
@@ -1335,7 +1411,7 @@ test('provider visitor counts read native channel fields', function () {
     expect($providerBreakdown)->toHaveCount(1)
         ->and($providerBreakdown->first()['provider'])->toBe('telegram')
         ->and($providerBreakdown->first()['visits'])->toBe(1)
-        ->and($providerBreakdown->first()['unique_visitors'])->toBe(1);
+        ->and($providerBreakdown->first()['distinct_browsers'])->toBe(1);
 });
 
 test('link outcome breakdown returns integer counts ordered by volume', function () {

@@ -10,6 +10,9 @@ use App\Http\Controllers\NetworkDiagnosticsController;
 use App\Http\Controllers\Public\EventCheckoutResultController;
 use App\Http\Controllers\Public\EventPassController;
 use App\Http\Controllers\Public\EventsController;
+use App\Http\Controllers\ShareCardController;
+use App\Http\Controllers\ShareClaimController;
+use App\Http\Controllers\ShareRedirectController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Middleware\ResolvePublicSlugRedirect;
 use App\Http\Middleware\SetLocale;
@@ -34,6 +37,7 @@ use App\Livewire\Pages\Dashboard\Organizations\CreateOrganization;
 use App\Livewire\Pages\Dashboard\Organizations\Index as OrganizationsIndex;
 use App\Livewire\Pages\Dashboard\Organizations\Workspace as OrganizationWorkspace;
 use App\Livewire\Pages\Dashboard\PersonDashboard;
+use App\Livewire\Pages\Dashboard\RewardMemberIndex;
 use App\Livewire\Pages\Dashboard\UserDashboard;
 use App\Livewire\Pages\Events\Checkout as EventCheckout;
 use App\Livewire\Pages\Events\Refund as EventRefund;
@@ -77,6 +81,33 @@ Route::get('/kongsi/{provider}', [DawahShareController::class, 'redirect'])
     ->middleware('throttle:share-tracking')
     ->whereIn('provider', ['whatsapp', 'telegram', 'threads', 'facebook', 'x', 'instagram', 'tiktok', 'email'])
     ->name('dawah-share.redirect');
+
+// Explicit authenticated guest-share claim: surfacing never auto-claims,
+// and the POST needs confirmation plus the private claim capability.
+Route::get('/kongsi/claim', [ShareClaimController::class, 'show'])
+    ->middleware('auth')
+    ->name('share.claim.show');
+Route::post('/kongsi/claim', [ShareClaimController::class, 'store'])
+    ->middleware(['auth', 'throttle:share-claim'])
+    ->name('share.claim.store');
+
+// Public generated share card with occurrence/locale/revision selection.
+// Immutable when pinned; stale pins redirect to the canonical current URL.
+Route::get('/kongsi/kad/{event:slug}', [ShareCardController::class, 'show'])
+    ->middleware('throttle:share-tracking')
+    ->name('share.card');
+
+// Honest destination for short links whose target is no longer public. Not
+// a trackable route: landing here records nothing.
+Route::view('/kongsi/tidak-tersedia', 'share.unavailable')
+    ->name('share.unavailable');
+
+// App share short-link adapter over the single links-managed tracked row.
+// Pure redirect: the destination page records exactly once downstream.
+Route::get('/k/{slug}', [ShareRedirectController::class, 'show'])
+    ->middleware('throttle:share-tracking')
+    ->where('slug', '[A-Za-z0-9_-]+')
+    ->name('share.short');
 
 // Authentication is handled by Fortify
 
@@ -122,6 +153,7 @@ Route::middleware('auth')->group(function () {
     Route::livewire('/dashboard/dawah-impact/links', DawahImpactIndex::class)->name('dashboard.dawah-impact.links');
     Route::livewire('/dashboard/dawah-impact/links/{link}', DawahImpactLinkShow::class)->name('dashboard.dawah-impact.links.show');
     Route::livewire('/dashboard/notifications', NotificationsIndex::class)->name('dashboard.notifications');
+    Route::livewire('/dashboard/rewards', RewardMemberIndex::class)->name('dashboard.rewards');
     Route::livewire('/tetapan-akaun', AccountSettings::class)->name('dashboard.account-settings');
     Route::livewire('/dashboard/institusi', InstitutionDashboard::class)->name('dashboard.institutions');
     Route::livewire('/dashboard/institusi/senarai-majlis', InstitutionDashboard::class)->name('dashboard.institutions.events');

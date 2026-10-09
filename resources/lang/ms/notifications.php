@@ -174,6 +174,10 @@ return [
             'label' => 'Aliran Hantar Majlis',
             'description' => 'Kemas kini moderasi untuk majlis dan entri direktori yang anda hantar atau bantu uruskan.',
         ],
+        'sharing' => [
+            'label' => 'Perkongsian',
+            'description' => 'Ringkasan terima kasih yang tertunda untuk kesan perkongsian anda.',
+        ],
     ],
     'triggers' => [
         'followed_speaker_event' => [
@@ -268,6 +272,10 @@ return [
             'label' => 'Hantaran disemak semula',
             'description' => 'Maklumkan apabila majlis yang dihantar masuk semula ke moderasi.',
         ],
+        'share_gratitude_digest' => [
+            'label' => 'Ringkasan terima kasih perkongsian',
+            'description' => 'Ringkasan terima kasih yang tenang dan tertunda untuk kesan perkongsian yang saya buat.',
+        ],
     ],
     'messages' => [
         'followed_content' => [
@@ -353,6 +361,10 @@ return [
             'title' => 'Hantaran disemak semula: :title',
             'body' => 'Hantaran ini telah masuk semula ke moderasi.',
             'body_with_note' => 'Hantaran ini telah masuk semula ke moderasi. Nota: :note',
+        ],
+        'share_gratitude_digest' => [
+            'title' => 'Terima kasih kerana berkongsi',
+            'body' => 'Perkongsian terbaru anda memberi kesan. :summary.',
         ],
         'reminder_24_hours' => [
             'title' => ':title bermula esok',

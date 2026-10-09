@@ -6,6 +6,7 @@ use AIArmada\Communications\Contracts\ConsentResolver;
 use AIArmada\Communications\Data\ConsentDecisionData;
 use App\Enums\NotificationChannel;
 use App\Enums\NotificationChannel as AppChannel;
+use App\Notifications\Channels\DigestMailChannel;
 use Illuminate\Database\Eloquent\Relations\Relation;
 
 class AppConsentResolver implements ConsentResolver
@@ -62,7 +63,7 @@ class AppConsentResolver implements ConsentResolver
     private function toAppChannel(string $channel): ?AppChannel
     {
         return match ($channel) {
-            'mail' => AppChannel::Email,
+            'mail', DigestMailChannel::class => AppChannel::Email,
             'database', 'in_app' => AppChannel::InApp,
             'push', 'fcm' => AppChannel::Push,
             'whatsapp' => AppChannel::Whatsapp,

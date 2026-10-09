@@ -12,11 +12,15 @@ use AIArmada\Orders\Contracts\OrderServiceInterface;
 use AIArmada\Orders\Models\Order;
 use AIArmada\Ticketing\Models\Pass;
 use AIArmada\Ticketing\Models\TicketType;
+use App\Enums\DawahShareOutcomeType;
 use App\Enums\OfflineAdmissionPaymentMethod;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;
+use App\Services\ShareTrackingService;
+use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -31,6 +35,7 @@ final class CreateOfflineEventAdmissionAction
         private readonly OrderServiceInterface $orders,
         private readonly CreateRegistrationsFromOrderAction $registrations,
         private readonly IssueEventRegistrationPassesAction $issuePasses,
+        private readonly ShareTrackingService $shareTracking,
     ) {}
 
     /**
@@ -206,6 +211,30 @@ final class CreateOfflineEventAdmissionAction
                 throw new InvalidArgumentException('The offline admission registration could not be created.');
             }
 
+            // Organizer-issued admissions are canonical registrations and
+            // freeze provenance in the same transaction. The participant
+            // has no browser journey at the offline desk, so the decision
+            // is explicitly unattributed: a blank request is passed
+            // deliberately so the staff browser cookie can never leak
+            // credit into a participant fact.
+            $admissionActor = $this->resolveParticipantUser($participant);
+
+            $this->shareTracking->recordOutcome(
+                type: DawahShareOutcomeType::EventRegistration,
+                businessKey: ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey()),
+                subject: $event,
+                actor: $admissionActor,
+                request: new Request,
+                metadata: [
+                    'registration_id' => (string) $registration->getKey(),
+                    'guest' => ! $admissionActor instanceof User,
+                    'staff_issued' => true,
+                    'offline_admission' => true,
+                    'recorded_by_user_id' => (string) $actor->getKey(),
+                ],
+                occurredAt: $registration->created_at ?? now(),
+            );
+
             $passes = new Collection;
 
             if ($paymentState === 'confirmed') {
@@ -291,5 +320,24 @@ final class CreateOfflineEventAdmissionAction
         $reference = trim((string) $reference);
 
         return $reference !== '' ? mb_substr($reference, 0, 120) : 'offline-'.str()->uuid();
+    }
+
+    /**
+     * @param  array<string, mixed>  $participant
+     */
+    private function resolveParticipantUser(array $participant): ?User
+    {
+        $type = $participant['participant_type'] ?? null;
+        $id = $participant['participant_id'] ?? null;
+
+        if (! is_string($type) || ! is_string($id) || $id === '') {
+            return null;
+        }
+
+        if ($type !== (new User)->getMorphClass() && $type !== User::class) {
+            return null;
+        }
+
+        return User::query()->whereKey($id)->first();
     }
 }

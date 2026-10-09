@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api\Frontend;
 
+use AIArmada\Engagement\Models\Follow;
+use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Data\Api\Frontend\Follow\FollowStateData;
 use App\Enums\DawahShareOutcomeType;
 use App\Enums\InstitutionStatus;
@@ -12,11 +14,13 @@ use App\Models\Series;
 use App\Models\User;
 use App\Services\ShareTrackingService;
 use App\Support\Models\SlugOrUuidResolver;
+use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\PathParameter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 #[Group('Follow', 'Authenticated endpoints for reading and mutating follow state across public institutions, persons, references, and series.')]
 class FollowController extends FrontendController
@@ -57,19 +61,29 @@ class FollowController extends FrontendController
         $record = $this->resolveFollowable($type, $subject, $user);
 
         if (! $user->isFollowing($record)) {
-            $user->follow($record);
+            $follow = DB::transaction(function () use ($user, $record, $request): Follow {
+                $created = $user->follow($record);
 
-            $this->shareTrackingService->recordOutcome(
-                type: $this->followOutcomeType($record),
-                outcomeKey: strtolower(class_basename($record)).'_follow:user:'.$user->getKey().':subject:'.$record->getKey(),
-                subject: $record,
-                actor: $user,
-                request: $request,
-                metadata: [
-                    'subject_id' => $record->getKey(),
-                    'subject_type' => $record->getMorphClass(),
-                ],
-            );
+                // Reactivations reuse the follow row: only rows created by
+                // this call freeze a decision, so earlier relationships
+                // can never earn later through a new cookie.
+                if ($created->wasRecentlyCreated) {
+                    $this->shareTrackingService->recordOutcome(
+                        type: $this->followOutcomeType($record),
+                        businessKey: ShareOutcomeBusinessKey::follow($this->followOutcomeType($record), (string) $created->getKey()),
+                        subject: $record,
+                        actor: $user,
+                        request: $request,
+                        metadata: [
+                            'subject_id' => $record->getKey(),
+                            'subject_type' => $record->getMorphClass(),
+                        ],
+                        occurredAt: $created->created_at,
+                    );
+                }
+
+                return $created;
+            });
         }
 
         return response()->json([
@@ -91,7 +105,27 @@ class FollowController extends FrontendController
         $user = $this->requireUser($request);
         $record = $this->resolveFollowable($type, $subject, $user);
 
-        $user->unfollow($record);
+        DB::transaction(function () use ($user, $record, $request): void {
+            $follow = Follow::query()
+                ->where('follower_type', $user->getMorphClass())
+                ->where('follower_id', $user->getKey())
+                ->where('followable_type', $record->getMorphClass())
+                ->where('followable_id', $record->getKey())
+                ->where('status', 'active')
+                ->lockForUpdate()
+                ->first();
+
+            $user->unfollow($record);
+
+            if ($follow instanceof Follow) {
+                app(ReverseShareOutcomeAction::class)->handle(
+                    ShareOutcomeBusinessKey::follow($this->followOutcomeType($record), (string) $follow->getKey()),
+                    'unfollowed',
+                    $user,
+                    $request,
+                );
+            }
+        });
 
         return response()->json([
             'data' => $this->followData($record, $user),

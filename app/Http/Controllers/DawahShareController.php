@@ -20,7 +20,7 @@ class DawahShareController extends Controller
 {
     #[Endpoint(
         title: 'Build a share payload',
-        description: 'Returns the canonical share URL, per-channel share URLs, platform links, and native-share payload data for a public ilmu360° URL. Logged-in users receive a personalized tracking token, anonymous browsers receive a reusable browser-scoped share token, and origin defaults to web unless a client explicitly provides another origin identifier.',
+        description: 'Returns the canonical share URL, per-channel share URLs, platform links, and native-share payload data for a public ilmu360° URL. Logged-in users receive a personalized tracking token, anonymous browsers receive a server-issued private guest credential plus a reusable share token, and origin defaults to web unless a client explicitly provides another origin identifier.',
     )]
     #[QueryParameter('url', 'Required internal ilmu360° URL to share.', required: true, type: 'string', infer: false, example: 'https://ilmu360.test/events/my-event')]
     #[QueryParameter('text', 'Required share text used for social intents and native-share payloads.', required: true, type: 'string', infer: false, example: 'Join this majlis')]
@@ -30,7 +30,13 @@ class DawahShareController extends Controller
     {
         $data = $this->validatedData($request);
 
-        return response()->json($this->buildPayload($request, $shareTrackingService, $data));
+        // Every payload carries user-specific tracking material, and guest
+        // issuance additionally carries a private credential: the response
+        // must never sit in a shared or CDN cache.
+        return response()
+            ->json($this->buildPayload($request, $shareTrackingService, $data))
+            ->header('Cache-Control', 'private, no-store')
+            ->header('Pragma', 'no-cache');
     }
 
     public function redirect(string $provider, Request $request, ShareTrackingService $shareTrackingService): RedirectResponse
@@ -56,7 +62,7 @@ class DawahShareController extends Controller
 
     #[Endpoint(
         title: 'Record a share action',
-        description: 'Records an outbound share action for a previously issued tracking token. Use this for copy-link, native-share, or mobile-app share-sheet analytics after the client actually invokes the share action.',
+        description: 'Records an outbound share action for a previously issued tracking token. Use this for copy-link, native-share, or mobile-app share-sheet analytics after the client actually invokes the share action. Anonymous callers must present the guest credential issued with their share payload.',
     )]
     #[BodyParameter('provider', 'Share channel that the client actually used. Supported values include social providers plus `copy_link` and `native_share`.', type: 'string', infer: false, example: 'copy_link')]
     #[BodyParameter('tracking_token', 'Tracking token returned by `GET /share/payload` for authenticated or anonymous shares.', type: 'string', infer: false, example: 'abcd1234wxyz6789')]

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Observers;
 
 use AIArmada\Events\Models\EventOccurrence;
+use App\Jobs\RenderShareCardJob;
 use App\Models\Event;
 use App\Support\Cache\PublicListingsCache;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
@@ -20,6 +21,8 @@ final class EventOccurrenceObserver implements ShouldHandleEventsAfterCommit
     {
         $this->publicListingsCache->bustMajlisListing();
         $this->syncEventIndex($occurrence);
+
+        RenderShareCardJob::prewarmForEvent($occurrence->event_id);
     }
 
     public function deleting(EventOccurrence $occurrence): void

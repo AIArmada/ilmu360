@@ -12,6 +12,7 @@ use App\Enums\DawahShareSubjectType;
 use App\Services\ShareTrackingAnalyticsService;
 use App\Services\ShareTrackingService;
 use App\Support\Api\ApiPagination;
+use App\Support\ShareTracking\ShareTrackingMeasurement;
 use Carbon\CarbonInterface;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
@@ -22,6 +23,7 @@ use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
+use InvalidArgumentException;
 
 #[Group('Share', 'Authenticated share analytics endpoints that mirror the private Dawah impact dashboard for mobile clients.')]
 class ShareAnalyticsController extends FrontendController
@@ -94,6 +96,7 @@ class ShareAnalyticsController extends FrontendController
                     'page' => $page,
                     'per_page' => $perPage,
                 ],
+                'measurement' => $this->measurementMeta(),
                 'request_id' => $this->requestId($request),
             ],
         ]);
@@ -114,11 +117,23 @@ class ShareAnalyticsController extends FrontendController
             'link' => ['required', 'uuid'],
         ])->validate();
 
+        $validated = $request->validate([
+            'timezone' => ['nullable', 'string', 'max:64'],
+        ]);
+
         $linkData = $this->analytics->findLinkForUser($user, $link);
 
         abort_unless($linkData instanceof ShareTrackingLinkData, 404);
 
+        $timezone = (string) ($validated['timezone'] ?? $user->preferredTimezone());
+
         $shareText = trim(($linkData->titleSnapshot ?: config('app.name')).' - '.config('app.name'));
+
+        try {
+            $dailyPerformance = $this->analytics->dailyPerformanceForLink($linkData, 14, $timezone);
+        } catch (InvalidArgumentException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
 
         return response()->json([
             'data' => [
@@ -126,13 +141,14 @@ class ShareAnalyticsController extends FrontendController
                 'summary' => $this->analytics->summaryForLink($linkData),
                 'provider_breakdown' => $this->arrayRows($this->analytics->providerBreakdownForLink($linkData)),
                 'share_links' => $this->shareTrackingService->redirectLinks($linkData->destinationUrl, $shareText, $linkData->titleSnapshot),
-                'daily_performance' => $this->arrayRows($this->analytics->dailyPerformanceForLink($linkData, 14)),
+                'daily_performance' => $this->arrayRows($dailyPerformance),
                 'outcome_breakdown' => $this->arrayRows($this->analytics->outcomeBreakdownForLink($linkData)),
                 'recent_visits' => $this->visitRows($this->analytics->recentVisitsForLink($linkData, 20)),
                 'recent_outcomes' => $this->outcomeRows($this->analytics->recentOutcomesForLink($linkData, 20)),
                 'activity_window' => $this->activityWindowRow($this->analytics->activityWindowForLink($linkData)),
             ],
             'meta' => [
+                'measurement' => $this->measurementMeta(),
                 'request_id' => $this->requestId($request),
             ],
         ]);
@@ -266,15 +282,12 @@ class ShareAnalyticsController extends FrontendController
             'id' => $visit->id,
             'backend' => $visit->backend,
             'link_id' => $visit->linkId,
-            'attribution_id' => $visit->attributionId,
-            'visitor_key' => $visit->visitorKey,
-            'visited_url' => $visit->visitedUrl,
             'subject_type' => $visit->subjectType,
             'subject_id' => $visit->subjectId,
             'subject_key' => $visit->subjectKey,
             'visit_kind' => $visit->visitKind,
+            'channel' => $visit->channel,
             'occurred_at' => $this->optionalDateTimeString($visit->occurredAt),
-            'metadata' => $visit->metadata,
         ];
     }
 
@@ -299,17 +312,24 @@ class ShareAnalyticsController extends FrontendController
             'id' => $outcome->id,
             'backend' => $outcome->backend,
             'link_id' => $outcome->linkId,
-            'attribution_id' => $outcome->attributionId,
-            'sharer_user_id' => $outcome->sharerUserId,
-            'actor_user_id' => $outcome->actorUserId,
             'outcome_type' => $outcome->outcomeType,
             'subject_type' => $outcome->subjectType,
             'subject_id' => $outcome->subjectId,
             'subject_key' => $outcome->subjectKey,
-            'outcome_key' => $outcome->outcomeKey,
             'link_title_snapshot' => $outcome->linkTitleSnapshot,
             'occurred_at' => $this->optionalDateTimeString($outcome->occurredAt),
-            'metadata' => $outcome->metadata,
+        ];
+    }
+
+    /**
+     * @return array{definition_version: string, reporting_start: string|null, status: string}
+     */
+    private function measurementMeta(): array
+    {
+        return [
+            'definition_version' => ShareTrackingMeasurement::definitionVersion(),
+            'reporting_start' => ShareTrackingMeasurement::reportingStart(),
+            'status' => ShareTrackingMeasurement::status(),
         ];
     }
 

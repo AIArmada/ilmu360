@@ -13,8 +13,10 @@ use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
+use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Contracts\EventCategoryCatalog;
 use App\Data\PublicScheduleLeaf;
+use App\Enums\DawahShareOutcomeType;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
@@ -30,11 +32,13 @@ use App\Models\Reference;
 use App\Models\User;
 use App\Services\EventSearchService;
 use App\Services\PublicScheduleDiscoveryService;
+use App\Services\ShareTrackingService;
 use App\Support\Auth\IntendedRedirect;
 use App\Support\Language\MalaysiaLanguageCatalog;
 use App\Support\Location\LocationSlugResolver;
 use App\Support\Location\PublicGeolocationPermission;
 use App\Support\Location\VisitorCountryResolver;
+use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use App\Support\Timezone\UserDateTimeFormatter;
 use Carbon\CarbonInterface;
 use Filament\Forms\Components\DatePicker;
@@ -51,6 +55,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -930,12 +935,39 @@ class Index extends Component implements HasForms
             ->exists();
 
         if ($isSaved) {
-            app(EngagementManager::class)->removeBookmark($user, $event);
+            DB::transaction(function () use ($user, $event): void {
+                $bookmark = Bookmark::forBookmarker($user)->forBookmarkable($event)->active()->lockForUpdate()->first();
+
+                app(EngagementManager::class)->removeBookmark($user, $event);
+
+                if ($bookmark instanceof Bookmark) {
+                    app(ReverseShareOutcomeAction::class)->handle(
+                        ShareOutcomeBusinessKey::eventSave((string) $bookmark->getKey()),
+                        'save_removed',
+                        $user,
+                        request(),
+                    );
+                }
+            });
 
             return;
         }
 
-        app(EngagementManager::class)->bookmark($user, $event);
+        DB::transaction(function () use ($user, $event): void {
+            $bookmark = app(EngagementManager::class)->bookmark($user, $event);
+
+            if ($bookmark instanceof Bookmark && $bookmark->wasRecentlyCreated) {
+                app(ShareTrackingService::class)->recordOutcome(
+                    type: DawahShareOutcomeType::EventSave,
+                    businessKey: ShareOutcomeBusinessKey::eventSave((string) $bookmark->getKey()),
+                    subject: $event,
+                    actor: $user,
+                    request: request(),
+                    metadata: ['subject_id' => $event->getKey(), 'subject_type' => $event->getMorphClass()],
+                    occurredAt: $bookmark->created_at,
+                );
+            }
+        });
     }
 
     /**

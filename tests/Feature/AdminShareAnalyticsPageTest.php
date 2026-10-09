@@ -13,6 +13,8 @@ use Database\Seeders\RoleSeeder;
 beforeEach(function (): void {
     $this->seed(PermissionSeeder::class);
     $this->seed(RoleSeeder::class);
+
+    config(['dawah-share.reporting.reporting_start' => '2026-10-01']);
 });
 
 it('registers the signals reports inside the admin panel', function () {

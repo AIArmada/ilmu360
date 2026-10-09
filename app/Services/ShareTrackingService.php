@@ -11,6 +11,7 @@ use App\Data\ShareTracking\ShareTrackingOutcomeData;
 use App\Enums\DawahShareOutcomeType;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 
@@ -106,13 +107,44 @@ final readonly class ShareTrackingService implements ShareTrackingContract
      */
     public function recordOutcome(
         DawahShareOutcomeType $type,
-        string $outcomeKey,
+        string $businessKey,
         ?Model $subject = null,
         ?User $actor = null,
         ?Request $request = null,
         array $metadata = [],
+        ?CarbonInterface $occurredAt = null,
     ): ?ShareTrackingOutcomeData {
-        return $this->affiliatesShareTrackingService->recordOutcome($type, $outcomeKey, $subject, $actor, $request, $metadata);
+        return $this->affiliatesShareTrackingService->recordOutcome($type, $businessKey, $subject, $actor, $request, $metadata, $occurredAt);
+    }
+
+    /**
+     * @param  array<string, mixed>  $metadata
+     */
+    public function recordInheritedOutcome(
+        DawahShareOutcomeType $type,
+        string $businessKey,
+        string $sourceBusinessKey,
+        ?Model $subject = null,
+        ?User $actor = null,
+        array $metadata = [],
+        ?CarbonInterface $occurredAt = null,
+    ): ?ShareTrackingOutcomeData {
+        return $this->affiliatesShareTrackingService->recordInheritedOutcome($type, $businessKey, $sourceBusinessKey, $subject, $actor, $metadata, $occurredAt);
+    }
+
+    /**
+     * @param  array<string, mixed>  $metadata
+     */
+    public function recordCheckoutInheritedOutcome(
+        DawahShareOutcomeType $type,
+        string $businessKey,
+        ?string $persistedAttributionId,
+        ?Model $subject = null,
+        ?User $actor = null,
+        array $metadata = [],
+        ?CarbonInterface $occurredAt = null,
+    ): ?ShareTrackingOutcomeData {
+        return $this->affiliatesShareTrackingService->recordCheckoutInheritedOutcome($type, $businessKey, $persistedAttributionId, $subject, $actor, $metadata, $occurredAt);
     }
 
     public function createOrReuseLink(User $user, string $url, ?string $fallbackTitle = null, ?string $origin = null): ShareTrackingLinkData

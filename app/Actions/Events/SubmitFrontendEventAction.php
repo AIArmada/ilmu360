@@ -244,17 +244,8 @@ class SubmitFrontendEventAction
                     submitter: $submitter,
                     sessionSubmission: $isSessionSubmission,
                     autoApproved: $autoApproved,
+                    request: $request,
                 );
-
-                DB::afterCommit(function () use ($event, $submission, $validated, $request, $submitter): void {
-                    $this->completeSubmission->handleAfterCommit(
-                        event: $event,
-                        submission: $submission,
-                        state: $validated,
-                        request: $request,
-                        submitter: $submitter,
-                    );
-                });
 
                 return $persisted;
             } catch (Throwable $exception) {

@@ -12,6 +12,7 @@ use App\Support\Auth\IntendedRedirect;
 use App\Support\Auth\OAuthTransactionStore;
 use App\Support\Auth\SocialiteProviderConfiguration;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\AbstractProvider as OAuthTwoProvider;
@@ -114,7 +115,18 @@ class SocialiteController extends Controller
             ]);
         }
 
-        $result = $resolveSocialiteUserAction->handle($provider, $socialUser);
+        // The signup source and its attributed-or-unattributed receipt
+        // freeze in one transaction: a failure after user creation must
+        // never leave a receipt-less account open to late credit.
+        $result = DB::transaction(function () use ($resolveSocialiteUserAction, $provider, $socialUser): array {
+            $resolved = $resolveSocialiteUserAction->handle($provider, $socialUser);
+
+            if ($resolved['created_account']) {
+                app(ShareTrackingService::class)->recordSignup($resolved['user'], request());
+            }
+
+            return $resolved;
+        });
         $user = $result['user'];
         $createdAccount = $result['created_account'];
 
@@ -269,10 +281,6 @@ class SocialiteController extends Controller
         ClaimGuestSubmissionsAction::flashNotice(
             ClaimGuestSubmissionsAction::run($user)
         );
-
-        if ($createdAccount) {
-            app(ShareTrackingService::class)->recordSignup($user, request());
-        }
 
         Log::info('Socialite sign-in completed', [
             'provider' => $provider,

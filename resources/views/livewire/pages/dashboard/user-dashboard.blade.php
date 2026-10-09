@@ -160,7 +160,7 @@
         ['label' => __('Sesi Ilmu Disokong'), 'value' => $dawahImpactSummary['total_outcomes']],
         ['label' => __('Jumlah Jangkauan'), 'value' => $dawahImpactSummary['visits']],
         ['label' => __('Pendaftaran Dibantu'), 'value' => $dawahImpactSummary['signups']],
-        ['label' => __('Manfaat Diterima'), 'value' => $dawahImpactSummary['unique_visitors']],
+        ['label' => __('Pelayar Berbeza'), 'value' => $dawahImpactSummary['distinct_browsers']],
     ];
 
     $quickActions = [
@@ -242,6 +242,7 @@
     </section>
 
     <main class="container mx-auto w-full px-6 py-8 lg:px-12">
+        @include('share.claim-prompt')
         <div class="grid gap-7 xl:grid-cols-[minmax(0,1fr)_380px]">
             <div class="min-w-0 space-y-7">
                 <section id="majlis-saya" x-data="{ activeMajlisTab: 'all' }" class="max-w-full rounded-lg border border-[#eadfca] bg-white p-5 shadow-sm">

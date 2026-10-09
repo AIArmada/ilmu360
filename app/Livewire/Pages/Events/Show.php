@@ -15,6 +15,7 @@ use App\Actions\Events\MarkEventGoingAction;
 use App\Actions\Events\RecordEventCheckInAction;
 use App\Actions\Events\RemoveEventGoingAction;
 use App\Actions\Events\ResolveEventCheckInStateAction;
+use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Enums\DawahShareOutcomeType;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventVisibility;
@@ -38,6 +39,7 @@ use App\States\EventStatus\Pending;
 use App\Support\Auth\IntendedRedirect;
 use App\Support\Cache\SelectionCatalogCache;
 use App\Support\Events\EventDetailPresenter;
+use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use App\Support\Timezone\UserDateTimeFormatter;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
@@ -47,6 +49,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -711,12 +714,46 @@ class Show extends Component
 
         if ($this->{$stateProperty}) {
             $result = match ($relation) {
-                'savedEvents' => (function () use ($user): array {
+                'savedEvents' => DB::transaction(function () use ($user): array {
+                    $bookmark = Bookmark::forBookmarker($user)->forBookmarkable($this->event)->active()->lockForUpdate()->first();
+
                     app(EngagementManager::class)->removeBookmark($user, $this->event);
 
+                    if ($bookmark instanceof Bookmark) {
+                        app(ReverseShareOutcomeAction::class)->handle(
+                            ShareOutcomeBusinessKey::eventSave((string) $bookmark->getKey()),
+                            'save_removed',
+                            $user,
+                            request(),
+                        );
+                    }
+
                     return ['saves_count' => app(EngagementCounterService::class)->value($this->event, 'bookmarks')];
-                })(),
-                'goingEvents' => app(RemoveEventGoingAction::class)->handle((string) $this->event->getKey(), $user),
+                }),
+                'goingEvents' => DB::transaction(function () use ($user): array {
+                    $response = Response::query()
+                        ->where('respondable_type', $this->event->getMorphClass())
+                        ->where('respondable_id', $this->event->getKey())
+                        ->where('responder_type', $user->getMorphClass())
+                        ->where('responder_id', $user->getKey())
+                        ->where('response_type', 'going')
+                        ->active()
+                        ->lockForUpdate()
+                        ->first();
+
+                    $removed = app(RemoveEventGoingAction::class)->handle((string) $this->event->getKey(), $user);
+
+                    if ($removed['deleted'] && $response instanceof Response) {
+                        app(ReverseShareOutcomeAction::class)->handle(
+                            ShareOutcomeBusinessKey::eventGoing((string) $response->getKey()),
+                            'going_removed',
+                            $user,
+                            request(),
+                        );
+                    }
+
+                    return $removed;
+                }),
                 default => ['deleted' => false, $countColumn => max(0, (int) ($this->event->{$countColumn} ?? 0))],
             };
 
@@ -729,12 +766,55 @@ class Show extends Component
             $this->{$stateProperty} = false;
         } else {
             $result = match ($relation) {
-                'savedEvents' => (function () use ($user): array {
-                    app(EngagementManager::class)->bookmark($user, $this->event);
+                'savedEvents' => DB::transaction(function () use ($user): array {
+                    $bookmark = app(EngagementManager::class)->bookmark($user, $this->event);
+
+                    if ($bookmark instanceof Bookmark && $bookmark->wasRecentlyCreated) {
+                        app(ShareTrackingService::class)->recordOutcome(
+                            type: DawahShareOutcomeType::EventSave,
+                            businessKey: ShareOutcomeBusinessKey::eventSave((string) $bookmark->getKey()),
+                            subject: $this->event,
+                            actor: $user,
+                            request: request(),
+                            metadata: ['subject_id' => $this->event->getKey(), 'subject_type' => $this->event->getMorphClass()],
+                            occurredAt: $bookmark->created_at,
+                        );
+                    }
 
                     return ['saves_count' => app(EngagementCounterService::class)->value($this->event, 'bookmarks')];
-                })(),
-                'goingEvents' => app(MarkEventGoingAction::class)->handle($this->event, $user),
+                }),
+                'goingEvents' => DB::transaction(function () use ($user): array {
+                    $goingState = app(MarkEventGoingAction::class)->handle($this->event, $user, request());
+
+                    // Only rows created by this call freeze an outcome
+                    // decision. Reactivations reuse the response row and
+                    // must never late-credit an old transition.
+                    if ($goingState['response_created']) {
+                        $response = Response::query()
+                            ->where('respondable_type', $this->event->getMorphClass())
+                            ->where('respondable_id', $this->event->getKey())
+                            ->where('responder_type', $user->getMorphClass())
+                            ->where('responder_id', $user->getKey())
+                            ->where('response_type', 'going')
+                            ->active()
+                            ->lockForUpdate()
+                            ->first();
+
+                        if ($response instanceof Response) {
+                            app(ShareTrackingService::class)->recordOutcome(
+                                type: DawahShareOutcomeType::EventGoing,
+                                businessKey: ShareOutcomeBusinessKey::eventGoing((string) $response->getKey()),
+                                subject: $this->event,
+                                actor: $user,
+                                request: request(),
+                                metadata: ['subject_id' => $this->event->getKey(), 'subject_type' => $this->event->getMorphClass()],
+                                occurredAt: $response->created_at,
+                            );
+                        }
+                    }
+
+                    return $goingState;
+                }),
                 default => ['status' => 'conflict', $countColumn => (int) ($this->event->{$countColumn} ?? 0)],
             };
 
@@ -746,30 +826,6 @@ class Show extends Component
 
             $this->{$stateProperty} = true;
         }
-    }
-
-    protected function recordEngagementOutcome(string $relation, User $user): void
-    {
-        $type = match ($relation) {
-            'savedEvents' => DawahShareOutcomeType::EventSave,
-            'goingEvents' => DawahShareOutcomeType::EventGoing,
-            default => null,
-        };
-
-        if (! $type instanceof DawahShareOutcomeType) {
-            return;
-        }
-
-        app(ShareTrackingService::class)->recordOutcome(
-            type: $type,
-            outcomeKey: $type->value.':user:'.$user->id.':event:'.$this->event->id,
-            subject: $this->event,
-            actor: $user,
-            request: request(),
-            metadata: [
-                'event_id' => $this->event->id,
-            ],
-        );
     }
 
     protected function syncEngagementStates(): void

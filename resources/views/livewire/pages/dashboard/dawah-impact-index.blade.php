@@ -48,8 +48,13 @@
                             {{ __('See what happened after your sharing') }}
                         </h1>
                         <p class="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
-                            {{ __('Every shared page here stays private to you. Use it to understand how many people visited, responded, signed up, registered, and which channels produced the strongest follow-through after seeing what you passed along.') }}
+                            {{ __('Every shared page here stays private to you. Use it to understand how many browsers visited, which follow-up actions were recorded, and which channels produced the strongest follow-through after seeing what you passed along.') }}
                         </p>
+                        @if($this->measurementStatus === 'not_configured')
+                            <p class="mt-4 rounded-2xl border border-amber-300/40 bg-amber-400/10 p-4 text-sm font-semibold text-amber-100">
+                                {{ __('Reporting is not configured yet. Measurements appear after the operator declares a reporting start.') }}
+                            </p>
+                        @endif
                     </div>
 
                     <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -59,9 +64,9 @@
                             <p class="mt-2 text-xs text-slate-300">{{ __('Attributed visits to your shared pages.') }}</p>
                         </div>
                         <div class="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur">
-                            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">{{ __('Unique Visitors') }}</p>
-                            <p class="mt-2 text-3xl font-black text-white">{{ number_format($summary['unique_visitors']) }}</p>
-                            <p class="mt-2 text-xs text-slate-300">{{ __('People who reached your links at least once.') }}</p>
+                            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">{{ __('Distinct Browsers') }}</p>
+                            <p class="mt-2 text-3xl font-black text-white">{{ number_format($summary['distinct_browsers']) }}</p>
+                            <p class="mt-2 text-xs text-slate-300">{{ __('Estimated browsers that opened your links. Not a count of people.') }}</p>
                         </div>
                         <div class="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur">
                             <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">{{ __('Signups') }}</p>
@@ -74,9 +79,9 @@
                             <p class="mt-2 text-xs text-slate-300">{{ __('Registrations credited back to your sharing.') }}</p>
                         </div>
                         <div class="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur">
-                            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">{{ __('Event Check-ins') }}</p>
+                            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">{{ __('Recorded Check-ins') }}</p>
                             <p class="mt-2 text-3xl font-black text-white">{{ number_format($summary['event_checkins']) }}</p>
-                            <p class="mt-2 text-xs text-slate-300">{{ __('Attendance confirmed after a shared visit.') }}</p>
+                            <p class="mt-2 text-xs text-slate-300">{{ __('Check-ins recorded after a shared visit. Not verified attendance.') }}</p>
                         </div>
                         <div class="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur">
                             <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">{{ __('Event Submissions') }}</p>
@@ -86,12 +91,12 @@
                         <div class="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur">
                             <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">{{ __('Outbound Shares') }}</p>
                             <p class="mt-2 text-3xl font-black text-white">{{ number_format($summary['outbound_shares']) }}</p>
-                            <p class="mt-2 text-xs text-slate-300">{{ __('Provider button clicks from your tracked share surfaces.') }}</p>
+                            <p class="mt-2 text-xs text-slate-300">{{ __('Share actions you started. Delivery to recipients is unknown.') }}</p>
                         </div>
                         <div class="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur">
-                            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">{{ __('Total Responses') }}</p>
+                            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">{{ __('Recorded Responses') }}</p>
                             <p class="mt-2 text-3xl font-black text-white">{{ number_format($summary['total_outcomes']) }}</p>
-                            <p class="mt-2 text-xs text-slate-300">{{ __('All attributed follow-up actions combined.') }}</p>
+                            <p class="mt-2 text-xs text-slate-300">{{ __('Currently valid follow-up actions. Counts actions, not people.') }}</p>
                         </div>
                     </div>
                 </div>
@@ -179,8 +184,8 @@
                                         <p class="mt-2 text-xl font-black text-slate-900">{{ number_format($provider['outcomes']) }}</p>
                                     </div>
                                     <div class="rounded-2xl bg-white p-3">
-                                        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{{ __('Visitors') }}</p>
-                                        <p class="mt-2 text-xl font-black text-slate-900">{{ number_format($provider['unique_visitors']) }}</p>
+                                        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{{ __('Browsers') }}</p>
+                                        <p class="mt-2 text-xl font-black text-slate-900">{{ number_format($provider['distinct_browsers']) }}</p>
                                     </div>
                                     <div class="rounded-2xl bg-white p-3">
                                         <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{{ __('Signups') }}</p>
@@ -244,43 +249,43 @@
                                 <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                                     <div class="space-y-3">
                                         <div class="flex flex-wrap items-center gap-2">
-                                            <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $subjectBadgeClass((string) $link->subject_type) }}">
-                                                {{ $subjectTypeOptions[$link->subject_type] ?? str($link->subject_type)->headline()->toString() }}
+                                            <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $subjectBadgeClass((string) $link->subjectType) }}">
+                                                {{ $subjectTypeOptions[$link->subjectType] ?? str($link->subjectType)->headline()->toString() }}
                                             </span>
                                             <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600">
-                                                {{ __('Shared') }} {{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($link->last_shared_at, 'j M Y, g:i A') }}
+                                                {{ __('Shared') }} {{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($link->lastSharedAt, 'j M Y, g:i A') }}
                                             </span>
                                         </div>
 
                                         <div>
-                                            <h3 class="text-lg font-semibold text-slate-900">{{ $link->title_snapshot ?: __('Untitled page') }}</h3>
-                                            <p class="mt-2 text-sm text-slate-500 break-all">{{ $link->destination_url }}</p>
+                                            <h3 class="text-lg font-semibold text-slate-900">{{ $link->titleSnapshot ?: __('Untitled page') }}</h3>
+                                            <p class="mt-2 text-sm text-slate-500 break-all">{{ $link->destinationUrl }}</p>
                                         </div>
 
                                         <div class="grid gap-3 sm:grid-cols-3 xl:grid-cols-6">
                                             <div class="rounded-2xl bg-white p-3">
                                                 <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{{ __('Visits') }}</p>
-                                                <p class="mt-2 text-xl font-black text-slate-900">{{ number_format((int) ($link->visits_count ?? 0)) }}</p>
+                                                <p class="mt-2 text-xl font-black text-slate-900">{{ number_format((int) ($link->visitsCount ?? 0)) }}</p>
                                             </div>
                                             <div class="rounded-2xl bg-white p-3">
                                                 <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{{ __('Responses') }}</p>
-                                                <p class="mt-2 text-xl font-black text-slate-900">{{ number_format((int) ($link->outcomes_count ?? 0)) }}</p>
+                                                <p class="mt-2 text-xl font-black text-slate-900">{{ number_format((int) ($link->outcomesCount ?? 0)) }}</p>
                                             </div>
                                             <div class="rounded-2xl bg-white p-3">
                                                 <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{{ __('Signups') }}</p>
-                                                <p class="mt-2 text-xl font-black text-slate-900">{{ number_format((int) ($link->signups_count ?? 0)) }}</p>
+                                                <p class="mt-2 text-xl font-black text-slate-900">{{ number_format((int) ($link->signupsCount ?? 0)) }}</p>
                                             </div>
                                             <div class="rounded-2xl bg-white p-3">
                                                 <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{{ __('Registrations') }}</p>
-                                                <p class="mt-2 text-xl font-black text-slate-900">{{ number_format((int) ($link->event_registrations_count ?? 0)) }}</p>
+                                                <p class="mt-2 text-xl font-black text-slate-900">{{ number_format((int) ($link->eventRegistrationsCount ?? 0)) }}</p>
                                             </div>
                                             <div class="rounded-2xl bg-white p-3">
                                                 <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{{ __('Check-ins') }}</p>
-                                                <p class="mt-2 text-xl font-black text-slate-900">{{ number_format((int) ($link->event_checkins_count ?? 0)) }}</p>
+                                                <p class="mt-2 text-xl font-black text-slate-900">{{ number_format((int) ($link->eventCheckinsCount ?? 0)) }}</p>
                                             </div>
                                             <div class="rounded-2xl bg-white p-3">
                                                 <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{{ __('Submissions') }}</p>
-                                                <p class="mt-2 text-xl font-black text-slate-900">{{ number_format((int) ($link->event_submissions_count ?? 0)) }}</p>
+                                                <p class="mt-2 text-xl font-black text-slate-900">{{ number_format((int) ($link->eventSubmissionsCount ?? 0)) }}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -294,7 +299,7 @@
                                             {{ __('View Impact') }}
                                         </a>
                                         <a
-                                            href="{{ $link->destination_url }}"
+                                            href="{{ $link->destinationUrl }}"
                                             target="_blank"
                                             rel="noopener"
                                             class="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-700"
@@ -371,11 +376,11 @@
                                     <a href="{{ route('dashboard.dawah-impact.links.show', ['link' => $link->id]) }}" wire:navigate class="block rounded-3xl border border-slate-200 bg-slate-50/70 p-4 transition hover:border-emerald-300 hover:bg-white">
                                         <div class="flex items-center justify-between gap-4">
                                             <div>
-                                                <p class="text-sm font-semibold text-slate-900">{{ $link->title_snapshot ?: __('Untitled page') }}</p>
-                                                <p class="mt-1 text-xs text-slate-500">{{ $subjectTypeOptions[$link->subject_type] ?? str($link->subject_type)->headline()->toString() }}</p>
+                                                <p class="text-sm font-semibold text-slate-900">{{ $link->titleSnapshot ?: __('Untitled page') }}</p>
+                                                <p class="mt-1 text-xs text-slate-500">{{ $subjectTypeOptions[$link->subjectType] ?? str($link->subjectType)->headline()->toString() }}</p>
                                             </div>
                                             <div class="text-right">
-                                                <p class="text-lg font-black text-slate-900">{{ number_format((int) ($link->visits_count ?? 0)) }}</p>
+                                                <p class="text-lg font-black text-slate-900">{{ number_format((int) ($link->visitsCount ?? 0)) }}</p>
                                                 <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{{ __('Visits') }}</p>
                                             </div>
                                         </div>
@@ -387,25 +392,25 @@
 
                     <section class="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
                         <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">{{ __('Recent Responses') }}</p>
-                        <h2 class="mt-1 font-heading text-2xl font-bold text-slate-900">{{ __('What people did after visiting') }}</h2>
+                        <h2 class="mt-1 font-heading text-2xl font-bold text-slate-900">{{ __('Follow-up actions after visiting') }}</h2>
 
                         <div class="mt-5 space-y-4">
                             @forelse($recentResponses as $response)
                                 <article class="rounded-3xl border border-slate-200 bg-slate-50/70 p-4">
                                     <div class="flex items-start justify-between gap-4">
                                         <div>
-                                            <p class="text-sm font-semibold text-slate-900">{{ $outcomeLabel((string) $response->outcome_type) }}</p>
-                                            <p class="mt-1 text-sm text-slate-600">{{ $response->link_title_snapshot ?: __('Shared page') }}</p>
+                                            <p class="text-sm font-semibold text-slate-900">{{ $outcomeLabel((string) $response->outcomeType) }}</p>
+                                            <p class="mt-1 text-sm text-slate-600">{{ $response->linkTitleSnapshot ?: __('Shared page') }}</p>
                                         </div>
                                         <p class="text-xs font-semibold text-slate-500">
-                                            {{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($response->occurred_at, 'j M Y, g:i A') }}
+                                            {{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($response->occurredAt, 'j M Y, g:i A') }}
                                         </p>
                                     </div>
                                 </article>
                             @empty
                                 <div class="rounded-3xl border border-dashed border-slate-200 bg-slate-50 px-5 py-10 text-center">
                                     <p class="text-sm font-semibold text-slate-900">{{ __('No responses yet') }}</p>
-                                    <p class="mt-2 text-sm text-slate-500">{{ __('Visits and responses will appear here after people interact with your shared pages.') }}</p>
+                                    <p class="mt-2 text-sm text-slate-500">{{ __('Visits and responses will appear here after recipients interact with your shared pages.') }}</p>
                                 </div>
                             @endforelse
                         </div>

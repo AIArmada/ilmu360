@@ -17,6 +17,34 @@ Schedule::job(new DispatchEventReminderNotifications)
     ->name('notification-reminders')
     ->withoutOverlapping();
 
+// Committed-share signal projection (durable cursor, idempotent)
+Schedule::command('signals:drain-committed-shares')
+    ->everyFiveMinutes()
+    ->timezone('UTC')
+    ->name('committed-share-signals')
+    ->withoutOverlapping();
+
+// Gratitude digests (calm, delayed, idempotent)
+Schedule::command('rewards:dispatch-gratitude-digests')
+    ->hourly()
+    ->timezone('UTC')
+    ->name('reward-gratitude-digests')
+    ->withoutOverlapping();
+
+// Source corrections (explicit, idempotent, reported)
+Schedule::command('rewards:apply-source-corrections')
+    ->dailyAt('02:15')
+    ->timezone('UTC')
+    ->name('reward-source-corrections')
+    ->withoutOverlapping();
+
+// Point-lot expiry (idempotent per scope)
+Schedule::command('rewards:expire-point-lots')
+    ->dailyAt('03:05')
+    ->timezone('UTC')
+    ->name('reward-point-lot-expiry')
+    ->withoutOverlapping();
+
 // SLA Escalation (per documentation B4a and B6b)
 // Runs hourly to check for pending events needing escalation
 Schedule::job(new EscalatePendingEvents)
@@ -37,6 +65,14 @@ Schedule::command('app:sync-public-submission-locks')
     ->hourly()
     ->timezone('Asia/Kuala_Lumpur')
     ->name('sync-public-submission-locks')
+    ->withoutOverlapping();
+
+// Share-card file retention: revision-pinned files regenerate on demand,
+// so pruning is always safe.
+Schedule::command('app:prune-share-cards')
+    ->dailyAt('03:30')
+    ->timezone('Asia/Kuala_Lumpur')
+    ->name('prune-share-cards')
     ->withoutOverlapping();
 
 // Media maintenance: remove orphaned/deprecated files and keep conversions healthy.

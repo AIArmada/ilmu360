@@ -6,11 +6,13 @@ namespace App\Actions\Events;
 
 use AIArmada\Events\Models\EventAttendanceLog;
 use AIArmada\Events\Models\EventRegistrationParticipant;
+use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Enums\EventAttendanceStatus;
 use App\Models\Event;
 use App\Models\EventCheckin;
 use App\Models\Registration;
 use App\Models\User;
+use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +21,10 @@ use InvalidArgumentException;
 
 final class UpdateEventParticipantAttendanceAction
 {
+    public function __construct(
+        private readonly ReverseShareOutcomeAction $reverseShareOutcome,
+    ) {}
+
     /**
      * Record the current attendance decision for one participant and scope.
      *
@@ -116,6 +122,20 @@ final class UpdateEventParticipantAttendanceAction
                 ],
             ]);
 
+            // A correction from a recorded attendance to did-not-attend
+            // invalidates the check-in outcome in the same transaction.
+            // Rows that never credited (unattributed receipts, missing
+            // conversions) reverse to a harmless no-op.
+            if ($status === EventAttendanceStatus::DidNotAttend
+                && $previousStatus === EventAttendanceStatus::Attended->value) {
+                $this->reverseShareOutcome->handle(
+                    ShareOutcomeBusinessKey::eventCheckin((string) $attendance->getKey()),
+                    'attendance_corrected',
+                    $actor,
+                    request(),
+                );
+            }
+
             return $attendance;
         });
     }
@@ -189,6 +209,18 @@ final class UpdateEventParticipantAttendanceAction
                     'new_status' => EventAttendanceStatus::NotRecorded->value,
                 ],
             ]);
+
+            // Clearing a recorded attendance invalidates its check-in
+            // outcome in the same transaction. Clearing a did-not-attend
+            // row that never credited reverses to a harmless no-op.
+            if ($previousStatus === EventAttendanceStatus::Attended->value) {
+                $this->reverseShareOutcome->handle(
+                    ShareOutcomeBusinessKey::eventCheckin((string) $attendance->getKey()),
+                    'attendance_cleared',
+                    $actor,
+                    request(),
+                );
+            }
         });
     }
 

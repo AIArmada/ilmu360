@@ -9,6 +9,7 @@ use App\Data\ShareTracking\ShareTrackingLinkData;
 use App\Data\ShareTracking\ShareTrackingOutcomeData;
 use App\Enums\DawahShareOutcomeType;
 use App\Models\User;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 
@@ -90,11 +91,36 @@ final class NullShareTrackingService implements ShareTrackingContract
 
     public function recordOutcome(
         DawahShareOutcomeType $type,
-        string $outcomeKey,
+        string $businessKey,
         ?Model $subject = null,
         ?User $actor = null,
         ?Request $request = null,
         array $metadata = [],
+        ?CarbonInterface $occurredAt = null,
+    ): ?ShareTrackingOutcomeData {
+        return null;
+    }
+
+    public function recordInheritedOutcome(
+        DawahShareOutcomeType $type,
+        string $businessKey,
+        string $sourceBusinessKey,
+        ?Model $subject = null,
+        ?User $actor = null,
+        array $metadata = [],
+        ?CarbonInterface $occurredAt = null,
+    ): ?ShareTrackingOutcomeData {
+        return null;
+    }
+
+    public function recordCheckoutInheritedOutcome(
+        DawahShareOutcomeType $type,
+        string $businessKey,
+        ?string $persistedAttributionId,
+        ?Model $subject = null,
+        ?User $actor = null,
+        array $metadata = [],
+        ?CarbonInterface $occurredAt = null,
     ): ?ShareTrackingOutcomeData {
         return null;
     }

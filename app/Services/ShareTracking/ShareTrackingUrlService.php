@@ -122,6 +122,9 @@ final readonly class ShareTrackingUrlService
     }
 
     /**
+     * Classify a recipient navigation URL. Lenient: visited pages can be
+     * anything, including private screens, and must never throw here.
+     *
      * @return array{
      *     subject_type: string,
      *     subject_id: string|null,
@@ -133,6 +136,43 @@ final readonly class ShareTrackingUrlService
      * }
      */
     public function classifyUrl(string $url, ?string $fallbackTitle = null): array
+    {
+        return $this->classifyInternalUrl($url, $fallbackTitle);
+    }
+
+    /**
+     * Classify a proposed share target. Strict: private, admin, auth and
+     * secret-bearing URLs can never become tracked share destinations.
+     *
+     * @return array{
+     *     subject_type: string,
+     *     subject_id: string|null,
+     *     subject_key: string,
+     *     destination_url: string,
+     *     canonical_url: string,
+     *     title_snapshot: string,
+     *     metadata: array<string, mixed>
+     * }
+     */
+    public function classifyShareTarget(string $url, ?string $fallbackTitle = null): array
+    {
+        $this->guardPublicShareTarget($url);
+
+        return $this->classifyInternalUrl($url, $fallbackTitle);
+    }
+
+    /**
+     * @return array{
+     *     subject_type: string,
+     *     subject_id: string|null,
+     *     subject_key: string,
+     *     destination_url: string,
+     *     canonical_url: string,
+     *     title_snapshot: string,
+     *     metadata: array<string, mixed>
+     * }
+     */
+    private function classifyInternalUrl(string $url, ?string $fallbackTitle = null): array
     {
         $absoluteUrl = $this->normalizeAbsoluteInternalUrl($url);
         $parsed = parse_url($absoluteUrl) ?: [];
@@ -213,16 +253,99 @@ final readonly class ShareTrackingUrlService
         };
     }
 
-    public function cleanTrackedUrl(string $url): string
+    /**
+     * Canonical minimal persisted identity for a recipient-visited URL.
+     *
+     * Stored attributions and visits keep the route path only. No recipient
+     * query survives here: not tracking parameters, not campaign markers,
+     * and never private trails (emails, tokens, credentials, q/search
+     * terms). The deliberately shared destination URL, including the
+     * sender's known public criteria, lives on the sender-owned link row
+     * instead and is never rebuilt from recipient navigation.
+     */
+    public function minimalPersistedUrl(string $url): string
     {
         $parsed = parse_url($this->normalizeAbsoluteInternalUrl($url)) ?: [];
         $path = (string) ($parsed['path'] ?? '/');
-        $query = $this->normalizeQueryFromUrl($url);
 
-        unset($query[(string) config('dawah-share.query_parameter', 'share')]);
-        unset($query[(string) config('dawah-share.provider_query_parameter', 'channel')]);
+        return $this->buildAbsoluteUrl($path, []);
+    }
 
-        return $this->buildAbsoluteUrl($path, $query);
+    public function isPrivateNavigationPath(string $path): bool
+    {
+        $normalizedPath = Str::lower('/'.ltrim($path, '/'));
+
+        foreach ($this->privateSharePathPrefixes() as $prefix) {
+            if ($normalizedPath === $prefix || str_starts_with($normalizedPath, $prefix.'/')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function publicTrackableRouteNames(): array
+    {
+        return [
+            'home',
+            'about',
+            'events.index',
+            'events.show',
+            'events.calendar',
+            'events.occurrence',
+            'events.occurrence.calendar',
+            'events.session',
+            'events.session.calendar',
+            'institutions.index',
+            'institutions.show',
+            'persons.index',
+            'persons.show',
+            'venues.index',
+            'venues.show',
+            'series.show',
+            'references.index',
+            'references.show',
+            'submit-event.landing',
+            'submit-event.create',
+        ];
+    }
+
+    public function isPublicTrackableNavigation(Request $request): bool
+    {
+        if ($this->isPrivateNavigationPath('/'.ltrim($request->path(), '/'))) {
+            return false;
+        }
+
+        $routeName = $request->route()?->getName();
+
+        if (! is_string($routeName) || $routeName === '') {
+            return false;
+        }
+
+        return in_array($routeName, $this->publicTrackableRouteNames(), true);
+    }
+
+    public function isPublicShareTarget(string $url): bool
+    {
+        try {
+            $absoluteUrl = $this->normalizeAbsoluteInternalUrl($url);
+        } catch (\InvalidArgumentException) {
+            return false;
+        }
+
+        $parsed = parse_url($absoluteUrl) ?: [];
+        $path = (string) ($parsed['path'] ?? '/');
+        $query = $this->normalizeQueryFromUrl($absoluteUrl);
+        $routeMatch = $this->matchInternalRoute($path, $query);
+
+        if ($routeMatch === null) {
+            return false;
+        }
+
+        return in_array($routeMatch['name'], $this->publicTrackableRouteNames(), true);
     }
 
     public function isBotRequest(Request $request): bool
@@ -252,6 +375,118 @@ final readonly class ShareTrackingUrlService
         $base = strtok($url, '?') ?: $url;
 
         return $base.'?'.http_build_query($query);
+    }
+
+    private function guardPublicShareTarget(string $url): void
+    {
+        $absoluteUrl = $this->normalizeAbsoluteInternalUrl($url);
+        $path = Str::lower((string) (parse_url($absoluteUrl, PHP_URL_PATH) ?? '/'));
+
+        foreach ($this->privateSharePathPrefixes() as $prefix) {
+            if ($path === $prefix || str_starts_with($path, $prefix.'/')) {
+                throw new \InvalidArgumentException('Only public pages can be shared.');
+            }
+        }
+
+        if (! $this->isPublicShareTarget($url)) {
+            throw new \InvalidArgumentException('Only known public pages can be shared.');
+        }
+
+        parse_str((string) parse_url($absoluteUrl, PHP_URL_QUERY), $query);
+
+        foreach (array_keys($query) as $key) {
+            if (is_string($key) && in_array(Str::lower($key), $this->secretShareQueryKeys(), true)) {
+                throw new \InvalidArgumentException('Links carrying credentials or private tokens cannot be shared.');
+            }
+        }
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function privateSharePathPrefixes(): array
+    {
+        return [
+            '/filament',
+            '/livewire',
+            '/api',
+            '/admin',
+            '/dashboard',
+            '/account',
+            '/tetapan-akaun',
+            '/login',
+            '/register',
+            '/password',
+            '/email',
+            '/sanctum',
+            '/oauth',
+            '/_debugbar',
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function secretShareQueryKeys(): array
+    {
+        return [
+            'token',
+            'signature',
+            'secret',
+            'password',
+            'access_token',
+            'refresh_token',
+            'api_key',
+            'otp',
+            // The canonical private claim-capability body input must never
+            // arrive as a share-target query key: URLs carrying it cannot
+            // become tracked destinations.
+            'guest_claim_capability',
+        ];
+    }
+
+    /**
+     * Explicit bounded safe campaign ids/slugs from an incoming request.
+     *
+     * Allowlisted utm keys survive only when the value is already a short
+     * safe slug. Free-form values, secrets smuggled into campaign keys and
+     * overlong values are dropped outright: truncating an arbitrary secret
+     * would still store a secret prefix. Shared by the attribution writer
+     * and the short-link adapter so both forward the identical canonical
+     * campaign set.
+     *
+     * @return array<string, string>
+     */
+    public function sanitizedCampaignParams(Request $request): array
+    {
+        $allowedKeys = array_filter((array) config('dawah-share.campaign_metadata_keys', []));
+        $metadata = [];
+
+        foreach ($allowedKeys as $key) {
+            if (! is_string($key) || $key === '') {
+                continue;
+            }
+
+            $value = $request->query($key);
+
+            if (! is_string($value)) {
+                continue;
+            }
+
+            $value = trim($value);
+
+            if ($value === '' || strlen($value) > 120) {
+                continue;
+            }
+
+            if (preg_match('/^[A-Za-z0-9][A-Za-z0-9._-]*$/', $value) !== 1) {
+                continue;
+            }
+
+            $metadata[$key] = $value;
+        }
+
+        return $metadata;
     }
 
     public function normalizeProvider(?string $provider): ?string

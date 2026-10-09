@@ -8,6 +8,7 @@ use App\Data\ShareTracking\ShareTrackingVisitData;
 use App\Models\User;
 use App\Services\ShareTrackingAnalyticsService;
 use App\Services\ShareTrackingService;
+use App\Support\ShareTracking\ShareTrackingMeasurement;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
@@ -37,11 +38,17 @@ class DawahImpactLinkShow extends Component
         return $resolvedLink;
     }
 
+    #[Computed]
+    public function measurementStatus(): string
+    {
+        return ShareTrackingMeasurement::status();
+    }
+
     /**
      * @return array{
      *     outbound_shares: int,
      *     visits: int,
-     *     unique_visitors: int,
+     *     distinct_browsers: int,
      *     outcomes: int,
      *     signups: int,
      *     event_registrations: int,
@@ -61,7 +68,7 @@ class DawahImpactLinkShow extends Component
      *     label: string,
      *     outbound_shares: int,
      *     visits: int,
-     *     unique_visitors: int,
+     *     distinct_browsers: int,
      *     outcomes: int,
      *     signups: int,
      *     event_registrations: int,
@@ -82,9 +89,9 @@ class DawahImpactLinkShow extends Component
     public function shareLinks(): array
     {
         return $this->shareService()->redirectLinks(
-            $this->linkData()->destination_url,
-            trim(($this->linkData()->title_snapshot ?: config('app.name')).' - '.config('app.name')),
-            $this->linkData()->title_snapshot,
+            $this->linkData()->destinationUrl,
+            trim(($this->linkData()->titleSnapshot ?: config('app.name')).' - '.config('app.name')),
+            $this->linkData()->titleSnapshot,
         );
     }
 
@@ -102,7 +109,7 @@ class DawahImpactLinkShow extends Component
     #[Computed]
     public function dailyPerformance(): Collection
     {
-        return $this->analytics()->dailyPerformanceForLink($this->linkData(), 14);
+        return $this->analytics()->dailyPerformanceForLink($this->linkData(), 14, $this->currentUser()->preferredTimezone());
     }
 
     /**

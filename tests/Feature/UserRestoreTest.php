@@ -212,16 +212,42 @@ it('restores a deleted user together with key relationships and child records', 
         'name' => 'Restore Me Affiliate',
         'status' => Active::class,
         'commission_type' => CommissionType::Percentage->value,
-        'commission_rate' => 1500,
+        'commission_rate' => 0,
         'currency' => 'MYR',
         'metadata' => [
-            'tracking_case' => 'restore-test',
+            'share_tracking_profile' => true,
+            'profile_kind' => 'member',
         ],
         'activated_at' => now(),
     ]);
 
     $affiliate->assignOwner($user);
     $affiliate->save();
+
+    $commercialAffiliate = new Affiliate([
+        'code' => 'restore-me-commercial',
+        'name' => 'Restore Me Commercial',
+        'status' => Active::class,
+        'commission_type' => CommissionType::Percentage->value,
+        'commission_rate' => 1500,
+        'currency' => 'MYR',
+        'metadata' => [
+            'tracking_case' => 'restore-test-commercial',
+        ],
+        'activated_at' => now(),
+    ]);
+
+    $commercialAffiliate->assignOwner($user);
+    $commercialAffiliate->save();
+
+    $commercialLink = AffiliateLink::query()->create([
+        'affiliate_id' => $commercialAffiliate->id,
+        'destination_url' => 'https://ilmu360.test/events/restore-me-commercial',
+        'tracking_url' => 'https://ilmu360.test/r/restore-me-commercial',
+        'custom_slug' => 'restore-me-commercial',
+        'subject_type' => 'event',
+        'subject_key' => 'restore-me-commercial-event',
+    ]);
 
     $affiliateLink = AffiliateLink::query()->create([
         'affiliate_id' => $affiliate->id,
@@ -295,9 +321,9 @@ it('restores a deleted user together with key relationships and child records', 
         'voucher_code' => 'RESTORE-ME',
         'external_reference' => 'order-restore-me',
         'conversion_type' => 'signup',
-        'subtotal_minor' => 10000,
-        'value_minor' => 10000,
-        'commission_minor' => 1500,
+        'subtotal_minor' => 0,
+        'value_minor' => 0,
+        'commission_minor' => 0,
         'commission_currency' => 'MYR',
         'status' => PendingConversion::class,
         'channel' => 'web',
@@ -443,6 +469,17 @@ it('restores a deleted user together with key relationships and child records', 
 
     assertDatabaseMissing($affiliate->getTable(), [
         'id' => $affiliate->id,
+    ]);
+
+    assertDatabaseHas($commercialAffiliate->getTable(), [
+        'id' => $commercialAffiliate->id,
+        'code' => 'restore-me-commercial',
+        'owner_id' => $user->id,
+    ]);
+
+    assertDatabaseHas($commercialLink->getTable(), [
+        'id' => $commercialLink->id,
+        'affiliate_id' => $commercialAffiliate->id,
     ]);
 
     $restoredUser = User::restoreDeletedUser($user->id);
@@ -633,6 +670,13 @@ it('restores a deleted user together with key relationships and child records', 
         'id' => $affiliateConversion->id,
         'affiliate_id' => $affiliate->id,
         'affiliate_attribution_id' => $affiliateAttribution->id,
+    ]);
+
+    expect(Affiliate::query()->where('code', 'restore-me-commercial')->count())->toBe(1);
+
+    assertDatabaseHas($commercialLink->getTable(), [
+        'id' => $commercialLink->id,
+        'affiliate_id' => $commercialAffiliate->id,
     ]);
 });
 

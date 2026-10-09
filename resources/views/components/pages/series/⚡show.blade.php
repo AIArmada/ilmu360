@@ -1,12 +1,15 @@
 <?php
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Engagement\Models\Follow;
+use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Enums\DawahShareOutcomeType;
 use App\Livewire\Concerns\LoadsEventPageData;
 use App\Models\Event;
 use App\Models\Series;
 use App\Services\ShareTrackingService;
 use App\Support\Auth\IntendedRedirect;
+use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -60,21 +63,50 @@ new
             }
 
             if ($this->isFollowing) {
-                $user->unfollow($this->series);
+                $follow = Follow::query()
+                    ->where('follower_type', $user->getMorphClass())
+                    ->where('follower_id', $user->getKey())
+                    ->where('followable_type', $this->series->getMorphClass())
+                    ->where('followable_id', $this->series->getKey())
+                    ->where('status', 'active')
+                    ->first();
+
+                \Illuminate\Support\Facades\DB::transaction(function () use ($user, $follow): void {
+                    $user->unfollow($this->series);
+
+                    if ($follow instanceof Follow) {
+                        app(ReverseShareOutcomeAction::class)->handle(
+                            ShareOutcomeBusinessKey::follow(DawahShareOutcomeType::SeriesFollow, (string) $follow->getKey()),
+                            'unfollowed',
+                            $user,
+                            request(),
+                        );
+                    }
+                });
                 $this->isFollowing = false;
             } else {
-                $user->follow($this->series);
+                \Illuminate\Support\Facades\DB::transaction(function () use ($user): void {
+                    $created = $user->follow($this->series);
+
+                    // Reactivations reuse the follow row: only rows created
+                    // by this call freeze a decision, so earlier
+                    // relationships can never earn later through a new
+                    // cookie.
+                    if ($created->wasRecentlyCreated) {
+                        app(ShareTrackingService::class)->recordOutcome(
+                            type: DawahShareOutcomeType::SeriesFollow,
+                            businessKey: ShareOutcomeBusinessKey::follow(DawahShareOutcomeType::SeriesFollow, (string) $created->getKey()),
+                            subject: $this->series,
+                            actor: $user,
+                            request: request(),
+                            metadata: [
+                                'series_id' => $this->series->getKey(),
+                            ],
+                            occurredAt: $created->created_at,
+                        );
+                    }
+                });
                 $this->isFollowing = true;
-                app(ShareTrackingService::class)->recordOutcome(
-                    type: DawahShareOutcomeType::SeriesFollow,
-                    outcomeKey: 'series_follow:user:'.$user->id.':series:'.$this->series->id,
-                    subject: $this->series,
-                    actor: $user,
-                    request: request(),
-                    metadata: [
-                        'series_id' => $this->series->id,
-                    ],
-                );
             }
         }
 

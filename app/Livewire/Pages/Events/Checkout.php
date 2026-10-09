@@ -7,13 +7,13 @@ namespace App\Livewire\Pages\Events;
 use AIArmada\Checkout\Contracts\CheckoutServiceInterface;
 use AIArmada\Checkout\Models\CheckoutSession;
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Events\Actions\RegisterForFreeAction;
 use AIArmada\Events\Contracts\EventRegistrationQuestionResolver;
 use AIArmada\Events\Enums\EventRegistrationQuestionType;
 use AIArmada\Events\Models\EventRegistrationQuestion;
 use AIArmada\Events\Support\EventTicketScope;
 use AIArmada\Ticketing\Models\TicketType;
 use App\Actions\Events\PrepareEventCheckoutAction;
+use App\Actions\Events\RegisterEventWithShareProvenanceAction;
 use App\Models\Event;
 use App\Models\User;
 use App\Support\Commerce\EventCommerceModes;
@@ -169,7 +169,7 @@ final class Checkout extends Component
 
     public function submit(
         PrepareEventCheckoutAction $prepareCheckout,
-        RegisterForFreeAction $registerForFree,
+        RegisterEventWithShareProvenanceAction $registerWithProvenance,
         CheckoutServiceInterface $checkoutService,
         EventTicketingPolicy $ticketingPolicy,
     ): void {
@@ -200,12 +200,12 @@ final class Checkout extends Component
                 $event,
                 $participants,
                 $prepareCheckout,
-                $registerForFree,
+                $registerWithProvenance,
                 $ticket,
                 $user,
             ): void {
                 if ($ticket === null) {
-                    $registrations = OwnerContext::withOwner(null, fn () => $registerForFree->execute(
+                    $registrations = $registerWithProvenance->handle(
                         target: $event,
                         participants: $participants,
                         registrant: $user,
@@ -213,7 +213,8 @@ final class Checkout extends Component
                             'with_pass' => true,
                             'idempotency_key' => $this->checkoutAttemptKey,
                         ],
-                    ));
+                        request: request(),
+                    );
 
                     $batchId = (string) str()->uuid();
 
@@ -249,6 +250,7 @@ final class Checkout extends Component
                     agreement: $agreement,
                     discountCode: $this->discountCode,
                     idempotencyKey: $this->checkoutAttemptKey,
+                    request: request(),
                 ));
 
                 // Replayed submissions reuse the durable session and must not

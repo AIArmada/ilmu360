@@ -2,16 +2,14 @@
 
 namespace App\Http\Controllers\Api;
 
-use AIArmada\Events\Actions\RegisterForFreeAction;
+use App\Actions\Events\RegisterEventWithShareProvenanceAction;
 use App\Data\Api\EventRegistration\EventRegistrationData;
-use App\Enums\DawahShareOutcomeType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RegisterEventRequest;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;
 use App\Services\Notifications\EventNotificationService;
-use App\Services\ShareTrackingService;
 use App\Support\Events\EventTicketingPolicy;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
@@ -22,7 +20,6 @@ use Illuminate\Support\Str;
 class EventRegistrationController extends Controller
 {
     public function __construct(
-        private readonly ShareTrackingService $shareTrackingService,
         private readonly EventNotificationService $eventNotificationService,
     ) {}
 
@@ -33,7 +30,7 @@ class EventRegistrationController extends Controller
     public function store(
         RegisterEventRequest $request,
         Event $event,
-        RegisterForFreeAction $registerForFree,
+        RegisterEventWithShareProvenanceAction $registerWithProvenance,
         EventTicketingPolicy $ticketingPolicy,
     ): JsonResponse {
         abort_unless($event->isRegistrationAvailable(), 404);
@@ -43,7 +40,7 @@ class EventRegistrationController extends Controller
 
         $user = $request->user();
 
-        $eventRegistration = $registerForFree->execute(
+        $registration = $registerWithProvenance->handle(
             target: $event,
             participants: [[
                 'name' => $validated['name'],
@@ -54,21 +51,10 @@ class EventRegistrationController extends Controller
             ]],
             registrant: $user,
             options: ['with_pass' => true],
+            request: $request,
         )->firstOrFail();
 
-        $registration = Registration::findOrFail($eventRegistration->id);
-
-        $this->shareTrackingService->recordOutcome(
-            type: DawahShareOutcomeType::EventRegistration,
-            outcomeKey: 'event_registration:registration:'.$registration->id,
-            subject: $event,
-            actor: $user,
-            request: $request,
-            metadata: [
-                'registration_id' => $registration->id,
-                'guest' => ! $user instanceof User,
-            ],
-        );
+        $registration = Registration::findOrFail($registration->getKey());
 
         if ($user instanceof User) {
             $this->eventNotificationService->notifyRegistrationConfirmed($registration);

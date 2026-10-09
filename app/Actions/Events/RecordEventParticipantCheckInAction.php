@@ -6,11 +6,15 @@ namespace App\Actions\Events;
 
 use AIArmada\Events\Contracts\EventCheckInService;
 use AIArmada\Events\Models\EventRegistrationParticipant;
+use App\Enums\DawahShareOutcomeType;
 use App\Enums\EventAttendanceStatus;
 use App\Models\Event;
 use App\Models\EventCheckin;
 use App\Models\Registration;
 use App\Models\User;
+use App\Services\ShareTrackingService;
+use App\Support\ShareTracking\ShareOutcomeBusinessKey;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use InvalidArgumentException;
 
@@ -19,6 +23,7 @@ final class RecordEventParticipantCheckInAction
     public function __construct(
         private readonly EventCheckInService $checkIns,
         private readonly UpdateEventParticipantAttendanceAction $updateAttendance,
+        private readonly ShareTrackingService $shareTracking,
     ) {}
 
     /**
@@ -62,13 +67,31 @@ final class RecordEventParticipantCheckInAction
                 return ['status' => 'duplicate', 'checkin' => $existingAttendance];
             }
 
-            $checkin = $this->updateAttendance->handle(
-                event: $event,
-                participant: $participant,
-                status: EventAttendanceStatus::Attended,
-                actor: $staff,
-                source: 'staff_manual',
-            );
+            $checkin = DB::transaction(function () use ($event, $participant, $staff, $registration): EventCheckin {
+                $created = $this->updateAttendance->handle(
+                    event: $event,
+                    participant: $participant,
+                    status: EventAttendanceStatus::Attended,
+                    actor: $staff,
+                    source: 'staff_manual',
+                );
+
+                $this->shareTracking->recordInheritedOutcome(
+                    type: DawahShareOutcomeType::EventCheckin,
+                    businessKey: ShareOutcomeBusinessKey::eventCheckin((string) $created->getKey()),
+                    sourceBusinessKey: ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey()),
+                    subject: $event,
+                    actor: null,
+                    metadata: [
+                        'registration_id' => (string) $registration->getKey(),
+                        'staff_assisted' => true,
+                        'verified_by_user_id' => (string) $staff->getKey(),
+                    ],
+                    occurredAt: $created->created_at ?? now(),
+                );
+
+                return $created;
+            });
 
             return ['status' => 'created', 'checkin' => $checkin];
         }
@@ -100,46 +123,84 @@ final class RecordEventParticipantCheckInAction
             ->first();
 
         if ($existingAbsence instanceof EventCheckin) {
-            $checkin = $this->updateAttendance->handle(
-                event: $event,
-                participant: $participant,
-                status: EventAttendanceStatus::Attended,
-                actor: $staff,
-                occurrenceId: $occurrenceId,
-                sessionId: $sessionId,
-                note: $existingAbsence->notes,
-                source: 'staff_manual',
-            );
+            $checkin = DB::transaction(function () use ($event, $participant, $staff, $occurrenceId, $sessionId, $existingAbsence, $registration): EventCheckin {
+                $created = $this->updateAttendance->handle(
+                    event: $event,
+                    participant: $participant,
+                    status: EventAttendanceStatus::Attended,
+                    actor: $staff,
+                    occurrenceId: $occurrenceId,
+                    sessionId: $sessionId,
+                    note: $existingAbsence->notes,
+                    source: 'staff_manual',
+                );
+
+                $this->shareTracking->recordInheritedOutcome(
+                    type: DawahShareOutcomeType::EventCheckin,
+                    businessKey: ShareOutcomeBusinessKey::eventCheckin((string) $created->getKey()),
+                    sourceBusinessKey: ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey()),
+                    subject: $event,
+                    actor: null,
+                    metadata: [
+                        'registration_id' => (string) $registration->getKey(),
+                        'staff_assisted' => true,
+                        'verified_by_user_id' => (string) $staff->getKey(),
+                    ],
+                    occurredAt: $created->created_at ?? now(),
+                );
+
+                return $created;
+            });
 
             return ['status' => 'created', 'checkin' => $checkin];
         }
 
-        $passId = $this->resolvePassId($participant, $occurrenceId, $sessionId);
-        $result = $this->checkIns->checkInWithResult([
-            'event_id' => (string) $event->getKey(),
-            'event_occurrence_id' => $occurrenceId,
-            'event_session_id' => $sessionId,
-            'event_registration_id' => (string) $registration->getKey(),
-            'event_registration_participant_id' => (string) $participant->getKey(),
-            'pass_id' => $passId,
-            'attendance_type' => EventAttendanceStatus::Attended->value,
-            'check_in_source' => 'staff_manual',
-            'verified_by_user_id' => (string) $staff->getKey(),
-            'performed_by_type' => $staff->getMorphClass(),
-            'performed_by_id' => (string) $staff->getKey(),
-            'metadata' => [
-                'staff_assisted' => true,
-            ],
-        ]);
+        return DB::transaction(function () use ($event, $participant, $registration, $occurrenceId, $sessionId, $staff): array {
+            $passId = $this->resolvePassId($participant, $occurrenceId, $sessionId);
+            $result = $this->checkIns->checkInWithResult([
+                'event_id' => (string) $event->getKey(),
+                'event_occurrence_id' => $occurrenceId,
+                'event_session_id' => $sessionId,
+                'event_registration_id' => (string) $registration->getKey(),
+                'event_registration_participant_id' => (string) $participant->getKey(),
+                'pass_id' => $passId,
+                'attendance_type' => EventAttendanceStatus::Attended->value,
+                'check_in_source' => 'staff_manual',
+                'verified_by_user_id' => (string) $staff->getKey(),
+                'performed_by_type' => $staff->getMorphClass(),
+                'performed_by_id' => (string) $staff->getKey(),
+                'metadata' => [
+                    'staff_assisted' => true,
+                ],
+            ]);
 
-        $checkin = $result->attendance instanceof EventCheckin
-            ? $result->attendance
-            : EventCheckin::query()->findOrFail($result->attendance->getKey());
+            $checkin = $result->attendance instanceof EventCheckin
+                ? $result->attendance
+                : EventCheckin::query()->findOrFail($result->attendance->getKey());
 
-        return [
-            'status' => $result->created ? 'created' : 'duplicate',
-            'checkin' => $checkin,
-        ];
+            if ($result->created) {
+                $checkin->refresh();
+
+                $this->shareTracking->recordInheritedOutcome(
+                    type: DawahShareOutcomeType::EventCheckin,
+                    businessKey: ShareOutcomeBusinessKey::eventCheckin((string) $checkin->getKey()),
+                    sourceBusinessKey: ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey()),
+                    subject: $event,
+                    actor: null,
+                    metadata: [
+                        'registration_id' => (string) $registration->getKey(),
+                        'staff_assisted' => true,
+                        'verified_by_user_id' => (string) $staff->getKey(),
+                    ],
+                    occurredAt: $checkin->created_at ?? now(),
+                );
+            }
+
+            return [
+                'status' => $result->created ? 'created' : 'duplicate',
+                'checkin' => $checkin,
+            ];
+        });
     }
 
     private function resolveOccurrenceId(

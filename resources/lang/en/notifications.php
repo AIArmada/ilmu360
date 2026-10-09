@@ -174,6 +174,10 @@ return [
             'label' => 'Submission Workflow',
             'description' => 'Moderation updates for events and directory entries you submitted or help manage.',
         ],
+        'sharing' => [
+            'label' => 'Sharing',
+            'description' => 'Delayed gratitude for the impact of shares you made.',
+        ],
     ],
     'triggers' => [
         'followed_speaker_event' => [
@@ -268,6 +272,10 @@ return [
             'label' => 'Submission sent for review again',
             'description' => 'Alert me when a submitted event goes back into moderation.',
         ],
+        'share_gratitude_digest' => [
+            'label' => 'Sharing gratitude digest',
+            'description' => 'A calm delayed thank-you digest for the impact of shares I made. No per-visit pings.',
+        ],
     ],
     'messages' => [
         'followed_content' => [
@@ -353,6 +361,10 @@ return [
             'title' => 'Submission reviewed again: :title',
             'body' => 'This submission is back in moderation.',
             'body_with_note' => 'This submission is back in moderation. Note: :note',
+        ],
+        'share_gratitude_digest' => [
+            'title' => 'Thank you for sharing',
+            'body' => 'Your recent shares are making a difference. :summary.',
         ],
         'reminder_24_hours' => [
             'title' => ':title starts tomorrow',

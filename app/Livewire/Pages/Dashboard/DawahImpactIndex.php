@@ -8,6 +8,7 @@ use App\Enums\DawahShareOutcomeType;
 use App\Enums\DawahShareSubjectType;
 use App\Models\User;
 use App\Services\ShareTrackingAnalyticsService;
+use App\Support\ShareTracking\ShareTrackingMeasurement;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
@@ -150,7 +151,7 @@ class DawahImpactIndex extends Component
      * @return array{
      *     outbound_shares: int,
      *     visits: int,
-     *     unique_visitors: int,
+     *     distinct_browsers: int,
      *     signups: int,
      *     event_registrations: int,
      *     event_checkins: int,
@@ -164,13 +165,19 @@ class DawahImpactIndex extends Component
         return $this->analytics()->summaryForUser($this->currentUser());
     }
 
+    #[Computed]
+    public function measurementStatus(): string
+    {
+        return ShareTrackingMeasurement::status();
+    }
+
     /**
      * @return Collection<int, array{
      *     provider: string,
      *     label: string,
      *     outbound_shares: int,
      *     visits: int,
-     *     unique_visitors: int,
+     *     distinct_browsers: int,
      *     outcomes: int,
      *     signups: int,
      *     event_registrations: int,

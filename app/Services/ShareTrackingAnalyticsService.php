@@ -22,7 +22,7 @@ final readonly class ShareTrackingAnalyticsService
      * @return array{
      *     outbound_shares: int,
      *     visits: int,
-     *     unique_visitors: int,
+     *     distinct_browsers: int,
      *     signups: int,
      *     event_registrations: int,
      *     event_checkins: int,
@@ -41,7 +41,7 @@ final readonly class ShareTrackingAnalyticsService
      *     label: string,
      *     outbound_shares: int,
      *     visits: int,
-     *     unique_visitors: int,
+     *     distinct_browsers: int,
      *     outcomes: int,
      *     signups: int,
      *     event_registrations: int,
@@ -168,7 +168,7 @@ final readonly class ShareTrackingAnalyticsService
      * @return array{
      *     outbound_shares: int,
      *     visits: int,
-     *     unique_visitors: int,
+     *     distinct_browsers: int,
      *     outcomes: int,
      *     signups: int,
      *     event_registrations: int,
@@ -187,7 +187,7 @@ final readonly class ShareTrackingAnalyticsService
      *     label: string,
      *     outbound_shares: int,
      *     visits: int,
-     *     unique_visitors: int,
+     *     distinct_browsers: int,
      *     outcomes: int,
      *     signups: int,
      *     event_registrations: int,
@@ -203,9 +203,9 @@ final readonly class ShareTrackingAnalyticsService
     /**
      * @return Collection<int, array{date: string, visits: int, outcomes: int, signups: int, event_registrations: int, event_checkins: int, event_submissions: int}>
      */
-    public function dailyPerformanceForLink(ShareTrackingLinkData $link, int $days = 14): Collection
+    public function dailyPerformanceForLink(ShareTrackingLinkData $link, int $days = 14, ?string $timezone = null): Collection
     {
-        return $this->affiliates->dailyPerformanceForLink($link, $days);
+        return $this->affiliates->dailyPerformanceForLink($link, $days, $timezone);
     }
 
     /**

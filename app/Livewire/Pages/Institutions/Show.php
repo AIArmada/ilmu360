@@ -6,7 +6,9 @@ use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressAreaAssignment;
 use AIArmada\Addressing\Models\State;
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Engagement\Models\Follow;
 use AIArmada\Membership\Enums\MemberRole;
+use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Enums\DawahShareOutcomeType;
 use App\Enums\InstitutionStatus;
 use App\Livewire\Concerns\LoadsEventPageData;
@@ -15,12 +17,14 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Services\ShareTrackingService;
 use App\Support\Auth\IntendedRedirect;
+use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\Relations\Pivot;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -72,25 +76,54 @@ class Show extends Component
         }
 
         if ($this->isFollowing) {
-            $user->unfollow($this->institution);
+            $follow = Follow::query()
+                ->where('follower_type', $user->getMorphClass())
+                ->where('follower_id', $user->getKey())
+                ->where('followable_type', $this->institution->getMorphClass())
+                ->where('followable_id', $this->institution->getKey())
+                ->where('status', 'active')
+                ->first();
+
+            DB::transaction(function () use ($user, $follow): void {
+                $user->unfollow($this->institution);
+
+                if ($follow instanceof Follow) {
+                    app(ReverseShareOutcomeAction::class)->handle(
+                        ShareOutcomeBusinessKey::follow(DawahShareOutcomeType::InstitutionFollow, (string) $follow->getKey()),
+                        'unfollowed',
+                        $user,
+                        request(),
+                    );
+                }
+            });
             $this->isFollowing = false;
 
             return;
         }
 
-        $user->follow($this->institution);
-        $this->isFollowing = true;
+        $follow = DB::transaction(function () use ($user): Follow {
+            $created = $user->follow($this->institution);
 
-        app(ShareTrackingService::class)->recordOutcome(
-            type: DawahShareOutcomeType::InstitutionFollow,
-            outcomeKey: 'institution_follow:user:'.$user->id.':institution:'.$this->institution->id,
-            subject: $this->institution,
-            actor: $user,
-            request: request(),
-            metadata: [
-                'institution_id' => $this->institution->id,
-            ],
-        );
+            // Reactivations reuse the follow row: only rows created by
+            // this call freeze a decision, so earlier relationships
+            // can never earn later through a new cookie.
+            if ($created->wasRecentlyCreated) {
+                app(ShareTrackingService::class)->recordOutcome(
+                    type: DawahShareOutcomeType::InstitutionFollow,
+                    businessKey: ShareOutcomeBusinessKey::follow(DawahShareOutcomeType::InstitutionFollow, (string) $created->getKey()),
+                    subject: $this->institution,
+                    actor: $user,
+                    request: request(),
+                    metadata: [
+                        'institution_id' => $this->institution->getKey(),
+                    ],
+                    occurredAt: $created->created_at,
+                );
+            }
+
+            return $created;
+        });
+        $this->isFollowing = true;
     }
 
     public function loadMoreUpcoming(): void

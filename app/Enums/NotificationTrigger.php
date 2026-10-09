@@ -29,4 +29,5 @@ enum NotificationTrigger: string
     case SubmissionNeedsChanges = 'submission_needs_changes';
     case SubmissionCancelled = 'submission_cancelled';
     case SubmissionRemoderated = 'submission_remoderated';
+    case ShareGratitudeDigest = 'share_gratitude_digest';
 }

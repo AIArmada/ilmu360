@@ -5,6 +5,7 @@ namespace App\Support\Communications;
 use AIArmada\Communications\Contracts\PreferenceResolver;
 use AIArmada\Communications\Enums\NotificationFamily;
 use AIArmada\Communications\Models\CommunicationPreference;
+use App\Notifications\Channels\DigestMailChannel;
 use App\Notifications\Channels\InboxChannel;
 use App\Notifications\Channels\PushChannel;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -106,7 +107,7 @@ class AppPreferenceResolver implements PreferenceResolver
     private function mapChannel(string $channel): string
     {
         return match ($channel) {
-            'mail' => 'email',
+            'mail', DigestMailChannel::class => 'email',
             'database', InboxChannel::class => 'in_app',
             PushChannel::class => 'push',
             default => $channel,

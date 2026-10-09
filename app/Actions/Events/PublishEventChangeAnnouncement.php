@@ -3,6 +3,7 @@
 namespace App\Actions\Events;
 
 use AIArmada\Events\Contracts\EventLifecycleWorkflow;
+use App\Actions\ShareTracking\ReverseEventParticipationOutcomesAction;
 use App\Enums\EventChangeSeverity;
 use App\Enums\EventChangeType;
 use App\Models\Event;
@@ -67,6 +68,18 @@ class PublishEventChangeAnnouncement
             $event->save();
             $event->refresh();
             $event->loadMissing($this->snapshotRelations());
+
+            // A published cancellation is a canonical event cancellation:
+            // participation outcomes stop qualifying in the same
+            // transaction. Occurrence-scoped rows were already reversed by
+            // the schedule listener; this covers event-level rows.
+            if ($type === EventChangeType::Cancelled) {
+                app(ReverseEventParticipationOutcomesAction::class)->forEvent(
+                    $event,
+                    $actor,
+                    'event_cancelled',
+                );
+            }
 
             $afterSnapshot = $this->snapshot($event);
             $changedFields = array_values(array_unique(array_filter($changedFields)));

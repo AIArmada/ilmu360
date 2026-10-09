@@ -4,16 +4,11 @@ namespace App\Models\Concerns;
 
 use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\Models\AffiliateAttribution;
-use AIArmada\Affiliates\Models\AffiliateBalance;
 use AIArmada\Affiliates\Models\AffiliateConversion;
-use AIArmada\Affiliates\Models\AffiliateDailyStat;
-use AIArmada\Affiliates\Models\AffiliateFraudSignal;
 use AIArmada\Affiliates\Models\AffiliateLink;
-use AIArmada\Affiliates\Models\AffiliatePayout;
-use AIArmada\Affiliates\Models\AffiliatePayoutHold;
-use AIArmada\Affiliates\Models\AffiliatePayoutMethod;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\CommerceSupport\Support\OwnerScope;
 use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Engagement\Models\Follow;
 use AIArmada\Engagement\Models\Response;
@@ -24,6 +19,8 @@ use App\Models\Reference;
 use App\Models\SocialAccount;
 use App\Models\User;
 use App\Services\ShareTrackingService;
+use App\Support\ShareTracking\ShareTrackingFinance;
+use App\Support\ShareTracking\ShareTrackingProfile;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
@@ -93,6 +90,12 @@ trait HasUserRestoration
                 $user->eventCheckins()->each(fn ($checkin) => $checkin->delete());
                 $user->savedSearches()->each(fn ($search) => $search->delete());
                 $user->aiUsageLogs()->each(fn ($log) => $log->delete());
+                // Share cleanup revokes this claimant's guest-claim associations
+                // (rows preserved as revoked) and detaches their published
+                // short links. Claim rows and capability verifiers are
+                // deliberately never snapshotted here: a later restore
+                // reactivates no claim, restores no secret, and replays no
+                // historical award or notification.
                 app(ShareTrackingService::class)->deleteUserTracking($user);
                 $user->notificationSetting()->delete();
                 $user->notificationDestinations()->each(fn ($destination) => $destination->delete());
@@ -106,11 +109,25 @@ trait HasUserRestoration
     #[\Override]
     public function delete()
     {
-        if ($this->exists && $this->deletedRelationsSnapshot === []) {
-            $this->captureDeletedRelationsSnapshot();
-        }
+        // One canonical deletion boundary: the user-row lock is taken
+        // first and held through snapshot capture, the deletion-hook
+        // cleanup, and the physical row removal in a single transaction
+        // on this model's connection. A guest-claim racing this deletion
+        // takes the same first lock, so it either commits before (and is
+        // revoked inside the cleanup) or observes the deleted user —
+        // never a new active association on a removed claimant. The
+        // hook's own transactions nest as savepoints on the same
+        // connection; snapshot, restore, authentication, and financial
+        // behavior below is unchanged.
+        return DB::transaction(function (): mixed {
+            User::query()->whereKey($this->getKey())->lockForUpdate()->first();
 
-        return parent::delete();
+            if ($this->exists && $this->deletedRelationsSnapshot === []) {
+                $this->captureDeletedRelationsSnapshot();
+            }
+
+            return parent::delete();
+        });
     }
 
     /**
@@ -302,11 +319,14 @@ trait HasUserRestoration
     protected function captureDeletedAffiliateTrackingSnapshot(): void
     {
         OwnerContext::withOwner($this, function (): void {
-            /** @var Affiliate|null $affiliate */
+            // Canonical owned share records only. An unmarked commercial
+            // profile is never snapshotted, and financial rows are preserved
+            // by non-deletion rather than snapshot replay.
             $affiliate = Affiliate::query()
                 ->where('owner_type', $this->getMorphClass())
                 ->where('owner_id', $this->getKey())
-                ->first();
+                ->get()
+                ->first(fn (Affiliate $candidate): bool => ShareTrackingProfile::isMarkedMemberFor($candidate, $this));
 
             if (! $affiliate instanceof Affiliate) {
                 $this->deletedAffiliateTrackingSnapshot = [];
@@ -324,12 +344,6 @@ trait HasUserRestoration
                     ->map(fn (AffiliateTouchpoint $touchpoint): array => $touchpoint->getAttributes())
                     ->all(),
                 'conversions' => $affiliate->conversions()->get()->map(fn (AffiliateConversion $conversion): array => $conversion->getAttributes())->all(),
-                'payouts' => $affiliate->payouts()->get()->map(fn (AffiliatePayout $payout): array => $payout->getAttributes())->all(),
-                'fraud_signals' => $affiliate->fraudSignals()->get()->map(fn (AffiliateFraudSignal $fraudSignal): array => $fraudSignal->getAttributes())->all(),
-                'daily_stats' => $affiliate->dailyStats()->get()->map(fn (AffiliateDailyStat $dailyStat): array => $dailyStat->getAttributes())->all(),
-                'balance' => $affiliate->balance?->getAttributes(),
-                'payout_methods' => $affiliate->payoutMethods()->get()->map(fn (AffiliatePayoutMethod $payoutMethod): array => $payoutMethod->getAttributes())->all(),
-                'payout_holds' => $affiliate->payoutHolds()->get()->map(fn (AffiliatePayoutHold $payoutHold): array => $payoutHold->getAttributes())->all(),
             ];
         });
     }
@@ -473,30 +487,24 @@ trait HasUserRestoration
                 return;
             }
 
-            $affiliate = $this->restoreRawModel(Affiliate::class, $affiliateAttributes);
+            // Marker plus owner match, validated before any write. A foreign
+            // or tampered snapshot is skipped, never force-assigned.
+            if (! $this->snapshotAffiliateBelongsToRestoredUser($affiliateAttributes)) {
+                return;
+            }
+
+            $affiliate = $this->restoreShareAffiliate($affiliateAttributes);
 
             if (! $affiliate instanceof Affiliate) {
                 return;
             }
 
-            if (! $affiliate->belongsToOwner($this)) {
-                $affiliate->assignOwner($this)->saveQuietly();
-            }
+            $affiliateId = (string) $affiliate->getKey();
 
-            $this->restoreRawModels(AffiliateLink::class, $record['links'] ?? []);
-            $this->restoreRawModels(AffiliateAttribution::class, $record['attributions'] ?? []);
-            $this->restoreRawModels(AffiliateTouchpoint::class, $record['touchpoints'] ?? []);
-            $this->restoreRawModels(AffiliateConversion::class, $record['conversions'] ?? []);
-            $this->restoreRawModels(AffiliatePayout::class, $record['payouts'] ?? []);
-            $this->restoreRawModels(AffiliateFraudSignal::class, $record['fraud_signals'] ?? []);
-            $this->restoreRawModels(AffiliateDailyStat::class, $record['daily_stats'] ?? []);
-
-            if (is_array($record['balance'] ?? null)) {
-                $this->restoreRawModel(AffiliateBalance::class, $record['balance']);
-            }
-
-            $this->restoreRawModels(AffiliatePayoutMethod::class, $record['payout_methods'] ?? []);
-            $this->restoreRawModels(AffiliatePayoutHold::class, $record['payout_holds'] ?? []);
+            $this->restoreShareChildren(AffiliateLink::class, $this->snapshotRowsForAffiliate($record['links'] ?? [], $affiliateId), $affiliateId);
+            $this->restoreShareChildren(AffiliateAttribution::class, $this->snapshotRowsForAffiliate($record['attributions'] ?? [], $affiliateId), $affiliateId);
+            $this->restoreShareChildren(AffiliateTouchpoint::class, $this->snapshotRowsForAffiliate($record['touchpoints'] ?? [], $affiliateId), $affiliateId);
+            $this->restoreShareChildren(AffiliateConversion::class, $this->snapshotRowsForAffiliate($record['conversions'] ?? [], $affiliateId), $affiliateId);
         });
     }
 
@@ -700,13 +708,65 @@ trait HasUserRestoration
     }
 
     /**
-     * @param  class-string<Model>  $modelClass
+     * @param  array<string, mixed>  $affiliateAttributes
+     */
+    private function snapshotAffiliateBelongsToRestoredUser(array $affiliateAttributes): bool
+    {
+        if (($affiliateAttributes['owner_type'] ?? null) !== $this->getMorphClass()
+            || (string) ($affiliateAttributes['owner_id'] ?? '') !== (string) $this->getKey()) {
+            return false;
+        }
+
+        $metadata = $affiliateAttributes['metadata'] ?? null;
+
+        if (is_string($metadata)) {
+            $decoded = json_decode($metadata, true);
+            $metadata = is_array($decoded) ? $decoded : null;
+        }
+
+        return is_array($metadata)
+            && ($metadata[ShareTrackingProfile::MARKER_KEY] ?? null) === true
+            && ($metadata[ShareTrackingProfile::KIND_KEY] ?? null) === ShareTrackingProfile::KIND_MEMBER;
+    }
+
+    /**
+     * @param  array<int, mixed>  $records
+     * @return list<array<string, mixed>>
+     */
+    private function snapshotRowsForAffiliate(array $records, string $affiliateId): array
+    {
+        return collect($records)
+            ->filter(fn (mixed $row): bool => is_array($row)
+                && (string) ($row['affiliate_id'] ?? '') === $affiliateId)
+            ->values()
+            ->all();
+    }
+
+    /**
      * @param  array<string, mixed>  $attributes
      */
-    protected function restoreRawModel(string $modelClass, array $attributes): Model
+    private function restoreShareAffiliate(array $attributes): ?Affiliate
     {
-        $primaryKey = (new $modelClass)->getKeyName();
-        $model = $modelClass::query()->find($attributes[$primaryKey] ?? null) ?? new $modelClass;
+        $primaryKey = (new Affiliate)->getKeyName();
+        $existing = Affiliate::query()->withoutGlobalScope(OwnerScope::class)->find($attributes[$primaryKey] ?? null);
+
+        if ($existing instanceof Affiliate) {
+            // A retained live finance/profile row is never overwritten from
+            // a stale snapshot. It must still be the restored user's own
+            // marked profile; a foreign row under this id is left untouched
+            // and the share restore stops.
+            if (! ShareTrackingProfile::isMarkedMemberFor($existing, $this)) {
+                return null;
+            }
+
+            return $existing;
+        }
+
+        // A missing profile is recreated disabled: no automatic reactivation
+        // of referral tracking until an explicit authorized fresh activation.
+        $attributes['deactivated_at'] ??= now()->toDateTimeString();
+
+        $model = new Affiliate;
         $model->timestamps = false;
         $model->setRawAttributes($attributes, true);
         $model->saveQuietly();
@@ -716,16 +776,73 @@ trait HasUserRestoration
 
     /**
      * @param  class-string<Model>  $modelClass
-     * @param  array<int, array<string, mixed>>  $records
+     * @param  array<int, mixed>  $records
      */
-    protected function restoreRawModels(string $modelClass, array $records): void
+    private function restoreShareChildren(string $modelClass, array $records, string $affiliateId): void
     {
+        $primaryKey = (new $modelClass)->getKeyName();
+
         foreach ($records as $attributes) {
             if (! is_array($attributes)) {
                 continue;
             }
 
-            $this->restoreRawModel($modelClass, $attributes);
+            // Monetary conversions are preserved by non-deletion, never by
+            // snapshot replay. A snapshot copy is skipped even when missing.
+            if ($modelClass === AffiliateConversion::class
+                && ShareTrackingFinance::isMonetaryConversionAttributes($attributes)) {
+                continue;
+            }
+
+            $id = $attributes[$primaryKey] ?? null;
+
+            if ($id === null || $id === '') {
+                continue;
+            }
+
+            $existing = $modelClass::query()->withoutGlobalScope(OwnerScope::class)->find($id);
+
+            if ($existing instanceof Model) {
+                // Never overwrite retained current state from an old
+                // snapshot, and never reassociate a foreign existing row:
+                // an existing id always wins over the snapshot copy.
+                continue;
+            }
+
+            $model = new $modelClass;
+            $model->timestamps = false;
+            $model->setRawAttributes($this->sanitizeShareSnapshotAttributes($modelClass, $attributes), true);
+            $model->saveQuietly();
         }
+    }
+
+    /**
+     * @param  class-string<Model>  $modelClass
+     * @param  array<string, mixed>  $attributes
+     * @return array<string, mixed>
+     */
+    private function sanitizeShareSnapshotAttributes(string $modelClass, array $attributes): array
+    {
+        if ($modelClass === AffiliateLink::class) {
+            // Restored links stay disabled: the public token survives as an
+            // identifier but earns nothing until a fresh activation.
+            $attributes['deactivated_at'] ??= now()->toDateTimeString();
+        }
+
+        if ($modelClass === AffiliateAttribution::class) {
+            // Expired/deleted private cookie capabilities are never restored
+            // as usable capabilities: a missing or future expiry is clamped
+            // to now while the historical ids/evidence are retained.
+            $expiresAt = $attributes['expires_at'] ?? null;
+            $isUsable = $expiresAt === null
+                || ($expiresAt instanceof CarbonInterface && $expiresAt->isFuture())
+                || (is_string($expiresAt) && strtotime($expiresAt) > time());
+
+            if ($isUsable) {
+                $attributes['expires_at'] = now()->toDateTimeString();
+            }
+        }
+
+        return $attributes;
     }
 }

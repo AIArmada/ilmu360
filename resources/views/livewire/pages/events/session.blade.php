@@ -1,4 +1,12 @@
 @section('title', $session->title.' — '.trim((string) ($occurrence->title ?: $event->title)))
+@php
+    $shareCardOg = app(\App\Services\ShareCards\ShareCardService::class)->ogCard($event, (string) ($occurrence->slug ?? $occurrence->getKey()));
+@endphp
+@section('og_url', route('events.session', [$event, $occurrence->slug ?? $occurrence->getKey(), $session->slug ?? $session->getKey()]))
+@section('og_image', $shareCardOg['url'] ?? $event->card_image_url)
+@section('og_image_alt', $shareCardOg['alt'] ?? __('Poster untuk :title', ['title' => $event->title]))
+@section('og_image_width', $shareCardOg['url'] ? '1200' : '1024')
+@section('og_image_height', $shareCardOg['url'] ? '630' : '1024')
 
 @php
     $detail = $this->detail;

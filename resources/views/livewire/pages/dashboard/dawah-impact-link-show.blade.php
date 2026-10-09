@@ -8,7 +8,7 @@
     $recentVisits = $this->recentVisits;
     $recentOutcomes = $this->recentOutcomes;
     $activityWindow = $this->activityWindow;
-    $subjectBadgeClass = match ((string) $link->subject_type) {
+    $subjectBadgeClass = match ((string) $link->subjectType) {
         'event' => 'bg-emerald-100 text-emerald-700',
         'institution' => 'bg-sky-100 text-sky-700',
         'person' => 'bg-violet-100 text-violet-700',
@@ -17,7 +17,7 @@
         'search' => 'bg-rose-100 text-rose-700',
         default => 'bg-slate-100 text-slate-700',
     };
-    $subjectLabel = match ((string) $link->subject_type) {
+    $subjectLabel = match ((string) $link->subjectType) {
         'event' => __('Event'),
         'institution' => __('Institution'),
         'person' => __('Speaker'),
@@ -34,10 +34,15 @@
     };
 @endphp
 
-@section('title', ($link->title_snapshot ?: __('Share Link')) . ' - ' . config('app.name'))
+@section('title', ($link->titleSnapshot ?: __('Share Link')) . ' - ' . config('app.name'))
 
 <div class="min-h-screen bg-slate-50 py-12 pb-32">
     <div class="container mx-auto px-6 lg:px-12">
+        @if($this->measurementStatus === 'not_configured')
+            <div class="mx-auto mb-6 max-w-7xl rounded-2xl border border-amber-300/60 bg-amber-50 p-4">
+                <p class="text-sm font-semibold text-amber-800">{{ __('Reporting is not configured yet. Measurements appear after the operator declares a reporting start.') }}</p>
+            </div>
+        @endif
         <div class="mx-auto max-w-7xl space-y-8">
             <section class="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
                 <div class="border-b border-slate-100 bg-gradient-to-r from-emerald-50 via-white to-white px-6 py-8 md:px-8">
@@ -49,14 +54,14 @@
                             <div class="mt-4 flex flex-wrap items-center gap-3">
                                 <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $subjectBadgeClass }}">{{ $subjectLabel }}</span>
                                 <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                                    {{ __('Shared') }} {{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($link->last_shared_at, 'j M Y, g:i A') }}
+                                    {{ __('Shared') }} {{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($link->lastSharedAt, 'j M Y, g:i A') }}
                                 </span>
                                 <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600">
-                                    {{ __('Subject') }}: {{ $link->subject_key }}
+                                    {{ __('Subject') }}: {{ $link->subjectKey }}
                                 </span>
                             </div>
-                            <h1 class="mt-4 font-heading text-3xl font-bold text-slate-900">{{ $link->title_snapshot ?: __('Untitled page') }}</h1>
-                            <p class="mt-3 text-sm leading-6 text-slate-600 break-all">{{ $link->destination_url }}</p>
+                            <h1 class="mt-4 font-heading text-3xl font-bold text-slate-900">{{ $link->titleSnapshot ?: __('Untitled page') }}</h1>
+                            <p class="mt-3 text-sm leading-6 text-slate-600 break-all">{{ $link->destinationUrl }}</p>
                         </div>
 
                         <div class="w-full max-w-md rounded-3xl border border-slate-200 bg-slate-50 p-4">
@@ -65,12 +70,12 @@
                             <div class="mt-4 flex flex-wrap gap-3" x-data="{
                                 copied: false,
                                 shareData: @js([
-                                    'title' => $link->title_snapshot ?: config('app.name'),
+                                    'title' => $link->titleSnapshot ?: config('app.name'),
                                     'text' => __('Share this page from :app', ['app' => config('app.name')]),
-                                    'url' => $link->destination_url,
-                                    'sourceUrl' => $link->destination_url,
-                                    'shareText' => trim(($link->title_snapshot ?: config('app.name')).' - '.config('app.name')),
-                                    'fallbackTitle' => $link->title_snapshot,
+                                    'url' => $link->destinationUrl,
+                                    'sourceUrl' => $link->destinationUrl,
+                                    'shareText' => trim(($link->titleSnapshot ?: config('app.name')).' - '.config('app.name')),
+                                    'fallbackTitle' => $link->titleSnapshot,
                                     'payloadEndpoint' => route('dawah-share.payload'),
                                 ]),
                                 trackEndpoint: @js(route('dawah-share.track')),
@@ -220,8 +225,9 @@
                         <p class="mt-2 text-3xl font-black text-slate-900">{{ number_format($summary['visits']) }}</p>
                     </div>
                     <div class="rounded-3xl border border-slate-200 bg-slate-50/70 p-4">
-                        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{{ __('Unique Visitors') }}</p>
-                        <p class="mt-2 text-3xl font-black text-slate-900">{{ number_format($summary['unique_visitors']) }}</p>
+                        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{{ __('Distinct Browsers') }}</p>
+                        <p class="mt-2 text-3xl font-black text-slate-900">{{ number_format($summary['distinct_browsers']) }}</p>
+                        <p class="mt-2 text-xs text-slate-500">{{ __('Estimated browsers that opened your links. Not a count of people.') }}</p>
                     </div>
                     <div class="rounded-3xl border border-slate-200 bg-slate-50/70 p-4">
                         <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{{ __('Responses') }}</p>
@@ -236,8 +242,9 @@
                         <p class="mt-2 text-3xl font-black text-slate-900">{{ number_format($summary['event_registrations']) }}</p>
                     </div>
                     <div class="rounded-3xl border border-slate-200 bg-slate-50/70 p-4">
-                        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{{ __('Event Check-ins') }}</p>
+                        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{{ __('Recorded Check-ins') }}</p>
                         <p class="mt-2 text-3xl font-black text-slate-900">{{ number_format($summary['event_checkins']) }}</p>
+                        <p class="mt-2 text-xs text-slate-500">{{ __('Check-ins recorded after a shared visit. Not verified attendance.') }}</p>
                     </div>
                     <div class="rounded-3xl border border-slate-200 bg-slate-50/70 p-4">
                         <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{{ __('Event Submissions') }}</p>
@@ -297,24 +304,25 @@
 
                     <section class="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
                         <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">{{ __('Recent Visits') }}</p>
-                        <h2 class="mt-1 font-heading text-2xl font-bold text-slate-900">{{ __('Latest attributed traffic') }}</h2>
+                        <h2 class="mt-1 font-heading text-2xl font-bold text-slate-900">{{ __('Latest browser activity') }}</h2>
+                        <p class="mt-2 text-sm text-slate-500">{{ __('Browser activity via your link. Exact pages and visitor identities are never shown.') }}</p>
 
                         <div class="mt-5 space-y-4">
                             @forelse($recentVisits as $visit)
                                 <article class="rounded-3xl border border-slate-200 bg-slate-50/70 p-4">
                                     <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                                         <div>
-                                            <p class="text-sm font-semibold text-slate-900 break-all">{{ $visit->visited_url }}</p>
+                                            <p class="text-sm font-semibold text-slate-900">{{ $visitKindLabel((string) $visit->visitKind) }} · {{ str((string) ($visit->subjectType ?? 'page'))->headline()->toString() }}</p>
                                             <p class="mt-1 text-xs text-slate-500">
-                                                {{ __('Visitor key') }}: {{ $visit->visitor_key }}
                                                 @if(filled($visit->channel))
-                                                    <span class="ml-2">{{ __('Channel') }}: {{ str((string) $visit->channel)->headline()->toString() }}</span>
+                                                    {{ __('Channel') }}: {{ str((string) $visit->channel)->headline()->toString() }}
+                                                @else
+                                                    {{ __('Direct visit') }}
                                                 @endif
                                             </p>
                                         </div>
                                         <div class="text-right">
-                                            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{{ $visitKindLabel((string) $visit->visit_kind) }}</p>
-                                            <p class="mt-1 text-sm font-semibold text-slate-600">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($visit->occurred_at, 'j M Y, g:i A') }}</p>
+                                            <p class="mt-1 text-sm font-semibold text-slate-600">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($visit->occurredAt, 'j M Y, g:i A') }}</p>
                                         </div>
                                     </div>
                                 </article>
@@ -346,8 +354,8 @@
                                                 <p class="mt-1 text-lg font-black text-slate-900">{{ number_format($provider['visits']) }}</p>
                                             </div>
                                             <div class="rounded-2xl bg-white px-3 py-2">
-                                                <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{{ __('Visitors') }}</p>
-                                                <p class="mt-1 text-lg font-black text-slate-900">{{ number_format($provider['unique_visitors']) }}</p>
+                                                <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{{ __('Browsers') }}</p>
+                                                <p class="mt-1 text-lg font-black text-slate-900">{{ number_format($provider['distinct_browsers']) }}</p>
                                             </div>
                                             <div class="rounded-2xl bg-white px-3 py-2">
                                                 <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{{ __('Responses') }}</p>
@@ -415,8 +423,8 @@
                                 <article class="rounded-3xl border border-slate-200 bg-slate-50/70 p-4">
                                     <div class="flex items-start justify-between gap-4">
                                         <div>
-                                            <p class="text-sm font-semibold text-slate-900">{{ collect($outcomeBreakdown)->firstWhere('outcome_type', $outcome->outcome_type)['label'] ?? str((string) $outcome->outcome_type)->replace('_', ' ')->headline()->toString() }}</p>
-                                            <p class="mt-1 text-xs text-slate-500">{{ __('Recorded at') }} {{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($outcome->occurred_at, 'j M Y, g:i A') }}</p>
+                                            <p class="text-sm font-semibold text-slate-900">{{ collect($outcomeBreakdown)->firstWhere('outcome_type', $outcome->outcomeType)['label'] ?? str((string) $outcome->outcomeType)->replace('_', ' ')->headline()->toString() }}</p>
+                                            <p class="mt-1 text-xs text-slate-500">{{ __('Recorded at') }} {{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($outcome->occurredAt, 'j M Y, g:i A') }}</p>
                                         </div>
                                     </div>
                                 </article>
