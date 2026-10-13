@@ -429,45 +429,47 @@ it('leaves singapore postal levels empty without a registered postcode', functio
 });
 
 it('resolves federal territory roots through provider aliases', function () {
-    $country = ensureCountryForPlaceResolution('MY', 'Malaysia');
-    $packageState = State::query()->firstOrCreate(
-        ['country_id' => $country->getKey(), 'name' => 'WP Kuala Lumpur'],
-        ['code' => '14'],
-    );
-    $root = createTestAddressArea('Wilayah Persekutuan Kuala Lumpur', 1, country: $country, type: 'wilayah_persekutuan');
-    AddressAreaName::query()->create([
-        'address_area_id' => $root->id,
-        'name' => 'Kuala Lumpur',
-        'source' => 'tests',
-        'name_type' => 'common',
-        'is_preferred' => true,
-    ]);
-    AddressAreaStateLink::query()->create([
-        'address_area_id' => $root->id,
-        'state_id' => $packageState->id,
-        'hierarchy_type' => 'administrative',
-    ]);
-    $subdistrict = createTestAddressArea('Setiawangsa', 3, parent: $root, country: $country, type: 'subdistrict');
+    withGlobalOwnerContext(function (): void {
+        $country = ensureCountryForPlaceResolution('MY', 'Malaysia');
+        $packageState = State::query()->firstOrCreate(
+            ['country_id' => $country->getKey(), 'name' => 'WP Kuala Lumpur'],
+            ['code' => '14'],
+        );
+        $root = createTestAddressArea('Wilayah Persekutuan Kuala Lumpur', 1, country: $country, type: 'wilayah_persekutuan');
+        AddressAreaName::query()->create([
+            'address_area_id' => $root->id,
+            'name' => 'Kuala Lumpur',
+            'source' => 'tests',
+            'name_type' => 'common',
+            'is_preferred' => true,
+        ]);
+        AddressAreaStateLink::query()->create([
+            'address_area_id' => $root->id,
+            'state_id' => $packageState->id,
+            'hierarchy_type' => 'administrative',
+        ]);
+        $subdistrict = createTestAddressArea('Setiawangsa', 3, parent: $root, country: $country, type: 'subdistrict');
 
-    $payload = app(ResolveGooglePlaceSelectionAction::class)->handle([
-        'location' => ['lat' => 3.1732, 'lng' => 101.7391],
-        'addressComponents' => [
-            ['longText' => 'Jalan Setiawangsa', 'shortText' => 'Jalan Setiawangsa', 'types' => ['route']],
-            ['longText' => '54200', 'shortText' => '54200', 'types' => ['postal_code']],
-            ['longText' => 'Setiawangsa', 'shortText' => 'Setiawangsa', 'types' => ['locality', 'political']],
-            ['longText' => 'Kuala Lumpur', 'shortText' => 'Kuala Lumpur', 'types' => ['administrative_area_level_1', 'political']],
-        ],
-    ]);
+        $payload = app(ResolveGooglePlaceSelectionAction::class)->handle([
+            'location' => ['lat' => 3.1732, 'lng' => 101.7391],
+            'addressComponents' => [
+                ['longText' => 'Jalan Setiawangsa', 'shortText' => 'Jalan Setiawangsa', 'types' => ['route']],
+                ['longText' => '54200', 'shortText' => '54200', 'types' => ['postal_code']],
+                ['longText' => 'Setiawangsa', 'shortText' => 'Setiawangsa', 'types' => ['locality', 'political']],
+                ['longText' => 'Kuala Lumpur', 'shortText' => 'Kuala Lumpur', 'types' => ['administrative_area_level_1', 'political']],
+            ],
+        ]);
 
-    expect($payload['country_id'])->toBe((string) $country->id)
-        ->and($payload['state_id'])->toBe((string) $packageState->id)
-        ->and(data_get($payload, 'area_assignments.administrative_district'))->toBeNull()
-        ->and(data_get($payload, 'area_assignments.administrative_subdivision'))->toBe((string) $subdistrict->id)
-        ->and($payload['postcode'])->toBe('54200');
+        expect($payload['country_id'])->toBe((string) $country->id)
+            ->and($payload['state_id'])->toBe((string) $packageState->id)
+            ->and(data_get($payload, 'area_assignments.administrative_district'))->toBeNull()
+            ->and(data_get($payload, 'area_assignments.administrative_subdivision'))->toBe((string) $subdistrict->id)
+            ->and($payload['postcode'])->toBe('54200');
 
-    // Setiawangsa missed at district level but resolved as a subdivision: a
-    // name that found its home anywhere must never log a gap.
-    expect(ResolutionGap::query()->count())->toBe(0);
+        // Setiawangsa missed at district level but resolved as a subdivision: a
+        // name that found its home anywhere must never log a gap.
+        expect(ResolutionGap::query()->count())->toBe(0);
+    });
 });
 
 it('falls back to text for countries without a provider', function () {
@@ -499,128 +501,138 @@ it('falls back to text for countries without a provider', function () {
 });
 
 it('logs a resolution gap when a google district name matches nothing', function () {
-    $state = ensureMalaysiaStateForPlaceResolution();
-    $country = ensureCountryForPlaceResolution('MY', 'Malaysia');
+    withGlobalOwnerContext(function (): void {
+        $state = ensureMalaysiaStateForPlaceResolution();
+        $country = ensureCountryForPlaceResolution('MY', 'Malaysia');
 
-    $payload = app(ResolveGooglePlaceSelectionAction::class)->handle([
-        'placeId' => 'place_gap_district',
-        'location' => ['lat' => 3.0738, 'lng' => 101.5183],
-        'addressComponents' => [
-            ['longText' => 'Petaling Jaya Baru', 'shortText' => 'Petaling Jaya Baru', 'types' => ['administrative_area_level_2', 'political']],
-            ['longText' => 'Selangor', 'shortText' => 'Selangor', 'types' => ['administrative_area_level_1', 'political']],
-            ['longText' => 'Malaysia', 'shortText' => 'MY', 'types' => ['country', 'political']],
-        ],
-    ]);
+        $payload = app(ResolveGooglePlaceSelectionAction::class)->handle([
+            'placeId' => 'place_gap_district',
+            'location' => ['lat' => 3.0738, 'lng' => 101.5183],
+            'addressComponents' => [
+                ['longText' => 'Petaling Jaya Baru', 'shortText' => 'Petaling Jaya Baru', 'types' => ['administrative_area_level_2', 'political']],
+                ['longText' => 'Selangor', 'shortText' => 'Selangor', 'types' => ['administrative_area_level_1', 'political']],
+                ['longText' => 'Malaysia', 'shortText' => 'MY', 'types' => ['country', 'political']],
+            ],
+        ]);
 
-    expect($payload['state_id'])->toBe((string) $state['package']->id)
-        ->and(data_get($payload, 'area_assignments.administrative_district'))->toBeNull();
+        expect($payload['state_id'])->toBe((string) $state['package']->id)
+            ->and(data_get($payload, 'area_assignments.administrative_district'))->toBeNull();
 
-    // One gap per attempting role: only the admin can tell which granularity
-    // the name denotes, so each candidate role gets a matchable row.
-    $gaps = ResolutionGap::query()->orderBy('role')->get();
+        // One gap per attempting role: only the admin can tell which granularity
+        // the name denotes, so each candidate role gets a matchable row.
+        $gaps = ResolutionGap::query()->orderBy('role')->get();
 
-    expect($gaps->pluck('role')->all())->toBe([
-        'administrative_district',
-        'administrative_division',
-        'administrative_subdivision',
-    ]);
+        expect($gaps->pluck('role')->all())->toBe([
+            'administrative_district',
+            'administrative_division',
+            'administrative_subdivision',
+        ]);
 
-    $gap = $gaps->firstWhere('role', 'administrative_district');
-    expect($gap->source)->toBe('google-picker')
-        ->and($gap->country_code)->toBe('MY')
-        ->and($gap->value)->toBe('Petaling Jaya Baru')
-        ->and($gap->reason)->toBe('unmatched')
-        ->and($gap->status)->toBe('open')
-        ->and($gap->hits)->toBe(1)
-        ->and(data_get($gap->context, 'place_id'))->toBe('place_gap_district')
-        ->and(data_get($gap->context, 'attempted'))->toContain('Petaling Jaya Baru');
+        $gap = $gaps->firstWhere('role', 'administrative_district');
+        expect($gap->source)->toBe('google-picker')
+            ->and($gap->country_code)->toBe('MY')
+            ->and($gap->value)->toBe('Petaling Jaya Baru')
+            ->and($gap->reason)->toBe('unmatched')
+            ->and($gap->status)->toBe('open')
+            ->and($gap->hits)->toBe(1)
+            ->and(data_get($gap->context, 'place_id'))->toBe('place_gap_district')
+            ->and(data_get($gap->context, 'attempted'))->toContain('Petaling Jaya Baru');
+    });
 });
 
 it('logs a state gap when the google state name matches nothing', function () {
-    ensureCountryForPlaceResolution('MY', 'Malaysia');
+    withGlobalOwnerContext(function (): void {
+        ensureCountryForPlaceResolution('MY', 'Malaysia');
 
-    $payload = app(ResolveGooglePlaceSelectionAction::class)->handle([
-        'placeId' => 'place_gap_state',
-        'location' => ['lat' => 3.0738, 'lng' => 101.5183],
-        'addressComponents' => [
-            ['longText' => 'Negeri Khayalan', 'shortText' => 'Negeri Khayalan', 'types' => ['administrative_area_level_1', 'political']],
-            ['longText' => 'Malaysia', 'shortText' => 'MY', 'types' => ['country', 'political']],
-        ],
-    ]);
+        $payload = app(ResolveGooglePlaceSelectionAction::class)->handle([
+            'placeId' => 'place_gap_state',
+            'location' => ['lat' => 3.0738, 'lng' => 101.5183],
+            'addressComponents' => [
+                ['longText' => 'Negeri Khayalan', 'shortText' => 'Negeri Khayalan', 'types' => ['administrative_area_level_1', 'political']],
+                ['longText' => 'Malaysia', 'shortText' => 'MY', 'types' => ['country', 'political']],
+            ],
+        ]);
 
-    expect($payload['state_id'])->toBeNull();
+        expect($payload['state_id'])->toBeNull();
 
-    $gaps = ResolutionGap::query()->get();
+        $gaps = ResolutionGap::query()->get();
 
-    expect($gaps)->toHaveCount(1);
+        expect($gaps)->toHaveCount(1);
 
-    $gap = $gaps->first();
-    expect($gap->source)->toBe('google-picker')
-        ->and($gap->country_code)->toBe('MY')
-        ->and($gap->role)->toBe('state')
-        ->and($gap->value)->toBe('Negeri Khayalan');
+        $gap = $gaps->first();
+        expect($gap->source)->toBe('google-picker')
+            ->and($gap->country_code)->toBe('MY')
+            ->and($gap->role)->toBe('state')
+            ->and($gap->value)->toBe('Negeri Khayalan');
+    });
 });
 
 it('bumps gap hits instead of duplicating rows on repeat picks', function () {
-    ensureCountryForPlaceResolution('MY', 'Malaysia');
+    withGlobalOwnerContext(function (): void {
+        ensureCountryForPlaceResolution('MY', 'Malaysia');
 
-    $payload = [
-        'placeId' => 'place_gap_repeat',
-        'location' => ['lat' => 3.0738, 'lng' => 101.5183],
-        'addressComponents' => [
-            ['longText' => 'Negeri Khayalan', 'shortText' => 'Negeri Khayalan', 'types' => ['administrative_area_level_1', 'political']],
-            ['longText' => 'Malaysia', 'shortText' => 'MY', 'types' => ['country', 'political']],
-        ],
-    ];
+        $payload = [
+            'placeId' => 'place_gap_repeat',
+            'location' => ['lat' => 3.0738, 'lng' => 101.5183],
+            'addressComponents' => [
+                ['longText' => 'Negeri Khayalan', 'shortText' => 'Negeri Khayalan', 'types' => ['administrative_area_level_1', 'political']],
+                ['longText' => 'Malaysia', 'shortText' => 'MY', 'types' => ['country', 'political']],
+            ],
+        ];
 
-    app(ResolveGooglePlaceSelectionAction::class)->handle($payload);
-    app(ResolveGooglePlaceSelectionAction::class)->handle($payload);
+        app(ResolveGooglePlaceSelectionAction::class)->handle($payload);
+        app(ResolveGooglePlaceSelectionAction::class)->handle($payload);
 
-    $gaps = ResolutionGap::query()->get();
+        $gaps = ResolutionGap::query()->get();
 
-    expect($gaps)->toHaveCount(1)
-        ->and($gaps->first()->hits)->toBe(2);
+        expect($gaps)->toHaveCount(1)
+            ->and($gaps->first()->hits)->toBe(2);
+    });
 });
 
 it('does not log gaps when the google pick fully resolves', function () {
-    $state = ensureMalaysiaStateForPlaceResolution();
-    $country = ensureCountryForPlaceResolution('MY', 'Malaysia');
-    createTestAddressArea('Petaling', 2, parent: $state['area'], country: $country, type: 'district');
+    withGlobalOwnerContext(function (): void {
+        $state = ensureMalaysiaStateForPlaceResolution();
+        $country = ensureCountryForPlaceResolution('MY', 'Malaysia');
+        createTestAddressArea('Petaling', 2, parent: $state['area'], country: $country, type: 'district');
 
-    app(ResolveGooglePlaceSelectionAction::class)->handle([
-        'placeId' => 'place_gap_none',
-        'location' => ['lat' => 3.0738, 'lng' => 101.5183],
-        'addressComponents' => [
-            ['longText' => 'Petaling', 'shortText' => 'Petaling', 'types' => ['administrative_area_level_2', 'political']],
-            ['longText' => 'Selangor', 'shortText' => 'Selangor', 'types' => ['administrative_area_level_1', 'political']],
-            ['longText' => 'Malaysia', 'shortText' => 'MY', 'types' => ['country', 'political']],
-        ],
-    ]);
+        app(ResolveGooglePlaceSelectionAction::class)->handle([
+            'placeId' => 'place_gap_none',
+            'location' => ['lat' => 3.0738, 'lng' => 101.5183],
+            'addressComponents' => [
+                ['longText' => 'Petaling', 'shortText' => 'Petaling', 'types' => ['administrative_area_level_2', 'political']],
+                ['longText' => 'Selangor', 'shortText' => 'Selangor', 'types' => ['administrative_area_level_1', 'political']],
+                ['longText' => 'Malaysia', 'shortText' => 'MY', 'types' => ['country', 'political']],
+            ],
+        ]);
 
-    expect(ResolutionGap::query()->count())->toBe(0);
+        expect(ResolutionGap::query()->count())->toBe(0);
+    });
 });
 
 it('does not log state gaps for the stateless singapore profile', function () {
-    $country = ensureTestAddressCountry(
-        iso2: 'SG',
-        name: 'Singapore',
-        iso3: 'SGP',
-        timezones: ['Asia/Singapore'],
-        phoneCode: '65',
-    );
-    $region = createTestAddressArea('Central Region', 1, country: $country, type: 'region');
-    createTestAddressArea('Bishan', 2, parent: $region, country: $country, type: 'planning_area');
+    withGlobalOwnerContext(function (): void {
+        $country = ensureTestAddressCountry(
+            iso2: 'SG',
+            name: 'Singapore',
+            iso3: 'SGP',
+            timezones: ['Asia/Singapore'],
+            phoneCode: '65',
+        );
+        $region = createTestAddressArea('Central Region', 1, country: $country, type: 'region');
+        createTestAddressArea('Bishan', 2, parent: $region, country: $country, type: 'planning_area');
 
-    $payload = app(ResolveGooglePlaceSelectionAction::class)->handle([
-        'placeId' => 'place_gap_sg',
-        'location' => ['lat' => 1.3507, 'lng' => 103.8488],
-        'addressComponents' => [
-            ['longText' => 'Bishan', 'shortText' => 'Bishan', 'types' => ['sublocality_level_1', 'sublocality', 'political']],
-            ['longText' => 'Singapore', 'shortText' => 'SG', 'types' => ['administrative_area_level_1', 'political']],
-            ['longText' => 'Singapore', 'shortText' => 'SG', 'types' => ['country', 'political']],
-        ],
-    ]);
+        $payload = app(ResolveGooglePlaceSelectionAction::class)->handle([
+            'placeId' => 'place_gap_sg',
+            'location' => ['lat' => 1.3507, 'lng' => 103.8488],
+            'addressComponents' => [
+                ['longText' => 'Bishan', 'shortText' => 'Bishan', 'types' => ['sublocality_level_1', 'sublocality', 'political']],
+                ['longText' => 'Singapore', 'shortText' => 'SG', 'types' => ['administrative_area_level_1', 'political']],
+                ['longText' => 'Singapore', 'shortText' => 'SG', 'types' => ['country', 'political']],
+            ],
+        ]);
 
-    expect($payload['state_id'])->toBeNull()
-        ->and(ResolutionGap::query()->where('role', 'state')->count())->toBe(0);
+        expect($payload['state_id'])->toBeNull()
+            ->and(ResolutionGap::query()->where('role', 'state')->count())->toBe(0);
+    });
 });
