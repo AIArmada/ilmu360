@@ -15,6 +15,7 @@ use App\Enums\DawahShareOutcomeType;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventVisibility;
 use App\Enums\SpeakerStatus;
+use App\Livewire\Concerns\JoinsHierarchyAreaName;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\EventKeyPersonPivot;
@@ -42,6 +43,8 @@ use Livewire\Component;
 #[Layout('layouts.app')]
 class Show extends Component
 {
+    use JoinsHierarchyAreaName;
+
     public Person $person;
 
     public int $upcomingPerPage = 10;
@@ -369,21 +372,6 @@ class Show extends Component
             ->addSelect("{$addressesTable}.*")
             ->leftJoin($statesTable, "{$addressesTable}.state_id", '=', "{$statesTable}.id")
             ->addSelect("{$statesTable}.name as hierarchy_state_name");
-    }
-
-    /**
-     * @param  HasMany<AddressAreaAssignment, Address>  $relation
-     * @return HasMany<AddressAreaAssignment, Address>
-     */
-    private function joinAreaName(HasMany $relation): HasMany
-    {
-        $assignmentsTable = (new AddressAreaAssignment)->getTable();
-        $areasTable = config('addressing.tables.address_areas', 'address_areas');
-
-        return $relation
-            ->addSelect("{$assignmentsTable}.*")
-            ->leftJoin($areasTable, "{$assignmentsTable}.address_area_id", '=', "{$areasTable}.id")
-            ->addSelect("{$areasTable}.name as hierarchy_area_name");
     }
 
     private function loadPersonRelations(): void

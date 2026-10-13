@@ -689,7 +689,6 @@ Filament Form → Resource::mutateFormDataBeforeCreate()
 
 | Seeder | File | Records | Target Models | Env Gate |
 |--------|------|---------|---------------|----------|
-| `MasjidSeeder` | `database/seeders/senarai_masjid.csv` | 6,936 | `Institution` (masjid) + addresses + contacts | `SEED_MASJID_DIRECTORY=true` |
 | `InstitutionSeeder` | Inline array | ~59 | `Institution` + contacts + addresses | `seedWhenEmpty` |
 | `PersonSeeder` | Inline array | ~30 | `Person` | `seedWhenEmpty` |
 | `VenueSeeder` | Factory | 50 | `Venue` | `seedWhenEmpty` |
@@ -722,9 +721,7 @@ Filament Form → Resource::mutateFormDataBeforeCreate()
 | `UserSeeder` | Factory | ~5 | `User` | Seed |
 | `WorldSeeder` | CSV | ~200 | `AddressCountry` | Seed |
 
-**Orphaned (on disk, not in DatabaseSeeder):** `GeneratedFileFinalFixedPoskodSeeder` — reads CSV with `fgetcsv()`, resolves state/district/subdistrict via sophisticated matching (aliases, overrides, Jengka inference, Pusa/Betong special case), creates missing subdistricts on-the-fly, enforces strict validation, creates/finds institutions with `firstOrNew` + idempotent slugs.
-
-**Key: MasjidSeeder** — reads CSV with `fgetcsv()`, resolves state via aliases, resolves district via `AddressArea`, limits to 300 rows, stores phone contacts.
+**Removed:** the masjid-directory CSV seeders (`MalaysiaPoskodMasjidSeeder` and the older poskod/senarai importers, their CSVs, and the `SEED_MASJID_DIRECTORY` gate) were deleted; institutions now seed only through `InstitutionSeeder`.
 
 ### 6.2 Scout Index Commands
 

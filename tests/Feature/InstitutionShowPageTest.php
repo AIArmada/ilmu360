@@ -180,7 +180,9 @@ it('displays the institution contact address block in street locality and region
         ->assertSuccessful()
         ->assertSeeInOrder([
             'Persiaran Masjid, Seksyen 14',
-            'Shah Alam, 40000',
+            // Ruled 2026-10-08 postcode-first order; the old 'Shah Alam,
+            // 40000' encoded the removed city-first layout.
+            '40000, Shah Alam',
             'Selangor',
         ]);
 });

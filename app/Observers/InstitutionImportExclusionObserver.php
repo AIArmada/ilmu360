@@ -14,14 +14,13 @@ use App\Models\InstitutionImportExclusion;
  * Intentionally synchronous (no ShouldHandleEventsAfterCommit): the exclusion
  * is written in the same transaction as the deletion, so a rolled-back
  * delete never leaves a stray exclusion and a committed delete is always
- * protected before any later reseed can observe it.
+ * protected before any later import can observe it.
  *
  * Source identity bytes are preserved exactly as stored: no trimming,
- * case rewrites, or other normalization, matching the DTO, importer, and
- * exclusion lookup. Only rows carrying both source and external_ref are
- * recorded; manually created rows without provenance need no exclusion
- * because no feed row can match them. Related venues and spaces are never
- * touched.
+ * case rewrites, or other normalization, matching the exclusion lookup.
+ * Only rows carrying both source and external_ref are recorded; manually
+ * created rows without provenance need no exclusion because no feed row
+ * can match them. Related venues and spaces are never touched.
  */
 class InstitutionImportExclusionObserver
 {

@@ -3,12 +3,12 @@
 namespace App\Livewire\Pages\References;
 
 use AIArmada\Addressing\Models\Address;
-use AIArmada\Addressing\Models\AddressAreaAssignment;
 use AIArmada\Addressing\Models\State;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Models\Follow;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Enums\DawahShareOutcomeType;
+use App\Livewire\Concerns\JoinsHierarchyAreaName;
 use App\Livewire\Concerns\LoadsEventPageData;
 use App\Models\Builders\EventBuilder;
 use App\Models\Event;
@@ -30,6 +30,7 @@ use Livewire\Component;
 #[Layout('layouts.app')]
 class Show extends Component
 {
+    use JoinsHierarchyAreaName;
     use LoadsEventPageData;
 
     public Reference $reference;
@@ -257,20 +258,5 @@ class Show extends Component
             ->addSelect("{$addressesTable}.*")
             ->leftJoin($statesTable, "{$addressesTable}.state_id", '=', "{$statesTable}.id")
             ->addSelect("{$statesTable}.name as hierarchy_state_name");
-    }
-
-    /**
-     * @param  HasMany<AddressAreaAssignment, Address>  $relation
-     * @return HasMany<AddressAreaAssignment, Address>
-     */
-    private function joinAreaName(HasMany $relation): HasMany
-    {
-        $assignmentsTable = (new AddressAreaAssignment)->getTable();
-        $areasTable = config('addressing.tables.address_areas', 'address_areas');
-
-        return $relation
-            ->addSelect("{$assignmentsTable}.*")
-            ->leftJoin($areasTable, "{$assignmentsTable}.address_area_id", '=', "{$areasTable}.id")
-            ->addSelect("{$areasTable}.name as hierarchy_area_name");
     }
 }

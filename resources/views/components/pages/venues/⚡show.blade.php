@@ -120,16 +120,8 @@ new class extends Component
     $coverUrl = $venue->getFirstMediaUrl('cover', 'banner') ?: asset('images/placeholders/venue.png');
     $thumbUrl = $venue->getFirstMediaUrl('cover', 'banner') ?: asset('images/placeholders/venue.png');
     $address = $venue->primaryAddress();
-    $addressHierarchyParts = \App\Support\Location\AddressHierarchyFormatter::parts($address);
-    $addressParts = array_values(array_filter([
-        $address?->line1,
-        $address?->line2,
-        $address?->postcode,
-        $addressHierarchyParts[0] ?? null,
-        $addressHierarchyParts[1] ?? null,
-        $address?->country,
-    ], fn (mixed $value): bool => filled($value)));
-    $addressText = $addressParts !== [] ? implode(', ', $addressParts) : __('Alamat akan dikemas kini kemudian.');
+    $addressBlock = \App\Support\Location\AddressHierarchyFormatter::formatBlock($address);
+    $addressText = $addressBlock !== '' ? $addressBlock : __('Alamat akan dikemas kini kemudian.');
     $contactCards = $venue->contactMethods->where('is_public', true)->values();
     $resolveSocialUrl = static function (mixed $social): ?string {
         if ($social instanceof \AIArmada\Contacting\Models\SocialProfile) {

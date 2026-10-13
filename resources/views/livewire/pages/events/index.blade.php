@@ -702,7 +702,7 @@
                                                 ->implode(' · ');
                                         }
                                         $locationPrimaryText = is_string($primaryLocationName) && $primaryLocationName !== '' ? $primaryLocationName : null;
-                                        $locationSecondaryText = \App\Support\Location\AddressHierarchyFormatter::format($addressModel, ['city', 'state']) ?: null;
+                                        $locationSecondaryText = \App\Support\Location\AddressHierarchyFormatter::formatShort($addressModel) ?: null;
 
                                         if ($locationPrimaryText === null && $locationSecondaryText === null) {
                                             $locationPrimaryText = $formatValue === \App\Enums\EventFormat::Online->value ? __('Online') : __('Location pending');

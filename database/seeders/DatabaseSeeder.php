@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use AIArmada\Addressing\Database\Seeders\AddressingSeeder;
-use AIArmada\Addressing\Database\Seeders\MalaysiaPostalCodeSeeder;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Models\Institution;
 use App\Models\Person;
@@ -38,7 +37,7 @@ class DatabaseSeeder extends Seeder
 
     private function seedGeography(): void
     {
-        $this->call([AddressingSeeder::class, MalaysiaPostalCodeSeeder::class]);
+        $this->call([AddressingSeeder::class]);
     }
 
     private function seedAuthAndTaxonomy(): void
@@ -68,11 +67,6 @@ class DatabaseSeeder extends Seeder
         $this->seedWhenEmpty(Venue::class, VenueSeeder::class);
         $this->call([TitleCategorySeeder::class, TitleSeeder::class]);
         $this->seedWhenEmpty(Person::class, PersonSeeder::class);
-
-        // Optional national masjid directory import.
-        if ($this->shouldSeedMasjidDirectory()) {
-            $this->call([MalaysiaPoskodMasjidSeeder::class]);
-        }
 
         $this->call([
             SeriesSeeder::class,
@@ -108,13 +102,6 @@ class DatabaseSeeder extends Seeder
         }
 
         User::factory()->count($usersToCreate)->create();
-    }
-
-    private function shouldSeedMasjidDirectory(): bool
-    {
-        $seedMasjidDirectory = getenv('SEED_MASJID_DIRECTORY');
-
-        return filter_var($seedMasjidDirectory === false ? 'false' : $seedMasjidDirectory, FILTER_VALIDATE_BOOLEAN);
     }
 
     /**

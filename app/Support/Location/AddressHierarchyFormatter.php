@@ -1,113 +1,166 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Support\Location;
 
 use AIArmada\Addressing\Models\Address;
-use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
-use AIArmada\Addressing\Models\State;
+use AIArmada\Addressing\Support\AddressFormatRenderer;
 use App\Forms\SharedFormSchema;
+use InvalidArgumentException;
 
 final class AddressHierarchyFormatter
 {
     /**
-     * @param  list<'city'|'district'|'subdistrict'|'locality'|'state'>  $order
+     * Short location parts behind cards, lists, and API payloads.
+     * Delegates to the package renderer (address-formats.json summary
+     * spec or its fallback): full address minus street lines, postcode,
+     * and country. A listing row must never 500 on one unusable
+     * address, so unknown definitions degrade to the country fallback;
+     * write-time validation still fails loudly in the package.
+     *
      * @return list<string>
      */
-    public static function parts(
-        ?Address $address,
-        array $order = ['city', 'locality', 'subdistrict', 'district', 'state'],
-    ): array {
-        $assignments = AddressAssignments::forAddress($address);
-        $areas = [];
+    public static function parts(?Address $address): array
+    {
+        $parts = self::packageParts($address);
 
-        foreach ($assignments as $role => $areaId) {
-            $areas[$role] = $address?->relationLoaded('areaAssignments')
-                ? self::loadedAreaName($address, $role)
-                : self::areaName($areaId);
+        if ($parts !== []) {
+            return $parts;
         }
 
-        $stateName = self::textAttribute($address, 'state');
+        $countryName = self::countryName($address);
 
-        if ($stateName === null && $address?->relationLoaded('state')) {
-            $stateName = self::normalizePart($address->getRelation('state')?->name);
-        }
+        return $countryName === null ? [] : [$countryName];
+    }
 
-        if ($stateName === null && is_string($address?->state_id)) {
-            $state = State::query()->find($address->state_id);
-            $stateName = $state instanceof State ? self::normalizePart($state->name) : null;
-        }
-
-        $availableParts = [
-            'city' => self::textAttribute($address, 'city'),
-            'locality' => $areas[AddressAssignments::POSTAL_LOCALITY] ?? null,
-            'subdistrict' => $areas[AddressAssignments::ADMINISTRATIVE_SUBDIVISION] ?? null,
-            'district' => $areas[AddressAssignments::ADMINISTRATIVE_DISTRICT] ?? null,
-            'state' => $stateName,
-        ];
-
-        $parts = [];
-
-        foreach ($order as $key) {
-            $part = $availableParts[$key] ?? null;
-
-            if ($part === null) {
-                continue;
-            }
-
-            $lastPartKey = array_key_last($parts);
-            $previous = $lastPartKey !== null ? $parts[$lastPartKey] : null;
-
-            if (is_string($previous) && mb_strtolower($previous) === mb_strtolower($part)) {
-                continue;
-            }
-
-            $parts[] = $part;
-        }
-
-        if ($parts === []) {
-            $countryName = self::textAttribute($address, 'country');
-
-            if ($countryName === null && $address?->relationLoaded('country')) {
-                $countryName = self::normalizePart($address->getRelation('country')?->name);
-            }
-
-            if ($countryName === null && is_string($address?->country_id)) {
-                $country = AddressCountry::query()->find($address->country_id);
-                $countryName = $country instanceof AddressCountry ? self::normalizePart($country->name) : null;
-            }
-
-            if ($countryName !== null) {
-                $parts[] = $countryName;
-            }
-        }
-
-        return $parts;
+    /**
+     * Last two summary parts: the short "town, state" subtitle.
+     *
+     * @return list<string>
+     */
+    public static function shortParts(?Address $address): array
+    {
+        return array_slice(self::parts($address), -2);
     }
 
     /** @return array{street: ?string, locality: ?string, regional: ?string} */
     public static function displayLines(?Address $address): array
     {
+        $empty = ['street' => null, 'locality' => null, 'regional' => null];
+
         if (! $address instanceof Address) {
-            return ['street' => null, 'locality' => null, 'regional' => null];
+            return $empty;
         }
 
-        $parts = self::parts($address);
-        $street = implode(', ', array_filter([$address->line1, $address->line2]));
-        $locality = implode(', ', array_filter([$parts[0] ?? self::textAttribute($address, 'city'), $address->postcode]));
-        $regional = count($parts) > 1 ? implode(', ', array_slice($parts, 1)) : (self::textAttribute($address, 'state') ?? '');
+        $render = AddressPackageData::for($address);
+
+        // The street lines are entered text, not format rules: they stay
+        // visible even when no country definition can render the rest.
+        if ($render === null) {
+            return ['street' => self::streetLine($address), 'locality' => null, 'regional' => null];
+        }
+
+        $data = $render['data'];
+        $streetValues = array_values(array_filter(
+            [$data->line1, $data->line2, $data->line3],
+            static fn (?string $line): bool => $line !== null && $line !== '',
+        ));
+
+        try {
+            $block = AddressFormatRenderer::format($render['code'], $render['data']);
+        } catch (InvalidArgumentException) {
+            return [
+                'street' => $streetValues === [] ? null : implode(', ', $streetValues),
+                'locality' => null,
+                'regional' => null,
+            ];
+        }
+
+        $nonStreet = array_values(array_filter(
+            explode("\n", $block),
+            static fn (string $line): bool => ! in_array($line, $streetValues, true),
+        ));
+
+        try {
+            $parts = AddressFormatRenderer::summaryParts($render['code'], $render['data']);
+        } catch (InvalidArgumentException) {
+            $parts = [];
+        }
+
+        $locality = null;
+
+        if ($data->postcode !== null && $data->postcode !== '') {
+            foreach ($nonStreet as $line) {
+                if (str_contains($line, $data->postcode)) {
+                    $locality = $line;
+
+                    break;
+                }
+            }
+        }
+
+        // Without a postcode there is no postcode line: lead with the
+        // finest summary part so the mukim never vanishes from the page.
+        $locality ??= $parts[0] ?? $nonStreet[0] ?? null;
+
+        $regional = count($parts) > 1 ? implode(', ', array_slice($parts, 1)) : null;
 
         return [
-            'street' => $street !== '' ? $street : null,
-            'locality' => $locality !== '' ? $locality : null,
-            'regional' => $regional !== '' ? $regional : null,
+            'street' => $streetValues === [] ? null : implode(', ', $streetValues),
+            'locality' => $locality,
+            'regional' => $regional,
         ];
     }
 
-    /** @param list<'city'|'district'|'subdistrict'|'locality'|'state'> $order */
-    public static function format(?Address $address, array $order = ['city', 'locality', 'subdistrict', 'district', 'state'], string $separator = ', '): string
+    public static function format(?Address $address, string $separator = ', '): string
     {
-        return implode($separator, self::parts($address, $order));
+        return implode($separator, self::parts($address));
+    }
+
+    public static function formatShort(?Address $address, string $separator = ', '): string
+    {
+        return implode($separator, self::shortParts($address));
+    }
+
+    /**
+     * Full package block as one line: field order and content come from
+     * the country's format definition; only the line separator is
+     * presentation. Unknown definitions render empty (callers own the
+     * fallback), same never-500 contract as parts() and displayLines().
+     */
+    public static function formatBlock(?Address $address, string $separator = ', '): string
+    {
+        $render = AddressPackageData::for($address);
+
+        if ($render === null) {
+            return '';
+        }
+
+        try {
+            $block = AddressFormatRenderer::format($render['code'], $render['data']);
+        } catch (InvalidArgumentException) {
+            return '';
+        }
+
+        return str_replace("\n", $separator, $block);
+    }
+
+    /** @return list<string> */
+    private static function packageParts(?Address $address): array
+    {
+        $render = AddressPackageData::for($address);
+
+        if ($render === null) {
+            return [];
+        }
+
+        try {
+            return AddressFormatRenderer::summaryParts($render['code'], $render['data']);
+        } catch (InvalidArgumentException) {
+            return [];
+        }
     }
 
     public static function roleAreaName(?Address $address, string $role): ?string
@@ -152,46 +205,66 @@ final class AddressHierarchyFormatter
         return self::roleAreaLabel($address, AddressAssignments::POSTAL_LOCALITY, $fallback);
     }
 
-    private static function loadedAreaName(Address $address, string $role): ?string
+    private static function streetLine(Address $address): ?string
     {
-        foreach ($address->getRelation('areaAssignments') as $assignment) {
-            if ($assignment->role === $role) {
-                $areaName = ($assignment->relationLoaded('area') ? $assignment->getRelation('area')?->name : null)
-                    ?? $assignment->getAttribute('hierarchy_area_name');
+        $attributes = $address->getAttributes();
+        $lines = [];
 
-                return self::normalizePart(is_string($areaName) ? $areaName : null);
+        foreach (['line1', 'line2', 'line3'] as $key) {
+            $line = self::clean($attributes[$key] ?? null);
+
+            if ($line !== null) {
+                $lines[] = $line;
             }
         }
 
-        return null;
+        return $lines === [] ? null : implode(', ', $lines);
     }
 
-    private static function areaName(string $areaId): ?string
-    {
-        $area = AddressArea::query()->find($areaId);
-
-        return $area instanceof AddressArea ? self::normalizePart($area->name) : null;
-    }
-
-    private static function normalizePart(?string $value): ?string
-    {
-        $value = trim((string) $value);
-
-        return $value === '' ? null : $value;
-    }
-
-    private static function textAttribute(?Address $address, string $attribute): ?string
+    private static function countryName(?Address $address): ?string
     {
         if (! $address instanceof Address) {
             return null;
         }
 
-        $value = $address->getRawOriginal($attribute);
+        $attributes = $address->getAttributes();
+        $name = self::clean($attributes['country'] ?? null);
 
-        if ($value === null && $attribute === 'state') {
-            $value = $address->getRawOriginal('hierarchy_state_name');
+        if ($name !== null) {
+            return $name;
         }
 
-        return is_string($value) ? self::normalizePart($value) : self::normalizePart($address->getAttribute($attribute));
+        if ($address->relationLoaded('country')) {
+            $name = self::clean($address->getRelation('country')?->getAttribute('name'));
+
+            if ($name !== null) {
+                return $name;
+            }
+        }
+
+        $countryId = $attributes['country_id'] ?? null;
+
+        if (is_int($countryId)) {
+            $countryId = (string) $countryId;
+        }
+
+        if (! is_string($countryId) || trim($countryId) === '') {
+            return null;
+        }
+
+        $country = AddressCountry::query()->find($countryId);
+
+        return $country instanceof AddressCountry ? self::clean($country->getAttribute('name')) : null;
+    }
+
+    private static function clean(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $value = trim($value);
+
+        return $value === '' ? null : $value;
     }
 }

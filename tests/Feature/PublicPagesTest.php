@@ -381,6 +381,10 @@ it('shows comma-separated location hierarchy text on public events index cards',
 
     $geo = createTestPackageGeography('Selangor', 'Petaling', 'Shah Alam');
 
+    // Shah Alam is a bandar: the helper's generic subdistrict type would
+    // (correctly) read rural and partner the daerah instead.
+    $geo['subdistrict']->update(['type' => 'bandar']);
+
     syncPrimaryAddressForTest($institution, [
         ...$geo['address'],
         'city' => 'Shah Alam',
