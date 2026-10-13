@@ -145,7 +145,7 @@ Replace app-owned support domains with package-owned UUID addressing, contact/so
 ### WP-09 — Geography/Addressing (Medium)
 - [ ] Add `config/addressing.php` published from package
 - [ ] Add `HasAddresses` trait to Event, Institution, Speaker, Venue (replace `HasAddress`)
-- [ ] Seed countries: `php artisan address:seed-countries`
+- [ ] Seed countries/geographies: `php artisan db:seed --class='AIArmada\Addressing\Database\Seeders\AddressingSeeder'`
 - [ ] Import Malaysia address areas (states, districts, subdistricts) via CSV or array source
 - [ ] Register `AddressesRelationManager` on entity Filament resources
 - [ ] Replace EntityResource address form fields with `AddressFormSchema` or `AddressesRelationManager`

@@ -1,7 +1,6 @@
 <?php
 
 use AIArmada\Addressing\Database\Seeders\AddressingSeeder;
-use AIArmada\Addressing\Database\Seeders\MalaysiaPostalCodeSeeder;
 use App\Models\User;
 use Database\Seeders\AdvancedEventSeeder;
 use Database\Seeders\AIArmada\FoundationSeeder;
@@ -13,7 +12,6 @@ use Database\Seeders\FacilityTypeSeeder;
 use Database\Seeders\InspirationSeeder;
 use Database\Seeders\InstitutionSeeder;
 use Database\Seeders\LanguageSeeder;
-use Database\Seeders\MalaysiaPoskodMasjidSeeder;
 use Database\Seeders\MediaLinkSeeder;
 use Database\Seeders\ModerationReviewSeeder;
 use Database\Seeders\PermissionSeeder;
@@ -35,7 +33,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 it('runs the full demo seeding pipeline in the expected order', function () {
-    putenv('SEED_MASJID_DIRECTORY=false');
 
     $calledSeederBatches = [];
 
@@ -48,7 +45,7 @@ it('runs the full demo seeding pipeline in the expected order', function () {
 
     $seeder->run();
 
-    expect($calledSeederBatches)->toContain([AddressingSeeder::class, MalaysiaPostalCodeSeeder::class]);
+    expect($calledSeederBatches)->toContain([AddressingSeeder::class]);
 
     expect($calledSeederBatches)->toContain([
         PermissionSeeder::class,
@@ -83,28 +80,9 @@ it('runs the full demo seeding pipeline in the expected order', function () {
         RegistrationSeeder::class,
     ]);
 
-    expect($calledSeederBatches)->not()->toContain([MalaysiaPoskodMasjidSeeder::class]);
-});
-
-it('optionally includes the masjid directory seeder when enabled', function () {
-    putenv('SEED_MASJID_DIRECTORY=1');
-
-    $calledSeederBatches = [];
-
-    $seeder = Mockery::mock(DatabaseSeeder::class)->makePartial();
-
-    $seeder->shouldReceive('call')
-        ->andReturnUsing(function (array|string $seeders) use (&$calledSeederBatches): void {
-            $calledSeederBatches[] = is_array($seeders) ? $seeders : [$seeders];
-        });
-
-    $seeder->run();
-
-    expect($calledSeederBatches)->toContain([MalaysiaPoskodMasjidSeeder::class]);
 });
 
 it('tops up demo users without duplicating on subsequent runs', function () {
-    putenv('SEED_MASJID_DIRECTORY=false');
 
     $seeder = Mockery::mock(DatabaseSeeder::class)->makePartial();
     $seeder->shouldReceive('call')->andReturnNull();

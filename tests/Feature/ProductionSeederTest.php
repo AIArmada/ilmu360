@@ -1,7 +1,6 @@
 <?php
 
 use AIArmada\Addressing\Database\Seeders\AddressingSeeder;
-use AIArmada\Addressing\Database\Seeders\MalaysiaPostalCodeSeeder;
 use App\Models\Space;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\FacilityTypeSeeder;
@@ -70,7 +69,6 @@ it('production seeder only calls deterministic bootstrap seeders', function () {
 
     expect($seeder->calledSeeders)->toBe([
         AddressingSeeder::class,
-        MalaysiaPostalCodeSeeder::class,
         PermissionSeeder::class,
         RoleSeeder::class,
         ScopedMemberRolesSeeder::class,

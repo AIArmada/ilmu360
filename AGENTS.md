@@ -36,8 +36,7 @@ Use the package's country → state → optional city flow, then the area roles 
 
 ## Seed and import
 
-- Countries: `php artisan address:seed-countries` or the package country seeder.
-- Malaysia states/cities: `AIArmada\Addressing\Database\Seeders\MalaysiaGeographySeeder`.
+- Countries, states, cities, geographies, and postal codes: the bundled `AIArmada\Addressing\Database\Seeders\AddressingSeeder` (via `DatabaseSeeder` or `php artisan db:seed --class='AIArmada\Addressing\Database\Seeders\AddressingSeeder'`). Piecemeal: `php artisan address:seed-geographies`, `php artisan address:seed-postal-codes`.
 - Administrative/postal areas: import `address_areas` through package/import actions, then sync role-based assignments.
 
 ## Snapshots

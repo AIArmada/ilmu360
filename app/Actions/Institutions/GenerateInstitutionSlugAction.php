@@ -7,7 +7,6 @@ use AIArmada\CommerceSupport\Support\CanonicalSlug;
 use AIArmada\CommerceSupport\Support\StableModelOrder;
 use AIArmada\CommerceSupport\Support\UniqueSlug;
 use App\Actions\Slugs\SyncSlugRedirectAction;
-use App\Contracts\InstitutionSlugIntent;
 use App\Models\Institution;
 use App\Support\Location\AddressAssignments;
 use Illuminate\Support\Str;
@@ -19,7 +18,6 @@ class GenerateInstitutionSlugAction
 
     public function __construct(
         private readonly SyncSlugRedirectAction $syncSlugRedirectAction,
-        private readonly InstitutionSlugIntent $slugIntent,
     ) {}
 
     public function syncInstitutionSlugsForName(string $name, ?string $exceptInstitutionId = null): bool
@@ -35,10 +33,7 @@ class GenerateInstitutionSlugAction
             ->whereNull('institutions.source')
             ->when($exceptInstitutionId !== null, fn ($query) => $query->whereKeyNot($exceptInstitutionId))
             ->with(['addresses'])
-            ->get()
-            // Transaction-scoped graph intent wins: protected rows keep
-            // their opaque curated bytes through every deferred observer.
-            ->reject(fn (Institution $institution): bool => $this->slugIntent->isProtected((string) $institution->getKey()));
+            ->get();
 
         return StableModelOrder::sync($institutions, fn (Institution $institution): bool => $this->syncInstitutionSlug($institution));
     }
@@ -46,10 +41,6 @@ class GenerateInstitutionSlugAction
     public function syncInstitutionSlug(Institution $institution): bool
     {
         if ($institution->getAttribute('source') !== null) {
-            return false;
-        }
-
-        if ($this->slugIntent->isProtected((string) $institution->getKey())) {
             return false;
         }
 

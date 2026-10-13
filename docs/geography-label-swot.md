@@ -159,4 +159,4 @@ Move the concat at `⚡index.blade.php:175` behind the package so grouping and l
 
 ### Rollout
 
-P1 + P2 together, one commit in `commerce`, no app change, no user-visible diff. Then run `php artisan address:seed` on local databases per `.ai/rules/addressing.md`. P3 is a separate conversation with the user, not a package commit.
+P1 + P2 together, one commit in `commerce`, no app change, no user-visible diff. Then run `php artisan db:seed --class='AIArmada\Addressing\Database\Seeders\AddressingSeeder'` on local databases per `.ai/rules/addressing.md`. P3 is a separate conversation with the user, not a package commit.
