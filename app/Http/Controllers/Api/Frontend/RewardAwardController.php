@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\Frontend;
 
-use App\Enums\Rewards\RewardAwardStatus;
-use App\Models\RewardAppeal;
-use App\Models\RewardAward;
-use App\Models\RewardAwardEntry;
-use App\Models\RewardProgram;
+use AIArmada\Rewards\Enums\RewardAwardStatus;
+use AIArmada\Rewards\Models\RewardAppeal;
+use AIArmada\Rewards\Models\RewardAward;
+use AIArmada\Rewards\Models\RewardAwardEntry;
+use AIArmada\Rewards\Models\RewardProgram;
 use App\Support\Api\ApiPagination;
 use App\Support\Rewards\RewardMemberPresenter;
 use Dedoc\Scramble\Attributes\Group;

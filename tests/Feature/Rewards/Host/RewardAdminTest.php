@@ -3,20 +3,20 @@
 declare(strict_types=1);
 
 use AIArmada\Affiliates\Models\AffiliateFraudSignal;
-use App\Actions\Rewards\EnrollRewardMemberAction;
-use App\Actions\Rewards\OpenRewardAppealAction;
-use App\Actions\Rewards\TransitionRewardProgramStatusAction;
-use App\Enums\Rewards\RewardAppealStatus;
-use App\Enums\Rewards\RewardAwardStatus;
-use App\Enums\Rewards\RewardProgramMode;
-use App\Enums\Rewards\RewardProgramStatus;
-use App\Filament\Resources\RewardAppeals\Pages\ListRewardAppeals;
-use App\Filament\Resources\RewardAwards\Pages\ListRewardAwards;
-use App\Filament\Resources\RewardPrograms\Pages\ViewRewardProgram;
-use App\Jobs\Rewards\EvaluateRewardEntitlementJob;
-use App\Models\RewardAppeal;
-use App\Models\RewardAward;
-use App\Models\RewardProgramVersion;
+use AIArmada\FilamentRewards\Resources\RewardAppealResource\Pages\ListRewardAppeals;
+use AIArmada\FilamentRewards\Resources\RewardAwardResource\Pages\ListRewardAwards;
+use AIArmada\FilamentRewards\Resources\RewardProgramResource\Pages\ViewRewardProgram;
+use AIArmada\Rewards\Actions\EnrollRewardMemberAction;
+use AIArmada\Rewards\Actions\OpenRewardAppealAction;
+use AIArmada\Rewards\Actions\TransitionRewardProgramStatusAction;
+use AIArmada\Rewards\Enums\RewardAppealStatus;
+use AIArmada\Rewards\Enums\RewardAwardStatus;
+use AIArmada\Rewards\Enums\RewardProgramMode;
+use AIArmada\Rewards\Enums\RewardProgramStatus;
+use AIArmada\Rewards\Jobs\EvaluateRewardEntitlementJob;
+use AIArmada\Rewards\Models\RewardAppeal;
+use AIArmada\Rewards\Models\RewardAward;
+use AIArmada\Rewards\Models\RewardProgramVersion;
 use App\Models\User;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Carbon\CarbonImmutable;
@@ -27,7 +27,7 @@ use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\Feature\Rewards\Host\Support\RewardHostFixtures;
-use Tests\Feature\Rewards\Ledgers\Support\RewardLedgerFixtures;
+use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
 uses(RefreshDatabase::class);
 

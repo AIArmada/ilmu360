@@ -8,6 +8,23 @@ declare(strict_types=1);
 // follows frozen refund terms. Concurrency closure lives in
 // RewardFinanceRaceTest (fulfill/cancel/usage/reversal/stock races).
 
+use AIArmada\Rewards\Actions\CancelRewardBenefitGrantAction;
+use AIArmada\Rewards\Actions\ConsumeRewardBenefitAction;
+use AIArmada\Rewards\Actions\CreateRewardBenefitItemAction;
+use AIArmada\Rewards\Actions\CreditRewardPointsAction;
+use AIArmada\Rewards\Actions\EnrollRewardMemberAction;
+use AIArmada\Rewards\Actions\FulfillRewardBenefitAction;
+use AIArmada\Rewards\Actions\RecordRewardBenefitRecallAction;
+use AIArmada\Rewards\Actions\RedeemRewardBenefitAction;
+use AIArmada\Rewards\Actions\RevokeRewardBenefitGrantAction;
+use AIArmada\Rewards\Actions\TransitionRewardProgramStatusAction;
+use AIArmada\Rewards\Enums\RewardBenefitGrantStatus;
+use AIArmada\Rewards\Enums\RewardProgramMode;
+use AIArmada\Rewards\Enums\RewardProgramStatus;
+use AIArmada\Rewards\Models\RewardBenefitGrant;
+use AIArmada\Rewards\Models\RewardBenefitItem;
+use AIArmada\Rewards\Support\RewardBenefitStockLedger;
+use AIArmada\Rewards\Support\RewardPointLedger;
 use AIArmada\Vouchers\Actions\RecordVoucherUsage;
 use AIArmada\Vouchers\Exceptions\InvalidVoucherException;
 use AIArmada\Vouchers\Exceptions\VoucherExpiredException;
@@ -16,30 +33,13 @@ use AIArmada\Vouchers\Models\VoucherUsage;
 use AIArmada\Vouchers\Services\VoucherValidator;
 use Akaunting\Money\Currency;
 use Akaunting\Money\Money;
-use App\Actions\Rewards\CancelRewardBenefitGrantAction;
-use App\Actions\Rewards\ConsumeRewardBenefitAction;
-use App\Actions\Rewards\CreateRewardBenefitItemAction;
-use App\Actions\Rewards\CreditRewardPointsAction;
-use App\Actions\Rewards\EnrollRewardMemberAction;
-use App\Actions\Rewards\FulfillRewardBenefitAction;
-use App\Actions\Rewards\RecordRewardBenefitRecallAction;
-use App\Actions\Rewards\RedeemRewardBenefitAction;
-use App\Actions\Rewards\RevokeRewardBenefitGrantAction;
-use App\Actions\Rewards\TransitionRewardProgramStatusAction;
-use App\Enums\Rewards\RewardBenefitGrantStatus;
-use App\Enums\Rewards\RewardProgramMode;
-use App\Enums\Rewards\RewardProgramStatus;
-use App\Models\RewardBenefitGrant;
-use App\Models\RewardBenefitItem;
 use App\Models\User;
-use App\Support\Rewards\RewardBenefitStockLedger;
-use App\Support\Rewards\RewardPointLedger;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
-use Tests\Feature\Rewards\Ledgers\Support\RewardLedgerFixtures;
+use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
 uses(RefreshDatabase::class);
 

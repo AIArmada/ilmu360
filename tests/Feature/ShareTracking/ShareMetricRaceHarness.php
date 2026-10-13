@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Assert;
 use Symfony\Component\Process\Process;
+use Throwable;
 
 /**
  * Shared worker-database harness for the share metric/cohort/signal
@@ -31,64 +32,75 @@ final class ShareMetricRaceHarness
         $database = Wp1RealDriverHarness::createWorkerDatabase($driver, $test);
         $previous = Wp1RealDriverHarness::useWorkerDatabase($driver, $database);
 
-        Wp2RealDriverHarness::migrateWorkerDatabase($driver);
+        try {
+            Wp2RealDriverHarness::migrateWorkerDatabase($driver);
 
-        if ($driver === 'mariadb') {
-            // The WP1/WP2 MariaDB subset stops before guest-claim tables;
-            // the claimed-guest ownership leg needs the ORIGINAL claim
-            // migrations too. reward_programs (empty) lets the real
-            // reward-evaluation listener run unmodified and find zero
-            // candidates instead of being faked away. The committed-share
-            // observer produces real trusted Signals on every share, so
-            // the ORIGINAL signals package migrations ride along as well.
-            // The WP1 harness file itself is never modified.
-            foreach ([
-                base_path('/database/migrations/2026_10_07_000002_create_share_guest_claim_capabilities_table.php'),
-                base_path('/database/migrations/2026_10_07_000003_create_share_guest_claims_table.php'),
-                base_path('/database/migrations/2026_10_07_020001_create_reward_program_table.php'),
-                base_path('/database/migrations/2026_10_07_030002_create_reward_award_tables.php'),
-                base_path('/database/migrations/2026_10_08_020001_create_reward_finance_tables.php'),
-                base_path('/database/migrations/2026_10_08_020002_create_reward_funding_sources_table.php'),
-                base_path('/database/migrations/2026_10_08_030001_create_reward_benefit_tables.php'),
-                base_path('/database/migrations/2026_10_08_040001_create_share_delivery_tables.php'),
-                base_path('/database/migrations/2026_10_08_100001_create_share_signal_reader_cursors_table.php'),
-                ...glob(base_path('/vendor/aiarmada/signals/database/migrations/*.php')) ?: [],
-                // Reward payout lifecycle races: canonical affiliate
-                // payout/balance/method/operation/event tables. PG runs
-                // full migrations; Maria needs the explicit subset.
-                base_path('/vendor/aiarmada/affiliates/database/migrations/2000_01_01_000004_create_affiliate_payouts_table.php'),
-                base_path('/vendor/aiarmada/affiliates/database/migrations/2000_01_01_000005_create_affiliate_payout_events_table.php'),
-                base_path('/vendor/aiarmada/affiliates/database/migrations/2000_01_01_000013_create_affiliate_payout_methods_table.php'),
-                base_path('/vendor/aiarmada/affiliates/database/migrations/2000_01_01_000026_create_affiliate_payout_operations_table.php'),
-            ] as $file) {
-                Assert::assertFileExists($file);
+            if ($driver === 'mariadb') {
+                config(['rewards.database.json_column_type' => 'json']);
 
-                $migration = require $file;
+                $rewardMigrations = glob(base_path('/vendor/aiarmada/rewards/database/migrations/2001_05_01_*_create_reward_*.php'));
 
-                Assert::assertIsObject($migration);
-                $migration->up();
+                Assert::assertIsArray($rewardMigrations, 'Reward package migrations must exist.');
+                sort($rewardMigrations);
+                Assert::assertCount(30, $rewardMigrations, 'Exactly the thirty reward package migrations must run.');
+
+                // The WP1/WP2 MariaDB subset stops before guest-claim tables;
+                // the claimed-guest ownership leg needs the ORIGINAL claim
+                // migrations too. The complete rewards package schema lets
+                // the real reward-evaluation listener and payout lifecycle
+                // run unmodified instead of being faked away. The
+                // committed-share observer produces real trusted Signals on
+                // every share, so the ORIGINAL signals package migrations
+                // ride along as well. The WP1 harness file itself is never
+                // modified.
+                foreach ([
+                    base_path('/database/migrations/2026_10_07_000002_create_share_guest_claim_capabilities_table.php'),
+                    base_path('/database/migrations/2026_10_07_000003_create_share_guest_claims_table.php'),
+                    ...$rewardMigrations,
+                    base_path('/database/migrations/2026_10_08_040001_create_share_delivery_tables.php'),
+                    base_path('/database/migrations/2026_10_08_100001_create_share_signal_reader_cursors_table.php'),
+                    ...glob(base_path('/vendor/aiarmada/signals/database/migrations/*.php')) ?: [],
+                    // Reward payout lifecycle races: canonical affiliate
+                    // payout/balance/method/operation/event tables. PG runs
+                    // full migrations; Maria needs the explicit subset.
+                    base_path('/vendor/aiarmada/affiliates/database/migrations/2000_01_01_000004_create_affiliate_payouts_table.php'),
+                    base_path('/vendor/aiarmada/affiliates/database/migrations/2000_01_01_000005_create_affiliate_payout_events_table.php'),
+                    base_path('/vendor/aiarmada/affiliates/database/migrations/2000_01_01_000013_create_affiliate_payout_methods_table.php'),
+                    base_path('/vendor/aiarmada/affiliates/database/migrations/2000_01_01_000026_create_affiliate_payout_operations_table.php'),
+                ] as $file) {
+                    Assert::assertFileExists($file);
+
+                    $migration = require $file;
+
+                    Assert::assertIsObject($migration);
+                    $migration->up();
+                }
             }
+
+            // The worker database seeds the same global tracked property the
+            // test bootstrap seeds, so real trusted ingestion resolves.
+            Assert::assertTrue(
+                Schema::hasTable((new SignalEvent)->getTable()),
+                'Worker database is missing the signals event log.'
+            );
+
+            TrackedProperty::query()->firstOrCreate(
+                ['slug' => 'ilmu360'],
+                [
+                    'name' => 'Worker Fixture Website',
+                    'write_key' => Str::random(40),
+                    'domain' => 'localhost',
+                    'type' => 'website',
+                    'timezone' => 'UTC',
+                    'currency' => 'MYR',
+                    'is_active' => true,
+                ]
+            );
+        } catch (Throwable $exception) {
+            self::teardown($driver, $database, $previous);
+
+            throw $exception;
         }
-
-        // The worker database seeds the same global tracked property the
-        // test bootstrap seeds, so real trusted ingestion resolves.
-        Assert::assertTrue(
-            Schema::hasTable((new SignalEvent)->getTable()),
-            'Worker database is missing the signals event log.'
-        );
-
-        TrackedProperty::query()->firstOrCreate(
-            ['slug' => 'ilmu360'],
-            [
-                'name' => 'Worker Fixture Website',
-                'write_key' => Str::random(40),
-                'domain' => 'localhost',
-                'type' => 'website',
-                'timezone' => 'UTC',
-                'currency' => 'MYR',
-                'is_active' => true,
-            ]
-        );
 
         return [$database, $previous];
     }

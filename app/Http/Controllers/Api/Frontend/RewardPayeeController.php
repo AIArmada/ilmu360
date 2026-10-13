@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\Frontend;
 
-use App\Actions\Rewards\RegisterRewardPayeeAction;
-use App\Models\RewardPayee;
+use AIArmada\Rewards\Actions\RegisterRewardPayeeAction;
+use AIArmada\Rewards\Models\RewardPayee;
 use App\Support\Api\ApiPagination;
 use App\Support\Rewards\RewardMemberPresenter;
 use Dedoc\Scramble\Attributes\Group;

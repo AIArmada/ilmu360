@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\Frontend;
 
-use App\Actions\Rewards\CancelRewardBenefitGrantAction;
-use App\Actions\Rewards\ConsumeRewardBenefitAction;
-use App\Actions\Rewards\RedeemRewardBenefitAction;
-use App\Enums\Rewards\RewardBenefitGrantStatus;
-use App\Enums\Rewards\RewardBenefitItemStatus;
-use App\Models\RewardBenefitGrant;
-use App\Models\RewardBenefitItem;
+use AIArmada\Rewards\Actions\CancelRewardBenefitGrantAction;
+use AIArmada\Rewards\Actions\ConsumeRewardBenefitAction;
+use AIArmada\Rewards\Actions\RedeemRewardBenefitAction;
+use AIArmada\Rewards\Enums\RewardBenefitGrantStatus;
+use AIArmada\Rewards\Enums\RewardBenefitItemStatus;
+use AIArmada\Rewards\Models\RewardBenefitGrant;
+use AIArmada\Rewards\Models\RewardBenefitItem;
+use AIArmada\Rewards\Support\RewardBenefitStockLedger;
 use App\Support\Api\ApiPagination;
-use App\Support\Rewards\RewardBenefitStockLedger;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;

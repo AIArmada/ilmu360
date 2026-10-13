@@ -13,10 +13,9 @@ use PHPUnit\Framework\Assert;
  * Guarded real-driver harness for finance/benefit concurrency proof. Own
  * implementation: worker-namespaced databases on the isolated PostgreSQL 17
  * (127.0.0.1:45432) and MariaDB 11.4 (127.0.0.1:43306) fixtures, schema built
- * from the actual original migrations — six core, ten ledger, one
- * reservation-submission, one finance, one funding-source, one benefit,
- * one users, seven communications, one delivery-slot, one
- * corrections, and three voucher files. Never touches the live
+ * from the actual migrations — thirty rewards package files, one users,
+ * eight communications, one delivery-slot, one corrections, three
+ * voucher, and two observability files. Never touches the live
  * application database.
  */
 final class RewardFinanceWorkerDb
@@ -179,11 +178,10 @@ final class RewardFinanceWorkerDb
     }
 
     /**
-     * Runs the actual original migrations against the worker connection.
-     * Fails loudly unless exactly the six core, ten ledger, one
-     * submission, one finance, one funding-source, one benefit, one
-     * users, and three voucher files run. Users + vouchers back the
-     * coupon issuance/usage races; plain-UUID columns keep every file
+     * Runs the actual migrations against the worker connection. Fails
+     * loudly unless exactly the thirty rewards package files, one users,
+     * and three voucher files run. Users + vouchers back the coupon
+     * issuance/usage races; plain-UUID columns keep every file
      * standalone with no cross-table constraint. The communications
      * subset is the eight tables the raced rewards boundary actually
      * touches (dispatch, guarded channels with the external-mail
@@ -194,12 +192,7 @@ final class RewardFinanceWorkerDb
      */
     public static function migrateWorkerDatabase(): void
     {
-        $core = glob(database_path('migrations/2026_10_07_02000*_create_reward_*.php'));
-        $ledger = glob(database_path('migrations/2026_10_07_0300*_create_reward_*.php'));
-        $submissions = glob(database_path('migrations/2026_10_08_010001_create_reward_point_reservation_submissions_table.php'));
-        $finance = glob(database_path('migrations/2026_10_08_020001_create_reward_finance_tables.php'));
-        $sources = glob(database_path('migrations/2026_10_08_020002_create_reward_funding_sources_table.php'));
-        $benefit = glob(database_path('migrations/2026_10_08_030001_create_reward_benefit_tables.php'));
+        $rewards = glob(base_path('vendor/aiarmada/rewards/database/migrations/2001_05_01_*_create_reward_*.php'));
         $users = glob(database_path('migrations/0001_01_01_000000_create_users_table.php'));
         // Award approval plans the real gratitude digest and digest races
         // send through the real transport, so the touched ORIGINAL
@@ -222,16 +215,9 @@ final class RewardFinanceWorkerDb
             database_path('migrations/2026_01_21_095013_create_activity_log_table.php'),
         ];
 
-        Assert::assertIsArray($core, 'Reward-core migrations must exist.');
-        Assert::assertIsArray($ledger, 'Reward-ledger migrations must exist.');
-        sort($core);
-        sort($ledger);
-        Assert::assertCount(6, $core, 'Exactly the six original reward-core migrations must run.');
-        Assert::assertCount(10, $ledger, 'Exactly the ten original reward-ledger migrations must run.');
-        Assert::assertCount(1, $submissions ?: [], 'The reservation-submission migration must run.');
-        Assert::assertCount(1, $finance ?: [], 'The finance migration must run.');
-        Assert::assertCount(1, $sources ?: [], 'The funding-source migration must run.');
-        Assert::assertCount(1, $benefit ?: [], 'The benefit migration must run.');
+        Assert::assertIsArray($rewards, 'Reward package migrations must exist.');
+        sort($rewards);
+        Assert::assertCount(30, $rewards, 'Exactly the thirty reward package migrations must run.');
         Assert::assertCount(1, $users ?: [], 'The users migration must run.');
         sort($comms);
         Assert::assertCount(8, $comms, 'Exactly the eight touched original communications migrations must run.');
@@ -245,7 +231,7 @@ final class RewardFinanceWorkerDb
             Assert::assertFileExists($file);
         }
 
-        foreach ([...$core, ...$ledger, ...$submissions, ...$finance, ...$sources, ...$benefit, ...$users, ...$comms, ...$slots, ...$corrections, ...$vouchers, ...$observability] as $file) {
+        foreach ([...$rewards, ...$users, ...$comms, ...$slots, ...$corrections, ...$vouchers, ...$observability] as $file) {
             $migration = require $file;
             $migration->up();
         }
@@ -258,6 +244,9 @@ final class RewardFinanceWorkerDb
     {
         $database = self::createWorkerDatabase($driver, $test);
         $previous = self::useWorkerDatabase($driver, $database);
+
+        config(['rewards.database.json_column_type' => $driver === 'mariadb' ? 'json' : 'jsonb']);
+
         self::migrateWorkerDatabase();
 
         return [$database, $previous];

@@ -6,7 +6,7 @@ namespace App\Support\Rewards;
 
 use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\States\Active;
-use App\Actions\Rewards\CreateRewardProgramAction;
+use AIArmada\Rewards\Actions\CreateRewardProgramAction;
 use App\Support\ShareTracking\ShareTrackingProfile;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;

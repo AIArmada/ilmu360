@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-use App\Actions\Rewards\EnrollRewardMemberAction;
-use App\Actions\Rewards\OpenRewardAppealAction;
-use App\Actions\Rewards\TransitionRewardProgramStatusAction;
-use App\Enums\Rewards\RewardAwardStatus;
-use App\Enums\Rewards\RewardComponent;
-use App\Enums\Rewards\RewardProgramMode;
-use App\Enums\Rewards\RewardProgramStatus;
-use App\Jobs\Rewards\EvaluateRewardEntitlementJob;
-use App\Models\RewardAppeal;
-use App\Models\RewardAward;
-use App\Models\RewardProgram;
+use AIArmada\Rewards\Actions\EnrollRewardMemberAction;
+use AIArmada\Rewards\Actions\OpenRewardAppealAction;
+use AIArmada\Rewards\Actions\TransitionRewardProgramStatusAction;
+use AIArmada\Rewards\Enums\RewardAwardStatus;
+use AIArmada\Rewards\Enums\RewardComponent;
+use AIArmada\Rewards\Enums\RewardProgramMode;
+use AIArmada\Rewards\Enums\RewardProgramStatus;
+use AIArmada\Rewards\Jobs\EvaluateRewardEntitlementJob;
+use AIArmada\Rewards\Models\RewardAppeal;
+use AIArmada\Rewards\Models\RewardAward;
+use AIArmada\Rewards\Models\RewardProgram;
 use App\Models\User;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Carbon\CarbonImmutable;
@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\Feature\Rewards\Host\Support\RewardHostFixtures;
-use Tests\Feature\Rewards\Ledgers\Support\RewardLedgerFixtures;
+use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
 uses(RefreshDatabase::class);
 

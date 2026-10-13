@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Observers;
 
-use App\Jobs\Rewards\RecheckRewardAwardsJob;
+use AIArmada\Rewards\Jobs\RecheckRewardAwardsJob;
 use App\Models\ShareOutcomeCorrection;
 
 class ShareOutcomeCorrectionObserver

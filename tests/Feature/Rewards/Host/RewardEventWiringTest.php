@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 use AIArmada\Affiliates\Models\AffiliateAttribution;
 use AIArmada\Affiliates\Models\AffiliateLink;
-use App\Actions\Rewards\EnrollRewardMemberAction;
-use App\Actions\Rewards\TransitionRewardProgramStatusAction;
-use App\Enums\Rewards\RewardAwardStatus;
-use App\Enums\Rewards\RewardComponent;
-use App\Enums\Rewards\RewardProgramMode;
-use App\Enums\Rewards\RewardProgramStatus;
+use AIArmada\Rewards\Actions\EnrollRewardMemberAction;
+use AIArmada\Rewards\Actions\TransitionRewardProgramStatusAction;
+use AIArmada\Rewards\Enums\RewardAwardStatus;
+use AIArmada\Rewards\Enums\RewardComponent;
+use AIArmada\Rewards\Enums\RewardProgramMode;
+use AIArmada\Rewards\Enums\RewardProgramStatus;
+use AIArmada\Rewards\Jobs\EvaluateRewardEntitlementJob;
+use AIArmada\Rewards\Jobs\RecheckRewardAwardsJob;
+use AIArmada\Rewards\Models\RewardAward;
 use App\Enums\ShareGuestClaimStatus;
-use App\Jobs\Rewards\EvaluateRewardEntitlementJob;
-use App\Jobs\Rewards\RecheckRewardAwardsJob;
-use App\Models\RewardAward;
 use App\Models\ShareGuestClaim;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\User;
@@ -24,7 +24,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Tests\Feature\Rewards\Host\Support\RewardHostFixtures;
-use Tests\Feature\Rewards\Ledgers\Support\RewardLedgerFixtures;
+use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
 uses(RefreshDatabase::class);
 

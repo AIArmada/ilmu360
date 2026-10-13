@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-use App\Actions\Rewards\CreateRewardProgramAction;
-use App\Actions\Rewards\EnrollRewardMemberAction;
-use App\Actions\Rewards\RecordRewardFundingAction;
-use App\Actions\Rewards\RecordRewardFundingSourceAction;
-use App\Actions\Rewards\TransitionRewardProgramStatusAction;
-use App\Enums\Rewards\RewardProgramMode;
-use App\Enums\Rewards\RewardProgramStatus;
-use App\Models\RewardFundingEntry;
-use App\Support\Rewards\RewardBudgetLedger;
+use AIArmada\Rewards\Actions\CreateRewardProgramAction;
+use AIArmada\Rewards\Actions\EnrollRewardMemberAction;
+use AIArmada\Rewards\Actions\RecordRewardFundingAction;
+use AIArmada\Rewards\Actions\RecordRewardFundingSourceAction;
+use AIArmada\Rewards\Actions\TransitionRewardProgramStatusAction;
+use AIArmada\Rewards\Enums\RewardProgramMode;
+use AIArmada\Rewards\Enums\RewardProgramStatus;
+use AIArmada\Rewards\Models\RewardFundingEntry;
+use AIArmada\Rewards\Support\RewardBudgetLedger;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\ParallelTesting;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Assert;
 use Symfony\Component\Process\Process;
 use Tests\Feature\Rewards\Host\Support\RewardFinanceWorkerDb;
-use Tests\Feature\Rewards\Ledgers\Support\RewardLedgerFixtures;
+use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
 // R5 races on the isolated drivers: concurrent allocations from one
 // deposit cannot overallocate, concurrent evaluations obligate without
@@ -126,8 +126,8 @@ it('refuses concurrent overallocation of one deposit on real drivers', function 
             null, CarbonImmutable::parse('2026-06-02T00:00:00Z'),
         );
 
-        $programA = CreateRewardProgramAction::run('race-cap-a-'.Str::lower(Str::random(6)), 'Race cap A', RewardProgramMode::Cash, 'platform', null, 'race');
-        $programB = CreateRewardProgramAction::run('race-cap-b-'.Str::lower(Str::random(6)), 'Race cap B', RewardProgramMode::Cash, 'platform', null, 'race');
+        $programA = CreateRewardProgramAction::run('race-cap-a-'.Str::lower(Str::random(6)), 'Race cap A', RewardProgramMode::Cash, null, null, 'race');
+        $programB = CreateRewardProgramAction::run('race-cap-b-'.Str::lower(Str::random(6)), 'Race cap B', RewardProgramMode::Cash, null, null, 'race');
 
         // Two 6000 allocations race against one 10000 deposit: exactly
         // one wins, the loser is refused, the total never exceeds.
@@ -228,7 +228,7 @@ it('keeps the funding lock current under an established stale snapshot on real d
             null, CarbonImmutable::parse('2026-06-02T00:00:00Z'),
         );
 
-        $program = CreateRewardProgramAction::run('race-stale-'.Str::lower(Str::random(6)), 'Race stale', RewardProgramMode::Cash, 'platform', null, 'race');
+        $program = CreateRewardProgramAction::run('race-stale-'.Str::lower(Str::random(6)), 'Race stale', RewardProgramMode::Cash, null, null, 'race');
 
         RecordRewardFundingAction::run(
             $program, 'MYR', 4000, 'TREASURY-race-stale', 'user', $staff, 'staff',

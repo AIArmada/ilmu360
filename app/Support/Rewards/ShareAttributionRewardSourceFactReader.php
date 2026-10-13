@@ -11,12 +11,12 @@ use AIArmada\Affiliates\States\ConversionStatus;
 use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Engagement\Models\Follow;
 use AIArmada\Engagement\Models\Response;
-use App\Contracts\Rewards\RewardSourceFactReader;
-use App\Enums\Rewards\RewardBeneficiaryRole;
-use App\Enums\Rewards\RewardEligibleOutcome;
-use App\Enums\Rewards\RewardSourceCorrectionStatus;
-use App\Enums\Rewards\RewardSourceFraudStatus;
-use App\Enums\Rewards\RewardVerificationLevel;
+use AIArmada\Rewards\Contracts\RewardSourceFactReader;
+use AIArmada\Rewards\Enums\RewardBeneficiaryRole;
+use AIArmada\Rewards\Enums\RewardSourceCorrectionStatus;
+use AIArmada\Rewards\Enums\RewardSourceFraudStatus;
+use AIArmada\Rewards\Enums\RewardVerificationLevel;
+use AIArmada\Rewards\Support\RewardSourceFact;
 use App\Models\EventCheckin;
 use App\Models\EventSubmission;
 use App\Models\Registration;
@@ -161,7 +161,7 @@ final class ShareAttributionRewardSourceFactReader implements RewardSourceFactRe
     }
 
     /**
-     * @return array{0: RewardEligibleOutcome, 1: string}|null
+     * @return array{0: string, 1: string}|null
      */
     private function parse(string $sourceBusinessKey): ?array
     {
@@ -175,17 +175,17 @@ final class ShareAttributionRewardSourceFactReader implements RewardSourceFactRe
             return null;
         }
 
-        $outcome = RewardEligibleOutcome::tryFrom($parts[1]);
+        $outcome = $parts[1];
 
-        if (! $outcome instanceof RewardEligibleOutcome) {
+        if ($outcome === '' || ! in_array($outcome, config('rewards.outcomes', []), true)) {
             return null;
         }
 
         $expectedPrefixes = ShareOutcomeBusinessKey::sourcePrefixes();
 
-        // DawahShareOutcomeType and RewardEligibleOutcome share values; match
-        // the canonical source prefix for this outcome kind.
-        $prefix = $expectedPrefixes[$outcome->value] ?? null;
+        // The host outcome registry shares values with the share outcome
+        // vocabulary; match the canonical source prefix for this outcome.
+        $prefix = $expectedPrefixes[$outcome] ?? null;
 
         if (! is_string($prefix) || ! str_starts_with($parts[2], $prefix)) {
             return null;
@@ -225,9 +225,9 @@ final class ShareAttributionRewardSourceFactReader implements RewardSourceFactRe
         return null;
     }
 
-    private function verificationFor(RewardEligibleOutcome $outcome, ?Model $source): RewardVerificationLevel
+    private function verificationFor(string $outcome, ?Model $source): RewardVerificationLevel
     {
-        if ($outcome === RewardEligibleOutcome::EventCheckin) {
+        if ($outcome === 'event_checkin') {
             if ($source instanceof EventCheckin && $this->nullableString($source->getAttribute('verified_by_user_id')) !== null) {
                 return RewardVerificationLevel::StaffVerified;
             }
@@ -235,7 +235,7 @@ final class ShareAttributionRewardSourceFactReader implements RewardSourceFactRe
             return RewardVerificationLevel::Unverified;
         }
 
-        if ($outcome === RewardEligibleOutcome::EventRegistration) {
+        if ($outcome === 'event_registration') {
             if ($source instanceof Registration && in_array($source->statusValue(), ['confirmed', 'checked_in', 'completed'], true)) {
                 return RewardVerificationLevel::Accepted;
             }
@@ -243,7 +243,7 @@ final class ShareAttributionRewardSourceFactReader implements RewardSourceFactRe
             return RewardVerificationLevel::Unverified;
         }
 
-        if ($outcome === RewardEligibleOutcome::EventSubmission) {
+        if ($outcome === 'event_submission') {
             if ($source instanceof EventSubmission && $this->moderationValue($source) === 'approved') {
                 return RewardVerificationLevel::ModeratedApproved;
             }
@@ -261,20 +261,20 @@ final class ShareAttributionRewardSourceFactReader implements RewardSourceFactRe
     /**
      * @return array{cancelled: bool, invalid: bool}
      */
-    private function sourceInvalidates(RewardEligibleOutcome $outcome, ?Model $source): array
+    private function sourceInvalidates(string $outcome, ?Model $source): array
     {
         if (! $source instanceof Model) {
             // Connection facts (save/going/follow) live and die with their
             // source row: an unsave/unfollow deletes it, which must stop new
             // qualification even before a correction row lands.
             if (in_array($outcome, [
-                RewardEligibleOutcome::EventSave,
-                RewardEligibleOutcome::EventGoing,
-                RewardEligibleOutcome::InstitutionFollow,
-                RewardEligibleOutcome::PersonFollow,
-                RewardEligibleOutcome::SeriesFollow,
-                RewardEligibleOutcome::ReferenceFollow,
-                RewardEligibleOutcome::SavedSearchCreated,
+                'event_save',
+                'event_going',
+                'institution_follow',
+                'person_follow',
+                'series_follow',
+                'reference_follow',
+                'saved_search_created',
             ], true)) {
                 return ['cancelled' => true, 'invalid' => true];
             }
@@ -293,9 +293,9 @@ final class ShareAttributionRewardSourceFactReader implements RewardSourceFactRe
         return ['cancelled' => false, 'invalid' => false];
     }
 
-    private function actorRoleFor(RewardEligibleOutcome $outcome, ?Model $source): RewardBeneficiaryRole
+    private function actorRoleFor(string $outcome, ?Model $source): RewardBeneficiaryRole
     {
-        if ($outcome === RewardEligibleOutcome::EventRegistration
+        if ($outcome === 'event_registration'
             && $source instanceof Registration
             && (int) $source->getAttribute('total_amount') > 0
             && (string) $source->getAttribute('payment_status') === 'paid'
@@ -304,10 +304,10 @@ final class ShareAttributionRewardSourceFactReader implements RewardSourceFactRe
         }
 
         if (in_array($outcome, [
-            RewardEligibleOutcome::EventRegistration,
-            RewardEligibleOutcome::EventCheckin,
-            RewardEligibleOutcome::EventGoing,
-            RewardEligibleOutcome::EventSubmission,
+            'event_registration',
+            'event_checkin',
+            'event_going',
+            'event_submission',
         ], true)) {
             return RewardBeneficiaryRole::Participant;
         }

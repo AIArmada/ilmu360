@@ -43,6 +43,8 @@
         "aiarmada/organizations": "dev-main",
         "aiarmada/persons": "dev-main",
         "aiarmada/promotions": "dev-main",
+        "aiarmada/filament-rewards": "dev-main",
+        "aiarmada/rewards": "dev-main",
         "aiarmada/references": "dev-main",
         "aiarmada/seating": "dev-main",
         "aiarmada/signals": "dev-main",
@@ -117,7 +119,8 @@
             "AIArmada\\Engagement\\Database\\Factories\\": "vendor/aiarmada/engagement/database/factories/",
             "AIArmada\\Communications\\Database\\Factories\\": "vendor/aiarmada/communications/database/factories/",
             "AIArmada\\References\\Database\\Factories\\": "vendor/aiarmada/references/database/factories/",
-            "AIArmada\\Affiliates\\Database\\Factories\\": "vendor/aiarmada/affiliates/database/factories/"
+            "AIArmada\\Affiliates\\Database\\Factories\\": "vendor/aiarmada/affiliates/database/factories/",
+            "AIArmada\\Rewards\\Database\\Factories\\": "vendor/aiarmada/rewards/database/factories/"
         }
     },
     "autoload-dev": {

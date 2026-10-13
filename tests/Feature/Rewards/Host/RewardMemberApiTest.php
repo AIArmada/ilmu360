@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-use App\Actions\Rewards\PublishRewardProgramVersionAction;
-use App\Actions\Rewards\TransitionRewardAwardAction;
-use App\Actions\Rewards\TransitionRewardProgramStatusAction;
-use App\Enums\Rewards\RewardAwardStatus;
-use App\Enums\Rewards\RewardProgramMode;
-use App\Enums\Rewards\RewardProgramStatus;
-use App\Jobs\Rewards\EvaluateRewardEntitlementJob;
-use App\Models\RewardAward;
-use App\Models\RewardProgram;
+use AIArmada\Rewards\Actions\PublishRewardProgramVersionAction;
+use AIArmada\Rewards\Actions\TransitionRewardAwardAction;
+use AIArmada\Rewards\Actions\TransitionRewardProgramStatusAction;
+use AIArmada\Rewards\Enums\RewardAwardStatus;
+use AIArmada\Rewards\Enums\RewardProgramMode;
+use AIArmada\Rewards\Enums\RewardProgramStatus;
+use AIArmada\Rewards\Jobs\EvaluateRewardEntitlementJob;
+use AIArmada\Rewards\Models\RewardAward;
+use AIArmada\Rewards\Models\RewardProgram;
 use App\Models\User;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Carbon\CarbonImmutable;
@@ -20,7 +20,7 @@ use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\Feature\Rewards\Host\Support\RewardHostFixtures;
-use Tests\Feature\Rewards\Ledgers\Support\RewardLedgerFixtures;
+use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
 uses(RefreshDatabase::class);
 

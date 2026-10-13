@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\Frontend;
 
-use App\Enums\Rewards\RewardProgramStatus;
-use App\Models\RewardEnrollment;
-use App\Models\RewardEnrollmentAcceptance;
-use App\Models\RewardProgram;
-use App\Models\RewardProgramVersion;
+use AIArmada\Rewards\Enums\RewardProgramStatus;
+use AIArmada\Rewards\Models\RewardEnrollment;
+use AIArmada\Rewards\Models\RewardEnrollmentAcceptance;
+use AIArmada\Rewards\Models\RewardProgram;
+use AIArmada\Rewards\Models\RewardProgramVersion;
+use AIArmada\Rewards\Support\RewardVersionResolver;
 use App\Support\Api\ApiPagination;
 use App\Support\Rewards\RewardMemberPresenter;
-use App\Support\Rewards\RewardVersionResolver;
 use Carbon\CarbonImmutable;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;

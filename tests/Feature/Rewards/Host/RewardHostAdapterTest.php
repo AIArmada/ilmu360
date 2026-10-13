@@ -3,20 +3,19 @@
 declare(strict_types=1);
 
 use AIArmada\Affiliates\Models\AffiliateFraudSignal;
-use App\Actions\Rewards\MarkRewardReservationSubmittedAction;
-use App\Enums\Rewards\RewardBeneficiaryRole;
-use App\Enums\Rewards\RewardEligibleOutcome;
-use App\Enums\Rewards\RewardSourceCorrectionStatus;
-use App\Enums\Rewards\RewardSourceFraudStatus;
-use App\Enums\Rewards\RewardVerificationLevel;
+use AIArmada\Rewards\Actions\MarkRewardReservationSubmittedAction;
+use AIArmada\Rewards\Enums\RewardBeneficiaryRole;
+use AIArmada\Rewards\Enums\RewardSourceCorrectionStatus;
+use AIArmada\Rewards\Enums\RewardSourceFraudStatus;
+use AIArmada\Rewards\Enums\RewardVerificationLevel;
+use AIArmada\Rewards\Models\RewardPointReservationSubmission;
+use AIArmada\Rewards\Support\PointLedgerRewardReservationResolver;
 use App\Enums\ShareGuestClaimStatus;
 use App\Models\EventCheckin;
 use App\Models\Registration;
-use App\Models\RewardPointReservationSubmission;
 use App\Models\ShareGuestClaim;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\User;
-use App\Support\Rewards\PointLedgerRewardReservationResolver;
 use App\Support\Rewards\ShareAttributionRewardSourceFactReader;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Carbon\CarbonImmutable;
@@ -64,7 +63,7 @@ it('maps an attributed member signup fact from committed evidence', function ():
     $fact = (new ShareAttributionRewardSourceFactReader)->read($key);
 
     expect($fact)->not->toBeNull();
-    expect($fact->outcome)->toBe(RewardEligibleOutcome::Signup);
+    expect($fact->outcome)->toBe('signup');
     expect($fact->occurredAt->toIso8601String())->toBe($occurred->toIso8601String());
     expect($fact->verification)->toBe(RewardVerificationLevel::Accepted);
     expect($fact->actorId)->toBe((string) $actor->getKey());

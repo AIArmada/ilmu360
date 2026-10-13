@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-use App\Actions\Rewards\CreateRewardBenefitItemAction;
-use App\Actions\Rewards\CreditRewardPointsAction;
-use App\Actions\Rewards\EnrollRewardMemberAction;
-use App\Actions\Rewards\TransitionRewardProgramStatusAction;
-use App\Enums\Rewards\RewardProgramMode;
-use App\Enums\Rewards\RewardProgramStatus;
-use App\Jobs\Rewards\EvaluateRewardEntitlementJob;
+use AIArmada\Rewards\Actions\CreateRewardBenefitItemAction;
+use AIArmada\Rewards\Actions\CreditRewardPointsAction;
+use AIArmada\Rewards\Actions\EnrollRewardMemberAction;
+use AIArmada\Rewards\Actions\TransitionRewardProgramStatusAction;
+use AIArmada\Rewards\Enums\RewardProgramMode;
+use AIArmada\Rewards\Enums\RewardProgramStatus;
+use AIArmada\Rewards\Jobs\EvaluateRewardEntitlementJob;
+use AIArmada\Rewards\Models\RewardAppeal;
+use AIArmada\Rewards\Models\RewardAward;
+use AIArmada\Rewards\Models\RewardBenefitGrant;
+use AIArmada\Rewards\Models\RewardEnrollment;
+use AIArmada\Rewards\Models\RewardPayee;
+use AIArmada\Rewards\Models\RewardProgram;
 use App\Livewire\Pages\Dashboard\RewardMemberIndex;
-use App\Models\RewardAppeal;
-use App\Models\RewardAward;
-use App\Models\RewardBenefitGrant;
-use App\Models\RewardEnrollment;
-use App\Models\RewardPayee;
-use App\Models\RewardProgram;
 use App\Models\User;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Carbon\CarbonImmutable;
@@ -23,7 +23,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Tests\Feature\Rewards\Host\Support\RewardHostFixtures;
-use Tests\Feature\Rewards\Ledgers\Support\RewardLedgerFixtures;
+use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
 uses(RefreshDatabase::class);
 

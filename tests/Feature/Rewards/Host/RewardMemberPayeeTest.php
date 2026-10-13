@@ -2,15 +2,14 @@
 
 declare(strict_types=1);
 
-use App\Actions\Rewards\RegisterRewardPayeeAction;
-use App\Actions\Rewards\RejectRewardPayeeAction;
-use App\Actions\Rewards\VerifyRewardPayeeAction;
-use App\Enums\Rewards\RewardPayeeStatus;
-use App\Models\RewardPayee;
+use AIArmada\Rewards\Actions\RegisterRewardPayeeAction;
+use AIArmada\Rewards\Actions\RejectRewardPayeeAction;
+use AIArmada\Rewards\Actions\VerifyRewardPayeeAction;
+use AIArmada\Rewards\Enums\RewardPayeeStatus;
+use AIArmada\Rewards\Models\RewardPayee;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use InvalidArgumentException;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\PermissionRegistrar;
 

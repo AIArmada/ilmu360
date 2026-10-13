@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\Frontend;
 
-use App\Enums\Rewards\RewardBadgeStatus;
-use App\Models\RewardBadgeGrant;
-use App\Models\RewardPointLot;
+use AIArmada\Rewards\Enums\RewardBadgeStatus;
+use AIArmada\Rewards\Models\RewardBadgeGrant;
+use AIArmada\Rewards\Models\RewardPointLot;
+use AIArmada\Rewards\Support\RewardPointLedger;
 use App\Support\Rewards\RewardMemberPresenter;
-use App\Support\Rewards\RewardPointLedger;
 use Carbon\CarbonImmutable;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;

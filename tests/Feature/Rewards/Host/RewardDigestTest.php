@@ -16,22 +16,21 @@ use AIArmada\Communications\Models\Communication;
 use AIArmada\Communications\Models\CommunicationDelivery;
 use AIArmada\Communications\Models\NotificationInbox;
 use AIArmada\Communications\Services\CommunicationRecorderService;
+use AIArmada\Rewards\Actions\EnrollRewardMemberAction;
+use AIArmada\Rewards\Actions\EvaluateRewardEntitlementAction;
+use AIArmada\Rewards\Actions\GrantRewardBadgeAction;
+use AIArmada\Rewards\Actions\RecordRewardMilestoneContributionAction;
+use AIArmada\Rewards\Actions\TransitionRewardAwardAction;
+use AIArmada\Rewards\Actions\TransitionRewardProgramStatusAction;
+use AIArmada\Rewards\Enums\RewardAwardStatus;
+use AIArmada\Rewards\Enums\RewardBeneficiaryRole;
+use AIArmada\Rewards\Enums\RewardComponent;
+use AIArmada\Rewards\Enums\RewardProgramMode;
+use AIArmada\Rewards\Enums\RewardProgramStatus;
+use AIArmada\Rewards\Models\RewardAward;
 use App\Actions\Rewards\CancelRewardDigestAction;
 use App\Actions\Rewards\DispatchDueRewardDigestsAction;
-use App\Actions\Rewards\EnrollRewardMemberAction;
-use App\Actions\Rewards\EvaluateRewardEntitlementAction;
-use App\Actions\Rewards\GrantRewardBadgeAction;
 use App\Actions\Rewards\PlanRewardGratitudeDigestAction;
-use App\Actions\Rewards\RecordRewardMilestoneContributionAction;
-use App\Actions\Rewards\TransitionRewardAwardAction;
-use App\Actions\Rewards\TransitionRewardProgramStatusAction;
-use App\Enums\Rewards\RewardAwardStatus;
-use App\Enums\Rewards\RewardBeneficiaryRole;
-use App\Enums\Rewards\RewardComponent;
-use App\Enums\Rewards\RewardEligibleOutcome;
-use App\Enums\Rewards\RewardProgramMode;
-use App\Enums\Rewards\RewardProgramStatus;
-use App\Models\RewardAward;
 use App\Models\RewardDigestSlot;
 use App\Models\User;
 use App\Notifications\Channels\DigestMailChannel;
@@ -43,8 +42,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
-use Tests\Feature\Rewards\Ledgers\Support\FakeRewardSourceFactReader;
-use Tests\Feature\Rewards\Ledgers\Support\RewardLedgerFixtures;
+use Tests\Feature\Rewards\Host\Support\FakeRewardSourceFactReader;
+use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
 uses(RefreshDatabase::class);
 
@@ -241,7 +240,7 @@ it('plans a milestone section when a cycle achieves', function () {
             'user', $memberId, $program->family_key, 'three-checkins', 2, 30,
             RewardComponent::Points, ['type' => 'points', 'points' => 5, 'unit' => 'pts'],
             $source, 'user', $memberId, RewardBeneficiaryRole::Participant,
-            RewardEligibleOutcome::EventCheckin, CarbonImmutable::parse($occurred),
+            'event_checkin', CarbonImmutable::parse($occurred),
             (string) $program->getKey(),
         );
     }

@@ -2,50 +2,49 @@
 
 declare(strict_types=1);
 
-use App\Actions\Rewards\AdvanceRewardAppealAction;
-use App\Actions\Rewards\ApproveRewardPayoutAction;
-use App\Actions\Rewards\ConfirmRewardPayoutAction;
-use App\Actions\Rewards\EnrollRewardMemberAction;
-use App\Actions\Rewards\EvaluateRewardEntitlementAction;
-use App\Actions\Rewards\OpenRewardAppealAction;
-use App\Actions\Rewards\OpenRewardRecoveryAction;
-use App\Actions\Rewards\ReconcileRewardPayoutAction;
-use App\Actions\Rewards\RecordRewardFundingAction;
-use App\Actions\Rewards\RecordRewardFundingSourceAction;
-use App\Actions\Rewards\RequestRewardPayoutAction;
-use App\Actions\Rewards\ReverseRewardFulfillmentAction;
-use App\Actions\Rewards\SettleRewardRecoveryAction;
-use App\Actions\Rewards\SubmitRewardPayoutAction;
-use App\Actions\Rewards\TransitionRewardAwardAction;
-use App\Actions\Rewards\TransitionRewardProgramStatusAction;
-use App\Actions\Rewards\VerifyRewardPayeeAction;
-use App\Contracts\Rewards\RewardFinancialReadinessChecker;
-use App\Enums\Rewards\RewardAppealStatus;
-use App\Enums\Rewards\RewardAwardStatus;
-use App\Enums\Rewards\RewardBeneficiaryRole;
-use App\Enums\Rewards\RewardBudgetMovementKind;
-use App\Enums\Rewards\RewardComponent;
-use App\Enums\Rewards\RewardEligibleOutcome;
-use App\Enums\Rewards\RewardEvaluationOutcome;
-use App\Enums\Rewards\RewardPayoutRequestStatus;
-use App\Enums\Rewards\RewardProgramMode;
-use App\Enums\Rewards\RewardProgramStatus;
-use App\Enums\Rewards\RewardRecoveryStatus;
-use App\Enums\Rewards\RewardVerificationLevel;
-use App\Models\RewardAward;
-use App\Models\RewardBudgetMovement;
-use App\Models\RewardFundingEntry;
-use App\Models\RewardFundingSource;
-use App\Models\RewardRecovery;
+use AIArmada\Rewards\Actions\AdvanceRewardAppealAction;
+use AIArmada\Rewards\Actions\ApproveRewardPayoutAction;
+use AIArmada\Rewards\Actions\ConfirmRewardPayoutAction;
+use AIArmada\Rewards\Actions\EnrollRewardMemberAction;
+use AIArmada\Rewards\Actions\EvaluateRewardEntitlementAction;
+use AIArmada\Rewards\Actions\OpenRewardAppealAction;
+use AIArmada\Rewards\Actions\OpenRewardRecoveryAction;
+use AIArmada\Rewards\Actions\ReconcileRewardPayoutAction;
+use AIArmada\Rewards\Actions\RecordRewardFundingAction;
+use AIArmada\Rewards\Actions\RecordRewardFundingSourceAction;
+use AIArmada\Rewards\Actions\RequestRewardPayoutAction;
+use AIArmada\Rewards\Actions\ReverseRewardFulfillmentAction;
+use AIArmada\Rewards\Actions\SettleRewardRecoveryAction;
+use AIArmada\Rewards\Actions\SubmitRewardPayoutAction;
+use AIArmada\Rewards\Actions\TransitionRewardAwardAction;
+use AIArmada\Rewards\Actions\TransitionRewardProgramStatusAction;
+use AIArmada\Rewards\Actions\VerifyRewardPayeeAction;
+use AIArmada\Rewards\Contracts\RewardFinancialReadinessChecker;
+use AIArmada\Rewards\Enums\RewardAppealStatus;
+use AIArmada\Rewards\Enums\RewardAwardStatus;
+use AIArmada\Rewards\Enums\RewardBeneficiaryRole;
+use AIArmada\Rewards\Enums\RewardBudgetMovementKind;
+use AIArmada\Rewards\Enums\RewardComponent;
+use AIArmada\Rewards\Enums\RewardEvaluationOutcome;
+use AIArmada\Rewards\Enums\RewardPayoutRequestStatus;
+use AIArmada\Rewards\Enums\RewardProgramMode;
+use AIArmada\Rewards\Enums\RewardProgramStatus;
+use AIArmada\Rewards\Enums\RewardRecoveryStatus;
+use AIArmada\Rewards\Enums\RewardVerificationLevel;
+use AIArmada\Rewards\Models\RewardAward;
+use AIArmada\Rewards\Models\RewardBudgetMovement;
+use AIArmada\Rewards\Models\RewardFundingEntry;
+use AIArmada\Rewards\Models\RewardFundingSource;
+use AIArmada\Rewards\Models\RewardRecovery;
+use AIArmada\Rewards\Support\RewardBudgetLedger;
 use App\Models\User;
-use App\Support\Rewards\RewardBudgetLedger;
 use App\Support\Rewards\RewardMemberPresenter;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
-use Tests\Feature\Rewards\Ledgers\Support\FakeRewardSourceFactReader;
-use Tests\Feature\Rewards\Ledgers\Support\RewardLedgerFixtures;
+use Tests\Feature\Rewards\Host\Support\FakeRewardSourceFactReader;
+use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
 // R5 proof: immutable funding/allocation authority (one deposit cannot be
 // counted twice across programs), reservation at the held-obligation
@@ -288,7 +287,7 @@ it('re-obligates an overturned rejection under a fresh epoch', function () {
     $reader = new FakeRewardSourceFactReader;
     $reader->seed(RewardLedgerFixtures::fact(
         'src-fa-over-1', $memberId, '2026-06-12T00:00:00Z',
-        RewardEligibleOutcome::EventCheckin, ['verification' => RewardVerificationLevel::Unverified],
+        'event_checkin', ['verification' => RewardVerificationLevel::Unverified],
     ));
 
     $result = (new EvaluateRewardEntitlementAction($reader))->handle(

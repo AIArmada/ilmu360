@@ -4,18 +4,17 @@ declare(strict_types=1);
 
 namespace App\Support\Rewards;
 
-use App\Enums\Rewards\RewardAwardStatus;
-use App\Enums\Rewards\RewardEligibleOutcome;
-use App\Models\RewardAppeal;
-use App\Models\RewardAppealDecision;
-use App\Models\RewardAward;
-use App\Models\RewardAwardEntry;
-use App\Models\RewardBadgeGrant;
-use App\Models\RewardEnrollment;
-use App\Models\RewardEnrollmentAcceptance;
-use App\Models\RewardPayee;
-use App\Models\RewardProgram;
-use App\Models\RewardProgramVersion;
+use AIArmada\Rewards\Enums\RewardAwardStatus;
+use AIArmada\Rewards\Models\RewardAppeal;
+use AIArmada\Rewards\Models\RewardAppealDecision;
+use AIArmada\Rewards\Models\RewardAward;
+use AIArmada\Rewards\Models\RewardAwardEntry;
+use AIArmada\Rewards\Models\RewardBadgeGrant;
+use AIArmada\Rewards\Models\RewardEnrollment;
+use AIArmada\Rewards\Models\RewardEnrollmentAcceptance;
+use AIArmada\Rewards\Models\RewardPayee;
+use AIArmada\Rewards\Models\RewardProgram;
+use AIArmada\Rewards\Models\RewardProgramVersion;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 
@@ -303,7 +302,11 @@ final class RewardMemberPresenter
             return ['outcome' => null, 'outcome_label' => null, 'source_date' => null];
         }
 
-        $outcome = RewardEligibleOutcome::tryFrom((string) ($snapshot['outcome'] ?? ''));
+        $outcome = (string) ($snapshot['outcome'] ?? '');
+
+        if ($outcome === '' || ! in_array($outcome, config('rewards.outcomes', []), true)) {
+            $outcome = null;
+        }
 
         $date = null;
 
@@ -316,26 +319,27 @@ final class RewardMemberPresenter
         }
 
         return [
-            'outcome' => $outcome?->value,
+            'outcome' => $outcome,
             'outcome_label' => $outcome === null ? null : self::outcomeLabel($outcome),
             'source_date' => $date,
         ];
     }
 
-    private static function outcomeLabel(RewardEligibleOutcome $outcome): string
+    private static function outcomeLabel(string $outcome): string
     {
         return match ($outcome) {
-            RewardEligibleOutcome::Signup => 'New member signup',
-            RewardEligibleOutcome::EventRegistration => 'Event registration',
-            RewardEligibleOutcome::EventCheckin => 'Event attendance',
-            RewardEligibleOutcome::EventSubmission => 'Event submission',
-            RewardEligibleOutcome::EventSave => 'Saved event',
-            RewardEligibleOutcome::EventGoing => 'Marked going',
-            RewardEligibleOutcome::InstitutionFollow => 'Institution follow',
-            RewardEligibleOutcome::PersonFollow => 'Person follow',
-            RewardEligibleOutcome::SeriesFollow => 'Series follow',
-            RewardEligibleOutcome::ReferenceFollow => 'Reference follow',
-            RewardEligibleOutcome::SavedSearchCreated => 'Saved search',
+            'signup' => 'New member signup',
+            'event_registration' => 'Event registration',
+            'event_checkin' => 'Event attendance',
+            'event_submission' => 'Event submission',
+            'event_save' => 'Saved event',
+            'event_going' => 'Marked going',
+            'institution_follow' => 'Institution follow',
+            'person_follow' => 'Person follow',
+            'series_follow' => 'Series follow',
+            'reference_follow' => 'Reference follow',
+            'saved_search_created' => 'Saved search',
+            default => $outcome,
         };
     }
 
@@ -395,11 +399,13 @@ final class RewardMemberPresenter
 
         $outcomes = [];
 
-        foreach ((array) ($eligibility['outcomes'] ?? []) as $outcome) {
-            $parsed = RewardEligibleOutcome::tryFrom((string) $outcome);
+        $allowed = config('rewards.outcomes', []);
 
-            if ($parsed instanceof RewardEligibleOutcome) {
-                $outcomes[] = ['outcome' => $parsed->value, 'label' => self::outcomeLabel($parsed)];
+        foreach ((array) ($eligibility['outcomes'] ?? []) as $outcome) {
+            $parsed = (string) $outcome;
+
+            if ($parsed !== '' && in_array($parsed, is_array($allowed) ? $allowed : [], true)) {
+                $outcomes[] = ['outcome' => $parsed, 'label' => self::outcomeLabel($parsed)];
             }
         }
 

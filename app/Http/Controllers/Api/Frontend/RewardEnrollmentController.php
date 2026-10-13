@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\Frontend;
 
-use App\Actions\Rewards\EnrollRewardMemberAction;
-use App\Actions\Rewards\LeaveRewardProgramAction;
-use App\Actions\Rewards\ReacceptRewardTermsAction;
-use App\Models\RewardEnrollment;
-use App\Models\RewardProgram;
-use App\Models\RewardProgramVersion;
+use AIArmada\Rewards\Actions\EnrollRewardMemberAction;
+use AIArmada\Rewards\Actions\LeaveRewardProgramAction;
+use AIArmada\Rewards\Actions\ReacceptRewardTermsAction;
+use AIArmada\Rewards\Models\RewardEnrollment;
+use AIArmada\Rewards\Models\RewardProgram;
+use AIArmada\Rewards\Models\RewardProgramVersion;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;

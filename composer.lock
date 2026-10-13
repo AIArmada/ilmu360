@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "fcc8587f3e351c33eaedb134742de6bf",
+    "content-hash": "d0240d59beb17680d802f891e1b76209",
     "packages": [
         {
             "name": "aiarmada/addressing",
@@ -1259,6 +1259,51 @@
             }
         },
         {
+            "name": "aiarmada/filament-rewards",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../commerce/packages/filament-rewards",
+                "reference": "98eb54740b4386d5f3153cff9be815dd929b4b7a"
+            },
+            "require": {
+                "aiarmada/commerce-support": "self.version",
+                "aiarmada/rewards": "self.version",
+                "filament/filament": "^5.8.1",
+                "php": "^8.5"
+            },
+            "suggest": {
+                "aiarmada/affiliates": "Enables the fraud-signal resource",
+                "aiarmada/filament-vouchers": "Enables deep linking from coupon benefits to vouchers"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "AIArmada\\FilamentRewards\\FilamentRewardsServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "AIArmada\\FilamentRewards\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "A Filament v5 plugin for administering reward programs provided by the AIArmada rewards package",
+            "homepage": "https://github.com/aiarmada/commerce",
+            "support": {
+                "issues": "https://github.com/aiarmada/commerce/issues",
+                "source": "https://github.com/aiarmada/commerce"
+            },
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
             "name": "aiarmada/filament-seating",
             "version": "dev-main",
             "dist": {
@@ -1900,6 +1945,47 @@
             }
         },
         {
+            "name": "aiarmada/rewards",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../commerce/packages/rewards",
+                "reference": "caf8eff0362244852ab67c4c1fdaf0b7bb0bbe0d"
+            },
+            "require": {
+                "aiarmada/commerce-support": "self.version",
+                "lorisleiva/laravel-actions": "^2.12.0",
+                "php": "^8.5",
+                "spatie/laravel-package-tools": "^1.93.2"
+            },
+            "suggest": {
+                "aiarmada/affiliates": "Enables the Affiliates-backed cash payout executor adapter",
+                "aiarmada/vouchers": "Enables coupon-backed benefit fulfillment"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "AIArmada\\Rewards\\RewardsServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "AIArmada\\Rewards\\": "src/",
+                    "AIArmada\\Rewards\\Database\\Factories\\": "database/factories/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Configurable reward programs (recognition, points, badges, cash, benefits) for Laravel applications",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
             "name": "aiarmada/seating",
             "version": "dev-main",
             "dist": {
@@ -1960,13 +2046,14 @@
             "dist": {
                 "type": "path",
                 "url": "../commerce/packages/shipping",
-                "reference": "f11727d7016e78db7c70b10df66b1966233c0fd2"
+                "reference": "f654938b678119bbe80b747c1cf69aba7c28589c"
             },
             "require": {
                 "aiarmada/commerce-support": "self.version",
                 "php": "^8.5"
             },
             "suggest": {
+                "aiarmada/addressing": "Validates destination shippability against per-country address profiles",
                 "aiarmada/cart": "Required for free shipping evaluation with cart subtotals",
                 "aiarmada/inventory": "Optional integration",
                 "aiarmada/orders": "Required for order fulfillment handler integration"
@@ -17542,12 +17629,12 @@
             "version": "v5.7.0",
             "source": {
                 "type": "git",
-                "url": "https://github.com/vlucas/phpdotenv.git",
+                "url": "https://github.com/phpdotenv/phpdotenv.git",
                 "reference": "301c07936b16d88628b126b01d082ba153cf4c40"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/vlucas/phpdotenv/zipball/301c07936b16d88628b126b01d082ba153cf4c40",
+                "url": "https://api.github.com/repos/phpdotenv/phpdotenv/zipball/301c07936b16d88628b126b01d082ba153cf4c40",
                 "reference": "301c07936b16d88628b126b01d082ba153cf4c40",
                 "shasum": ""
             },
@@ -23695,6 +23782,7 @@
         "aiarmada/filament-inventory": 20,
         "aiarmada/filament-organizations": 20,
         "aiarmada/filament-persons": 20,
+        "aiarmada/filament-rewards": 20,
         "aiarmada/filament-seating": 20,
         "aiarmada/filament-signals": 20,
         "aiarmada/filament-ticketing": 20,
@@ -23707,6 +23795,7 @@
         "aiarmada/persons": 20,
         "aiarmada/promotions": 20,
         "aiarmada/references": 20,
+        "aiarmada/rewards": 20,
         "aiarmada/seating": 20,
         "aiarmada/signals": 20,
         "aiarmada/tax": 20,

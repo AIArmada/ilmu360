@@ -10,38 +10,38 @@ use AIArmada\Affiliates\Models\AffiliatePayout;
 use AIArmada\Affiliates\Models\AffiliatePayoutMethod;
 use AIArmada\Affiliates\States\ApprovedConversion;
 use AIArmada\Affiliates\States\PaidConversion;
-use App\Actions\Rewards\ApproveRewardPayoutAction;
-use App\Actions\Rewards\CancelRewardPayoutAction;
-use App\Actions\Rewards\ConfirmRewardPayoutAction;
-use App\Actions\Rewards\EnrollRewardMemberAction;
-use App\Actions\Rewards\EvaluateRewardEntitlementAction;
-use App\Actions\Rewards\ReconcileRewardPayoutAction;
-use App\Actions\Rewards\RecordRewardFundingAction;
-use App\Actions\Rewards\RecordRewardFundingSourceAction;
-use App\Actions\Rewards\RequestRewardPayoutAction;
-use App\Actions\Rewards\SubmitRewardPayoutAction;
-use App\Actions\Rewards\TransitionRewardAwardAction;
-use App\Actions\Rewards\TransitionRewardProgramStatusAction;
-use App\Actions\Rewards\VerifyRewardPayeeAction;
-use App\Contracts\Rewards\RewardFinancialReadinessChecker;
-use App\Enums\Rewards\RewardAwardStatus;
-use App\Enums\Rewards\RewardBeneficiaryRole;
-use App\Enums\Rewards\RewardComponent;
-use App\Enums\Rewards\RewardEvaluationOutcome;
-use App\Enums\Rewards\RewardPayoutRequestStatus;
-use App\Enums\Rewards\RewardProgramMode;
-use App\Enums\Rewards\RewardProgramStatus;
-use App\Models\RewardAward;
-use App\Models\RewardBudgetMovement;
-use App\Models\RewardPayoutRequest;
-use App\Support\Rewards\RewardBudgetLedger;
+use AIArmada\Rewards\Actions\ApproveRewardPayoutAction;
+use AIArmada\Rewards\Actions\CancelRewardPayoutAction;
+use AIArmada\Rewards\Actions\ConfirmRewardPayoutAction;
+use AIArmada\Rewards\Actions\EnrollRewardMemberAction;
+use AIArmada\Rewards\Actions\EvaluateRewardEntitlementAction;
+use AIArmada\Rewards\Actions\ReconcileRewardPayoutAction;
+use AIArmada\Rewards\Actions\RecordRewardFundingAction;
+use AIArmada\Rewards\Actions\RecordRewardFundingSourceAction;
+use AIArmada\Rewards\Actions\RequestRewardPayoutAction;
+use AIArmada\Rewards\Actions\SubmitRewardPayoutAction;
+use AIArmada\Rewards\Actions\TransitionRewardAwardAction;
+use AIArmada\Rewards\Actions\TransitionRewardProgramStatusAction;
+use AIArmada\Rewards\Actions\VerifyRewardPayeeAction;
+use AIArmada\Rewards\Contracts\RewardFinancialReadinessChecker;
+use AIArmada\Rewards\Enums\RewardAwardStatus;
+use AIArmada\Rewards\Enums\RewardBeneficiaryRole;
+use AIArmada\Rewards\Enums\RewardComponent;
+use AIArmada\Rewards\Enums\RewardEvaluationOutcome;
+use AIArmada\Rewards\Enums\RewardPayoutRequestStatus;
+use AIArmada\Rewards\Enums\RewardProgramMode;
+use AIArmada\Rewards\Enums\RewardProgramStatus;
+use AIArmada\Rewards\Models\RewardAward;
+use AIArmada\Rewards\Models\RewardBudgetMovement;
+use AIArmada\Rewards\Models\RewardPayoutRequest;
+use AIArmada\Rewards\Support\RewardBudgetLedger;
 use App\Support\Rewards\RewardRecipientAffiliateResolver;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
-use Tests\Feature\Rewards\Ledgers\Support\FakeRewardSourceFactReader;
-use Tests\Feature\Rewards\Ledgers\Support\RewardLedgerFixtures;
+use Tests\Feature\Rewards\Host\Support\FakeRewardSourceFactReader;
+use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
 // R4 proof: truthful entitlement -> submitted -> paid -> fulfilled semantics
 // across BOTH ledgers, crash recovery at each durable boundary, stable
@@ -167,8 +167,8 @@ it('fulfills exact-funded program-paid payouts with zero surplus and settles bot
         ->and(RewardBudgetLedger::balances((string) $program->getKey(), 'MYR'))
         ->toBe(['funded' => 511, 'reserved' => 0, 'net_spent' => 511, 'available' => 0]);
 
-    $payout = AffiliatePayout::query()->whereKey((string) $request->affiliate_payout_id)->firstOrFail();
-    $conversion = AffiliateConversion::query()->whereKey((string) $request->backing_conversion_id)->firstOrFail();
+    $payout = AffiliatePayout::query()->whereKey((string) $request->external_payout_id)->firstOrFail();
+    $conversion = AffiliateConversion::query()->whereKey((string) $request->external_reference_id)->firstOrFail();
 
     expect($payout->status->getValue())->toBe('completed')
         ->and($payout->operation->status)->toBe('completed')
@@ -246,8 +246,8 @@ it('settles both ledgers on manual confirmation with the bank reference', functi
         ->and(RewardBudgetLedger::balances((string) $program->getKey(), 'MYR'))
         ->toBe(['funded' => 10000, 'reserved' => 0, 'net_spent' => 500, 'available' => 9500]);
 
-    $payout = AffiliatePayout::query()->whereKey((string) $request->affiliate_payout_id)->firstOrFail();
-    $conversion = AffiliateConversion::query()->whereKey((string) $request->backing_conversion_id)->firstOrFail();
+    $payout = AffiliatePayout::query()->whereKey((string) $request->external_payout_id)->firstOrFail();
+    $conversion = AffiliateConversion::query()->whereKey((string) $request->external_reference_id)->firstOrFail();
 
     expect($payout->status->getValue())->toBe('completed')
         ->and($payout->operation->status)->toBe('completed')
@@ -294,7 +294,7 @@ it('recovers the backing replay when a crash lands between posting and binding',
     );
 
     expect($request->status)->toBe(RewardPayoutRequestStatus::Submitted)
-        ->and((string) $request->backing_conversion_id)->toBe((string) $posted->conversion->id)
+        ->and((string) $request->external_reference_id)->toBe((string) $posted->conversion->id)
         ->and(AffiliateConversion::query()->where('affiliate_id', $recipient->getKey())->count())->toBe(1);
 });
 
@@ -333,7 +333,7 @@ it('recovers the orphan payout when a crash lands between creation and binding',
         ['reference' => (string) $request->first_reference],
     );
 
-    $request->forceFill(['backing_conversion_id' => (string) $posted->conversion->id])->save();
+    $request->forceFill(['external_reference_id' => (string) $posted->conversion->id])->save();
 
     // Retry binds the orphan (no second payout) and submits it.
     $request = SubmitRewardPayoutAction::run(
@@ -341,7 +341,7 @@ it('recovers the orphan payout when a crash lands between creation and binding',
     );
 
     expect($request->status)->toBe(RewardPayoutRequestStatus::Submitted)
-        ->and((string) $request->affiliate_payout_id)->toBe((string) $orphan->getKey())
+        ->and((string) $request->external_payout_id)->toBe((string) $orphan->getKey())
         ->and(AffiliatePayout::query()->where('reference', (string) $request->first_reference)->count())->toBe(1);
 });
 
@@ -398,8 +398,8 @@ it('sends once when a crash lands between binding and the provider call', functi
     );
 
     $request->forceFill([
-        'backing_conversion_id' => (string) $posted->conversion->id,
-        'affiliate_payout_id' => (string) $orphan->getKey(),
+        'external_reference_id' => (string) $posted->conversion->id,
+        'external_payout_id' => (string) $orphan->getKey(),
     ])->save();
 
     $request = SubmitRewardPayoutAction::run(
@@ -483,8 +483,8 @@ it('never double-sends when a crash lands between the provider call and its reco
         ->and($posts)->toBe(1);
 
     $request->forceFill([
-        'backing_conversion_id' => (string) $posted->conversion->id,
-        'affiliate_payout_id' => (string) $payout->getKey(),
+        'external_reference_id' => (string) $posted->conversion->id,
+        'external_payout_id' => (string) $payout->getKey(),
     ])->save();
 
     // Retry records the durable completion without a second provider call.
@@ -565,11 +565,11 @@ it('requeues confirmed failures under a fresh reserve and releases each attempt 
         ->and(RewardBudgetLedger::balances((string) $program->getKey(), 'MYR'))
         ->toBe(['funded' => 10000, 'reserved' => 0, 'net_spent' => 527, 'available' => 9473]);
 
-    $conversion = AffiliateConversion::query()->whereKey((string) $request->backing_conversion_id)->firstOrFail();
-    $second = AffiliatePayout::query()->whereKey((string) $request->affiliate_payout_id)->firstOrFail();
+    $conversion = AffiliateConversion::query()->whereKey((string) $request->external_reference_id)->firstOrFail();
+    $second = AffiliatePayout::query()->whereKey((string) $request->external_payout_id)->firstOrFail();
 
     expect($conversion->status->equals(PaidConversion::class))->toBeTrue()
-        ->and((string) $conversion->affiliate_payout_id)->toBe((string) $request->affiliate_payout_id)
+        ->and((string) $conversion->affiliate_payout_id)->toBe((string) $request->external_payout_id)
         ->and((string) $second->reference)->toBe((string) $request->first_reference.'-A2')
         ->and($request->evidence['prior_payouts'])->toHaveCount(1)
         ->and($request->evidence['prior_payouts'][0]['attempt'])->toBe(1)
@@ -692,8 +692,8 @@ it('cancels unsubmitted requests directly and never-sent operations through the 
     );
 
     $requestTwo->forceFill([
-        'backing_conversion_id' => (string) $posted->conversion->id,
-        'affiliate_payout_id' => (string) $payout->getKey(),
+        'external_reference_id' => (string) $posted->conversion->id,
+        'external_payout_id' => (string) $payout->getKey(),
     ])->save();
 
     $requestTwo = CancelRewardPayoutAction::run(

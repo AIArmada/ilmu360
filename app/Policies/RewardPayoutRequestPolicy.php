@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
-use App\Models\RewardAward;
-use App\Models\RewardPayoutRequest;
+use AIArmada\Rewards\Models\RewardAward;
+use AIArmada\Rewards\Models\RewardPayoutRequest;
 use App\Models\User;
 
 /**

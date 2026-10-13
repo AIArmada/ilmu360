@@ -6,16 +6,16 @@ use AIArmada\Communications\Enums\DeliveryStatus;
 use AIArmada\Communications\Models\Communication;
 use AIArmada\Communications\Models\CommunicationDelivery;
 use AIArmada\Communications\Models\NotificationInbox;
+use AIArmada\Rewards\Actions\EnrollRewardMemberAction;
+use AIArmada\Rewards\Actions\EvaluateRewardEntitlementAction;
+use AIArmada\Rewards\Actions\TransitionRewardAwardAction;
+use AIArmada\Rewards\Actions\TransitionRewardProgramStatusAction;
+use AIArmada\Rewards\Enums\RewardAwardStatus;
+use AIArmada\Rewards\Enums\RewardBeneficiaryRole;
+use AIArmada\Rewards\Enums\RewardComponent;
+use AIArmada\Rewards\Enums\RewardProgramMode;
+use AIArmada\Rewards\Enums\RewardProgramStatus;
 use App\Actions\Rewards\DispatchDueRewardDigestsAction;
-use App\Actions\Rewards\EnrollRewardMemberAction;
-use App\Actions\Rewards\EvaluateRewardEntitlementAction;
-use App\Actions\Rewards\TransitionRewardAwardAction;
-use App\Actions\Rewards\TransitionRewardProgramStatusAction;
-use App\Enums\Rewards\RewardAwardStatus;
-use App\Enums\Rewards\RewardBeneficiaryRole;
-use App\Enums\Rewards\RewardComponent;
-use App\Enums\Rewards\RewardProgramMode;
-use App\Enums\Rewards\RewardProgramStatus;
 use App\Models\RewardDigestSlot;
 use App\Models\User;
 use App\Services\Notifications\NotificationSettingsManager;
@@ -23,9 +23,9 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\ParallelTesting;
 use PHPUnit\Framework\Assert;
 use Symfony\Component\Process\Process;
+use Tests\Feature\Rewards\Host\Support\FakeRewardSourceFactReader;
 use Tests\Feature\Rewards\Host\Support\RewardFinanceWorkerDb;
-use Tests\Feature\Rewards\Ledgers\Support\FakeRewardSourceFactReader;
-use Tests\Feature\Rewards\Ledgers\Support\RewardLedgerFixtures;
+use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
 function digestRaceReadyDir(string $driver, string $case): string
 {

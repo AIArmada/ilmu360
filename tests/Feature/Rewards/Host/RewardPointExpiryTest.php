@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-use App\Actions\Rewards\CreditRewardPointsAction;
-use App\Actions\Rewards\TransitionRewardProgramStatusAction;
-use App\Enums\Rewards\RewardProgramMode;
-use App\Enums\Rewards\RewardProgramStatus;
-use App\Models\RewardPointLot;
+use AIArmada\Rewards\Actions\CreditRewardPointsAction;
+use AIArmada\Rewards\Actions\TransitionRewardProgramStatusAction;
+use AIArmada\Rewards\Enums\RewardProgramMode;
+use AIArmada\Rewards\Enums\RewardProgramStatus;
+use AIArmada\Rewards\Models\RewardPointLot;
+use AIArmada\Rewards\Support\RewardPointLedger;
 use App\Models\User;
-use App\Support\Rewards\RewardPointLedger;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
-use Tests\Feature\Rewards\Ledgers\Support\RewardLedgerFixtures;
+use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
 uses(RefreshDatabase::class);
 

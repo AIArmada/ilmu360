@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
-use App\Enums\Rewards\RewardProgramStatus;
-use App\Models\RewardEnrollment;
-use App\Models\RewardProgram;
+use AIArmada\Rewards\Enums\RewardProgramStatus;
+use AIArmada\Rewards\Models\RewardEnrollment;
+use AIArmada\Rewards\Models\RewardProgram;
 use App\Models\User;
 
 /**

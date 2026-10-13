@@ -14,24 +14,24 @@ declare(strict_types=1);
 
 use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\States\PaidConversion;
-use App\Actions\Rewards\ApproveRewardPayoutAction;
-use App\Actions\Rewards\ConfirmRewardPayoutAction;
-use App\Actions\Rewards\CreateRewardProgramAction;
-use App\Actions\Rewards\RecordRewardFundingAction;
-use App\Actions\Rewards\RecordRewardFundingSourceAction;
-use App\Actions\Rewards\RequestRewardPayoutAction;
-use App\Actions\Rewards\SubmitRewardPayoutAction;
-use App\Actions\Rewards\VerifyRewardPayeeAction;
-use App\Enums\Rewards\RewardAwardStatus;
-use App\Enums\Rewards\RewardBeneficiaryRole;
-use App\Enums\Rewards\RewardComponent;
-use App\Enums\Rewards\RewardPayoutRequestStatus;
-use App\Enums\Rewards\RewardProgramMode;
-use App\Models\RewardAward;
-use App\Models\RewardBudgetMovement;
-use App\Models\RewardProgram;
-use App\Models\RewardRecovery;
-use App\Support\Rewards\RewardBudgetLedger;
+use AIArmada\Rewards\Actions\ApproveRewardPayoutAction;
+use AIArmada\Rewards\Actions\ConfirmRewardPayoutAction;
+use AIArmada\Rewards\Actions\CreateRewardProgramAction;
+use AIArmada\Rewards\Actions\RecordRewardFundingAction;
+use AIArmada\Rewards\Actions\RecordRewardFundingSourceAction;
+use AIArmada\Rewards\Actions\RequestRewardPayoutAction;
+use AIArmada\Rewards\Actions\SubmitRewardPayoutAction;
+use AIArmada\Rewards\Actions\VerifyRewardPayeeAction;
+use AIArmada\Rewards\Enums\RewardAwardStatus;
+use AIArmada\Rewards\Enums\RewardBeneficiaryRole;
+use AIArmada\Rewards\Enums\RewardComponent;
+use AIArmada\Rewards\Enums\RewardPayoutRequestStatus;
+use AIArmada\Rewards\Enums\RewardProgramMode;
+use AIArmada\Rewards\Models\RewardAward;
+use AIArmada\Rewards\Models\RewardBudgetMovement;
+use AIArmada\Rewards\Models\RewardProgram;
+use AIArmada\Rewards\Models\RewardRecovery;
+use AIArmada\Rewards\Support\RewardBudgetLedger;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -45,7 +45,7 @@ function lcrProgram(string $family): RewardProgram
     config(['affiliates.notifications.enabled' => false]);
 
     $program = CreateRewardProgramAction::run(
-        $family, 'Race program', RewardProgramMode::Cash, 'platform', null, 'race-test',
+        $family, 'Race program', RewardProgramMode::Cash, null, null, 'race-test',
     );
 
     $funder = (string) Str::uuid();
@@ -362,7 +362,7 @@ function lcrLateCompletionCase(TestCase $testCase, string $driver): void
             ->toBe(['funded' => 10000, 'reserved' => 0, 'net_spent' => 527, 'available' => 9473])
             ->and(RewardBudgetMovement::query()->where('kind', 'spend')->count())->toBe(1);
 
-        $conversion = AffiliateConversion::query()->whereKey((string) $request->backing_conversion_id)->firstOrFail();
+        $conversion = AffiliateConversion::query()->whereKey((string) $request->external_reference_id)->firstOrFail();
 
         expect($conversion->status->equals(PaidConversion::class))->toBeTrue();
     } finally {

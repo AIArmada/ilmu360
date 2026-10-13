@@ -4,36 +4,36 @@ declare(strict_types=1);
 
 use AIArmada\Affiliates\Models\AffiliatePayout;
 use AIArmada\Affiliates\Models\AffiliatePayoutMethod;
-use App\Actions\Rewards\ApproveRewardPayoutAction;
-use App\Actions\Rewards\CancelRewardPayoutAction;
-use App\Actions\Rewards\ConfirmRewardPayoutAction;
-use App\Actions\Rewards\EnrollRewardMemberAction;
-use App\Actions\Rewards\EvaluateRewardEntitlementAction;
-use App\Actions\Rewards\ReconcileRewardPayoutAction;
-use App\Actions\Rewards\RecordRewardFundingAction;
-use App\Actions\Rewards\RecordRewardFundingSourceAction;
-use App\Actions\Rewards\RequestRewardPayoutAction;
-use App\Actions\Rewards\SubmitRewardPayoutAction;
-use App\Actions\Rewards\TransitionRewardAwardAction;
-use App\Actions\Rewards\TransitionRewardProgramStatusAction;
-use App\Actions\Rewards\VerifyRewardPayeeAction;
-use App\Contracts\Rewards\RewardFinancialReadinessChecker;
-use App\Enums\Rewards\RewardAwardStatus;
-use App\Enums\Rewards\RewardBeneficiaryRole;
-use App\Enums\Rewards\RewardComponent;
-use App\Enums\Rewards\RewardEvaluationOutcome;
-use App\Enums\Rewards\RewardPayoutRequestStatus;
-use App\Enums\Rewards\RewardProgramMode;
-use App\Enums\Rewards\RewardProgramStatus;
-use App\Models\RewardAward;
-use App\Support\Rewards\RewardBudgetLedger;
+use AIArmada\Rewards\Actions\ApproveRewardPayoutAction;
+use AIArmada\Rewards\Actions\CancelRewardPayoutAction;
+use AIArmada\Rewards\Actions\ConfirmRewardPayoutAction;
+use AIArmada\Rewards\Actions\EnrollRewardMemberAction;
+use AIArmada\Rewards\Actions\EvaluateRewardEntitlementAction;
+use AIArmada\Rewards\Actions\ReconcileRewardPayoutAction;
+use AIArmada\Rewards\Actions\RecordRewardFundingAction;
+use AIArmada\Rewards\Actions\RecordRewardFundingSourceAction;
+use AIArmada\Rewards\Actions\RequestRewardPayoutAction;
+use AIArmada\Rewards\Actions\SubmitRewardPayoutAction;
+use AIArmada\Rewards\Actions\TransitionRewardAwardAction;
+use AIArmada\Rewards\Actions\TransitionRewardProgramStatusAction;
+use AIArmada\Rewards\Actions\VerifyRewardPayeeAction;
+use AIArmada\Rewards\Contracts\RewardFinancialReadinessChecker;
+use AIArmada\Rewards\Enums\RewardAwardStatus;
+use AIArmada\Rewards\Enums\RewardBeneficiaryRole;
+use AIArmada\Rewards\Enums\RewardComponent;
+use AIArmada\Rewards\Enums\RewardEvaluationOutcome;
+use AIArmada\Rewards\Enums\RewardPayoutRequestStatus;
+use AIArmada\Rewards\Enums\RewardProgramMode;
+use AIArmada\Rewards\Enums\RewardProgramStatus;
+use AIArmada\Rewards\Models\RewardAward;
+use AIArmada\Rewards\Support\RewardBudgetLedger;
 use App\Support\Rewards\RewardPayoutProcessorCatalog;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
-use Tests\Feature\Rewards\Ledgers\Support\FakeRewardSourceFactReader;
-use Tests\Feature\Rewards\Ledgers\Support\RewardLedgerFixtures;
+use Tests\Feature\Rewards\Host\Support\FakeRewardSourceFactReader;
+use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
 uses(RefreshDatabase::class);
 
@@ -203,8 +203,8 @@ it('runs the manual bank pipeline from request to independent confirmation and f
     );
 
     expect($request->status)->toBe(RewardPayoutRequestStatus::Submitted)
-        ->and($request->backing_conversion_id)->not->toBeNull()
-        ->and($request->affiliate_payout_id)->not->toBeNull();
+        ->and($request->external_reference_id)->not->toBeNull()
+        ->and($request->external_payout_id)->not->toBeNull();
 
     // Requester cannot confirm their own request either.
     expect(fn () => ConfirmRewardPayoutAction::run(
@@ -492,7 +492,7 @@ it('resolves stripe unknown payouts by resend or late completion with exact acco
 
     expect($fulfilledOne->status)->toBe(RewardAwardStatus::Fulfilled);
 
-    $operationId = AffiliatePayout::query()->whereKey((string) $requestOne->affiliate_payout_id)->firstOrFail()->operation->id;
+    $operationId = AffiliatePayout::query()->whereKey((string) $requestOne->external_payout_id)->firstOrFail()->operation->id;
 
     $transferPosts = Http::recorded(
         fn ($request) => $request->method() === 'POST' && str_ends_with($request->url(), '/v1/transfers')
@@ -508,7 +508,7 @@ it('resolves stripe unknown payouts by resend or late completion with exact acco
                 'destination' => 'acct_frozen_one',
                 'transfer_group' => (string) $operationId,
                 'metadata' => [
-                    'payout_id' => (string) $requestOne->affiliate_payout_id,
+                    'payout_id' => (string) $requestOne->external_payout_id,
                     'operation_id' => (string) $operationId,
                 ],
             ]);

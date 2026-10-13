@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-use App\Actions\Rewards\CreateRewardBenefitItemAction;
-use App\Actions\Rewards\CreditRewardPointsAction;
-use App\Actions\Rewards\EnrollRewardMemberAction;
-use App\Actions\Rewards\RecordRewardFundingAction;
-use App\Actions\Rewards\RecordRewardFundingSourceAction;
-use App\Actions\Rewards\TransitionRewardProgramStatusAction;
-use App\Actions\Rewards\VerifyRewardPayeeAction;
-use App\Enums\Rewards\RewardProgramMode;
-use App\Enums\Rewards\RewardProgramStatus;
-use App\Filament\Resources\RewardBenefitGrants\Pages\ListRewardBenefitGrants;
-use App\Filament\Resources\RewardBenefitItems\Pages\ListRewardBenefitItems;
-use App\Filament\Resources\RewardFraud\Pages\ListRewardFraudCases;
-use App\Filament\Resources\RewardFunding\Pages\ListRewardFunding;
-use App\Filament\Resources\RewardPayees\Pages\ListRewardPayees;
-use App\Filament\Resources\RewardPayouts\Pages\ListRewardPayouts;
-use App\Filament\Resources\RewardRecoveries\Pages\ListRewardRecoveries;
+use AIArmada\FilamentRewards\Resources\RewardBenefitGrantResource\Pages\ListRewardBenefitGrants;
+use AIArmada\FilamentRewards\Resources\RewardBenefitItemResource\Pages\ListRewardBenefitItems;
+use AIArmada\FilamentRewards\Resources\RewardFraudResource\Pages\ListRewardFraudCases;
+use AIArmada\FilamentRewards\Resources\RewardFundingResource\Pages\ListRewardFunding;
+use AIArmada\FilamentRewards\Resources\RewardPayeeResource\Pages\ListRewardPayees;
+use AIArmada\FilamentRewards\Resources\RewardPayoutResource\Pages\ListRewardPayouts;
+use AIArmada\FilamentRewards\Resources\RewardRecoveryResource\Pages\ListRewardRecoveries;
+use AIArmada\Rewards\Actions\CreateRewardBenefitItemAction;
+use AIArmada\Rewards\Actions\CreditRewardPointsAction;
+use AIArmada\Rewards\Actions\EnrollRewardMemberAction;
+use AIArmada\Rewards\Actions\RecordRewardFundingAction;
+use AIArmada\Rewards\Actions\RecordRewardFundingSourceAction;
+use AIArmada\Rewards\Actions\TransitionRewardProgramStatusAction;
+use AIArmada\Rewards\Actions\VerifyRewardPayeeAction;
+use AIArmada\Rewards\Enums\RewardProgramMode;
+use AIArmada\Rewards\Enums\RewardProgramStatus;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Database\Seeders\PermissionSeeder;
@@ -26,7 +26,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Spatie\Permission\PermissionRegistrar;
-use Tests\Feature\Rewards\Ledgers\Support\RewardLedgerFixtures;
+use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
 uses(RefreshDatabase::class);
 

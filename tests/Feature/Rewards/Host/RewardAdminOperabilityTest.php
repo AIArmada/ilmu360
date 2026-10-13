@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-use App\Actions\Rewards\CreateRewardProgramAction;
-use App\Actions\Rewards\PublishRewardProgramVersionAction;
-use App\Actions\Rewards\RegisterRewardPayeeAction;
-use App\Enums\Rewards\RewardPayeeStatus;
-use App\Enums\Rewards\RewardProgramMode;
-use App\Filament\Resources\RewardPayees\Pages\ListRewardPayees;
-use App\Filament\Resources\RewardPrograms\Pages\CreateRewardProgram;
-use App\Filament\Resources\RewardPrograms\Pages\ViewRewardProgram;
+use AIArmada\FilamentRewards\Resources\RewardPayeeResource\Pages\ListRewardPayees;
+use AIArmada\FilamentRewards\Resources\RewardProgramResource\Pages\CreateRewardProgram;
+use AIArmada\FilamentRewards\Resources\RewardProgramResource\Pages\ViewRewardProgram;
+use AIArmada\Rewards\Actions\CreateRewardProgramAction;
+use AIArmada\Rewards\Actions\PublishRewardProgramVersionAction;
+use AIArmada\Rewards\Actions\RegisterRewardPayeeAction;
+use AIArmada\Rewards\Enums\RewardPayeeStatus;
+use AIArmada\Rewards\Enums\RewardProgramMode;
+use AIArmada\Rewards\Models\RewardPayee;
+use AIArmada\Rewards\Models\RewardProgram;
+use AIArmada\Rewards\Support\RewardPublishAssembler;
+use AIArmada\Rewards\Support\RewardRuleValidator;
 use App\Models\Institution;
-use App\Models\RewardPayee;
-use App\Models\RewardProgram;
 use App\Models\User;
-use App\Support\Rewards\RewardPublishAssembler;
-use App\Support\Rewards\RewardRuleValidator;
 use Carbon\CarbonImmutable;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -96,7 +96,7 @@ function operabilityFormData(RewardProgramMode $mode): array
 
 it('publishes every mode from structured controls without hand-written JSON', function (RewardProgramMode $mode) {
     $program = CreateRewardProgramAction::run(
-        'op-'.$mode->value, 'Operability '.$mode->value, $mode, 'platform', null, 'Operability scope.',
+        'op-'.$mode->value, 'Operability '.$mode->value, $mode, null, null, 'Operability scope.',
     );
 
     $payload = RewardPublishAssembler::assemble($mode, operabilityFormData($mode));
@@ -143,7 +143,7 @@ it('refuses to publish with no enabled component', function () {
 
 it('renders the publish page with structured controls and no JSON boxes', function () {
     $program = CreateRewardProgramAction::run(
-        'op-render', 'Operability render', RewardProgramMode::Points, 'platform', null, 'Render scope.',
+        'op-render', 'Operability render', RewardProgramMode::Points, null, null, 'Render scope.',
     );
 
     Livewire::actingAs($this->staff)

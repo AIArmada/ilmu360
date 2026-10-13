@@ -8,11 +8,12 @@ use AIArmada\Affiliates\Contracts\AffiliateAwardPolicy;
 use AIArmada\Affiliates\Data\AffiliateAwardDecision;
 use AIArmada\Affiliates\Data\AffiliateAwardProposal;
 use AIArmada\Affiliates\Models\Affiliate;
-use App\Enums\Rewards\RewardAwardStatus;
-use App\Enums\Rewards\RewardComponent;
-use App\Enums\Rewards\RewardPayoutRequestStatus;
-use App\Models\RewardAward;
-use App\Models\RewardPayoutRequest;
+use AIArmada\Rewards\Enums\RewardAwardStatus;
+use AIArmada\Rewards\Enums\RewardComponent;
+use AIArmada\Rewards\Enums\RewardPayoutRequestStatus;
+use AIArmada\Rewards\Models\RewardAward;
+use AIArmada\Rewards\Models\RewardPayoutRequest;
+use AIArmada\Rewards\Support\RewardBudgetLedger;
 use App\Support\ShareTracking\ShareTrackingProfile;
 
 /**
@@ -92,7 +93,7 @@ final class RewardCashAwardPolicy implements AffiliateAwardPolicy
             return AffiliateAwardDecision::deny('Proposal amount/currency must match the frozen gross backing exactly.');
         }
 
-        if ($request->backing_conversion_id !== null) {
+        if ($request->external_reference_id !== null) {
             return AffiliateAwardDecision::deny('Cash backing is already posted for this payout request.');
         }
 

@@ -6,17 +6,17 @@ declare(strict_types=1);
 // OS process (`php RewardFundingRaceWorker.php --driver=... ...`); returns
 // immediately when merely included, so test runners never execute it.
 
-use App\Actions\Rewards\EvaluateRewardEntitlementAction;
-use App\Actions\Rewards\RecordRewardFundingAction;
-use App\Enums\Rewards\RewardBeneficiaryRole;
-use App\Enums\Rewards\RewardComponent;
-use App\Models\RewardProgram;
-use App\Support\Rewards\RewardBudgetLedger;
+use AIArmada\Rewards\Actions\EvaluateRewardEntitlementAction;
+use AIArmada\Rewards\Actions\RecordRewardFundingAction;
+use AIArmada\Rewards\Enums\RewardBeneficiaryRole;
+use AIArmada\Rewards\Enums\RewardComponent;
+use AIArmada\Rewards\Models\RewardProgram;
+use AIArmada\Rewards\Support\RewardBudgetLedger;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
-use Tests\Feature\Rewards\Ledgers\Support\FakeRewardSourceFactReader;
-use Tests\Feature\Rewards\Ledgers\Support\RewardLedgerFixtures;
+use Tests\Feature\Rewards\Host\Support\FakeRewardSourceFactReader;
+use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
 if (PHP_SAPI !== 'cli' || realpath($_SERVER['SCRIPT_FILENAME'] ?? '') !== __FILE__) {
     return;

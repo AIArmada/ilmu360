@@ -2,44 +2,44 @@
 
 declare(strict_types=1);
 
-use App\Actions\Rewards\AcknowledgeRewardRecognitionAction;
-use App\Actions\Rewards\ApplyRewardSourceCorrectionsAction;
-use App\Actions\Rewards\ApproveRewardPayoutAction;
-use App\Actions\Rewards\ConfirmRewardPayoutAction;
-use App\Actions\Rewards\CreateRewardBenefitItemAction;
-use App\Actions\Rewards\CreateRewardProgramAction;
-use App\Actions\Rewards\EnrollRewardMemberAction;
-use App\Actions\Rewards\FulfillRewardBenefitAction;
-use App\Actions\Rewards\PublishRewardProgramVersionAction;
-use App\Actions\Rewards\RecordRewardBenefitRecallAction;
-use App\Actions\Rewards\RecordRewardFundingAction;
-use App\Actions\Rewards\RecordRewardFundingSourceAction;
-use App\Actions\Rewards\RequestRewardPayoutAction;
-use App\Actions\Rewards\RevokeRewardBenefitGrantAction;
-use App\Actions\Rewards\SettleRewardRecoveryAction;
-use App\Actions\Rewards\SubmitRewardPayoutAction;
-use App\Actions\Rewards\TransitionRewardAwardAction;
-use App\Actions\Rewards\TransitionRewardProgramStatusAction;
-use App\Actions\Rewards\VerifyRewardPayeeAction;
-use App\Enums\Rewards\RewardAwardStatus;
-use App\Enums\Rewards\RewardBenefitGrantStatus;
-use App\Enums\Rewards\RewardPayoutRequestStatus;
-use App\Enums\Rewards\RewardProgramMode;
-use App\Enums\Rewards\RewardProgramStatus;
-use App\Enums\Rewards\RewardRecoveryStatus;
-use App\Jobs\Rewards\EvaluateRewardEntitlementJob;
+use AIArmada\Rewards\Actions\AcknowledgeRewardRecognitionAction;
+use AIArmada\Rewards\Actions\ApplyRewardSourceCorrectionsAction;
+use AIArmada\Rewards\Actions\ApproveRewardPayoutAction;
+use AIArmada\Rewards\Actions\ConfirmRewardPayoutAction;
+use AIArmada\Rewards\Actions\CreateRewardBenefitItemAction;
+use AIArmada\Rewards\Actions\CreateRewardProgramAction;
+use AIArmada\Rewards\Actions\EnrollRewardMemberAction;
+use AIArmada\Rewards\Actions\FulfillRewardBenefitAction;
+use AIArmada\Rewards\Actions\PublishRewardProgramVersionAction;
+use AIArmada\Rewards\Actions\RecordRewardBenefitRecallAction;
+use AIArmada\Rewards\Actions\RecordRewardFundingAction;
+use AIArmada\Rewards\Actions\RecordRewardFundingSourceAction;
+use AIArmada\Rewards\Actions\RequestRewardPayoutAction;
+use AIArmada\Rewards\Actions\RevokeRewardBenefitGrantAction;
+use AIArmada\Rewards\Actions\SettleRewardRecoveryAction;
+use AIArmada\Rewards\Actions\SubmitRewardPayoutAction;
+use AIArmada\Rewards\Actions\TransitionRewardAwardAction;
+use AIArmada\Rewards\Actions\TransitionRewardProgramStatusAction;
+use AIArmada\Rewards\Actions\VerifyRewardPayeeAction;
+use AIArmada\Rewards\Enums\RewardAwardStatus;
+use AIArmada\Rewards\Enums\RewardBenefitGrantStatus;
+use AIArmada\Rewards\Enums\RewardPayoutRequestStatus;
+use AIArmada\Rewards\Enums\RewardProgramMode;
+use AIArmada\Rewards\Enums\RewardProgramStatus;
+use AIArmada\Rewards\Enums\RewardRecoveryStatus;
+use AIArmada\Rewards\Jobs\EvaluateRewardEntitlementJob;
+use AIArmada\Rewards\Models\RewardAward;
+use AIArmada\Rewards\Models\RewardBadgeGrant;
+use AIArmada\Rewards\Models\RewardBenefitGrant;
+use AIArmada\Rewards\Models\RewardEnrollment;
+use AIArmada\Rewards\Models\RewardPointLot;
+use AIArmada\Rewards\Models\RewardProgram;
+use AIArmada\Rewards\Models\RewardRecovery;
+use AIArmada\Rewards\Support\RewardPointLedger;
+use AIArmada\Rewards\Support\RewardPublishAssembler;
 use App\Models\EventCheckin;
-use App\Models\RewardAward;
-use App\Models\RewardBadgeGrant;
-use App\Models\RewardBenefitGrant;
-use App\Models\RewardEnrollment;
-use App\Models\RewardPointLot;
-use App\Models\RewardProgram;
-use App\Models\RewardRecovery;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\User;
-use App\Support\Rewards\RewardPointLedger;
-use App\Support\Rewards\RewardPublishAssembler;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Carbon\CarbonImmutable;
 use Database\Seeders\PermissionSeeder;
@@ -140,7 +140,7 @@ function journeyFormData(RewardProgramMode $mode): array
 function journeyProgram(string $prefix, RewardProgramMode $mode, string $staffId): array
 {
     $program = CreateRewardProgramAction::run(
-        $prefix, 'Journey '.$prefix, $mode, 'platform', null, 'Journey scope.',
+        $prefix, 'Journey '.$prefix, $mode, null, null, 'Journey scope.',
     );
 
     $payload = RewardPublishAssembler::assemble($mode, journeyFormData($mode));

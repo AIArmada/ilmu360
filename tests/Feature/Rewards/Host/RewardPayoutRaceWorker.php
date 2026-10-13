@@ -8,11 +8,11 @@ declare(strict_types=1);
 // autoloaders never execute it.
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Actions\Rewards\CancelRewardPayoutAction;
-use App\Actions\Rewards\ReconcileRewardPayoutAction;
-use App\Actions\Rewards\ReverseRewardFulfillmentAction;
-use App\Actions\Rewards\SubmitRewardPayoutAction;
-use App\Models\RewardAward;
+use AIArmada\Rewards\Actions\CancelRewardPayoutAction;
+use AIArmada\Rewards\Actions\ReconcileRewardPayoutAction;
+use AIArmada\Rewards\Actions\ReverseRewardFulfillmentAction;
+use AIArmada\Rewards\Actions\SubmitRewardPayoutAction;
+use AIArmada\Rewards\Models\RewardAward;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;

@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace App\Actions\Rewards;
 
+use AIArmada\Rewards\Enums\RewardAwardStatus;
+use AIArmada\Rewards\Enums\RewardBadgeStatus;
+use AIArmada\Rewards\Enums\RewardMilestoneStatus;
+use AIArmada\Rewards\Models\RewardAward;
+use AIArmada\Rewards\Models\RewardBadgeGrant;
+use AIArmada\Rewards\Models\RewardMilestoneCycle;
 use App\Enums\NotificationCadence;
 use App\Enums\NotificationTrigger;
-use App\Enums\Rewards\RewardAwardStatus;
-use App\Enums\Rewards\RewardBadgeStatus;
-use App\Enums\Rewards\RewardMilestoneStatus;
-use App\Models\RewardAward;
-use App\Models\RewardBadgeGrant;
 use App\Models\RewardDigestSlot;
-use App\Models\RewardMilestoneCycle;
 use App\Models\User;
 use App\Services\Notifications\NotificationSettingsManager;
 use Carbon\CarbonImmutable;

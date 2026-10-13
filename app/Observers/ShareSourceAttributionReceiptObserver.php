@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Observers;
 
-use App\Jobs\Rewards\EvaluateRewardEntitlementJob;
+use AIArmada\Rewards\Jobs\EvaluateRewardEntitlementJob;
 use App\Models\ShareSourceAttributionReceipt;
 
 class ShareSourceAttributionReceiptObserver

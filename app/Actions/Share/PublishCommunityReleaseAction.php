@@ -9,7 +9,7 @@ use AIArmada\Affiliates\Models\AffiliateAttribution;
 use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateFraudSignal;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
-use App\Actions\Rewards\CreateRewardProgramAction;
+use AIArmada\Rewards\Actions\CreateRewardProgramAction;
 use App\Enums\DawahShareOutcomeType;
 use App\Models\CommunityRelease;
 use App\Models\Registration;

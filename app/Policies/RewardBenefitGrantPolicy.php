@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
-use App\Models\RewardBenefitGrant;
+use AIArmada\Rewards\Models\RewardBenefitGrant;
 use App\Models\User;
 
 /**
