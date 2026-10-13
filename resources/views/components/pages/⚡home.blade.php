@@ -161,13 +161,7 @@ new
                     continue;
                 }
 
-                $addressLabel = implode(', ', array_filter([
-                    $address?->line1,
-                    $address?->line2,
-                    $address?->postcode,
-                    $addressDisplayLines['locality'] ?? null,
-                    $addressDisplayLines['regional'] ?? null,
-                ]));
+                $addressLabel = AddressHierarchyFormatter::formatBlock($address);
                 $directionsUrl = filled($googleMapsUrl)
                     ? (string) $googleMapsUrl
                     : ($coordinates !== null

@@ -22,6 +22,8 @@ beforeEach(function (): void {
     $geo = createTestPackageGeography('Selangor', 'Petaling', 'Subang Jaya');
     syncPrimaryAddressForTest($this->venue, [
         ...$geo['address'],
+        'line1' => 'Jalan USJ 1/1, Subang Jaya',
+        'postcode' => '47600',
         'city' => 'Subang Jaya',
         'state' => 'Selangor',
         'google_maps_url' => 'https://maps.google.com/?q=3.1,101.6',
@@ -70,11 +72,11 @@ it('renders the occurrence page with a bounded enriched query budget', function 
         ->assertSee('Siri Khas Muamalat')
         ->assertSee('Tadabbur Muamalat Test')
         ->assertSee('Dewan Al-Ikhlas Test')
-        // Canonical structured address lines (city / district / state), the
-        // same hierarchy formatter the parent event page uses.
-        ->assertSee('Subang Jaya')
-        ->assertSee('Petaling')
-        ->assertSee('Selangor')
+        // Ruled MY block: street (mukim rides in the street line),
+        // postcode joined with the daerah partner, daerah + state.
+        ->assertSee('Jalan USJ 1/1, Subang Jaya')
+        ->assertSee('47600, Petaling')
+        ->assertSee('Petaling, Selangor')
         ->assertSee('Buka Peta')
         ->assertSee('Tambah ke Kalendar');
 

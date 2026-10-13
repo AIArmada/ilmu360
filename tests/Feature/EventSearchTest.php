@@ -647,6 +647,10 @@ describe('Event Search Filters', function () {
     it('shows event location with subdistrict, district, and state on cards', function () {
         $geo = createTestPackageGeography('Selangor', 'Gombak', 'Taman Melawati');
 
+        // Taman Melawati is a town: the helper's generic subdistrict type
+        // would (correctly) read rural and partner the daerah instead.
+        $geo['subdistrict']->update(['type' => 'bandar']);
+
         $venue = Venue::factory()->create([
             'name' => 'Surau Taman Melawati',
             'status' => 'verified',

@@ -321,7 +321,7 @@
                         <address class="mt-2 text-sm leading-6 text-slate-600 not-italic">
                             @if(filled($primaryAddress->line1))<span class="block">{{ $primaryAddress->line1 }}</span>@endif
                             @if(filled($primaryAddress->line2))<span class="block">{{ $primaryAddress->line2 }}</span>@endif
-                            <span class="block">{{ implode(', ', array_filter([$primaryAddress->postcode, $addressDisplayLines['locality'] ?? null])) }}</span>
+                            @if(filled($addressDisplayLines['locality'] ?? null))<span class="block">{{ $addressDisplayLines['locality'] }}</span>@endif
                             @if(filled($addressDisplayLines['regional'] ?? null))<span class="block">{{ $addressDisplayLines['regional'] }}</span>@endif
                         </address>
                     @endif

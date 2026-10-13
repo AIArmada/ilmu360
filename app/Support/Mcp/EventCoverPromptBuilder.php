@@ -635,7 +635,7 @@ class EventCoverPromptBuilder
             'country' => $address->country instanceof Model ? $address->country->name : $address->country,
             'state' => $address->state,
             'district' => $address->city,
-            'subdistrict' => $address->neighbourhood,
+            'subdistrict' => AddressHierarchyFormatter::subdivisionOrLocalityName($address),
             'city' => $address->city,
         ];
     }

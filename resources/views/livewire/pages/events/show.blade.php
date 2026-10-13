@@ -57,12 +57,7 @@
     $lat = $primaryAddress?->latitude;
     $lng = $primaryAddress?->longitude;
     $addressDisplayLines = \App\Support\Location\AddressHierarchyFormatter::displayLines($primaryAddress);
-    $locationParts = \App\Support\Location\AddressHierarchyFormatter::parts($primaryAddress);
-    $locationState = $locationParts[1] ?? null;
-    $locationDistrict = $locationParts[0] ?? null;
-    $locationShortLabel = $primaryAddress !== null
-        ? implode(', ', array_filter($locationDistrict !== $locationState ? [$locationDistrict, $locationState] : [$locationState]))
-        : '';
+    $locationShortLabel = \App\Support\Location\AddressHierarchyFormatter::formatShort($primaryAddress);
     $locationDirections = is_array($locationAddress?->metadata)
         ? ($locationAddress->metadata['directions'] ?? null)
         : null;
@@ -670,7 +665,7 @@
                                     <address class="mt-4 not-italic leading-7 text-slate-600">
                                         @if(filled($primaryAddress->line1))<span class="block">{{ $primaryAddress->line1 }}</span>@endif
                                         @if(filled($primaryAddress->line2))<span class="block">{{ $primaryAddress->line2 }}</span>@endif
-                                        <span class="block">{{ implode(', ', array_filter([$primaryAddress->postcode, $addressDisplayLines['locality'] ?? null])) }}</span>
+                                        @if(filled($addressDisplayLines['locality'] ?? null))<span class="block">{{ $addressDisplayLines['locality'] }}</span>@endif
                                         @if(filled($addressDisplayLines['regional'] ?? null))<span class="block">{{ $addressDisplayLines['regional'] }}</span>@endif
                                     </address>
                                 @endif
