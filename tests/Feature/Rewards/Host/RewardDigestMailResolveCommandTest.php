@@ -26,46 +26,17 @@ use Database\Seeders\RoleSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Mail\Transport\ArrayTransport;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Spatie\Permission\PermissionRegistrar;
-use Symfony\Component\Mailer\Envelope;
 use Symfony\Component\Mailer\Exception\TransportException;
-use Symfony\Component\Mailer\SentMessage;
-use Symfony\Component\Mailer\Transport\TransportInterface;
-use Symfony\Component\Mime\RawMessage;
+use Tests\Feature\Rewards\Host\ResolveCmdThrowTransport;
 use Tests\Feature\Rewards\Host\Support\FakeRewardSourceFactReader;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
 uses(RefreshDatabase::class);
-
-final class ResolveCmdThrowTransport implements TransportInterface
-{
-    public function __construct(
-        private readonly string $observer,
-        private readonly ArrayTransport $inner,
-    ) {}
-
-    public function send(RawMessage $message, ?Envelope $envelope = null): ?SentMessage
-    {
-        file_put_contents($this->observer, "accepted\n", FILE_APPEND);
-
-        throw new TransportException('simulated transport timeout after provider acceptance');
-    }
-
-    public function messages(): Collection
-    {
-        return $this->inner->messages();
-    }
-
-    public function __toString(): string
-    {
-        return 'resolve-cmd-throw';
-    }
-}
 
 function resolveCmdMailCount(): int
 {

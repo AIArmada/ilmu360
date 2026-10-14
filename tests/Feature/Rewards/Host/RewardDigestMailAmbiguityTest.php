@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use AIArmada\Communications\Contracts\CommunicationRecorder;
-use AIArmada\Communications\Data\CommunicationContextData;
 use AIArmada\Communications\Enums\CommunicationStatus;
 use AIArmada\Communications\Enums\DeliveryStatus;
 use AIArmada\Communications\Models\Communication;
@@ -33,131 +32,18 @@ use App\Support\Communications\GuardedDeliverySend;
 use Carbon\CarbonImmutable;
 use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Mail\Transport\ArrayTransport;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
-use Symfony\Component\Mailer\Envelope;
 use Symfony\Component\Mailer\Exception\TransportException;
-use Symfony\Component\Mailer\SentMessage;
-use Symfony\Component\Mailer\Transport\TransportInterface;
-use Symfony\Component\Mime\RawMessage;
+use Tests\Feature\Rewards\Host\DigestMailAcceptThenThrowLogicTransport;
+use Tests\Feature\Rewards\Host\DigestMailAcceptThenThrowTransport;
+use Tests\Feature\Rewards\Host\DigestMailLogicThrowTransport;
+use Tests\Feature\Rewards\Host\DigestMailThrowOnceRecorder;
 use Tests\Feature\Rewards\Host\Support\FakeRewardSourceFactReader;
 use Tests\Feature\Rewards\Host\Support\RewardFinanceWorkerDb;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
-
-final class DigestMailThrowOnceRecorder implements CommunicationRecorder
-{
-    private bool $thrown = false;
-
-    public function __construct(
-        private readonly CommunicationRecorderService $inner,
-    ) {}
-
-    public function createCommunication(CommunicationContextData $context): Communication
-    {
-        return $this->inner->createCommunication($context);
-    }
-
-    public function markSending(string $communicationId, string $deliveryId): void
-    {
-        $this->inner->markSending($communicationId, $deliveryId);
-    }
-
-    public function markSent(string $communicationId, string $deliveryId, array $result): void
-    {
-        if (! $this->thrown) {
-            $this->thrown = true;
-
-            throw new RuntimeException('simulated recording crash after provider acceptance');
-        }
-
-        $this->inner->markSent($communicationId, $deliveryId, $result);
-    }
-
-    public function markFailed(string $communicationId, string $deliveryId, string $failureMessage): void
-    {
-        $this->inner->markFailed($communicationId, $deliveryId, $failureMessage);
-    }
-
-    public function cancelCommunication(string $communicationId): void
-    {
-        $this->inner->cancelCommunication($communicationId);
-    }
-}
-
-final class DigestMailAcceptThenThrowTransport implements TransportInterface
-{
-    public function __construct(
-        private readonly string $observer,
-        private readonly ArrayTransport $inner,
-    ) {}
-
-    public function send(RawMessage $message, ?Envelope $envelope = null): ?SentMessage
-    {
-        file_put_contents($this->observer, "accepted\n", FILE_APPEND);
-
-        throw new TransportException('simulated transport timeout after provider acceptance');
-    }
-
-    public function messages(): Collection
-    {
-        return $this->inner->messages();
-    }
-
-    public function __toString(): string
-    {
-        return 'accept-then-throw';
-    }
-}
-
-final class DigestMailLogicThrowTransport implements TransportInterface
-{
-    public function __construct(
-        private readonly ArrayTransport $inner,
-    ) {}
-
-    public function send(RawMessage $message, ?Envelope $envelope = null): ?SentMessage
-    {
-        throw new InvalidArgumentException('simulated logic failure inside transport: invalid recipient');
-    }
-
-    public function messages(): Collection
-    {
-        return $this->inner->messages();
-    }
-
-    public function __toString(): string
-    {
-        return 'logic-throw';
-    }
-}
-
-final class DigestMailAcceptThenThrowLogicTransport implements TransportInterface
-{
-    public function __construct(
-        private readonly string $observer,
-        private readonly ArrayTransport $inner,
-    ) {}
-
-    public function send(RawMessage $message, ?Envelope $envelope = null): ?SentMessage
-    {
-        file_put_contents($this->observer, "accepted\n", FILE_APPEND);
-
-        throw new LogicException('simulated logic failure after provider acceptance');
-    }
-
-    public function messages(): Collection
-    {
-        return $this->inner->messages();
-    }
-
-    public function __toString(): string
-    {
-        return 'accept-then-throw-logic';
-    }
-}
 
 function mailAmbiguityObserverFile(string $driver): string
 {

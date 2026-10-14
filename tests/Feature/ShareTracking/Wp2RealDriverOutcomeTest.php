@@ -16,7 +16,6 @@ declare(strict_types=1);
 // Guarded test-only worker databases: loopback isolated ports/databases
 // only. Never the live application database (ilmu360 / 127.0.0.1:5432).
 
-use AIArmada\Affiliates\Contracts\FraudRule;
 use AIArmada\Affiliates\Enums\FraudSeverity;
 use AIArmada\Affiliates\Enums\FraudSignalStatus;
 use AIArmada\Affiliates\Models\Affiliate;
@@ -50,6 +49,7 @@ use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Tests\Feature\ShareTracking\Wp1RealDriverHarness;
 use Tests\Feature\ShareTracking\Wp2RealDriverHarness;
+use Tests\Feature\ShareTracking\Wp2ThrowingFraudRule;
 use Tests\TestCase;
 
 function wp2ConversionStatusValue(AffiliateConversion $conversion): string
@@ -108,38 +108,6 @@ function wp2OutcomeRequest(?string $cookie = null): Request
     }
 
     return $request;
-}
-
-final class Wp2ThrowingFraudRule implements FraudRule
-{
-    public function ruleCode(): string
-    {
-        return 'WP2_THROW';
-    }
-
-    public function analyzeClick(Affiliate $affiliate, Request $request, array $context): ?AffiliateFraudSignal
-    {
-        return null;
-    }
-
-    public function analyzeConversion(AffiliateConversion $conversion, array $context): ?AffiliateFraudSignal
-    {
-        // A real persisted signal write first: the rollback proof must
-        // cover fraud rows, not just the conversion.
-        AffiliateFraudSignal::query()->create([
-            'affiliate_id' => $conversion->affiliate_id,
-            'conversion_id' => $conversion->getKey(),
-            'rule_code' => $this->ruleCode(),
-            'risk_points' => 10,
-            'severity' => FraudSeverity::Low,
-            'description' => 'WP2 injected failure probe',
-            'evidence' => ['wp2' => true],
-            'status' => FraudSignalStatus::Detected,
-            'detected_at' => CarbonImmutable::now(),
-        ]);
-
-        throw new RuntimeException('wp2 injected fraud-stage failure');
-    }
 }
 
 function wp2OutcomeCase(TestCase $testCase, string $driver): void

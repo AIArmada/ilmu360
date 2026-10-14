@@ -6,10 +6,7 @@ use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\Venue;
 use AIArmada\Events\Models\VenueSpace;
-use App\Contracts\ShareCards\ShareCardReadiness;
 use App\Contracts\ShareCards\ShareCardRenderer;
-use App\Contracts\ShareCards\ShareCardRenderInput;
-use App\Contracts\ShareCards\ShareCardRenderResult;
 use App\Enums\EventChangeType;
 use App\Enums\EventKeyPersonRole;
 use App\Jobs\RenderShareCardJob;
@@ -25,6 +22,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
+use Tests\Feature\ShareCards\Wp3ScThrowingPresenter;
+use Tests\Feature\ShareCards\Wp3ScThrowingRenderer;
 
 uses(RefreshDatabase::class);
 
@@ -814,24 +813,3 @@ it('renders share-card meta urls escaped exactly once for browser parsing', func
     expect($ogUrl)->toBe(route('events.show', $event))
         ->and(filter_var($ogUrl, FILTER_VALIDATE_URL))->not->toBeFalse();
 });
-
-final readonly class Wp3ScThrowingPresenter extends ShareCardEventPresenter
-{
-    public function toRenderInput(Event $event, ?EventOccurrence $occurrence, string $locale, string $displayTimezone): ShareCardRenderInput
-    {
-        throw new RuntimeException('wp3 card presenter failure probe');
-    }
-}
-
-final class Wp3ScThrowingRenderer implements ShareCardRenderer
-{
-    public function readiness(): ShareCardReadiness
-    {
-        throw new RuntimeException('wp3 card renderer failure probe');
-    }
-
-    public function render(ShareCardRenderInput $input): ShareCardRenderResult
-    {
-        throw new RuntimeException('wp3 card renderer failure probe');
-    }
-}

@@ -12,10 +12,8 @@ declare(strict_types=1);
 // every caller freezes, inherits, or reverses coherently. If any
 // correction hook or atomic wrapper below were deleted, its test fails.
 
-use AIArmada\Affiliates\Contracts\FraudRule;
 use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\Models\AffiliateConversion;
-use AIArmada\Affiliates\Models\AffiliateFraudSignal;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\Services\FraudDetectionService;
 use AIArmada\Affiliates\States\ConversionStatus;
@@ -65,6 +63,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Livewire\Livewire;
+use Tests\Feature\ShareTracking\Wp2LifecycleThrowingRule;
 use Tests\TestCase;
 
 beforeEach(function (): void {
@@ -190,24 +189,6 @@ function wp2lcCheckoutParticipant(string $name, bool $isPurchaser, ?string $emai
     }
 
     return $participant;
-}
-
-final class Wp2LifecycleThrowingRule implements FraudRule
-{
-    public function ruleCode(): string
-    {
-        return 'WP2_LIFECYCLE_THROW';
-    }
-
-    public function analyzeClick(Affiliate $affiliate, Request $request, array $context): ?AffiliateFraudSignal
-    {
-        return null;
-    }
-
-    public function analyzeConversion(AffiliateConversion $conversion, array $context): ?AffiliateFraudSignal
-    {
-        throw new RuntimeException('wp2 lifecycle injected failure');
-    }
 }
 
 it('records self check-in and its outcome in one transaction', function (): void {
