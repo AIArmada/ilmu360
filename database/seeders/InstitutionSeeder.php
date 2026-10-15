@@ -68,10 +68,18 @@ class InstitutionSeeder extends Seeder
         foreach ($realInstitutions as $data) {
             $state = $this->malaysiaPackageStateByName($data['state_name'])
                 ?? ($states->isNotEmpty() ? $states->random() : null);
-            $district = $state instanceof State ? $this->randomDistrictForState($state) : null;
+            $division = null;
+            $district = null;
+
+            if ($state instanceof State) {
+                ['division' => $division, 'district' => $district] = $this->randomDivisionDistrictForState($state);
+            }
+
             $subdistrict = $this->randomSubdistrictForDistrict($district);
             $postalLocality = $state instanceof State
-                ? $this->postalLocalityForStateText($state, $data['line1'])
+                ? $this->postalLocalityForStateText($state, $data['city'])
+                    ?? $this->postalLocalityForStateText($state, $data['line1'])
+                    ?? $this->randomPostalLocalityForState($state)
                 : null;
 
             $inst = Institution::firstOrCreate(
@@ -98,11 +106,11 @@ class InstitutionSeeder extends Seeder
             $this->seedPrimaryPackageAddress($inst, $this->packageAddressAttributes([
                 'line1' => $data['line1'],
                 'city' => $data['city'],
-                'postcode' => fake()->postcode(),
+                'postcode' => $this->malaysiaPostcode(),
                 'country_id' => $malaysia?->id,
                 'latitude' => $data['lat'],
                 'longitude' => $data['lng'],
-            ], $state, $district, $subdistrict, $postalLocality));
+            ], $state, $district, $subdistrict, $postalLocality, $division));
 
             // Skip authorization for speed
             // $inst->ensureAuthzScope();
@@ -136,18 +144,18 @@ class InstitutionSeeder extends Seeder
             $institutions->each(function (Institution $institution) use ($malaysia, $states): void {
                 if ($states->isNotEmpty()) {
                     $state = $states->random();
-                    $district = $this->randomDistrictForState($state);
+                    ['division' => $division, 'district' => $district] = $this->randomDivisionDistrictForState($state);
                     $subdistrict = $this->randomSubdistrictForDistrict($district);
                     $postalLocality = $this->randomPostalLocalityForState($state);
 
                     $this->seedPrimaryPackageAddress($institution, $this->packageAddressAttributes([
                         'line1' => $institution->primaryAddress()?->line1,
                         'line2' => $institution->primaryAddress()?->line2,
-                        'postcode' => $institution->primaryAddress()?->postcode,
+                        'postcode' => $this->malaysiaPostcode(),
                         'country_id' => $malaysia?->id,
                         'latitude' => $institution->primaryAddress()?->latitude,
                         'longitude' => $institution->primaryAddress()?->longitude,
-                    ], $state, $district, $subdistrict, $postalLocality));
+                    ], $state, $district, $subdistrict, $postalLocality, $division));
                 }
 
                 // Skip authorization setup for speed - will be set up on first access

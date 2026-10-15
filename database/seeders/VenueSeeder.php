@@ -26,13 +26,20 @@ class VenueSeeder extends Seeder
         for ($i = 0; $i < 50; $i++) {
             $venue = Venue::factory()->create();
             $state = $states->isNotEmpty() ? $states->random() : null;
-            $district = $state instanceof State ? $this->randomDistrictForState($state) : null;
+            $division = null;
+            $district = null;
+
+            if ($state instanceof State) {
+                ['division' => $division, 'district' => $district] = $this->randomDivisionDistrictForState($state);
+            }
+
             $subdistrict = $this->randomSubdistrictForDistrict($district);
+            $postalLocality = $this->randomPostalLocalityForState($state);
 
             $this->seedPrimaryPackageAddress($venue, $this->packageAddressAttributes([
                 'line1' => fake()->streetAddress(),
                 'line2' => fake()->optional()->words(2, true),
-                'postcode' => fake()->postcode(),
+                'postcode' => $this->malaysiaPostcode(),
                 'country_id' => $malaysia?->id,
                 'latitude' => fake()->randomFloat(7, 1.0, 7.0),
                 'longitude' => fake()->randomFloat(7, 99.0, 119.0),
@@ -41,7 +48,7 @@ class VenueSeeder extends Seeder
                 'google_cid' => fake()->optional()->numerify('###################'),
                 'google_entity_id' => fake()->optional()->randomElement(['/g/abc123', '/m/xyz789']),
                 'waze_url' => fake()->optional()->url(),
-            ], $state, $district, $subdistrict));
+            ], $state, $district, $subdistrict, $postalLocality, $division));
         }
     }
 }

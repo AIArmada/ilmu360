@@ -156,10 +156,6 @@ class InstitutionFactory extends Factory
                     'country_code' => 'MY',
                     'line1' => fake()->streetAddress(),
                     'line2' => fake()->optional()->words(2, true),
-                    'postcode' => fake()->postcode(),
-                    'city' => fake()->city(),
-                    // @phpstan-ignore-next-line Faker dynamic provider method
-                    'state' => fake()->state(),
                     'latitude' => fake()->randomFloat(7, 1.0, 7.0),
                     'longitude' => fake()->randomFloat(7, 99.0, 119.0),
                 ]);

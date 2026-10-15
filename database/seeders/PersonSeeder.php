@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use AIArmada\Addressing\Models\State;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
@@ -553,9 +554,10 @@ class PersonSeeder extends Seeder
 
         $userIds = User::query()->pluck('id')->toArray();
         $memberAttachments = [];
+        $states = $this->malaysiaPackageStates();
 
         foreach ($realPersons as $personData) {
-            OwnerContext::withOwner(null, function () use ($personData, $userIds, $malaysia, &$memberAttachments): void {
+            OwnerContext::withOwner(null, function () use ($personData, $userIds, $malaysia, $states, &$memberAttachments): void {
                 $nameParts = array_values(array_filter(preg_split('/\s+/u', trim($personData['name'])) ?: []));
                 $familyName = array_pop($nameParts) ?: null;
                 $name = array_shift($nameParts) ?: trim($personData['name']);
@@ -599,13 +601,21 @@ class PersonSeeder extends Seeder
                 }
 
                 if ($person->wasRecentlyCreated) {
-                    $state = null;
+                    $state = $states->isNotEmpty() ? $states->random() : null;
+                    $division = null;
                     $district = null;
-                    $subdistrict = null;
+
+                    if ($state instanceof State) {
+                        ['division' => $division, 'district' => $district] = $this->randomDivisionDistrictForState($state);
+                    }
+
+                    $subdistrict = $this->randomSubdistrictForDistrict($district);
+                    $postalLocality = $this->randomPostalLocalityForState($state);
 
                     $this->seedPrimaryPackageAddress($person, $this->packageAddressAttributes([
                         'country_id' => $malaysia?->getKey(),
-                    ], $state, $district, $subdistrict));
+                        'postcode' => $this->malaysiaPostcode(),
+                    ], $state, $district, $subdistrict, $postalLocality, $division));
                 }
 
                 foreach ($personData['titles'] as $titleName) {
@@ -661,6 +671,19 @@ class PersonSeeder extends Seeder
                     'platform' => SocialPlatform::Facebook->value,
                     'handle' => Str::slug($person->name),
                 ]);
+
+                $state = $states->isNotEmpty() ? $states->random() : null;
+                $division = null;
+                $district = null;
+
+                if ($state instanceof State) {
+                    ['division' => $division, 'district' => $district] = $this->randomDivisionDistrictForState($state);
+                }
+
+                $this->seedPrimaryPackageAddress($person, $this->packageAddressAttributes([
+                    'country_id' => $malaysia?->getKey(),
+                    'postcode' => $this->malaysiaPostcode(),
+                ], $state, $district, $this->randomSubdistrictForDistrict($district), $this->randomPostalLocalityForState($state), $division));
 
                 if (! empty($userIds)) {
                     $memberAttachments[] = [

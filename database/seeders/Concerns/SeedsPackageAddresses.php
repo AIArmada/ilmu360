@@ -5,7 +5,6 @@ namespace Database\Seeders\Concerns;
 use AIArmada\Addressing\Actions\SyncAddressAreaAssignmentsAction;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
-use AIArmada\Addressing\Models\AddressAreaAssignment;
 use AIArmada\Addressing\Models\AddressAreaRelationship;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\State;
@@ -13,7 +12,6 @@ use AIArmada\Addressing\Support\AddressAreaStateBridge;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 
 trait SeedsPackageAddresses
 {
@@ -136,7 +134,7 @@ trait SeedsPackageAddresses
         return $this->areaByName('MY', $name, $level, $parentId);
     }
 
-    protected function randomDistrictForState(State $state): ?AddressArea
+    protected function randomDivisionForState(State $state): ?AddressArea
     {
         $areaState = $this->malaysiaAreaStateForPackageState($state);
 
@@ -146,9 +144,49 @@ trait SeedsPackageAddresses
 
         return AddressArea::query()
             ->where('parent_id', $areaState->getKey())
-            ->whereIn('type', ['district', 'minor_district'])
+            ->where('type', 'division')
+            ->where('is_active', true)
             ->inRandomOrder()
             ->first();
+    }
+
+    /**
+     * @return array{division: ?AddressArea, district: ?AddressArea}
+     */
+    protected function randomDivisionDistrictForState(State $state): array
+    {
+        $areaState = $this->malaysiaAreaStateForPackageState($state);
+
+        if (! $areaState instanceof AddressArea) {
+            return ['division' => null, 'district' => null];
+        }
+
+        $direct = AddressArea::query()
+            ->where('parent_id', $areaState->getKey())
+            ->whereIn('type', ['district', 'minor_district'])
+            ->where('is_active', true)
+            ->inRandomOrder()
+            ->first();
+
+        if ($direct instanceof AddressArea) {
+            return ['division' => null, 'district' => $direct];
+        }
+
+        // Sabah/Sarawak: districts live under divisions, not directly under the state area.
+        $division = $this->randomDivisionForState($state);
+
+        if (! $division instanceof AddressArea) {
+            return ['division' => null, 'district' => null];
+        }
+
+        $district = AddressArea::query()
+            ->where('parent_id', $division->getKey())
+            ->whereIn('type', ['district', 'minor_district'])
+            ->where('is_active', true)
+            ->inRandomOrder()
+            ->first();
+
+        return ['division' => $division, 'district' => $district];
     }
 
     protected function randomSubdistrictForDistrict(?AddressArea $district): ?AddressArea
@@ -159,7 +197,8 @@ trait SeedsPackageAddresses
 
         return AddressArea::query()
             ->where('parent_id', $district->getKey())
-            ->whereIn('type', ['mukim', 'subdistrict'])
+            ->whereIn('type', ['city', 'municipality', 'mukim', 'subdistrict', 'bandar', 'pekan', 'daerah_kecil'])
+            ->where('is_active', true)
             ->inRandomOrder()
             ->first();
     }
@@ -223,11 +262,16 @@ trait SeedsPackageAddresses
         ?AddressArea $district = null,
         ?AddressArea $subdistrict = null,
         ?AddressArea $postalLocality = null,
+        ?AddressArea $division = null,
     ): array {
         if ($state instanceof State) {
             $attributes['state_id'] = (string) $state->getKey();
             $attributes['state'] ??= $state->name;
             $attributes['country_id'] ??= $state->country_id;
+        }
+
+        if ($division instanceof AddressArea) {
+            $attributes['area_assignments']['administrative_division'] = (string) $division->getKey();
         }
 
         if ($district instanceof AddressArea) {
@@ -283,27 +327,12 @@ trait SeedsPackageAddresses
             return;
         }
 
-        try {
-            app(SyncAddressAreaAssignmentsAction::class)->execute($address, $assignments, $stateId, ['source' => 'ilmu360-seeder']);
-        } catch (ValidationException) {
-            foreach ($assignments as $role => $areaId) {
-                if (! is_string($areaId) || trim($areaId) === '') {
-                    continue;
-                }
+        app(SyncAddressAreaAssignmentsAction::class)->execute($address, $assignments, $stateId, ['source' => 'ilmu360-seeder']);
+    }
 
-                AddressAreaAssignment::query()->updateOrCreate(
-                    [
-                        'address_id' => $address->getKey(),
-                        'role' => $role,
-                    ],
-                    [
-                        'address_area_id' => $areaId,
-                        'is_primary' => true,
-                        'metadata' => null,
-                    ],
-                );
-            }
-        }
+    protected function malaysiaPostcode(): string
+    {
+        return (string) fake()->numerify('#####');
     }
 
     /**
@@ -321,8 +350,13 @@ trait SeedsPackageAddresses
             : null;
 
         $assignments = (array) ($attributes['area_assignments'] ?? []);
+        $divisionId = $assignments['administrative_division'] ?? null;
         $districtId = $assignments['administrative_district'] ?? null;
         $subdistrictId = $assignments['administrative_subdivision'] ?? null;
+        $adminArea0 = is_string($divisionId)
+            ? AddressArea::query()->find($divisionId)
+            : null;
+
         $adminArea1 = is_string($districtId)
             ? AddressArea::query()->find($districtId)
             : null;
@@ -331,7 +365,15 @@ trait SeedsPackageAddresses
             ? AddressArea::query()->find($subdistrictId)
             : null;
 
-        // Recover package state_id when only district/subdistrict were provided.
+        // Recover package state_id when only division/district/subdistrict were provided.
+        if (! $state instanceof State && $adminArea0 instanceof AddressArea) {
+            $stateId = AddressAreaStateBridge::stateIdForArea($adminArea0);
+            if ($stateId !== null) {
+                $state = State::query()->find($stateId);
+                $attributes['state_id'] = $stateId;
+            }
+        }
+
         if (! $state instanceof State && $adminArea1 instanceof AddressArea) {
             $stateId = AddressAreaStateBridge::stateIdForArea($adminArea1);
             if ($stateId !== null) {

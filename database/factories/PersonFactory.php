@@ -110,9 +110,6 @@ class PersonFactory extends Factory
                 $address = Address::create([
                     'country_id' => (string) $country->getKey(),
                     'country_code' => 'MY',
-                    'city' => fake()->city(),
-                    // @phpstan-ignore-next-line Faker dynamic provider method
-                    'state' => fake()->state(),
                 ]);
                 $person->attachAddress($address, 'primary', true);
 
