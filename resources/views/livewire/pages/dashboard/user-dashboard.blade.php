@@ -13,6 +13,7 @@
     $recentSavedSearches = $this->recentSavedSearches;
     $recentNotifications = $this->recentNotifications;
     $dawahImpactSummary = $this->dawahImpactSummary;
+    $shareRewardEnrollmentPrompt = $this->shareRewardEnrollmentPrompt;
     $recommendedEvent = $this->recommendedEvent;
     $majlisCards = $this->paginatedMajlisCards;
     $unreadNotificationCount = $this->unreadNotificationCount;
@@ -204,6 +205,7 @@
                             <p class="mt-5 max-w-2xl break-words text-base leading-7 text-slate-600 sm:text-lg">
                                 {{ __('Teruskan istiqamah mencari ilmu dan sebarkan manfaatnya. Setiap langkah kecil hari ini, membawa kita lebih dekat kepada keredhaan Allah.') }}
                             </p>
+                            <a href="{{ route('dashboard.referrals') }}" wire:navigate class="mt-5 inline-flex rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-900 transition hover:bg-emerald-50">{{ __('Ajak kawan') }}</a>
                         </div>
                     </div>
 
@@ -242,6 +244,21 @@
     </section>
 
     <main class="container mx-auto w-full px-6 py-8 lg:px-12">
+        @if($shareRewardEnrollmentPrompt)
+            <section data-testid="share-reward-enrollment-prompt" class="mb-7 rounded-lg border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h2 class="font-heading text-xl font-bold text-emerald-950">{{ __('Activity is waiting.') }}</h2>
+                        <p class="mt-1 font-semibold text-emerald-950">{{ $shareRewardEnrollmentPrompt->title }}</p>
+                        <p class="mt-1 text-sm text-emerald-900">{{ __('Enrol now to start earning on eligible activity.') }}</p>
+                        <p class="mt-2 text-xs text-emerald-800">{{ __('Enrolling does not award points for past activity.') }}</p>
+                    </div>
+                    <button type="button" wire:click="enrollRewardProgram" wire:loading.attr="disabled" class="inline-flex shrink-0 items-center justify-center rounded-lg bg-emerald-800 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-900 disabled:cursor-wait disabled:opacity-60">
+                        {{ __('Enrol now') }}
+                    </button>
+                </div>
+            </section>
+        @endif
         @include('share.claim-prompt')
         <div class="grid gap-7 xl:grid-cols-[minmax(0,1fr)_380px]">
             <div class="min-w-0 space-y-7">

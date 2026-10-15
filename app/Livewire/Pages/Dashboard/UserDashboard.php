@@ -4,6 +4,10 @@ namespace App\Livewire\Pages\Dashboard;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Models\Response;
+use AIArmada\Rewards\Enums\RewardProgramStatus;
+use AIArmada\Rewards\Models\RewardEnrollment;
+use AIArmada\Rewards\Models\RewardProgram;
+use App\Actions\Rewards\EnrollRewardProgramMemberAction;
 use App\Models\Event;
 use App\Models\EventCheckin;
 use App\Models\EventSubmission;
@@ -12,8 +16,11 @@ use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Registration;
 use App\Models\SavedSearch;
+use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
 use App\Services\ShareTrackingAnalyticsService;
+use App\Support\Rewards\PublishedRewardProgramVersionResolver;
+use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use App\Support\Timezone\UserDateTimeFormatter;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -77,6 +84,63 @@ class UserDashboard extends Component
     public function dawahImpactSummary(): array
     {
         return app(ShareTrackingAnalyticsService::class)->summaryForUser($this->user());
+    }
+
+    #[Computed]
+    public function shareRewardEnrollmentPrompt(): ?RewardProgram
+    {
+        $user = $this->user();
+        $programs = RewardProgram::query()
+            ->whereNull('owner_type')
+            ->whereNull('owner_id')
+            ->where('status', RewardProgramStatus::Active->value)
+            ->orderBy('title')
+            ->orderBy('id')
+            ->get();
+        $versionResolver = app(PublishedRewardProgramVersionResolver::class);
+
+        foreach ($programs as $program) {
+            if ($user->cannot('enroll', $program)) {
+                continue;
+            }
+
+            $version = $versionResolver->resolve($program);
+            $eligibility = $version?->rules['eligibility'] ?? null;
+
+            if (! is_array($eligibility) || ($eligibility['require_enrollment'] ?? false) !== true) {
+                continue;
+            }
+
+            $outcomes = $eligibility['outcomes'] ?? [];
+
+            if (! is_array($outcomes) || ! $this->hasBankedRewardOutcome($user, $outcomes)) {
+                continue;
+            }
+
+            if (RewardEnrollment::query()
+                ->where('program_id', $program->getKey())
+                ->where('member_type', $user->getMorphClass())
+                ->where('member_id', $user->getKey())
+                ->where('status', 'active')
+                ->exists()) {
+                continue;
+            }
+
+            return $program;
+        }
+
+        return null;
+    }
+
+    public function enrollRewardProgram(): void
+    {
+        $program = $this->shareRewardEnrollmentPrompt();
+
+        if (! $program instanceof RewardProgram) {
+            return;
+        }
+
+        EnrollRewardProgramMemberAction::run($program, $this->user(), 'dashboard-prompt');
     }
 
     /**
@@ -978,6 +1042,59 @@ class UserDashboard extends Component
         }
 
         return Str::of($status)->replace('_', ' ')->headline()->toString();
+    }
+
+    /**
+     * @param  list<mixed>  $outcomes
+     */
+    private function hasBankedRewardOutcome(User $user, array $outcomes): bool
+    {
+        $summary = app(ShareTrackingAnalyticsService::class)->summaryForUser($user);
+
+        if (in_array('signup', $outcomes, true) && $summary['signups'] > 0) {
+            return true;
+        }
+
+        if (in_array('event_registration', $outcomes, true)) {
+            if ($summary['event_registrations'] > 0) {
+                return true;
+            }
+
+            $registrationTransitions = Registration::query()
+                ->where('registrant_type', $user->getMorphClass())
+                ->where('registrant_id', $user->getKey())
+                ->where('status', 'confirmed')
+                ->pluck('id')
+                ->map(static fn (string $id): string => 'registration:'.$id)
+                ->all();
+
+            if ($registrationTransitions !== [] && ShareSourceAttributionReceipt::query()
+                ->where('namespace', ShareOutcomeBusinessKey::NAMESPACE)
+                ->where('outcome_type', 'event_registration')
+                ->whereIn('source_transition_id', $registrationTransitions)
+                ->exists()) {
+                return true;
+            }
+        }
+
+        if (! in_array('event_checkin', $outcomes, true)) {
+            return false;
+        }
+
+        $checkinTransitions = EventCheckin::query()
+            ->where('attendee_type', $user->getMorphClass())
+            ->where('attendee_id', $user->getKey())
+            ->where('attendance_type', 'check_in')
+            ->whereNotNull('checked_in_at')
+            ->pluck('id')
+            ->map(static fn (string $id): string => 'checkin:'.$id)
+            ->all();
+
+        return $checkinTransitions !== [] && ShareSourceAttributionReceipt::query()
+            ->where('namespace', ShareOutcomeBusinessKey::NAMESPACE)
+            ->where('outcome_type', 'event_checkin')
+            ->whereIn('source_transition_id', $checkinTransitions)
+            ->exists();
     }
 
     protected function translatedEventWorkflowStatusLabel(string $status): string

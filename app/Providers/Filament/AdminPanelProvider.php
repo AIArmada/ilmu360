@@ -12,6 +12,7 @@ use AIArmada\FilamentEvents\FilamentEventsPlugin;
 use AIArmada\FilamentInventory\FilamentInventoryPlugin;
 use AIArmada\FilamentOrganizations\FilamentOrganizationsPlugin;
 use AIArmada\FilamentPersons\FilamentPersonsPlugin;
+use AIArmada\FilamentReferrals\FilamentReferralsPlugin;
 use AIArmada\FilamentRewards\FilamentRewardsPlugin;
 use AIArmada\FilamentSeating\FilamentSeatingPlugin;
 use AIArmada\FilamentSignals\Concerns\TracksSignalsPanel;
@@ -96,6 +97,7 @@ class AdminPanelProvider extends PanelProvider
                 FilamentPersonsPlugin::make(),
                 FilamentTicketingPlugin::make(),
                 FilamentRewardsPlugin::make(),
+                FilamentReferralsPlugin::make(),
             ])
             ->middleware([
                 EncryptCookies::class,

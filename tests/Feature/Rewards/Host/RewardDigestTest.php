@@ -234,7 +234,7 @@ it('plans a milestone section when a cycle achieves', function () {
     $reader = new FakeRewardSourceFactReader;
 
     foreach (['src-r7-mile-1' => '2026-06-12T00:00:00Z', 'src-r7-mile-2' => '2026-06-13T00:00:00Z'] as $source => $occurred) {
-        $reader->seed(RewardLedgerFixtures::fact($source, $memberId, $occurred));
+        $reader->seed(RewardLedgerFixtures::fact($source, $memberId, $occurred, overrides: ['actorId' => $memberId, 'sharerId' => null]));
 
         $result = (new RecordRewardMilestoneContributionAction($reader))->handle(
             'user', $memberId, $program->family_key, 'three-checkins', 2, 30,

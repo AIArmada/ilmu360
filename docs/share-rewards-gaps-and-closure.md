@@ -1,7 +1,7 @@
 # Share, Rewards and Future Commerce — Gaps and Closure Plan
 
-> Status: current (2026-10-13; updated 2026-10-14 for the referrals
-> package landing — see the update block in G2). Scope: the dawah-share attribution system
+> Status: current (2026-10-15; G2 and G7 landed — see dated status
+> blocks). Scope: the dawah-share attribution system
 > (`app/Services/ShareTracking`, `app/Support/Share*`), its rewards
 > integration (`app/Support/Rewards`, member portal, rewards API), and the
 > planned ticket/merchandise monetisation of banked share provenance.
@@ -25,10 +25,10 @@ Package mapping that already fits: `rewards` is the entitlement and
 points bank (member as `Participant`/`Purchaser` in Loop A, as `Sharer`
 in Loop B); `affiliates` is the attribution outcome ledger and the cash
 payout rail; `vouchers` is the benefit burn instrument. MGM/referrals
-is **not** a replacement for either loop — it is an optional campaign
-layer for addressed invites (G2). As of 2026-10-14 that layer exists
-as the standalone `aiarmada/referrals` package in the commerce
-monorepo (commit `ef8ca2b5b`); it is not yet installed in ilmu360.
+is **not** a replacement for either loop — it is the campaign layer
+for addressed invites (G2). `aiarmada/referrals` is installed and
+integrated in ilmu360; programme records and their economics are
+staff-managed in Filament.
 
 ## 2. What exists today (verified)
 
@@ -60,27 +60,23 @@ monorepo (commit `ef8ca2b5b`); it is not yet installed in ilmu360.
 - There is **no** commercial affiliate usage: no
   `RecordAffiliateConversion` call site, no affiliate program, no
   percentage of any paid order anywhere in `app/`.
-- The commerce monorepo now ships `aiarmada/referrals`
-  (2026-10-14, commerce commit `ef8ca2b5b`): owner-scoped referral
-  programmes, addressed invites with hashed tokens, single-claim
-  acceptance, host-reported qualification, two-sided frozen rewards
-  over manual/voucher/affiliate-cash/reward-points rails, and an
-  expiry command (21 Pest tests, PHPStan level 6). It is a
-  path-repository sibling like the other AIArmada packages but is
-  **not** in ilmu360's `composer.json` yet, and no ilmu360 code
-  references it.
+- The commerce monorepo ships `aiarmada/referrals` with owner-scoped
+  programmes, addressed hashed-token invites, single-claim acceptance,
+  host-reported qualification, two-sided frozen rewards, reversal,
+  and expiry. ilmu360 integrates the global-programme flow through
+  Filament, the member dashboard, and verified participation outcomes.
 
 ## 3. Gap register (summary)
 
 | ID | Gap | Loop | Severity | Effort |
 |---|---|---|---|---|
 | G1 | Own activity earns nothing unless share-attributed | A | High | M |
-| G2 | No addressed invite / MGM lifecycle (package ready 2026-10-14; adoption pending) | B | Medium | S–M (adopt + wire) |
+| G2 | Addressed invite / MGM lifecycle | B | Medium | Landed 2026-10-15 |
 | G3 | No purchase facts, no points burn at checkout | A+B | High (at commerce launch) | L |
 | G4 | Future-benefit terms and attribution window undecided | B | High (before any promise) | S (decision) |
 | G5 | Three affiliate identities per person; owner tuple as member link | Both | Medium | L (deferrable) |
 | G6 | Schema drift: 41 pending migrations, missing `purpose` column | Ops | High | S |
-| G7 | Reward programs are operator-created only; economics not in repo | Both | Medium | S–M |
+| G7 | Reward programme publication and economics | Both | Medium | Landed 2026-10-15 |
 | G8 | Fraud posture not yet monetary-grade for redeemable points | Both | High (before burn opens) | M |
 | G9 | Manual-only payout rail; per-program enrolment friction | Both | Low–Medium | S (decision) |
 
@@ -128,88 +124,50 @@ earn participant points once (activity fact) plus sharer points once
 the source record reverses activity awards through the existing
 corrections sweep.
 
-### G2 — No addressed invite / MGM lifecycle
+**Status (2026-10-14).** Loop A backend landed: canonical `activity:`
+keys, direct source facts, namespace routing through the single rewards
+reader, unattributed-only after-commit dispatch, and activity-source
+discovery in the existing corrections sweep are covered by host feature
+tests. Programme rates remain operator-defined; the enrolment prompt is
+still the separate G9 decision, so the full Phase 1 sequence is not closed.
+The G9 dashboard enrolment prompt landed on 2026-10-15 (see G9 status).
 
-**Evidence.** No referral-invite model exists in `app/Models`; share
-links are broadcast (tied to the sharer and a subject URL), and signup
-attribution is decided by browser cookie at outcome time
-(`recordSignup` in `App\Actions\Fortify\CreateNewUser` and Socialite).
-The `membership` invitations in use are for inviting members into a
-subject/organisation — a different concept.
+### G2 — Addressed invite / MGM lifecycle
 
-**Impact.** "Ajak kawan" campaigns cannot be run: no named invitee, no
-pending/accepted/expired state, no reminders, no per-member invite
-caps, no guarantee an invitee is claimed by exactly one referrer.
+**Evidence.** `aiarmada/referrals` supplies the invite/program/reward
+state machine, hashed one-time tokens, contact matching, caps,
+fulfilment, reversal, and expiry. ilmu360 integrates it with a public
+invite landing, member dashboard, Filament admin, the existing share
+capture middleware, and the canonical registration/check-in outcome
+path.
 
-**Update (2026-10-14).** The package path was taken first:
-`aiarmada/referrals` now exists in commerce
-(commit `ef8ca2b5b906c2c9e51c590d33df59877ab5f3f6`) and already
-provides most of the closure below — `ReferralProgram` /
-`ReferralInvite` / `ReferralReward` with the
-`pending → accepted → qualified → rewarded` lifecycle (plus
-`expired`/`revoked`), invitee contact hashing with encrypted storage,
-hashed one-time tokens (rotatable while pending), single-claim and
-self-invite rejection, per-referrer invite and monthly-qualified
-caps, exactly-once two-sided rewards, reversal, and owner-scoped
-write guards. Closure is therefore now **adoption and wiring**, not
-building the layer:
+**Closure.** Landed on 2026-10-15. Staff create and activate global
+referral programmes in Filament. A member creates a contact-bound
+invite from **Ajak kawan**, then shares its one-time link. The landing
+captures attribution; acceptance occurs only after the invitee signs in
+and presents a verified email or phone matching the invitation. The
+first accepted event registration or staff-verified check-in qualifies
+the accepted invite, using the canonical `ShareOutcomeBusinessKey`.
+The package fulfils the referrer's `reward_points` and invitee's
+single-use, beneficiary-bound `voucher` rewards exactly once. Source
+corrections reverse fulfilled rewards and the referral fact reader
+marks the source invalid so a sweep cannot restore the award. A reversal
+job that arrives while the source is still valid leaves both rewards
+intact. The member page presents the configured rewards and effective
+invite expiry in plain language. Invite expiry is scheduled; curated signals record invite creation and
+acceptance.
 
-1. Add `aiarmada/referrals` to ilmu360's composer path repositories
-   (same pattern as the other AIArmada packages), publish
-   `config/referrals.php`, and run its migrations — noting G6: this
-   adds three tables to the pending-migration backlog on any
-   environment that has not caught up.
-2. Invite landing reuses the existing share capture
-   (`captureRequest`) so cookie attribution and invite token agree;
-   acceptance calls `AcceptReferralInvite` with the presented token
-   and the signed-in user's verified contact.
-3. Qualification calls `QualifyReferral` from the existing outcome
-   call sites on the invitee's **first accepted registration or
-   staff-verified check-in**, reusing the canonical
-   `ShareOutcomeBusinessKey` for that transition so the referral and
-   the share fact share one idempotent identity.
-4. Choose the reward rails per programme: referrer points via the
-   package's `reward_points` driver requires registering the
-   `referral_qualified` outcome in `config/rewards.php` and teaching
-   `ShareAttributionRewardSourceFactReader` the
-   `referrals:qualified:{inviteId}:{side}` key namespace (today it
-   only parses `share-outcome:` keys and would refuse them); the
-   invitee welcome reward fits the `voucher` driver. Prefer these
-   over `affiliate_cash`: ilmu360 already binds its single
-   `AffiliateAwardPolicy` to `RewardCashAwardPolicy`
-   (`reward-cash:` keys), so the cash rail would additionally need a
-   prefix-dispatching composite policy delegating `referrals:award:`
-   keys to the package's `ReferralAffiliateAwardPolicy`.
-5. Member surfaces: an "Ajak kawan" entry in the member dashboard
-   (create invite, share link, pending/qualified status) next to the
-   existing share and rewards surfaces; no package UI ships in v1.
+**Acceptance.** Host feature coverage exercises both qualifying
+outcomes, no double reward on later activity, invite landing and
+verified-contact outcomes, member create/list/revoke, signals, source
+reversal, and reward-source namespace separation. Broadcast share
+flows retain their existing attribution path.
 
-The original host-layer sketch below is retained as the record of
-what the package was built from:
-
-**Closure (original sketch, superseded by the package above).** Add a thin host referrals layer (extract to a package
-only when a second consumer appears):
-
-1. `ReferralInvite` model: referrer user, invitee phone/email hash,
-   token, status (`pending → accepted → qualified → rewarded`, plus
-   `expired`/`revoked`), expiry, frozen reward intent per side.
-2. Invite landing reuses the existing share capture
-   (`captureRequest`) so cookie attribution and invite token agree;
-   the token/identity claim is authoritative, the cookie is support.
-3. Qualification on the invitee's **first accepted registration or
-   staff-verified check-in**, not bare signup, to make fake-account
-   farming worthless once points are redeemable.
-4. Register a `referral_qualified` outcome; referrer reward issues as
-   points via rewards (`Sharer` role), invitee receives a welcome
-   benefit/voucher. Cash via affiliates only if a campaign explicitly
-   promises withdrawable money.
-5. Caps per referrer per month, invitee uniqueness by verified
-   phone/email, self-invite exclusion by identity and device.
-
-**Acceptance.** An invitee can be claimed by one referrer only; a
-qualified invite pays each side exactly once across retries; expired
-and self invites pay nothing; broadcast sharing keeps working
-unchanged alongside addressed invites.
+**Residual operator decisions.** Programme terms remain database
+records managed in Filament. The referrer points amount must match the
+active rewards programme rate. Operators choose voucher type/value,
+invite caps, and expiry when publishing the referral programme. No
+programme economics are invented in application configuration.
 
 ### G3 — No purchase facts and no points burn at checkout
 
@@ -339,55 +297,61 @@ sharing writes outright (insert with unknown column).
 
 **Closure.**
 
-1. Run `php artisan migrate` locally; for in-place-evolved tables
-   (starting with `affiliate_affiliates.purpose`) sync the schema by
-   `migrate:fresh` on disposable environments, or a one-off host
-   migration that adds the evolved columns where data must survive.
-2. Add a schema smoke check (test or health command) asserting the
-   columns/tables the share-rewards stack writes to: affiliates
-   `purpose`, conversions `idempotency_key`/`actor_user_id`/
-   `sharer_user_id`, and all `reward_*` tables from
-   `config/rewards.php`.
-3. Deploy checklist: after any commerce package update, run
-   `migrate:status` **and** the smoke check — pending count alone
-   does not detect in-place evolution.
+1. Package migrations are the single schema source. In development,
+   a drifted database is rebuilt with `migrate:fresh`; no host sync
+   migrations or schema-patch commands are kept.
+2. After any commerce package update, run `php artisan migrate`
+   (or rebuild) — pending count alone does not detect in-place
+   evolution, so a stale development schema is recreated, not patched.
 
-**Acceptance.** Local DB migrated and smoke check green; the checklist
-is referenced from the deployment runbook; verify staging/production
-explicitly (not yet done — open verification item).
+**Acceptance.** Local DB migrated from package migrations alone.
+
+**Status (2026-10-15).** Resolved for development without backward
+compatibility: the schema-check command and host sync migration were
+removed. Package migrations are the single schema source; a drifted
+development database is rebuilt (`migrate:fresh`) rather than patched.
+Local PostgreSQL is migrated (`migrate:status` reports 0 pending).
 
 ### G7 — Reward programmes and economics live outside the repo
 
-**Evidence.** No seeder or command creates a reward programme; the
-only creation path is the Filament rewards plugin
-(`FilamentRewardsPlugin` in `AdminPanelProvider`). Programme rules
-(earn per outcome/role, caps, holds, point expiry) therefore exist
-only as rows an operator typed, and funding methods are `manual` only
-(`config/rewards.php`). Cohort reporting also stays withheld until
-`DAWAH_SHARE_REPORTING_START` is declared (`config/dawah-share.php`).
+**Evidence.** The rewards and referrals Filament plugins are registered
+in `AdminPanelProvider`. Their package actions publish programme
+versions, terms, status, funding, and referral reward specifications.
+There are no host seeders or environment configs that invent earning
+rates or voucher values.
 
-**Impact.** Earn rates are not reviewable or reproducible across
-environments; a fresh deploy silently earns nothing (rewards fails
-closed with no programme/enrolment); the point liability has no
-priced funding commitment behind it.
+**Impact.** A fresh environment has no reward programme and awards no
+points until staff create, publish, fund, and activate a programme in
+Filament. This keeps programme liability explicit and reviewable in
+its database records.
 
-**Closure.**
+**Closure.** Programmes are FILAMENT-MANAGED. Staff use the rewards
+admin to create a global programme, publish its rules and terms, record
+a funding source/allocation where required by the configured rewards,
+and activate it. Staff use the referrals admin to create and activate
+a global referral programme with its two reward specifications. The
+member enrolment prompt selects the first Active global reward
+programme deterministically and appears only when its applicable
+published version requires enrolment. Point rates, voucher type/value,
+caps, expiry, terms, and funding are entered by staff in the database;
+none are defaults in code or config.
 
-1. An idempotent programme publisher (command or seeder) that creates
-   the programme family and publishes a version from rules kept in
-   `config/share-rewards.php`: components per outcome and role
-   (participant vs sharer rates kept deliberately different), caps,
-   hold days, point lot expiry, benefit catalog entries.
-2. Record the funding source and budget per programme through the
-   existing funding actions as part of the same publisher, and set
-   `DAWAH_SHARE_REPORTING_START` in every deployed environment.
-3. Treat any rate change as a new published version through the same
-   path — never a Filament-only edit — so git history is the
-   economics history.
+**Acceptance.** A host lifecycle test drives the same core programme
+creation, version publication, readiness, funding, activation, and
+explicit-enrolment actions used by Filament, then verifies that a direct
+unattributed staff-verified check-in earns the configured test points.
+On a fresh environment earning starts only after staff create and
+activate a programme in admin.
 
-**Acceptance.** A fresh environment reaches "member earns points for a
-check-in" from repo state alone (`migrate` + publisher), with funding
-balances visible in Filament.
+**Status (2026-10-15).** The user decision makes rewards and referrals
+programmes Filament-managed and their economics database-managed. This
+supersedes and deletes the slice-2 config publisher and its command,
+config, and acceptance test. No production rates, budgets, voucher
+values, caps, or expiry periods are seeded in application code/config.
+The package readiness checker allows structurally complete programmes
+to become Ready. Cash components require confirmed funding before
+activation; points-only programmes do not require cash funding under
+the installed checker.
 
 ### G8 — Fraud posture is not yet monetary-grade
 
@@ -438,51 +402,59 @@ and silent non-earning undermines both loops' feedback cycle.
 
 **Closure (decisions, then small code).**
 
-1. Decide enrolment policy (D5): explicit opt-in with terms
-   acceptance (current, legally cleanest) vs auto-enrol on first
-   eligible fact with after-the-fact terms notice. If explicit stays,
-   surface a one-tap enrol prompt at first share/first registration
-   and show "points waiting: enrol to start earning" in the member
-   dashboard using banked facts as the teaser (recognition only,
-   never promised retroactive points unless terms say so).
+1. D5 is settled: keep explicit opt-in with terms acceptance. The
+   dashboard now shows a one-tap enrol prompt only for an unenrolled
+   member with banked eligible share/activity outcomes and an active
+   programme with published terms. The prompt says activity is waiting
+   and that enrolling does not award points for past activity.
 2. Keep `manual` until cash volume justifies binding a CHIP send
    processor behind the existing `RewardPayoutProcessorCatalog`;
    points/benefit rewards need no payout rail at all.
 
-**Acceptance.** Enrolment conversion is measurable (enrolled vs
-fact-active members); no member with attributed outcomes is more than
-one tap from enrolling.
+**Acceptance.** Enrolment conversion has a curated server-side
+`rewards.program_enrolled` signal after successful enrolment; no member
+with eligible outcomes is more than one tap from the explicit opt-in.
 
-## 5. Open decisions
+**Status (2026-10-15).** The dashboard prompt resolves the first Active
+global reward programme deterministically and uses the applicable
+published version plus `EnrollRewardMemberAction`, the same path as the
+rewards portal. It appears only for an unenrolled member when the rules
+require enrolment and the member has eligible activity; it disappears
+after enrolment. The curated enrolment signal distinguishes the
+`dashboard-prompt` surface while package `acceptedVia` remains
+`member-portal`.
+
+## 5. Decisions
 
 | ID | Decision | Recommendation |
 |---|---|---|
 | D1 | Sharer revenue window & grandfathering (G4) | First purchase or 12 months from attributed signup; pre-launch facts inside an explicit lookback only |
 | D2 | Sharer benefit form at commerce launch (G3) | Points first; cash % only for a future commercial promoter programme |
-| D3 | Point value and funding owner (G4, G7) | Fixed published value (e.g. 100 = RM1); platform-funded pool per programme family |
-| D4 | Invite qualification event (G2) | First accepted registration or staff-verified check-in, not signup |
+| D3 | Programme economics and funding owner (G4, G7) | Settled 2026-10-15: staff manage rates, terms, and funding in Filament/database records; the referral points amount matches the active rewards programme rate, with no code/config defaults |
+| D4 | Invite qualification event (G2) | Settled and implemented 2026-10-15: the first accepted registration or staff-verified check-in, never signup |
 | D5 | Enrolment policy (G9) | Explicit opt-in, prompted at first share/registration |
-| D6 | Max points share per order (G8) | Cap (e.g. 30%) to keep cash margin on every order |
+| D6 | Max points share per order (G8) | Operator decision; no redemption percentage is seeded |
 
 ## 6. Closure sequence
 
-1. **Phase 0 — make it runnable and reproducible (G6, G7).**
-   Migrate/sync schema, smoke check, programme publisher, funding,
-   reporting start. Nothing else can be verified end-to-end until
-   this is green.
-2. **Phase 1 — complete Loop A (G1, G9).** Activity facts and
-   participant earning, enrol prompts. This delivers the headline
-   promise for existing members with no commerce dependency.
-3. **Phase 2 — addressed invites (G2).** ~~Build the referral invite
-   lifecycle~~ Adopt `aiarmada/referrals` (landed 2026-10-14) and
-   wire it: invite landing, qualification on first real
-   participation, points/voucher rails, member dashboard entry.
-4. **Phase 3 — commerce payoff (G3, G4, G8).** Decisions D1–D3/D6
-   first, then purchase facts, sharer benefit, points tender at
-   checkout, monetary-grade fraud gates before burn opens.
+1. **Phase 0 — programme operations (G6, G7).** Apply package
+   migrations with the host migration command. Staff create, publish,
+   fund as required, and activate programmes in Filament before any
+   earning is available in a fresh environment.
+2. **Phase 1 — complete Loop A (G1, G9).** Activity facts,
+   participant earning, and the enrolment prompt are landed; members
+   enrol explicitly when the published rules require it.
+3. **Phase 2 — addressed invites (G2).** Landed 2026-10-15:
+   staff-managed global referral programmes, invite landing and verified
+   acceptance, first-participation qualification, points/voucher rails,
+   member dashboard, expiry, signals, and source reversal.
+4. **Phase 3 — commerce payoff (G3, G4, G8).** Decide the future
+   purchase-attribution window and redemption limits, then add purchase
+   facts, any sharer benefit, points tender, and monetary-grade fraud
+   gates before burn opens.
 5. **Phase 4 — only if needed (G5).** Commercial affiliate programme
-   for promoters and/or migration of the share domain into the
-   existing referrals package when a second consumer appears.
+   for promoters and/or migration of the share domain into the existing
+   referrals package when a second consumer appears.
 
 ## 7. Non-goals
 

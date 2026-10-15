@@ -10,12 +10,14 @@ use App\Http\Controllers\NetworkDiagnosticsController;
 use App\Http\Controllers\Public\EventCheckoutResultController;
 use App\Http\Controllers\Public\EventPassController;
 use App\Http\Controllers\Public\EventsController;
+use App\Http\Controllers\Public\ReferralInviteLandingController;
 use App\Http\Controllers\ShareCardController;
 use App\Http\Controllers\ShareClaimController;
 use App\Http\Controllers\ShareRedirectController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Middleware\ResolvePublicSlugRedirect;
 use App\Http\Middleware\SetLocale;
+use App\Http\Middleware\TrackDawahShareAttribution;
 use App\Livewire\Pages\About\Show as AboutPage;
 use App\Livewire\Pages\Contributions\Index as ContributionsIndex;
 use App\Livewire\Pages\Contributions\SubmitInstitution;
@@ -37,6 +39,7 @@ use App\Livewire\Pages\Dashboard\Organizations\CreateOrganization;
 use App\Livewire\Pages\Dashboard\Organizations\Index as OrganizationsIndex;
 use App\Livewire\Pages\Dashboard\Organizations\Workspace as OrganizationWorkspace;
 use App\Livewire\Pages\Dashboard\PersonDashboard;
+use App\Livewire\Pages\Dashboard\ReferralMemberIndex;
 use App\Livewire\Pages\Dashboard\RewardMemberIndex;
 use App\Livewire\Pages\Dashboard\UserDashboard;
 use App\Livewire\Pages\Events\Checkout as EventCheckout;
@@ -56,6 +59,11 @@ use Laravel\Fortify\Features;
 Route::livewire('/', 'pages.⚡home')->name('home');
 Route::livewire('/tentang-kami', AboutPage::class)->name('about');
 Route::get('/bahasa/{locale}', LocaleController::class)->name('locale.switch');
+
+Route::get('/jemputan/{token}', ReferralInviteLandingController::class)
+    ->middleware(['throttle:share-tracking', TrackDawahShareAttribution::class])
+    ->where('token', '[A-Za-z0-9]+')
+    ->name('referrals.invite.landing');
 
 // Socialite OAuth Routes
 Route::get('/oauth/{provider}/redirect', [SocialiteController::class, 'redirect'])
@@ -154,6 +162,7 @@ Route::middleware('auth')->group(function () {
     Route::livewire('/dashboard/dawah-impact/links/{link}', DawahImpactLinkShow::class)->name('dashboard.dawah-impact.links.show');
     Route::livewire('/dashboard/notifications', NotificationsIndex::class)->name('dashboard.notifications');
     Route::livewire('/dashboard/rewards', RewardMemberIndex::class)->name('dashboard.rewards');
+    Route::livewire('/dashboard/ajak-kawan', ReferralMemberIndex::class)->name('dashboard.referrals');
     Route::livewire('/tetapan-akaun', AccountSettings::class)->name('dashboard.account-settings');
     Route::livewire('/dashboard/institusi', InstitutionDashboard::class)->name('dashboard.institutions');
     Route::livewire('/dashboard/institusi/senarai-majlis', InstitutionDashboard::class)->name('dashboard.institutions.events');

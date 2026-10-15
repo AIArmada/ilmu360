@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Livewire\Pages\Dashboard;
 
-use AIArmada\Rewards\Actions\EnrollRewardMemberAction;
 use AIArmada\Rewards\Actions\LeaveRewardProgramAction;
 use AIArmada\Rewards\Actions\OpenRewardAppealAction;
 use AIArmada\Rewards\Actions\ReacceptRewardTermsAction;
@@ -25,8 +24,9 @@ use AIArmada\Rewards\Models\RewardProgram;
 use AIArmada\Rewards\Models\RewardProgramVersion;
 use AIArmada\Rewards\Support\RewardBenefitStockLedger;
 use AIArmada\Rewards\Support\RewardPointLedger;
-use AIArmada\Rewards\Support\RewardVersionResolver;
+use App\Actions\Rewards\EnrollRewardProgramMemberAction;
 use App\Models\User;
+use App\Support\Rewards\PublishedRewardProgramVersionResolver;
 use App\Support\Rewards\RewardMemberPresenter;
 use App\Support\Share\ShareMetricReader;
 use Carbon\CarbonImmutable;
@@ -80,20 +80,17 @@ class RewardMemberIndex extends Component
     {
         $user = $this->currentUser();
         $program = RewardProgram::query()->whereKey($programId)->firstOrFail();
-        $this->authorize('enroll', $program);
 
-        $version = $this->applicableVersion($program);
-
-        if (! $version instanceof RewardProgramVersion) {
-            $this->notice = 'This program has no published terms yet, so enrollment is not open.';
+        try {
+            $enrollment = EnrollRewardProgramMemberAction::run($program, $user);
+        } catch (InvalidArgumentException $exception) {
+            $this->notice = $exception->getMessage();
 
             return;
         }
 
-        try {
-            EnrollRewardMemberAction::run($program, 'user', (string) $user->getKey(), $version, 'member-portal');
-        } catch (InvalidArgumentException $exception) {
-            $this->notice = $exception->getMessage();
+        if ($enrollment === null) {
+            $this->notice = 'This program has no published terms yet, so enrollment is not open.';
 
             return;
         }
@@ -512,34 +509,7 @@ class RewardMemberIndex extends Component
 
     private function applicableVersion(RewardProgram $program): ?RewardProgramVersion
     {
-        $versions = RewardProgramVersion::query()
-            ->where('program_id', $program->getKey())
-            ->orderBy('version')
-            ->get();
-
-        $timeline = [];
-
-        foreach ($versions as $version) {
-            $timeline[] = [
-                'id' => (string) $version->getKey(),
-                'version' => (int) $version->version,
-                'effective_from' => CarbonImmutable::parse($version->effective_from)->setTimezone('UTC'),
-            ];
-        }
-
-        $applicable = RewardVersionResolver::resolveAt($timeline, CarbonImmutable::now('UTC'));
-
-        if ($applicable === null) {
-            return null;
-        }
-
-        foreach ($versions as $version) {
-            if ((string) $version->getKey() === $applicable['id']) {
-                return $version;
-            }
-        }
-
-        return null;
+        return app(PublishedRewardProgramVersionResolver::class)->resolve($program);
     }
 
     private function currentUser(): User

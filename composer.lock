@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "d0240d59beb17680d802f891e1b76209",
+    "content-hash": "414385716e04d50aa4012d9f37f3c58b",
     "packages": [
         {
             "name": "aiarmada/addressing",
@@ -1262,6 +1262,43 @@
             }
         },
         {
+            "name": "aiarmada/filament-referrals",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../commerce/packages/filament-referrals",
+                "reference": "7b7d987a3079672c176151bd03e382ec5ce13942"
+            },
+            "require": {
+                "aiarmada/commerce-support": "self.version",
+                "aiarmada/referrals": "self.version",
+                "filament/filament": "^5.8.1",
+                "php": "^8.5",
+                "spatie/laravel-package-tools": "^1.93.2"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "AIArmada\\FilamentReferrals\\FilamentReferralsServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "AIArmada\\FilamentReferrals\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "A Filament v5 adapter for AIArmada referral programs, invites, and rewards",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
             "name": "aiarmada/filament-rewards",
             "version": "dev-main",
             "dist": {
@@ -1944,6 +1981,48 @@
                 "MIT"
             ],
             "description": "Generic reference/source management for Laravel - scholarly references with hierarchical parts support",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "aiarmada/referrals",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../commerce/packages/referrals",
+                "reference": "6fe7a18790c1d0a2eae5725ea83af0910f5a24df"
+            },
+            "require": {
+                "aiarmada/commerce-support": "self.version",
+                "lorisleiva/laravel-actions": "^2.12.0",
+                "php": "^8.5",
+                "spatie/laravel-package-tools": "^1.93.2"
+            },
+            "suggest": {
+                "aiarmada/affiliates": "Provides the affiliate cash fulfilment rail.",
+                "aiarmada/rewards": "Provides the points fulfilment rail.",
+                "aiarmada/vouchers": "Provides the voucher fulfilment rail."
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "AIArmada\\Referrals\\ReferralsServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "AIArmada\\Referrals\\": "src/",
+                    "AIArmada\\Referrals\\Database\\Factories\\": "database/factories/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Member-get-member referral programs for Laravel applications.",
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -23796,6 +23875,7 @@
         "aiarmada/filament-inventory": 20,
         "aiarmada/filament-organizations": 20,
         "aiarmada/filament-persons": 20,
+        "aiarmada/filament-referrals": 20,
         "aiarmada/filament-rewards": 20,
         "aiarmada/filament-seating": 20,
         "aiarmada/filament-signals": 20,
@@ -23809,6 +23889,7 @@
         "aiarmada/persons": 20,
         "aiarmada/promotions": 20,
         "aiarmada/references": 20,
+        "aiarmada/referrals": 20,
         "aiarmada/rewards": 20,
         "aiarmada/seating": 20,
         "aiarmada/signals": 20,

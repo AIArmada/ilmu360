@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Services\Signals;
 
 use AIArmada\Communications\Models\NotificationInbox;
+use AIArmada\Referrals\Models\ReferralInvite;
+use AIArmada\Rewards\Models\RewardEnrollment;
+use AIArmada\Rewards\Models\RewardProgram;
 use AIArmada\Signals\Contracts\SignalEventIngestor;
 use AIArmada\Signals\Models\SignalEvent;
 use AIArmada\Signals\Models\TrackedProperty;
@@ -71,6 +74,65 @@ final readonly class ProductSignalsService
             eventName: 'auth.email_verified',
             eventCategory: 'auth',
             user: $user,
+        );
+    }
+
+    public function recordRewardProgramEnrolled(
+        RewardProgram $program,
+        RewardEnrollment $enrollment,
+        User $user,
+        ?Request $request = null,
+        string $surface = 'member-portal',
+    ): ?SignalEvent {
+        return $this->record(
+            request: $request,
+            eventName: 'rewards.program_enrolled',
+            eventCategory: 'engagement',
+            user: $user,
+            properties: [
+                'program_id' => (string) $program->getKey(),
+                'program_family' => $program->family_key,
+                'enrollment_id' => (string) $enrollment->getKey(),
+                'surface' => $surface,
+            ],
+        );
+    }
+
+    public function recordReferralInviteCreated(
+        ReferralInvite $invite,
+        User $user,
+        ?Request $request = null,
+        string $surface = 'member-portal',
+    ): ?SignalEvent {
+        return $this->record(
+            request: $request,
+            eventName: 'referrals.invite_created',
+            eventCategory: 'engagement',
+            user: $user,
+            properties: [
+                'program_id' => (string) $invite->program_id,
+                'invite_id' => (string) $invite->getKey(),
+                'surface' => $surface,
+            ],
+        );
+    }
+
+    public function recordReferralInviteAccepted(
+        ReferralInvite $invite,
+        User $user,
+        ?Request $request = null,
+        string $surface = 'invite-landing',
+    ): ?SignalEvent {
+        return $this->record(
+            request: $request,
+            eventName: 'referrals.invite_accepted',
+            eventCategory: 'engagement',
+            user: $user,
+            properties: [
+                'program_id' => (string) $invite->program_id,
+                'invite_id' => (string) $invite->getKey(),
+                'surface' => $surface,
+            ],
         );
     }
 

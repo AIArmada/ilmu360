@@ -23,6 +23,7 @@ use AIArmada\Affiliates\Support\IpHasher;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\OwnerScope;
 use AIArmada\Links\Models\Link;
+use AIArmada\Rewards\Jobs\EvaluateRewardEntitlementJob;
 use App\Data\ShareTracking\ShareTrackingAttributionData;
 use App\Data\ShareTracking\ShareTrackingLinkData;
 use App\Data\ShareTracking\ShareTrackingOutcomeData;
@@ -31,6 +32,7 @@ use App\Enums\ShareEffectStatus;
 use App\Enums\ShareGuestClaimCapabilityStatus;
 use App\Enums\ShareGuestClaimStatus;
 use App\Enums\ShareGuestCredentialStatus;
+use App\Jobs\Referrals\QualifyReferralFromShareOutcomeJob;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
@@ -44,6 +46,7 @@ use App\Models\ShareGuestCredential;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
+use App\Support\ShareTracking\ActivityRewardBusinessKey;
 use App\Support\ShareTracking\SealedGuestIdentityException;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use App\Support\ShareTracking\ShareTrackingFinance;
@@ -57,8 +60,10 @@ use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
+use LogicException;
 use Throwable;
 
 final readonly class AffiliatesShareTrackingService
@@ -421,12 +426,15 @@ final readonly class AffiliatesShareTrackingService
         $receipt = ShareSourceAttributionReceipt::query()->where('business_key', $businessKey)->first();
 
         if ($receipt instanceof ShareSourceAttributionReceipt) {
+            $this->dispatchReferralQualification($type, $businessKey);
+            $this->dispatchActivityRewardIfUnattributed($type, $sourceTransitionId, $businessKey);
+
             return $this->mapReceiptReplay($receipt, $businessKey);
         }
 
         $browserKey = $this->browserKeyFromRequest($request);
 
-        return DB::transaction(function () use ($browserKey, $type, $businessKey, $sourceTransitionId, $subject, $metadata, $actor, $occurredAt): ?ShareTrackingOutcomeData {
+        $outcome = DB::transaction(function () use ($browserKey, $type, $businessKey, $sourceTransitionId, $subject, $metadata, $actor, $occurredAt): ?ShareTrackingOutcomeData {
             $selection = is_string($browserKey) ? $this->lockedExistingBrowserSelection($browserKey) : null;
             $winner = $selection instanceof ShareBrowserSelection && is_string($browserKey)
                 ? $this->lockedBrowserWinner($selection, $browserKey)
@@ -560,6 +568,45 @@ final readonly class AffiliatesShareTrackingService
             // Concurrent same-key inserts deadlock on gap locks under
             // InnoDB; the retry replays the committed winner decision.
         }, 3);
+
+        $this->dispatchReferralQualification($type, $businessKey);
+        $this->dispatchActivityRewardIfUnattributed($type, $sourceTransitionId, $businessKey);
+
+        return $outcome;
+    }
+
+    private function dispatchActivityRewardIfUnattributed(
+        DawahShareOutcomeType $type,
+        string $sourceTransitionId,
+        string $shareBusinessKey,
+    ): void {
+        $receipt = ShareSourceAttributionReceipt::query()
+            ->where('business_key', $shareBusinessKey)
+            ->first();
+
+        if (! $receipt instanceof ShareSourceAttributionReceipt || $receipt->isAttributed()) {
+            return;
+        }
+
+        $activityBusinessKey = ActivityRewardBusinessKey::for($type, $sourceTransitionId);
+
+        EvaluateRewardEntitlementJob::dispatch($activityBusinessKey)->afterCommit();
+    }
+
+    private function dispatchReferralQualification(DawahShareOutcomeType $type, string $businessKey): void
+    {
+        if (! in_array($type, [DawahShareOutcomeType::EventRegistration, DawahShareOutcomeType::EventCheckin], true)) {
+            return;
+        }
+
+        try {
+            QualifyReferralFromShareOutcomeJob::dispatch($businessKey)->afterCommit();
+        } catch (Throwable $exception) {
+            Log::warning('Referral qualification dispatch failed after a committed share outcome.', [
+                'business_key' => $businessKey,
+                'exception' => $exception,
+            ]);
+        }
     }
 
     private function mapReceiptReplay(ShareSourceAttributionReceipt $receipt, string $businessKey): ?ShareTrackingOutcomeData
@@ -709,10 +756,13 @@ final readonly class AffiliatesShareTrackingService
         $receipt = ShareSourceAttributionReceipt::query()->where('business_key', $businessKey)->first();
 
         if ($receipt instanceof ShareSourceAttributionReceipt) {
+            $this->dispatchReferralQualification($type, $businessKey);
+            $this->dispatchActivityRewardIfUnattributed($type, $sourceTransitionId, $businessKey);
+
             return $this->mapReceiptReplay($receipt, $businessKey);
         }
 
-        return DB::transaction(function () use ($type, $businessKey, $sourceTransitionId, $sourceBusinessKey, $subject, $metadata, $actor, $occurredAt): ?ShareTrackingOutcomeData {
+        $outcome = DB::transaction(function () use ($type, $businessKey, $sourceTransitionId, $sourceBusinessKey, $subject, $metadata, $actor, $occurredAt): ?ShareTrackingOutcomeData {
             $sourceAttribution = $this->lockedValidInheritanceSource($sourceBusinessKey);
 
             $owner = $sourceAttribution instanceof AffiliateAttribution
@@ -833,6 +883,11 @@ final readonly class AffiliatesShareTrackingService
             // Concurrent same-key inserts deadlock on gap locks under
             // InnoDB; the retry replays the committed winner decision.
         }, 3);
+
+        $this->dispatchReferralQualification($type, $businessKey);
+        $this->dispatchActivityRewardIfUnattributed($type, $sourceTransitionId, $businessKey);
+
+        return $outcome;
     }
 
     /**
@@ -2439,9 +2494,13 @@ final readonly class AffiliatesShareTrackingService
         $linkMetadata = $this->linkMetadata($link);
         $affiliate = $link->affiliate()->first();
 
-        return AffiliateAttribution::query()->create([
+        if (! $affiliate instanceof Affiliate) {
+            throw new LogicException('A tracked share link must belong to an affiliate.');
+        }
+
+        $attribution = new AffiliateAttribution([
             'affiliate_id' => $link->affiliate_id,
-            'affiliate_code' => (string) $affiliate?->code,
+            'affiliate_code' => (string) $affiliate->code,
             'subject_type' => $link->subject_type,
             'subject_key' => (string) ($linkMetadata['subject_key'] ?? $link->subject_key ?? $link->id),
             'subject_id' => $link->subject_id,
@@ -2465,6 +2524,12 @@ final readonly class AffiliatesShareTrackingService
             'sharer_user_id' => $linkMetadata['sharer_user_id'] ?? null,
             'metadata' => $this->sanitizedCampaignMetadata($request),
         ]);
+
+        $attribution->owner_type = $affiliate->owner_type;
+        $attribution->owner_id = $affiliate->owner_id;
+        $attribution->save();
+
+        return $attribution;
     }
 
     /**

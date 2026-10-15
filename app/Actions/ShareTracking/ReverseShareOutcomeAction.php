@@ -9,6 +9,7 @@ use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\States\ConversionStatus;
 use App\Enums\DawahShareOutcomeType;
 use App\Enums\ShareEffectStatus;
+use App\Jobs\Referrals\ReverseReferralRewardsForShareOutcomeJob;
 use App\Models\ShareEffectReceipt;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\ShareSourceAttributionReceipt;
@@ -18,6 +19,7 @@ use App\Support\ShareTracking\ShareTrackingFinance;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -48,6 +50,16 @@ final readonly class ReverseShareOutcomeAction
 
         if ($reason === '' || mb_strlen($reason) > 64) {
             throw new InvalidArgumentException('Correction reason must be a non-empty bounded value.');
+        }
+
+        try {
+            ReverseReferralRewardsForShareOutcomeJob::dispatch($businessKey, $reason)->afterCommit();
+        } catch (\Throwable $exception) {
+            Log::warning('Referral reversal dispatch failed while correcting a share outcome.', [
+                'business_key' => $businessKey,
+                'reason' => $reason,
+                'exception' => $exception,
+            ]);
         }
 
         $receipt = ShareSourceAttributionReceipt::query()->where('business_key', $businessKey)->first();

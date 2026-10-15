@@ -177,9 +177,9 @@ use App\Support\Membership\AppMembershipHook;
 use App\Support\Passport\PassportKeyProvisioner;
 use App\Support\Rewards\AffiliatesRewardPayoutExecutor;
 use App\Support\Rewards\AffiliatesRewardPayoutMethodCatalog;
+use App\Support\Rewards\CompositeRewardSourceFactReader;
 use App\Support\Rewards\DigestRewardGratitudePlanner;
 use App\Support\Rewards\RewardCashAwardPolicy;
-use App\Support\Rewards\ShareAttributionRewardSourceFactReader;
 use App\Support\Rewards\ShareCorrectionKeySource;
 use App\Support\Rewards\VouchersRewardBenefitCouponFulfillment;
 use BezhanSalleh\LanguageSwitch\LanguageSwitch;
@@ -311,7 +311,7 @@ class AppServiceProvider extends ServiceProvider
         // Finance scope binds funded readiness: money/benefit activation
         // proves funding, verified payees, and supported processors from
         // immutable rows, and keeps refusing anything it cannot prove.
-        $this->app->singleton(RewardSourceFactReader::class, ShareAttributionRewardSourceFactReader::class);
+        $this->app->singleton(RewardSourceFactReader::class, CompositeRewardSourceFactReader::class);
         $this->app->singleton(RewardReservationResolver::class, PointLedgerRewardReservationResolver::class);
         $this->app->singleton(RewardReadinessChecker::class, FundedRewardReadinessChecker::class);
         $this->app->singleton(RewardFinancialReadinessChecker::class, FundedRewardFinancialReadinessChecker::class);

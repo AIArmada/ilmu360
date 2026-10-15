@@ -310,6 +310,7 @@ final readonly class ShareTrackingUrlService
             'references.show',
             'submit-event.landing',
             'submit-event.create',
+            'referrals.invite.landing',
         ];
     }
 

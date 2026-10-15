@@ -72,6 +72,7 @@ return [
         'series_follow',
         'reference_follow',
         'saved_search_created',
+        'referral_qualified',
     ],
 
     'moderated_outcomes' => ['event_submission'],

@@ -31,6 +31,13 @@ Schedule::command('rewards:dispatch-gratitude-digests')
     ->name('reward-gratitude-digests')
     ->withoutOverlapping();
 
+// Referral invite expiry (package action; idempotent status transitions).
+Schedule::command('referrals:expire-invites')
+    ->hourly()
+    ->timezone('UTC')
+    ->name('referrals-expire-invites')
+    ->withoutOverlapping();
+
 // Source corrections (explicit, idempotent, reported)
 Schedule::command('rewards:apply-source-corrections')
     ->dailyAt('02:15')

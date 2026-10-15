@@ -146,7 +146,7 @@ final class ShareOutcomeBusinessKey
         ];
     }
 
-    private static function assertCanonicalSourceTransition(DawahShareOutcomeType $type, string $sourceTransitionId): void
+    public static function assertCanonicalSourceTransition(DawahShareOutcomeType $type, string $sourceTransitionId): void
     {
         $prefix = self::sourcePrefixes()[$type->value] ?? null;
 

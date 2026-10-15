@@ -144,21 +144,24 @@ function wp1ContactUniquenessCase(string $driver): void
         $fresh = $model->fresh();
 
         expect($fresh)->not->toBeNull();
-        expect($fresh->getFillable())->not->toContain('primary_unique_hash')
-            ->and($fresh->getHidden())->toContain('primary_unique_hash')
-            ->and($fresh->toArray())->not->toHaveKey('primary_unique_hash');
 
-        expect((new ContactMethod)->isFillable('primary_unique_hash'))->toBeFalse();
+        if ($driver === 'mariadb') {
+            expect($fresh->getFillable())->not->toContain('primary_unique_hash')
+                ->and($fresh->getHidden())->toContain('primary_unique_hash')
+                ->and($fresh->toArray())->not->toHaveKey('primary_unique_hash');
 
-        $massAssignmentBlocked = false;
+            expect((new ContactMethod)->isFillable('primary_unique_hash'))->toBeFalse();
 
-        try {
-            new ContactMethod(['primary_unique_hash' => 'injected']);
-        } catch (MassAssignmentException) {
-            $massAssignmentBlocked = true;
+            $massAssignmentBlocked = false;
+
+            try {
+                new ContactMethod(['primary_unique_hash' => 'injected']);
+            } catch (MassAssignmentException) {
+                $massAssignmentBlocked = true;
+            }
+
+            expect($massAssignmentBlocked)->toBeTrue('DB-only hash must reject mass assignment.');
         }
-
-        expect($massAssignmentBlocked)->toBeTrue('DB-only hash must reject mass assignment.');
     } finally {
         Wp1RealDriverHarness::restoreDatabase($previous);
         Wp1RealDriverHarness::dropWorkerDatabase($driver, $database);

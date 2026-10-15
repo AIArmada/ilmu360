@@ -177,7 +177,9 @@ $buildRequest = static function (?string $cookie): Request {
 };
 
 try {
-    $report = match ($mode) {
+    // This standalone process has no HTTP middleware to establish the
+    // public share flow's explicit global owner context.
+    $report = OwnerContext::withOwner(null, fn (): array => match ($mode) {
         'outcome', 'correction' => (static function () use ($mode, $slot, $payload, $buildRequest): array {
             if ($mode === 'correction' && $slot === 1) {
                 $correction = app(ReverseShareOutcomeAction::class)->handle(
@@ -340,7 +342,7 @@ try {
                 ];
             });
         })(),
-    };
+    });
 } catch (Throwable $exception) {
     $fail(get_class($exception).': '.$exception->getMessage());
 }
