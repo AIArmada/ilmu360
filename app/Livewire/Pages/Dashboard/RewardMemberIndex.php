@@ -10,6 +10,7 @@ use AIArmada\Rewards\Actions\ReacceptRewardTermsAction;
 use AIArmada\Rewards\Actions\RedeemRewardBenefitAction;
 use AIArmada\Rewards\Actions\RegisterRewardPayeeAction;
 use AIArmada\Rewards\Enums\RewardBenefitItemStatus;
+use AIArmada\Rewards\Enums\RewardMilestoneStatus;
 use AIArmada\Rewards\Enums\RewardProgramStatus;
 use AIArmada\Rewards\Models\RewardAppeal;
 use AIArmada\Rewards\Models\RewardAward;
@@ -17,6 +18,7 @@ use AIArmada\Rewards\Models\RewardBenefitGrant;
 use AIArmada\Rewards\Models\RewardBenefitItem;
 use AIArmada\Rewards\Models\RewardEnrollment;
 use AIArmada\Rewards\Models\RewardEnrollmentAcceptance;
+use AIArmada\Rewards\Models\RewardMilestoneCycle;
 use AIArmada\Rewards\Models\RewardPayee;
 use AIArmada\Rewards\Models\RewardPayoutRequest;
 use AIArmada\Rewards\Models\RewardPointLot;
@@ -25,6 +27,7 @@ use AIArmada\Rewards\Models\RewardProgramVersion;
 use AIArmada\Rewards\Support\RewardBenefitStockLedger;
 use AIArmada\Rewards\Support\RewardPointLedger;
 use App\Actions\Rewards\EnrollRewardProgramMemberAction;
+use App\Actions\Rewards\EvaluatePreclaimShareOutcomesAction;
 use App\Models\User;
 use App\Support\Rewards\PublishedRewardProgramVersionResolver;
 use App\Support\Rewards\RewardMemberPresenter;
@@ -150,6 +153,8 @@ class RewardMemberIndex extends Component
             return;
         }
 
+        EvaluatePreclaimShareOutcomesAction::run($program, $user, $version);
+
         $this->notice = 'Terms reaccepted. Accrued obligations keep their frozen terms.';
     }
 
@@ -246,6 +251,7 @@ class RewardMemberIndex extends Component
         $histories = [];
         $balances = [];
         $programs = [];
+        $milestones = [];
         $appeals = [];
         $appealsPager = null;
         $appealableAwards = [];
@@ -275,6 +281,7 @@ class RewardMemberIndex extends Component
             // Balances derive from the member's point lots, never from the
             // visible award page: paging through history must not move money.
             $balances = $this->balancesFor($user, $asOf);
+            $milestones = $this->milestoneProgressFor($user);
         } elseif ($this->tab === 'programs') {
             $programs = $this->programsFor($user);
         } elseif ($this->tab === 'appeals') {
@@ -303,6 +310,7 @@ class RewardMemberIndex extends Component
             'awards' => $awards,
             'histories' => $histories,
             'balances' => $balances,
+            'milestones' => $milestones,
             'programs' => $programs,
             'appeals' => $appeals,
             'appealsPager' => $appealsPager,
@@ -352,6 +360,59 @@ class RewardMemberIndex extends Component
         }
 
         return $balances;
+    }
+
+    /**
+     * @return list<array{program: string, label: string, current: int, target: int, status: string}>
+     */
+    private function milestoneProgressFor(User $user): array
+    {
+        $cycles = RewardMilestoneCycle::query()
+            ->where('recipient_type', $user->getMorphClass())
+            ->where('recipient_id', $user->getKey())
+            ->whereIn('status', [RewardMilestoneStatus::Open->value, RewardMilestoneStatus::Achieved->value])
+            ->orderBy('window_start')
+            ->get();
+
+        if ($cycles->isEmpty()) {
+            return [];
+        }
+
+        $programs = RewardProgram::query()
+            ->whereIn('id', $cycles->map(static fn (RewardMilestoneCycle $cycle): string => (string) $cycle->program_id)->unique()->all())
+            ->get()
+            ->keyBy(static fn (RewardProgram $program): string => (string) $program->getKey());
+
+        $progress = [];
+
+        foreach ($cycles as $cycle) {
+            $program = $programs->get((string) $cycle->program_id);
+
+            if (! $program instanceof RewardProgram || $user->cannot('view', $program)) {
+                continue;
+            }
+
+            $version = $this->applicableVersion($program);
+            $label = $cycle->milestone_key;
+
+            foreach (is_array($version?->rules['milestones'] ?? null) ? $version->rules['milestones'] : [] as $definition) {
+                if (is_array($definition) && ($definition['key'] ?? null) === $cycle->milestone_key) {
+                    $label = is_string($definition['label'] ?? null) ? $definition['label'] : $label;
+
+                    break;
+                }
+            }
+
+            $progress[] = [
+                'program' => (string) $program->title,
+                'label' => $label,
+                'current' => (int) $cycle->current_count,
+                'target' => (int) $cycle->target_count,
+                'status' => $cycle->status->value,
+            ];
+        }
+
+        return $progress;
     }
 
     /**

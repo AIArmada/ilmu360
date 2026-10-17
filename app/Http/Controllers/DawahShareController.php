@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Services\ShareTrackingService;
+use App\Support\ShareTracking\ShareProfileNotEligibleException;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
@@ -143,6 +144,14 @@ class DawahShareController extends Controller
                 $data['title'] ?? null,
                 $data['origin'] ?? null,
                 $request,
+            );
+        } catch (ShareProfileNotEligibleException) {
+            return $shareTrackingService->sharePayload(
+                null,
+                $data['url'],
+                $data['text'],
+                $data['title'] ?? null,
+                $data['origin'] ?? null,
             );
         } catch (\InvalidArgumentException $exception) {
             throw ValidationException::withMessages([

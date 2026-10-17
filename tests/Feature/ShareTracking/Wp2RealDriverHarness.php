@@ -8,146 +8,30 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Assert;
 use Symfony\Component\Process\Process;
+use Tests\Support\RealDriverFixture;
 
 /**
  * WP2 real-driver extensions over the guarded WP1 harness.
  *
- * The WP1 minimal MariaDB migration set covers only profile/link creation.
  * WP2 outcome flows additionally need the ORIGINAL affiliates
- * attribution/conversion/touchpoint/fraud/balance migrations plus the new
- * app share tables, loaded here from their current original files. The
- * WP1 harness file itself is never modified. PostgreSQL workers run the
- * full original migration set through the WP1 entrypoint, which already
- * includes every required table.
+ * attribution/conversion/touchpoint/fraud/balance migrations, bookmark
+ * and event outcome tables, and the new app share tables, loaded here
+ * from their current original files. Outcome workers separately load the
+ * reward-award and milestone-contribution tables. The
+ * PostgreSQL workers run the full original migration set through the WP1
+ * schema entrypoint, which already includes every required table.
  *
  * Guarded test-only worker databases: loopback isolated ports/databases
  * only. Never the live application database (ilmu360 / 127.0.0.1:5432).
  */
 final class Wp2RealDriverHarness
 {
-    public static function migrateWorkerDatabase(string $driver): void
+    public static function migrateWorkerDatabase(): void
     {
-        Wp1RealDriverHarness::migrateWorkerDatabase($driver);
-
-        if ($driver === 'pgsql') {
-            // The isolated cluster inherits the host timezone while the
-            // application writes UTC walls. Pin the worker session to UTC
-            // so stored instants round-trip exactly, as in production.
-            DB::connection(Wp1RealDriverHarness::WORKER_CONNECTION)
-                ->statement("SET TIME ZONE 'UTC'");
-
-            return;
-        }
-
-        foreach (self::extraMariaDbMigrationFiles() as $file) {
-            Assert::assertFileExists($file);
-
-            // require (not require_once): each call must return a fresh
-            // anonymous migration instance.
-            $migration = require $file;
-
-            Assert::assertIsObject($migration, "Migration file [{$file}] must return a migration instance.");
-
-            $migration->up();
-        }
+        Wp1RealDriverHarness::migrateWorkerDatabase();
+        DB::connection(Wp1RealDriverHarness::WORKER_CONNECTION)->statement("SET TIME ZONE 'UTC'");
     }
 
-    /**
-     * @return list<string>
-     */
-    private static function extraMariaDbMigrationFiles(): array
-    {
-        $base = base_path();
-
-        return [
-            // Landing attributions read and written by captureRequest.
-            $base.'/vendor/aiarmada/affiliates/database/migrations/2000_01_01_000002_create_affiliate_attributions_table.php',
-            // Attributed outcome conversions.
-            $base.'/vendor/aiarmada/affiliates/database/migrations/2000_01_01_000003_create_affiliate_conversions_table.php',
-            // Visit touchpoints for the rolling dedupe window.
-            $base.'/vendor/aiarmada/affiliates/database/migrations/2000_01_01_000006_create_affiliate_touchpoints_table.php',
-            // Persisted fraud-rule signals.
-            $base.'/vendor/aiarmada/affiliates/database/migrations/2000_01_01_000011_create_affiliate_fraud_signals_table.php',
-            // Accounting balances.
-            $base.'/vendor/aiarmada/affiliates/database/migrations/2000_01_01_000012_create_affiliate_balances_table.php',
-            // Per-browser persistent attribution selection lock.
-            $base.'/database/migrations/2026_10_06_201907_create_share_browser_selections_table.php',
-            // Frozen attributed-or-unattributed source decisions.
-            $base.'/database/migrations/2026_10_06_201908_create_share_source_attribution_receipts_table.php',
-            // Append-only zero-value outcome corrections.
-            $base.'/database/migrations/2026_10_06_201909_create_share_outcome_corrections_table.php',
-            // Durable keyed effect receipts with lease fencing.
-            $base.'/database/migrations/2026_10_06_201910_create_share_effect_receipts_table.php',
-            // Guest credential verifiers presented on share writes.
-            $base.'/database/migrations/2026_10_07_000001_create_share_guest_credentials_table.php',
-        ];
-    }
-
-    public static function migrateExtendedWorkerDatabase(string $driver): void
-    {
-        self::migrateWorkerDatabase($driver);
-
-        if ($driver === 'pgsql') {
-            return;
-        }
-
-        foreach (self::extendedMariaDbMigrationFiles() as $file) {
-            Assert::assertFileExists($file);
-
-            $migration = require $file;
-
-            Assert::assertIsObject($migration, "Migration file [{$file}] must return a migration instance.");
-
-            $migration->up();
-        }
-    }
-
-    /**
-     * @return list<string>
-     */
-    private static function extendedMariaDbMigrationFiles(): array
-    {
-        $base = base_path();
-
-        return [
-            $base.'/vendor/aiarmada/events/database/migrations/2000_01_01_000001_create_events_table.php',
-            $base.'/vendor/aiarmada/events/database/migrations/2000_01_01_000002_create_event_occurrences_table.php',
-            $base.'/vendor/aiarmada/events/database/migrations/2000_01_01_000003_create_event_sessions_table.php',
-            $base.'/vendor/aiarmada/events/database/migrations/2000_01_01_000004_create_event_venues_table.php',
-            $base.'/vendor/aiarmada/events/database/migrations/2000_01_01_000013_create_event_access_policies_table.php',
-            $base.'/vendor/aiarmada/events/database/migrations/2000_01_01_000014_create_event_registrations_table.php',
-            $base.'/vendor/aiarmada/events/database/migrations/2000_01_01_000015_create_event_registration_participants_table.php',
-            $base.'/vendor/aiarmada/events/database/migrations/2000_01_01_000018_create_event_attendances_table.php',
-            $base.'/vendor/aiarmada/events/database/migrations/2000_01_01_000019_create_event_attendance_logs_table.php',
-            $base.'/vendor/aiarmada/ticketing/database/migrations/2000_01_01_000001_create_ticket_types_table.php',
-            $base.'/vendor/aiarmada/ticketing/database/migrations/2000_01_01_000002_create_ticket_type_components_table.php',
-            // Required by the prepare path (auto-bundle inclusion check);
-            // the owning migration carries an explicit short index name
-            // for MariaDB's 64-char identifier limit (R5).
-            $base.'/vendor/aiarmada/ticketing/database/migrations/2000_01_01_000003_create_ticket_type_products_table.php',
-            $base.'/vendor/aiarmada/ticketing/database/migrations/2000_01_01_000007_create_ticket_type_seating_options_table.php',
-            $base.'/vendor/aiarmada/inventory/database/migrations/2000_09_01_000001_create_inventory_locations_table.php',
-            $base.'/vendor/aiarmada/inventory/database/migrations/2000_09_01_000002_create_inventory_levels_table.php',
-            $base.'/vendor/aiarmada/inventory/database/migrations/2000_09_01_000003_create_inventory_movements_table.php',
-            $base.'/vendor/aiarmada/inventory/database/migrations/2000_09_01_000004_create_inventory_allocations_table.php',
-            $base.'/vendor/aiarmada/inventory/database/migrations/2000_09_01_000016_create_inventory_reservations_table.php',
-            $base.'/vendor/aiarmada/cart/database/migrations/2000_02_01_000001_create_carts_table.php',
-            $base.'/vendor/aiarmada/cart/database/migrations/2000_02_01_000002_create_cart_conditions_table.php',
-            $base.'/vendor/aiarmada/cart/database/migrations/2000_02_01_000003_create_cart_snapshots_table.php',
-            $base.'/vendor/aiarmada/cart/database/migrations/2000_02_01_000004_create_cart_snapshots_items_table.php',
-            $base.'/vendor/aiarmada/cart/database/migrations/2000_02_01_000005_create_cart_snapshots_conditions_table.php',
-            $base.'/vendor/aiarmada/checkout/database/migrations/2024_01_01_000001_create_checkout_sessions_table.php',
-            $base.'/vendor/aiarmada/orders/database/migrations/2000_11_01_000001_create_orders_table.php',
-            $base.'/vendor/aiarmada/orders/database/migrations/2000_11_01_000002_create_order_items_table.php',
-        ];
-    }
-
-    /**
-     * Build a GET request the real captureRequest accepts: the route is
-     * genuinely matched by the application router (no database), and the
-     * optional cookie carries real encoded browser state from an earlier
-     * captureRequest call.
-     */
     public static function landingRequest(string $url, ?string $cookie = null): Request
     {
         $request = Request::create($url, 'GET');
@@ -167,7 +51,7 @@ final class Wp2RealDriverHarness
      * Run two independent race workers as separate OS processes with
      * independent connections, started together behind a file barrier.
      *
-     * @param  array{driver: string, database: string, app_url: string, mode: string, payload: array<string, mixed>}  $job
+     * @param  array{database: string, app_url: string, mode: string, payload: array<string, mixed>}  $job
      * @return array{0: array<string, mixed>, 1: array<string, mixed>}
      */
     public static function runRace(array $job): array
@@ -182,7 +66,7 @@ final class Wp2RealDriverHarness
 
         Assert::assertFileExists($worker);
 
-        $baseConfig = Wp1RealDriverHarness::driverConfigs()[$job['driver']];
+        RealDriverFixture::guardWorkerDatabaseName($job['database']);
 
         // Slot inputs travel through the barrier directory: cookie state
         // and keys are argv-hostile, and both workers must read identical
@@ -199,12 +83,7 @@ final class Wp2RealDriverHarness
                 command: [
                     PHP_BINARY,
                     $worker,
-                    '--driver='.$job['driver'],
-                    '--host='.$baseConfig['host'],
-                    '--port='.$baseConfig['port'],
                     '--database='.$job['database'],
-                    '--username='.$baseConfig['username'],
-                    '--password='.$baseConfig['password'],
                     '--app-url='.$job['app_url'],
                     '--mode='.$job['mode'],
                     '--ready-dir='.$readyDir,
@@ -247,7 +126,7 @@ final class Wp2RealDriverHarness
      * connections, real selection-row locking — with a deterministic
      * winner instead of a timing lottery.
      *
-     * @param  array{driver: string, database: string, app_url: string, mode: string, payload: array<string, mixed>}  $job
+     * @param  array{database: string, app_url: string, mode: string, payload: array<string, mixed>}  $job
      * @return array{0: array<string, mixed>, 1: array<string, mixed>}
      */
     public static function runOrderedLandings(array $job, int $firstSlot): array
@@ -279,7 +158,7 @@ final class Wp2RealDriverHarness
 
         Assert::assertFileExists($worker);
 
-        $baseConfig = Wp1RealDriverHarness::driverConfigs()[$job['driver']];
+        RealDriverFixture::guardWorkerDatabaseName($job['database']);
 
         file_put_contents(
             $readyDir.'/payload.json',
@@ -293,12 +172,7 @@ final class Wp2RealDriverHarness
                 command: [
                     PHP_BINARY,
                     $worker,
-                    '--driver='.$job['driver'],
-                    '--host='.$baseConfig['host'],
-                    '--port='.$baseConfig['port'],
                     '--database='.$job['database'],
-                    '--username='.$baseConfig['username'],
-                    '--password='.$baseConfig['password'],
                     '--app-url='.$job['app_url'],
                     '--mode='.$job['mode'],
                     '--ready-dir='.$readyDir,

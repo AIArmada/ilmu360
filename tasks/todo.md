@@ -4660,3 +4660,116 @@ Human workflow correction: Muse must complete self-review/audit/test/fix loops B
 - 2026-10-08 full-integration repair-03 (Muse recovery run): R7 gratitude digest races green (10 passed/253+ assertions, sqlite+maria+pg), R8 community privacy/releases green (18 passed), R9 complete: correction sweep + recovery wiring (5 passed), member API payee setup + payout statements (5 passed), member web 8-tab UI + pagination-independent balances + awards order fix (5 passed), admin structured publish (all 6 modes) + owner picker + payee verify/reject (10 passed), per-mode setup->enroll->qualify->fulfill->correct/recover journeys via production reader + distinct real users (6 passed/41 assertions), point-lot expiry command (2 passed). Pint + PHPStan6 clean on owned paths. Render sweep within budgets (member 12 queries). Evidence: /private/tmp/ilmu360-share-rewards-work-20261008/full-integration-repair-03/.
 
 - 2026-10-09 app handoff consolidation: Codex independently reviewed the finished Muse code and targeted proof; final mail 40 tests/982 assertions, Signals late-arrival 12/465, community proven-only 14/121 and app journey gates accepted within their covered scope. All six recorded closure-source hashes still match; final mail runners/PHPStan/Pint and frontend build exits are zero. No tests rerun for status. Current evidence: /private/tmp/ilmu360-share-rewards-work-20261008/final-app-verification-index.json. App handoff ready; full release remains unproven pending physical WhatsApp iOS/Android and target renderer checks. Extraction is deferred per human later-self-work instruction, not delivered. No live funding/activation/sends performed. Documented sync/tries=1 sibling inbox failure limitation retained. Superseded task-owned audit artifacts archived outside Git.
+
+## ilmu360 growth operability (2026-10-16)
+
+### Plan
+
+- [x] P0-P1b: pin safe affiliate defaults, install/register affiliate and link Filament adapters, and enforce purpose, financial-history, managed-link, and MLM-off UI boundaries.
+- [x] P2-P3: expose truthful per-outcome rewards and milestones, private member progress, and allowlisted referral qualifiers.
+- [x] P4-P5: complete Dawah operator controls/runbook and schedule only safe share-effects, maturity, and payout work.
+- [x] P6-P7: record paid-ticket commercial commissions from frozen checkout provenance with refund reversal; preserve free registration behavior; repair disabled share-profile fallback and tracked-link member UX.
+- [x] P8: add an idempotent local-only activation command, activate the example points/referral programs locally, and set the local reporting start.
+- [x] Add focused package and host regression coverage, run requested package suites, host Pest, PHPStan 6, changed-file Pint, route/schedule checks, graphify update, and a full brief-to-diff safety audit.
+- [x] Write `/tmp/ilmu360-acceptance/fix-handoff.md` with changed-file and requirement/test maps, command exit codes, local activation details, and remaining limits.
+
+### Acceptance round 1 repair plan
+
+- [x] Re-read the acceptance reviews and audit existing host/commerce diffs without replaying accepted work; identify the deterministic RewardDigest failure and the named PHPStan errors.
+- [x] Fix D1–D3, R1–R9, A1–A6, and H1–H10 with focused regression tests and owning-package documentation updates.
+- [x] Run the requested host and commerce verification commands with preserved exit codes; record the known database/Pango exclusions and compare host PHPStan findings with the supplied baseline log.
+- [x] Pint every changed PHP file in both repositories, verify Filament routes, refresh the host code graph, and perform a final purpose-isolation / MLM / original-brief audit.
+- [x] Write `/tmp/ilmu360-acceptance/fix-handoff.md` with finding-to-fix-to-test evidence, exact commands and exit codes, local activation state, and any limits.
+
+### Review
+
+Acceptance fixes are implemented and the focused host/package suites pass. The digest quiet-hours regression passes in isolation. The only broad host test failures are the 147 documented DB connection failures; four ShareCards Pango runtime cases remain excluded per the acceptance baseline. PHPStan has no findings in changed files; remaining reports are pre-existing and enumerated in the acceptance handoff. Pint, route-list, graphify, and diff checks pass.
+
+## Chrome findings round 2 (2026-10-16)
+
+### Plan
+
+- [x] Audit affiliate permission abilities and panel authorization; add real-user host coverage and seed the operational admin permissions locally.
+- [x] Lock non-commercial affiliate identity/commission fields in the form and strip forged edit payloads; cover Dawah and commercial edits.
+- [x] Reuse the existing Dawah measurement status on host Share Analytics; cover configured and unconfigured reporting.
+- [x] Audit reward preclaim semantics before wiring enrollment-time evaluation; implement only if source/component claims and all qualification constraints remain safe; update the member journey runbook.
+- [x] Scope affiliate portal CSS to the portal panel and prove admin pages do not request the missing asset.
+- [x] Verify deactivated Dawah link capture/attribution semantics and fix at capture/freeze if needed; cover no credited signup or post-deactivation impact inflation.
+- [x] Identify the eight failing social SVG URLs and compare their source with committed HEAD; only fix regressions introduced by this program.
+- [x] Run the requested host/package tests, PHPStan, Pint, route checks, graph refresh, C1 live reseed, and a self-review; write `/tmp/ilmu360-acceptance/fix2-handoff.md` with genuine exit codes and evidence.
+
+### Review
+
+C1–C7 are resolved or, for C6/C7, proven to match the required behavior or predate this work. The final affected host run passes (107 tests, 795 assertions); commerce Affiliates, FilamentAffiliates, Rewards, and FilamentRewards pass (1,630 passed, 66 skipped). Changed production PHP has zero PHPStan errors in both repositories. Full-project PHPStan still reports the documented untouched baseline findings; the additional commerce test-only scan is outside the configured PHPStan paths. Pint, route-list, diff checks, local permission reseed/counts, and graph refresh pass. See `/tmp/ilmu360-acceptance/fix2-handoff.md` for command exit codes, live counts, the preclaim seam, and baseline limits.
+
+## Chrome findings round 3 correction (2026-10-16)
+
+### Plan
+
+- [x] Restore admin-panel admission for any global role, remove the dashboard override, and add real-user moderator access coverage while preserving the existing admin/resource/member assertions.
+- [x] Hide generic Links deactivate/reactivate actions for AffiliateLink subjects, cover protected and ordinary links, and correct the Dawah operations runbook.
+- [x] Run the requested host and commerce suites, changed-file PHPStan/Pint, refresh graphify, and write `/tmp/ilmu360-acceptance/fix3-handoff.md` with genuine exit codes.
+
+### Review
+
+R3-1 restores the committed `hasApplicationAdminAccess()` panel gate and removes the dashboard override; both files match `HEAD`. A moderator factory user now passes the direct panel gate and receives HTTP 200 at the panel home. A fresh admin credential login redirects to the admin dashboard, which returns HTTP 200. Existing admin resource and member access coverage remains green. The Chrome 403 is most consistent with a stale intended URL in the reused browser context; the committed authorization path admitted admin users, and the fresh login path passes.
+
+R3-2 hides generic Links deactivate/reactivate actions for protected AffiliateLink subjects through `LinkForm::isProtectedSubject()`. The regression test covers active and inactive protected and ordinary links. The Dawah runbook now states that Affiliate Links deactivation stops credit and generic Links deactivation does not.
+
+R3-3 `graphify update .` exited 0 and rebuilt 33,504 nodes, 74,045 edges, and 2,887 communities. It skipped the HTML visualization because the graph exceeded its configured 5,000-node limit; invalid PDF-header warnings did not prevent the update.
+
+Requested host and commerce test files pass. Scoped level-6 PHPStan is clean for the changed commerce source/test and the new host regression test; the host's configured analysis is clean for the production files and excludes `tests/**`. Pint ran only on PHP files touched during this correction, and targeted `git diff --check` is clean. See `/tmp/ilmu360-acceptance/fix3-handoff.md` for exact commands and exits.
+
+## Real-driver fixture and share-card font closure (2026-10-16)
+
+### Plan
+
+- [x] Replace duplicated PostgreSQL/MariaDB fixture setup and connection assumptions with one `tests/Support` fixture that discovers binaries, owns a canonical ignored data root, and manages parallel worker leases safely.
+- [x] Keep caller-specific schema migrations and real concurrency assertions intact; preserve loopback, port/database, worker namespace, and no-live-database guards.
+- [x] Regenerate the share-card font license pins from committed bytes, protect the asset tree from text conversion, and align readiness/render behavior with a maintained tampered-license regression test.
+- [x] Run cold and warm real-driver proofs, then each requested ShareTracking, Rewards, ShareCards feature, and ShareCards unit suite in its own parallel Pest invocation; run scoped PHPStan and Pint only on owned files.
+- [x] Refresh graphify, audit the final diff and ignored data root, update this review, and write `/tmp/ilmu360-acceptance/clear-handoff.md` with exact commands, exits, hashes, and deletion accounting.
+
+### Review
+
+The shared fixture passes fresh-root cold and same-root warm real-driver proofs on PG17 and MariaDB 11.4, and stops both servers after each run. The required ShareTracking (222/9,464), Rewards (235/4,814), ShareCards Feature (30/234), and ShareCards Unit (132/388) parallel gates exited 0 with zero skips. Changed-file PHPStan level 6 is clean, configured baselines were not modified, changed-file Pint passed, and `graphify update .` exited 0. The task-owned ignored database root was removed after confirming both ports were down. Exact logs, hashes, fixture/deletion accounting, and final exits are in `/tmp/ilmu360-acceptance/clear-handoff.md`.
+
+## Cold-start mkdir race correction (2026-10-17)
+
+### Plan
+
+- [x] Make RealDriverFixture directory creation warning-safe while retaining RuntimeException on genuine failure; audit adjacent state, lock, and owner-marker creation.
+- [x] Add concurrent public-entrypoint regression coverage using the established Process barrier pattern.
+- [x] Capture pre-fix red and post-fix cold green evidence; run cold ShareTracking and warm Rewards gates.
+- [x] Run changed-file PHPStan level 6, Pint on owned PHP files, and graphify update; append the correction to the clear handoff.
+
+### Review
+
+The cold ShareTracking run exited 0 with 222 passed and 9,498 assertions. Warm Rewards exited 0 with 235 passed and 4,810 assertions. Both database ports were down after each gate; the task-owned fixture root was removed after verification. Red/green logs, static check results, the adjacent TOCTOU audit, and graph rebuild counts are recorded in `/tmp/ilmu360-acceptance/clear-handoff.md`.
+
+## MariaDB removal (2026-10-17)
+
+### Plan
+
+- [ ] Remove MariaDB as a supported runtime, test, and package database across ilmu360 and commerce while preserving only intentional Oracle MySQL behavior.
+- [ ] Convert real-driver fixtures, workers, datasets, and package engine lanes to PostgreSQL-only; retain SQLite unit/package behavior and all PostgreSQL safety guards.
+- [ ] Remove MariaDB-only identity-index mechanisms and update canonical package migrations and docs without compatibility migrations.
+- [ ] Run the required grep gates, cold PostgreSQL suites, touched package suites, focused suites, PHPStan, Pint, graphify, port probes, and diff checks; record genuine exits and limits in the acceptance handoff.
+
+### Review
+
+Pending implementation and verification.
+
+## MySQL and MariaDB removal (2026-10-17)
+
+### Plan
+
+- [ ] Remove MySQL/MariaDB runtime configuration, SQL branches, identity-index accommodations, and active package support claims across ilmu360 and commerce; keep PostgreSQL and SQLite behavior.
+- [ ] Make ilmu360 real-driver support PostgreSQL-only and remove MySQL/MariaDB datasets, selectors, workers, ports, and branches while preserving every scenario once.
+- [ ] Make commerce real-engine and worker harnesses PostgreSQL-only, remove MySQL/MariaDB test lanes and unsupported-driver expectations, and update canonical package docs/configs.
+- [ ] Run specified grep/env gates, cold ilmu360 ShareTracking/Rewards and focused suites, touched commerce package suites and feasible isolated PostgreSQL real-driver lanes; run changed-file PHPStan, scoped Pint, graph update, port probes, and diff checks.
+- [ ] Self-review both diffs and append the full evidence and any explicit false-positive/unverified accounting to `/tmp/ilmu360-acceptance/clear-handoff.md`.
+
+### Review
+
+Pending implementation and verification.

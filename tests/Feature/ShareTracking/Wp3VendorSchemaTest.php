@@ -3,31 +3,23 @@
 declare(strict_types=1);
 
 // Canonical vendor-schema proof for the W2 deletion-boundary worker set.
-//
-// Six required original migrations could not run on MariaDB 11.4 as
-// written (partial-index syntax, explicit driver rejection, or 1071 key
-// length). Each now carries a faithful MariaDB-only spelling: same
-// canonical index names (except two assist indexes whose generated names
-// exceed MariaDB's 64-character identifier limit), same columns, same
-// uniqueness, no truncation, no omitted index. Every other driver takes
-// byte-identical branches to before.
-//
-// This suite runs those six current originals on both real engines and
-// proves index presence plus meaningful uniqueness/insert behavior.
+// PostgreSQL runs each original migration and enforces its unique indexes.
 // Guarded worker databases only (share_rewards_test_wp3_*).
 
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use PHPUnit\Framework\Assert;
 use Tests\Feature\ShareTracking\Wp1RealDriverHarness;
 use Tests\Feature\ShareTracking\Wp3RealDriverHarness;
-use Tests\TestCase;
+use Tests\Support\RealDriverFixture;
 
-function wp3VendorSchemaWorker(string $driver): array
+/** @return array{0: string, 1: string} */
+function wp3VendorSchemaWorker(): array
 {
-    $database = Wp3RealDriverHarness::createWorkerDatabase($driver, 'vendorschema');
-    $previous = Wp1RealDriverHarness::useWorkerDatabase($driver, $database);
+    $database = RealDriverFixture::createWorkerDatabase('vendorschema', namePrefix: 'wp3_');
+    $previous = RealDriverFixture::useWorkerDatabase($database, Wp1RealDriverHarness::WORKER_CONNECTION);
 
     $files = [
         base_path('vendor/aiarmada/persons/database/migrations/2000_01_01_000001_create_persons_table.php'),
@@ -38,82 +30,68 @@ function wp3VendorSchemaWorker(string $driver): array
         base_path('vendor/aiarmada/communications/database/migrations/2000_01_01_000011_create_communication_preferences_table.php'),
     ];
 
-    foreach ($files as $file) {
-        expect($file)->toBeFile();
+    try {
+        foreach ($files as $file) {
+            expect($file)->toBeFile();
 
-        $migration = require $file;
+            $migration = require $file;
 
-        // Every original must run in full on both engines: nothing
-        // tolerated, swallowed, or hand-built.
-        $migration->up();
+            // Every original must run in full: nothing is tolerated,
+            // swallowed, or hand-built.
+            $migration->up();
+        }
+
+        Wp3RealDriverHarness::assertWorkerSchema([
+            'persons',
+            'affiliations',
+            'references',
+            (string) config('engagement.database.tables.follows', 'follows'),
+            (string) config('engagement.database.tables.responses', 'responses'),
+            'communication_preferences',
+        ]);
+    } catch (Throwable $exception) {
+        RealDriverFixture::restoreDatabase($previous, Wp1RealDriverHarness::WORKER_CONNECTION);
+        RealDriverFixture::dropDatabase($database);
+
+        throw $exception;
     }
-
-    Wp3RealDriverHarness::assertWorkerSchema([
-        'persons',
-        'affiliations',
-        'references',
-        (string) config('engagement.database.tables.follows', 'follows'),
-        (string) config('engagement.database.tables.responses', 'responses'),
-        'communication_preferences',
-    ]);
 
     return [$database, $previous];
 }
 
-function wp3VendorSchemaTeardown(string $driver, string $database, string $previous): void
+function wp3VendorSchemaTeardown(string $database, string $previous): void
 {
-    Wp1RealDriverHarness::restoreDatabase($previous);
-    Wp1RealDriverHarness::dropWorkerDatabase($driver, $database);
+    RealDriverFixture::restoreDatabase($previous, Wp1RealDriverHarness::WORKER_CONNECTION);
+    RealDriverFixture::dropDatabase($database);
 }
 
 /**
  * @return array<string, array{unique: bool, columns: list<string>}>
  */
-function wp3VendorSchemaIndexes(string $driver, string $table): array
+function wp3VendorSchemaIndexes(string $table): array
 {
-    if ($driver === 'pgsql') {
-        $rows = DB::select(
-            "SELECT indexname AS name, indexdef AS def FROM pg_indexes WHERE schemaname = 'public' AND tablename = ?",
-            [$table]
-        );
-
-        $out = [];
-
-        foreach ($rows as $row) {
-            $def = (string) $row->def;
-
-            preg_match('/\((.+)\)/', $def, $matches);
-
-            $columns = array_map(
-                static fn (string $part): string => trim($part, ' "'),
-                explode(',', (string) ($matches[1] ?? ''))
-            );
-
-            $out[(string) $row->name] = [
-                'unique' => str_contains($def, 'UNIQUE'),
-                'columns' => $columns,
-            ];
-        }
-
-        return $out;
-    }
-
     $rows = DB::select(
-        'SELECT INDEX_NAME AS name, COLUMN_NAME AS column_name, NON_UNIQUE AS non_unique, SEQ_IN_INDEX AS position
-         FROM information_schema.STATISTICS
-         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?
-         ORDER BY name, position',
-        [$table]
+        "SELECT indexname AS name, indexdef AS definition
+         FROM pg_indexes
+         WHERE schemaname = 'public' AND tablename = ?",
+        [$table],
     );
 
     $out = [];
 
     foreach ($rows as $row) {
         $name = (string) $row->name;
+        $definition = (string) $row->definition;
+        preg_match('/\\((.+)\\)/', $definition, $matches);
+        $columns = array_map(
+            static fn (string $column): string => trim($column, ' "'),
+            explode(',', (string) ($matches[1] ?? '')),
+        );
 
-        $out[$name] ??= ['unique' => true, 'columns' => []];
-        $out[$name]['unique'] = $out[$name]['unique'] && (int) $row->non_unique === 0;
-        $out[$name]['columns'][] = (string) $row->column_name;
+        $out[$name] = [
+            'unique' => str_contains($definition, 'UNIQUE'),
+            'columns' => $columns,
+        ];
     }
 
     return $out;
@@ -124,41 +102,22 @@ function wp3VendorExpectsUniqueViolation(callable $insert): void
     try {
         $insert();
 
-        expect(false)->toBeTrue('A duplicate row must violate its unique index.');
+        Assert::fail('A duplicate row must violate its unique index.');
     } catch (QueryException $exception) {
-        expect((string) ($exception->errorInfo[0] ?? $exception->getCode()))->toBeIn(['23000', '23505']);
+        expect((string) ($exception->errorInfo[0] ?? $exception->getCode()))->toBe('23505');
     }
 }
 
-function wp3VendorExpectsInvisibleIdentity(string $table, string $column): void
+function wp3VendorSchemaCase(): void
 {
-    // The MariaDB identity column is a virtual generated DB-only
-    // backstop: present for the unique index, invisible to SELECT *,
-    // so it never leaks into model attributes or API shapes.
-    $extra = (string) DB::selectOne(
-        'SELECT EXTRA AS extra FROM information_schema.COLUMNS
-         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?',
-        [$table, $column]
-    )->extra;
-
-    expect($extra)->toContain('VIRTUAL GENERATED')
-        ->and($extra)->toContain('INVISIBLE');
-
-    $starKeys = array_keys((array) DB::selectOne("SELECT * FROM `{$table}` LIMIT 1"));
-
-    expect($starKeys)->not->toContain($column);
-}
-
-function wp3VendorSchemaCase(TestCase $testCase, string $driver): void
-{
-    [$database, $previous] = wp3VendorSchemaWorker($driver);
+    [$database, $previous] = wp3VendorSchemaWorker();
 
     try {
         $follows = (string) config('engagement.database.tables.follows', 'follows');
         $responses = (string) config('engagement.database.tables.responses', 'responses');
 
         // Persons: one canonical slug unique; NULL slugs never collide.
-        $persons = wp3VendorSchemaIndexes($driver, 'persons');
+        $persons = wp3VendorSchemaIndexes('persons');
 
         expect($persons)->toHaveKey('persons_slug_unique')
             ->and($persons['persons_slug_unique']['unique'])->toBeTrue();
@@ -183,7 +142,7 @@ function wp3VendorSchemaCase(TestCase $testCase, string $driver): void
         ]);
 
         // Affiliations: one primary per target; non-primary duplicates fine.
-        $affiliations = wp3VendorSchemaIndexes($driver, 'affiliations');
+        $affiliations = wp3VendorSchemaIndexes('affiliations');
 
         expect($affiliations)->toHaveKey('affiliations_primary_unique')
             ->and($affiliations['affiliations_primary_unique']['unique'])->toBeTrue();
@@ -205,12 +164,8 @@ function wp3VendorSchemaCase(TestCase $testCase, string $driver): void
             'is_primary' => false, 'created_at' => CarbonImmutable::now(), 'updated_at' => CarbonImmutable::now(),
         ]);
 
-        if ($driver === 'mariadb') {
-            wp3VendorExpectsInvisibleIdentity('affiliations', 'primary_unique_identity');
-        }
-
         // References: separate owner-scoped and global slug uniques.
-        $references = wp3VendorSchemaIndexes($driver, 'references');
+        $references = wp3VendorSchemaIndexes('references');
 
         expect($references)->toHaveKey('references_slug_owner_unique')
             ->and($references)->toHaveKey('references_slug_global_unique')
@@ -238,23 +193,11 @@ function wp3VendorSchemaCase(TestCase $testCase, string $driver): void
             $referenceRow(['owner_type' => null, 'owner_id' => null, 'slug' => 'w3-global'])
         ));
 
-        if ($driver === 'mariadb') {
-            wp3VendorExpectsInvisibleIdentity('references', 'references_slug_owner_unique_identity');
-            wp3VendorExpectsInvisibleIdentity('references', 'references_slug_global_unique_identity');
-        }
-
         // Follows: exact actor/subject/owner uniqueness; NULL owners fine.
-        $followIndexes = wp3VendorSchemaIndexes($driver, $follows);
+        $followIndexes = wp3VendorSchemaIndexes($follows);
 
         expect($followIndexes)->toHaveKey('engagement_follows_actor_subject_unique')
             ->and($followIndexes['engagement_follows_actor_subject_unique']['unique'])->toBeTrue();
-
-        if ($driver === 'mariadb') {
-            expect($followIndexes)->toHaveKey('engagement_follows_actor_subject_status_idx')
-                ->and($followIndexes['engagement_follows_actor_subject_status_idx']['unique'])->toBeFalse()
-                ->and($followIndexes['engagement_follows_actor_subject_status_idx']['columns'])
-                ->toBe(['follower_type', 'follower_id', 'followable_type', 'followable_id', 'status']);
-        }
 
         $followRow = static fn (array $over): array => array_merge([
             'id' => (string) Str::uuid(), 'follower_type' => 'user', 'follower_id' => (string) Str::uuid(),
@@ -275,22 +218,13 @@ function wp3VendorSchemaCase(TestCase $testCase, string $driver): void
         DB::table($follows)->insert($nullOwner);
         DB::table($follows)->insert(array_merge($nullOwner, ['id' => (string) Str::uuid()]));
 
-        if ($driver === 'mariadb') {
-            wp3VendorExpectsInvisibleIdentity($follows, 'actor_subject_unique_identity');
-        }
-
         // Responses: same actor/subject/owner uniqueness shape.
-        $responseIndexes = wp3VendorSchemaIndexes($driver, $responses);
+        $responseIndexes = wp3VendorSchemaIndexes($responses);
 
         expect($responseIndexes)->toHaveKey('engagement_responses_actor_subject_unique')
             ->and($responseIndexes['engagement_responses_actor_subject_unique']['unique'])->toBeTrue()
             ->and($responseIndexes)->toHaveKey('engagement_responses_subject_type_status_idx')
             ->and($responseIndexes['engagement_responses_subject_type_status_idx']['unique'])->toBeFalse();
-
-        if ($driver === 'mariadb') {
-            expect($responseIndexes['engagement_responses_subject_type_status_idx']['columns'])
-                ->toBe(['respondable_type', 'respondable_id', 'response_type', 'status']);
-        }
 
         $responseRow = static fn (array $over): array => array_merge([
             'id' => (string) Str::uuid(), 'responder_type' => 'user', 'responder_id' => (string) Str::uuid(),
@@ -312,20 +246,14 @@ function wp3VendorSchemaCase(TestCase $testCase, string $driver): void
         DB::table($responses)->insert($nullResponseOwner);
         DB::table($responses)->insert(array_merge($nullResponseOwner, ['id' => (string) Str::uuid()]));
 
-        if ($driver === 'mariadb') {
-            wp3VendorExpectsInvisibleIdentity($responses, 'actor_subject_unique_identity');
-        }
-
         // Communication preferences: the owner/channel/category assist
         // index exists with its full membership; rows insert cleanly.
-        $preferenceIndexes = wp3VendorSchemaIndexes($driver, 'communication_preferences');
-
-        if ($driver === 'mariadb') {
-            expect($preferenceIndexes)->toHaveKey('communication_preferences_owner_channel_category_idx')
-                ->and($preferenceIndexes['communication_preferences_owner_channel_category_idx']['unique'])->toBeFalse()
-                ->and($preferenceIndexes['communication_preferences_owner_channel_category_idx']['columns'])
-                ->toBe(['owner_type', 'owner_id', 'channel', 'category']);
-        }
+        $preferenceIndexes = wp3VendorSchemaIndexes('communication_preferences');
+        expect($preferenceIndexes)
+            ->toContain([
+                'unique' => false,
+                'columns' => ['owner_type', 'owner_id', 'channel', 'category'],
+            ]);
 
         DB::table('communication_preferences')->insert([
             'id' => (string) Str::uuid(), 'recipient_type' => 'user', 'recipient_id' => (string) Str::uuid(),
@@ -338,12 +266,11 @@ function wp3VendorSchemaCase(TestCase $testCase, string $driver): void
 
         expect(DB::table('communication_preferences')->count())->toBe(2);
     } finally {
-        wp3VendorSchemaTeardown($driver, $database, $previous);
+        wp3VendorSchemaTeardown($database, $previous);
     }
 }
 
-foreach (['pgsql' => 'PostgreSQL 17', 'mariadb' => 'MariaDB 11.4'] as $wp3Driver => $label) {
-    it("keeps the required vendor indexes and uniqueness on {$label}", function () use ($wp3Driver): void {
-        wp3VendorSchemaCase($this, $wp3Driver);
-    });
-}
+$label = 'PostgreSQL 17';
+it("keeps the required vendor indexes and uniqueness on {$label}", function (): void {
+    wp3VendorSchemaCase();
+});

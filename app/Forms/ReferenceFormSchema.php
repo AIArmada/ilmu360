@@ -279,7 +279,7 @@ class ReferenceFormSchema
         $term = '%'.$search.'%';
         $query->where('title', 'like', $term)->orWhere('isbn', 'like', $term)
             ->orWhere('edition_label', 'like', $term)->orWhere('publisher', 'like', $term)
-            ->orWhereRaw('CAST('.$query->getQuery()->getGrammar()->wrap('year').' AS '.(ConnectionDriver::name($query->getConnection()) === 'mysql' ? 'CHAR' : 'TEXT').') LIKE ?', [$term]);
+            ->orWhereRaw('CAST('.$query->getQuery()->getGrammar()->wrap('year').' AS TEXT) LIKE ?', [$term]);
         $query->orWherePartTextLike($term);
     }
 

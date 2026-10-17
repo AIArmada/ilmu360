@@ -1751,5 +1751,8 @@
   "Verified organiser": "Penganjur disahkan",
   "Verified speaker": "Penceramah disahkan",
   "Download card": "Muat turun kad",
-  "Those past shares are already linked to your account. Nothing further is needed.": "Kongsi lalu itu telah dipautkan ke akaun anda. Tiada tindakan lanjut diperlukan."
+  "Those past shares are already linked to your account. Nothing further is needed.": "Kongsi lalu itu telah dipautkan ke akaun anda. Tiada tindakan lanjut diperlukan.",
+  "Measurement status": "Status pengukuran",
+  "Measurement active since :date": "Pengukuran aktif sejak :date",
+  "Not configured": "Belum dikonfigurasi"
 }

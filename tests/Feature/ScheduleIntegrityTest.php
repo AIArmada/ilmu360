@@ -65,3 +65,14 @@ it('registers communications digests every minute', function () {
     expect($event)->not->toBeNull()
         ->and($event->expression)->toBe('* * * * *');
 });
+
+it('registers only share effects, commission maturity and payout schedules', function () {
+    $events = collect(app(Schedule::class)->events())->keyBy('description');
+
+    expect($events->get('share-pending-effects')?->expression)->toBe('*/5 * * * *')
+        ->and($events->get('affiliate-commission-maturity')?->expression)->toBe('30 1 * * *')
+        ->and($events->get('affiliate-scheduled-payouts')?->expression)->toBe('*/15 * * * *')
+        ->and($events->has('affiliate-ranks'))->toBeFalse()
+        ->and($events->has('affiliate-bonuses'))->toBeFalse()
+        ->and($events->has('affiliate-aggregate'))->toBeFalse();
+});

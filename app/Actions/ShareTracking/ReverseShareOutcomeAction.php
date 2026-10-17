@@ -141,6 +141,6 @@ final readonly class ReverseShareOutcomeAction
 
                 return ShareOutcomeCorrection::query()->where('business_key', $businessKey)->firstOrFail();
             }
-        });
+        }, 3);
     }
 }

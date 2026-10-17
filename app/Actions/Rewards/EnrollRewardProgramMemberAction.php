@@ -44,6 +44,8 @@ final class EnrollRewardProgramMemberAction
             'member-portal',
         );
 
+        EvaluatePreclaimShareOutcomesAction::run($program, $user, $version);
+
         if (! $wasEnrolled) {
             app(ProductSignalsService::class)->recordRewardProgramEnrolled(
                 program: $program,

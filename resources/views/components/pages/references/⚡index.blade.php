@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\ShareTrackingService;
 use App\Support\Auth\IntendedRedirect;
 use App\Support\Search\ReferenceSearchService;
+use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use App\Support\Timezone\UserDateTimeFormatter;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
@@ -121,22 +122,25 @@ new
                 return;
             }
 
-            $user->follow($reference);
+            $follow = $user->follow($reference);
 
             if (! in_array($referenceId, $this->followingReferenceIds, true)) {
                 $this->followingReferenceIds[] = $referenceId;
             }
 
-            app(ShareTrackingService::class)->recordOutcome(
-                type: DawahShareOutcomeType::ReferenceFollow,
-                outcomeKey: 'reference_follow:user:'.$user->id.':reference:'.$reference->id,
-                subject: $reference,
-                actor: $user,
-                request: request(),
-                metadata: [
-                    'reference_id' => $reference->id,
-                ],
-            );
+            if ($follow->wasRecentlyCreated) {
+                app(ShareTrackingService::class)->recordOutcome(
+                    type: DawahShareOutcomeType::ReferenceFollow,
+                    businessKey: ShareOutcomeBusinessKey::follow(DawahShareOutcomeType::ReferenceFollow, (string) $follow->getKey()),
+                    subject: $reference,
+                    actor: $user,
+                    request: request(),
+                    metadata: [
+                        'reference_id' => $reference->id,
+                    ],
+                    occurredAt: $follow->created_at,
+                );
+            }
         }
 
         private function followableReference(string $referenceId): ?Reference

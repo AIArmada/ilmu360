@@ -343,12 +343,8 @@ class NetworkDiagnosticsService
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         ];
 
-        if (in_array($driver, ['mysql', 'mariadb', 'sqlite', 'sqlsrv'], true)) {
+        if (in_array($driver, ['sqlite', 'sqlsrv'], true)) {
             $options[PDO::ATTR_TIMEOUT] = max(1, (int) ceil($timeoutMs / 1000));
-        }
-
-        if (in_array($driver, ['mysql', 'mariadb'], true) && defined('PDO::ATTR_EMULATE_PREPARES')) {
-            $options[PDO::ATTR_EMULATE_PREPARES] = false;
         }
 
         return new PDO(
@@ -371,44 +367,11 @@ class NetworkDiagnosticsService
         }
 
         return match ($driver) {
-            'mysql', 'mariadb' => $this->buildMySqlDsn($connection),
             'pgsql' => $this->buildPgSqlDsn($connection, $timeoutMs),
             'sqlsrv' => $this->buildSqlSrvDsn($connection, $timeoutMs),
             'sqlite' => $this->buildSqliteDsn($connection),
             default => throw new InvalidArgumentException(sprintf('Unsupported database driver [%s].', $driver)),
         };
-    }
-
-    /**
-     * @param  NormalizedConnection  $connection
-     */
-    protected function buildMySqlDsn(array $connection): string
-    {
-        $segments = [];
-
-        if (is_string($connection['socket']) && $connection['socket'] !== '') {
-            $segments[] = 'unix_socket='.$connection['socket'];
-        } else {
-            if (! is_string($connection['host']) || $connection['host'] === '') {
-                throw new InvalidArgumentException('MySQL target needs a host or unix socket.');
-            }
-
-            $segments[] = 'host='.$connection['host'];
-
-            if (is_int($connection['port'])) {
-                $segments[] = 'port='.$connection['port'];
-            }
-        }
-
-        if (is_string($connection['database']) && $connection['database'] !== '') {
-            $segments[] = 'dbname='.$connection['database'];
-        }
-
-        if (is_string($connection['charset']) && $connection['charset'] !== '') {
-            $segments[] = 'charset='.$connection['charset'];
-        }
-
-        return 'mysql:'.implode(';', $segments);
     }
 
     /**
@@ -767,11 +730,6 @@ class NetworkDiagnosticsService
             'sqlite' => ! is_string($connection['database']) || $connection['database'] === ''
                 ? 'SQLite diagnostics require a database path.'
                 : null,
-            'mysql', 'mariadb' => (! is_string($connection['host']) || $connection['host'] === '') && (! is_string($connection['socket']) || $connection['socket'] === '')
-                ? 'MySQL diagnostics require a host:port or unix socket.'
-                : ((! is_string($connection['database']) || $connection['database'] === '')
-                    ? 'MySQL diagnostics require a database name.'
-                    : null),
             'pgsql', 'sqlsrv' => ! is_string($connection['host']) || $connection['host'] === ''
                 ? 'This database driver requires a host to probe latency.'
                 : ((! is_string($connection['database']) || $connection['database'] === '')
@@ -876,7 +834,7 @@ class NetworkDiagnosticsService
 
         return match ($normalizedDriver) {
             'postgres', 'postgresql' => 'pgsql',
-            'mysql', 'mariadb', 'pgsql', 'sqlite', 'sqlsrv' => $normalizedDriver,
+            'pgsql', 'sqlite', 'sqlsrv' => $normalizedDriver,
             default => $normalizedDriver !== '' ? $normalizedDriver : null,
         };
     }
@@ -884,7 +842,6 @@ class NetworkDiagnosticsService
     protected function defaultPort(?string $driver): ?int
     {
         return match ($driver) {
-            'mysql', 'mariadb' => 3306,
             'pgsql' => 5432,
             'sqlsrv' => 1433,
             default => null,

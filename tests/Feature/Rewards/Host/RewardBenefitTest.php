@@ -53,6 +53,10 @@ use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
 uses(RefreshDatabase::class);
 
+beforeEach(function (): void {
+    config()->set('affiliates.payouts.reward_award_settlement.enabled', true);
+});
+
 function benefitStaff(int $count = 4): array
 {
     $ids = [];

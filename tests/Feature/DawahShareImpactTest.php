@@ -6,8 +6,12 @@ use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\Affiliates\States\ApprovedConversion;
+use AIArmada\Affiliates\States\ReversedConversion;
+use AIArmada\Events\Contracts\RegistrationServiceInterface;
 use AIArmada\Events\Models\EventTerm;
+use AIArmada\FilamentAffiliates\Resources\AffiliateLinkResource\Pages\EditAffiliateLink;
 use App\Actions\Fortify\CreateNewUser;
+use App\Enums\DawahShareOutcomeType;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
@@ -23,10 +27,13 @@ use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Registration;
 use App\Models\Series;
+use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
 use App\Services\ShareTrackingAnalyticsService;
 use App\Services\ShareTrackingService;
+use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Database\Seeders\AIArmada\EventRoleSeeder;
+use Database\Seeders\PermissionSeeder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -151,7 +158,13 @@ test('fresh migrations do not create the removed local dawah share tables', func
     expect(Schema::hasTable('dawah_share_share_events'))->toBeFalse();
 });
 
-test('viewing a shareable page does not create a share link until payload is requested', function () {
+test('multi-level commission payouts stay off while members can create Dawah share links', function () {
+    expect(config('affiliates.payouts.multi_level.enabled'))->toBeFalse()
+        ->and(config('affiliates.upline.enabled'))->toBeFalse()
+        ->and(config('affiliates.payouts.currency'))->toBe('MYR')
+        ->and(config('affiliates.payouts.minimum_amount'))->toBe(5000)
+        ->and(config('affiliates.payouts.maturity_days'))->toBe(30);
+
     $event = Event::factory()->create([
         'status' => 'approved',
         'visibility' => 'public',
@@ -193,6 +206,124 @@ test('viewing a shareable page does not create a share link until payload is req
         ->assertOk();
 
     expect(AffiliateLink::count())->toBe(1);
+});
+
+test('a deactivated Dawah link records no later visits or attributed signup credit', function () {
+    $destination = route('events.index');
+    $cookie = dawahShareLandingCookie($this, $this->sharer, $destination, 'Events');
+    $link = AffiliateLink::query()
+        ->whereHas('affiliate', fn ($query) => $query
+            ->where('owner_type', $this->sharer->getMorphClass())
+            ->where('owner_id', $this->sharer->getKey()))
+        ->firstOrFail();
+    $analytics = app(ShareTrackingAnalyticsService::class);
+    $summaryBefore = $analytics->summaryForUser($this->sharer);
+    $visitsBefore = AffiliateTouchpoint::query()
+        ->where('affiliate_link_id', $link->getKey())
+        ->where('touchpoint_type', 'visit')
+        ->count();
+    $shortLink = $link->trackedLink()->firstOrFail();
+
+    $link->deactivate();
+
+    $shortRedirect = $this->get(url('/k/'.$shortLink->slug))->assertRedirect();
+    $redirectTarget = (string) $shortRedirect->headers->get('Location');
+    parse_str((string) parse_url($redirectTarget, PHP_URL_QUERY), $redirectQuery);
+
+    expect($redirectQuery)->not->toHaveKey('share');
+
+    $this->withCredentials()
+        ->withCookie(config('dawah-share.cookie.name'), $cookie)
+        ->get($destination)
+        ->assertOk();
+
+    $visitor = User::factory()->create();
+    $signupRequest = Request::create($destination, 'POST');
+    $signupRequest->cookies->set((string) config('dawah-share.cookie.name'), $cookie);
+    $signupKey = ShareOutcomeBusinessKey::signup((string) $visitor->getKey());
+    app(ShareTrackingService::class)->recordSignup($visitor, $signupRequest);
+
+    $receipt = ShareSourceAttributionReceipt::query()
+        ->where('business_key', $signupKey)
+        ->firstOrFail();
+    $summaryAfter = $analytics->summaryForUser($this->sharer);
+
+    expect($receipt->isAttributed())->toBeFalse()
+        ->and(AffiliateConversion::query()->where('idempotency_key', hash('sha256', $signupKey))->exists())->toBeFalse()
+        ->and(AffiliateTouchpoint::query()
+            ->where('affiliate_link_id', $link->getKey())
+            ->where('touchpoint_type', 'visit')
+            ->count())->toBe($visitsBefore)
+        ->and($summaryAfter['visits'])->toBe($summaryBefore['visits']);
+});
+
+test('a paused member share profile falls back to an untracked platform link', function () {
+    $this->actingAs($this->sharer)
+        ->getJson(route('dawah-share.payload', [
+            'url' => route('events.index'),
+            'text' => 'Share this page',
+            'title' => 'Events',
+        ]))
+        ->assertOk();
+
+    $affiliate = Affiliate::query()
+        ->where('owner_type', $this->sharer->getMorphClass())
+        ->where('owner_id', $this->sharer->getKey())
+        ->firstOrFail();
+    $affiliate->forceFill(['paused_at' => now()])->save();
+    $trackedLinkCount = AffiliateLink::query()->count();
+
+    $response = $this->actingAs($this->sharer)
+        ->getJson(route('dawah-share.redirect', [
+            'provider' => 'whatsapp',
+            'url' => route('events.index'),
+            'text' => 'Share this page',
+        ]))
+        ->assertRedirect();
+
+    $target = (string) $response->headers->get('Location');
+
+    expect($target)->toStartWith('https://wa.me/')
+        ->and($target)->not->toContain('/k/')
+        ->and(AffiliateLink::query()->count())->toBe($trackedLinkCount);
+
+    $payload = $this->actingAs($this->sharer)
+        ->getJson(route('dawah-share.payload', [
+            'url' => route('events.index'),
+            'text' => 'Share this page',
+            'title' => 'Events',
+        ]))
+        ->assertOk()
+        ->json();
+
+    expect($payload['url'])->toBe(route('events.index'))
+        ->and($payload)->not->toHaveKey('tracking_token')
+        ->and(AffiliateLink::query()->count())->toBe($trackedLinkCount);
+});
+
+test('disabled share profile fallback still validates public destinations', function () {
+    $this->actingAs($this->sharer)
+        ->getJson(route('dawah-share.payload', [
+            'url' => route('events.index'),
+            'text' => 'Share this page',
+            'title' => 'Events',
+        ]))
+        ->assertOk();
+
+    $affiliate = Affiliate::query()
+        ->where('owner_type', $this->sharer->getMorphClass())
+        ->where('owner_id', $this->sharer->getKey())
+        ->firstOrFail();
+    $affiliate->forceFill(['paused_at' => now()])->save();
+
+    $this->actingAs($this->sharer)
+        ->getJson(route('dawah-share.redirect', [
+            'provider' => 'whatsapp',
+            'url' => 'javascript:alert(1)',
+            'text' => 'Share this page',
+        ]))
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('url');
 });
 
 test('deleting share tracking detaches links-managed rows only for that sharer', function (): void {
@@ -923,6 +1054,63 @@ test('event check-ins are attributed after a shared landing', function () {
         'actor_user_id' => $visitor->id,
         'subject_id' => $event->id,
     ]);
+});
+
+test('registration refunds reverse attributed registration and check-in outcomes', function () {
+    $visitor = User::factory()->create();
+    $event = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => 'public',
+    ]);
+    $registration = Registration::factory()->create([
+        'event_id' => $event->id,
+        'registrant_type' => $visitor->getMorphClass(),
+        'registrant_id' => $visitor->getKey(),
+        'status' => 'confirmed',
+    ]);
+    $checkin = EventCheckin::factory()->create([
+        'event_id' => $event->id,
+        'event_registration_id' => $registration->getKey(),
+        'attendee_type' => $visitor->getMorphClass(),
+        'attendee_id' => $visitor->getKey(),
+        'check_in_source' => 'organizer_verified',
+    ]);
+    $cookie = dawahShareLandingCookie($this, $this->sharer, route('events.show', $event), $event->title);
+    $request = Request::create('/', 'GET', [], [config('dawah-share.cookie.name') => $cookie]);
+    $trackingService = app(ShareTrackingService::class);
+
+    $registrationKey = ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey());
+    $checkinKey = ShareOutcomeBusinessKey::eventCheckin((string) $checkin->getKey());
+
+    $trackingService->recordOutcome(
+        DawahShareOutcomeType::EventRegistration,
+        $registrationKey,
+        $event,
+        $visitor,
+        $request,
+    );
+    $trackingService->recordOutcome(
+        DawahShareOutcomeType::EventCheckin,
+        $checkinKey,
+        $event,
+        $visitor,
+        $request,
+    );
+
+    $registrationConversion = AffiliateConversion::query()
+        ->where('idempotency_key', hash('sha256', $registrationKey))
+        ->firstOrFail();
+    $checkinConversion = AffiliateConversion::query()
+        ->where('idempotency_key', hash('sha256', $checkinKey))
+        ->firstOrFail();
+
+    expect($registrationConversion->sharer_user_id)->toBe($this->sharer->getKey())
+        ->and($checkinConversion->sharer_user_id)->toBe($this->sharer->getKey());
+
+    app(RegistrationServiceInterface::class)->refund($registration, 'Customer refund');
+
+    expect($registrationConversion->fresh()->status)->toBeInstanceOf(ReversedConversion::class)
+        ->and($checkinConversion->fresh()->status)->toBeInstanceOf(ReversedConversion::class);
 });
 
 test('event submissions are attributed after a shared landing', function () {
@@ -1690,14 +1878,53 @@ test('impact dashboard pages are only available to the owning sharer', function 
         ->assertOk()
         ->assertSee('My shared links');
 
+    $trackedUrl = app(ShareTrackingService::class)->attributedUrl(
+        $this->sharer,
+        $link->destination_url,
+        $link->subject_title_snapshot,
+    );
+
     $this->actingAs($this->sharer)
         ->get(route('dashboard.dawah-impact.links.show', ['link' => $link->id]))
         ->assertOk()
-        ->assertSee($event->title);
+        ->assertSee($event->title)
+        ->assertSee($trackedUrl, false)
+        ->assertSee('Your tracked share link')
+        ->assertSee('Pautan perkongsian terlacak anda')
+        ->assertSee('Copy tracked link')
+        ->assertSee('Salin pautan terlacak');
 
     $this->actingAs($otherUser)
         ->get(route('dashboard.dawah-impact.links.show', ['link' => $link->id]))
         ->assertNotFound();
+});
+
+test('admin can view and deactivate a Dawah affiliate link while a member has no access', function () {
+    setPermissionsTeamId(null);
+    $this->seed(PermissionSeeder::class);
+
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+    $member = User::factory()->create();
+    $linkData = app(ShareTrackingService::class)->createOrReuseLink($this->sharer, route('events.index'));
+    $link = AffiliateLink::query()->findOrFail($linkData->id);
+
+    $this->actingAs($admin)
+        ->get(route('filament.admin.resources.affiliate-links.index'))
+        ->assertOk()
+        ->assertSee($link->affiliate->code);
+
+    Livewire::actingAs($admin)
+        ->test(EditAffiliateLink::class, ['record' => $link->getRouteKey()])
+        ->fillForm(['deactivated_at' => now()->toDateTimeString()])
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($link->fresh()->deactivated_at)->not->toBeNull();
+
+    $this->actingAs($member)
+        ->get(route('filament.admin.resources.affiliate-links.index'))
+        ->assertForbidden();
 });
 
 test('share redirect route records outbound provider clicks without visitor visits', function () {

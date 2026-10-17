@@ -1554,5 +1554,9 @@
     "Verified organiser": "Verified organiser",
     "Verified speaker": "Verified speaker",
     "Download card": "Download card",
-    "Those past shares are already linked to your account. Nothing further is needed.": "Those past shares are already linked to your account. Nothing further is needed."
+    "Those past shares are already linked to your account. Nothing further is needed.": "Those past shares are already linked to your account. Nothing further is needed.",
+    "Measurement status": "Measurement status",
+    "Measurement active since :date": "Measurement active since :date",
+    "Not configured": "Not configured",
+    "Reporting is not configured yet. Measurements appear after the operator declares a reporting start.": "Reporting is not configured yet. Measurements appear after the operator declares a reporting start."
 }

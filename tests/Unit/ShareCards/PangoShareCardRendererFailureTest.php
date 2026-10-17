@@ -3,6 +3,7 @@
 use App\Contracts\ShareCards\ShareCardError;
 use App\Contracts\ShareCards\ShareCardRenderInput;
 use App\Support\ShareCards\PangoShareCardRenderer;
+use App\Support\ShareCards\ShareCardFonts;
 
 if (! function_exists('shareCardFontsDir')) {
     function shareCardFontsDir(): string
@@ -15,6 +16,46 @@ if (! function_exists('shareCardRenderer')) {
     function shareCardRenderer(?string $fontDirectory = null, ?string $pangoBinary = null, ?string $workDirectory = null, float $timeout = 8.0): PangoShareCardRenderer
     {
         return new PangoShareCardRenderer($fontDirectory ?? shareCardFontsDir(), $pangoBinary, $workDirectory, null, $timeout);
+    }
+}
+
+if (! function_exists('shareCardMakeTempDir')) {
+    function shareCardMakeTempDir(): string
+    {
+        $directory = rtrim(sys_get_temp_dir(), '/').'/share-card-fonts-test-'.bin2hex(random_bytes(8));
+
+        mkdir($directory, 0700, true);
+
+        return $directory;
+    }
+}
+
+if (! function_exists('shareCardRemoveDir')) {
+    function shareCardRemoveDir(string $directory): void
+    {
+        $entries = scandir($directory);
+
+        if ($entries === false) {
+            return;
+        }
+
+        foreach ($entries as $entry) {
+            if ($entry === '.' || $entry === '..') {
+                continue;
+            }
+
+            $path = $directory.'/'.$entry;
+
+            if (is_link($path)) {
+                unlink($path);
+            } elseif (is_dir($path)) {
+                shareCardRemoveDir($path);
+            } else {
+                unlink($path);
+            }
+        }
+
+        rmdir($directory);
     }
 }
 
@@ -253,5 +294,54 @@ it('maps shaper overruns to an explicit timeout error', function (): void {
             ->and($result->pngBytes)->toBeNull();
     } finally {
         unlink($script);
+    }
+});
+
+it('keeps readiness and rendering aligned when a license copy is tampered with', function (): void {
+    $sourceDirectory = shareCardFontsDir();
+    $fontDirectory = shareCardMakeTempDir();
+    $workDirectory = shareCardMakeTempDir();
+
+    try {
+        $manifestBytes = file_get_contents($sourceDirectory.'/fonts.json');
+        /** @var array{fonts: list<array{file: string}>, licenses: list<array{file: string}>} $manifest */
+        $manifest = json_decode((string) $manifestBytes, true, 512, JSON_THROW_ON_ERROR);
+
+        file_put_contents($fontDirectory.'/fonts.json', (string) $manifestBytes);
+
+        foreach ($manifest['fonts'] as $font) {
+            symlink($sourceDirectory.'/'.$font['file'], $fontDirectory.'/'.$font['file']);
+        }
+
+        foreach ($manifest['licenses'] as $license) {
+            copy($sourceDirectory.'/'.$license['file'], $fontDirectory.'/'.$license['file']);
+        }
+
+        $tamperedLicense = $manifest['licenses'][0]['file'];
+        $licensePath = $fontDirectory.'/'.$tamperedLicense;
+        file_put_contents($licensePath, (string) file_get_contents($licensePath).'tampered');
+
+        $integrity = (new ShareCardFonts($fontDirectory))->verify();
+        $renderer = shareCardRenderer(fontDirectory: $fontDirectory, workDirectory: $workDirectory);
+        $readiness = $renderer->readiness();
+        $result = $renderer->render(new ShareCardRenderInput(
+            title: 'Kuliah Maghrib',
+            locale: 'ms',
+            brandLine: 'ilmu360°',
+            scheduleLabel: 'Sabtu · 7:30 malam',
+        ));
+
+        expect($integrity['ok'])->toBeFalse()
+            ->and(implode("\n", $integrity['missing']))->toContain("License file [{$tamperedLicense}] size mismatch.")
+            ->and($readiness->ready)->toBeTrue()
+            ->and($readiness->fontRevision)->toBe(ShareCardFonts::manifestRevision((string) $manifestBytes))
+            ->and($readiness->missing)->toBe([])
+            ->and($result->ok)->toBeTrue()
+            ->and($result->error)->toBeNull()
+            ->and($result->fontRevision)->toBe($readiness->fontRevision)
+            ->and($result->pngBytes)->toStartWith("\x89PNG\r\n\x1a\n");
+    } finally {
+        shareCardRemoveDir($fontDirectory);
+        shareCardRemoveDir($workDirectory);
     }
 });

@@ -125,3 +125,23 @@ Schedule::command('app:prayer:stats --alert-queue-depth=5000')
     ->timezone('UTC')
     ->name('prayer-queue-depth-alert')
     ->withoutOverlapping();
+
+// Share effects are durable receipts and the dispatcher is idempotent.
+Schedule::command('share:dispatch-pending-effects')
+    ->everyFiveMinutes()
+    ->timezone('UTC')
+    ->name('share-pending-effects')
+    ->withoutOverlapping();
+
+// Commission maturity and payout claiming are safe to repeat with MLM disabled.
+Schedule::command('affiliates:process-maturity')
+    ->dailyAt('01:30')
+    ->timezone('UTC')
+    ->name('affiliate-commission-maturity')
+    ->withoutOverlapping();
+
+Schedule::command('affiliates:process-payouts')
+    ->everyFifteenMinutes()
+    ->timezone('UTC')
+    ->name('affiliate-scheduled-payouts')
+    ->withoutOverlapping();

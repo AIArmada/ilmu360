@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 // R1 real-driver proof: actual ingestion races (duplicate outcomes,
 // concurrent shares, concurrent A-B landings) on the isolated
-// PostgreSQL 17 and MariaDB 11.4 fixtures, with the metric reader and
 // cohort authority asserting exact end states on each driver. If the
 // receipt-first freeze, the outbound-share commit, the frozen
 // visitor_key union, or the per-driver cohort window math were wrong,
@@ -35,9 +34,9 @@ use PHPUnit\Framework\Assert;
 use Tests\Feature\ShareTracking\ShareMetricRaceHarness;
 use Tests\TestCase;
 
-function smrIngestionRaceCase(TestCase $testCase, string $driver): void
+function smrIngestionRaceCase(TestCase $testCase): void
 {
-    [$database, $previous] = ShareMetricRaceHarness::worker($driver, 'shrmetric');
+    [$database, $previous] = ShareMetricRaceHarness::worker('shrmetric');
 
     $previousReportingStart = config('dawah-share.reporting.reporting_start');
     config(['dawah-share.reporting.reporting_start' => '2026-01-01']);
@@ -63,7 +62,6 @@ function smrIngestionRaceCase(TestCase $testCase, string $driver): void
         // once. Shares are committed facts, not idempotent intents: both
         // commit, and the reader counts both.
         ShareMetricRaceHarness::runRace([
-            'driver' => $driver,
             'database' => $database,
             'app_url' => (string) config('app.url'),
             'mode' => 'share',
@@ -85,7 +83,6 @@ function smrIngestionRaceCase(TestCase $testCase, string $driver): void
         $businessKey = ShareOutcomeBusinessKey::signup((string) $actor->getKey());
 
         ShareMetricRaceHarness::runRace([
-            'driver' => $driver,
             'database' => $database,
             'app_url' => (string) config('app.url'),
             'mode' => 'outcome',
@@ -103,7 +100,6 @@ function smrIngestionRaceCase(TestCase $testCase, string $driver): void
         // selection resolves to exactly one winner, and the historical
         // browser union stays one.
         ShareMetricRaceHarness::runRace([
-            'driver' => $driver,
             'database' => $database,
             'app_url' => (string) config('app.url'),
             'mode' => 'landing',
@@ -177,13 +173,13 @@ function smrIngestionRaceCase(TestCase $testCase, string $driver): void
             ->and($week['participations'])->toBe(1);
     } finally {
         config(['dawah-share.reporting.reporting_start' => $previousReportingStart]);
-        ShareMetricRaceHarness::teardown($driver, $database, $previous);
+        ShareMetricRaceHarness::teardown($database, $previous);
     }
 }
 
-function smrCohortBoundaryRaceCase(TestCase $testCase, string $driver): void
+function smrCohortBoundaryRaceCase(TestCase $testCase): void
 {
-    [$database, $previous] = ShareMetricRaceHarness::worker($driver, 'shrcohort');
+    [$database, $previous] = ShareMetricRaceHarness::worker('shrcohort');
 
     $previousReportingStart = config('dawah-share.reporting.reporting_start');
     config(['dawah-share.reporting.reporting_start' => '2026-01-01']);
@@ -215,7 +211,6 @@ function smrCohortBoundaryRaceCase(TestCase $testCase, string $driver): void
         // Two workers race the member's first shares at the 30-day edge.
         // Both commit; the cohort counts the member once.
         ShareMetricRaceHarness::runRace([
-            'driver' => $driver,
             'database' => $database,
             'app_url' => (string) config('app.url'),
             'mode' => 'share',
@@ -236,7 +231,6 @@ function smrCohortBoundaryRaceCase(TestCase $testCase, string $driver): void
         $businessKey = ShareOutcomeBusinessKey::signup((string) $edgeActor->getKey());
 
         ShareMetricRaceHarness::runRace([
-            'driver' => $driver,
             'database' => $database,
             'app_url' => (string) config('app.url'),
             'mode' => 'outcome',
@@ -326,18 +320,15 @@ function smrCohortBoundaryRaceCase(TestCase $testCase, string $driver): void
             ->and($summary['by_day']['2026-06-11'] ?? 0)->toBe(2);
     } finally {
         config(['dawah-share.reporting.reporting_start' => $previousReportingStart]);
-        ShareMetricRaceHarness::teardown($driver, $database, $previous);
+        ShareMetricRaceHarness::teardown($database, $previous);
     }
 }
 
-foreach (['pgsql', 'mariadb'] as $smrDriver) {
-    $label = $smrDriver === 'pgsql' ? 'isolated PostgreSQL' : 'isolated MariaDB';
-
-    it("keeps raced ingestion exact for the metric reader on {$label}", function () use ($smrDriver): void {
-        smrIngestionRaceCase($this, $smrDriver);
+$label = 'isolated PostgreSQL';
+    it("keeps raced ingestion exact for the metric reader on {$label}", function (): void {
+        smrIngestionRaceCase($this);
     });
 
-    it("holds the 30-day cohort boundary under raced ingestion on {$label}", function () use ($smrDriver): void {
-        smrCohortBoundaryRaceCase($this, $smrDriver);
+    it("holds the 30-day cohort boundary under raced ingestion on {$label}", function (): void {
+        smrCohortBoundaryRaceCase($this);
     });
-}

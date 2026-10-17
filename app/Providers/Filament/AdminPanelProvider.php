@@ -4,12 +4,14 @@ namespace App\Providers\Filament;
 
 use AIArmada\Filament\Communications\FilamentCommunicationsPlugin;
 use AIArmada\FilamentAddressing\FilamentAddressingPlugin;
+use AIArmada\FilamentAffiliates\FilamentAffiliatesPlugin;
 use AIArmada\FilamentAuthz\FilamentAuthzPlugin;
 use AIArmada\FilamentCommerceSupport\FilamentCommerceSupportPlugin;
 use AIArmada\FilamentContacting\FilamentContactingPlugin;
 use AIArmada\FilamentEngagement\FilamentEngagementPlugin;
 use AIArmada\FilamentEvents\FilamentEventsPlugin;
 use AIArmada\FilamentInventory\FilamentInventoryPlugin;
+use AIArmada\FilamentLinks\FilamentLinksPlugin;
 use AIArmada\FilamentOrganizations\FilamentOrganizationsPlugin;
 use AIArmada\FilamentPersons\FilamentPersonsPlugin;
 use AIArmada\FilamentReferrals\FilamentReferralsPlugin;
@@ -92,6 +94,8 @@ class AdminPanelProvider extends PanelProvider
                 FilamentEventsPlugin::make(),
                 FilamentOrganizationsPlugin::make(),
                 FilamentCommerceSupportPlugin::make(),
+                FilamentAffiliatesPlugin::make(),
+                FilamentLinksPlugin::make(),
                 FilamentInventoryPlugin::make(),
                 FilamentSeatingPlugin::make(),
                 FilamentPersonsPlugin::make(),

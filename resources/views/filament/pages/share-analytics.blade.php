@@ -9,11 +9,15 @@
     @endphp
 
     <div class="space-y-6">
-        @if ($measurementStatus === 'not_configured')
-            <div class="rounded-xl border border-amber-300 bg-amber-50 p-4">
-                <p class="text-sm font-semibold text-amber-800">{{ __('Reporting is not configured yet. Measurements appear after the operator declares a reporting start.') }}</p>
-            </div>
-        @endif
+        <div class="rounded-xl border border-amber-300 bg-amber-50 p-4">
+            <p class="text-xs font-semibold uppercase tracking-[0.16em] text-amber-700">{{ __('Measurement status') }}</p>
+            @if ($measurementStatus === 'active' && $reportingStart !== null)
+                <p class="mt-1 text-sm font-semibold text-amber-900">{{ __('Measurement active since :date', ['date' => $reportingStart]) }}</p>
+            @else
+                <p class="mt-1 text-sm font-semibold text-amber-900">{{ __('Not configured') }}</p>
+                <p class="mt-1 text-sm text-amber-800">{{ __('Reporting is not configured yet. Measurements appear after the operator declares a reporting start.') }}</p>
+            @endif
+        </div>
 
         <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div class="max-w-3xl space-y-1">

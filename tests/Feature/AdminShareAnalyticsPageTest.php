@@ -7,6 +7,7 @@ use App\Filament\Pages\ProductSignals;
 use App\Filament\Pages\ShareAnalytics;
 use App\Models\Event;
 use App\Models\User;
+use App\Services\ShareTracking\AdminShareAnalyticsService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 
@@ -54,6 +55,50 @@ it('renders the admin share analytics page', function () {
         ->assertSee('Provider Breakdown')
         ->assertSee('Top Sharers')
         ->assertSee('Top Links');
+});
+
+it('shows the configured reporting start as the measurement status', function () {
+    config(['dawah-share.reporting.reporting_start' => '2026-10-16']);
+    app()->setLocale('en');
+
+    $administrator = User::factory()->create();
+    $administrator->assignRole('super_admin');
+
+    $this->actingAs($administrator)
+        ->get(ShareAnalytics::getUrl(panel: 'admin'))
+        ->assertSuccessful()
+        ->assertSee('Measurement status')
+        ->assertSee('Measurement active since 2026-10-16');
+});
+
+it('shows not configured and withholds share measurements without a reporting start', function () {
+    config(['dawah-share.reporting.reporting_start' => null]);
+    app()->setLocale('ms');
+
+    $administrator = User::factory()->create();
+    $administrator->assignRole('super_admin');
+
+    $report = app(AdminShareAnalyticsService::class)->dashboard();
+
+    expect($report['summary'])->toBe([
+        'affiliates' => 0,
+        'shared_links' => 0,
+        'outbound_shares' => 0,
+        'visits' => 0,
+        'distinct_browsers' => 0,
+        'signups' => 0,
+        'event_registrations' => 0,
+        'event_checkins' => 0,
+        'event_submissions' => 0,
+        'total_outcomes' => 0,
+    ]);
+
+    $this->actingAs($administrator)
+        ->get(ShareAnalytics::getUrl(panel: 'admin'))
+        ->assertSuccessful()
+        ->assertSee('Status pengukuran')
+        ->assertSee('Belum dikonfigurasi')
+        ->assertSee('Pelaporan belum dikonfigurasikan. Pengukuran akan dipaparkan selepas operator mengisytiharkan tarikh mula pelaporan.');
 });
 
 it('renders product signals client origin and platform visibility in admin', function () {

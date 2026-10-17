@@ -26,11 +26,12 @@ use Symfony\Component\Process\Process;
 use Tests\Feature\Rewards\Host\Support\FakeRewardSourceFactReader;
 use Tests\Feature\Rewards\Host\Support\RewardFinanceWorkerDb;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
+use Tests\Support\RealDriverFixture;
 
-function digestRaceReadyDir(string $driver, string $case): string
+function digestRaceReadyDir(string $case): string
 {
     $token = ParallelTesting::token();
-    $dir = sys_get_temp_dir().'/rewards-digest-race-'.($token !== false ? $token : 'serial').'-'.$driver.'-'.$case.'-'.getmypid();
+    $dir = sys_get_temp_dir().'/rewards-digest-race-'.($token !== false ? $token : 'serial').'-'.$case.'-'.getmypid();
 
     if (! is_dir($dir)) {
         mkdir($dir, 0777, true);
@@ -45,28 +46,20 @@ function digestRaceReadyDir(string $driver, string $case): string
 
 /**
  * @param  string|array{0: string, 1: string}  $modes
+ * @param  array<string, mixed>  $payload
  * @return array{0: array<string, mixed>, 1: array<string, mixed>}
  */
-function runDigestRacePair(string $driver, string $database, string|array $modes, array $payload, string $case): array
+function runDigestRacePair(string $database, string|array $modes, array $payload, string $case): array
 {
-    $readyDir = digestRaceReadyDir($driver, $case);
+    $readyDir = digestRaceReadyDir($case);
     file_put_contents($readyDir.'/payload.json', json_encode($payload, JSON_THROW_ON_ERROR));
 
-    $configs = RewardFinanceWorkerDb::driverConfigs();
-    $username = (string) $configs[$driver]['username'];
-    $password = (string) $configs[$driver]['password'];
-    $port = $driver === 'pgsql' ? 45432 : 43306;
 
     $worker = __DIR__.'/RewardDigestRaceWorker.php';
 
     $make = fn (int $slot): Process => new Process([
         PHP_BINARY, $worker,
-        '--driver='.$driver,
-        '--host=127.0.0.1',
-        '--port='.$port,
         '--database='.$database,
-        '--username='.$username,
-        '--password='.$password,
         '--mode='.(is_array($modes) ? $modes[$slot] : $modes),
         '--ready-dir='.$readyDir,
         '--slot='.$slot,
@@ -102,6 +95,10 @@ function runDigestRacePair(string $driver, string $database, string|array $modes
     return [$decode($first), $decode($second)];
 }
 
+/**
+ * @param  array<string, mixed>  $a
+ * @param  array<string, mixed>  $b
+ */
 function digestRaceWorkersExited(array $a, array $b): void
 {
     Assert::assertSame(0, $a['exit'] ?? null, 'Worker A failed: '.($a['error'] ?? json_encode($a)));
@@ -234,14 +231,14 @@ function digestRaceAssertDispatchCancelCoherent(string $memberId): void
         ->and(NotificationInbox::query()->where('recipient_id', $memberId)->count())->toBe(1);
 }
 
-foreach (['pgsql' => 'PostgreSQL17', 'mariadb' => 'MariaDB11.4'] as $digestDriver => $digestLabel) {
-    it("sends a due digest exactly once under a raced double dispatch on {$digestLabel}", function () use ($digestDriver): void {
-        [$database, $previous] = RewardFinanceWorkerDb::setUp($digestDriver, 'dgclaim');
+$digestLabel = 'PostgreSQL 17';
+    it("sends a due digest exactly once under a raced double dispatch on {$digestLabel}", function (): void {
+        [$database, $previous] = RewardFinanceWorkerDb::setUp('dgclaim');
 
         try {
             [$user] = digestRaceDueSlot('dg-claim', 'dg-claim-source-1');
 
-            [$first, $second] = runDigestRacePair($digestDriver, $database, 'dispatch', [
+            [$first, $second] = runDigestRacePair($database, 'dispatch', [
                 'now' => '2026-06-23T08:00:00Z',
             ], 'dgclaim');
 
@@ -272,12 +269,12 @@ foreach (['pgsql' => 'PostgreSQL17', 'mariadb' => 'MariaDB11.4'] as $digestDrive
                 ->and(Communication::query()->whereKey((string) $slot->communication_id)->count())->toBe(1)
                 ->and(NotificationInbox::query()->where('recipient_id', (string) $user->getKey())->count())->toBe(1);
         } finally {
-            RewardFinanceWorkerDb::tearDown($digestDriver, $database, $previous);
+            RewardFinanceWorkerDb::tearDown($database, $previous);
         }
     });
 
-    it("converges concurrent same-category plans into one slot on {$digestLabel}", function () use ($digestDriver): void {
-        [$database, $previous] = RewardFinanceWorkerDb::setUp($digestDriver, 'dgplan');
+    it("converges concurrent same-category plans into one slot on {$digestLabel}", function (): void {
+        [$database, $previous] = RewardFinanceWorkerDb::setUp('dgplan');
 
         try {
             [$user] = digestRaceDueSlot('dg-plan', 'dg-plan-source-1');
@@ -288,7 +285,7 @@ foreach (['pgsql' => 'PostgreSQL17', 'mariadb' => 'MariaDB11.4'] as $digestDrive
 
             $decided = '2026-06-16T00:00:00Z';
 
-            [$first, $second] = runDigestRacePair($digestDriver, $database, 'plan', [
+            [$first, $second] = runDigestRacePair($database, 'plan', [
                 'member_id' => (string) $user->getKey(),
                 'categories' => ['awards'],
                 'decided_at' => $decided,
@@ -304,19 +301,19 @@ foreach (['pgsql' => 'PostgreSQL17', 'mariadb' => 'MariaDB11.4'] as $digestDrive
             expect($slot->status)->toBe(RewardDigestSlot::STATUS_PLANNED)
                 ->and(array_values((array) $slot->categories))->toBe(['awards']);
         } finally {
-            RewardFinanceWorkerDb::tearDown($digestDriver, $database, $previous);
+            RewardFinanceWorkerDb::tearDown($database, $previous);
         }
     });
 
-    it("merges concurrent cross-category plans into one ceiling slot on {$digestLabel}", function () use ($digestDriver): void {
-        [$database, $previous] = RewardFinanceWorkerDb::setUp($digestDriver, 'dgmerge');
+    it("merges concurrent cross-category plans into one ceiling slot on {$digestLabel}", function (): void {
+        [$database, $previous] = RewardFinanceWorkerDb::setUp('dgmerge');
 
         try {
             [$user] = digestRaceDueSlot('dg-merge', 'dg-merge-source-1');
 
             $decided = '2026-06-16T00:00:00Z';
 
-            [$first, $second] = runDigestRacePair($digestDriver, $database, 'plan', [
+            [$first, $second] = runDigestRacePair($database, 'plan', [
                 'slots' => [
                     ['member_id' => (string) $user->getKey(), 'categories' => ['badges'], 'decided_at' => $decided],
                     ['member_id' => (string) $user->getKey(), 'categories' => ['milestones'], 'decided_at' => $decided],
@@ -333,18 +330,18 @@ foreach (['pgsql' => 'PostgreSQL17', 'mariadb' => 'MariaDB11.4'] as $digestDrive
 
             expect($categories)->toBe(['awards', 'badges', 'milestones']);
         } finally {
-            RewardFinanceWorkerDb::tearDown($digestDriver, $database, $previous);
+            RewardFinanceWorkerDb::tearDown($database, $previous);
         }
     });
 
-    it("keeps a raced dispatch and cancel coherent on {$digestLabel}", function () use ($digestDriver): void {
-        [$database, $previous] = RewardFinanceWorkerDb::setUp($digestDriver, 'dgcxl');
+    it("keeps a raced dispatch and cancel coherent on {$digestLabel}", function (): void {
+        [$database, $previous] = RewardFinanceWorkerDb::setUp('dgcxl');
 
         try {
             [$user] = digestRaceDueSlot('dg-cxl', 'dg-cxl-source-1');
             $memberId = (string) $user->getKey();
 
-            [$dispatch, $cancel] = runDigestRacePair($digestDriver, $database, ['dispatch', 'cancel'], [
+            [$dispatch, $cancel] = runDigestRacePair($database, ['dispatch', 'cancel'], [
                 'slots' => [
                     ['now' => '2026-06-23T08:00:00Z'],
                     ['member_id' => $memberId, 'reason' => 'member-opt-out-race', 'decided_at' => '2026-06-23T08:00:00Z'],
@@ -355,18 +352,18 @@ foreach (['pgsql' => 'PostgreSQL17', 'mariadb' => 'MariaDB11.4'] as $digestDrive
 
             digestRaceAssertDispatchCancelCoherent($memberId);
         } finally {
-            RewardFinanceWorkerDb::tearDown($digestDriver, $database, $previous);
+            RewardFinanceWorkerDb::tearDown($database, $previous);
         }
     });
 
-    it("keeps a raced cancel and dispatch coherent on {$digestLabel}", function () use ($digestDriver): void {
-        [$database, $previous] = RewardFinanceWorkerDb::setUp($digestDriver, 'dgxcl');
+    it("keeps a raced cancel and dispatch coherent on {$digestLabel}", function (): void {
+        [$database, $previous] = RewardFinanceWorkerDb::setUp('dgxcl');
 
         try {
             [$user] = digestRaceDueSlot('dg-xcl', 'dg-xcl-source-1');
             $memberId = (string) $user->getKey();
 
-            [$cancel, $dispatch] = runDigestRacePair($digestDriver, $database, ['cancel', 'dispatch'], [
+            [$cancel, $dispatch] = runDigestRacePair($database, ['cancel', 'dispatch'], [
                 'slots' => [
                     ['member_id' => $memberId, 'reason' => 'member-opt-out-race', 'decided_at' => '2026-06-23T08:00:00Z'],
                     ['now' => '2026-06-23T08:00:00Z'],
@@ -377,7 +374,6 @@ foreach (['pgsql' => 'PostgreSQL17', 'mariadb' => 'MariaDB11.4'] as $digestDrive
 
             digestRaceAssertDispatchCancelCoherent($memberId);
         } finally {
-            RewardFinanceWorkerDb::tearDown($digestDriver, $database, $previous);
+            RewardFinanceWorkerDb::tearDown($database, $previous);
         }
     });
-}

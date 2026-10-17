@@ -24,10 +24,10 @@ use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 // lost reserves, and an established stale snapshot never blinds the
 // funding lock.
 
-function fundingRaceReadyDir(string $driver, string $case): string
+function fundingRaceReadyDir(string $case): string
 {
     $token = ParallelTesting::token();
-    $dir = sys_get_temp_dir().'/rewards-funding-race-'.($token !== false ? $token : 'serial').'-'.$driver.'-'.$case.'-'.getmypid();
+    $dir = sys_get_temp_dir().'/rewards-funding-race-'.($token !== false ? $token : 'serial').'-'.$case.'-'.getmypid();
 
     if (! is_dir($dir)) {
         mkdir($dir, 0777, true);
@@ -46,28 +46,19 @@ function fundingRaceReadyDir(string $driver, string $case): string
 
 /**
  * @param  string|array{0: string, 1: string}  $modes
+ * @param  array<string, mixed>  $payload
  * @return array{0: array<string, mixed>, 1: array<string, mixed>}
  */
-function runFundingRacePair(string $driver, string $database, string|array $modes, array $payload, string $case): array
+function runFundingRacePair(string $database, string|array $modes, array $payload, string $case): array
 {
-    $readyDir = fundingRaceReadyDir($driver, $case);
+    $readyDir = fundingRaceReadyDir($case);
     file_put_contents($readyDir.'/payload.json', json_encode($payload, JSON_THROW_ON_ERROR));
-
-    $configs = RewardFinanceWorkerDb::driverConfigs();
-    $username = (string) $configs[$driver]['username'];
-    $password = (string) $configs[$driver]['password'];
-    $port = $driver === 'pgsql' ? 45432 : 43306;
 
     $worker = __DIR__.'/RewardFundingRaceWorker.php';
 
     $make = fn (int $slot): Process => new Process([
         PHP_BINARY, $worker,
-        '--driver='.$driver,
-        '--host=127.0.0.1',
-        '--port='.$port,
         '--database='.$database,
-        '--username='.$username,
-        '--password='.$password,
         '--mode='.(is_array($modes) ? $modes[$slot] : $modes),
         '--ready-dir='.$readyDir,
         '--slot='.$slot,
@@ -103,6 +94,9 @@ function runFundingRacePair(string $driver, string $database, string|array $mode
     return [$decode($first), $decode($second)];
 }
 
+/**
+ * @return array{program_id: string, currency: string, amount: int, ref: string, staff_id: string, decided_at: string}
+ */
 function fundingRaceSlotPayload(string $programId, string $ref, int $amount, string $staff): array
 {
     return [
@@ -115,8 +109,8 @@ function fundingRaceSlotPayload(string $programId, string $ref, int $amount, str
     ];
 }
 
-it('refuses concurrent overallocation of one deposit on real drivers', function (string $driver) {
-    [$database, $previous] = RewardFinanceWorkerDb::setUp($driver, 'allocap');
+it('refuses concurrent overallocation of one deposit on real drivers', function () {
+    [$database, $previous] = RewardFinanceWorkerDb::setUp('allocap');
 
     try {
         $staff = (string) Str::uuid();
@@ -131,7 +125,7 @@ it('refuses concurrent overallocation of one deposit on real drivers', function 
 
         // Two 6000 allocations race against one 10000 deposit: exactly
         // one wins, the loser is refused, the total never exceeds.
-        [$first, $second] = runFundingRacePair($driver, $database, ['allocate', 'allocate'], [
+        [$first, $second] = runFundingRacePair($database, ['allocate', 'allocate'], [
             'slot-0' => fundingRaceSlotPayload((string) $programA->getKey(), 'TREASURY-race-cap', 6000, $staff),
             'slot-1' => fundingRaceSlotPayload((string) $programB->getKey(), 'TREASURY-race-cap', 6000, $staff),
         ], 'allocap');
@@ -151,12 +145,12 @@ it('refuses concurrent overallocation of one deposit on real drivers', function 
 
         Assert::assertSame(6000, $total);
     } finally {
-        RewardFinanceWorkerDb::tearDown($driver, $database, $previous);
+        RewardFinanceWorkerDb::tearDown($database, $previous);
     }
-})->with(['pgsql', 'mariadb']);
+});
 
-it('obligates concurrent evaluations without lost reserves on real drivers', function (string $driver) {
-    [$database, $previous] = RewardFinanceWorkerDb::setUp($driver, 'obligate');
+it('obligates concurrent evaluations without lost reserves on real drivers', function () {
+    [$database, $previous] = RewardFinanceWorkerDb::setUp('obligate');
 
     try {
         [$program, $version] = RewardLedgerFixtures::seedVersionedProgram('race-obl', RewardProgramMode::Cash);
@@ -180,7 +174,7 @@ it('obligates concurrent evaluations without lost reserves on real drivers', fun
         EnrollRewardMemberAction::run($program, 'user', $memberOne, $version, 'member-portal', CarbonImmutable::parse('2026-06-10T00:00:00Z'));
         EnrollRewardMemberAction::run($program, 'user', $memberTwo, $version, 'member-portal', CarbonImmutable::parse('2026-06-10T00:00:00Z'));
 
-        [$first, $second] = runFundingRacePair($driver, $database, ['evaluate', 'evaluate'], [
+        [$first, $second] = runFundingRacePair($database, ['evaluate', 'evaluate'], [
             'slot-0' => [
                 'program_id' => (string) $program->getKey(),
                 'member_id' => $memberOne,
@@ -209,12 +203,12 @@ it('obligates concurrent evaluations without lost reserves on real drivers', fun
             RewardBudgetLedger::balances((string) $program->getKey(), 'MYR'),
         );
     } finally {
-        RewardFinanceWorkerDb::tearDown($driver, $database, $previous);
+        RewardFinanceWorkerDb::tearDown($database, $previous);
     }
-})->with(['pgsql', 'mariadb']);
+});
 
-it('keeps the funding lock current under an established stale snapshot on real drivers', function (string $driver) {
-    [$database, $previous] = RewardFinanceWorkerDb::setUp($driver, 'staleread');
+it('keeps the funding lock current under an established stale snapshot on real drivers', function () {
+    [$database, $previous] = RewardFinanceWorkerDb::setUp('staleread');
 
     try {
         $staff = (string) Str::uuid();
@@ -235,7 +229,7 @@ it('keeps the funding lock current under an established stale snapshot on real d
             null, CarbonImmutable::parse('2026-06-02T00:00:00Z'),
         );
 
-        [$observer, $allocator] = runFundingRacePair($driver, $database, ['stale-observe', 'stale-allocate'], [
+        [$observer, $allocator] = runFundingRacePair($database, ['stale-observe', 'stale-allocate'], [
             'stale-observe' => [
                 'program_id' => (string) $program->getKey(),
                 'currency' => 'MYR',
@@ -254,13 +248,7 @@ it('keeps the funding lock current under an established stale snapshot on real d
         Assert::assertSame(4000, (int) ($observer['stale_funded'] ?? -1));
         Assert::assertSame(7000, (int) ($observer['fresh_funded'] ?? -1));
 
-        if ($driver === 'mariadb') {
-            // Repeatable-read proof: the plain re-read inside the same
-            // transaction still sees the stale snapshot — which is why
-            // gates must use the locking read.
-            Assert::assertSame(4000, (int) ($observer['reread_funded'] ?? -1));
-        }
     } finally {
-        RewardFinanceWorkerDb::tearDown($driver, $database, $previous);
+        RewardFinanceWorkerDb::tearDown($database, $previous);
     }
-})->with(['pgsql', 'mariadb']);
+});

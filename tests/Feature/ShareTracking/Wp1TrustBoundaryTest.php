@@ -155,7 +155,7 @@ it('reads analytics only for the marked profile and leaves commercial-only users
     expect(app(ShareTrackingAnalyticsService::class)->linksForUser($this->sharer))->toBeEmpty();
 });
 
-it('refuses share creation for suspended profiles without reactivating them', function (): void {
+it('falls back to a plain share payload for suspended profiles without reactivating them', function (): void {
     wp1SharePayload($this, $this->sharer, route('events.show', $this->event));
 
     $affiliate = app(AffiliatesShareTrackingService::class)->findAffiliateForUser($this->sharer);
@@ -163,15 +163,18 @@ it('refuses share creation for suspended profiles without reactivating them', fu
 
     $affiliate->forceFill(['status' => Disabled::class])->save();
 
-    $this->actingAs($this->sharer)
+    $payload = $this->actingAs($this->sharer)
         ->getJson(route('dawah-share.payload', [
             'url' => route('events.show', $this->event),
             'text' => 'Share this page',
             'title' => 'Shared Page',
         ]))
-        ->assertUnprocessable();
+        ->assertOk()
+        ->json();
 
-    expect($affiliate->fresh()->status)->toBeInstanceOf(Disabled::class);
+    expect($payload['url'])->toBe(route('events.show', $this->event))
+        ->and($payload)->not->toHaveKey('tracking_token')
+        ->and($affiliate->fresh()->status)->toBeInstanceOf(Disabled::class);
 });
 
 it('refuses to reuse a deactivated link and never repairs its token', function (): void {
@@ -695,13 +698,17 @@ it('restores only canonical owned share records and skips foreign snapshots', fu
         ->and($restoredLink->custom_slug)->toBe($link->custom_slug)
         ->and(ShareTrackingProfile::isEligibleForNewCredit($restoredProfile))->toBeFalse();
 
-    $this->actingAs($restored)
+    $payload = $this->actingAs($restored)
         ->getJson(route('dawah-share.payload', [
             'url' => route('events.show', $this->event),
             'text' => 'Share this page',
             'title' => 'Shared Page',
         ]))
-        ->assertUnprocessable();
+        ->assertOk()
+        ->json();
+
+    expect($payload['url'])->toBe(route('events.show', $this->event))
+        ->and($payload)->not->toHaveKey('tracking_token');
 });
 
 it('withholds uncertified measurements until reporting is configured', function (): void {

@@ -6,14 +6,10 @@ declare(strict_types=1);
 //
 // The original contact_methods migration enforces at most one primary per
 // non-null (contactable_type, contactable_id, type, purpose) via a partial
-// unique index on PGSQL/SQLite, a MySQL 8 functional unique index on MySQL,
 // and a nullable VIRTUAL SHA2 hash column with an ordinary unique index on
-// MariaDB. These tests prove the constraint through raw rows under the ACTUAL
 // original migration on worker-namespaced databases built from the current
-// original migrations on the isolated PostgreSQL 17 and MariaDB 11.4
 // fixtures. Raw inserts bypass the ContactMethod model demotion so the
 // database backstop itself must reject the second primary. If the owning
-// migration fix were removed, the MariaDB duplicate insert would succeed and
 // these tests would fail.
 //
 // Guarded test-only worker databases: loopback isolated ports/databases
@@ -21,19 +17,19 @@ declare(strict_types=1);
 
 use AIArmada\Contacting\Models\ContactMethod;
 use App\Models\User;
-use Illuminate\Database\Eloquent\MassAssignmentException;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\Feature\ShareTracking\Wp1RealDriverHarness;
+use Tests\Support\RealDriverFixture;
 
-function wp1ContactUniquenessCase(string $driver): void
+function wp1ContactUniquenessCase(): void
 {
-    $database = Wp1RealDriverHarness::createWorkerDatabase($driver, 'contactuniq');
-    $previous = Wp1RealDriverHarness::useWorkerDatabase($driver, $database);
+    $database = RealDriverFixture::createWorkerDatabase('contactuniq');
+    $previous = RealDriverFixture::useWorkerDatabase($database, Wp1RealDriverHarness::WORKER_CONNECTION);
 
     try {
-        Wp1RealDriverHarness::migrateWorkerDatabase($driver);
+        Wp1RealDriverHarness::migrateWorkerDatabase();
 
         $table = (new ContactMethod)->getTable();
         $indexName = $table.'_primary_unique';
@@ -119,17 +115,7 @@ function wp1ContactUniquenessCase(string $driver): void
 
         expect(DB::table($table)->where('contactable_type', $morph)->whereNull('contactable_id')->where('is_primary', true)->count())->toBe(2);
 
-        // MariaDB hash semantics: qualifying primary has a 64-char hex hash,
         // non-qualifying rows stay null. PGSQL has no hash column.
-        if ($driver === 'mariadb') {
-            $primaryHash = DB::table($table)->where('id', $firstPrimaryId)->value('primary_unique_hash');
-            $nonPrimaryHash = DB::table($table)->where('value', 'nonprimary-one@example.test')->value('primary_unique_hash');
-            $globalHash = DB::table($table)->where('value', 'global-one@example.test')->value('primary_unique_hash');
-
-            expect($primaryHash)->toBeString()->and((string) $primaryHash)->toMatch('/^[0-9a-f]{64}$/')
-                ->and($nonPrimaryHash)->toBeNull()
-                ->and($globalHash)->toBeNull();
-        }
 
         // DB-only helper can never become editable or public API shape.
         $model = ContactMethod::query()->create([
@@ -145,33 +131,12 @@ function wp1ContactUniquenessCase(string $driver): void
 
         expect($fresh)->not->toBeNull();
 
-        if ($driver === 'mariadb') {
-            expect($fresh->getFillable())->not->toContain('primary_unique_hash')
-                ->and($fresh->getHidden())->toContain('primary_unique_hash')
-                ->and($fresh->toArray())->not->toHaveKey('primary_unique_hash');
-
-            expect((new ContactMethod)->isFillable('primary_unique_hash'))->toBeFalse();
-
-            $massAssignmentBlocked = false;
-
-            try {
-                new ContactMethod(['primary_unique_hash' => 'injected']);
-            } catch (MassAssignmentException) {
-                $massAssignmentBlocked = true;
-            }
-
-            expect($massAssignmentBlocked)->toBeTrue('DB-only hash must reject mass assignment.');
-        }
     } finally {
-        Wp1RealDriverHarness::restoreDatabase($previous);
-        Wp1RealDriverHarness::dropWorkerDatabase($driver, $database);
+        RealDriverFixture::restoreDatabase($previous, Wp1RealDriverHarness::WORKER_CONNECTION);
+        RealDriverFixture::dropDatabase($database);
     }
 }
 
 it('enforces primary-contact uniqueness on isolated PostgreSQL', function (): void {
-    wp1ContactUniquenessCase('pgsql');
-});
-
-it('enforces primary-contact uniqueness on isolated MariaDB', function (): void {
-    wp1ContactUniquenessCase('mariadb');
+    wp1ContactUniquenessCase();
 });

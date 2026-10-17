@@ -26,6 +26,7 @@ use AIArmada\Customers\Models\Customer;
 use AIArmada\Events\Events\EventCancelled;
 use AIArmada\Events\Events\EventOccurrenceCancelled;
 use AIArmada\Events\Events\EventRegistrationCancelled;
+use AIArmada\Events\Events\EventRegistrationRefunded;
 use AIArmada\Events\Events\EventRegistrationRejected;
 use AIArmada\Events\Events\EventSessionCancelled;
 use AIArmada\Events\Models\Event as PackageEvent;
@@ -405,6 +406,7 @@ class AppServiceProvider extends ServiceProvider
         if (! app()->bound('share.registration_reversal.listeners.registered')) {
             EventFacade::listen(EventRegistrationCancelled::class, [ReverseRegistrationShareOutcome::class, 'handle']);
             EventFacade::listen(EventRegistrationRejected::class, [ReverseRegistrationShareOutcome::class, 'handle']);
+            EventFacade::listen(EventRegistrationRefunded::class, [ReverseRegistrationShareOutcome::class, 'handle']);
 
             app()->instance('share.registration_reversal.listeners.registered', true);
         }

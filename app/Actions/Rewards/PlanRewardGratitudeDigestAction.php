@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Rewards;
 
+use AIArmada\Rewards\Actions\CreateRewardProgramAction;
 use AIArmada\Rewards\Enums\RewardAwardStatus;
 use AIArmada\Rewards\Enums\RewardBadgeStatus;
 use AIArmada\Rewards\Enums\RewardMilestoneStatus;

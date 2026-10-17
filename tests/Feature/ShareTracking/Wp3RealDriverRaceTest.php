@@ -8,8 +8,6 @@ declare(strict_types=1);
 // current claim and share-creation flows behind a start barrier on
 // worker-namespaced share_rewards_test_wp3_* databases built from the
 // current original migrations (full set on PostgreSQL, the WP1/WP2
-// minimal set plus the WP3 claim tables on MariaDB) on the isolated
-// PostgreSQL 17 and MariaDB 11.4 fixtures. The proof is always the
 // asserted end state (exactly one claim association, one link and one
 // managed short URL), never timing and never a sleep. If the
 // exactly-one claim key, the single-use capability consume, or the
@@ -41,43 +39,51 @@ use Illuminate\Support\Facades\DB;
 use Tests\Feature\ShareTracking\Wp1RealDriverHarness;
 use Tests\Feature\ShareTracking\Wp2RealDriverHarness;
 use Tests\Feature\ShareTracking\Wp3RealDriverHarness;
+use Tests\Support\RealDriverFixture;
 use Tests\TestCase;
 
 /**
  * @return array{0: string, 1: string}
  */
-function wp3RaceWorker(string $driver, string $test): array
+function wp3RaceWorker(string $test): array
 {
-    $database = Wp3RealDriverHarness::createWorkerDatabase($driver, $test);
-    $previous = Wp1RealDriverHarness::useWorkerDatabase($driver, $database);
+    $database = RealDriverFixture::createWorkerDatabase($test, namePrefix: 'wp3_');
+    $previous = RealDriverFixture::useWorkerDatabase($database, Wp1RealDriverHarness::WORKER_CONNECTION);
 
-    Wp3RealDriverHarness::migrateWorkerDatabase($driver);
+    try {
+        Wp3RealDriverHarness::migrateWorkerDatabase();
 
-    // Explicit schema proof: no swallowed migration failure. The
-    // affiliates package prefixes its tables (affiliate_affiliates).
-    Wp3RealDriverHarness::assertWorkerSchema([
-        'users',
-        'affiliate_affiliates',
-        'affiliate_links',
-        'tracked_links',
-        'contact_methods',
-        'share_guest_credentials',
-        'share_guest_claim_capabilities',
-        'share_guest_claims',
-    ]);
+        // Explicit schema proof: no swallowed migration failure. The
+        // affiliates package prefixes its tables (affiliate_affiliates).
+        Wp3RealDriverHarness::assertWorkerSchema([
+            'users',
+            'affiliate_affiliates',
+            'affiliate_links',
+            'tracked_links',
+            'contact_methods',
+            'share_guest_credentials',
+            'share_guest_claim_capabilities',
+            'share_guest_claims',
+        ]);
+    } catch (Throwable $exception) {
+        RealDriverFixture::restoreDatabase($previous, Wp1RealDriverHarness::WORKER_CONNECTION);
+        RealDriverFixture::dropDatabase($database);
+
+        throw $exception;
+    }
 
     return [$database, $previous];
 }
 
-function wp3RaceTeardown(string $driver, string $database, string $previous): void
+function wp3RaceTeardown(string $database, string $previous): void
 {
-    Wp1RealDriverHarness::restoreDatabase($previous);
-    Wp1RealDriverHarness::dropWorkerDatabase($driver, $database);
+    RealDriverFixture::restoreDatabase($previous, Wp1RealDriverHarness::WORKER_CONNECTION);
+    RealDriverFixture::dropDatabase($database);
 }
 
-function wp3ClaimRaceCase(TestCase $testCase, string $driver): void
+function wp3ClaimRaceCase(TestCase $testCase): void
 {
-    [$database, $previous] = wp3RaceWorker($driver, 'claim');
+    [$database, $previous] = wp3RaceWorker('claim');
 
     try {
         $claimantA = User::factory()->create(['email' => 'wp3-race-a@example.test']);
@@ -106,7 +112,6 @@ function wp3ClaimRaceCase(TestCase $testCase, string $driver): void
         // start barrier. Exactly one association wins; the loser refuses
         // generically without writing anything.
         [$first, $second] = Wp3RealDriverHarness::runRace([
-            'driver' => $driver,
             'database' => $database,
             'app_url' => (string) config('app.url'),
             'mode' => 'claim',
@@ -148,13 +153,13 @@ function wp3ClaimRaceCase(TestCase $testCase, string $driver): void
             ->and($source->owner)->toBeNull()
             ->and((string) $recipient->getKey())->not->toBe($guestAffiliateId);
     } finally {
-        wp3RaceTeardown($driver, $database, $previous);
+        wp3RaceTeardown($database, $previous);
     }
 }
 
-function wp3SlugRaceCase(TestCase $testCase, string $driver): void
+function wp3SlugRaceCase(TestCase $testCase): void
 {
-    [$database, $previous] = wp3RaceWorker($driver, 'slug');
+    [$database, $previous] = wp3RaceWorker('slug');
 
     try {
         $sharer = User::factory()->create(['email' => 'wp3-race-sharer@example.test']);
@@ -164,7 +169,6 @@ function wp3SlugRaceCase(TestCase $testCase, string $driver): void
         // converge on one link and one managed short URL: one token,
         // one slug, no duplicate rows on either table.
         [$first, $second] = Wp3RealDriverHarness::runRace([
-            'driver' => $driver,
             'database' => $database,
             'app_url' => (string) config('app.url'),
             'mode' => 'slug',
@@ -204,13 +208,13 @@ function wp3SlugRaceCase(TestCase $testCase, string $driver): void
             ->and(Link::query()->withoutOwnerScope()->count())->toBe(2)
             ->and(Link::query()->withoutOwnerScope()->distinct()->count('slug'))->toBe(2);
     } finally {
-        wp3RaceTeardown($driver, $database, $previous);
+        wp3RaceTeardown($database, $previous);
     }
 }
 
-function wp3SlugForcedRaceCase(TestCase $testCase, string $driver): void
+function wp3SlugForcedRaceCase(TestCase $testCase): void
 {
-    [$database, $previous] = wp3RaceWorker($driver, 'slugforced');
+    [$database, $previous] = wp3RaceWorker('slugforced');
 
     try {
         $sharer = User::factory()->create(['email' => 'wp3-forced-sharer@example.test']);
@@ -236,7 +240,6 @@ function wp3SlugForcedRaceCase(TestCase $testCase, string $driver): void
             });
 
             [$commit, $worker] = Wp3RealDriverHarness::runForcedSolo([
-                'driver' => $driver,
                 'database' => $database,
                 'app_url' => (string) config('app.url'),
                 'mode' => 'slug_solo',
@@ -298,13 +301,13 @@ function wp3SlugForcedRaceCase(TestCase $testCase, string $driver): void
         expect(AffiliateLink::query()->where('affiliate_id', $affiliate->getKey())->count())->toBe(2)
             ->and(Link::query()->withoutOwnerScope()->count())->toBe($managedBefore);
     } finally {
-        wp3RaceTeardown($driver, $database, $previous);
+        wp3RaceTeardown($database, $previous);
     }
 }
 
-function wp3GuestSlugForcedRaceCase(TestCase $testCase, string $driver): void
+function wp3GuestSlugForcedRaceCase(TestCase $testCase): void
 {
-    [$database, $previous] = wp3RaceWorker($driver, 'guestforced');
+    [$database, $previous] = wp3RaceWorker('guestforced');
 
     try {
         $pageUrl = route('events.index');
@@ -340,7 +343,6 @@ function wp3GuestSlugForcedRaceCase(TestCase $testCase, string $driver): void
             });
 
             [$commit, $worker] = Wp3RealDriverHarness::runForcedSolo([
-                'driver' => $driver,
                 'database' => $database,
                 'app_url' => (string) config('app.url'),
                 'mode' => 'guest_slug_solo',
@@ -414,24 +416,22 @@ function wp3GuestSlugForcedRaceCase(TestCase $testCase, string $driver): void
         expect(AffiliateLink::query()->where('affiliate_id', $affiliateId)->count())->toBe(2)
             ->and(Link::query()->withoutOwnerScope()->count())->toBe($managedBefore);
     } finally {
-        wp3RaceTeardown($driver, $database, $previous);
+        wp3RaceTeardown($database, $previous);
     }
 }
 
 /**
  * @return array{0: string, 1: string}
  */
-function wp3DeleteRaceWorker(string $driver, string $test): array
+function wp3DeleteRaceWorker(string $test): array
 {
-    [$database, $previous] = wp3RaceWorker($driver, $test);
+    [$database, $previous] = wp3RaceWorker($test);
 
     // The real production deletion lifecycle (snapshot, deletion-hook
     // cleanup, physical removal) needs its full original schema: the
     // payout/hold/stats/social tables for the tracking cascade plus the
     // lifecycle tables for the model hook. PostgreSQL already runs the
-    // full original set; MariaDB extends its minimal set with the same
     // current originals. No stand-ins, no tolerated failures.
-    Wp3RealDriverHarness::migrateDeleteWorkerExtras($driver);
 
     Wp3RealDriverHarness::assertWorkerSchema([
         'affiliate_payouts',
@@ -473,9 +473,9 @@ function wp3DeleteRaceWorker(string $driver, string $test): array
     return [$database, $previous];
 }
 
-function wp3DeleteBeforeClaimRaceCase(TestCase $testCase, string $driver): void
+function wp3DeleteBeforeClaimRaceCase(TestCase $testCase): void
 {
-    [$database, $previous] = wp3DeleteRaceWorker($driver, 'deleteseal');
+    [$database, $previous] = wp3DeleteRaceWorker('deleteseal');
 
     try {
         $claimant = User::factory()->create(['email' => 'wp3-victim@example.test']);
@@ -505,7 +505,6 @@ function wp3DeleteBeforeClaimRaceCase(TestCase $testCase, string $driver): void
             User::query()->whereKey($claimant->getKey())->firstOrFail()->delete();
 
             [$commit, $worker] = Wp3RealDriverHarness::runForcedSolo([
-                'driver' => $driver,
                 'database' => $database,
                 'app_url' => (string) config('app.url'),
                 'mode' => 'claim_solo',
@@ -548,13 +547,13 @@ function wp3DeleteBeforeClaimRaceCase(TestCase $testCase, string $driver): void
         expect(ShareTrackingProfile::isMarkedGuest($source))->toBeTrue()
             ->and($source->owner)->toBeNull();
     } finally {
-        wp3RaceTeardown($driver, $database, $previous);
+        wp3RaceTeardown($database, $previous);
     }
 }
 
-function wp3ClaimBeforeDeleteRaceCase(TestCase $testCase, string $driver): void
+function wp3ClaimBeforeDeleteRaceCase(TestCase $testCase): void
 {
-    [$database, $previous] = wp3DeleteRaceWorker($driver, 'claimsealdel');
+    [$database, $previous] = wp3DeleteRaceWorker('claimsealdel');
 
     try {
         $claimant = User::factory()->create(['email' => 'wp3-victim-claimer@example.test']);
@@ -583,7 +582,6 @@ function wp3ClaimBeforeDeleteRaceCase(TestCase $testCase, string $driver): void
             User::query()->whereKey($claimant->getKey())->lockForUpdate()->firstOrFail();
 
             [$commit, $worker] = Wp3RealDriverHarness::runForcedSolo([
-                'driver' => $driver,
                 'database' => $database,
                 'app_url' => (string) config('app.url'),
                 'mode' => 'delete_solo',
@@ -650,13 +648,13 @@ function wp3ClaimBeforeDeleteRaceCase(TestCase $testCase, string $driver): void
         expect(ShareTrackingProfile::isMarkedGuest($source))->toBeTrue()
             ->and($source->owner)->toBeNull();
     } finally {
-        wp3RaceTeardown($driver, $database, $previous);
+        wp3RaceTeardown($database, $previous);
     }
 }
 
-function wp3DeletePreservesObligationsCase(TestCase $testCase, string $driver): void
+function wp3DeletePreservesObligationsCase(TestCase $testCase): void
 {
-    [$database, $previous] = wp3DeleteRaceWorker($driver, 'deleteowes');
+    [$database, $previous] = wp3DeleteRaceWorker('deleteowes');
 
     try {
         $claimant = User::factory()->create(['email' => 'wp3-victim-owes@example.test']);
@@ -728,13 +726,13 @@ function wp3DeletePreservesObligationsCase(TestCase $testCase, string $driver): 
         expect(ShareTrackingProfile::isMarkedGuest($source))->toBeTrue()
             ->and($source->owner)->toBeNull();
     } finally {
-        wp3RaceTeardown($driver, $database, $previous);
+        wp3RaceTeardown($database, $previous);
     }
 }
 
-function wp3ClaimSealsRacingCreationCase(TestCase $testCase, string $driver): void
+function wp3ClaimSealsRacingCreationCase(TestCase $testCase): void
 {
-    [$database, $previous] = wp3RaceWorker($driver, 'claimseal');
+    [$database, $previous] = wp3RaceWorker('claimseal');
 
     try {
         $claimant = User::factory()->create(['email' => 'wp3-seal-claimant@example.test']);
@@ -770,7 +768,6 @@ function wp3ClaimSealsRacingCreationCase(TestCase $testCase, string $driver): vo
             });
 
             [$commit, $worker] = Wp3RealDriverHarness::runForcedSolo([
-                'driver' => $driver,
                 'database' => $database,
                 'app_url' => (string) config('app.url'),
                 'mode' => 'guest_slug_solo',
@@ -854,13 +851,13 @@ function wp3ClaimSealsRacingCreationCase(TestCase $testCase, string $driver): vo
             ->and($cookie)->not->toBe('')
             ->and(AffiliateAttribution::query()->where('affiliate_id', $guestAffiliateId)->count())->toBe(1);
     } finally {
-        wp3RaceTeardown($driver, $database, $previous);
+        wp3RaceTeardown($database, $previous);
     }
 }
 
-function wp3CreationBeforeClaimRaceCase(TestCase $testCase, string $driver): void
+function wp3CreationBeforeClaimRaceCase(TestCase $testCase): void
 {
-    [$database, $previous] = wp3RaceWorker($driver, 'createseal');
+    [$database, $previous] = wp3RaceWorker('createseal');
 
     try {
         $claimant = User::factory()->create(['email' => 'wp3-seal-creator@example.test']);
@@ -893,7 +890,6 @@ function wp3CreationBeforeClaimRaceCase(TestCase $testCase, string $driver): voi
             User::query()->whereKey($claimant->getKey())->lockForUpdate()->firstOrFail();
 
             [$commit, $worker] = Wp3RealDriverHarness::runForcedSolo([
-                'driver' => $driver,
                 'database' => $database,
                 'app_url' => (string) config('app.url'),
                 'mode' => 'claim_solo',
@@ -959,44 +955,43 @@ function wp3CreationBeforeClaimRaceCase(TestCase $testCase, string $driver): voi
         expect($claim->status)->toBe(ShareGuestClaimStatus::Active)
             ->and((string) $claim->claimant_user_id)->toBe((string) $claimant->getKey());
     } finally {
-        wp3RaceTeardown($driver, $database, $previous);
+        wp3RaceTeardown($database, $previous);
     }
 }
 
-foreach (['pgsql' => 'PostgreSQL 17', 'mariadb' => 'MariaDB 11.4'] as $wp3Driver => $label) {
-    it("claims exactly one winner for a competing-claimant race on {$label}", function () use ($wp3Driver): void {
-        wp3ClaimRaceCase($this, $wp3Driver);
-    });
+$label = 'PostgreSQL 17';
+it("claims exactly one winner for a competing-claimant race on {$label}", function (): void {
+    wp3ClaimRaceCase($this);
+});
 
-    it("converges concurrent share creation on one short URL on {$label}", function () use ($wp3Driver): void {
-        wp3SlugRaceCase($this, $wp3Driver);
-    });
+it("converges concurrent share creation on one short URL on {$label}", function (): void {
+    wp3SlugRaceCase($this);
+});
 
-    it("serializes a forced empty-lookup overlap for member creation on {$label}", function () use ($wp3Driver): void {
-        wp3SlugForcedRaceCase($this, $wp3Driver);
-    });
+it("serializes a forced empty-lookup overlap for member creation on {$label}", function (): void {
+    wp3SlugForcedRaceCase($this);
+});
 
-    it("serializes a forced empty-lookup overlap for guest creation on {$label}", function () use ($wp3Driver): void {
-        wp3GuestSlugForcedRaceCase($this, $wp3Driver);
-    });
+it("serializes a forced empty-lookup overlap for guest creation on {$label}", function (): void {
+    wp3GuestSlugForcedRaceCase($this);
+});
 
-    it("refuses a claim that raced a real deletion on {$label}", function () use ($wp3Driver): void {
-        wp3DeleteBeforeClaimRaceCase($this, $wp3Driver);
-    });
+it("refuses a claim that raced a real deletion on {$label}", function (): void {
+    wp3DeleteBeforeClaimRaceCase($this);
+});
 
-    it("revokes a claim that beat a real deletion on {$label}", function () use ($wp3Driver): void {
-        wp3ClaimBeforeDeleteRaceCase($this, $wp3Driver);
-    });
+it("revokes a claim that beat a real deletion on {$label}", function (): void {
+    wp3ClaimBeforeDeleteRaceCase($this);
+});
 
-    it("preserves owed obligations through a real deletion on {$label}", function () use ($wp3Driver): void {
-        wp3DeletePreservesObligationsCase($this, $wp3Driver);
-    });
+it("preserves owed obligations through a real deletion on {$label}", function (): void {
+    wp3DeletePreservesObligationsCase($this);
+});
 
-    it("seals a creation that raced a claim into a fresh identity on {$label}", function () use ($wp3Driver): void {
-        wp3ClaimSealsRacingCreationCase($this, $wp3Driver);
-    });
+it("seals a creation that raced a claim into a fresh identity on {$label}", function (): void {
+    wp3ClaimSealsRacingCreationCase($this);
+});
 
-    it("keeps a creation that beat a claim inside the sealed history on {$label}", function () use ($wp3Driver): void {
-        wp3CreationBeforeClaimRaceCase($this, $wp3Driver);
-    });
-}
+it("keeps a creation that beat a claim inside the sealed history on {$label}", function (): void {
+    wp3CreationBeforeClaimRaceCase($this);
+});

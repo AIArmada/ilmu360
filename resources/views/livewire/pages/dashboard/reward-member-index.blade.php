@@ -17,14 +17,31 @@
     </div>
 
     @if ($this->tab === 'overview')
-        <h2 class="mt-6 text-lg font-medium">Point balances</h2>
+        <h2 class="mt-6 text-lg font-medium">Baki mata / Point balances</h2>
         @forelse ($balances as $balance)
             <div class="mt-2 rounded border px-3 py-2 text-sm">
                 <strong>{{ $balance['program'] }}</strong> ({{ $balance['unit'] }}):
-                available {{ $balance['available'] }}, reserved {{ $balance['reserved'] }}, spent {{ $balance['spent'] }}
+                tersedia / available {{ $balance['available'] }}, disimpan / reserved {{ $balance['reserved'] }}, digunakan / spent {{ $balance['spent'] }}
             </div>
         @empty
-            <p class="mt-2 text-sm text-slate-500">No point balances yet.</p>
+            <p class="mt-2 text-sm text-slate-500">Belum ada baki mata. / No point balances yet.</p>
+        @endforelse
+
+        <h2 class="mt-6 text-lg font-medium">Kemajuan bintang dan pencapaian / Star and milestone progress</h2>
+        <p class="mt-1 text-sm text-slate-600">Kemajuan ini hanya untuk akaun anda. / This progress is private to your account.</p>
+        @forelse ($milestones as $milestone)
+            <div class="mt-2 rounded border px-3 py-2 text-sm">
+                <strong>{{ $milestone['label'] }}</strong>
+                <span class="text-slate-600">— {{ $milestone['program'] }}</span>
+                <span class="ml-2">{{ $milestone['current'] }} / {{ $milestone['target'] }}</span>
+                @if ($milestone['status'] === 'achieved')
+                    <span class="ml-2 font-medium text-emerald-700">Dicapai / Achieved</span>
+                @else
+                    <span class="ml-2 text-slate-600">Dalam kemajuan / In progress</span>
+                @endif
+            </div>
+        @empty
+            <p class="mt-2 text-sm text-slate-500">Kemajuan bintang akan muncul selepas aktiviti yang layak direkodkan. / Star progress appears after an eligible activity is recorded.</p>
         @endforelse
 
         <h2 class="mt-6 text-lg font-medium">Award history</h2>

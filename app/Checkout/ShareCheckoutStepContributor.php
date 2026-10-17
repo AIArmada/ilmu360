@@ -15,6 +15,7 @@ final readonly class ShareCheckoutStepContributor implements StepContributor
     {
         return [
             'record_checkout_share_provenance' => fn (): CheckoutStepInterface => app(RecordCheckoutShareProvenanceStep::class),
+            'record_ticket_affiliate_commissions' => fn (): CheckoutStepInterface => app(RecordTicketAffiliateCommissionsStep::class),
         ];
     }
 }

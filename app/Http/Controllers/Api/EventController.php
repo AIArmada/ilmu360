@@ -1148,7 +1148,6 @@ class EventController extends Controller
     {
         return match ($this->databaseDriver()) {
             'pgsql' => "COALESCE(description::text, '') {$operator} ?",
-            'mysql', 'mariadb' => "COALESCE(CAST(description AS CHAR), '') {$operator} ?",
             default => "COALESCE(CAST(description AS TEXT), '') {$operator} ?",
         };
     }

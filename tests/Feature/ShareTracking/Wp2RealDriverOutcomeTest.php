@@ -8,7 +8,6 @@ declare(strict_types=1);
 // (captureRequest landings, recordOutcome/recordInheritedOutcome,
 // ReverseShareOutcomeAction, DispatchShareEffectReceiptsAction) against
 // worker-namespaced databases built from the current original migrations
-// on the isolated PostgreSQL 17 and MariaDB 11.4 fixtures. If the
 // receipt-first freeze, the fraud/accounting rollback, the TTL/dedupe
 // edges, the dispatcher recovery, or the monetary guard were deleted,
 // these tests fail: no copied closure or SQLite-only claim can pass them.
@@ -28,6 +27,7 @@ use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\Affiliates\Services\FraudDetectionService;
 use AIArmada\Affiliates\States\ConversionStatus;
 use AIArmada\Engagement\Models\Response;
+use AIArmada\Events\Models\EventOccurrence;
 use App\Actions\ShareTracking\DispatchShareEffectReceiptsAction;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Enums\DawahShareOutcomeType;
@@ -50,6 +50,17 @@ use Laravel\Sanctum\Sanctum;
 use Tests\Feature\ShareTracking\Wp1RealDriverHarness;
 use Tests\Feature\ShareTracking\Wp2RealDriverHarness;
 use Tests\Feature\ShareTracking\Wp2ThrowingFraudRule;
+use Tests\Support\RealDriverFixture;
+
+function wp2SameInstant(string|DateTimeInterface $actual, string|DateTimeInterface $expected): bool
+{
+    return CarbonImmutable::parse($actual)->equalTo($expected);
+}
+
+function wp2IsLater(string|DateTimeInterface $actual, string|DateTimeInterface $expected): bool
+{
+    return CarbonImmutable::parse($actual)->greaterThan($expected);
+}
 use Tests\TestCase;
 
 function wp2ConversionStatusValue(AffiliateConversion $conversion): string
@@ -64,20 +75,28 @@ function wp2ConversionStatusValue(AffiliateConversion $conversion): string
 /**
  * @return array{0: string, 1: string}
  */
-function wp2OutcomeWorker(string $driver, string $test): array
+function wp2OutcomeWorker(string $test): array
 {
-    $database = Wp1RealDriverHarness::createWorkerDatabase($driver, $test);
-    $previous = Wp1RealDriverHarness::useWorkerDatabase($driver, $database);
+    $database = RealDriverFixture::createWorkerDatabase($test);
+    $previous = RealDriverFixture::useWorkerDatabase($database, Wp1RealDriverHarness::WORKER_CONNECTION);
 
-    Wp2RealDriverHarness::migrateWorkerDatabase($driver);
+    try {
+        Wp2RealDriverHarness::migrateWorkerDatabase();
+
+    } catch (Throwable $exception) {
+        RealDriverFixture::restoreDatabase($previous, Wp1RealDriverHarness::WORKER_CONNECTION);
+        RealDriverFixture::dropDatabase($database);
+
+        throw $exception;
+    }
 
     return [$database, $previous];
 }
 
-function wp2OutcomeTeardown(string $driver, string $database, string $previous): void
+function wp2OutcomeTeardown(string $database, string $previous): void
 {
-    Wp1RealDriverHarness::restoreDatabase($previous);
-    Wp1RealDriverHarness::dropWorkerDatabase($driver, $database);
+    RealDriverFixture::restoreDatabase($previous, Wp1RealDriverHarness::WORKER_CONNECTION);
+    RealDriverFixture::dropDatabase($database);
 }
 
 function wp2OutcomeLink(User $sharer, string $url): AffiliateLink
@@ -110,9 +129,9 @@ function wp2OutcomeRequest(?string $cookie = null): Request
     return $request;
 }
 
-function wp2OutcomeCase(TestCase $testCase, string $driver): void
+function wp2OutcomeCase(TestCase $testCase): void
 {
-    [$database, $previous] = wp2OutcomeWorker($driver, 'outcome');
+    [$database, $previous] = wp2OutcomeWorker('outcome');
 
     try {
         $pageUrl = route('events.index');
@@ -142,7 +161,7 @@ function wp2OutcomeCase(TestCase $testCase, string $driver): void
         $receipt = ShareSourceAttributionReceipt::query()->where('business_key', $businessKey)->firstOrFail();
 
         expect($receipt->isAttributed())->toBeTrue()
-            ->and($receipt->occurred_at->equalTo($occurredAt))->toBeTrue();
+            ->and(wp2SameInstant($receipt->occurred_at, $occurredAt))->toBeTrue();
 
         expect(AffiliateConversion::query()->count())->toBe(1)
             ->and(ShareEffectReceipt::query()->count())->toBe(1);
@@ -167,15 +186,15 @@ function wp2OutcomeCase(TestCase $testCase, string $driver): void
         expect($replayed)->not->toBeNull()
             ->and(AffiliateConversion::query()->count())->toBe(1)
             ->and(ShareEffectReceipt::query()->count())->toBe(1)
-            ->and($receipt->fresh()->occurred_at->equalTo($occurredAt))->toBeTrue();
+            ->and(wp2SameInstant($receipt->fresh()->occurred_at, $occurredAt))->toBeTrue();
     } finally {
-        wp2OutcomeTeardown($driver, $database, $previous);
+        wp2OutcomeTeardown($database, $previous);
     }
 }
 
-function wp2UnattributedCase(TestCase $testCase, string $driver): void
+function wp2UnattributedCase(TestCase $testCase): void
 {
-    [$database, $previous] = wp2OutcomeWorker($driver, 'unattributed');
+    [$database, $previous] = wp2OutcomeWorker('unattributed');
 
     try {
         $pageUrl = route('events.index');
@@ -213,13 +232,13 @@ function wp2UnattributedCase(TestCase $testCase, string $driver): void
         ))->toBeNull()
             ->and(AffiliateConversion::query()->count())->toBe(0);
     } finally {
-        wp2OutcomeTeardown($driver, $database, $previous);
+        wp2OutcomeTeardown($database, $previous);
     }
 }
 
-function wp2FraudRejectionCase(TestCase $testCase, string $driver): void
+function wp2FraudRejectionCase(TestCase $testCase): void
 {
-    [$database, $previous] = wp2OutcomeWorker($driver, 'fraudreject');
+    [$database, $previous] = wp2OutcomeWorker('fraudreject');
 
     try {
         $pageUrl = route('events.index');
@@ -268,13 +287,13 @@ function wp2FraudRejectionCase(TestCase $testCase, string $driver): void
         ))->toBeNull()
             ->and(AffiliateConversion::query()->count())->toBe(1);
     } finally {
-        wp2OutcomeTeardown($driver, $database, $previous);
+        wp2OutcomeTeardown($database, $previous);
     }
 }
 
-function wp2RollbackCase(TestCase $testCase, string $driver): void
+function wp2RollbackCase(TestCase $testCase): void
 {
-    [$database, $previous] = wp2OutcomeWorker($driver, 'rollback');
+    [$database, $previous] = wp2OutcomeWorker('rollback');
 
     try {
         $pageUrl = route('events.index');
@@ -309,13 +328,13 @@ function wp2RollbackCase(TestCase $testCase, string $driver): void
             ->and(ShareSourceAttributionReceipt::query()->count())->toBe(0)
             ->and(ShareEffectReceipt::query()->count())->toBe(0);
     } finally {
-        wp2OutcomeTeardown($driver, $database, $previous);
+        wp2OutcomeTeardown($database, $previous);
     }
 }
 
-function wp2AccountingFaultCase(TestCase $testCase, string $driver): void
+function wp2AccountingFaultCase(TestCase $testCase): void
 {
-    [$database, $previous] = wp2OutcomeWorker($driver, 'acctfault');
+    [$database, $previous] = wp2OutcomeWorker('acctfault');
 
     // Test-only query seam: throw once, after the first accounting UPDATE
     // to affiliate_balances has executed inside the real production
@@ -391,13 +410,13 @@ function wp2AccountingFaultCase(TestCase $testCase, string $driver): void
             ->and(ShareEffectReceipt::query()->count())->toBe(1);
     } finally {
         $faultArmed = false;
-        wp2OutcomeTeardown($driver, $database, $previous);
+        wp2OutcomeTeardown($database, $previous);
     }
 }
 
-function wp2DispatchRecoveryCase(TestCase $testCase, string $driver): void
+function wp2DispatchRecoveryCase(TestCase $testCase): void
 {
-    [$database, $previous] = wp2OutcomeWorker($driver, 'dispatch');
+    [$database, $previous] = wp2OutcomeWorker('dispatch');
 
     try {
         $pageUrl = route('events.index');
@@ -452,13 +471,13 @@ function wp2DispatchRecoveryCase(TestCase $testCase, string $driver): void
             ->and((int) $link->fresh()->conversions)->toBe(2)
             ->and($stranded->fresh()->status)->toBe(ShareEffectStatus::Succeeded);
     } finally {
-        wp2OutcomeTeardown($driver, $database, $previous);
+        wp2OutcomeTeardown($database, $previous);
     }
 }
 
-function wp2TtlDedupeCase(TestCase $testCase, string $driver): void
+function wp2TtlDedupeCase(TestCase $testCase): void
 {
-    [$database, $previous] = wp2OutcomeWorker($driver, 'ttldedupe');
+    [$database, $previous] = wp2OutcomeWorker('ttldedupe');
 
     try {
         $pageUrl = route('events.index');
@@ -483,7 +502,7 @@ function wp2TtlDedupeCase(TestCase $testCase, string $driver): void
         wp2OutcomeLanding($landingUrl, $cookie);
 
         expect(AffiliateTouchpoint::query()->where('touchpoint_type', 'visit')->count())->toBe(1)
-            ->and(ShareBrowserSelection::query()->firstOrFail()->accepted_at->equalTo($acceptedAt))->toBeTrue();
+            ->and(wp2SameInstant(ShareBrowserSelection::query()->firstOrFail()->accepted_at, $acceptedAt))->toBeTrue();
 
         // Past the rolling window, the same landing mints a fresh
         // immutable attribution with a new window; it never renews the old.
@@ -527,13 +546,13 @@ function wp2TtlDedupeCase(TestCase $testCase, string $driver): void
 
         $testCase->travelBack();
     } finally {
-        wp2OutcomeTeardown($driver, $database, $previous);
+        wp2OutcomeTeardown($database, $previous);
     }
 }
 
-function wp2InheritanceCase(TestCase $testCase, string $driver): void
+function wp2InheritanceCase(TestCase $testCase): void
 {
-    [$database, $previous] = wp2OutcomeWorker($driver, 'inherit');
+    [$database, $previous] = wp2OutcomeWorker('inherit');
 
     try {
         $pageUrl = route('events.index');
@@ -582,13 +601,13 @@ function wp2InheritanceCase(TestCase $testCase, string $driver): void
 
         $testCase->travelBack();
     } finally {
-        wp2OutcomeTeardown($driver, $database, $previous);
+        wp2OutcomeTeardown($database, $previous);
     }
 }
 
-function wp2CorrectionCase(TestCase $testCase, string $driver): void
+function wp2CorrectionCase(TestCase $testCase): void
 {
-    [$database, $previous] = wp2OutcomeWorker($driver, 'correct');
+    [$database, $previous] = wp2OutcomeWorker('correct');
 
     try {
         $pageUrl = route('events.index');
@@ -652,13 +671,13 @@ function wp2CorrectionCase(TestCase $testCase, string $driver): void
             ->and(ShareOutcomeCorrection::query()->count())->toBe(1)
             ->and(wp2ConversionStatusValue($moneyConversion->fresh()))->toBe('approved');
     } finally {
-        wp2OutcomeTeardown($driver, $database, $previous);
+        wp2OutcomeTeardown($database, $previous);
     }
 }
 
-function wp2MalformedKeyCase(TestCase $testCase, string $driver): void
+function wp2MalformedKeyCase(TestCase $testCase): void
 {
-    [$database, $previous] = wp2OutcomeWorker($driver, 'malformed');
+    [$database, $previous] = wp2OutcomeWorker('malformed');
 
     try {
         $actor = User::factory()->create(['email' => 'wp2-actor@example.test']);
@@ -688,16 +707,15 @@ function wp2MalformedKeyCase(TestCase $testCase, string $driver): void
         expect(ShareSourceAttributionReceipt::query()->count())->toBe(0)
             ->and(AffiliateConversion::query()->count())->toBe(0);
     } finally {
-        wp2OutcomeTeardown($driver, $database, $previous);
+        wp2OutcomeTeardown($database, $previous);
     }
 }
 
 function wp2GoingCrashCase(TestCase $testCase): void
 {
     // PostgreSQL only: the going flow spans the events and engagement
-    // tables, which the MariaDB minimal worker schema cannot carry (an
     // unrelated vendor migration exceeds the identifier limit there).
-    [$database, $previous] = wp2OutcomeWorker('pgsql', 'goingcrash');
+    [$database, $previous] = wp2OutcomeWorker('goingcrash');
 
     try {
         $pageUrl = route('events.index');
@@ -714,12 +732,37 @@ function wp2GoingCrashCase(TestCase $testCase): void
 
         expect($cookie)->toBeString()->not->toBe('');
 
-        $makeEvent = static fn (): Event => Event::factory()->create([
-            'status' => 'approved',
-            'visibility' => 'public',
-            'starts_at' => now()->addDays(3),
-            'pricing_mode' => 'free',
-        ]);
+        $makeEvent = static function (): Event {
+            $eventId = (string) Str::uuid();
+            $createdAt = now()->utc();
+
+            DB::table((new Event)->getTable())->insert([
+                'id' => $eventId,
+                'title' => 'Share outcome going event',
+                'slug' => 'share-outcome-going-'.Str::lower(Str::random(8)),
+                'status' => 'approved',
+                'visibility' => 'public',
+                'delivery_mode' => 'online',
+                'timezone' => 'UTC',
+                'published_at' => $createdAt->copy()->subDay(),
+                'pricing_mode' => 'free',
+                'registration_mode' => 'required',
+                'schedule_kind' => 'single',
+                'created_at' => $createdAt,
+                'updated_at' => $createdAt,
+            ]);
+
+            $event = Event::query()->findOrFail($eventId);
+
+            EventOccurrence::factory()->create([
+                'event_id' => $eventId,
+                'starts_at' => now()->addDays(3),
+                'ends_at' => now()->addDays(3)->addHours(2),
+                'pricing_mode' => 'free',
+            ]);
+
+            return $event;
+        };
 
         Sanctum::actingAs($actor);
 
@@ -756,13 +799,13 @@ function wp2GoingCrashCase(TestCase $testCase): void
             ->and(AffiliateConversion::query()->count())->toBe(2)
             ->and(AffiliateFraudSignal::query()->where('rule_code', 'WP2_THROW')->count())->toBe(0);
     } finally {
-        wp2OutcomeTeardown($driver = 'pgsql', $database, $previous);
+        wp2OutcomeTeardown($database, $previous);
     }
 }
 
-function wp2BrowserReversedArrivalCase(TestCase $testCase, string $driver): void
+function wp2BrowserReversedArrivalCase(TestCase $testCase): void
 {
-    [$database, $previous] = wp2OutcomeWorker($driver, 'reversed');
+    [$database, $previous] = wp2OutcomeWorker('reversed');
 
     try {
         $pageUrl = route('events.index');
@@ -799,13 +842,13 @@ function wp2BrowserReversedArrivalCase(TestCase $testCase, string $driver): void
         $conversion = AffiliateConversion::query()->where('idempotency_key', hash('sha256', $businessKey))->firstOrFail();
         expect((string) $conversion->affiliate_link_id)->toBe((string) $linkB->getKey());
     } finally {
-        wp2OutcomeTeardown($driver, $database, $previous);
+        wp2OutcomeTeardown($database, $previous);
     }
 }
 
-function wp2BrowserInvalidTokenCase(TestCase $testCase, string $driver): void
+function wp2BrowserInvalidTokenCase(TestCase $testCase): void
 {
-    [$database, $previous] = wp2OutcomeWorker($driver, 'invalidtok');
+    [$database, $previous] = wp2OutcomeWorker('invalidtok');
 
     try {
         $pageUrl = route('events.index');
@@ -831,13 +874,13 @@ function wp2BrowserInvalidTokenCase(TestCase $testCase, string $driver): void
         expect($receipt->isAttributed())->toBeFalse();
         expect(AffiliateConversion::query()->count())->toBe(0);
     } finally {
-        wp2OutcomeTeardown($driver, $database, $previous);
+        wp2OutcomeTeardown($database, $previous);
     }
 }
 
-function wp2BrowserSameLinkTtlCase(TestCase $testCase, string $driver): void
+function wp2BrowserSameLinkTtlCase(TestCase $testCase): void
 {
-    [$database, $previous] = wp2OutcomeWorker($driver, 'samelinkttl');
+    [$database, $previous] = wp2OutcomeWorker('samelinkttl');
 
     try {
         $pageUrl = route('events.index');
@@ -869,10 +912,10 @@ function wp2BrowserSameLinkTtlCase(TestCase $testCase, string $driver): void
         expect(AffiliateAttribution::query()->where('attribution_type', 'landing')->count())->toBe(3);
 
         $latest = AffiliateAttribution::query()->where('attribution_type', 'landing')->latest('first_seen_at')->firstOrFail();
-        expect($latest->first_seen_at->greaterThan($first->first_seen_at))->toBeTrue();
+        expect(wp2IsLater($latest->first_seen_at, $first->first_seen_at))->toBeTrue();
 
         $expectedExpiry = $latest->first_seen_at->copy()->addDays(30);
-        expect($latest->expires_at->equalTo($expectedExpiry))->toBeTrue();
+        expect(wp2SameInstant($latest->expires_at, $expectedExpiry))->toBeTrue();
         expect((string) ShareBrowserSelection::query()->firstOrFail()->current_attribution_id)->toBe((string) $latest->getKey());
 
         $passive = app(ShareTrackingService::class)->captureRequest(wp2OutcomeRequest($cookie2));
@@ -880,13 +923,13 @@ function wp2BrowserSameLinkTtlCase(TestCase $testCase, string $driver): void
         expect(AffiliateAttribution::query()->where('attribution_type', 'landing')->count())->toBe(3);
         expect((string) ShareBrowserSelection::query()->firstOrFail()->current_attribution_id)->toBe((string) $latest->getKey());
     } finally {
-        wp2OutcomeTeardown($driver, $database, $previous);
+        wp2OutcomeTeardown($database, $previous);
     }
 }
 
-function wp2CancelledSourceInheritanceCase(TestCase $testCase, string $driver): void
+function wp2CancelledSourceInheritanceCase(TestCase $testCase): void
 {
-    [$database, $previous] = wp2OutcomeWorker($driver, 'cancelinherit');
+    [$database, $previous] = wp2OutcomeWorker('cancelinherit');
 
     try {
         $pageUrl = route('events.index');
@@ -913,13 +956,13 @@ function wp2CancelledSourceInheritanceCase(TestCase $testCase, string $driver): 
         expect(ShareEffectReceipt::query()->where('source_id', $childKey)->count())->toBe(0);
         expect(ShareSourceAttributionReceipt::query()->where('business_key', $sourceKey)->firstOrFail()->isAttributed())->toBeTrue();
     } finally {
-        wp2OutcomeTeardown($driver, $database, $previous);
+        wp2OutcomeTeardown($database, $previous);
     }
 }
 
-function wp2FraudConfirmedInheritanceCase(TestCase $testCase, string $driver): void
+function wp2FraudConfirmedInheritanceCase(TestCase $testCase): void
 {
-    [$database, $previous] = wp2OutcomeWorker($driver, 'fraudinherit');
+    [$database, $previous] = wp2OutcomeWorker('fraudinherit');
 
     try {
         $pageUrl = route('events.index');
@@ -950,13 +993,13 @@ function wp2FraudConfirmedInheritanceCase(TestCase $testCase, string $driver): v
         expect(ShareSourceAttributionReceipt::query()->where('business_key', $childKey)->firstOrFail()->isAttributed())->toBeFalse();
         expect(AffiliateConversion::query()->where('idempotency_key', hash('sha256', $childKey))->count())->toBe(0);
     } finally {
-        wp2OutcomeTeardown($driver, $database, $previous);
+        wp2OutcomeTeardown($database, $previous);
     }
 }
 
-function wp2CorrectionDispatchCase(TestCase $testCase, string $driver): void
+function wp2CorrectionDispatchCase(TestCase $testCase): void
 {
-    [$database, $previous] = wp2OutcomeWorker($driver, 'corrdispatch');
+    [$database, $previous] = wp2OutcomeWorker('corrdispatch');
 
     try {
         $pageUrl = route('events.index');
@@ -979,13 +1022,13 @@ function wp2CorrectionDispatchCase(TestCase $testCase, string $driver): void
         expect(ShareEffectReceipt::query()->where('source_id', $validKey)->firstOrFail()->status)->toBe(ShareEffectStatus::Succeeded);
         expect((int) $link->fresh()->conversions)->toBe(1);
     } finally {
-        wp2OutcomeTeardown($driver, $database, $previous);
+        wp2OutcomeTeardown($database, $previous);
     }
 }
 
-function wp2LeaseFencingCase(TestCase $testCase, string $driver): void
+function wp2LeaseFencingCase(TestCase $testCase): void
 {
-    [$database, $previous] = wp2OutcomeWorker($driver, 'leasefence');
+    [$database, $previous] = wp2OutcomeWorker('leasefence');
 
     try {
         $pageUrl = route('events.index');
@@ -1014,13 +1057,13 @@ function wp2LeaseFencingCase(TestCase $testCase, string $driver): void
         expect(app(DispatchShareEffectReceiptsAction::class)->handle(10))->toBe(0);
         expect((int) $link->fresh()->conversions)->toBe(1);
     } finally {
-        wp2OutcomeTeardown($driver, $database, $previous);
+        wp2OutcomeTeardown($database, $previous);
     }
 }
 
-function wp2BrowserAbaDifferentSharersCase(TestCase $testCase, string $driver): void
+function wp2BrowserAbaDifferentSharersCase(TestCase $testCase): void
 {
-    [$database, $previous] = wp2OutcomeWorker($driver, 'abadiff');
+    [$database, $previous] = wp2OutcomeWorker('abadiff');
 
     try {
         $pageUrl = route('events.index');
@@ -1053,15 +1096,15 @@ function wp2BrowserAbaDifferentSharersCase(TestCase $testCase, string $driver): 
 
         expect($winnerA1->channel)->toBeNull()
             ->and((string) $winnerA1->origin)->toBe('web')
-            ->and($acceptedA1->equalTo($firstSeenA1))->toBeTrue()
-            ->and($expiresA1->equalTo($firstSeenA1->copy()->addDays(30)))->toBeTrue();
+            ->and(wp2SameInstant($acceptedA1, $firstSeenA1))->toBeTrue()
+            ->and(wp2SameInstant($expiresA1, CarbonImmutable::parse($firstSeenA1)->addDays(30)))->toBeTrue();
 
         $visitTouchedA1 = AffiliateTouchpoint::query()
             ->where('touchpoint_type', 'visit')
             ->where('affiliate_link_id', $linkA->getKey())
             ->firstOrFail()->touched_at;
 
-        expect($visitTouchedA1->equalTo($firstSeenA1))->toBeTrue();
+        expect(wp2SameInstant($visitTouchedA1, $firstSeenA1))->toBeTrue();
 
         $testCase->travel(1)->minutes();
 
@@ -1076,8 +1119,8 @@ function wp2BrowserAbaDifferentSharersCase(TestCase $testCase, string $driver): 
         $acceptedB = $selectionB->accepted_at;
 
         expect((string) $selectionB->current_attribution_id)->toBe((string) $winnerB->getKey())
-            ->and($acceptedB->equalTo($acceptedA1))->toBeFalse()
-            ->and($acceptedB->greaterThan($acceptedA1))->toBeTrue();
+            ->and(wp2SameInstant($acceptedB, $acceptedA1))->toBeFalse()
+            ->and(wp2IsLater($acceptedB, $acceptedA1))->toBeTrue();
 
         $testCase->travel(1)->minutes();
 
@@ -1101,12 +1144,12 @@ function wp2BrowserAbaDifferentSharersCase(TestCase $testCase, string $driver): 
             ->and((string) $winnerA2->affiliate_id)->toBe((string) $linkA->affiliate_id)
             ->and($winnerA2->channel)->toBeNull()
             ->and((string) $winnerA2->origin)->toBe('web')
-            ->and($acceptedA2->equalTo($acceptedB))->toBeFalse()
-            ->and($acceptedA2->greaterThan($acceptedB))->toBeTrue()
-            ->and($winnerA2->first_seen_at->equalTo($acceptedA2))->toBeTrue()
-            ->and($winnerA2->expires_at->equalTo($winnerA2->first_seen_at->copy()->addDays(30)))->toBeTrue()
-            ->and($winnerA1->fresh()->first_seen_at->equalTo($firstSeenA1))->toBeTrue()
-            ->and($winnerA1->fresh()->expires_at->equalTo($expiresA1))->toBeTrue()
+            ->and(wp2SameInstant($acceptedA2, $acceptedB))->toBeFalse()
+            ->and(wp2IsLater($acceptedA2, $acceptedB))->toBeTrue()
+            ->and(wp2SameInstant($winnerA2->first_seen_at, $acceptedA2))->toBeTrue()
+            ->and(wp2SameInstant($winnerA2->expires_at, CarbonImmutable::parse($winnerA2->first_seen_at)->addDays(30)))->toBeTrue()
+            ->and(wp2SameInstant($winnerA1->fresh()->first_seen_at, $firstSeenA1))->toBeTrue()
+            ->and(wp2SameInstant($winnerA1->fresh()->expires_at, $expiresA1))->toBeTrue()
             ->and(AffiliateTouchpoint::query()->where('touchpoint_type', 'visit')->where('affiliate_link_id', $linkA->getKey())->count())->toBe(1)
             ->and(AffiliateTouchpoint::query()->where('touchpoint_type', 'visit')->where('affiliate_link_id', $linkB->getKey())->count())->toBe(1);
 
@@ -1147,7 +1190,7 @@ function wp2BrowserAbaDifferentSharersCase(TestCase $testCase, string $driver): 
         $selectionRefresh = ShareBrowserSelection::query()->firstOrFail();
 
         expect((string) $selectionRefresh->current_attribution_id)->toBe((string) $winnerA2->getKey())
-            ->and($selectionRefresh->accepted_at->equalTo($acceptedA2))->toBeTrue();
+            ->and(wp2SameInstant($selectionRefresh->accepted_at, $acceptedA2))->toBeTrue();
 
         $navSame = $service->captureRequest(Wp2RealDriverHarness::landingRequest($pageUrl, $cookieA2));
 
@@ -1156,7 +1199,7 @@ function wp2BrowserAbaDifferentSharersCase(TestCase $testCase, string $driver): 
             ->and(AffiliateTouchpoint::query()->where('touchpoint_type', 'visit')->count())->toBe(2);
 
         expect((string) ShareBrowserSelection::query()->firstOrFail()->current_attribution_id)->toBe((string) $winnerA2->getKey())
-            ->and(ShareBrowserSelection::query()->firstOrFail()->accepted_at->equalTo($acceptedA2))->toBeTrue();
+            ->and(wp2SameInstant(ShareBrowserSelection::query()->firstOrFail()->accepted_at, $acceptedA2))->toBeTrue();
 
         $navOther = $service->captureRequest(Wp2RealDriverHarness::landingRequest($otherPageUrl, $cookieA2));
 
@@ -1164,7 +1207,7 @@ function wp2BrowserAbaDifferentSharersCase(TestCase $testCase, string $driver): 
             ->and(AffiliateAttribution::query()->where('attribution_type', 'landing')->count())->toBe(3);
 
         expect((string) ShareBrowserSelection::query()->firstOrFail()->current_attribution_id)->toBe((string) $winnerA2->getKey())
-            ->and(ShareBrowserSelection::query()->firstOrFail()->accepted_at->equalTo($acceptedA2))->toBeTrue()
+            ->and(wp2SameInstant(ShareBrowserSelection::query()->firstOrFail()->accepted_at, $acceptedA2))->toBeTrue()
             ->and(AffiliateTouchpoint::query()->where('touchpoint_type', 'visit')->count())->toBe(3);
 
         $navVisit = AffiliateTouchpoint::query()->where('touchpoint_type', 'visit')->latest('touched_at')->firstOrFail();
@@ -1180,13 +1223,13 @@ function wp2BrowserAbaDifferentSharersCase(TestCase $testCase, string $driver): 
 
         $testCase->travelBack();
     } finally {
-        wp2OutcomeTeardown($driver, $database, $previous);
+        wp2OutcomeTeardown($database, $previous);
     }
 }
 
-function wp2BrowserAbaSameSharerCase(TestCase $testCase, string $driver): void
+function wp2BrowserAbaSameSharerCase(TestCase $testCase): void
 {
-    [$database, $previous] = wp2OutcomeWorker($driver, 'abasame');
+    [$database, $previous] = wp2OutcomeWorker('abasame');
 
     try {
         $pageUrl = route('events.index');
@@ -1229,7 +1272,7 @@ function wp2BrowserAbaSameSharerCase(TestCase $testCase, string $driver): void
 
         expect((string) ShareBrowserSelection::query()->firstOrFail()->current_attribution_id)->toBe((string) $winnerB->getKey())
             ->and((string) $winnerB->origin)->toBe('iosapp')
-            ->and($acceptedB->greaterThan($acceptedA1))->toBeTrue();
+            ->and(wp2IsLater($acceptedB, $acceptedA1))->toBeTrue();
 
         $testCase->travel(1)->minutes();
 
@@ -1252,9 +1295,9 @@ function wp2BrowserAbaSameSharerCase(TestCase $testCase, string $driver): void
             ->and((string) $winnerA2->affiliate_id)->toBe((string) $linkA->affiliate_id)
             ->and((string) $winnerA2->origin)->toBe('web')
             ->and($winnerA2->channel)->toBeNull()
-            ->and($acceptedA2->greaterThan($acceptedB))->toBeTrue()
-            ->and($winnerA2->first_seen_at->equalTo($acceptedA2))->toBeTrue()
-            ->and($winnerA2->expires_at->equalTo($winnerA2->first_seen_at->copy()->addDays(30)))->toBeTrue();
+            ->and(wp2IsLater($acceptedA2, $acceptedB))->toBeTrue()
+            ->and(wp2SameInstant($winnerA2->first_seen_at, $acceptedA2))->toBeTrue()
+            ->and(wp2SameInstant($winnerA2->expires_at, CarbonImmutable::parse($winnerA2->first_seen_at)->addDays(30)))->toBeTrue();
 
         $resolvedStale = $service->resolveActiveAttribution(wp2OutcomeRequest($cookieB));
 
@@ -1282,7 +1325,7 @@ function wp2BrowserAbaSameSharerCase(TestCase $testCase, string $driver): void
             ->and(AffiliateAttribution::query()->where('attribution_type', 'landing')->count())->toBe(3)
             ->and(AffiliateTouchpoint::query()->where('touchpoint_type', 'visit')->count())->toBe(2)
             ->and((string) ShareBrowserSelection::query()->firstOrFail()->current_attribution_id)->toBe((string) $winnerA2->getKey())
-            ->and(ShareBrowserSelection::query()->firstOrFail()->accepted_at->equalTo($acceptedA2))->toBeTrue();
+            ->and(wp2SameInstant(ShareBrowserSelection::query()->firstOrFail()->accepted_at, $acceptedA2))->toBeTrue();
 
         $navSame = $service->captureRequest(Wp2RealDriverHarness::landingRequest($pageUrl, $cookieA2));
 
@@ -1292,13 +1335,13 @@ function wp2BrowserAbaSameSharerCase(TestCase $testCase, string $driver): void
 
         $testCase->travelBack();
     } finally {
-        wp2OutcomeTeardown($driver, $database, $previous);
+        wp2OutcomeTeardown($database, $previous);
     }
 }
 
-function wp2BrowserChannelChangeCase(TestCase $testCase, string $driver): void
+function wp2BrowserChannelChangeCase(TestCase $testCase): void
 {
-    [$database, $previous] = wp2OutcomeWorker($driver, 'chanedge');
+    [$database, $previous] = wp2OutcomeWorker('chanedge');
 
     try {
         $pageUrl = route('events.index');
@@ -1320,8 +1363,8 @@ function wp2BrowserChannelChangeCase(TestCase $testCase, string $driver): void
         $expiresNull = $winnerNull->expires_at;
 
         expect($winnerNull->channel)->toBeNull()
-            ->and($acceptedNull->equalTo($firstSeenNull))->toBeTrue()
-            ->and($expiresNull->equalTo($firstSeenNull->copy()->addDays(30)))->toBeTrue();
+            ->and(wp2SameInstant($acceptedNull, $firstSeenNull))->toBeTrue()
+            ->and(wp2SameInstant($expiresNull, CarbonImmutable::parse($firstSeenNull)->addDays(30)))->toBeTrue();
 
         $testCase->travel(1)->minutes();
 
@@ -1337,11 +1380,11 @@ function wp2BrowserChannelChangeCase(TestCase $testCase, string $driver): void
 
         expect((string) $selectionWa->current_attribution_id)->toBe((string) $winnerWa->getKey())
             ->and((string) $winnerWa->affiliate_link_id)->toBe((string) $link->getKey())
-            ->and($acceptedWa->greaterThan($acceptedNull))->toBeTrue()
-            ->and($winnerWa->first_seen_at->equalTo($acceptedWa))->toBeTrue()
-            ->and($winnerWa->expires_at->equalTo($winnerWa->first_seen_at->copy()->addDays(30)))->toBeTrue()
-            ->and($winnerNull->fresh()->first_seen_at->equalTo($firstSeenNull))->toBeTrue()
-            ->and($winnerNull->fresh()->expires_at->equalTo($expiresNull))->toBeTrue();
+            ->and(wp2IsLater($acceptedWa, $acceptedNull))->toBeTrue()
+            ->and(wp2SameInstant($winnerWa->first_seen_at, $acceptedWa))->toBeTrue()
+            ->and(wp2SameInstant($winnerWa->expires_at, CarbonImmutable::parse($winnerWa->first_seen_at)->addDays(30)))->toBeTrue()
+            ->and(wp2SameInstant($winnerNull->fresh()->first_seen_at, $firstSeenNull))->toBeTrue()
+            ->and(wp2SameInstant($winnerNull->fresh()->expires_at, $expiresNull))->toBeTrue();
 
         $testCase->travel(1)->minutes();
 
@@ -1356,9 +1399,9 @@ function wp2BrowserChannelChangeCase(TestCase $testCase, string $driver): void
         $acceptedTg = $selectionTg->accepted_at;
 
         expect((string) $selectionTg->current_attribution_id)->toBe((string) $winnerTg->getKey())
-            ->and($acceptedTg->greaterThan($acceptedWa))->toBeTrue()
-            ->and($winnerTg->first_seen_at->equalTo($acceptedTg))->toBeTrue()
-            ->and($winnerTg->expires_at->equalTo($winnerTg->first_seen_at->copy()->addDays(30)))->toBeTrue();
+            ->and(wp2IsLater($acceptedTg, $acceptedWa))->toBeTrue()
+            ->and(wp2SameInstant($winnerTg->first_seen_at, $acceptedTg))->toBeTrue()
+            ->and(wp2SameInstant($winnerTg->expires_at, CarbonImmutable::parse($winnerTg->first_seen_at)->addDays(30)))->toBeTrue();
 
         $cookieTgRefresh = wp2OutcomeLanding($pageUrl.'?share='.$link->custom_slug.'&channel=telegram', $cookieTg);
 
@@ -1366,7 +1409,7 @@ function wp2BrowserChannelChangeCase(TestCase $testCase, string $driver): void
             ->and(AffiliateAttribution::query()->where('attribution_type', 'landing')->count())->toBe(3)
             ->and(AffiliateTouchpoint::query()->where('touchpoint_type', 'visit')->count())->toBe(1)
             ->and((string) ShareBrowserSelection::query()->firstOrFail()->current_attribution_id)->toBe((string) $winnerTg->getKey())
-            ->and(ShareBrowserSelection::query()->firstOrFail()->accepted_at->equalTo($acceptedTg))->toBeTrue();
+            ->and(wp2SameInstant(ShareBrowserSelection::query()->firstOrFail()->accepted_at, $acceptedTg))->toBeTrue();
 
         $resolvedStale = $service->resolveActiveAttribution(wp2OutcomeRequest($cookieWa));
 
@@ -1398,105 +1441,102 @@ function wp2BrowserChannelChangeCase(TestCase $testCase, string $driver): void
             ->and(AffiliateAttribution::query()->where('attribution_type', 'landing')->count())->toBe(3)
             ->and(AffiliateTouchpoint::query()->where('touchpoint_type', 'visit')->count())->toBe(1)
             ->and((string) ShareBrowserSelection::query()->firstOrFail()->current_attribution_id)->toBe((string) $winnerTg->getKey())
-            ->and(ShareBrowserSelection::query()->firstOrFail()->accepted_at->equalTo($acceptedTg))->toBeTrue();
+            ->and(wp2SameInstant(ShareBrowserSelection::query()->firstOrFail()->accepted_at, $acceptedTg))->toBeTrue();
 
         $navOther = $service->captureRequest(Wp2RealDriverHarness::landingRequest($otherPageUrl, $cookieTg));
 
         expect($navOther)->toBeString()->not->toBe('')
             ->and(AffiliateAttribution::query()->where('attribution_type', 'landing')->count())->toBe(3)
             ->and((string) ShareBrowserSelection::query()->firstOrFail()->current_attribution_id)->toBe((string) $winnerTg->getKey())
-            ->and(ShareBrowserSelection::query()->firstOrFail()->accepted_at->equalTo($acceptedTg))->toBeTrue()
+            ->and(wp2SameInstant(ShareBrowserSelection::query()->firstOrFail()->accepted_at, $acceptedTg))->toBeTrue()
             ->and(AffiliateTouchpoint::query()->where('touchpoint_type', 'visit')->count())->toBe(2);
 
         $testCase->travelBack();
     } finally {
-        wp2OutcomeTeardown($driver, $database, $previous);
+        wp2OutcomeTeardown($database, $previous);
     }
 }
 
-foreach (['pgsql', 'mariadb'] as $wp2Driver) {
-    $label = $wp2Driver === 'pgsql' ? 'isolated PostgreSQL' : 'isolated MariaDB';
+$label = 'isolated PostgreSQL';
+it("credits once and replays the original decision on {$label}", function (): void {
+    wp2OutcomeCase($this);
+});
 
-    it("credits once and replays the original decision on {$label}", function () use ($wp2Driver): void {
-        wp2OutcomeCase($this, $wp2Driver);
-    });
+it("freezes unattributed and blocks late credit on {$label}", function (): void {
+    wp2UnattributedCase($this);
+});
 
-    it("freezes unattributed and blocks late credit on {$label}", function () use ($wp2Driver): void {
-        wp2UnattributedCase($this, $wp2Driver);
-    });
+it("rejects fraud-blocked conversions without credit on {$label}", function (): void {
+    wp2FraudRejectionCase($this);
+});
 
-    it("rejects fraud-blocked conversions without credit on {$label}", function () use ($wp2Driver): void {
-        wp2FraudRejectionCase($this, $wp2Driver);
-    });
+it("rolls back conversion fraud accounting and receipt together on {$label}", function (): void {
+    wp2RollbackCase($this);
+});
 
-    it("rolls back conversion fraud accounting and receipt together on {$label}", function () use ($wp2Driver): void {
-        wp2RollbackCase($this, $wp2Driver);
-    });
+it("rolls back after an accounting-stage fault and retries exactly once on {$label}", function (): void {
+    wp2AccountingFaultCase($this);
+});
 
-    it("rolls back after an accounting-stage fault and retries exactly once on {$label}", function () use ($wp2Driver): void {
-        wp2AccountingFaultCase($this, $wp2Driver);
-    });
+it("recovers pending effects after commit exactly once on {$label}", function (): void {
+    wp2DispatchRecoveryCase($this);
+});
 
-    it("recovers pending effects after commit exactly once on {$label}", function () use ($wp2Driver): void {
-        wp2DispatchRecoveryCase($this, $wp2Driver);
-    });
+it("honors TTL expiry and the rolling dedupe window on {$label}", function (): void {
+    wp2TtlDedupeCase($this);
+});
 
-    it("honors TTL expiry and the rolling dedupe window on {$label}", function () use ($wp2Driver): void {
-        wp2TtlDedupeCase($this, $wp2Driver);
-    });
+it("inherits source provenance for late staff attendance on {$label}", function (): void {
+    wp2InheritanceCase($this);
+});
 
-    it("inherits source provenance for late staff attendance on {$label}", function () use ($wp2Driver): void {
-        wp2InheritanceCase($this, $wp2Driver);
-    });
+it("reverses zero facts idempotently and guards posted money on {$label}", function (): void {
+    wp2CorrectionCase($this);
+});
 
-    it("reverses zero facts idempotently and guards posted money on {$label}", function () use ($wp2Driver): void {
-        wp2CorrectionCase($this, $wp2Driver);
-    });
+it("fails closed on malformed business keys on {$label}", function (): void {
+    wp2MalformedKeyCase($this);
+});
 
-    it("fails closed on malformed business keys on {$label}", function () use ($wp2Driver): void {
-        wp2MalformedKeyCase($this, $wp2Driver);
-    });
+it("credits the committed winner despite reversed cookie arrival on {$label}", function (): void {
+    wp2BrowserReversedArrivalCase($this);
+});
 
-    it("credits the committed winner despite reversed cookie arrival on {$label}", function () use ($wp2Driver): void {
-        wp2BrowserReversedArrivalCase($this, $wp2Driver);
-    });
+it("clears selection on invalid tokens and blocks stale tabs on {$label}", function (): void {
+    wp2BrowserInvalidTokenCase($this);
+});
 
-    it("clears selection on invalid tokens and blocks stale tabs on {$label}", function () use ($wp2Driver): void {
-        wp2BrowserInvalidTokenCase($this, $wp2Driver);
-    });
+it("mints fresh same-link windows without dedupe or navigation renewal on {$label}", function (): void {
+    wp2BrowserSameLinkTtlCase($this);
+});
 
-    it("mints fresh same-link windows without dedupe or navigation renewal on {$label}", function () use ($wp2Driver): void {
-        wp2BrowserSameLinkTtlCase($this, $wp2Driver);
-    });
+it("refuses inheritance from cancelled sources on {$label}", function (): void {
+    wp2CancelledSourceInheritanceCase($this);
+});
 
-    it("refuses inheritance from cancelled sources on {$label}", function () use ($wp2Driver): void {
-        wp2CancelledSourceInheritanceCase($this, $wp2Driver);
-    });
+it("refuses inheritance from confirmed-fraud sources on {$label}", function (): void {
+    wp2FraudConfirmedInheritanceCase($this);
+});
 
-    it("refuses inheritance from confirmed-fraud sources on {$label}", function () use ($wp2Driver): void {
-        wp2FraudConfirmedInheritanceCase($this, $wp2Driver);
-    });
+it("cancels revoked effects while preserving valid projections on {$label}", function (): void {
+    wp2CorrectionDispatchCase($this);
+});
 
-    it("cancels revoked effects while preserving valid projections on {$label}", function () use ($wp2Driver): void {
-        wp2CorrectionDispatchCase($this, $wp2Driver);
-    });
+it("reclaims expired leases once and fences stale workers on {$label}", function (): void {
+    wp2LeaseFencingCase($this);
+});
 
-    it("reclaims expired leases once and fences stale workers on {$label}", function () use ($wp2Driver): void {
-        wp2LeaseFencingCase($this, $wp2Driver);
-    });
+it("freezes last-eligible A-B-A across sharers despite visit dedupe on {$label}", function (): void {
+    wp2BrowserAbaDifferentSharersCase($this);
+});
 
-    it("freezes last-eligible A-B-A across sharers despite visit dedupe on {$label}", function () use ($wp2Driver): void {
-        wp2BrowserAbaDifferentSharersCase($this, $wp2Driver);
-    });
+it("freezes last-eligible A-B-A across same-sharer links and origins on {$label}", function (): void {
+    wp2BrowserAbaSameSharerCase($this);
+});
 
-    it("freezes last-eligible A-B-A across same-sharer links and origins on {$label}", function () use ($wp2Driver): void {
-        wp2BrowserAbaSameSharerCase($this, $wp2Driver);
-    });
-
-    it("freezes same-link channel changes while deduping identical refreshes on {$label}", function () use ($wp2Driver): void {
-        wp2BrowserChannelChangeCase($this, $wp2Driver);
-    });
-}
+it("freezes same-link channel changes while deduping identical refreshes on {$label}", function (): void {
+    wp2BrowserChannelChangeCase($this);
+});
 
 it('rolls back the whole going flow when outcome recording fails on isolated PostgreSQL', function (): void {
     wp2GoingCrashCase($this);

@@ -350,8 +350,7 @@ final readonly class PublishCommunityReleaseAction
         return match (DB::getDriverName()) {
             'pgsql' => "(c.metadata->>'registration_id')",
             'sqlite' => "json_extract(c.metadata, '$.registration_id')",
-            'mysql', 'mariadb' => "JSON_UNQUOTE(JSON_EXTRACT(c.metadata, '$.registration_id'))",
-            default => throw new InvalidArgumentException('Community releases support only sqlite, pgsql, and mysql drivers.'),
+            default => throw new InvalidArgumentException('Community releases support only sqlite and pgsql drivers.'),
         };
     }
 

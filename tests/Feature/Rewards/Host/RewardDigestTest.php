@@ -624,6 +624,8 @@ it('requeues failed sends bounded, then cancels as delivery-failed', function ()
 });
 
 it('holds sends during quiet hours and releases after', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-06-15T10:00:00Z'));
+
     $user = digestUser(['quiet_hours_start' => '22:00', 'quiet_hours_end' => '07:00', 'timezone' => 'UTC']);
     [$program] = digestProgram('r7-quiet', $user);
 
@@ -640,7 +642,9 @@ it('holds sends during quiet hours and releases after', function () {
         ->and($slot->communication_id)->toBeNull();
 
     // After quiet hours: sending proceeds end to end.
-    $outcome = DispatchDueRewardDigestsAction::run(50, CarbonImmutable::parse($slot->due_at->toDateString().'T08:00:00Z')->addDay());
+    $releasedAt = CarbonImmutable::parse($slot->due_at->toDateString().'T08:00:00Z')->addDay();
+    $this->travelTo($releasedAt);
+    $outcome = DispatchDueRewardDigestsAction::run(50, $releasedAt);
 
     expect($outcome['dispatched'])->toBe(1)
         ->and($outcome['reconciled'])->toBe(1)

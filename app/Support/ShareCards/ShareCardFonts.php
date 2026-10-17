@@ -9,11 +9,9 @@ use InvalidArgumentException;
 /**
  * Version-pinned font catalog for the share-card renderer leaf.
  *
- * Reads fonts.json from the asset directory, verifies every font and license
- * file by byte size and sha256, and refuses directories containing unlisted
- * font files. The revision token derives from the verified manifest bytes, so
- * readiness() and render() compute the identical token without re-hashing
- * 20MB of fonts on every render.
+ * Separates the runtime renderability check from the full asset integrity
+ * audit. Rendering checks its manifest and font files without rehashing large
+ * binaries; verify() hashes fonts and license files for asset verification.
  */
 final class ShareCardFonts
 {
@@ -84,9 +82,8 @@ final class ShareCardFonts
     }
 
     /**
-     * Cheap revision token over the manifest bytes. Callers must only use it
-     * after verify() succeeds; render() re-parses the manifest and recomputes
-     * the same token without re-hashing font binaries.
+     * Cheap revision token over the manifest bytes. Callers use it after the
+     * relevant renderability or full-integrity check succeeds.
      */
     public static function manifestRevision(string $manifestBytes): string
     {
@@ -101,9 +98,130 @@ final class ShareCardFonts
      */
     public function verify(): array
     {
+        $verification = $this->verifyIntegrity();
+        $missing = $verification['missing'];
+
+        foreach (self::ALL_FAMILIES as $family) {
+            if (! isset($verification['families'][$family])) {
+                $missing[] = "Font family [{$family}] is not covered by a verified file.";
+            }
+        }
+
+        if ($verification['ok'] && $missing === []) {
+            return $verification;
+        }
+
+        return [
+            ...$verification,
+            'ok' => false,
+            'revision' => 'unverified',
+            'missing' => $missing,
+        ];
+    }
+
+    /**
+     * Checks the files the renderer consumes without hashing assets on every render.
+     *
+     * @return array{ok: bool, revision: string, families: array<string, string>, missing: list<string>, notes: list<string>}
+     */
+    public function verifyRenderable(): array
+    {
+        $missing = [];
+        $families = [];
+        $directory = rtrim($this->fontDirectory, '/');
+
+        if ($directory === '' || ! is_dir($directory)) {
+            return [
+                'ok' => false,
+                'revision' => 'unverified',
+                'families' => [],
+                'missing' => ["Font directory [{$this->fontDirectory}] is not readable."],
+                'notes' => [],
+            ];
+        }
+
+        $manifestPath = $directory.'/'.self::MANIFEST_FILE;
+        $manifestBytes = is_file($manifestPath) ? file_get_contents($manifestPath) : false;
+
+        if ($manifestBytes === false || $manifestBytes === '') {
+            return [
+                'ok' => false,
+                'revision' => 'unverified',
+                'families' => [],
+                'missing' => ["Font manifest [{$manifestPath}] is missing or unreadable."],
+                'notes' => [],
+            ];
+        }
+
+        /** @var mixed $manifest */
+        $manifest = json_decode($manifestBytes, true);
+
+        if (! is_array($manifest) || ! isset($manifest['fonts']) || ! is_array($manifest['fonts']) || $manifest['fonts'] === []) {
+            return [
+                'ok' => false,
+                'revision' => 'unverified',
+                'families' => [],
+                'missing' => ["Font manifest [{$manifestPath}] is not valid JSON with a fonts list."],
+                'notes' => [],
+            ];
+        }
+
+        /** @var array<int, mixed> $fonts */
+        $fonts = $manifest['fonts'];
+        $listedFiles = [self::MANIFEST_FILE];
+
+        foreach ($fonts as $index => $entry) {
+            if (! is_array($entry)
+                || ! isset($entry['family'], $entry['file'])
+                || ! is_string($entry['family']) || ! is_string($entry['file'])) {
+                $missing[] = "Font manifest entry [{$index}] is malformed.";
+
+                continue;
+            }
+
+            $listedFiles[] = $entry['file'];
+            $path = $directory.'/'.$entry['file'];
+
+            if (! is_file($path)) {
+                $missing[] = "Font file [{$entry['file']}] is missing.";
+
+                continue;
+            }
+
+            $families[$entry['family']] = $path;
+        }
+
+        foreach ($this->unlistedFontFiles($directory, $listedFiles) as $extra) {
+            $missing[] = "Unlisted font file [{$extra}] is forbidden in the asset directory.";
+        }
+
+        if ($families === []) {
+            $missing[] = 'No usable font files are listed in the manifest.';
+        }
+
+        $ok = $missing === [];
+        $notes = $ok ? [count($families).' available families, system fallback disabled.'] : [];
+
+        return [
+            'ok' => $ok,
+            'revision' => $ok ? self::manifestRevision($manifestBytes) : 'unverified',
+            'families' => $families,
+            'missing' => $missing,
+            'notes' => $notes,
+        ];
+    }
+
+    /**
+     * Verifies present font files and all license files without requiring every font family.
+     *
+     * @return array{ok: bool, revision: string, families: array<string, string>, missing: list<string>, notes: list<string>}
+     */
+    public function verifyIntegrity(): array
+    {
         $missing = [];
         $notes = [];
         $families = [];
+        $integrityFailed = false;
         $directory = rtrim($this->fontDirectory, '/');
 
         if ($directory === '' || ! is_dir($directory)) {
@@ -144,6 +262,7 @@ final class ShareCardFonts
                 || ! is_string($entry['family']) || ! is_string($entry['file'])
                 || ! is_int($entry['bytes']) || ! is_string($entry['sha256'])) {
                 $missing[] = "Font manifest entry [{$index}] is malformed.";
+                $integrityFailed = true;
 
                 continue;
             }
@@ -154,6 +273,7 @@ final class ShareCardFonts
 
             if (! is_file($path)) {
                 $missing[] = "Font file [{$entry['file']}] is missing.";
+                $integrityFailed = true;
 
                 continue;
             }
@@ -162,6 +282,7 @@ final class ShareCardFonts
 
             if ($size !== $entry['bytes']) {
                 $missing[] = "Font file [{$entry['file']}] size mismatch.";
+                $integrityFailed = true;
 
                 continue;
             }
@@ -170,6 +291,7 @@ final class ShareCardFonts
 
             if ($hash === false || ! hash_equals($entry['sha256'], $hash)) {
                 $missing[] = "Font file [{$entry['file']}] sha256 mismatch.";
+                $integrityFailed = true;
 
                 continue;
             }
@@ -178,24 +300,36 @@ final class ShareCardFonts
         }
 
         /** @var mixed $licenses */
-        $licenses = $manifest['licenses'] ?? [];
+        $licenses = $manifest['licenses'] ?? null;
 
-        if (is_array($licenses)) {
+        if (! is_array($licenses) || $licenses === []) {
+            $missing[] = 'Font manifest license list is missing or malformed.';
+            $integrityFailed = true;
+        } else {
             foreach ($licenses as $index => $entry) {
                 if (! is_array($entry)
-                    || ! isset($entry['file'], $entry['sha256'])
-                    || ! is_string($entry['file']) || ! is_string($entry['sha256'])) {
+                    || ! isset($entry['file'], $entry['bytes'], $entry['sha256'])
+                    || ! is_string($entry['file']) || ! is_int($entry['bytes']) || ! is_string($entry['sha256'])) {
                     $missing[] = "Font manifest license entry [{$index}] is malformed.";
+                    $integrityFailed = true;
 
                     continue;
                 }
 
-                /** @var array{file: string, sha256: string} $entry */
+                /** @var array{file: string, bytes: int, sha256: string} $entry */
                 $listedFiles[] = $entry['file'];
                 $path = $directory.'/'.$entry['file'];
 
                 if (! is_file($path)) {
                     $missing[] = "License file [{$entry['file']}] is missing.";
+                    $integrityFailed = true;
+
+                    continue;
+                }
+
+                if (filesize($path) !== $entry['bytes']) {
+                    $missing[] = "License file [{$entry['file']}] size mismatch.";
+                    $integrityFailed = true;
 
                     continue;
                 }
@@ -204,18 +338,19 @@ final class ShareCardFonts
 
                 if ($hash === false || ! hash_equals($entry['sha256'], $hash)) {
                     $missing[] = "License file [{$entry['file']}] sha256 mismatch.";
+                    $integrityFailed = true;
                 }
             }
         }
 
-        foreach (self::ALL_FAMILIES as $family) {
-            if (! isset($families[$family])) {
-                $missing[] = "Font family [{$family}] is not covered by a verified file.";
-            }
+        $unlistedFontFiles = $this->unlistedFontFiles($directory, $listedFiles);
+
+        foreach ($unlistedFontFiles as $extra) {
+            $missing[] = "Unlisted font file [{$extra}] is forbidden in the asset directory.";
         }
 
-        foreach ($this->unlistedFontFiles($directory, $listedFiles) as $extra) {
-            $missing[] = "Unlisted font file [{$extra}] is forbidden in the asset directory.";
+        if ($unlistedFontFiles !== []) {
+            $integrityFailed = true;
         }
 
         if (isset($manifest['upstream_commit']) && is_string($manifest['upstream_commit'])) {
@@ -225,8 +360,8 @@ final class ShareCardFonts
         $notes[] = count($families).' verified families, system fallback disabled.';
 
         return [
-            'ok' => $missing === [],
-            'revision' => $missing === [] ? self::manifestRevision($manifestBytes) : 'unverified',
+            'ok' => ! $integrityFailed,
+            'revision' => ! $integrityFailed ? self::manifestRevision($manifestBytes) : 'unverified',
             'families' => $families,
             'missing' => $missing,
             'notes' => $notes,

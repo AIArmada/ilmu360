@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Events;
 
+use AIArmada\Affiliates\Actions\Conversions\RecordAffiliateConversion;
 use AIArmada\Cart\Contracts\CartManagerInterface;
 use AIArmada\Checkout\Contracts\CheckoutServiceInterface;
 use AIArmada\Checkout\Models\CheckoutSession;
@@ -30,6 +31,7 @@ final class PrepareEventCheckoutAction
         private readonly AddTicketTypeToCartAction $addTicketTypeToCart,
         private readonly CheckoutServiceInterface $checkoutService,
         private readonly ShareTrackingService $shareTracking,
+        private readonly RecordAffiliateConversion $recordAffiliateConversion,
     ) {}
 
     /**
@@ -159,6 +161,11 @@ final class PrepareEventCheckoutAction
             throw new InvalidArgumentException('Unable to create the event checkout cart.');
         }
 
+        // Freeze the commercial affiliate decision with the same server-created
+        // checkout intent as Dawah provenance. The order listener sees the
+        // registration_lines marker and leaves ticket commissions to the
+        // registration-aware checkout step below.
+        $affiliateAttribution = $this->recordAffiliateConversion->resolveAttributionFor($cart);
         $session = $this->checkoutService->startCheckout($cartId);
 
         // The checkout session is the authoritative server-created paid
@@ -184,6 +191,16 @@ final class PrepareEventCheckoutAction
             'intent_id' => (string) $session->getKey(),
             'attribution_id' => $attribution?->id,
             'occurred_at' => $occurredAt->toIso8601String(),
+        ];
+        $paymentData['affiliate_commission'] = [
+            'strategy' => 'registration_lines',
+            'attribution_id' => $affiliateAttribution?->getKey(),
+            'affiliate_id' => $affiliateAttribution?->affiliate_id,
+            'affiliate_program_id' => $affiliateAttribution?->affiliate_program_id,
+            'owner_type' => $affiliateAttribution?->owner_type,
+            'owner_id' => $affiliateAttribution?->owner_id,
+            'commercial_purpose' => $affiliateAttribution?->affiliate?->isCommercialPurpose() ?? false,
+            'captured_at' => $occurredAt->toIso8601String(),
         ];
 
         $session->forceFill([

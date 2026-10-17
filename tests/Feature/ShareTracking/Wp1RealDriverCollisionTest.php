@@ -10,7 +10,6 @@ declare(strict_types=1);
 // for the winner requery. These tests prove that construct through the
 // actual public workflow - ShareTrackingService::createOrReuseLink with
 // persisted User fixtures - on worker-namespaced databases built from the
-// current original migrations on the isolated PostgreSQL 17 and MariaDB
 // 11.4 fixtures. If the application creation fix were deleted, the
 // collision case would poison the PostgreSQL outer transaction (25P02)
 // and the race case would fail or duplicate: no copied closure can pass
@@ -29,15 +28,16 @@ use App\Services\ShareTrackingService;
 use App\Support\ShareTracking\ShareTrackingProfile;
 use Illuminate\Support\Facades\DB;
 use Tests\Feature\ShareTracking\Wp1RealDriverHarness;
+use Tests\Support\RealDriverFixture;
 use Tests\TestCase;
 
-function wp1RealCollisionCase(TestCase $testCase, string $driver): void
+function wp1RealCollisionCase(TestCase $testCase): void
 {
-    $database = Wp1RealDriverHarness::createWorkerDatabase($driver, 'collision');
-    $previous = Wp1RealDriverHarness::useWorkerDatabase($driver, $database);
+    $database = RealDriverFixture::createWorkerDatabase('collision');
+    $previous = RealDriverFixture::useWorkerDatabase($database, Wp1RealDriverHarness::WORKER_CONNECTION);
 
     try {
-        Wp1RealDriverHarness::migrateWorkerDatabase($driver);
+        Wp1RealDriverHarness::migrateWorkerDatabase();
 
         $service = app(ShareTrackingService::class);
         $pageUrl = route('events.index');
@@ -120,18 +120,18 @@ function wp1RealCollisionCase(TestCase $testCase, string $driver): void
         expect($cleanProfile)->not->toBeNull()
             ->and(ShareTrackingProfile::isMarkedMemberFor($cleanProfile, $cleanUser))->toBeTrue();
     } finally {
-        Wp1RealDriverHarness::restoreDatabase($previous);
-        Wp1RealDriverHarness::dropWorkerDatabase($driver, $database);
+        RealDriverFixture::restoreDatabase($previous, Wp1RealDriverHarness::WORKER_CONNECTION);
+        RealDriverFixture::dropDatabase($database);
     }
 }
 
-function wp1RealRaceCase(TestCase $testCase, string $driver): void
+function wp1RealRaceCase(TestCase $testCase): void
 {
-    $database = Wp1RealDriverHarness::createWorkerDatabase($driver, 'race');
-    $previous = Wp1RealDriverHarness::useWorkerDatabase($driver, $database);
+    $database = RealDriverFixture::createWorkerDatabase('race');
+    $previous = RealDriverFixture::useWorkerDatabase($database, Wp1RealDriverHarness::WORKER_CONNECTION);
 
     try {
-        Wp1RealDriverHarness::migrateWorkerDatabase($driver);
+        Wp1RealDriverHarness::migrateWorkerDatabase();
 
         $user = User::factory()->create(['email' => 'wp1-race-contended@example.test']);
         $pageUrl = route('events.index');
@@ -141,7 +141,6 @@ function wp1RealRaceCase(TestCase $testCase, string $driver): void
         // behind a start barrier, so the creator requests genuinely
         // overlap. The proof is the asserted end state, never timing.
         [$first, $second] = Wp1RealDriverHarness::runLinkCreationRace([
-            'driver' => $driver,
             'database' => $database,
             'user_id' => (string) $user->getKey(),
             'url' => $pageUrl,
@@ -166,23 +165,15 @@ function wp1RealRaceCase(TestCase $testCase, string $driver): void
             ->and((string) AffiliateLink::query()->where('affiliate_id', $winner->id)->value('id'))
             ->toBe((string) $first['link_id']);
     } finally {
-        Wp1RealDriverHarness::restoreDatabase($previous);
-        Wp1RealDriverHarness::dropWorkerDatabase($driver, $database);
+        RealDriverFixture::restoreDatabase($previous, Wp1RealDriverHarness::WORKER_CONNECTION);
+        RealDriverFixture::dropDatabase($database);
     }
 }
 
 it('survives a commercial code collision inside a caller transaction on isolated PostgreSQL', function (): void {
-    wp1RealCollisionCase($this, 'pgsql');
+    wp1RealCollisionCase($this);
 });
 
 it('elects one canonical profile for concurrent creators on isolated PostgreSQL', function (): void {
-    wp1RealRaceCase($this, 'pgsql');
-});
-
-it('survives a commercial code collision inside a caller transaction on isolated MariaDB', function (): void {
-    wp1RealCollisionCase($this, 'mariadb');
-});
-
-it('elects one canonical profile for concurrent creators on isolated MariaDB', function (): void {
-    wp1RealRaceCase($this, 'mariadb');
+    wp1RealRaceCase($this);
 });

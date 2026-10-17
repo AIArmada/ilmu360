@@ -18,8 +18,12 @@ return [
         'token_length' => 32,
     ],
 
+    'qualifier_outcomes' => [
+        'first_accepted_registration_or_staff_verified_checkin',
+    ],
+
     'owner' => [
-        'enabled' => (bool) env('REFERRALS_OWNER_ENABLED', false),
+        'enabled' => env('REFERRALS_OWNER_ENABLED', false),
         'include_global' => false,
         'auto_assign_on_create' => true,
         'owner_type_column' => 'owner_type',

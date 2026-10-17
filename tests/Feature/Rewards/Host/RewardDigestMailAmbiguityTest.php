@@ -45,9 +45,9 @@ use Tests\Feature\Rewards\Host\Support\FakeRewardSourceFactReader;
 use Tests\Feature\Rewards\Host\Support\RewardFinanceWorkerDb;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
-function mailAmbiguityObserverFile(string $driver): string
+function mailAmbiguityObserverFile(string $scenario): string
 {
-    return sys_get_temp_dir().'/digest-mail-amb-'.$driver.'-'.getmypid().'.log';
+    return sys_get_temp_dir().'/digest-mail-amb-'.$scenario.'-'.getmypid().'.log';
 }
 
 function mailAmbiguityMailCount(): int
@@ -142,11 +142,11 @@ function mailAmbiguityDrain(RewardDigestSlot $slot): void
     Notification::sendNow($user, $notification, array_keys($byChannel));
 }
 
-foreach (['pgsql' => 'PostgreSQL17', 'mariadb' => 'MariaDB11.4'] as $mailDriver => $mailLabel) {
-    it("never resends mail after acceptance plus recording crash on {$mailLabel}", function () use ($mailDriver): void {
-        [$database, $previous] = RewardFinanceWorkerDb::setUp($mailDriver, 'mailamb');
+$mailLabel = 'PostgreSQL 17';
+    it("never resends mail after acceptance plus recording crash on {$mailLabel}", function (): void {
+        [$database, $previous] = RewardFinanceWorkerDb::setUp('mailamb');
 
-        $observer = mailAmbiguityObserverFile($mailDriver);
+        $observer = mailAmbiguityObserverFile('recording-crash');
 
         if (is_file($observer)) {
             unlink($observer);
@@ -246,14 +246,14 @@ foreach (['pgsql' => 'PostgreSQL17', 'mariadb' => 'MariaDB11.4'] as $mailDriver 
                 unlink($observer);
             }
 
-            RewardFinanceWorkerDb::tearDown($mailDriver, $database, $previous);
+            RewardFinanceWorkerDb::tearDown($database, $previous);
         }
     });
 
-    it("holds transport timeout after acceptance as UNKNOWN without auto-fail on {$mailLabel}", function () use ($mailDriver): void {
-        [$database, $previous] = RewardFinanceWorkerDb::setUp($mailDriver, 'mailtrn');
+    it("holds transport timeout after acceptance as UNKNOWN without auto-fail on {$mailLabel}", function (): void {
+        [$database, $previous] = RewardFinanceWorkerDb::setUp('mailtrn');
 
-        $observer = mailAmbiguityObserverFile($mailDriver.'-trn');
+        $observer = mailAmbiguityObserverFile('transport-timeout');
 
         if (is_file($observer)) {
             unlink($observer);
@@ -366,14 +366,14 @@ foreach (['pgsql' => 'PostgreSQL17', 'mariadb' => 'MariaDB11.4'] as $mailDriver 
                 unlink($observer);
             }
 
-            RewardFinanceWorkerDb::tearDown($mailDriver, $database, $previous);
+            RewardFinanceWorkerDb::tearDown($database, $previous);
         }
     });
 
-    it("holds logic-class transport errors as UNKNOWN without auto-fail on {$mailLabel}", function () use ($mailDriver): void {
-        [$database, $previous] = RewardFinanceWorkerDb::setUp($mailDriver, 'maildef');
+    it("holds logic-class transport errors as UNKNOWN without auto-fail on {$mailLabel}", function (): void {
+        [$database, $previous] = RewardFinanceWorkerDb::setUp('maildef');
 
-        $observer = mailAmbiguityObserverFile($mailDriver.'-def');
+        $observer = mailAmbiguityObserverFile('logic-transport-error');
 
         if (is_file($observer)) {
             unlink($observer);
@@ -498,14 +498,14 @@ foreach (['pgsql' => 'PostgreSQL17', 'mariadb' => 'MariaDB11.4'] as $mailDriver 
                 unlink($observer);
             }
 
-            RewardFinanceWorkerDb::tearDown($mailDriver, $database, $previous);
+            RewardFinanceWorkerDb::tearDown($database, $previous);
         }
     });
 
-    it("holds logic failure after acceptance as UNKNOWN without auto-fail on {$mailLabel}", function () use ($mailDriver): void {
-        [$database, $previous] = RewardFinanceWorkerDb::setUp($mailDriver, 'maillog');
+    it("holds logic failure after acceptance as UNKNOWN without auto-fail on {$mailLabel}", function (): void {
+        [$database, $previous] = RewardFinanceWorkerDb::setUp('maillog');
 
-        $observer = mailAmbiguityObserverFile($mailDriver.'-log');
+        $observer = mailAmbiguityObserverFile('post-send-listener-error');
 
         if (is_file($observer)) {
             unlink($observer);
@@ -618,14 +618,14 @@ foreach (['pgsql' => 'PostgreSQL17', 'mariadb' => 'MariaDB11.4'] as $mailDriver 
                 unlink($observer);
             }
 
-            RewardFinanceWorkerDb::tearDown($mailDriver, $database, $previous);
+            RewardFinanceWorkerDb::tearDown($database, $previous);
         }
     });
 
-    it("holds post-send listener errors after acceptance as UNKNOWN on {$mailLabel}", function () use ($mailDriver): void {
-        [$database, $previous] = RewardFinanceWorkerDb::setUp($mailDriver, 'mailerr');
+    it("holds post-send listener errors after acceptance as UNKNOWN on {$mailLabel}", function (): void {
+        [$database, $previous] = RewardFinanceWorkerDb::setUp('mailerr');
 
-        $observer = mailAmbiguityObserverFile($mailDriver.'-err');
+        $observer = mailAmbiguityObserverFile('generic-transport-error');
 
         if (is_file($observer)) {
             unlink($observer);
@@ -750,7 +750,6 @@ foreach (['pgsql' => 'PostgreSQL17', 'mariadb' => 'MariaDB11.4'] as $mailDriver 
                 unlink($observer);
             }
 
-            RewardFinanceWorkerDb::tearDown($mailDriver, $database, $previous);
+            RewardFinanceWorkerDb::tearDown($database, $previous);
         }
     });
-}

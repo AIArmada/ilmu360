@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 // R4 real-driver proof: independent payout workers race the same reward
-// payout request on the isolated PostgreSQL 17 and MariaDB 11.4
 // fixtures with controlled provider HTTP. The affiliate send mutex,
 // pre-send re-verification, and stable idempotency keys make every
 // interleaving coherent: exactly one terminal outcome, exactly-once
@@ -29,6 +28,7 @@ use AIArmada\Rewards\Enums\RewardPayoutRequestStatus;
 use AIArmada\Rewards\Enums\RewardProgramMode;
 use AIArmada\Rewards\Models\RewardAward;
 use AIArmada\Rewards\Models\RewardBudgetMovement;
+use AIArmada\Rewards\Models\RewardPayoutRequest;
 use AIArmada\Rewards\Models\RewardProgram;
 use AIArmada\Rewards\Models\RewardRecovery;
 use AIArmada\Rewards\Support\RewardBudgetLedger;
@@ -37,6 +37,10 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Tests\Feature\ShareTracking\ShareMetricRaceHarness;
 use Tests\TestCase;
+
+beforeEach(function (): void {
+    config(['affiliates.payouts.reward_award_settlement.enabled' => true]);
+});
 
 function lcrProgram(string $family): RewardProgram
 {
@@ -87,6 +91,9 @@ function lcrAward(RewardProgram $program, string $memberId, string $source): Rew
     ]);
 }
 
+/**
+ * @return array{0: RewardPayoutRequest, 1: array{staff: string, verifier: string, requester: string, approver: string}}
+ */
 function lcrRequest(RewardAward $award, string $memberId, string $method, string $ref): array
 {
     config(['affiliates.payouts.stripe.secret_key' => 'sk_test_fixture']);
@@ -113,6 +120,10 @@ function lcrRequest(RewardAward $award, string $memberId, string $method, string
     return [$request, compact('staff', 'verifier', 'requester', 'approver')];
 }
 
+/**
+ * @param  array{driver: string, database: string, app_url: string, mode: string, payload: array<string, mixed>}  $job
+ * @return array{0: array<string, mixed>, 1: array<string, mixed>}
+ */
 function lcrRace(array $job): array
 {
     $job['worker'] = __DIR__.'/RewardPayoutRaceWorker.php';
@@ -120,18 +131,17 @@ function lcrRace(array $job): array
     return ShareMetricRaceHarness::runRace($job);
 }
 
-function lcrSubmitCancelCase(TestCase $testCase, string $driver): void
+function lcrSubmitCancelCase(TestCase $testCase): void
 {
-    [$database, $previous] = ShareMetricRaceHarness::worker($driver, 'lcrsc');
+    [$database, $previous] = ShareMetricRaceHarness::worker('lcrsc');
 
     try {
-        $program = lcrProgram('race-sc-'.$driver);
+        $program = lcrProgram('race-sc');
         $memberId = (string) Str::uuid();
         $award = lcrAward($program, $memberId, 'src-race-sc-1');
         [$request, $actors] = lcrRequest($award, $memberId, 'stripe_connect', 'acct_race_sc');
 
         [$first, $second] = lcrRace([
-            'driver' => $driver,
             'database' => $database,
             'app_url' => (string) config('app.url'),
             'mode' => 'payout',
@@ -167,22 +177,21 @@ function lcrSubmitCancelCase(TestCase $testCase, string $driver): void
                 ->and($posts)->toBe(0);
         }
     } finally {
-        ShareMetricRaceHarness::teardown($driver, $database, $previous);
+        ShareMetricRaceHarness::teardown($database, $previous);
     }
 }
 
-function lcrDoubleSubmitCase(TestCase $testCase, string $driver): void
+function lcrDoubleSubmitCase(TestCase $testCase): void
 {
-    [$database, $previous] = ShareMetricRaceHarness::worker($driver, 'lcrss');
+    [$database, $previous] = ShareMetricRaceHarness::worker('lcrss');
 
     try {
-        $program = lcrProgram('race-ss-'.$driver);
+        $program = lcrProgram('race-ss');
         $memberId = (string) Str::uuid();
         $award = lcrAward($program, $memberId, 'src-race-ss-1');
         [$request, $actors] = lcrRequest($award, $memberId, 'stripe_connect', 'acct_race_ss');
 
         [$first, $second] = lcrRace([
-            'driver' => $driver,
             'database' => $database,
             'app_url' => (string) config('app.url'),
             'mode' => 'payout',
@@ -204,16 +213,16 @@ function lcrDoubleSubmitCase(TestCase $testCase, string $driver): void
             ->toBe(['funded' => 10000, 'reserved' => 0, 'net_spent' => 527, 'available' => 9473])
             ->and(RewardBudgetMovement::query()->where('kind', 'spend')->count())->toBe(1);
     } finally {
-        ShareMetricRaceHarness::teardown($driver, $database, $previous);
+        ShareMetricRaceHarness::teardown($database, $previous);
     }
 }
 
-function lcrDoubleReverseCase(TestCase $testCase, string $driver): void
+function lcrDoubleReverseCase(TestCase $testCase): void
 {
-    [$database, $previous] = ShareMetricRaceHarness::worker($driver, 'lcrrr');
+    [$database, $previous] = ShareMetricRaceHarness::worker('lcrrr');
 
     try {
-        $program = lcrProgram('race-rr-'.$driver);
+        $program = lcrProgram('race-rr');
         $memberId = (string) Str::uuid();
         $award = lcrAward($program, $memberId, 'src-race-rr-1');
         [$request, $actors] = lcrRequest($award, $memberId, 'bank_transfer', 'ACCT-RACE-RR');
@@ -240,7 +249,6 @@ function lcrDoubleReverseCase(TestCase $testCase, string $driver): void
         expect($fulfilled->status)->toBe(RewardAwardStatus::Fulfilled);
 
         [$first, $second] = lcrRace([
-            'driver' => $driver,
             'database' => $database,
             'app_url' => (string) config('app.url'),
             'mode' => 'payout',
@@ -258,16 +266,16 @@ function lcrDoubleReverseCase(TestCase $testCase, string $driver): void
             ->and(collect([$first, $second])->where('outcome', 'done')->count())->toBe(1)
             ->and(RewardRecovery::query()->where('award_id', $award->getKey())->count())->toBe(1);
     } finally {
-        ShareMetricRaceHarness::teardown($driver, $database, $previous);
+        ShareMetricRaceHarness::teardown($database, $previous);
     }
 }
 
-function lcrDoubleCancelCase(TestCase $testCase, string $driver): void
+function lcrDoubleCancelCase(TestCase $testCase): void
 {
-    [$database, $previous] = ShareMetricRaceHarness::worker($driver, 'lcrcc');
+    [$database, $previous] = ShareMetricRaceHarness::worker('lcrcc');
 
     try {
-        $program = lcrProgram('race-cc-'.$driver);
+        $program = lcrProgram('race-cc');
         $memberId = (string) Str::uuid();
         $award = lcrAward($program, $memberId, 'src-race-cc-1');
 
@@ -289,7 +297,6 @@ function lcrDoubleCancelCase(TestCase $testCase, string $driver): void
         );
 
         [$first, $second] = lcrRace([
-            'driver' => $driver,
             'database' => $database,
             'app_url' => (string) config('app.url'),
             'mode' => 'payout',
@@ -309,16 +316,16 @@ function lcrDoubleCancelCase(TestCase $testCase, string $driver): void
             ->toBe(['funded' => 10000, 'reserved' => 0, 'net_spent' => 0, 'available' => 10000])
             ->and(RewardBudgetMovement::query()->where('kind', 'release')->count())->toBe(1);
     } finally {
-        ShareMetricRaceHarness::teardown($driver, $database, $previous);
+        ShareMetricRaceHarness::teardown($database, $previous);
     }
 }
 
-function lcrLateCompletionCase(TestCase $testCase, string $driver): void
+function lcrLateCompletionCase(TestCase $testCase): void
 {
-    [$database, $previous] = ShareMetricRaceHarness::worker($driver, 'lcrlc');
+    [$database, $previous] = ShareMetricRaceHarness::worker('lcrlc');
 
     try {
-        $program = lcrProgram('race-lc-'.$driver);
+        $program = lcrProgram('race-lc');
         $memberId = (string) Str::uuid();
         $award = lcrAward($program, $memberId, 'src-race-lc-1');
         [$request, $actors] = lcrRequest($award, $memberId, 'stripe_connect', 'acct_race_lc');
@@ -342,7 +349,6 @@ function lcrLateCompletionCase(TestCase $testCase, string $driver): void
         expect($request->status)->toBe(RewardPayoutRequestStatus::Unknown);
 
         [$first, $second] = lcrRace([
-            'driver' => $driver,
             'database' => $database,
             'app_url' => (string) config('app.url'),
             'mode' => 'payout',
@@ -366,30 +372,27 @@ function lcrLateCompletionCase(TestCase $testCase, string $driver): void
 
         expect($conversion->status->equals(PaidConversion::class))->toBeTrue();
     } finally {
-        ShareMetricRaceHarness::teardown($driver, $database, $previous);
+        ShareMetricRaceHarness::teardown($database, $previous);
     }
 }
 
-foreach (['pgsql', 'mariadb'] as $lcrDriver) {
-    $label = $lcrDriver === 'pgsql' ? 'isolated PostgreSQL' : 'isolated MariaDB';
-
-    it("keeps a raced submit and cancel coherent on {$label}", function () use ($lcrDriver): void {
-        lcrSubmitCancelCase($this, $lcrDriver);
+$label = 'isolated PostgreSQL';
+    it("keeps a raced submit and cancel coherent on {$label}", function (): void {
+        lcrSubmitCancelCase($this);
     });
 
-    it("sends exactly once under a raced double submit on {$label}", function () use ($lcrDriver): void {
-        lcrDoubleSubmitCase($this, $lcrDriver);
+    it("sends exactly once under a raced double submit on {$label}", function (): void {
+        lcrDoubleSubmitCase($this);
     });
 
-    it("opens one recovery under a raced double reversal on {$label}", function () use ($lcrDriver): void {
-        lcrDoubleReverseCase($this, $lcrDriver);
+    it("opens one recovery under a raced double reversal on {$label}", function (): void {
+        lcrDoubleReverseCase($this);
     });
 
-    it("releases exactly once under a raced double cancel on {$label}", function () use ($lcrDriver): void {
-        lcrDoubleCancelCase($this, $lcrDriver);
+    it("releases exactly once under a raced double cancel on {$label}", function (): void {
+        lcrDoubleCancelCase($this);
     });
 
-    it("settles a raced late completion exactly once on {$label}", function () use ($lcrDriver): void {
-        lcrLateCompletionCase($this, $lcrDriver);
+    it("settles a raced late completion exactly once on {$label}", function (): void {
+        lcrLateCompletionCase($this);
     });
-}

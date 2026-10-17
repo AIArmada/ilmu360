@@ -139,7 +139,7 @@ final class PangoShareCardRenderer implements ShareCardRenderer
     private function checkReadiness(): ShareCardReadiness
     {
         $fonts = new ShareCardFonts($this->fontDirectory);
-        $verification = $fonts->verify();
+        $verification = $fonts->verifyRenderable();
         $missing = $verification['missing'];
         $notes = $verification['notes'];
 
@@ -376,8 +376,7 @@ final class PangoShareCardRenderer implements ShareCardRenderer
     }
 
     /**
-     * Cheap per-render capability check: presence and manifest shape only.
-     * Full hash verification belongs to readiness(), not the hot path.
+     * Checks the same renderable font inputs as readiness without rehashing asset contents.
      *
      * @return array{error: ?ShareCardError, message: string, fontRevision: string, binary: string, fontDirectory: string, fontFiles: list<string>}
      */
@@ -402,33 +401,10 @@ final class PangoShareCardRenderer implements ShareCardRenderer
         }
 
         $directory = rtrim($this->fontDirectory, '/');
-        $manifestPath = $directory.'/'.ShareCardFonts::MANIFEST_FILE;
-        $manifestBytes = is_file($manifestPath) ? file_get_contents($manifestPath) : false;
+        $verification = (new ShareCardFonts($directory))->verifyRenderable();
 
-        if ($manifestBytes === false || $manifestBytes === '') {
-            return $fail(ShareCardError::FontsUnavailable, 'Font manifest is missing.');
-        }
-
-        /** @var mixed $manifest */
-        $manifest = json_decode($manifestBytes, true);
-
-        if (! is_array($manifest) || ! isset($manifest['fonts']) || ! is_array($manifest['fonts']) || $manifest['fonts'] === []) {
-            return $fail(ShareCardError::FontsUnavailable, 'Font manifest is invalid.');
-        }
-
-        /** @var list<string> $listedFontFiles */
-        $listedFontFiles = [];
-
-        foreach ($manifest['fonts'] as $entry) {
-            if (! is_array($entry) || ! isset($entry['file']) || ! is_string($entry['file'])) {
-                return $fail(ShareCardError::FontsUnavailable, 'Font manifest is invalid.');
-            }
-
-            if (! is_file($directory.'/'.$entry['file'])) {
-                return $fail(ShareCardError::FontsUnavailable, 'A pinned font file is missing.');
-            }
-
-            $listedFontFiles[] = $entry['file'];
+        if (! $verification['ok'] || $verification['families'] === []) {
+            return $fail(ShareCardError::FontsUnavailable, 'Pinned font manifest or font files are unavailable.');
         }
 
         $realDirectory = realpath($directory);
@@ -443,13 +419,18 @@ final class PangoShareCardRenderer implements ShareCardRenderer
             return $fail(ShareCardError::ShaperUnavailable, 'pango-view binary was not found.');
         }
 
+        $fontFiles = array_map(
+            static fn (string $path): string => $realDirectory.'/'.substr($path, strlen($directory) + 1),
+            array_values($verification['families']),
+        );
+
         return [
             'error' => null,
             'message' => '',
-            'fontRevision' => ShareCardFonts::manifestRevision($manifestBytes),
+            'fontRevision' => $verification['revision'],
             'binary' => $binary,
             'fontDirectory' => $realDirectory,
-            'fontFiles' => array_map(static fn (string $file): string => $realDirectory.'/'.$file, $listedFontFiles),
+            'fontFiles' => $fontFiles,
         ];
     }
 

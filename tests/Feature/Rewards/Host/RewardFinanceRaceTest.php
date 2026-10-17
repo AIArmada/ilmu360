@@ -16,9 +16,11 @@ use AIArmada\Rewards\Enums\RewardBenefitGrantStatus;
 use AIArmada\Rewards\Enums\RewardComponent;
 use AIArmada\Rewards\Models\RewardAward;
 use AIArmada\Rewards\Models\RewardBenefitGrant;
+use AIArmada\Rewards\Models\RewardBenefitItem;
 use AIArmada\Rewards\Models\RewardPointLot;
 use AIArmada\Rewards\Models\RewardPointMovement;
 use AIArmada\Rewards\Models\RewardPointReservationSubmission;
+use AIArmada\Rewards\Models\RewardProgram;
 use AIArmada\Rewards\Support\RewardBenefitStockLedger;
 use AIArmada\Rewards\Support\RewardPointLedger;
 use AIArmada\Vouchers\Models\Voucher as VoucherModel;
@@ -33,11 +35,12 @@ use Symfony\Component\Process\Process;
 use Tests\Feature\Rewards\Host\Support\FakeRewardSourceFactReader;
 use Tests\Feature\Rewards\Host\Support\RewardFinanceWorkerDb;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
+use Tests\Support\RealDriverFixture;
 
-function financeRaceReadyDir(string $driver, string $case): string
+function financeRaceReadyDir(string $case): string
 {
     $token = ParallelTesting::token();
-    $dir = sys_get_temp_dir().'/rewards-finance-race-'.($token !== false ? $token : 'serial').'-'.$driver.'-'.$case.'-'.getmypid();
+    $dir = sys_get_temp_dir().'/rewards-finance-race-'.($token !== false ? $token : 'serial').'-'.$case.'-'.getmypid();
 
     if (! is_dir($dir)) {
         mkdir($dir, 0777, true);
@@ -52,28 +55,20 @@ function financeRaceReadyDir(string $driver, string $case): string
 
 /**
  * @param  string|array{0: string, 1: string}  $modes
+ * @param  array<string, mixed>  $payload
  * @return array{0: array<string, mixed>, 1: array<string, mixed>}
  */
-function runFinanceRacePair(string $driver, string $database, string|array $modes, array $payload, string $case): array
+function runFinanceRacePair(string $database, string|array $modes, array $payload, string $case): array
 {
-    $readyDir = financeRaceReadyDir($driver, $case);
+    $readyDir = financeRaceReadyDir($case);
     file_put_contents($readyDir.'/payload.json', json_encode($payload, JSON_THROW_ON_ERROR));
 
-    $configs = RewardFinanceWorkerDb::driverConfigs();
-    $username = (string) $configs[$driver]['username'];
-    $password = (string) $configs[$driver]['password'];
-    $port = $driver === 'pgsql' ? 45432 : 43306;
 
     $worker = __DIR__.'/RewardFinanceRaceWorker.php';
 
     $make = fn (int $slot): Process => new Process([
         PHP_BINARY, $worker,
-        '--driver='.$driver,
-        '--host=127.0.0.1',
-        '--port='.$port,
         '--database='.$database,
-        '--username='.$username,
-        '--password='.$password,
         '--mode='.(is_array($modes) ? $modes[$slot] : $modes),
         '--ready-dir='.$readyDir,
         '--slot='.$slot,
@@ -109,6 +104,10 @@ function runFinanceRacePair(string $driver, string $database, string|array $mode
     return [$decode($first), $decode($second)];
 }
 
+/**
+ * @param  array<string, mixed>  $a
+ * @param  array<string, mixed>  $b
+ */
 function financeRaceWorkersExited(array $a, array $b): void
 {
     Assert::assertSame(0, $a['exit'] ?? null, 'Worker A failed: '.($a['error'] ?? json_encode($a)));
@@ -143,8 +142,8 @@ function financeRaceFulfilledAward(string $prefix, string $source): array
     return [$program, $memberId, $fulfilled->refresh()];
 }
 
-it('closes mark-vs-reversal to exactly one winner on real drivers', function (string $driver) {
-    [$database, $previous] = RewardFinanceWorkerDb::setUp($driver, 'markrev');
+it('closes mark-vs-reversal to exactly one winner on real drivers', function () {
+    [$database, $previous] = RewardFinanceWorkerDb::setUp('markrev');
 
     try {
         [$program, $memberId, $award] = financeRaceFulfilledAward('race-markrev', 'src-race-markrev-1');
@@ -155,7 +154,7 @@ it('closes mark-vs-reversal to exactly one winner on real drivers', function (st
             CarbonImmutable::parse('2026-06-16T12:00:00Z'),
         );
 
-        [$clawback, $mark] = runFinanceRacePair($driver, $database, ['clawback', 'mark'], [
+        [$clawback, $mark] = runFinanceRacePair($database, ['clawback', 'mark'], [
             'clawback' => [
                 'award_id' => (string) $award->getKey(),
                 'staff_id' => $staff,
@@ -189,12 +188,12 @@ it('closes mark-vs-reversal to exactly one winner on real drivers', function (st
 
         expect($buckets->available + $buckets->reserved)->toBeLessThanOrEqual(10);
     } finally {
-        RewardFinanceWorkerDb::tearDown($driver, $database, $previous);
+        RewardFinanceWorkerDb::tearDown($database, $previous);
     }
-})->with(['pgsql', 'mariadb']);
+});
 
-it('closes redeem-vs-reversal to exactly one winner on real drivers', function (string $driver) {
-    [$database, $previous] = RewardFinanceWorkerDb::setUp($driver, 'redrev');
+it('closes redeem-vs-reversal to exactly one winner on real drivers', function () {
+    [$database, $previous] = RewardFinanceWorkerDb::setUp('redrev');
 
     try {
         [$program, $memberId, $award] = financeRaceFulfilledAward('race-redrev', 'src-race-redrev-1');
@@ -205,7 +204,7 @@ it('closes redeem-vs-reversal to exactly one winner on real drivers', function (
             'user', $staff, 'staff',
         );
 
-        [$clawback, $redeem] = runFinanceRacePair($driver, $database, ['clawback', 'redeem'], [
+        [$clawback, $redeem] = runFinanceRacePair($database, ['clawback', 'redeem'], [
             'clawback' => [
                 'award_id' => (string) $award->getKey(),
                 'staff_id' => $staff,
@@ -238,9 +237,9 @@ it('closes redeem-vs-reversal to exactly one winner on real drivers', function (
                 ->and(RewardPointReservationSubmission::query()->where('reservation_key', 'rsv:redeem:race-redrev-1')->firstOrFail()->status)->toBe('sending');
         }
     } finally {
-        RewardFinanceWorkerDb::tearDown($driver, $database, $previous);
+        RewardFinanceWorkerDb::tearDown($database, $previous);
     }
-})->with(['pgsql', 'mariadb']);
+});
 
 function financeRaceUserRow(string $memberId): void
 {
@@ -262,7 +261,7 @@ function financeRaceCredit(string $memberId, string $family, string $programId, 
     );
 }
 
-function financeRaceReservedGrant($program, string $memberId, $item, string $key, string $adapter = 'manual'): RewardBenefitGrant
+function financeRaceReservedGrant(RewardProgram $program, string $memberId, RewardBenefitItem $item, string $key, string $adapter = 'manual'): RewardBenefitGrant
 {
     return RedeemRewardBenefitAction::run(
         'user', $memberId, $program->family_key, $item, 1, $key, $adapter,
@@ -270,8 +269,8 @@ function financeRaceReservedGrant($program, string $memberId, $item, string $key
     );
 }
 
-it('closes fulfill-vs-cancel to exactly one winner on real drivers', function (string $driver) {
-    [$database, $previous] = RewardFinanceWorkerDb::setUp($driver, 'fulcan');
+it('closes fulfill-vs-cancel to exactly one winner on real drivers', function () {
+    [$database, $previous] = RewardFinanceWorkerDb::setUp('fulcan');
 
     try {
         [$program, $memberId] = financeRaceFulfilledAward('race-fulcan', 'src-race-fulcan-1');
@@ -284,7 +283,7 @@ it('closes fulfill-vs-cancel to exactly one winner on real drivers', function (s
 
         $grant = financeRaceReservedGrant($program, $memberId, $item, 'race-fulcan-1');
 
-        [$fulfill, $cancel] = runFinanceRacePair($driver, $database, ['fulfill', 'cancel'], [
+        [$fulfill, $cancel] = runFinanceRacePair($database, ['fulfill', 'cancel'], [
             'fulfill' => [
                 'grant_id' => (string) $grant->getKey(),
                 'handoff_reference' => 'RACE-DESK-1',
@@ -323,12 +322,12 @@ it('closes fulfill-vs-cancel to exactly one winner on real drivers', function (s
                 ->and(RewardPointReservationSubmission::query()->where('reservation_key', 'rsv:redeem:race-fulcan-1')->firstOrFail()->status)->toBe('failed');
         }
     } finally {
-        RewardFinanceWorkerDb::tearDown($driver, $database, $previous);
+        RewardFinanceWorkerDb::tearDown($database, $previous);
     }
-})->with(['pgsql', 'mariadb']);
+});
 
-it('restores exactly once under a raced double cancel on real drivers', function (string $driver) {
-    [$database, $previous] = RewardFinanceWorkerDb::setUp($driver, 'dblcan');
+it('restores exactly once under a raced double cancel on real drivers', function () {
+    [$database, $previous] = RewardFinanceWorkerDb::setUp('dblcan');
 
     try {
         [$program, $memberId] = financeRaceFulfilledAward('race-dblcan', 'src-race-dblcan-1');
@@ -348,7 +347,7 @@ it('restores exactly once under a raced double cancel on real drivers', function
             'decided_at' => '2026-06-17T00:00:00Z',
         ];
 
-        [$first, $second] = runFinanceRacePair($driver, $database, 'cancel', $payload, 'dblcan');
+        [$first, $second] = runFinanceRacePair($database, 'cancel', $payload, 'dblcan');
 
         financeRaceWorkersExited($first, $second);
 
@@ -367,12 +366,12 @@ it('restores exactly once under a raced double cancel on real drivers', function
             ->and(RewardBenefitStockLedger::balances($item->refresh())['available'])->toBe(5)
             ->and(RewardPointReservationSubmission::query()->where('reservation_key', 'rsv:redeem:race-dblcan-1')->firstOrFail()->status)->toBe('failed');
     } finally {
-        RewardFinanceWorkerDb::tearDown($driver, $database, $previous);
+        RewardFinanceWorkerDb::tearDown($database, $previous);
     }
-})->with(['pgsql', 'mariadb']);
+});
 
-it('closes coupon-use-vs-revocation to exactly one winner on real drivers', function (string $driver) {
-    [$database, $previous] = RewardFinanceWorkerDb::setUp($driver, 'userev');
+it('closes coupon-use-vs-revocation to exactly one winner on real drivers', function () {
+    [$database, $previous] = RewardFinanceWorkerDb::setUp('userev');
 
     try {
         [$program, $memberId] = financeRaceFulfilledAward('race-userev', 'src-race-userev-1');
@@ -393,7 +392,7 @@ it('closes coupon-use-vs-revocation to exactly one winner on real drivers', func
 
         $code = (string) $issued->external_ref;
 
-        [$use, $revoke] = runFinanceRacePair($driver, $database, ['record_usage', 'revoke'], [
+        [$use, $revoke] = runFinanceRacePair($database, ['record_usage', 'revoke'], [
             'record_usage' => [
                 'code' => $code,
                 'amount' => 2000,
@@ -433,12 +432,12 @@ it('closes coupon-use-vs-revocation to exactly one winner on real drivers', func
                 ->and(RewardBenefitStockLedger::balances($item->refresh())['available'])->toBe(3);
         }
     } finally {
-        RewardFinanceWorkerDb::tearDown($driver, $database, $previous);
+        RewardFinanceWorkerDb::tearDown($database, $previous);
     }
-})->with(['pgsql', 'mariadb']);
+});
 
-it('converges fulfill-vs-reversal without deadlock on real drivers', function (string $driver) {
-    [$database, $previous] = RewardFinanceWorkerDb::setUp($driver, 'fulrev');
+it('converges fulfill-vs-reversal without deadlock on real drivers', function () {
+    [$database, $previous] = RewardFinanceWorkerDb::setUp('fulrev');
 
     try {
         [$program, $memberId, $award] = financeRaceFulfilledAward('race-fulrev', 'src-race-fulrev-1');
@@ -451,7 +450,7 @@ it('converges fulfill-vs-reversal without deadlock on real drivers', function (s
 
         $grant = financeRaceReservedGrant($program, $memberId, $item, 'race-fulrev-1');
 
-        [$fulfill, $clawback] = runFinanceRacePair($driver, $database, ['fulfill', 'clawback'], [
+        [$fulfill, $clawback] = runFinanceRacePair($database, ['fulfill', 'clawback'], [
             'fulfill' => [
                 'grant_id' => (string) $grant->getKey(),
                 'handoff_reference' => 'RACE-DESK-2',
@@ -498,12 +497,12 @@ it('converges fulfill-vs-reversal without deadlock on real drivers', function (s
         expect($buckets->spent)->toBe(10)
             ->and(RewardBenefitStockLedger::balances($item->refresh())['available'])->toBe(4);
     } finally {
-        RewardFinanceWorkerDb::tearDown($driver, $database, $previous);
+        RewardFinanceWorkerDb::tearDown($database, $previous);
     }
-})->with(['pgsql', 'mariadb']);
+});
 
-it('refuses concurrent over-reservation beyond capacity on real drivers', function (string $driver) {
-    [$database, $previous] = RewardFinanceWorkerDb::setUp($driver, 'stockcap');
+it('refuses concurrent over-reservation beyond capacity on real drivers', function () {
+    [$database, $previous] = RewardFinanceWorkerDb::setUp('stockcap');
 
     try {
         [$program, $memberA] = financeRaceFulfilledAward('race-stockcap', 'src-race-stockcap-a');
@@ -529,7 +528,7 @@ it('refuses concurrent over-reservation beyond capacity on real drivers', functi
             ];
         };
 
-        [$first, $second] = runFinanceRacePair($driver, $database, ['redeem', 'redeem'], [
+        [$first, $second] = runFinanceRacePair($database, ['redeem', 'redeem'], [
             'slots' => [$slotPayload($memberA, 'race-stockcap-a'), $slotPayload($memberB, 'race-stockcap-b')],
         ], 'stockcap');
 
@@ -554,12 +553,12 @@ it('refuses concurrent over-reservation beyond capacity on real drivers', functi
             ->and($loserBuckets->reserved)->toBe(0)
             ->and(RewardBenefitStockLedger::balances($item->refresh())['available'])->toBe(0);
     } finally {
-        RewardFinanceWorkerDb::tearDown($driver, $database, $previous);
+        RewardFinanceWorkerDb::tearDown($database, $previous);
     }
-})->with(['pgsql', 'mariadb']);
+});
 
-it('collapses a raced same-key same-term double redeem onto one grant', function (string $driver) {
-    [$database, $previous] = RewardFinanceWorkerDb::setUp($driver, 'dblkey');
+it('collapses a raced same-key same-term double redeem onto one grant', function () {
+    [$database, $previous] = RewardFinanceWorkerDb::setUp('dblkey');
 
     try {
         [$program, $memberId] = financeRaceFulfilledAward('race-dblkey', 'src-race-dblkey-1');
@@ -570,7 +569,7 @@ it('collapses a raced same-key same-term double redeem onto one grant', function
             'user', $staff, 'staff',
         );
 
-        [$first, $second] = runFinanceRacePair($driver, $database, 'redeem', [
+        [$first, $second] = runFinanceRacePair($database, 'redeem', [
             'recipient_type' => 'user',
             'recipient_id' => $memberId,
             'family_key' => $program->family_key,
@@ -591,12 +590,12 @@ it('collapses a raced same-key same-term double redeem onto one grant', function
             ->and($buckets->reserved)->toBe(10)
             ->and(RewardBenefitStockLedger::balances($item->refresh())['available'])->toBe(4);
     } finally {
-        RewardFinanceWorkerDb::tearDown($driver, $database, $previous);
+        RewardFinanceWorkerDb::tearDown($database, $previous);
     }
-})->with(['pgsql', 'mariadb']);
+});
 
-it('refuses a raced same-key cross-recipient redeem on real drivers', function (string $driver) {
-    [$database, $previous] = RewardFinanceWorkerDb::setUp($driver, 'xkey');
+it('refuses a raced same-key cross-recipient redeem on real drivers', function () {
+    [$database, $previous] = RewardFinanceWorkerDb::setUp('xkey');
 
     try {
         [$program, $memberA] = financeRaceFulfilledAward('race-xkey', 'src-race-xkey-a');
@@ -622,7 +621,7 @@ it('refuses a raced same-key cross-recipient redeem on real drivers', function (
             ];
         };
 
-        [$first, $second] = runFinanceRacePair($driver, $database, ['redeem', 'redeem'], [
+        [$first, $second] = runFinanceRacePair($database, ['redeem', 'redeem'], [
             'slots' => [$slotPayload($memberA), $slotPayload($memberB)],
         ], 'xkey');
 
@@ -644,6 +643,6 @@ it('refuses a raced same-key cross-recipient redeem on real drivers', function (
             ->and(RewardBenefitGrant::query()->where('recipient_id', $loserId)->count())->toBe(0)
             ->and($bucketsB->available + $bucketsB->reserved)->toBe(10);
     } finally {
-        RewardFinanceWorkerDb::tearDown($driver, $database, $previous);
+        RewardFinanceWorkerDb::tearDown($database, $previous);
     }
-})->with(['pgsql', 'mariadb']);
+});

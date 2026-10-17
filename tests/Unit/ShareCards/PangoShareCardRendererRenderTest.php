@@ -12,6 +12,7 @@ if (! function_exists('shareCardFontsDir')) {
 }
 
 if (! function_exists('shareCardMatrixTitles')) {
+    /** @return array<string, string> */
     function shareCardMatrixTitles(): array
     {
         return [
@@ -98,6 +99,7 @@ if (! function_exists('shareCardRemoveDir')) {
 }
 
 if (! function_exists('shareCardPngChunkTypes')) {
+    /** @return list<string> */
     function shareCardPngChunkTypes(string $bytes): array
     {
         $types = [];
@@ -185,9 +187,9 @@ it('renders every supported locale deterministically', function (string $locale,
         $this->fail(sprintf(
             'Locale [%s] render failed: %s %s / %s %s',
             $locale,
-            $first->error?->value ?? '?',
+            $first->error->value,
             $first->errorMessage ?? '?',
-            $second->error?->value ?? '?',
+            $second->error->value,
             $second->errorMessage ?? '?'
         ));
     }
@@ -363,6 +365,10 @@ it('shapes javanese from the vendored font, never system fallback', function ():
         expect($kept)->toHaveCount(4);
 
         foreach ($kept as $entry) {
+            symlink($fontsDir.'/'.$entry['file'], $partialDir.'/'.$entry['file']);
+        }
+
+        foreach ($manifest['licenses'] as $entry) {
             symlink($fontsDir.'/'.$entry['file'], $partialDir.'/'.$entry['file']);
         }
 

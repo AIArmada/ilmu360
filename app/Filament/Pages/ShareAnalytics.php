@@ -52,10 +52,13 @@ final class ShareAnalytics extends Page
 
     public string $measurementStatus = 'not_configured';
 
+    public ?string $reportingStart = null;
+
     public function mount(AdminShareAnalyticsService $analytics): void
     {
         $this->report = $analytics->dashboard();
         $this->measurementStatus = ShareTrackingMeasurement::status();
+        $this->reportingStart = ShareTrackingMeasurement::reportingStart();
         $this->signalsReportUrl = class_exists(PageViewsReport::class)
             ? PageViewsReport::getUrl(panel: 'admin')
             : null;

@@ -98,7 +98,6 @@ final class ShareCohortAuthority
             ];
         }
 
-        $this->pinUtcSession();
 
         $asOf = $asOf->setTimezone('UTC');
         $anchor = $asOf->startOfWeek()->subWeeks($weeks - 1)->startOfDay();
@@ -207,26 +206,12 @@ final class ShareCohortAuthority
         ];
     }
 
-    /**
-     * UTC calendar weeks need UTC day buckets. PostgreSQL sessions are
-     * already pinned by connection config; MySQL/MariaDB sessions are
-     * pinned here with an offset (no tz tables needed); SQLite stores
-     * UTC walls.
-     */
-    private function pinUtcSession(): void
-    {
-        if (in_array(DB::getDriverName(), ['mysql', 'mariadb'], true)) {
-            DB::statement("SET time_zone = '+00:00'");
-        }
-    }
-
     private function windowEndExpression(): string
     {
         return match (DB::getDriverName()) {
             'sqlite' => "datetime(u.created_at, '+30 days')",
             'pgsql' => "(u.created_at + INTERVAL '30 days')",
-            'mysql', 'mariadb' => 'DATE_ADD(u.created_at, INTERVAL 30 DAY)',
-            default => throw new RuntimeException('Cohort maturation supports only sqlite, pgsql, and mysql drivers.'),
+            default => throw new RuntimeException('Cohort maturation supports only sqlite and pgsql drivers.'),
         };
     }
 

@@ -465,7 +465,7 @@ class ReferenceSearchService implements PublicDiscoveryAdapter
     private function numericSearchColumn(Builder $query, string $column): ExpressionContract
     {
         $wrapped = $query->getQuery()->getGrammar()->wrap($query->getModel()->qualifyColumn($column));
-        $cast = ConnectionDriver::name($query->getConnection()) === 'mysql' ? 'CHAR' : 'TEXT';
+        $cast = 'TEXT';
 
         return new Expression('CAST('.$wrapped.' AS '.$cast.')');
     }

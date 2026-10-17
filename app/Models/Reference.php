@@ -332,7 +332,6 @@ class Reference extends PackageReference implements AuditableContract, Followabl
         $operator = $driver === 'pgsql' ? 'ILIKE' : 'LIKE';
         $expression = match ($driver) {
             'pgsql' => "COALESCE({$column}::text, '')",
-            'mysql', 'mariadb' => "COALESCE(CAST({$column} AS CHAR), '')",
             default => "COALESCE(CAST({$column} AS TEXT), '')",
         };
 

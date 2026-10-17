@@ -274,7 +274,7 @@ final class CommittedShareSignalReader
      * Runs the work fenced on the cursor row. The row is created with
      * insert-or-ignore OUTSIDE the fencing transaction: catching a
      * duplicate-key failure inside the transaction would abort it on
-     * PostgreSQL and desynchronize it on MariaDB, so two concurrent
+     * PostgreSQL and desynchronize it in the database, so two concurrent
      * drains racing first initialization must never take that path.
      * The loser of the insert race simply locks the winner's row.
      */

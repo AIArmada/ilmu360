@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 // R2 real-driver proof: two independent drain workers race the same
 // committed-share signal log on the isolated PostgreSQL 17 and
-// MariaDB 11.4 fixtures. The cursor fence + idempotent projections
 // apply every signal exactly once with no stale overwrite: a stale
 // worker can neither double-apply nor drag the cursor backwards.
 // Timing is never asserted.
@@ -24,9 +23,9 @@ use Illuminate\Http\Request;
 use Tests\Feature\ShareTracking\ShareMetricRaceHarness;
 use Tests\TestCase;
 
-function cssDrainRaceCase(TestCase $testCase, string $driver): void
+function cssDrainRaceCase(TestCase $testCase): void
 {
-    [$database, $previous] = ShareMetricRaceHarness::worker($driver, 'cssdrain');
+    [$database, $previous] = ShareMetricRaceHarness::worker('cssdrain');
 
     try {
         $pageUrl = route('events.index');
@@ -49,7 +48,6 @@ function cssDrainRaceCase(TestCase $testCase, string $driver): void
             ->and(SignalEvent::query()->where('event_name', CommittedShareSignalProducer::EVENT_NAME)->count())->toBe(4);
 
         [$first, $second] = ShareMetricRaceHarness::runRace([
-            'driver' => $driver,
             'database' => $database,
             'app_url' => (string) config('app.url'),
             'mode' => 'drain',
@@ -74,14 +72,11 @@ function cssDrainRaceCase(TestCase $testCase, string $driver): void
         expect(app(CommittedShareSignalReader::class)->drain(25))
             ->toBe(['processed' => 0, 'projected' => 0, 'failed' => 0]);
     } finally {
-        ShareMetricRaceHarness::teardown($driver, $database, $previous);
+        ShareMetricRaceHarness::teardown($database, $previous);
     }
 }
 
-foreach (['pgsql', 'mariadb'] as $cssDriver) {
-    $label = $cssDriver === 'pgsql' ? 'isolated PostgreSQL' : 'isolated MariaDB';
-
-    it("fences concurrent committed-share drains to exactly-once projections on {$label}", function () use ($cssDriver): void {
-        cssDrainRaceCase($this, $cssDriver);
+$label = 'isolated PostgreSQL';
+    it("fences concurrent committed-share drains to exactly-once projections on {$label}", function (): void {
+        cssDrainRaceCase($this);
     });
-}

@@ -7,6 +7,10 @@ namespace App\Actions\ShareTracking;
 use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\States\ConversionStatus;
+use AIArmada\Affiliates\States\ReversedConversion;
+use AIArmada\CommerceSupport\Support\OwnerScope;
+use AIArmada\Events\Models\EventRegistration;
+use App\Actions\Events\ReverseTicketAffiliateCommissionAction;
 use App\Enums\ShareEffectStatus;
 use App\Models\ShareEffectReceipt;
 use App\Models\ShareOutcomeCorrection;
@@ -26,7 +30,11 @@ final readonly class DispatchShareEffectReceiptsAction
      *
      * @var list<string>
      */
-    public const array OWNED_EFFECT_TYPES = ['projection'];
+    public const array OWNED_EFFECT_TYPES = ['projection', 'ticket_affiliate_reversal'];
+
+    public function __construct(
+        private ReverseTicketAffiliateCommissionAction $reverseTicketAffiliateCommission,
+    ) {}
 
     public function handle(int $limit = 50, ?string $workerId = null): int
     {
@@ -116,6 +124,11 @@ final readonly class DispatchShareEffectReceiptsAction
             }
 
             $payload = is_array($locked->payload) ? $locked->payload : [];
+
+            if ((string) $locked->effect_type === 'ticket_affiliate_reversal') {
+                return $this->processDeferredTicketReversal($locked, $payload);
+            }
+
             $conversionId = $payload['conversion_id'] ?? null;
             $linkId = $payload['link_id'] ?? null;
 
@@ -195,5 +208,74 @@ final readonly class DispatchShareEffectReceiptsAction
 
             return true;
         });
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function processDeferredTicketReversal(ShareEffectReceipt $receipt, array $payload): bool
+    {
+        $registrationId = $payload['registration_id'] ?? null;
+        $conversionId = $payload['conversion_id'] ?? null;
+        $reason = $payload['reason'] ?? null;
+
+        $registration = is_string($registrationId) && $registrationId !== ''
+            ? EventRegistration::query()->whereKey($registrationId)->first()
+            : null;
+
+        if (! $registration instanceof EventRegistration || ! is_string($reason) || $reason === '') {
+            $receipt->forceFill([
+                'status' => ShareEffectStatus::Failed,
+                'lease_token' => null,
+                'leased_by' => null,
+                'lease_expires_at' => null,
+                'failed_at' => now(),
+            ])->save();
+
+            return true;
+        }
+
+        $this->reverseTicketAffiliateCommission->handle($registration, $reason);
+
+        $conversion = is_string($conversionId) && $conversionId !== ''
+            ? AffiliateConversion::query()->withoutGlobalScope(OwnerScope::class)->whereKey($conversionId)->lockForUpdate()->first()
+            : null;
+
+        if ($conversion instanceof AffiliateConversion
+            && ($conversion->status instanceof ConversionStatus
+                ? $conversion->status->equals(ReversedConversion::class)
+                : (string) $conversion->status === 'reversed')) {
+            $receipt->forceFill([
+                'status' => ShareEffectStatus::Succeeded,
+                'lease_token' => null,
+                'leased_by' => null,
+                'lease_expires_at' => null,
+                'succeeded_at' => now(),
+            ])->save();
+
+            return true;
+        }
+
+        if ($conversion instanceof AffiliateConversion
+            && $this->reverseTicketAffiliateCommission->hasOpenPayoutReservation($conversion)) {
+            $receipt->forceFill([
+                'status' => ShareEffectStatus::Pending,
+                'lease_token' => null,
+                'leased_by' => null,
+                'lease_expires_at' => null,
+            ])->save();
+
+            return true;
+        }
+
+        $receipt->forceFill([
+            'status' => ShareEffectStatus::Failed,
+            'lease_token' => null,
+            'leased_by' => null,
+            'lease_expires_at' => null,
+            'failed_at' => now(),
+        ])->save();
+
+        return true;
     }
 }

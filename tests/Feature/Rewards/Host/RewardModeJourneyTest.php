@@ -58,6 +58,7 @@ use Tests\Feature\Rewards\Host\Support\RewardHostFixtures;
 uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
+    config()->set('affiliates.payouts.reward_award_settlement.enabled', true);
     setPermissionsTeamId(null);
     $this->seed(RoleSeeder::class);
     $this->seed(PermissionSeeder::class);

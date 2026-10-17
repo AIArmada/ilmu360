@@ -3,7 +3,6 @@
 namespace App\Support\Events;
 
 use App\Models\Event;
-use Illuminate\Database\MySqlConnection;
 use Illuminate\Database\PostgresConnection;
 use Illuminate\Database\SQLiteConnection;
 use InvalidArgumentException;
@@ -34,13 +33,13 @@ class PrimaryOccurrenceSql
     {
         $startsAtSql = self::column('starts_at', $eventsTable);
 
-        /** @var MySqlConnection|PostgresConnection|SQLiteConnection $connection */
+        /** @var PostgresConnection|SQLiteConnection $connection */
         $connection = Event::query()->getConnection();
 
         return match ($connection->getDriverName()) {
             'pgsql' => "to_char(({$startsAtSql}) + interval '{$offsetMinutes} minutes', 'HH24:MI')",
-            'mysql', 'mariadb' => "DATE_FORMAT(DATE_ADD(({$startsAtSql}), INTERVAL {$offsetMinutes} MINUTE), '%H:%i')",
-            default => "strftime('%H:%M', datetime(({$startsAtSql}), '{$offsetMinutes} minutes'))",
+            'sqlite' => "strftime('%H:%M', datetime(({$startsAtSql}), '{$offsetMinutes} minutes'))",
+            default => throw new InvalidArgumentException(sprintf('Unsupported database driver [%s].', $connection->getDriverName())),
         };
     }
 }

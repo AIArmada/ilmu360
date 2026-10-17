@@ -19,6 +19,7 @@ use App\Models\Venue;
 use App\States\EventStatus\Draft;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
+use Filament\Facades\Filament;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Carbon;
 
@@ -76,6 +77,70 @@ it('uses Dashboard as the admin dashboard label in Malay locale', function () {
         ->assertSuccessful()
         ->assertSee('Dashboard')
         ->assertDontSee('Papan pemuka');
+});
+
+it('allows global admins into the admin home and registered affiliate resources only', function () {
+    $administrator = User::factory()->create();
+    $administrator->assignRole('admin');
+
+    expect($administrator->can('affiliate.viewAny'))
+        ->toBeTrue()
+        ->and($administrator->can('affiliate_conversion.update'))
+        ->toBeTrue()
+        ->and($administrator->can('affiliate.approve'))
+        ->toBeTrue()
+        ->and($administrator->can('affiliates.fraud.view-any'))
+        ->toBeTrue()
+        ->and($administrator->can('affiliates.fraud.view'))
+        ->toBeTrue()
+        ->and($administrator->can('affiliates.payout.view-any'))
+        ->toBeTrue()
+        ->and($administrator->can('affiliates.payout.view'))
+        ->toBeTrue()
+        ->and($administrator->can('affiliates.payout.create'))
+        ->toBeFalse()
+        ->and($administrator->can('affiliates.payout.delete'))
+        ->toBeFalse()
+        ->and($administrator->can('affiliates.fraud.create'))
+        ->toBeFalse()
+        ->and($administrator->can('affiliates.fraud.delete'))
+        ->toBeFalse()
+        ->and($administrator->can('affiliate.create'))
+        ->toBeFalse()
+        ->and($administrator->can('affiliate.delete'))
+        ->toBeFalse();
+
+    $this->actingAs($administrator)
+        ->get(AdminDashboard::getUrl(panel: 'admin'))
+        ->assertSuccessful()
+        ->assertDontSee('affiliate-portal.css');
+
+    $resources = Filament::getPanel('admin')->getResources();
+    $affiliateResources = array_values(array_filter(
+        $resources,
+        static fn (string $resource): bool => str_starts_with($resource, 'AIArmada\\FilamentAffiliates\\Resources\\'),
+    ));
+
+    expect($affiliateResources)->not->toBeEmpty();
+
+    foreach ($affiliateResources as $resource) {
+        $this->actingAs($administrator)
+            ->get($resource::getUrl('index', panel: 'admin'))
+            ->assertSuccessful()
+            ->assertDontSee('affiliate-portal.css');
+    }
+
+    $member = User::factory()->create();
+
+    $this->actingAs($member)
+        ->get(AdminDashboard::getUrl(panel: 'admin'))
+        ->assertForbidden();
+
+    foreach ($affiliateResources as $resource) {
+        $this->actingAs($member)
+            ->get($resource::getUrl('index', panel: 'admin'))
+            ->assertForbidden();
+    }
 });
 
 it('renders the admin event edit page without missing dashboard navigation routes', function () {

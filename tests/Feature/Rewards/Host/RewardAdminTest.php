@@ -11,6 +11,7 @@ use AIArmada\Rewards\Actions\OpenRewardAppealAction;
 use AIArmada\Rewards\Actions\TransitionRewardProgramStatusAction;
 use AIArmada\Rewards\Enums\RewardAppealStatus;
 use AIArmada\Rewards\Enums\RewardAwardStatus;
+use AIArmada\Rewards\Enums\RewardBeneficiaryRole;
 use AIArmada\Rewards\Enums\RewardProgramMode;
 use AIArmada\Rewards\Enums\RewardProgramStatus;
 use AIArmada\Rewards\Jobs\EvaluateRewardEntitlementJob;
@@ -158,7 +159,17 @@ it('lets staff publish a version and transition a program', function (): void {
         ->test(ViewRewardProgram::class, ['record' => $program->getKey()])
         ->callAction('publish_version', data: [
             'effective_from' => CarbonImmutable::now('UTC')->addHour()->toIso8601String(),
-            'recognition_template' => 'quiet-thanks',
+            'component_rows' => [[
+                'type' => 'recognition',
+                'variants' => [[
+                    'outcomes' => ['event_registration'],
+                    'roles' => [RewardBeneficiaryRole::Participant->value],
+                    'min_verification' => 'accepted',
+                    'first_only' => false,
+                    'template' => 'quiet-thanks',
+                ]],
+            ]],
+            'milestone_rows' => [],
             'eligibility_outcomes' => ['signup', 'event_registration'],
             'eligibility_categories' => '',
             'min_verification' => 'accepted',

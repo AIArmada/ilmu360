@@ -49,6 +49,7 @@ use App\Models\User;
 use App\Support\ShareTracking\ActivityRewardBusinessKey;
 use App\Support\ShareTracking\SealedGuestIdentityException;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
+use App\Support\ShareTracking\ShareProfileNotEligibleException;
 use App\Support\ShareTracking\ShareTrackingFinance;
 use App\Support\ShareTracking\ShareTrackingMeasurement;
 use App\Support\ShareTracking\ShareTrackingProfile;
@@ -190,26 +191,33 @@ final readonly class AffiliatesShareTrackingService
         ?Request $request = null,
     ): string {
         if ($user instanceof User) {
-            return OwnerContext::withOwner($user, function () use ($provider, $user, $url, $shareText, $fallbackTitle, $origin, $request): string {
-                $link = $this->createOrReuseAffiliateLinkForAffiliate(
-                    $this->ensureAffiliateForUser($user),
-                    $url,
-                    $fallbackTitle,
-                    $origin,
-                );
+            try {
+                return OwnerContext::withOwner($user, function () use ($provider, $user, $url, $shareText, $fallbackTitle, $origin, $request): string {
+                    $link = $this->createOrReuseAffiliateLinkForAffiliate(
+                        $this->ensureAffiliateForUser($user),
+                        $url,
+                        $fallbackTitle,
+                        $origin,
+                    );
 
-                DB::transaction(function () use ($link, $user, $provider, $request): void {
-                    $lockedLink = $this->lockedEligibleShareLink($link);
+                    DB::transaction(function () use ($link, $user, $provider, $request): void {
+                        $lockedLink = $this->lockedEligibleShareLink($link);
 
-                    if (! $lockedLink instanceof AffiliateLink) {
-                        throw new InvalidArgumentException('This share link has been disabled. Ask an administrator to review it before sharing again.');
-                    }
+                        if (! $lockedLink instanceof AffiliateLink) {
+                            throw new InvalidArgumentException('This share link has been disabled. Ask an administrator to review it before sharing again.');
+                        }
 
-                    $this->recordOutboundShare($lockedLink, $user, $provider, $request);
+                        $this->recordOutboundShare($lockedLink, $user, $provider, $request);
+                    });
+
+                    return $this->shareTrackingUrlService->platformLinks($this->shortUrlForLink($link), $shareText)[$provider] ?? $url;
                 });
+            } catch (ShareProfileNotEligibleException) {
+                $shareTarget = $this->shareTrackingUrlService->classifyShareTarget($url, $fallbackTitle);
+                $shareUrl = $shareTarget['destination_url'];
 
-                return $this->shareTrackingUrlService->platformLinks($this->shortUrlForLink($link), $shareText)[$provider] ?? $url;
-            });
+                return $this->shareTrackingUrlService->platformLinks($shareUrl, $shareText)[$provider] ?? $shareUrl;
+            }
         }
 
         if ($request instanceof Request) {
@@ -1647,7 +1655,7 @@ final readonly class AffiliatesShareTrackingService
                 // A marked but suspended or disabled profile is never
                 // reactivated through share creation.
                 if (! ShareTrackingProfile::isEligibleForNewCredit($affiliate)) {
-                    throw new InvalidArgumentException('This share profile is not eligible to create new tracked links.');
+                    throw new ShareProfileNotEligibleException('This share profile is not eligible to create new tracked links.');
                 }
 
                 $this->refreshMarkedMemberSnapshot($affiliate, $user);
@@ -2685,7 +2693,7 @@ final readonly class AffiliatesShareTrackingService
             'channel' => $provider,
             'origin' => $attribution->origin,
             'referrer_url' => null,
-            'touched_at' => now(),
+            'touched_at' => now()->utc(),
         ]);
     }
 

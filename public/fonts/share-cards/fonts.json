@@ -70,11 +70,11 @@
         }
     ],
     "licenses": [
-        {"file": "OFL-NotoSans.txt", "bytes": 4396, "sha256": "cee9892f9f0cc8fe882c9e9537ee6a89621d86ee7ceaf70b02e2b2b1c25c061a"},
-        {"file": "OFL-NotoSansArabic.txt", "bytes": 4382, "sha256": "07fc70bfeb985cc1a87a8587d0a0c80bab11c86c9dc3fd95b6f0cb332f983e96"},
-        {"file": "OFL-NotoSansJavanese.txt", "bytes": 4384, "sha256": "8a5665bd3b16a64f953b24a71f12e298f5233be8a4ed17424129c5524a397892"},
-        {"file": "OFL-NotoSansSC.txt", "bytes": 4388, "sha256": "1c05c68c34f9708415aada51f17e1b0092d2cea709bf4a94cd38114f9e73d7d9"},
-        {"file": "OFL-NotoSansTamil.txt", "bytes": 4381, "sha256": "f8ff8ce7d0a81bf8d5e121c635ef027250c531f2fd37d5988b8dd6e45f19d7f1"}
+        {"file": "OFL-NotoSans.txt", "bytes": 4395, "sha256": "e2e177a32561584d4fc13aaa3cd8e53758a12910f013fe9ca125419111722029"},
+        {"file": "OFL-NotoSansArabic.txt", "bytes": 4381, "sha256": "df5143cdf3380169f2d03bf6d2cd243e85621fd097e608c3607cf7f9c9884ae6"},
+        {"file": "OFL-NotoSansJavanese.txt", "bytes": 4383, "sha256": "489cb05c6df86bc4339603f9c6658820662bf1c0ab516ce4f33031b7942b6c68"},
+        {"file": "OFL-NotoSansSC.txt", "bytes": 4387, "sha256": "babcfe66c8a098b2fa279bc724a3a342f8124f77ce18941fbcc1bbb39823cded"},
+        {"file": "OFL-NotoSansTamil.txt", "bytes": 4380, "sha256": "68d71f0905104e5831d1fb427aee96c210cd39a3d6ac1cff30e6d8bcf41f5d18"}
     ],
     "support_policy": {
         "locales": ["ms", "id", "en", "ar", "zh", "ta", "jv"],

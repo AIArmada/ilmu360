@@ -1,5 +1,6 @@
 @php
     $link = $this->linkData;
+    $trackedUrl = $this->trackedUrl;
     $summary = $this->summary;
     $providerBreakdown = $this->providerBreakdown;
     $shareLinks = $this->shareLinks;
@@ -65,10 +66,12 @@
                         </div>
 
                         <div class="w-full max-w-md rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                            <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">{{ __('Share Again') }}</p>
-                            <p class="mt-2 text-sm text-slate-600">{{ __('Reuse the same tracked link so all future responses continue to accumulate in one place.') }}</p>
+                            <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">{{ __('Your tracked share link') }} / Pautan perkongsian terlacak anda</p>
+                            <p class="mt-2 text-sm text-slate-600">{{ __('Reuse the same tracked link so all future responses continue to accumulate in one place.') }} / Gunakan pautan yang sama supaya respons seterusnya direkodkan bersama.
+                            </p>
                             <div class="mt-4 flex flex-wrap gap-3" x-data="{
                                 copied: false,
+                                trackedUrl: @js($trackedUrl),
                                 shareData: @js([
                                     'title' => $link->titleSnapshot ?: config('app.name'),
                                     'text' => __('Share this page from :app', ['app' => config('app.name')]),
@@ -107,6 +110,7 @@
                                         url: payload.url,
                                         tracking_token: payload.tracking_token ?? null,
                                     };
+                                    this.trackedUrl = payload.url;
 
                                     return this.attributedShareData;
                                 },
@@ -198,10 +202,10 @@
                                 },
                             }">
                                 <button type="button" @click="nativeShare()" class="inline-flex items-center rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700">
-                                    {{ __('Share Link') }}
+                                    {{ __('Share Link') }} / Kongsi pautan
                                 </button>
                                 <button type="button" @click="copyLink()" class="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-700">
-                                    {{ __('Copy Link') }}
+                                    {{ __('Copy tracked link') }} / Salin pautan terlacak
                                 </button>
                                 <a href="{{ $shareLinks['whatsapp'] }}" target="_blank" rel="noopener" class="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-[#25D366] hover:text-[#25D366]">
                                     {{ __('WhatsApp') }}
@@ -210,6 +214,10 @@
                                     {{ __('Telegram') }}
                                 </a>
                                 <p x-show="copied" class="text-sm font-semibold text-emerald-600">{{ __('Link copied to clipboard!') }}</p>
+                                <div class="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2">
+                                    <p class="text-xs font-semibold text-slate-500">{{ __('Tracked link') }} / Pautan terlacak</p>
+                                    <p class="mt-1 break-all font-mono text-xs text-slate-700" x-text="trackedUrl">{{ $trackedUrl }}</p>
+                                </div>
                             </div>
                         </div>
                     </div>

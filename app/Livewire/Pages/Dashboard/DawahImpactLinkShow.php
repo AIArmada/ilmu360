@@ -8,6 +8,7 @@ use App\Data\ShareTracking\ShareTrackingVisitData;
 use App\Models\User;
 use App\Services\ShareTrackingAnalyticsService;
 use App\Services\ShareTrackingService;
+use App\Support\ShareTracking\ShareProfileNotEligibleException;
 use App\Support\ShareTracking\ShareTrackingMeasurement;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\View\View;
@@ -93,6 +94,22 @@ class DawahImpactLinkShow extends Component
             trim(($this->linkData()->titleSnapshot ?: config('app.name')).' - '.config('app.name')),
             $this->linkData()->titleSnapshot,
         );
+    }
+
+    #[Computed]
+    public function trackedUrl(): string
+    {
+        $link = $this->linkData();
+
+        try {
+            return $this->shareService()->attributedUrl(
+                $this->currentUser(),
+                $link->destinationUrl,
+                $link->titleSnapshot,
+            );
+        } catch (ShareProfileNotEligibleException) {
+            return $link->destinationUrl;
+        }
     }
 
     /**

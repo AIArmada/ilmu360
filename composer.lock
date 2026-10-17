@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "414385716e04d50aa4012d9f37f3c58b",
+    "content-hash": "b5701b1b462ab981e3925a947e134fe3",
     "packages": [
         {
             "name": "aiarmada/addressing",
@@ -884,6 +884,58 @@
             }
         },
         {
+            "name": "aiarmada/filament-affiliates",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../commerce/packages/filament-affiliates",
+                "reference": "2fc1727c16cd8e961845f7754418cfecc47c791d"
+            },
+            "require": {
+                "aiarmada/affiliates": "self.version",
+                "aiarmada/authz": "self.version",
+                "aiarmada/commerce-support": "self.version",
+                "filament/filament": "^5.8.1",
+                "filament/spatie-laravel-media-library-plugin": "^5.8.1",
+                "php": "^8.5"
+            },
+            "suggest": {
+                "aiarmada/events": "Optional integration",
+                "aiarmada/filament-vouchers": "Optional integration",
+                "aiarmada/products": "Optional integration",
+                "aiarmada/ticketing": "Optional integration",
+                "aiarmada/vouchers": "Optional integration"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "AIArmada\\FilamentAffiliates\\FilamentAffiliatesServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "AIArmada\\FilamentAffiliates\\": "src/",
+                    "AIArmada\\FilamentAffiliates\\Database\\Factories\\": "database/factories/",
+                    "AIArmada\\FilamentAffiliates\\Database\\Seeders\\": "database/seeders/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Filament admin plugin for managing AIArmada affiliate programs, attributions, and commissions.",
+            "homepage": "https://github.com/aiarmada/commerce",
+            "support": {
+                "issues": "https://github.com/aiarmada/commerce/issues",
+                "source": "https://github.com/aiarmada/commerce"
+            },
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
             "name": "aiarmada/filament-authz",
             "version": "dev-main",
             "dist": {
@@ -1170,6 +1222,55 @@
                 "issues": "https://github.com/aiarmada/commerce/issues",
                 "source": "https://github.com/aiarmada/commerce"
             },
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "aiarmada/filament-links",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../commerce/packages/filament-links",
+                "reference": "30495bf74fb70699e2e673464367d3374d94426b"
+            },
+            "require": {
+                "aiarmada/commerce-support": "self.version",
+                "aiarmada/links": "self.version",
+                "filament/filament": "^5.8.1",
+                "php": "^8.5"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "AIArmada\\FilamentLinks\\FilamentLinksServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "AIArmada\\FilamentLinks\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "AIArmada",
+                    "email": "dev@aiarmada.com"
+                }
+            ],
+            "description": "Filament admin adapter for the AIArmada links package - link management, click history, and lifecycle actions",
+            "keywords": [
+                "click-tracking",
+                "filament",
+                "laravel",
+                "links",
+                "redirect"
+            ],
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -23866,6 +23967,7 @@
         "aiarmada/engagement": 20,
         "aiarmada/events": 20,
         "aiarmada/filament-addressing": 20,
+        "aiarmada/filament-affiliates": 20,
         "aiarmada/filament-authz": 20,
         "aiarmada/filament-commerce-support": 20,
         "aiarmada/filament-communications": 20,
@@ -23873,6 +23975,7 @@
         "aiarmada/filament-engagement": 20,
         "aiarmada/filament-events": 20,
         "aiarmada/filament-inventory": 20,
+        "aiarmada/filament-links": 20,
         "aiarmada/filament-organizations": 20,
         "aiarmada/filament-persons": 20,
         "aiarmada/filament-referrals": 20,
