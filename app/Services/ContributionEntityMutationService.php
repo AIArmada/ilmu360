@@ -1558,6 +1558,10 @@ class ContributionEntityMutationService
                 'google_feature_id',
                 'google_cid',
                 'google_entity_id',
+                'formatted_address',
+                'components',
+                'metadata',
+                'navigation_links',
                 'waze_url',
             ] as $field) {
                 if (! array_key_exists($field, $payload)) {
@@ -1598,6 +1602,10 @@ class ContributionEntityMutationService
             'google_feature_id' => $googleFeatureId,
             'google_cid' => $googleCid,
             'google_entity_id' => $googleEntityId,
+            'formatted_address' => $payload['formatted_address'] ?? null,
+            'components' => $payload['components'] ?? [],
+            'metadata' => $payload['metadata'] ?? [],
+            'navigation_links' => $payload['navigation_links'] ?? [],
             'waze_url' => $payload['waze_url'] ?? null,
         ];
 

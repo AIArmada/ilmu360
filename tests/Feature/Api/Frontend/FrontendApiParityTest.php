@@ -42,6 +42,7 @@ use Database\Factories\EventKeyPersonFactory;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
@@ -186,8 +187,11 @@ it('exposes corrected frontend contract metadata', function () {
         ->assertOk()
         ->json('data');
     $institutionFields = collect($institutionContract['fields'] ?? [])->pluck('name')->all();
+    $institutionPlaceField = collect($institutionContract['fields'] ?? [])->firstWhere('name', 'address.google_place_id');
 
-    expect($institutionFields)->not->toContain('logo');
+    expect($institutionFields)->toContain('address.google_place_id')
+        ->and($institutionPlaceField['required'] ?? null)->toBeTrue()
+        ->and($institutionFields)->not->toContain('logo', 'address.google_maps_url');
 
     Sanctum::actingAs(User::factory()->create());
 
@@ -1974,6 +1978,7 @@ it('does not infer country defaults for frontend form contracts', function () {
     $submissionCountryField = collect($submitEvent['fields'])->firstWhere('name', 'submission_country_id');
     $submissionTimezoneField = collect($submitEvent['fields'])->firstWhere('name', 'submission_timezone');
     $submissionTimezoneRule = collect($submitEvent['conditional_rules'] ?? [])->firstWhere('field', 'submission_timezone');
+    $institutionTypeField = collect($submitInstitution['fields'])->firstWhere('name', 'type');
 
     expect(data_get($submitEvent, 'defaults.submission_country_id'))->toBeNull()
         ->and(data_get($submitEvent, 'defaults.submission_timezone'))->toBeNull()
@@ -1983,32 +1988,138 @@ it('does not infer country defaults for frontend form contracts', function () {
         ->and($submissionTimezoneField['required'])->toBeFalse()
         ->and($submissionTimezoneField['options_by_country'][(string) $singapore->getKey()] ?? null)->toBe([])
         ->and($submissionTimezoneRule['required_when']['submission_country_id'] ?? null)->toBe([])
+        ->and($institutionTypeField['required'])->toBeFalse()
+        ->and($institutionTypeField['allowed_values'])->toContain('masjid', 'surau')
+        ->and(data_get($submitInstitution, 'defaults.type'))->toBeNull()
         ->and(data_get($submitInstitution, 'defaults.address.country_id'))->toBeNull();
 });
 
 it('creates institution contribution requests through the frontend api', function () {
     $user = User::factory()->create();
-    $countryId = ensureFrontendApiMalaysiaCountryExists();
+    ensureFrontendApiMalaysiaCountryExists();
+    config()->set('services.google.maps_api_key', 'test-maps-key');
+    config()->set('services.google.places_enabled', true);
+    config()->set('services.google.place_link_resolution_enabled', true);
+    config()->set('services.google.places_server_api_key', 'test-server-key');
+    Http::fake([
+        'https://places.googleapis.com/v1/places/*' => Http::response([
+            'id' => 'api_place_verified',
+            'name' => 'places/api_place_verified',
+            'displayName' => ['text' => 'Sultan Salahuddin Centre'],
+            'primaryType' => 'mosque',
+            'types' => ['mosque', 'tourist_attraction', 'place_of_worship', 'establishment'],
+            'formattedAddress' => 'Jalan API, Malaysia',
+            'addressComponents' => [
+                ['longText' => 'Malaysia', 'shortText' => 'MY', 'types' => ['country', 'political']],
+            ],
+            'location' => ['latitude' => 3.139, 'longitude' => 101.6869],
+            'websiteUri' => 'https://93.184.216.34/',
+            'internationalPhoneNumber' => '+60 3-1234 5678',
+            'googleMapsLinks' => [
+                'placeUri' => 'https://maps.google.com/?cid=123456789',
+            ],
+        ], 200),
+        'https://93.184.216.34/*' => Http::response(
+            '<html><a href="https://www.facebook.com/masjidapi/">Facebook</a></html>',
+            200,
+            ['Content-Type' => 'text/html; charset=UTF-8'],
+        ),
+    ]);
+
     Sanctum::actingAs($user);
 
     $this->postJson(route('api.client.contributions.institutions.store'), [
-        'type' => 'masjid',
-        'name' => 'Masjid API',
         'description' => '<p>Institution description</p>',
         'address' => [
-            'country_id' => $countryId,
-            'google_maps_url' => 'https://maps.google.com/?q=masjid+api',
+            'google_place_id' => 'api_place_verified',
         ],
     ])
         ->assertCreated()
         ->assertJsonPath('message', __('Thank you. Your institution submission has been received. We will notify you if it is approved or rejected.'))
-        ->assertJsonPath('data.institution.name', 'Masjid API');
+        ->assertJsonPath('data.institution.name', 'Sultan Salahuddin Centre');
 
-    $institution = Institution::query()->where('name', 'Masjid API')->firstOrFail();
+    $institution = Institution::query()->where('name', 'Sultan Salahuddin Centre')->firstOrFail();
 
     expect($institution->status)->toBe(InstitutionStatus::Pending)
+        ->and($institution->type)->toBe(InstitutionType::Masjid)
         ->and($institution->members()->whereKey($user->id)->exists())->toBeFalse()
-        ->and(ContributionRequest::query()->where('entity_id', $institution->getKey())->exists())->toBeTrue();
+        ->and(ContributionRequest::query()->where('entity_id', $institution->getKey())->exists())->toBeTrue()
+        ->and($institution->primaryAddress()?->google_place_id)->toBe('api_place_verified')
+        ->and($institution->primaryAddress()?->google_cid)->toBe('123456789')
+        ->and($institution->primaryAddress()?->latitude)->toBe(3.139)
+        ->and($institution->primaryAddress()?->longitude)->toBe(101.6869)
+        ->and($institution->primaryAddress()?->formatted_address)->toBe('Jalan API, Malaysia')
+        ->and(data_get($institution->primaryAddress()?->metadata, 'google_places.resource_name'))->toBe('places/api_place_verified')
+        ->and($institution->contactMethods()->where('type', 'website')->value('value'))->toBe('https://93.184.216.34/')
+        ->and($institution->contactMethods()->where('type', 'phone')->value('value'))->toBe('+60312345678')
+        ->and($institution->socialProfiles()->where('platform', 'facebook')->value('handle'))->toBe('masjidapi');
+
+    Http::assertSent(fn ($request): bool => str_starts_with((string) $request->url(), 'https://places.googleapis.com/v1/places/api_place_verified')
+        && $request->hasHeader('X-Goog-FieldMask', '*')
+        && $request->hasHeader('X-Goog-Api-Key', 'test-server-key'));
+});
+
+it('rejects institution api contributions without a verified Maps place', function () {
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+
+    $this->postJson(route('api.client.contributions.institutions.store'), [
+        'type' => 'masjid',
+        'name' => 'Unverified API Institution',
+        'address' => [],
+    ])->assertUnprocessable()
+        ->assertJsonValidationErrors(['address.google_place_id']);
+
+    config()->set('services.google.maps_api_key', 'test-maps-key');
+    config()->set('services.google.places_enabled', true);
+    config()->set('services.google.place_link_resolution_enabled', true);
+    config()->set('services.google.places_server_api_key', 'test-server-key');
+    Http::fake([
+        'https://places.googleapis.com/v1/places/*' => Http::response([
+            'id' => 'a-different-place',
+            'addressComponents' => [['longText' => 'Malaysia', 'shortText' => 'MY', 'types' => ['country']]],
+            'location' => ['latitude' => 3.139, 'longitude' => 101.6869],
+        ], 200),
+    ]);
+
+    $this->postJson(route('api.client.contributions.institutions.store'), [
+        'type' => 'masjid',
+        'name' => 'Forged API Institution',
+        'address' => ['google_place_id' => 'requested-place'],
+    ])->assertUnprocessable()
+        ->assertJsonValidationErrors(['address.google_place_id']);
+
+    expect(Institution::query()->whereIn('name', ['Unverified API Institution', 'Forged API Institution'])->exists())->toBeFalse();
+});
+
+it('requires an explicit institution type when Google Maps cannot infer one', function () {
+    $user = User::factory()->create();
+    ensureFrontendApiMalaysiaCountryExists();
+    config()->set('services.google.maps_api_key', 'test-maps-key');
+    config()->set('services.google.places_enabled', true);
+    config()->set('services.google.place_link_resolution_enabled', true);
+    config()->set('services.google.places_server_api_key', 'test-server-key');
+    Http::fake([
+        'https://places.googleapis.com/v1/places/*' => Http::response([
+            'id' => 'unclassified_place',
+            'displayName' => ['text' => 'Pondok Selera'],
+            'primaryType' => 'restaurant',
+            'types' => ['restaurant', 'food', 'establishment'],
+            'addressComponents' => [
+                ['longText' => 'Malaysia', 'shortText' => 'MY', 'types' => ['country', 'political']],
+            ],
+            'location' => ['latitude' => 3.139, 'longitude' => 101.6869],
+        ], 200),
+    ]);
+
+    Sanctum::actingAs($user);
+
+    $this->postJson(route('api.client.contributions.institutions.store'), [
+        'address' => ['google_place_id' => 'unclassified_place'],
+    ])->assertUnprocessable()
+        ->assertJsonValidationErrors(['type']);
+
+    expect(Institution::query()->where('name', 'Pondok Selera')->exists())->toBeFalse();
 });
 
 it('creates person contribution requests through the frontend api with an explicit country alias', function () {

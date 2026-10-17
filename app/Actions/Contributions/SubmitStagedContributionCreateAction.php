@@ -2,6 +2,7 @@
 
 namespace App\Actions\Contributions;
 
+use App\Actions\Institutions\WithInstitutionMapsIdentityLockAction;
 use App\Enums\ContributionSubjectType;
 use App\Models\Institution;
 use App\Models\Person;
@@ -21,6 +22,7 @@ class SubmitStagedContributionCreateAction
         protected EnsureUniqueContributionCreateAction $ensureUniqueContributionCreateAction,
         protected ResolveContributionSubmissionStateAction $resolveContributionSubmissionStateAction,
         protected SubmitContributionCreateRequestAction $submitContributionCreateRequestAction,
+        protected WithInstitutionMapsIdentityLockAction $withInstitutionMapsIdentityLockAction,
     ) {}
 
     /**
@@ -34,7 +36,7 @@ class SubmitStagedContributionCreateAction
         ?callable $persistRelationships = null,
         string $validationKeyPrefix = '',
     ): Institution|Person {
-        return DB::transaction(function () use ($subjectType, $state, $user, $persistRelationships, $validationKeyPrefix): Institution|Person {
+        $create = fn (): Institution|Person => DB::transaction(function () use ($subjectType, $state, $user, $persistRelationships, $validationKeyPrefix): Institution|Person {
             $submissionState = $this->resolveContributionSubmissionStateAction->handle($state);
             $state = $submissionState['state'];
 
@@ -60,6 +62,10 @@ class SubmitStagedContributionCreateAction
 
             return $entity;
         });
+
+        return $subjectType === ContributionSubjectType::Institution
+            ? $this->withInstitutionMapsIdentityLockAction->handle($state, $create)
+            : $create();
     }
 
     /**

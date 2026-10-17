@@ -25,14 +25,38 @@ class InstitutionContributionFormSchema
         bool $requireGoogleMaps = false,
         ?string $addressStatePath = null,
         bool $includeLocationPicker = false,
+        bool $mapsSelectionRequired = false,
     ): array {
-        $shouldRenderLocationPicker = self::shouldRenderLocationPicker($includeLocationPicker, $addressStatePath);
+        $shouldRenderLocationPicker = self::shouldRenderLocationPicker(
+            $includeLocationPicker,
+            $addressStatePath,
+            $mapsSelectionRequired,
+        );
+        $mapsSearchSection = $mapsSelectionRequired
+            ? [
+                Section::make(__('Find the institution on Google Maps'))
+                    ->description(__('Search and select the institution before entering its details.'))
+                    ->schema([
+                        View::make('filament.schemas.components.institution-location-picker')
+                            ->statePath($addressStatePath)
+                            ->columnSpanFull()
+                            ->viewData([
+                                'mapsApiKey' => GooglePlacesConfiguration::apiKey(),
+                                'applyMethod' => 'applyPlaceSelection',
+                                'requiredSelection' => true,
+                                'failureMessage' => __('Google Maps search is unavailable. Retry the search before submitting.'),
+                            ]),
+                    ]),
+            ]
+            : [];
 
         $components = [
+            ...$mapsSearchSection,
             Section::make(__('Institution Profile'))
                 ->schema([
                     Select::make('type')
                         ->label(__('Institution Type'))
+                        ->helperText(__('Google Maps suggests an institution type when it can; review or change it here.'))
                         ->options(InstitutionType::class)
                         ->required(),
                     TextInput::make('name')
@@ -76,7 +100,7 @@ class InstitutionContributionFormSchema
             Section::make(__('Address'))
                 ->description(__('Choose the country and region where this institution is based.'))
                 ->schema([
-                    ...($shouldRenderLocationPicker
+                    ...($shouldRenderLocationPicker && ! $mapsSelectionRequired
                         ? [
                             View::make('filament.schemas.components.institution-location-picker')
                                 ->statePath($addressStatePath)
@@ -88,20 +112,20 @@ class InstitutionContributionFormSchema
                         : []),
                     ...($addressStatePath === null
                         ? SharedFormSchema::addressFields(
-                            requireGoogleMaps: $requireGoogleMaps,
-                            showGoogleMapsUrlField: true,
+                            requireGoogleMaps: $requireGoogleMaps && ! $mapsSelectionRequired,
+                            showGoogleMapsUrlField: ! $mapsSelectionRequired,
                             enableGoogleMapsNormalization: true,
-                            enableGoogleMapsRemoteLookup: $shouldRenderLocationPicker,
+                            enableGoogleMapsRemoteLookup: $shouldRenderLocationPicker && ! $mapsSelectionRequired,
                             includeCountryField: true,
                             showCountryField: false,
                             requireCountryField: true,
                         )
                         : [SharedFormSchema::addressGroup(
-                            requireGoogleMaps: $requireGoogleMaps,
+                            requireGoogleMaps: $requireGoogleMaps && ! $mapsSelectionRequired,
                             statePath: $addressStatePath,
-                            showGoogleMapsUrlField: true,
+                            showGoogleMapsUrlField: ! $mapsSelectionRequired,
                             enableGoogleMapsNormalization: true,
-                            enableGoogleMapsRemoteLookup: $shouldRenderLocationPicker,
+                            enableGoogleMapsRemoteLookup: $shouldRenderLocationPicker && ! $mapsSelectionRequired,
                             includeCountryField: true,
                             showCountryField: false,
                             requireCountryField: true,
@@ -119,7 +143,7 @@ class InstitutionContributionFormSchema
         ];
 
         if ($includeMedia) {
-            array_splice($components, 2, 0, [
+            array_splice($components, $mapsSelectionRequired ? 3 : 2, 0, [
                 Section::make(__('Media'))
                     ->schema([
                         SpatieMediaLibraryFileUpload::make('logo')
@@ -237,11 +261,14 @@ class InstitutionContributionFormSchema
             ->columns(['default' => 1, 'sm' => 2]);
     }
 
-    private static function shouldRenderLocationPicker(bool $includeLocationPicker, ?string $addressStatePath): bool
-    {
+    private static function shouldRenderLocationPicker(
+        bool $includeLocationPicker,
+        ?string $addressStatePath,
+        bool $mapsSelectionRequired,
+    ): bool {
         return $includeLocationPicker
             && $addressStatePath !== null
-            && GooglePlacesConfiguration::isEnabled();
+            && ($mapsSelectionRequired || GooglePlacesConfiguration::isEnabled());
     }
 
     /**

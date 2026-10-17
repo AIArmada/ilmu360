@@ -24,6 +24,7 @@ final class ProductSignalSchemaRegistry
             'report.submitted' => ['report_id', 'entity_type', 'entity_id', 'category', 'status'],
             'notification.read' => ['notification_id', 'family', 'trigger', 'action_url'],
             'notification.read_all' => ['updated_count'],
+            'contribution.institution_maps_place_selected' => ['has_website', 'social_profile_count'],
             'search.executed' => ['interaction_type', 'surface', 'query', 'filter_keys', 'filters', 'result_count', 'saved_search_id'],
             'listing.filtered' => ['interaction_type', 'surface', 'filter_keys', 'filters', 'result_count', 'saved_search_id'],
             'admin.event_cover.generated' => ['event_id', 'event_status'],

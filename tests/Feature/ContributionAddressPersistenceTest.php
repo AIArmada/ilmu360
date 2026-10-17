@@ -11,6 +11,7 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
 use App\Services\ContributionEntityMutationService;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\Sanctum;
 
@@ -18,6 +19,28 @@ it('persists state city and area assignments when creating institutions through 
     $user = User::factory()->create();
     Sanctum::actingAs($user);
     $geo = createTestPackageGeography(subdistrictName: 'Damansara', cityName: 'Petaling Jaya');
+    config()->set('services.google.maps_api_key', 'test-maps-key');
+    config()->set('services.google.places_enabled', true);
+    config()->set('services.google.place_link_resolution_enabled', true);
+    config()->set('services.google.places_server_api_key', 'test-server-key');
+    Http::fake([
+        'https://places.googleapis.com/v1/places/*' => Http::response([
+            'id' => 'verified_geo_place',
+            'displayName' => ['text' => 'Masjid Geo Penuh'],
+            'primaryType' => 'mosque',
+            'formattedAddress' => 'Jalan Geo, Petaling Jaya, Selangor, Malaysia',
+            'googleMapsUri' => 'https://maps.google.com/?cid=123456789',
+            'addressComponents' => [
+                ['longText' => 'Jalan Geo', 'shortText' => 'Jalan Geo', 'types' => ['route']],
+                ['longText' => 'Damansara', 'shortText' => 'Damansara', 'types' => ['sublocality_level_1', 'sublocality', 'political']],
+                ['longText' => 'Petaling Jaya', 'shortText' => 'Petaling Jaya', 'types' => ['locality', 'political']],
+                ['longText' => 'Petaling', 'shortText' => 'Petaling', 'types' => ['administrative_area_level_2', 'political']],
+                ['longText' => 'Selangor', 'shortText' => 'Selangor', 'types' => ['administrative_area_level_1', 'political']],
+                ['longText' => 'Malaysia', 'shortText' => 'MY', 'types' => ['country', 'political']],
+            ],
+            'location' => ['latitude' => 3.139, 'longitude' => 101.6869],
+        ], 200),
+    ]);
 
     $this->postJson(route('api.client.contributions.institutions.store'), [
         'type' => 'masjid',
@@ -27,7 +50,7 @@ it('persists state city and area assignments when creating institutions through 
             'state_id' => (string) $geo['state']->getKey(),
             'city_id' => (string) $geo['city']->getKey(),
             'line1' => 'Jalan Geo',
-            'google_maps_url' => 'https://maps.google.com/?q=masjid+geo',
+            'google_place_id' => 'verified_geo_place',
             'area_assignments' => [
                 'administrative_district' => (string) $geo['district']->getKey(),
             ],
@@ -147,7 +170,7 @@ it('rejects unknown area roles at the api boundary', function () {
             'country_id' => (string) $geo['country']->getKey(),
             'state_id' => (string) $geo['state']->getKey(),
             'line1' => 'Jalan Palsu',
-            'google_maps_url' => 'https://maps.google.com/?q=masjid+palsu',
+            'google_place_id' => 'unresolved_role_test_place',
             'area_assignments' => [
                 'bogus_role' => (string) $geo['district']->getKey(),
             ],

@@ -8,6 +8,7 @@ use App\Forms\SharedFormSchema;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Support\Location\AddressAssignments;
+use App\Support\Location\GooglePlaceIdentity;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
@@ -41,7 +42,7 @@ final readonly class EnsureUniqueContributionCreateAction
 
         throw ValidationException::withMessages([
             $this->validationKey('name', $validationKeyPrefix) => __(
-                'An institution with the same name and locality already exists in the same country. Please submit an update instead of creating a new record.'
+                'An institution with the same Google Maps place or name and locality already exists. Please submit an update instead of creating a new record.'
             ),
         ]);
     }
@@ -67,15 +68,24 @@ final readonly class EnsureUniqueContributionCreateAction
      */
     private function institutionDuplicateExists(array $state): bool
     {
+        $address = is_array($state['address'] ?? null)
+            ? SharedFormSchema::prepareAddressPersistenceData($state['address'])
+            : [];
+
+        $placeId = $this->normalizeIdentityString($address['google_place_id'] ?? null);
+        $cid = GooglePlaceIdentity::canonicalCid($address['google_cid'] ?? null)
+            ?? GooglePlaceIdentity::cidFromFeatureId($address['google_feature_id'] ?? null)
+            ?? $this->cidFromGoogleMapsUrl($address['google_maps_url'] ?? null);
+
+        if ($this->institutionMapsDuplicateExists($cid, $placeId)) {
+            return true;
+        }
+
         $name = $this->normalizeComparableString($state['name'] ?? null);
 
         if ($name === null) {
             return false;
         }
-
-        $address = is_array($state['address'] ?? null)
-            ? SharedFormSchema::prepareAddressPersistenceData($state['address'])
-            : [];
 
         $countryId = $this->normalizeNullableUuid($address['country_id'] ?? null);
         $stateId = $this->normalizeNullableUuid($address['state_id'] ?? null);
@@ -104,6 +114,78 @@ final readonly class EnsureUniqueContributionCreateAction
             })
             ->get(['id', 'name'])
             ->contains(fn (Institution $institution): bool => $this->normalizeComparableString($institution->name) === $name);
+    }
+
+    private function institutionMapsDuplicateExists(?string $cid, ?string $placeId): bool
+    {
+        if ($cid === null && $placeId === null) {
+            return false;
+        }
+
+        $featureCid = $cid !== null ? GooglePlaceIdentity::hexCidFromDecimal($cid) : null;
+
+        $candidateInstitutions = Institution::query()
+            ->whereIn('status', InstitutionStatus::publiclyVisibleValues())
+            ->whereHas('addresses', function (Builder $query) use ($cid, $placeId, $featureCid): void {
+                $query->where(function (Builder $identityQuery) use ($cid, $placeId, $featureCid): void {
+                    if ($cid !== null) {
+                        $identityQuery->where('google_cid', $cid)
+                            ->orWhere('google_maps_url', 'like', '%cid='.$cid.'%')
+                            ->orWhere('google_maps_url', 'like', '%ludocid='.$cid.'%');
+
+                        if ($featureCid !== null) {
+                            $identityQuery->orWhereRaw('LOWER(google_feature_id) LIKE ?', ['%:0x%'.$featureCid])
+                                ->orWhereRaw('LOWER(google_maps_url) LIKE ?', ['%:0x%'.$featureCid.'%']);
+                        }
+                    }
+
+                    if ($placeId !== null) {
+                        $identityQuery->orWhere('google_place_id', $placeId);
+                    }
+                });
+            })
+            ->with(['addresses' => static fn ($query) => $query->select([
+                'addresses.id',
+                'google_cid',
+                'google_place_id',
+                'google_feature_id',
+                'google_maps_url',
+            ])])
+            ->get();
+
+        foreach ($candidateInstitutions as $institution) {
+            foreach ($institution->addresses as $address) {
+                if ($placeId !== null && $address->google_place_id === $placeId) {
+                    return true;
+                }
+
+                if ($cid !== null && GooglePlaceIdentity::canonicalCid($address->google_cid) === $cid) {
+                    return true;
+                }
+
+                if ($cid !== null && GooglePlaceIdentity::cidFromFeatureId($address->google_feature_id) === $cid) {
+                    return true;
+                }
+
+                if ($cid !== null
+                    && is_string($address->google_maps_url)
+                    && in_array($cid, GooglePlaceIdentity::cidsFromGoogleMapsUrl($address->google_maps_url), true)
+                ) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private function cidFromGoogleMapsUrl(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        return GooglePlaceIdentity::cidsFromGoogleMapsUrl($value)[0] ?? null;
     }
 
     /**
@@ -151,6 +233,17 @@ final readonly class EnsureUniqueContributionCreateAction
         }
 
         return $normalized;
+    }
+
+    private function normalizeIdentityString(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $normalized = trim($value);
+
+        return $normalized === '' ? null : $normalized;
     }
 
     private function normalizeNullableUuid(mixed $value): ?string

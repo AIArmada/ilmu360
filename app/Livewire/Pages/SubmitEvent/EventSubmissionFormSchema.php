@@ -62,6 +62,7 @@ use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Js;
 use Illuminate\Support\Str;
+use RuntimeException;
 use Throwable;
 use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
 use Ysfkaya\FilamentPhoneInput\PhoneInputNumberType;
@@ -950,26 +951,27 @@ final class EventSubmissionFormSchema
                             $set('space_ids', []);
                         }),
 
-                    Select::make('primary_organizer_institution_id')
-                        ->native(false)
-                        ->label(__('Institusi'))
-                        ->options(fn (Get $get): array => $this->options->institutionOptions(
-                            $this->context->submitter,
-                            self::resolveSubmissionCountryId($get('submission_country_id')),
-                            $this->context->scopedInstitution,
-                        ))
-                        ->searchable()
-                        ->preload()
-                        ->disabled($hasScopedInstitution)
-                        ->dehydrated()
-                        ->live()
-                        ->visibleJs($hasScopedInstitutionJs." || \$get('primary_organizer_kind') === 'institution'")
-                        ->extraAlpineAttributes([
-                            'x-bind:required' => <<<'JS'
+                    $this->withVerifiedInstitutionQuickAdd(
+                        Select::make('primary_organizer_institution_id')
+                            ->native(false)
+                            ->label(__('Institusi'))
+                            ->options(fn (Get $get): array => $this->options->institutionOptions(
+                                $this->context->submitter,
+                                self::resolveSubmissionCountryId($get('submission_country_id')),
+                                $this->context->scopedInstitution,
+                            ))
+                            ->searchable()
+                            ->preload()
+                            ->disabled($hasScopedInstitution)
+                            ->dehydrated()
+                            ->live()
+                            ->visibleJs($hasScopedInstitutionJs." || \$get('primary_organizer_kind') === 'institution'")
+                            ->extraAlpineAttributes([
+                                'x-bind:required' => <<<'JS'
                                 $get('primary_organizer_kind') === 'institution' && ! $get('primary_organizer_id')
                             JS,
-                        ])
-                        ->afterStateUpdatedJs(<<<'JS'
+                            ])
+                            ->afterStateUpdatedJs(<<<'JS'
                             const organizerId = $state || null;
                             $set('primary_organizer_id', organizerId);
 
@@ -979,21 +981,20 @@ final class EventSubmissionFormSchema
                                 $set('space_ids', []);
                             }
                         JS)
-                        ->afterStateUpdatedJs($this->progressUpdateJs())
-                        ->required(fn (Get $get): bool => self::selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')) === 'institution' && ! filled($get('primary_organizer_id')))
-                        ->afterStateUpdated(function (Get $get, Set $set, mixed $state): void {
-                            $organizerId = is_scalar($state) && trim((string) $state) !== '' ? trim((string) $state) : null;
+                            ->afterStateUpdatedJs($this->progressUpdateJs())
+                            ->required(fn (Get $get): bool => self::selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')) === 'institution' && ! filled($get('primary_organizer_id')))
+                            ->afterStateUpdated(function (Get $get, Set $set, mixed $state): void {
+                                $organizerId = is_scalar($state) && trim((string) $state) !== '' ? trim((string) $state) : null;
 
-                            $set('primary_organizer_id', $organizerId);
+                                $set('primary_organizer_id', $organizerId);
 
-                            if ((bool) $get('location_same_as_institution')) {
-                                $set('location_institution_id', $organizerId);
-                                $set('location_venue_id', null);
-                                $set('space_ids', []);
-                            }
-                        })
-                        ->createOptionForm(InstitutionFormSchema::createOptionForm(includeLocationPicker: true))
-                        ->createOptionUsing(fn (array $data, Schema $schema): string => InstitutionFormSchema::createOptionUsing($data, $schema)),
+                                if ((bool) $get('location_same_as_institution')) {
+                                    $set('location_institution_id', $organizerId);
+                                    $set('location_venue_id', null);
+                                    $set('space_ids', []);
+                                }
+                            })
+                    ),
 
                     Select::make('primary_organizer_person_id')
                         ->native(false)
@@ -1077,24 +1078,24 @@ final class EventSubmissionFormSchema
                         ->required(fn (Get $get): bool => (self::selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')) === 'person' || ! $get('location_same_as_institution')) && ! in_array($get('event_format'), [EventFormat::Online, EventFormat::Online->value], true))
                         ->afterStateUpdatedJs($this->progressUpdateJs()),
 
-                    Select::make('location_institution_id')
-                        ->native(false)
-                        ->label(__('Institusi'))
-                        ->options(fn (Get $get): array => $this->options->institutionOptions(
-                            $this->context->submitter,
-                            self::resolveSubmissionCountryId($get('submission_country_id')),
-                            $this->context->scopedInstitution,
-                        ))
-                        ->searchable()
-                        ->preload()
-                        ->live()
-                        ->afterStateUpdated(fn (Set $set) => $set('space_ids', []))
-                        ->afterStateUpdatedJs("\$set('space_ids', [])")
-                        ->visibleJs("! {$hasScopedInstitutionJs} && (\$get('primary_organizer_kind') === 'person' || !\$get('location_same_as_institution')) && \$get('location_type') === 'institution'")
-                        ->required(fn (Get $get): bool => ! in_array($get('event_format'), [EventFormat::Online, EventFormat::Online->value], true) && (self::selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')) === 'person' || ! $get('location_same_as_institution')) && $get('location_type') === 'institution')
-                        ->afterStateUpdatedJs($this->progressUpdateJs())
-                        ->createOptionForm(InstitutionFormSchema::createOptionForm(includeLocationPicker: true))
-                        ->createOptionUsing(fn (array $data, Schema $schema): string => InstitutionFormSchema::createOptionUsing($data, $schema)),
+                    $this->withVerifiedInstitutionQuickAdd(
+                        Select::make('location_institution_id')
+                            ->native(false)
+                            ->label(__('Institusi'))
+                            ->options(fn (Get $get): array => $this->options->institutionOptions(
+                                $this->context->submitter,
+                                self::resolveSubmissionCountryId($get('submission_country_id')),
+                                $this->context->scopedInstitution,
+                            ))
+                            ->searchable()
+                            ->preload()
+                            ->live()
+                            ->afterStateUpdated(fn (Set $set) => $set('space_ids', []))
+                            ->afterStateUpdatedJs("\$set('space_ids', [])")
+                            ->visibleJs("! {$hasScopedInstitutionJs} && (\$get('primary_organizer_kind') === 'person' || !\$get('location_same_as_institution')) && \$get('location_type') === 'institution'")
+                            ->required(fn (Get $get): bool => ! in_array($get('event_format'), [EventFormat::Online, EventFormat::Online->value], true) && (self::selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')) === 'person' || ! $get('location_same_as_institution')) && $get('location_type') === 'institution')
+                            ->afterStateUpdatedJs($this->progressUpdateJs())
+                    ),
 
                     Select::make('location_venue_id')
                         ->native(false)
@@ -1972,6 +1973,60 @@ final class EventSubmissionFormSchema
         }
 
         return filled($value);
+    }
+
+    private function withVerifiedInstitutionQuickAdd(Select $select): Select
+    {
+        return $select
+            ->createOptionForm(fn (Select $component): array => InstitutionFormSchema::createOptionForm(
+                includeLocationPicker: true,
+                requireVerifiedMapsSelection: true,
+                mapsSelectionOwnerPath: $component->getStatePath(),
+            ))
+            ->createOptionAction(fn (Action $action, Select $component): Action => $action->mountUsing(
+                function (?Schema $schema = null) use ($component): void {
+                    if (! $schema instanceof Schema) {
+                        throw new RuntimeException('Institution quick-add form is not available.');
+                    }
+
+                    $schema->fill();
+                    $livewire = $component->getLivewire();
+
+                    if (! $livewire instanceof Create) {
+                        throw new RuntimeException('Institution quick-add is only available on event submission.');
+                    }
+
+                    $formPath = $schema->getStatePath();
+                    $ownerStatePath = $component->getStatePath();
+                    $nonce = $livewire->beginInstitutionQuickAddMapsSelection($formPath, $ownerStatePath);
+                    data_set($livewire, $formPath.'.address.maps_selection_nonce', $nonce);
+                    data_set($livewire, $formPath.'.address.maps_selection_token', null);
+                },
+            ))
+            ->createOptionUsing(function (array $data, Schema $schema, Select $component): string {
+                $livewire = $component->getLivewire();
+
+                if (! $livewire instanceof Create) {
+                    throw new RuntimeException('Institution quick-add is only available on event submission.');
+                }
+
+                $formPath = $schema->getStatePath();
+                $ownerStatePath = $component->getStatePath();
+                $verifiedMapsSelection = $livewire->verifiedInstitutionQuickAddMapsSelection(
+                    $formPath,
+                    $ownerStatePath,
+                    $data,
+                );
+                $institutionId = InstitutionFormSchema::createOptionUsing(
+                    $data,
+                    $schema,
+                    requireVerifiedMapsSelection: true,
+                    verifiedMapsSelection: $verifiedMapsSelection,
+                );
+                $livewire->consumeInstitutionQuickAddMapsSelection($formPath, $ownerStatePath, $data);
+
+                return $institutionId;
+            });
     }
 
     /**

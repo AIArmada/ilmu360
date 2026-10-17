@@ -46,6 +46,13 @@ function ensureMalaysiaStateForPlaceResolution(string $name = 'Selangor'): array
         country: $country,
         type: 'state',
     );
+    AddressAreaStateLink::query()->firstOrCreate(
+        [
+            'address_area_id' => $area->getKey(),
+            'state_id' => $packageState->getKey(),
+            'hierarchy_type' => 'administrative',
+        ],
+    );
 
     return ['package' => $packageState, 'area' => $area];
 }
@@ -95,6 +102,7 @@ it('maps a google place selection into local geography ids and address fields', 
             ['longText' => 'Shah Alam', 'shortText' => 'Shah Alam', 'types' => ['locality', 'political']],
             ['longText' => 'Petaling', 'shortText' => 'Petaling', 'types' => ['administrative_area_level_2', 'political']],
             ['longText' => 'Selangor', 'shortText' => 'Selangor', 'types' => ['administrative_area_level_1', 'political']],
+            ['longText' => 'Malaysia', 'shortText' => 'MY', 'types' => ['country', 'political']],
         ],
     ]);
 
@@ -116,6 +124,22 @@ it('maps a google place selection into local geography ids and address fields', 
     Http::assertNothingSent();
 });
 
+it('does not use an institution display name as address line one', function () {
+    ensureCountryForPlaceResolution('MY', 'Malaysia');
+
+    $payload = app(ResolveGooglePlaceSelectionAction::class)->handle([
+        'displayName' => ['text' => 'Masjid Sultan Salahuddin Abdul Aziz Shah'],
+        'addressComponents' => [
+            ['longText' => 'Masjid Sultan Salahuddin Abdul Aziz Shah', 'shortText' => 'Masjid Sultan Salahuddin Abdul Aziz Shah', 'types' => ['premise']],
+            ['longText' => 'Seksyen 14', 'shortText' => 'Seksyen 14', 'types' => ['sublocality_level_1', 'sublocality', 'political']],
+            ['longText' => 'Malaysia', 'shortText' => 'MY', 'types' => ['country', 'political']],
+        ],
+    ]);
+
+    expect($payload['line1'])->toBeNull()
+        ->and($payload['line2'])->toBe('Seksyen 14');
+});
+
 it('tolerates google omitting the district when resolving a subdivision', function () {
     $state = ensureMalaysiaStateForPlaceResolution();
     $country = ensureCountryForPlaceResolution('MY', 'Malaysia');
@@ -127,6 +151,7 @@ it('tolerates google omitting the district when resolving a subdivision', functi
         'addressComponents' => [
             ['longText' => 'Shah Alam', 'shortText' => 'Shah Alam', 'types' => ['locality', 'political']],
             ['longText' => 'Selangor', 'shortText' => 'Selangor', 'types' => ['administrative_area_level_1', 'political']],
+            ['longText' => 'Malaysia', 'shortText' => 'MY', 'types' => ['country', 'political']],
         ],
     ]);
 
@@ -197,6 +222,7 @@ it('leaves ambiguous geography ids empty instead of guessing', function () {
         'addressComponents' => [
             ['longText' => 'Petaling', 'shortText' => 'Petaling', 'types' => ['administrative_area_level_2', 'political']],
             ['longText' => 'Selangor', 'shortText' => 'Selangor', 'types' => ['administrative_area_level_1', 'political']],
+            ['longText' => 'Malaysia', 'shortText' => 'MY', 'types' => ['country', 'political']],
         ],
     ]);
 
@@ -221,6 +247,7 @@ it('resolves federal territory subdistricts directly from the state without a di
             ['longText' => '54200', 'shortText' => '54200', 'types' => ['postal_code']],
             ['longText' => 'Setiawangsa', 'shortText' => 'Setiawangsa', 'types' => ['locality', 'political']],
             ['longText' => 'Kuala Lumpur', 'shortText' => 'Kuala Lumpur', 'types' => ['administrative_area_level_1', 'political']],
+            ['longText' => 'Malaysia', 'shortText' => 'MY', 'types' => ['country', 'political']],
         ],
     ]);
 
@@ -268,6 +295,7 @@ it('resolves federal territory provider localities through the postal role', fun
         'addressComponents' => [
             ['longText' => 'Setiawangsa', 'shortText' => 'Setiawangsa', 'types' => ['locality', 'political']],
             ['longText' => 'Kuala Lumpur', 'shortText' => 'Kuala Lumpur', 'types' => ['administrative_area_level_1', 'political']],
+            ['longText' => 'Malaysia', 'shortText' => 'MY', 'types' => ['country', 'political']],
         ],
     ]);
 
@@ -457,6 +485,7 @@ it('resolves federal territory roots through provider aliases', function () {
                 ['longText' => '54200', 'shortText' => '54200', 'types' => ['postal_code']],
                 ['longText' => 'Setiawangsa', 'shortText' => 'Setiawangsa', 'types' => ['locality', 'political']],
                 ['longText' => 'Kuala Lumpur', 'shortText' => 'Kuala Lumpur', 'types' => ['administrative_area_level_1', 'political']],
+                ['longText' => 'Malaysia', 'shortText' => 'MY', 'types' => ['country', 'political']],
             ],
         ]);
 

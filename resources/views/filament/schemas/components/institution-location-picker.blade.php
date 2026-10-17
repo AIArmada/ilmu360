@@ -6,7 +6,10 @@
     $pickerSelectedLabel = $selectedLabel ?? __('Selected location');
     $pickerFailureMessage = $failureMessage ?? __('Location search is temporarily unavailable. Continue with the manual address fields below.');
     $pickerApplyMethod = $applyMethod ?? 'applyLocationPickerSelection';
+    $pickerPhotoPreviewsMethod = $photoPreviewsMethod ?? 'loadPlacePhotoPreviews';
+    $pickerRequiresSelection = (bool) ($requiredSelection ?? false);
     $pickerTargetStatePath = $targetStatePath ?? $getStatePath();
+    $pickerOwnerStatePath = $ownerStatePath ?? null;
 @endphp
 
 @once
@@ -33,21 +36,33 @@
 @endonce
 
 <div
-    wire:ignore
     x-data="{
         apiKey: @js($mapsApiKey),
         applyMethod: @js($pickerApplyMethod),
+        photoPreviewsMethod: @js($pickerPhotoPreviewsMethod),
+        requiredSelection: @js($pickerRequiresSelection),
         targetStatePath: @js($pickerTargetStatePath),
+        ownerStatePath: @js($pickerOwnerStatePath),
         enabled: true,
         loading: true,
         errorMessage: null,
         selectedName: null,
         selectedAddress: null,
+        selectedPlaceId: null,
+        selectionNonce: null,
+        photos: [],
+        photosLoading: false,
         map: null,
         marker: null,
         autocompleteElement: null,
         async init() {
             try {
+                if (this.ownerStatePath) {
+                    this.selectionNonce = this.$wire.$get(`${this.targetStatePath}.maps_selection_nonce`);
+                }
+
+                this.enabled = true;
+                this.errorMessage = null;
                 await this.loadGoogleMaps();
                 await this.mountAutocomplete();
                 this.loading = false;
@@ -57,6 +72,10 @@
             }
         },
         async loadGoogleMaps() {
+            if (! this.apiKey) {
+                throw new Error('Google Maps API key is unavailable.');
+            }
+
             if (window.google?.maps?.importLibrary) {
                 return window.google.maps;
             }
@@ -122,48 +141,71 @@
                     throw new Error('Missing place prediction payload.');
                 }
 
-                const place = placePrediction.toPlace();
+                this.photos = [];
+                this.photosLoading = false;
+                this.selectedName = null;
+                this.selectedAddress = null;
+                this.selectedPlaceId = null;
+                this.$refs.mapCard.classList.add('hidden');
 
-                await place.fetchFields({
-                    fields: [
-                        'addressComponents',
-                        'displayName',
-                        'formattedAddress',
-                        'googleMapsURI',
-                        'location',
-                        'viewport',
-                    ],
-                });
-
-                const normalizedLocation = this.normalizeLocation(place.location);
-                const displayName = this.normalizeDisplayName(place.displayName);
-
-                if (! normalizedLocation) {
-                    throw new Error('Selected place did not include coordinates.');
-                }
-
-                const payload = {
-                    addressComponents: (place.addressComponents ?? []).map((component) => ({
-                        longText: component.longText ?? null,
-                        shortText: component.shortText ?? null,
-                        types: Array.isArray(component.types) ? component.types : [],
-                    })),
-                    displayName,
-                    formattedAddress: place.formattedAddress ?? null,
-                    googleMapsURI: place.googleMapsURI ?? null,
-                    location: normalizedLocation,
+                const selectionPayload = {
                     placeId: placePrediction.placeId ?? null,
                 };
 
-                await this.$wire.call(this.applyMethod, this.targetStatePath, payload);
+                if (this.ownerStatePath) {
+                    selectionPayload.ownerStatePath = this.ownerStatePath;
+                    selectionPayload.nonce = this.selectionNonce;
+                }
 
-                this.selectedName = displayName;
-                this.selectedAddress = place.formattedAddress ?? null;
+                const selection = await this.$wire.call(this.applyMethod, this.targetStatePath, selectionPayload);
+                const normalizedLocation = this.normalizeLocation({
+                    lat: selection?.latitude,
+                    lng: selection?.longitude,
+                });
 
-                this.renderMap(normalizedLocation, place.viewport ?? null);
+                if (! normalizedLocation) {
+                    throw new Error('Google Maps could not verify this place. Select it again.');
+                }
+
+                this.errorMessage = null;
+                this.selectedName = selection.google_display_name ?? null;
+                this.selectedAddress = selection.formatted_address ?? null;
+                this.selectedPlaceId = selection.google_place_id ?? null;
+                this.renderMap(normalizedLocation, null);
+
+                if (this.requiredSelection && this.selectedPlaceId) {
+                    this.loadPhotos(this.selectedPlaceId);
+                }
             } catch (error) {
                 console.error(error);
+                this.photos = [];
+                this.selectedName = null;
+                this.selectedAddress = null;
+                this.selectedPlaceId = null;
                 this.disablePicker(@js($pickerFailureMessage));
+            }
+        },
+        async loadPhotos(placeId) {
+            this.photosLoading = true;
+
+            try {
+                const photoArguments = [placeId];
+
+                if (this.ownerStatePath) {
+                    photoArguments.push(this.targetStatePath, this.ownerStatePath);
+                }
+
+                const photos = await this.$wire.call(this.photoPreviewsMethod, ...photoArguments);
+
+                if (this.selectedPlaceId === placeId) {
+                    this.photos = Array.isArray(photos) ? photos : [];
+                }
+            } catch (error) {
+                console.error(error);
+            } finally {
+                if (this.selectedPlaceId === placeId) {
+                    this.photosLoading = false;
+                }
             }
         },
         normalizeLocation(location) {
@@ -179,21 +221,6 @@
             }
 
             return { lat, lng };
-        },
-        normalizeDisplayName(displayName) {
-            if (! displayName) {
-                return null;
-            }
-
-            if (typeof displayName === 'string') {
-                return displayName;
-            }
-
-            if (typeof displayName.text === 'string') {
-                return displayName.text;
-            }
-
-            return null;
         },
         async renderMap(location, viewport) {
             const { Map } = await google.maps.importLibrary('maps');
@@ -223,16 +250,22 @@
             this.$refs.mapCard.classList.remove('hidden');
         },
         disablePicker(message) {
-            this.enabled = false;
+            this.enabled = this.requiredSelection;
             this.loading = false;
             this.errorMessage = message;
-            this.autocompleteElement = null;
+        },
+        retry() {
+            this.errorMessage = null;
+            this.loading = true;
+            this.enabled = true;
+            this.init();
         },
     }"
     x-init="init()"
     class="mi-institution-location-picker space-y-2"
 >
     <div
+        wire:ignore
         x-show="enabled"
         x-cloak
         class="space-y-2"
@@ -276,14 +309,77 @@
                 <p x-show="selectedName" x-text="selectedName" class="text-sm font-semibold text-slate-900"></p>
                 <p x-show="selectedAddress" x-text="selectedAddress" class="text-sm leading-6 text-slate-600"></p>
             </div>
+
+            <div x-show="photos.length > 0" x-cloak class="space-y-3 border-t border-slate-100 px-4 py-4">
+                <div>
+                    <p class="text-sm font-semibold text-slate-900">{{ __('Google Maps photos') }}</p>
+                    <p class="mt-1 text-xs leading-5 text-slate-600">{{ __('Preview attributed photos from Google Maps. Add your own institution photos in the Media section below.') }}</p>
+                </div>
+
+                <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <template x-for="photo in photos" :key="photo.preview_url">
+                        <figure class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                            <img
+                                x-bind:src="photo.preview_url"
+                                x-bind:width="photo.width ?? undefined"
+                                x-bind:height="photo.height ?? undefined"
+                                loading="lazy"
+                                referrerpolicy="no-referrer"
+                                alt="{{ __('Google Maps photo preview') }}"
+                                class="h-40 w-full object-cover"
+                            >
+                            <figcaption class="space-y-1.5 p-3 text-xs text-slate-600">
+                                <template x-for="attribution in photo.attributions" :key="attribution.uri ?? attribution.display_name">
+                                    <p>
+                                        <span>{{ __('Photo by') }}</span>
+                                        <a
+                                            x-show="attribution.uri"
+                                            x-bind:href="attribution.uri"
+                                            x-text="attribution.display_name ?? attribution.uri"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="font-medium text-slate-900 underline underline-offset-2"
+                                        ></a>
+                                        <span x-show="! attribution.uri" x-text="attribution.display_name"></span>
+                                    </p>
+                                </template>
+                                <a
+                                    x-bind:href="photo.google_maps_uri"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="inline-flex font-medium text-slate-900 underline underline-offset-2"
+                                >{{ __('View this photo on Google Maps') }}</a>
+                            </figcaption>
+                        </figure>
+                    </template>
+                </div>
+            </div>
+            <p x-show="photosLoading" x-cloak class="border-t border-slate-100 px-4 py-3 text-xs text-slate-500">
+                {{ __('Loading Google Maps photo previews...') }}
+            </p>
         </div>
     </div>
 
     <div
-        x-show="! enabled && errorMessage"
+        wire:ignore
+        x-show="errorMessage"
         x-cloak
         class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
     >
         <p x-text="errorMessage"></p>
+        <button
+            x-show="requiredSelection"
+            type="button"
+            @click="retry()"
+            class="mt-2 font-semibold underline underline-offset-2"
+        >
+            {{ __('Retry Google Maps search') }}
+        </button>
     </div>
+
+    @if ($pickerRequiresSelection)
+        @error($pickerTargetStatePath . '.google_place_id')
+            <p role="alert" class="text-sm text-red-600">{{ $message }}</p>
+        @enderror
+    @endif
 </div>

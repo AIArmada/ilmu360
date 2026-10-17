@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api\Frontend;
 
+use AIArmada\Contacting\Enums\ContactMethodType;
+use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Persons\Enums\Gender;
 use App\Actions\Contributions\ApplyDirectContributionUpdateAction;
 use App\Actions\Contributions\ApproveContributionRequestAction;
@@ -19,6 +21,10 @@ use App\Actions\Contributions\ResolvePendingContributionRequestAction;
 use App\Actions\Contributions\ResolveReviewableContributionRequestAction;
 use App\Actions\Contributions\SubmitContributionUpdateRequestAction;
 use App\Actions\Contributions\SubmitStagedContributionCreateAction;
+use App\Actions\Institutions\InferInstitutionTypeAction;
+use App\Actions\Location\DiscoverWebsiteSocialProfilesAction;
+use App\Actions\Location\FetchGooglePlaceDetailsAction;
+use App\Actions\Location\ResolveGooglePlaceSelectionAction;
 use App\Enums\ContributionSubjectType;
 use App\Enums\InstitutionType;
 use App\Filament\Resources\ContributionRequests\Support\ContributionRequestPresenter;
@@ -33,12 +39,14 @@ use App\Rules\ValidAreaAssignmentRoles;
 use App\Services\ContributionEntityMutationService;
 use App\Support\Api\Frontend\FrontendMediaSyncService;
 use App\Support\Events\EventContributionUpdateStateMapper;
+use App\Support\Location\GooglePlaceIdentity;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\PathParameter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -81,23 +89,27 @@ class ContributionController extends FrontendController
         title: 'Create an institution contribution',
         description: 'Creates a new public institution contribution request. '
             .'The proposer is not automatically added as an institution owner, admin, editor, or member; they only receive review outcome notifications. '
-            .'Duplicate institutions are rejected when the normalized name and locality match an existing institution. '
-            .'Institution payloads must include an explicit address country via `address.country_id`. '
-            .'Any provided `address.google_maps_url` is normalized server-side into a canonical Google Maps URL and may populate `address.google_place_id`, `address.latitude`, and `address.longitude` before persistence. `address.google_feature_id`, `address.google_cid`, and `address.google_entity_id` are accepted as manually pinned identifiers and stored verbatim. '
+            .'Duplicate institutions are rejected by Google CID when available, then by place ID, and finally by normalized name and locality. '
+            .'Institution payloads must include a Google Maps `address.google_place_id` selected from Places search. The server verifies that place and derives canonical address fields and Google identifiers from the provider response; caller-supplied map URLs or identifiers cannot replace verification. '
+            .'If `type` is omitted, the server infers it from a clear Google category or institution name; unclassified places require an explicit type. '
             .'Fetch `GET /forms/contributions/institutions` first to discover required fields, defaults, media support, and conditional rules.',
     )]
     public function storeInstitution(
         Request $request,
         SubmitStagedContributionCreateAction $submitStagedContributionCreateAction,
         FrontendMediaSyncService $frontendMediaSyncService,
+        FetchGooglePlaceDetailsAction $fetchGooglePlaceDetailsAction,
+        ResolveGooglePlaceSelectionAction $resolveGooglePlaceSelectionAction,
+        DiscoverWebsiteSocialProfilesAction $discoverWebsiteSocialProfilesAction,
+        InferInstitutionTypeAction $inferInstitutionTypeAction,
     ): JsonResponse {
         $user = $this->requireUser($request);
         $this->ensureDirectoryFeedbackAllowed($user);
         $maxUploadSizeKb = (int) ceil(((int) config('media-library.max_file_size', 10 * 1024 * 1024)) / 1024);
 
         $validated = $request->validate([
-            'type' => ['required', Rule::in(array_column(InstitutionType::cases(), 'value'))],
-            'name' => ['required', 'string', 'max:255'],
+            'type' => ['sometimes', 'nullable', 'string', Rule::in(array_column(InstitutionType::cases(), 'value'))],
+            'name' => ['nullable', 'string', 'max:255'],
             'names' => ['nullable', 'array'],
             'names.*.name_type' => ['required_with:names', 'string', 'max:255'],
             'names.*.full_name' => ['required_with:names', 'string', 'max:255'],
@@ -105,7 +117,7 @@ class ContributionController extends FrontendController
             'names.*.is_primary' => ['nullable', 'boolean'],
             'description' => ['nullable'],
             'address' => ['present', 'array'],
-            'address.country_id' => ['required', 'uuid', 'exists:'.config('addressing.tables.countries', 'countries').',id'],
+            'address.country_id' => ['nullable', 'uuid', 'exists:'.config('addressing.tables.countries', 'countries').',id'],
             'address.state_id' => ['nullable', 'uuid', 'exists:'.config('addressing.tables.states', 'states').',id'],
             'address.city_id' => ['nullable', 'uuid', 'exists:'.config('addressing.tables.cities', 'cities').',id'],
             'address.area_assignments' => ['sometimes', 'array', new ValidAreaAssignmentRoles],
@@ -115,11 +127,11 @@ class ContributionController extends FrontendController
             'address.postcode' => ['nullable', 'string', 'max:16'],
             'address.latitude' => ['nullable', 'numeric'],
             'address.longitude' => ['nullable', 'numeric'],
-            'address.google_maps_url' => ['required', 'url', 'max:255'],
-            'address.google_place_id' => ['nullable', 'string', 'max:255'],
-            'address.google_feature_id' => ['nullable', 'string', 'max:255'],
-            'address.google_cid' => ['nullable', 'string', 'max:255'],
-            'address.google_entity_id' => ['nullable', 'string', 'max:255'],
+            'address.google_maps_url' => ['prohibited'],
+            'address.google_place_id' => ['required', 'string', 'max:255'],
+            'address.google_feature_id' => ['prohibited'],
+            'address.google_cid' => ['prohibited'],
+            'address.google_entity_id' => ['prohibited'],
             'address.waze_url' => ['nullable', 'url', 'max:255'],
             'contactMethods' => ['nullable', 'array'],
             'contacts.*.type' => ['required_with:contacts', 'string', 'max:255'],
@@ -134,6 +146,114 @@ class ContributionController extends FrontendController
             'gallery' => ['nullable', 'array'],
             'gallery.*' => ['image', 'mimes:jpg,jpeg,png,webp', "max:{$maxUploadSizeKb}"],
         ]);
+
+        $place = $fetchGooglePlaceDetailsAction->handle(
+            $validated['address']['google_place_id'],
+            'address.google_place_id',
+        );
+
+        $institutionType = $validated['type'] ?? $inferInstitutionTypeAction->handle($place)?->value;
+
+        if (! is_string($institutionType)) {
+            throw ValidationException::withMessages([
+                'type' => __('The institution type could not be inferred from Google Maps. Please choose an institution type.'),
+            ]);
+        }
+
+        $validated['type'] = $institutionType;
+
+        $identity = GooglePlaceIdentity::fromPlace($place);
+        $location = is_array($place['location'] ?? null) ? $place['location'] : [];
+        $resolvedAddress = $resolveGooglePlaceSelectionAction->handle([
+            'placeId' => $identity['google_place_id'],
+            'displayName' => $place['displayName'] ?? null,
+            'formattedAddress' => $identity['formatted_address'],
+            'googleMapsURI' => $place['googleMapsUri'] ?? null,
+            'googleFeatureId' => $identity['google_feature_id'],
+            'googleCid' => $identity['google_cid'],
+            'googleEntityId' => $identity['google_entity_id'],
+            'location' => [
+                'lat' => $location['latitude'] ?? null,
+                'lng' => $location['longitude'] ?? null,
+            ],
+            'addressComponents' => $identity['components'],
+        ]);
+
+        if (! is_string($resolvedAddress['country_id'] ?? null)) {
+            throw ValidationException::withMessages([
+                'address.country_id' => __('The selected Google Maps place has no country available in the address catalog.'),
+            ]);
+        }
+
+        $validated['address'] = array_merge(
+            $validated['address'],
+            $resolvedAddress,
+            Arr::only($identity, [
+                'google_place_id',
+                'google_feature_id',
+                'google_cid',
+                'google_entity_id',
+                'components',
+                'formatted_address',
+                'metadata',
+                'navigation_links',
+            ]),
+        );
+
+        if (! is_string($validated['name'] ?? null) || trim($validated['name']) === '') {
+            $placeName = data_get($place, 'displayName.text');
+            $validated['name'] = is_string($placeName) && trim($placeName) !== '' ? trim($placeName) : null;
+        }
+
+        if (! is_string($validated['name'] ?? null)) {
+            throw ValidationException::withMessages([
+                'name' => __('The selected Google Maps place does not include an institution name.'),
+            ]);
+        }
+
+        $websiteUrl = $this->httpUrl($place['websiteUri'] ?? null);
+        $contacts = is_array($validated['contactMethods'] ?? null) ? $validated['contactMethods'] : [];
+        $phone = $place['internationalPhoneNumber'] ?? $place['nationalPhoneNumber'] ?? null;
+
+        if ($websiteUrl !== null && ! $this->hasContactType($contacts, ContactMethodType::Website->value)) {
+            $contacts[] = [
+                'type' => ContactMethodType::Website->value,
+                'value' => $websiteUrl,
+                'purpose' => ContactPurpose::General->value,
+                'is_public' => true,
+            ];
+        }
+
+        if (is_string($phone) && trim($phone) !== '' && ! $this->hasContactType($contacts, ContactMethodType::Phone->value)) {
+            $contacts[] = [
+                'type' => ContactMethodType::Phone->value,
+                'value' => trim($phone),
+                'purpose' => ContactPurpose::General->value,
+                'is_public' => true,
+            ];
+        }
+
+        $validated['contactMethods'] = $contacts;
+
+        if ($websiteUrl !== null) {
+            $socialProfiles = is_array($validated['social_media'] ?? null) ? $validated['social_media'] : [];
+            $existingProfiles = collect($socialProfiles)
+                ->filter(fn (mixed $profile): bool => is_array($profile))
+                ->map(fn (array $profile): string => ($profile['platform'] ?? '').'|'.($profile['handle'] ?? ''))
+                ->all();
+
+            foreach ($discoverWebsiteSocialProfilesAction->handle($websiteUrl) as $socialProfile) {
+                $key = $socialProfile['platform'].'|'.$socialProfile['handle'];
+
+                if (! in_array($key, $existingProfiles, true)) {
+                    $socialProfiles[] = $socialProfile;
+                    $existingProfiles[] = $key;
+                }
+            }
+
+            $validated['social_media'] = $socialProfiles;
+        }
+
         $validated = $this->normalizeContributionAddressPayload($validated);
 
         $institution = $submitStagedContributionCreateAction->handle(
@@ -908,5 +1028,28 @@ class ContributionController extends FrontendController
             })
             ->values()
             ->all();
+    }
+
+    private function httpUrl(mixed $value): ?string
+    {
+        if (! is_string($value) || filter_var($value, FILTER_VALIDATE_URL) === false) {
+            return null;
+        }
+
+        return in_array(strtolower((string) parse_url($value, PHP_URL_SCHEME)), ['http', 'https'], true)
+            ? $value
+            : null;
+    }
+
+    /** @param  array<int|string, mixed>  $contacts */
+    private function hasContactType(array $contacts, string $type): bool
+    {
+        foreach ($contacts as $contact) {
+            if (is_array($contact) && ($contact['type'] ?? null) === $type) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

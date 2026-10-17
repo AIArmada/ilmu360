@@ -21,7 +21,6 @@ use App\Support\Api\SurfaceSyncPolicy;
 use App\Support\ApiDocumentation\ApiDocumentationUrlResolver;
 use App\Support\Documentation\DocumentationLibrary;
 use App\Support\GitHub\GitHubIssueReportContract;
-use App\Support\Location\GooglePlacesConfiguration;
 use App\Support\Mcp\McpTokenManager;
 use App\Support\Submission\SubmissionTimingPolicy;
 
@@ -437,7 +436,6 @@ class FrontendFormContractService
             'endpoint' => route('api.client.contributions.institutions.store'),
             'auth_required' => true,
             'defaults' => [
-                'type' => InstitutionType::Masjid->value,
                 'address' => [
                     'country_id' => null,
                     'state_id' => null,
@@ -448,17 +446,11 @@ class FrontendFormContractService
                     'postcode' => null,
                     'latitude' => null,
                     'longitude' => null,
-                    'google_maps_url' => null,
                     'google_place_id' => null,
-                    'google_feature_id' => null,
-                    'google_cid' => null,
-                    'google_entity_id' => null,
-                    'google_maps_normalization_enabled' => true,
-                    'google_maps_remote_lookup_enabled' => GooglePlacesConfiguration::isEnabled(),
                 ],
             ],
             'fields' => [
-                $this->field('name', 'string', required: true, maxLength: 255),
+                $this->field('name', 'string', required: false, maxLength: 255),
                 $this->field('middle_name', 'string', required: false, maxLength: 100),
                 $this->field('family_name', 'string', required: false, maxLength: 100),
                 $this->field('names', 'array', required: false, meta: [
@@ -472,10 +464,13 @@ class FrontendFormContractService
                         ],
                     ],
                 ]),
-                $this->field('type', 'string', required: true, default: InstitutionType::Masjid->value, allowedValues: $this->enumValues(InstitutionType::class)),
+                $this->field('type', 'string', required: false, allowedValues: $this->enumValues(InstitutionType::class), meta: [
+                    'description' => 'If omitted, the type is inferred from the verified Google Maps place when possible.',
+                ]),
                 $this->field('description', 'rich_text', required: false),
                 $this->field('address', 'object', required: true),
-                $this->field('address.country_id', 'uuid', required: true, catalog: route('api.client.catalogs.countries')),
+                $this->field('address.google_place_id', 'string', required: true),
+                $this->field('address.country_id', 'uuid', required: false, catalog: route('api.client.catalogs.countries')),
                 $this->field('address.state_id', 'uuid', required: false, catalog: route('api.client.catalogs.states')),
                 $this->field('address.city_id', 'uuid', required: false, catalog: route('api.client.catalogs.cities')),
                 $this->field('contactMethods', 'array<object>', required: false),
@@ -484,7 +479,7 @@ class FrontendFormContractService
                 $this->field('gallery', 'array<file>', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
             ],
             'conditional_rules' => [
-                ['field' => 'address.google_maps_url', 'required' => true],
+                ['field' => 'address.google_place_id', 'required' => true],
             ],
         ];
     }

@@ -5,7 +5,10 @@ namespace App\Forms;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
+use App\Actions\Contributions\EnsureUniqueContributionCreateAction;
 use App\Actions\Institutions\GenerateInstitutionSlugAction;
+use App\Actions\Institutions\WithInstitutionMapsIdentityLockAction;
+use App\Enums\ContributionSubjectType;
 use App\Enums\InstitutionNameType;
 use App\Enums\InstitutionStatus;
 use App\Enums\InstitutionType;
@@ -14,6 +17,7 @@ use App\Models\User;
 use App\Support\Cache\SelectionCatalogCache;
 use App\Support\Language\MalaysiaLanguageCatalog;
 use App\Support\Location\GooglePlacesConfiguration;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
@@ -22,9 +26,12 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Group;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class InstitutionFormSchema
 {
@@ -33,9 +40,27 @@ class InstitutionFormSchema
      *
      * @return array<int, Component>
      */
-    public static function createOptionForm(bool $includeLocationPicker = false): array
-    {
+    public static function createOptionForm(
+        bool $includeLocationPicker = false,
+        bool $requireVerifiedMapsSelection = false,
+        ?string $mapsSelectionOwnerPath = null,
+    ): array {
         return [
+            ...($requireVerifiedMapsSelection
+                ? [
+                    Section::make(__('Find the institution on Google Maps'))
+                        ->description(__('Search and select the institution before entering its details.'))
+                        ->schema([
+                            self::mapsPickerView(
+                                $mapsSelectionOwnerPath,
+                                requiredSelection: true,
+                                photoPreviewsMethod: 'loadQuickAddInstitutionPhotoPreviews',
+                            )
+                                ->statePath('address')
+                                ->columnSpanFull(),
+                        ]),
+                ]
+                : []),
             TextInput::make('name')
                 ->label(__('Institution Name'))
                 ->required()
@@ -119,7 +144,10 @@ class InstitutionFormSchema
 
             SharedFormSchema::contactsRepeater(__('Add contact details for this institution')),
 
-            ...self::addressSchema(includeLocationPicker: $includeLocationPicker),
+            ...self::addressSchema(
+                includeLocationPicker: $includeLocationPicker,
+                requireVerifiedMapsSelection: $requireVerifiedMapsSelection,
+            ),
 
             SharedFormSchema::socialMediaRepeater('Add social media links for this institution'),
         ];
@@ -129,11 +157,63 @@ class InstitutionFormSchema
      * Shared createOptionUsing callback for Institution selects.
      *
      * @param  array<string, mixed>  $data
+     * @param  array<string, mixed>|null  $verifiedMapsSelection
      */
-    public static function createOptionUsing(array $data, ?Schema $schema = null): string
-    {
-        return DB::transaction(function () use ($data, $schema): string {
-            $addressData = is_array($data['address'] ?? null) ? $data['address'] : $data;
+    public static function createOptionUsing(
+        array $data,
+        ?Schema $schema = null,
+        bool $requireVerifiedMapsSelection = false,
+        ?array $verifiedMapsSelection = null,
+    ): string {
+        $addressData = is_array($data['address'] ?? null) ? $data['address'] : $data;
+
+        if ($requireVerifiedMapsSelection) {
+            $verifiedPlaceId = $verifiedMapsSelection['place_id'] ?? null;
+            $submittedPlaceId = $addressData['google_place_id'] ?? null;
+
+            if (! is_string($verifiedPlaceId)
+                || ! is_string($submittedPlaceId)
+                || ! hash_equals($verifiedPlaceId, $submittedPlaceId)
+                || ! is_array($verifiedMapsSelection['address'] ?? null)) {
+                throw ValidationException::withMessages([
+                    (($schema?->getStatePath() !== null ? rtrim($schema->getStatePath(), '.').'.' : '')
+                        .'address.google_place_id') => __('Select and verify the institution on Google Maps before saving.'),
+                ]);
+            }
+
+            $verifiedAddress = $verifiedMapsSelection['address'];
+            $addressData = array_merge($addressData, Arr::only($verifiedAddress, [
+                'google_maps_url',
+                'google_place_id',
+                'google_feature_id',
+                'google_cid',
+                'google_entity_id',
+                'google_display_name',
+                'latitude',
+                'longitude',
+                'google_resolution_source',
+                'google_resolution_status',
+                'google_resolution_fingerprint',
+                'google_resolution_message',
+                'formatted_address',
+                'components',
+                'metadata',
+                'navigation_links',
+            ]));
+            $data['address'] = $addressData;
+        }
+
+        $create = fn (): string => DB::transaction(function () use ($data, $schema, $addressData, $requireVerifiedMapsSelection): string {
+            if ($requireVerifiedMapsSelection) {
+                app(EnsureUniqueContributionCreateAction::class)->handle(
+                    ContributionSubjectType::Institution,
+                    [
+                        'name' => $data['name'] ?? null,
+                        'address' => $addressData,
+                    ],
+                    (string) ($schema?->getStatePath() ?? ''),
+                );
+            }
 
             $institution = Institution::create([
                 'name' => $data['name'],
@@ -178,12 +258,18 @@ class InstitutionFormSchema
 
             return (string) $institution->getKey();
         });
+
+        if (! $requireVerifiedMapsSelection) {
+            return $create();
+        }
+
+        return app(WithInstitutionMapsIdentityLockAction::class)->handle($data, $create);
     }
 
     /**
      * @return array<int, Component>
      */
-    private static function addressSchema(bool $includeLocationPicker): array
+    private static function addressSchema(bool $includeLocationPicker, bool $requireVerifiedMapsSelection = false): array
     {
         $defaultCountryId = self::malaysiaCountryId();
 
@@ -201,23 +287,22 @@ class InstitutionFormSchema
 
         return [
             Group::make([
-                ...($shouldRenderLocationPicker
+                ...($shouldRenderLocationPicker && ! $requireVerifiedMapsSelection
                     ? [
-                        View::make('filament.schemas.components.institution-location-picker')
-                            ->columnSpanFull()
-                            ->viewData([
-                                'mapsApiKey' => GooglePlacesConfiguration::apiKey(),
-                                'title' => __('Find the institution location'),
-                                'description' => __('Search like a ride-hailing destination, pick the correct place, then confirm it on the map before saving.'),
-                                'searchLabel' => __('Search for an institution or address'),
-                            ]),
+                        self::mapsPickerView(),
+                    ]
+                    : []),
+                ...($requireVerifiedMapsSelection
+                    ? [
+                        Hidden::make('maps_selection_nonce'),
+                        Hidden::make('maps_selection_token'),
                     ]
                     : []),
                 ...SharedFormSchema::addressFields(
-                    requireGoogleMaps: true,
-                    showGoogleMapsUrlField: ! $shouldRenderLocationPicker,
-                    enableGoogleMapsNormalization: true,
-                    enableGoogleMapsRemoteLookup: $shouldRenderLocationPicker,
+                    requireGoogleMaps: ! $requireVerifiedMapsSelection,
+                    showGoogleMapsUrlField: ! $shouldRenderLocationPicker && ! $requireVerifiedMapsSelection,
+                    enableGoogleMapsNormalization: ! $requireVerifiedMapsSelection,
+                    enableGoogleMapsRemoteLookup: $shouldRenderLocationPicker && ! $requireVerifiedMapsSelection,
                     includeCountryField: true,
                     showCountryField: true,
                     defaultCountryId: $defaultCountryId,
@@ -236,5 +321,27 @@ class InstitutionFormSchema
             ->value('id');
 
         return $countryId === null ? null : (string) $countryId;
+    }
+
+    private static function mapsPickerView(
+        ?string $ownerStatePath = null,
+        bool $requiredSelection = false,
+        string $photoPreviewsMethod = 'loadPlacePhotoPreviews',
+    ): View {
+        return View::make('filament.schemas.components.institution-location-picker')
+            ->columnSpanFull()
+            ->viewData([
+                'mapsApiKey' => GooglePlacesConfiguration::apiKey(),
+                'title' => $requiredSelection ? null : __('Find the institution location'),
+                'description' => $requiredSelection
+                    ? null
+                    : __('Search like a ride-hailing destination, pick the correct place, then confirm it on the map before saving.'),
+                'searchLabel' => __('Search for an institution or address'),
+                'applyMethod' => $ownerStatePath !== null ? 'applyQuickAddInstitutionPlaceSelection' : 'applyLocationPickerSelection',
+                'photoPreviewsMethod' => $photoPreviewsMethod,
+                'requiredSelection' => $requiredSelection,
+                'ownerStatePath' => $ownerStatePath,
+                'failureMessage' => __('Google Maps search is unavailable. Retry the search before submitting.'),
+            ]);
     }
 }

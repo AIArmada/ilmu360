@@ -7,6 +7,10 @@ use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
 use AIArmada\FilamentEvents\Resources\EventResource;
 use App\Actions\Events\SubmitFrontendEventAction;
+use App\Actions\Institutions\MergeInstitutionMapsSelectionIntoFormAction;
+use App\Actions\Institutions\ResolveInstitutionMapsPlaceSelectionAction;
+use App\Actions\Location\FetchGooglePlaceDetailsAction;
+use App\Actions\Location\FetchGooglePlacePhotoPreviewsAction;
 use App\Contracts\EventCategoryCatalog;
 use App\Data\Events\SubmitEventFormContext;
 use App\Enums\EventAgeGroup;
@@ -16,6 +20,7 @@ use App\Enums\EventPrayerTime;
 use App\Enums\EventTaxonomyCode;
 use App\Enums\EventVisibility;
 use App\Enums\TaxonomyTerm\DomainTermCode;
+use App\Forms\Components\Select as InstitutionSelect;
 use App\Livewire\Concerns\InteractsWithLocationPickerSelection;
 use App\Models\Event;
 use App\Models\EventSubmission;
@@ -23,6 +28,7 @@ use App\Models\Institution;
 use App\Models\Language;
 use App\Models\User;
 use App\Services\Ai\EventMediaExtractionService;
+use App\Services\Signals\ProductSignalsService;
 use App\States\EventStatus\Approved;
 use App\States\EventStatus\Cancelled;
 use App\States\EventStatus\EventStatus;
@@ -33,8 +39,10 @@ use App\Support\Submission\SubmissionTimingPolicy;
 use App\Support\Submission\SubmitEventOptionsProvider;
 use App\Support\Submission\SubmitEventPrefill;
 use Closure;
+use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
+use Filament\Actions\Exceptions\ActionNotResolvableException;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -44,7 +52,9 @@ use Filament\Schemas\Components\Wizard\Step;
 use Filament\Schemas\Schema;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -75,6 +85,9 @@ class Create extends Component implements HasActions, HasForms
 
     /** @var array<string, mixed>|null */
     public ?array $data = [];
+
+    #[Locked]
+    public ?string $institutionQuickAddProofToken = null;
 
     public function boot(): void
     {
@@ -474,6 +487,302 @@ class Create extends Component implements HasActions, HasForms
 
         return (new EventSubmissionFormSchema($context, new SubmitEventOptionsProvider))
             ->form($schema, $this->wizardStep);
+    }
+
+    public function beginInstitutionQuickAddMapsSelection(string $formStatePath, string $ownerStatePath): string
+    {
+        $context = $this->institutionQuickAddContext($formStatePath, $ownerStatePath);
+
+        if ($context === null) {
+            $this->rejectInstitutionQuickAddMapsSelection('data.address');
+        }
+
+        $previousToken = $this->institutionQuickAddProofToken;
+
+        if (is_string($previousToken) && $previousToken !== '') {
+            Cache::forget($this->institutionQuickAddCacheKey($previousToken));
+        }
+
+        $token = Str::random(48);
+        $nonce = Str::random(48);
+        $this->institutionQuickAddProofToken = $token;
+
+        Cache::put($this->institutionQuickAddCacheKey($token), [
+            'token' => $token,
+            'nonce' => $nonce,
+            'form_path' => $context['form_path'],
+            'address_path' => $context['address_path'],
+            'owner_path' => $context['owner_path'],
+            'selection' => null,
+        ], now()->addMinutes(30));
+
+        return $nonce;
+    }
+
+    /**
+     * @param  array<string, mixed>  $selection
+     * @return array<string, mixed>
+     */
+    public function applyQuickAddInstitutionPlaceSelection(
+        string $statePath,
+        array $selection,
+        ResolveInstitutionMapsPlaceSelectionAction $resolveInstitutionMapsPlaceSelectionAction,
+        MergeInstitutionMapsSelectionIntoFormAction $mergeInstitutionMapsSelectionIntoFormAction,
+    ): array {
+        $ownerStatePath = $selection['ownerStatePath'] ?? null;
+        $nonce = $selection['nonce'] ?? null;
+        $context = $this->institutionQuickAddContext();
+
+        if ($context === null) {
+            $this->rejectInstitutionQuickAddMapsSelection('data.address');
+        }
+
+        if ($statePath !== $context['address_path'] || $ownerStatePath !== $context['owner_path']) {
+            $this->rejectInstitutionQuickAddMapsSelection($context['address_path']);
+        }
+
+        $record = $this->institutionQuickAddProofRecord($context, $nonce, requireSelection: false);
+        $placeId = $selection['placeId'] ?? null;
+
+        if ($record === null || ! is_string($placeId) || trim($placeId) === '') {
+            $this->rejectInstitutionQuickAddMapsSelection($context['address_path']);
+        }
+
+        $previousSelection = is_array($record['selection'] ?? null)
+            ? $record['selection']
+            : null;
+        $selectionData = $resolveInstitutionMapsPlaceSelectionAction->handle(
+            $placeId,
+            $context['address_path'].'.google_place_id',
+        );
+        $formState = data_get($this, $context['form_path'], []);
+        $merged = $mergeInstitutionMapsSelectionIntoFormAction->handle(
+            is_array($formState) ? $formState : [],
+            $selectionData,
+            $previousSelection,
+        );
+
+        data_set($this, $context['form_path'], $merged['state']);
+        data_set($this, $context['address_path'].'.maps_selection_nonce', $record['nonce']);
+        data_set($this, $context['address_path'].'.maps_selection_token', $this->institutionQuickAddProofToken);
+        $this->resetValidation($context['address_path'].'.google_place_id');
+
+        $record['selection'] = [
+            ...$selectionData,
+            'address' => Arr::except($selectionData['address'], ['cascade_reset_guard']),
+            'autofilled_contacts' => $merged['autofilled_contacts'],
+            'autofilled_social_profiles' => $merged['autofilled_social_profiles'],
+            'autofilled_name' => $merged['autofilled_name'],
+            'autofilled_type' => $merged['autofilled_type'],
+        ];
+        Cache::put(
+            $this->institutionQuickAddCacheKey($this->institutionQuickAddProofToken),
+            $record,
+            now()->addMinutes(30),
+        );
+
+        $user = auth()->user();
+
+        if ($user instanceof User) {
+            app(ProductSignalsService::class)->recordInstitutionMapsPlaceSelected(
+                $user,
+                $selectionData['website_url'] !== null,
+                count($selectionData['autofilled_social_profiles']),
+                request(),
+            );
+        }
+
+        return Arr::only($selectionData['address'], [
+            'google_place_id',
+            'google_display_name',
+            'formatted_address',
+            'latitude',
+            'longitude',
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public function verifiedInstitutionQuickAddMapsSelection(
+        string $formStatePath,
+        string $ownerStatePath,
+        array $data,
+    ): array {
+        $context = $this->institutionQuickAddContext($formStatePath, $ownerStatePath);
+        $address = is_array($data['address'] ?? null) ? $data['address'] : [];
+        $record = $context === null
+            ? null
+            : $this->institutionQuickAddProofRecord($context, $address['maps_selection_nonce'] ?? null, requireSelection: true);
+        $submittedPlaceId = $address['google_place_id'] ?? null;
+        $selection = is_array($record['selection'] ?? null) ? $record['selection'] : null;
+        $verifiedPlaceId = $selection['place_id'] ?? null;
+
+        if (! is_array($record)
+            || ! is_array($selection)
+            || ! is_string($submittedPlaceId)
+            || ! is_string($verifiedPlaceId)
+            || ! hash_equals($verifiedPlaceId, $submittedPlaceId)
+            || ! hash_equals((string) $this->institutionQuickAddProofToken, (string) ($address['maps_selection_token'] ?? ''))) {
+            $this->rejectInstitutionQuickAddMapsSelection($formStatePath.'.address');
+        }
+
+        return $selection;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function consumeInstitutionQuickAddMapsSelection(string $formStatePath, string $ownerStatePath, array $data): void
+    {
+        $this->verifiedInstitutionQuickAddMapsSelection($formStatePath, $ownerStatePath, $data);
+        $token = $this->institutionQuickAddProofToken;
+
+        if (is_string($token) && $token !== '') {
+            Cache::forget($this->institutionQuickAddCacheKey($token));
+        }
+
+        $this->institutionQuickAddProofToken = null;
+        data_set($this, $formStatePath.'.address.maps_selection_token', null);
+        data_set($this, $formStatePath.'.address.maps_selection_nonce', null);
+    }
+
+    /**
+     * @return list<array{
+     *     preview_url: string,
+     *     width: int|null,
+     *     height: int|null,
+     *     attributions: list<array{display_name: string|null, uri: string|null}>,
+     *     google_maps_uri: string|null
+     * }>
+     */
+    public function loadQuickAddInstitutionPhotoPreviews(
+        string $placeId,
+        string $addressStatePath,
+        string $ownerStatePath,
+        FetchGooglePlaceDetailsAction $fetchGooglePlaceDetailsAction,
+        FetchGooglePlacePhotoPreviewsAction $fetchGooglePlacePhotoPreviewsAction,
+    ): array {
+        $context = $this->institutionQuickAddContext(ownerStatePath: $ownerStatePath);
+
+        if ($context === null || $addressStatePath !== $context['address_path']) {
+            return [];
+        }
+
+        $nonce = data_get($this, $addressStatePath.'.maps_selection_nonce');
+        $record = $this->institutionQuickAddProofRecord($context, $nonce, requireSelection: true);
+        $verifiedPlaceId = data_get($record, 'selection.place_id');
+
+        if (! is_string($verifiedPlaceId) || ! hash_equals($verifiedPlaceId, $placeId)) {
+            return [];
+        }
+
+        try {
+            $place = $fetchGooglePlaceDetailsAction->handle($placeId, $addressStatePath.'.google_place_id');
+
+            return $fetchGooglePlacePhotoPreviewsAction->handle(
+                $placeId,
+                is_array($place['photos'] ?? null) ? $place['photos'] : [],
+            );
+        } catch (Throwable) {
+            return [];
+        }
+    }
+
+    /**
+     * @return array{form_path: string, address_path: string, owner_path: string}|null
+     */
+    private function institutionQuickAddContext(?string $formStatePath = null, ?string $ownerStatePath = null): ?array
+    {
+        try {
+            $action = $this->getMountedAction();
+        } catch (ActionNotResolvableException) {
+            return null;
+        }
+
+        if (! $action instanceof Action || $action->getName() !== 'createOption') {
+            return null;
+        }
+
+        $nestingIndex = $action->getNestingIndex();
+        $component = $action->getSchemaComponent();
+
+        if (! is_int($nestingIndex) || ! $component instanceof InstitutionSelect) {
+            return null;
+        }
+
+        $formPath = "mountedActions.{$nestingIndex}.data";
+        $addressPath = $formPath.'.address';
+        $componentPath = $component->getStatePath();
+        $allowedOwnerPaths = [
+            'data.primary_organizer_institution_id',
+            'data.location_institution_id',
+        ];
+
+        if (! is_string($componentPath)
+            || ! in_array($componentPath, $allowedOwnerPaths, true)
+            || ($formStatePath !== null && $formStatePath !== $formPath)
+            || ($ownerStatePath !== null && $ownerStatePath !== $componentPath)) {
+            return null;
+        }
+
+        return [
+            'form_path' => $formPath,
+            'address_path' => $addressPath,
+            'owner_path' => $componentPath,
+        ];
+    }
+
+    /**
+     * @param  array{form_path: string, address_path: string, owner_path: string}  $context
+     * @return array<string, mixed>|null
+     */
+    private function institutionQuickAddProofRecord(array $context, mixed $nonce, bool $requireSelection): ?array
+    {
+        $token = $this->institutionQuickAddProofToken;
+
+        if (! is_string($token) || $token === '' || ! is_string($nonce) || $nonce === '') {
+            return null;
+        }
+
+        $record = Cache::get($this->institutionQuickAddCacheKey($token));
+
+        if (! is_array($record)
+            || ! is_string($record['token'] ?? null)
+            || ! hash_equals($token, $record['token'])
+            || ! is_string($record['nonce'] ?? null)
+            || ! hash_equals($record['nonce'], $nonce)
+            || ! hash_equals($record['nonce'], (string) data_get($this, $context['address_path'].'.maps_selection_nonce'))
+            || ($record['form_path'] ?? null) !== $context['form_path']
+            || ($record['address_path'] ?? null) !== $context['address_path']
+            || ($record['owner_path'] ?? null) !== $context['owner_path']) {
+            return null;
+        }
+
+        $submittedToken = data_get($this, $context['address_path'].'.maps_selection_token');
+
+        if ($submittedToken !== null && (! is_string($submittedToken) || ! hash_equals($token, $submittedToken))) {
+            return null;
+        }
+
+        if ($requireSelection && (! is_array($record['selection'] ?? null) || $submittedToken === null)) {
+            return null;
+        }
+
+        return $record;
+    }
+
+    private function institutionQuickAddCacheKey(string $token): string
+    {
+        return 'event-institution-quick-add:verified-maps:'.hash('sha256', session()->getId().'|'.$this->getId().'|'.$token);
+    }
+
+    private function rejectInstitutionQuickAddMapsSelection(string $addressStatePath): never
+    {
+        throw ValidationException::withMessages([
+            rtrim($addressStatePath, '.').'.google_place_id' => __('Select an institution from the Google Maps search.'),
+        ]);
     }
 
     public function submit(): mixed

@@ -719,6 +719,10 @@ class SharedFormSchema
             'google_feature_id' => $data['google_feature_id'] ?? null,
             'google_cid' => $data['google_cid'] ?? null,
             'google_entity_id' => $data['google_entity_id'] ?? null,
+            'formatted_address' => $data['formatted_address'] ?? null,
+            'components' => $data['components'] ?? [],
+            'metadata' => $data['metadata'] ?? [],
+            'navigation_links' => $data['navigation_links'] ?? [],
             'waze_url' => $data['waze_url'] ?? null,
         ]);
 
@@ -754,6 +758,8 @@ class SharedFormSchema
                 'google_cid' => $data['google_cid'] ?? null,
                 'google_entity_id' => $data['google_entity_id'] ?? null,
                 'google_display_name' => $data['google_display_name'] ?? null,
+                'lat' => $data['latitude'] ?? ($data['lat'] ?? null),
+                'lng' => $data['longitude'] ?? ($data['lng'] ?? null),
                 'google_resolution_source' => null,
                 'google_resolution_status' => null,
                 'google_resolution_fingerprint' => null,
@@ -805,6 +811,12 @@ class SharedFormSchema
         foreach (['line1', 'line2', 'postcode', 'state', 'city', 'waze_url'] as $field) {
             if (array_key_exists($field, $data)) {
                 $payload[$field] = $normalized[$field] ?? null;
+            }
+        }
+
+        foreach (['formatted_address', 'components', 'metadata', 'navigation_links'] as $field) {
+            if (array_key_exists($field, $data)) {
+                $payload[$field] = $data[$field];
             }
         }
 

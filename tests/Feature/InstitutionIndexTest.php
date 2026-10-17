@@ -4,6 +4,7 @@ use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressAreaRelationship;
 use AIArmada\Addressing\Models\AddressAreaStateLink;
 use AIArmada\Addressing\Models\State;
+use App\Actions\Contributions\EnsureUniqueContributionCreateAction;
 use App\Enums\ContributionSubjectType;
 use App\Enums\InstitutionNameType;
 use App\Enums\InstitutionStatus;
@@ -14,10 +15,35 @@ use App\Models\Institution;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 
 use function Pest\Laravel\get;
+
+function fakeVerifiedInstitutionIndexPlace(string $placeId): void
+{
+    config()->set('services.google.maps_api_key', 'test-maps-key');
+    config()->set('services.google.places_enabled', true);
+    config()->set('services.google.place_link_resolution_enabled', true);
+    config()->set('services.google.places_server_api_key', 'test-server-key');
+
+    Http::fake([
+        "https://places.googleapis.com/v1/places/{$placeId}" => Http::response([
+            'id' => $placeId,
+            'name' => "places/{$placeId}",
+            'displayName' => ['text' => 'Masjid Ujian Maps'],
+            'primaryType' => 'mosque',
+            'formattedAddress' => 'Jalan Ujian, 40000 Shah Alam, Selangor, Malaysia',
+            'addressComponents' => [
+                ['longText' => 'Malaysia', 'shortText' => 'MY', 'types' => ['country', 'political']],
+            ],
+            'location' => ['latitude' => 3.139, 'longitude' => 101.6869],
+            'googleMapsUri' => "https://www.google.com/maps/place/?q=place_id:{$placeId}",
+        ], 200),
+    ]);
+}
 
 it('renders translated hero and search copy on institution index', function () {
     app()->setLocale('ms');
@@ -107,20 +133,17 @@ it('redirects guests to login when opening add institution form', function () {
 });
 
 it('allows users to submit a missing institution from institution index with pending status', function () {
-    $country = ensureTestMalaysiaCountry();
+    ensureTestMalaysiaCountry();
+    fakeVerifiedInstitutionIndexPlace('place_123');
 
     $user = User::factory()->create();
     $institutionName = 'Institusi Cadangan Baru';
 
     Livewire::actingAs($user)
         ->test(SubmitInstitution::class)
+        ->call('applyPlaceSelection', 'data.address', ['placeId' => 'place_123'])
         ->set('data.name', $institutionName)
         ->set('data.type', 'masjid')
-        ->set('data.address.country_id', $country->getKey())
-        ->set('data.address.google_maps_url', 'https://maps.google.com/?q=3.1390,101.6869')
-        ->set('data.address.google_place_id', 'place_123')
-        ->set('data.address.latitude', 3.1390)
-        ->set('data.address.longitude', 101.6869)
         ->call('submit')
         ->assertRedirect(route('contributions.submission-success', ['subjectType' => ContributionSubjectType::Institution->publicRouteSegment()]))
         ->assertHasNoErrors();
@@ -153,24 +176,79 @@ it('rejects duplicate institution submissions when name and locality all match',
         'status' => 'verified',
     ]);
     syncPrimaryAddressForTest($institution, $geo['address']);
+    fakeVerifiedInstitutionIndexPlace('place_duplicate_institution');
 
     Livewire::actingAs($user)
         ->test(SubmitInstitution::class)
+        ->call('applyPlaceSelection', 'data.address', ['placeId' => 'place_duplicate_institution'])
         ->set('data.name', 'Masjid   Al-Huda   Pendua')
         ->set('data.type', 'masjid')
         ->set('data.address.country_id', $geo['address']['country_id'])
         ->set('data.address.state_id', $geo['address']['state_id'])
         ->set('data.address.area_assignments.administrative_district', $geo['address']['area_assignments']['administrative_district'])
         ->set('data.address.area_assignments.administrative_subdivision', $geo['address']['area_assignments']['administrative_subdivision'])
-        ->set('data.address.google_maps_url', 'https://maps.google.com/?q=3.1390,101.6869')
-        ->set('data.address.google_place_id', 'place_duplicate_institution')
-        ->set('data.address.latitude', 3.1390)
-        ->set('data.address.longitude', 101.6869)
         ->call('submit')
         ->assertHasErrors(['data.name']);
 
     expect(Institution::query()->where('name', 'Masjid Al-Huda Pendua')->count())->toBe(1)
         ->and(ContributionRequest::query()->count())->toBe(0);
+});
+
+it('rejects a differently named pending institution with the same CID from a feature identifier', function () {
+    $geo = createTestPackageGeography(
+        'Negeri Ujian CID',
+        'Daerah Ujian CID',
+        'Mukim Ujian CID',
+    );
+    $existing = Institution::factory()->create([
+        'name' => 'Nama lama dari Google Maps',
+        'status' => InstitutionStatus::Pending,
+    ]);
+    syncPrimaryAddressForTest($existing, [
+        ...$geo['address'],
+        'line1' => 'Jalan Ujian CID',
+        'google_maps_url' => 'https://www.google.com/maps/place/?cid=18446744073709551615',
+    ]);
+
+    expect(fn () => EnsureUniqueContributionCreateAction::run(ContributionSubjectType::Institution, [
+        'name' => 'Completely different institution name',
+        'address' => [
+            'google_feature_id' => '0x808f778c55555555:0xffffffffffffffff',
+        ],
+    ]))->toThrow(ValidationException::class);
+
+    expect(Institution::query()->count())->toBe(1);
+});
+
+it('uses the Google Place ID when a CID is unavailable', function () {
+    $geo = createTestPackageGeography(
+        'Negeri Ujian Place ID',
+        'Daerah Ujian Place ID',
+        'Mukim Ujian Place ID',
+    );
+    $existing = Institution::factory()->create([
+        'name' => 'Nama lain tanpa CID',
+        'status' => InstitutionStatus::Verified,
+    ]);
+    syncPrimaryAddressForTest($existing, [
+        ...$geo['address'],
+        'line1' => 'Jalan Ujian Place ID',
+        'google_place_id' => 'ChIJ_verified_place_without_cid',
+    ]);
+
+    expect(fn () => EnsureUniqueContributionCreateAction::run(ContributionSubjectType::Institution, [
+        'name' => 'Another unrelated name',
+        'address' => [
+            'google_place_id' => mb_strtolower('ChIJ_verified_place_without_cid'),
+        ],
+    ]))->not->toThrow(ValidationException::class);
+
+    expect(fn () => EnsureUniqueContributionCreateAction::run(ContributionSubjectType::Institution, [
+        'name' => 'Another unrelated name',
+        'address' => [
+            'google_place_id' => 'ChIJ_verified_place_without_cid',
+        ],
+    ]))->toThrow(ValidationException::class);
 });
 
 it('supports fuzzy search with minor institution name typos', function () {

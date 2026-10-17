@@ -72,29 +72,13 @@ class ResolveGooglePlaceSelectionAction
         ]);
         $postcode = $this->componentValue($components, ['postal_code']);
 
-        // Provisional root under the legacy type scope discovers an omitted
-        // country before the profile loads; the authoritative match below
-        // re-resolves under the profile's own state types.
-        $areaTreeRoot = $this->resolveArea($stateName, $countryId, null, ['state', 'wilayah_persekutuan'], null, $countryCode);
-        $countryId = $this->preferredString([$areaTreeRoot?->country_id, $countryId]);
-        $countryCode ??= $this->resolveCountryCode($country, $countryId);
-
         $profiles = app(CountryAddressProfileResolver::class);
         $hierarchies = $countryId !== null ? $profiles->hierarchies($countryId) : [];
         $stateLevel = $countryId !== null ? $profiles->stateLevel($countryId) : null;
         $stateTypes = $this->stateAreaTypes($hierarchies, $stateLevel);
-
-        if ($stateTypes !== []
-            && (! $areaTreeRoot instanceof AddressArea || ! in_array($areaTreeRoot->type, $stateTypes, true))) {
-            $areaTreeRoot = $this->resolveArea($stateName, $countryId, null, $stateTypes, null, $countryCode)
-                ?? $areaTreeRoot;
-        }
-
-        if ($stateTypes === []) {
-            $areaTreeRoot = null;
-        }
-
-        $countryId = $this->preferredString([$areaTreeRoot?->country_id, $countryId]);
+        $areaTreeRoot = $stateTypes !== []
+            ? $this->resolveArea($stateName, $countryId, null, $stateTypes, null, $countryCode)
+            : null;
         $stateId = $this->resolveStateId($stateName, $countryId, $areaTreeRoot, $countryCode);
         $areaTreeRootId = AddressAreaStateBridge::areaIdForState($stateId, 'administrative');
         $areaTreeRoot = $areaTreeRootId !== null
@@ -169,7 +153,7 @@ class ResolveGooglePlaceSelectionAction
             'state_id' => $stateId,
             'city_id' => $cityId,
             'area_assignments' => $this->orderAssignments($hierarchies, $assignments),
-            'line1' => $this->resolveLine1($components),
+            'line1' => $this->resolveLine1($components, $this->displayNameValue($payload['displayName'] ?? null)),
             'line2' => $this->resolveLine2($components),
             'postcode' => $postcode,
             'state' => $stateId === null ? $stateName : null,
@@ -782,7 +766,7 @@ class ResolveGooglePlaceSelectionAction
             return [];
         }
 
-        return $hierarchies === [] ? ['state', 'wilayah_persekutuan'] : [];
+        return [];
     }
 
     /** @return list<string> */
@@ -955,17 +939,28 @@ class ResolveGooglePlaceSelectionAction
     /**
      * @param  list<array{longText: string|null, shortText: string|null, types: list<string>}>  $components
      */
-    private function resolveLine1(array $components): ?string
+    private function resolveLine1(array $components, ?string $displayName): ?string
     {
         $streetNumber = $this->componentValue($components, ['street_number']);
         $route = $this->componentValue($components, ['route']);
         $premise = $this->componentValue($components, ['premise']);
+
+        if ($premise !== null && $displayName !== null && $this->normalizeLineComponent($premise) === $this->normalizeLineComponent($displayName)) {
+            $premise = null;
+        }
 
         return $this->firstFilled([
             $this->joinParts([$streetNumber, $route]),
             $route,
             $premise,
         ]);
+    }
+
+    private function normalizeLineComponent(string $value): string
+    {
+        $normalized = preg_replace('/\s+/u', ' ', trim($value));
+
+        return mb_strtolower(is_string($normalized) ? $normalized : trim($value));
     }
 
     /**

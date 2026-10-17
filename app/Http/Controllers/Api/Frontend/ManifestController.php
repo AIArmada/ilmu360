@@ -50,8 +50,7 @@ class ManifestController extends FrontendController
         title: 'Get institution contribution field contract',
         description: 'Returns the canonical field contract for authenticated public institution creation. '
             .'Use this before calling `POST /contributions/institutions`. '
-            .'Institution create requires an explicit address country via `address.country_id`. '
-            .'Any provided `address.google_maps_url` is normalized server-side into a canonical Google Maps URL and may populate `address.google_place_id`, `address.latitude`, and `address.longitude` before persistence. `address.google_feature_id`, `address.google_cid`, and `address.google_entity_id` are accepted as manually pinned identifiers and stored verbatim.',
+            .'Institution create requires a Google Maps `address.google_place_id` selected from Places search. The server verifies the selected place and derives the canonical address and provider identifiers; caller-supplied map URLs and provider identifiers cannot replace verification.',
     )]
     public function submitInstitution(): JsonResponse
     {

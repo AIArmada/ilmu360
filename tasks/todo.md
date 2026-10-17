@@ -4773,3 +4773,41 @@ Pending implementation and verification.
 ### Review
 
 Pending implementation and verification.
+
+## Institution contribution: Maps-first verified selection (2026-10-17)
+
+### Plan
+
+- [x] Trace Google place selection through the Livewire and authenticated API contribution entrypoints, shared staged contribution action, address data boundary, and canonical addressing package fields.
+- [x] Put Google Maps institution search first, require a server-verified selected place, and order institution details after selection.
+- [x] Preserve every distinct Google identifier and useful provider payload field through address persistence; do not alias profile/entity/feature/CID identifiers.
+- [x] Infer institution type from precise Google primary type/category and clear multilingual name cues; exclude contradictory business categories, keep the control editable, and require a choice when the place is unclassified.
+- [x] Resolve Google address components through the addressing package geography provider and each `CountryAddressProfile`, preserving country-specific roles and assignments without app-owned hierarchy mapping.
+- [x] Prefill the institution name and official website from Places, then discover publicly linked social profiles from the official homepage through bounded safe requests where available.
+- [x] Cover missing, invalid, stale, and tampered selections across Livewire and API plus identifiers/metadata, site/social/phone/coordinates, non-blocking transient attributed photo previews, type inference, Malaysia subdivisions, and a materially different country profile; evaluate workflow Signals tracking.
+- [x] Run affected Pest cases with saved output and true exit, Pint, PHPStan level 6 on changed source, and review the final diff for scope and data-loss gaps.
+
+### Review
+
+Institution contributions now begin with a required, server-verified Maps selection in both Livewire and the frontend API. Selection fills institution type, address/profile geography, phone, website, social links, coordinates, distinct provider IDs and metadata; optional attributed photo previews load afterward. CID-based dedup uses exact decimal strings and a per-identity lock. Contributor corrections remain editable, and a failed required selection now shows its validation message outside the ignored Maps control.
+
+Authenticated browser review selected Masjid Sultan Salahuddin Abdul Aziz Shah and verified the translated Maps-first flow, correct institution name/type, blank street line 1 when Google only supplied the premise name, Seksyen 14, postcode 40000, Selangor, Petaling, Shah Alam subdivision, website, and three attributed photo previews. The institution was not submitted.
+
+Focused Pest evidence: feature regressions passed (6 tests / 58 assertions), Maps identity and hierarchy persistence passed (1 / 43), geography and type regressions passed (7 / 39), full type-inference scope passed (11 / 11), and missing/expired-selection error rendering passed (2 / 13); each invocation captured output and exit 0 in `/private/tmp/institution-maps-*`. Pint `--dirty --format agent`, scoped PHPStan on the two changed actions, PHP syntax checks, and `git diff --check` passed. The earlier full repository PHPStan run still reports 15 findings in unrelated existing files; changed implementation files were clean.
+
+## Event wizard Institution quick-add: verified Maps selection (2026-10-17)
+
+### Plan
+
+- [x] Reuse the existing verified Places selection, address-profile resolution, website/social/phone enrichment, type inference, Google identity, and photo preview flow for the event wizard's organizer and institution-location quick-adds.
+- [x] Require a fresh server-side Maps selection at both quick-add persistence boundaries; bind one-use proof to the mounted action form, owning select, per-open nonce, session, and Livewire component.
+- [x] Preserve editable name/type/contact/social/address corrections, media relationship saving, duplicate prevention, Signals, and provider identity while leaving venue and unrelated Institution quick-add flows unchanged.
+- [x] Add focused coverage for both owning selects, missing/tampered/stale/cross-field proofs, persistence/enrichment, duplicate identity, and modal reopen; run targeted parallel Pest with saved output/true exit, Pint, scoped PHPStan, and final diff review.
+
+### Review
+
+The event wizard's organizer and institution-location quick-adds now require a fresh verified Maps result. Proof is bound to the actual mounted action form and initiating select, rotated on every modal open, checked against the selected Place ID, and consumed after persistence. Shared enrichment fills type, official website, phone, social profiles, profile-based geography, coordinates, and provider identity; contributor edits remain intact. Photo previews are fetched live after proof validation and are not cached. Both paths share the contribution CID/Place ID lock, Signals, and media relationship persistence; venue and other institution pickers remain unchanged.
+
+Live browser verification selected Masjid Sultan Salahuddin Abdul Aziz Shah in the organizer modal and confirmed its name, Masjid type, blank street line 1, Seksyen 14/postcode 40000, Selangor/Petaling/Shah Alam geography, official website, and attributed live photo previews. Cancel/reopen reset the modal, and the separate location-institution modal showed the same Maps-first required flow. No institution or event was submitted.
+
+Focused parallel Pest gates passed: quick-add `6 tests / 81 assertions` (`/private/tmp/quick-add-institution-pest-final.log`) and contribution regression `17 / 125` (`/private/tmp/quick-add-institution-contribution-regression.log`), both exit 0. Scoped PHPStan level 6 passed with exit 0 (`/private/tmp/quick-add-institution-phpstan.log`); `vendor/bin/pint --dirty --format agent` and `git diff --check` also exited 0. The persistence regression confirmed Google latitude/longitude survive the normalization-disabled required-selection path.

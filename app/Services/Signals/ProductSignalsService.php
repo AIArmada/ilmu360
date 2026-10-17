@@ -77,6 +77,24 @@ final readonly class ProductSignalsService
         );
     }
 
+    public function recordInstitutionMapsPlaceSelected(
+        User $user,
+        bool $hasWebsite,
+        int $socialProfileCount,
+        ?Request $request = null,
+    ): ?SignalEvent {
+        return $this->record(
+            request: $request,
+            eventName: 'contribution.institution_maps_place_selected',
+            eventCategory: 'contribution',
+            user: $user,
+            properties: [
+                'has_website' => $hasWebsite,
+                'social_profile_count' => $socialProfileCount,
+            ],
+        );
+    }
+
     public function recordRewardProgramEnrolled(
         RewardProgram $program,
         RewardEnrollment $enrollment,
