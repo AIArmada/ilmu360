@@ -18,6 +18,7 @@ use App\Models\Venue;
 use App\Support\Submission\SubmitEventOptionsProvider;
 use App\Support\Submission\SubmitEventPrefill;
 use Database\Seeders\AIArmada\EventRoleSeeder;
+use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
 
 beforeEach(function () {
@@ -306,6 +307,24 @@ it('keeps picker area assignment keys present for nested event locations', funct
         phoneCode: '60',
     );
 
+    config()->set('services.google.maps_api_key', 'test-maps-key');
+    config()->set('services.google.places_enabled', true);
+    config()->set('services.google.place_link_resolution_enabled', true);
+    config()->set('services.google.places_server_api_key', 'test-server-key');
+
+    Http::fake([
+        'https://places.googleapis.com/v1/places/*' => Http::response([
+            'id' => 'event_place_no_areas',
+            'displayName' => ['text' => 'Event location'],
+            'formattedAddress' => 'Kuala Lumpur, Malaysia',
+            'addressComponents' => [
+                ['longText' => 'Malaysia', 'shortText' => 'MY', 'types' => ['country', 'political']],
+            ],
+            'location' => ['latitude' => 3.139, 'longitude' => 101.6869],
+            'googleMapsUri' => 'https://www.google.com/maps/place/?q=place_id:event_place_no_areas',
+        ], 200),
+    ]);
+
     Livewire::actingAs($this->user)
         ->test(Create::class)
         ->set('data.address.country_id', (string) $country->getKey())
@@ -320,6 +339,7 @@ it('keeps picker area assignment keys present for nested event locations', funct
                 ['longText' => 'Jalan Event', 'shortText' => 'Jalan Event', 'types' => ['route']],
             ],
         ])
+        ->assertHasNoErrors()
         ->assertSet('data.address.area_assignments', array_fill_keys(SharedFormSchema::entryAreaRoles(), null));
 });
 
