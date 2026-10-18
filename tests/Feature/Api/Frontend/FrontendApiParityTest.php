@@ -3170,9 +3170,9 @@ it('submits events with media through the frontend api', function () {
 
     $response
         ->assertCreated()
-        ->assertJsonPath('data.event.title', 'Frontend API Event');
+        ->assertJsonPath('data.occurrence.title', 'Frontend API Event');
 
-    $event = withGlobalOwnerContext(fn () => Event::query()->where('title', 'Frontend API Event')->firstOrFail());
+    $event = submittedOccurrenceByTitle('Frontend API Event');
 
     expect($event->getMedia('cover'))->toHaveCount(1)
         ->and($event->getMedia('poster'))->toHaveCount(1)
@@ -3301,7 +3301,7 @@ it('accepts any valid submission country uuid for frontend event submissions', f
         'submission_country_id' => $disabledCountryId,
     ]))
         ->assertCreated()
-        ->assertJsonPath('data.event.title', 'Frontend API Invalid Country Event');
+        ->assertJsonPath('data.occurrence.title', 'Frontend API Invalid Country Event');
 
     $malaysianInstitution = Institution::factory()->create([
         'status' => 'verified',
@@ -3374,9 +3374,9 @@ it('allows online frontend event submissions without a live url', function () {
         'submitter_email' => 'guest@example.test',
     ])
         ->assertCreated()
-        ->assertJsonPath('data.event.title', 'Online Frontend API Event');
+        ->assertJsonPath('data.occurrence.title', 'Online Frontend API Event');
 
-    expect(withGlobalOwnerContext(fn () => Event::query()->where('title', 'Online Frontend API Event')->firstOrFail()->live_url))->toBeNull();
+    expect(submittedOccurrenceByTitle('Online Frontend API Event')->links()->where('link_type', 'streaming')->exists())->toBeFalse();
 });
 
 it('requires a physical location for person-organized physical event submissions', function () {

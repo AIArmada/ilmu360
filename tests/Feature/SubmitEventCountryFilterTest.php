@@ -7,7 +7,6 @@ use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
 use App\Livewire\Pages\SubmitEvent\Create;
-use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Venue;
@@ -210,10 +209,10 @@ it('accepts matching-country organizer and location institutions', function () {
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    $event = Event::query()->where('title', 'Singapore Institution Event')->sole();
+    $event = submittedOccurrenceByTitle('Singapore Institution Event');
 
-    expect($event->institution_id)->toBe($location->id)
-        ->and($event->default_venue_id)->toBeNull();
+    expect($event->event->institution_id)->toBe($location->id)
+        ->and($event->locations()->sole()->locationable_id)->toBe((string) $location->id);
 });
 
 it('accepts a matching-country location venue', function () {
@@ -239,9 +238,9 @@ it('accepts a matching-country location venue', function () {
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    $event = Event::query()->where('title', 'Singapore Venue Event')->sole();
+    $event = submittedOccurrenceByTitle('Singapore Venue Event');
 
-    expect($event->default_venue_id)->toBe($singaporeVenue->id);
+    expect($event->locations()->sole()->venue_id)->toBe((string) $singaporeVenue->id);
 });
 
 it('clears institution and venue selections that no longer match the country', function () {

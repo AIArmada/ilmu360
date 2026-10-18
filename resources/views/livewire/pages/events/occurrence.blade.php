@@ -2,7 +2,7 @@
 @php
     $shareCardOg = app(\App\Services\ShareCards\ShareCardService::class)->ogCard($event, (string) ($occurrence->slug ?? $occurrence->getKey()));
 @endphp
-@section('og_url', route('events.occurrence', [$event, $occurrence->slug ?? $occurrence->getKey()]))
+@section('og_url', route('events.occurrence', [$event, \App\Support\Events\PublicScheduleSlug::occurrence($occurrence)]))
 @section('og_image', $shareCardOg['url'] ?? $event->card_image_url)
 @section('og_image_alt', $shareCardOg['alt'] ?? __('Poster untuk :title', ['title' => $event->title]))
 @section('og_image_width', $shareCardOg['url'] ? '1200' : '1024')
@@ -26,7 +26,7 @@
         ?? ($ownLocation?->venue_id !== null ? null : $event->resolvedLocationAddress());
     $addressDisplayLines = \App\Support\Location\AddressHierarchyFormatter::displayLines($primaryAddress);
     $venueDisplayName = $locationVenue?->name ?? $detail->locationLabel($location) ?? $event->resolvedLocationName();
-    $isOnlineOnly = (string) $event->delivery_mode === \App\Enums\EventFormat::Online->value
+    $isOnlineOnly = (string) $occurrence->delivery_mode === \App\Enums\EventFormat::Online->value
         && $location === null
         && $locationVenue === null
         && $primaryAddress === null;
@@ -91,23 +91,35 @@
     if ($occurrence->ends_at) {
         $occurrenceTime .= ' — '.\App\Support\Timezone\UserDateTimeFormatter::format($occurrence->ends_at, $occurrenceSameLocalDay ? 'h:i A' : 'j M, h:i A');
     }
-    $organizer = $event->organizer ?? $event->institution;
+    $occurrenceOwnsSubmissionContent = is_array($occurrence->metadata['public_submission'] ?? null);
+    $occurrenceOrganizer = $occurrenceOwnsSubmissionContent
+        ? $ownInvolvements->firstWhere('role_code', 'organizer')?->involveable
+        : null;
+    $organizer = $occurrenceOrganizer ?? $event->organizer ?? $event->institution;
     $organizerHref = $organizer instanceof \App\Models\Institution
         ? route('institutions.show', $organizer)
         : ($organizer instanceof \App\Models\Person ? route('persons.show', $organizer) : null);
-    $classificationLabels = $event->classifications
+    $occurrenceClassifications = $occurrenceOwnsSubmissionContent && $occurrence->relationLoaded('classifications')
+        ? $occurrence->classifications
+        : $event->classifications;
+    $classificationLabels = $occurrenceClassifications
         ->filter(fn ($classification): bool => $classification->term !== null)
         ->map(fn ($classification): string => (string) $classification->term->name)
         ->unique()
         ->values();
     $languageLabels = $this->languageLabels;
-    $audienceLabels = $event->audiences
+    $audienceRows = $occurrenceOwnsSubmissionContent && $occurrence->relationLoaded('audiences')
+        ? $occurrence->audiences
+        : $event->audiences;
+    $audienceLabels = $audienceRows
         ->reject(fn ($audience): bool => in_array($audience->audience_type, ['gender', 'age_group', 'religion'], true))
         ->map(fn ($audience): ?string => filled($audience->value) ? (string) $audience->value : null)
         ->filter()
         ->unique()
         ->values();
-    $muslimOnly = $event->is_muslim_only === true;
+    $genderValue = $audienceRows->firstWhere('audience_type', 'gender')?->value;
+    $genderRestriction = \App\Enums\EventGenderRestriction::tryFrom((string) $genderValue);
+    $muslimOnly = $audienceRows->contains(fn ($audience): bool => $audience->audience_type === 'religion' && $audience->value === 'muslim_only');
     $keyPeopleByRole = $this->keyPeopleByRole;
     $galleryImages = $this->galleryImages;
 @endphp
@@ -134,6 +146,7 @@
                         <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 4h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5v12a2 2 0 002 2z" /></svg>
                         @if($occurrence->starts_at)
                             {{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($occurrence->starts_at, 'l, j F Y') }} · {{ $occurrenceTime }}
+                            @if($occurrence->relationLoaded('timeExpressions') && filled($occurrence->timeExpressions->firstWhere('anchor_type', 'prayer')?->display_label)) · {{ $occurrence->timeExpressions->firstWhere('anchor_type', 'prayer')->display_label }}@endif
                         @else
                             {{ __('TBC') }}
                         @endif
@@ -161,7 +174,7 @@
                 </div>
             </div>
             <div class="relative min-h-56 bg-black/20">
-                @php($occurrenceCover = $occurrence->getFirstMedia('cover')?->getAvailableUrl(['banner', 'thumb']) ?? $event->cover_url ?? null)
+                @php($occurrenceCover = $occurrence->getFirstMedia('cover')?->getAvailableUrl(['banner', 'thumb']) ?? $occurrence->getFirstMedia('poster')?->getAvailableUrl(['preview', 'thumb']) ?? $event->cover_url ?? $event->card_image_url ?? null)
                 @if($occurrenceCover)
                     <img src="{{ $occurrenceCover }}" alt="{{ trim((string) ($occurrence->title ?: $event->title)) }}" class="absolute inset-0 size-full object-cover" loading="eager">
                 @else
@@ -285,11 +298,13 @@
 
             @include('livewire.pages.events.partials.shared-event-info', [
                 'event' => $event,
+                'occurrence' => $occurrence,
                 'detail' => $detail,
                 'languageLabels' => $languageLabels,
                 'classificationLabels' => $classificationLabels,
                 'audienceLabels' => $audienceLabels,
                 'muslimOnly' => $muslimOnly,
+                'genderRestriction' => $genderRestriction,
                 'keyPeopleByRole' => $keyPeopleByRole,
                 'organizer' => $organizer,
                 'organizerHref' => $organizerHref,

@@ -1,6 +1,7 @@
 <?php
 
 use AIArmada\Events\Actions\CreateEventOccurrenceAction;
+use AIArmada\Events\Models\EventAudience;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use App\Actions\Events\SyncEventClassificationsAction;
@@ -265,8 +266,10 @@ it('keeps a private visibility when duplicating an event', function (): void {
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    expect(Event::query()->where('title', 'Private duplicate should stay private')->firstOrFail()->visibility)
-        ->toBe(EventVisibility::Private);
+    $occurrence = submittedOccurrenceByTitle('Private duplicate should stay private');
+
+    expect($occurrence->event->visibility)->toBe(EventVisibility::Private)
+        ->and($occurrence->visibility)->toBe(EventVisibility::Private->value);
 });
 
 it('preserves a user-entered custom time when the context becomes religious', function (): void {
@@ -621,7 +624,11 @@ it('persists the muslim-only choice for non-religious topics', function (): void
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    $event = Event::where('title', 'Muslim Only Non Religious Event')->firstOrFail();
+    $occurrence = submittedOccurrenceByTitle('Muslim Only Non Religious Event');
 
-    expect((bool) $event->is_muslim_only)->toBeTrue();
+    expect(EventAudience::query()
+        ->where('event_occurrence_id', $occurrence->getKey())
+        ->where('audience_type', 'religion')
+        ->where('value', 'muslim_only')
+        ->exists())->toBeTrue();
 });

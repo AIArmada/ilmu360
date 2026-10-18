@@ -7,7 +7,6 @@ use App\Enums\EventFormat;
 use App\Enums\EventPrayerTime;
 use App\Jobs\RefreshPrayerTimes;
 use App\Livewire\Pages\SubmitEvent\Create;
-use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
@@ -130,9 +129,9 @@ it('keeps preview and submit on the organizer zone when switching online', funct
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    $event = Event::query()->where('title', 'Online Parity Submit Event')->sole();
+    $event = submittedOccurrenceByTitle('Online Parity Submit Event');
     $expression = EventTimeExpression::query()
-        ->where('event_id', $event->getKey())
+        ->where('event_occurrence_id', $event->getKey())
         ->where('anchor_type', 'prayer')
         ->first();
 
@@ -163,7 +162,7 @@ it('accepts an end between the provider start and a stale cold hint', function (
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    $event = Event::query()->where('title', 'Stale Hint Submit Event')->sole();
+    $event = submittedOccurrenceByTitle('Stale Hint Submit Event');
 
     expect($event->starts_at->setTimezone('Asia/Kuala_Lumpur')->format('H:i'))->toBe('19:07')
         ->and($event->ends_at->setTimezone('Asia/Kuala_Lumpur')->format('H:i'))->toBe('19:30');
@@ -185,22 +184,24 @@ it('preserves a frontend Tarawih expression across an admin title-only save', fu
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    $event = Event::query()->where('title', 'Frontend Tarawih Event')->sole();
+    $occurrence = submittedOccurrenceByTitle('Frontend Tarawih Event');
 
     // Frontend stores Tarawih label-only with a null anchor.
-    expect($event->prayer_reference)->toBeNull();
+    $expression = EventTimeExpression::query()->where('event_occurrence_id', $occurrence->getKey())->sole();
+    expect($expression->anchor_code)->toBeNull();
 
     $actor = User::factory()->create();
-    $updated = app(SaveAdminEventAction::class)->handle(['title' => 'Renamed Tarawih Event'], $actor, $event->fresh());
+    $updated = app(SaveAdminEventAction::class)->handle(['title' => 'Renamed Tarawih Event'], $actor, $occurrence->event->fresh());
 
     $expression = EventTimeExpression::query()
-        ->where('event_id', $updated->getKey())
+        ->where('event_occurrence_id', $occurrence->getKey())
         ->where('anchor_type', 'prayer')
         ->first();
 
     expect($expression)->not->toBeNull()
         ->and($expression?->anchor_code)->toBeNull()
-        ->and($updated->starts_at->toIso8601String())->toBe($event->starts_at->toIso8601String());
+        ->and($updated->title)->toBe('Renamed Tarawih Event')
+        ->and($occurrence->fresh()->starts_at->toIso8601String())->toBe($occurrence->starts_at->toIso8601String());
 });
 
 it('duplicates a midnight-rolled event on its original prayer day', function () {
@@ -266,7 +267,7 @@ it('duplicates a midnight-rolled event on its original prayer day', function () 
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    $duplicate = Event::query()->where('title', 'Duplicated Rolled Event')->sole();
+    $duplicate = submittedOccurrenceByTitle('Duplicated Rolled Event');
 
     expect($duplicate->starts_at->toIso8601String())->toBe($expectedStart->toIso8601String());
 });
@@ -294,9 +295,9 @@ it('matches frontend country and start for an address-less online event', functi
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    $frontend = Event::query()->where('title', 'Address-less Online Parity Event')->sole();
+    $frontend = submittedOccurrenceByTitle('Address-less Online Parity Event');
     $frontendProvenance = EventTimeExpression::query()
-        ->where('event_id', $frontend->getKey())
+        ->where('event_occurrence_id', $frontend->getKey())
         ->where('anchor_type', 'prayer')
         ->firstOrFail()->metadata['prayer'];
 

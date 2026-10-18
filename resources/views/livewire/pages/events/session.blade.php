@@ -2,7 +2,7 @@
 @php
     $shareCardOg = app(\App\Services\ShareCards\ShareCardService::class)->ogCard($event, (string) ($occurrence->slug ?? $occurrence->getKey()));
 @endphp
-@section('og_url', route('events.session', [$event, $occurrence->slug ?? $occurrence->getKey(), $session->slug ?? $session->getKey()]))
+@section('og_url', route('events.session', [$event, \App\Support\Events\PublicScheduleSlug::occurrence($occurrence), \App\Support\Events\PublicScheduleSlug::session($session)]))
 @section('og_image', $shareCardOg['url'] ?? $event->card_image_url)
 @section('og_image_alt', $shareCardOg['alt'] ?? __('Poster untuk :title', ['title' => $event->title]))
 @section('og_image_width', $shareCardOg['url'] ? '1200' : '1024')
@@ -307,6 +307,7 @@
 
             @include('livewire.pages.events.partials.shared-event-info', [
                 'event' => $event,
+                'occurrence' => $occurrence,
                 'detail' => $detail,
                 'languageLabels' => $languageLabels,
                 'classificationLabels' => $classificationLabels,

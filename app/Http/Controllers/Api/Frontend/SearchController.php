@@ -1027,6 +1027,8 @@ class SearchController extends FrontendController
             ->take($perPage)
             ->values();
 
+        $visibleEvents->loadMissing('displayOccurrence.media');
+
         $items = $visibleEvents
             ->map(fn (Event $event): array => $this->eventListData($event))
             ->all();

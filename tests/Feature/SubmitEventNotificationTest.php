@@ -88,7 +88,7 @@ it('notifies moderators when a guest submits an event', function () {
         ->assertRedirect(route('submit-event.success'));
 
     // Verify the event was created with pending status via the transition
-    $event = Event::where('title', 'Notification Test Event')->firstOrFail();
+    $event = submittedOccurrenceByTitle('Notification Test Event')->event;
     expect($event->status)->toBeInstanceOf(Pending::class);
 
     // Verify moderator and super_admin received the notification
@@ -113,7 +113,7 @@ it('transitions event from draft to pending on submission', function () {
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    $event = Event::where('title', 'Draft to Pending Event')->firstOrFail();
+    $event = submittedOccurrenceByTitle('Draft to Pending Event')->event;
 
     // Event should be in Pending state (transitioned from Draft)
     expect($event->status)->toBeInstanceOf(Pending::class);

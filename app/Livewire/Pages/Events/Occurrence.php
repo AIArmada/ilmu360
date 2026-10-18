@@ -12,11 +12,13 @@ use App\Models\Person;
 use App\Models\Reference;
 use App\Services\CalendarService;
 use App\Services\PublicScheduleDiscoveryService;
+use App\Support\Cache\SelectionCatalogCache;
 use App\Support\Events\PublicSchedulePolicy;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
@@ -82,6 +84,40 @@ class Occurrence extends Show
     public function selectedOccurrence(): ?EventOccurrence
     {
         return $this->occurrence ?? null;
+    }
+
+    /** @return Collection<int, string> */
+    #[Computed]
+    public function languageLabels(): Collection
+    {
+        $occurrence = $this->selectedOccurrence();
+
+        if (
+            ! $occurrence instanceof EventOccurrence
+            || ! is_array($occurrence->metadata['public_submission'] ?? null)
+        ) {
+            return parent::languageLabels();
+        }
+
+        if (! $occurrence->relationLoaded('languages')) {
+            return collect();
+        }
+
+        $codes = $occurrence->languages
+            ->pluck('language_code')
+            ->filter(fn (mixed $code): bool => is_string($code) && $code !== '')
+            ->unique()
+            ->values();
+
+        if ($codes->isEmpty()) {
+            return collect();
+        }
+
+        $labels = app(SelectionCatalogCache::class)->languageLabelsForCodes($codes->all());
+
+        return $codes
+            ->map(fn (string $code): string => $labels[$code] ?? strtoupper($code))
+            ->values();
     }
 
     /**
@@ -203,7 +239,10 @@ class Occurrence extends Show
             'primaryLocation' => $locationScope,
             'primaryLocation.venueSpace',
             'occurrences.media',
-            'occurrences.locations' => $locationScope,
+            'occurrences.locations' => function (Relation $query) use ($locationScope): void {
+                $locationScope($query);
+                $query->whereNull('event_session_id');
+            },
             'occurrences.locations.venueSpace',
             'occurrences.sessions' => function (Relation $query) use ($scheduleScope, $capacityScope): void {
                 $scheduleScope($query);
@@ -233,6 +272,13 @@ class Occurrence extends Show
 
         OwnerContext::withOwner(null, function () use ($occurrence): void {
             $occurrence->loadMissing([
+                'classifications.term',
+                'languages',
+                'audiences',
+                'audienceProfiles',
+                'timeExpressions' => static function (Relation $query): void {
+                    $query->whereNull('event_session_id');
+                },
                 'involvements' => $this->publicInvolvementScope(),
                 'involvements.involveable' => $this->involveableEagerLoad(),
                 'involvements.role',

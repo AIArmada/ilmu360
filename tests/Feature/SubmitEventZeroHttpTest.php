@@ -5,7 +5,6 @@ use App\Data\Prayer\PrayerTimesDTO;
 use App\Enums\EventPrayerTime;
 use App\Jobs\RefreshPrayerTimes;
 use App\Livewire\Pages\SubmitEvent\Create;
-use App\Models\Event;
 use App\Services\Prayer\HardcodedPrayerFallback;
 use App\Services\Prayer\PrayerTimesCache;
 use Carbon\CarbonImmutable;
@@ -32,9 +31,9 @@ it('submits with zero live HTTP on a cold cache and records hardcoded provenance
 
     Http::assertNothingSent();
 
-    $event = Event::query()->where('title', 'Zero HTTP Submit Event')->sole();
+    $event = submittedOccurrenceByTitle('Zero HTTP Submit Event');
     $expression = EventTimeExpression::query()
-        ->where('event_id', $event->getKey())
+        ->where('event_occurrence_id', $event->getKey())
         ->where('anchor_type', 'prayer')
         ->first();
 
@@ -60,7 +59,7 @@ it('uses the cached provider clock when the flag is on', function () {
 
     Http::assertNothingSent();
 
-    $event = Event::query()->where('title', 'Provider Clock Submit Event')->sole();
+    $event = submittedOccurrenceByTitle('Provider Clock Submit Event');
 
     // Seeded DTO: maghrib 19:02 MYT + the SelepasMaghrib offset.
     $offset = EventPrayerTime::SelepasMaghrib->getDefaultOffset()?->minutes() ?? 0;
@@ -71,7 +70,7 @@ it('uses the cached provider clock when the flag is on', function () {
     expect($event->starts_at->toIso8601String())->toBe($expected->toIso8601String());
 
     $expression = EventTimeExpression::query()
-        ->where('event_id', $event->getKey())
+        ->where('event_occurrence_id', $event->getKey())
         ->where('anchor_type', 'prayer')
         ->first();
 
@@ -93,13 +92,13 @@ it('falls back to hardcoded on a cold cache when the flag is on and refreshes af
     Http::assertNothingSent();
     Bus::assertDispatchedAfterResponse(RefreshPrayerTimes::class);
 
-    $event = Event::query()->where('title', 'Cold Cache Submit Event')->sole();
+    $event = submittedOccurrenceByTitle('Cold Cache Submit Event');
     $expected = CarbonImmutable::parse($form['event_date'].' 20:00:00', 'Asia/Kuala_Lumpur')->utc();
 
     expect($event->starts_at->toIso8601String())->toBe($expected->toIso8601String());
 
     $expression = EventTimeExpression::query()
-        ->where('event_id', $event->getKey())
+        ->where('event_occurrence_id', $event->getKey())
         ->where('anchor_type', 'prayer')
         ->first();
 
@@ -126,7 +125,7 @@ it('ignores seeded cache when the flag is off', function () {
     Http::assertNothingSent();
     Bus::assertNotDispatched(RefreshPrayerTimes::class);
 
-    $event = Event::query()->where('title', 'Flag Off Submit Event')->sole();
+    $event = submittedOccurrenceByTitle('Flag Off Submit Event');
     $expected = CarbonImmutable::parse($form['event_date'].' 20:00:00', 'Asia/Kuala_Lumpur')->utc();
 
     expect($event->starts_at->toIso8601String())->toBe($expected->toIso8601String());
@@ -147,13 +146,13 @@ it('submits on hardcoded estimates when the cache store is down', function () {
 
     Http::assertNothingSent();
 
-    $event = Event::query()->where('title', 'Cache Down Submit Event')->sole();
+    $event = submittedOccurrenceByTitle('Cache Down Submit Event');
     $expected = CarbonImmutable::parse($form['event_date'].' 20:00:00', 'Asia/Kuala_Lumpur')->utc();
 
     expect($event->starts_at->toIso8601String())->toBe($expected->toIso8601String());
 
     $expression = EventTimeExpression::query()
-        ->where('event_id', $event->getKey())
+        ->where('event_occurrence_id', $event->getKey())
         ->where('anchor_type', 'prayer')
         ->first();
 
@@ -218,7 +217,7 @@ it('submits with a real sync queue and performs no inline HTTP work', function (
             ->and($frames)->not->toContain('App\\Http\\');
     }
 
-    $event = Event::query()->where('title', 'Sync Queue Submit Event')->sole();
+    $event = submittedOccurrenceByTitle('Sync Queue Submit Event');
     $expected = CarbonImmutable::parse($form['event_date'].' 20:00:00', 'Asia/Kuala_Lumpur')->utc();
 
     expect($event->starts_at->toIso8601String())->toBe($expected->toIso8601String());
@@ -241,13 +240,13 @@ it('survives real sync dispatch with a failing prayer cache store', function () 
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    $event = Event::query()->where('title', 'Default Cache Down Submit Event')->sole();
+    $event = submittedOccurrenceByTitle('Default Cache Down Submit Event');
     $expected = CarbonImmutable::parse($form['event_date'].' 20:00:00', 'Asia/Kuala_Lumpur')->utc();
 
     expect($event->starts_at->toIso8601String())->toBe($expected->toIso8601String());
 
     $expression = EventTimeExpression::query()
-        ->where('event_id', $event->getKey())
+        ->where('event_occurrence_id', $event->getKey())
         ->where('anchor_type', 'prayer')
         ->first();
 
@@ -278,7 +277,7 @@ it('accepts an end time between the provider start and the hardcoded estimate', 
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    $event = Event::query()->where('title', 'End Between Clocks Submit Event')->sole();
+    $event = submittedOccurrenceByTitle('End Between Clocks Submit Event');
     $expected = CarbonImmutable::parse($eventDate.' 19:07:00', 'Asia/Kuala_Lumpur')->utc();
 
     expect($event->starts_at->toIso8601String())->toBe($expected->toIso8601String());
@@ -322,7 +321,7 @@ it('persists a prayer offset crossing midnight on the following local day', func
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    $event = Event::query()->where('title', 'Midnight Rollover Submit Event')->sole();
+    $event = submittedOccurrenceByTitle('Midnight Rollover Submit Event');
     $expected = CarbonImmutable::parse($eventDate.' 00:00:00', 'Asia/Kuala_Lumpur')
         ->addDay()
         ->setTime(0, 3)

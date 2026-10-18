@@ -14,9 +14,11 @@ use App\Models\Event;
 use App\Support\ShareCards\PangoShareCardRenderer;
 use App\Support\ShareCards\ShareCardEventPresenter;
 use App\Support\ShareCards\ShareCardFonts;
+use BackedEnum;
 use Carbon\CarbonInterface;
 use DateTimeZone;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Storage;
@@ -235,7 +237,11 @@ final readonly class ShareCardService
             $occurrence instanceof EventOccurrence ? $this->instantKey($occurrence->ends_at) : 'none',
             $announcement !== null ? (string) $announcement->getKey() : 'none',
             $announcement !== null ? $this->instantKey($announcement->updated_at) : 'none',
-            $announcement !== null ? (string) ($announcement->update_type ?? '') : 'none',
+            $announcement !== null
+                ? ($announcement->update_type instanceof BackedEnum
+                    ? (string) $announcement->update_type->value
+                    : (string) ($announcement->update_type ?? ''))
+                : 'none',
             $cover !== null ? (string) $cover->getKey().'/'.$this->instantKey($cover->updated_at) : 'none',
             $poster !== null ? (string) $poster->getKey().'/'.$this->instantKey($poster->updated_at) : 'none',
             // Institution-logo identity through the same accessor the
@@ -576,11 +582,12 @@ final readonly class ShareCardService
             'timeExpressions',
             'latestPublishedChangeAnnouncement',
             'primaryOccurrence',
+            'displayOccurrence.media',
         ]);
 
         if ($occurrence instanceof EventOccurrence) {
             $occurrence->loadMissing([
-                'locations',
+                'locations' => static fn (Relation $query): Relation => $query->whereNull('event_session_id'),
                 'locations.venueSpace',
                 'locations.venue',
             ]);

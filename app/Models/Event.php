@@ -166,6 +166,22 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
     ];
 
     /**
+     * Occurrences that can still represent the next upcoming parent date.
+     * Cancelled and completed dates remain visible in schedule history, but
+     * do not become the parent event's upcoming date.
+     *
+     * @var list<string>
+     */
+    public const array UPCOMING_SCHEDULE_STATUSES = [
+        'scheduled',
+        'published',
+        'live',
+        'delayed',
+        'postponed',
+        'rescheduled',
+    ];
+
+    /**
      * @var list<string>
      */
     public const array PUBLIC_SCHEDULE_VISIBILITIES = ['public', 'unlisted'];
@@ -410,6 +426,24 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
     public function primaryOccurrence(): HasOne
     {
         return $this->hasOne(EventOccurrence::class)
+            ->orderBy('starts_at')
+            ->orderBy('created_at')
+            ->orderBy('id');
+    }
+
+    /**
+     * The nearest upcoming public date for a parent event. Grouped public
+     * submissions use this as their date projection; their parent stays
+     * dateless.
+     *
+     * @return HasOne<EventOccurrence, $this>
+     */
+    public function displayOccurrence(): HasOne
+    {
+        return $this->hasOne(EventOccurrence::class)
+            ->whereIn('status', self::UPCOMING_SCHEDULE_STATUSES)
+            ->whereIn('visibility', self::PUBLIC_SCHEDULE_VISIBILITIES)
+            ->where('starts_at', '>=', now())
             ->orderBy('starts_at')
             ->orderBy('created_at')
             ->orderBy('id');
@@ -1034,24 +1068,144 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
 
     private function primaryOccurrenceDate(string $key): mixed
     {
-        if ($this->relationLoaded('primaryOccurrence')) {
-            $occurrence = $this->getRelationValue('primaryOccurrence');
-
-            return $occurrence instanceof EventOccurrence ? $occurrence->{$key} : null;
-        }
-
-        if ($this->relationLoaded('occurrences')) {
-            $occurrence = $this->occurrences->first();
-
-            return $occurrence instanceof EventOccurrence ? $occurrence->{$key} : null;
-        }
-
         if (! $this->exists) {
             return null;
         }
 
-        $occurrence = $this->occurrences()
+        $groupedSubmission = is_array($this->metadata['public_submission_group'] ?? null)
+            && is_string($this->metadata['public_submission_group']['key'] ?? null);
+        $visibility = $this->visibility instanceof BackedEnum ? $this->visibility->value : (string) $this->visibility;
+        $publicParent = (string) $this->status === 'approved'
+            && in_array($visibility, [self::PUBLIC, self::UNLISTED], true);
+
+        if ($this->relationLoaded('occurrences')) {
+            $eligibleOccurrences = $this->occurrences->filter(function (EventOccurrence $occurrence) use ($publicParent): bool {
+                $status = (string) $occurrence->status;
+                $occurrenceVisibility = $occurrence->visibility instanceof BackedEnum
+                    ? $occurrence->visibility->value
+                    : (string) $occurrence->visibility;
+
+                if ($publicParent) {
+                    return in_array($status, self::PUBLIC_SCHEDULE_STATUSES, true)
+                        && in_array($occurrenceVisibility, self::PUBLIC_SCHEDULE_VISIBILITIES, true);
+                }
+
+                return ! in_array($status, [EventOccurrence::DRAFT, EventOccurrence::ARCHIVED], true);
+            });
+            $upcomingStatuses = $groupedSubmission || $publicParent
+                ? self::UPCOMING_SCHEDULE_STATUSES
+                : self::PUBLIC_SCHEDULE_STATUSES;
+            $upcomingOccurrence = $eligibleOccurrences
+                ->filter(fn (EventOccurrence $occurrence): bool => in_array((string) $occurrence->status, $upcomingStatuses, true)
+                    && ($occurrence->starts_at?->greaterThanOrEqualTo(now()) ?? false))
+                ->sortBy(fn (EventOccurrence $occurrence): string => (string) $occurrence->starts_at)
+                ->first();
+
+            if ($groupedSubmission) {
+                return $upcomingOccurrence instanceof EventOccurrence ? $upcomingOccurrence->{$key} : null;
+            }
+
+            $occurrence = $upcomingOccurrence ?? $eligibleOccurrences
+                ->sortBy(fn (EventOccurrence $item): string => (string) $item->starts_at)
+                ->first();
+
+            if ($occurrence instanceof EventOccurrence) {
+                return $occurrence->{$key};
+            }
+        }
+
+        if ($groupedSubmission) {
+            if ($this->relationLoaded('displayOccurrence')) {
+                return $this->displayOccurrence?->{$key};
+            }
+
+            if ($this->relationLoaded('primaryOccurrence')) {
+                $primaryOccurrence = $this->primaryOccurrence;
+                $eligibleStatuses = $publicParent
+                    ? self::UPCOMING_SCHEDULE_STATUSES
+                    : array_values(array_diff(self::PUBLIC_SCHEDULE_STATUSES, [EventOccurrence::DRAFT, EventOccurrence::ARCHIVED, 'cancelled', 'completed']));
+                $occurrenceVisibility = $primaryOccurrence?->visibility instanceof BackedEnum
+                    ? $primaryOccurrence->visibility->value
+                    : (string) $primaryOccurrence?->visibility;
+
+                if (
+                    $primaryOccurrence instanceof EventOccurrence
+                    && in_array((string) $primaryOccurrence->status, $eligibleStatuses, true)
+                    && (! $publicParent || in_array($occurrenceVisibility, self::PUBLIC_SCHEDULE_VISIBILITIES, true))
+                    && ($primaryOccurrence->starts_at?->greaterThanOrEqualTo(now()) ?? false)
+                ) {
+                    return $primaryOccurrence->{$key};
+                }
+            }
+
+            $upcomingQuery = $this->occurrences()
+                ->withoutGlobalScopes()
+                ->where('starts_at', '>=', now())
+                ->orderBy('starts_at')
+                ->orderBy('created_at')
+                ->orderBy('id');
+
+            if ($publicParent) {
+                $upcomingQuery
+                    ->whereIn('status', self::UPCOMING_SCHEDULE_STATUSES)
+                    ->whereIn('visibility', self::PUBLIC_SCHEDULE_VISIBILITIES);
+            } else {
+                $upcomingQuery->whereNotIn('status', [EventOccurrence::DRAFT, EventOccurrence::ARCHIVED, 'cancelled', 'completed']);
+            }
+
+            $occurrence = $upcomingQuery->first();
+            $this->setRelation('displayOccurrence', $occurrence);
+
+            return $occurrence instanceof EventOccurrence ? $occurrence->{$key} : null;
+        }
+
+        // Public list queries already eager-load this one-row projection.
+        // Reuse it for both date properties instead of issuing one lookup per
+        // starts_at / ends_at access.
+        if ($this->relationLoaded('primaryOccurrence')) {
+            return $this->primaryOccurrence?->{$key};
+        }
+
+        $this->loadMissing('primaryOccurrence');
+
+        if ($this->primaryOccurrence instanceof EventOccurrence) {
+            return $this->primaryOccurrence->{$key};
+        }
+
+        $upcomingQuery = $this->occurrences()
             ->withoutGlobalScopes()
+            ->where('starts_at', '>=', now())
+            ->orderBy('starts_at')
+            ->orderBy('created_at')
+            ->orderBy('id');
+
+        if ($publicParent) {
+            $upcomingQuery
+                ->whereIn('status', self::UPCOMING_SCHEDULE_STATUSES)
+                ->whereIn('visibility', self::PUBLIC_SCHEDULE_VISIBILITIES);
+        } else {
+            $upcomingQuery->whereNotIn('status', [EventOccurrence::DRAFT, EventOccurrence::ARCHIVED, 'cancelled', 'completed']);
+        }
+
+        $occurrence = $upcomingQuery->first([$key]);
+
+        if ($occurrence instanceof EventOccurrence) {
+            return $occurrence->{$key};
+        }
+
+        if ($publicParent) {
+            $fallbackQuery = $this->occurrences()
+                ->withoutGlobalScopes()
+                ->whereIn('status', self::PUBLIC_SCHEDULE_STATUSES)
+                ->whereIn('visibility', self::PUBLIC_SCHEDULE_VISIBILITIES);
+        } else {
+            $fallbackQuery = $this->occurrences()->withoutGlobalScopes();
+        }
+
+        $occurrence = $fallbackQuery
+            ->orderBy('starts_at')
+            ->orderBy('created_at')
+            ->orderBy('id')
             ->first([$key]);
 
         return $occurrence instanceof EventOccurrence ? $occurrence->{$key} : null;
@@ -1338,6 +1492,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
                 'references' => fn ($referenceQuery) => $referenceQuery->active(),
                 'classifications',
                 'primaryOccurrence',
+                'displayOccurrence.media',
                 'timeExpressions',
             ])
             ->whereNotNull('events.published_at')
@@ -1369,6 +1524,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
             'keyPeople.person',
             'classifications',
             'primaryOccurrence',
+            'displayOccurrence.media',
             'timeExpressions',
         ]);
         $this->load([
@@ -2417,6 +2573,19 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
             return $posterUrl;
         }
 
+        $occurrence = $this->cardImageOccurrence();
+        $occurrenceCoverUrl = $this->preferredMediaUrl($occurrence?->getFirstMedia('cover'), ['banner', 'thumb']);
+
+        if ($occurrenceCoverUrl !== null) {
+            return $occurrenceCoverUrl;
+        }
+
+        $occurrencePosterUrl = $this->preferredMediaUrl($occurrence?->getFirstMedia('poster'), ['preview', 'thumb']);
+
+        if ($occurrencePosterUrl !== null) {
+            return $occurrencePosterUrl;
+        }
+
         if ($this->institution?->hasMedia('logo')) {
             $institutionLogoUrl = $this->preferredMediaUrl($this->institution->getFirstMedia('logo'), ['thumb']);
 
@@ -2426,6 +2595,60 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
         }
 
         return asset('images/placeholders/event-wide-v1.jpg');
+    }
+
+    private function cardImageOccurrence(): ?EventOccurrence
+    {
+        if ($this->relationLoaded('occurrences')) {
+            $occurrences = $this->occurrences
+                ->filter(fn (EventOccurrence $occurrence): bool => in_array((string) $occurrence->status, self::PUBLIC_SCHEDULE_STATUSES, true)
+                    && in_array(
+                        $occurrence->visibility instanceof BackedEnum ? $occurrence->visibility->value : (string) $occurrence->visibility,
+                        self::PUBLIC_SCHEDULE_VISIBILITIES,
+                        true,
+                    ));
+            $upcoming = $occurrences
+                ->filter(fn (EventOccurrence $occurrence): bool => in_array((string) $occurrence->status, self::UPCOMING_SCHEDULE_STATUSES, true)
+                    && ($occurrence->starts_at?->greaterThanOrEqualTo(now()) ?? false))
+                ->sortBy(fn (EventOccurrence $occurrence): string => (string) $occurrence->starts_at)
+                ->first();
+
+            return $upcoming instanceof EventOccurrence
+                ? $upcoming
+                : $occurrences->sortBy(fn (EventOccurrence $occurrence): string => (string) $occurrence->starts_at)->first();
+        }
+
+        if ($this->relationLoaded('displayOccurrence')) {
+            return $this->displayOccurrence instanceof EventOccurrence ? $this->displayOccurrence : null;
+        }
+
+        $groupedSubmission = is_array($this->metadata['public_submission_group'] ?? null)
+            && is_string($this->metadata['public_submission_group']['key'] ?? null);
+
+        if ($this->relationLoaded('primaryOccurrence') && $this->primaryOccurrence instanceof EventOccurrence) {
+            $primaryOccurrence = $this->primaryOccurrence;
+            $primaryStartsAt = $primaryOccurrence->starts_at;
+
+            if (! $groupedSubmission || (
+                in_array((string) $primaryOccurrence->status, self::UPCOMING_SCHEDULE_STATUSES, true)
+                && in_array(
+                    $primaryOccurrence->visibility instanceof BackedEnum ? $primaryOccurrence->visibility->value : (string) $primaryOccurrence->visibility,
+                    self::PUBLIC_SCHEDULE_VISIBILITIES,
+                    true,
+                )
+                && ($primaryStartsAt?->greaterThanOrEqualTo(now()) ?? false)
+            )) {
+                return $primaryOccurrence;
+            }
+
+            $this->loadMissing('displayOccurrence.media');
+
+            return $this->displayOccurrence instanceof EventOccurrence ? $this->displayOccurrence : null;
+        }
+
+        $this->loadMissing('primaryOccurrence');
+
+        return $this->primaryOccurrence instanceof EventOccurrence ? $this->primaryOccurrence : null;
     }
 
     /**

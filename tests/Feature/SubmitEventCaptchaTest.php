@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use App\Enums\EventAgeGroup;
@@ -138,7 +139,7 @@ it('accepts submission when turnstile verification succeeds', function () {
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    expect(Event::where('title', 'Event Captcha Passed')->exists())->toBeTrue();
+    expect(EventOccurrence::query()->where('title', 'Event Captcha Passed')->exists())->toBeTrue();
 
     Http::assertSentCount(1);
 });

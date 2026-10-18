@@ -6,6 +6,7 @@ use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\State;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Models\Follow;
+use AIArmada\Events\Models\EventOccurrence;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Enums\DawahShareOutcomeType;
 use App\Livewire\Concerns\JoinsHierarchyAreaName;
@@ -168,9 +169,28 @@ class Show extends Component
             'venue.addresses.areaAssignments' => fn (HasMany $relation): HasMany => $this->joinAreaName($relation),
         ];
 
+        $referenceIds = $this->reference->defaultEventReferenceIds();
         /** @var EventBuilder $query */
-        $query = Event::query()->whereHas('references', fn (Builder $references): Builder => $references
-            ->whereIn('references.id', $this->reference->defaultEventReferenceIds()));
+        $query = Event::query()->where(function (Builder $referenceFilter) use ($referenceIds): void {
+            $referenceFilter
+                ->whereHas('references', fn (Builder $references): Builder => $references
+                    ->whereIn('references.id', $referenceIds))
+                ->orWhereHas('occurrences', function (Builder $occurrences) use ($referenceIds): void {
+                    $occurrence = new EventOccurrence;
+                    $occurrences
+                        ->whereIn($occurrence->qualifyColumn('status'), Event::PUBLIC_SCHEDULE_STATUSES)
+                        ->whereIn($occurrence->qualifyColumn('visibility'), Event::PUBLIC_SCHEDULE_VISIBILITIES)
+                        ->whereHas('references', function (Builder $referenceRows) use ($referenceIds): void {
+                            $referenceRows
+                                ->where('visibility', 'public')
+                                ->whereNull('event_session_id')
+                                ->whereHasMorph('referenceable', [Reference::class], function (Builder $references) use ($referenceIds): void {
+                                    Reference::applyPublicVisibility($references)
+                                        ->whereIn('references.id', $referenceIds);
+                                });
+                        });
+                });
+        });
 
         return $query
             ->active()
@@ -183,6 +203,7 @@ class Show extends Component
                 'references' => fn ($query) => $query->active(),
                 'media',
                 'primaryOccurrence',
+                'displayOccurrence.media',
                 'timeExpressions',
                 'links',
             ]);
@@ -208,6 +229,7 @@ class Show extends Component
             'references' => fn ($query) => $query->active(),
             'media',
             'primaryOccurrence',
+            'displayOccurrence.media',
             'timeExpressions',
             'links',
         ];

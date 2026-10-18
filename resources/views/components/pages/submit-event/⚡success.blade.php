@@ -10,17 +10,28 @@ new class extends Component {};
 @php
     $isAutoApproved = (bool) session('event_auto_approved', false);
     $isSession = filled(session('event_session_id'));
-    $isPublished = session('event_status') === 'approved';
+    $hasOccurrenceSubmission = filled(session('event_occurrence_id'));
+    $isPublished = session('event_status') === 'approved'
+        && ! session('event_occurrence_pending_review', false)
+        && (! $hasOccurrenceSubmission || in_array(session('event_occurrence_status'), ['scheduled', 'published', 'live', 'delayed', 'postponed', 'rescheduled'], true));
     $hasPublicContainer = ! $isSession || (
         session('event_parent_visibility') !== 'private'
         && session('event_occurrence_visibility') !== 'private'
     );
+    if (! $isSession && $hasOccurrenceSubmission) {
+        $hasPublicContainer = session('event_parent_visibility') !== 'private'
+            && session('event_occurrence_visibility') !== 'private';
+    }
     $publicUrl = null;
 
     if ($isPublished && $hasPublicContainer && session('event_visibility') !== 'private' && filled(session('event_slug'))) {
-        $publicUrl = $isSession && filled(session('event_occurrence_slug')) && filled(session('event_session_slug'))
-            ? route('events.session', [session('event_slug'), session('event_occurrence_slug'), session('event_session_slug')])
-            : route('events.show', session('event_slug'));
+        if ($isSession && filled(session('event_occurrence_slug')) && filled(session('event_session_slug'))) {
+            $publicUrl = route('events.session', [session('event_slug'), session('event_occurrence_slug'), session('event_session_slug')]);
+        } elseif ($hasOccurrenceSubmission && filled(session('event_occurrence_slug'))) {
+            $publicUrl = route('events.occurrence', [session('event_slug'), session('event_occurrence_slug')]);
+        } else {
+            $publicUrl = route('events.show', session('event_slug'));
+        }
     }
     $submitAnotherRoute = session('submission_institution_id')
         ? route('dashboard.institutions.submit-event', array_filter([

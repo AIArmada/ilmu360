@@ -2,6 +2,7 @@
 
 namespace App\Actions\Events;
 
+use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
 use App\Actions\Prayer\ResolvePrayerStartClockAction;
 use App\Contracts\CaptchaVerifier;
@@ -57,7 +58,7 @@ class SubmitFrontendEventAction
     /**
      * @param  array<string, mixed>  $state
      * @param  (callable(HasMedia): void)|null  $persistRelationships
-     * @return array{event: Event, session: EventSession|null, submission: EventSubmission, auto_approved: bool, visibility: string}
+     * @return array{event: Event, session: EventSession|null, occurrence: EventOccurrence|null, submission: EventSubmission, auto_approved: bool, visibility: string, grouped: bool, parent_created: bool, occurrence_pending_review: bool}
      */
     public function handle(
         array $state,
@@ -236,6 +237,7 @@ class SubmitFrontendEventAction
                     : $this->persistNewEvent->handle($validatedSubmission, $persistMedia);
                 $event = $persisted['event'];
                 $submission = $persisted['submission'];
+                $occurrence = $persisted['occurrence'] ?? ($persisted['session'] instanceof EventSession ? $persisted['session']->occurrence : null);
 
                 $this->completeSubmission->handle(
                     event: $event,
@@ -245,6 +247,10 @@ class SubmitFrontendEventAction
                     sessionSubmission: $isSessionSubmission,
                     autoApproved: $autoApproved,
                     request: $request,
+                    occurrence: $occurrence instanceof EventOccurrence ? $occurrence : null,
+                    parentCreated: $persisted['parent_created'] ?? true,
+                    groupedSubmission: $persisted['grouped'] ?? false,
+                    occurrencePendingReview: $persisted['occurrence_pending_review'] ?? false,
                 );
 
                 return $persisted;
@@ -260,22 +266,32 @@ class SubmitFrontendEventAction
         $event = $persisted['event'];
         $session = $persisted['session'];
         $submission = $persisted['submission'];
+        $occurrence = $persisted['occurrence'] ?? ($session instanceof EventSession ? $session->occurrence : null);
+        $occurrence = $occurrence instanceof EventOccurrence ? $occurrence->fresh() ?? $occurrence : null;
 
-        // Sessions own their visibility; the confirmation must reflect the saved
-        // subject, never the parent event when they differ.
-        $subjectVisibility = $session instanceof EventSession ? $session->visibility : $event->visibility;
+        // Session and occurrence submissions own their visibility; the
+        // confirmation follows the submitted date rather than its parent.
+        $subjectVisibility = $session instanceof EventSession
+            ? $session->visibility
+            : ($occurrence instanceof EventOccurrence ? $occurrence->visibility : $event->visibility);
 
         // Session submissions schedule immediately (package status: scheduled)
         // without event moderation; parent auto_approved must not claim the new
         // session was published.
-        $effectiveAutoApproved = $session instanceof EventSession ? false : $autoApproved;
+        $effectiveAutoApproved = $session instanceof EventSession || ($persisted['occurrence_pending_review'] ?? false)
+            ? false
+            : $autoApproved;
 
         return [
             'event' => $event->fresh() ?? $event,
             'session' => $session?->fresh() ?? $session,
+            'occurrence' => $occurrence,
             'submission' => $submission->fresh() ?? $submission,
             'auto_approved' => $effectiveAutoApproved,
             'visibility' => $subjectVisibility instanceof EventVisibility ? $subjectVisibility->value : (string) $subjectVisibility,
+            'grouped' => $persisted['grouped'] ?? false,
+            'parent_created' => $persisted['parent_created'] ?? true,
+            'occurrence_pending_review' => $persisted['occurrence_pending_review'] ?? false,
         ];
     }
 

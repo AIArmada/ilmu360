@@ -5,8 +5,11 @@ namespace App\Filament\Pages;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Enums\EventEscalationType;
 use AIArmada\FilamentEvents\Resources\EventResource;
+use App\Actions\Events\ModerateEventOccurrenceSubmissionAction;
 use App\Enums\InstitutionStatus;
 use App\Models\Event;
+use App\Models\EventSubmission;
+use App\Models\User;
 use App\Services\ModerationService;
 use App\States\EventStatus\Approved;
 use App\States\EventStatus\NeedsChanges;
@@ -53,6 +56,7 @@ class ModerationQueue extends Page implements HasTable
      */
     protected const AVAILABLE_TABS = [
         'pending',
+        'pending_occurrences',
         'needs_changes',
         'reports',
         'recently_rejected',
@@ -68,10 +72,13 @@ class ModerationQueue extends Page implements HasTable
 
     public function setActiveTab(string $tab): void
     {
+        $this->unmountTableAction();
         $this->activeTab = $this->normalizeActiveTab($tab);
 
-        $this->resetPage();
-        $this->flushCachedTableRecords();
+        $this->resetTable();
+        $this->resetTableSearch();
+        $this->resetTableColumnSearches();
+        $this->tableSort = null;
     }
 
     public function getTabBadgeColorClasses(string $badgeColor): string
@@ -94,6 +101,12 @@ class ModerationQueue extends Page implements HasTable
                 'label' => 'Pending',
                 'icon' => 'heroicon-o-clock',
                 'count' => Event::whereState('status', Pending::class)->count(),
+                'badgeColor' => 'warning',
+            ],
+            'pending_occurrences' => [
+                'label' => 'Pending Occurrences',
+                'icon' => 'heroicon-o-calendar-days',
+                'count' => $this->pendingOccurrenceSubmissionsQuery()->count(),
                 'badgeColor' => 'warning',
             ],
             'needs_changes' => [
@@ -119,6 +132,10 @@ class ModerationQueue extends Page implements HasTable
 
     public function table(Table $table): Table
     {
+        if ($this->activeTab === 'pending_occurrences') {
+            return $this->occurrenceSubmissionsTable($table);
+        }
+
         return $table
             ->query(fn (): Builder => $this->getTableQuery())
             ->columns([
@@ -407,6 +424,100 @@ class ModerationQueue extends Page implements HasTable
             ])
             ->recordUrl(fn (Event $record): string => EventResource::getUrl('view', ['record' => $record]))
             ->poll('30s');
+    }
+
+    private function occurrenceSubmissionsTable(Table $table): Table
+    {
+        return $table
+            ->query(fn (): Builder => $this->pendingOccurrenceSubmissionsQuery()
+                ->with(['event', 'occurrence']))
+            ->columns([
+                TextColumn::make('occurrence.title')
+                    ->label('Occurrence')
+                    ->searchable()
+                    ->wrap(),
+                TextColumn::make('event.title')
+                    ->label('Event Group')
+                    ->limit(40)
+                    ->tooltip(fn (EventSubmission $record): ?string => $record->event?->title),
+                TextColumn::make('occurrence.starts_at')
+                    ->label('Event Date')
+                    ->dateTime('M d, Y H:i'),
+                TextColumn::make('created_at')
+                    ->label('Submitted')
+                    ->since()
+                    ->sortable(),
+            ])
+            ->actions([
+                Action::make('approve_occurrence')
+                    ->label('Approve')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalHeading('Approve Occurrence')
+                    ->form([
+                        Textarea::make('note')
+                            ->label('Note (optional)')
+                            ->rows(3),
+                    ])
+                    ->action(function (EventSubmission $record, array $data, ModerateEventOccurrenceSubmissionAction $action): void {
+                        $moderator = auth()->user();
+
+                        abort_unless($moderator instanceof User, 403);
+                        $action->approve($record, $moderator, $data['note'] ?? null);
+                    }),
+                Action::make('reject_occurrence')
+                    ->label('Reject')
+                    ->icon('heroicon-o-x-circle')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalHeading('Reject Occurrence')
+                    ->form([
+                        Select::make('reason_code')
+                            ->label('Reason')
+                            ->options([
+                                'incomplete_info' => 'Incomplete Information',
+                                'duplicate' => 'Duplicate Event',
+                                'inappropriate' => 'Inappropriate Content',
+                                'spam' => 'Spam',
+                                'wrong_category' => 'Wrong Category',
+                                'inaccurate_details' => 'Inaccurate Details',
+                                'other' => 'Other',
+                            ])
+                            ->required(),
+                        Textarea::make('note')
+                            ->label('Note to Submitter')
+                            ->required()
+                            ->rows(3),
+                    ])
+                    ->action(function (EventSubmission $record, array $data, ModerateEventOccurrenceSubmissionAction $action): void {
+                        $moderator = auth()->user();
+
+                        abort_unless($moderator instanceof User, 403);
+                        $action->reject($record, $moderator, $data['reason_code'], $data['note']);
+                    }),
+                Action::make('view_event')
+                    ->label('View Event')
+                    ->icon('heroicon-o-eye')
+                    ->url(fn (EventSubmission $record): string => EventResource::getUrl('view', ['record' => $record->event_id])),
+            ])
+            ->recordUrl(fn (EventSubmission $record): string => EventResource::getUrl('view', ['record' => $record->event_id]))
+            ->poll('30s');
+    }
+
+    /**
+     * @return Builder<EventSubmission>
+     */
+    private function pendingOccurrenceSubmissionsQuery(): Builder
+    {
+        return EventSubmission::query()
+            ->where('status', 'pending')
+            ->whereNotNull('event_occurrence_id')
+            ->whereNull('event_session_id')
+            ->whereHas('event', fn (Builder $query) => $query->whereState('status', Approved::class))
+            ->whereHas('occurrence', fn (Builder $query) => $query->where('status', 'draft'))
+            ->orderByDesc('submitted_at')
+            ->orderBy('id');
     }
 
     /**

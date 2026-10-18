@@ -59,6 +59,8 @@ class EventListData extends Data
 
     public static function fromModel(Event $event): self
     {
+        $event->loadMissing('displayOccurrence.media');
+
         $eventCategories = app(EventCategoryPresenter::class)->forEvent($event);
         $eventFormat = $event->delivery_mode;
         $eventFormatValue = self::enumValue($eventFormat);
@@ -90,7 +92,7 @@ class EventListData extends Data
             is_remote: in_array($eventFormatValue, [EventFormat::Online->value, EventFormat::Hybrid->value], true),
             is_pending: $statusValue === 'pending',
             is_cancelled: $statusValue === 'cancelled',
-            has_poster: $event->hasMedia('poster'),
+            has_poster: $event->hasMedia('poster') || ($event->displayOccurrence?->hasMedia('poster') ?? false),
             poster_url: self::posterUrl($event),
             card_image_url: (string) $event->card_image_url,
             institution: $event->institution instanceof Institution
@@ -143,7 +145,7 @@ class EventListData extends Data
 
     private static function posterUrl(Event $event): ?string
     {
-        $poster = $event->getFirstMedia('poster');
+        $poster = $event->getFirstMedia('poster') ?? $event->displayOccurrence?->getFirstMedia('poster');
 
         if (! $poster instanceof Media) {
             return null;

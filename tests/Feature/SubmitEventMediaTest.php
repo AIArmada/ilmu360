@@ -1,12 +1,12 @@
 <?php
 
+use AIArmada\Events\Models\EventOccurrence;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
 use App\Livewire\Pages\SubmitEvent\Create;
-use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
@@ -92,11 +92,16 @@ it('stores cover, poster, and gallery uploads when submitting an event', functio
         ->call('submit')
         ->assertRedirect(route('submit-event.success'));
 
-    $event = Event::where('title', 'Test Event Media Upload')->firstOrFail();
+    $event = submittedOccurrenceByTitle('Test Event Media Upload');
     $expectedSuffix = Carbon::parse($fixtures['event_date'], 'Asia/Kuala_Lumpur')->format('j-n-y');
     $personSlugSegments = collect($fixtures['person_ids'])
         ->map(fn (string $personId): string => Person::query()->findOrFail($personId)->slug)
         ->all();
+    $posterDimensions = getimagesize($event->getFirstMedia('poster')->getPath());
+
+    if ($posterDimensions === false) {
+        throw new RuntimeException('The submitted poster image could not be read.');
+    }
 
     expect($event->getMedia('cover'))->toHaveCount(1);
     expect($event->getMedia('poster'))->toHaveCount(1);
@@ -107,7 +112,7 @@ it('stores cover, poster, and gallery uploads when submitting an event', functio
             implode('-', $personSlugSegments),
             $expectedSuffix,
         ))
-        ->and($event->poster_display_aspect_ratio)->toBe('3:4');
+        ->and((float) $posterDimensions[0] / (float) $posterDimensions[1])->toBe(0.75);
 });
 
 it('uses fixed cover and poster ratios on the public submit-event form', function () {
@@ -152,5 +157,5 @@ it('does not require guest details for authenticated users', function () {
         ->call('submit')
         ->assertRedirect(route('submit-event.success'));
 
-    expect(Event::where('title', 'Logged In Event')->exists())->toBeTrue();
+    expect(EventOccurrence::query()->where('title', 'Logged In Event')->exists())->toBeTrue();
 });

@@ -6,7 +6,6 @@ use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
 use App\Livewire\Pages\SubmitEvent\Create;
-use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Services\Ai\EventMediaExtractionService;
@@ -88,7 +87,7 @@ it('extracts media data with AI and moves the wizard to review step', function (
 
     $component->call('submit')->assertHasNoErrors()->assertRedirect(route('submit-event.success'));
 
-    $event = Event::query()->where('title', 'Daurah Fiqh Keluarga')->sole();
+    $event = submittedOccurrenceByTitle('Daurah Fiqh Keluarga');
     expect($event->getMedia('poster'))->toHaveCount(1);
 });
 

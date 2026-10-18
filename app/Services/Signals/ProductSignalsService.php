@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Services\Signals;
 
 use AIArmada\Communications\Models\NotificationInbox;
+use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Models\EventSubmission;
 use AIArmada\Referrals\Models\ReferralInvite;
 use AIArmada\Rewards\Models\RewardEnrollment;
 use AIArmada\Rewards\Models\RewardProgram;
@@ -174,6 +176,37 @@ final readonly class ProductSignalsService
                 'previous_status' => $previousStatus,
                 'current_status' => (string) $event->status,
                 'moderator_id' => $moderator?->getKey(),
+                'reason_code' => $reasonCode,
+                'has_note' => filled($note),
+            ],
+        );
+    }
+
+    public function recordOccurrenceModerationTransition(
+        Event $event,
+        EventSubmission $submission,
+        EventOccurrence $occurrence,
+        string $action,
+        User $moderator,
+        string $previousStatus,
+        string $currentStatus,
+        ?Request $request = null,
+        ?string $reasonCode = null,
+        ?string $note = null,
+    ): ?SignalEvent {
+        return $this->record(
+            request: $request,
+            eventName: 'moderation.event.occurrence_'.$action,
+            eventCategory: 'moderation',
+            user: $moderator,
+            properties: [
+                'event_id' => (string) $event->getKey(),
+                'event_occurrence_id' => (string) $occurrence->getKey(),
+                'submission_id' => (string) $submission->getKey(),
+                'moderation_action' => $action,
+                'previous_status' => $previousStatus,
+                'current_status' => $currentStatus,
+                'moderator_id' => (string) $moderator->getKey(),
                 'reason_code' => $reasonCode,
                 'has_note' => filled($note),
             ],

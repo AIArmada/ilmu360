@@ -1,12 +1,13 @@
 <?php
 
+use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Models\EventTimeExpression;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
 use App\Enums\PrayerReference;
-use App\Enums\TimingMode;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\Institution;
@@ -74,8 +75,9 @@ it('can submit event with custom prayer time (lain_waktu)', function () {
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    $event = Event::where('title', 'Custom Time Event')->firstOrFail();
-    expect($event->timing_mode)->toBe(TimingMode::Absolute->value);
+    $occurrence = submittedOccurrenceByTitle('Custom Time Event');
+    expect($occurrence->starts_at->timezone('Asia/Kuala_Lumpur')->format('H:i'))->toBe('10:00')
+        ->and($occurrence->timeExpressions()->count())->toBe(0);
 });
 
 it('requires custom_time when prayer_time is lain_waktu', function () {
@@ -108,9 +110,13 @@ it('saves timing mode as prayer_relative when using prayer time', function () {
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    $event = Event::where('title', 'Prayer Time Event')->firstOrFail();
-    expect($event->timing_mode)->toBe(TimingMode::PrayerRelative->value);
-    expect($event->prayer_reference)->toBe(PrayerReference::Maghrib->value);
+    $occurrence = submittedOccurrenceByTitle('Prayer Time Event');
+    $expression = EventTimeExpression::query()
+        ->where('event_occurrence_id', $occurrence->getKey())
+        ->sole();
+
+    expect($expression->time_mode)->toBe('prayer_relative')
+        ->and($expression->anchor_code)->toBe(PrayerReference::Maghrib->value);
 });
 
 it('can submit event for future dates', function () {
@@ -128,5 +134,5 @@ it('can submit event for future dates', function () {
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    expect(Event::where('title', 'Future Event')->exists())->toBeTrue();
+    expect(EventOccurrence::query()->where('title', 'Future Event')->exists())->toBeTrue();
 });

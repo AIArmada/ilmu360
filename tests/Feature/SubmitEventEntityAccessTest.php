@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\Events\Models\EventInvolvement;
 use AIArmada\Events\Models\EventTerm;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
@@ -122,10 +123,14 @@ it('allows authenticated members to submit locked institution and person entitie
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    $event = Event::query()->where('title', 'Member Locked Access Event')->first();
+    $occurrence = submittedOccurrenceByTitle('Member Locked Access Event');
+    $event = $occurrence->event;
 
     expect($event)->not->toBeNull();
-    $organizerInvolvement = $event?->primaryOrganizerInvolvement;
+    $organizerInvolvement = EventInvolvement::query()
+        ->where('event_occurrence_id', $occurrence->getKey())
+        ->where('role_code', 'organizer')
+        ->first();
     expect($organizerInvolvement?->involveable_id)->toBe((string) $lockedPerson->getKey());
     expect($event?->institution_id)->toBe($lockedInstitution->id);
 });
@@ -193,13 +198,17 @@ it('auto-approves institution-scoped dashboard submissions and locks the organiz
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    $event = Event::query()->where('title', 'Institution Dashboard Published Event')->first();
+    $occurrence = submittedOccurrenceByTitle('Institution Dashboard Published Event');
+    $event = $occurrence->event;
 
     expect($event)->not->toBeNull()
         ->and((string) $event?->status)->toBe('approved');
 
-    $organizerInvolvement = $event?->primaryOrganizerInvolvement;
-    expect($organizerInvolvement?->involveable_type)->toBe(Institution::class)
+    $organizerInvolvement = EventInvolvement::query()
+        ->where('event_occurrence_id', $occurrence->getKey())
+        ->where('role_code', 'organizer')
+        ->first();
+    expect($organizerInvolvement?->involveable)->toBeInstanceOf(Institution::class)
         ->and($organizerInvolvement?->involveable_id)->toBe((string) $institution->getKey());
 
     expect($event?->institution_id)->toBe($institution->id)

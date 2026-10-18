@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use AIArmada\Addressing\Support\AddressingTableResolver;
 use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Engagement\Models\Response;
+use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Models\EventTimeExpression;
 use App\Actions\Events\ResolveEventCheckInStateAction;
 use App\Contracts\EventCategoryCatalog;
 use App\Data\Api\Event\EventMeData;
@@ -33,6 +35,7 @@ use App\Support\Api\ApiPagination;
 use App\Support\Events\PrimaryLocationSql;
 use App\Support\Events\PrimaryOccurrenceSql;
 use App\Support\Timezone\UserDateTimeFormatter;
+use Closure;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\QueryParameter;
 use Illuminate\Database\Connection;
@@ -231,8 +234,22 @@ class EventController extends Controller
                     return;
                 }
 
-                $query->whereHas('persons', function (Builder $personQuery) use ($personIds): void {
-                    $personQuery->whereIn('persons.id', $personIds);
+                $query->where(function (Builder $personFilter) use ($personIds): void {
+                    $personFilter
+                        ->whereHas('persons', function (Builder $personQuery) use ($personIds): void {
+                            $personQuery->whereIn('persons.id', $personIds);
+                        })
+                        ->orWhereHas('occurrences', function (Builder $occurrenceQuery) use ($personIds): void {
+                            $this->constrainPublicOccurrenceQuery($occurrenceQuery)
+                                ->whereHas('involvements', function (Builder $involvementQuery) use ($personIds): void {
+                                    $involvementQuery
+                                        ->where('role_code', EventKeyPersonRole::Speaker->value)
+                                        ->where('involveable_type', 'person')
+                                        ->whereIn('involveable_id', $personIds)
+                                        ->where('status', 'active')
+                                        ->where('visibility', 'public');
+                                });
+                        });
                 });
             }),
             AllowedFilter::callback('key_person_roles', function (Builder $query, mixed $value): void {
@@ -369,9 +386,24 @@ class EventController extends Controller
                     return;
                 }
 
-                $query->whereHas('references', function (Builder $referenceQuery) use ($referenceIds): void {
-                    Reference::applyPublicVisibility($referenceQuery)
-                        ->whereIn('references.id', $referenceIds);
+                $query->where(function (Builder $referenceFilter) use ($referenceIds): void {
+                    $referenceFilter
+                        ->whereHas('references', function (Builder $referenceQuery) use ($referenceIds): void {
+                            Reference::applyPublicVisibility($referenceQuery)
+                                ->whereIn('references.id', $referenceIds);
+                        })
+                        ->orWhereHas('occurrences', function (Builder $occurrenceQuery) use ($referenceIds): void {
+                            $this->constrainPublicOccurrenceQuery($occurrenceQuery)
+                                ->whereHas('references', function (Builder $referenceRowQuery) use ($referenceIds): void {
+                                    $referenceRowQuery
+                                        ->where('visibility', 'public')
+                                        ->whereNull('event_session_id')
+                                        ->whereHasMorph('referenceable', [Reference::class], function (Builder $referenceQuery) use ($referenceIds): void {
+                                            Reference::applyPublicVisibility($referenceQuery)
+                                                ->whereIn('references.id', $referenceIds);
+                                        });
+                                });
+                        });
                 });
             }),
             AllowedFilter::callback('search', function (Builder $query, mixed $value): void {
@@ -409,21 +441,20 @@ class EventController extends Controller
                 }
 
                 $normalized = Str::lower($prayerTime);
-                $query
-                    ->whereHas('timeExpressions', function (Builder $prayerQuery) use ($normalized): void {
-                        $prayerQuery->where('time_mode', 'prayer_relative');
-                        $prayerQuery->where('anchor_type', 'prayer');
+                $this->whereHasParentOrPublicOccurrenceTimeExpression($query, function (Builder $prayerQuery) use ($normalized): void {
+                    $prayerQuery->where('time_mode', 'prayer_relative');
+                    $prayerQuery->where('anchor_type', 'prayer');
 
-                        $prayerQuery->where(function (Builder $inner) use ($normalized): void {
-                            $inner->whereLike('display_label', "%{$normalized}%");
+                    $prayerQuery->where(function (Builder $inner) use ($normalized): void {
+                        $inner->whereLike('display_label', "%{$normalized}%");
 
-                            $reference = $this->resolvePrayerReference($normalized);
+                        $reference = $this->resolvePrayerReference($normalized);
 
-                            if ($reference !== null) {
-                                $inner->orWhere('anchor_code', $reference);
-                            }
-                        });
+                        if ($reference !== null) {
+                            $inner->orWhere('anchor_code', $reference);
+                        }
                     });
+                });
             }),
         ];
         /** @var list<string> $allowedIncludes */
@@ -469,6 +500,7 @@ class EventController extends Controller
             'media' => fn ($query) => $query->where('collection_name', 'poster'),
             'references' => fn ($query) => $query->active(),
             'primaryOccurrence',
+            'displayOccurrence.media',
             'classifications.term',
             'timeExpressions',
         ]))
@@ -547,6 +579,7 @@ class EventController extends Controller
             'media',
             'references' => fn ($query) => $query->active()->with('media'),
             'primaryOccurrence',
+            'displayOccurrence.media',
             'classifications.term',
             'timeExpressions',
         ]))
@@ -845,7 +878,7 @@ class EventController extends Controller
      */
     private function applyPrayerReferenceOrLabelFilter(Builder $query, PrayerReference $reference, array $terms): void
     {
-        $query->whereHas('timeExpressions', function (Builder $prayerQuery) use ($reference, $terms): void {
+        $this->whereHasParentOrPublicOccurrenceTimeExpression($query, function (Builder $prayerQuery) use ($reference, $terms): void {
             $prayerQuery->where('anchor_type', 'prayer');
 
             $prayerQuery->where(function (Builder $inner) use ($reference, $terms): void {
@@ -870,46 +903,121 @@ class EventController extends Controller
      */
     private function applyDhuhaPrayerTimeFilter(Builder $query, Request $request): void
     {
-        $startsAtUserTimeSql = $this->startsAtUserTimeSqlExpression($this->userUtcOffsetMinutes($request));
+        $offsetMinutes = $this->userUtcOffsetMinutes($request);
+        $parentStartsAtUserTimeSql = $this->startsAtUserTimeSqlExpression($offsetMinutes);
+        $occurrenceStartsAtUserTimeSql = $this->occurrenceStartsAtUserTimeSqlExpression($offsetMinutes);
 
-        $query->where(function (Builder $dhuhaQuery) use ($startsAtUserTimeSql): void {
+        $query->where(function (Builder $dhuhaQuery) use ($parentStartsAtUserTimeSql, $occurrenceStartsAtUserTimeSql): void {
+            $this->constrainDhuhaTimeScope($dhuhaQuery, $parentStartsAtUserTimeSql);
+
+            $dhuhaQuery->orWhereHas('occurrences', function (Builder $occurrenceQuery) use ($occurrenceStartsAtUserTimeSql): void {
+                $this->constrainPublicOccurrenceQuery($occurrenceQuery)
+                    ->where(function (Builder $occurrenceDhuhaQuery) use ($occurrenceStartsAtUserTimeSql): void {
+                        $this->constrainDhuhaTimeScope($occurrenceDhuhaQuery, $occurrenceStartsAtUserTimeSql);
+                    });
+            });
+        });
+    }
+
+    /**
+     * @param  Builder<Model>  $query
+     * @return Builder<Model>
+     */
+    private function constrainPublicOccurrenceQuery(Builder $query): Builder
+    {
+        $occurrence = new EventOccurrence;
+
+        return $query
+            ->whereIn($occurrence->qualifyColumn('status'), Event::PUBLIC_SCHEDULE_STATUSES)
+            ->whereIn($occurrence->qualifyColumn('visibility'), Event::PUBLIC_SCHEDULE_VISIBILITIES);
+    }
+
+    /**
+     * @param  Builder<Model>  $query
+     * @param  Closure(Builder<Model>): void  $constraint
+     */
+    private function whereHasParentOrPublicOccurrenceTimeExpression(Builder $query, Closure $constraint): void
+    {
+        $query->where(function (Builder $timeFilter) use ($constraint): void {
+            $timeFilter
+                ->whereHas('timeExpressions', $constraint)
+                ->orWhereHas('occurrences', function (Builder $occurrenceQuery) use ($constraint): void {
+                    $this->constrainPublicOccurrenceQuery($occurrenceQuery)
+                        ->whereHas('timeExpressions', function (Builder $expressionQuery) use ($constraint): void {
+                            $expression = new EventTimeExpression;
+                            $expressionQuery->whereNull($expression->qualifyColumn('event_session_id'));
+                            $constraint($expressionQuery);
+                        });
+                });
+        });
+    }
+
+    /**
+     * @template TModel of Model
+     *
+     * @param  Builder<TModel>  $query
+     */
+    private function constrainDhuhaTimeScope(Builder $query, string $startsAtUserTimeSql): void
+    {
+        $expression = new EventTimeExpression;
+        $sessionId = $expression->qualifyColumn('event_session_id');
+
+        $query->where(function (Builder $dhuhaQuery) use ($startsAtUserTimeSql, $sessionId): void {
             $dhuhaQuery
-                ->where(function (Builder $relativeQuery): void {
+                ->where(function (Builder $relativeQuery) use ($sessionId): void {
                     $relativeQuery
-                        ->whereHas('timeExpressions', function (Builder $labelQuery): void {
-                            $labelQuery->where('time_mode', TimingMode::PrayerRelative->value);
-                            $labelQuery->where('anchor_type', 'prayer');
-
-                            $labelQuery->where(function (Builder $inner): void {
-                                $inner->whereLike('display_label', '%dhuha%')
-                                    ->orWhereLike('display_label', '%pagi%')
-                                    ->orWhereLike('display_label', '%morning%');
-                            });
+                        ->whereHas('timeExpressions', function (Builder $labelQuery) use ($sessionId): void {
+                            $labelQuery->whereNull($sessionId)
+                                ->where('time_mode', TimingMode::PrayerRelative->value)
+                                ->where('anchor_type', 'prayer')
+                                ->where(function (Builder $inner): void {
+                                    $inner->whereLike('display_label', '%dhuha%')
+                                        ->orWhereLike('display_label', '%pagi%')
+                                        ->orWhereLike('display_label', '%morning%');
+                                });
                         })
-                        ->where(function (Builder $excludeQuery): void {
-                            $excludeQuery->whereDoesntHave('timeExpressions', fn (Builder $q) => $q->where('anchor_type', 'prayer'))
-                                ->orWhere(function (Builder $orQuery): void {
-                                    $orQuery->whereHas('timeExpressions', function (Builder $q): void {
-                                        $q->where('anchor_type', 'prayer')
-                                            ->where(function (Builder $inner): void {
-                                                $inner->whereNull('anchor_code')
-                                                    ->orWhereNotIn('anchor_code', [
-                                                        PrayerReference::Fajr->value,
-                                                        PrayerReference::Dhuhr->value,
-                                                        PrayerReference::FridayPrayer->value,
-                                                    ]);
-                                            });
-                                    });
+                        ->where(function (Builder $excludeQuery) use ($sessionId): void {
+                            $excludeQuery
+                                ->whereDoesntHave('timeExpressions', fn (Builder $timeQuery) => $timeQuery
+                                    ->whereNull($sessionId)
+                                    ->where('anchor_type', 'prayer'))
+                                ->orWhereHas('timeExpressions', function (Builder $timeQuery) use ($sessionId): void {
+                                    $timeQuery
+                                        ->whereNull($sessionId)
+                                        ->where('anchor_type', 'prayer')
+                                        ->where(function (Builder $inner): void {
+                                            $inner->whereNull('anchor_code')
+                                                ->orWhereNotIn('anchor_code', [
+                                                    PrayerReference::Fajr->value,
+                                                    PrayerReference::Dhuhr->value,
+                                                    PrayerReference::FridayPrayer->value,
+                                                ]);
+                                        });
                                 });
                         });
                 })
-                ->orWhere(function (Builder $absoluteQuery) use ($startsAtUserTimeSql): void {
+                ->orWhere(function (Builder $absoluteQuery) use ($startsAtUserTimeSql, $sessionId): void {
                     $absoluteQuery
-                        ->whereDoesntHave('timeExpressions', fn (Builder $timeQuery) => $timeQuery->where('time_mode', TimingMode::PrayerRelative->value))
+                        ->whereDoesntHave('timeExpressions', fn (Builder $timeQuery) => $timeQuery
+                            ->whereNull($sessionId)
+                            ->where('time_mode', TimingMode::PrayerRelative->value))
                         ->whereRaw("{$startsAtUserTimeSql} >= ?", ['07:30'])
                         ->whereRaw("{$startsAtUserTimeSql} < ?", ['11:30']);
                 });
         });
+    }
+
+    private function occurrenceStartsAtUserTimeSqlExpression(int $offsetMinutes): string
+    {
+        $column = (new EventOccurrence)->qualifyColumn('starts_at');
+        /** @var Connection $connection */
+        $connection = Event::query()->getConnection();
+
+        return match ($connection->getDriverName()) {
+            'pgsql' => "to_char({$column} + interval '{$offsetMinutes} minutes', 'HH24:MI')",
+            'sqlite' => "strftime('%H:%M', datetime({$column}, '{$offsetMinutes} minutes'))",
+            default => throw new \InvalidArgumentException(sprintf('Unsupported database driver [%s].', $connection->getDriverName())),
+        };
     }
 
     /**

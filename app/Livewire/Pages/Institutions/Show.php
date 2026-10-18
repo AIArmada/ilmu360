@@ -196,6 +196,7 @@ class Show extends Component
                 'references' => fn ($query) => $query->active(),
                 'media',
                 'primaryOccurrence',
+                'displayOccurrence.media',
                 'timeExpressions',
                 'links',
             ]);
@@ -221,6 +222,7 @@ class Show extends Component
             'references' => fn ($query) => $query->active(),
             'media',
             'primaryOccurrence',
+            'displayOccurrence.media',
             'timeExpressions',
             'links',
         ];

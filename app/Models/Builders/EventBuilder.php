@@ -3,9 +3,9 @@
 namespace App\Models\Builders;
 
 use App\Models\Event;
+use App\Support\Events\PrimaryOccurrenceSql;
 use Illuminate\Contracts\Database\Query\Expression;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Query\Builder as BaseQueryBuilder;
 use Illuminate\Database\Query\SortDirection;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -110,21 +110,19 @@ class EventBuilder extends Builder
         $end = $normalizedValues[1] ?? null;
 
         return $this->where(function (self $query) use ($end, $columnName, $not, $start): void {
-            $sub = $query->occurrenceSubquery($columnName);
-            $sql = '('.$sub->toSql().')';
-            $bindings = $sub->getBindings();
+            $sql = PrimaryOccurrenceSql::column($columnName, $query->getModel()->getTable());
 
             if ($not) {
                 $query
-                    ->whereRaw("{$sql} < ?", [...$bindings, $start])
-                    ->orWhereRaw("{$sql} > ?", [...$bindings, $end]);
+                    ->whereRaw("{$sql} < ?", [$start])
+                    ->orWhereRaw("{$sql} > ?", [$end]);
 
                 return;
             }
 
             $query
-                ->whereRaw("{$sql} >= ?", [...$bindings, $start])
-                ->whereRaw("{$sql} <= ?", [...$bindings, $end]);
+                ->whereRaw("{$sql} >= ?", [$start])
+                ->whereRaw("{$sql} <= ?", [$end]);
         }, null, null, $boolean);
     }
 
@@ -203,7 +201,7 @@ class EventBuilder extends Builder
         $columnName = $this->columnName($column);
 
         if (in_array($columnName, self::OccurrenceBackedColumns, true)) {
-            parent::orderBy($this->occurrenceSubquery($columnName), $direction);
+            parent::orderBy(DB::raw(PrimaryOccurrenceSql::column($columnName, $this->getModel()->getTable())), $direction);
 
             return $this;
         }
@@ -228,17 +226,15 @@ class EventBuilder extends Builder
         string $boolean,
         int $argumentCount,
     ): static {
-        $sub = $this->occurrenceSubquery($column);
-        $sql = '('.$sub->toSql().')';
-        $bindings = $sub->getBindings();
+        $sql = PrimaryOccurrenceSql::column($column, $this->getModel()->getTable());
 
         if ($argumentCount === 2) {
-            $this->whereRaw("{$sql} = ?", [...$bindings, $operator], $boolean);
+            $this->whereRaw("{$sql} = ?", [$operator], $boolean);
 
             return $this;
         }
 
-        $this->whereRaw("{$sql} {$operator} ?", [...$bindings, $value], $boolean);
+        $this->whereRaw("{$sql} {$operator} ?", [$value], $boolean);
 
         return $this;
     }
@@ -256,12 +252,11 @@ class EventBuilder extends Builder
             return $this;
         }
 
-        $subquery = $this->occurrenceSubquery($column);
-        $sql = '('.$subquery->toSql().')';
+        $sql = PrimaryOccurrenceSql::column($column, $this->getModel()->getTable());
         $operator = $not ? 'not in' : 'in';
         $placeholders = implode(', ', array_fill(0, count($normalizedValues), '?'));
 
-        $this->whereRaw("{$sql} {$operator} ({$placeholders})", [...$subquery->getBindings(), ...$normalizedValues], $boolean);
+        $this->whereRaw("{$sql} {$operator} ({$placeholders})", $normalizedValues, $boolean);
 
         return $this;
     }
@@ -280,28 +275,12 @@ class EventBuilder extends Builder
         return Str::beforeLast($column, '.') === $this->getModel()->getTable();
     }
 
-    private function occurrenceSubquery(string $column): BaseQueryBuilder
-    {
-        $occurrencesTable = config('events.database.tables.event_occurrences', 'event_occurrences');
-        $eventsTable = $this->getModel()->getTable();
-
-        return DB::table($occurrencesTable)
-            ->select($column)
-            ->whereColumn("{$occurrencesTable}.event_id", "{$eventsTable}.id")
-            ->orderBy("{$occurrencesTable}.starts_at")
-            ->orderBy("{$occurrencesTable}.created_at")
-            ->orderBy("{$occurrencesTable}.id")
-            ->limit(1);
-    }
-
     private function whereOccurrenceNull(string $column, string $boolean, bool $not): static
     {
-        $subquery = $this->occurrenceSubquery($column);
-        $sql = $subquery->toSql();
-        $bindings = $subquery->getBindings();
+        $sql = PrimaryOccurrenceSql::column($column, $this->getModel()->getTable());
         $operator = $not ? 'is not null' : 'is null';
 
-        $this->whereRaw("({$sql}) {$operator}", $bindings, $boolean);
+        $this->whereRaw("{$sql} {$operator}", [], $boolean);
 
         return $this;
     }

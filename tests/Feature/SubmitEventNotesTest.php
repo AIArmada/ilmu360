@@ -7,7 +7,6 @@ use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
 use App\Livewire\Pages\SubmitEvent\Create;
-use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\Institution;
 use App\Models\Person;
@@ -74,8 +73,8 @@ it('saves notes to event submission when provided', function () {
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    $event = Event::where('title', 'Event With Notes')->firstOrFail();
-    $submission = EventSubmission::where('event_id', $event->id)->firstOrFail();
+    $event = submittedOccurrenceByTitle('Event With Notes');
+    $submission = EventSubmission::where('event_occurrence_id', $event->getKey())->firstOrFail();
 
     expect($submission->submission_data['notes'] ?? null)->toBe($notes);
 });
@@ -93,8 +92,8 @@ it('allows submitting event without notes', function () {
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    $event = Event::where('title', 'Event Without Notes')->firstOrFail();
-    $submission = EventSubmission::where('event_id', $event->id)->firstOrFail();
+    $event = submittedOccurrenceByTitle('Event Without Notes');
+    $submission = EventSubmission::where('event_occurrence_id', $event->getKey())->firstOrFail();
 
     expect($submission->submission_data['notes'] ?? null)->toBeNull();
 });

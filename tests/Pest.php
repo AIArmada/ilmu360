@@ -11,6 +11,7 @@ use AIArmada\Addressing\Models\State;
 use AIArmada\CommerceSupport\Models\Timezone;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Enums\ScheduleKind;
+use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use AIArmada\Events\Models\EventTimeExpression;
@@ -58,6 +59,11 @@ use Tests\Support\Prayer\FailingPrayerCacheStore;
 use Tests\TestCase;
 
 pest()->tia()->locally();
+
+function submittedOccurrenceByTitle(string $title): EventOccurrence
+{
+    return EventOccurrence::query()->where('title', $title)->sole();
+}
 
 /*
 |--------------------------------------------------------------------------

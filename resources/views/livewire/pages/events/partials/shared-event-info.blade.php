@@ -1,20 +1,72 @@
 {{-- Shared parent-event info for the date and session pages. Expects $event, $detail, $languageLabels, $classificationLabels, $audienceLabels, $muslimOnly, $keyPeopleByRole, $organizer, $organizerHref, $galleryImages. --}}
 @php
-    $sharedAboutHtml = trim((string) $event->description_text) !== ''
-        ? nl2br(e($event->description_text))
+    $occurrenceDescription = $occurrence?->metadata['description_localized'] ?? null;
+    $occurrenceDescriptionText = null;
+    if (is_array($occurrenceDescription)) {
+        foreach ([app()->getLocale(), config('app.fallback_locale')] as $descriptionLocale) {
+            if (is_string($descriptionLocale) && is_string($occurrenceDescription[$descriptionLocale] ?? null) && trim($occurrenceDescription[$descriptionLocale]) !== '') {
+                $occurrenceDescriptionText = $occurrenceDescription[$descriptionLocale];
+                break;
+            }
+        }
+        if ($occurrenceDescriptionText === null) {
+            foreach ($occurrenceDescription as $descriptionValue) {
+                if (is_string($descriptionValue) && trim($descriptionValue) !== '') {
+                    $occurrenceDescriptionText = $descriptionValue;
+                    break;
+                }
+            }
+        }
+    }
+    $sharedDescription = $occurrenceDescriptionText ?? $event->description_text;
+    $sharedAboutHtml = trim((string) $sharedDescription) !== ''
+        ? nl2br(e($sharedDescription))
         : '';
     $sharedSummary = trim((string) ($event->summary ?? ''));
-    $sharedSpeakers = $event->relationLoaded('persons') ? $event->persons : collect();
-    $sharedChildFriendly = $event->audienceProfiles->first()?->is_child_friendly ?? (bool) $event->children_allowed;
-    $sharedGenderLabel = $event->gender instanceof \BackedEnum ? $event->gender->getLabel() : null;
-    $sharedAgeLabels = collect((array) ($event->age_group ?? []))
+    $hasOccurrenceContext = $occurrence instanceof \AIArmada\Events\Models\EventOccurrence;
+    $occurrenceOwnsSubmissionContent = $hasOccurrenceContext
+        && is_array($occurrence->metadata['public_submission'] ?? null);
+    $occurrenceClassifications = $occurrenceOwnsSubmissionContent && $occurrence->relationLoaded('classifications')
+        ? $occurrence->classifications
+        : $event->classifications;
+    $classificationLabels = $occurrenceClassifications
+        ->filter(fn ($classification): bool => $classification->term !== null)
+        ->map(fn ($classification): string => (string) $classification->term->name)
+        ->unique()
+        ->values();
+    $occurrenceAudiences = $occurrenceOwnsSubmissionContent && $occurrence->relationLoaded('audiences')
+        ? $occurrence->audiences
+        : $event->audiences;
+    $occurrenceAgeValues = $occurrenceOwnsSubmissionContent
+        ? $occurrenceAudiences->where('audience_type', 'age_group')->pluck('value')->all()
+        : (array) ($event->age_group ?? []);
+    $occurrenceGenderValue = $occurrenceAudiences->firstWhere('audience_type', 'gender')?->value;
+    $occurrenceGender = $occurrenceOwnsSubmissionContent
+        ? \App\Enums\EventGenderRestriction::tryFrom((string) $occurrenceGenderValue)
+        : ($genderRestriction ?? $event->gender);
+    $audienceLabels = $occurrenceOwnsSubmissionContent
+        ? $occurrenceAudiences
+            ->reject(fn ($audience): bool => in_array($audience->audience_type, ['gender', 'age_group', 'religion'], true))
+            ->map(fn ($audience): ?string => filled($audience->value) ? (string) $audience->value : null)
+            ->filter()
+            ->unique()
+            ->values()
+        : ($audienceLabels ?? collect());
+    $sharedSpeakers = $occurrenceOwnsSubmissionContent ? collect() : ($event->relationLoaded('persons') ? $event->persons : collect());
+    $sharedChildFriendly = $occurrenceOwnsSubmissionContent
+        ? (bool) ($occurrence->relationLoaded('audienceProfiles') ? $occurrence->audienceProfiles->first()?->is_child_friendly : false)
+        : ($event->audienceProfiles->first()?->is_child_friendly ?? (bool) $event->children_allowed);
+    $sharedGenderLabel = $occurrenceGender instanceof \BackedEnum ? $occurrenceGender->getLabel() : null;
+    $sharedAgeLabels = collect($occurrenceAgeValues)
         ->map(fn (mixed $value): ?string => $value instanceof \BackedEnum
             ? $value->getLabel()
             : \App\Enums\EventAgeGroup::tryFrom((string) $value)?->getLabel())
         ->filter()
         ->values();
-    $sharedMuslimOnly = (bool) ($muslimOnly ?? false);
-    $sharedKeyPeople = $keyPeopleByRole ?? collect();
+    $sharedMuslimOnly = $occurrenceOwnsSubmissionContent
+        ? $occurrenceAudiences->contains(fn ($audience): bool => $audience->audience_type === 'religion' && $audience->value === 'muslim_only')
+        : (bool) ($muslimOnly ?? false);
+    $sharedKeyPeople = $occurrenceOwnsSubmissionContent ? collect() : ($keyPeopleByRole ?? collect());
 @endphp
 
 @if($sharedSummary !== '' || $sharedAboutHtml !== '')

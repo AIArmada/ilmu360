@@ -134,6 +134,7 @@ class EventSubmissionController extends FrontendController
 
         /** @var Event $event */
         $event = $result['event'];
+        $occurrence = $result['occurrence'];
 
         return response()->json([
             'data' => [
@@ -143,6 +144,15 @@ class EventSubmissionController extends FrontendController
                     'title' => $event->title,
                     'status' => (string) $event->status,
                     'visibility' => $result['visibility'],
+                ],
+                'occurrence' => [
+                    'id' => $occurrence->getKey(),
+                    'slug' => $occurrence->slug,
+                    'title' => $occurrence->title,
+                    'starts_at' => $occurrence->starts_at?->toIso8601String(),
+                    'ends_at' => $occurrence->ends_at?->toIso8601String(),
+                    'status' => (string) $occurrence->status,
+                    'visibility' => (string) $occurrence->visibility,
                 ],
                 'session' => $result['session'] === null ? null : [
                     'id' => $result['session']->getKey(),

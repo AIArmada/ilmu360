@@ -1,6 +1,5 @@
 <?php
 
-use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
@@ -52,10 +51,10 @@ it('persists validated references for new-event api submissions', function () {
         'submission_country_id' => (string) ensureTestMalaysiaCountry()->getKey(),
     ]))
         ->assertCreated()
-        ->assertJsonPath('data.event.title', 'API References Event');
+        ->assertJsonPath('data.occurrence.title', 'API References Event');
 
-    $event = Event::query()->where('title', 'API References Event')->firstOrFail();
+    $occurrence = submittedOccurrenceByTitle('API References Event');
 
-    expect($event->references()->count())->toBe(1)
-        ->and((string) $event->references()->firstOrFail()->getKey())->toBe((string) $reference->getKey());
+    expect($occurrence->references()->count())->toBe(1)
+        ->and((string) $occurrence->references()->firstOrFail()->referenceable_id)->toBe((string) $reference->getKey());
 });

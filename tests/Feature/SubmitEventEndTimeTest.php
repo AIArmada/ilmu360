@@ -103,7 +103,7 @@ it('can submit event with optional end time', function () {
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    $event = Event::where('title', 'Event With End Time')->firstOrFail();
+    $event = submittedOccurrenceByTitle('Event With End Time');
     expect($event->ends_at)->not->toBeNull();
     expect($event->timezone)->toBe('Asia/Kuala_Lumpur');
     expect($event->ends_at->timezone('Asia/Kuala_Lumpur')->format('H:i'))->toBe('21:30');
@@ -125,7 +125,7 @@ it('can submit event without end time (optional)', function () {
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    $event = Event::where('title', 'Event Without End Time')->firstOrFail();
+    $event = submittedOccurrenceByTitle('Event Without End Time');
     expect($event->ends_at)->toBeNull();
 });
 
@@ -145,7 +145,7 @@ it('can submit event with custom time and end time', function () {
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    $event = Event::where('title', 'Custom Time With End Time')->firstOrFail();
+    $event = submittedOccurrenceByTitle('Custom Time With End Time');
     expect($event->timezone)->toBe('Asia/Kuala_Lumpur');
     expect($event->starts_at->timezone('Asia/Kuala_Lumpur')->format('H:i'))->toBe('10:00');
     expect($event->ends_at->timezone('Asia/Kuala_Lumpur')->format('H:i'))->toBe('12:00');
@@ -171,7 +171,7 @@ it('uses the selected submission country timezone instead of the browser timezon
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    $event = Event::where('title', 'Selected Country Timezone Wins')->firstOrFail();
+    $event = submittedOccurrenceByTitle('Selected Country Timezone Wins');
 
     expect($event->timezone)->toBe('Asia/Kuala_Lumpur')
         ->and($event->starts_at->timezone('Asia/Kuala_Lumpur')->toDateString())->toBe(now()->addDays(5)->toDateString())
@@ -268,7 +268,7 @@ it('stores 08:00PM local as 12:00 UTC in database', function () {
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    $event = Event::where('title', 'KL 8PM UTC 12 Test')->firstOrFail();
+    $event = submittedOccurrenceByTitle('KL 8PM UTC 12 Test');
 
     expect($event->timezone)->toBe('Asia/Kuala_Lumpur');
     expect($event->ends_at)->not->toBeNull();
@@ -292,7 +292,7 @@ it('allows sebelum maghrib during ramadhan', function () {
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    $event = Event::where('title', 'Ramadhan Sebelum Maghrib Valid')->firstOrFail();
+    $event = submittedOccurrenceByTitle('Ramadhan Sebelum Maghrib Valid');
 
     expect($event->starts_at->timezone('Asia/Kuala_Lumpur')->format('H:i'))->toBe('19:45');
     expect($event->starts_at->timezone('UTC')->format('H:i'))->toBe('11:45');
@@ -314,7 +314,7 @@ it('allows sebelum maghrib outside ramadhan', function () {
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    $event = Event::where('title', 'Non Ramadhan Sebelum Maghrib Valid')->firstOrFail();
+    $event = submittedOccurrenceByTitle('Non Ramadhan Sebelum Maghrib Valid');
 
     expect($event->starts_at->timezone('Asia/Kuala_Lumpur')->format('H:i'))->toBe('19:45')
         ->and($event->starts_at->timezone('UTC')->format('H:i'))->toBe('11:45');

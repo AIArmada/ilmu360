@@ -5,7 +5,6 @@ use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
 use App\Livewire\Pages\SubmitEvent\Create;
-use App\Models\Event;
 use App\Models\Person;
 use App\Models\Venue;
 use Database\Seeders\AIArmada\EventRoleSeeder;
@@ -69,14 +68,15 @@ it('assigns the person as event person when person is the organizer', function (
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    $event = Event::where('title', 'Auto Select Person Event')->firstOrFail();
-    $personInvolvements = $event->involvements()->where('role_code', 'speaker')->get();
+    $occurrence = submittedOccurrenceByTitle('Auto Select Person Event');
+    $personInvolvements = $occurrence->involvements()->where('role_code', 'speaker')->get();
     expect($personInvolvements)->toHaveCount(1);
-    expect($personInvolvements->first()->involveable_id)->toBe((string) $fixtures['person']->id);
+    expect($personInvolvements->first()->involveable)->toBeInstanceOf(Person::class)
+        ->and($personInvolvements->first()->involveable_id)->toBe((string) $fixtures['person']->id);
 
-    $involvement = $event->primaryOrganizerInvolvement;
-    expect($involvement->involveable_type)->toBe(Person::class);
-    expect($involvement->involveable_id)->toBe((string) $fixtures['person']->id);
+    $involvement = $occurrence->involvements()->where('role_code', 'organizer')->firstOrFail();
+    expect($involvement->involveable)->toBeInstanceOf(Person::class)
+        ->and($involvement->involveable_id)->toBe((string) $fixtures['person']->id);
 });
 
 it('shows formatted person names in submit event person selectors', function () {
@@ -107,6 +107,6 @@ it('uses the organizer person slug when no explicit persons are selected', funct
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    expect(Event::where('title', 'Organizer Fallback Submit Event')->firstOrFail()->slug)
+    expect(submittedOccurrenceByTitle('Organizer Fallback Submit Event')->slug)
         ->toBe(sprintf('organizer-fallback-submit-event-%s-%s', $fixtures['person']->slug, $expectedSuffix));
 });

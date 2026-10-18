@@ -1,5 +1,7 @@
 <?php
 
+use AIArmada\Events\Models\EventAudience;
+use AIArmada\Events\Models\EventAudienceProfile;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use AIArmada\Membership\Enums\MemberRole;
@@ -11,6 +13,7 @@ use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
 use App\Models\Event;
+use App\Models\EventSubmission;
 use App\Models\Person;
 use App\Models\User;
 use App\Models\Venue;
@@ -217,10 +220,11 @@ it('accepts enum objects and applies omitted-key defaults', function () {
     );
 
     $event = $result['event']->fresh();
+    $occurrence = $result['occurrence']->fresh();
 
     expect($event->visibility)->toBe(EventVisibility::Public)
-        ->and($event->getAttributes()['delivery_mode'])->toBe(EventFormat::Physical->value)
-        ->and((bool) $event->children_allowed)->toBeTrue()
+        ->and($occurrence->delivery_mode)->toBe(EventFormat::Physical->value)
+        ->and(EventAudienceProfile::query()->where('event_occurrence_id', $occurrence->getKey())->sole()->is_child_friendly)->toBeTrue()
         ->and($result['visibility'])->toBe(EventVisibility::Public->value);
 });
 
@@ -243,10 +247,11 @@ it('accepts canonical localized description arrays', function () {
     );
 
     $event = $result['event']->fresh();
+    $occurrence = $result['occurrence']->fresh();
 
     expect($event->getKey())->not->toBeNull()
-        ->and($event->description)->toBe(['ms' => 'Huraian majlis.', 'en' => 'Event description.'])
-        ->and(Event::query()->where('title', 'Input Validation Submission')->exists())->toBeTrue();
+        ->and($occurrence->metadata['description_localized'])->toBe(['ms' => 'Huraian majlis.', 'en' => 'Event description.'])
+        ->and(EventSubmission::query()->where('event_occurrence_id', $occurrence->getKey())->exists())->toBeTrue();
 });
 
 it('persists localized descriptions to sessions as locale scalars', function () {
@@ -359,10 +364,11 @@ it('persists canonical enums for blank optional enum input', function () {
     );
 
     $event = $result['event']->fresh();
+    $occurrence = $result['occurrence']->fresh();
 
-    expect($event->getAttributes()['delivery_mode'])->toBe(EventFormat::Physical->value)
+    expect($occurrence->delivery_mode)->toBe(EventFormat::Physical->value)
         ->and($event->visibility)->toBe(EventVisibility::Public)
-        ->and($event->gender)->toBe(EventGenderRestriction::All->value);
+        ->and(EventAudience::query()->where('event_occurrence_id', $occurrence->getKey())->where('audience_type', 'gender')->value('value'))->toBe(EventGenderRestriction::All->value);
 });
 
 it('returns UUIDs trimmed exactly as validated', function () {

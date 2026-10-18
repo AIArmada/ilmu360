@@ -3,14 +3,19 @@
 namespace App\Data\Api\Event;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Models\EventReference;
+use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Events\Models\VenueSpace;
 use App\Data\Api\Frontend\Search\ReferenceDetailMediaData;
 use App\Enums\EventChangeSeverity;
 use App\Enums\EventChangeType;
+use App\Enums\PrayerOffset;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\EventKeyPerson;
 use App\Models\Institution;
+use App\Models\Language;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Services\ShareCards\ShareCardService;
@@ -22,6 +27,9 @@ use App\Support\Timezone\UserDateTimeFormatter;
 use BackedEnum;
 use Carbon\CarbonInterface;
 use DateTimeInterface;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Spatie\LaravelData\Data;
@@ -45,35 +53,99 @@ class EventPayloadData extends Data
             'latestPublishedReplacementAnnouncement.replacementEvent',
             'publishedChangeAnnouncements.replacementEvent',
             'primaryLocation.venueSpace',
-            'primaryOccurrence',
+            'displayOccurrence.media',
+            'displayOccurrence.classifications.term',
+            'displayOccurrence.languages',
+            'displayOccurrence.audiences',
+            'displayOccurrence.audienceProfiles',
+            'displayOccurrence.links' => static fn (Relation $query): Relation => $query->where('visibility', 'public'),
+            'displayOccurrence.timeExpressions' => static function (Relation $query): void {
+                $query->whereNull('event_session_id');
+            },
+            'displayOccurrence.references' => static function (Relation $query): void {
+                $query->where('visibility', 'public')->orderBy('sort_order');
+            },
+            'displayOccurrence.references.referenceable' => static function (MorphTo $relation): void {
+                $relation->constrain([
+                    Reference::class => static fn (Builder $query): Builder => Reference::applyPublicVisibility($query)
+                        ->with(['media', 'authors', 'parentReference']),
+                ]);
+            },
+            'displayOccurrence.locations' => static fn (Relation $query): Relation => $query->whereNull('event_session_id'),
+            'displayOccurrence.involvements' => static function (Relation $query): void {
+                $query->whereNull('event_session_id')
+                    ->where('status', 'active')
+                    ->where('visibility', 'public');
+            },
+            'displayOccurrence.involvements.involveable',
+            'displayOccurrence.involvements.role',
             'timeExpressions',
             'keyPeople.person',
         ]);
+
+        $groupedSubmission = is_array($event->metadata['public_submission_group'] ?? null)
+            && is_string($event->metadata['public_submission_group']['key'] ?? null);
+        $displayOccurrence = $event->displayOccurrence;
+        $occurrenceScopedContent = $groupedSubmission
+            || is_array($displayOccurrence?->metadata['public_submission'] ?? null);
+
+        $occurrenceScopedContent = $occurrenceScopedContent
+            || ($displayOccurrence instanceof EventOccurrence
+                && is_array($displayOccurrence->metadata['public_submission'] ?? null));
+
+        $occurrenceAudiences = $displayOccurrence instanceof EventOccurrence
+            ? $displayOccurrence->audiences
+            : collect();
+        $occurrencePrayerExpression = $displayOccurrence instanceof EventOccurrence
+            ? $displayOccurrence->timeExpressions->firstWhere('anchor_type', 'prayer')
+            : null;
+        $occurrenceLinks = $displayOccurrence instanceof EventOccurrence ? $displayOccurrence->links : collect();
 
         /** @var array<string, mixed> $payload */
         $payload = Arr::except([
             ...OwnerContext::withOwner(null, fn (): array => $event->toArray()),
             'institution_id' => $event->institution_id,
             'schedule_kind' => self::enumValue($event->schedule_kind),
-            'timing_mode' => $event->isPrayerRelative() ? 'prayer_relative' : 'absolute',
-            'prayer_reference' => self::enumValue($event->prayer_reference),
-            'prayer_offset' => self::enumValue($event->prayer_offset),
-            'prayer_display_text' => $event->prayer_display_text,
+            'timing_mode' => $occurrencePrayerExpression instanceof EventTimeExpression || $event->isPrayerRelative()
+                ? 'prayer_relative'
+                : 'absolute',
+            'prayer_reference' => $occurrencePrayerExpression->anchor_code ?? self::enumValue($event->prayer_reference),
+            'prayer_offset' => self::signedPrayerOffset($occurrencePrayerExpression, $event->prayer_offset),
+            'prayer_display_text' => $occurrencePrayerExpression->display_label ?? $event->prayer_display_text,
             'event_categories' => app(EventCategoryPresenter::class)->forEvent($event),
-            'gender' => self::enumValue($event->gender),
-            'age_group' => self::enumListValues($event->age_group),
-            'children_allowed' => $event->children_allowed,
-            'event_url' => $event->event_url,
-            'live_url' => $event->live_url,
+            'gender' => $occurrenceScopedContent && $displayOccurrence instanceof EventOccurrence
+                ? $occurrenceAudiences->firstWhere('audience_type', 'gender')?->value
+                : self::enumValue($event->gender),
+            'age_group' => $occurrenceScopedContent && $displayOccurrence instanceof EventOccurrence
+                ? $occurrenceAudiences->where('audience_type', 'age_group')->pluck('value')->values()->all()
+                : self::enumListValues($event->age_group),
+            'children_allowed' => $occurrenceScopedContent && $displayOccurrence instanceof EventOccurrence
+                ? (bool) $displayOccurrence->audienceProfiles->first()?->is_child_friendly
+                : $event->children_allowed,
+            'event_url' => $occurrenceLinks->firstWhere('link_type', 'external')->url ?? $event->event_url,
+            'live_url' => $occurrenceLinks->firstWhere('link_type', 'streaming')->url ?? $event->live_url,
             'recording_url' => $event->recording_url,
             'is_featured' => $event->is_featured,
             'published_at' => self::utcDateTimeString($event->published_at),
-            'is_muslim_only' => $event->is_muslim_only,
+            'is_muslim_only' => $occurrenceScopedContent && $displayOccurrence instanceof EventOccurrence
+                ? $occurrenceAudiences->contains(fn ($audience): bool => $audience->audience_type === 'religion' && $audience->value === 'muslim_only')
+                : $event->is_muslim_only,
+            'description' => $occurrenceScopedContent && $displayOccurrence instanceof EventOccurrence
+                ? self::occurrenceDescription($displayOccurrence) ?? $event->description_text
+                : $event->description_text,
+            'cover_url' => $occurrenceScopedContent && $displayOccurrence instanceof EventOccurrence
+                ? self::preferredMediaUrl($displayOccurrence->getFirstMedia('cover'), ['banner', 'thumb'])
+                    ?? self::preferredMediaUrl($displayOccurrence->getFirstMedia('poster'), ['preview', 'thumb'])
+                    ?? self::eventCoverUrl($event)
+                : self::eventCoverUrl($event),
             'reference_study_subtitle' => $event->reference_study_subtitle,
             'card_image_url' => $event->card_image_url,
             'share_card_url' => app(ShareCardService::class)->cardUrl($event),
-            'poster_url' => self::preferredMediaUrl($event->getFirstMedia('poster'), ['poster_thumb']),
-            'has_poster' => $event->hasMedia('poster'),
+            'poster_url' => self::preferredMediaUrl(
+                $event->getFirstMedia('poster') ?? $displayOccurrence?->getFirstMedia('poster'),
+                ['poster_thumb', 'preview', 'thumb'],
+            ),
+            'has_poster' => $event->hasMedia('poster') || ($displayOccurrence?->hasMedia('poster') ?? false),
             'starts_at_local' => self::localDateTimeString($event->starts_at),
             'starts_on_local_date' => self::localDateString($event->starts_at),
             'ends_at_local' => self::localDateTimeString($event->ends_at),
@@ -169,6 +241,87 @@ class EventPayloadData extends Data
                 ->all();
         }
 
+        if ($displayOccurrence instanceof EventOccurrence) {
+            $languageCodes = $displayOccurrence->languages
+                ->pluck('language_code')
+                ->filter(fn (mixed $code): bool => is_string($code) && $code !== '')
+                ->unique()
+                ->values();
+            $languages = $languageCodes->isEmpty()
+                ? collect()
+                : Language::query()->whereIn('code', $languageCodes)->get();
+            $occurrenceReferences = $displayOccurrence->references
+                ->map(fn (EventReference $row): ?array => self::serializeOccurrenceReference($row))
+                ->filter()
+                ->values();
+            $occurrenceClassifications = $displayOccurrence->classifications
+                ->filter(fn ($classification): bool => $classification->term !== null)
+                ->map(fn ($classification): array => [
+                    'id' => (string) $classification->term->getKey(),
+                    'name' => (string) $classification->term->name,
+                    'taxonomy_code' => (string) $classification->taxonomy_code,
+                ])
+                ->values();
+
+            if ($occurrenceScopedContent) {
+                $payload['languages'] = $languages->toArray();
+                $payload['references'] = $occurrenceReferences->all();
+                $payload['classifications'] = $occurrenceClassifications->all();
+            }
+            $payload['display_occurrence'] = [
+                'id' => (string) $displayOccurrence->getKey(),
+                'title' => (string) $displayOccurrence->title,
+                'slug' => (string) $displayOccurrence->slug,
+                'starts_at' => self::utcDateTimeString($displayOccurrence->starts_at),
+                'starts_at_local' => self::localDateTimeString($displayOccurrence->starts_at),
+                'ends_at' => self::utcDateTimeString($displayOccurrence->ends_at),
+                'ends_at_local' => self::localDateTimeString($displayOccurrence->ends_at),
+                'timezone' => $displayOccurrence->timezone,
+                'status' => (string) $displayOccurrence->status,
+                'visibility' => (string) $displayOccurrence->visibility,
+                'delivery_mode' => (string) $displayOccurrence->delivery_mode,
+                'description' => self::occurrenceDescription($displayOccurrence),
+                'gender' => $occurrenceAudiences->firstWhere('audience_type', 'gender')?->value,
+                'age_group' => $occurrenceAudiences->where('audience_type', 'age_group')->pluck('value')->values()->all(),
+                'children_allowed' => (bool) $displayOccurrence->audienceProfiles->first()?->is_child_friendly,
+                'is_muslim_only' => $occurrenceAudiences->contains(fn ($audience): bool => $audience->audience_type === 'religion' && $audience->value === 'muslim_only'),
+                'languages' => $languageCodes->all(),
+                'classifications' => $occurrenceClassifications->all(),
+                'references' => $occurrenceReferences->all(),
+                'people' => $displayOccurrence->involvements
+                    ->map(fn ($involvement): array => [
+                        'id' => (string) $involvement->getKey(),
+                        'name' => (string) ($involvement->display_name ?: (
+                            $involvement->involveable instanceof Person || $involvement->involveable instanceof Institution
+                                ? $involvement->involveable->name
+                                : null
+                        )),
+                        'role' => $involvement->role?->name,
+                    ])
+                    ->values()
+                    ->all(),
+                'links' => $occurrenceLinks
+                    ->map(fn ($link): array => [
+                        'type' => (string) $link->link_type,
+                        'url' => (string) $link->url,
+                    ])
+                    ->values()
+                    ->all(),
+                'prayer_display_text' => $occurrencePrayerExpression?->display_label,
+                'prayer_reference' => $occurrencePrayerExpression?->anchor_code,
+                'prayer_offset' => self::signedPrayerOffset($occurrencePrayerExpression, null),
+                'prayer_metadata' => data_get($occurrencePrayerExpression?->metadata, 'prayer'),
+                'organizer' => self::serializeOccurrenceOrganizer($displayOccurrence),
+                'cover_url' => self::preferredMediaUrl($displayOccurrence->getFirstMedia('cover'), ['banner', 'thumb']),
+                'poster_url' => self::preferredMediaUrl($displayOccurrence->getFirstMedia('poster'), ['preview', 'thumb']),
+                'card_image_url' => $event->card_image_url,
+            ];
+
+            if ($occurrenceScopedContent && ! array_key_exists('summary', $payload)) {
+                $payload['summary'] = null;
+            }
+        }
+
         return new self(payload: $payload);
     }
 
@@ -183,6 +336,99 @@ class EventPayloadData extends Data
     private static function enumValue(mixed $value): mixed
     {
         return $value instanceof BackedEnum ? $value->value : $value;
+    }
+
+    private static function signedPrayerOffset(?EventTimeExpression $expression, mixed $parentOffset): ?int
+    {
+        if ($expression instanceof EventTimeExpression) {
+            if ($expression->offset_minutes === null || ! in_array($expression->relation, ['before', 'after'], true)) {
+                return null;
+            }
+
+            $minutes = abs((int) $expression->offset_minutes);
+
+            return $expression->relation === 'before' ? -$minutes : $minutes;
+        }
+
+        $offset = $parentOffset instanceof PrayerOffset
+            ? $parentOffset
+            : (is_string($parentOffset) ? PrayerOffset::tryFrom($parentOffset) : null);
+
+        return $offset?->minutes();
+    }
+
+    /** @return array{id: string, type: string, name: string, slug: ?string}|null */
+    private static function serializeOccurrenceOrganizer(EventOccurrence $occurrence): ?array
+    {
+        $involvement = $occurrence->involvements->firstWhere('role_code', 'organizer');
+
+        if ($involvement === null) {
+            return null;
+        }
+
+        $organizer = $involvement->involveable;
+
+        if (! $organizer instanceof Institution && ! $organizer instanceof Person) {
+            return null;
+        }
+
+        return [
+            'id' => (string) $organizer->getKey(),
+            'type' => $organizer instanceof Institution ? 'institution' : 'person',
+            'name' => (string) $organizer->name,
+            'slug' => is_string($organizer->slug ?? null) ? $organizer->slug : null,
+        ];
+    }
+
+    private static function occurrenceDescription(EventOccurrence $occurrence): ?string
+    {
+        $description = data_get($occurrence->metadata, 'description_localized');
+
+        if (is_array($description)) {
+            foreach ([app()->getLocale(), config('app.fallback_locale')] as $locale) {
+                if (is_string($locale) && is_string($description[$locale] ?? null) && trim($description[$locale]) !== '') {
+                    return $description[$locale];
+                }
+            }
+
+            foreach ($description as $value) {
+                if (is_string($value) && trim($value) !== '') {
+                    return $value;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /** @return array<string, mixed>|null */
+    private static function serializeOccurrenceReference(EventReference $row): ?array
+    {
+        if ($row->referenceable instanceof Reference) {
+            $reference = $row->referenceable;
+            $reference->loadMissing([
+                'media',
+                'parentReference.parentReference',
+                'authors.titleAssignments.title.category',
+                'parentReference.authors.titleAssignments.title.category',
+                'parentReference.parentReference.authors.titleAssignments.title.category',
+            ]);
+
+            return self::serializeReferencePayload($reference, $reference->toArray());
+        }
+
+        if (! filled($row->title) && ! filled($row->url) && ! filled($row->citation)) {
+            return null;
+        }
+
+        return [
+            'id' => (string) $row->getKey(),
+            'reference_type' => (string) $row->reference_type,
+            'title' => $row->title,
+            'url' => $row->url,
+            'citation' => $row->citation,
+            'notes' => $row->notes,
+        ];
     }
 
     /**
@@ -297,6 +543,20 @@ class EventPayloadData extends Data
         $originalUrl = $media->getUrl();
 
         return $originalUrl !== '' ? $originalUrl : null;
+    }
+
+    private static function eventCoverUrl(Event $event): ?string
+    {
+        $attributes = $event->getAttributes();
+        $coverUrl = array_key_exists('cover_url', $attributes)
+            ? $event->getAttribute('cover_url')
+            : null;
+
+        if (is_string($coverUrl) && $coverUrl !== '') {
+            return $coverUrl;
+        }
+
+        return self::preferredMediaUrl($event->getFirstMedia('cover'), ['banner', 'thumb']);
     }
 
     private static function localDateTimeString(mixed $value): ?string

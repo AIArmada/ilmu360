@@ -5,117 +5,79 @@ declare(strict_types=1);
 namespace App\Actions\Events;
 
 use AIArmada\Events\Enums\ScheduleKind;
-use AIArmada\Events\Support\Normalization\EventContentNormalizer;
+use AIArmada\Events\Models\EventOccurrence;
 use App\Data\Events\ValidatedEventSubmission;
-use App\Enums\EventAgeGroup;
-use App\Enums\EventFormat;
-use App\Enums\EventGenderRestriction;
-use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
-use App\Enums\TimingMode;
 use App\Models\Event;
 use App\Models\EventSubmission;
-use App\Services\EventKeyPersonSyncService;
-use App\Support\Events\AdminEventTimeMapper;
-use App\Support\Submission\SubmissionRelationSync;
+use App\Models\Institution;
+use Illuminate\Support\Arr;
 use Spatie\MediaLibrary\HasMedia;
 
 final readonly class PersistNewEventSubmissionAction
 {
     public function __construct(
         private GenerateEventSlugAction $generateEventSlug,
-        private EventKeyPersonSyncService $eventKeyPersonSync,
         private SyncEventClassificationsAction $syncClassifications,
-        private SyncEventScheduleAction $syncSchedule,
-        private EventContentNormalizer $contentNormalizer,
-        private SubmissionRelationSync $relationSync,
+        private ResolveInstitutionalPrayerSlotGroupAction $groupResolver,
+        private PersistOccurrenceSubmissionAction $persistOccurrence,
     ) {}
 
     /**
+     * Persist one ordinary public submission as a date-free parent plus an
+     * immutable occurrence. Institutional prayer-slot matches append to the
+     * existing parent; explicit event-container submissions use the separate
+     * session action.
+     *
      * @param  (callable(HasMedia): void)|null  $persistRelationships
-     * @return array{event: Event, session: null, submission: EventSubmission}
+     * @return array{event: Event, session: null, occurrence: EventOccurrence, submission: EventSubmission, grouped: bool, parent_created: bool, occurrence_pending_review: bool}
      */
     public function handle(ValidatedEventSubmission $submission, ?callable $persistRelationships = null): array
     {
-        $state = $submission->state;
-        $spaceIds = is_array($state['space_ids'] ?? null) ? array_values(array_filter($state['space_ids'], is_string(...))) : [];
+        $groupIdentity = $this->groupResolver->identity($submission);
+        $event = $groupIdentity === null ? null : $this->groupResolver->findExisting($groupIdentity);
+        $parentCreated = ! $event instanceof Event;
 
-        $event = Event::query()->create(array_merge([
-            'title' => $state['title'],
-            'slug' => $this->generateEventSlug->handle(
-                (string) $state['title'],
-                $state['event_date'] ?? null,
-                $submission->timezone,
-                null,
-                $submission->personSlugSegments,
-            ),
-            'description' => $this->eventDescription($state['description'] ?? null),
-            'timezone' => $submission->timezone,
-            'institution_id' => $submission->targetInstitutionId,
-            'default_venue_id' => $submission->targetVenueId,
-            'gender' => $state['gender'] ?? EventGenderRestriction::All->value,
-            'age_group' => $state['age_group'] ?? [EventAgeGroup::AllAges->value],
-            'children_allowed' => $state['children_allowed'] ?? true,
-            'is_muslim_only' => $state['is_muslim_only'] ?? false,
-            'delivery_mode' => $state['event_format'] ?? EventFormat::Physical->value,
-            'event_url' => $state['event_url'] ?? null,
-            'live_url' => $state['live_url'] ?? null,
-            'visibility' => $state['visibility'] ?? EventVisibility::Public->value,
-        ], $submission->autoApproved ? ['status' => 'pending'] : []));
+        if ($parentCreated) {
+            $event = $this->createParent($submission, $groupIdentity);
+        } elseif ($groupIdentity !== null) {
+            $this->storeGroupIdentity($event, $groupIdentity);
+        }
 
-        $event->syncLocation(
-            $submission->targetVenueId,
-            $spaceIds,
-        );
+        $occurrencePendingReview = ! $parentCreated
+            && ! $submission->autoApproved
+            && (string) $event->status === 'approved';
 
-        $this->syncSchedule->execute(
+        $occurrence = $this->persistOccurrence->handle(
             event: $event,
-            scheduleKind: ScheduleKind::Single,
-            startsAt: $submission->startsAt,
-            endsAt: $submission->endsAt,
-            timezone: $submission->timezone,
-            timingMode: $submission->prayerTime instanceof EventPrayerTime
-                && ! $submission->prayerTime->isCustomTime()
-                ? TimingMode::PrayerRelative
-                : TimingMode::Absolute,
-            prayerReference: $submission->prayerReference,
-            prayerOffset: $submission->prayerOffset,
-            prayerDisplayText: $submission->prayerDisplayText,
-            prayerSource: $submission->prayerSource,
-            prayerFetchedAt: $submission->prayerFetchedAt,
-            prayerZone: $submission->prayerZone,
-            prayerDate: AdminEventTimeMapper::normalizeEventDateString($state['event_date'] ?? null, $submission->timezone),
-            prayerLat: $submission->prayerLat,
-            prayerLng: $submission->prayerLng,
-            prayerVenueId: $submission->targetVenueId,
-            prayerInstitutionId: $submission->targetInstitutionId,
-            prayerCountry: $submission->prayerCountry,
+            submission: $submission,
+            pendingReview: $occurrencePendingReview,
+            groupIdentity: $groupIdentity,
+            persistRelationships: $persistRelationships,
         );
 
-        $event->setPrimaryOrganizer($submission->primaryOrganizer);
+        $event->forceFill([
+            'schedule_kind' => $event->occurrences()->count() > 1
+                ? ScheduleKind::CustomChain
+                : ScheduleKind::Single,
+        ])->save();
 
-        $this->eventKeyPersonSync->sync($event, $this->relationSync->normalizePersonIds($state['persons'] ?? []), $this->relationSync->canonicalKeyPeople($state['other_key_people'] ?? []));
+        $submissionData = [
+            'submitter_name' => $submission->state['submitter_name'] ?? $submission->submitter?->name,
+            'occurrence_title' => $occurrence->title,
+        ];
 
-        if (! empty($state['languages'])) {
-            $event->syncLanguages($state['languages']);
+        if ($groupIdentity !== null) {
+            $submissionData['submission_group_key'] = $groupIdentity['key'];
         }
 
-        $this->syncClassifications->handle($event, $state);
-        $this->relationSync->syncEventReferences($event, $state['references'] ?? null);
-
-        if ($persistRelationships !== null) {
-            $persistRelationships($event);
-        }
-
-        $submissionData = ['submitter_name' => $state['submitter_name'] ?? $submission->submitter?->name];
-
-        if (isset($state['notes'])) {
-            $submissionData['notes'] = $state['notes'];
+        if (isset($submission->state['notes'])) {
+            $submissionData['notes'] = $submission->state['notes'];
         }
 
         $eventSubmission = EventSubmission::query()->create([
             'event_id' => $event->getKey(),
-            'event_occurrence_id' => null,
+            'event_occurrence_id' => $occurrence->getKey(),
             'event_session_id' => null,
             'status' => 'pending',
             'submitted_at' => now(),
@@ -124,26 +86,72 @@ final readonly class PersistNewEventSubmissionAction
             'submitter_id' => $submission->submitter?->getKey(),
         ]);
 
-        return ['event' => $event, 'session' => null, 'submission' => $eventSubmission];
+        return [
+            'event' => $event,
+            'session' => null,
+            'occurrence' => $occurrence,
+            'submission' => $eventSubmission,
+            'grouped' => $groupIdentity !== null,
+            'parent_created' => $parentCreated,
+            'occurrence_pending_review' => $occurrencePendingReview,
+        ];
     }
 
     /**
-     * Event descriptions persist in the model's array-cast shape: a validated
-     * localized map is stored as-is, scalar strings go through the content
-     * normalizer, and anything else stays null.
-     *
-     * @return array<string, string|null>|string|null
+     * @param  array{key: string, institution_id: string, category_ids: list<string>, prayer_slot: string, title: string}|null  $groupIdentity
      */
-    private function eventDescription(mixed $description): array|string|null
+    private function createParent(ValidatedEventSubmission $submission, ?array $groupIdentity): Event
     {
-        if (is_array($description)) {
-            return $description === [] ? null : $description;
+        $state = $submission->state;
+        $title = $groupIdentity['title'] ?? (string) $state['title'];
+        $metadata = $groupIdentity === null
+            ? null
+            : ['public_submission_group' => Arr::only($groupIdentity, ['key', 'institution_id', 'category_ids', 'prayer_slot'])];
+
+        $event = Event::query()->create(array_merge([
+            'title' => $title,
+            'slug' => $this->generateEventSlug->handle($title, null, $submission->timezone),
+            'description' => null,
+            'summary' => null,
+            'timezone' => $submission->timezone,
+            'institution_id' => $submission->targetInstitutionId,
+            'default_venue_id' => null,
+            'event_url' => null,
+            'live_url' => null,
+            'visibility' => $state['visibility'] ?? EventVisibility::Public->value,
+            'schedule_kind' => ScheduleKind::Single,
+            'metadata' => $metadata,
+        ], $submission->autoApproved ? ['status' => 'pending'] : []));
+
+        $primaryOrganizer = $groupIdentity === null
+            ? $submission->primaryOrganizer
+            : Institution::query()->find($groupIdentity['institution_id']) ?? $submission->primaryOrganizer;
+        $event->setPrimaryOrganizer($primaryOrganizer);
+
+        if ($groupIdentity !== null) {
+            $this->syncClassifications->handle($event, [
+                'event_category_ids' => $groupIdentity['category_ids'],
+            ]);
+        } else {
+            $this->syncClassifications->handle($event, $submission->state);
         }
 
-        if (is_string($description)) {
-            return $this->contentNormalizer->normalizeDescription($description);
-        }
+        return $event;
+    }
 
-        return null;
+    /**
+     * @param  array{key: string, institution_id: string, category_ids: list<string>, prayer_slot: string, title: string}  $groupIdentity
+     */
+    private function storeGroupIdentity(Event $event, array $groupIdentity): void
+    {
+        $metadata = $event->metadata ?? [];
+        $metadata['public_submission_group'] = Arr::only($groupIdentity, [
+            'key',
+            'institution_id',
+            'category_ids',
+            'prayer_slot',
+        ]);
+
+        $event->forceFill(['metadata' => $metadata])->save();
     }
 }

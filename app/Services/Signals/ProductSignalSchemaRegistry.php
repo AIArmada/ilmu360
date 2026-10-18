@@ -35,6 +35,13 @@ final class ProductSignalSchemaRegistry
             return $schemas[$eventName];
         }
 
+        if (str_starts_with($eventName, 'moderation.event.occurrence_')) {
+            return [
+                'event_id', 'event_occurrence_id', 'submission_id', 'moderation_action',
+                'previous_status', 'current_status', 'moderator_id', 'reason_code', 'has_note',
+            ];
+        }
+
         if (str_starts_with($eventName, 'moderation.event.')) {
             return [
                 'event_id', 'moderation_action', 'previous_status', 'current_status',

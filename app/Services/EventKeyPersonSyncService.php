@@ -3,10 +3,13 @@
 namespace App\Services;
 
 use AIArmada\Events\Actions\SyncEventInvolvementsAction;
+use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
 use App\Actions\Events\GenerateEventSlugAction;
 use App\Enums\EventKeyPersonRole;
 use App\Models\Event;
+use App\Models\Institution;
+use App\Models\Person;
 
 class EventKeyPersonSyncService
 {
@@ -36,6 +39,26 @@ class EventKeyPersonSyncService
     public function syncSession(EventSession $session, array $personIds = [], array $otherKeyPeople = []): void
     {
         $this->syncInvolvements->handle($session, $this->normalizeRows($personIds, $otherKeyPeople), $this->managedRoleCodes());
+    }
+
+    /**
+     * @param  list<string>  $personIds
+     * @param  list<array<string, mixed>>  $otherKeyPeople
+     */
+    public function syncOccurrence(EventOccurrence $occurrence, array $personIds = [], array $otherKeyPeople = []): void
+    {
+        $this->syncInvolvements->handle($occurrence, $this->normalizeRows($personIds, $otherKeyPeople), $this->managedRoleCodes());
+    }
+
+    public function syncOccurrenceOrganizer(EventOccurrence $occurrence, Institution|Person $organizer): void
+    {
+        $this->syncInvolvements->handle($occurrence, [[
+            'role_code' => 'organizer',
+            'involveable_type' => $organizer->getMorphClass(),
+            'involveable_id' => (string) $organizer->getKey(),
+            'visibility' => 'public',
+            'status' => 'active',
+        ]], ['organizer']);
     }
 
     /**

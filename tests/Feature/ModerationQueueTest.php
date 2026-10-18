@@ -3,6 +3,8 @@
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Enums\EventEscalationType;
 use AIArmada\Events\Models\EventEscalation;
+use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Models\EventSubmission;
 use App\Filament\Pages\ModerationQueue;
 use App\Models\Event;
 use App\Models\Institution;
@@ -60,6 +62,53 @@ it('does not expose a redundant event status column in moderation queue', functi
         ->assertTableColumnDoesNotExist('status')
         ->assertTableColumnExists('priority')
         ->assertTableColumnExists('venue.name');
+});
+
+it('rebuilds the table when switching between event and occurrence moderation queues', function (): void {
+    $moderator = User::factory()->create();
+    $moderator->assignRole('moderator');
+
+    $pendingEvent = Event::factory()->create([
+        'title' => 'Parent Event Awaiting Review',
+        'status' => 'pending',
+    ]);
+    $approvedEvent = Event::factory()->create([
+        'title' => 'Approved Parent For Occurrence',
+        'status' => 'approved',
+    ]);
+    $occurrence = EventOccurrence::factory()->create([
+        'event_id' => $approvedEvent->getKey(),
+        'title' => 'Occurrence Awaiting Review',
+        'status' => 'draft',
+        'visibility' => 'private',
+    ]);
+    $submission = EventSubmission::query()->create([
+        'event_id' => $approvedEvent->getKey(),
+        'event_occurrence_id' => $occurrence->getKey(),
+        'event_session_id' => null,
+        'status' => 'pending',
+        'submitted_at' => now(),
+    ]);
+
+    Livewire::actingAs($moderator)
+        ->test(ModerationQueue::class)
+        ->assertTableColumnExists('priority')
+        ->assertTableColumnDoesNotExist('occurrence.title')
+        ->assertCanSeeTableRecords([$pendingEvent])
+        ->assertTableActionExists('approve', record: $pendingEvent)
+        ->call('setActiveTab', 'pending_occurrences')
+        ->assertSet('activeTab', 'pending_occurrences')
+        ->assertTableColumnExists('occurrence.title')
+        ->assertTableColumnExists('event.title')
+        ->assertTableColumnDoesNotExist('priority')
+        ->assertCanSeeTableRecords([$submission])
+        ->assertTableActionExists('approve_occurrence', record: $submission)
+        ->call('setActiveTab', 'pending')
+        ->assertSet('activeTab', 'pending')
+        ->assertTableColumnExists('priority')
+        ->assertTableColumnDoesNotExist('occurrence.title')
+        ->assertCanSeeTableRecords([$pendingEvent])
+        ->assertTableActionExists('approve', record: $pendingEvent);
 });
 
 it('shows priority events first in moderation queue', function () {

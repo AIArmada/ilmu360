@@ -7,14 +7,21 @@ namespace App\Actions\Events;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Events\Enums\RegistrationMode;
+use AIArmada\Events\Models\EventOccurrence;
 use App\Contracts\ShareTrackingContract;
 use App\Enums\DawahShareOutcomeType;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\User;
+use App\Notifications\EventOccurrenceSubmittedNotification;
 use App\Services\ModerationService;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
+use Spatie\Permission\Exceptions\RoleDoesNotExist;
+use Throwable;
 
 final readonly class CompleteFrontendEventSubmissionAction
 {
@@ -37,6 +44,10 @@ final readonly class CompleteFrontendEventSubmissionAction
         bool $sessionSubmission,
         bool $autoApproved,
         ?Request $request = null,
+        ?EventOccurrence $occurrence = null,
+        bool $parentCreated = true,
+        bool $groupedSubmission = false,
+        bool $occurrencePendingReview = false,
     ): void {
         if (! $submitter instanceof User) {
             $this->storeSubmitterContacts($submission, $state);
@@ -54,6 +65,30 @@ final readonly class CompleteFrontendEventSubmissionAction
                 metadata: [
                     'submission_id' => $submission->getKey(),
                     'session_submission' => true,
+                    'event_occurrence_id' => $occurrence?->getKey(),
+                ],
+                occurredAt: $submission->created_at ?? now(),
+            );
+
+            return;
+        }
+
+        if (! $parentCreated) {
+            if ($occurrencePendingReview && $occurrence instanceof EventOccurrence) {
+                $this->notifyOccurrenceNeedsReview($event, $occurrence);
+            }
+
+            $this->shareTracking->recordOutcome(
+                type: DawahShareOutcomeType::EventSubmission,
+                businessKey: ShareOutcomeBusinessKey::eventSubmission((string) $submission->getKey()),
+                subject: $event,
+                actor: $submitter,
+                request: $request ?? request(),
+                metadata: [
+                    'submission_id' => $submission->getKey(),
+                    'event_occurrence_id' => $occurrence?->getKey(),
+                    'grouped_submission' => $groupedSubmission,
+                    'occurrence_pending_review' => $occurrencePendingReview,
                 ],
                 occurredAt: $submission->created_at ?? now(),
             );
@@ -81,6 +116,8 @@ final readonly class CompleteFrontendEventSubmissionAction
             request: $request ?? request(),
             metadata: [
                 'submission_id' => $submission->getKey(),
+                'event_occurrence_id' => $occurrence?->getKey(),
+                'grouped_submission' => $groupedSubmission,
             ],
             occurredAt: $submission->created_at ?? now(),
         );
@@ -106,5 +143,30 @@ final readonly class CompleteFrontendEventSubmissionAction
                 'sort_order' => $order++,
             ]);
         }
+    }
+
+    private function notifyOccurrenceNeedsReview(Event $event, EventOccurrence $occurrence): void
+    {
+        DB::afterCommit(function () use ($event, $occurrence): void {
+            try {
+                $moderators = User::role(['moderator', 'super_admin'])->get();
+
+                if ($moderators->isNotEmpty()) {
+                    Notification::send($moderators, new EventOccurrenceSubmittedNotification($event, $occurrence));
+                }
+            } catch (RoleDoesNotExist $exception) {
+                Log::warning('Could not notify moderators about a submitted event occurrence.', [
+                    'event_id' => (string) $event->getKey(),
+                    'event_occurrence_id' => (string) $occurrence->getKey(),
+                    'exception' => $exception,
+                ]);
+            } catch (Throwable $exception) {
+                Log::warning('Occurrence submission notification failed after submit.', [
+                    'event_id' => (string) $event->getKey(),
+                    'event_occurrence_id' => (string) $occurrence->getKey(),
+                    'exception' => $exception,
+                ]);
+            }
+        });
     }
 }

@@ -32,6 +32,7 @@ use App\Support\Prayer\PrayerTargetSelector;
 use App\Support\Submission\SubmissionTimingPolicy;
 use BackedEnum;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon as IlluminateCarbon;
 use Illuminate\Support\Collection;
@@ -219,7 +220,7 @@ final readonly class SaveAdminEventAction
             $state['end_date'] = null;
         }
 
-        $this->validateState($state);
+        $this->validateState($state, $creating ? null : $event);
 
         [$institutionId, $venueId, $spaceIds] = $this->resolveLocationState($state);
 
@@ -651,7 +652,7 @@ final readonly class SaveAdminEventAction
     /**
      * @param  array<string, mixed>  $state
      */
-    private function validateState(array $state): void
+    private function validateState(array $state, ?Event $event = null): void
     {
         $errors = [];
         $primaryOrganizerId = $this->normalizeOptionalString($state['primary_organizer_id'] ?? null);
@@ -701,7 +702,13 @@ final readonly class SaveAdminEventAction
             }
         }
 
-        if ($this->requiresPersons($state['event_category_ids'] ?? []) && $personIds === []) {
+        $hasOccurrenceSpeaker = $event instanceof Event
+            && $event->occurrences()
+                ->whereHas('involvements', static fn (Builder $query): Builder => $query
+                    ->where('role_code', EventKeyPersonRole::Speaker->value))
+                ->exists();
+
+        if ($this->requiresPersons($state['event_category_ids'] ?? []) && $personIds === [] && ! $hasOccurrenceSpeaker) {
             $errors['persons'][] = __('Sekurang-kurangnya seorang penceramah diperlukan untuk jenis majlis ini.');
         }
 

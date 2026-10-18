@@ -852,16 +852,22 @@ class Create extends Component implements HasActions, HasForms
         $event = $result['event'];
 
         $session = $result['session'];
+        $occurrence = $result['occurrence'] ?? ($session instanceof EventSession ? $session->occurrence : null);
 
-        session()->flash('event_title', $session instanceof EventSession ? $session->title : $event->title);
+        session()->flash('event_title', $session instanceof EventSession
+            ? $session->title
+            : ($occurrence instanceof EventOccurrence ? $occurrence->title : $event->title));
         session()->flash('event_slug', $event->slug);
         session()->flash('event_status', (string) $event->status);
         session()->flash('event_parent_visibility', $event->visibility->value);
-        session()->flash('event_occurrence_visibility', $session?->occurrence?->visibility);
+        session()->flash('event_occurrence_visibility', $occurrence?->visibility);
+        session()->flash('event_occurrence_status', $occurrence instanceof EventOccurrence ? (string) $occurrence->status : null);
+        session()->flash('event_occurrence_id', $occurrence?->getKey());
+        session()->flash('event_occurrence_slug', $occurrence?->slug);
         session()->flash('event_session_id', $session?->getKey());
         session()->flash('event_session_slug', $session?->slug);
-        session()->flash('event_occurrence_slug', $session?->occurrence?->slug);
         session()->flash('event_auto_approved', $result['auto_approved']);
+        session()->flash('event_occurrence_pending_review', $result['occurrence_pending_review']);
         session()->flash('submission_institution_id', $this->scopedInstitutionId);
         session()->flash('event_visibility', $result['visibility']);
 

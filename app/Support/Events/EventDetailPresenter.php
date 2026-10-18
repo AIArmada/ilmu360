@@ -626,8 +626,13 @@ final class EventDetailPresenter
             return null;
         }
 
-        return $scope->locations->firstWhere('location_role', 'primary')
-            ?? $scope->locations->first();
+        $locations = $scope instanceof EventOccurrence
+            ? $scope->locations->filter(fn (EventLocation $location): bool => $location->event_occurrence_id === $scope->getKey()
+                && $location->event_session_id === null)
+            : $scope->locations->filter(fn (EventLocation $location): bool => $location->event_session_id === $scope->getKey());
+
+        return $locations->firstWhere('location_role', 'primary')
+            ?? $locations->first();
     }
 
     public function locationLabel(?EventLocation $location): ?string

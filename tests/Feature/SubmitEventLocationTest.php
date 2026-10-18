@@ -150,10 +150,10 @@ it('can submit an event as a person with an institution location', function () {
         ->assertHasNoErrors()
         ->assertRedirect();
 
-    $event = Event::query()->where('title', 'Person at Institution')->sole();
+    $event = submittedOccurrenceByTitle('Person at Institution');
 
-    expect($event->institution_id)->toBe($institution->id)
-        ->and($event->default_venue_id)->toBeNull();
+    expect($event->event->institution_id)->toBe($institution->id)
+        ->and($event->locations()->sole()->locationable_id)->toBe((string) $institution->id);
 });
 
 it('can submit an event as a person with a venue location', function () {
@@ -176,10 +176,10 @@ it('can submit an event as a person with a venue location', function () {
         ->assertHasNoErrors()
         ->assertRedirect();
 
-    $event = Event::query()->where('title', 'Person at Venue')->sole();
+    $event = submittedOccurrenceByTitle('Person at Venue');
 
-    expect($event->institution_id)->toBeNull()
-        ->and($event->default_venue_id)->toBe($venue->id);
+    expect($event->event->institution_id)->toBeNull()
+        ->and($event->locations()->sole()->venue_id)->toBe((string) $venue->id);
 });
 
 it('automatically sets location to institution when organizer is an institution', function () {
@@ -200,10 +200,10 @@ it('automatically sets location to institution when organizer is an institution'
         ->assertHasNoErrors()
         ->assertRedirect();
 
-    $event = Event::query()->where('title', 'Institution Event')->sole();
+    $event = submittedOccurrenceByTitle('Institution Event');
 
-    expect($event->institution_id)->toBe($institution->id)
-        ->and($event->default_venue_id)->toBeNull();
+    expect($event->event->institution_id)->toBe($institution->id)
+        ->and($event->locations()->sole()->locationable_id)->toBe((string) $institution->id);
 });
 
 it('requires location type when organizer is person', function () {
@@ -244,10 +244,10 @@ it('allows institution organizer to choose a different location', function () {
         ->assertHasNoErrors()
         ->assertRedirect();
 
-    $event = Event::query()->where('title', 'Institution at Other Venue')->sole();
+    $event = submittedOccurrenceByTitle('Institution at Other Venue');
 
-    expect($event->institution_id)->toBeNull()
-        ->and($event->default_venue_id)->toBe($otherVenue->id);
+    expect($event->event->institution_id)->toBeNull()
+        ->and($event->locations()->sole()->venue_id)->toBe((string) $otherVenue->id);
 });
 
 it('includes institution alternative names in submit-event option labels', function () {

@@ -216,6 +216,9 @@ final class PublicScheduleDiscoveryService
                     ->orderBy('id');
             },
             'occurrences.media',
+            'occurrences.locations' => static function (Relation $query): void {
+                $query->whereNull('event_session_id')->where('status', 'active')->where('visibility', 'public');
+            },
             'occurrences.locations.venueSpace',
             'occurrences.sessions' => function (Relation $query) use ($scope): void {
                 $scope($query);
@@ -310,6 +313,9 @@ final class PublicScheduleDiscoveryService
             },
             'occurrences.media',
             'occurrences.timeExpressions',
+            'occurrences.locations' => static function (Relation $query): void {
+                $query->whereNull('event_session_id')->where('status', 'active')->where('visibility', 'public');
+            },
             'occurrences.locations.venue',
             'occurrences.locations.venueSpace',
             'occurrences.sessions' => function (Relation $query) use ($publicScheduleScope): void {

@@ -95,7 +95,7 @@ it('auto-fills the single linked timezone on mount and submits without an explic
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    $event = Event::query()->where('title', 'Single Zone Auto Event')->sole();
+    $event = submittedOccurrenceByTitle('Single Zone Auto Event');
 
     expect($event->timezone)->toBe('Asia/Kuala_Lumpur');
 });
@@ -155,7 +155,7 @@ it('collapses same-clock multi-zone countries to the preferred representative', 
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    $event = Event::query()->where('title', 'Same Clock Auto Event')->sole();
+    $event = submittedOccurrenceByTitle('Same Clock Auto Event');
 
     expect($event->timezone)->toBe('Asia/Kuala_Lumpur')
         ->and($event->starts_at->timezone('Asia/Kuala_Lumpur')->format('Y-m-d H:i'))->toBe("{$eventDate} 20:00")
@@ -229,7 +229,7 @@ it('collapses equivalent zones for countries without a preferred representative'
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    expect(Event::query()->where('title', 'Generic Equivalent Auto Event')->sole()->timezone)
+    expect(submittedOccurrenceByTitle('Generic Equivalent Auto Event')->timezone)
         ->toBe('Asia/Kuala_Lumpur');
 });
 

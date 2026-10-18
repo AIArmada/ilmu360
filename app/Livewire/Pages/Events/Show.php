@@ -148,6 +148,7 @@ class Show extends Component
                 'primaryLocationVenue.contactMethods',
                 'primaryLocation.venueSpace',
                 'primaryOccurrence' => $publicScheduleScope,
+                'displayOccurrence.media',
                 'sessions' => function (Relation $query) use ($publicScheduleScope, $capacityRegistrationScope): void {
                     $publicScheduleScope($query);
                     $query
@@ -176,7 +177,10 @@ class Show extends Component
                         ->orderBy('created_at')
                         ->orderBy('id');
                 },
-                'occurrences.locations' => $publicLocationScope,
+                'occurrences.locations' => function (Relation $query) use ($publicLocationScope): void {
+                    $publicLocationScope($query);
+                    $query->whereNull('event_session_id');
+                },
                 'occurrences.locations.venueSpace',
                 'occurrences.accessPolicies' => static function (Relation $query): void {
                     $query->whereNull('event_session_id');
@@ -540,6 +544,7 @@ class Show extends Component
                 'institution',
                 'venue',
                 'primaryOccurrence',
+                'displayOccurrence.media',
             ])
             ->when(
                 filled($institutionId),

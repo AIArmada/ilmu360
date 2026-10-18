@@ -1,5 +1,7 @@
 # Lessons
 
+- User correction (2026-10-18, institutional prayer-slot grouping): this work is a clean cutover, with no backward compatibility or legacy paths. Do not turn an API audit into a requirement to preserve old payload shapes. Define one canonical new contract, update all current consumers and tests together, and check semantic correctness and data preservation. Do not add old/new aliases, compatibility adapters, legacy repair routines, or fallback branches solely for old data. Distinguish valid current parent/occurrence inheritance from a legacy shim.
+
 - When asked to finalize a complete system plan, do not narrow it to a minimum launch or push requested capabilities into a later backlog. Sequence dependencies within the complete scope, and ask only about business decisions that change the system contract.
 
 - When the user requests schema changes by editing original migrations only, modify the creation migration directly; do not add upgrade migrations, legacy aliases, compatibility guards, or backfills.

@@ -14,6 +14,7 @@ use App\Services\PublicScheduleDiscoveryService;
 use App\Support\Events\PublicSchedulePolicy;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
@@ -52,7 +53,16 @@ class Session extends Occurrence
                 ...$this->commerceRelations(),
             ]);
 
-            $this->occurrence->loadMissing($this->commerceRelations());
+            $this->occurrence->loadMissing([
+                'classifications.term',
+                'languages',
+                'audiences',
+                'audienceProfiles',
+                'timeExpressions' => static function (Relation $query): void {
+                    $query->whereNull('event_session_id');
+                },
+                ...$this->commerceRelations(),
+            ]);
 
             // The selected session's own locations load after the first
             // hydration pass, so their venues need the same application-side

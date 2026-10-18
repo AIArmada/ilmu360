@@ -148,9 +148,9 @@ it('can submit event with single language', function () {
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    $event = Event::where('title', 'Single Language Event')->firstOrFail();
+    $event = submittedOccurrenceByTitle('Single Language Event');
     expect($event->languages)->toHaveCount(1);
-    expect($event->languages->first()->code)->toBe('ms');
+    expect($event->languages->first()->language_code)->toBe('ms');
 });
 
 it('can submit event with multiple languages', function () {
@@ -167,9 +167,9 @@ it('can submit event with multiple languages', function () {
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    $event = Event::where('title', 'Multi Language Event')->firstOrFail();
+    $event = submittedOccurrenceByTitle('Multi Language Event');
     expect($event->languages)->toHaveCount(3);
-    $languageCodes = $event->languages->pluck('code')->toArray();
+    $languageCodes = $event->languages->pluck('language_code')->toArray();
     expect($languageCodes)->toContain('ms', 'ar', 'en');
 });
 

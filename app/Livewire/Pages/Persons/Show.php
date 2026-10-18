@@ -337,6 +337,7 @@ class Show extends Component
             $speakerEvents->load([
                 'references' => fn ($query) => $query->active(),
                 'primaryOccurrence',
+                'displayOccurrence.media',
                 'timeExpressions',
                 'classifications.term',
             ]);

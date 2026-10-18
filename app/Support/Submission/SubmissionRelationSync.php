@@ -124,4 +124,33 @@ final class SubmissionRelationSync
             ]);
         }
     }
+
+    /**
+     * Occurrence references mirror the existing event and session reference
+     * defaults while keeping each contribution scoped to its submitted date.
+     */
+    public function syncOccurrenceReferences(Event $event, EventOccurrence $occurrence, mixed $references): void
+    {
+        if (! is_array($references)) {
+            return;
+        }
+
+        $ids = collect($references)
+            ->filter(fn (mixed $id): bool => is_string($id) && Str::isUuid($id))
+            ->unique()
+            ->values();
+
+        foreach ($ids as $sort => $id) {
+            EventReference::query()->create([
+                'event_id' => $event->getKey(),
+                'event_occurrence_id' => $occurrence->getKey(),
+                'event_session_id' => null,
+                'referenceable_type' => 'reference',
+                'referenceable_id' => $id,
+                'reference_type' => 'book',
+                'visibility' => 'public',
+                'sort_order' => $sort,
+            ]);
+        }
+    }
 }

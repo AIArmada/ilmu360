@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTerm;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
@@ -7,7 +8,6 @@ use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
 use App\Livewire\Pages\SubmitEvent\Create;
-use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Support\Submission\SubmitterContactRules;
@@ -165,7 +165,7 @@ it('accepts guest submissions with a valid phone number and no email', function 
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    expect(Event::query()->where('title', 'Phone Only Contact Event')->exists())->toBeTrue();
+    expect(EventOccurrence::query()->where('title', 'Phone Only Contact Event')->exists())->toBeTrue();
 });
 
 it('rejects api submissions with an invalid phone number', function () {
