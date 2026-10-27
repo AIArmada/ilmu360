@@ -12,13 +12,14 @@ use App\Enums\EventPrayerTime;
 use App\Enums\PrayerReference;
 use App\Models\Event;
 use App\Models\Institution;
+use Illuminate\Support\Str;
 
 final readonly class ResolveInstitutionalPrayerSlotGroupAction
 {
     public function __construct(private EventCategoryCatalog $categories) {}
 
     /**
-     * @return array{key: string, institution_id: string, category_ids: list<string>, prayer_slot: string, title: string}|null
+     * @return array{key: string, institution_id: string, category_ids: list<string>, prayer_slot: string, title: string, slug_title: string}|null
      */
     public function identity(ValidatedEventSubmission $submission): ?array
     {
@@ -50,6 +51,13 @@ final readonly class ResolveInstitutionalPrayerSlotGroupAction
             return null;
         }
 
+        $categorySlugParts = $categoryNames
+            ->map(fn (string $name): string => trim(Str::before($name, '/')))
+            ->filter()
+            ->values();
+        $prayerLabelParts = preg_split('/\s+/u', trim($prayerTime->getLabel())) ?: [];
+        $prayerSlugPart = $prayerLabelParts === [] ? '' : (string) end($prayerLabelParts);
+
         $key = hash('sha256', implode('|', [
             $submission->targetInstitutionId,
             implode(',', $categoryIds),
@@ -62,6 +70,11 @@ final readonly class ResolveInstitutionalPrayerSlotGroupAction
             'category_ids' => $categoryIds,
             'prayer_slot' => $prayerTime->value,
             'title' => implode(' / ', $categoryNames->all()).' '.$prayerTime->getLabel().' — '.$institution->name,
+            'slug_title' => implode(' ', [
+                ...$categorySlugParts->all(),
+                $prayerSlugPart,
+                (string) $institution->slug,
+            ]),
         ];
     }
 
@@ -69,7 +82,7 @@ final readonly class ResolveInstitutionalPrayerSlotGroupAction
      * Selects the oldest eligible parent matching its canonical institution,
      * category and prayer-slot data.
      *
-     * @param  array{key: string, institution_id: string, category_ids: list<string>, prayer_slot: string, title: string}  $identity
+     * @param  array{key: string, institution_id: string, category_ids: list<string>, prayer_slot: string, title: string, slug_title: string}  $identity
      */
     public function findExisting(array $identity): ?Event
     {

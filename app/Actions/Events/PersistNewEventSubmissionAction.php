@@ -98,7 +98,7 @@ final readonly class PersistNewEventSubmissionAction
     }
 
     /**
-     * @param  array{key: string, institution_id: string, category_ids: list<string>, prayer_slot: string, title: string}|null  $groupIdentity
+     * @param  array{key: string, institution_id: string, category_ids: list<string>, prayer_slot: string, title: string, slug_title: string}|null  $groupIdentity
      */
     private function createParent(ValidatedEventSubmission $submission, ?array $groupIdentity): Event
     {
@@ -110,7 +110,11 @@ final readonly class PersistNewEventSubmissionAction
 
         $event = Event::query()->create(array_merge([
             'title' => $title,
-            'slug' => $this->generateEventSlug->handle($title, null, $submission->timezone),
+            'slug' => $this->generateEventSlug->handle(
+                $groupIdentity['slug_title'] ?? $title,
+                null,
+                $submission->timezone,
+            ),
             'description' => null,
             'summary' => null,
             'timezone' => $submission->timezone,
@@ -140,7 +144,7 @@ final readonly class PersistNewEventSubmissionAction
     }
 
     /**
-     * @param  array{key: string, institution_id: string, category_ids: list<string>, prayer_slot: string, title: string}  $groupIdentity
+     * @param  array{key: string, institution_id: string, category_ids: list<string>, prayer_slot: string, title: string, slug_title: string}  $groupIdentity
      */
     private function storeGroupIdentity(Event $event, array $groupIdentity): void
     {

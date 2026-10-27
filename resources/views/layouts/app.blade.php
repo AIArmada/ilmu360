@@ -225,7 +225,7 @@
 
             <!-- Premium Header -->
             <header
-                class="{{ $headerClass }}"
+                class="jp-shell-header {{ $headerClass }}"
                 x-data="{ mobileMenuOpen: false }">
                 <nav class="{{ $navClass }}">
                     @if($useFloatingHeader)
@@ -578,7 +578,7 @@
             <x-ui.toast-stack />
 
             <!-- Living Majlis Footer -->
-            <footer class="living-majlis-footer relative mt-20 overflow-hidden text-emerald-50">
+            <footer class="jp-shell-footer living-majlis-footer relative mt-20 overflow-hidden text-emerald-50">
                 <div class="living-majlis-footer-scene pointer-events-none absolute inset-0">
                     <picture>
                         <source media="(max-width: 639px)" srcset="{{ asset('images/footer-courtyard-v14-mobile.png') }}">

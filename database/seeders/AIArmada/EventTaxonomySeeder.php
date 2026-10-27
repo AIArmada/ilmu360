@@ -19,7 +19,7 @@ final class EventTaxonomySeeder extends Seeder
     /** @var array<string, array{label: string, policies?: list<string>}> */
     private const array CATEGORIES = [
         'kuliah_ceramah' => ['label' => 'Kuliah / Ceramah', 'policies' => ['requires_speaker']],
-        'kelas_kursus' => ['label' => 'Kelas / Kursus', 'policies' => ['requires_speaker']],
+        'kelas_kursus' => ['label' => 'Kursus / Kelas', 'policies' => ['requires_speaker']],
         'bengkel_latihan' => ['label' => 'Bengkel / Latihan', 'policies' => ['requires_speaker']],
         'seminar_persidangan' => ['label' => 'Seminar / Persidangan', 'policies' => ['requires_speaker']],
         'forum_diskusi' => ['label' => 'Forum / Diskusi', 'policies' => ['requires_speaker']],

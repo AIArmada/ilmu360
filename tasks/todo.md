@@ -4843,3 +4843,14 @@ The focused grouping suite passed 14 tests / 173 assertions, exit 0 (`/private/t
 The single failure was caused by the picker test providing only browser selection data while the current picker contract verifies the Place ID with Google Places before resolving the address. The test now configures a fake verified Places response, then asserts the assignment keys after the successful selection. The isolated parallel rerun passed 1 test / 2 assertions, exit 0. This keeps the test aligned with server-verified selection behavior and avoids a live API request.
 
 `vendor/bin/pint --dirty --format agent` passed (exit 0; `/private/tmp/public-submission-grouping-repair-pint.log`, true exit `/private/tmp/public-submission-grouping-repair-pint.log.exit`). Full PHPStan analyzed 1,234 files and exited 1 with 15 findings; after ANSI removal and line trimming, its result is identical to the prior `/private/tmp/public-submission-grouping-final-phpstan.log` (new run `/private/tmp/public-submission-grouping-repair-phpstan-approved.log`, true exit `/private/tmp/public-submission-grouping-repair-phpstan-approved.log.exit`). These are the same known findings, with no new errors from this implementation. `git diff --check` is recorded after the final task-note update.
+
+## Current Task: Rebuild homepage from the Jangan Pendam reference — 2026-10-21
+
+### Plan
+
+- [ ] Replace the root page’s event-discovery content with a responsive Malay safety-support landing page following the supplied reference.
+- [ ] Scope a custom header, section navigation, support resources, and footer to the homepage while keeping the shared ilmu360 shell intact elsewhere.
+- [ ] Keep browser-only note and breathing interactions clear about their behavior, and use current Malaysian support contacts.
+- [ ] Review the rendered homepage at desktop and mobile widths, check key links and visual hierarchy, and inspect the final diff.
+
+### Review
