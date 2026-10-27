@@ -2,6 +2,7 @@
 
 namespace App\Actions\Fortify;
 
+use App\Actions\Auth\RecordSignupAttributionAction;
 use App\Concerns\PasswordValidationRules;
 use App\Models\User;
 use App\Services\ShareTrackingService;
@@ -52,6 +53,7 @@ class CreateNewUser implements CreatesNewUsers
                 'password' => $input['password'],
             ])->save();
 
+            app(RecordSignupAttributionAction::class)->handle($user, request());
             app(ShareTrackingService::class)->recordSignup($user, request());
             app(ProductSignalsService::class)->recordSignup($user, request());
 

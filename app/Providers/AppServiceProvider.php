@@ -10,6 +10,7 @@ use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
 use AIArmada\Affiliates\Contracts\AffiliateAwardPolicy;
+use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\Checkout\Contracts\StepContributor;
 use AIArmada\Checkout\Models\CheckoutSession;
@@ -91,7 +92,9 @@ use App\Contracts\EventCategoryPolicyResolver;
 use App\Contracts\GitHubIssueReporterContract;
 use App\Contracts\NullCaptchaVerifier;
 use App\Contracts\NullGitHubIssueReporter;
+use App\Contracts\NullSignupAttributionSourceResolver;
 use App\Contracts\ShareTrackingContract;
+use App\Contracts\SignupAttributionSourceResolver;
 use App\Contracts\SpaceEligibilityResolver;
 use App\Http\Controllers\Mcp\OAuthRegisterController;
 use App\Listeners\ShareTracking\ReverseRegistrationShareOutcome;
@@ -166,6 +169,7 @@ use App\Services\EventCategoryPolicy;
 use App\Services\GitHub\GitHubIssueReporter;
 use App\Services\ShareTrackingService;
 use App\Services\Spaces\DefaultSpaceEligibilityResolver;
+use App\Support\Auth\AffiliateSignupAttributionSourceResolver;
 use App\Support\Communications\AppConsentResolver;
 use App\Support\Communications\AppPreferenceResolver;
 use App\Support\Communications\AppQuietHoursResolver;
@@ -307,6 +311,9 @@ class AppServiceProvider extends ServiceProvider
         // Prefer concrete facade for constructor injection of ShareTrackingService;
         // also bind the contract so optional integrations can type-hint ShareTrackingContract.
         $this->app->singleton(ShareTrackingContract::class, ShareTrackingService::class);
+        $this->app->bind(SignupAttributionSourceResolver::class, class_exists(Affiliate::class)
+            ? AffiliateSignupAttributionSourceResolver::class
+            : NullSignupAttributionSourceResolver::class);
 
         // Real reward host adapters (stateless; safe to share under Octane).
         // Finance scope binds funded readiness: money/benefit activation

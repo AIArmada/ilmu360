@@ -102,6 +102,18 @@ final readonly class PersistOccurrenceSubmissionAction
             null,
             $submission->personSlugSegments,
         );
+
+        $titleSlug = Str::slug(trim((string) $state['title']));
+        $titleSlug = $titleSlug !== '' ? $titleSlug : 'event';
+        $parentSlug = '-'.trim((string) $event->slug, '-').'-';
+
+        if (
+            str_contains($parentSlug, '-'.$titleSlug.'-')
+            && str_starts_with($baseSlug, $titleSlug.'-')
+        ) {
+            $baseSlug = substr($baseSlug, strlen($titleSlug) + 1);
+        }
+
         $slug = $baseSlug;
         $suffix = 2;
 

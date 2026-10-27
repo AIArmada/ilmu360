@@ -2590,14 +2590,20 @@ final readonly class AffiliatesShareTrackingService
         }
 
         $link = $attribution->affiliate_link_id !== null
-            ? AffiliateLink::query()->withoutGlobalScope(OwnerScope::class)->whereKey($attribution->affiliate_link_id)->first()
+            ? AffiliateLink::query()->withoutGlobalScope('affiliate_owner')->whereKey($attribution->affiliate_link_id)->first()
             : null;
 
         if (! $link instanceof AffiliateLink) {
             return null;
         }
 
-        $affiliate = $link->relationLoaded('affiliate') ? $link->affiliate : $link->affiliate()->first();
+        $affiliate = Affiliate::query()->withoutGlobalScope(OwnerScope::class)->whereKey($link->affiliate_id)->first();
+
+        if (! $affiliate instanceof Affiliate
+            || $attribution->owner_type !== $affiliate->owner_type
+            || (string) $attribution->owner_id !== (string) $affiliate->owner_id) {
+            return null;
+        }
 
         if (! ShareTrackingProfile::isEligibleForNewCredit($affiliate) || ! $link->isEnabled()) {
             return null;

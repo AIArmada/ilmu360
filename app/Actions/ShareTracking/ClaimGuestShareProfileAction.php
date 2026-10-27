@@ -9,6 +9,7 @@ use AIArmada\Affiliates\Models\AffiliateAttribution;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\OwnerScope;
 use AIArmada\Rewards\Jobs\EvaluateRewardEntitlementJob;
+use App\Actions\Auth\LinkGuestSignupAttributionsAction;
 use App\Enums\ShareGuestClaimResult;
 use App\Enums\ShareGuestClaimStatus;
 use App\Enums\ShareGuestCredentialStatus;
@@ -47,6 +48,7 @@ final class ClaimGuestShareProfileAction
 
     public function __construct(
         private readonly AffiliatesShareTrackingService $shareTrackingService,
+        private readonly LinkGuestSignupAttributionsAction $linkGuestSignupAttributions,
     ) {}
 
     public function handle(User $claimant, string $presentedCapability, bool $confirmedConsent): ShareGuestClaimResult
@@ -145,7 +147,7 @@ final class ClaimGuestShareProfileAction
         }
 
         try {
-            DB::transaction(static fn (): ShareGuestClaim => ShareGuestClaim::query()->create([
+            $claim = DB::transaction(static fn (): ShareGuestClaim => ShareGuestClaim::query()->create([
                 'guest_affiliate_id' => $guestAffiliateId,
                 'claimant_user_id' => $claimantId,
                 'capability_verifier' => $verifier,
@@ -187,6 +189,7 @@ final class ClaimGuestShareProfileAction
         // own fresh credential and capability; the claimed rows keep their
         // original guest source, owner null, and frozen attribution.
         $this->revokeHistoricalGuestCredentials($guestAffiliateId);
+        $this->linkGuestSignupAttributions->handle($claim);
 
         return ShareGuestClaimResult::Claimed;
     }

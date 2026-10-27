@@ -8,6 +8,7 @@ use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\Affiliates\States\ApprovedConversion;
 use AIArmada\Affiliates\States\ReversedConversion;
 use AIArmada\Events\Contracts\RegistrationServiceInterface;
+use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTerm;
 use AIArmada\FilamentAffiliates\Resources\AffiliateLinkResource\Pages\EditAffiliateLink;
 use App\Actions\Fortify\CreateNewUser;
@@ -1132,8 +1133,9 @@ test('event submissions are attributed after a shared landing', function () {
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    $event = Event::query()->where('title', $title)->firstOrFail();
-    $submission = EventSubmission::query()->where('event_id', $event->id)->firstOrFail();
+    $occurrence = EventOccurrence::query()->where('title', $title)->firstOrFail();
+    $event = Event::query()->whereKey($occurrence->event_id)->firstOrFail();
+    $submission = EventSubmission::query()->where('event_occurrence_id', $occurrence->id)->firstOrFail();
 
     $this->assertDatabaseHas('affiliate_conversions', [
         'conversion_type' => 'event_submission',

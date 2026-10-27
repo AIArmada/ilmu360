@@ -111,7 +111,7 @@ it('maps a google place selection into local geography ids and address fields', 
         ->and(data_get($payload, 'area_assignments.administrative_district'))->toBe((string) $district->id)
         ->and(data_get($payload, 'area_assignments.administrative_subdivision'))->toBe((string) $subdistrict->id)
         ->and($payload['line1'])->toBe('Persiaran Masjid')
-        ->and($payload['line2'])->toBe('Seksyen 14')
+        ->and($payload['line2'])->toBeNull()
         ->and($payload['postcode'])->toBe('40000')
         ->and($payload['google_maps_url'])->toBe('https://www.google.com/maps/search/?api=1&query=3.07853%2C101.52073&query_place_id=place_abc123')
         ->and($payload['google_place_id'])->toBe('place_abc123')
@@ -136,8 +136,8 @@ it('does not use an institution display name as address line one', function () {
         ],
     ]);
 
-    expect($payload['line1'])->toBeNull()
-        ->and($payload['line2'])->toBe('Seksyen 14');
+    expect($payload['line1'])->toBe('Seksyen 14')
+        ->and($payload['line2'])->toBeNull();
 });
 
 it('tolerates google omitting the district when resolving a subdivision', function () {
@@ -255,7 +255,7 @@ it('resolves federal territory subdistricts directly from the state without a di
         ->and(data_get($payload, 'area_assignments.administrative_district'))->toBeNull()
         ->and(data_get($payload, 'area_assignments.administrative_subdivision'))->toBe((string) $subdistrict->id)
         ->and($payload['line1'])->toBe('Jalan Setiawangsa')
-        ->and($payload['line2'])->toBe('Taman Setiawangsa')
+        ->and($payload['line2'])->toBeNull()
         ->and($payload['postcode'])->toBe('54200');
 });
 

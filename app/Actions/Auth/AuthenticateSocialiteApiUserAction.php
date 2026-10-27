@@ -21,6 +21,7 @@ final readonly class AuthenticateSocialiteApiUserAction
         private ResolveSocialiteUserAction $resolveSocialiteUserAction,
         private ProductSignalsService $productSignalsService,
         private ShareTrackingService $shareTrackingService,
+        private RecordSignupAttributionAction $recordSignupAttribution,
     ) {}
 
     /**
@@ -54,6 +55,7 @@ final readonly class AuthenticateSocialiteApiUserAction
             $resolved = $this->resolveSocialiteUserAction->handle($provider, $socialUser);
 
             if ($resolved['created_account']) {
+                $this->recordSignupAttribution->handle($resolved['user'], $request);
                 $this->shareTrackingService->recordSignup($resolved['user'], $request);
             }
 

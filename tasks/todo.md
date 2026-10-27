@@ -4913,3 +4913,48 @@ Scoped Pint passed for all 134 task-owned PHP paths. Final reference and diff ch
 ### Review
 
 Full PHPStan level 6 completed with no errors. Added a PHPStan stub for the package's configurable Event relationships, corrected relation and builder generics, and aligned refund reservation handling with the package's list return contract. Pint and `git diff --check` passed. Tests were not run because this request was limited to static analysis.
+
+## Location and admin event responsibility refactor (2026-10-27)
+
+### Plan
+
+- [x] Extract Google Maps URL parsing and remote lookup from input-normalization orchestration, preserving URL, identity, status, cache, and HTTP behavior.
+- [x] Extract Google place component mapping and country-profile geography resolution from selection orchestration, preserving field precedence, scope, assignments, and diagnostics.
+- [x] Extract admin event input/timing preparation and related persistence responsibilities from `SaveAdminEventAction`, preserving validation, ordering, media, moderation, and Signals behavior.
+- [x] Review the integrated diff and caller contracts; reuse current regression coverage and add coverage only for meaningful gaps.
+- [x] Run one consolidated affected parallel Pest pass, scoped Pint, full PHPStan level 6, and a final diff check; document results.
+
+### Review
+
+The Maps input Action now coordinates parsing and optional lookup through `GoogleMapsUrlParser`, `GoogleMapsRemoteLookup`, and `GoogleMapsInputValues`. Place selection delegates component/address-line mapping, scoped geography matching, country-profile hierarchy resolution, and gap diagnostics to four `GooglePlace*` collaborators. Admin event saving delegates input preparation, timing/provenance resolution, and relation/media synchronization to three `AdminEvent*` collaborators. Public Action signatures, return fields, validation behavior, lookup gates, assignment precedence, and write/side-effect order are preserved. The collaborators use the existing Support domains and package APIs; no dependencies, compatibility aliases, or analysis ignores were added.
+
+Added two Action-boundary cases for bare-place-ID enrichment and failed optional lookup. Corrected five stale address-line test expectations to match the existing sublocality-to-line1 and subpremise-only-line2 behavior; contributor correction assertions remain intact. The consolidated 10-file parallel test pass ran 129 cases with two remaining stale expectations failing; after correcting those, the 18-case address file passed. The saved JUnit results confirm all 129 unique affected cases now pass. Full PHPStan level 6 reports no errors. Pint and `git diff --check` pass. The complete application suite was not run. Saved verification output is in `/tmp/ilmu360-location-admin-refactor/`.
+
+
+## Shared signup attribution (2026-10-28)
+
+### Plan
+
+- [x] Add one durable signup attribution per new account, including direct signups, with UUID source references, frozen referrer identity, and explicit pending/confirmed lifecycle.
+- [x] Resolve member shares, guest shares, commercial affiliates, and matching referral invites through trusted existing tracking records; preserve guest provenance and require explicit guest ownership claims.
+- [x] Capture attribution in password/API/social signup transactions and carry initiating context through server-side OAuth state; confirm captured invitations after verified contact without granting signup credit to existing accounts.
+- [x] Add user relationships and focused regression coverage for source selection, immutability, pending verification, guest claims, signup entrypoints, and OAuth domain handoff.
+- [x] Run the consolidated affected parallel Pest tests, scoped formatting, full PHPStan, and review the final diff.
+
+### Design
+
+Signup attribution belongs to account acquisition. Invitation acceptance, reward eligibility, and sale commissions retain their existing records and policies. A valid contact-matching invite takes precedence; otherwise the latest accepted dated source across shares and commercial affiliates wins, with share priority only on exact timestamp ties. Passive cookie refresh is excluded. Absent evidence freezes a direct signup. Account creation and its attribution commit together. Pending invites preserve the contact hash captured at signup and confirm only when that same contact is verified. OAuth carries a server-held snapshot from the initiating browser. Later browsing, purchases, and invite acceptance cannot replace a recorded signup source. Historical accounts receive no inferred backfill.
+
+
+### Review
+
+Implemented one immutable signup source per newly created account, including a direct receipt when no valid referral exists. Password signup (web/API), Google signup (web/API), and the cross-domain OAuth bridge capture this fact inside account creation transactions. Matching invitations confirm only against the currently persisted verified contact; accepting an invite on an existing account does not create signup credit. Explicit guest claims may fill a previously unknown referrer while retaining the original guest source and excluding self referrals. User relationships expose the signup record and confirmed referred accounts. Existing reward and commission eligibility/payout workflows remain separate; existing backend signup Signals continue at their current entrypoints, and this task changes no UI workflow.
+
+Source arbitration uses a matching valid invitation first, then the latest accepted dated share or commercial referral, with share priority on exact ties. Passive cookie refresh never advances that source. OAuth carries its initiating snapshot in server-side state and rejects missing/malformed snapshots. The share lookup now reads the correct named link owner scope while validating matching source ownership. Reconciled the existing local affiliate last_referred_at column with the package schema; its canonical definition belongs to the affiliates package. Removed the redundant app repair migration after correcting that ownership boundary. No historical referral times or signup records are inferred.
+
+Verification: 234 distinct affected cases are green across the saved consolidated run and focused correction runs, including 56 new signup attribution cases. Full PHPStan level 6 passes for 1,259 files; scoped Pint and git diff --check pass. Corrected the existing event-submission regression to find the submitted occurrence title rather than the synthesized parent title. The signup attribution migration was applied to the local PostgreSQL database. The local affiliate column remains present after removal of the redundant app migration; the package owning migration already defines it. The full application suite was not run. Saved test XML/logs and PHPStan output are under /tmp/ilmu360-signup-attribution-*.
+
+
+### Package migration ownership cleanup (2026-10-28)
+
+Removed database/migrations/2026_10_27_201455_add_last_referred_at_to_affiliate_attributions_table.php. Verified the package's owning creation migration already declares the nullable timestamp and the local PostgreSQL column remains present. No schema rollback or migration-history rewrite was performed. The app continues to own only its signup attribution table. This cleanup changes no runtime behavior; existing feature/static-analysis results above remain the validation baseline.

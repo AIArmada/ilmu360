@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Actions\Auth\CaptureSignupAttributionContextAction;
 use App\Actions\Auth\ClaimGuestSubmissionsAction;
+use App\Actions\Auth\RecordSignupAttributionAction;
 use App\Actions\Auth\ResolveSocialiteUserAction;
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -41,7 +43,8 @@ class SocialiteController extends Controller
         $issued = OAuthTransactionStore::issueState(
             $provider,
             $intended,
-            is_string($existingVerifier) && $existingVerifier !== '' ? $existingVerifier : null
+            is_string($existingVerifier) && $existingVerifier !== '' ? $existingVerifier : null,
+            CaptureSignupAttributionContextAction::run(request()),
         );
 
         $socialiteProvider = Socialite::driver($provider);
@@ -118,10 +121,11 @@ class SocialiteController extends Controller
         // The signup source and its attributed-or-unattributed receipt
         // freeze in one transaction: a failure after user creation must
         // never leave a receipt-less account open to late credit.
-        $result = DB::transaction(function () use ($resolveSocialiteUserAction, $provider, $socialUser): array {
+        $result = DB::transaction(function () use ($resolveSocialiteUserAction, $provider, $socialUser, $transaction): array {
             $resolved = $resolveSocialiteUserAction->handle($provider, $socialUser);
 
             if ($resolved['created_account']) {
+                RecordSignupAttributionAction::run($resolved['user'], request(), $transaction['signup_attribution_context']);
                 app(ShareTrackingService::class)->recordSignup($resolved['user'], request());
             }
 

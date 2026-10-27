@@ -16,7 +16,9 @@ use AIArmada\Engagement\Traits\CanBookmark;
 use AIArmada\Engagement\Traits\CanFollow;
 use AIArmada\Engagement\Traits\CanRespond;
 use AIArmada\Organizations\Models\Organization;
+use App\Actions\Auth\ConfirmSignupAttributionAction;
 use App\Enums\NotificationChannel;
+use App\Enums\SignupAttributionStatus;
 use App\Models\Concerns\AuditsModelChanges;
 use App\Models\Concerns\HasUserRestoration;
 use App\Notifications\Auth\ResetPasswordNotification;
@@ -37,6 +39,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\Relations\MorphPivot;
@@ -86,12 +89,29 @@ class User extends Authenticatable implements AuditableContract, CanInteract, Fi
     protected static function booted(): void
     {
         static::updated(function (User $user): void {
+            if ($user->wasChanged(['email_verified_at', 'phone_verified_at'])) {
+                ConfirmSignupAttributionAction::run($user);
+            }
+
             if (! $user->wasChanged('phone_verified_at')) {
                 return;
             }
 
             app(PublicSubmissionLockService::class)->syncForUser($user);
         });
+    }
+
+    /** @return HasOne<SignupAttribution, $this> */
+    public function signupAttribution(): HasOne
+    {
+        return $this->hasOne(SignupAttribution::class);
+    }
+
+    /** @return HasMany<SignupAttribution, $this> */
+    public function referredSignups(): HasMany
+    {
+        return $this->hasMany(SignupAttribution::class, 'referrer_user_id')
+            ->where('status', SignupAttributionStatus::Confirmed->value);
     }
 
     /**

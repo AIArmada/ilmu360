@@ -6,6 +6,7 @@ namespace App\Support\Auth;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 use Symfony\Component\HttpFoundation\Cookie as SymfonyCookie;
 
 /**
@@ -38,9 +39,10 @@ final class OAuthTransactionStore
      * Issue an opaque OAuth state value for the `state` parameter, plus a
      * browser-bound verifier that must be presented back via cookie.
      *
+     * @param  array{referral_invite_id: ?string, affiliate_source: array<string, mixed>|null}  $signupAttributionContext
      * @return array{state: string, verifier: string}
      */
-    public static function issueState(string $provider, ?string $intended, ?string $verifier = null): array
+    public static function issueState(string $provider, ?string $intended, ?string $verifier = null, array $signupAttributionContext = ['referral_invite_id' => null, 'affiliate_source' => null]): array
     {
         $state = Str::random(64);
         $verifier ??= Str::random(64);
@@ -50,6 +52,7 @@ final class OAuthTransactionStore
             'intended' => $intended,
             'verifier_hash' => hash('sha256', $verifier),
             'issued_at' => now()->toIso8601String(),
+            'signup_attribution_context' => $signupAttributionContext,
         ], self::STATE_TTL_SECONDS);
 
         return ['state' => $state, 'verifier' => $verifier];
@@ -58,7 +61,7 @@ final class OAuthTransactionStore
     /**
      * Consume an OAuth state value exactly once.
      *
-     * @return array{provider: string, intended: ?string, verifier_hash: string, issued_at: string}|null
+     * @return array{provider: string, intended: ?string, verifier_hash: string, issued_at: string, signup_attribution_context: array{referral_invite_id: ?string, affiliate_source: array<string, mixed>|null}}|null
      */
     public static function consumeState(string $state, string $provider): ?array
     {
@@ -76,11 +79,30 @@ final class OAuthTransactionStore
             return null;
         }
 
+        $context = $payload['signup_attribution_context'] ?? null;
+
+        if (! is_array($context)
+            || ! array_key_exists('referral_invite_id', $context)
+            || ! array_key_exists('affiliate_source', $context)
+            || ($context['referral_invite_id'] !== null && ! is_string($context['referral_invite_id']))
+            || ($context['affiliate_source'] !== null && ! is_array($context['affiliate_source']))) {
+            return null;
+        }
+
+        if (is_array($context['affiliate_source'])) {
+            try {
+                SignupAttributionSource::fromArray($context['affiliate_source']);
+            } catch (InvalidArgumentException) {
+                return null;
+            }
+        }
+
         return [
             'provider' => $provider,
             'intended' => is_string($payload['intended'] ?? null) ? $payload['intended'] : null,
             'verifier_hash' => $payload['verifier_hash'],
             'issued_at' => is_string($payload['issued_at'] ?? null) ? $payload['issued_at'] : '',
+            'signup_attribution_context' => $context,
         ];
     }
 

@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\Location\NormalizeGoogleMapsInputAction;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -205,4 +206,62 @@ it('does not retry unchanged unresolved manual links after the first failed reco
         ->and($secondPass['google_resolution_status'])->toBe('partial');
 
     Http::assertSentCount(2);
+});
+
+it('enriches a bare place id without changing the other google identifiers', function () {
+    config()->set('services.google.place_link_resolution_enabled', true);
+    config()->set('services.google.places_server_api_key', 'server-test-key');
+
+    Http::preventStrayRequests();
+    Http::fake([
+        'https://places.googleapis.com/v1/places/place_123' => Http::response([
+            'displayName' => ['text' => 'Example Hall'],
+            'location' => ['latitude' => '3.07853', 'longitude' => '101.520698'],
+        ]),
+    ]);
+
+    $normalized = app(NormalizeGoogleMapsInputAction::class)->handle([
+        'google_place_id' => 'places/place_123',
+        'google_feature_id' => '0x123:0x456',
+        'google_cid' => '987654321',
+        'google_entity_id' => '/g/example',
+    ]);
+
+    expect($normalized['google_maps_url'])->toBe('https://www.google.com/maps/search/?api=1&query=3.07853%2C101.520698&query_place_id=place_123')
+        ->and($normalized['google_place_id'])->toBe('place_123')
+        ->and($normalized['google_display_name'])->toBe('Example Hall')
+        ->and($normalized['lat'])->toBe(3.07853)
+        ->and($normalized['lng'])->toBe(101.520698)
+        ->and($normalized['google_feature_id'])->toBe('0x123:0x456')
+        ->and($normalized['google_cid'])->toBe('987654321')
+        ->and($normalized['google_entity_id'])->toBe('/g/example');
+
+    Http::assertSentCount(1);
+    Http::assertSent(fn (Request $request): bool => $request->method() === 'GET'
+        && $request->url() === 'https://places.googleapis.com/v1/places/place_123'
+        && $request->hasHeader('X-Goog-Api-Key', 'server-test-key')
+        && $request->hasHeader('X-Goog-FieldMask', 'id,displayName,location'));
+});
+
+it('preserves a bare place id when its optional details lookup fails', function () {
+    config()->set('services.google.place_link_resolution_enabled', true);
+    config()->set('services.google.places_server_api_key', 'server-test-key');
+
+    Http::preventStrayRequests();
+    Http::fake([
+        'https://places.googleapis.com/v1/places/place_123' => Http::response([], 503),
+    ]);
+
+    $normalized = app(NormalizeGoogleMapsInputAction::class)->handle([
+        'google_place_id' => 'place_123',
+    ]);
+
+    expect($normalized['google_maps_url'])->toBe('https://www.google.com/maps/search/?api=1&query=place_123&query_place_id=place_123')
+        ->and($normalized['google_place_id'])->toBe('place_123')
+        ->and($normalized['google_display_name'])->toBeNull()
+        ->and($normalized['lat'])->toBeNull()
+        ->and($normalized['lng'])->toBeNull()
+        ->and($normalized['google_resolution_status'])->toBe('resolved');
+
+    Http::assertSentCount(1);
 });
