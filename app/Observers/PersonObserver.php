@@ -4,7 +4,7 @@ namespace App\Observers;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\References\Models\ReferenceContributor;
-use App\Actions\Events\GenerateEventSlugAction;
+use App\Actions\Events\Authoring\GenerateEventSlugAction;
 use App\Actions\Persons\GeneratePersonSlugAction;
 use App\Actions\Slugs\SyncSlugRedirectAction;
 use App\Models\Person;

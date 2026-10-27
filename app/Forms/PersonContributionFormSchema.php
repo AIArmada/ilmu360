@@ -38,6 +38,7 @@ class PersonContributionFormSchema
         bool $splitProfileSections = false,
         ?string $defaultCountryId = null,
         bool $requireCountryField = false,
+        bool $includeWazeUrlField = true,
     ): array {
         $showCountryField ??= true;
         $defaultCountryId ??= AddressCountry::query()->where('iso2', 'MY')->value('id');
@@ -195,6 +196,7 @@ class PersonContributionFormSchema
                                 showCountryField: $showCountryField,
                                 defaultCountryId: $defaultCountryId,
                                 requireCountryField: $requireCountryField,
+                                includeWazeUrlField: $includeWazeUrlField,
                             )
                             : [SharedFormSchema::addressGroup(
                                 statePath: $addressStatePath,
@@ -202,6 +204,7 @@ class PersonContributionFormSchema
                                 showCountryField: $showCountryField,
                                 defaultCountryId: $defaultCountryId,
                                 requireCountryField: $requireCountryField,
+                                includeWazeUrlField: $includeWazeUrlField,
                             )])),
                 ])
                 ->columns($addressStatePath === null ? 2 : 1),

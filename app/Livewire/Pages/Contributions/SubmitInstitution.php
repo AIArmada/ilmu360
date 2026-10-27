@@ -3,7 +3,7 @@
 namespace App\Livewire\Pages\Contributions;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Actions\Contributions\SubmitStagedContributionCreateAction;
+use App\Actions\Contributions\Submission\SubmitStagedContributionCreateAction;
 use App\Actions\Institutions\MergeInstitutionMapsSelectionIntoFormAction;
 use App\Actions\Institutions\ResolveInstitutionMapsPlaceSelectionAction;
 use App\Actions\Location\FetchGooglePlaceDetailsAction;
@@ -71,7 +71,6 @@ class SubmitInstitution extends Component implements HasActions, HasForms
                     'google_maps_normalization_enabled' => true,
                     'google_maps_remote_lookup_enabled' => false,
                     'cascade_reset_guard' => 0,
-                    'waze_url' => null,
                 ],
             ]);
         });
@@ -88,6 +87,7 @@ class SubmitInstitution extends Component implements HasActions, HasForms
                 addressStatePath: 'address',
                 includeLocationPicker: true,
                 mapsSelectionRequired: true,
+                includeWazeUrlField: false,
             ));
     }
 

@@ -1,7 +1,7 @@
 <?php
 
 use AIArmada\Events\Models\EventTimeExpression;
-use App\Actions\Events\SaveAdminEventAction;
+use App\Actions\Events\Authoring\SaveAdminEventAction;
 use App\Data\Prayer\PrayerTimesDTO;
 use App\Enums\EventFormat;
 use App\Enums\EventPrayerTime;
@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Services\Prayer\JakimZoneResolver;
 use App\Services\Prayer\PrayerTimesCache;
 use App\Services\PrayerTimeExpressionResolver;
+use App\Support\Events\AdminEventFormStateBuilder;
 use App\Support\Submission\SubmissionContextResolver;
 use Carbon\CarbonImmutable;
 use Database\Seeders\AIArmada\EventRoleSeeder;
@@ -432,7 +433,7 @@ it('reopens a midnight-rolled event on its original prayer day', function () {
     expect($event->starts_at->toIso8601String())->toBe($expectedStart->toIso8601String());
 
     // Reopening labels the original prayer day, not the rolled start day.
-    $form = app(SaveAdminEventAction::class)->formStateForRecord($event->fresh());
+    $form = app(AdminEventFormStateBuilder::class)->formStateForRecord($event->fresh());
 
     expect($form['event_date'])->toBe('2026-02-20');
 
@@ -482,7 +483,7 @@ it('stores admin Tarawih label-only and hydrates it back', function () {
     expect($expression?->anchor_code)->toBeNull()
         ->and($expression?->offset_minutes)->toBe(60);
 
-    $form = app(SaveAdminEventAction::class)->formStateForRecord($event->fresh());
+    $form = app(AdminEventFormStateBuilder::class)->formStateForRecord($event->fresh());
 
     expect($form['prayer_time'])->toBe(EventPrayerTime::SelepasTarawih->value);
 

@@ -1,22 +1,21 @@
 <?php
 
 use AIArmada\Membership\Enums\MemberRole;
-use App\Actions\Contributions\ApproveContributionRequestAction;
-use App\Actions\Contributions\CancelContributionRequestAction;
-use App\Actions\Contributions\CanReviewContributionRequestAction;
-use App\Actions\Contributions\ResolveContributionChangedPayloadAction;
-use App\Actions\Contributions\ResolveContributionEntityMetadataAction;
-use App\Actions\Contributions\ResolveContributionSubjectAction;
-use App\Actions\Contributions\ResolveContributionSubjectPresentationAction;
-use App\Actions\Contributions\ResolveContributionSubmissionStateAction;
-use App\Actions\Contributions\ResolveContributionUpdateContextAction;
-use App\Actions\Contributions\ResolveLatestPendingContributionRequestAction;
-use App\Actions\Contributions\ResolveOwnContributionRequestAction;
-use App\Actions\Contributions\ResolvePendingContributionApprovalsAction;
-use App\Actions\Contributions\ResolveReviewableContributionRequestAction;
-use App\Actions\Contributions\SubmitContributionCreateRequestAction;
-use App\Actions\Contributions\SubmitContributionUpdateRequestAction;
-use App\Actions\Contributions\SubmitStagedContributionCreateAction;
+use App\Actions\Contributions\Queries\FindEntityPendingContributionRequestAction;
+use App\Actions\Contributions\Queries\FindUserPendingContributionRequestAction;
+use App\Actions\Contributions\Queries\ResolveContributionEntityMetadataAction;
+use App\Actions\Contributions\Queries\ResolveContributionSubjectAction;
+use App\Actions\Contributions\Queries\ResolveContributionUpdateContextAction;
+use App\Actions\Contributions\Queries\ResolveOwnContributionRequestAction;
+use App\Actions\Contributions\Queries\ResolvePendingContributionApprovalsAction;
+use App\Actions\Contributions\Queries\ResolveReviewableContributionRequestAction;
+use App\Actions\Contributions\Review\ApproveContributionRequestAction;
+use App\Actions\Contributions\Submission\CancelContributionRequestAction;
+use App\Actions\Contributions\Submission\NormalizeContributionSubmissionAction;
+use App\Actions\Contributions\Submission\ResolveContributionChangedPayloadAction;
+use App\Actions\Contributions\Submission\SubmitContributionCreateRequestAction;
+use App\Actions\Contributions\Submission\SubmitContributionUpdateRequestAction;
+use App\Actions\Contributions\Submission\SubmitStagedContributionCreateAction;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
@@ -27,6 +26,8 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
+use App\Policies\ContributionRequestPolicy;
+use App\Support\Submission\ContributionSubjectPresenter;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Carbon;
@@ -383,7 +384,9 @@ it('resolves contribution entity metadata through the action layer', function ()
     ]);
 });
 
-it('resolves the latest pending contribution request for a proposer and entity', function () {
+it('keeps user pending contribution lookups separate from entity wide pending lookups', function () {
+    $this->freezeTime();
+
     $proposer = User::factory()->create();
     $institution = Institution::factory()->create();
     $olderRequest = ContributionRequest::factory()->create([
@@ -399,20 +402,47 @@ it('resolves the latest pending contribution request for a proposer and entity',
         'entity_id' => $institution->id,
         'status' => ContributionRequestStatus::Pending,
     ]);
+    $otherProposerRequest = ContributionRequest::factory()->create([
+        'proposer_id' => User::factory()->create()->getKey(),
+        'entity_type' => $institution->getMorphClass(),
+        'entity_id' => $institution->id,
+        'status' => ContributionRequestStatus::Pending,
+        'created_at' => now()->addHour(),
+    ]);
+    ContributionRequest::factory()->create([
+        'proposer_id' => $proposer->id,
+        'entity_type' => $institution->getMorphClass(),
+        'entity_id' => $institution->id,
+        'status' => ContributionRequestStatus::Approved,
+        'created_at' => now()->addHours(2),
+    ]);
+    ContributionRequest::factory()->create([
+        'proposer_id' => $proposer->id,
+        'entity_type' => $institution->getMorphClass(),
+        'entity_id' => Institution::factory()->create()->getKey(),
+        'status' => ContributionRequestStatus::Pending,
+        'created_at' => now()->addHours(3),
+    ]);
 
-    $resolvedRequest = app(ResolveLatestPendingContributionRequestAction::class)->handle($proposer, $institution);
+    $resolvedRequest = app(FindUserPendingContributionRequestAction::class)->handle($proposer, $institution);
+    $entityRequest = app(FindEntityPendingContributionRequestAction::class)->handle($institution);
 
     expect($resolvedRequest?->is($latestRequest))->toBeTrue()
         ->and($resolvedRequest?->is($olderRequest))->toBeFalse();
+
+    expect($entityRequest?->is($otherProposerRequest))->toBeTrue();
 });
 
-it('resolves contribution subject presentation through the action layer', function () {
+it('presents contribution subject labels and links', function () {
     $person = Person::factory()->create();
 
-    $presentation = app(ResolveContributionSubjectPresentationAction::class)->handle($person);
+    $presentation = app(ContributionSubjectPresenter::class)->present($person);
 
-    expect($presentation['subject_label'])->toBe(__('Speaker'))
-        ->and($presentation['redirect_url'])->toBe(route('persons.show', $person));
+    expect($presentation)->toBe([
+        'subject_label' => __('Speaker'),
+        'subject_title' => $person->formatted_name,
+        'redirect_url' => route('persons.show', $person),
+    ]);
 });
 
 it('resolves changed contribution payloads through the action layer', function () {
@@ -446,7 +476,7 @@ it('resolves changed contribution payloads through the action layer', function (
 });
 
 it('resolves contribution submission state through the action layer', function () {
-    $submissionState = app(ResolveContributionSubmissionStateAction::class)->handle([
+    $submissionState = app(NormalizeContributionSubmissionAction::class)->handle([
         'name' => 'Masjid Refactor',
         'proposer_note' => '  Please review this carefully.  ',
         'description' => 'Normalized through action.',
@@ -461,7 +491,7 @@ it('resolves contribution submission state through the action layer', function (
     ]);
 });
 
-it('determines whether a user may review a contribution request through the action layer', function () {
+it('authorizes contribution review through the policy', function () {
     $owner = User::factory()->create();
     $stranger = User::factory()->create();
     $institution = Institution::factory()->create(['status' => 'verified']);
@@ -475,8 +505,8 @@ it('determines whether a user may review a contribution request through the acti
 
     assignInstitutionOwnerForContributionActions($owner, $institution);
 
-    expect(app(CanReviewContributionRequestAction::class)->handle($owner, $request))->toBeTrue()
-        ->and(app(CanReviewContributionRequestAction::class)->handle($stranger, $request))->toBeFalse();
+    expect(app(ContributionRequestPolicy::class)->review($owner, $request))->toBeTrue()
+        ->and(app(ContributionRequestPolicy::class)->review($stranger, $request))->toBeFalse();
 });
 
 it('resolves only reviewable pending contribution approvals through the action layer', function () {

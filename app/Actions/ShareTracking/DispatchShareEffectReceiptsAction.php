@@ -10,7 +10,7 @@ use AIArmada\Affiliates\States\ConversionStatus;
 use AIArmada\Affiliates\States\ReversedConversion;
 use AIArmada\CommerceSupport\Support\OwnerScope;
 use AIArmada\Events\Models\EventRegistration;
-use App\Actions\Events\ReverseTicketAffiliateCommissionAction;
+use App\Actions\Events\Commerce\ReverseTicketAffiliateCommissionAction;
 use App\Enums\ShareEffectStatus;
 use App\Models\ShareEffectReceipt;
 use App\Models\ShareOutcomeCorrection;

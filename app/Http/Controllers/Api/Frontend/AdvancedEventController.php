@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api\Frontend;
 
 use AIArmada\Organizations\Models\Organization;
-use App\Actions\Events\CreateAdvancedEventAction;
-use App\Actions\Events\PrepareAdvancedParentProgramSubmissionAction;
+use App\Actions\Events\Authoring\CreateEventWithInitialOccurrenceAction;
+use App\Actions\Events\Authoring\PrepareAdvancedParentProgramSubmissionAction;
 use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventFormat;
 use App\Enums\EventVisibility;
@@ -32,7 +32,7 @@ class AdvancedEventController extends FrontendController
     public function store(
         Request $request,
         PrepareAdvancedParentProgramSubmissionAction $prepareAdvancedParentProgramSubmissionAction,
-        CreateAdvancedEventAction $createAdvancedEventAction,
+        CreateEventWithInitialOccurrenceAction $createEventWithInitialOccurrenceAction,
     ): JsonResponse {
         $user = $this->requireUser($request);
 
@@ -63,7 +63,7 @@ class AdvancedEventController extends FrontendController
                 ->firstOrFail();
         }
 
-        $event = $createAdvancedEventAction->handle(
+        $event = $createEventWithInitialOccurrenceAction->handle(
             $user,
             $validated,
             $preparedSubmission['program_starts_at'],

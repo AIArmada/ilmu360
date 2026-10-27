@@ -112,6 +112,7 @@ class SharedFormSchema
         ?bool $showCountryField = null,
         ?string $defaultCountryId = null,
         bool $requireCountryField = false,
+        bool $includeWazeUrlField = true,
     ): array {
         $showCountryField ??= true;
 
@@ -149,6 +150,7 @@ class SharedFormSchema
             Hidden::make('google_resolution_status'),
             Hidden::make('google_resolution_fingerprint'),
             Hidden::make('google_resolution_message'),
+            Hidden::make('google_inferred_area_roles')->default([])->dehydrated(false),
             Hidden::make('google_maps_normalization_enabled')
                 ->default($enableGoogleMapsNormalization),
             Hidden::make('google_maps_remote_lookup_enabled')
@@ -166,11 +168,13 @@ class SharedFormSchema
                 ? [self::googleMapsUrlField(required: $requireGoogleMaps)]
                 : [Hidden::make('google_maps_url')->required($requireGoogleMaps)]),
 
-            TextInput::make('waze_url')
-                ->label(__('Waze URL'))
-                ->url()
-                ->maxLength(255)
-                ->placeholder(__('https://waze.com/ul/...')),
+            ...($includeWazeUrlField ? [
+                TextInput::make('waze_url')
+                    ->label(__('Waze URL'))
+                    ->url()
+                    ->maxLength(255)
+                    ->placeholder(__('https://waze.com/ul/...')),
+            ] : []),
         ];
     }
 
@@ -184,6 +188,7 @@ class SharedFormSchema
         ?bool $showCountryField = null,
         ?string $defaultCountryId = null,
         bool $requireCountryField = false,
+        bool $includeWazeUrlField = true,
     ): Group {
         $group = Group::make(self::addressFields(
             requireGoogleMaps: $requireGoogleMaps,
@@ -194,6 +199,7 @@ class SharedFormSchema
             showCountryField: $showCountryField,
             defaultCountryId: $defaultCountryId,
             requireCountryField: $requireCountryField,
+            includeWazeUrlField: $includeWazeUrlField,
         ))
             ->columns(2);
 
@@ -1504,6 +1510,7 @@ class SharedFormSchema
                 ) !== [])
                 ->afterStateUpdated(function (Set $set): void {
                     $set('city_id', null);
+                    $set('google_inferred_area_roles', []);
 
                     $cleared = [];
 
@@ -1542,6 +1549,13 @@ class SharedFormSchema
                         $role,
                     ),
                 ))
+                ->helperText(function (Get $get) use ($role): ?string {
+                    $inferredRoles = $get('google_inferred_area_roles');
+
+                    return is_array($inferredRoles) && in_array($role, $inferredRoles, true)
+                        ? __('Suggested from the selected place name. Review this area.')
+                        : null;
+                })
                 ->searchable()
                 ->live()
                 ->visible(fn (Get $get): bool => self::areaVisible(
@@ -1550,9 +1564,16 @@ class SharedFormSchema
                     $role,
                 ))
                 ->afterStateUpdated(function (Set $set, Get $get) use ($role, $includeCountryField, $defaultCountryId): void {
-                    foreach (self::childAreaRoles($includeCountryField ? $get('country_id') : $defaultCountryId, $role) as $child) {
+                    $childRoles = self::childAreaRoles($includeCountryField ? $get('country_id') : $defaultCountryId, $role);
+
+                    foreach ($childRoles as $child) {
                         $set("area_assignments.{$child}", null);
                     }
+
+                    $inferredRoles = $get('google_inferred_area_roles');
+                    $inferredRoles = is_array($inferredRoles) ? $inferredRoles : [];
+
+                    $set('google_inferred_area_roles', array_values(array_diff($inferredRoles, [$role, ...$childRoles])));
                 })
                 ->native(false);
         }
@@ -1847,6 +1868,7 @@ class SharedFormSchema
                 $set('state_id', null)
                 $set('city_id', null)
                 $set('area_assignments', [])
+                $set('google_inferred_area_roles', [])
             }
             JS;
     }

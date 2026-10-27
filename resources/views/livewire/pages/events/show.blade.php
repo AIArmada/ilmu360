@@ -94,9 +94,6 @@
     $mapEmbedUrl = filled($normalizedMapQuery)
         ? 'https://www.google.com/maps?q=' . urlencode((string) $normalizedMapQuery) . '&output=embed'
         : null;
-    $wazeNavUrl = filled($primaryAddress?->waze_url)
-        ? (string) $primaryAddress->waze_url
-        : ($lat !== null && $lng !== null ? "https://www.waze.com/ul?ll={$lat},{$lng}&navigate=yes" : null);
     $googleMapsNavUrl = filled($primaryAddress?->google_maps_url)
         ? (string) $primaryAddress->google_maps_url
         : ($lat !== null && $lng !== null ? "https://www.google.com/maps/dir/?api=1&destination={$lat},{$lng}" : null);
@@ -676,7 +673,6 @@
                                 @endif
                                 @if($locationDirections)<p class="mt-4 text-sm leading-6 text-slate-600"><span class="font-bold text-[#173c34]">{{ __('Arah') }}:</span> {{ $locationDirections }}</p>@endif
                                 <div class="mt-5 flex flex-wrap gap-2">
-                                    @if($wazeNavUrl)<a href="{{ $wazeNavUrl }}" target="_blank" rel="noopener" data-signal-event="navigation.external_link_clicked" data-signal-category="navigation" data-signal-component="event_detail_location" data-signal-control="waze" data-signal-entity-type="event" data-signal-entity-id="{{ $event->id }}" class="inline-flex items-center gap-2 rounded-xl bg-[#e8f7fa] px-3 py-2 text-sm font-bold text-cyan-800 transition hover:bg-cyan-100">Waze <span aria-hidden="true">↗</span></a>@endif
                                     @if($googleMapsNavUrl)<a href="{{ $googleMapsNavUrl }}" target="_blank" rel="noopener" data-signal-event="navigation.external_link_clicked" data-signal-category="navigation" data-signal-component="event_detail_location" data-signal-control="google_maps" data-signal-entity-type="event" data-signal-entity-id="{{ $event->id }}" class="inline-flex items-center gap-2 rounded-xl bg-[#eef2ff] px-3 py-2 text-sm font-bold text-indigo-800 transition hover:bg-indigo-100">Google Maps <span aria-hidden="true">↗</span></a>@endif
                                 </div>
                                 @if($locationPhone || $locationEmail)

@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Actions\Events\GenerateEventSlugAction;
+use App\Actions\Events\Authoring\GenerateEventSlugAction;
 use App\Actions\Persons\GeneratePersonSlugAction;
 use App\Models\Person;
 use App\Support\Cache\PublicListingsCache;

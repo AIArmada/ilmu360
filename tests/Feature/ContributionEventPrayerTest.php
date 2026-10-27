@@ -3,9 +3,9 @@
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Actions\Contributions\ApproveContributionRequestAction;
-use App\Actions\Events\SaveAdminEventAction;
-use App\Actions\Events\SyncEventClassificationsAction;
+use App\Actions\Contributions\Review\ApproveContributionRequestAction;
+use App\Actions\Events\Authoring\SaveAdminEventAction;
+use App\Actions\Events\Authoring\SyncEventClassificationsAction;
 use App\Data\EventDiscoveryCriteriaFactory;
 use App\Data\Prayer\PrayerTimesDTO;
 use App\Enums\ContributionRequestStatus;
@@ -24,6 +24,7 @@ use App\Services\PostgresEventDiscovery;
 use App\Services\Prayer\PrayerTimesCache;
 use App\Services\PrayerTimeExpressionResolver;
 use App\Services\PublicScheduleDiscoveryService;
+use App\Support\Events\AdminEventFormStateBuilder;
 use Carbon\CarbonImmutable;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\PermissionSeeder;
@@ -421,7 +422,7 @@ it('nulls the anchor on a direct isyak to tarawih contribution update', function
         ->and($expression?->display_label)->toBe('Selepas Tarawih')
         ->and($event->prayer_reference)->toBeNull();
 
-    $form = app(SaveAdminEventAction::class)->formStateForRecord($event);
+    $form = app(AdminEventFormStateBuilder::class)->formStateForRecord($event);
 
     expect($form['prayer_time'])->toBe(EventPrayerTime::SelepasTarawih->value)
         ->and(contributionPostgresTitles(EventPrayerTime::SelepasTarawih->value))->toContain($event->title)
@@ -457,7 +458,7 @@ it('nulls the anchor when a reviewed isyak to tarawih proposal is approved', fun
         ->and($expression?->display_label)->toBe('Selepas Tarawih')
         ->and($event->prayer_reference)->toBeNull();
 
-    $form = app(SaveAdminEventAction::class)->formStateForRecord($event);
+    $form = app(AdminEventFormStateBuilder::class)->formStateForRecord($event);
 
     expect($form['prayer_time'])->toBe(EventPrayerTime::SelepasTarawih->value);
 });

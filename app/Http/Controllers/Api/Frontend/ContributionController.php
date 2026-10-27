@@ -5,22 +5,21 @@ namespace App\Http\Controllers\Api\Frontend;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Persons\Enums\Gender;
-use App\Actions\Contributions\ApplyDirectContributionUpdateAction;
-use App\Actions\Contributions\ApproveContributionRequestAction;
-use App\Actions\Contributions\CancelContributionRequestAction;
-use App\Actions\Contributions\EnsureNoPendingContributionRequestAction;
-use App\Actions\Contributions\RejectContributionRequestAction;
-use App\Actions\Contributions\ResolveContributionChangedPayloadAction;
-use App\Actions\Contributions\ResolveContributionSubjectPresentationAction;
-use App\Actions\Contributions\ResolveContributionSubmissionStateAction;
-use App\Actions\Contributions\ResolveContributionUpdateContextAction;
-use App\Actions\Contributions\ResolveLatestPendingContributionRequestAction;
-use App\Actions\Contributions\ResolveOwnContributionRequestAction;
-use App\Actions\Contributions\ResolvePendingContributionApprovalsAction;
-use App\Actions\Contributions\ResolvePendingContributionRequestAction;
-use App\Actions\Contributions\ResolveReviewableContributionRequestAction;
-use App\Actions\Contributions\SubmitContributionUpdateRequestAction;
-use App\Actions\Contributions\SubmitStagedContributionCreateAction;
+use App\Actions\Contributions\Queries\FindEntityPendingContributionRequestAction;
+use App\Actions\Contributions\Queries\FindUserPendingContributionRequestAction;
+use App\Actions\Contributions\Queries\ResolveContributionUpdateContextAction;
+use App\Actions\Contributions\Queries\ResolveOwnContributionRequestAction;
+use App\Actions\Contributions\Queries\ResolvePendingContributionApprovalsAction;
+use App\Actions\Contributions\Queries\ResolveReviewableContributionRequestAction;
+use App\Actions\Contributions\Review\ApproveContributionRequestAction;
+use App\Actions\Contributions\Review\RejectContributionRequestAction;
+use App\Actions\Contributions\Submission\ApplyDirectContributionUpdateAction;
+use App\Actions\Contributions\Submission\CancelContributionRequestAction;
+use App\Actions\Contributions\Submission\EnsureNoPendingContributionRequestAction;
+use App\Actions\Contributions\Submission\NormalizeContributionSubmissionAction;
+use App\Actions\Contributions\Submission\ResolveContributionChangedPayloadAction;
+use App\Actions\Contributions\Submission\SubmitContributionUpdateRequestAction;
+use App\Actions\Contributions\Submission\SubmitStagedContributionCreateAction;
 use App\Actions\Institutions\InferInstitutionTypeAction;
 use App\Actions\Location\DiscoverWebsiteSocialProfilesAction;
 use App\Actions\Location\FetchGooglePlaceDetailsAction;
@@ -40,6 +39,7 @@ use App\Services\ContributionEntityMutationService;
 use App\Support\Api\Frontend\FrontendMediaSyncService;
 use App\Support\Events\EventContributionUpdateStateMapper;
 use App\Support\Location\GooglePlaceIdentity;
+use App\Support\Submission\ContributionSubjectPresenter;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
@@ -396,9 +396,9 @@ class ContributionController extends FrontendController
         string $subject,
         Request $request,
         ResolveContributionUpdateContextAction $resolveContributionUpdateContextAction,
-        ResolveContributionSubjectPresentationAction $resolveContributionSubjectPresentationAction,
-        ResolveLatestPendingContributionRequestAction $resolveLatestPendingContributionRequestAction,
-        ResolvePendingContributionRequestAction $resolvePendingContributionRequestAction,
+        ContributionSubjectPresenter $contributionSubjectPresenter,
+        FindUserPendingContributionRequestAction $findUserPendingContributionRequestAction,
+        FindEntityPendingContributionRequestAction $findEntityPendingContributionRequestAction,
     ): JsonResponse {
         $user = $this->requireUser($request);
         $this->ensureDirectoryFeedbackAllowed($user);
@@ -424,10 +424,10 @@ class ContributionController extends FrontendController
                 'current_media' => $canDirectEdit
                     ? $this->directEditCurrentMediaData($entity, $context['contract']['direct_edit_media_fields'] ?? [])
                     : [],
-                'subject_presentation' => $resolveContributionSubjectPresentationAction->handle($entity),
+                'subject_presentation' => $contributionSubjectPresenter->present($entity),
                 'can_direct_edit' => $canDirectEdit,
-                'pending_update_blocked' => $resolvePendingContributionRequestAction->handle($entity) instanceof ContributionRequest,
-                'latest_pending_request' => ($latestPendingRequest = $resolveLatestPendingContributionRequestAction->handle($user, $entity)) instanceof ContributionRequest
+                'pending_update_blocked' => $findEntityPendingContributionRequestAction->handle($entity) instanceof ContributionRequest,
+                'latest_pending_request' => ($latestPendingRequest = $findUserPendingContributionRequestAction->handle($user, $entity)) instanceof ContributionRequest
                     ? $this->contributionRequestData($latestPendingRequest, $user)
                     : null,
             ],
@@ -469,11 +469,11 @@ class ContributionController extends FrontendController
         Request $request,
         ResolveContributionUpdateContextAction $resolveContributionUpdateContextAction,
         ResolveContributionChangedPayloadAction $resolveContributionChangedPayloadAction,
-        ResolveContributionSubmissionStateAction $resolveContributionSubmissionStateAction,
+        NormalizeContributionSubmissionAction $normalizeContributionSubmissionAction,
         ApplyDirectContributionUpdateAction $applyDirectContributionUpdateAction,
         SubmitContributionUpdateRequestAction $submitContributionUpdateRequestAction,
         EnsureNoPendingContributionRequestAction $ensureNoPendingContributionRequestAction,
-        ResolveContributionSubjectPresentationAction $resolveContributionSubjectPresentationAction,
+        ContributionSubjectPresenter $contributionSubjectPresenter,
         FrontendMediaSyncService $frontendMediaSyncService,
         ContributionEntityMutationService $contributionEntityMutationService,
     ): JsonResponse {
@@ -525,7 +525,7 @@ class ContributionController extends FrontendController
         )->validate();
         $validatedPayload = $this->normalizeSuggestionPayload($entity, $validatedPayload);
 
-        $submissionState = $resolveContributionSubmissionStateAction->handle($validatedPayload);
+        $submissionState = $normalizeContributionSubmissionAction->handle($validatedPayload);
         $normalizedState = $submissionState['state'];
 
         if ($entity instanceof Event && $normalizedState !== []) {
@@ -569,7 +569,7 @@ class ContributionController extends FrontendController
             return response()->json([
                 'data' => [
                     'entity' => $this->entityData($entity->fresh() ?? $entity),
-                    'subject_presentation' => $resolveContributionSubjectPresentationAction->handle($entity),
+                    'subject_presentation' => $contributionSubjectPresenter->present($entity),
                     'mode' => 'direct_edit',
                 ],
                 'meta' => [
@@ -883,7 +883,7 @@ class ContributionController extends FrontendController
             || $contributionRequest->entity instanceof Institution
             || $contributionRequest->entity instanceof Reference
             || $contributionRequest->entity instanceof Person
-                ? app(ResolveContributionSubjectPresentationAction::class)->handle($contributionRequest->entity)
+                ? app(ContributionSubjectPresenter::class)->present($contributionRequest->entity)
                 : null;
 
         return [

@@ -53,13 +53,15 @@ class ResolveGooglePlaceSelectionAction
      *     google_resolution_source: string|null,
      *     google_resolution_status: 'resolved'|'partial'|'unresolved',
      *     google_resolution_fingerprint: string|null,
-     *     google_resolution_message: string|null
+     *     google_resolution_message: string|null,
+     *     google_inferred_area_roles: list<string>
      * }
      */
     public function handle(array $payload): array
     {
         /** @var list<array{longText: string|null, shortText: string|null, types: list<string>}> $components */
         $components = $this->normalizeAddressComponents($payload['addressComponents'] ?? []);
+        $placeName = $this->displayNameValue($payload['displayName'] ?? null);
         $country = $this->resolveCountry($components);
         $countryId = ($country instanceof AddressCountry ? (string) $country->getKey() : null)
             ?? $this->uuidValue($payload['fallbackCountryId'] ?? null);
@@ -95,9 +97,11 @@ class ResolveGooglePlaceSelectionAction
         $resolvedRolesByHierarchy = [];
         /** @var array<string, list<string>> $misses */
         $misses = [];
+        /** @var list<string> $inferredAreaRoles */
+        $inferredAreaRoles = [];
 
-        $this->resolveStructuralLevels($hierarchies, $components, $countryId, $countryCode, $areaTreeRoot, $resolved, $resolvedRolesByHierarchy, $misses);
-        $this->resolvePostalLevels($hierarchies, $components, $postcode, $countryId, $countryCode, $areaTreeRoot, $resolved, $resolvedRolesByHierarchy, $misses);
+        $this->resolveStructuralLevels($hierarchies, $components, $placeName, $countryId, $countryCode, $stateId, $profiles, $areaTreeRoot, $resolved, $resolvedRolesByHierarchy, $misses, $inferredAreaRoles);
+        $this->resolvePostalLevels($hierarchies, $components, $postcode, $placeName, $countryId, $countryCode, $stateId, $profiles, $areaTreeRoot, $resolved, $resolvedRolesByHierarchy, $misses, $inferredAreaRoles);
         $this->recoverAncestors($hierarchies, $resolved, $resolvedRolesByHierarchy);
 
         if (! $areaTreeRoot instanceof AddressArea) {
@@ -141,7 +145,7 @@ class ResolveGooglePlaceSelectionAction
             'google_feature_id' => $this->stringValue($payload['googleFeatureId'] ?? $payload['google_feature_id'] ?? null),
             'google_cid' => $this->stringValue($payload['googleCid'] ?? $payload['google_cid'] ?? null),
             'google_entity_id' => $this->stringValue($payload['googleEntityId'] ?? $payload['google_entity_id'] ?? null),
-            'google_display_name' => $this->displayNameValue($payload['displayName'] ?? null),
+            'google_display_name' => $placeName,
             'lat' => $lat,
             'lng' => $lng,
             'google_resolution_source' => 'picker',
@@ -153,7 +157,7 @@ class ResolveGooglePlaceSelectionAction
             'state_id' => $stateId,
             'city_id' => $cityId,
             'area_assignments' => $this->orderAssignments($hierarchies, $assignments),
-            'line1' => $this->resolveLine1($components, $this->displayNameValue($payload['displayName'] ?? null)),
+            'line1' => $this->resolveLine1($components, $placeName),
             'line2' => $this->resolveLine2($components),
             'postcode' => $postcode,
             'state' => $stateId === null ? $stateName : null,
@@ -170,6 +174,7 @@ class ResolveGooglePlaceSelectionAction
             'google_resolution_status' => $googleMapsState['google_resolution_status'],
             'google_resolution_fingerprint' => $googleMapsState['google_resolution_fingerprint'],
             'google_resolution_message' => $googleMapsState['google_resolution_message'],
+            'google_inferred_area_roles' => $inferredAreaRoles,
         ];
     }
 
@@ -296,16 +301,21 @@ class ResolveGooglePlaceSelectionAction
      * @param  array<string, array{hierarchy: AddressHierarchyDefinition, level: AddressLevelDefinition, area: AddressArea}>  $resolved
      * @param  array<string, list<string>>  $resolvedRolesByHierarchy
      * @param  array<string, list<string>>  $misses
+     * @param  list<string>  $inferredAreaRoles
      */
     private function resolveStructuralLevels(
         array $hierarchies,
         array $components,
+        ?string $placeName,
         ?string $countryId,
         ?string $countryCode,
+        ?string $stateId,
+        CountryAddressProfileResolver $profiles,
         ?AddressArea $areaTreeRoot,
         array &$resolved,
         array &$resolvedRolesByHierarchy,
         array &$misses,
+        array &$inferredAreaRoles,
     ): void {
         foreach ($hierarchies as $hierarchy) {
             if ($hierarchy->key === 'postal') {
@@ -322,34 +332,76 @@ class ResolveGooglePlaceSelectionAction
                 $areaDepth++;
                 $role = CountryAddressProfileResolver::roleForLevel($hierarchy, $level);
                 $types = $this->levelTypes($level);
+                $levels = $this->levelLevels($level);
 
                 if ($types === []) {
                     continue;
                 }
 
-                $names = $this->orderedCandidateNames(
-                    $components,
-                    GooglePlaceComponentMapper::componentTypesForLevel($hierarchy, $areaDepth),
-                );
+                $componentTypes = GooglePlaceComponentMapper::componentTypesForLevel($hierarchy, $areaDepth);
+                $names = $this->orderedCandidateNames($components, $componentTypes);
+                $areaIdsByRole = [];
 
-                if ($names === []) {
-                    continue;
+                foreach ($resolved as $resolvedRole => $entry) {
+                    $areaIdsByRole[$resolvedRole] = (string) $entry['area']->getKey();
                 }
 
-                $area = $this->matchLevel(
-                    $names,
+                $parentId = $profiles->parentAreaIdForRole(
                     $countryId,
-                    $countryCode,
-                    $this->deepestResolvedId($hierarchy->key, $resolved, $resolvedRolesByHierarchy)
-                        ?? ($areaTreeRoot instanceof AddressArea ? (string) $areaTreeRoot->getKey() : null),
-                    $areaTreeRoot,
-                    $hierarchy,
-                    $level,
-                );
+                    $role,
+                    $stateId,
+                    $areaIdsByRole,
+                    fn (string $parentRole, string $candidateParentId): bool => $this->scopedAreaQuery(
+                        $countryId,
+                        $candidateParentId,
+                        $types,
+                        $levels !== [] ? $levels : null,
+                    )->exists(),
+                )
+                    ?? $this->deepestResolvedId($hierarchy->key, $resolved, $resolvedRolesByHierarchy)
+                    ?? ($areaTreeRoot instanceof AddressArea ? (string) $areaTreeRoot->getKey() : null);
+                $area = $names !== []
+                    ? $this->matchLevel(
+                        $names,
+                        $countryId,
+                        $countryCode,
+                        $parentId,
+                        $areaTreeRoot,
+                        $hierarchy,
+                        $level,
+                    )
+                    : null;
+
+                $primaryComponentType = $componentTypes[0] ?? null;
+                $hasExplicitPrimaryValue = is_string($primaryComponentType)
+                    && $this->componentValue($components, [$primaryComponentType]) !== null;
+
+                if (
+                    ! $hasExplicitPrimaryValue
+                    && $area === null
+                    && $parentId !== null
+                ) {
+                    $inferredArea = $this->resolveAreaFromPlaceName(
+                        $placeName,
+                        $countryId,
+                        $parentId,
+                        $countryCode,
+                        $types,
+                        $levels,
+                    );
+
+                    if ($inferredArea instanceof AddressArea) {
+                        $area = $inferredArea;
+                        $inferredAreaRoles[] = $role;
+                        unset($misses[$role]);
+                    }
+                }
 
                 if ($area instanceof AddressArea) {
                     $resolved[$role] = ['hierarchy' => $hierarchy, 'level' => $level, 'area' => $area];
-                    $resolvedRolesByHierarchy[$hierarchy->key][] = $role;
+                    if (! in_array($role, $resolvedRolesByHierarchy[$hierarchy->key] ?? [], true)) {
+                        $resolvedRolesByHierarchy[$hierarchy->key][] = $role;
+                    }
                 } elseif ($names !== []) {
                     $misses[$role] ??= $names;
                 }
@@ -358,28 +410,100 @@ class ResolveGooglePlaceSelectionAction
     }
 
     /**
-     * Resolve postal levels from the postcode, then by name as a fallback.
+     * @param  list<string>  $types
+     * @param  list<int>  $levels
+     */
+    private function resolveAreaFromPlaceName(
+        ?string $placeName,
+        ?string $countryId,
+        string $parentId,
+        ?string $countryCode,
+        array $types,
+        array $levels,
+    ): ?AddressArea {
+        if ($countryId === null || ! filled($placeName)) {
+            return null;
+        }
+
+        $areas = $this->scopedAreaQuery(
+            $countryId,
+            $parentId,
+            $types,
+            $levels !== [] ? $levels : null,
+        )->get();
+
+        if ($areas->isEmpty()) {
+            return null;
+        }
+
+        $areaIds = $areas->map(static fn (AddressArea $area): string => (string) $area->getKey())->all();
+        $matchedIds = $areas
+            ->filter(fn (AddressArea $area): bool => $this->placeNameContainsAreaName($placeName, $area->name, $countryCode))
+            ->map(static fn (AddressArea $area): string => (string) $area->getKey())
+            ->merge(AddressAreaName::query()
+                ->whereIn('address_area_id', $areaIds)
+                ->get()
+                ->filter(function (AddressAreaName $alias) use ($placeName, $countryCode): bool {
+                    $aliasName = $alias->getAttribute('name');
+
+                    return is_string($aliasName)
+                        && $this->placeNameContainsAreaName($placeName, $aliasName, $countryCode);
+                })
+                ->map(static fn (AddressAreaName $alias): string => (string) $alias->getAttribute('address_area_id')))
+            ->unique()
+            ->values();
+
+        if ($matchedIds->count() !== 1) {
+            return null;
+        }
+
+        $matchedId = $matchedIds->first();
+        $area = $areas->first(fn (AddressArea $area): bool => (string) $area->getKey() === $matchedId);
+
+        return $area instanceof AddressArea ? $area : null;
+    }
+
+    private function placeNameContainsAreaName(?string $placeName, ?string $areaName, ?string $countryCode): bool
+    {
+        $normalizedPlaceName = $this->normalizeLocationName($placeName, $countryCode);
+        $normalizedAreaName = $this->normalizeLocationName($areaName, $countryCode);
+
+        if ($normalizedPlaceName === '' || $normalizedAreaName === '') {
+            return false;
+        }
+
+        return str_contains(' '.$normalizedPlaceName.' ', ' '.$normalizedAreaName.' ');
+    }
+
+    /**
+     * Resolve postal levels from the postcode, then from components or a place name.
      *
-     * Postcode-linked areas resolve regardless of the structural match, while
-     * name matching only runs when no structural area resolved — a postal
-     * locality is fallback granularity, not a second answer alongside one.
+     * Postcode-linked areas resolve regardless of structural matches. A place
+     * name can fill an unresolved postal-profile role only when no structural
+     * area resolved and the profile scopes that role under the selected parent.
+     * The display-name fallback is disabled when structural areas resolve.
      *
      * @param  list<AddressHierarchyDefinition>  $hierarchies
      * @param  list<array{longText: string|null, shortText: string|null, types: list<string>}>  $components
      * @param  array<string, array{hierarchy: AddressHierarchyDefinition, level: AddressLevelDefinition, area: AddressArea}>  $resolved
      * @param  array<string, list<string>>  $resolvedRolesByHierarchy
      * @param  array<string, list<string>>  $misses
+     * @param  list<string>  $inferredAreaRoles
      */
     private function resolvePostalLevels(
         array $hierarchies,
         array $components,
         ?string $postcode,
+        ?string $placeName,
         ?string $countryId,
         ?string $countryCode,
+        ?string $stateId,
+        CountryAddressProfileResolver $profiles,
         ?AddressArea $areaTreeRoot,
         array &$resolved,
         array &$resolvedRolesByHierarchy,
         array &$misses,
+        array &$inferredAreaRoles,
     ): void {
         $structuralResolved = false;
 
@@ -397,6 +521,103 @@ class ResolveGooglePlaceSelectionAction
             }
 
             $this->resolvePostalFromPostcode($postcode, $countryId, $countryCode, $hierarchy, $resolved, $resolvedRolesByHierarchy);
+
+            $areaIdsByRole = [];
+
+            foreach ($resolved as $role => $entry) {
+                $areaIdsByRole[$role] = (string) $entry['area']->getKey();
+            }
+
+            $areaDepth = -1;
+
+            foreach ($hierarchy->levels as $level) {
+                if ($level->kind !== 'area') {
+                    continue;
+                }
+
+                $areaDepth++;
+                $role = CountryAddressProfileResolver::roleForLevel($hierarchy, $level);
+
+                if (isset($resolved[$role])) {
+                    continue;
+                }
+
+                $types = $this->levelTypes($level);
+                $levels = $this->levelLevels($level);
+
+                if ($types === []) {
+                    continue;
+                }
+
+                $parentId = $profiles->parentAreaIdForRole(
+                    $countryId,
+                    $role,
+                    $stateId,
+                    $areaIdsByRole,
+                    fn (string $parentRole, string $candidateParentId): bool => $this->scopedAreaQuery(
+                        $countryId,
+                        $candidateParentId,
+                        $types,
+                        $levels !== [] ? $levels : null,
+                    )->exists(),
+                );
+                $refinedParentId = is_string($level->refinedBy)
+                    ? ($areaIdsByRole[$level->refinedBy] ?? null)
+                    : null;
+
+                if (
+                    $parentId === null
+                    || ($refinedParentId !== null && $parentId !== $refinedParentId)
+                ) {
+                    continue;
+                }
+
+                $componentTypes = GooglePlaceComponentMapper::componentTypesForLevel($hierarchy, $areaDepth);
+                $names = $this->orderedCandidateNames($components, $componentTypes);
+                $area = null;
+
+                foreach ($names as $name) {
+                    $area = $this->resolveArea(
+                        $name,
+                        $countryId,
+                        $parentId,
+                        $types,
+                        $levels !== [] ? $levels : null,
+                        $countryCode,
+                    );
+
+                    if ($area instanceof AddressArea) {
+                        break;
+                    }
+                }
+
+                $inferredFromPlaceName = false;
+
+                if ($area === null && $names === [] && ! $structuralResolved) {
+                    $area = $this->resolveAreaFromPlaceName(
+                        $placeName,
+                        $countryId,
+                        $parentId,
+                        $countryCode,
+                        $types,
+                        $levels,
+                    );
+                    $inferredFromPlaceName = $area instanceof AddressArea;
+                }
+
+                if (! $area instanceof AddressArea) {
+                    continue;
+                }
+
+                $resolved[$role] = ['hierarchy' => $hierarchy, 'level' => $level, 'area' => $area];
+                $resolvedRolesByHierarchy[$hierarchy->key][] = $role;
+                $areaIdsByRole[$role] = (string) $area->getKey();
+
+                if ($inferredFromPlaceName) {
+                    $inferredAreaRoles[] = $role;
+                    unset($misses[$role]);
+                }
+            }
 
             if ($structuralResolved) {
                 continue;
@@ -953,6 +1174,10 @@ class ResolveGooglePlaceSelectionAction
             $this->joinParts([$streetNumber, $route]),
             $route,
             $premise,
+            $this->componentValue($components, ['sublocality_level_1']),
+            $this->componentValue($components, ['sublocality_level_2']),
+            $this->componentValue($components, ['sublocality']),
+            $this->componentValue($components, ['neighborhood']),
         ]);
     }
 
@@ -969,10 +1194,6 @@ class ResolveGooglePlaceSelectionAction
     private function resolveLine2(array $components): ?string
     {
         return $this->firstFilled([
-            $this->componentValue($components, ['sublocality_level_1']),
-            $this->componentValue($components, ['sublocality_level_2']),
-            $this->componentValue($components, ['sublocality']),
-            $this->componentValue($components, ['neighborhood']),
             $this->componentValue($components, ['subpremise']),
         ]);
     }

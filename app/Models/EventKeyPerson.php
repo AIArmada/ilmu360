@@ -5,6 +5,7 @@ namespace App\Models;
 use AIArmada\Events\Models\EventInvolvement;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/** @extends EventInvolvement<Event> */
 class EventKeyPerson extends EventInvolvement
 {
     /**

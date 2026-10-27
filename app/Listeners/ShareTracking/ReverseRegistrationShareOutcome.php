@@ -7,7 +7,7 @@ namespace App\Listeners\ShareTracking;
 use AIArmada\Events\Events\EventRegistrationCancelled;
 use AIArmada\Events\Events\EventRegistrationRefunded;
 use AIArmada\Events\Events\EventRegistrationRejected;
-use App\Actions\Events\ReverseTicketAffiliateCommissionAction;
+use App\Actions\Events\Commerce\ReverseTicketAffiliateCommissionAction;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Models\EventCheckin;
 use App\Models\User;

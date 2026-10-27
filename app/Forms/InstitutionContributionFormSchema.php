@@ -26,6 +26,7 @@ class InstitutionContributionFormSchema
         ?string $addressStatePath = null,
         bool $includeLocationPicker = false,
         bool $mapsSelectionRequired = false,
+        bool $includeWazeUrlField = true,
     ): array {
         $shouldRenderLocationPicker = self::shouldRenderLocationPicker(
             $includeLocationPicker,
@@ -119,6 +120,7 @@ class InstitutionContributionFormSchema
                             includeCountryField: true,
                             showCountryField: false,
                             requireCountryField: true,
+                            includeWazeUrlField: $includeWazeUrlField,
                         )
                         : [SharedFormSchema::addressGroup(
                             requireGoogleMaps: $requireGoogleMaps && ! $mapsSelectionRequired,
@@ -129,6 +131,7 @@ class InstitutionContributionFormSchema
                             includeCountryField: true,
                             showCountryField: false,
                             requireCountryField: true,
+                            includeWazeUrlField: $includeWazeUrlField,
                         )]),
                 ])
                 ->columns($addressStatePath === null ? 2 : 1),
@@ -193,11 +196,13 @@ class InstitutionContributionFormSchema
         ?string $addressStatePath = null,
         bool $includeLocationPicker = false,
         array $mediaFields = [],
+        bool $includeWazeUrlField = true,
     ): array {
         $components = self::components(
             includeMedia: false,
             addressStatePath: $addressStatePath,
             includeLocationPicker: $includeLocationPicker,
+            includeWazeUrlField: $includeWazeUrlField,
         );
 
         if ($mediaFields !== []) {

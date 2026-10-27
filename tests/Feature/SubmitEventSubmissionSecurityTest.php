@@ -1,7 +1,7 @@
 <?php
 
 use AIArmada\Events\Models\EventTerm;
-use App\Actions\Events\SubmitFrontendEventAction;
+use App\Actions\Events\Submission\SubmitFrontendEventAction;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;

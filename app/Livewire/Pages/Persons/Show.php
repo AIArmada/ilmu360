@@ -32,6 +32,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphPivot;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Support\Collection;
@@ -361,8 +362,10 @@ class Show extends Component
     }
 
     /**
-     * @param  MorphToMany<Address, Model, Pivot, 'pivot'>  $relation
-     * @return MorphToMany<Address, Model, Pivot, 'pivot'>
+     * @template TDeclaringModel of Model
+     *
+     * @param  MorphToMany<Address, TDeclaringModel, MorphPivot, 'pivot'>  $relation
+     * @return MorphToMany<Address, TDeclaringModel, MorphPivot, 'pivot'>
      */
     private function joinAddressStateName(MorphToMany $relation): MorphToMany
     {

@@ -4844,13 +4844,72 @@ The single failure was caused by the picker test providing only browser selectio
 
 `vendor/bin/pint --dirty --format agent` passed (exit 0; `/private/tmp/public-submission-grouping-repair-pint.log`, true exit `/private/tmp/public-submission-grouping-repair-pint.log.exit`). Full PHPStan analyzed 1,234 files and exited 1 with 15 findings; after ANSI removal and line trimming, its result is identical to the prior `/private/tmp/public-submission-grouping-final-phpstan.log` (new run `/private/tmp/public-submission-grouping-repair-phpstan-approved.log`, true exit `/private/tmp/public-submission-grouping-repair-phpstan-approved.log.exit`). These are the same known findings, with no new errors from this implementation. `git diff --check` is recorded after the final task-note update.
 
-## Current Task: Rebuild homepage from the Jangan Pendam reference — 2026-10-21
+## Institution contribution: selected place address lines (2026-10-27)
 
 ### Plan
 
-- [ ] Replace the root page’s event-discovery content with a responsive Malay safety-support landing page following the supplied reference.
-- [ ] Scope a custom header, section navigation, support resources, and footer to the homepage while keeping the shared ilmu360 shell intact elsewhere.
-- [ ] Keep browser-only note and breathing interactions clear about their behavior, and use current Malaysian support contacts.
-- [ ] Review the rendered homepage at desktop and mobile widths, check key links and visual hierarchy, and inspect the final diff.
+- [x] Preserve the premise/display-name duplicate check; when it leaves Line 1 empty, fall back to the first locality component in Line 1.
+- [x] Populate Line 2 only from a subpremise or unit component; keep neighborhood and sublocality out of the optional second line.
+- [x] Run PHPStan level 6 on the changed resolver and review diagnostics.
+- [x] Run Pint on the changed PHP file and review the focused diff.
 
 ### Review
+
+The picker continues to omit a premise that duplicates the selected place name. When that leaves Line 1 empty, it now uses the first available sublocality or neighborhood there; Line 2 remains reserved for subpremise/unit data. Pint and `git diff --check` passed. Full PHPStan completed without diagnostics for the changed resolver, but reported 16 findings in unrelated files. Regression tests were not run in this turn.
+
+## Institution contribution: infer profile-allowed area from selected place name (2026-10-27)
+
+### Plan
+
+- [x] Match a place-name mention against the profile's administrative subdivision types first, then its separate postal-locality role if subdivision has no match; use each role's allowed types/levels and refined parent, preserving direct Google data and skipping ambiguous matches.
+- [x] Prefill the matching area assignment and show that it was suggested from the selected place name while keeping the select editable.
+- [x] Run Pint, PHPStan level 6, and `git diff --check` on the result.
+
+### Review
+
+The selected place name first checks the profile's subdivision types under the resolved district; when no subdivision is selected, it can also check the distinct postal-locality role using the profile's refined district scope. It only selects a unique canonical name or alias. Direct Google components and postcode matches remain authoritative, ambiguous matches are left untouched, and the suggested area stays editable with a review hint that clears when its hierarchy changes. Pint and `git diff --check` passed. Full PHPStan found 16 existing errors in unrelated files and none in the changed files. Regression tests were not run.
+
+## Institution contribution: resolve all provider-defined Google areas (2026-10-27)
+
+### Plan
+
+- [x] Keep Google address-component matching profile-driven across every hierarchy and area level, using only provider-defined area types/levels.
+- [x] Generalize display-name inference to every supported profile area role, with hierarchy parent scoping, exact token boundaries, unique canonical-name/alias matches, and explicit Google component/postcode precedence.
+- [x] Preserve postal fallback behavior when structural areas are already resolved, while supporting every area role the profile defines in its postal hierarchy.
+- [x] Update the addressing lesson so future Google place resolution never assumes Malaysia-specific role names.
+- [x] Run Pint, PHPStan level 6, and `git diff --check`; do not run tests unless requested.
+
+### Review
+
+Google address components are now matched through every area level defined by the selected country's profile. The place-name fallback no longer names Malaysian roles: it uses the profile resolver's parent/refined-by scope, with the deepest resolved hierarchy area as a fallback, and only accepts a unique canonical name or alias when that level's primary Google component is absent. Postcode and explicit address-component matches remain available for postal roles even when a structural area resolves; postal display-name inference remains a fallback when no structural area is known. Pint and `git diff --check` passed. PHPStan reported the same 16 unrelated repository findings, with none in the changed resolver. Tests were not run.
+
+## Actions organization and responsibility refactor (2026-10-27)
+
+### Plan
+
+- [x] Group Events actions by authoring, submission, scheduling, registration, attendance, engagement, commerce, and changes; group Contributions by submission, review, and queries.
+- [x] Rename ambiguous creation, contribution lookup, and normalization actions; standardize the event announcement Action suffix; update every current caller without compatibility aliases.
+- [x] Extract admin event form-state preparation into a builder and contribution authorization/presentation into their appropriate existing application layers, preserving behavior.
+- [x] Preserve unrelated workspace changes, review runtime wiring and product Signals parity, and add only meaningful missing regression coverage.
+- [x] Run affected parallel Pest tests once with saved output, scoped Pint, PHPStan level 6, and a final reference/diff audit; repair refactor regressions and document existing failures.
+
+### Review
+
+Moved all 33 Events actions into eight workflow groups and 19 Contributions actions into Submission, Review, and Queries. Clarified event creation names, user/entity pending-request lookup scopes, and contribution normalization; standardized the event announcement Action suffix. Extracted unchanged admin form defaults/record preparation to `AdminEventFormStateBuilder`, contribution review decisions to the existing `ContributionRequestPolicy::review()`, and labels/links to `ContributionSubjectPresenter::present()`. Updated all current application, API, Livewire, observer, seeder/factory, and test consumers without compatibility aliases. Signals side effects and all workflow behavior remain unchanged. The bounded integration review caught and repaired two presenter method-call migrations before the test gate.
+
+Verification: the affected 84-file parallel Pest run completed with **1,114 passed, 12 failed, 7,129 assertions** in 707.59 seconds. New policy coverage and strengthened lookup/presenter coverage pass. The remaining failures concern unchanged refund/package return contracts (2), reference owner context (2), public-read query count (1), existing Maps-prefill work (2), unrelated reward policy create arguments (3), and event-page expectations (2). Full level-6 PHPStan completed with **16 diagnostics in pre-existing expressions**: 12 in untouched files, three in the unchanged contribution-list query, and one in the refund action whose source matches its saved original after namespace normalization. No new ignores or baselines were added; only the existing schedule-action baseline path moved with its class. The refund integration and other existing behavior were kept outside this structural refactor.
+
+Scoped Pint passed for all 134 task-owned PHP paths. Final reference and diff checks pass, with no old action references left in current runtime/test sources and all 11 unrelated pre-existing diffs preserved exactly. Initial runner setup failures (multiple positional test paths and restricted local test-server sockets) were diagnosed before the final affected-scope run. Saved test/static-analysis output and original-source evidence are in `/tmp/ilmu360-actions-refactor/`. The full application test suite was not run.
+
+## PHPStan cleanup (2026-10-27)
+
+### Plan
+
+- [x] Correct package-backed event relation types so nested eager loads resolve the application Event model.
+- [x] Preserve the specific Eloquent relation generics used by reference scopes and address join helpers.
+- [x] Align the EventBuilder return type and refund action with their actual contracts.
+- [x] Format changed PHP files, rerun full PHPStan, and record the result.
+
+### Review
+
+Full PHPStan level 6 completed with no errors. Added a PHPStan stub for the package's configurable Event relationships, corrected relation and builder generics, and aligned refund reservation handling with the package's list return contract. Pint and `git diff --check` passed. Tests were not run because this request was limited to static analysis.

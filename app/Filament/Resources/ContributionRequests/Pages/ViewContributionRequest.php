@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources\ContributionRequests\Pages;
 
-use App\Actions\Contributions\ApproveContributionRequestAction;
-use App\Actions\Contributions\RejectContributionRequestAction;
+use App\Actions\Contributions\Review\ApproveContributionRequestAction;
+use App\Actions\Contributions\Review\RejectContributionRequestAction;
 use App\Enums\ContributionRequestStatus;
 use App\Filament\Resources\ContributionRequests\ContributionRequestResource;
 use App\Filament\Resources\ContributionRequests\Support\ContributionRequestPresenter;

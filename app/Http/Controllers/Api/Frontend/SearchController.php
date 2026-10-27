@@ -993,7 +993,9 @@ class SearchController extends FrontendController
                     'primaryOccurrence', 'classifications.term', 'timeExpressions',
                     'institution.media', 'institution.addresses.country', 'venue.addresses.country',
                     'persons.media', 'media',
-                    'references' => fn ($references) => $references->active(),
+                    'references' => /** @param BelongsToMany<Reference, Event, EventReferencePivot, 'pivot'> $references */ function (BelongsToMany $references): void {
+                        Reference::applyPublicVisibility($references->getQuery());
+                    },
                 ]),
             ])
             ->reorder()

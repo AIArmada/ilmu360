@@ -4,7 +4,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventClassification;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
-use App\Actions\Events\SyncEventClassificationsAction;
+use App\Actions\Events\Authoring\SyncEventClassificationsAction;
 use App\Enums\EventTaxonomyCode;
 use App\Models\Event;
 

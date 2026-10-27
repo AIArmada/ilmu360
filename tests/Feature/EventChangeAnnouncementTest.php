@@ -2,7 +2,7 @@
 
 use AIArmada\Communications\Models\NotificationInbox;
 use AIArmada\Engagement\Contracts\EngagementManager;
-use App\Actions\Events\PublishEventChangeAnnouncement;
+use App\Actions\Events\Changes\PublishEventChangeAnnouncementAction;
 use App\Enums\EventChangeSeverity;
 use App\Enums\EventChangeType;
 use App\Enums\NotificationPriority;
@@ -45,7 +45,7 @@ it('publishes cancellation announcements and notifies committed users only once'
     ]);
     $follower->follow($institution);
 
-    $announcement = app(PublishEventChangeAnnouncement::class)->handle(
+    $announcement = app(PublishEventChangeAnnouncementAction::class)->handle(
         event: $event,
         actor: $administrator,
         type: EventChangeType::Cancelled,
@@ -109,7 +109,7 @@ it('blocks registration calendar and check-in surfaces for unknown postponements
         'closes_at' => now()->addDay(),
     ]);
 
-    app(PublishEventChangeAnnouncement::class)->handle(
+    app(PublishEventChangeAnnouncementAction::class)->handle(
         event: $event,
         actor: $administrator,
         type: EventChangeType::Postponed,
@@ -142,7 +142,7 @@ it('keeps replacement event URLs separate from the original source of truth noti
         'ends_at' => now()->addDays(8)->addHours(2),
     ]);
 
-    $announcement = app(PublishEventChangeAnnouncement::class)->handle(
+    $announcement = app(PublishEventChangeAnnouncementAction::class)->handle(
         event: $original,
         actor: $administrator,
         type: EventChangeType::ReplacementLinked,
@@ -173,7 +173,7 @@ it('keeps replacement CTAs after later notices and resolves replacement chains',
         'slug' => 'kuliah-pengganti-terkini',
     ]);
 
-    app(PublishEventChangeAnnouncement::class)->handle(
+    app(PublishEventChangeAnnouncementAction::class)->handle(
         event: $original,
         actor: $administrator,
         type: EventChangeType::ReplacementLinked,
@@ -182,7 +182,7 @@ it('keeps replacement CTAs after later notices and resolves replacement chains',
         notify: false,
     );
 
-    app(PublishEventChangeAnnouncement::class)->handle(
+    app(PublishEventChangeAnnouncementAction::class)->handle(
         event: $firstReplacement,
         actor: $administrator,
         type: EventChangeType::ReplacementLinked,
@@ -191,7 +191,7 @@ it('keeps replacement CTAs after later notices and resolves replacement chains',
         notify: false,
     );
 
-    app(PublishEventChangeAnnouncement::class)->handle(
+    app(PublishEventChangeAnnouncementAction::class)->handle(
         event: $original,
         actor: $administrator,
         type: EventChangeType::Other,
@@ -228,7 +228,7 @@ it('keeps the latest reachable replacement CTA when later chain targets become u
         'slug' => 'kuliah-ganti-tidak-boleh-capai',
     ]);
 
-    app(PublishEventChangeAnnouncement::class)->handle(
+    app(PublishEventChangeAnnouncementAction::class)->handle(
         event: $original,
         actor: $administrator,
         type: EventChangeType::ReplacementLinked,
@@ -237,7 +237,7 @@ it('keeps the latest reachable replacement CTA when later chain targets become u
         notify: false,
     );
 
-    app(PublishEventChangeAnnouncement::class)->handle(
+    app(PublishEventChangeAnnouncementAction::class)->handle(
         event: $firstReplacement,
         actor: $administrator,
         type: EventChangeType::ReplacementLinked,
@@ -267,7 +267,7 @@ it('hides replacement links when the linked replacement event is no longer publi
         'slug' => 'kuliah-pengganti-tidak-lagi-umum',
     ]);
 
-    app(PublishEventChangeAnnouncement::class)->handle(
+    app(PublishEventChangeAnnouncementAction::class)->handle(
         event: $original,
         actor: $administrator,
         type: EventChangeType::ReplacementLinked,
@@ -291,7 +291,7 @@ it('rejects self replacement announcements', function () {
         'title' => 'Kuliah Tidak Boleh Ganti Diri',
     ]);
 
-    expect(fn () => app(PublishEventChangeAnnouncement::class)->handle(
+    expect(fn () => app(PublishEventChangeAnnouncementAction::class)->handle(
         event: $event,
         actor: $administrator,
         type: EventChangeType::ReplacementLinked,
@@ -312,7 +312,7 @@ it('rejects replacement chains that would loop back to the original event', func
         'title' => 'Kuliah Pengganti Gelung',
     ]);
 
-    app(PublishEventChangeAnnouncement::class)->handle(
+    app(PublishEventChangeAnnouncementAction::class)->handle(
         event: $original,
         actor: $administrator,
         type: EventChangeType::ReplacementLinked,
@@ -321,7 +321,7 @@ it('rejects replacement chains that would loop back to the original event', func
         notify: false,
     );
 
-    expect(fn () => app(PublishEventChangeAnnouncement::class)->handle(
+    expect(fn () => app(PublishEventChangeAnnouncementAction::class)->handle(
         event: $replacement,
         actor: $administrator,
         type: EventChangeType::ReplacementLinked,
@@ -346,7 +346,7 @@ it('rejects replacement events that are not publicly reachable', function () {
         'visibility' => 'private',
     ]);
 
-    expect(fn () => app(PublishEventChangeAnnouncement::class)->handle(
+    expect(fn () => app(PublishEventChangeAnnouncementAction::class)->handle(
         event: $original,
         actor: $administrator,
         type: EventChangeType::ReplacementLinked,
@@ -375,7 +375,7 @@ it('allows person members for listed event persons to publish change announcemen
     $person->members()->syncWithoutDetaching([$editor->id]);
     $person->members()->updateExistingPivot($editor->id, ['role' => 'admin']);
 
-    $announcement = app(PublishEventChangeAnnouncement::class)->handle(
+    $announcement = app(PublishEventChangeAnnouncementAction::class)->handle(
         event: $event,
         actor: $editor,
         type: EventChangeType::TopicChanged,
@@ -395,7 +395,7 @@ it('rejects unauthorized actors from publishing change announcements', function 
         'title' => 'Kuliah Tanpa Kebenaran',
     ]);
 
-    expect(fn () => app(PublishEventChangeAnnouncement::class)->handle(
+    expect(fn () => app(PublishEventChangeAnnouncementAction::class)->handle(
         event: $event,
         actor: $actor,
         type: EventChangeType::TopicChanged,
@@ -614,7 +614,7 @@ it('marks schedule changes into the next 24 hours as urgent', function () {
     ]);
 
     try {
-        $announcement = app(PublishEventChangeAnnouncement::class)->handle(
+        $announcement = app(PublishEventChangeAnnouncementAction::class)->handle(
             event: $event,
             actor: $administrator,
             type: EventChangeType::ScheduleChanged,

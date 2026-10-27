@@ -5,6 +5,8 @@ includes:
 
 parameters:
     level: 6
+    stubFiles:
+        - phpstan-events.stub
     paths:
         - app
         - bootstrap

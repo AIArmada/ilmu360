@@ -7,7 +7,7 @@ use AIArmada\Events\Models\EventInvolvement;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTerm;
 use AIArmada\Signals\Models\SignalEvent;
-use App\Actions\Events\SubmitFrontendEventAction;
+use App\Actions\Events\Submission\SubmitFrontendEventAction;
 use App\Contracts\ShareTrackingContract;
 use App\Enums\DawahShareOutcomeType;
 use App\Enums\EventAgeGroup;

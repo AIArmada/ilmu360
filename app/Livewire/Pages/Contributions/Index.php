@@ -3,8 +3,8 @@
 namespace App\Livewire\Pages\Contributions;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Actions\Contributions\CancelContributionRequestAction;
-use App\Actions\Contributions\ResolveOwnContributionRequestAction;
+use App\Actions\Contributions\Queries\ResolveOwnContributionRequestAction;
+use App\Actions\Contributions\Submission\CancelContributionRequestAction;
 use App\Enums\ContributionRequestType;
 use App\Enums\InstitutionStatus;
 use App\Enums\MemberSubjectType;

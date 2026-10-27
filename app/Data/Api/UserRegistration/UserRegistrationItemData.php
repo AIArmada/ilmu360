@@ -37,8 +37,8 @@ class UserRegistrationItemData extends Data
             email: $registration->resolvedEmail(),
             phone: $registration->resolvedPhone(),
             status: $registration->statusValue(),
-            created_at: $registration->created_at?->toIso8601String(),
-            updated_at: $registration->updated_at?->toIso8601String(),
+            created_at: $registration->created_at?->format(DATE_ATOM),
+            updated_at: $registration->updated_at?->format(DATE_ATOM),
             event: $registration->event instanceof Event
                 ? UserRegistrationEventData::fromModel($registration->event)->toArray()
                 : null,

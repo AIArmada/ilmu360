@@ -2,7 +2,7 @@
 
 use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\Events\Models\EventTimeExpression;
-use App\Actions\Events\SyncEventScheduleAction;
+use App\Actions\Events\Scheduling\SyncEventScheduleAction;
 use App\Enums\TimingMode;
 use App\Jobs\RefreshPrayerTimes;
 use App\Models\Event;

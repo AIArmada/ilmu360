@@ -9,7 +9,7 @@ use AIArmada\Addressing\Models\State;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Actions\Events\ResolveAdvancedBuilderContextAction;
+use App\Actions\Events\Authoring\ResolveAdvancedBuilderContextAction;
 use App\Contracts\SpaceEligibilityResolver;
 use App\Enums\InstitutionStatus;
 use App\Enums\MemberSubjectType;

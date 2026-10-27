@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api\Frontend;
 
-use App\Actions\Events\SubmitFrontendEventAction;
+use App\Actions\Events\Submission\SubmitFrontendEventAction;
 use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;

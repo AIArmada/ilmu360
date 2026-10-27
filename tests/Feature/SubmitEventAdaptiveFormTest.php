@@ -4,7 +4,7 @@ use AIArmada\Events\Actions\CreateEventOccurrenceAction;
 use AIArmada\Events\Models\EventAudience;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
-use App\Actions\Events\SyncEventClassificationsAction;
+use App\Actions\Events\Authoring\SyncEventClassificationsAction;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;

@@ -3,7 +3,7 @@
 namespace App\Livewire\Pages\Reports;
 
 use AIArmada\CommerceSupport\Support\RequestFingerprint;
-use App\Actions\Contributions\ResolveContributionSubjectAction;
+use App\Actions\Contributions\Queries\ResolveContributionSubjectAction;
 use App\Actions\Reports\ResolveReportFormContextAction;
 use App\Actions\Reports\SubmitReportAction;
 use App\Enums\ContributionSubjectType;

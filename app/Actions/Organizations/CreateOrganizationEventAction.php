@@ -8,7 +8,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Enums\RegistrationMode;
 use AIArmada\Organizations\Models\Organization;
 use AIArmada\Ticketing\Enums\PricingMode;
-use App\Actions\Events\CreateManagedEventAction;
+use App\Actions\Events\Authoring\CreateEventWithRegistrationAction;
 use App\Models\Event;
 use App\Models\User;
 use App\Support\Authz\OrganizationEventAccess;
@@ -21,7 +21,7 @@ final class CreateOrganizationEventAction
     use AsAction;
 
     public function __construct(
-        private readonly CreateManagedEventAction $createManagedEvent,
+        private readonly CreateEventWithRegistrationAction $createEventWithRegistration,
         private readonly OrganizationEventAccess $organizationEventAccess,
     ) {}
 
@@ -43,7 +43,7 @@ final class CreateOrganizationEventAction
         $registrationMode = RegistrationMode::from((string) $form['registration_mode']);
         $pricingMode = PricingMode::from((string) $form['pricing_mode']);
 
-        return OwnerContext::withOwner($organization, fn (): Event => $this->createManagedEvent->handle(
+        return OwnerContext::withOwner($organization, fn (): Event => $this->createEventWithRegistration->handle(
             user: $creator,
             form: [
                 'title' => (string) $form['title'],

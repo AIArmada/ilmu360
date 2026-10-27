@@ -5,7 +5,7 @@ namespace App\Forms;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Actions\Contributions\EnsureUniqueContributionCreateAction;
+use App\Actions\Contributions\Submission\EnsureUniqueContributionCreateAction;
 use App\Actions\Institutions\GenerateInstitutionSlugAction;
 use App\Actions\Institutions\WithInstitutionMapsIdentityLockAction;
 use App\Enums\ContributionSubjectType;

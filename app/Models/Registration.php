@@ -16,6 +16,7 @@ use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
+/** @extends PackageEventRegistration<Event> */
 class Registration extends PackageEventRegistration implements AuditableContract
 {
     /** @use HasFactory<RegistrationFactory> */

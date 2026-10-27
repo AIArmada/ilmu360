@@ -7,7 +7,7 @@ use AIArmada\Persons\Enums\AssignmentStatus;
 use AIArmada\Persons\Enums\PersonNameType;
 use AIArmada\Persons\Models\Title;
 use AIArmada\Signals\Models\SignalEvent;
-use App\Actions\Contributions\ApproveContributionRequestAction;
+use App\Actions\Contributions\Review\ApproveContributionRequestAction;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;

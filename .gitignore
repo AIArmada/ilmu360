@@ -32,3 +32,4 @@ screenshots/
 tasks/*.png
 /.cloudflared/
 tests/Browser/Screenshots/
+/storage/verify/

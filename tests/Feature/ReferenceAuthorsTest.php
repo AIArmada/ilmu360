@@ -3,8 +3,8 @@
 use AIArmada\References\Enums\ReferenceContributorRole;
 use AIArmada\References\Models\ReferenceContributor;
 use AIArmada\Signals\Models\SignalEvent;
-use App\Actions\Contributions\ApproveContributionRequestAction;
-use App\Actions\Contributions\SubmitContributionUpdateRequestAction;
+use App\Actions\Contributions\Review\ApproveContributionRequestAction;
+use App\Actions\Contributions\Submission\SubmitContributionUpdateRequestAction;
 use App\Actions\References\SaveReferenceAction;
 use App\Data\Api\Frontend\Search\ReferenceListData;
 use App\Enums\SpeakerStatus;

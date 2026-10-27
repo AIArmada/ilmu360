@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace App\Support\Api\Member;
 
-use App\Actions\Contributions\ApproveContributionRequestAction;
-use App\Actions\Contributions\CancelContributionRequestAction;
-use App\Actions\Contributions\RejectContributionRequestAction;
-use App\Actions\Contributions\ResolveContributionSubjectPresentationAction;
-use App\Actions\Contributions\ResolveOwnContributionRequestAction;
-use App\Actions\Contributions\ResolvePendingContributionApprovalsAction;
-use App\Actions\Contributions\ResolveReviewableContributionRequestAction;
+use App\Actions\Contributions\Queries\ResolveOwnContributionRequestAction;
+use App\Actions\Contributions\Queries\ResolvePendingContributionApprovalsAction;
+use App\Actions\Contributions\Queries\ResolveReviewableContributionRequestAction;
+use App\Actions\Contributions\Review\ApproveContributionRequestAction;
+use App\Actions\Contributions\Review\RejectContributionRequestAction;
+use App\Actions\Contributions\Submission\CancelContributionRequestAction;
 use App\Enums\ContributionRequestStatus;
 use App\Filament\Resources\ContributionRequests\Support\ContributionRequestPresenter;
 use App\Models\ContributionRequest;
@@ -19,6 +18,7 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
+use App\Support\Submission\ContributionSubjectPresenter;
 use BackedEnum;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Validator;
@@ -30,7 +30,7 @@ final readonly class MemberContributionWorkflowService
         private ResolvePendingContributionApprovalsAction $resolvePendingContributionApprovalsAction,
         private ResolveOwnContributionRequestAction $resolveOwnContributionRequestAction,
         private ResolveReviewableContributionRequestAction $resolveReviewableContributionRequestAction,
-        private ResolveContributionSubjectPresentationAction $resolveContributionSubjectPresentationAction,
+        private ContributionSubjectPresenter $contributionSubjectPresenter,
         private ApproveContributionRequestAction $approveContributionRequestAction,
         private RejectContributionRequestAction $rejectContributionRequestAction,
         private CancelContributionRequestAction $cancelContributionRequestAction,
@@ -130,7 +130,7 @@ final readonly class MemberContributionWorkflowService
             || $request->entity instanceof Institution
             || $request->entity instanceof Reference
             || $request->entity instanceof Person
-                ? $this->resolveContributionSubjectPresentationAction->handle($request->entity)
+                ? $this->contributionSubjectPresenter->present($request->entity)
                 : null;
 
         return [

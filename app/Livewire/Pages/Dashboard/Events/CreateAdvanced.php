@@ -8,9 +8,9 @@ use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use AIArmada\Seating\Enums\SeatingMode;
 use AIArmada\Ticketing\Enums\PricingMode;
-use App\Actions\Events\CreateManagedEventAction;
-use App\Actions\Events\PrepareAdvancedParentProgramSubmissionAction;
-use App\Actions\Events\ResolveAdvancedBuilderContextAction;
+use App\Actions\Events\Authoring\CreateEventWithRegistrationAction;
+use App\Actions\Events\Authoring\PrepareAdvancedParentProgramSubmissionAction;
+use App\Actions\Events\Authoring\ResolveAdvancedBuilderContextAction;
 use App\Contracts\EventCategoryCatalog;
 use App\Contracts\EventCategoryPolicyResolver;
 use App\Contracts\SpaceEligibilityResolver;
@@ -885,7 +885,7 @@ class CreateAdvanced extends Component implements HasForms
     }
 
     public function submit(
-        CreateManagedEventAction $createManagedEventAction,
+        CreateEventWithRegistrationAction $createEventWithRegistrationAction,
         PrepareAdvancedParentProgramSubmissionAction $prepareAdvancedParentProgramSubmissionAction,
     ): mixed {
         $this->applyContextDefaults();
@@ -913,7 +913,7 @@ class CreateAdvanced extends Component implements HasForms
         );
 
         try {
-            $event = $createManagedEventAction->handle(
+            $event = $createEventWithRegistrationAction->handle(
                 user: $user,
                 form: $form,
                 startsAt: $preparedSubmission['program_starts_at'],

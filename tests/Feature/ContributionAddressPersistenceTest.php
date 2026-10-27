@@ -2,8 +2,8 @@
 
 use AIArmada\Addressing\Models\AddressAreaAssignment;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Actions\Contributions\ApplyDirectContributionUpdateAction;
-use App\Actions\Contributions\SubmitStagedContributionCreateAction;
+use App\Actions\Contributions\Submission\ApplyDirectContributionUpdateAction;
+use App\Actions\Contributions\Submission\SubmitStagedContributionCreateAction;
 use App\Enums\ContributionSubjectType;
 use App\Forms\SharedFormSchema;
 use App\Models\ContributionRequest;

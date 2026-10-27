@@ -18,7 +18,7 @@ use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Signals\Models\TrackedProperty;
-use App\Actions\Events\SyncEventScheduleAction;
+use App\Actions\Events\Scheduling\SyncEventScheduleAction;
 use App\Data\Prayer\PrayerTimesDTO;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;

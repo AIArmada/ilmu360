@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Support\Api\Admin;
 
-use App\Actions\Contributions\ApproveContributionRequestAction;
-use App\Actions\Contributions\RejectContributionRequestAction;
-use App\Actions\Contributions\ResolveReviewableContributionRequestAction;
+use App\Actions\Contributions\Queries\ResolveReviewableContributionRequestAction;
+use App\Actions\Contributions\Review\ApproveContributionRequestAction;
+use App\Actions\Contributions\Review\RejectContributionRequestAction;
 use App\Filament\Resources\ContributionRequests\ContributionRequestResource;
 use App\Filament\Resources\ContributionRequests\Support\ContributionRequestPresenter;
 use App\Models\ContributionRequest;

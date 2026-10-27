@@ -84,7 +84,6 @@
     $googleMapsBrowseUrl = filled($address?->google_maps_url)
         ? (string) $address->google_maps_url
         : (filled($normalizedMapQuery) ? 'https://www.google.com/maps?q=' . urlencode((string) $normalizedMapQuery) : null);
-    $wazeUrl = filled($address?->waze_url) ? (string) $address->waze_url : null;
 
     $formatContactHref = static function ($contact): ?string {
         return match ((string) $contact->type) {
@@ -850,13 +849,7 @@
                                     <div class="mt-3 overflow-hidden rounded-2xl border border-slate-200">
                                         <iframe src="{{ $googleMapsEmbedUrl }}" class="h-56 w-full" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
                                     </div>
-                                    <div class="mt-3 {{ $wazeUrl && $googleMapsBrowseUrl ? 'grid grid-cols-2 gap-3' : 'flex justify-center' }}">
-                                        @if($wazeUrl)
-                                            <a href="{{ $wazeUrl }}" target="_blank" rel="noopener noreferrer" class="group inline-flex min-w-0 items-center justify-center gap-2 rounded-2xl border border-sky-200 bg-sky-50 px-3 py-2.5 text-xs font-bold text-sky-900 shadow-sm shadow-sky-900/5 transition hover:-translate-y-0.5 hover:border-sky-300 hover:bg-sky-100 hover:shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500/15">
-                                                <img src="{{ asset('images/waze-app-icon-seeklogo.svg') }}" alt="" class="h-8 w-8 shrink-0 object-contain transition group-hover:scale-110" loading="lazy">
-                                                <span class="truncate">{{ __('Waze') }}</span>
-                                            </a>
-                                        @endif
+                                    <div class="mt-3 flex justify-center">
                                         @if($googleMapsBrowseUrl)
                                             <a href="{{ $googleMapsBrowseUrl }}" target="_blank" rel="noopener noreferrer" class="group inline-flex min-w-0 items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-white px-3 py-2.5 text-xs font-bold text-slate-800 shadow-sm shadow-emerald-900/5 transition hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50 hover:shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/15">
                                                 <img src="{{ asset('images/google-maps.svg') }}" alt="" class="h-8 w-8 shrink-0 object-contain transition group-hover:scale-110" loading="lazy">

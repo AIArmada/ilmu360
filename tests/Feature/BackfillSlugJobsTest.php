@@ -1,6 +1,6 @@
 <?php
 
-use App\Actions\Events\GenerateEventSlugAction;
+use App\Actions\Events\Authoring\GenerateEventSlugAction;
 use App\Actions\References\GenerateReferenceSlugAction;
 use App\Actions\Venues\GenerateVenueSlugAction;
 use App\Jobs\BackfillEventSlugs;

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\Pages\Events;
 
-use App\Actions\Events\ProcessEventRefundAction;
+use App\Actions\Events\Commerce\ProcessEventRefundAction;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;

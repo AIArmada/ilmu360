@@ -2,8 +2,8 @@
 
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressCountry;
-use App\Actions\Contributions\ApproveContributionRequestAction;
-use App\Actions\Events\GenerateEventSlugAction;
+use App\Actions\Contributions\Review\ApproveContributionRequestAction;
+use App\Actions\Events\Authoring\GenerateEventSlugAction;
 use App\Actions\Persons\GeneratePersonSlugAction;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;

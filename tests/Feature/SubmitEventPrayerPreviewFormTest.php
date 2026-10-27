@@ -1,7 +1,7 @@
 <?php
 
 use AIArmada\Events\Models\EventTimeExpression;
-use App\Actions\Events\SaveAdminEventAction;
+use App\Actions\Events\Authoring\SaveAdminEventAction;
 use App\Data\Prayer\PrayerTimesDTO;
 use App\Enums\EventFormat;
 use App\Enums\EventPrayerTime;

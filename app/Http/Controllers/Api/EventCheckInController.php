@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Actions\Events\RecordEventCheckInAction;
-use App\Actions\Events\ResolveEventCheckInStateAction;
+use App\Actions\Events\Attendance\RecordEventCheckInAction;
+use App\Actions\Events\Attendance\ResolveEventCheckInStateAction;
 use App\Data\Api\EventCheckIn\EventCheckInData;
 use App\Http\Controllers\Controller;
 use App\Models\Event;

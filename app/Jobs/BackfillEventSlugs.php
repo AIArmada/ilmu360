@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Actions\Events\GenerateEventSlugAction;
+use App\Actions\Events\Authoring\GenerateEventSlugAction;
 use App\Models\Event;
 use App\Support\Cache\PublicListingsCache;
 use Illuminate\Contracts\Queue\ShouldBeUnique;

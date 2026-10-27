@@ -3,14 +3,13 @@
 namespace App\Livewire\Pages\Contributions;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Actions\Contributions\ApplyDirectContributionUpdateAction;
-use App\Actions\Contributions\EnsureNoPendingContributionRequestAction;
-use App\Actions\Contributions\ResolveContributionChangedPayloadAction;
-use App\Actions\Contributions\ResolveContributionSubjectPresentationAction;
-use App\Actions\Contributions\ResolveContributionSubmissionStateAction;
-use App\Actions\Contributions\ResolveContributionUpdateContextAction;
-use App\Actions\Contributions\ResolvePendingContributionRequestAction;
-use App\Actions\Contributions\SubmitContributionUpdateRequestAction;
+use App\Actions\Contributions\Queries\FindEntityPendingContributionRequestAction;
+use App\Actions\Contributions\Queries\ResolveContributionUpdateContextAction;
+use App\Actions\Contributions\Submission\ApplyDirectContributionUpdateAction;
+use App\Actions\Contributions\Submission\EnsureNoPendingContributionRequestAction;
+use App\Actions\Contributions\Submission\NormalizeContributionSubmissionAction;
+use App\Actions\Contributions\Submission\ResolveContributionChangedPayloadAction;
+use App\Actions\Contributions\Submission\SubmitContributionUpdateRequestAction;
 use App\Enums\ContributionSubjectType;
 use App\Forms\EventContributionFormSchema;
 use App\Forms\InstitutionContributionFormSchema;
@@ -26,6 +25,7 @@ use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
 use App\Support\Events\EventContributionUpdateStateMapper;
+use App\Support\Submission\ContributionSubjectPresenter;
 use Closure;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
@@ -99,7 +99,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
         string $subjectType,
         string $subjectId,
         ResolveContributionUpdateContextAction $resolveContributionUpdateContextAction,
-        ResolveContributionSubjectPresentationAction $resolveContributionSubjectPresentationAction,
+        ContributionSubjectPresenter $contributionSubjectPresenter,
     ): void {
         // Directory contribution pages operate on globally visible records. Keep the
         // explicit global context active for the full Livewire render, including
@@ -107,7 +107,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
         OwnerContext::setForRequest(null);
 
         OwnerContext::withOwner(null, function () use (
-            $resolveContributionSubjectPresentationAction,
+            $contributionSubjectPresenter,
             $resolveContributionUpdateContextAction,
             $subjectId,
             $subjectType,
@@ -122,7 +122,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
 
             $this->entity = $context['entity'];
             $this->originalData = $this->comparableOriginalData($context['initial_state']);
-            $this->subjectPresentation = $resolveContributionSubjectPresentationAction->handle($this->entity);
+            $this->subjectPresentation = $contributionSubjectPresenter->present($this->entity);
 
             $user = auth()->user();
 
@@ -181,7 +181,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
     #[Computed]
     public function pendingUpdateRequest(): ?ContributionRequest
     {
-        return app(ResolvePendingContributionRequestAction::class)->handle($this->entity);
+        return app(FindEntityPendingContributionRequestAction::class)->handle($this->entity);
     }
 
     public function form(Schema $schema): Schema
@@ -203,14 +203,14 @@ class SuggestUpdate extends Component implements HasActions, HasForms
     public function submit(
         ApplyDirectContributionUpdateAction $applyDirectContributionUpdateAction,
         ResolveContributionChangedPayloadAction $resolveContributionChangedPayloadAction,
-        ResolveContributionSubmissionStateAction $resolveContributionSubmissionStateAction,
+        NormalizeContributionSubmissionAction $normalizeContributionSubmissionAction,
         SubmitContributionUpdateRequestAction $submitContributionUpdateRequestAction,
         EnsureNoPendingContributionRequestAction $ensureNoPendingContributionRequestAction,
     ): void {
         OwnerContext::withOwner(null, function () use (
             $applyDirectContributionUpdateAction,
             $resolveContributionChangedPayloadAction,
-            $resolveContributionSubmissionStateAction,
+            $normalizeContributionSubmissionAction,
             $submitContributionUpdateRequestAction,
             $ensureNoPendingContributionRequestAction,
         ): void {
@@ -224,7 +224,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
 
             $ensureNoPendingContributionRequestAction->handle($this->entity);
 
-            $submissionState = $resolveContributionSubmissionStateAction->handle($this->contributionForm()->getState());
+            $submissionState = $normalizeContributionSubmissionAction->handle($this->contributionForm()->getState());
             $state = $this->normalizeSubmissionState($submissionState['state']);
             $changes = $resolveContributionChangedPayloadAction->handle(
                 $state,
@@ -318,6 +318,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             useTitleMultiSelect: true,
             useInstitutionRepeater: true,
             splitProfileSections: true,
+            includeWazeUrlField: false,
         );
 
         // PersonContributionFormSchema::components(includeMedia: false) returns:
@@ -458,6 +459,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             addressStatePath: 'address',
             includeLocationPicker: true,
             mediaFields: $this->directEditMediaFields,
+            includeWazeUrlField: false,
         );
     }
 

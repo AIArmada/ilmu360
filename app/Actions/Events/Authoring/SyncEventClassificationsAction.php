@@ -1,0 +1,155 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Actions\Events\Authoring;
+
+use AIArmada\Events\Actions\SyncEventClassificationsAction as PackageSyncEventClassificationsAction;
+use AIArmada\Events\Models\EventClassification;
+use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Models\EventSession;
+use App\Contracts\EventCategoryCatalog;
+use App\Enums\EventTaxonomyCode;
+use App\Models\Event;
+use Illuminate\Support\Collection;
+use Lorisleiva\Actions\Concerns\AsAction;
+
+/**
+ * ilmu360 taxonomy vocabulary adapter for the generic package synchronizer.
+ */
+class SyncEventClassificationsAction
+{
+    use AsAction;
+
+    public function __construct(
+        private readonly PackageSyncEventClassificationsAction $synchronizer,
+        private readonly EventCategoryCatalog $categoryCatalog,
+    ) {}
+
+    /**
+     * @param  array{
+     *     event_category_ids?: list<mixed>,
+     *     domain_tags?: list<mixed>,
+     *     source_tags?: list<mixed>,
+     *     discipline_tags?: list<mixed>,
+     *     issue_tags?: list<mixed>,
+     *     taxonomy_term_ids?: list<mixed>
+     * }  $validated
+     */
+    public function handle(Event|EventOccurrence|EventSession $scope, array $validated): int
+    {
+        $types = [EventTaxonomyCode::Domain, EventTaxonomyCode::Source, EventTaxonomyCode::Discipline, EventTaxonomyCode::Issue];
+        $existing = $this->existingClassifications($scope);
+        $existingByTaxonomy = $existing->groupBy(fn ($classification): string => (string) $classification->taxonomy_code);
+        $categoryValues = array_key_exists('event_category_ids', $validated)
+            ? $this->categoryCatalog->validateTermIds($this->toList($validated['event_category_ids']))
+            : $existingByTaxonomy->get(EventCategoryCatalog::TAXONOMY_CODE, collect())->pluck('event_term_id')->map(strval(...))->all();
+
+        return $this->synchronizer->handle(
+            scope: $scope,
+            taxonomyValues: [
+                EventCategoryCatalog::TAXONOMY_CODE => $categoryValues,
+                EventTaxonomyCode::Domain->value => $this->valuesFor($validated, EventTaxonomyCode::Domain->value, $existingByTaxonomy),
+                EventTaxonomyCode::Source->value => $this->valuesFor($validated, EventTaxonomyCode::Source->value, $existingByTaxonomy),
+                EventTaxonomyCode::Discipline->value => $this->valuesFor($validated, EventTaxonomyCode::Discipline->value, $existingByTaxonomy),
+                EventTaxonomyCode::Issue->value => $this->valuesFor($validated, EventTaxonomyCode::Issue->value, $existingByTaxonomy),
+            ],
+            taxonomyDefinitions: collect($types)->mapWithKeys(fn (EventTaxonomyCode $type): array => [
+                $type->value => [
+                    'name' => $type->label(),
+                    'description' => $type->description(),
+                    'is_hierarchical' => false,
+                    'is_active' => true,
+                ],
+            ])->merge([
+                EventCategoryCatalog::TAXONOMY_CODE => [
+                    'name' => 'Event Category',
+                    'description' => 'Hierarchical categories for events.',
+                    'is_hierarchical' => true,
+                    'is_active' => true,
+                ],
+            ])->all(),
+            explicitTermIds: collect($validated['taxonomy_term_ids'] ?? [])
+                ->merge($existing->filter(fn ($classification): bool => ! in_array($classification->taxonomy_code, [
+                    EventCategoryCatalog::TAXONOMY_CODE,
+                    EventTaxonomyCode::Domain->value,
+                    EventTaxonomyCode::Source->value,
+                    EventTaxonomyCode::Discipline->value,
+                    EventTaxonomyCode::Issue->value,
+                ], true))->pluck('event_term_id'))
+                ->filter(fn (mixed $id): bool => is_string($id) && $id !== '')
+                ->unique()
+                ->values()
+                ->all(),
+        );
+    }
+
+    /**
+     * @return Collection<int, EventClassification>
+     */
+    private function existingClassifications(Event|EventOccurrence|EventSession $scope): Collection
+    {
+        $query = EventClassification::query()->where('event_classifications.event_id', $scope instanceof Event ? $scope->getKey() : $scope->event_id);
+
+        if ($scope instanceof EventSession) {
+            // Session occurrence is canonically nullable; a null occurrence
+            // must constrain with whereNull, never `= null`.
+            if ($scope->event_occurrence_id === null) {
+                $query->whereNull('event_classifications.event_occurrence_id');
+            } else {
+                $query->where('event_classifications.event_occurrence_id', $scope->event_occurrence_id);
+            }
+
+            $query->where('event_classifications.event_session_id', $scope->getKey());
+        } elseif ($scope instanceof EventOccurrence) {
+            $query->where('event_classifications.event_occurrence_id', $scope->getKey())
+                ->whereNull('event_classifications.event_session_id');
+        } else {
+            $query->whereNull('event_classifications.event_occurrence_id')
+                ->whereNull('event_classifications.event_session_id');
+        }
+
+        return $query->get(['event_classifications.event_taxonomy_id', 'event_classifications.taxonomy_code', 'event_classifications.event_term_id']);
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return array<int, mixed>
+     */
+    private function valuesFor(array $validated, string $taxonomyCode, mixed $existingByTaxonomy): array
+    {
+        $key = match ($taxonomyCode) {
+            EventTaxonomyCode::Domain->value => 'domain_tags',
+            EventTaxonomyCode::Source->value => 'source_tags',
+            EventTaxonomyCode::Discipline->value => 'discipline_tags',
+            default => 'issue_tags',
+        };
+
+        if (array_key_exists($key, $validated)) {
+            return $this->toList($validated[$key]);
+        }
+
+        return $existingByTaxonomy instanceof Collection
+            ? $existingByTaxonomy->get($taxonomyCode, collect())->pluck('event_term_id')->all()
+            : [];
+    }
+
+    /**
+     * Normalize a taxonomy value into a list. Single-select fields submit a
+     * scalar; multi-select fields submit a list. Both are valid inputs.
+     *
+     * @return array<int, mixed>
+     */
+    private function toList(mixed $value): array
+    {
+        if ($value instanceof Collection) {
+            $value = $value->all();
+        }
+
+        if (! is_array($value)) {
+            return filled($value) ? [$value] : [];
+        }
+
+        return $value;
+    }
+}

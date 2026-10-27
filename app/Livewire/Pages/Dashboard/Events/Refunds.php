@@ -7,7 +7,7 @@ namespace App\Livewire\Pages\Dashboard\Events;
 use AIArmada\Orders\Enums\PaymentStatus as OrderPaymentStatus;
 use AIArmada\Orders\Models\Order;
 use AIArmada\Orders\Models\OrderPayment;
-use App\Actions\Events\ProcessEventRefundAction;
+use App\Actions\Events\Commerce\ProcessEventRefundAction;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;

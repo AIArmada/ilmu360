@@ -31,7 +31,7 @@ class EventRegistrationData extends Data
             email: $registration->resolvedEmail(),
             phone: $registration->resolvedPhone(),
             status: $registration->statusValue(),
-            created_at: $registration->created_at?->toIso8601String(),
+            created_at: $registration->created_at?->format(DATE_ATOM),
         );
     }
 }

@@ -17,7 +17,7 @@ use AIArmada\Persons\Enums\Gender;
 use AIArmada\References\Enums\ReferenceRecordKind;
 use AIArmada\References\Rules\Isbn;
 use App\Actions\DonationChannels\SaveDonationChannelAction;
-use App\Actions\Events\SaveAdminEventAction;
+use App\Actions\Events\Authoring\SaveAdminEventAction;
 use App\Actions\Inspirations\SaveInspirationAction;
 use App\Actions\Institutions\SaveInstitutionAction;
 use App\Actions\Persons\SavePersonAction;
@@ -66,6 +66,7 @@ use App\Models\Space;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\ContributionEntityMutationService;
+use App\Support\Events\AdminEventFormStateBuilder;
 use App\Support\Institutions\InstitutionFacilities;
 use BackedEnum;
 use Closure;
@@ -85,6 +86,7 @@ class AdminResourceMutationService
         private readonly SaveAddressAreaAction $saveAddressAreaAction,
         private readonly SaveDonationChannelAction $saveDonationChannelAction,
         private readonly SaveAdminEventAction $saveAdminEventAction,
+        private readonly AdminEventFormStateBuilder $adminEventFormStateBuilder,
         private readonly SaveInspirationAction $saveInspirationAction,
         private readonly SaveInstitutionAction $saveInstitutionAction,
         private readonly SaveReportAction $saveReportAction,
@@ -509,7 +511,7 @@ class AdminResourceMutationService
                 'is_default' => false,
                 'clear_qr' => false,
             ],
-            EventResource::class => $this->saveAdminEventAction->defaultsForCreate(),
+            EventResource::class => $this->adminEventFormStateBuilder->defaultsForCreate(),
             InspirationResource::class => [
                 'category' => InspirationCategory::QuranQuote->value,
                 'locale' => $this->defaultSupportedLocale(),
@@ -730,7 +732,7 @@ class AdminResourceMutationService
         }
 
         if ($record instanceof Event) {
-            $defaults = $this->saveAdminEventAction->formStateForRecord($record);
+            $defaults = $this->adminEventFormStateBuilder->formStateForRecord($record);
         }
 
         if ($record instanceof Venue) {

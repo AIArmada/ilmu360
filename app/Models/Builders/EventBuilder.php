@@ -24,20 +24,27 @@ class EventBuilder extends Builder
         'ends_at',
     ];
 
+    /** @return $this */
     #[\Override]
     public function where($column, $operator = null, $value = null, $boolean = 'and'): static
     {
         if (! is_string($column) || ! $this->shouldMapColumn($column)) {
-            return parent::where($column, $operator, $value, $boolean);
+            parent::where($column, $operator, $value, $boolean);
+
+            return $this;
         }
 
         $columnName = $this->columnName($column);
 
         if (in_array($columnName, self::OccurrenceBackedColumns, true)) {
-            return $this->whereOccurrenceColumn($columnName, $operator, $value, $boolean, func_num_args());
+            $this->whereOccurrenceColumn($columnName, $operator, $value, $boolean, func_num_args());
+
+            return $this;
         }
 
-        return parent::where($column, $operator, $value, $boolean);
+        parent::where($column, $operator, $value, $boolean);
+
+        return $this;
     }
 
     /**

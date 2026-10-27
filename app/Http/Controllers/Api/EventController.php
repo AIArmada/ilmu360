@@ -7,7 +7,7 @@ use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Engagement\Models\Response;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTimeExpression;
-use App\Actions\Events\ResolveEventCheckInStateAction;
+use App\Actions\Events\Attendance\ResolveEventCheckInStateAction;
 use App\Contracts\EventCategoryCatalog;
 use App\Data\Api\Event\EventMeData;
 use App\Data\Api\Event\EventPayloadData;

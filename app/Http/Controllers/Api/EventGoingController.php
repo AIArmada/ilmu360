@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use AIArmada\Engagement\Models\Response;
-use App\Actions\Events\MarkEventGoingAction;
-use App\Actions\Events\RemoveEventGoingAction;
+use App\Actions\Events\Engagement\MarkEventGoingAction;
+use App\Actions\Events\Engagement\RemoveEventGoingAction;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Data\Api\EventEngagement\EventEngagementListItemData;
 use App\Data\Api\EventGoing\EventGoingStateData;

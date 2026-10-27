@@ -4,7 +4,7 @@ namespace App\Observers;
 
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\Addressable;
-use App\Actions\Events\GenerateEventSlugAction;
+use App\Actions\Events\Authoring\GenerateEventSlugAction;
 use App\Actions\Institutions\GenerateInstitutionSlugAction;
 use App\Actions\Persons\GeneratePersonSlugAction;
 use App\Actions\Venues\GenerateVenueSlugAction;

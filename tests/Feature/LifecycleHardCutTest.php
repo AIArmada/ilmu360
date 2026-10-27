@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use App\Actions\Contributions\ApproveContributionRequestAction;
-use App\Actions\Contributions\CancelContributionRequestAction;
-use App\Actions\Contributions\RejectContributionRequestAction;
+use App\Actions\Contributions\Review\ApproveContributionRequestAction;
+use App\Actions\Contributions\Review\RejectContributionRequestAction;
+use App\Actions\Contributions\Submission\CancelContributionRequestAction;
 use App\Actions\Reports\SaveReportAction;
 use App\Contracts\CaptchaVerifier;
 use App\Contracts\GitHubIssueReporterContract;

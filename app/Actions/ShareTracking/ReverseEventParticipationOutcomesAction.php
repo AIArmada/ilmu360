@@ -6,7 +6,7 @@ namespace App\Actions\ShareTracking;
 
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
-use App\Actions\Events\ReverseTicketAffiliateCommissionAction;
+use App\Actions\Events\Commerce\ReverseTicketAffiliateCommissionAction;
 use App\Models\Event;
 use App\Models\EventCheckin;
 use App\Models\Registration;

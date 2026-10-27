@@ -29,7 +29,7 @@ use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\Inventory\Models\InventoryLocation;
 use AIArmada\Seating\Enums\SeatingMode;
 use AIArmada\Ticketing\Models\TicketType;
-use App\Actions\Events\PrepareEventCheckoutAction;
+use App\Actions\Events\Commerce\PrepareEventCheckoutAction;
 use App\Enums\DawahShareOutcomeType;
 use App\Enums\ShareEffectStatus;
 use App\Models\Event;

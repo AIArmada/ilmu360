@@ -7,7 +7,7 @@ use AIArmada\CommerceSupport\Support\CanonicalSlug;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Signals\Models\SignalEvent;
 use AIArmada\Signals\Models\TrackedProperty;
-use App\Actions\Events\GenerateEventSlugAction;
+use App\Actions\Events\Authoring\GenerateEventSlugAction;
 use App\Actions\Institutions\GenerateInstitutionSlugAction;
 use App\Actions\Persons\GeneratePersonSlugAction;
 use App\Actions\References\GenerateReferenceSlugAction;

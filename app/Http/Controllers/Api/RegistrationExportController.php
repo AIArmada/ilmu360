@@ -103,8 +103,8 @@ class RegistrationExportController extends Controller
                         $this->safeCsvCell($registration->resolvedEmail() ?? $registrantEmail),
                         $this->safeCsvCell($registration->resolvedPhone()),
                         $this->safeCsvCell($registration->statusValue()),
-                        $this->safeCsvCell($registration->registered_at?->toIso8601String()
-                            ?? $registration->created_at?->toIso8601String()
+                        $this->safeCsvCell($registration->registered_at?->format(DATE_ATOM)
+                            ?? $registration->created_at?->format(DATE_ATOM)
                             ?? ''),
                     ],
                         escape: '\\');

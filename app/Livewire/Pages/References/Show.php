@@ -13,6 +13,7 @@ use App\Livewire\Concerns\JoinsHierarchyAreaName;
 use App\Livewire\Concerns\LoadsEventPageData;
 use App\Models\Builders\EventBuilder;
 use App\Models\Event;
+use App\Models\EventReferencePivot;
 use App\Models\Reference;
 use App\Services\ShareTrackingService;
 use App\Support\Auth\IntendedRedirect;
@@ -20,6 +21,7 @@ use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\Relations\Pivot;
@@ -200,7 +202,9 @@ class Show extends Component
                 'persons.media',
                 'persons.titleAssignments.title.category',
                 'keyPeople.person',
-                'references' => fn ($query) => $query->active(),
+                'references' => /** @param BelongsToMany<Reference, Event, EventReferencePivot, 'pivot'> $references */ function (BelongsToMany $references): void {
+                    Reference::applyPublicVisibility($references->getQuery());
+                },
                 'media',
                 'primaryOccurrence',
                 'displayOccurrence.media',

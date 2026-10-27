@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Actions\Reports;
 
-use App\Actions\Contributions\ResolveContributionSubjectPresentationAction;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
+use App\Support\Submission\ContributionSubjectPresenter;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class ResolveReportFormContextAction
@@ -17,7 +17,7 @@ class ResolveReportFormContextAction
 
     public function __construct(
         protected ResolveReportCategoryOptionsAction $resolveReportCategoryOptionsAction,
-        protected ResolveContributionSubjectPresentationAction $resolveContributionSubjectPresentationAction,
+        protected ContributionSubjectPresenter $contributionSubjectPresenter,
     ) {}
 
     /**
@@ -32,7 +32,7 @@ class ResolveReportFormContextAction
      */
     public function handle(string $subjectType, Event|Institution|Reference|Person $entity): array
     {
-        $presentation = $this->resolveContributionSubjectPresentationAction->handle($entity);
+        $presentation = $this->contributionSubjectPresenter->present($entity);
         $categoryOptions = $this->resolveReportCategoryOptionsAction->handle($subjectType);
 
         return [

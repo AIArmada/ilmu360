@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Actions\Events\RegisterEventWithShareProvenanceAction;
+use App\Actions\Events\Registration\RegisterEventWithShareProvenanceAction;
 use App\Data\Api\EventRegistration\EventRegistrationData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RegisterEventRequest;

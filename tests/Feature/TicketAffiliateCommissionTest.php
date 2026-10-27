@@ -24,7 +24,7 @@ use AIArmada\Orders\Models\Order;
 use AIArmada\Orders\Models\OrderItem;
 use AIArmada\Orders\States\Processing;
 use AIArmada\Ticketing\Models\TicketType;
-use App\Actions\Events\RecordTicketAffiliateCommissionsAction;
+use App\Actions\Events\Commerce\RecordTicketAffiliateCommissionsAction;
 use App\Actions\ShareTracking\DispatchShareEffectReceiptsAction;
 use App\Checkout\RecordTicketAffiliateCommissionsStep;
 use App\Enums\ShareEffectStatus;

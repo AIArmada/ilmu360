@@ -4,7 +4,7 @@ namespace App\Observers;
 
 use AIArmada\CommerceSupport\Support\CanonicalSlug;
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Actions\Events\GenerateEventSlugAction;
+use App\Actions\Events\Authoring\GenerateEventSlugAction;
 use App\Actions\Slugs\SyncSlugRedirectAction;
 use App\Jobs\RenderShareCardJob;
 use App\Models\Event;

@@ -11,6 +11,7 @@ use App\Models\Person;
 use App\Models\User;
 use App\Support\Events\SubmitterContactPresenter;
 use App\Support\Timezone\UserDateTimeFormatter;
+use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -150,8 +151,9 @@ class PendingApprovalEventsWidget extends TableWidget
             return '-';
         }
 
-        $date = UserDateTimeFormatter::translatedFormat($submission->created_at, 'd M Y');
-        $time = UserDateTimeFormatter::format($submission->created_at, 'h:i A');
+        $createdAt = Carbon::instance($submission->created_at);
+        $date = UserDateTimeFormatter::translatedFormat($createdAt, 'd M Y');
+        $time = UserDateTimeFormatter::format($createdAt, 'h:i A');
 
         return trim($date.', '.$time, ', ');
     }

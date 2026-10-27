@@ -10,7 +10,7 @@ use AIArmada\Orders\Enums\RefundStatus;
 use AIArmada\Orders\Models\Order;
 use AIArmada\Orders\Models\OrderPayment;
 use AIArmada\Orders\States\Processing;
-use App\Actions\Events\ProcessEventRefundAction;
+use App\Actions\Events\Commerce\ProcessEventRefundAction;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;
