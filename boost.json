@@ -37,6 +37,7 @@
         "filament-development",
         "blaze-optimize",
         "laravel-actions",
+        "activitylog-development",
         "laravel-query-builder",
         "sluggable-development",
         "filament-security-audit",

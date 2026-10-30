@@ -16,6 +16,12 @@ class PermissionSeeder extends Seeder
      */
     public function run(): void
     {
+        // Spatie resolves findOrCreate() from the cached permission collection
+        // (Redis), which survives `migrate:fresh`. Without flushing first, a
+        // stale cache makes every lookup hit and skips the DB inserts, so the
+        // later givePermissionTo() fails on an empty table.
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
         $permissions = [
             'feedback.blocked',
             'institution.view',
