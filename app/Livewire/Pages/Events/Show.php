@@ -11,6 +11,7 @@ use AIArmada\Events\Enums\RegistrationMode;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventRegistration;
 use AIArmada\Events\Models\EventSession;
+use AIArmada\Persons\Enums\AssignmentStatus;
 use App\Actions\Events\Attendance\RecordEventCheckInAction;
 use App\Actions\Events\Attendance\ResolveEventCheckInStateAction;
 use App\Actions\Events\Engagement\MarkEventGoingAction;
@@ -47,11 +48,13 @@ use Carbon\CarbonInterface;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -80,6 +83,24 @@ class Show extends Component
     public int $goingCount = 0;
 
     public int $registrationsCount = 0;
+
+    /**
+     * The date this event URL presents when it has exactly one public date.
+     * Null for a multi-date event, which renders the listing instead.
+     */
+    #[Locked]
+    public ?EventOccurrence $singleOccurrence = null;
+
+    public function render(): View
+    {
+        $occurrence = $this->selectedOccurrence();
+
+        if ($occurrence instanceof EventOccurrence) {
+            return view('livewire.pages.events.occurrence', ['occurrence' => $occurrence]);
+        }
+
+        return view('livewire.pages.events.show');
+    }
 
     public function mount(Event $event): void
     {
@@ -164,7 +185,13 @@ class Show extends Component
                     $publicScheduleScope($query);
                     $query
                         ->withCount(['registrations' => $capacityRegistrationScope])
-                        ->withSum(['registrations' => $capacityRegistrationScope], 'total_participants');
+                        ->withSum(['registrations' => $capacityRegistrationScope], 'total_participants')
+                        // The listing and the "seterusnya" pointer both read the
+                        // schedule in chronological order, so ordering belongs in
+                        // the shared load rather than in each blade.
+                        ->orderBy('starts_at')
+                        ->orderBy('created_at')
+                        ->orderBy('id');
                 },
                 'occurrences.media',
                 'occurrences.sessions' => function (Relation $query) use ($publicScheduleScope, $capacityRegistrationScope): void {
@@ -272,6 +299,30 @@ class Show extends Component
 
         $this->event = $event;
         $this->syncEngagementStates();
+
+        // A majlis with exactly one public date has nothing to list, so the
+        // event URL renders the date page itself. With two or more dates the
+        // same component renders the listing below instead.
+        $publicOccurrences = $event->occurrences;
+
+        if ($publicOccurrences->count() === 1) {
+            $single = $publicOccurrences->first();
+
+            if ($single instanceof EventOccurrence) {
+                $this->singleOccurrence = $single;
+                $this->loadSelectedCommerce();
+            }
+        }
+    }
+
+    /**
+     * Where engagement actions (save/going/check-in) return the reader after a
+     * login round-trip. The date page overrides this so the reader lands back
+     * on the date they were reading, not on the parent event.
+     */
+    protected function engagementReturnUrl(): string
+    {
+        return route('events.show', $this->event);
     }
 
     /**
@@ -291,14 +342,24 @@ class Show extends Component
     #[Computed]
     public function calendarLinks(): array
     {
-        if ($this->eventActionsDisabled()) {
+        $occurrence = $this->selectedOccurrence();
+
+        if ($this->eventActionsDisabled()
+            || ($occurrence instanceof EventOccurrence && (string) $occurrence->status === 'cancelled')) {
             return [];
+        }
+
+        if ($occurrence instanceof EventOccurrence) {
+            return app(CalendarService::class)->getAllCalendarLinksFor($this->event, $occurrence);
         }
 
         return app(CalendarService::class)->getAllCalendarLinks($this->event);
     }
 
     /**
+     * Own poster and gallery first, then the shared parent gallery, so a
+     * provided child visual is never hidden behind the parent-only set.
+     *
      * @return array<int, array{url: string, thumb: string, alt: string}>
      */
     #[Computed]
@@ -306,15 +367,143 @@ class Show extends Component
     {
         $images = [];
         $imageCounter = 1;
+        $seen = [];
 
-        foreach ($this->event->getMedia('gallery') as $galleryMedia) {
-            $images[] = $this->buildGalleryImagePayload(
-                $galleryMedia,
-                __('Photo :number', ['number' => $imageCounter++])
-            );
+        $collect = function (iterable $mediaItems) use (&$images, &$imageCounter, &$seen): void {
+            foreach ($mediaItems as $media) {
+                $key = (string) $media->getKey();
+
+                if (isset($seen[$key])) {
+                    continue;
+                }
+
+                $seen[$key] = true;
+                $images[] = $this->buildGalleryImagePayload(
+                    $media,
+                    __('Photo :number', ['number' => $imageCounter++])
+                );
+            }
+        };
+
+        $occurrence = $this->selectedOccurrence();
+
+        if ($occurrence instanceof EventOccurrence) {
+            $collect($occurrence->getMedia('poster'));
+            $collect($occurrence->getMedia('gallery'));
         }
 
+        $collect($this->event->getMedia('gallery'));
+
         return $images;
+    }
+
+    /**
+     * Commerce and session detail for the selected date, plus its own people.
+     * Session pages override this to a no-op and load the selected session
+     * leaf (and its parent date commerce) instead.
+     */
+    protected function loadSelectedCommerce(): void
+    {
+        $occurrence = $this->selectedOccurrence();
+
+        if (! $occurrence instanceof EventOccurrence) {
+            return;
+        }
+
+        OwnerContext::withOwner(null, function () use ($occurrence): void {
+            $occurrence->loadMissing([
+                'classifications.term',
+                'languages',
+                'audiences',
+                'audienceProfiles',
+                'timeExpressions' => static function (Relation $query): void {
+                    $query->whereNull('event_session_id');
+                },
+                'involvements' => $this->publicInvolvementScope(),
+                'involvements.involveable' => $this->involveableEagerLoad(),
+                'involvements.role',
+                ...$this->sessionSubtreeRelations(),
+                ...$this->commerceRelations(),
+            ]);
+        });
+    }
+
+    /**
+     * @return array<int|string, mixed>
+     */
+    protected function sessionSubtreeRelations(): array
+    {
+        return [
+            'sessions.media',
+            'sessions.locations' => $this->publicLocationScope($this->event),
+            'sessions.locations.venueSpace',
+            'sessions.involvements' => $this->publicInvolvementScope(),
+            'sessions.involvements.involveable' => $this->involveableEagerLoad(),
+            'sessions.involvements.role',
+        ];
+    }
+
+    protected function publicInvolvementScope(): \Closure
+    {
+        return static function (Relation $query): Relation {
+            if ($query->getParent() instanceof EventOccurrence) {
+                $query->whereNull('event_session_id');
+            }
+
+            return $query
+                ->where('status', 'active')
+                ->where('visibility', 'public');
+        };
+    }
+
+    protected function involveableEagerLoad(): \Closure
+    {
+        return static function (MorphTo $relation): void {
+            $relation->morphWith([
+                Person::class => [
+                    'titleAssignments' => fn (Relation $query) => $query
+                        ->where('status', AssignmentStatus::Active)
+                        ->with('title.category'),
+                ],
+            ]);
+        };
+    }
+
+    /**
+     * Owning-scope commerce for the selected leaf: tickets with seating and
+     * stock, seat maps, links, materials, access policy and references.
+     *
+     * @return array<int|string, mixed>
+     */
+    protected function commerceRelations(): array
+    {
+        return [
+            'ticketTypes' => $this->publicTicketScope(),
+            'ticketTypes.seatingOptions',
+            'ticketTypes.inventoryLevels',
+            'seatMaps' => $this->publicSeatMapScope(),
+            'seatMaps.sections',
+            'links' => $this->publicLinkScope(),
+            'materials' => $this->publicMaterialScope(),
+            'accessPolicies' => static function (Relation $query): void {
+                if ($query->getParent() instanceof EventOccurrence) {
+                    $query->whereNull('event_session_id');
+                }
+            },
+            'references' => function (Relation $query): void {
+                if ($query->getParent() instanceof EventOccurrence) {
+                    $query->whereNull('event_session_id');
+                }
+
+                $query->where('visibility', 'public')->orderBy('sort_order');
+            },
+            'references.referenceable' => function (MorphTo $relation): void {
+                $relation->constrain([
+                    Reference::class => fn (Builder $query) => Reference::applyPublicVisibility($query)
+                        ->with(['authors', 'parentReference']),
+                ]);
+            },
+        ];
     }
 
     #[Computed]
@@ -373,7 +562,7 @@ class Show extends Component
 
     public function selectedOccurrence(): ?EventOccurrence
     {
-        return null;
+        return $this->singleOccurrence;
     }
 
     public function selectedSession(): ?EventSession
@@ -385,6 +574,32 @@ class Show extends Component
     #[Computed]
     public function languageLabels(): Collection
     {
+        // A date submitted on its own carries its own language selection; only
+        // fall back to the parent event when it has none of its own.
+        $occurrence = $this->selectedOccurrence();
+
+        if ($occurrence instanceof EventOccurrence && is_array($occurrence->metadata['public_submission'] ?? null)) {
+            if (! $occurrence->relationLoaded('languages')) {
+                return collect();
+            }
+
+            $ownCodes = $occurrence->languages
+                ->pluck('language_code')
+                ->filter(fn (mixed $code): bool => is_string($code) && $code !== '')
+                ->unique()
+                ->values();
+
+            if ($ownCodes->isEmpty()) {
+                return collect();
+            }
+
+            $ownLabels = app(SelectionCatalogCache::class)->languageLabelsForCodes($ownCodes->all());
+
+            return $ownCodes
+                ->map(fn (string $code): string => $ownLabels[$code] ?? strtoupper($code))
+                ->values();
+        }
+
         // The public languages property always resolves to catalog Language
         // models (code/name/native) via the Event attribute override.
         $codes = $this->event->languages
@@ -616,7 +831,7 @@ class Show extends Component
         $user = auth()->user();
 
         if (! $user instanceof User) {
-            $this->redirect(IntendedRedirect::loginUrl(route('events.show', $this->event)), navigate: true);
+            $this->redirect(IntendedRedirect::loginUrl($this->engagementReturnUrl()), navigate: true);
 
             return;
         }
@@ -699,7 +914,7 @@ class Show extends Component
         $user = auth()->user();
 
         if (! $user instanceof User) {
-            $this->redirect(IntendedRedirect::loginUrl(route('events.show', $this->event)), navigate: true);
+            $this->redirect(IntendedRedirect::loginUrl($this->engagementReturnUrl()), navigate: true);
 
             return;
         }
@@ -984,11 +1199,6 @@ class Show extends Component
                 config('events.lifecycle.registration.capacity_blocking_statuses', EventRegistration::CAPACITY_BLOCKING_STATUSES),
             );
         };
-    }
-
-    public function render(): View
-    {
-        return view('livewire.pages.events.show');
     }
 
     protected function isPubliclyVisibleStatus(Event $event): bool

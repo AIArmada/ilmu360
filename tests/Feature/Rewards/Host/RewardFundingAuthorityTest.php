@@ -41,7 +41,6 @@ use App\Models\User;
 use App\Support\Rewards\RewardMemberPresenter;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Tests\Feature\Rewards\Host\Support\FakeRewardSourceFactReader;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
@@ -55,7 +54,7 @@ use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
-    config()->set('affiliates.payouts.reward_award_settlement.enabled', true);
+    RewardLedgerFixtures::useManualPayouts();
 });
 
 function faStaff(): array
@@ -338,32 +337,24 @@ it('converts the held obligation into the payout reserve without double counting
     [$program, $version] = faProgram('fa-conv', 10000);
     [$award, $memberId, $reader] = faHeld($program, $version, 'src-fa-conv-1');
     [$staff, $verifier, $requester, $approver] = faStaff();
-
-    Http::preventStrayRequests();
-    Http::fake([
-        'api-m.sandbox.paypal.com/v1/oauth2/token' => Http::response(['access_token' => 'pp-test-token'], 200),
-        'api-m.sandbox.paypal.com/v1/payments/payouts' => Http::response(['batch_header' => ['payout_batch_id' => 'BATCH-CONV-1']], 201),
-        'api-m.sandbox.paypal.com/v1/payments/payouts/*' => Http::response(['batch_header' => ['batch_status' => 'SUCCESS']], 200),
-    ]);
-    config()->set('affiliates.payouts.paypal.client_id', 'test-id');
-    config()->set('affiliates.payouts.paypal.client_secret', 'test-secret');
+    $confirmer = (string) Str::uuid();
 
     $payee = VerifyRewardPayeeAction::run(
-        'user', $memberId, 'paypal', 'conv@example.test', 'conv@example.test',
+        'user', $memberId, 'bank_transfer', 'ACCT-CONV', 'Bank ••CV',
         'user', $verifier, 'staff', null, CarbonImmutable::parse('2026-06-16T00:00:00Z'),
     );
 
     $approved = faApprove($award, $reader, $staff, '2026-06-17T00:00:00Z');
 
-    // Held: 500 obligated. Request: 500 retired, 511 gross reserved —
-    // the ledger prices only the incremental 11, never 500 + 511.
+    // Held: 500 obligated. Request: 500 retired, 500 reserved — the
+    // ledger prices only the incremental reserve, never 500 + 500.
     $request = RequestRewardPayoutAction::run(
-        $approved, $payee, 'paypal', 'program', 'user', $requester, 'staff',
+        $approved, $payee, 'bank_transfer', 'program', 'user', $requester, 'staff',
         null, CarbonImmutable::parse('2026-06-17T00:00:00Z'),
     );
 
     expect(RewardBudgetLedger::balances((string) $program->getKey(), 'MYR'))
-        ->toBe(['funded' => 10000, 'reserved' => 511, 'net_spent' => 0, 'available' => 9489]);
+        ->toBe(['funded' => 10000, 'reserved' => 500, 'net_spent' => 0, 'available' => 9500]);
 
     $request = ApproveRewardPayoutAction::run(
         $request, 'user', $approver, 'staff', 'finance-ok', CarbonImmutable::parse('2026-06-17T01:00:00Z'),
@@ -371,36 +362,30 @@ it('converts the held obligation into the payout reserve without double counting
     $request = SubmitRewardPayoutAction::run(
         $request, 'user', $staff, 'staff', CarbonImmutable::parse('2026-06-18T00:00:00Z'),
     );
-    $request = ReconcileRewardPayoutAction::run(
-        $request, 'user', $staff, 'staff', CarbonImmutable::parse('2026-06-18T01:00:00Z'),
+    $request = ConfirmRewardPayoutAction::run(
+        $request,
+        ['bank_reference' => 'BANK-FA-CONV', 'transferred_at' => '2026-06-18T01:00:00Z'],
+        'user', $confirmer, 'staff', CarbonImmutable::parse('2026-06-18T01:00:00Z'),
     );
 
     expect($request->status)->toBe(RewardPayoutRequestStatus::Confirmed)
         ->and(RewardBudgetLedger::balances((string) $program->getKey(), 'MYR'))
-        ->toBe(['funded' => 10000, 'reserved' => 0, 'net_spent' => 511, 'available' => 9489]);
+        ->toBe(['funded' => 10000, 'reserved' => 0, 'net_spent' => 500, 'available' => 9500]);
 });
 
-it('keeps unknown payouts reserved and refuses resubmission until reconciliation', function () {
+it('keeps manual payouts reserved until independent confirmation', function () {
     [$program, $version] = faProgram('fa-unk', 10000);
     [$award, $memberId, $reader] = faHeld($program, $version, 'src-fa-unk-1');
     [$staff, $verifier, $requester, $approver] = faStaff();
 
-    Http::preventStrayRequests();
-    Http::fake([
-        'api-m.sandbox.paypal.com/v1/oauth2/token' => Http::response(['access_token' => 'pp-test-token'], 200),
-        'api-m.sandbox.paypal.com/v1/payments/payouts*' => Http::response(['name' => 'SERVER_ERROR'], 500),
-    ]);
-    config()->set('affiliates.payouts.paypal.client_id', 'test-id');
-    config()->set('affiliates.payouts.paypal.client_secret', 'test-secret');
-
     $payee = VerifyRewardPayeeAction::run(
-        'user', $memberId, 'paypal', 'unk@example.test', 'unk@example.test',
+        'user', $memberId, 'bank_transfer', 'ACCT-UNK', 'Bank ••UN',
         'user', $verifier, 'staff', null, CarbonImmutable::parse('2026-06-16T00:00:00Z'),
     );
 
     $approved = faApprove($award, $reader, $staff, '2026-06-17T00:00:00Z');
     $request = RequestRewardPayoutAction::run(
-        $approved, $payee, 'paypal', 'program', 'user', $requester, 'staff',
+        $approved, $payee, 'bank_transfer', 'program', 'user', $requester, 'staff',
         null, CarbonImmutable::parse('2026-06-17T00:00:00Z'),
     );
     $request = ApproveRewardPayoutAction::run(
@@ -410,31 +395,31 @@ it('keeps unknown payouts reserved and refuses resubmission until reconciliation
         $request, 'user', $staff, 'staff', CarbonImmutable::parse('2026-06-18T00:00:00Z'),
     );
 
-    expect($request->status)->toBe(RewardPayoutRequestStatus::Unknown)
+    expect($request->status)->toBe(RewardPayoutRequestStatus::Submitted)
         ->and(RewardBudgetLedger::balances((string) $program->getKey(), 'MYR'))
-        ->toBe(['funded' => 10000, 'reserved' => 511, 'net_spent' => 0, 'available' => 9489]);
+        ->toBe(['funded' => 10000, 'reserved' => 500, 'net_spent' => 0, 'available' => 9500]);
 
-    // A resubmit while unknown retries the SAME authorization: no new
-    // budget reserve lands, the single attempt-1 reserve stands.
-    $request = SubmitRewardPayoutAction::run(
+    // A manual payout already submitted cannot be resubmitted; the single
+    // attempt-1 reserve stands and only independent confirmation spends it.
+    expect(fn () => SubmitRewardPayoutAction::run(
         $request, 'user', $staff, 'staff', CarbonImmutable::parse('2026-06-18T01:00:00Z'),
-    );
+    ))->toThrow(InvalidArgumentException::class, 'Only approved or unknown payouts can be submitted.');
 
-    expect($request->status)->toBe(RewardPayoutRequestStatus::Unknown)
-        ->and(RewardBudgetMovement::query()
-            ->where('program_id', (string) $program->getKey())
-            ->where('currency', 'MYR')
-            ->where('kind', RewardBudgetMovementKind::Reserve->value)
-            ->count())->toBe(2)
-        ->and(RewardBudgetLedger::balances((string) $program->getKey(), 'MYR')['reserved'])->toBe(511);
+    expect(RewardBudgetMovement::query()
+        ->where('program_id', (string) $program->getKey())
+        ->where('currency', 'MYR')
+        ->where('kind', RewardBudgetMovementKind::Reserve->value)
+        ->where('movement_key', 'like', 'reserve:%')
+        ->count())->toBe(1)
+        ->and(RewardBudgetLedger::balances((string) $program->getKey(), 'MYR')['reserved'])->toBe(500);
 
-    // Unprovable status keeps the reservation and the operation intact.
+    // Reconciliation never attests receipt for a manual rail.
     $request = ReconcileRewardPayoutAction::run(
         $request, 'user', $staff, 'staff', CarbonImmutable::parse('2026-06-18T02:00:00Z'),
     );
 
-    expect($request->status)->toBe(RewardPayoutRequestStatus::Unknown)
-        ->and(RewardBudgetLedger::balances((string) $program->getKey(), 'MYR')['reserved'])->toBe(511);
+    expect($request->status)->toBe(RewardPayoutRequestStatus::Submitted)
+        ->and(RewardBudgetLedger::balances((string) $program->getKey(), 'MYR')['reserved'])->toBe(500);
 });
 
 it('bounds confirmed recoveries to actual spend and refuses to mint budget', function () {

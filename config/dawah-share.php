@@ -35,6 +35,10 @@ return [
         'input' => 'guest_credential',
     ],
 
+    'guest_profile' => [
+        'retention_days' => 90,
+    ],
+
     'claim_cookie' => [
         'name' => 'mi_dawah_guest_claim',
         'minutes' => 60 * 24 * 30,

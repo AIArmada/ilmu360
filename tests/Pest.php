@@ -199,6 +199,34 @@ pest()->extend(TestCase::class)
     })
     ->in('Feature', 'Browser');
 
+/*
+|--------------------------------------------------------------------------
+| Real-Driver Proofs
+|--------------------------------------------------------------------------
+|
+| These proofs start an isolated PostgreSQL 17 fixture, build a fresh worker
+| database from every migration, and race independent OS processes. Setup is
+| inherent, not accidental: one worker database costs about five seconds.
+| They stay in CI (sharded) but are excluded from the default local run:
+|
+|     composer test            # without real-driver proofs
+|     composer test:drivers    # only real-driver proofs
+|
+*/
+
+pest()->group('real-driver')->in(
+    'Feature/ShareTracking/CommittedShareSignalLateArrivalRaceTest.php',
+    'Feature/ShareTracking/CommittedShareSignalRaceTest.php',
+    'Feature/ShareTracking/ShareMetricRaceTest.php',
+    'Feature/ShareTracking/Wp1RealDriverCollisionTest.php',
+    'Feature/ShareTracking/Wp1RealDriverContactUniquenessTest.php',
+    'Feature/ShareTracking/Wp2RealDriverOutcomeTest.php',
+    'Feature/ShareTracking/Wp2RealDriverRaceTest.php',
+    'Feature/ShareTracking/Wp3RealDriverRaceTest.php',
+    'Feature/ShareTracking/Wp3SocialProfileSchemaTest.php',
+    'Feature/ShareTracking/Wp3VendorSchemaTest.php',
+);
+
 /**
  * Get a language UUID by its ISO 639-1 code for use in tests.
  */

@@ -2,9 +2,11 @@
 
 use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Models\Bookmark;
+use App\Data\PublicScheduleLeaf;
 use App\Models\Event;
 use App\Models\Person;
 use App\Models\User;
+use App\Services\PublicScheduleDiscoveryService;
 use App\Support\Auth\IntendedRedirect;
 use App\Support\Events\EventDetailPresenter;
 use App\Support\Location\AddressHierarchyFormatter;
@@ -20,27 +22,17 @@ new
     #[Title('ilmu360° - Cari Kuliah & Majlis Ilmu di Malaysia')]
     class extends Component
     {
+        /** @return \Illuminate\Support\Collection<int, PublicScheduleLeaf> */
         #[Computed]
-        public function featuredEvents(): Collection
+        public function featuredEvents(): \Illuminate\Support\Collection
         {
-            return Event::active()
-                ->whereBetween('starts_at', [now(), now()->copy()->addDays(14)])
-                ->with([
-                    'classifications.term',
-                    'institution',
-                    'references',
-                    'institution.addresses.areaAssignments.area',
-                    'institution.addresses.state',
-                    'persons.media',
-                    'persons.titleAssignments.title.category',
-                    'timeExpressions',
-                    'media' => fn ($query) => $query
-                        ->where('collection_name', 'cover')
-                        ->ordered(),
-                ])
-                ->orderBy('starts_at')
-                ->take(3)
-                ->get();
+            return collect(app(PublicScheduleDiscoveryService::class)->search(
+                filters: [
+                    'time_scope' => 'upcoming',
+                    'starts_before' => UserDateTimeFormatter::userNow()->addDays(14)->toDateString(),
+                ],
+                perPage: 3,
+            )->items());
         }
 
         public function toggleSave(string $eventId): void
@@ -89,7 +81,7 @@ new
             }
 
             $eventIds = $this->featuredEvents
-                ->map(fn (Event $event): string => (string) $event->getKey())
+                ->map(fn (PublicScheduleLeaf $leaf): string => (string) $leaf->event->getKey())
                 ->values()
                 ->all();
 
@@ -112,7 +104,9 @@ new
         #[Computed]
         public function featuredMapLocation(): ?array
         {
-            foreach ($this->featuredEvents as $event) {
+            foreach ($this->featuredEvents as $leaf) {
+                $event = $leaf->event;
+
                 if ((string) $event->delivery_mode === \App\Enums\EventFormat::Online->value) {
                     continue;
                 }
@@ -377,17 +371,44 @@ new
                 <div class="flex items-end justify-between gap-4"><div><p class="flex items-center gap-2 text-[0.68rem] font-bold uppercase tracking-[0.2em] text-[#087f59]"><span class="h-2 w-2 rounded-full bg-[#087f59]"></span>{{ __('Majlis Akan Datang') }}</p><h2 class="mt-2 font-heading text-3xl font-bold tracking-tight text-[#112c26] sm:text-4xl">{{ __('Pilihan Majlis Minggu Ini') }}</h2></div><a href="{{ route('events.index') }}" wire:navigate class="hidden items-center gap-2 text-xs font-bold text-[#087f59] sm:inline-flex">{{ __('Lihat semua majlis') }} <span aria-hidden="true">→</span></a></div>
                 @if($this->featuredEvents->isNotEmpty())
                     <div class="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                        @foreach($this->featuredEvents as $event)
-
+                        @foreach($this->featuredEvents as $scheduleLeaf)
                             @php
+                                $event = $scheduleLeaf->event;
+                                $occurrence = $scheduleLeaf->occurrence;
+                                $session = $scheduleLeaf->session;
+                                $scheduleLocation = $session?->locations->first() ?? $occurrence->locations->first() ?? $event->primaryLocation;
+                                $locationName = $scheduleLocation?->venue?->name ?? $scheduleLocation?->label ?? $event->resolvedLocationName();
+                                $spaceName = \App\Support\Spaces\SpaceLocationPresenter::name($scheduleLocation);
+                                if (filled($spaceName)) {
+                                    $locationName = collect([$locationName, $spaceName])->filter()->implode(' · ');
+                                }
+                                $scheduleVenue = $scheduleLocation?->venue;
+                                $address = $scheduleVenue instanceof \App\Models\Venue ? $scheduleVenue->primaryAddress() : null;
+                                $address ??= $event->resolvedLocationAddress();
+                                $locationSecondary = AddressHierarchyFormatter::formatShort($address) ?: null;
+                                $startsAt = $scheduleLeaf->startsAt();
+                                $endsAt = $scheduleLeaf->endsAt();
+                                $timing = $scheduleLeaf->timingText();
+                                if (! $scheduleLeaf->isPrayerRelative() && $startsAt && $endsAt && $endsAt->gt($startsAt)
+                                    && $endsAt->copy()->timezone(UserDateTimeFormatter::resolveTimezone())->isSameDay($startsAt->copy()->timezone(UserDateTimeFormatter::resolveTimezone()))) {
+                                    $timing .= ' — '.UserDateTimeFormatter::format($endsAt, 'g:i A');
+                                }
                                 $isSaved = in_array((string) $event->getKey(), $this->savedEventIds, true);
                             @endphp
                             <x-events.card
                                 :event="$event"
+                                :url="$scheduleLeaf->url()"
+                                :title="$scheduleLeaf->title()"
+                                :starts-at="$startsAt"
+                                :timing-text="$timing"
+                                :location-primary="$locationName"
+                                :location-secondary="$locationSecondary"
                                 :is-saved="$isSaved"
                                 signal-component="home_featured_events"
+                                :signal-entity-type="$scheduleLeaf->entityType()"
+                                :signal-entity-id="$scheduleLeaf->id()"
                                 testid-prefix="homepage-featured-card"
-                                :wire-key="'home-featured-'.$event->id"
+                                :wire-key="'home-featured-'.$scheduleLeaf->entityType().'-'.$scheduleLeaf->id()"
                             />
                         @endforeach
                     </div>

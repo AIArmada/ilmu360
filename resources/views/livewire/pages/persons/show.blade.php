@@ -104,11 +104,8 @@
             'border' => 'group-hover:border-[#0A66C2]/35',
         ],
     ];
-    $showPendingEventStatusNotice = $upcomingEvents->concat($pastEvents)->contains(
-        fn (\App\Models\Event $event): bool => (string) $event->status === 'pending'
-    );
     $showCancelledEventStatusNotice = $upcomingEvents->concat($pastEvents)->contains(
-        fn (\App\Models\Event $event): bool => (string) $event->status === 'cancelled'
+        fn (\App\Data\PublicScheduleLeaf $leaf): bool => (string) $leaf->event->status === 'cancelled'
     );
     $personRouteSegment = \App\Enums\ContributionSubjectType::Person->publicRouteSegment();
 
@@ -184,11 +181,6 @@
                                         <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-100 px-2.5 py-1 text-[10px] font-bold text-emerald-800">
                                             <flux:icon.check variant="mini" class="size-3.5 text-emerald-700" />
                                             {{ __('Disahkan') }}
-                                        </span>
-                                    @elseif((string) $person->status === 'pending')
-                                        <span class="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-100 px-2.5 py-1 text-[10px] font-bold text-amber-800">
-                                            <flux:icon.exclamation-triangle variant="solid" class="size-3.5 text-amber-600" />
-                                            {{ __('Belum disahkan') }}
                                         </span>
                                     @endif
                                 </div>
@@ -440,7 +432,6 @@
 
                     <div class="mt-5">
                         <x-public.moderation-status-note
-                            :show-pending="$showPendingEventStatusNotice"
                             :show-cancelled="$showCancelledEventStatusNotice"
                         />
                     </div>
@@ -451,11 +442,12 @@
                         wire:loading.attr="aria-busy"
                         wire:target="upcomingDateFilter,applyCustomDateRange,clearUpcomingDateFilter"
                     >
-                        @foreach($upcomingEvents as $event)
+                        @foreach($upcomingEvents as $scheduleLeaf)
                             @include('livewire.pages.persons.partials.event-card', [
-                                'event' => $event,
+                                'event' => $scheduleLeaf->event,
+                                'scheduleLeaf' => $scheduleLeaf,
                                 'roleLabel' => null,
-                                'wireKey' => 'upcoming-'.$event->id,
+                                'wireKey' => 'upcoming-'.$scheduleLeaf->entityType().'-'.$scheduleLeaf->id(),
                             ])
                         @endforeach
 
@@ -504,34 +496,41 @@
                         </div>
 
                         <div class="divide-y divide-slate-100">
-                            @foreach($pastEvents as $event)
+                            @foreach($pastEvents as $scheduleLeaf)
                                 @php
-                                    $eventLocation = $resolveEventLocation($event);
+                                    $event = $scheduleLeaf->event;
+                                    $cardStart = $scheduleLeaf->startsAt();
+                                    $cardTimingText = $scheduleLeaf->timingText('h:i A');
+                                    $scheduleLocation = $scheduleLeaf->session?->locations->first() ?? $scheduleLeaf->occurrence->locations->first();
+                                    $eventLocation = $scheduleLocation?->venue?->name ?? $scheduleLocation?->label ?? $resolveEventLocation($event);
                                     $eventFormatValue = $event->delivery_mode?->value ?? $event->delivery_mode;
                                     $isRemoteEvent = in_array($eventFormatValue, ['online', 'hybrid'], true);
                                 @endphp
 
                                 <a
-                                    href="{{ route('events.show', $event) }}"
-                                    wire:key="past-{{ $event->id }}"
+                                    href="{{ $scheduleLeaf->url() }}"
+                                    wire:key="past-{{ $scheduleLeaf->entityType() }}-{{ $scheduleLeaf->id() }}"
                                     wire:navigate
                                     class="group grid gap-4 px-6 py-5 transition hover:bg-emerald-50/40 sm:grid-cols-[5rem_minmax(0,1fr)_auto] sm:items-center sm:px-8"
                                 >
                                     <div class="flex w-fit items-center gap-2 sm:block sm:text-center">
                                         <span class="font-heading text-2xl font-bold text-slate-700">
-                                            {{ \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'd') }}
+                                            {{ \App\Support\Timezone\UserDateTimeFormatter::format($cardStart, 'd') }}
                                         </span>
                                         <span class="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400 sm:block">
-                                            {{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($event->starts_at, 'M Y') }}
+                                            {{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($cardStart, 'M Y') }}
                                         </span>
                                     </div>
 
                                     <div class="min-w-0">
+                                        @if((string) $event->status === 'approved')
+                                            <span class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-800">{{ __('Diluluskan') }}</span>
+                                        @endif
                                         <h3 class="font-heading text-lg font-bold text-slate-800 transition group-hover:text-emerald-700">
-                                            {{ $event->title }}
+                                            {{ $scheduleLeaf->title() }}
                                         </h3>
                                         <p class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
-                                            <span>{{ $event->timing_display !== '' ? $event->timing_display : \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'h:i A') }}</span>
+                                            <span>{{ $cardTimingText }}</span>
                                             @if($eventLocation !== '' && ! $isRemoteEvent)
                                                 <span class="line-clamp-1">{{ $eventLocation }}</span>
                                             @elseif($isRemoteEvent)
@@ -576,6 +575,7 @@
                                 @if($event)
                                     @include('livewire.pages.persons.partials.event-card', [
                                         'event' => $event,
+                                        'scheduleLeaf' => null,
                                         'roleLabel' => $roleLabel,
                                         'wireKey' => 'role-participation-'.$keyPerson->id,
                                     ])

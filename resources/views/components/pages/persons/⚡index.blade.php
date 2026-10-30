@@ -825,14 +825,9 @@ new
 
                                 <!-- Status badge -->
                                 @if((string) $person->status === 'verified')
-                                    <span class="absolute start-2.5 top-2.5 inline-flex items-center gap-1.5 rounded-full border border-white/70 bg-white/92 px-2.5 py-1 text-[10px] font-bold text-emerald-800 shadow-sm backdrop-blur sm:start-3 sm:top-3">
+                                    <span data-testid="verified-badge" class="absolute start-2.5 top-2.5 inline-flex items-center gap-1.5 rounded-full border border-white/70 bg-white/92 px-2.5 py-1 text-[10px] font-bold text-emerald-800 shadow-sm backdrop-blur sm:start-3 sm:top-3">
                                         <flux:icon.check variant="mini" class="size-3.5 text-emerald-700" />
                                         {{ __('Disahkan') }}
-                                    </span>
-                                @elseif((string) $person->status === 'pending')
-                                    <span class="absolute start-2.5 top-2.5 inline-flex items-center gap-1.5 rounded-full border border-amber-300/70 bg-amber-50/92 px-2.5 py-1 text-[10px] font-bold text-amber-800 shadow-sm backdrop-blur sm:start-3 sm:top-3">
-                                        <flux:icon.exclamation-triangle variant="solid" class="size-3.5 text-amber-600" />
-                                        {{ __('Belum disahkan') }}
                                     </span>
                                 @endif
 

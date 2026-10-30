@@ -30,14 +30,14 @@ it('lets a member register a payout destination that lands pending', function ()
     Sanctum::actingAs($this->member);
 
     $response = $this->postJson('/api/v1/rewards/payees', [
-        'method' => 'paypal',
-        'account_ref' => 'member@example.com',
+        'method' => 'manual',
+        'account_ref' => 'member-account-1',
         'account_display' => 'm***@example.com',
     ]);
 
     $response->assertCreated()
         ->assertJsonPath('data.status', RewardPayeeStatus::Pending->value)
-        ->assertJsonPath('data.method', 'paypal')
+        ->assertJsonPath('data.method', 'manual')
         ->assertJsonPath('data.account_display', 'm***@example.com')
         ->assertJsonMissingPath('data.account_ref');
 
@@ -50,13 +50,13 @@ it('lets a member register a payout destination that lands pending', function ()
         ->assertJsonMissingPath('data.0.account_ref');
 });
 
-it('refuses unpayable destinations at registration via the installed processor', function (): void {
+it('refuses an empty operator account reference at registration', function (): void {
     Sanctum::actingAs($this->member);
 
     $response = $this->postJson('/api/v1/rewards/payees', [
-        'method' => 'paypal',
-        'account_ref' => 'not-an-email',
-        'account_display' => 'n***',
+        'method' => 'manual',
+        'account_ref' => '',
+        'account_display' => 'Desk 1',
     ]);
 
     $response->assertStatus(422);

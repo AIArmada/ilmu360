@@ -23,6 +23,7 @@ use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
 use App\Models\Venue;
+use App\Support\Events\PublicScheduleSlug;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
@@ -122,13 +123,11 @@ describe('Event Show Page Going Feature', function () {
             'starts_at' => now()->addDay(),
         ]);
 
-        $eventImage = $event->card_image_url;
-
         $this->get(route('events.show', $event))
             ->assertOk()
-            ->assertSee('<meta property="og:image" content="'.$eventImage.'">', false)
-            ->assertSee('<meta property="og:image:alt" content="Poster untuk Kuliah Hadis Mingguan">', false)
-            ->assertSee('<meta name="twitter:image" content="'.$eventImage.'">', false);
+            ->assertSee('<meta property="og:image" content="https://ilmu360.test/kongsi/kad/'.$event->slug, false)
+            ->assertSee('<meta property="og:image:alt" content="Kuliah Hadis Mingguan', false)
+            ->assertSee('<meta name="twitter:image" content="https://ilmu360.test/kongsi/kad/'.$event->slug, false);
     });
 
     it('shows the going button for future events', function () {
@@ -519,16 +518,82 @@ it('renders every public occurrence and session with hierarchical cover media', 
 
     $response = $this->get(route('events.show', $event));
 
+    // The event URL is a listing once there is more than one date, so it
+    // carries one row per date and no session detail.
     $response->assertOk()
         ->assertSee('data-testid="event-occurrence-'.$firstOccurrence->id.'"', false)
         ->assertSee('data-testid="event-occurrence-'.$secondOccurrence->id.'"', false)
-        ->assertSee('data-testid="event-session-'.$firstSession->id.'"', false)
         ->assertSee('Sesi Dengan Imej Sendiri')
         ->assertSee('Tarikh Kedua Tanpa Imej')
-        ->assertSee('Sesi Kedua Mewarisi Imej Acara')
+        ->assertDontSee('data-testid="event-session-'.$firstSession->id.'"', false);
+
+    // Session-level media belongs to the date page, where each node resolves
+    // its own image and falls back upward to the date and then the event.
+    $this->get(route('events.occurrence', [
+        $event,
+        PublicScheduleSlug::occurrence($firstOccurrence),
+    ]))
+        ->assertOk()
+        ->assertSee('data-testid="event-session-'.$firstSession->id.'"', false)
         ->assertSee($firstOccurrence->getFirstMedia('cover')?->getAvailableUrl(['banner', 'thumb']), false)
-        ->assertSee($firstSession->getFirstMedia('cover')?->getAvailableUrl(['banner', 'thumb']), false)
-        ->assertSee($event->getFirstMedia('cover')?->getAvailableUrl(['banner', 'thumb']), false);
+        ->assertSee($firstSession->getFirstMedia('cover')?->getAvailableUrl(['banner', 'thumb']), false);
+});
+
+it('keeps event registration available on a multi-date listing', function (): void {
+    $event = Event::factory()->create([
+        'title' => 'Majlis Pendaftaran Pelbagai Tarikh',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDay(),
+        'starts_at' => now()->addDay(),
+        'ends_at' => now()->addDay()->addHours(2),
+        'pricing_mode' => 'free',
+        'registration_mode' => 'required',
+    ]);
+    $event->accessPolicy()->delete();
+    EventOccurrence::query()->create([
+        'event_id' => $event->id,
+        'title' => 'Tarikh tambahan',
+        'slug' => 'tarikh-tambahan',
+        'starts_at' => now()->addDays(2),
+        'ends_at' => now()->addDays(2)->addHours(2),
+        'timezone' => 'UTC',
+        'status' => EventOccurrence::PUBLISHED,
+        'visibility' => 'public',
+        'delivery_mode' => 'physical',
+    ]);
+
+    $this->get(route('events.show', $event))
+        ->assertOk()
+        ->assertSee('Tarikh tambahan')
+        ->assertSee('data-testid="event-admission-section"', false)
+        ->assertSee('href="'.route('events.checkout', ['event' => $event]).'"', false);
+});
+
+it('offers attributed sharing on the event and occurrence pages', function (): void {
+    $event = Event::factory()->create([
+        'title' => 'Majlis Perkongsian',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDay(),
+        'starts_at' => now()->addDay(),
+        'ends_at' => now()->addDay()->addHours(2),
+    ]);
+    $occurrence = $event->primaryOccurrence;
+    expect($occurrence)->not->toBeNull();
+
+    $eventUrl = route('events.show', $event);
+    $occurrenceUrl = route('events.occurrence', [$event, PublicScheduleSlug::occurrence($occurrence)]);
+
+    foreach ([$eventUrl, $occurrenceUrl] as $url) {
+        $this->get($url)->assertOk()
+            ->assertSee('id="event-share-panel"', false)
+            ->assertSee('aria-label="Threads"', false)
+            ->assertSee('aria-label="Instagram"', false)
+            ->assertSee('aria-label="TikTok"', false)
+            ->assertSee('payloadEndpoint', false)
+            ->assertSee('share.modal_opened', false);
+    }
 });
 
 it('merges a single occurrence without sessions into the event presentation', function (): void {
@@ -909,7 +974,7 @@ describe('Event Show Page Location & Contact Info', function () {
 
         $this->get(route('events.show', $event))
             ->assertOk()
-            ->assertDontSee('class="size-full object-cover opacity-65"', false);
+            ->assertDontSee('data-testid="event-hero-media"', false);
     });
 
     it('uses event cover as the hero background when available', function () {
@@ -930,7 +995,7 @@ describe('Event Show Page Location & Contact Info', function () {
 
         $this->get(route('events.show', $event))
             ->assertOk()
-            ->assertSee('class="size-full object-cover opacity-65"', false)
+            ->assertSee('data-testid="event-hero-media"', false)
             ->assertSee($event->getFirstMedia('cover')?->getAvailableUrl(['banner', 'thumb']), false);
     });
 

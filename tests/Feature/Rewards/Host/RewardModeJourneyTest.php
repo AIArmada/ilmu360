@@ -49,6 +49,7 @@ use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\Feature\Rewards\Host\Support\RewardHostFixtures;
+use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
 // R9 proof: the full setup -> enroll -> qualify -> hold/review -> fulfill ->
 // correct/recover path per mode through the REAL host source path (receipt +
@@ -58,7 +59,6 @@ use Tests\Feature\Rewards\Host\Support\RewardHostFixtures;
 uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
-    config()->set('affiliates.payouts.reward_award_settlement.enabled', true);
     setPermissionsTeamId(null);
     $this->seed(RoleSeeder::class);
     $this->seed(PermissionSeeder::class);
@@ -369,6 +369,8 @@ it('journeys a badge award from setup to grant to reversal', function () {
 });
 
 it('journeys a cash award from funding to paid fulfillment to recovery', function () {
+    RewardLedgerFixtures::useManualPayouts();
+
     [$member, $staff, $verifier] = journeyUsers();
     $staffId = (string) $staff->getKey();
     $verifierId = (string) $verifier->getKey();

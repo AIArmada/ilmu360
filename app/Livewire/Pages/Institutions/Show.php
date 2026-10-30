@@ -8,6 +8,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Models\Follow;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
+use App\Data\PublicScheduleLeaf;
 use App\Enums\DawahShareOutcomeType;
 use App\Enums\InstitutionStatus;
 use App\Livewire\Concerns\JoinsHierarchyAreaName;
@@ -21,12 +22,12 @@ use App\Services\ShareTrackingService;
 use App\Support\Auth\IntendedRedirect;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphPivot;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use Livewire\Attributes\Layout;
@@ -141,29 +142,29 @@ class Show extends Component
     }
 
     /**
-     * @return EloquentCollection<int, Event>
+     * @return Collection<int, PublicScheduleLeaf>
      */
-    public function getUpcomingEventsProperty(): EloquentCollection
+    public function getUpcomingEventsProperty(): Collection
     {
-        return $this->eventPageData()['upcoming'];
+        return $this->schedulePageData()['upcoming'];
     }
 
     public function getUpcomingTotalProperty(): int
     {
-        return $this->eventPageData()['upcoming_total'];
+        return $this->schedulePageData()['upcoming_total'];
     }
 
     /**
-     * @return EloquentCollection<int, Event>
+     * @return Collection<int, PublicScheduleLeaf>
      */
-    public function getPastEventsProperty(): EloquentCollection
+    public function getPastEventsProperty(): Collection
     {
-        return $this->eventPageData()['past'];
+        return $this->schedulePageData()['past'];
     }
 
     public function getPastTotalProperty(): int
     {
-        return $this->eventPageData()['past_total'];
+        return $this->schedulePageData()['past_total'];
     }
 
     public function getHasAdminOrOwnerMemberProperty(): bool

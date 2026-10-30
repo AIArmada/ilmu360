@@ -6,7 +6,6 @@
     $occurrenceCoverUrl = $occurrenceOwnCoverUrl !== ''
         ? $occurrenceOwnCoverUrl
         : ($eventCoverUrl !== '' ? $eventCoverUrl : null);
-    $occurrenceCoverIsInherited = $occurrenceOwnCoverUrl === '' && $occurrenceCoverUrl !== null;
     $occurrenceExpression = $detail->timeExpressionsFor($occurrence)->first();
     $occurrenceTime = $occurrence->starts_at
         ? \App\Support\Timezone\UserDateTimeFormatter::format($occurrence->starts_at, 'h:i A')
@@ -32,17 +31,6 @@
         <div class="relative min-h-48 overflow-hidden bg-[#173c34]">
             @if($occurrenceCoverUrl)
                 <img src="{{ $occurrenceCoverUrl }}" alt="{{ $occurrenceTitle }}" class="size-full min-h-48 object-cover" loading="lazy">
-                <div class="absolute inset-0 bg-gradient-to-t from-[#0c211e]/85 via-[#0c211e]/10 to-transparent"></div>
-                <div class="absolute inset-x-4 bottom-4 text-white">
-                    <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-[#f2c867]">{{ __('Tarikh') }}</p>
-                    @if($occurrence->starts_at)
-                        <p class="mt-1 font-heading text-3xl font-semibold leading-none">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($occurrence->starts_at, 'd M') }}</p>
-                        <p class="mt-1 text-sm text-white/70">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($occurrence->starts_at, 'Y') }}</p>
-                    @else
-                        <p class="mt-1 font-heading text-2xl font-semibold">{{ __('TBC') }}</p>
-                    @endif
-                    @if($occurrenceCoverIsInherited)<span class="mt-3 inline-flex rounded-full bg-black/25 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] backdrop-blur-sm">{{ __('Majlis') }}</span>@endif
-                </div>
             @else
                 <div class="flex min-h-48 h-full flex-col justify-between bg-[radial-gradient(circle_at_top_right,_rgba(242,200,103,0.35),_transparent_48%),linear-gradient(145deg,#173c34,#285b4e)] p-5 text-white">
                     <div class="flex items-center justify-between"><span class="font-mono text-xs font-bold tracking-[0.18em] text-[#f2c867]">●</span><span class="size-2 rounded-full bg-[#f2c867]"></span></div>

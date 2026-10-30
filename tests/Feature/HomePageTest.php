@@ -3,6 +3,9 @@
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Events\Actions\CreateEventOccurrenceAction;
+use AIArmada\Events\Actions\CreateEventSessionAction;
+use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\EventTimeExpression;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
@@ -18,6 +21,7 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
+use App\Models\Venue;
 use App\Support\Location\VisitorCountryResolver;
 use App\Support\Timezone\UserDateTimeFormatter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -660,4 +664,70 @@ it('resets filters to empty and restores the landed country', function () {
         ->assertSet('filterData.event_format', []);
 
     expect($filters->instance()->activeFilterCount())->toBe(0);
+});
+
+it('shows upcoming occurrence and session cards with their own links, times and locations', function (): void {
+    $this->freezeTime();
+    $event = Event::factory()->create([
+        'title' => 'Homepage Programme Parent',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDay(),
+        'starts_at' => now()->addDays(2),
+        'delivery_mode' => EventFormat::Physical->value,
+        'timing_mode' => TimingMode::Absolute->value,
+    ]);
+    $occurrence = $event->occurrences()->firstOrFail();
+    $occurrence->update(['title' => 'Homepage Day One', 'slug' => 'homepage-day-one']);
+    $otherOccurrence = app(CreateEventOccurrenceAction::class)->handle($event, [
+        'title' => 'Homepage Day Two',
+        'slug' => 'homepage-day-two',
+        'starts_at' => now()->addDays(3),
+        'ends_at' => now()->addDays(3)->addHours(3),
+        'status' => 'published',
+        'visibility' => 'public',
+    ]);
+    $session = app(CreateEventSessionAction::class)->handle($otherOccurrence, [
+        'title' => 'Homepage Session One',
+        'slug' => 'homepage-session-one',
+        'starts_at' => now()->addDays(3)->addHour(),
+        'ends_at' => now()->addDays(3)->addHours(2),
+        'status' => 'published',
+        'visibility' => 'public',
+    ]);
+    $secondSession = app(CreateEventSessionAction::class)->handle($otherOccurrence, [
+        'title' => 'Homepage Session Two',
+        'slug' => 'homepage-session-two',
+        'starts_at' => now()->addDays(3)->addHours(2),
+        'ends_at' => now()->addDays(3)->addHours(3),
+        'status' => 'published',
+        'visibility' => 'public',
+    ]);
+    $venue = Venue::factory()->create(['name' => 'Homepage Session Venue']);
+    EventLocation::query()->create([
+        'event_id' => $event->getKey(),
+        'event_occurrence_id' => $otherOccurrence->getKey(),
+        'event_session_id' => $session->getKey(),
+        'location_role' => 'primary',
+        'venue_id' => $venue->getKey(),
+        'visibility' => 'public',
+        'status' => 'active',
+        'sort_order' => 0,
+    ]);
+
+    Livewire::test('pages.home')
+        ->assertSee('Homepage Day One')
+        ->assertSee('Homepage Session One')
+        ->assertSee('Homepage Session Two')
+        ->assertDontSee('Homepage Programme Parent')
+        ->assertDontSee('Homepage Day Two')
+        ->assertSee('Homepage Session Venue')
+        ->assertSee(UserDateTimeFormatter::format($session->starts_at, 'g:i A'))
+        ->assertSee(route('events.occurrence', ['event' => $event, 'occurrenceSlug' => 'homepage-day-one']), false)
+        ->assertSee(route('events.session', ['event' => $event, 'occurrenceSlug' => 'homepage-day-two', 'sessionSlug' => 'homepage-session-one']), false)
+        ->assertSee('home-featured-occurrence-'.$occurrence->getKey(), false)
+        ->assertSee('home-featured-session-'.$session->getKey(), false)
+        ->assertSee('home-featured-session-'.$secondSession->getKey(), false)
+        ->assertSee('data-signal-entity-type="session"', false)
+        ->assertSee('data-signal-entity-id="'.$session->getKey().'"', false);
 });

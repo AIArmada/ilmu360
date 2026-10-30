@@ -9,7 +9,6 @@ use AIArmada\Addressing\Models\AddressAreaRelationship;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
-use AIArmada\Affiliates\Contracts\AffiliateAwardPolicy;
 use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\Checkout\Contracts\StepContributor;
@@ -79,6 +78,8 @@ use AIArmada\Rewards\Models\RewardProgram;
 use AIArmada\Rewards\Models\RewardRecovery;
 use AIArmada\Rewards\Support\FundedRewardFinancialReadinessChecker;
 use AIArmada\Rewards\Support\FundedRewardReadinessChecker;
+use AIArmada\Rewards\Support\ManualRewardPayoutMethodCatalog;
+use AIArmada\Rewards\Support\NullRewardPayoutExecutor;
 use AIArmada\Rewards\Support\PointLedgerRewardReservationResolver;
 use AIArmada\Rewards\Support\RewardBenefitCatalogService;
 use AIArmada\Signals\Models\TrackedProperty;
@@ -180,11 +181,8 @@ use App\Support\Media\MediaFileNamer;
 use App\Support\Membership\AppMembershipApplicationNotifier;
 use App\Support\Membership\AppMembershipHook;
 use App\Support\Passport\PassportKeyProvisioner;
-use App\Support\Rewards\AffiliatesRewardPayoutExecutor;
-use App\Support\Rewards\AffiliatesRewardPayoutMethodCatalog;
 use App\Support\Rewards\CompositeRewardSourceFactReader;
 use App\Support\Rewards\DigestRewardGratitudePlanner;
-use App\Support\Rewards\RewardCashAwardPolicy;
 use App\Support\Rewards\ShareCorrectionKeySource;
 use App\Support\Rewards\VouchersRewardBenefitCouponFulfillment;
 use BezhanSalleh\LanguageSwitch\LanguageSwitch;
@@ -315,24 +313,22 @@ class AppServiceProvider extends ServiceProvider
             ? AffiliateSignupAttributionSourceResolver::class
             : NullSignupAttributionSourceResolver::class);
 
-        // Real reward host adapters (stateless; safe to share under Octane).
+        // Reward host adapters (stateless; safe to share under Octane).
         // Finance scope binds funded readiness: money/benefit activation
         // proves funding, verified payees, and supported processors from
         // immutable rows, and keeps refusing anything it cannot prove.
+        // Cash payouts stay disabled: the null executor refuses every
+        // operation and the empty method catalog registers nothing.
         $this->app->singleton(RewardSourceFactReader::class, CompositeRewardSourceFactReader::class);
         $this->app->singleton(RewardReservationResolver::class, PointLedgerRewardReservationResolver::class);
         $this->app->singleton(RewardReadinessChecker::class, FundedRewardReadinessChecker::class);
         $this->app->singleton(RewardFinancialReadinessChecker::class, FundedRewardFinancialReadinessChecker::class);
         $this->app->singleton(RewardBenefitCatalog::class, RewardBenefitCatalogService::class);
-        $this->app->singleton(RewardPayoutExecutor::class, AffiliatesRewardPayoutExecutor::class);
-        $this->app->singleton(RewardPayoutMethodCatalog::class, AffiliatesRewardPayoutMethodCatalog::class);
+        $this->app->singleton(RewardPayoutExecutor::class, NullRewardPayoutExecutor::class);
+        $this->app->singleton(RewardPayoutMethodCatalog::class, ManualRewardPayoutMethodCatalog::class);
         $this->app->singleton(RewardBenefitCouponFulfillment::class, VouchersRewardBenefitCouponFulfillment::class);
         $this->app->singleton(RewardCorrectionKeySource::class, ShareCorrectionKeySource::class);
         $this->app->singleton(RewardGratitudePlanner::class, DigestRewardGratitudePlanner::class);
-        $this->app->singleton(
-            AffiliateAwardPolicy::class,
-            RewardCashAwardPolicy::class,
-        );
 
         if (interface_exists(StepContributor::class)) {
             $this->app->tag(ShareCheckoutStepContributor::class, 'checkout.steps');

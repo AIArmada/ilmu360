@@ -3,16 +3,14 @@
 declare(strict_types=1);
 
 // R4 real-driver proof: independent payout workers race the same reward
-// fixtures with controlled provider HTTP. The affiliate send mutex,
-// pre-send re-verification, and stable idempotency keys make every
-// interleaving coherent: exactly one terminal outcome, exactly-once
-// provider sends, and exact budget accounting. Timing is never asserted.
+// fixtures on the native manual rail. The per-request send mutex,
+// pre-send re-verification, and stable manual operation keys make every
+// interleaving coherent: exactly one terminal outcome and exact budget
+// accounting. Timing is never asserted.
 //
 // Guarded test-only worker databases: loopback isolated ports/databases
 // only. Never the live application database (ilmu360 / 127.0.0.1:5432).
 
-use AIArmada\Affiliates\Models\AffiliateConversion;
-use AIArmada\Affiliates\States\PaidConversion;
 use AIArmada\Rewards\Actions\ApproveRewardPayoutAction;
 use AIArmada\Rewards\Actions\ConfirmRewardPayoutAction;
 use AIArmada\Rewards\Actions\CreateRewardProgramAction;
@@ -23,6 +21,7 @@ use AIArmada\Rewards\Actions\SubmitRewardPayoutAction;
 use AIArmada\Rewards\Actions\VerifyRewardPayeeAction;
 use AIArmada\Rewards\Enums\RewardAwardStatus;
 use AIArmada\Rewards\Enums\RewardBeneficiaryRole;
+use AIArmada\Rewards\Enums\RewardBudgetMovementKind;
 use AIArmada\Rewards\Enums\RewardComponent;
 use AIArmada\Rewards\Enums\RewardPayoutRequestStatus;
 use AIArmada\Rewards\Enums\RewardProgramMode;
@@ -33,17 +32,17 @@ use AIArmada\Rewards\Models\RewardProgram;
 use AIArmada\Rewards\Models\RewardRecovery;
 use AIArmada\Rewards\Support\RewardBudgetLedger;
 use Carbon\CarbonImmutable;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 use Tests\Feature\ShareTracking\ShareMetricRaceHarness;
 use Tests\TestCase;
 
-beforeEach(function (): void {
-    config(['affiliates.payouts.reward_award_settlement.enabled' => true]);
-});
-
 function lcrProgram(string $family): RewardProgram
 {
+    // Both the parent and every worker opt into the native manual rail;
+    // the shipped host binds the null executor with an empty catalog.
+    RewardLedgerFixtures::useManualPayouts();
+
     // Mute the notification side channel in the setup process too (the
     // workers do the same): it is not the raced boundary.
     config(['affiliates.notifications.enabled' => false]);
@@ -71,7 +70,7 @@ function lcrProgram(string $family): RewardProgram
 function lcrAward(RewardProgram $program, string $memberId, string $source): RewardAward
 {
     // Direct fixture row: the payout actions under test (submit, cancel,
-    // reconcile, reverse) run for real against it. Entitlement evaluation
+    // confirm, reverse) run for real against it. Entitlement evaluation
     // is not the boundary under test here.
     return RewardAward::query()->create([
         'program_id' => $program->getKey(),
@@ -96,8 +95,6 @@ function lcrAward(RewardProgram $program, string $memberId, string $source): Rew
  */
 function lcrRequest(RewardAward $award, string $memberId, string $method, string $ref): array
 {
-    config(['affiliates.payouts.stripe.secret_key' => 'sk_test_fixture']);
-
     $staff = (string) Str::uuid();
     $verifier = (string) Str::uuid();
     $requester = (string) Str::uuid();
@@ -139,7 +136,7 @@ function lcrSubmitCancelCase(TestCase $testCase): void
         $program = lcrProgram('race-sc');
         $memberId = (string) Str::uuid();
         $award = lcrAward($program, $memberId, 'src-race-sc-1');
-        [$request, $actors] = lcrRequest($award, $memberId, 'stripe_connect', 'acct_race_sc');
+        [$request, $actors] = lcrRequest($award, $memberId, 'bank_transfer', 'ACCT-RACE-SC');
 
         [$first, $second] = lcrRace([
             'database' => $database,
@@ -150,31 +147,30 @@ function lcrSubmitCancelCase(TestCase $testCase): void
                 'actor' => ['type' => 'user', 'id' => $actors['staff'], 'role' => 'staff'],
                 'reason' => 'race-decision',
                 'decided_at' => '2026-06-18T00:00:00Z',
-                'fake' => ['posts' => [['status' => 200, 'body' => ['id' => 'tr_race_sc_1']]], 'listed' => []],
                 'slots' => [['op' => 'submit'], ['op' => 'cancel']],
             ],
         ]);
 
         $final = $request->refresh()->status;
-        $posts = ($first['posts'] ?? 0) + ($second['posts'] ?? 0);
+        $balances = RewardBudgetLedger::balances((string) $program->getKey(), 'MYR');
 
         // Exactly one terminal outcome, coherent with the ledger: either
-        // the send won (confirmed + spent once, cancel refused) or the
-        // cancel won (cancelled + released, send aborted). Never both,
-        // never a spend beside a release.
-        expect($final === RewardPayoutRequestStatus::Confirmed || $final === RewardPayoutRequestStatus::Cancelled)->toBeTrue()
-            ->and($posts)->toBeLessThanOrEqual(1);
+        // the manual submission won (Submitted + 500 reserved, cancel
+        // released it) or the cancel won (Cancelled + released, submit
+        // aborted). Never a spend on the manual rail.
+        expect(in_array($final, [RewardPayoutRequestStatus::Submitted, RewardPayoutRequestStatus::Cancelled], true))->toBeTrue()
+            ->and(RewardBudgetMovement::query()
+                ->where('program_id', (string) $program->getKey())
+                ->where('kind', RewardBudgetMovementKind::Spend->value)
+                ->count())->toBe(0);
 
-        if ($final === RewardPayoutRequestStatus::Confirmed) {
-            expect(collect([$first, $second])->pluck('outcome')->all())->toContain('aborted')
-                ->and(RewardBudgetLedger::balances((string) $program->getKey(), 'MYR'))
-                ->toBe(['funded' => 10000, 'reserved' => 0, 'net_spent' => 527, 'available' => 9473])
-                ->and($posts)->toBe(1);
+        if ($final === RewardPayoutRequestStatus::Submitted) {
+            expect($balances)->toBe(['funded' => 10000, 'reserved' => 500, 'net_spent' => 0, 'available' => 9500])
+                ->and($request->refresh()->external_payout_id)
+                ->toBe('manual:reward-payout:'.$award->getKey());
         } else {
-            expect(collect([$first, $second])->pluck('outcome')->all())->toContain('aborted')
-                ->and(RewardBudgetLedger::balances((string) $program->getKey(), 'MYR'))
-                ->toBe(['funded' => 10000, 'reserved' => 0, 'net_spent' => 0, 'available' => 10000])
-                ->and($posts)->toBe(0);
+            expect($balances)->toBe(['funded' => 10000, 'reserved' => 0, 'net_spent' => 0, 'available' => 10000])
+                ->and(collect([$first, $second])->pluck('outcome')->all())->toContain('aborted');
         }
     } finally {
         ShareMetricRaceHarness::teardown($database, $previous);
@@ -189,7 +185,7 @@ function lcrDoubleSubmitCase(TestCase $testCase): void
         $program = lcrProgram('race-ss');
         $memberId = (string) Str::uuid();
         $award = lcrAward($program, $memberId, 'src-race-ss-1');
-        [$request, $actors] = lcrRequest($award, $memberId, 'stripe_connect', 'acct_race_ss');
+        [$request, $actors] = lcrRequest($award, $memberId, 'bank_transfer', 'ACCT-RACE-SS');
 
         [$first, $second] = lcrRace([
             'database' => $database,
@@ -199,19 +195,18 @@ function lcrDoubleSubmitCase(TestCase $testCase): void
                 'request_id' => (string) $request->getKey(),
                 'actor' => ['type' => 'user', 'id' => $actors['staff'], 'role' => 'staff'],
                 'decided_at' => '2026-06-18T00:00:00Z',
-                'fake' => ['posts' => [['status' => 200, 'body' => ['id' => 'tr_race_ss_1']]], 'listed' => []],
                 'slots' => [['op' => 'submit'], ['op' => 'submit']],
             ],
         ]);
 
-        // One provider send, one spend, one winner; the loser aborts
-        // cleanly instead of double-recording.
-        expect($request->refresh()->status)->toBe(RewardPayoutRequestStatus::Confirmed)
-            ->and(($first['posts'] ?? 0) + ($second['posts'] ?? 0))->toBe(1)
+        // One successful manual submission, one stable operation id, one
+        // reservation; the loser aborts cleanly instead of re-recording.
+        expect($request->refresh()->status)->toBe(RewardPayoutRequestStatus::Submitted)
+            ->and($request->external_payout_id)->toBe('manual:reward-payout:'.$award->getKey())
             ->and(collect([$first, $second])->where('outcome', 'done')->count())->toBe(1)
             ->and(RewardBudgetLedger::balances((string) $program->getKey(), 'MYR'))
-            ->toBe(['funded' => 10000, 'reserved' => 0, 'net_spent' => 527, 'available' => 9473])
-            ->and(RewardBudgetMovement::query()->where('kind', 'spend')->count())->toBe(1);
+            ->toBe(['funded' => 10000, 'reserved' => 500, 'net_spent' => 0, 'available' => 9500])
+            ->and(RewardBudgetMovement::query()->where('kind', 'spend')->count())->toBe(0);
     } finally {
         ShareMetricRaceHarness::teardown($database, $previous);
     }
@@ -232,7 +227,9 @@ function lcrDoubleReverseCase(TestCase $testCase): void
             $request, 'user', $actors['staff'], 'staff', CarbonImmutable::parse('2026-06-18T00:00:00Z'),
         );
         $request = ConfirmRewardPayoutAction::run(
-            $request, ['bank_reference' => 'BANK-RACE-RR'], 'user', $confirmer, 'staff',
+            $request,
+            ['bank_reference' => 'BANK-RACE-RR', 'transferred_at' => '2026-06-19T00:00:00Z'],
+            'user', $confirmer, 'staff',
             CarbonImmutable::parse('2026-06-19T00:00:00Z'),
         );
 
@@ -279,20 +276,18 @@ function lcrDoubleCancelCase(TestCase $testCase): void
         $memberId = (string) Str::uuid();
         $award = lcrAward($program, $memberId, 'src-race-cc-1');
 
-        config(['affiliates.payouts.stripe.secret_key' => 'sk_test_fixture']);
-
         $staff = (string) Str::uuid();
         $verifier = (string) Str::uuid();
         $requester = (string) Str::uuid();
 
         $payee = VerifyRewardPayeeAction::run(
-            'user', $memberId, 'stripe_connect', 'acct_race_cc', 'acct_race_cc',
+            'user', $memberId, 'bank_transfer', 'ACCT-RACE-CC', 'ACCT-RACE-CC',
             'user', $verifier, 'staff', null, CarbonImmutable::parse('2026-06-16T00:00:00Z'),
         );
 
-        // Requested, never approved: no payout exists yet.
+        // Requested, never approved: no manual submission exists yet.
         $request = RequestRewardPayoutAction::run(
-            $award, $payee, 'stripe_connect', 'program', 'user', $requester, 'staff',
+            $award, $payee, 'bank_transfer', 'program', 'user', $requester, 'staff',
             null, CarbonImmutable::parse('2026-06-17T00:00:00Z'),
         );
 
@@ -320,7 +315,7 @@ function lcrDoubleCancelCase(TestCase $testCase): void
     }
 }
 
-function lcrLateCompletionCase(TestCase $testCase): void
+function lcrDoubleConfirmCase(TestCase $testCase): void
 {
     [$database, $previous] = ShareMetricRaceHarness::worker('lcrlc');
 
@@ -328,25 +323,15 @@ function lcrLateCompletionCase(TestCase $testCase): void
         $program = lcrProgram('race-lc');
         $memberId = (string) Str::uuid();
         $award = lcrAward($program, $memberId, 'src-race-lc-1');
-        [$request, $actors] = lcrRequest($award, $memberId, 'stripe_connect', 'acct_race_lc');
+        [$request, $actors] = lcrRequest($award, $memberId, 'bank_transfer', 'ACCT-RACE-LC');
 
-        // Main process drives the request to unknown (provider 500s);
-        // both workers then race the late completion.
-        Http::fake([
-            'api.stripe.com/v1/transfers*' => function ($request) {
-                if ($request->method() === 'GET') {
-                    return Http::response(['data' => []], 200);
-                }
-
-                return Http::response(['error' => ['code' => 'api_error']], 500);
-            },
-        ]);
-
+        // Main process drives the manual request to Submitted; both
+        // workers then race the independent confirmation.
         $request = SubmitRewardPayoutAction::run(
             $request, 'user', $actors['staff'], 'staff', CarbonImmutable::parse('2026-06-18T00:00:00Z'),
         );
 
-        expect($request->status)->toBe(RewardPayoutRequestStatus::Unknown);
+        expect($request->status)->toBe(RewardPayoutRequestStatus::Submitted);
 
         [$first, $second] = lcrRace([
             'database' => $database,
@@ -356,43 +341,39 @@ function lcrLateCompletionCase(TestCase $testCase): void
                 'request_id' => (string) $request->getKey(),
                 'actor' => ['type' => 'user', 'id' => $actors['staff'], 'role' => 'staff'],
                 'decided_at' => '2026-06-19T00:00:00Z',
-                'fake' => ['posts' => [], 'listed' => [['id' => 'tr_race_late_1']]],
-                'slots' => [['op' => 'reconcile'], ['op' => 'reconcile']],
+                'slots' => [['op' => 'confirm'], ['op' => 'confirm']],
             ],
         ]);
 
-        // The late transfer settles both ledgers exactly once; the loser
-        // observes the confirmation instead of re-spending.
+        // Independent confirmation settles both ledgers exactly once; the
+        // loser observes the confirmation instead of re-spending.
         expect($request->refresh()->status)->toBe(RewardPayoutRequestStatus::Confirmed)
+            ->and(collect([$first, $second])->where('outcome', 'done')->count())->toBe(1)
             ->and(RewardBudgetLedger::balances((string) $program->getKey(), 'MYR'))
-            ->toBe(['funded' => 10000, 'reserved' => 0, 'net_spent' => 527, 'available' => 9473])
+            ->toBe(['funded' => 10000, 'reserved' => 0, 'net_spent' => 500, 'available' => 9500])
             ->and(RewardBudgetMovement::query()->where('kind', 'spend')->count())->toBe(1);
-
-        $conversion = AffiliateConversion::query()->whereKey((string) $request->external_reference_id)->firstOrFail();
-
-        expect($conversion->status->equals(PaidConversion::class))->toBeTrue();
     } finally {
         ShareMetricRaceHarness::teardown($database, $previous);
     }
 }
 
 $label = 'isolated PostgreSQL';
-    it("keeps a raced submit and cancel coherent on {$label}", function (): void {
-        lcrSubmitCancelCase($this);
-    });
+it("keeps a raced submit and cancel coherent on {$label}", function (): void {
+    lcrSubmitCancelCase($this);
+});
 
-    it("sends exactly once under a raced double submit on {$label}", function (): void {
-        lcrDoubleSubmitCase($this);
-    });
+it("submits exactly once under a raced double submit on {$label}", function (): void {
+    lcrDoubleSubmitCase($this);
+});
 
-    it("opens one recovery under a raced double reversal on {$label}", function (): void {
-        lcrDoubleReverseCase($this);
-    });
+it("opens one recovery under a raced double reversal on {$label}", function (): void {
+    lcrDoubleReverseCase($this);
+});
 
-    it("releases exactly once under a raced double cancel on {$label}", function (): void {
-        lcrDoubleCancelCase($this);
-    });
+it("releases exactly once under a raced double cancel on {$label}", function (): void {
+    lcrDoubleCancelCase($this);
+});
 
-    it("settles a raced late completion exactly once on {$label}", function (): void {
-        lcrLateCompletionCase($this);
-    });
+it("confirms a raced manual payout exactly once on {$label}", function (): void {
+    lcrDoubleConfirmCase($this);
+});

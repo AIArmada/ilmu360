@@ -128,6 +128,21 @@ final class PublicScheduleDiscoveryService
         return $this->paginate($leaves, $perPage);
     }
 
+    /**
+     * @param  EloquentCollection<int, Event>  $events
+     * @return Collection<int, PublicScheduleLeaf>
+     */
+    public function leavesForEvents(EloquentCollection $events): Collection
+    {
+        $events->load([...$this->searchRelations(), 'occurrences.references']);
+        $this->hydrateApplicationVenues($events);
+
+        return $this->flatten($events)
+            ->filter(fn (PublicScheduleLeaf $leaf): bool => $leaf->startsAt() instanceof CarbonInterface)
+            ->sort(fn (PublicScheduleLeaf $left, PublicScheduleLeaf $right): int => $this->compareByTime($left, $right))
+            ->values();
+    }
+
     public function findOccurrence(Event $event, string $slug): ?EventOccurrence
     {
         // Load the public schedule set up front so detail mounts can reuse it

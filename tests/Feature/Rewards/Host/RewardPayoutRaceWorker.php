@@ -3,19 +3,19 @@
 declare(strict_types=1);
 
 // Permanent race worker for RewardPayoutRaceTest. Executed only as a
-// ...`); returns immediately when merely included, so test runners and
-// autoloaders never execute it.
+// subprocess by ShareMetricRaceHarness; returns immediately when merely
+// included, so test runners and autoloaders never execute it.
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Rewards\Actions\CancelRewardPayoutAction;
-use AIArmada\Rewards\Actions\ReconcileRewardPayoutAction;
+use AIArmada\Rewards\Actions\ConfirmRewardPayoutAction;
 use AIArmada\Rewards\Actions\ReverseRewardFulfillmentAction;
 use AIArmada\Rewards\Actions\SubmitRewardPayoutAction;
 use AIArmada\Rewards\Models\RewardAward;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
+use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 use Tests\Support\RealDriverFixture;
 
 if (PHP_SAPI !== 'cli' || realpath($_SERVER['SCRIPT_FILENAME'] ?? '') !== __FILE__) {
@@ -42,8 +42,6 @@ $slot = (int) ($options['slot'] ?? 0);
 
 // Same guards as the WP1/WP2 harnesses: loopback isolated fixtures only,
 // worker-namespaced databases only.
-
-
 if (preg_match('/^share_rewards_test_[a-z0-9_]{1,43}$/', $database) !== 1) {
     $fail('Refusing a database outside the isolated worker namespace.');
 }
@@ -81,18 +79,18 @@ config(['database.connections.smr_race_worker' => $workerConfig]);
 config(['database.default' => 'smr_race_worker']);
 config(['app.url' => (string) ($options['app-url'] ?? config('app.url'))]);
 // Shared file cache (NOT array): the payout send mutex must exclude
-// across the two worker processes, exactly as in production. The
-// affiliate notification side channel is muted (as mail is): it is not
-// the raced boundary, and its tables are outside the worker subset.
+// across the two worker processes, exactly as in production.
 config([
     'cache.default' => 'file',
     'queue.default' => 'sync',
     'session.driver' => 'array',
     'mail.default' => 'array',
-    'affiliates.notifications.enabled' => false,
-    'affiliates.payouts.reward_award_settlement.enabled' => true,
 ]);
 DB::purge('smr_race_worker');
+
+// Subprocesses do not inherit the parent's container bindings: opt into
+// the native manual rail here, exactly as the parent setup does.
+RewardLedgerFixtures::useManualPayouts();
 
 OwnerContext::setForRequest(null);
 
@@ -121,29 +119,6 @@ while (! is_file($readyDir.'/ready-'.$peer)) {
 
     usleep(5000);
 }
-
-// Controlled HTTP per worker: no live network, ever. Each worker counts
-// its own provider POSTs so the parent can assert exactly-once sends.
-$posts = 0;
-$fake = $payload['fake'] ?? [];
-$postSpecs = $fake['posts'] ?? [];
-$listed = $fake['listed'] ?? [];
-
-Http::preventStrayRequests();
-Http::fake([
-    'api.stripe.com/v1/transfers*' => function ($request) use (&$posts, $postSpecs, $listed) {
-        if ($request->method() === 'GET') {
-            return Http::response(['data' => $listed], 200);
-        }
-
-        $spec = $postSpecs[min($posts, count($postSpecs) - 1)] ?? ['status' => 200, 'body' => ['id' => 'tr_race_default']];
-        $posts++;
-
-        return Http::response($spec['body'] ?? [], $spec['status'] ?? 200);
-    },
-]);
-
-config(['affiliates.payouts.stripe.secret_key' => 'sk_test_fixture']);
 
 $job = $payload['slots'][$slot] ?? null;
 
@@ -179,9 +154,13 @@ try {
 
             return ['outcome' => 'done', 'status' => $request->status->value];
         })(),
-        'reconcile' => (static function () use ($payload, $actor, $decided): array {
-            $request = ReconcileRewardPayoutAction::run(
+        'confirm' => (static function () use ($payload, $actor, $decided): array {
+            $request = ConfirmRewardPayoutAction::run(
                 (string) $payload['request_id'],
+                [
+                    'bank_reference' => 'race-bank-reference',
+                    'transferred_at' => '2026-06-19T00:00:00Z',
+                ],
                 (string) ($actor['type'] ?? 'user'),
                 $actor['id'] ?? null,
                 (string) ($actor['role'] ?? 'staff'),
@@ -212,7 +191,5 @@ try {
 } catch (Throwable $exception) {
     $fail('Race worker crashed: '.get_class($exception).': '.$exception->getMessage());
 }
-
-$report['posts'] = $posts;
 
 echo json_encode(['ok' => true, 'report' => $report], JSON_THROW_ON_ERROR)."\n";

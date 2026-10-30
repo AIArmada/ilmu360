@@ -89,7 +89,7 @@ return [
     ],
 
     'payouts' => [
-        'methods' => ['manual'],
+        'methods' => [],
     ],
 
 ];

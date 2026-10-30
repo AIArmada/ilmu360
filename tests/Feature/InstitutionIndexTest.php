@@ -80,19 +80,19 @@ it('renders translated no-result copy on institution index', function () {
         ->assertSee(__('We couldn\'t find any institutions matching your search.'));
 });
 
-it('lists pending institutions in the directory with the unverified badge and includes them in search', function () {
+it('lists pending institutions without an unverified badge and includes them in search', function () {
     $institution = Institution::factory()->create([
-        'name' => 'Institusi Belum Disahkan',
+        'name' => 'Institusi Menunggu Semakan',
         'status' => 'pending',
     ]);
 
     get('/institusi')
         ->assertSuccessful()
-        ->assertSee('Institusi Belum Disahkan')
-        ->assertSee('Belum disahkan');
+        ->assertSee('Institusi Menunggu Semakan')
+        ->assertDontSee('Belum disahkan');
 
-    Livewire::test('pages.institutions.index', ['search' => 'Institusi Belum Disahkan'])
-        ->assertSee('Institusi Belum Disahkan');
+    Livewire::test('pages.institutions.index', ['search' => 'Institusi Menunggu Semakan'])
+        ->assertSee('Institusi Menunggu Semakan');
 });
 
 it('keeps the institution card majlis counter in the footer row without a view details label', function () {
@@ -874,4 +874,13 @@ it('dispatches cleared filters to results when filters are cleared', function ()
             'district' => null,
             'subdivision' => null,
         ]);
+});
+
+it('shows a trust badge only on verified institusi cards', function () {
+    Institution::factory()->create(['name' => 'Profil Sah', 'status' => 'verified']);
+    Institution::factory()->create(['name' => 'Profil Semakan', 'status' => 'pending']);
+
+    $response = get('/institusi')->assertSuccessful()->assertSee('Profil Sah')->assertSee('Profil Semakan');
+
+    expect(substr_count($response->getContent(), 'data-testid="verified-badge"'))->toBe(1);
 });

@@ -3,9 +3,18 @@
 use AIArmada\Events\Actions\CreateEventOccurrenceAction;
 use AIArmada\Events\Actions\CreateEventSessionAction;
 use AIArmada\Events\Models\EventLocation;
+use AIArmada\Events\Models\EventReference;
 use App\Enums\EventFormat;
+use App\Enums\PrayerOffset;
+use App\Enums\PrayerReference;
+use App\Enums\TimingMode;
 use App\Livewire\Pages\Events\Index;
+use App\Livewire\Pages\Institutions\Show;
 use App\Models\Event;
+use App\Models\EventKeyPerson;
+use App\Models\Institution;
+use App\Models\Person;
+use App\Models\Reference;
 use App\Models\Venue;
 use App\Support\Location\VisitorCountryResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -330,4 +339,130 @@ it('does not expose private child schedules or allow cross-parent slug traversal
         'event' => $otherEvent,
         'occurrenceSlug' => 'public-occurrence',
     ]))->assertNotFound();
+});
+
+it('lists scoped schedule leaves on institution, reference and speaker pages', function (): void {
+    $this->travelTo(now()->startOfDay());
+    $institution = Institution::factory()->create(['status' => 'verified']);
+    $reference = Reference::factory()->create(['status' => 'verified']);
+    $speaker = Person::factory()->create(['status' => 'verified']);
+    $otherSpeaker = Person::factory()->create(['status' => 'verified']);
+    $event = Event::factory()->create([
+        'title' => 'Scoped Parent Programme',
+        'institution_id' => $institution->getKey(),
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDay(),
+        'starts_at' => now()->addDays(2),
+    ]);
+    $occurrence = $event->occurrences()->firstOrFail();
+    $occurrence->update(['title' => 'Parent Occurrence', 'slug' => 'scoped-profile-day']);
+    $first = app(CreateEventSessionAction::class)->handle($occurrence, [
+        'title' => 'Matching Profile Session',
+        'slug' => 'matching-profile-session',
+        'starts_at' => now()->addDays(2)->addHour(),
+        'status' => 'published',
+        'visibility' => 'public',
+    ]);
+    $second = app(CreateEventSessionAction::class)->handle($occurrence, [
+        'title' => 'Different Profile Session',
+        'slug' => 'different-profile-session',
+        'starts_at' => now()->addDays(3),
+        'status' => 'published',
+        'visibility' => 'public',
+    ]);
+    foreach ([[$first, $speaker], [$second, $otherSpeaker]] as [$session, $person]) {
+        EventKeyPerson::query()->create([
+            'event_id' => $event->getKey(),
+            'event_occurrence_id' => $occurrence->getKey(),
+            'event_session_id' => $session->getKey(),
+            'involveable_type' => $person->getMorphClass(),
+            'involveable_id' => $person->getKey(),
+            'role_code' => 'speaker',
+            'status' => 'active',
+            'visibility' => 'public',
+        ]);
+    }
+    EventReference::query()->create([
+        'event_id' => $event->getKey(),
+        'event_occurrence_id' => $occurrence->getKey(),
+        'event_session_id' => $first->getKey(),
+        'referenceable_type' => $reference->getMorphClass(),
+        'referenceable_id' => $reference->getKey(),
+        'reference_type' => 'book',
+        'title' => $reference->title,
+        'visibility' => 'public',
+    ]);
+
+    $this->get(route('institutions.show', $institution))->assertOk()
+        ->assertSee('Matching Profile Session')->assertSee('Different Profile Session')
+        ->assertDontSee('Parent Occurrence');
+    $this->get(route('references.show', $reference))->assertOk()
+        ->assertSee('Matching Profile Session')->assertDontSee('Different Profile Session')
+        ->assertDontSee('Parent Occurrence');
+    $this->get(route('persons.show', $speaker))->assertOk()
+        ->assertSee('Matching Profile Session')->assertDontSee('Different Profile Session')
+        ->assertDontSee('Parent Occurrence');
+
+    $component = Livewire::withCookie('user_timezone', 'UTC')
+        ->test(Show::class, ['institution' => $institution]);
+    expect($component->instance()->getUpcomingTotalProperty())->toBe(2);
+    $component->set('customStartDate', now()->addDays(2)->toDateString())
+        ->set('customEndDate', now()->addDays(2)->toDateString())
+        ->call('applyCustomDateRange')
+        ->assertSee('Matching Profile Session')
+        ->assertDontSee('Different Profile Session');
+    expect($component->instance()->getUpcomingTotalProperty())->toBe(1);
+});
+
+it('renders localized inherited prayer timing and keeps session-specific labels scoped', function (): void {
+    $previousLocale = app()->getLocale();
+    app()->setLocale('en');
+
+    try {
+        $institution = Institution::factory()->create(['status' => 'verified']);
+        $event = Event::factory()->create([
+            'title' => 'Prayer Timing Programme',
+            'institution_id' => $institution->getKey(),
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now()->subDay(),
+            'starts_at' => now()->addDays(2),
+            'timing_mode' => TimingMode::PrayerRelative,
+            'prayer_reference' => PrayerReference::Isha,
+            'prayer_offset' => PrayerOffset::After60,
+            'prayer_display_text' => 'Selepas Tarawih',
+        ]);
+        $occurrence = $event->occurrences()->firstOrFail();
+        $sessionOne = app(CreateEventSessionAction::class)->handle($occurrence, [
+            'title' => 'Session Specific Prayer',
+            'slug' => 'session-specific-prayer',
+            'starts_at' => now()->addDays(2)->addHour(),
+            'status' => 'published',
+            'visibility' => 'public',
+        ]);
+        $sessionTwo = app(CreateEventSessionAction::class)->handle($occurrence, [
+            'title' => 'Session Inherited Prayer',
+            'slug' => 'session-inherited-prayer',
+            'starts_at' => now()->addDays(2)->addHours(2),
+            'status' => 'published',
+            'visibility' => 'public',
+        ]);
+        $sessionOne->timeExpressions()->create([
+            'event_id' => $event->getKey(),
+            'event_occurrence_id' => $occurrence->getKey(),
+            'time_mode' => 'prayer_relative',
+            'anchor_type' => 'prayer',
+            'display_label' => 'Waktu Sesi Khas',
+        ]);
+
+        $html = (string) $this->get(route('institutions.show', $institution))->assertOk()->getContent();
+        preg_match('/<a[^>]*wire:key="upcoming-session-'.preg_quote((string) $sessionOne->getKey(), '/').'"[^>]*>.*?<\/a>/s', $html, $first);
+        preg_match('/<a[^>]*wire:key="upcoming-session-'.preg_quote((string) $sessionTwo->getKey(), '/').'"[^>]*>.*?<\/a>/s', $html, $second);
+
+        expect($first[0] ?? null)->not->toBeNull()->toContain('Waktu Sesi Khas');
+        expect($second[0] ?? null)->not->toBeNull()->toContain('After Tarawih')->not->toContain('Waktu Sesi Khas');
+    } finally {
+        app()->setLocale($previousLocale);
+    }
 });

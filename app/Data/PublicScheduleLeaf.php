@@ -6,9 +6,12 @@ namespace App\Data;
 
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
+use AIArmada\Events\Models\EventTimeExpression;
 use App\Models\Event;
 use App\Support\Events\PublicScheduleSlug;
+use App\Support\Timezone\UserDateTimeFormatter;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Collection;
 
 final readonly class PublicScheduleLeaf
 {
@@ -54,6 +57,45 @@ final readonly class PublicScheduleLeaf
         $value = $this->session?->getAttribute('ends_at') ?? $this->occurrence->getAttribute('ends_at');
 
         return $value instanceof CarbonInterface ? $value : null;
+    }
+
+    public function timingText(string $format = 'g:i A'): string
+    {
+        $expressions = $this->scopedTimeExpressions();
+        $prayer = $expressions->firstWhere('anchor_type', 'prayer');
+
+        if ($prayer instanceof EventTimeExpression && filled($prayer->display_label)) {
+            return __($prayer->display_label);
+        }
+
+        if ($expressions->isEmpty() && $this->event->isPrayerRelative()) {
+            return (string) $this->event->timing_display;
+        }
+
+        $startsAt = $this->startsAt();
+
+        return $startsAt instanceof CarbonInterface ? UserDateTimeFormatter::format($startsAt, $format) : __('TBC');
+    }
+
+    public function isPrayerRelative(): bool
+    {
+        $expressions = $this->scopedTimeExpressions();
+
+        return $expressions->isNotEmpty()
+            ? $expressions->contains(fn (EventTimeExpression $expression): bool => $expression->time_mode === 'prayer_relative')
+            : $this->event->isPrayerRelative();
+    }
+
+    /** @return Collection<int, EventTimeExpression> */
+    private function scopedTimeExpressions(): Collection
+    {
+        $sessionExpressions = $this->session?->timeExpressions;
+
+        if ($sessionExpressions !== null && $sessionExpressions->isNotEmpty()) {
+            return $sessionExpressions;
+        }
+
+        return $this->occurrence->timeExpressions->whereNull('event_session_id');
     }
 
     public function url(): string

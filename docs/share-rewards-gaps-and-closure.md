@@ -23,8 +23,8 @@
 
 Package mapping that already fits: `rewards` is the entitlement and
 points bank (member as `Participant`/`Purchaser` in Loop A, as `Sharer`
-in Loop B); `affiliates` is the attribution outcome ledger and the cash
-payout rail; `vouchers` is the benefit burn instrument. MGM/referrals
+in Loop B); `affiliates` is the attribution outcome ledger;
+`vouchers` is the benefit burn instrument. MGM/referrals
 is **not** a replacement for either loop — it is the campaign layer
 for addressed invites (G2). `aiarmada/referrals` is installed and
 integrated in ilmu360; programme records and their economics are
@@ -48,11 +48,11 @@ staff-managed in Filament.
   conversion into a reward source fact (sharer/actor, verification,
   first-time, fraud, corrections); `EvaluateRewardEntitlementJob`
   issues points/badges/benefits/cash under funded, capped programs.
-- Cash awards settle through a third profile,
-  `share_reward_recipient`, via `RecordAffiliateAward`
-  (`reward-cash:{award_id}`) and the affiliates payout processors
-  (`app/Support/Rewards/AffiliatesRewardPayoutExecutor.php:63`,
-  `app/Support/Rewards/RewardCashAwardPolicy.php`).
+- Host cash payouts are explicitly disabled: `rewards.payouts.methods`
+  is empty and `RewardPayoutExecutor` resolves to
+  `NullRewardPayoutExecutor`. Affiliate reward-award settlement remains
+  disabled. The host does not create affiliate backing conversions for
+  reward payouts.
 - Member-facing rewards are complete: portal (enrol, balances,
   statements, appeals, payee, benefit catalog/grants), API controllers,
   gratitude digests, corrections sweep, cohort reporting with 30-day
@@ -74,11 +74,11 @@ staff-managed in Filament.
 | G2 | Addressed invite / MGM lifecycle | B | Medium | Landed 2026-10-15 |
 | G3 | No purchase facts, no points burn at checkout | A+B | High (at commerce launch) | L |
 | G4 | Future-benefit terms and attribution window undecided | B | High (before any promise) | S (decision) |
-| G5 | Three affiliate identities per person; owner tuple as member link | Both | Medium | L (deferrable) |
+| G5 | Two affiliate identities per person; owner tuple as member link | Both | Medium | L (deferrable) |
 | G6 | Schema drift: 41 pending migrations, missing `purpose` column | Ops | High | S |
 | G7 | Reward programme publication and economics | Both | Medium | Landed 2026-10-15 |
 | G8 | Fraud posture not yet monetary-grade for redeemable points | Both | High (before burn opens) | M |
-| G9 | Manual-only payout rail; per-program enrolment friction | Both | Low–Medium | S (decision) |
+| G9 | Disabled host cash payouts; per-program enrolment friction | Both | Low–Medium | S (decision) |
 
 ## 4. Gaps in detail
 
@@ -243,11 +243,10 @@ programmes lose trust.
 published before commerce launch; support copy can answer "what do my
 2026 shares earn me?" from the versioned terms alone.
 
-### G5 — Three affiliate identities per person; owner tuple as member link
+### G5 — Two affiliate identities per person; owner tuple as member link
 
-**Evidence.** One person can hold `share_member` (sharing),
-`share_guest` (pre-claim anonymous history) and
-`share_reward_recipient` (cash payout) affiliate rows. The member link
+**Evidence.** One person can hold `share_member` (sharing) and
+`share_guest` (pre-claim anonymous history) affiliate rows. The member link
 is the `owner_type`/`owner_id` tuple — a tenancy boundary — because
 `Affiliate` has no member reference; guests squat on `owner = null`,
 which everywhere else means "global". Every reporting surface must
@@ -267,7 +266,7 @@ surface with purpose filtering.
 2. When commercial affiliates or a second MGM consumer arrives:
    extract the share profile / guest-claim / receipt domain into the
    referrals layer (G2's package path), leaving `affiliates` with only
-   the payout-recipient identity and genuine commercial profiles.
+   genuine commercial profiles.
    Historical conversions stay frozen and readable through the same
    business keys — this is an identity move, not a history rewrite.
    *Update (2026-10-14): the target package now exists
@@ -388,17 +387,18 @@ accounts, guest claims) nets zero spendable points in a feature test;
 a reversed registration claws back unspent points and opens a
 recovery for spent ones.
 
-### G9 — Manual-only payout rail and enrolment friction
+### G9 — Disabled cash payouts and enrolment friction
 
-**Evidence.** `config/rewards.php` serves only the `manual` payout
-method (executed through affiliates processors by staff action).
-Members must explicitly enrol per programme in the portal
-(`RewardMemberIndex::enroll`) and package presets carry
+**Evidence.** Host cash payouts are disabled through an empty method
+catalog and the null payout executor. Points and benefit rewards do not
+require a cash payout rail. Members must explicitly enrol per programme
+in the portal (`RewardMemberIndex::enroll`) and package presets carry
 `require_enrollment`; a member who never visits the portal silently
 earns nothing even when their shares convert.
 
-**Impact.** Cash rewards do not scale past staff-processed volumes,
-and silent non-earning undermines both loops' feedback cycle.
+**Impact.** Host cash payouts are unavailable pending a separate
+enablement decision, and silent non-earning undermines both loops'
+feedback cycle.
 
 **Closure (decisions, then small code).**
 
@@ -407,9 +407,13 @@ and silent non-earning undermines both loops' feedback cycle.
    member with banked eligible share/activity outcomes and an active
    programme with published terms. The prompt says activity is waiting
    and that enrolling does not award points for past activity.
-2. Keep `manual` until cash volume justifies binding a CHIP send
-   processor behind the existing `RewardPayoutProcessorCatalog`;
-   points/benefit rewards need no payout rail at all.
+2. Host cash payouts stay disabled; the rewards package's native manual
+   lifecycle is complete and verified. Enabling host manual cash is a
+   separate operational decision. If automated cash payouts are later
+   justified, implement CHIP locally in the host against
+   `RewardPayoutExecutor` and `RewardPayoutMethodCatalog`; do not route
+   reward payouts through the affiliates catalog or enable affiliate
+   reward-award settlement.
 
 **Acceptance.** Enrolment conversion has a curated server-side
 `rewards.program_enrolled` signal after successful enrolment; no member

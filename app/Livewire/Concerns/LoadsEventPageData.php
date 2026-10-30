@@ -2,13 +2,16 @@
 
 namespace App\Livewire\Concerns;
 
+use App\Data\PublicScheduleLeaf;
 use App\Models\Event;
+use App\Services\PublicScheduleDiscoveryService;
 use App\Support\Events\PrimaryOccurrenceSql;
 use App\Support\Timezone\UserDateTimeFormatter;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Support\Collection;
 
 trait LoadsEventPageData
 {
@@ -16,6 +19,9 @@ trait LoadsEventPageData
      * @var array<string, array{upcoming: EloquentCollection<int, Event>, past: EloquentCollection<int, Event>, upcoming_total: int, past_total: int}>
      */
     private array $eventPageDataCache = [];
+
+    /** @var array<string, array{upcoming: Collection<int, PublicScheduleLeaf>, past: Collection<int, PublicScheduleLeaf>, upcoming_total: int, past_total: int}> */
+    private array $schedulePageDataCache = [];
 
     public string $upcomingDateFilter = 'all';
 
@@ -40,6 +46,7 @@ trait LoadsEventPageData
     public function filterUpcomingEvents(): void
     {
         $this->eventPageDataCache = [];
+        $this->schedulePageDataCache = [];
     }
 
     public function updatedUpcomingDateFilter(): void
@@ -207,5 +214,35 @@ trait LoadsEventPageData
             ->select('events.*')
             ->where('starts_at', $upcoming ? '>=' : '<', $now)
             ->with($this->eventPageEagerLoads());
+    }
+
+    /** @return array{upcoming: Collection<int, PublicScheduleLeaf>, past: Collection<int, PublicScheduleLeaf>, upcoming_total: int, past_total: int} */
+    protected function schedulePageData(): array
+    {
+        $cacheKey = 'schedule:'.$this->eventPageUpcomingLimit().':'.$this->eventPagePastLimit();
+
+        if (isset($this->schedulePageDataCache[$cacheKey])) {
+            return $this->schedulePageDataCache[$cacheKey];
+        }
+
+        $events = (clone $this->eventPageBaseQuery())->reorder()->select('events.*')->get();
+        $leaves = app(PublicScheduleDiscoveryService::class)->leavesForEvents($events);
+
+        if (method_exists($this, 'filterScheduleLeaves')) {
+            $leaves = $this->filterScheduleLeaves($leaves);
+        }
+
+        $now = now();
+        $range = $this->upcomingDateRange();
+        $upcoming = $leaves->filter(fn (PublicScheduleLeaf $leaf): bool => $leaf->startsAt() >= $now
+            && ($range === null || ($leaf->startsAt() >= $range['from'] && $leaf->startsAt() < $range['to'])))->values();
+        $past = $leaves->filter(fn (PublicScheduleLeaf $leaf): bool => $leaf->startsAt() < $now)->reverse()->values();
+
+        return $this->schedulePageDataCache[$cacheKey] = [
+            'upcoming' => $upcoming->take($this->eventPageUpcomingLimit()),
+            'past' => $past->take($this->eventPagePastLimit()),
+            'upcoming_total' => $upcoming->count(),
+            'past_total' => $past->count(),
+        ];
     }
 }

@@ -600,19 +600,19 @@ it('shows a neutral state while a speaker search is too short', function () {
         ->assertDontSee(__('No speakers found'));
 });
 
-it('lists pending speakers in the directory with the unverified badge and includes them in search', function () {
+it('lists pending speakers without an unverified badge and includes them in search', function () {
     $person = Person::factory()->create([
-        'name' => 'Penceramah Belum Disahkan',
+        'name' => 'Penceramah Menunggu Semakan',
         'status' => 'pending',
     ]);
 
     get('/penceramah')
         ->assertSuccessful()
-        ->assertSee('Penceramah Belum Disahkan')
-        ->assertSee('Belum disahkan');
+        ->assertSee('Penceramah Menunggu Semakan')
+        ->assertDontSee('Belum disahkan');
 
-    Livewire::test('pages.persons.index', ['search' => 'Penceramah Belum Disahkan'])
-        ->assertSee('Penceramah Belum Disahkan');
+    Livewire::test('pages.persons.index', ['search' => 'Penceramah Menunggu Semakan'])
+        ->assertSee('Penceramah Menunggu Semakan');
 });
 
 it('updates search results live when query changes', function () {
@@ -988,4 +988,13 @@ it('renders profile-quality avatar URLs on the person index cards', function () 
         ->assertSuccessful()
         ->assertSee($person->public_main_url, false)
         ->assertDontSee('data-placeholder="speaker-image"', false);
+});
+
+it('shows a trust badge only on verified penceramah cards', function () {
+    Person::factory()->create(['name' => 'Profil Sah', 'status' => 'verified']);
+    Person::factory()->create(['name' => 'Profil Semakan', 'status' => 'pending']);
+
+    $response = get('/penceramah')->assertSuccessful()->assertSee('Profil Sah')->assertSee('Profil Semakan');
+
+    expect(substr_count($response->getContent(), 'data-testid="verified-badge"'))->toBe(1);
 });

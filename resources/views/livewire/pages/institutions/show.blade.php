@@ -42,11 +42,8 @@
         'payloadEndpoint' => route('dawah-share.payload'),
     ];
     $institutionRouteSegment = \App\Enums\ContributionSubjectType::Institution->publicRouteSegment();
-    $showPendingEventStatusNotice = $upcomingEvents->concat($pastEvents)->contains(
-        fn (\App\Models\Event $event): bool => (string) $event->status === 'pending'
-    );
     $showCancelledEventStatusNotice = $upcomingEvents->concat($pastEvents)->contains(
-        fn (\App\Models\Event $event): bool => (string) $event->status === 'cancelled'
+        fn (\App\Data\PublicScheduleLeaf $leaf): bool => (string) $leaf->event->status === 'cancelled'
     );
     $mapQuery = implode(', ', array_filter([
         $institution->name,
@@ -337,11 +334,6 @@
                                             <flux:icon.check variant="mini" class="size-3.5 text-emerald-700" />
                                             {{ __('Disahkan') }}
                                         </span>
-                                    @elseif($institution->status === \App\Enums\InstitutionStatus::Pending)
-                                        <span class="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-100 px-2.5 py-1 text-[10px] font-bold text-amber-800">
-                                            <flux:icon.exclamation-triangle variant="solid" class="size-3.5 text-amber-600" />
-                                            {{ __('Belum disahkan') }}
-                                        </span>
                                     @endif
                                 </div>
 
@@ -583,7 +575,6 @@
                     </flux:modal>
 
                     <x-public.moderation-status-note
-                        :show-pending="$showPendingEventStatusNotice"
                         :show-cancelled="$showCancelledEventStatusNotice"
                     />
 
@@ -593,9 +584,14 @@
                         wire:loading.attr="aria-busy"
                         wire:target="upcomingDateFilter,applyCustomDateRange,clearUpcomingDateFilter"
                     >
-                        @foreach($upcomingEvents as $event)
+                        @foreach($upcomingEvents as $scheduleLeaf)
                             @php
-                                $venueLocation = $resolveVenueLocation($event);
+                                $event = $scheduleLeaf->event;
+                                $cardStart = $scheduleLeaf->startsAt();
+                                $cardEnd = $scheduleLeaf->endsAt();
+                                $cardTimingText = $scheduleLeaf->timingText('h:i A');
+                                $scheduleLocation = $scheduleLeaf->session?->locations->first() ?? $scheduleLeaf->occurrence->locations->first();
+                                $venueLocation = $scheduleLocation?->venue?->name ?? $scheduleLocation?->label ?? $resolveVenueLocation($event);
                                 $eventPeople = $resolveEventPeople($event);
                                 $personAvatarStack = $resolveEventPersonAvatarStack($event);
                                 $eventTypeLabel = $resolveEventCategoryLabel($event);
@@ -607,15 +603,15 @@
                             @endphp
 
                             <a
-                                href="{{ route('events.show', $event) }}"
-                                wire:key="upcoming-{{ $event->id }}"
+                                href="{{ $scheduleLeaf->url() }}"
+                                wire:key="upcoming-{{ $scheduleLeaf->entityType() }}-{{ $scheduleLeaf->id() }}"
                                 wire:navigate
                                 class="group relative flex overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md"
                             >
                                 <div class="flex w-[4.5rem] shrink-0 flex-col items-center justify-center bg-gradient-to-b {{ $isCancelledEvent ? 'from-rose-600 to-rose-800' : ($isPendingEvent ? 'from-amber-600 to-amber-800' : ($isRemoteEvent ? 'from-sky-600 to-sky-800' : 'from-emerald-600 to-emerald-800')) }} p-3 text-white sm:w-24">
-                                    <span class="text-[10px] font-bold uppercase tracking-widest text-white/80">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($event->starts_at, 'l') }}</span>
-                                    <span class="font-heading text-3xl font-black leading-none sm:text-4xl">{{ \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'd') }}</span>
-                                    <span class="mt-1 text-[11px] font-bold tracking-wide text-white/80">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($event->starts_at, 'F') }}</span>
+                                    <span class="text-[10px] font-bold uppercase tracking-widest text-white/80">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($cardStart, 'l') }}</span>
+                                    <span class="font-heading text-3xl font-black leading-none sm:text-4xl">{{ \App\Support\Timezone\UserDateTimeFormatter::format($cardStart, 'd') }}</span>
+                                    <span class="mt-1 text-[11px] font-bold tracking-wide text-white/80">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($cardStart, 'F') }}</span>
                                 </div>
 
                                 <div class="flex flex-1 flex-col gap-3 p-4 sm:p-5">
@@ -624,11 +620,8 @@
                                             <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-900">
                                                 {{ $eventTypeLabel }}
                                             </span>
-
-                                            @if($isPendingEvent)
-                                                <span class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800">
-                                                    {{ __('Menunggu Kelulusan') }}
-                                                </span>
+                                            @if((string) $event->status === 'approved')
+                                                <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-900">{{ __('Diluluskan') }}</span>
                                             @endif
 
                                             @if($isCancelledEvent)
@@ -660,7 +653,7 @@
 
                                     <div class="space-y-2">
                                         <h3 class="font-heading text-lg font-bold text-slate-950 transition group-hover:text-emerald-700">
-                                            {{ $event->title }}
+                                            {{ $scheduleLeaf->title() }}
                                         </h3>
 
                                         @if($bookReferenceTitle)
@@ -673,11 +666,11 @@
                                     <div class="space-y-1.5 text-sm text-slate-500">
                                         <div class="flex items-center gap-2">
                                             <flux:icon.clock class="size-4 text-slate-400" />
-                                            <span>{{ $event->timing_display !== '' ? $event->timing_display : \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'h:i A') }}</span>
+                                            <span>{{ $cardTimingText }}</span>
 
-                                            @if($event->ends_at)
+                                            @if($cardEnd)
                                                 <span class="text-slate-300">-</span>
-                                                <span>{{ \App\Support\Timezone\UserDateTimeFormatter::format($event->ends_at, 'h:i A') }}</span>
+                                                <span>{{ \App\Support\Timezone\UserDateTimeFormatter::format($cardEnd, 'h:i A') }}</span>
                                             @endif
                                         </div>
 
@@ -762,9 +755,14 @@
                                 @endif
                             </div>
 
-                            @foreach($pastEvents as $event)
+                            @foreach($pastEvents as $scheduleLeaf)
                                 @php
-                                    $venueLocation = $resolveVenueLocation($event);
+                                $event = $scheduleLeaf->event;
+                                $cardStart = $scheduleLeaf->startsAt();
+                                $cardEnd = $scheduleLeaf->endsAt();
+                                $cardTimingText = $scheduleLeaf->timingText('h:i A');
+                                    $scheduleLocation = $scheduleLeaf->session?->locations->first() ?? $scheduleLeaf->occurrence->locations->first();
+                                $venueLocation = $scheduleLocation?->venue?->name ?? $scheduleLocation?->label ?? $resolveVenueLocation($event);
                                     $eventPeople = $resolveEventPeople($event);
                                     $bookReferenceTitle = $event->reference_study_subtitle;
                                 $eventFormatValue = $event->delivery_mode?->value ?? $event->delivery_mode;
@@ -772,20 +770,23 @@
                                 @endphp
 
                                 <a
-                                    href="{{ route('events.show', $event) }}"
-                                    wire:key="past-{{ $event->id }}"
+                                    href="{{ $scheduleLeaf->url() }}"
+                                    wire:key="past-{{ $scheduleLeaf->entityType() }}-{{ $scheduleLeaf->id() }}"
                                     wire:navigate
                                     class="group relative flex overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md"
                                 >
                                     <div class="flex w-[4.5rem] shrink-0 flex-col items-center justify-center bg-gradient-to-b from-slate-700 to-slate-900 p-3 text-white sm:w-24">
-                                        <span class="text-[10px] font-bold uppercase tracking-widest text-white/80">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($event->starts_at, 'l') }}</span>
-                                        <span class="font-heading text-3xl font-black leading-none sm:text-4xl">{{ \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'd') }}</span>
-                                        <span class="mt-1 text-[11px] font-bold tracking-wide text-white/80">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($event->starts_at, 'F') }}</span>
+                                        <span class="text-[10px] font-bold uppercase tracking-widest text-white/80">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($cardStart, 'l') }}</span>
+                                        <span class="font-heading text-3xl font-black leading-none sm:text-4xl">{{ \App\Support\Timezone\UserDateTimeFormatter::format($cardStart, 'd') }}</span>
+                                        <span class="mt-1 text-[11px] font-bold tracking-wide text-white/80">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($cardStart, 'F') }}</span>
                                     </div>
 
                                     <div class="flex flex-1 flex-col gap-3 p-4 sm:p-5">
+                                        @if((string) $event->status === 'approved')
+                                            <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-900">{{ __('Diluluskan') }}</span>
+                                        @endif
                                         <h3 class="font-heading text-lg font-bold text-slate-950 transition group-hover:text-emerald-700">
-                                            {{ $event->title }}
+                                            {{ $scheduleLeaf->title() }}
                                         </h3>
 
                                         @if($bookReferenceTitle)
@@ -797,11 +798,11 @@
                                         <div class="space-y-1.5 text-sm text-slate-500">
                                             <div class="flex items-center gap-2">
                                                 <flux:icon.clock class="size-4 text-slate-400" />
-                                                <span>{{ $event->timing_display !== '' ? $event->timing_display : \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'h:i A') }}</span>
+                                                <span>{{ $cardTimingText }}</span>
 
-                                                @if($event->ends_at)
+                                                @if($cardEnd)
                                                     <span class="text-slate-300">-</span>
-                                                    <span>{{ \App\Support\Timezone\UserDateTimeFormatter::format($event->ends_at, 'h:i A') }}</span>
+                                                    <span>{{ \App\Support\Timezone\UserDateTimeFormatter::format($cardEnd, 'h:i A') }}</span>
                                                 @endif
                                             </div>
 

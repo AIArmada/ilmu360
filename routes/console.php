@@ -133,6 +133,14 @@ Schedule::command('share:dispatch-pending-effects')
     ->name('share-pending-effects')
     ->withoutOverlapping();
 
+// Abandoned anonymous share profiles: unclaimed profiles past retention are
+// pruned; claims, conversions, and published short links are preserved.
+Schedule::command('share:prune-guest-profiles')
+    ->dailyAt('03:45')
+    ->timezone('UTC')
+    ->name('prune-guest-share-profiles')
+    ->withoutOverlapping();
+
 // Commission maturity and payout claiming are safe to repeat with MLM disabled.
 Schedule::command('affiliates:process-maturity')
     ->dailyAt('01:30')

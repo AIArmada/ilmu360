@@ -101,6 +101,24 @@ it('does not show private events on the reference page', function () {
         ->assertDontSee('Kuliah Tertutup Dalaman');
 });
 
+it('shows pending public events without a pending status badge or notice', function () {
+    $reference = Reference::factory()->create(['status' => 'verified']);
+    $event = Event::factory()->create([
+        'title' => 'Kuliah Rujukan Menanti',
+        'status' => 'pending',
+        'visibility' => EventVisibility::Public,
+        'published_at' => now()->subMinute(),
+        'starts_at' => now()->addDay(),
+    ]);
+    $event->references()->attach($reference->id);
+
+    $this->get(route('references.show', $reference))
+        ->assertSuccessful()
+        ->assertSee('Kuliah Rujukan Menanti')
+        ->assertDontSee('Menunggu Kelulusan')
+        ->assertDontSee('Semak lencana status pada setiap majlis sebelum hadir.');
+});
+
 it('loads more upcoming events via Livewire', function () {
     $reference = Reference::factory()->create();
 

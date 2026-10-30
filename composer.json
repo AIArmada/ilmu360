@@ -147,7 +147,11 @@
         ],
         "test": [
             "@php artisan config:clear --ansi",
-            "./pest --parallel --tia --compact"
+            "./pest --parallel --tia --compact --exclude-group=real-driver"
+        ],
+        "test:drivers": [
+            "@php artisan config:clear --ansi",
+            "./pest --compact --group=real-driver"
         ],
         "tunnel": [
             "Composer\\Config::disableProcessTimeout",

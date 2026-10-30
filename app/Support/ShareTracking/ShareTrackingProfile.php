@@ -34,8 +34,6 @@ final class ShareTrackingProfile
 
     public const string PURPOSE_SHARE_GUEST = 'share_guest';
 
-    public const string PURPOSE_SHARE_REWARD_RECIPIENT = 'share_reward_recipient';
-
     /**
      * @return array<string, mixed>
      */

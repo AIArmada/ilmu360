@@ -10,6 +10,7 @@ use App\Models\EventChangeAnnouncement;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Venue;
+use Carbon\CarbonInterface;
 use Illuminate\View\Component;
 use Illuminate\View\View;
 
@@ -18,8 +19,19 @@ class EventJsonLd extends Component
     /**
      * Create a new component instance.
      */
+    /**
+     * @param  string|null  $url  Canonical URL when the schema describes a child
+     *                            page (a specific date) rather than the event.
+     * @param  string|null  $name  Title override for that date page.
+     * @param  CarbonInterface|null  $startsAt  Date-level start time override.
+     * @param  CarbonInterface|null  $endsAt  Date-level end time override.
+     */
     public function __construct(
-        public Event $event
+        public Event $event,
+        public ?string $url = null,
+        public ?string $name = null,
+        public ?CarbonInterface $startsAt = null,
+        public ?CarbonInterface $endsAt = null,
     ) {}
 
     /**
@@ -45,13 +57,13 @@ class EventJsonLd extends Component
         $jsonLd = [
             '@context' => 'https://schema.org',
             '@type' => 'Event',
-            'name' => $event->title,
+            'name' => $this->name ?? $event->title,
             'description' => $event->description_text,
-            'startDate' => $event->starts_at?->toIso8601String(),
-            'endDate' => $event->ends_at?->toIso8601String(),
+            'startDate' => ($this->startsAt ?? $event->starts_at)?->toIso8601String(),
+            'endDate' => ($this->endsAt ?? $event->ends_at)?->toIso8601String(),
             'eventStatus' => $this->getEventStatus(),
             'eventAttendanceMode' => $this->getAttendanceMode(),
-            'url' => route('events.show', $event),
+            'url' => $this->canonicalUrl(),
         ];
 
         if ($venue instanceof Venue) {
@@ -113,7 +125,7 @@ class EventJsonLd extends Component
             'price' => '0',
             'priceCurrency' => 'MYR',
             'availability' => $this->getAvailability(),
-            'url' => route('events.show', $event),
+            'url' => $this->canonicalUrl(),
         ];
 
         $event->loadMissing(['classifications']);
@@ -138,6 +150,15 @@ class EventJsonLd extends Component
         };
 
         return $jsonLd;
+    }
+
+    /**
+     * Canonical URL for the described page: the date page when one was given,
+     * otherwise the event page.
+     */
+    protected function canonicalUrl(): string
+    {
+        return $this->url ?? route('events.show', $this->event);
     }
 
     /**

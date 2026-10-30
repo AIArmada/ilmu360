@@ -6,24 +6,26 @@ namespace App\Livewire\Pages\Events;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Persons\Enums\AssignmentStatus;
 use App\Models\Event;
-use App\Models\Person;
 use App\Models\Reference;
-use App\Services\CalendarService;
 use App\Services\PublicScheduleDiscoveryService;
-use App\Support\Cache\SelectionCatalogCache;
+use App\Services\ShareTrackingService;
 use App\Support\Events\PublicSchedulePolicy;
-use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
+use App\Support\Events\PublicScheduleSlug;
 use Illuminate\Database\Eloquent\Relations\Relation;
-use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 
+/**
+ * A single date of a multi-date majlis.
+ *
+ * The event page renders this same view when the event has exactly one public
+ * date, so everything shared with that path lives in Show. This subclass only
+ * contributes the date selection, the date-scoped URL and the date-scoped
+ * share tracking.
+ */
 #[Layout('layouts.app')]
 #[Title('Maklumat Majlis')]
 class Occurrence extends Show
@@ -79,6 +81,11 @@ class Occurrence extends Show
         $this->event = $event;
         $this->occurrence = $loadedOccurrence;
         $this->loadSelectedCommerce();
+
+        // Show::mount() is not reached from here, so the going/saved/check-in
+        // state has to be synced explicitly — otherwise the date page renders
+        // "Akan Hadir" as off for a reader who already tapped it.
+        $this->syncEngagementStates();
     }
 
     public function selectedOccurrence(): ?EventOccurrence
@@ -86,104 +93,35 @@ class Occurrence extends Show
         return $this->occurrence ?? null;
     }
 
-    /** @return Collection<int, string> */
-    #[Computed]
-    public function languageLabels(): Collection
+    protected function occurrenceUrl(): string
     {
-        $occurrence = $this->selectedOccurrence();
+        return route('events.occurrence', [
+            $this->event,
+            PublicScheduleSlug::occurrence($this->occurrence),
+        ]);
+    }
 
-        if (
-            ! $occurrence instanceof EventOccurrence
-            || ! is_array($occurrence->metadata['public_submission'] ?? null)
-        ) {
-            return parent::languageLabels();
-        }
-
-        if (! $occurrence->relationLoaded('languages')) {
-            return collect();
-        }
-
-        $codes = $occurrence->languages
-            ->pluck('language_code')
-            ->filter(fn (mixed $code): bool => is_string($code) && $code !== '')
-            ->unique()
-            ->values();
-
-        if ($codes->isEmpty()) {
-            return collect();
-        }
-
-        $labels = app(SelectionCatalogCache::class)->languageLabelsForCodes($codes->all());
-
-        return $codes
-            ->map(fn (string $code): string => $labels[$code] ?? strtoupper($code))
-            ->values();
+    protected function engagementReturnUrl(): string
+    {
+        return $this->occurrenceUrl();
     }
 
     /**
+     * Share tracking has to point at the date the reader is on; the inherited
+     * implementation always builds the parent event URL.
+     *
      * @return array<string, string>
      */
     #[Computed]
-    public function calendarLinks(): array
+    public function shareLinks(): array
     {
-        if ($this->eventActionsDisabled()
-            || (string) $this->selectedOccurrence()?->status === 'cancelled') {
-            return [];
-        }
+        $title = trim((string) ($this->occurrence->title ?: $this->event->title));
 
-        $occurrence = $this->selectedOccurrence();
-
-        if (! $occurrence instanceof EventOccurrence) {
-            return parent::calendarLinks();
-        }
-
-        return app(CalendarService::class)->getAllCalendarLinksFor($this->event, $occurrence);
-    }
-
-    public function render(): View
-    {
-        return view('livewire.pages.events.occurrence');
-    }
-
-    /**
-     * Own poster and gallery first, then the shared parent gallery, so a
-     * provided child visual is never hidden behind the parent-only set.
-     *
-     * @return array<int, array{url: string, thumb: string, alt: string}>
-     */
-    #[Computed]
-    public function galleryImages(): array
-    {
-        $images = [];
-        $imageCounter = 1;
-        $seen = [];
-
-        $collect = function (iterable $mediaItems) use (&$images, &$imageCounter, &$seen): void {
-            foreach ($mediaItems as $media) {
-                $key = (string) $media->getKey();
-
-                if (isset($seen[$key])) {
-                    continue;
-                }
-
-                $seen[$key] = true;
-                $images[] = $this->buildGalleryImagePayload(
-                    $media,
-                    __('Photo :number', ['number' => $imageCounter++])
-                );
-            }
-        };
-
-        $occurrence = $this->selectedOccurrence();
-
-        if ($occurrence instanceof EventOccurrence) {
-            $collect($occurrence->getMedia('poster'));
-            $collect($occurrence->getMedia('gallery'));
-        }
-
-        $collect($this->event->getMedia('gallery'));
-
-        return $images;
+        return app(ShareTrackingService::class)->redirectLinks(
+            $this->event->occurrences->count() === 1 ? route('events.show', $this->event) : $this->occurrenceUrl(),
+            trim($title.' - '.config('app.name')),
+            $title,
+        );
     }
 
     /**
@@ -208,7 +146,11 @@ class Occurrence extends Show
                 ->ordered(),
             'primaryOrganizerInvolvement.involveable',
             'institution.media',
+            // Organisers are the fallback location, so their phone and e-mail
+            // are the reader's only way to ask about a change.
+            'institution.contactMethods',
             'venue.media',
+            'venue.contactMethods',
             'persons' => function (Relation $query) use ($event): void {
                 if (! $this->isEventOwner($event)) {
                     $query->where('event_involvements.visibility', 'public');
@@ -253,114 +195,6 @@ class Occurrence extends Show
                     ->orderBy('starts_at')
                     ->orderBy('created_at')
                     ->orderBy('id');
-            },
-        ];
-    }
-
-    /**
-     * Commerce and session detail for the selected occurrence, plus its own
-     * people. Session pages override this to a no-op and load the selected
-     * session leaf (and its parent date commerce) instead.
-     */
-    protected function loadSelectedCommerce(): void
-    {
-        $occurrence = $this->selectedOccurrence();
-
-        if (! $occurrence instanceof EventOccurrence) {
-            return;
-        }
-
-        OwnerContext::withOwner(null, function () use ($occurrence): void {
-            $occurrence->loadMissing([
-                'classifications.term',
-                'languages',
-                'audiences',
-                'audienceProfiles',
-                'timeExpressions' => static function (Relation $query): void {
-                    $query->whereNull('event_session_id');
-                },
-                'involvements' => $this->publicInvolvementScope(),
-                'involvements.involveable' => $this->involveableEagerLoad(),
-                'involvements.role',
-                ...$this->sessionSubtreeRelations(),
-                ...$this->commerceRelations(),
-            ]);
-        });
-    }
-
-    /**
-     * @return array<int|string, mixed>
-     */
-    protected function sessionSubtreeRelations(): array
-    {
-        return [
-            'sessions.media',
-            'sessions.locations' => $this->publicLocationScope($this->event),
-            'sessions.locations.venueSpace',
-            'sessions.involvements' => $this->publicInvolvementScope(),
-            'sessions.involvements.involveable' => $this->involveableEagerLoad(),
-        ];
-    }
-
-    protected function publicInvolvementScope(): \Closure
-    {
-        return static function (Relation $query): Relation {
-            if ($query->getParent() instanceof EventOccurrence) {
-                $query->whereNull('event_session_id');
-            }
-
-            return $query
-                ->where('status', 'active')
-                ->where('visibility', 'public');
-        };
-    }
-
-    protected function involveableEagerLoad(): \Closure
-    {
-        return static function (MorphTo $relation): void {
-            $relation->morphWith([
-                Person::class => [
-                    'titleAssignments' => fn (Relation $query) => $query
-                        ->where('status', AssignmentStatus::Active)
-                        ->with('title.category'),
-                ],
-            ]);
-        };
-    }
-
-    /**
-     * Owning-scope commerce for the selected leaf: tickets with seating and
-     * stock, seat maps, links, materials, access policy and references.
-     *
-     * @return array<int|string, mixed>
-     */
-    protected function commerceRelations(): array
-    {
-        return [
-            'ticketTypes' => $this->publicTicketScope(),
-            'ticketTypes.seatingOptions',
-            'ticketTypes.inventoryLevels',
-            'seatMaps' => $this->publicSeatMapScope(),
-            'seatMaps.sections',
-            'links' => $this->publicLinkScope(),
-            'materials' => $this->publicMaterialScope(),
-            'accessPolicies' => static function (Relation $query): void {
-                if ($query->getParent() instanceof EventOccurrence) {
-                    $query->whereNull('event_session_id');
-                }
-            },
-            'references' => function (Relation $query): void {
-                if ($query->getParent() instanceof EventOccurrence) {
-                    $query->whereNull('event_session_id');
-                }
-
-                $query->where('visibility', 'public')->orderBy('sort_order');
-            },
-            'references.referenceable' => function (MorphTo $relation): void {
-                $relation->constrain([
-                    Reference::class => fn (Builder $query) => Reference::applyPublicVisibility($query)
-                        ->with(['authors', 'parentReference']),
-                ]);
             },
         ];
     }

@@ -193,7 +193,7 @@ it('shows cancelled public events with cancelled badge on person page', function
         ->assertSee('Dibatalkan');
 });
 
-it('shows a moderation note when person page lists pending public events', function () {
+it('shows pending public events without a pending status badge or notice', function () {
     $person = Person::factory()->create([
         'status' => 'verified',
     ]);
@@ -209,8 +209,8 @@ it('shows a moderation note when person page lists pending public events', funct
     $this->get(route('persons.show', $person))
         ->assertSuccessful()
         ->assertSee($event->title)
-        ->assertSee('Menunggu Kelulusan')
-        ->assertSee('Semak lencana status pada setiap majlis sebelum hadir.');
+        ->assertDontSee('Menunggu Kelulusan')
+        ->assertDontSee('Semak lencana status pada setiap majlis sebelum hadir.');
 });
 
 it('uses stronger calendar event colors on person page', function () {
@@ -512,8 +512,8 @@ it('renders the book title on person event cards without parentheses', function 
 
     $html = $response->getContent();
 
-    preg_match('/<a[^>]*wire:key="upcoming-'.preg_quote($bookEvent->id, '/').'"[^>]*>.*?<\/a>/s', (string) $html, $bookMatches);
-    preg_match('/<a[^>]*wire:key="upcoming-'.preg_quote($articleEvent->id, '/').'"[^>]*>.*?<\/a>/s', (string) $html, $articleMatches);
+    preg_match('/<a[^>]*wire:key="upcoming-occurrence-'.preg_quote((string) $bookEvent->occurrences()->firstOrFail()->getKey(), '/').'"[^>]*>.*?<\/a>/s', (string) $html, $bookMatches);
+    preg_match('/<a[^>]*wire:key="upcoming-occurrence-'.preg_quote((string) $articleEvent->occurrences()->firstOrFail()->getKey(), '/').'"[^>]*>.*?<\/a>/s', (string) $html, $articleMatches);
 
     $bookEventCard = $bookMatches[0] ?? null;
     $articleEventCard = $articleMatches[0] ?? null;

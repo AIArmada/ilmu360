@@ -8,6 +8,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Models\Follow;
 use AIArmada\Events\Models\EventOccurrence;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
+use App\Data\PublicScheduleLeaf;
 use App\Enums\DawahShareOutcomeType;
 use App\Livewire\Concerns\JoinsHierarchyAreaName;
 use App\Livewire\Concerns\LoadsEventPageData;
@@ -19,12 +20,12 @@ use App\Services\ShareTrackingService;
 use App\Support\Auth\IntendedRedirect;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\Relations\Pivot;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use Livewire\Attributes\Layout;
@@ -136,29 +137,29 @@ class Show extends Component
     }
 
     /**
-     * @return EloquentCollection<int, Event>
+     * @return Collection<int, PublicScheduleLeaf>
      */
-    public function getUpcomingEventsProperty(): EloquentCollection
+    public function getUpcomingEventsProperty(): Collection
     {
-        return $this->eventPageData()['upcoming'];
+        return $this->schedulePageData()['upcoming'];
     }
 
     public function getUpcomingTotalProperty(): int
     {
-        return $this->eventPageData()['upcoming_total'];
+        return $this->schedulePageData()['upcoming_total'];
     }
 
     /**
-     * @return EloquentCollection<int, Event>
+     * @return Collection<int, PublicScheduleLeaf>
      */
-    public function getPastEventsProperty(): EloquentCollection
+    public function getPastEventsProperty(): Collection
     {
-        return $this->eventPageData()['past'];
+        return $this->schedulePageData()['past'];
     }
 
     public function getPastTotalProperty(): int
     {
-        return $this->eventPageData()['past_total'];
+        return $this->schedulePageData()['past_total'];
     }
 
     private function eventQuery(): EventBuilder
@@ -185,7 +186,6 @@ class Show extends Component
                         ->whereHas('references', function (Builder $referenceRows) use ($referenceIds): void {
                             $referenceRows
                                 ->where('visibility', 'public')
-                                ->whereNull('event_session_id')
                                 ->whereHasMorph('referenceable', [Reference::class], function (Builder $references) use ($referenceIds): void {
                                     Reference::applyPublicVisibility($references)
                                         ->whereIn('references.id', $referenceIds);
@@ -210,7 +210,28 @@ class Show extends Component
                 'displayOccurrence.media',
                 'timeExpressions',
                 'links',
+                'occurrences.references',
             ]);
+    }
+
+    /**
+     * @param  Collection<int, PublicScheduleLeaf>  $leaves
+     * @return Collection<int, PublicScheduleLeaf>
+     */
+    protected function filterScheduleLeaves(Collection $leaves): Collection
+    {
+        $referenceIds = $this->reference->defaultEventReferenceIds();
+
+        return $leaves->filter(function (PublicScheduleLeaf $leaf) use ($referenceIds): bool {
+            if ($leaf->event->references->contains(fn (Reference $reference): bool => in_array((string) $reference->getKey(), $referenceIds, true))) {
+                return true;
+            }
+
+            return $leaf->occurrence->references->contains(fn ($reference): bool => $reference->visibility === 'public'
+                && $reference->referenceable_type === $this->reference->getMorphClass()
+                && in_array((string) $reference->referenceable_id, $referenceIds, true)
+                && ($reference->event_session_id === null || $reference->event_session_id === $leaf->session?->getKey()));
+        })->values();
     }
 
     /** @return Builder<Event> */

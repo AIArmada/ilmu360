@@ -1,3 +1,11 @@
+## Public schedule listings and trust badges (2026-10-28)
+
+- [x] Align profile schedule lists with occurrence and session cards, including filters and counts.
+- [x] Show verification or approval badges only for verified or approved records.
+- [x] Verify affected behavior, formatting, static analysis, and tracking implications.
+
+Review: profile scope, date filters, localized prayer timing, homepage schedule links, and positive badges have focused coverage. Full PHPStan passed before the final timing helper; the changed helper and speaker query passed focused analysis afterward. Pint passed for changed PHP files. The broader test run also exposed unrelated failures in the homepage date filter, speaker follow, institution map, and an occurrence detail assertion; those were not changed here. Existing event-detail edits in the workspace were preserved.
+
 ## Institution graph hardening (2026-10-01)
 
 Execution: Muse CLI `muse-spark-1.3-contributor`, reasoning effort `max`. Codex owns independent audit, review, and verification. User authorized audit, plan, and implementation.
@@ -4958,3 +4966,151 @@ Verification: 234 distinct affected cases are green across the saved consolidate
 ### Package migration ownership cleanup (2026-10-28)
 
 Removed database/migrations/2026_10_27_201455_add_last_referred_at_to_affiliate_attributions_table.php. Verified the package's owning creation migration already declares the nullable timestamp and the local PostgreSQL column remains present. No schema rollback or migration-history rewrite was performed. The app continues to own only its signup attribution table. This cleanup changes no runtime behavior; existing feature/static-analysis results above remain the validation baseline.
+
+## Event sharing and feature parity (2026-10-28)
+
+- [x] Restore the attributed share panel and all supported social destinations on event and occurrence pages.
+- [x] Restore multi-date admission details, poster access and interaction tracking.
+- [x] Verify the focused event-page tests.
+- [x] Run static analysis and formatting.
+
+### Review
+
+The previous redesign omitted the full Dawah share panel, attributed copy and device sharing, several social destinations, multi-date admission and poster access, and interaction tracking. Restored those using existing shared components and presenters. The referenced date page and multi-date page render in the browser; the share dialog opens with the complete share options. PHPStan level 6 and Pint passed. The initial focused test run was blocked by local socket restrictions; with local worker access, five focused cases passed (51 assertions). Clipboard completion could not be confirmed in the in-app browser.
+
+## Event detail visual refinement (2026-10-28)
+
+- [x] Remove breadcrumbs from event and occurrence pages while retaining the path to all dates.
+- [x] Apply the requested redesign skill to typography, surfaces, hierarchy, imagery and responsive layout without removing features.
+- [x] Review both page types at desktop and mobile sizes; verify sharing and the build.
+
+### Review
+
+Removed the breadcrumb bar and refreshed the hero with a single scoped Manrope typeface, a flat textured surface, stronger event imagery and an accessible responsive fact band. The multi-date listing remains the first main section; the event and date pages retain share, attendance, calendar, registration and feedback controls. Built the frontend and reviewed the actual event and date pages in the browser.
+
+## Event detail institution and speaker images (2026-10-29)
+
+- [x] Show uploaded institution images alongside organizer identity on event and occurrence pages, keeping initials when no image exists.
+- [x] Show uploaded speaker avatars in speaker and key-person lists, keeping initials when no avatar exists.
+- [x] Review desktop and mobile rendering and run a frontend build.
+
+### Review
+
+Organizer cards use an uploaded institution logo first, then cover image; speaker and named key-person rows use uploaded avatars. Initials remain the fallback. The requested event and its first occurrence render correctly on desktop and mobile. Their institution and speaker currently have no uploaded image, so the fallback is visible in the browser. Frontend build and git diff check pass.
+
+## Speaker 3:4 portrait preview (2026-10-29)
+
+### Plan
+
+- [x] Check the speaker media collections, configured conversions, and existing preview media.
+- [x] Use the existing 1080×1440 profile conversion for speaker portraits in event and occurrence detail pages.
+- [x] Attach a fictional 3:4 portrait sample to the local speaker record and verify the generated conversion.
+
+### Review
+
+The speaker card now prefers the `profile` collection's `profile_thumb` conversion and displays it at 3:4; the square avatar remains a fallback. The sample source is 1086×1448 and its generated WebP conversion is exactly 1080×1440. The Person model also offers a 1080×1080 avatar thumb and a 1920×1080 cover banner. No portrait was present on the local speaker record before this preview.
+
+## Occurrence image prominence (2026-10-29)
+
+### Plan
+
+- [x] Display an institution's wide cover prominently in the occurrence location/organizer card, retaining the logo fallback.
+- [x] Enlarge the 3:4 speaker portrait in the occurrence page while keeping the parent event page's smaller treatment.
+- [x] Review the occurrence layout at desktop and mobile sizes and record the result.
+
+### Review
+
+The occurrence page now shows the institution's 16:9 cover at full card width above the map. The speaker's 3:4 portrait grows from 88px to 144px on mobile and 176px at desktop widths; the parent event page keeps its smaller portrait. Desktop and mobile full-page browser previews show both images prominently, and the default viewport was restored.
+
+## Parent event image prominence (2026-10-29)
+
+### Plan
+
+- [x] Apply the larger 3:4 speaker portrait to the multi-date event page.
+- [x] Show the institution cover prominently in the parent event's organizer/location card.
+- [x] Review the `#tarikh` page at desktop and mobile sizes.
+
+### Review
+
+The parent page now displays the speaker portrait at 176×235 on desktop and 144×192 on mobile, and the institution cover at full card width above the map. Desktop and mobile previews confirm the image sizes alongside the multi-date schedule. `git diff --check` passes.
+
+## Occurrence map placement (2026-10-29)
+
+### Plan
+
+- [x] Place the embedded Google Map after the address and before the primary navigation action.
+- [x] Remove the Waze action and its unused URL construction from the occurrence view.
+- [x] Review the location card and run `git diff --check`.
+
+### Review
+
+The occurrence card now orders the address, embedded Google Map, Google Maps link, and primary navigation button. Waze URL generation and its link are removed. The card was reviewed in the browser; `git diff --check` passes.
+
+## Focused event sharing dialog (2026-10-29)
+
+### Plan
+
+- [x] Remove the event preview card and download action from the share dialog.
+- [x] Keep the share panel, its destinations, and a clear close control; drop the redundant event title.
+- [x] Remove unused dialog-only card props while preserving social preview metadata.
+- [x] Review the source and run `git diff --check`.
+
+### Review
+
+The event and occurrence dialogs now open directly to the sharing controls, with a compact “Sebarkan” bar and close button. Removed the large event title, generated-card preview, and download action; kept share, copy-link, all provider options, and social-preview metadata for shared URLs. The current browser page still returns the previously observed 30-second server timeout, so the post-change dialog could not be reloaded visually. Source search and `git diff --check` pass.
+
+## Share dialog close button alignment (2026-10-29)
+
+### Plan
+
+- [x] Vertically center the close button within the compact dialog header.
+- [x] Review the changed markup and run `git diff --check`.
+
+### Review
+
+The close button is now centered against the header using the header's midpoint, rather than a fixed top offset. Markup review and `git diff --check` pass.
+
+## Occurrence cover preview (2026-10-29)
+
+### Plan
+
+- [x] Generate a new 16:9 cover suited to the “Adab Menuntut Ilmu (Sambungan)” occurrence.
+- [x] Attach it to occurrence `kuliah-khas-adab-temp-2` in the `cover` collection.
+- [x] Verify the saved occurrence media and provide a visual preview.
+
+### Review
+
+Generated and attached a warm evening mosque study-circle cover to the occurrence's `cover` collection. The detail page renders the generated 1672×941 image successfully; its `thumb` conversion is ready. Browser preview confirms the cover appears prominently in the occurrence hero. The scene is illustrative and does not depict the actual venue or speaker.
+
+## Occurrence cover date overlay (2026-10-29)
+
+- [x] Remove floating date badges from uploaded cover/poster art in occurrence detail and schedule cards.
+- [x] Keep the occurrence date in separate page details and check the rendered page.
+- [x] Record the image-overlay lesson and run `git diff --check`.
+
+Review: Occurrence cover/poster images display without overlaid dates in detail and reusable schedule cards; date text remains beside the card and in the detail hero facts. Browser verification confirms the cover loaded and the separate detail reads “Rabu, 4 November 2026.” The typographic date fallback for occurrences without imagery remains unchanged.
+
+## Occurrence reference links (2026-10-29)
+
+### Plan
+
+- [x] Link bound occurrence references to their reference detail pages.
+- [x] Link parent-event references to their reference detail pages.
+- [x] Verify the reference links and run `git diff --check`.
+
+### Review
+
+Bound references shown on the occurrence page now link to the canonical `references.show` route, whether they are attached to the occurrence or inherited from the parent event. Freeform citations remain unchanged. The reference title is rendered as an accessible, keyboard-focusable link. `git diff --check` passes; a browser reload was unavailable because the local page hit an existing database 30-second timeout.
+
+## Occurrence location card cleanup (2026-10-29)
+
+### Plan
+
+- [x] Remove the redundant “Buka dalam Google Maps” link while preserving the embedded map and navigation action.
+- [x] Hide the “Penganjur & lokasi” label when the institution is both organizer and location.
+- [x] Show an institution mark only when an uploaded logo exists; remove the initial-letter placeholder.
+- [x] Review the diff and run `git diff --check`.
+
+### Review
+
+Removed the extra Google Maps link and its unused URL generation while retaining the interactive map and navigation action. The combined organizer/location label is omitted when the institution is the place, and its mark now appears only when an uploaded logo exists. The browser still shows the previously observed 30-second server timeout, so visual reloading could not be confirmed. Source search and `git diff --check` pass.

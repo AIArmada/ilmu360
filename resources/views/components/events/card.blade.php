@@ -23,12 +23,7 @@
         ? $event->delivery_mode
         : (\App\Enums\EventFormat::tryFrom((string) $event->delivery_mode) ?? \App\Enums\EventFormat::Physical);
     $cardFormatLabel = $formatLabel ?? $cardFormat->getLabel();
-    $cardApprovalLabel = match ((string) $event->status) {
-        'approved' => __('Diluluskan'),
-        'pending' => __('Menunggu Kelulusan'),
-        default => null,
-    };
-    $cardApprovalPending = (string) $event->status === 'pending';
+    $cardApprovalLabel = (string) $event->status === 'approved' ? __('Diluluskan') : null;
     $cardStatusLabel = $statusLabel ?? $event->public_change_badge_label;
     $cardStatusClass = $statusClass !== '' ? $statusClass : 'border-sky-200 bg-sky-50 text-sky-800';
     $cardUrl = $url ?? route('events.show', $event);
@@ -119,8 +114,8 @@
                     {{ $cardFormatLabel }}
                 </span>
                 @if($cardApprovalLabel !== null)
-                    <span data-testid="event-card-approval-badge" title="{{ $cardApprovalPending ? __('Menunggu kelulusan untuk paparan di ilmu360°') : __('Diluluskan untuk paparan di ilmu360°') }}" class="relative z-10 ml-auto inline-flex max-w-full items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold {{ $cardApprovalPending ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-emerald-200 bg-emerald-50 text-emerald-800' }}">
-                        @if($cardApprovalPending)<flux:icon.clock class="size-3.5 shrink-0" />@else<flux:icon.check-circle class="size-3.5 shrink-0" />@endif
+                    <span data-testid="event-card-approval-badge" title="{{ __('Diluluskan untuk paparan di ilmu360°') }}" class="relative z-10 ml-auto inline-flex max-w-full items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800">
+                        <flux:icon.check-circle class="size-3.5 shrink-0" />
                         {{ $cardApprovalLabel }}
                     </span>
                 @endif

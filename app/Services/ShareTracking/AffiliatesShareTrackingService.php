@@ -1147,6 +1147,113 @@ final readonly class AffiliatesShareTrackingService
         });
     }
 
+    /**
+     * Delete abandoned anonymous share profiles past retention.
+     *
+     * A guest profile is abandoned when no claim row exists (any claim,
+     * including a revoked one, permanently keeps the history), it has no
+     * conversion, fraud signal, or financial row, and its creation predates
+     * the retention cutoff. Links are detached first so published short URLs
+     * keep opening their public destination without credit.
+     *
+     * @return array{scanned: int, pruned: int, skipped: int}
+     */
+    public function pruneAbandonedGuestProfiles(int $retentionDays, int $limit = 1000, bool $dryRun = false): array
+    {
+        if ($retentionDays < 1) {
+            throw new InvalidArgumentException('Guest profile retention must be at least one day.');
+        }
+
+        $cutoff = now()->subDays($retentionDays);
+
+        $candidates = Affiliate::query()
+            ->withoutGlobalScope(OwnerScope::class)
+            ->whereNull('owner_type')
+            ->whereNull('owner_id')
+            ->where('purpose', ShareTrackingProfile::PURPOSE_SHARE_GUEST)
+            ->where('created_at', '<=', $cutoff)
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->limit(max(1, $limit))
+            ->get();
+
+        $pruned = 0;
+        $skipped = 0;
+
+        foreach ($candidates as $candidate) {
+            $deletable = OwnerContext::withOwner(null, fn (): ?Affiliate => DB::transaction(function () use ($candidate, $cutoff, $dryRun): ?Affiliate {
+                $affiliate = Affiliate::query()
+                    ->withoutGlobalScope(OwnerScope::class)
+                    ->whereKey($candidate->getKey())
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $affiliate instanceof Affiliate
+                    || ! ShareTrackingProfile::isMarkedGuest($affiliate)
+                    || $affiliate->created_at === null
+                    || $affiliate->created_at->greaterThan($cutoff)
+                    || ! $this->isAbandonedGuestProfile($affiliate)) {
+                    return null;
+                }
+
+                if (! $dryRun) {
+                    $this->deleteAbandonedGuestProfile($affiliate);
+                }
+
+                return $affiliate;
+            }, 3));
+
+            $deletable instanceof Affiliate ? $pruned++ : $skipped++;
+        }
+
+        return [
+            'scanned' => $candidates->count(),
+            'pruned' => $pruned,
+            'skipped' => $skipped,
+        ];
+    }
+
+    private function isAbandonedGuestProfile(Affiliate $affiliate): bool
+    {
+        if (ShareGuestClaim::query()->where('guest_affiliate_id', $affiliate->getKey())->exists()) {
+            return false;
+        }
+
+        if (AffiliateConversion::query()
+            ->withoutGlobalScope(OwnerScope::class)
+            ->where('affiliate_id', $affiliate->getKey())
+            ->exists()) {
+            return false;
+        }
+
+        if ($affiliate->fraudSignals()->exists()) {
+            return false;
+        }
+
+        return ! $this->affiliateHasNonConversionFinancialRecords($affiliate);
+    }
+
+    private function deleteAbandonedGuestProfile(Affiliate $affiliate): void
+    {
+        ShareGuestCredential::query()->where('affiliate_id', $affiliate->getKey())->delete();
+        ShareGuestClaimCapability::query()->where('guest_affiliate_id', $affiliate->getKey())->delete();
+
+        $affiliate->links()
+            ->get()
+            ->each(function (AffiliateLink $link): void {
+                $this->detachTrackedLinkForDeletion($link);
+                $link->delete();
+            });
+
+        $affiliate->attributions()
+            ->get()
+            ->each(static fn (AffiliateAttribution $attribution): bool => (bool) $attribution->delete());
+
+        AffiliateTouchpoint::query()->where('affiliate_id', $affiliate->getKey())->delete();
+        $affiliate->balances()->delete();
+        $affiliate->delete();
+    }
+
     public function findAffiliateForUser(User $user): ?Affiliate
     {
         // Marker plus owner association. An unmarked commercial profile is

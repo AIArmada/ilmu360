@@ -376,7 +376,7 @@ it('renders institution event cards with localized prayer timing stacked person 
 
         $html = $response->getContent();
 
-        preg_match('/<a[^>]*wire:key="upcoming-'.preg_quote($event->id, '/').'"[^>]*>.*?<\/a>/s', (string) $html, $matches);
+        preg_match('/<a[^>]*wire:key="upcoming-occurrence-'.preg_quote((string) $event->occurrences()->firstOrFail()->getKey(), '/').'"[^>]*>.*?<\/a>/s', (string) $html, $matches);
 
         $eventCard = $matches[0] ?? null;
 
@@ -440,8 +440,8 @@ it('renders the book title on institution event cards without parentheses', func
 
     $html = $response->getContent();
 
-    preg_match('/<a[^>]*wire:key="upcoming-'.preg_quote($bookEvent->id, '/').'"[^>]*>.*?<\/a>/s', (string) $html, $bookMatches);
-    preg_match('/<a[^>]*wire:key="upcoming-'.preg_quote($articleEvent->id, '/').'"[^>]*>.*?<\/a>/s', (string) $html, $articleMatches);
+    preg_match('/<a[^>]*wire:key="upcoming-occurrence-'.preg_quote((string) $bookEvent->occurrences()->firstOrFail()->getKey(), '/').'"[^>]*>.*?<\/a>/s', (string) $html, $bookMatches);
+    preg_match('/<a[^>]*wire:key="upcoming-occurrence-'.preg_quote((string) $articleEvent->occurrences()->firstOrFail()->getKey(), '/').'"[^>]*>.*?<\/a>/s', (string) $html, $articleMatches);
 
     $bookEventCard = $bookMatches[0] ?? null;
     $articleEventCard = $articleMatches[0] ?? null;
@@ -483,7 +483,7 @@ it('renders institution event cards cleanly when an event has no persons', funct
 
     $html = $response->getContent();
 
-    preg_match('/<a[^>]*wire:key="upcoming-'.preg_quote($event->id, '/').'"[^>]*>.*?<\/a>/s', (string) $html, $matches);
+    preg_match('/<a[^>]*wire:key="upcoming-occurrence-'.preg_quote((string) $event->occurrences()->firstOrFail()->getKey(), '/').'"[^>]*>.*?<\/a>/s', (string) $html, $matches);
 
     $eventCard = $matches[0] ?? null;
 
@@ -698,7 +698,7 @@ it('does not show private events', function () {
         ->assertDontSee('Secret Event XYZ');
 });
 
-it('shows pending public events', function () {
+it('shows pending public events without a pending status badge or notice', function () {
     $institution = Institution::factory()->create(['status' => 'verified']);
 
     Event::factory()->for($institution)->create([
@@ -711,8 +711,8 @@ it('shows pending public events', function () {
     $this->get(route('institutions.show', $institution))
         ->assertSuccessful()
         ->assertSee('Pending Event ABC')
-        ->assertSee('Menunggu Kelulusan')
-        ->assertSee('Semak lencana status pada setiap majlis sebelum hadir.');
+        ->assertDontSee('Menunggu Kelulusan')
+        ->assertDontSee('Semak lencana status pada setiap majlis sebelum hadir.');
 });
 
 it('shows cancelled public events with cancelled badge', function () {

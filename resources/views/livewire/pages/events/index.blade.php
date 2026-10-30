@@ -709,13 +709,7 @@
                                         }
 
                                         $cardStart = $scheduleLeaf->startsAt();
-                                        $cardTimingExpression = $primarySession?->timeExpressions->firstWhere('anchor_type', 'prayer')
-                                            ?? $primaryOccurrence?->timeExpressions->firstWhere('anchor_type', 'prayer')
-                                            ?? $event->timeExpressions->firstWhere('anchor_type', 'prayer');
-                                        $cardTimingText = $cardTimingExpression?->display_label
-                                            ?: (($primarySession === null && $event->isPrayerRelative())
-                                                ? (string) $event->timing_display
-                                                : ($cardStart ? \App\Support\Timezone\UserDateTimeFormatter::format($cardStart, 'g:i A') : __('TBC')));
+                                        $cardTimingText = $scheduleLeaf->timingText();
                                         $scheduleStatus = $primarySession?->status ?? $primaryOccurrence->status;
                                         $statusBadgeLabel = $eventChangeBadgeLabel;
                                         $statusBadgeClass = $event->status instanceof \App\States\EventStatus\Pending

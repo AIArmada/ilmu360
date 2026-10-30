@@ -279,3 +279,12 @@ it('hydrates an existing reference follow in the directory card', function () {
         ->assertSee('aria-pressed="true"', false)
         ->assertSee('fill="currentColor"', false);
 });
+
+it('shows a trust badge only on verified reference cards', function () {
+    Reference::factory()->create(['title' => 'Rujukan Sah', 'status' => 'verified']);
+    Reference::factory()->create(['title' => 'Rujukan Semakan', 'status' => 'pending']);
+
+    $response = get('/rujukan')->assertSuccessful()->assertSee('Rujukan Sah')->assertSee('Rujukan Semakan');
+
+    expect(substr_count($response->getContent(), 'data-testid="reference-verified-badge"'))->toBe(1);
+});

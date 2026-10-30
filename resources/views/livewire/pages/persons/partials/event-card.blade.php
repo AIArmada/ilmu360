@@ -1,7 +1,12 @@
 @php
+    $scheduleLeaf = $scheduleLeaf ?? null;
+    $cardStart = $scheduleLeaf?->startsAt() ?? $event->starts_at;
+    $cardEnd = $scheduleLeaf?->endsAt() ?? $event->ends_at;
+    $cardTimingText = $scheduleLeaf?->timingText('h:i A') ?? $event->timing_display;
     $isRoleParticipation = filled($roleLabel ?? null);
     $eventTypeLabel = $resolveEventCategoryLabel($event);
-    $eventLocation = $resolveEventLocation($event);
+    $scheduleLocation = $scheduleLeaf?->session?->locations->first() ?? $scheduleLeaf?->occurrence->locations->first();
+    $eventLocation = $scheduleLocation?->venue?->name ?? $scheduleLocation?->label ?? $resolveEventLocation($event);
     $eventFormatValue = $event->delivery_mode?->value ?? $event->delivery_mode;
     $isRemoteEvent = in_array($eventFormatValue, ['online', 'hybrid'], true);
     $isPendingEvent = (string) $event->status === 'pending';
@@ -29,7 +34,7 @@
 @endphp
 
 <a
-    href="{{ route('events.show', $event) }}"
+    href="{{ $scheduleLeaf?->url() ?? route('events.show', $event) }}"
     wire:key="{{ $wireKey }}"
     wire:navigate
     class="group block overflow-hidden rounded-[1.4rem] border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-0.5 {{ $cardHoverClass }}"
@@ -37,13 +42,13 @@
     <div class="grid sm:grid-cols-[7.5rem_minmax(0,1fr)]">
         <div class="flex items-center gap-4 bg-gradient-to-br {{ $datePanelClass }} px-5 py-4 text-white sm:flex-col sm:justify-center sm:gap-0 sm:px-3 sm:py-6 sm:text-center">
             <span class="text-[10px] font-bold uppercase tracking-[0.18em] text-white/70">
-                {{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($event->starts_at, 'l') }}
+                {{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($cardStart, 'l') }}
             </span>
             <span class="font-heading text-4xl font-black leading-none sm:mt-1">
-                {{ \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'd') }}
+                {{ \App\Support\Timezone\UserDateTimeFormatter::format($cardStart, 'd') }}
             </span>
             <span class="text-xs font-bold uppercase tracking-[0.12em] text-white/80 sm:mt-1">
-                {{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($event->starts_at, 'F') }}
+                {{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($cardStart, 'F') }}
             </span>
         </div>
 
@@ -59,15 +64,13 @@
                     {{ $eventTypeLabel }}
                 </span>
 
+                @if((string) $event->status === 'approved')
+                    <span class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-800 ring-1 ring-emerald-100">{{ __('Diluluskan') }}</span>
+                @endif
+
                 @if($isRemoteEvent)
                     <span class="inline-flex items-center rounded-full bg-sky-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-sky-800 ring-1 ring-sky-100">
                         {{ __('Dalam Talian') }}
-                    </span>
-                @endif
-
-                @if($isPendingEvent)
-                    <span class="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-800 ring-1 ring-amber-100">
-                        {{ __('Menunggu Kelulusan') }}
                     </span>
                 @endif
 
@@ -79,7 +82,7 @@
             </div>
 
             <h3 class="mt-3 font-heading text-xl font-bold leading-tight {{ $titleClass }} transition sm:text-2xl">
-                {{ $event->title }}
+                {{ $scheduleLeaf?->title() ?? $event->title }}
             </h3>
 
             @if($event->reference_study_subtitle)
@@ -92,10 +95,10 @@
                 <p class="flex items-center gap-2">
                     <flux:icon.clock class="size-4 shrink-0 {{ $accentClass }}" />
                     <span>
-                        {{ $event->timing_display !== '' ? $event->timing_display : \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'h:i A') }}
-                        @if($event->ends_at)
+                        {{ $cardTimingText }}
+                        @if($cardEnd)
                             <span class="mx-1 text-slate-300">—</span>
-                            {{ \App\Support\Timezone\UserDateTimeFormatter::format($event->ends_at, 'h:i A') }}
+                            {{ \App\Support\Timezone\UserDateTimeFormatter::format($cardEnd, 'h:i A') }}
                         @endif
                     </span>
                 </p>

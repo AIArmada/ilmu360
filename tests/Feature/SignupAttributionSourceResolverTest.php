@@ -331,7 +331,7 @@ it('rejects commercial attribution whose source is no longer eligible', function
     'paused affiliate' => ['affiliate', ['paused_at' => '2026-10-28 11:59:00+00:00']],
     'deactivated affiliate' => ['affiliate', ['deactivated_at' => '2026-10-28 11:59:00+00:00']],
     'disabled link' => ['link', ['deactivated_at' => '2026-10-28 11:59:00+00:00']],
-    'noncommercial profile' => ['affiliate', ['purpose' => 'share_reward_recipient']],
+    'noncommercial profile' => ['affiliate', ['purpose' => 'share_member']],
     'marked share profile in commercial cookie' => ['affiliate', ['metadata' => ['share_tracking_profile' => true, 'profile_kind' => 'member']]],
 ]);
 

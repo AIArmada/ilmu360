@@ -8,6 +8,8 @@ use AIArmada\Rewards\Actions\CreateRewardProgramAction;
 use AIArmada\Rewards\Actions\EnrollRewardMemberAction;
 use AIArmada\Rewards\Actions\PublishRewardProgramVersionAction;
 use AIArmada\Rewards\Actions\TransitionRewardProgramStatusAction;
+use AIArmada\Rewards\Contracts\RewardPayoutExecutor;
+use AIArmada\Rewards\Contracts\RewardPayoutMethodCatalog;
 use AIArmada\Rewards\Enums\RewardBeneficiaryRole;
 use AIArmada\Rewards\Enums\RewardComponent;
 use AIArmada\Rewards\Enums\RewardProgramMode;
@@ -19,6 +21,8 @@ use AIArmada\Rewards\Models\RewardEnrollment;
 use AIArmada\Rewards\Models\RewardEnrollmentAcceptance;
 use AIArmada\Rewards\Models\RewardProgram;
 use AIArmada\Rewards\Models\RewardProgramVersion;
+use AIArmada\Rewards\Support\ManualRewardPayoutExecutor;
+use AIArmada\Rewards\Support\ManualRewardPayoutMethodCatalog;
 use AIArmada\Rewards\Support\RewardPresetBuilders;
 use AIArmada\Rewards\Support\RewardSourceFact;
 use Carbon\CarbonImmutable;
@@ -266,5 +270,25 @@ final class RewardLedgerFixtures
             RewardProgramMode::Benefit => RewardComponent::Benefit,
             RewardProgramMode::Combined => RewardComponent::Points,
         };
+    }
+
+    /**
+     * Test-only operational setup for suites that deliberately exercise the
+     * native manual payout lifecycle. The shipped host binds the null
+     * executor with an empty method catalog; these tests opt in explicitly.
+     */
+    public static function useManualPayouts(): void
+    {
+        config()->set('rewards.payouts.methods', ['manual', 'bank_transfer']);
+
+        app()->bind(
+            RewardPayoutExecutor::class,
+            ManualRewardPayoutExecutor::class,
+        );
+
+        app()->bind(
+            RewardPayoutMethodCatalog::class,
+            ManualRewardPayoutMethodCatalog::class,
+        );
     }
 }

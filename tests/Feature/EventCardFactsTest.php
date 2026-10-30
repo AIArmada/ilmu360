@@ -4,7 +4,7 @@ use App\Enums\EventFormat;
 use App\Models\Event;
 use App\Models\Institution;
 
-it('shows the actual approval state independently of schedule notices', function (string $status, ?string $approvalLabel) {
+it('shows approval only for approved events independently of schedule notices', function (string $status, ?string $approvalLabel) {
     $event = Event::factory()->create(['status' => $status]);
 
     $view = $this->blade(
@@ -21,7 +21,7 @@ it('shows the actual approval state independently of schedule notices', function
     }
 })->with([
     'approved' => ['approved', 'Diluluskan'],
-    'pending' => ['pending', 'Menunggu Kelulusan'],
+    'pending' => ['pending', null],
     'cancelled' => ['cancelled', null],
 ]);
 

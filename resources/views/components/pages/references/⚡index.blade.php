@@ -520,9 +520,17 @@ new
                                         <flux:icon.book-open class="size-20 text-emerald-200 transition-transform duration-700 group-hover:scale-110" />
                                     @endif
 
-                                    <span class="absolute left-4 top-4 rounded-full bg-white/95 px-3 py-1 text-xs font-bold text-emerald-700 shadow-sm ring-1 ring-emerald-100">
-                                        {{ $typeLabel }}
-                                    </span>
+                                    <div class="absolute inset-x-4 top-4 flex flex-wrap items-start justify-between gap-2">
+                                        <span class="rounded-full bg-white/95 px-3 py-1 text-xs font-bold text-emerald-700 shadow-sm ring-1 ring-emerald-100">
+                                            {{ $typeLabel }}
+                                        </span>
+                                        @if((string) $reference->status === 'verified')
+                                            <span data-testid="reference-verified-badge" class="inline-flex items-center gap-1 rounded-full bg-white/95 px-3 py-1 text-xs font-bold text-emerald-700 shadow-sm ring-1 ring-emerald-100">
+                                                <flux:icon.check variant="mini" class="size-3.5" />
+                                                {{ __('Disahkan') }}
+                                            </span>
+                                        @endif
+                                    </div>
                                 </div>
 
                                 <div class="flex flex-1 flex-col p-6 pb-0">

@@ -11,6 +11,7 @@ use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Persons\Enums\AssignmentStatus;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
+use App\Data\PublicScheduleLeaf;
 use App\Enums\DawahShareOutcomeType;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventVisibility;
@@ -20,6 +21,7 @@ use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\EventKeyPersonPivot;
 use App\Models\Person;
+use App\Services\PublicScheduleDiscoveryService;
 use App\Services\ShareTrackingService;
 use App\Support\Auth\IntendedRedirect;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
@@ -63,7 +65,7 @@ class Show extends Component
     public bool $isFollowing = false;
 
     /**
-     * @var array{upcoming: EloquentCollection<int, Event>, past: EloquentCollection<int, Event>, other: Collection<int, EventKeyPerson>}|null
+     * @var array{upcoming: Collection<int, PublicScheduleLeaf>, past: Collection<int, PublicScheduleLeaf>, other: Collection<int, EventKeyPerson>}|null
      */
     private ?array $eventPageData = null;
 
@@ -213,9 +215,9 @@ class Show extends Component
     }
 
     /**
-     * @return EloquentCollection<int, Event>
+     * @return Collection<int, PublicScheduleLeaf>
      */
-    public function getUpcomingEventsProperty(): EloquentCollection
+    public function getUpcomingEventsProperty(): Collection
     {
         return $this->eventPageData()['upcoming'];
     }
@@ -226,9 +228,9 @@ class Show extends Component
     }
 
     /**
-     * @return EloquentCollection<int, Event>
+     * @return Collection<int, PublicScheduleLeaf>
      */
-    public function getPastEventsProperty(): EloquentCollection
+    public function getPastEventsProperty(): Collection
     {
         return $this->eventPageData()['past'];
     }
@@ -264,7 +266,7 @@ class Show extends Component
     }
 
     /**
-     * @return array{upcoming: EloquentCollection<int, Event>, past: EloquentCollection<int, Event>, other: Collection<int, EventKeyPerson>}
+     * @return array{upcoming: Collection<int, PublicScheduleLeaf>, past: Collection<int, PublicScheduleLeaf>, other: Collection<int, EventKeyPerson>}
      */
     private function eventPageData(): array
     {
@@ -272,30 +274,17 @@ class Show extends Component
             return $this->eventPageData;
         }
 
-        $totals = $this->eventTotals();
-        $upcomingQuery = $this->personEventQuery()
-            ->where('starts_at', '>=', now());
-        $upcomingRange = $this->upcomingDateRange();
-
-        if ($upcomingRange !== null) {
-            $upcomingQuery
-                ->where('starts_at', '>=', $upcomingRange['from'])
-                ->where('starts_at', '<', $upcomingRange['to']);
-        }
-
-        $upcoming = $totals['upcoming'] > 0
-            ? $upcomingQuery
-                ->orderBy('starts_at', 'asc')
-                ->take($this->upcomingPerPage)
-                ->get()
-            : new EloquentCollection;
-        $past = $totals['past'] > 0
-            ? $this->personEventQuery()
-                ->where('starts_at', '<', now())
-                ->orderBy('starts_at', 'desc')
-                ->take($this->pastPerPage)
-                ->get()
-            : new EloquentCollection;
+        $events = $this->personEventQuery()->reorder()->with('involvements')->get()->unique('id');
+        $leaves = app(PublicScheduleDiscoveryService::class)->leavesForEvents($events)
+            ->filter(fn (PublicScheduleLeaf $leaf): bool => $this->isSpeakerForLeaf($leaf));
+        $now = now();
+        $range = $this->upcomingDateRange();
+        $upcoming = $leaves->filter(fn (PublicScheduleLeaf $leaf): bool => $leaf->startsAt() >= $now
+            && ($range === null || ($leaf->startsAt() >= $range['from'] && $leaf->startsAt() < $range['to'])))->values();
+        $past = $leaves->filter(fn (PublicScheduleLeaf $leaf): bool => $leaf->startsAt() < $now)->reverse()->values();
+        $this->eventTotals = ['upcoming' => $upcoming->count(), 'past' => $past->count()];
+        $upcoming = $upcoming->take($this->upcomingPerPage);
+        $past = $past->take($this->pastPerPage);
 
         $occurrencesTable = (new EventOccurrence)->getTable();
         $involvementsTable = (new EventKeyPerson)->getTable();
@@ -327,12 +316,13 @@ class Show extends Component
             ->unique(fn (Event $event): string => (string) $event->getKey())
             ->values();
 
-        $speakerEvents = $upcoming
+        $speakerEvents = new EloquentCollection($upcoming
             ->concat($past)
+            ->map(fn (PublicScheduleLeaf $leaf): Event => $leaf->event)
             ->concat($otherEvents)
             ->filter(fn (mixed $event): bool => $event instanceof Event)
             ->unique(fn (Event $event): string => (string) $event->getKey())
-            ->values();
+            ->values()->all());
 
         if ($speakerEvents->isNotEmpty()) {
             $speakerEvents->load([
@@ -400,55 +390,24 @@ class Show extends Component
      */
     private function eventTotals(): array
     {
-        if ($this->eventTotals !== null) {
-            return $this->eventTotals;
-        }
+        $this->eventPageData();
 
-        $this->eventTotals = (function (): array {
-            $eventsTable = (new Event)->getTable();
-            $involvementsTable = (new EventKeyPerson)->getTable();
-            $occurrencesTable = (new EventOccurrence)->getTable();
-            $now = now();
-            $primaryOccurrence = EventOccurrence::query()
-                ->select("{$occurrencesTable}.starts_at")
-                ->whereColumn("{$occurrencesTable}.event_id", "{$eventsTable}.id")
-                ->orderBy("{$occurrencesTable}.starts_at")
-                ->orderBy("{$occurrencesTable}.created_at")
-                ->orderBy("{$occurrencesTable}.id")
-                ->limit(1);
+        return $this->eventTotals ?? ['upcoming' => 0, 'past' => 0];
+    }
 
-            $upcomingRange = $this->upcomingDateRange();
-            $upcomingFrom = $upcomingRange['from'] ?? $now;
-            $upcomingTo = $upcomingRange['to'] ?? null;
-            $upcomingSql = $upcomingTo === null
-                ? '('.$primaryOccurrence->toSql().') >= ?'
-                : '('.$primaryOccurrence->toSql().') >= ? AND ('.$primaryOccurrence->toSql().') < ?';
+    private function isSpeakerForLeaf(PublicScheduleLeaf $leaf): bool
+    {
+        $involvements = $leaf->event->involvements
+            ->filter(fn ($involvement): bool => $involvement->role_code === EventKeyPersonRole::Speaker->value
+                && in_array($involvement->status, [null, 'active'], true)
+                && $involvement->visibility === 'public');
+        $session = $leaf->session === null ? collect() : $involvements->where('event_session_id', $leaf->session->getKey());
+        $occurrence = $involvements->where('event_occurrence_id', $leaf->occurrence->getKey())->whereNull('event_session_id');
+        $event = $involvements->whereNull('event_occurrence_id')->whereNull('event_session_id');
+        $effective = $session->isNotEmpty() ? $session : ($occurrence->isNotEmpty() ? $occurrence : $event);
 
-            $totals = Event::query()
-                ->join($involvementsTable, "{$eventsTable}.id", '=', "{$involvementsTable}.event_id")
-                ->where("{$involvementsTable}.involveable_id", $this->person->getKey())
-                ->where("{$involvementsTable}.involveable_type", $this->person->getMorphClass())
-                ->where("{$involvementsTable}.role_code", EventKeyPersonRole::Speaker->value)
-                ->whereIn("{$eventsTable}.status", Event::PUBLIC_STATUSES)
-                ->where("{$eventsTable}.visibility", EventVisibility::Public)
-                ->whereNotNull("{$eventsTable}.published_at")
-                ->selectRaw(
-                    'SUM(CASE WHEN '.$upcomingSql.' THEN 1 ELSE 0 END) as upcoming_total, '.
-                    'SUM(CASE WHEN ('.$primaryOccurrence->toSql().') < ? THEN 1 ELSE 0 END) as past_total',
-                    $upcomingTo === null
-                        ? [$upcomingFrom, $now]
-                        : [$upcomingFrom, $upcomingTo, $now],
-                )
-                ->toBase()
-                ->first();
-
-            return [
-                'upcoming' => (int) ($totals->upcoming_total ?? 0),
-                'past' => (int) ($totals->past_total ?? 0),
-            ];
-        })();
-
-        return $this->eventTotals;
+        return $effective->contains(fn ($involvement): bool => $involvement->involveable_type === $this->person->getMorphClass()
+            && (string) $involvement->involveable_id === (string) $this->person->getKey());
     }
 
     /**
