@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use AIArmada\Affiliates\Models\Affiliate;
+use AIArmada\Affiliates\Models\AffiliateClaim;
 use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Referrals\Actions\CreateReferralInvite;
@@ -19,7 +20,6 @@ use App\Actions\ShareTracking\ClaimGuestShareProfileAction;
 use App\Enums\ShareGuestClaimResult;
 use App\Enums\SignupAttributionSourceType;
 use App\Enums\SignupAttributionStatus;
-use App\Models\ShareGuestClaim;
 use App\Models\SignupAttribution;
 use App\Models\User;
 use App\Support\Auth\SignupAttributionSource;
@@ -190,7 +190,7 @@ it('links guest signup history through an explicit claim while preserving the so
     $attribution = RecordSignupAttributionAction::run($invitee, context: signupAcquisitionContext($guestSource));
 
     expect($attribution?->referrer_user_id)->toBeNull();
-    expect(ShareGuestClaim::query()->count())->toBe(0);
+    expect(AffiliateClaim::query()->count())->toBe(0);
 
     $result = ClaimGuestShareProfileAction::run($claimant, $payload['guest_claim_capability'], true);
 

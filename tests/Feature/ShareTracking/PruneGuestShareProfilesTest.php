@@ -5,21 +5,21 @@ declare(strict_types=1);
 use AIArmada\Affiliates\Enums\CommissionType;
 use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\Models\AffiliateAttribution;
+use AIArmada\Affiliates\Models\AffiliateClaim;
 use AIArmada\Affiliates\Models\AffiliateConversion;
+use AIArmada\Affiliates\Models\AffiliateCredential;
 use AIArmada\Affiliates\Models\AffiliateLink;
+use AIArmada\Affiliates\Models\AffiliateOwnershipCapability;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\Affiliates\States\Active;
 use AIArmada\Affiliates\States\ApprovedConversion;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\OwnerScope;
 use AIArmada\Links\Models\Link;
-use App\Enums\ShareGuestClaimStatus;
-use App\Models\ShareGuestClaim;
-use App\Models\ShareGuestClaimCapability;
-use App\Models\ShareGuestCredential;
 use App\Models\User;
 use App\Support\ShareTracking\ShareTrackingProfile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 
 uses(RefreshDatabase::class);
 
@@ -141,8 +141,8 @@ it('prunes a stale unclaimed guest profile and keeps its published short link re
         ->and(AffiliateLink::query()->whereKey($link->id)->exists())->toBeFalse()
         ->and(AffiliateAttribution::query()->whereKey($attribution->id)->exists())->toBeFalse()
         ->and(AffiliateTouchpoint::query()->whereKey($touchpoint->id)->exists())->toBeFalse()
-        ->and(ShareGuestCredential::query()->where('affiliate_id', $affiliate->id)->exists())->toBeFalse()
-        ->and(ShareGuestClaimCapability::query()->where('guest_affiliate_id', $affiliate->id)->exists())->toBeFalse()
+        ->and(AffiliateCredential::query()->where('affiliate_id', $affiliate->id)->exists())->toBeFalse()
+        ->and(AffiliateOwnershipCapability::query()->where('affiliate_id', $affiliate->id)->exists())->toBeFalse()
         ->and($tracked instanceof Link ? Link::query()->whereKey($tracked->id)->exists() : true)->toBeTrue()
         ->and($tracked instanceof Link ? Link::query()->whereKey($tracked->id)->value('subject_id') : null)->toBe('00000000-0000-0000-0000-000000000000');
 });
@@ -167,11 +167,12 @@ it('keeps claimed guest profiles even when the claim was revoked', function (): 
     ['affiliate' => $affiliate] = pgspGuestShare();
     pgspBackdate($affiliate);
 
-    ShareGuestClaim::query()->create([
-        'guest_affiliate_id' => $affiliate->id,
-        'claimant_user_id' => User::factory()->create()->id,
-        'capability_verifier' => str_repeat('a', 64),
-        'status' => ShareGuestClaimStatus::Revoked,
+    AffiliateClaim::query()->create([
+        'affiliate_id' => $affiliate->getKey(),
+        'claimant_type' => (new User)->getMorphClass(),
+        'claimant_id' => (string) User::factory()->create()->getKey(),
+        'capability_verifier_hash' => hash('sha256', Str::random(64)),
+        'status' => 'revoked',
         'claimed_at' => now()->subDays(100),
         'revoked_at' => now()->subDays(90),
     ]);

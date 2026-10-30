@@ -4,23 +4,21 @@ declare(strict_types=1);
 
 namespace App\Actions\ShareTracking;
 
+use AIArmada\Affiliates\Actions\Identity\ClaimAffiliateIdentity;
+use AIArmada\Affiliates\Exceptions\SealedIdentityException;
 use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\Models\AffiliateAttribution;
+use AIArmada\Affiliates\Models\AffiliateClaim;
+use AIArmada\Affiliates\Models\AffiliateOwnershipCapability;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\OwnerScope;
 use AIArmada\Rewards\Jobs\EvaluateRewardEntitlementJob;
 use App\Actions\Auth\LinkGuestSignupAttributionsAction;
 use App\Enums\ShareGuestClaimResult;
-use App\Enums\ShareGuestClaimStatus;
-use App\Enums\ShareGuestCredentialStatus;
-use App\Models\ShareGuestClaim;
-use App\Models\ShareGuestClaimCapability;
-use App\Models\ShareGuestCredential;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Support\ShareTracking\ShareTrackingProfile;
-use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -59,18 +57,18 @@ final class ClaimGuestShareProfileAction
 
         $capability = trim($presentedCapability);
 
-        if (preg_match('/^[A-Za-z0-9]{32}$/', $capability) !== 1) {
+        if (preg_match('/^[0-9a-f]{64}$/', $capability) !== 1) {
             return ShareGuestClaimResult::ExpiredOrInvalid;
         }
 
-        $verifier = ShareGuestClaimCapability::verifierFor($capability);
+        $verifier = hash('sha256', $capability);
 
         $result = OwnerContext::withOwner(
             $claimant,
             // Deadlock retry replays read-then-insert: the unique claim key
             // and the single-use consume transition keep retries safe.
             fn (): ShareGuestClaimResult => DB::transaction(
-                fn (): ShareGuestClaimResult => $this->attemptClaim($claimant, $verifier),
+                fn (): ShareGuestClaimResult => $this->attemptClaim($claimant, $capability, $verifier),
                 3
             )
         );
@@ -82,7 +80,7 @@ final class ClaimGuestShareProfileAction
         return $result;
     }
 
-    private function attemptClaim(User $claimant, string $verifier): ShareGuestClaimResult
+    private function attemptClaim(User $claimant, string $presentedCapability, string $verifier): ShareGuestClaimResult
     {
         $claimantId = (string) $claimant->getKey();
 
@@ -94,16 +92,16 @@ final class ClaimGuestShareProfileAction
             return ShareGuestClaimResult::ExpiredOrInvalid;
         }
 
-        $capability = ShareGuestClaimCapability::query()
-            ->where('capability_verifier', $verifier)
+        $capability = AffiliateOwnershipCapability::query()
+            ->where('verifier_hash', $verifier)
             ->lockForUpdate()
             ->first();
 
-        if (! $capability instanceof ShareGuestClaimCapability) {
+        if (! $capability instanceof AffiliateOwnershipCapability) {
             return ShareGuestClaimResult::ExpiredOrInvalid;
         }
 
-        $guestAffiliateId = (string) $capability->guest_affiliate_id;
+        $guestAffiliateId = (string) $capability->affiliate_id;
 
         $guestAffiliate = Affiliate::query()
             ->withoutGlobalScope(OwnerScope::class)
@@ -115,24 +113,26 @@ final class ClaimGuestShareProfileAction
             return ShareGuestClaimResult::ExpiredOrInvalid;
         }
 
-        $existingClaim = ShareGuestClaim::query()
-            ->where('guest_affiliate_id', $guestAffiliateId)
+        $existingClaim = AffiliateClaim::query()
+            ->where('affiliate_id', $guestAffiliateId)
             ->lockForUpdate()
             ->first();
 
-        if ($existingClaim instanceof ShareGuestClaim) {
+        if ($existingClaim instanceof AffiliateClaim) {
             // Idempotent same-claimant retry: success without touching any
             // row or replaying any effect. Every other case refuses
             // generically: revoked history (including the claimant's own
             // deleted history) is never stealable or reassignable.
-            if ($existingClaim->isActive() && (string) $existingClaim->claimant_user_id === $claimantId) {
+            if ($existingClaim->isActive()
+                && $existingClaim->claimant_type === $claimant->getMorphClass()
+                && (string) $existingClaim->claimant_id === $claimantId) {
                 return ShareGuestClaimResult::AlreadyClaimedByYou;
             }
 
             return ShareGuestClaimResult::ClaimedByOther;
         }
 
-        if (! $capability->isUsable()) {
+        if (! $capability->isUsableAt(now())) {
             return ShareGuestClaimResult::ExpiredOrInvalid;
         }
 
@@ -146,67 +146,35 @@ final class ClaimGuestShareProfileAction
             throw new RuntimeException('Claim recipient must be distinct from the guest source profile.');
         }
 
+        // The package owns the exactly-one association, single-use consume,
+        // and atomic seal (revokes the reusable credential in the same
+        // transaction). A racing claimant loses with SealedIdentityException:
+        // resolve the committed winner without writing anything further.
         try {
-            $claim = DB::transaction(static fn (): ShareGuestClaim => ShareGuestClaim::query()->create([
-                'guest_affiliate_id' => $guestAffiliateId,
-                'claimant_user_id' => $claimantId,
-                'capability_verifier' => $verifier,
-                'status' => ShareGuestClaimStatus::Active,
-                'claimed_at' => now(),
-            ]), 1);
-        } catch (QueryException $exception) {
-            if (! $this->isUniqueViolation($exception)) {
-                throw $exception;
-            }
-
-            // A racing claimant won the exactly-one association: resolve
-            // the committed winner without writing anything further.
-            $winner = ShareGuestClaim::query()
-                ->where('guest_affiliate_id', $guestAffiliateId)
+            $claim = app(ClaimAffiliateIdentity::class)->run(
+                $presentedCapability,
+                $claimant->getMorphClass(),
+                $claimantId,
+                true,
+            );
+        } catch (SealedIdentityException) {
+            $winner = AffiliateClaim::query()
+                ->where('affiliate_id', $guestAffiliateId)
                 ->first();
 
-            if ($winner instanceof ShareGuestClaim
+            if ($winner instanceof AffiliateClaim
                 && $winner->isActive()
-                && (string) $winner->claimant_user_id === $claimantId) {
+                && $winner->claimant_type === $claimant->getMorphClass()
+                && (string) $winner->claimant_id === $claimantId) {
                 return ShareGuestClaimResult::AlreadyClaimedByYou;
             }
 
             return ShareGuestClaimResult::ClaimedByOther;
         }
 
-        // Single-use: the held row lock makes this consume exclusive, so a
-        // failure here is a bug, never a second claimant. Throwing rolls
-        // the claim insert back with it.
-        if (! $capability->consume()) {
-            throw new RuntimeException('Claim capability could not be consumed exactly once.');
-        }
-
-        // Claimed history is sealed: the reusable share credential that
-        // minted it is revoked in the same transaction, so later anonymous
-        // activity on the same browser cannot accrue into the claimant's
-        // owned history. A subsequent anonymous share presents a revoked
-        // credential and receives a genuinely new guest identity with its
-        // own fresh credential and capability; the claimed rows keep their
-        // original guest source, owner null, and frozen attribution.
-        $this->revokeHistoricalGuestCredentials($guestAffiliateId);
         $this->linkGuestSignupAttributions->handle($claim);
 
         return ShareGuestClaimResult::Claimed;
-    }
-
-    private function revokeHistoricalGuestCredentials(string $guestAffiliateId): void
-    {
-        ShareGuestCredential::query()
-            ->where('affiliate_id', $guestAffiliateId)
-            ->where('status', ShareGuestCredentialStatus::Active->value)
-            ->lockForUpdate()
-            ->get()
-            ->each(static fn (ShareGuestCredential $credential): bool => $credential->revoke());
-    }
-
-    private function isUniqueViolation(QueryException $exception): bool
-    {
-        return in_array((string) ($exception->errorInfo[0] ?? $exception->getCode()), ['23000', '23505'], true);
     }
 
     /**
@@ -221,17 +189,17 @@ final class ClaimGuestShareProfileAction
      */
     private function dispatchClaimedHistoryEvaluation(string $verifier): void
     {
-        $claim = ShareGuestClaim::query()
-            ->where('capability_verifier', $verifier)
+        $claim = AffiliateClaim::query()
+            ->where('capability_verifier_hash', $verifier)
             ->first();
 
-        if (! $claim instanceof ShareGuestClaim || ! $claim->isActive()) {
+        if (! $claim instanceof AffiliateClaim || ! $claim->isActive()) {
             return;
         }
 
         $attributionIds = AffiliateAttribution::query()
             ->withoutGlobalScope(OwnerScope::class)
-            ->where('affiliate_id', (string) $claim->guest_affiliate_id)
+            ->where('affiliate_id', (string) $claim->affiliate_id)
             ->pluck('id')
             ->map(static fn (mixed $id): string => (string) $id)
             ->all();

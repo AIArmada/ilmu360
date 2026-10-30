@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Support\Share;
 
 use AIArmada\Affiliates\Models\Affiliate;
+use AIArmada\Affiliates\Models\AffiliateClaim;
 use AIArmada\CommerceSupport\Support\OwnerScope;
-use App\Models\ShareGuestClaim;
 use App\Models\User;
 use App\Support\ShareTracking\ShareTrackingProfile;
 
@@ -34,8 +34,25 @@ final class ShareProfileScope
 
         return array_values(array_unique([
             ...$ids,
-            ...ShareGuestClaim::activeGuestAffiliateIdsForClaimant((string) $user->getKey()),
+            ...self::activeGuestAffiliateIdsForClaimant($user),
         ]));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function activeGuestAffiliateIdsForClaimant(User $user): array
+    {
+        return AffiliateClaim::query()
+            ->where('claimant_type', $user->getMorphClass())
+            ->where('claimant_id', (string) $user->getKey())
+            ->where('status', 'active')
+            ->whereNull('revoked_at')
+            ->pluck('affiliate_id')
+            ->map(static fn (mixed $id): string => (string) $id)
+            ->unique()
+            ->values()
+            ->all();
     }
 
     public static function primaryAffiliateId(User $user): ?string

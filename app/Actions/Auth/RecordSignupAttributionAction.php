@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Auth;
 
 use AIArmada\Affiliates\Models\Affiliate;
+use AIArmada\Affiliates\Models\AffiliateClaim;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\OwnerScope;
 use AIArmada\Referrals\Enums\ReferralInviteStatus;
@@ -13,7 +14,6 @@ use AIArmada\Referrals\Models\ReferralInvite;
 use AIArmada\Referrals\Support\ReferralContactNormalizer;
 use App\Enums\SignupAttributionSourceType;
 use App\Enums\SignupAttributionStatus;
-use App\Models\ShareGuestClaim;
 use App\Models\SignupAttribution;
 use App\Models\User;
 use App\Support\Auth\SignupAttributionSource;
@@ -85,10 +85,11 @@ final readonly class RecordSignupAttributionAction
         Affiliate::query()->withoutGlobalScope(OwnerScope::class)
             ->whereKey($source->affiliateId)->lockForUpdate()->first();
 
-        $claim = ShareGuestClaim::query()->where('guest_affiliate_id', $source->affiliateId)->first();
-        $referrerId = $claim instanceof ShareGuestClaim && $claim->isActive()
-            && User::query()->whereKey($claim->claimant_user_id)->exists()
-                ? (string) $claim->claimant_user_id
+        $claim = AffiliateClaim::query()->where('affiliate_id', $source->affiliateId)->first();
+        $referrerId = $claim instanceof AffiliateClaim && $claim->isActive()
+            && $claim->claimant_type === (new User)->getMorphClass()
+            && User::query()->whereKey($claim->claimant_id)->exists()
+                ? (string) $claim->claimant_id
                 : null;
 
         return new SignupAttributionSource(

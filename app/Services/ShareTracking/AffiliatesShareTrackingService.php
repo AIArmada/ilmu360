@@ -6,15 +6,23 @@ namespace App\Services\ShareTracking;
 
 use AIArmada\Affiliates\Actions\Affiliates\CreateTrackingLink;
 use AIArmada\Affiliates\Actions\Conversions\RecordAffiliateOutcome;
+use AIArmada\Affiliates\Actions\Identity\IssueActivityCredential;
+use AIArmada\Affiliates\Actions\Identity\IssueOwnershipCapability;
+use AIArmada\Affiliates\Actions\Identity\RevalidateIdentitySeal;
+use AIArmada\Affiliates\Actions\Identity\RevokeAffiliateClaim;
 use AIArmada\Affiliates\Data\AffiliateConversionData;
 use AIArmada\Affiliates\Enums\AffiliateOutcomeDisposition;
 use AIArmada\Affiliates\Enums\CommissionType;
 use AIArmada\Affiliates\Enums\FraudSignalStatus;
+use AIArmada\Affiliates\Exceptions\SealedIdentityException as PackageSealedIdentityException;
 use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\Models\AffiliateAttribution;
+use AIArmada\Affiliates\Models\AffiliateClaim;
 use AIArmada\Affiliates\Models\AffiliateConversion;
+use AIArmada\Affiliates\Models\AffiliateCredential;
 use AIArmada\Affiliates\Models\AffiliateFraudSignal;
 use AIArmada\Affiliates\Models\AffiliateLink;
+use AIArmada\Affiliates\Models\AffiliateOwnershipCapability;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\Affiliates\States\Active;
 use AIArmada\Affiliates\States\ApprovedConversion;
@@ -29,9 +37,6 @@ use App\Data\ShareTracking\ShareTrackingLinkData;
 use App\Data\ShareTracking\ShareTrackingOutcomeData;
 use App\Enums\DawahShareOutcomeType;
 use App\Enums\ShareEffectStatus;
-use App\Enums\ShareGuestClaimCapabilityStatus;
-use App\Enums\ShareGuestClaimStatus;
-use App\Enums\ShareGuestCredentialStatus;
 use App\Jobs\Referrals\QualifyReferralFromShareOutcomeJob;
 use App\Models\Event;
 use App\Models\Institution;
@@ -40,9 +45,6 @@ use App\Models\Reference;
 use App\Models\Series;
 use App\Models\ShareBrowserSelection;
 use App\Models\ShareEffectReceipt;
-use App\Models\ShareGuestClaim;
-use App\Models\ShareGuestClaimCapability;
-use App\Models\ShareGuestCredential;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
@@ -71,9 +73,11 @@ final readonly class AffiliatesShareTrackingService
 {
     private const int SHARE_TOKEN_LENGTH = 16;
 
-    private const int GUEST_CREDENTIAL_LENGTH = 32;
-
-    private const int CLAIM_CAPABILITY_LENGTH = 32;
+    /**
+     * Issued identity secrets are package-generated 64-char lowercase hex
+     * strings; only their SHA-256 verifiers are stored.
+     */
+    private const string IDENTITY_SECRET_PATTERN = '/^[0-9a-f]{64}$/';
 
     public function __construct(
         private ShareTrackingUrlService $shareTrackingUrlService,
@@ -1142,7 +1146,8 @@ final readonly class AffiliatesShareTrackingService
             }
 
             $affiliate->balances()->delete();
-            ShareGuestCredential::query()->where('affiliate_id', $affiliate->id)->delete();
+            AffiliateCredential::query()->where('affiliate_id', $affiliate->id)->delete();
+            AffiliateOwnershipCapability::query()->where('affiliate_id', $affiliate->id)->delete();
             $affiliate->delete();
         });
     }
@@ -1215,7 +1220,7 @@ final readonly class AffiliatesShareTrackingService
 
     private function isAbandonedGuestProfile(Affiliate $affiliate): bool
     {
-        if (ShareGuestClaim::query()->where('guest_affiliate_id', $affiliate->getKey())->exists()) {
+        if (AffiliateClaim::query()->where('affiliate_id', $affiliate->getKey())->exists()) {
             return false;
         }
 
@@ -1235,8 +1240,8 @@ final readonly class AffiliatesShareTrackingService
 
     private function deleteAbandonedGuestProfile(Affiliate $affiliate): void
     {
-        ShareGuestCredential::query()->where('affiliate_id', $affiliate->getKey())->delete();
-        ShareGuestClaimCapability::query()->where('guest_affiliate_id', $affiliate->getKey())->delete();
+        AffiliateCredential::query()->where('affiliate_id', $affiliate->getKey())->delete();
+        AffiliateOwnershipCapability::query()->where('affiliate_id', $affiliate->getKey())->delete();
 
         $affiliate->links()
             ->get()
@@ -1297,7 +1302,7 @@ final readonly class AffiliatesShareTrackingService
         }
 
         foreach ($candidates as $candidate) {
-            if (is_string($candidate) && preg_match('/^[A-Za-z0-9]{'.self::CLAIM_CAPABILITY_LENGTH.'}$/', trim($candidate)) === 1) {
+            if (is_string($candidate) && preg_match(self::IDENTITY_SECRET_PATTERN, trim($candidate)) === 1) {
                 return trim($candidate);
             }
         }
@@ -1337,32 +1342,33 @@ final readonly class AffiliatesShareTrackingService
             return ['state' => 'unavailable'];
         }
 
-        $capability = ShareGuestClaimCapability::query()
-            ->where('capability_verifier', ShareGuestClaimCapability::verifierFor($presented))
+        $capability = AffiliateOwnershipCapability::query()
+            ->where('verifier_hash', hash('sha256', $presented))
             ->first();
 
-        if (! $capability instanceof ShareGuestClaimCapability) {
+        if (! $capability instanceof AffiliateOwnershipCapability) {
             return ['state' => 'unavailable'];
         }
 
-        $claim = ShareGuestClaim::query()
-            ->where('guest_affiliate_id', $capability->guest_affiliate_id)
+        $claim = AffiliateClaim::query()
+            ->where('affiliate_id', $capability->affiliate_id)
             ->first();
 
-        if ($claim instanceof ShareGuestClaim) {
+        if ($claim instanceof AffiliateClaim) {
             $mine = $claim->isActive()
-                && (string) $claim->claimant_user_id === (string) $user->getKey();
+                && $claim->claimant_type === $user->getMorphClass()
+                && (string) $claim->claimant_id === (string) $user->getKey();
 
             return ['state' => $mine ? 'claimed_by_you' : 'unavailable'];
         }
 
-        if (! $capability->isUsable()) {
+        if (! $capability->isUsableAt(now())) {
             return ['state' => 'unavailable'];
         }
 
         $guestAffiliate = Affiliate::query()
             ->withoutGlobalScope(OwnerScope::class)
-            ->whereKey($capability->guest_affiliate_id)
+            ->whereKey($capability->affiliate_id)
             ->first();
 
         if (! ShareTrackingProfile::isMarkedGuest($guestAffiliate)) {
@@ -1519,13 +1525,14 @@ final readonly class AffiliatesShareTrackingService
 
     private function revokeGuestCredentials(Affiliate $affiliate): void
     {
-        $credentials = ShareGuestCredential::query()
+        $credentials = AffiliateCredential::query()
+            ->withoutGlobalScope(OwnerScope::class)
             ->where('affiliate_id', $affiliate->id)
-            ->where('status', ShareGuestCredentialStatus::Active->value)
+            ->where('status', 'active')
             ->get();
 
         foreach ($credentials as $credential) {
-            $credential->revoke();
+            $credential->forceFill(['status' => 'revoked', 'revoked_at' => now()])->save();
         }
     }
 
@@ -1534,11 +1541,15 @@ final readonly class AffiliatesShareTrackingService
         // Claim rows are preserved as permanent revoked ownership records:
         // deleted claim history can never be stolen or reassigned, and a
         // later restore reactivates nothing.
-        ShareGuestClaim::query()
-            ->where('claimant_user_id', $user->getKey())
-            ->where('status', ShareGuestClaimStatus::Active->value)
+        AffiliateClaim::query()
+            ->withoutGlobalScope(OwnerScope::class)
+            ->where('claimant_type', $user->getMorphClass())
+            ->where('claimant_id', (string) $user->getKey())
+            ->where('status', 'active')
             ->get()
-            ->each(static fn (ShareGuestClaim $claim): bool => $claim->revoke());
+            ->each(function (AffiliateClaim $claim): void {
+                app(RevokeAffiliateClaim::class)->handle($claim);
+            });
     }
 
     private function disarmClaimedGuestSources(User $user): void
@@ -1550,9 +1561,11 @@ final readonly class AffiliatesShareTrackingService
         // disabled, so published short URLs open the clean public
         // destination with credit cleared. Nothing is deleted, no award or
         // notification is replayed, and no secret is restored.
-        $guestIds = ShareGuestClaim::query()
-            ->where('claimant_user_id', $user->getKey())
-            ->pluck('guest_affiliate_id')
+        $guestIds = AffiliateClaim::query()
+            ->withoutGlobalScope(OwnerScope::class)
+            ->where('claimant_type', $user->getMorphClass())
+            ->where('claimant_id', (string) $user->getKey())
+            ->pluck('affiliate_id')
             ->map(static fn (mixed $id): string => (string) $id)
             ->unique()
             ->values()
@@ -1562,11 +1575,11 @@ final readonly class AffiliatesShareTrackingService
             return;
         }
 
-        ShareGuestCredential::query()
+        AffiliateCredential::query()
+            ->withoutGlobalScope(OwnerScope::class)
             ->whereIn('affiliate_id', $guestIds)
-            ->where('status', ShareGuestCredentialStatus::Active->value)
-            ->get()
-            ->each(static fn (ShareGuestCredential $credential): bool => $credential->revoke());
+            ->where('status', 'active')
+            ->update(['status' => 'revoked', 'revoked_at' => now()]);
 
         AffiliateLink::query()
             ->withoutGlobalScope(OwnerScope::class)
@@ -1918,29 +1931,26 @@ final readonly class AffiliatesShareTrackingService
      */
     private function revalidateGuestCredentialSeal(Affiliate $lockedAffiliate, string $guestCredential): void
     {
-        $record = ShareGuestCredential::query()
-            ->where('credential_verifier', $this->guestCredentialVerifier($guestCredential))
+        $record = AffiliateCredential::query()
+            ->where('verifier_hash', hash('sha256', $guestCredential))
             ->lockForUpdate()
             ->first();
 
-        $sealed = ! $record instanceof ShareGuestCredential
-            || $record->status !== ShareGuestCredentialStatus::Active
+        $sealed = ! $record instanceof AffiliateCredential
+            || $record->status !== 'active'
             || $record->revoked_at !== null
             || $record->expires_at === null
             || ! $record->expires_at->isFuture()
             || (string) $record->affiliate_id !== (string) $lockedAffiliate->getKey();
 
-        if (! $sealed) {
-            // Any claim row — active or revoked — permanently seals its
-            // history: revoked history (including the claimant's own
-            // deleted history) never accepts new authorship.
-            $sealed = ShareGuestClaim::query()
-                ->where('guest_affiliate_id', $lockedAffiliate->getKey())
-                ->exists();
-        }
-
         if ($sealed) {
             throw new SealedGuestIdentityException('The presented guest identity was sealed by a claim.');
+        }
+
+        try {
+            app(RevalidateIdentitySeal::class)->handle($lockedAffiliate, $record);
+        } catch (PackageSealedIdentityException $exception) {
+            throw new SealedGuestIdentityException($exception->getMessage(), $exception->getCode(), $exception);
         }
     }
 
@@ -1978,15 +1988,11 @@ final readonly class AffiliatesShareTrackingService
 
         do {
             $attempts++;
-            $credential = Str::random(self::GUEST_CREDENTIAL_LENGTH);
-            $verifier = $this->guestCredentialVerifier($credential);
-            $claimCapability = Str::random(self::CLAIM_CAPABILITY_LENGTH);
-            $claimVerifier = ShareGuestClaimCapability::verifierFor($claimCapability);
 
             try {
-                return DB::transaction(function () use ($credential, $verifier, $claimCapability, $claimVerifier): array {
+                return DB::transaction(function (): array {
                     $affiliate = OwnerContext::withOwner(null, fn (): Affiliate => Affiliate::query()->create([
-                        'code' => 'MG'.Str::upper(substr($verifier, 0, 12)),
+                        'code' => 'MG'.Str::upper(Str::random(12)),
                         'name' => 'Anonymous Share Profile',
                         'description' => 'ilmu360 anonymous share-tracking profile',
                         'status' => Active::class,
@@ -1998,28 +2004,20 @@ final readonly class AffiliatesShareTrackingService
                         'activated_at' => now(),
                     ]));
 
-                    ShareGuestCredential::query()->create([
-                        'affiliate_id' => $affiliate->id,
-                        'credential_verifier' => $verifier,
-                        'status' => ShareGuestCredentialStatus::Active,
-                        'issued_at' => now(),
-                        'expires_at' => now()->addDays((int) config('dawah-share.guest_credential.ttl_days', 30)),
+                    $credential = app(IssueActivityCredential::class)->run($affiliate, [
+                        'ttl_days' => (int) config('dawah-share.guest_credential.ttl_days', 30),
                     ]);
 
                     // Separate single-purpose claim capability: the only
                     // ownership proof a future authenticated claim accepts.
-                    ShareGuestClaimCapability::query()->create([
-                        'guest_affiliate_id' => $affiliate->id,
-                        'capability_verifier' => $claimVerifier,
-                        'status' => ShareGuestClaimCapabilityStatus::Active,
-                        'issued_at' => now(),
-                        'expires_at' => now()->addDays((int) config('dawah-share.claim_capability.ttl_days', 30)),
+                    $claimCapability = app(IssueOwnershipCapability::class)->run($affiliate, [
+                        'ttl_days' => (int) config('dawah-share.claim_capability.ttl_days', 30),
                     ]);
 
-                    $this->queueGuestCredentialCookie($credential);
-                    $this->queueClaimCapabilityCookie($claimCapability);
+                    $this->queueGuestCredentialCookie($credential['plaintext_secret']);
+                    $this->queueClaimCapabilityCookie($claimCapability['plaintext_secret']);
 
-                    return [$affiliate, $credential, $claimCapability];
+                    return [$affiliate, $credential['plaintext_secret'], $claimCapability['plaintext_secret']];
                 });
             } catch (QueryException $exception) {
                 if (! $this->isUniqueViolation($exception) || $attempts >= 3) {
@@ -2031,14 +2029,14 @@ final readonly class AffiliatesShareTrackingService
 
     private function findGuestAffiliateForCredential(string $credential): ?Affiliate
     {
-        $record = ShareGuestCredential::query()
-            ->where('credential_verifier', $this->guestCredentialVerifier($credential))
-            ->where('status', ShareGuestCredentialStatus::Active->value)
+        $record = AffiliateCredential::query()
+            ->where('verifier_hash', hash('sha256', $credential))
+            ->where('status', 'active')
             ->whereNull('revoked_at')
             ->where('expires_at', '>', now())
             ->first();
 
-        if (! $record instanceof ShareGuestCredential) {
+        if (! $record instanceof AffiliateCredential) {
             return null;
         }
 
@@ -2048,7 +2046,9 @@ final readonly class AffiliatesShareTrackingService
             return null;
         }
 
-        $record->forceFill(['last_used_at' => now()])->save();
+        AffiliateCredential::query()
+            ->whereKey($record->getKey())
+            ->update(['last_used_at' => now()]);
 
         return $affiliate;
     }
@@ -2072,17 +2072,12 @@ final readonly class AffiliatesShareTrackingService
         }
 
         foreach ($candidates as $candidate) {
-            if (is_string($candidate) && preg_match('/^[A-Za-z0-9]{'.self::GUEST_CREDENTIAL_LENGTH.'}$/', trim($candidate)) === 1) {
+            if (is_string($candidate) && preg_match(self::IDENTITY_SECRET_PATTERN, trim($candidate)) === 1) {
                 return trim($candidate);
             }
         }
 
         return null;
-    }
-
-    private function guestCredentialVerifier(string $credential): string
-    {
-        return hash('sha256', 'dawah-guest-credential-v1|'.$credential);
     }
 
     private function queueGuestCredentialCookie(string $credential): void
@@ -2247,10 +2242,11 @@ final readonly class AffiliatesShareTrackingService
 
     private function hasActiveGuestClaim(Affiliate $affiliate, User $user): bool
     {
-        return ShareGuestClaim::query()
-            ->where('guest_affiliate_id', $affiliate->getKey())
-            ->where('claimant_user_id', $user->getKey())
-            ->where('status', ShareGuestClaimStatus::Active->value)
+        return AffiliateClaim::query()
+            ->where('affiliate_id', $affiliate->getKey())
+            ->where('claimant_type', $user->getMorphClass())
+            ->where('claimant_id', (string) $user->getKey())
+            ->where('status', 'active')
             ->whereNull('revoked_at')
             ->exists();
     }
@@ -2326,10 +2322,11 @@ final readonly class AffiliatesShareTrackingService
             return false;
         }
 
-        return ShareGuestClaim::query()
-            ->where('guest_affiliate_id', $affiliate->getKey())
-            ->where('claimant_user_id', $actorId)
-            ->where('status', ShareGuestClaimStatus::Active->value)
+        return AffiliateClaim::query()
+            ->where('affiliate_id', $affiliate->getKey())
+            ->where('claimant_type', $actor->getMorphClass())
+            ->where('claimant_id', $actorId)
+            ->where('status', 'active')
             ->whereNull('revoked_at')
             ->exists();
     }

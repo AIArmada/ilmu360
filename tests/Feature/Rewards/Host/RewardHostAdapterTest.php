@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use AIArmada\Affiliates\Actions\Identity\RevokeAffiliateClaim;
+use AIArmada\Affiliates\Models\AffiliateClaim;
 use AIArmada\Affiliates\Models\AffiliateFraudSignal;
 use AIArmada\Rewards\Actions\MarkRewardReservationSubmittedAction;
 use AIArmada\Rewards\Enums\RewardBeneficiaryRole;
@@ -10,10 +12,8 @@ use AIArmada\Rewards\Enums\RewardSourceFraudStatus;
 use AIArmada\Rewards\Enums\RewardVerificationLevel;
 use AIArmada\Rewards\Models\RewardPointReservationSubmission;
 use AIArmada\Rewards\Support\PointLedgerRewardReservationResolver;
-use App\Enums\ShareGuestClaimStatus;
 use App\Models\EventCheckin;
 use App\Models\Registration;
-use App\Models\ShareGuestClaim;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\User;
 use App\Support\Rewards\ShareAttributionRewardSourceFactReader;
@@ -106,11 +106,12 @@ it('resolves a guest sharer only through an active claim', function (): void {
     $reader = new ShareAttributionRewardSourceFactReader;
     expect($reader->read($key)->sharerId)->toBeNull();
 
-    ShareGuestClaim::query()->create([
-        'guest_affiliate_id' => $guestAffiliateId,
-        'claimant_user_id' => (string) $claimant->getKey(),
-        'capability_verifier' => hash('sha256', 'host-adapter-test'),
-        'status' => ShareGuestClaimStatus::Active,
+    AffiliateClaim::query()->create([
+        'affiliate_id' => $guestAffiliateId,
+        'claimant_type' => (new User)->getMorphClass(),
+        'claimant_id' => (string) $claimant->getKey(),
+        'capability_verifier_hash' => hash('sha256', 'host-adapter-test'),
+        'status' => 'active',
         'claimed_at' => CarbonImmutable::now('UTC'),
     ]);
 
@@ -118,7 +119,9 @@ it('resolves a guest sharer only through an active claim', function (): void {
     expect($fact->sharerId)->toBe((string) $claimant->getKey());
     expect($fact->isClaimedIdentity)->toBeTrue();
 
-    ShareGuestClaim::query()->where('guest_affiliate_id', $guestAffiliateId)->firstOrFail()->revoke();
+    app(RevokeAffiliateClaim::class)->handle(
+        AffiliateClaim::query()->where('affiliate_id', $guestAffiliateId)->firstOrFail()
+    );
 
     expect($reader->read($key)->sharerId)->toBeNull();
 });

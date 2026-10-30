@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support\Rewards;
 
 use AIArmada\Affiliates\Enums\FraudSignalStatus;
+use AIArmada\Affiliates\Models\AffiliateClaim;
 use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateFraudSignal;
 use AIArmada\Affiliates\States\ConversionStatus;
@@ -21,7 +22,6 @@ use App\Models\EventCheckin;
 use App\Models\EventSubmission;
 use App\Models\Registration;
 use App\Models\SavedSearch;
-use App\Models\ShareGuestClaim;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
@@ -46,7 +46,7 @@ use Illuminate\Database\Eloquent\Model;
  *   conversion under an attributed receipt is null (inconsistent: refuse and
  *   let a later legitimate read decide, never freeze).
  * - guest sharers resolve to their proven claimant through an ACTIVE
- *   `ShareGuestClaim` on the conversion affiliate; revoked/expired claims do
+ *   `AffiliateClaim` on the conversion affiliate; revoked/expired claims do
  *   not resolve, and guest actors never resolve (no stored actor-affiliate
  *   link), so unclaimed-guest participant rewards stay impossible.
  * - verification is per-outcome evidence: staff check-in needs
@@ -357,17 +357,21 @@ final class ShareAttributionRewardSourceFactReader implements RewardSourceFactRe
             return null;
         }
 
-        $claim = ShareGuestClaim::query()
-            ->where('guest_affiliate_id', $affiliateId)
+        $claim = AffiliateClaim::query()
+            ->where('affiliate_id', $affiliateId)
             ->where('status', 'active')
             ->whereNull('revoked_at')
             ->first();
 
-        if (! $claim instanceof ShareGuestClaim || ! $claim->isActive()) {
+        if (! $claim instanceof AffiliateClaim || ! $claim->isActive()) {
             return null;
         }
 
-        return $this->nullableUuid($claim->getAttribute('claimant_user_id'));
+        if ($claim->claimant_type !== (new User)->getMorphClass()) {
+            return null;
+        }
+
+        return $this->nullableUuid($claim->getAttribute('claimant_id'));
     }
 
     /**

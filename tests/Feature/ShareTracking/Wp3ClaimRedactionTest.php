@@ -68,7 +68,7 @@ it('redacts the claim capability across its canonical transports through the bou
         $input => $capability,
         $header => $capability,
         $cookie => $capability,
-        'capability_verifier' => hash('sha256', 'probe'),
+        'verifier_hash' => hash('sha256', 'probe'),
         'headers' => [
             mb_strtolower($header) => [$capability],
             'x-request-id' => ['req-1'],
@@ -90,7 +90,7 @@ it('redacts the claim capability across its canonical transports through the bou
         expect($clean[$input])->toBe('**[REDACTED]**')
             ->and($clean[$header])->toBe('**[REDACTED]**')
             ->and($clean[$cookie])->toBe('**[REDACTED]**')
-            ->and($clean['capability_verifier'])->toBe('**[REDACTED]**')
+            ->and($clean['verifier_hash'])->toBe('**[REDACTED]**')
             ->and($clean['headers'][mb_strtolower($header)])->toBe('**[REDACTED]**')
             ->and($clean['headers']['x-request-id'])->toBe(['req-1'])
             ->and($clean['nested'][$input])->toBe('**[REDACTED]**')

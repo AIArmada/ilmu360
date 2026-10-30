@@ -7,6 +7,7 @@ use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\Models\AffiliateAttribution;
 use AIArmada\Affiliates\Models\AffiliateBalance;
 use AIArmada\Affiliates\Models\AffiliateConversion;
+use AIArmada\Affiliates\Models\AffiliateCredential;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\Models\AffiliatePayout;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
@@ -16,9 +17,7 @@ use AIArmada\Affiliates\States\Disabled;
 use AIArmada\Affiliates\States\PaidConversion;
 use AIArmada\Affiliates\Support\IpHasher;
 use App\Enums\DawahShareOutcomeType;
-use App\Enums\ShareGuestCredentialStatus;
 use App\Models\Event;
-use App\Models\ShareGuestCredential;
 use App\Models\User;
 use App\Services\ShareTracking\AdminShareAnalyticsService;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
@@ -388,11 +387,11 @@ it('stores only credential verifiers and honors expiry and revocation', function
     $credential = (string) $payload['guest_credential'];
     $header = (string) config('dawah-share.guest_credential.header', 'X-Dawah-Guest-Credential');
 
-    expect(ShareGuestCredential::query()->where('credential_verifier', $credential)->exists())->toBeFalse();
+    expect(AffiliateCredential::query()->where('verifier_hash', $credential)->exists())->toBeFalse();
 
-    $record = ShareGuestCredential::query()->firstOrFail();
+    $record = AffiliateCredential::query()->firstOrFail();
 
-    expect($record->credential_verifier)->toBe(hash('sha256', 'dawah-guest-credential-v1|'.$credential));
+    expect($record->verifier_hash)->toBe(hash('sha256', $credential));
 
     $record->forceFill(['expires_at' => now()->subMinute()])->save();
 
@@ -405,12 +404,20 @@ it('stores only credential verifiers and honors expiry and revocation', function
 
     $record->forceFill(['expires_at' => now()->addDays(30)])->save();
 
-    expect($record->status)->toBe(ShareGuestCredentialStatus::Active);
+    expect($record->status)->toBe('active');
 
-    expect($record->revoke())->toBeTrue()
-        ->and($record->status)->toBe(ShareGuestCredentialStatus::Revoked)
-        ->and($record->revoked_at)->not->toBeNull()
-        ->and($record->revoke())->toBeFalse();
+    $revoked = AffiliateCredential::query()
+        ->whereKey($record->getKey())
+        ->where('status', 'active')
+        ->update(['status' => 'revoked', 'revoked_at' => now()]);
+
+    expect($revoked)->toBe(1);
+
+    expect($record->fresh()->status)->toBe('revoked')
+        ->and($record->fresh()->revoked_at)->not->toBeNull()
+        ->and(AffiliateCredential::query()->whereKey($record->getKey())->where('status', 'active')->update([
+            'status' => 'revoked', 'revoked_at' => now(),
+        ]))->toBe(0);
 
     $this->withHeader($header, $credential)
         ->postJson(route('dawah-share.track'), [

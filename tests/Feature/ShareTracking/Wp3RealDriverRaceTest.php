@@ -19,17 +19,14 @@ declare(strict_types=1);
 use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\Models\AffiliateAttribution;
 use AIArmada\Affiliates\Models\AffiliateBalance;
+use AIArmada\Affiliates\Models\AffiliateClaim;
+use AIArmada\Affiliates\Models\AffiliateCredential;
 use AIArmada\Affiliates\Models\AffiliateLink;
+use AIArmada\Affiliates\Models\AffiliateOwnershipCapability;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Links\Models\Link;
 use App\Actions\ShareTracking\ClaimGuestShareProfileAction;
-use App\Enums\ShareGuestClaimCapabilityStatus;
 use App\Enums\ShareGuestClaimResult;
-use App\Enums\ShareGuestClaimStatus;
-use App\Enums\ShareGuestCredentialStatus;
-use App\Models\ShareGuestClaim;
-use App\Models\ShareGuestClaimCapability;
-use App\Models\ShareGuestCredential;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Services\ShareTrackingService;
@@ -61,9 +58,9 @@ function wp3RaceWorker(string $test): array
             'affiliate_links',
             'tracked_links',
             'contact_methods',
-            'share_guest_credentials',
-            'share_guest_claim_capabilities',
-            'share_guest_claims',
+            'affiliate_credentials',
+            'affiliate_ownership_capabilities',
+            'affiliate_claims',
         ]);
     } catch (Throwable $exception) {
         RealDriverFixture::restoreDatabase($previous, Wp1RealDriverHarness::WORKER_CONNECTION);
@@ -102,7 +99,7 @@ function wp3ClaimRaceCase(TestCase $testCase): void
 
         $capability = (string) ($payload['guest_claim_capability'] ?? '');
 
-        expect($capability)->toMatch('/^[A-Za-z0-9]{32}$/');
+        expect($capability)->toMatch('/^[0-9a-f]{64}$/');
 
         $guestAffiliateId = (string) AffiliateLink::query()
             ->where('custom_slug', (string) $payload['tracking_token'])
@@ -130,17 +127,17 @@ function wp3ClaimRaceCase(TestCase $testCase): void
             ShareGuestClaimResult::ClaimedByOther->value,
         ]);
 
-        expect(ShareGuestClaim::query()->where('guest_affiliate_id', $guestAffiliateId)->count())->toBe(1);
+        expect(AffiliateClaim::query()->where('affiliate_id', $guestAffiliateId)->count())->toBe(1);
 
-        $claim = ShareGuestClaim::query()->where('guest_affiliate_id', $guestAffiliateId)->firstOrFail();
+        $claim = AffiliateClaim::query()->where('affiliate_id', $guestAffiliateId)->firstOrFail();
         $winnerId = (string) $first['result'] === ShareGuestClaimResult::Claimed->value
             ? (string) $claimantA->getKey()
             : (string) $claimantB->getKey();
 
-        expect($claim->status)->toBe(ShareGuestClaimStatus::Active)
-            ->and((string) $claim->claimant_user_id)->toBe($winnerId)
-            ->and(ShareGuestClaimCapability::query()->where('guest_affiliate_id', $guestAffiliateId)->value('status'))
-            ->toBe(ShareGuestClaimCapabilityStatus::Consumed);
+        expect($claim->status)->toBe('active')
+            ->and((string) $claim->claimant_id)->toBe($winnerId)
+            ->and(AffiliateOwnershipCapability::query()->where('affiliate_id', $guestAffiliateId)->value('status'))
+            ->toBe('consumed');
 
         // The guest source is untouched; the recipient is distinct.
         $source = Affiliate::query()->whereKey($guestAffiliateId)->firstOrFail();
@@ -326,7 +323,7 @@ function wp3GuestSlugForcedRaceCase(TestCase $testCase): void
         $credential = (string) $issued['guest_credential'];
         $affiliateId = (string) AffiliateLink::query()->where('custom_slug', (string) $issued['tracking_token'])->value('affiliate_id');
 
-        expect($credential)->toMatch('/^[A-Za-z0-9]{32}$/');
+        expect($credential)->toMatch('/^[0-9a-f]{64}$/');
 
         $requestForRace = static function () use ($raceUrl, $credential): Request {
             $request = Request::create($raceUrl, 'GET');
@@ -537,9 +534,9 @@ function wp3DeleteBeforeClaimRaceCase(TestCase $testCase): void
         // refused on the missing user without writing anything.
         expect((string) $worker['result'])->toBe(ShareGuestClaimResult::ExpiredOrInvalid->value)
             ->and(User::query()->whereKey($claimant->getKey())->exists())->toBeFalse()
-            ->and(ShareGuestClaim::query()->where('guest_affiliate_id', $guestAffiliateId)->exists())->toBeFalse()
-            ->and(ShareGuestClaimCapability::query()->where('guest_affiliate_id', $guestAffiliateId)->value('status'))
-            ->toBe(ShareGuestClaimCapabilityStatus::Active);
+            ->and(AffiliateClaim::query()->where('affiliate_id', $guestAffiliateId)->exists())->toBeFalse()
+            ->and(AffiliateOwnershipCapability::query()->where('affiliate_id', $guestAffiliateId)->value('status'))
+            ->toBe('active');
 
         // The guest source itself is never adopted or deleted.
         $source = Affiliate::query()->whereKey($guestAffiliateId)->firstOrFail();
@@ -623,15 +620,15 @@ function wp3ClaimBeforeDeleteRaceCase(TestCase $testCase): void
         expect($worker['deleted'])->toBeTrue()
             ->and(User::query()->whereKey($claimant->getKey())->exists())->toBeFalse();
 
-        $claim = ShareGuestClaim::query()->where('guest_affiliate_id', $guestAffiliateId)->firstOrFail();
+        $claim = AffiliateClaim::query()->where('affiliate_id', $guestAffiliateId)->firstOrFail();
 
-        expect($claim->status)->toBe(ShareGuestClaimStatus::Revoked)
+        expect($claim->status)->toBe('revoked')
             ->and($claim->revoked_at)->not->toBeNull()
-            ->and((string) $claim->claimant_user_id)->toBe((string) $claimant->getKey())
-            ->and(ShareGuestClaimCapability::query()->where('guest_affiliate_id', $guestAffiliateId)->value('status'))
-            ->toBe(ShareGuestClaimCapabilityStatus::Consumed)
-            ->and(ShareGuestCredential::query()->where('affiliate_id', $guestAffiliateId)->value('status'))
-            ->toBe(ShareGuestCredentialStatus::Revoked);
+            ->and((string) $claim->claimant_id)->toBe((string) $claimant->getKey())
+            ->and(AffiliateOwnershipCapability::query()->where('affiliate_id', $guestAffiliateId)->value('status'))
+            ->toBe('consumed')
+            ->and(AffiliateCredential::query()->where('affiliate_id', $guestAffiliateId)->value('status'))
+            ->toBe('revoked');
 
         // Claimed sources disarm (no new credit) while every history row
         // survives; the guest profile itself is never adopted or deleted.
@@ -702,8 +699,8 @@ function wp3DeletePreservesObligationsCase(TestCase $testCase): void
         User::query()->whereKey($claimant->getKey())->firstOrFail()->delete();
 
         expect(User::query()->whereKey($claimant->getKey())->exists())->toBeFalse()
-            ->and(ShareGuestClaim::query()->where('guest_affiliate_id', $guestAffiliateId)->value('status'))
-            ->toBe(ShareGuestClaimStatus::Revoked)
+            ->and(AffiliateClaim::query()->where('affiliate_id', $guestAffiliateId)->value('status'))
+            ->toBe('revoked')
             ->and($guestLink->fresh()->deactivated_at)->not->toBeNull()
             ->and(Link::query()->withoutOwnerScope()->where('slug', $guestSlug)->exists())->toBeTrue()
             ->and(AffiliateLink::query()->whereKey($guestLink->getKey())->exists())->toBeTrue();
@@ -718,7 +715,7 @@ function wp3DeletePreservesObligationsCase(TestCase $testCase): void
             ->firstOrFail();
 
         expect((int) $balance->holding_minor)->toBe(150)
-            ->and(ShareGuestClaim::query()->where('guest_affiliate_id', $guestAffiliateId)->count())->toBe(1)
+            ->and(AffiliateClaim::query()->where('affiliate_id', $guestAffiliateId)->count())->toBe(1)
             ->and((string) $retained->owner_id)->toBe((string) $claimant->getKey());
 
         $source = Affiliate::query()->whereKey($guestAffiliateId)->firstOrFail();
@@ -756,8 +753,8 @@ function wp3ClaimSealsRacingCreationCase(TestCase $testCase): void
             ->where('custom_slug', $originalToken)
             ->value('affiliate_id');
 
-        expect($credential)->toMatch('/^[A-Za-z0-9]{32}$/')
-            ->and($capability)->toMatch('/^[A-Za-z0-9]{32}$/')
+        expect($credential)->toMatch('/^[0-9a-f]{64}$/')
+            ->and($capability)->toMatch('/^[0-9a-f]{64}$/')
             ->and(AffiliateLink::query()->where('affiliate_id', $guestAffiliateId)->count())->toBe(1);
 
         DB::beginTransaction();
@@ -808,8 +805,8 @@ function wp3ClaimSealsRacingCreationCase(TestCase $testCase): void
             ->and($worker['returned_at'] - $worker['attempted_at'])->toBeGreaterThan(1.0);
 
         // Truthful fresh-anonymous-identity transport for the sealed caller.
-        expect($worker['reissued_credential'])->toMatch('/^[A-Za-z0-9]{32}$/')
-            ->and($worker['reissued_capability'])->toMatch('/^[A-Za-z0-9]{32}$/')
+        expect($worker['reissued_credential'])->toMatch('/^[0-9a-f]{64}$/')
+            ->and($worker['reissued_capability'])->toMatch('/^[0-9a-f]{64}$/')
             ->and((string) $worker['reissued_credential'])->not->toBe($credential)
             ->and((string) $worker['reissued_capability'])->not->toBe($capability)
             ->and((string) $worker['token'])->toMatch('/^[a-z0-9]{16}$/');
@@ -827,19 +824,19 @@ function wp3ClaimSealsRacingCreationCase(TestCase $testCase): void
 
         // No fresh proof for the old history: exactly the consumed
         // original capability, and the credential stays revoked.
-        expect(ShareGuestClaimCapability::query()->where('guest_affiliate_id', $guestAffiliateId)->count())->toBe(1)
-            ->and(ShareGuestClaimCapability::query()->where('guest_affiliate_id', $guestAffiliateId)->value('status'))
-            ->toBe(ShareGuestClaimCapabilityStatus::Consumed)
-            ->and(ShareGuestCredential::query()->where('affiliate_id', $guestAffiliateId)->value('status'))
-            ->toBe(ShareGuestCredentialStatus::Revoked)
-            ->and(ShareGuestClaim::query()->where('guest_affiliate_id', $guestAffiliateId)->value('status'))
-            ->toBe(ShareGuestClaimStatus::Active);
+        expect(AffiliateOwnershipCapability::query()->where('affiliate_id', $guestAffiliateId)->count())->toBe(1)
+            ->and(AffiliateOwnershipCapability::query()->where('affiliate_id', $guestAffiliateId)->value('status'))
+            ->toBe('consumed')
+            ->and(AffiliateCredential::query()->where('affiliate_id', $guestAffiliateId)->value('status'))
+            ->toBe('revoked')
+            ->and(AffiliateClaim::query()->where('affiliate_id', $guestAffiliateId)->value('status'))
+            ->toBe('active');
 
         // The fresh identity carries its own live proof, unclaimed.
-        expect(ShareGuestClaimCapability::query()->where('guest_affiliate_id', $workerAffiliateId)->count())->toBe(1)
-            ->and(ShareGuestClaimCapability::query()->where('guest_affiliate_id', $workerAffiliateId)->value('status'))
-            ->toBe(ShareGuestClaimCapabilityStatus::Active)
-            ->and(ShareGuestClaim::query()->where('guest_affiliate_id', $workerAffiliateId)->exists())->toBeFalse();
+        expect(AffiliateOwnershipCapability::query()->where('affiliate_id', $workerAffiliateId)->count())->toBe(1)
+            ->and(AffiliateOwnershipCapability::query()->where('affiliate_id', $workerAffiliateId)->value('status'))
+            ->toBe('active')
+            ->and(AffiliateClaim::query()->where('affiliate_id', $workerAffiliateId)->exists())->toBeFalse();
 
         // Legitimate new traffic on the existing claimed public link still
         // records against its original guest source.
@@ -945,15 +942,15 @@ function wp3CreationBeforeClaimRaceCase(TestCase $testCase): void
             ->and(AffiliateLink::query()->where('affiliate_id', $guestAffiliateId)->count())->toBe(2)
             ->and((string) AffiliateLink::query()->where('custom_slug', $commit['token'])->value('affiliate_id'))
             ->toBe($guestAffiliateId)
-            ->and(ShareGuestCredential::query()->where('affiliate_id', $guestAffiliateId)->value('status'))
-            ->toBe(ShareGuestCredentialStatus::Revoked)
-            ->and(ShareGuestClaimCapability::query()->where('guest_affiliate_id', $guestAffiliateId)->value('status'))
-            ->toBe(ShareGuestClaimCapabilityStatus::Consumed);
+            ->and(AffiliateCredential::query()->where('affiliate_id', $guestAffiliateId)->value('status'))
+            ->toBe('revoked')
+            ->and(AffiliateOwnershipCapability::query()->where('affiliate_id', $guestAffiliateId)->value('status'))
+            ->toBe('consumed');
 
-        $claim = ShareGuestClaim::query()->where('guest_affiliate_id', $guestAffiliateId)->firstOrFail();
+        $claim = AffiliateClaim::query()->where('affiliate_id', $guestAffiliateId)->firstOrFail();
 
-        expect($claim->status)->toBe(ShareGuestClaimStatus::Active)
-            ->and((string) $claim->claimant_user_id)->toBe((string) $claimant->getKey());
+        expect($claim->status)->toBe('active')
+            ->and((string) $claim->claimant_id)->toBe((string) $claimant->getKey());
     } finally {
         wp3RaceTeardown($database, $previous);
     }

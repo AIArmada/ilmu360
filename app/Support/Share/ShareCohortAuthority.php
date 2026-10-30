@@ -6,11 +6,10 @@ namespace App\Support\Share;
 
 use AIArmada\Affiliates\Enums\FraudSignalStatus;
 use AIArmada\Affiliates\Models\AffiliateAttribution;
+use AIArmada\Affiliates\Models\AffiliateClaim;
 use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateFraudSignal;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
-use App\Enums\ShareGuestClaimStatus;
-use App\Models\ShareGuestClaim;
 use App\Models\User;
 use App\Support\ShareTracking\ShareTrackingMeasurement;
 use Carbon\CarbonImmutable;
@@ -98,7 +97,6 @@ final class ShareCohortAuthority
             ];
         }
 
-
         $asOf = $asOf->setTimezone('UTC');
         $anchor = $asOf->startOfWeek()->subWeeks($weeks - 1)->startOfDay();
 
@@ -107,7 +105,7 @@ final class ShareCohortAuthority
             'touchpoints' => (new AffiliateTouchpoint)->getTable(),
             'attributions' => (new AffiliateAttribution)->getTable(),
             'conversions' => (new AffiliateConversion)->getTable(),
-            'claims' => (new ShareGuestClaim)->getTable(),
+            'claims' => (new AffiliateClaim)->getTable(),
             'fraud' => (new AffiliateFraudSignal)->getTable(),
         ];
 
@@ -216,6 +214,31 @@ final class ShareCohortAuthority
     }
 
     /**
+     * Claimant morph discriminator for package identity claims. Host
+     * claimants are always users; the package itself stays polymorphic.
+     */
+    private static function hostClaimantType(): string
+    {
+        return (new User)->getMorphClass();
+    }
+
+    /**
+     * Claimant identity match that survives strict databases: the package
+     * stores the claimant id as text while users.id is a native uuid, so
+     * PostgreSQL needs an explicit cast that SQLite must not see.
+     */
+    private static function whereClaimantMatches(Builder $query, string $alias): void
+    {
+        $query->where("{$alias}.claimant_type", self::hostClaimantType());
+
+        if (DB::getDriverName() === 'pgsql') {
+            $query->whereRaw("\"{$alias}\".\"claimant_id\" = \"u\".\"id\"::text");
+        } else {
+            $query->whereColumn("{$alias}.claimant_id", 'u.id');
+        }
+    }
+
+    /**
      * @param  array<string, string>  $tables
      * @param  callable(Builder): void  $scope
      * @return array<string, int>
@@ -261,9 +284,11 @@ final class ShareCohortAuthority
                         ->orWhereExists(static function (Builder $claim) use ($claims): void {
                             $claim->select(DB::raw('1'))
                                 ->from("{$claims} as cl")
-                                ->whereColumn('cl.guest_affiliate_id', 't.affiliate_id')
-                                ->whereColumn('cl.claimant_user_id', 'u.id')
-                                ->where('cl.status', ShareGuestClaimStatus::Active->value)
+                                ->whereColumn('cl.affiliate_id', 't.affiliate_id')
+                                ->where(static function (Builder $claimant): void {
+                                    self::whereClaimantMatches($claimant, 'cl');
+                                })
+                                ->where('cl.status', 'active')
                                 ->whereNull('cl.revoked_at');
                         });
                 })
@@ -298,9 +323,11 @@ final class ShareCohortAuthority
                         ->orWhereExists(static function (Builder $claim) use ($claims): void {
                             $claim->select(DB::raw('1'))
                                 ->from("{$claims} as cl2")
-                                ->whereColumn('cl2.guest_affiliate_id', 'c2.affiliate_id')
-                                ->whereColumn('cl2.claimant_user_id', 'u.id')
-                                ->where('cl2.status', ShareGuestClaimStatus::Active->value)
+                                ->whereColumn('cl2.affiliate_id', 'c2.affiliate_id')
+                                ->where(static function (Builder $claimant): void {
+                                    self::whereClaimantMatches($claimant, 'cl2');
+                                })
+                                ->where('cl2.status', 'active')
                                 ->whereNull('cl2.revoked_at');
                         });
                 })
@@ -340,9 +367,11 @@ final class ShareCohortAuthority
                                     ->orWhereExists(static function (Builder $claim) use ($claims): void {
                                         $claim->select(DB::raw('1'))
                                             ->from("{$claims} as clf")
-                                            ->whereColumn('clf.guest_affiliate_id', 'cf.affiliate_id')
-                                            ->whereColumn('clf.claimant_user_id', 'u.id')
-                                            ->where('clf.status', ShareGuestClaimStatus::Active->value)
+                                            ->whereColumn('clf.affiliate_id', 'cf.affiliate_id')
+                                            ->where(static function (Builder $claimant): void {
+                                                self::whereClaimantMatches($claimant, 'clf');
+                                            })
+                                            ->where('clf.status', 'active')
                                             ->whereNull('clf.revoked_at');
                                     });
                             });
@@ -359,9 +388,11 @@ final class ShareCohortAuthority
                                     ->orWhereExists(static function (Builder $claim) use ($claims): void {
                                         $claim->select(DB::raw('1'))
                                             ->from("{$claims} as clt")
-                                            ->whereColumn('clt.guest_affiliate_id', 'tf.affiliate_id')
-                                            ->whereColumn('clt.claimant_user_id', 'u.id')
-                                            ->where('clt.status', ShareGuestClaimStatus::Active->value)
+                                            ->whereColumn('clt.affiliate_id', 'tf.affiliate_id')
+                                            ->where(static function (Builder $claimant): void {
+                                                self::whereClaimantMatches($claimant, 'clt');
+                                            })
+                                            ->where('clt.status', 'active')
                                             ->whereNull('clt.revoked_at');
                                     });
                             });
@@ -387,9 +418,11 @@ final class ShareCohortAuthority
                         ->orWhereExists(static function (Builder $claim) use ($claims): void {
                             $claim->select(DB::raw('1'))
                                 ->from("{$claims} as clr")
-                                ->whereColumn('clr.guest_affiliate_id', 'cr.affiliate_id')
-                                ->whereColumn('clr.claimant_user_id', 'u.id')
-                                ->where('clr.status', ShareGuestClaimStatus::Active->value)
+                                ->whereColumn('clr.affiliate_id', 'cr.affiliate_id')
+                                ->where(static function (Builder $claimant): void {
+                                    self::whereClaimantMatches($claimant, 'clr');
+                                })
+                                ->where('clr.status', 'active')
                                 ->whereNull('clr.revoked_at');
                         });
                 });
@@ -425,9 +458,11 @@ final class ShareCohortAuthority
                                     ->orWhereExists(static function (Builder $claim) use ($claims): void {
                                         $claim->select(DB::raw('1'))
                                             ->from("{$claims} as clfn")
-                                            ->whereColumn('clfn.guest_affiliate_id', 'cfn.affiliate_id')
-                                            ->whereColumn('clfn.claimant_user_id', 'u.id')
-                                            ->where('clfn.status', ShareGuestClaimStatus::Active->value)
+                                            ->whereColumn('clfn.affiliate_id', 'cfn.affiliate_id')
+                                            ->where(static function (Builder $claimant): void {
+                                                self::whereClaimantMatches($claimant, 'clfn');
+                                            })
+                                            ->where('clfn.status', 'active')
                                             ->whereNull('clfn.revoked_at');
                                     });
                             });
@@ -444,9 +479,11 @@ final class ShareCohortAuthority
                                     ->orWhereExists(static function (Builder $claim) use ($claims): void {
                                         $claim->select(DB::raw('1'))
                                             ->from("{$claims} as cltn")
-                                            ->whereColumn('cltn.guest_affiliate_id', 'tfn.affiliate_id')
-                                            ->whereColumn('cltn.claimant_user_id', 'u.id')
-                                            ->where('cltn.status', ShareGuestClaimStatus::Active->value)
+                                            ->whereColumn('cltn.affiliate_id', 'tfn.affiliate_id')
+                                            ->where(static function (Builder $claimant): void {
+                                                self::whereClaimantMatches($claimant, 'cltn');
+                                            })
+                                            ->where('cltn.status', 'active')
                                             ->whereNull('cltn.revoked_at');
                                     });
                             });

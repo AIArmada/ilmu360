@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Actions\Auth;
 
+use AIArmada\Affiliates\Models\AffiliateClaim;
 use App\Enums\SignupAttributionSourceType;
-use App\Models\ShareGuestClaim;
 use App\Models\SignupAttribution;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -14,22 +15,28 @@ final class LinkGuestSignupAttributionsAction
 {
     use AsAction;
 
-    public function handle(ShareGuestClaim $claim): void
+    public function handle(AffiliateClaim $claim): void
     {
         DB::transaction(function () use ($claim): void {
-            $lockedClaim = ShareGuestClaim::query()->whereKey($claim->getKey())->lockForUpdate()->first();
+            $lockedClaim = AffiliateClaim::query()->whereKey($claim->getKey())->lockForUpdate()->first();
 
-            if (! $lockedClaim instanceof ShareGuestClaim || ! $lockedClaim->isActive()) {
+            if (! $lockedClaim instanceof AffiliateClaim || ! $lockedClaim->isActive()) {
+                return;
+            }
+
+            // Host invariant: share claimants are users. A non-user claimant
+            // (possible at the package level) backfills nothing here.
+            if ($lockedClaim->claimant_type !== (new User)->getMorphClass()) {
                 return;
             }
 
             SignupAttribution::query()
                 ->where('source_type', SignupAttributionSourceType::ShareGuest->value)
-                ->where('affiliate_id', $lockedClaim->guest_affiliate_id)
+                ->where('affiliate_id', $lockedClaim->affiliate_id)
                 ->whereNull('referrer_user_id')
-                ->where('user_id', '<>', $lockedClaim->claimant_user_id)
+                ->where('user_id', '<>', $lockedClaim->claimant_id)
                 ->update([
-                    'referrer_user_id' => $lockedClaim->claimant_user_id,
+                    'referrer_user_id' => $lockedClaim->claimant_id,
                     'updated_at' => now(),
                 ]);
         }, 3);

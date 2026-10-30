@@ -2,20 +2,18 @@
 
 declare(strict_types=1);
 
+use AIArmada\Affiliates\Actions\Identity\RevokeAffiliateClaim;
 use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\Models\AffiliateAttribution;
+use AIArmada\Affiliates\Models\AffiliateClaim;
 use AIArmada\Affiliates\Models\AffiliateConversion;
+use AIArmada\Affiliates\Models\AffiliateCredential;
 use AIArmada\Affiliates\Models\AffiliateLink;
+use AIArmada\Affiliates\Models\AffiliateOwnershipCapability;
 use AIArmada\Events\Models\EventOccurrence;
 use App\Actions\ShareTracking\ClaimGuestShareProfileAction;
-use App\Enums\ShareGuestClaimCapabilityStatus;
 use App\Enums\ShareGuestClaimResult;
-use App\Enums\ShareGuestClaimStatus;
-use App\Enums\ShareGuestCredentialStatus;
 use App\Models\Event;
-use App\Models\ShareGuestClaim;
-use App\Models\ShareGuestClaimCapability;
-use App\Models\ShareGuestCredential;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingAnalyticsService;
@@ -110,19 +108,19 @@ it('claims a guest history explicitly after signup', function (): void {
     $claim->assertRedirect(route('share.claim.show'));
     $claim->assertSessionHas('share_claim_status', 'claimed');
 
-    $row = ShareGuestClaim::query()->where('guest_affiliate_id', $guest['affiliate_id'])->firstOrFail();
+    $row = AffiliateClaim::query()->where('affiliate_id', $guest['affiliate_id'])->firstOrFail();
 
-    expect($row->status)->toBe(ShareGuestClaimStatus::Active)
-        ->and((string) $row->claimant_user_id)->toBe((string) $this->claimant->getKey())
+    expect($row->status)->toBe('active')
+        ->and((string) $row->claimant_id)->toBe((string) $this->claimant->getKey())
         ->and($row->claimed_at)->not->toBeNull()
         ->and($row->revoked_at)->toBeNull();
 
     // Single-use: the capability is consumed, never reusable.
-    $capability = ShareGuestClaimCapability::query()
-        ->where('guest_affiliate_id', $guest['affiliate_id'])
+    $capability = AffiliateOwnershipCapability::query()
+        ->where('affiliate_id', $guest['affiliate_id'])
         ->firstOrFail();
 
-    expect($capability->status)->toBe(ShareGuestClaimCapabilityStatus::Consumed)
+    expect($capability->status)->toBe('consumed')
         ->and($capability->consumed_at)->not->toBeNull();
 
     // The guest source is untouched (owner stays null, kind stays
@@ -156,8 +154,8 @@ it('replays success idempotently to the original claimant without effects', func
     $first->assertOk();
     expect($first->json('result'))->toBe(ShareGuestClaimResult::Claimed->value);
 
-    $consumedAt = ShareGuestClaimCapability::query()
-        ->where('guest_affiliate_id', $guest['affiliate_id'])
+    $consumedAt = AffiliateOwnershipCapability::query()
+        ->where('affiliate_id', $guest['affiliate_id'])
         ->value('consumed_at');
 
     $second = $call();
@@ -165,8 +163,8 @@ it('replays success idempotently to the original claimant without effects', func
     expect($second->json('result'))->toBe(ShareGuestClaimResult::AlreadyClaimedByYou->value);
 
     // No new row, no touch, no effect replay.
-    expect(ShareGuestClaim::query()->where('guest_affiliate_id', $guest['affiliate_id'])->count())->toBe(1)
-        ->and((string) ShareGuestClaimCapability::query()->where('guest_affiliate_id', $guest['affiliate_id'])->value('consumed_at'))
+    expect(AffiliateClaim::query()->where('affiliate_id', $guest['affiliate_id'])->count())->toBe(1)
+        ->and((string) AffiliateOwnershipCapability::query()->where('affiliate_id', $guest['affiliate_id'])->value('consumed_at'))
         ->toBe((string) $consumedAt)
         ->and(AffiliateConversion::query()->count())->toBe(0)
         ->and(ShareSourceAttributionReceipt::query()->count())->toBe(0);
@@ -202,8 +200,8 @@ it('refuses competing claimants generically without leaking history', function (
         ->and($rival->getStatusCode())->toBe($expired->getStatusCode());
 
     // The committed winner stands; the loser wrote nothing.
-    expect(ShareGuestClaim::query()->count())->toBe(1)
-        ->and((string) ShareGuestClaim::query()->value('claimant_user_id'))
+    expect(AffiliateClaim::query()->count())->toBe(1)
+        ->and((string) AffiliateClaim::query()->value('claimant_id'))
         ->toBe((string) $this->claimant->getKey());
 });
 
@@ -236,14 +234,14 @@ it('never accepts public tokens, query secrets, or empty proof', function (): vo
 
     $empty->assertStatus(422);
     expect($empty->json('result'))->toBe('unverified')
-        ->and(ShareGuestClaim::query()->count())->toBe(0);
+        ->and(AffiliateClaim::query()->count())->toBe(0);
 });
 
 it('treats expired capabilities as honestly unverifiable', function (): void {
     $guest = wp3gcGuestShare();
 
-    ShareGuestClaimCapability::query()
-        ->where('guest_affiliate_id', $guest['affiliate_id'])
+    AffiliateOwnershipCapability::query()
+        ->where('affiliate_id', $guest['affiliate_id'])
         ->update(['expires_at' => now()->subMinute()]);
 
     $response = $this->actingAs($this->claimant)
@@ -253,7 +251,7 @@ it('treats expired capabilities as honestly unverifiable', function (): void {
 
     $response->assertStatus(422);
     expect($response->json('result'))->toBe('unverified')
-        ->and(ShareGuestClaim::query()->count())->toBe(0);
+        ->and(AffiliateClaim::query()->count())->toBe(0);
 
     $page = $this->actingAs($this->claimant)
         ->withCredentials()
@@ -323,7 +321,7 @@ it('prompts an unclaimed browser on the dashboard without auto-claiming', functi
     $prompted->assertOk();
     $prompted->assertSee(__('Review and link'));
 
-    expect(ShareGuestClaim::query()->count())->toBe(0);
+    expect(AffiliateClaim::query()->count())->toBe(0);
 });
 
 it('revokes claims on claimant deletion without steal, reassign, or restore', function (): void {
@@ -333,13 +331,13 @@ it('revokes claims on claimant deletion without steal, reassign, or restore', fu
 
     $this->claimant->delete();
 
-    $row = ShareGuestClaim::query()->where('guest_affiliate_id', $guest['affiliate_id'])->firstOrFail();
+    $row = AffiliateClaim::query()->where('affiliate_id', $guest['affiliate_id'])->firstOrFail();
 
     // Preserved as revoked history: never stealable or reassignable.
-    expect($row->status)->toBe(ShareGuestClaimStatus::Revoked)
+    expect($row->status)->toBe('revoked')
         ->and($row->revoked_at)->not->toBeNull()
-        ->and(ShareGuestClaimCapability::query()->where('guest_affiliate_id', $guest['affiliate_id'])->value('status'))
-        ->toBe(ShareGuestClaimCapabilityStatus::Consumed);
+        ->and(AffiliateOwnershipCapability::query()->where('affiliate_id', $guest['affiliate_id'])->value('status'))
+        ->toBe('consumed');
 
     $rival = $this->actingAs($this->rival)
         ->withCredentials()
@@ -351,9 +349,9 @@ it('revokes claims on claimant deletion without steal, reassign, or restore', fu
 
     User::restoreDeletedUser($this->claimant->getKey());
 
-    $restored = ShareGuestClaim::query()->where('guest_affiliate_id', $guest['affiliate_id'])->firstOrFail();
+    $restored = AffiliateClaim::query()->where('affiliate_id', $guest['affiliate_id'])->firstOrFail();
 
-    expect($restored->status)->toBe(ShareGuestClaimStatus::Revoked)
+    expect($restored->status)->toBe('revoked')
         ->and($restored->revoked_at)->not->toBeNull();
 
     // Even the original claimant cannot reclaim deleted history, and
@@ -368,7 +366,7 @@ it('revokes claims on claimant deletion without steal, reassign, or restore', fu
 
     $retry->assertStatus(422);
     expect($retry->json('result'))->toBe('unverified')
-        ->and(ShareGuestClaim::query()->count())->toBe(1)
+        ->and(AffiliateClaim::query()->count())->toBe(1)
         ->and(AffiliateConversion::query()->count())->toBe(0)
         ->and(ShareSourceAttributionReceipt::query()->count())->toBe(0);
 });
@@ -441,7 +439,8 @@ it('scopes ownership reads to primary plus actively claimed profiles', function 
         ->and($analytics->findLinkForUser($this->claimant, $guestLinkId))->not->toBeNull();
 
     // A revoked claim detaches the history from every read.
-    ShareGuestClaim::query()->where('guest_affiliate_id', $guest['affiliate_id'])->firstOrFail()->revoke();
+    $revocable = AffiliateClaim::query()->where('affiliate_id', $guest['affiliate_id'])->firstOrFail();
+    app(RevokeAffiliateClaim::class)->handle($revocable);
 
     expect($analytics->summaryForUser($this->claimant)['outbound_shares'])->toBe(0)
         ->and($analytics->summaryForUser($this->claimant)['visits'])->toBe(0)
@@ -468,7 +467,7 @@ it('never auto-claims through signup or login', function (): void {
     $registered->assertRedirect();
     $this->assertAuthenticated();
 
-    expect(ShareGuestClaim::query()->count())->toBe(0);
+    expect(AffiliateClaim::query()->count())->toBe(0);
 
     // The fresh account can still claim explicitly afterwards.
     $user = User::query()->where('email', 'wp3-fresh-signup@example.test')->firstOrFail();
@@ -479,7 +478,7 @@ it('never auto-claims through signup or login', function (): void {
         ->post(route('share.claim.store'), ['confirm' => true]);
 
     $claim->assertRedirect(route('share.claim.show'));
-    expect(ShareGuestClaim::query()->count())->toBe(1);
+    expect(AffiliateClaim::query()->count())->toBe(1);
 });
 
 it('fails honestly when the member recipient cannot receive', function (): void {
@@ -500,9 +499,9 @@ it('fails honestly when the member recipient cannot receive', function (): void 
 
     $response->assertStatus(422);
     expect($response->json('result'))->toBe(ShareGuestClaimResult::RecipientIneligible->value)
-        ->and(ShareGuestClaim::query()->count())->toBe(0)
-        ->and(ShareGuestClaimCapability::query()->where('guest_affiliate_id', $guest['affiliate_id'])->value('status'))
-        ->toBe(ShareGuestClaimCapabilityStatus::Active);
+        ->and(AffiliateClaim::query()->count())->toBe(0)
+        ->and(AffiliateOwnershipCapability::query()->where('affiliate_id', $guest['affiliate_id'])->value('status'))
+        ->toBe('active');
 });
 
 it('claims natively after API login with the same guarantees', function (): void {
@@ -526,7 +525,7 @@ it('claims natively after API login with the same guarantees', function (): void
         ->getJson(route('api.client.share.claim.availability'));
 
     expect($spent->json('available'))->toBeFalse()
-        ->and(ShareGuestClaim::query()->count())->toBe(1);
+        ->and(AffiliateClaim::query()->count())->toBe(1);
 
     Sanctum::actingAs($this->rival);
 
@@ -577,7 +576,7 @@ it('requires explicit confirmation for every claim', function (): void {
     expect(fn () => app(ClaimGuestShareProfileAction::class)->handle($this->claimant, $guest['capability'], false))
         ->toThrow(InvalidArgumentException::class);
 
-    expect(ShareGuestClaim::query()->count())->toBe(0);
+    expect(AffiliateClaim::query()->count())->toBe(0);
 });
 
 it('seals claimed history from later anonymous activity on the same browser', function (): void {
@@ -605,9 +604,9 @@ it('seals claimed history from later anonymous activity on the same browser', fu
     expect(auth()->check())->toBeFalse();
 
     // The historical credential is sealed in the claim transaction.
-    $credentialRow = ShareGuestCredential::query()->where('affiliate_id', $guest['affiliate_id'])->firstOrFail();
+    $credentialRow = AffiliateCredential::query()->where('affiliate_id', $guest['affiliate_id'])->firstOrFail();
 
-    expect($credentialRow->status)->toBe(ShareGuestCredentialStatus::Revoked)
+    expect($credentialRow->status)->toBe('revoked')
         ->and($credentialRow->revoked_at)->not->toBeNull();
 
     // B anonymously shares from the same browser presenting the stale
@@ -624,9 +623,9 @@ it('seals claimed history from later anonymous activity on the same browser', fu
 
     $secondAffiliateId = (string) AffiliateLink::query()->where('custom_slug', $second['tracking_token'])->value('affiliate_id');
 
-    expect($second['guest_credential'])->toMatch('/^[A-Za-z0-9]{32}$/')
+    expect($second['guest_credential'])->toMatch('/^[0-9a-f]{64}$/')
         ->and($second['guest_credential'])->not->toBe($guest['credential'])
-        ->and($second['guest_claim_capability'])->toMatch('/^[A-Za-z0-9]{32}$/')
+        ->and($second['guest_claim_capability'])->toMatch('/^[0-9a-f]{64}$/')
         ->and($second['guest_claim_capability'])->not->toBe($guest['capability'])
         ->and($second['tracking_token'])->not->toBe($guest['token'])
         ->and($secondAffiliateId)->not->toBe($guest['affiliate_id']);
@@ -778,7 +777,7 @@ it('seals claimed history across native API transport with the same guarantees',
         'title' => 'Shared Page',
     ]))->assertOk()->json();
 
-    expect($guest['guest_credential'] ?? null)->toMatch('/^[A-Za-z0-9]{32}$/');
+    expect($guest['guest_credential'] ?? null)->toMatch('/^[0-9a-f]{64}$/');
 
     $guestAffiliateId = (string) AffiliateLink::query()->where('custom_slug', $guest['tracking_token'])->value('affiliate_id');
 
@@ -790,8 +789,8 @@ it('seals claimed history across native API transport with the same guarantees',
     $claim->assertOk();
     expect($claim->json('result'))->toBe(ShareGuestClaimResult::Claimed->value);
 
-    expect(ShareGuestCredential::query()->where('affiliate_id', $guestAffiliateId)->value('status'))
-        ->toBe(ShareGuestCredentialStatus::Revoked);
+    expect(AffiliateCredential::query()->where('affiliate_id', $guestAffiliateId)->value('status'))
+        ->toBe('revoked');
 
     // Back to an anonymous native client for B's share.
     auth()->forgetGuards();
@@ -838,34 +837,44 @@ it('seals claimed history across native API transport with the same guarantees',
         ->assertStatus(422);
 });
 
-it('refuses claim reassignment, reactivation, and deletion', function (): void {
+it('centralizes claim transitions in actions with no model-level mutation path', function (): void {
     $guest = wp3gcGuestShare();
 
     app(ClaimGuestShareProfileAction::class)->handle($this->claimant, $guest['capability'], true);
 
-    $claim = ShareGuestClaim::query()->where('guest_affiliate_id', $guest['affiliate_id'])->firstOrFail();
-    $capability = ShareGuestClaimCapability::query()->where('guest_affiliate_id', $guest['affiliate_id'])->firstOrFail();
-
-    expect(fn () => $claim->fill(['claimant_user_id' => (string) $this->rival->getKey()])->save())
-        ->toThrow(LogicException::class);
-
-    expect(fn () => $claim->forceFill(['status' => ShareGuestClaimStatus::Revoked])->save())
-        ->toThrow(LogicException::class);
-
-    expect(fn () => $claim->delete())->toThrow(LogicException::class);
-
-    expect(fn () => $capability->fill(['status' => ShareGuestClaimCapabilityStatus::Active, 'consumed_at' => null])->save())
-        ->toThrow(LogicException::class);
-
-    expect(fn () => $capability->delete())->toThrow(LogicException::class);
+    $claim = AffiliateClaim::query()->where('affiliate_id', $guest['affiliate_id'])->firstOrFail();
+    $capability = AffiliateOwnershipCapability::query()->where('affiliate_id', $guest['affiliate_id'])->firstOrFail();
 
     // Rows intact; the centralized transition still works exactly once.
-    expect((string) $claim->fresh()->claimant_user_id)->toBe((string) $this->claimant->getKey())
-        ->and($claim->fresh()->status)->toBe(ShareGuestClaimStatus::Active)
-        ->and($capability->fresh()->status)->toBe(ShareGuestClaimCapabilityStatus::Consumed)
-        ->and($claim->revoke())->toBeTrue()
-        ->and($claim->fresh()->status)->toBe(ShareGuestClaimStatus::Revoked)
-        ->and($claim->revoke())->toBeFalse();
+    expect((string) $claim->fresh()->claimant_id)->toBe((string) $this->claimant->getKey())
+        ->and($claim->fresh()->status)->toBe('active')
+        ->and($capability->fresh()->status)->toBe('consumed');
+
+    app(RevokeAffiliateClaim::class)->handle($claim->fresh());
+
+    expect($claim->fresh()->status)->toBe('revoked')
+        ->and($claim->fresh()->revoked_at)->not->toBeNull();
+
+    // Revoking twice is a safe no-op, and a revoked claim seals every
+    // future claim — including the original claimant's.
+    app(RevokeAffiliateClaim::class)->handle($claim->fresh());
+
+    $retry = $this->actingAs($this->claimant)
+        ->withCredentials()
+        ->withCookie('mi_dawah_guest_claim', $guest['capability'])
+        ->postJson(route('share.claim.store'), ['confirm' => true]);
+
+    $retry->assertStatus(422);
+    expect($retry->json('result'))->toBe('unverified');
+
+    $reassign = $this->actingAs($this->rival)
+        ->withCredentials()
+        ->withCookie('mi_dawah_guest_claim', $guest['capability'])
+        ->postJson(route('share.claim.store'), ['confirm' => true]);
+
+    $reassign->assertStatus(422);
+    expect($reassign->json('result'))->toBe('unverified')
+        ->and(AffiliateClaim::query()->where('affiliate_id', $guest['affiliate_id'])->count())->toBe(1);
 });
 
 it('revokes claims and disarms sources when the member profile is already gone', function (): void {
@@ -880,8 +889,8 @@ it('revokes claims and disarms sources when the member profile is already gone',
 
     app(ShareTrackingService::class)->deleteUserTracking($this->claimant);
 
-    expect(ShareGuestClaim::query()->where('guest_affiliate_id', $guest['affiliate_id'])->value('status'))
-        ->toBe(ShareGuestClaimStatus::Revoked);
+    expect(AffiliateClaim::query()->where('affiliate_id', $guest['affiliate_id'])->value('status'))
+        ->toBe('revoked');
 
     $link = AffiliateLink::query()->where('custom_slug', $guest['token'])->firstOrFail();
 
@@ -897,8 +906,8 @@ it('revokes claims and disarms sources when the member profile is already gone',
 
     app(ShareTrackingService::class)->deleteUserTracking($this->claimant);
 
-    expect(ShareGuestClaim::query()->count())->toBe(1)
-        ->and(ShareGuestClaim::query()->value('status'))->toBe(ShareGuestClaimStatus::Revoked);
+    expect(AffiliateClaim::query()->count())->toBe(1)
+        ->and(AffiliateClaim::query()->value('status'))->toBe('revoked');
 });
 
 it('preserves settlement and the public redirect when a claimant is deleted', function (): void {
@@ -925,8 +934,8 @@ it('preserves settlement and the public redirect when a claimant is deleted', fu
 
     $this->claimant->delete();
 
-    expect(ShareGuestClaim::query()->where('guest_affiliate_id', $guest['affiliate_id'])->value('status'))
-        ->toBe(ShareGuestClaimStatus::Revoked)
+    expect(AffiliateClaim::query()->where('affiliate_id', $guest['affiliate_id'])->value('status'))
+        ->toBe('revoked')
         ->and($link->fresh()->deactivated_at)->not->toBeNull()
         ->and(AffiliateConversion::query()->whereKey($conversionId)->exists())->toBeTrue();
 

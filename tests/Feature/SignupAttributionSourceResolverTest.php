@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
+use AIArmada\Affiliates\Actions\Identity\RevokeAffiliateClaim;
 use AIArmada\Affiliates\Enums\CommissionType;
 use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\Models\AffiliateAttribution;
+use AIArmada\Affiliates\Models\AffiliateClaim;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\States\Active;
 use AIArmada\Affiliates\States\Disabled;
@@ -13,7 +15,6 @@ use App\Actions\ShareTracking\ClaimGuestShareProfileAction;
 use App\Enums\ShareGuestClaimResult;
 use App\Enums\SignupAttributionSourceType;
 use App\Models\ShareBrowserSelection;
-use App\Models\ShareGuestClaim;
 use App\Models\User;
 use App\Services\ShareTrackingService;
 use App\Support\Auth\AffiliateSignupAttributionSourceResolver;
@@ -159,7 +160,7 @@ it('preserves an unclaimed guest share without inventing a referring account', f
     expect($source?->type)->toBe(SignupAttributionSourceType::ShareGuest);
     expect($source?->referrerUserId)->toBeNull();
     expect($source?->affiliateId)->toBe((string) $fixture['affiliate']->getKey());
-    $this->assertDatabaseCount('share_guest_claims', 0);
+    $this->assertDatabaseCount('affiliate_claims', 0);
 });
 
 it('resolves the existing explicit guest claimant without changing the guest profile', function (): void {
@@ -173,14 +174,15 @@ it('resolves the existing explicit guest claimant without changing the guest pro
     expect($source?->type)->toBe(SignupAttributionSourceType::ShareGuest);
     expect($source?->referrerUserId)->toBe((string) $claimant->getKey());
     expect($fixture['affiliate']->fresh()?->owner_id)->toBeNull();
-    $this->assertDatabaseCount('share_guest_claims', 1);
+    $this->assertDatabaseCount('affiliate_claims', 1);
 });
 
 it('does not resolve a revoked guest claimant', function (): void {
     $fixture = signupResolverShareFixture();
     $claimant = User::factory()->create();
     ClaimGuestShareProfileAction::run($claimant, (string) $fixture['capability'], true);
-    ShareGuestClaim::query()->where('guest_affiliate_id', $fixture['affiliate']->getKey())->firstOrFail()->revoke();
+    $hostClaim = AffiliateClaim::query()->where('affiliate_id', $fixture['affiliate']->getKey())->firstOrFail();
+    app(RevokeAffiliateClaim::class)->handle($hostClaim);
 
     $source = app(AffiliateSignupAttributionSourceResolver::class)->resolve($fixture['request']);
 

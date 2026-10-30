@@ -103,8 +103,8 @@ it('issues a separate claim capability alongside the guest credential', function
     $response->assertOk();
     $payload = $response->json();
 
-    expect($payload['guest_credential'])->toMatch('/^[A-Za-z0-9]{32}$/')
-        ->and($payload['guest_claim_capability'])->toMatch('/^[A-Za-z0-9]{32}$/')
+    expect($payload['guest_credential'])->toMatch('/^[0-9a-f]{64}$/')
+        ->and($payload['guest_claim_capability'])->toMatch('/^[0-9a-f]{64}$/')
         ->and($payload['guest_claim_capability'])->not->toBe($payload['guest_credential']);
 
     $response->assertCookie('mi_dawah_guest')

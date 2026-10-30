@@ -6,6 +6,7 @@ namespace App\Services\ShareTracking;
 
 use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\Models\AffiliateAttribution;
+use AIArmada\Affiliates\Models\AffiliateClaim;
 use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
@@ -13,7 +14,6 @@ use AIArmada\Affiliates\States\ConversionStatus;
 use App\Data\ShareTracking\ShareTrackingLinkData;
 use App\Data\ShareTracking\ShareTrackingOutcomeData;
 use App\Data\ShareTracking\ShareTrackingVisitData;
-use App\Models\ShareGuestClaim;
 use App\Models\User;
 use App\Support\Share\ShareMetricReader;
 use App\Support\ShareTracking\ShareTrackingMeasurement;
@@ -414,8 +414,25 @@ final readonly class AffiliatesShareTrackingAnalyticsService
 
         return array_values(array_unique([
             ...$ids,
-            ...ShareGuestClaim::activeGuestAffiliateIdsForClaimant((string) $user->getKey()),
+            ...$this->activeGuestAffiliateIdsForClaimant($user),
         ]));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function activeGuestAffiliateIdsForClaimant(User $user): array
+    {
+        return AffiliateClaim::query()
+            ->where('claimant_type', $user->getMorphClass())
+            ->where('claimant_id', (string) $user->getKey())
+            ->where('status', 'active')
+            ->whereNull('revoked_at')
+            ->pluck('affiliate_id')
+            ->map(static fn (mixed $id): string => (string) $id)
+            ->unique()
+            ->values()
+            ->all();
     }
 
     /**

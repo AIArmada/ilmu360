@@ -91,7 +91,7 @@ it('redacts guest credential transports through the central redactor', function 
     $sample = [
         $input => 'wp1-secret-credential-value',
         $header => 'wp1-secret-credential-value',
-        'credential_verifier' => 'wp1-verifier-value',
+        'verifier_hash' => 'wp1-verifier-value',
         'nested' => [$input => 'wp1-nested-secret'],
         'provider' => 'copy_link',
         'origin' => 'web',
@@ -103,7 +103,7 @@ it('redacts guest credential transports through the central redactor', function 
 
         expect($clean[$input])->toBe('**[REDACTED]**')
             ->and($clean[$header])->toBe('**[REDACTED]**')
-            ->and($clean['credential_verifier'])->toBe('**[REDACTED]**')
+            ->and($clean['verifier_hash'])->toBe('**[REDACTED]**')
             ->and($clean['nested'][$input])->toBe('**[REDACTED]**')
             ->and($clean['provider'])->toBe('copy_link')
             ->and($clean['origin'])->toBe('web')

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use AIArmada\Affiliates\Models\AffiliateAttribution;
+use AIArmada\Affiliates\Models\AffiliateClaim;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Rewards\Actions\EnrollRewardMemberAction;
 use AIArmada\Rewards\Actions\TransitionRewardProgramStatusAction;
@@ -13,8 +14,6 @@ use AIArmada\Rewards\Enums\RewardProgramStatus;
 use AIArmada\Rewards\Jobs\EvaluateRewardEntitlementJob;
 use AIArmada\Rewards\Jobs\RecheckRewardAwardsJob;
 use AIArmada\Rewards\Models\RewardAward;
-use App\Enums\ShareGuestClaimStatus;
-use App\Models\ShareGuestClaim;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\User;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
@@ -223,11 +222,12 @@ it('awards the claimant for proven guest sharer history', function (): void {
         'actor_user_id' => (string) $actor->getKey(),
         'occurred_at' => CarbonImmutable::now('UTC')->subMinutes(5),
     ]);
-    ShareGuestClaim::query()->create([
-        'guest_affiliate_id' => $guestAffiliateId,
-        'claimant_user_id' => (string) $claimant->getKey(),
-        'capability_verifier' => hash('sha256', 'rewire-claimed-test'),
-        'status' => ShareGuestClaimStatus::Active,
+    AffiliateClaim::query()->create([
+        'affiliate_id' => $guestAffiliateId,
+        'claimant_type' => (new User)->getMorphClass(),
+        'claimant_id' => (string) $claimant->getKey(),
+        'capability_verifier_hash' => hash('sha256', 'rewire-claimed-test'),
+        'status' => 'active',
         'claimed_at' => CarbonImmutable::now('UTC'),
     ]);
 

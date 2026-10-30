@@ -39,7 +39,7 @@ final class ListSafePayloadRedactor implements PayloadRedactor
         'guest_claim',
         'claim_capability',
         'claim-capability',
-        'capability_verifier',
+        'verifier_hash',
     ];
 
     /**

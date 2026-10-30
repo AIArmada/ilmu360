@@ -7,14 +7,13 @@ namespace App\Support\Auth;
 use AIArmada\Affiliates\Contracts\AffiliateLookup;
 use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\Models\AffiliateAttribution;
+use AIArmada\Affiliates\Models\AffiliateClaim;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\OwnerScope;
 use App\Contracts\SignupAttributionSourceResolver;
-use App\Enums\ShareGuestClaimStatus;
 use App\Enums\SignupAttributionSourceType;
 use App\Models\ShareBrowserSelection;
-use App\Models\ShareGuestClaim;
 use App\Models\User;
 use App\Services\ShareTrackingService;
 use App\Support\ShareTracking\ShareTrackingProfile;
@@ -216,14 +215,15 @@ final readonly class AffiliateSignupAttributionSourceResolver implements SignupA
 
     private function activeGuestClaimantId(string $affiliateId): ?string
     {
-        $claim = ShareGuestClaim::query()
-            ->where('guest_affiliate_id', $affiliateId)
-            ->where('status', ShareGuestClaimStatus::Active->value)
+        $claim = AffiliateClaim::query()
+            ->where('affiliate_id', $affiliateId)
+            ->where('status', 'active')
             ->whereNull('revoked_at')
             ->first();
 
-        $claimant = $claim instanceof ShareGuestClaim
-            ? User::query()->whereKey($claim->claimant_user_id)->first()
+        $claimant = $claim instanceof AffiliateClaim
+            && $claim->claimant_type === (new User)->getMorphClass()
+            ? User::query()->whereKey($claim->claimant_id)->first()
             : null;
 
         return $claimant instanceof User ? (string) $claimant->getKey() : null;
