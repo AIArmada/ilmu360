@@ -53,10 +53,6 @@ use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
 uses(RefreshDatabase::class);
 
-beforeEach(function (): void {
-    RewardLedgerFixtures::useManualPayouts();
-});
-
 function faStaff(): array
 {
     return [(string) Str::uuid(), (string) Str::uuid(), (string) Str::uuid(), (string) Str::uuid()];

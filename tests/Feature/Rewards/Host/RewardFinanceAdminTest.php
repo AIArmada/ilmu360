@@ -44,7 +44,6 @@ use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
-    RewardLedgerFixtures::useManualPayouts();
 
     setPermissionsTeamId(null);
     $this->seed(RoleSeeder::class);

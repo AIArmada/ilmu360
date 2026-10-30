@@ -130,6 +130,35 @@ Confirm the receipt is `succeeded` and the commission is reversed before
 closing the operator follow-up. Do not edit the conversion or receipt
 directly.
 
+## Reward cash payouts (manual bank transfer)
+
+`config/rewards.php` serves `bank_transfer` through the package's manual
+executor. No provider call is made and no affiliate backing conversion is
+created.
+
+To launch and operate:
+
+1. Admin → Rewards → Programs: create a cash programme, review the rules
+   and terms, and publish the version.
+2. Rewards → Funding: record the treasury source (reference, currency,
+   amount, evidence), then allocate it to the programme.
+3. Transition the programme draft → ready → active. Ready/active refuse
+   when confirmed funding or a supported payout method is missing.
+4. The member registers a bank destination; a **different** staff admin
+   verifies it.
+5. Rewards → Awards → Request payout on the approved award (verified
+   destination, fee payer), then Rewards → Payouts: a **different** admin
+   approves, and staff submit.
+6. Transfer the money manually, then a **different** admin confirms with
+   the bank reference. Reconciliation never marks a manual payout paid.
+7. Rewards → Awards → Fulfill only after confirmation; the budget spend
+   records once.
+
+Only `super_admin`/`admin` may operate; the recipient cannot. The
+requester cannot approve or confirm their own payout. Cancel only before
+the transfer; after transferring, confirm immediately. Affiliate
+reward-award settlement stays off and no CHIP/provider is configured.
+
 ## Payout and bonus switches
 
 The package exposes its reward-award payout seam at

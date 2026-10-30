@@ -179,7 +179,7 @@ it('verifies and rejects payee registrations from the staff table', function () 
     $memberId = (string) $member->getKey();
 
     $pending = RegisterRewardPayeeAction::run(
-        'user', $memberId, 'manual', 'op-verify-1', 'Desk V1', 'user', $memberId, 'member',
+        'user', $memberId, 'bank_transfer', 'op-verify-1', 'Desk V1', 'user', $memberId, 'member',
     );
 
     Livewire::actingAs($this->staff)
@@ -194,7 +194,7 @@ it('verifies and rejects payee registrations from the staff table', function () 
             ->count())->toBe(1);
 
     $second = RegisterRewardPayeeAction::run(
-        'user', $memberId, 'manual', 'op-verify-2', 'Desk V2', 'user', $memberId, 'member',
+        'user', $memberId, 'bank_transfer', 'op-verify-2', 'Desk V2', 'user', $memberId, 'member',
     );
 
     Livewire::actingAs($this->staff)

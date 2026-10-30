@@ -9,40 +9,56 @@ use AIArmada\Affiliates\Models\AffiliateBalance;
 use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliatePayout;
 use AIArmada\Affiliates\States\Active;
+use AIArmada\Rewards\Actions\ApproveRewardPayoutAction;
+use AIArmada\Rewards\Actions\ConfirmRewardPayoutAction;
 use AIArmada\Rewards\Actions\EnrollRewardMemberAction;
 use AIArmada\Rewards\Actions\EvaluateRewardEntitlementAction;
+use AIArmada\Rewards\Actions\ReconcileRewardPayoutAction;
 use AIArmada\Rewards\Actions\RecordRewardFundingAction;
 use AIArmada\Rewards\Actions\RecordRewardFundingSourceAction;
 use AIArmada\Rewards\Actions\RegisterRewardPayeeAction;
 use AIArmada\Rewards\Actions\RequestRewardPayoutAction;
+use AIArmada\Rewards\Actions\SubmitRewardPayoutAction;
+use AIArmada\Rewards\Actions\TransitionRewardAwardAction;
+use AIArmada\Rewards\Actions\TransitionRewardProgramStatusAction;
 use AIArmada\Rewards\Actions\VerifyRewardPayeeAction;
-use AIArmada\Rewards\Contracts\RewardPayoutExecutor;
+use AIArmada\Rewards\Contracts\RewardFinancialReadinessChecker;
 use AIArmada\Rewards\Enums\RewardAwardStatus;
 use AIArmada\Rewards\Enums\RewardBeneficiaryRole;
+use AIArmada\Rewards\Enums\RewardBudgetMovementKind;
 use AIArmada\Rewards\Enums\RewardComponent;
 use AIArmada\Rewards\Enums\RewardPayoutRequestStatus;
 use AIArmada\Rewards\Enums\RewardProgramMode;
-use AIArmada\Rewards\Models\RewardAward;
+use AIArmada\Rewards\Enums\RewardProgramStatus;
+use AIArmada\Rewards\Models\RewardAwardEntry;
 use AIArmada\Rewards\Models\RewardBudgetMovement;
 use AIArmada\Rewards\Models\RewardPayoutRequest;
 use AIArmada\Rewards\Support\RewardBudgetLedger;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Tests\Feature\Rewards\Host\Support\FakeRewardSourceFactReader;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
 uses(RefreshDatabase::class);
 
-it('refuses payout requests while host cash is disabled', function (): void {
-    [$program, $version] = RewardLedgerFixtures::seedVersionedProgram('payout-disabled', RewardProgramMode::Cash);
-    $program = RewardLedgerFixtures::forceActive($program);
+it('runs the manual bank payout from funding to confirmed fulfillment', function (): void {
+    Http::preventStrayRequests();
 
     $staff = RewardLedgerFixtures::staffId();
+    $requester = (string) Str::uuid();
+    $approver = (string) Str::uuid();
+    $confirmer = (string) Str::uuid();
     $memberId = (string) Str::uuid();
 
-    RecordRewardFundingSourceAction::run('payout-disabled-source', 'MYR', 10000, 'user', $staff, 'staff');
-    RecordRewardFundingAction::run($program, 'MYR', 10000, 'payout-disabled-source', 'user', $staff, 'staff');
+    [$program, $version] = RewardLedgerFixtures::seedVersionedProgram('payout-live', RewardProgramMode::Cash);
+
+    RecordRewardFundingSourceAction::run('payout-live-source', 'MYR', 10000, 'user', $staff, 'staff');
+    RecordRewardFundingAction::run($program, 'MYR', 10000, 'payout-live-source', 'user', $staff, 'staff');
+
+    TransitionRewardProgramStatusAction::run($program, RewardProgramStatus::Ready);
+    $program = TransitionRewardProgramStatusAction::run($program, RewardProgramStatus::Active);
 
     EnrollRewardMemberAction::run(
         $program,
@@ -54,7 +70,7 @@ it('refuses payout requests while host cash is disabled', function (): void {
     );
 
     $reader = new FakeRewardSourceFactReader;
-    $reader->seed(RewardLedgerFixtures::fact('payout-disabled-attendance', $memberId));
+    $reader->seed(RewardLedgerFixtures::fact('payout-live-attendance', $memberId));
 
     $result = (new EvaluateRewardEntitlementAction($reader))->handle(
         $program,
@@ -62,23 +78,20 @@ it('refuses payout requests while host cash is disabled', function (): void {
         'user',
         $memberId,
         RewardBeneficiaryRole::Recipient,
-        'payout-disabled-attendance',
+        'payout-live-attendance',
         CarbonImmutable::parse('2026-06-15T00:00:00Z'),
     );
 
-    RewardAward::query()->whereKey($result->award->getKey())->update([
-        'status' => RewardAwardStatus::Approved->value,
-        'approved_at' => CarbonImmutable::parse('2026-06-16T00:00:00Z'),
-    ]);
-
-    $award = $result->award->refresh();
+    expect($result->award->status)->toBe(RewardAwardStatus::Held)
+        ->and($result->award->source_business_key)->toBe('payout-live-attendance')
+        ->and($reader->read('payout-live-attendance'))->not->toBeNull();
 
     RegisterRewardPayeeAction::run(
         'user',
         $memberId,
-        'manual',
-        'payout-disabled-account',
-        'Manual handoff',
+        'bank_transfer',
+        'payout-live-account',
+        'Bank ••1234',
         'user',
         $memberId,
         'member',
@@ -87,60 +100,105 @@ it('refuses payout requests while host cash is disabled', function (): void {
     $payee = VerifyRewardPayeeAction::run(
         'user',
         $memberId,
-        'manual',
-        'payout-disabled-account',
-        'Manual handoff',
+        'bank_transfer',
+        'payout-live-account',
+        'Bank ••1234',
         'user',
         $staff,
         'staff',
     );
 
-    $balancesBefore = RewardBudgetLedger::balances((string) $program->getKey(), 'MYR');
-    $movementsBefore = RewardBudgetMovement::query()
-        ->orderBy('movement_key')
-        ->pluck('movement_key')
-        ->all();
+    $transition = new TransitionRewardAwardAction(
+        app(RewardFinancialReadinessChecker::class),
+        $reader,
+    );
 
-    expect(fn () => RequestRewardPayoutAction::run(
-        $award,
-        $payee,
-        'manual',
-        'program',
+    $award = $transition->handle(
+        $result->award,
+        RewardAwardStatus::Approved,
         'user',
         $staff,
         'staff',
-    ))->toThrow(InvalidArgumentException::class, 'Payout processor [manual] is not registered.');
+        'source-and-funding-verified',
+    );
 
-    expect(RewardPayoutRequest::query()->count())->toBe(0)
+    $request = RequestRewardPayoutAction::run(
+        $award,
+        $payee,
+        'bank_transfer',
+        'program',
+        'user',
+        $requester,
+        'staff',
+    );
+
+    $request = ApproveRewardPayoutAction::run(
+        $request,
+        'user',
+        $approver,
+        'staff',
+        'independent-finance-approval',
+    );
+
+    $request = SubmitRewardPayoutAction::run($request, 'user', $staff, 'staff');
+
+    expect($request->status)->toBe(RewardPayoutRequestStatus::Submitted)
+        ->and($request->external_reference_id)->toBeNull()
+        ->and($request->external_payout_id)->toBe('manual:reward-payout:'.$award->getKey());
+
+    $request = ReconcileRewardPayoutAction::run($request, 'user', $staff, 'staff');
+
+    expect($request->status)->toBe(RewardPayoutRequestStatus::Submitted)
+        ->and($request->confirmed_at)->toBeNull();
+
+    $request = ConfirmRewardPayoutAction::run(
+        $request,
+        [
+            'bank_reference' => 'PAYOUT-LIVE-BANK-1',
+            'transferred_at' => '2026-06-17T00:00:00Z',
+        ],
+        'user',
+        $confirmer,
+        'staff',
+    );
+
+    expect($request->status)->toBe(RewardPayoutRequestStatus::Confirmed)
+        ->and($request->confirmed_at)->not->toBeNull()
+        ->and($request->provider_reference)->toBe('PAYOUT-LIVE-BANK-1')
+        ->and($request->external_reference_id)->toBeNull()
+        ->and(RewardBudgetLedger::balances((string) $program->getKey(), 'MYR'))->toBe([
+            'funded' => 10000,
+            'reserved' => 0,
+            'net_spent' => 500,
+            'available' => 9500,
+        ]);
+
+    $fulfilled = $transition->handle(
+        $award,
+        RewardAwardStatus::Fulfilled,
+        'user',
+        $staff,
+        'staff',
+        'manual-transfer-confirmed',
+        ['payout_request_id' => (string) $request->getKey()],
+        'payout-live-fulfill',
+    );
+
+    expect($fulfilled->status)->toBe(RewardAwardStatus::Fulfilled)
+        ->and(RewardBudgetMovement::query()
+            ->where('award_id', $award->getKey())
+            ->where('kind', RewardBudgetMovementKind::Spend->value)
+            ->count())->toBe(1)
+        ->and(RewardAwardEntry::query()
+            ->where('award_id', $award->getKey())
+            ->where('to_status', RewardAwardStatus::Fulfilled->value)
+            ->count())->toBe(1)
         ->and(AffiliateConversion::query()->count())->toBe(0)
         ->and(AffiliatePayout::query()->count())->toBe(0)
-        ->and(RewardBudgetMovement::query()
-            ->orderBy('movement_key')
-            ->pluck('movement_key')
-            ->all())->toBe($movementsBefore)
-        ->and(RewardBudgetLedger::balances((string) $program->getKey(), 'MYR'))->toBe($balancesBefore);
+        ->and(AffiliateBalance::query()->count())->toBe(0);
+
+    Http::assertNothingSent();
 });
-
-it('refuses every executor operation while host cash is disabled', function (string $operation): void {
-    $executor = app(RewardPayoutExecutor::class);
-
-    $request = RewardPayoutRequest::factory()->create([
-        'status' => RewardPayoutRequestStatus::Approved,
-    ]);
-
-    $before = $request->fresh()->getAttributes();
-    $movementsBefore = RewardBudgetMovement::query()->count();
-
-    expect(fn () => match ($operation) {
-        'submit' => $executor->submit($request),
-        'cancel' => $executor->cancel($request),
-        'status' => $executor->status($request),
-        'settle' => $executor->settle($request, 'paid'),
-    })->toThrow(InvalidArgumentException::class, 'Payout execution is disabled');
-
-    expect($request->fresh()->getAttributes())->toBe($before)
-        ->and(RewardBudgetMovement::query()->count())->toBe($movementsBefore);
-})->with(['submit', 'cancel', 'status', 'settle']);
 
 it('rejects new affiliate awards without a host cash policy', function (): void {
     $affiliate = Affiliate::create([

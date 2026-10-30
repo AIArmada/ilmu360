@@ -18,7 +18,7 @@ use AIArmada\Rewards\Enums\RewardBeneficiaryRole;
 use AIArmada\Rewards\Enums\RewardComponent;
 use AIArmada\Rewards\Enums\RewardProgramMode;
 use AIArmada\Rewards\Enums\RewardProgramStatus;
-use AIArmada\Rewards\Support\NullRewardPayoutExecutor;
+use AIArmada\Rewards\Support\ManualRewardPayoutExecutor;
 use AIArmada\Rewards\Support\RewardBudgetLedger;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -28,30 +28,34 @@ use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
 uses(RefreshDatabase::class);
 
-it('exposes no cash payout methods in the host', function (): void {
+it('serves the configured manual bank transfer rail', function (): void {
     $catalog = app(RewardPayoutMethodCatalog::class);
 
-    expect(config('rewards.payouts.methods'))->toBe([])
-        ->and($catalog->registered())->toBe([])
-        ->and($catalog->describe())->toBe([])
+    expect(config('rewards.payouts.methods'))->toBe(['bank_transfer'])
+        ->and($catalog->registered())->toBe(['bank_transfer'])
+        ->and($catalog->isSupported('bank_transfer'))->toBeTrue()
         ->and($catalog->isSupported('manual'))->toBeFalse()
-        ->and(app(RewardPayoutExecutor::class))->toBeInstanceOf(NullRewardPayoutExecutor::class)
+        ->and(app(RewardPayoutExecutor::class))->toBeInstanceOf(ManualRewardPayoutExecutor::class)
         ->and(config('affiliates.payouts.reward_award_settlement.enabled'))->toBeFalse();
 });
 
-it('refuses funded cash activation while payouts are disabled', function (): void {
-    [$program] = RewardLedgerFixtures::seedVersionedProgram('finance-disabled', RewardProgramMode::Cash);
+it('refuses cash activation until confirmed funding exists, then activates', function (): void {
+    [$program] = RewardLedgerFixtures::seedVersionedProgram('finance-funded', RewardProgramMode::Cash);
     $staff = RewardLedgerFixtures::staffId();
-
-    RecordRewardFundingSourceAction::run('finance-disabled-source', 'MYR', 10000, 'user', $staff, 'staff');
-    RecordRewardFundingAction::run($program, 'MYR', 10000, 'finance-disabled-source', 'user', $staff, 'staff');
 
     TransitionRewardProgramStatusAction::run($program, RewardProgramStatus::Ready);
 
     expect(fn () => TransitionRewardProgramStatusAction::run($program, RewardProgramStatus::Active))
-        ->toThrow(InvalidArgumentException::class, 'no-supported-payout-processor');
+        ->toThrow(InvalidArgumentException::class, 'no-confirmed-funding:MYR');
 
-    expect($program->fresh()->status)->toBe(RewardProgramStatus::Ready)
+    expect($program->fresh()->status)->toBe(RewardProgramStatus::Ready);
+
+    RecordRewardFundingSourceAction::run('finance-funded-source', 'MYR', 10000, 'user', $staff, 'staff');
+    RecordRewardFundingAction::run($program, 'MYR', 10000, 'finance-funded-source', 'user', $staff, 'staff');
+
+    $active = TransitionRewardProgramStatusAction::run($program, RewardProgramStatus::Active);
+
+    expect($active->status)->toBe(RewardProgramStatus::Active)
         ->and(RewardBudgetLedger::balances((string) $program->getKey(), 'MYR'))->toBe([
             'funded' => 10000,
             'reserved' => 0,
@@ -60,7 +64,7 @@ it('refuses funded cash activation while payouts are disabled', function (): voi
         ]);
 });
 
-it('does not treat a verified payee as cash readiness while payouts are disabled', function (): void {
+it('treats a verified bank destination as cash readiness and approves the award', function (): void {
     [$program, $version] = RewardLedgerFixtures::seedVersionedProgram('finance-payee', RewardProgramMode::Cash);
     $program = RewardLedgerFixtures::forceActive($program);
 
@@ -92,32 +96,10 @@ it('does not treat a verified payee as cash readiness while payouts are disabled
         CarbonImmutable::parse('2026-06-15T00:00:00Z'),
     );
 
-    RegisterRewardPayeeAction::run(
-        'user',
-        $memberId,
-        'manual',
-        'finance-payee-account',
-        'Manual handoff',
-        'user',
-        $memberId,
-        'member',
-    );
-
-    VerifyRewardPayeeAction::run(
-        'user',
-        $memberId,
-        'manual',
-        'finance-payee-account',
-        'Manual handoff',
-        'user',
-        $staff,
-        'staff',
-    );
-
     $assessment = app(RewardFinancialReadinessChecker::class)->canApproveFinancial($result->award);
 
     expect($assessment->ready)->toBeFalse()
-        ->and($assessment->blockers)->toContain('payee-processor-unsupported');
+        ->and($assessment->blockers)->toContain('payee-unverified');
 
     expect(fn () => (new TransitionRewardAwardAction(
         app(RewardFinancialReadinessChecker::class),
@@ -129,8 +111,44 @@ it('does not treat a verified payee as cash readiness while payouts are disabled
         $staff,
         'staff',
         'policy-ok',
-    ))->toThrow(InvalidArgumentException::class, 'payee-processor-unsupported');
+    ))->toThrow(InvalidArgumentException::class, 'payee-unverified');
 
-    expect($result->award->fresh()->status)->toBe(RewardAwardStatus::Held)
+    RegisterRewardPayeeAction::run(
+        'user',
+        $memberId,
+        'bank_transfer',
+        'finance-payee-account',
+        'Bank ••1234',
+        'user',
+        $memberId,
+        'member',
+    );
+
+    VerifyRewardPayeeAction::run(
+        'user',
+        $memberId,
+        'bank_transfer',
+        'finance-payee-account',
+        'Bank ••1234',
+        'user',
+        $staff,
+        'staff',
+    );
+
+    expect(app(RewardFinancialReadinessChecker::class)->canApproveFinancial($result->award)->ready)->toBeTrue();
+
+    $approved = (new TransitionRewardAwardAction(
+        app(RewardFinancialReadinessChecker::class),
+        $reader,
+    ))->handle(
+        $result->award,
+        RewardAwardStatus::Approved,
+        'user',
+        $staff,
+        'staff',
+        'policy-ok',
+    );
+
+    expect($approved->status)->toBe(RewardAwardStatus::Approved)
         ->and(RewardBudgetLedger::balances((string) $program->getKey(), 'MYR')['net_spent'])->toBe(0);
 });

@@ -150,7 +150,6 @@ it('refuses concurrent overallocation of one deposit on real drivers', function 
 });
 
 it('obligates concurrent evaluations without lost reserves on real drivers', function () {
-    RewardLedgerFixtures::useManualPayouts();
 
     [$database, $previous] = RewardFinanceWorkerDb::setUp('obligate');
 

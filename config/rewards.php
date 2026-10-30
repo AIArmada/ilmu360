@@ -89,7 +89,7 @@ return [
     ],
 
     'payouts' => [
-        'methods' => [],
+        'methods' => ['bank_transfer'],
     ],
 
 ];

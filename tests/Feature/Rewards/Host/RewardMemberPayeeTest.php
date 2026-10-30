@@ -30,14 +30,14 @@ it('lets a member register a payout destination that lands pending', function ()
     Sanctum::actingAs($this->member);
 
     $response = $this->postJson('/api/v1/rewards/payees', [
-        'method' => 'manual',
+        'method' => 'bank_transfer',
         'account_ref' => 'member-account-1',
         'account_display' => 'm***@example.com',
     ]);
 
     $response->assertCreated()
         ->assertJsonPath('data.status', RewardPayeeStatus::Pending->value)
-        ->assertJsonPath('data.method', 'manual')
+        ->assertJsonPath('data.method', 'bank_transfer')
         ->assertJsonPath('data.account_display', 'm***@example.com')
         ->assertJsonMissingPath('data.account_ref');
 
@@ -54,7 +54,7 @@ it('refuses an empty operator account reference at registration', function (): v
     Sanctum::actingAs($this->member);
 
     $response = $this->postJson('/api/v1/rewards/payees', [
-        'method' => 'manual',
+        'method' => 'bank_transfer',
         'account_ref' => '',
         'account_display' => 'Desk 1',
     ]);
@@ -63,22 +63,47 @@ it('refuses an empty operator account reference at registration', function (): v
     expect(RewardPayee::query()->count())->toBe(0);
 });
 
+it('lists the configured payout methods for member clients', function (): void {
+    Sanctum::actingAs($this->member);
+
+    $this->getJson('/api/v1/rewards/payout-methods')
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.value', 'bank_transfer')
+        ->assertJsonPath('data.0.label', 'Bank transfer');
+});
+
+it('refuses an unconfigured payout method at registration', function (): void {
+    Sanctum::actingAs($this->member);
+
+    $response = $this->postJson('/api/v1/rewards/payees', [
+        'method' => 'paypal',
+        'account_ref' => 'member@example.test',
+        'account_display' => 'm***@example.test',
+    ]);
+
+    $response->assertStatus(422)
+        ->assertJsonPath('message', 'Payout method [paypal] is not configured.');
+
+    expect(RewardPayee::query()->count())->toBe(0);
+});
+
 it('supersedes only prior pending registrations, keeping a verified destination live', function (): void {
     $memberId = (string) $this->member->getKey();
     $staffId = (string) $this->staff->getKey();
 
     $first = RegisterRewardPayeeAction::run(
-        'user', $memberId, 'manual', 'op-ref-1', 'Desk 1', 'user', $memberId, 'member',
+        'user', $memberId, 'bank_transfer', 'op-ref-1', 'Desk 1', 'user', $memberId, 'member',
     );
     $second = RegisterRewardPayeeAction::run(
-        'user', $memberId, 'manual', 'op-ref-2', 'Desk 2', 'user', $memberId, 'member',
+        'user', $memberId, 'bank_transfer', 'op-ref-2', 'Desk 2', 'user', $memberId, 'member',
     );
 
     expect($first->refresh()->status)->toBe(RewardPayeeStatus::Superseded)
         ->and($second->refresh()->status)->toBe(RewardPayeeStatus::Pending);
 
     $verified = VerifyRewardPayeeAction::run(
-        'user', $memberId, 'manual', 'op-ref-2', 'Desk 2', 'user', $staffId, 'staff',
+        'user', $memberId, 'bank_transfer', 'op-ref-2', 'Desk 2', 'user', $staffId, 'staff',
         ['verified_from_registration_id' => (string) $second->getKey()],
     );
 
@@ -86,7 +111,7 @@ it('supersedes only prior pending registrations, keeping a verified destination 
         ->and($second->refresh()->status)->toBe(RewardPayeeStatus::Superseded);
 
     $third = RegisterRewardPayeeAction::run(
-        'user', $memberId, 'manual', 'op-ref-3', 'Desk 3', 'user', $memberId, 'member',
+        'user', $memberId, 'bank_transfer', 'op-ref-3', 'Desk 3', 'user', $memberId, 'member',
     );
 
     expect($verified->refresh()->status)->toBe(RewardPayeeStatus::Verified)
@@ -98,7 +123,7 @@ it('rejects pending registrations with reason evidence and never touches verifie
     $staffId = (string) $this->staff->getKey();
 
     $pending = RegisterRewardPayeeAction::run(
-        'user', $memberId, 'manual', 'op-ref-9', 'Desk 9', 'user', $memberId, 'member',
+        'user', $memberId, 'bank_transfer', 'op-ref-9', 'Desk 9', 'user', $memberId, 'member',
     );
 
     $rejected = RejectRewardPayeeAction::run(
@@ -110,7 +135,7 @@ it('rejects pending registrations with reason evidence and never touches verifie
         ->and($rejected->evidence['rejection_reason'] ?? null)->toBe('Account holder name mismatch.');
 
     $verified = VerifyRewardPayeeAction::run(
-        'user', $memberId, 'manual', 'op-ref-9', 'Desk 9', 'user', $staffId, 'staff',
+        'user', $memberId, 'bank_transfer', 'op-ref-9', 'Desk 9', 'user', $staffId, 'staff',
     );
 
     expect(fn () => RejectRewardPayeeAction::run($verified, 'user', $staffId, 'staff', 'Too late.'))
@@ -121,11 +146,11 @@ it('prohibits self-verification, self-rejection, and registering for someone els
     $memberId = (string) $this->member->getKey();
 
     $pending = RegisterRewardPayeeAction::run(
-        'user', $memberId, 'manual', 'op-ref-7', 'Desk 7', 'user', $memberId, 'member',
+        'user', $memberId, 'bank_transfer', 'op-ref-7', 'Desk 7', 'user', $memberId, 'member',
     );
 
     expect(fn () => VerifyRewardPayeeAction::run(
-        'user', $memberId, 'manual', 'op-ref-7', 'Desk 7', 'user', $memberId, 'staff',
+        'user', $memberId, 'bank_transfer', 'op-ref-7', 'Desk 7', 'user', $memberId, 'staff',
     ))->toThrow(InvalidArgumentException::class, 'self-verification');
 
     expect(fn () => RejectRewardPayeeAction::run($pending, 'user', $memberId, 'staff', 'No.'))
@@ -134,6 +159,6 @@ it('prohibits self-verification, self-rejection, and registering for someone els
     $other = User::factory()->create();
 
     expect(fn () => RegisterRewardPayeeAction::run(
-        'user', (string) $other->getKey(), 'manual', 'op-ref-x', 'Desk X', 'user', $memberId, 'member',
+        'user', (string) $other->getKey(), 'bank_transfer', 'op-ref-x', 'Desk X', 'user', $memberId, 'member',
     ))->toThrow(InvalidArgumentException::class, 'only for the recipient themselves');
 });

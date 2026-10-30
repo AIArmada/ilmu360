@@ -31,6 +31,7 @@ use App\Actions\Rewards\EvaluatePreclaimShareOutcomesAction;
 use App\Models\User;
 use App\Support\Rewards\PublishedRewardProgramVersionResolver;
 use App\Support\Rewards\RewardMemberPresenter;
+use App\Support\Rewards\RewardPayoutMethods;
 use App\Support\Share\ShareMetricReader;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
@@ -60,7 +61,7 @@ class RewardMemberIndex extends Component
 
     public string $appealReason = '';
 
-    public string $payeeMethod = 'manual';
+    public string $payeeMethod = '';
 
     public string $payeeRef = '';
 
@@ -70,6 +71,12 @@ class RewardMemberIndex extends Component
     {
         if (! in_array($this->tab, self::TABS, true)) {
             $this->tab = 'overview';
+        }
+
+        $options = RewardPayoutMethods::options();
+
+        if ($options !== [] && ! array_key_exists($this->payeeMethod, $options)) {
+            $this->payeeMethod = (string) array_key_first($options);
         }
     }
 
@@ -318,6 +325,7 @@ class RewardMemberIndex extends Component
             'statements' => $statements,
             'statementsPager' => $statementsPager,
             'payees' => $payees,
+            'payeeMethodOptions' => RewardPayoutMethods::options(),
             'impact' => $impact,
             'catalog' => $catalog,
             'stockOf' => static fn (RewardBenefitItem $item): array => RewardBenefitStockLedger::balances($item),

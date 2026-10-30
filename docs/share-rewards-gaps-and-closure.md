@@ -48,11 +48,11 @@ staff-managed in Filament.
   conversion into a reward source fact (sharer/actor, verification,
   first-time, fraud, corrections); `EvaluateRewardEntitlementJob`
   issues points/badges/benefits/cash under funded, capped programs.
-- Host cash payouts are explicitly disabled: `rewards.payouts.methods`
-  is empty and `RewardPayoutExecutor` resolves to
-  `NullRewardPayoutExecutor`. Affiliate reward-award settlement remains
-  disabled. The host does not create affiliate backing conversions for
-  reward payouts.
+- Host cash payouts run on the rewards package's manual bank-transfer
+  rail (`rewards.payouts.methods = ['bank_transfer']`): treasury funding,
+  verified payees, independent approval and confirmation with a bank
+  reference, then award fulfillment. Affiliate reward-award settlement
+  remains disabled; the host creates no affiliate backing conversions.
 - Member-facing rewards are complete: portal (enrol, balances,
   statements, appeals, payee, benefit catalog/grants), API controllers,
   gratitude digests, corrections sweep, cohort reporting with 30-day
@@ -78,7 +78,7 @@ staff-managed in Filament.
 | G6 | Schema drift: 41 pending migrations, missing `purpose` column | Ops | High | S |
 | G7 | Reward programme publication and economics | Both | Medium | Landed 2026-10-15 |
 | G8 | Fraud posture not yet monetary-grade for redeemable points | Both | High (before burn opens) | M |
-| G9 | Disabled host cash payouts; per-program enrolment friction | Both | Low–Medium | S (decision) |
+| G9 | Manual cash payouts enabled; per-program enrolment friction | Both | Low–Medium | S (decision) |
 
 ## 4. Gaps in detail
 
@@ -387,18 +387,21 @@ accounts, guest claims) nets zero spendable points in a feature test;
 a reversed registration claws back unspent points and opens a
 recovery for spent ones.
 
-### G9 — Disabled cash payouts and enrolment friction
+### G9 — Manual cash payouts and enrolment friction
 
-**Evidence.** Host cash payouts are disabled through an empty method
-catalog and the null payout executor. Points and benefit rewards do not
-require a cash payout rail. Members must explicitly enrol per programme
-in the portal (`RewardMemberIndex::enroll`) and package presets carry
-`require_enrollment`; a member who never visits the portal silently
-earns nothing even when their shares convert.
+**Evidence.** Host cash payouts run on the rewards package's manual
+bank-transfer rail: `rewards.payouts.methods = ['bank_transfer']`, the
+package manual executor, treasury funding, verified payees, independent
+approval and confirmation with a bank reference, then award fulfillment.
+Affiliate reward-award settlement remains disabled. Points and benefit
+rewards do not require a cash payout rail. Members must explicitly enrol
+per programme in the portal (`RewardMemberIndex::enroll`) and package
+presets carry `require_enrollment`; a member who never visits the portal
+silently earns nothing even when their shares convert.
 
-**Impact.** Host cash payouts are unavailable pending a separate
-enablement decision, and silent non-earning undermines both loops'
-feedback cycle.
+**Impact.** Cash rewards are available but staff-operated, so throughput
+is bounded by manual transfer capacity, and silent non-earning undermines
+both loops' feedback cycle.
 
 **Closure (decisions, then small code).**
 
@@ -407,10 +410,8 @@ feedback cycle.
    member with banked eligible share/activity outcomes and an active
    programme with published terms. The prompt says activity is waiting
    and that enrolling does not award points for past activity.
-2. Host cash payouts stay disabled; the rewards package's native manual
-   lifecycle is complete and verified. Enabling host manual cash is a
-   separate operational decision. If automated cash payouts are later
-   justified, implement CHIP locally in the host against
+2. Cash runs on the manual bank-transfer rail. If automated cash payouts
+   are later justified, implement CHIP locally in the host against
    `RewardPayoutExecutor` and `RewardPayoutMethodCatalog`; do not route
    reward payouts through the affiliates catalog or enable affiliate
    reward-award settlement.

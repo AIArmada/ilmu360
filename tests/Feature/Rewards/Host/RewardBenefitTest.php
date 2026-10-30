@@ -373,7 +373,6 @@ it('fulfills a direct-entitlement benefit award through the catalog', function (
 });
 
 it('reverses a confirmed cash payout through recovery and settles the budget', function () {
-    RewardLedgerFixtures::useManualPayouts();
 
     [$program, $version] = RewardLedgerFixtures::seedVersionedProgram('ben-cashrec', RewardProgramMode::Cash);
     [$funder, $staff, $verifier, $requester] = benefitStaff();

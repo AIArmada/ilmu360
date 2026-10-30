@@ -8,6 +8,7 @@ use AIArmada\Rewards\Actions\RegisterRewardPayeeAction;
 use AIArmada\Rewards\Models\RewardPayee;
 use App\Support\Api\ApiPagination;
 use App\Support\Rewards\RewardMemberPresenter;
+use App\Support\Rewards\RewardPayoutMethods;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,6 +17,17 @@ use InvalidArgumentException;
 #[Group('Rewards', 'Member payout destinations. Registration lands pending for independent staff verification; reads are masked.')]
 class RewardPayeeController extends FrontendController
 {
+    public function methods(): JsonResponse
+    {
+        $options = [];
+
+        foreach (RewardPayoutMethods::options() as $value => $label) {
+            $options[] = ['value' => $value, 'label' => $label];
+        }
+
+        return response()->json(['data' => $options]);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $user = $this->requireUser($request);

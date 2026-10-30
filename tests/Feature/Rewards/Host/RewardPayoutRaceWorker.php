@@ -15,7 +15,6 @@ use AIArmada\Rewards\Models\RewardAward;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
-use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 use Tests\Support\RealDriverFixture;
 
 if (PHP_SAPI !== 'cli' || realpath($_SERVER['SCRIPT_FILENAME'] ?? '') !== __FILE__) {
@@ -90,7 +89,6 @@ DB::purge('smr_race_worker');
 
 // Subprocesses do not inherit the parent's container bindings: opt into
 // the native manual rail here, exactly as the parent setup does.
-RewardLedgerFixtures::useManualPayouts();
 
 OwnerContext::setForRequest(null);
 

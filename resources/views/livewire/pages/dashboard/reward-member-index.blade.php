@@ -148,10 +148,9 @@
         <h3 class="mt-6 font-medium">Add a destination</h3>
         <div class="mt-2 grid gap-2 text-sm">
             <select wire:model="payeeMethod" class="rounded border px-2 py-1">
-                <option value="manual">Manual / bank handoff</option>
-                <option value="bank_transfer">Bank transfer</option>
-                <option value="paypal">PayPal</option>
-                <option value="stripe_connect">Stripe Connect</option>
+                @foreach ($payeeMethodOptions as $method => $label)
+                    <option value="{{ $method }}">{{ $label }}</option>
+                @endforeach
             </select>
             <input wire:model="payeeRef" type="text" maxlength="191" placeholder="Account reference (email, account id, …)" class="rounded border px-2 py-1" />
             <input wire:model="payeeDisplay" type="text" maxlength="191" placeholder="Display label, e.g. m***@example.com" class="rounded border px-2 py-1" />

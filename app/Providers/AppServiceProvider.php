@@ -62,8 +62,6 @@ use AIArmada\Rewards\Contracts\RewardBenefitCouponFulfillment;
 use AIArmada\Rewards\Contracts\RewardCorrectionKeySource;
 use AIArmada\Rewards\Contracts\RewardFinancialReadinessChecker;
 use AIArmada\Rewards\Contracts\RewardGratitudePlanner;
-use AIArmada\Rewards\Contracts\RewardPayoutExecutor;
-use AIArmada\Rewards\Contracts\RewardPayoutMethodCatalog;
 use AIArmada\Rewards\Contracts\RewardReadinessChecker;
 use AIArmada\Rewards\Contracts\RewardReservationResolver;
 use AIArmada\Rewards\Contracts\RewardSourceFactReader;
@@ -78,8 +76,6 @@ use AIArmada\Rewards\Models\RewardProgram;
 use AIArmada\Rewards\Models\RewardRecovery;
 use AIArmada\Rewards\Support\FundedRewardFinancialReadinessChecker;
 use AIArmada\Rewards\Support\FundedRewardReadinessChecker;
-use AIArmada\Rewards\Support\ManualRewardPayoutMethodCatalog;
-use AIArmada\Rewards\Support\NullRewardPayoutExecutor;
 use AIArmada\Rewards\Support\PointLedgerRewardReservationResolver;
 use AIArmada\Rewards\Support\RewardBenefitCatalogService;
 use AIArmada\Signals\Models\TrackedProperty;
@@ -317,15 +313,13 @@ class AppServiceProvider extends ServiceProvider
         // Finance scope binds funded readiness: money/benefit activation
         // proves funding, verified payees, and supported processors from
         // immutable rows, and keeps refusing anything it cannot prove.
-        // Cash payouts stay disabled: the null executor refuses every
-        // operation and the empty method catalog registers nothing.
+        // Payout execution uses the package's manual operator rail with
+        // the methods configured in config/rewards.php.
         $this->app->singleton(RewardSourceFactReader::class, CompositeRewardSourceFactReader::class);
         $this->app->singleton(RewardReservationResolver::class, PointLedgerRewardReservationResolver::class);
         $this->app->singleton(RewardReadinessChecker::class, FundedRewardReadinessChecker::class);
         $this->app->singleton(RewardFinancialReadinessChecker::class, FundedRewardFinancialReadinessChecker::class);
         $this->app->singleton(RewardBenefitCatalog::class, RewardBenefitCatalogService::class);
-        $this->app->singleton(RewardPayoutExecutor::class, NullRewardPayoutExecutor::class);
-        $this->app->singleton(RewardPayoutMethodCatalog::class, ManualRewardPayoutMethodCatalog::class);
         $this->app->singleton(RewardBenefitCouponFulfillment::class, VouchersRewardBenefitCouponFulfillment::class);
         $this->app->singleton(RewardCorrectionKeySource::class, ShareCorrectionKeySource::class);
         $this->app->singleton(RewardGratitudePlanner::class, DigestRewardGratitudePlanner::class);

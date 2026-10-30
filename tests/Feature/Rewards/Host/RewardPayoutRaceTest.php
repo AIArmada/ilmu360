@@ -33,7 +33,6 @@ use AIArmada\Rewards\Models\RewardRecovery;
 use AIArmada\Rewards\Support\RewardBudgetLedger;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
-use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 use Tests\Feature\ShareTracking\ShareMetricRaceHarness;
 use Tests\TestCase;
 
@@ -41,7 +40,6 @@ function lcrProgram(string $family): RewardProgram
 {
     // Both the parent and every worker opt into the native manual rail;
     // the shipped host binds the null executor with an empty catalog.
-    RewardLedgerFixtures::useManualPayouts();
 
     // Mute the notification side channel in the setup process too (the
     // workers do the same): it is not the raced boundary.

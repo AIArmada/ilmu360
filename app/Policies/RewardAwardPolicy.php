@@ -38,6 +38,16 @@ class RewardAwardPolicy
         return $this->canDecide($user, $award);
     }
 
+    public function requestPayout(User $user, RewardAward $award): bool
+    {
+        return $this->canDecide($user, $award);
+    }
+
+    public function fulfill(User $user, RewardAward $award): bool
+    {
+        return $this->canDecide($user, $award);
+    }
+
     public function approve(User $user, RewardAward $award): bool
     {
         return $this->canDecide($user, $award);

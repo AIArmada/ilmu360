@@ -340,6 +340,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::get('/appeals/{appeal}', [RewardAppealController::class, 'show'])->name('appeals.show');
         Route::get('/awards/{award}/payout', [RewardPayoutController::class, 'show'])->name('payout.show');
         Route::get('/payouts', [RewardPayoutController::class, 'index'])->name('payouts.index');
+        Route::get('/payout-methods', [RewardPayeeController::class, 'methods'])->name('payout-methods.index');
         Route::get('/payees', [RewardPayeeController::class, 'index'])->name('payees.index');
         Route::post('/payees', [RewardPayeeController::class, 'store'])->name('payees.store');
         Route::get('/benefits/catalog', [RewardBenefitController::class, 'catalog'])->name('benefits.catalog');
