@@ -16,6 +16,7 @@ use App\Enums\SignupAttributionSourceType;
 use App\Models\ShareBrowserSelection;
 use App\Models\User;
 use App\Services\ShareTrackingService;
+use App\Support\Share\ShareProfileScope;
 use App\Support\ShareTracking\ShareTrackingProfile;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -215,7 +216,7 @@ final readonly class AffiliateSignupAttributionSourceResolver implements SignupA
 
     private function activeGuestClaimantId(string $affiliateId): ?string
     {
-        $claim = AffiliateClaim::query()
+        $claim = ShareProfileScope::guestClaims()
             ->where('affiliate_id', $affiliateId)
             ->where('status', 'active')
             ->whereNull('revoked_at')

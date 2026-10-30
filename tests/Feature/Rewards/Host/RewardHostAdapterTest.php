@@ -94,7 +94,7 @@ it('reports unattributed receipts as facts so policy rejects on merits', functio
 it('resolves a guest sharer only through an active claim', function (): void {
     $actor = User::factory()->create();
     $claimant = User::factory()->create();
-    $guestAffiliateId = (string) Str::uuid();
+    $guestAffiliateId = (string) RewardHostFixtures::guestAffiliate()->getKey();
     $key = ShareOutcomeBusinessKey::signup((string) $actor->getKey());
     RewardHostFixtures::receipt($key, 'user:'.$actor->getKey(), ['attribution_id' => (string) Str::uuid()]);
     RewardHostFixtures::conversion($key, [

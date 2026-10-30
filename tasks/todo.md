@@ -1,5 +1,20 @@
 # Todo — Production Reference + Author Seeder
 
+## Guest-share audit fixes
+
+- [x] Centralize marked guest-share claim reads and exclude commercial package claims from reporting and cleanup.
+- [x] Run guest claim mutations in explicit global context while retaining member recipient ownership.
+- [x] Add regression coverage for commercial isolation and ownership-enabled claim, replay, history and deletion.
+- [x] Run affected parallel Pest tests, Pint and PHPStan; record results.
+
+### Review
+
+- Scope: the two regressions reported in the review of `17d47cd`; preserve package primitives and the clean cutover.
+- Existing audit evidence: 435/436 focused tests passed; rewards admin query-budget failure (598 queries) remains outside this fix scope.
+- Canonical guest claims now require ownerless claim/affiliate records and the strict guest-share metadata marker; reporting, attribution, rewards, cohorts and cleanup reuse that boundary. Package claim/revoke mutations use explicit global context, with recipient creation retaining claimant context.
+- Verification: affected parallel run 254/259 passed initially; four new fixture errors and one named-scope failure corrected, then all six regression cases passed (64 assertions). Earlier passing affected checks include PostgreSQL claim/delete races; no unchanged broad rerun. Final repository PHPStan: 0 errors; Pint and diff whitespace checks passed. Independent bounded review found no further material defect.
+- Evidence: `/tmp/ilmu360-share-fix-tests.log`, `/tmp/ilmu360-share-fix-regression-tests.log`, `/tmp/ilmu360-share-fix-phpstan.log`.
+
 - [x] Inspect prod `ilmu360-prod` references (83 rows, free-text `author`, 1 part) + local schema
 - [x] Create `database/seeders/ProductionReferenceSeeder.php` (source `ilmu360-prod`, preserve IDs, parse authors, sync contributors)
 - [x] Verify: `vendor/bin/pint --dirty --format agent`, run seeder on local copy, run `ReferenceSeederTest`

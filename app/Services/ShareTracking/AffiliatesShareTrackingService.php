@@ -48,6 +48,7 @@ use App\Models\ShareEffectReceipt;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
+use App\Support\Share\ShareProfileScope;
 use App\Support\ShareTracking\ActivityRewardBusinessKey;
 use App\Support\ShareTracking\SealedGuestIdentityException;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
@@ -1343,6 +1344,9 @@ final readonly class AffiliatesShareTrackingService
         }
 
         $capability = AffiliateOwnershipCapability::query()
+            ->withoutGlobalScope(OwnerScope::class)
+            ->whereNull('owner_type')
+            ->whereNull('owner_id')
             ->where('verifier_hash', hash('sha256', $presented))
             ->first();
 
@@ -1350,7 +1354,7 @@ final readonly class AffiliatesShareTrackingService
             return ['state' => 'unavailable'];
         }
 
-        $claim = AffiliateClaim::query()
+        $claim = ShareProfileScope::guestClaims()
             ->where('affiliate_id', $capability->affiliate_id)
             ->first();
 
@@ -1541,14 +1545,13 @@ final readonly class AffiliatesShareTrackingService
         // Claim rows are preserved as permanent revoked ownership records:
         // deleted claim history can never be stolen or reassigned, and a
         // later restore reactivates nothing.
-        AffiliateClaim::query()
-            ->withoutGlobalScope(OwnerScope::class)
+        ShareProfileScope::guestClaims()
             ->where('claimant_type', $user->getMorphClass())
             ->where('claimant_id', (string) $user->getKey())
             ->where('status', 'active')
             ->get()
             ->each(function (AffiliateClaim $claim): void {
-                app(RevokeAffiliateClaim::class)->handle($claim);
+                OwnerContext::withOwner(null, fn () => app(RevokeAffiliateClaim::class)->handle($claim));
             });
     }
 
@@ -1561,8 +1564,7 @@ final readonly class AffiliatesShareTrackingService
         // disabled, so published short URLs open the clean public
         // destination with credit cleared. Nothing is deleted, no award or
         // notification is replayed, and no secret is restored.
-        $guestIds = AffiliateClaim::query()
-            ->withoutGlobalScope(OwnerScope::class)
+        $guestIds = ShareProfileScope::guestClaims()
             ->where('claimant_type', $user->getMorphClass())
             ->where('claimant_id', (string) $user->getKey())
             ->pluck('affiliate_id')
@@ -1582,7 +1584,7 @@ final readonly class AffiliatesShareTrackingService
             ->update(['status' => 'revoked', 'revoked_at' => now()]);
 
         AffiliateLink::query()
-            ->withoutGlobalScope(OwnerScope::class)
+            ->withoutGlobalScope('affiliate_owner')
             ->whereIn('affiliate_id', $guestIds)
             ->whereNull('deactivated_at')
             ->update(['deactivated_at' => now()]);
@@ -2242,7 +2244,7 @@ final readonly class AffiliatesShareTrackingService
 
     private function hasActiveGuestClaim(Affiliate $affiliate, User $user): bool
     {
-        return AffiliateClaim::query()
+        return ShareProfileScope::guestClaims()
             ->where('affiliate_id', $affiliate->getKey())
             ->where('claimant_type', $user->getMorphClass())
             ->where('claimant_id', (string) $user->getKey())
@@ -2322,7 +2324,7 @@ final readonly class AffiliatesShareTrackingService
             return false;
         }
 
-        return AffiliateClaim::query()
+        return ShareProfileScope::guestClaims()
             ->where('affiliate_id', $affiliate->getKey())
             ->where('claimant_type', $actor->getMorphClass())
             ->where('claimant_id', $actorId)

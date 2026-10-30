@@ -18,6 +18,7 @@ use App\Enums\ShareGuestClaimResult;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
+use App\Support\Share\ShareProfileScope;
 use App\Support\ShareTracking\ShareTrackingProfile;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -64,7 +65,7 @@ final class ClaimGuestShareProfileAction
         $verifier = hash('sha256', $capability);
 
         $result = OwnerContext::withOwner(
-            $claimant,
+            null,
             // Deadlock retry replays read-then-insert: the unique claim key
             // and the single-use consume transition keep retries safe.
             fn (): ShareGuestClaimResult => DB::transaction(
@@ -113,7 +114,7 @@ final class ClaimGuestShareProfileAction
             return ShareGuestClaimResult::ExpiredOrInvalid;
         }
 
-        $existingClaim = AffiliateClaim::query()
+        $existingClaim = ShareProfileScope::guestClaims()
             ->where('affiliate_id', $guestAffiliateId)
             ->lockForUpdate()
             ->first();
@@ -158,7 +159,7 @@ final class ClaimGuestShareProfileAction
                 true,
             );
         } catch (SealedIdentityException) {
-            $winner = AffiliateClaim::query()
+            $winner = ShareProfileScope::guestClaims()
                 ->where('affiliate_id', $guestAffiliateId)
                 ->first();
 
@@ -189,7 +190,7 @@ final class ClaimGuestShareProfileAction
      */
     private function dispatchClaimedHistoryEvaluation(string $verifier): void
     {
-        $claim = AffiliateClaim::query()
+        $claim = ShareProfileScope::guestClaims()
             ->where('capability_verifier_hash', $verifier)
             ->first();
 

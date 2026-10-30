@@ -17,6 +17,7 @@ use App\Enums\SignupAttributionStatus;
 use App\Models\SignupAttribution;
 use App\Models\User;
 use App\Support\Auth\SignupAttributionSource;
+use App\Support\Share\ShareProfileScope;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -85,7 +86,7 @@ final readonly class RecordSignupAttributionAction
         Affiliate::query()->withoutGlobalScope(OwnerScope::class)
             ->whereKey($source->affiliateId)->lockForUpdate()->first();
 
-        $claim = AffiliateClaim::query()->where('affiliate_id', $source->affiliateId)->first();
+        $claim = ShareProfileScope::guestClaims()->where('affiliate_id', $source->affiliateId)->first();
         $referrerId = $claim instanceof AffiliateClaim && $claim->isActive()
             && $claim->claimant_type === (new User)->getMorphClass()
             && User::query()->whereKey($claim->claimant_id)->exists()

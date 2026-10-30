@@ -9,6 +9,7 @@ use AIArmada\Affiliates\Models\AffiliateClaim;
 use AIArmada\CommerceSupport\Support\OwnerScope;
 use App\Models\User;
 use App\Support\ShareTracking\ShareTrackingProfile;
+use Illuminate\Database\Eloquent\Builder;
 
 /**
  * Canonical share read scope: primary member profile plus actively
@@ -23,6 +24,28 @@ use App\Support\ShareTracking\ShareTrackingProfile;
  */
 final class ShareProfileScope
 {
+    /**
+     * @return Builder<AffiliateClaim>
+     */
+    public static function guestClaims(): Builder
+    {
+        $claimTable = (new AffiliateClaim)->getTable();
+
+        return AffiliateClaim::query()
+            ->withoutGlobalScope(OwnerScope::class)
+            ->whereNull($claimTable.'.owner_type')
+            ->whereNull($claimTable.'.owner_id')
+            ->whereHas('affiliate', static function (Builder $query): void {
+                $affiliateTable = $query->getModel()->getTable();
+
+                $query->withoutGlobalScope(OwnerScope::class)
+                    ->whereNull($affiliateTable.'.owner_type')
+                    ->whereNull($affiliateTable.'.owner_id')
+                    ->whereJsonContains($affiliateTable.'.metadata->'.ShareTrackingProfile::MARKER_KEY, true)
+                    ->where($affiliateTable.'.metadata->'.ShareTrackingProfile::KIND_KEY, ShareTrackingProfile::KIND_GUEST);
+            });
+    }
+
     /**
      * @return list<string>
      */
@@ -43,7 +66,7 @@ final class ShareProfileScope
      */
     private static function activeGuestAffiliateIdsForClaimant(User $user): array
     {
-        return AffiliateClaim::query()
+        return self::guestClaims()
             ->where('claimant_type', $user->getMorphClass())
             ->where('claimant_id', (string) $user->getKey())
             ->where('status', 'active')

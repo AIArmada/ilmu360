@@ -25,6 +25,7 @@ use App\Models\SavedSearch;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
+use App\Support\Share\ShareProfileScope;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
@@ -357,7 +358,7 @@ final class ShareAttributionRewardSourceFactReader implements RewardSourceFactRe
             return null;
         }
 
-        $claim = AffiliateClaim::query()
+        $claim = ShareProfileScope::guestClaims()
             ->where('affiliate_id', $affiliateId)
             ->where('status', 'active')
             ->whereNull('revoked_at')

@@ -8,6 +8,7 @@ use AIArmada\Affiliates\Models\AffiliateClaim;
 use App\Enums\SignupAttributionSourceType;
 use App\Models\SignupAttribution;
 use App\Models\User;
+use App\Support\Share\ShareProfileScope;
 use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -18,7 +19,7 @@ final class LinkGuestSignupAttributionsAction
     public function handle(AffiliateClaim $claim): void
     {
         DB::transaction(function () use ($claim): void {
-            $lockedClaim = AffiliateClaim::query()->whereKey($claim->getKey())->lockForUpdate()->first();
+            $lockedClaim = ShareProfileScope::guestClaims()->whereKey($claim->getKey())->lockForUpdate()->first();
 
             if (! $lockedClaim instanceof AffiliateClaim || ! $lockedClaim->isActive()) {
                 return;

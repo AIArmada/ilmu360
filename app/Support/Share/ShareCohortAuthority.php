@@ -229,7 +229,8 @@ final class ShareCohortAuthority
      */
     private static function whereClaimantMatches(Builder $query, string $alias): void
     {
-        $query->where("{$alias}.claimant_type", self::hostClaimantType());
+        $query->where("{$alias}.claimant_type", self::hostClaimantType())
+            ->whereIn("{$alias}.id", ShareProfileScope::guestClaims()->select((new AffiliateClaim)->getQualifiedKeyName()));
 
         if (DB::getDriverName() === 'pgsql') {
             $query->whereRaw("\"{$alias}\".\"claimant_id\" = \"u\".\"id\"::text");

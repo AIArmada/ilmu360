@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace App\Services\ShareTracking;
 
-use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\Models\AffiliateAttribution;
-use AIArmada\Affiliates\Models\AffiliateClaim;
 use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\Affiliates\States\ConversionStatus;
+use AIArmada\CommerceSupport\Support\OwnerScope;
 use App\Data\ShareTracking\ShareTrackingLinkData;
 use App\Data\ShareTracking\ShareTrackingOutcomeData;
 use App\Data\ShareTracking\ShareTrackingVisitData;
 use App\Models\User;
 use App\Support\Share\ShareMetricReader;
+use App\Support\Share\ShareProfileScope;
 use App\Support\ShareTracking\ShareTrackingMeasurement;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
@@ -114,6 +114,7 @@ final readonly class AffiliatesShareTrackingAnalyticsService
         $withholdMeasurements = ! ShareTrackingMeasurement::isConfigured();
 
         $links = AffiliateLink::query()
+            ->withoutGlobalScope('affiliate_owner')
             ->whereIn('affiliate_id', $affiliateIds)
             ->get()
             ->map(fn (AffiliateLink $link): ShareTrackingLinkData => $this->buildLinkData($link, $withholdMeasurements))
@@ -173,6 +174,7 @@ final readonly class AffiliatesShareTrackingAnalyticsService
         }
 
         $link = AffiliateLink::query()
+            ->withoutGlobalScope('affiliate_owner')
             ->whereIn('affiliate_id', $affiliateIds)
             ->whereKey($linkId)
             ->first();
@@ -394,11 +396,6 @@ final readonly class AffiliatesShareTrackingAnalyticsService
         ];
     }
 
-    private function affiliateForUser(User $user): ?Affiliate
-    {
-        return $this->shareTrackingService->findAffiliateForUser($user);
-    }
-
     /**
      * Read scope for a user: their primary member profile plus every
      * guest profile they actively claimed. Revoked claims (deleted
@@ -408,31 +405,7 @@ final readonly class AffiliatesShareTrackingAnalyticsService
      */
     private function affiliateIdsForUser(User $user): array
     {
-        $primary = $this->affiliateForUser($user);
-
-        $ids = $primary instanceof Affiliate ? [(string) $primary->getKey()] : [];
-
-        return array_values(array_unique([
-            ...$ids,
-            ...$this->activeGuestAffiliateIdsForClaimant($user),
-        ]));
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function activeGuestAffiliateIdsForClaimant(User $user): array
-    {
-        return AffiliateClaim::query()
-            ->where('claimant_type', $user->getMorphClass())
-            ->where('claimant_id', (string) $user->getKey())
-            ->where('status', 'active')
-            ->whereNull('revoked_at')
-            ->pluck('affiliate_id')
-            ->map(static fn (mixed $id): string => (string) $id)
-            ->unique()
-            ->values()
-            ->all();
+        return ShareProfileScope::affiliateIdsForUser($user);
     }
 
     /**
@@ -709,6 +682,7 @@ final readonly class AffiliatesShareTrackingAnalyticsService
     private function outboundSharesQuery(array $affiliateIds): Builder
     {
         $query = AffiliateTouchpoint::query()
+            ->withoutGlobalScope(OwnerScope::class)
             ->whereIn('affiliate_id', $affiliateIds)
             ->where('touchpoint_type', 'outbound_share');
 
@@ -726,6 +700,7 @@ final readonly class AffiliatesShareTrackingAnalyticsService
     private function visitTouchpointsQuery(array $affiliateIds): Builder
     {
         $query = AffiliateTouchpoint::query()
+            ->withoutGlobalScope(OwnerScope::class)
             ->whereIn('affiliate_id', $affiliateIds)
             ->where('touchpoint_type', 'visit');
 
@@ -742,7 +717,9 @@ final readonly class AffiliatesShareTrackingAnalyticsService
      */
     private function conversionsQuery(array $affiliateIds): Builder
     {
-        $query = AffiliateConversion::query()->whereIn('affiliate_id', $affiliateIds);
+        $query = AffiliateConversion::query()
+            ->withoutGlobalScope(OwnerScope::class)
+            ->whereIn('affiliate_id', $affiliateIds);
 
         if ($this->reportingStart() instanceof CarbonInterface) {
             $query->where('occurred_at', '>=', $this->reportingStart());
@@ -758,6 +735,7 @@ final readonly class AffiliatesShareTrackingAnalyticsService
     private function landingAttributionsQuery(array $affiliateIds): Builder
     {
         $query = AffiliateAttribution::query()
+            ->withoutGlobalScope(OwnerScope::class)
             ->whereIn('affiliate_id', $affiliateIds)
             ->where('attribution_type', 'landing');
 
@@ -774,6 +752,7 @@ final readonly class AffiliatesShareTrackingAnalyticsService
     private function outboundSharesQueryForLink(string $linkId): Builder
     {
         $query = AffiliateTouchpoint::query()
+            ->withoutGlobalScope(OwnerScope::class)
             ->where('touchpoint_type', 'outbound_share')
             ->where('affiliate_link_id', $linkId);
 
@@ -790,6 +769,7 @@ final readonly class AffiliatesShareTrackingAnalyticsService
     private function visitTouchpointsQueryForLink(string $linkId): Builder
     {
         $query = AffiliateTouchpoint::query()
+            ->withoutGlobalScope(OwnerScope::class)
             ->where('touchpoint_type', 'visit')
             ->where('affiliate_link_id', $linkId);
 
@@ -805,7 +785,9 @@ final readonly class AffiliatesShareTrackingAnalyticsService
      */
     private function conversionsQueryForLink(string $linkId): Builder
     {
-        $query = AffiliateConversion::query()->where('affiliate_link_id', $linkId);
+        $query = AffiliateConversion::query()
+            ->withoutGlobalScope(OwnerScope::class)
+            ->where('affiliate_link_id', $linkId);
 
         if ($this->reportingStart() instanceof CarbonInterface) {
             $query->where('occurred_at', '>=', $this->reportingStart());
@@ -820,6 +802,7 @@ final readonly class AffiliatesShareTrackingAnalyticsService
     private function landingAttributionsQueryForLink(string $linkId): Builder
     {
         $query = AffiliateAttribution::query()
+            ->withoutGlobalScope(OwnerScope::class)
             ->where('attribution_type', 'landing')
             ->where('affiliate_link_id', $linkId);
 

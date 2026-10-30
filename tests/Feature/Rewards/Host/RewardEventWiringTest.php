@@ -209,7 +209,7 @@ it('awards the claimant for proven guest sharer history', function (): void {
     $actor = User::factory()->create();
     [$program] = rewireEnrolledRecognition('rewire-claimed', $claimant);
 
-    $guestAffiliateId = (string) Str::uuid();
+    $guestAffiliateId = (string) RewardHostFixtures::guestAffiliate()->getKey();
     $key = ShareOutcomeBusinessKey::signup((string) $actor->getKey());
     RewardHostFixtures::receipt($key, 'user:'.$actor->getKey(), [
         'attribution_id' => (string) Str::uuid(),
