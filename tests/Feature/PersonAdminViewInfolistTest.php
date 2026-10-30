@@ -142,3 +142,31 @@ it('shows district and subdistrict on the lokasi tab', function () {
             ->assertSee('Bandar Penggaram');
     });
 });
+
+it('renders a locale-map bio on the view page without crashing', function () {
+    $this->seed(PermissionSeeder::class);
+    $this->seed(RoleSeeder::class);
+
+    $administrator = createAdminPersonViewer();
+    $person = Person::factory()->create([
+        'bio' => ['ms' => 'Al-Fadhil Ustaz contoh berasal dari Slim River.'],
+    ]);
+
+    OwnerContext::withOwner(null, function () use ($administrator, $person): void {
+        $this->actingAs($administrator)
+            ->get(PersonResource::getUrl('view', ['record' => $person]))
+            ->assertSuccessful()
+            ->assertSee('Al-Fadhil Ustaz contoh');
+    });
+});
+
+it('renders a locale-map bio on the public profile without crashing', function () {
+    $person = Person::factory()->create([
+        'status' => 'verified',
+        'bio' => ['ms' => 'Pendakwah contoh yang aktif menyampaikan ceramah.'],
+    ]);
+
+    $this->get(route('persons.show', $person))
+        ->assertSuccessful()
+        ->assertSee('Pendakwah contoh');
+});

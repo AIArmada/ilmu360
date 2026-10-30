@@ -105,11 +105,65 @@ class PersonInfolist
                                                     ->columnSpanFull()
                                                     ->html()
                                                     ->state(function (?Person $record): string {
-                                                        if (! $record instanceof Person || ! is_array($record->bio)) {
+                                                        if (! $record instanceof Person) {
                                                             return '';
                                                         }
 
-                                                        return RichContentRenderer::make($record->bio)->toHtml();
+                                                        $bio = $record->bio;
+
+                                                        if (is_string($bio) && trim($bio) !== '') {
+                                                            return nl2br(e(trim($bio)));
+                                                        }
+
+                                                        if (! is_array($bio)) {
+                                                            return '';
+                                                        }
+
+                                                        if (($bio['type'] ?? null) === 'doc' && isset($bio['content']) && is_array($bio['content'])) {
+                                                            try {
+                                                                return RichContentRenderer::make($bio)->toHtml();
+                                                            } catch (\Throwable) {
+                                                                return '';
+                                                            }
+                                                        }
+
+                                                        $text = data_get($bio, app()->getLocale());
+
+                                                        if (! is_string($text) || trim($text) === '') {
+                                                            $text = data_get($bio, 'ms') ?: data_get($bio, 'en') ?: null;
+                                                        }
+
+                                                        if (! is_string($text) || trim($text) === '') {
+                                                            if (array_is_list($bio)) {
+                                                                $parts = [];
+
+                                                                foreach ($bio as $entry) {
+                                                                    if (is_string($entry) && trim($entry) !== '') {
+                                                                        $parts[] = trim($entry);
+                                                                    } elseif (is_array($entry) && isset($entry['text']) && is_string($entry['text']) && trim($entry['text']) !== '') {
+                                                                        $parts[] = trim($entry['text']);
+                                                                    }
+                                                                }
+
+                                                                $text = implode("\n\n", $parts);
+                                                            } else {
+                                                                $text = null;
+
+                                                                foreach ($bio as $value) {
+                                                                    if (is_string($value) && trim($value) !== '') {
+                                                                        $text = $value;
+
+                                                                        break;
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+
+                                                        if (! is_string($text) || trim($text) === '') {
+                                                            return '';
+                                                        }
+
+                                                        return nl2br(e(trim($text)));
                                                     })
                                                     ->placeholder('-'),
                                                 TextEntry::make('languages.name')

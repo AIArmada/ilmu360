@@ -1,20 +1,30 @@
 @php
     $personShareImageUrl = $person->public_avatar_url;
+    $metaBioIsTiptap = is_array($person->bio) && ($person->bio['type'] ?? null) === 'doc' && isset($person->bio['content']) && is_array($person->bio['content']);
+    $metaBioRaw = $metaBioIsTiptap ? '' : (is_array($person->bio) ? (data_get($person->bio, app()->getLocale()) ?: data_get($person->bio, 'ms') ?: data_get($person->bio, 'en') ?: '') : (string) $person->bio);
+    try {
+        $metaBioText = $metaBioIsTiptap ? trim(\Filament\Forms\Components\RichEditor\RichContentRenderer::make($person->bio)->toText() ?? '') : trim(strip_tags((string) $metaBioRaw));
+    } catch (\Throwable) {
+        $metaBioText = trim(strip_tags((string) $metaBioRaw));
+    }
+    $metaDescription = \Illuminate\Support\Str::limit($metaBioText !== '' ? $metaBioText : __('Lihat profil, biodata, dan jadual majlis oleh :name di :app.', ['name' => $person->formatted_name, 'app' => config('app.name')]), 160);
 @endphp
 
 @section('title', $person->formatted_name . ' - ' . config('app.name'))
-@section('meta_description', \Illuminate\Support\Str::limit((is_array($person->bio) ? \Filament\Forms\Components\RichEditor\RichContentRenderer::make($person->bio)->toText() : trim(strip_tags((string) $person->bio))) ?: __('Lihat profil, biodata, dan jadual majlis oleh :name di :app.', ['name' => $person->formatted_name, 'app' => config('app.name')]), 160))
+@section('meta_description'){{ $metaDescription }}@endsection
 @section('meta_robots', ((string) $person->status === 'verified' && $person->speaker_status === \App\Enums\SpeakerStatus::Active) ? 'index, follow' : 'noindex, nofollow')
 @section('og_url', route('persons.show', $person))
 @section('og_image', $personShareImageUrl)
 @section('og_image_alt', __('Profil penceramah :name', ['name' => $person->formatted_name]))
 
 @php
-    $bioRenderer = is_array($person->bio)
+    $bioIsTiptap = is_array($person->bio) && ($person->bio['type'] ?? null) === 'doc' && isset($person->bio['content']) && is_array($person->bio['content']);
+    $bioLocaleText = $bioIsTiptap ? '' : (is_array($person->bio) ? (data_get($person->bio, app()->getLocale()) ?: data_get($person->bio, 'ms') ?: data_get($person->bio, 'en') ?: (array_is_list($person->bio) ? implode("\n\n", collect($person->bio)->map(fn ($entry) => is_string($entry) ? $entry : ($entry['text'] ?? ''))->filter(fn ($v) => is_string($v) && trim($v) !== '')->values()->all()) : collect($person->bio)->first(fn ($v) => is_string($v) && trim($v) !== ''))) : (string) $person->bio);
+    $bioRenderer = $bioIsTiptap
         ? \Filament\Forms\Components\RichEditor\RichContentRenderer::make($person->bio)
         : null;
-    $bioHtml = is_array($person->bio) ? $bioRenderer?->toHtml() ?? '' : (string) $person->bio;
-    $bioText = is_array($person->bio) ? trim($bioRenderer?->toText() ?? '') : trim(strip_tags((string) $person->bio));
+    $bioHtml = $bioIsTiptap ? $bioRenderer?->toHtml() ?? '' : (trim((string) $bioLocaleText) !== '' ? nl2br(e(trim((string) $bioLocaleText))) : '');
+    $bioText = $bioIsTiptap ? trim($bioRenderer?->toText() ?? '') : trim(strip_tags((string) $bioLocaleText));
     $shouldCollapseBio = \Illuminate\Support\Str::length($bioText) > 680;
     $locationString = \App\Support\Location\AddressHierarchyFormatter::format($person->primaryAddress());
     $upcomingEvents = $this->upcomingEvents;
