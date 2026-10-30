@@ -91,7 +91,7 @@
 
 **Files:**
 - Delete: `app/Models/ShareGuestClaim.php`, `ShareGuestClaimCapability.php`, `ShareGuestCredential.php`; `app/Enums/ShareGuestClaimStatus.php`, `ShareGuestClaimCapabilityStatus.php`, `ShareGuestCredentialStatus.php` (keep `ShareGuestClaimResult.php`)
-- Modify: add migration dropping `share_guest_claims`, `share_guest_claim_capabilities`, `share_guest_credentials` (drop-if-exists; no backfill per Rulings)
+- Modify: delete the original `2026_10_07_00000*_create_share_guest_*.php` migration files outright (no replacement migration; fresh `migrate:fresh` rebuilds clean)
 - Test: `tests/Feature/ShareTracking/Wp3RealDriverRaceTest.php` (real-driver claim races against package semantics), remaining references in any suite file
 
 **Interfaces:**
