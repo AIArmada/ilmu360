@@ -64,6 +64,28 @@ class PersonsTable
                     ->label('Speaker')
                     ->options(SpeakerStatus::class)
                     ->placeholder('All'),
+                SelectFilter::make('avatar')
+                    ->label('Avatar')
+                    ->options([
+                        'has' => 'With avatar',
+                        'missing' => 'Without avatar',
+                    ])
+                    ->query(fn (Builder $query, array $data): Builder => match ($data['value'] ?? null) {
+                        'has' => $query->whereHas('media', fn (Builder $mediaQuery): Builder => $mediaQuery->where('collection_name', 'avatar')),
+                        'missing' => $query->whereDoesntHave('media', fn (Builder $mediaQuery): Builder => $mediaQuery->where('collection_name', 'avatar')),
+                        default => $query,
+                    }),
+                SelectFilter::make('profile')
+                    ->label('Profile image')
+                    ->options([
+                        'has' => 'With profile image',
+                        'missing' => 'Without profile image',
+                    ])
+                    ->query(fn (Builder $query, array $data): Builder => match ($data['value'] ?? null) {
+                        'has' => $query->whereHas('media', fn (Builder $mediaQuery): Builder => $mediaQuery->where('collection_name', 'profile')),
+                        'missing' => $query->whereDoesntHave('media', fn (Builder $mediaQuery): Builder => $mediaQuery->where('collection_name', 'profile')),
+                        default => $query,
+                    }),
             ])
             ->recordActions([
                 ViewAction::make(),

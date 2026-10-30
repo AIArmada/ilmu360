@@ -189,6 +189,7 @@ use Filament\Support\Colors\Color;
 use Filament\Support\Facades\FilamentAsset;
 use Filament\Support\Facades\FilamentColor;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -379,6 +380,9 @@ class AppServiceProvider extends ServiceProvider
         SelectFilter::configureUsing(
             static fn (SelectFilter $filter): SelectFilter => $filter->native(false),
             isImportant: true,
+        );
+        Table::configureUsing(
+            static fn (Table $table): Table => $table->deferFilters(false),
         );
 
         // Filament rendered outside a panel (public forms) defaults to amber;

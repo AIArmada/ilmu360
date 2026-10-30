@@ -1,58 +1,71 @@
 <?php
 
-use App\Enums\ReferenceType;
-use App\Models\Event;
+use App\Models\Person;
 use App\Models\Reference;
-use Database\Seeders\LanguageSeeder;
 use Database\Seeders\ReferenceSeeder;
+use Illuminate\Support\Facades\DB;
 
-it('seeds references using submit-event compatible fields and links', function () {
-    Event::factory()->create([
-        'status' => 'approved',
-        'title' => 'Kuliah Maghrib: Tafsir Juz Amma',
-    ]);
-
-    $this->seed(LanguageSeeder::class);
+it('seeds embedded production references with authors as person links', function () {
     $this->seed(ReferenceSeeder::class);
+
+    expect(Reference::query()->count())->toBe(83);
 
     $types = Reference::query()->pluck('type')->unique()->values()->all();
     $statuses = Reference::query()->pluck('status')->unique()->values()->all();
 
-    expect($types)
-        ->toContain(ReferenceType::Book->value)
-        ->toContain(ReferenceType::Article->value)
-        ->toContain(ReferenceType::Video->value)
-        ->toContain(ReferenceType::Other->value)
-        ->not->toContain('kitab');
+    expect($types)->toBe(['book'])
+        ->and($statuses)->toBe(['verified']);
 
-    expect($statuses)
-        ->toContain('verified')
-        ->toContain('pending');
-
-    $reference = Reference::query()->where('title', 'Riyadhus Solihin')->first();
+    $reference = Reference::query()->where('slug', 'al-fiqh-al-manhaji')->first();
 
     expect($reference)->not->toBeNull()
-        ->and((string) $reference?->status)->toBeIn(['verified', 'pending'])
-        ->and($reference?->url)->toBe('https://sunnah.com/riyadussalihin')
-        ->and($reference?->year)->toBeInt()
-        ->and($reference?->language)->toBe('ar')
+        ->and((string) $reference?->status)->toBe('verified')
+        ->and($reference?->year)->toBeNull()
         ->and($reference?->published_at)->not->toBeNull()
-        ->and($reference?->slug)->not->toBeNull()
-        ->and($reference?->socialProfiles()->count())->toBe(2)
-        ->and($reference?->socialProfiles()->where('platform', 'youtube')->exists())->toBeTrue();
+        ->and($reference?->slug)->toBe('al-fiqh-al-manhaji')
+        ->and($reference?->authors()->count())->toBe(3);
+
+    $author = Person::query()->where('name', 'Dr Mustafa Al-Bugha')->first();
+
+    expect($author)->not->toBeNull()
+        ->and($author?->speaker_status->value)->toBe('inactive')
+        ->and($author?->allow_public_event_submission)->toBeFalse();
+
+    $part = Reference::query()->where('slug', 'sunting-idaman-penuntut-pada-menghuraikan-yang-kusut-ilmu-fiqah')->first();
+
+    expect($part)->not->toBeNull()
+        ->and($part?->recordKindValue())->toBe('part')
+        ->and((string) $part?->parentIdValue())->toBe('019d477a-623c-7225-95db-a665a368fc61')
+        ->and($part?->authors()->count())->toBe(0);
 });
 
-it('attaches seeded references to approved events via event_reference pivot', function () {
-    $event = Event::factory()->create([
-        'status' => 'approved',
-        'title' => 'Kuliah Maghrib: Tafsir Juz Amma',
-    ]);
-
-    $this->seed(LanguageSeeder::class);
+it('seeds embedded reference cover media pointing at S3', function () {
     $this->seed(ReferenceSeeder::class);
 
-    $event->refresh()->load('references');
+    $covers = DB::table('media')->where('collection_name', 'front_cover');
 
-    expect($event->references->isNotEmpty())->toBeTrue()
-        ->and($event->references->pluck('pivot.sort_order')->filter(fn (mixed $order): bool => $order !== null)->isNotEmpty())->toBeTrue();
+    expect($covers->count())->toBe(48)
+        ->and($covers->where('disk', '!=', 's3')->count())->toBe(0);
+
+    expect(DB::table('media')->where('collection_name', 'back_cover')->count())->toBe(1)
+        ->and(DB::table('media')->where('collection_name', 'gallery')->count())->toBe(2);
+
+    $sample = DB::table('media')
+        ->where('collection_name', 'front_cover')
+        ->where('model_type', (new Reference)->getMorphClass())
+        ->first();
+
+    expect($sample)->not->toBeNull();
+
+    expect(Reference::query()->whereKey($sample->model_id)->exists())->toBeTrue();
+});
+
+it('keeps embedded production references idempotent on reseeding', function () {
+    $this->seed(ReferenceSeeder::class);
+
+    $counts = [Reference::query()->count(), Person::query()->count()];
+
+    $this->seed(ReferenceSeeder::class);
+
+    expect([Reference::query()->count(), Person::query()->count()])->toBe($counts);
 });

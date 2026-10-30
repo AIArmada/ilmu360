@@ -7,6 +7,7 @@ namespace Database\Seeders;
 use AIArmada\Authz\Models\Permission;
 use AIArmada\Authz\Models\Role;
 use Illuminate\Database\Seeder;
+use Spatie\Permission\PermissionRegistrar;
 
 class PermissionSeeder extends Seeder
 {
@@ -22,7 +23,9 @@ class PermissionSeeder extends Seeder
             'institution.delete',
             'institution.manage-members',
             'institution.manage-donation-channels',
+            'person.viewAny',
             'person.view',
+            'person.create',
             'person.update',
             'person.delete',
             'person.manage-members',
@@ -56,7 +59,19 @@ class PermissionSeeder extends Seeder
             Permission::findOrCreate($permission, 'web');
         }
 
+        // findOrCreate populates Spatie's in-memory permission collection on
+        // first read and never refreshes it, so newly created rows are
+        // invisible to givePermissionTo() in the same process (notably on a
+        // fresh database). Bust the cache before assigning.
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
         Role::findOrCreate('admin', 'web')->givePermissionTo([
+            'person.viewAny',
+            'person.view',
+            'person.create',
+            'person.update',
+            'person.delete',
+            'person.manage-members',
             'affiliate.viewAny',
             'affiliate.view',
             'affiliate.update',
