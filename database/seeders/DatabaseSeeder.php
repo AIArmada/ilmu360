@@ -66,12 +66,11 @@ class DatabaseSeeder extends Seeder
         $this->seedWhenEmpty(Institution::class, InstitutionSeeder::class);
         $this->seedWhenEmpty(Venue::class, VenueSeeder::class);
         $this->call([TitleCategorySeeder::class, TitleSeeder::class]);
-        $this->seedWhenEmpty(Person::class, PersonSeeder::class);
+        $this->seedWhenEmpty(Person::class, SpeakerSeeder::class);
 
         $this->call([
             SeriesSeeder::class,
             EventSeeder::class,
-            SpeakerEventSeeder::class,
             AdvancedEventSeeder::class,
             ReferenceSeeder::class,
             InspirationSeeder::class,

@@ -15,7 +15,6 @@ use Database\Seeders\LanguageSeeder;
 use Database\Seeders\MediaLinkSeeder;
 use Database\Seeders\ModerationReviewSeeder;
 use Database\Seeders\PermissionSeeder;
-use Database\Seeders\PersonSeeder;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RegistrationSeeder;
 use Database\Seeders\ReportSeeder;
@@ -24,7 +23,7 @@ use Database\Seeders\SavedSearchSeeder;
 use Database\Seeders\ScopedMemberRolesSeeder;
 use Database\Seeders\SeriesSeeder;
 use Database\Seeders\SpaceSeeder;
-use Database\Seeders\SpeakerEventSeeder;
+use Database\Seeders\SpeakerSeeder;
 use Database\Seeders\UserSeeder;
 use Database\Seeders\VenueSeeder;
 use Database\Seeders\VenueSpaceTypeSeeder;
@@ -59,12 +58,11 @@ it('runs the full demo seeding pipeline in the expected order', function () {
     expect($calledSeederBatches)->toContain([FacilityTypeSeeder::class, VenueSpaceTypeSeeder::class, SpaceSeeder::class]);
     expect($calledSeederBatches)->toContain([InstitutionSeeder::class]);
     expect($calledSeederBatches)->toContain([VenueSeeder::class]);
-    expect($calledSeederBatches)->toContain([PersonSeeder::class]);
+    expect($calledSeederBatches)->toContain([SpeakerSeeder::class]);
 
     expect($calledSeederBatches)->toContain([
         SeriesSeeder::class,
         EventSeeder::class,
-        SpeakerEventSeeder::class,
         AdvancedEventSeeder::class,
         ReferenceSeeder::class,
         InspirationSeeder::class,

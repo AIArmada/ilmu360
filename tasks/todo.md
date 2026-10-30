@@ -5114,3 +5114,16 @@ Bound references shown on the occurrence page now link to the canonical `referen
 ### Review
 
 Removed the extra Google Maps link and its unused URL generation while retaining the interactive map and navigation action. The combined organizer/location label is omitted when the institution is the place, and its mark now appears only when an uploaded logo exists. The browser still shows the previously observed 30-second server timeout, so visual reloading could not be confirmed. Source search and `git diff --check` pass.
+
+## SpeakerSeeder consolidation (2026-10-30)
+
+Plan: `docs/superpowers/plans/2026-10-30-speaker-seeder-consolidation.md`
+
+- [x] Strip `event_links` from `SpeakerSeeder` (data + importer + counters + imports + docblock)
+- [x] Delete `PersonSeeder` / `SpeakerEventSeeder` / `ProductionSpeakerSeeder`; wire `SpeakerSeeder` into `DatabaseSeeder`; update `InstitutionSeederTest`; delete `PersonSeederIdempotencyTest`
+- [x] `EventSeeder` schedule uses `SpeakerSeeder` names only; remove `Person::create` fallback
+- [x] Pint + PHPStan + Pest verification
+
+Review: `SpeakerSeeder` keeps 117 entries with 0 `event_links` refs. `EventSeeder` schedule (53 refs / 46 unique names) verified verbatim in `SpeakerSeeder`; 6 slots that hit dump junk-name `test` persons reassigned to clean names. `ReferenceSeeder::syncAuthors` still creates non-speaker author `Person`s (conscious exception).
+
+Verification: Pint 1 fix (import order in `InstitutionSeederTest.php`). PHPStan level 6: same 5 errors as pre-change baseline, all in untouched commerce/affiliate files. Pest (sqlite memory): `SpeakerSeederTest` + `InstitutionSeederTest` (3 passed, 42 assertions) + `AdvancedEventSeederTest` (2 passed, 20 assertions).

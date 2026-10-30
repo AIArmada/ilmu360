@@ -289,72 +289,72 @@ class EventSeeder extends Seeder
         ]);
 
         $schedule = [
-            ['date' => '2026-01-05', 'slot' => 'Dhuha', 'time' => '10:30', 'person' => 'Ust Mukhlisur Riyadus', 'topic' => 'Adab Iman'],
-            ['date' => '2026-01-05', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Mohd Aris Johari', 'topic' => 'Tafsir Juz Amma (Surah Jasim)'],
-            ['date' => '2026-01-12', 'slot' => 'Dhuha', 'time' => '10:00', 'person' => 'Ust Muhd Zulkifli', 'topic' => 'Kitab Idaman Penuntut Ilmu'],
-            ['date' => '2026-01-12', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Mohd Faiz al-Izzani', 'topic' => 'Tafsir Juz Amma'],
-            ['date' => '2026-01-19', 'slot' => 'Dhuha', 'time' => '10:00', 'person' => 'Ust Mohd Nazri Abdul Razak', 'topic' => 'Berusrah Bersama'],
-            ['date' => '2026-01-19', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Anuar Harun', 'topic' => 'Tafsir Juz Amma'],
-            ['date' => '2026-01-26', 'slot' => 'Dhuha', 'time' => '10:00', 'person' => 'Ust Mohd Nazri Abdul Razak', 'topic' => 'Berusrah Bersama'],
-            ['date' => '2026-01-26', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Fawwaz Mohd Nur', 'topic' => 'Tafsir Juz Amma'],
+            ['date' => '2026-01-05', 'slot' => 'Dhuha', 'time' => '10:30', 'person' => 'Azahar Hashim Al-Hadrami', 'topic' => 'Adab Iman'],
+            ['date' => '2026-01-05', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Fathullah Ishak', 'topic' => 'Tafsir Juz Amma (Surah Jasim)'],
+            ['date' => '2026-01-12', 'slot' => 'Dhuha', 'time' => '10:00', 'person' => 'Muhadir Haji Joll', 'topic' => 'Kitab Idaman Penuntut Ilmu'],
+            ['date' => '2026-01-12', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Mohammad Kazim Elias', 'topic' => 'Tafsir Juz Amma'],
+            ['date' => '2026-01-19', 'slot' => 'Dhuha', 'time' => '10:00', 'person' => 'Mohd Hazri Hashim Al Bindany', 'topic' => 'Berusrah Bersama'],
+            ['date' => '2026-01-19', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Johari Mohd Som', 'topic' => 'Tafsir Juz Amma'],
+            ['date' => '2026-01-26', 'slot' => 'Dhuha', 'time' => '10:00', 'person' => 'Mohd Hazri Hashim Al Bindany', 'topic' => 'Berusrah Bersama'],
+            ['date' => '2026-01-26', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ahmad Shukri Yusoff', 'topic' => 'Tafsir Juz Amma'],
 
-            ['date' => '2026-01-06', 'slot' => 'Quran Time', 'time' => '08:45', 'person' => 'Ust Adi Hamman Mahwi', 'topic' => 'Quran Time'],
-            ['date' => '2026-01-06', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Dr Adnin Ramly'],
-            ['date' => '2026-01-13', 'slot' => 'Dhuha', 'time' => '10:30', 'person' => 'Ust Abdul Khair Zaki'],
-            ['date' => '2026-01-13', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Abu Hazim'],
-            ['date' => '2026-01-20', 'slot' => 'Quran Time', 'time' => '08:45', 'person' => 'Ust Adi Hamman Mahwi', 'topic' => 'Quran Time'],
-            ['date' => '2026-01-20', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Ebit Lew'],
-            ['date' => '2026-01-27', 'slot' => 'Talaqqi al-Quran', 'time' => '10:30', 'person' => 'Ust Izani Zulkifli', 'topic' => 'Talaqqi al-Quran'],
-            ['date' => '2026-01-27', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Dr Zulkifli Mohamad al-Bakri'],
+            ['date' => '2026-01-06', 'slot' => 'Quran Time', 'time' => '08:45', 'person' => 'Mohd Hapiz Mahaiyadin', 'topic' => 'Quran Time'],
+            ['date' => '2026-01-06', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ikmal Zaidi Hashim'],
+            ['date' => '2026-01-13', 'slot' => 'Dhuha', 'time' => '10:30', 'person' => 'Shahrizan Daud At-Turabi'],
+            ['date' => '2026-01-13', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Azian Man'],
+            ['date' => '2026-01-20', 'slot' => 'Quran Time', 'time' => '08:45', 'person' => 'Mohd Hapiz Mahaiyadin', 'topic' => 'Quran Time'],
+            ['date' => '2026-01-20', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Najmuddin Othman Al-Khered'],
+            ['date' => '2026-01-27', 'slot' => 'Talaqqi al-Quran', 'time' => '10:30', 'person' => 'Mat Jais Kamos', 'topic' => 'Talaqqi al-Quran'],
+            ['date' => '2026-01-27', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ayman Al-Akiti'],
 
-            ['date' => '2026-01-07', 'slot' => 'Dhuha', 'time' => '10:00', 'person' => 'Ust Muhd Zulkifli', 'topic' => 'Kitab Idaman Penuntut Ilmu'],
-            ['date' => '2026-01-07', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Dato Dr Danial Zainal Abidin'],
-            ['date' => '2026-01-14', 'slot' => 'Dhuha', 'time' => '10:00', 'person' => 'Ust Muhamad Azmi', 'topic' => 'Kitab Nuru al-Iqna Masail Taharah'],
-            ['date' => '2026-01-14', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Syed Mohd Shahabuddin'],
-            ['date' => '2026-01-21', 'slot' => 'Dhuha', 'time' => '10:00', 'person' => 'Ust Muhamad Azmi'],
-            ['date' => '2026-01-21', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Hj Zakaria Othman'],
-            ['date' => '2026-01-28', 'slot' => 'Dhuha', 'time' => '10:00', 'person' => 'Ust Muhd Azmi'],
-            ['date' => '2026-01-28', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Jamil Hashim'],
+            ['date' => '2026-01-07', 'slot' => 'Dhuha', 'time' => '10:00', 'person' => 'Muhadir Haji Joll', 'topic' => 'Kitab Idaman Penuntut Ilmu'],
+            ['date' => '2026-01-07', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Mohd Khafiz Tohfah Al-Yamani'],
+            ['date' => '2026-01-14', 'slot' => 'Dhuha', 'time' => '10:00', 'person' => 'Roslan Mohamed', 'topic' => 'Kitab Nuru al-Iqna Masail Taharah'],
+            ['date' => '2026-01-14', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Mohd Tamyes Abd Wahid'],
+            ['date' => '2026-01-21', 'slot' => 'Dhuha', 'time' => '10:00', 'person' => 'Roslan Mohamed'],
+            ['date' => '2026-01-21', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Mohamad  Khairul Ikhwan Ashari'],
+            ['date' => '2026-01-28', 'slot' => 'Dhuha', 'time' => '10:00', 'person' => 'Indera Shahril Mohd Shahid'],
+            ['date' => '2026-01-28', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Baba Bukhari Abd Rahman'],
 
             ['date' => '2026-01-01', 'slot' => 'Maghrib', 'time' => '20:00', 'topic' => 'Bacaan Yasin & Tazkirah'],
-            ['date' => '2026-01-08', 'slot' => 'Dhuha', 'time' => '10:30', 'person' => 'Ust Muhd Izudin Salem', 'topic' => 'Hadis Riyadus Solihin'],
+            ['date' => '2026-01-08', 'slot' => 'Dhuha', 'time' => '10:30', 'person' => 'Ali Zaenal Abidin Abu Bakar Al-Hamid', 'topic' => 'Hadis Riyadus Solihin'],
             ['date' => '2026-01-08', 'slot' => 'Maghrib', 'time' => '20:00', 'topic' => 'Bacaan Yasin & Tazkirah'],
-            ['date' => '2026-01-15', 'slot' => 'Dhuha', 'time' => '10:30', 'person' => 'Puan Farhana Abdul Ghani', 'topic' => 'Hikam ke-140'],
+            ['date' => '2026-01-15', 'slot' => 'Dhuha', 'time' => '10:30', 'person' => 'Ahmad Faisal Abd Hamid', 'topic' => 'Hikam ke-140'],
             ['date' => '2026-01-15', 'slot' => 'Maghrib', 'time' => '20:00', 'topic' => 'Bacaan Yasin & Tazkirah'],
-            ['date' => '2026-01-22', 'slot' => 'Dhuha', 'time' => '10:30', 'person' => 'Dr Azman Shah Alias'],
+            ['date' => '2026-01-22', 'slot' => 'Dhuha', 'time' => '10:30', 'person' => 'Wan Tahir Al-Mazahiri'],
             ['date' => '2026-01-22', 'slot' => 'Maghrib', 'time' => '20:00', 'topic' => 'Bacaan Yasin & Tazkirah'],
-            ['date' => '2026-01-29', 'slot' => 'Dhuha', 'time' => '10:30', 'person' => 'Ust Anas Mohd'],
+            ['date' => '2026-01-29', 'slot' => 'Dhuha', 'time' => '10:30', 'person' => 'Muhammad Ashraf Osman'],
             ['date' => '2026-01-29', 'slot' => 'Maghrib', 'time' => '20:00', 'topic' => 'Bacaan Yasin & Tazkirah'],
 
             ['date' => '2026-01-02', 'slot' => 'Dhuha', 'time' => '10:00', 'note' => 'Ditangguhkan', 'topic' => 'Kuliah Dhuha'],
-            ['date' => '2026-01-02', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Akid Shafie'],
-            ['date' => '2026-01-09', 'slot' => 'Dhuha', 'time' => '10:00', 'person' => 'Ust Ahmad Fawwaz Zaidon'],
-            ['date' => '2026-01-09', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Adnin Ramly'],
-            ['date' => '2026-01-16', 'slot' => 'Dhuha', 'time' => '10:00', 'person' => 'Dato Dr Najmuddin'],
-            ['date' => '2026-01-16', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Ahmad Saffwan'],
-            ['date' => '2026-01-23', 'slot' => 'Dhuha', 'time' => '10:00', 'person' => 'Dato Dr Mohd Radzi'],
-            ['date' => '2026-01-23', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Dato Dr Ahmad Zaki'],
-            ['date' => '2026-01-30', 'slot' => 'Dhuha', 'time' => '10:00', 'person' => 'Dr Mizan Mohamed'],
-            ['date' => '2026-01-30', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Jamil Hashim'],
+            ['date' => '2026-01-02', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Iqbal Zain Al-Jauhari'],
+            ['date' => '2026-01-09', 'slot' => 'Dhuha', 'time' => '10:00', 'person' => 'Khairuddin Haiyon'],
+            ['date' => '2026-01-09', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Nik Bakri Nik Mat'],
+            ['date' => '2026-01-16', 'slot' => 'Dhuha', 'time' => '10:00', 'person' => 'Engku Ahmad Fadzil'],
+            ['date' => '2026-01-16', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Mohd Khafidz Soroni'],
+            ['date' => '2026-01-23', 'slot' => 'Dhuha', 'time' => '10:00', 'person' => 'Othman Hamzah'],
+            ['date' => '2026-01-23', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Anhar Hj Opir'],
+            ['date' => '2026-01-30', 'slot' => 'Dhuha', 'time' => '10:00', 'person' => 'Mohd Zhafran Hj Abd Karim'],
+            ['date' => '2026-01-30', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Baba Bukhari Abd Rahman'],
 
-            ['date' => '2026-01-03', 'slot' => 'Subuh', 'time' => '05:45', 'person' => 'Ust Roslan Mohamed'],
-            ['date' => '2026-01-03', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Fahmi Ideris'],
-            ['date' => '2026-01-10', 'slot' => 'Subuh', 'time' => '05:45', 'person' => 'Ust Radzi Shahari'],
-            ['date' => '2026-01-10', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Ahmad Anwar'],
-            ['date' => '2026-01-17', 'slot' => 'Subuh', 'time' => '05:45', 'person' => 'Ust Ahmad Rosli'],
-            ['date' => '2026-01-17', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Mohd Sufyan'],
-            ['date' => '2026-01-24', 'slot' => 'Subuh', 'time' => '05:45', 'person' => 'Ust Mohd Shah Rizal'],
-            ['date' => '2026-01-24', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Dr Fathullah Kani'],
+            ['date' => '2026-01-03', 'slot' => 'Subuh', 'time' => '05:45', 'person' => 'Zaifullah Jaafar Sidek'],
+            ['date' => '2026-01-03', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Baba Ismail Sepanjang'],
+            ['date' => '2026-01-10', 'slot' => 'Subuh', 'time' => '05:45', 'person' => 'Shukri Ali'],
+            ['date' => '2026-01-10', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Syed Abdul Kadir Al-Joofre'],
+            ['date' => '2026-01-17', 'slot' => 'Subuh', 'time' => '05:45', 'person' => 'Zul Ramli Mohamed Razali'],
+            ['date' => '2026-01-17', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Khairul Kesiangan'],
+            ['date' => '2026-01-24', 'slot' => 'Subuh', 'time' => '05:45', 'person' => 'Mohd Akib Abdullah'],
+            ['date' => '2026-01-24', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Mohd Ariffin Ramdzan'],
             ['date' => '2026-01-31', 'slot' => 'Maghrib', 'time' => '20:00', 'note' => 'Dibatalkan', 'topic' => 'Kuliah Maghrib'],
 
-            ['date' => '2026-01-04', 'slot' => 'Subuh', 'time' => '05:45', 'person' => 'Mufti Wilayah Persekutuan'],
-            ['date' => '2026-01-04', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Imam Muda Hassan'],
-            ['date' => '2026-01-11', 'slot' => 'Subuh', 'time' => '05:45', 'person' => 'Dato Prof Dr Basri Ibrahim'],
-            ['date' => '2026-01-11', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Ahmad Anwar'],
-            ['date' => '2026-01-18', 'slot' => 'Subuh', 'time' => '05:45', 'person' => 'Dato Seri Zulkifli al-Bakri'],
-            ['date' => '2026-01-18', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Ibrahim Zamzibar'],
-            ['date' => '2026-01-25', 'slot' => 'Subuh', 'time' => '05:45', 'person' => 'Dato Dr Danial Zainal Abidin'],
-            ['date' => '2026-01-25', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Azhar Idrus'],
+            ['date' => '2026-01-04', 'slot' => 'Subuh', 'time' => '05:45', 'person' => 'Azhar Idrus (Zamrul Idrus)'],
+            ['date' => '2026-01-04', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Fazrul Ismail'],
+            ['date' => '2026-01-11', 'slot' => 'Subuh', 'time' => '05:45', 'person' => 'Mohd Izhar Ariff Mohd Kashim'],
+            ['date' => '2026-01-11', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Syed Abdul Kadir Al-Joofre'],
+            ['date' => '2026-01-18', 'slot' => 'Subuh', 'time' => '05:45', 'person' => 'Ahmad Basri Hamid'],
+            ['date' => '2026-01-18', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Mahfuz Muhammad'],
+            ['date' => '2026-01-25', 'slot' => 'Subuh', 'time' => '05:45', 'person' => 'Mohd Khafiz Tohfah Al-Yamani'],
+            ['date' => '2026-01-25', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ahmad Shahdan Al-Hadrami'],
         ];
 
         foreach ($schedule as $entry) {
@@ -569,17 +569,10 @@ class EventSeeder extends Seeder
             unset($this->schedulePersonIds[$personName]);
         }
 
-        $createdPerson = Person::query()->create([
-            'name' => $personName,
-            'middle_name' => null,
-            'family_name' => null,
-            'slug' => app(GeneratePersonSlugAction::class)->handle($personName),
-            'status' => 'verified',
-        ]);
-
-        $this->schedulePersonIds[$personName] = (string) $createdPerson->getKey();
-
-        return $createdPerson;
+        // SpeakerSeeder is the sole source of seeded persons: never create a
+        // Person here. Unresolvable names seed as personless events and the
+        // backfill assigns the institution as organizer.
+        return Person::query()->where('name', $personName)->first();
     }
 
     /**
