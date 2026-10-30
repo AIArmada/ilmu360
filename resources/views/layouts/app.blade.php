@@ -159,7 +159,6 @@
                 $settingsMenuLabel = __('Settings');
                 $institutionDashboardMenuLabel = __('Manage Institution');
                 $organizationDashboardMenuLabel = __('Manage Organizations');
-                $organizationCreateMenuLabel = __('Create organization');
                 $eventsNavActive = request()->routeIs('events.*');
                 $institutionsNavActive = request()->routeIs('institutions.*');
                 $personsNavActive = request()->routeIs('persons.*');
@@ -382,10 +381,6 @@
                                                 {{ $institutionDashboardMenuLabel }}
                                             </a>
                                         @endif
-                                        <a href="{{ route('dashboard.organizations.create') }}" wire:navigate
-                                            class="block rounded-lg px-3 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50">
-                                            {{ $organizationCreateMenuLabel }}
-                                        </a>
                                         @if($hasOrganizationDashboardAccess)
                                             <a href="{{ route('dashboard.organizations.index') }}" wire:navigate
                                                 class="block rounded-lg px-3 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50">
@@ -507,10 +502,6 @@
                                                 <span class="relative z-10">{{ $institutionDashboardMenuLabel }}</span>
                                             </a>
                                         @endif
-                                        <a href="{{ route('dashboard.organizations.create') }}" wire:navigate
-                                            class="block rounded-lg px-4 py-2 text-sm font-semibold {{ $mobileMenuButtonClass }}">
-                                            <span class="relative z-10">{{ $organizationCreateMenuLabel }}</span>
-                                        </a>
                                         @if($hasOrganizationDashboardAccess)
                                             <a href="{{ route('dashboard.organizations.index') }}" wire:navigate
                                                 class="block rounded-lg px-4 py-2 text-sm font-semibold {{ $mobileMenuButtonClass }}">

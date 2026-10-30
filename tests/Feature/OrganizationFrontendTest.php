@@ -21,13 +21,19 @@ use App\Support\Api\Member\MemberResourceRegistry;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 
-it('shows the organization creation entry to users without an organization', function (): void {
+it('hides organization creation entry points from the frontend workspace', function (): void {
     $user = User::factory()->create();
 
     $this->actingAs($user)
         ->get(route('dashboard'))
         ->assertOk()
-        ->assertSee(route('dashboard.organizations.create'), false);
+        ->assertDontSee(route('dashboard.organizations.create'), false);
+
+    $this->actingAs($user)
+        ->get(route('dashboard.organizations.index'))
+        ->assertOk()
+        ->assertDontSee(route('dashboard.organizations.create'), false)
+        ->assertDontSee('Create organization');
 });
 
 it('lets a signed-in person create an organization from the frontend', function (): void {
