@@ -23,7 +23,7 @@ node -e 'const [major, minor] = require("playwright/package.json").version.split
   || fail "playwright ${playwright_version} is older than 1.63.0. Run: npm install playwright@latest && npx playwright install chromium"
 pass "playwright ${playwright_version}"
 
-log="$(mktemp -t ilmu360-verify-doctor)"
+log="$(mktemp "${TMPDIR:-/tmp}/ilmu360-verify-doctor.XXXXXX")"
 trap 'rm -f "$log"' EXIT
 
 printf 'ok    loading / in Chromium (first boot takes a few seconds)...\n'
