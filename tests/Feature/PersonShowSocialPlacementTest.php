@@ -42,7 +42,7 @@ it('does not render the verified badge over the person hero image', function () 
         ->assertDontSee('Profil Disahkan');
 });
 
-it('renders a breadcrumb trail for the person profile', function () {
+it('does not render a breadcrumb trail for the person profile', function () {
     $person = Person::factory()->create([
         'status' => 'verified',
         'name' => 'Penceramah Breadcrumb',
@@ -50,11 +50,30 @@ it('renders a breadcrumb trail for the person profile', function () {
 
     $this->get(route('persons.show', $person))
         ->assertSuccessful()
-        ->assertSee('data-ui="public-breadcrumbs"', false)
-        ->assertSee('aria-label="Penceramah"', false)
-        ->assertSee('>Penceramah</span>', false)
-        ->assertDontSee('aria-label="Penceramah Breadcrumb"', false)
-        ->assertDontSee('M15 19.5', false);
+        ->assertDontSee('data-ui="public-breadcrumbs"', false);
+});
+
+it('renders the verified tick beside the person name without a profile type label', function () {
+    $person = Person::factory()->create([
+        'status' => 'verified',
+        'name' => 'Penceramah Disahkan',
+    ]);
+
+    $this->get(route('persons.show', $person))
+        ->assertSuccessful()
+        ->assertSeeInOrder(['Penceramah Disahkan', 'data-testid="verified-badge"'], false)
+        ->assertDontSee('Penceramah ilmu360°');
+});
+
+it('does not render the verified tick for an unverified person', function () {
+    $person = Person::factory()->create([
+        'status' => 'pending',
+        'name' => 'Penceramah Belum Disahkan',
+    ]);
+
+    $this->get(route('persons.show', $person))
+        ->assertSuccessful()
+        ->assertDontSee('data-testid="verified-badge"', false);
 });
 
 it('keeps person profile actions side by side on mobile with compact labels', function () {

@@ -158,15 +158,7 @@
         <div class="absolute -right-8 -top-12 -z-10 h-72 w-72 rounded-full border border-amber-700/10"></div>
 
         <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
-            <x-ui.breadcrumbs
-                class="mb-6"
-                :items="[
-                    ['label' => __('Laman Utama'), 'url' => route('home'), 'icon' => 'home'],
-                    ['label' => __('Penceramah'), 'url' => route('persons.index'), 'icon' => 'person', 'show_label' => true],
-                ]"
-            />
-
-            <div class="mt-6 overflow-hidden rounded-[2rem] border border-white/80 bg-white/82 shadow-[0_30px_90px_-42px_rgba(6,78,59,0.42)] backdrop-blur-xl">
+            <div class="overflow-hidden rounded-[2rem] bg-white/82 shadow-[0_30px_90px_-42px_rgba(6,78,59,0.42)] backdrop-blur-xl">
                 <div class="grid lg:grid-cols-[20rem_minmax(0,1fr)]">
                     <div class="relative min-h-[20rem] overflow-hidden bg-gradient-to-br from-emerald-100 via-[#f4efe4] to-amber-100 lg:min-h-[24rem]">
                         <div class="absolute inset-0 opacity-40" style="background-image: radial-gradient(circle at 1px 1px, rgba(7,91,72,.2) 1px, transparent 0); background-size: 20px 20px;"></div>
@@ -181,22 +173,12 @@
 
                     <div class="flex flex-col p-6 sm:p-8 lg:p-8">
                         <div class="flex flex-1 flex-col">
-                            <div>
-                                <div class="flex flex-wrap items-center gap-2">
-                                    <p class="text-[11px] font-black uppercase tracking-[0.24em] text-amber-700">
-                                        {{ __('Penceramah ilmu360°') }}
-                                    </p>
-
-                                    @if((string) $person->status === 'verified')
-                                        <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-100 px-2.5 py-1 text-[10px] font-bold text-emerald-800">
-                                            <flux:icon.check variant="mini" class="size-3.5 text-emerald-700" />
-                                            {{ __('Disahkan') }}
-                                        </span>
-                                    @endif
-                                </div>
-
-                                <h1 class="mt-3 max-w-3xl font-heading text-4xl font-bold leading-[1.05] tracking-[-0.035em] text-emerald-950 sm:text-5xl lg:text-6xl">
+                            <div class="flex flex-1 flex-col">
+                                <h1 class="max-w-3xl font-heading text-4xl font-bold leading-[1.05] tracking-[-0.035em] text-emerald-950 sm:text-5xl lg:text-6xl">
                                     {{ $person->formatted_name }}
+                                    @if((string) $person->status === 'verified')
+                                        <x-ui.verified-badge class="text-emerald-600" data-testid="verified-badge" />
+                                    @endif
                                 </h1>
 
                                 @if($locationString !== '')
@@ -219,7 +201,7 @@
                                     </div>
                                 @endif
 
-                                <div class="mt-4 grid grid-cols-2 gap-3 border-t border-emerald-950/10 pt-4 sm:max-w-md">
+                                <div class="mt-auto grid grid-cols-2 gap-3 pt-4 sm:max-w-md">
                                     <div class="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-3 text-center">
                                         <p class="font-heading text-2xl font-bold text-emerald-950">{{ number_format($upcomingTotal) }}</p>
                                         <p class="mt-1 text-[10px] font-semibold text-emerald-700">{{ __('Majlis akan datang') }}</p>
