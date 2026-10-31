@@ -7,8 +7,7 @@
 <div class="min-h-screen bg-slate-50 py-10 pb-28">
     <div class="container mx-auto max-w-4xl px-6 lg:px-8">
         <section class="rounded-4xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
-            <p class="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600">{{ __('Membership') }}</p>
-            <h1 class="mt-3 font-heading text-3xl font-bold text-slate-900">{{ __('Claim Membership') }}</h1>
+            <h1 class="font-heading text-3xl font-bold text-slate-900">{{ __('Claim Membership') }}</h1>
             <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
                 {{ __('Use this form when you belong to this record and need access to help maintain it. Claims are reviewed by moderators before membership is granted.') }}
             </p>
@@ -46,7 +45,7 @@
             <div class="mt-5 space-y-4 text-sm text-slate-300">
                 <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
                     <p class="font-semibold text-white">{{ __('Claims do not grant instant access') }}</p>
-                    <p class="mt-2">{{ __('Your proof is reviewed first. Access is only added after an admin or moderator approves the claim.') }}</p>
+                    <p class="mt-2">{{ __('Help keep this record accurate and useful for the community. Claims are reviewed by moderators before access is granted.') }}</p>
                 </div>
                 <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
                     <p class="font-semibold text-white">{{ __('Reviewers choose the final role') }}</p>

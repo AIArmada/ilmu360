@@ -426,18 +426,32 @@
             @include('partials.event-filter-panel', ['showNearbyButton' => true])
 
             <section class="min-w-0">
-                <div class="living-majlis-veil rounded-[1.5rem] border p-4 shadow-[0_20px_50px_-35px_rgba(15,23,42,0.55)] md:p-6">
-                    <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-                        <div>
-                            <h2 aria-live="polite" class="font-heading text-2xl font-bold text-emerald-950">
-                                {{ trans_choice(':count majlis dijumpai', $events->total(), ['count' => number_format($events->total())]) }}
-                            </h2>
+                @if($hasActiveFilters || auth()->check())
+                <div class="living-majlis-veil rounded-[1.5rem] border p-4 shadow-[0_20px_50px_-35px_rgba(15,23,42,0.55)] md:p-5">
+                    @if($hasActiveFilters)
+                        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+                            <div class="flex items-center gap-2.5">
+                                <span class="grid size-9 place-items-center rounded-xl bg-emerald-100 text-emerald-700">
+                                    <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 5.25h18M6.75 12h10.5M10.5 18.75h3" />
+                                    </svg>
+                                </span>
+                                <div class="flex items-center gap-2">
+                                    <p class="text-[10px] font-black uppercase tracking-[0.22em] text-emerald-700">{{ __('Active filters') }}</p>
+                                    <span class="inline-flex min-w-5 items-center justify-center rounded-full bg-emerald-800 px-1.5 py-0.5 text-[10px] font-black text-white">{{ $activeFilterCount }}</span>
+                                </div>
+                            </div>
+
+                            <button type="button" wire:click="clearAllFilters" wire:loading.attr="disabled" wire:target="clearAllFilters"
+                                class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-bold text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 disabled:cursor-wait disabled:opacity-60">
+                                <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                                </svg>
+                                {{ __('Reset') }}
+                            </button>
                         </div>
 
-                    </div>
-
-                    @if($hasActiveFilters)
-                        <div class="mt-5 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-4">
+                        <div class="flex flex-wrap items-center gap-2">
                             @if($search)
                                 <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Carian') }}: "{{ $search }}"</span>
                             @endif
@@ -555,41 +569,55 @@
                             @if($timeScope === 'all')
                                 <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('All Time') }}</span>
                             @endif
+                        </div>
 
-                            <div class="ml-auto flex flex-wrap items-center gap-3">
-                                <button type="button" @click="shareResults()"
-                                    data-signal-event="share.results_native_clicked"
-                                    data-signal-category="share"
-                                    data-signal-component="events_index_filters"
-                                    data-signal-control="share_results"
-                                    class="text-xs font-bold text-slate-600 transition hover:text-emerald-800">
-                                    {{ __('Share These Results') }}
-                                </button>
-                                <button type="button" @click="copyShareLink()"
-                                    data-signal-event="share.results_copy_clicked"
-                                    data-signal-category="share"
-                                    data-signal-component="events_index_filters"
-                                    data-signal-control="copy_share_link"
-                                    class="text-xs font-bold text-slate-600 transition hover:text-emerald-800">
-                                    {{ __('Copy Share Link') }}
-                                </button>
-                                <a href="{{ route('saved-searches.index', $savedSearchQuery) }}" wire:navigate
-                                    data-signal-event="saved_search.create_intent"
-                                    data-signal-category="retention"
-                                    data-signal-component="events_index_filters"
-                                    data-signal-control="save_search"
-                                    class="text-xs font-bold text-emerald-700 transition hover:text-emerald-900">
-                                    {{ __('Save This Search') }}
-                                </a>
+                        <div class="mt-4 border-t border-slate-200/80 pt-3">
+                            <div class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-end">
+                                    <button type="button" @click="shareResults()"
+                                        data-signal-event="share.results_native_clicked"
+                                        data-signal-category="share"
+                                        data-signal-component="events_index_filters"
+                                        data-signal-control="share_results"
+                                        class="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 text-[11px] font-bold text-emerald-800 transition hover:border-emerald-300 hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40">
+                                        <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5Zm9.566-3.75a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5Zm0 14.25a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5ZM9.164 8.197l5.672-3.144m-5.672 5.75 5.672 3.144" />
+                                        </svg>
+                                        {{ __('Share') }}
+                                    </button>
+                                    <button type="button" @click="copyShareLink()"
+                                        data-signal-event="share.results_copy_clicked"
+                                        data-signal-category="share"
+                                        data-signal-component="events_index_filters"
+                                        data-signal-control="copy_share_link"
+                                        class="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-[11px] font-bold text-slate-600 transition hover:border-emerald-200 hover:bg-slate-50 hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40">
+                                        <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 0v9.375c0 .621-.504 1.125-1.125 1.125H9.375a1.125 1.125 0 0 1-1.125-1.125V11.25c0-.621.504-1.125 1.125-1.125h6.375c.621 0 1.125.504 1.125 1.125Z" />
+                                        </svg>
+                                        {{ __('Copy Link') }}
+                                    </button>
+                                    <a href="{{ route('saved-searches.index', $savedSearchQuery) }}" wire:navigate
+                                        data-signal-event="saved_search.create_intent"
+                                        data-signal-category="retention"
+                                        data-signal-component="events_index_filters"
+                                        data-signal-control="save_search"
+                                        class="col-span-2 inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-emerald-800 px-4 text-[11px] font-bold text-white shadow-sm transition hover:bg-emerald-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40 sm:col-span-1">
+                                        <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185v15.065L12 16.197l-7.5 4.375V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
+                                        </svg>
+                                        {{ __('Save This Search') }}
+                                    </a>
                             </div>
                         </div>
 
-                        <div x-show="copiedShareLink" x-cloak x-transition class="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+                        <div x-show="copiedShareLink" x-cloak x-transition class="mt-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+                            <svg class="size-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
                             {{ __('Link copied to clipboard!') }}
                         </div>
                     @else
                         @auth
-                            <div class="mt-5 flex flex-col gap-3 rounded-xl border border-sky-100 bg-sky-50/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div class="flex flex-col gap-3 rounded-xl border border-sky-100 bg-sky-50/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                                 <p class="text-sm text-slate-600">{{ __('Keep the filters you use often for quick access.') }}</p>
                                 <a href="{{ route('saved-searches.index') }}" wire:navigate
                                     data-signal-event="navigation.saved_searches_clicked"
@@ -603,6 +631,7 @@
                         @endauth
                     @endif
                 </div>
+                @endif
 
                 @island(name: 'event-results', always: true)
                     @php

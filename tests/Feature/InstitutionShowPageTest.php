@@ -165,6 +165,36 @@ it('uses the institution logo as the public preview image when no cover exists',
         ->assertSee('src="'.$institution->public_image_url.'"', false);
 });
 
+it('uses the listing placeholder image when the institution has no media', function () {
+    $institution = Institution::factory()->create([
+        'status' => 'verified',
+        'name' => 'Institusi Tanpa Gambar',
+    ]);
+
+    $this->get(route('institutions.show', $institution))
+        ->assertSuccessful()
+        ->assertSee('src="'.asset('images/placeholders/institution-v2.png').'"', false)
+        ->assertSee('<meta property="og:image" content="'.asset('images/placeholders/institution-v2.png').'">', false)
+        ->assertDontSee('src="'.asset('images/placeholders/institution.png').'"', false);
+});
+
+it('uses the institution cover image in share metadata', function () {
+    Storage::fake('public');
+    config()->set('media-library.disk_name', 'public');
+
+    $institution = Institution::factory()->create([
+        'status' => 'verified',
+        'name' => 'Institusi Dengan Cover',
+    ]);
+
+    $institution->addMedia(UploadedFile::fake()->image('cover.jpg', 1920, 1080))
+        ->toMediaCollection('cover');
+
+    $this->get(route('institutions.show', $institution))
+        ->assertSuccessful()
+        ->assertSee('<meta property="og:image" content="'.$institution->public_cover_url.'">', false);
+});
+
 it('deduplicates matching district and subdistrict labels on institution show page', function () {
     $institution = Institution::factory()->create([
         'name' => 'Masjid Temerloh',
@@ -220,7 +250,6 @@ it('uses a public google maps embed on institution show pages instead of platfor
     $institution->primaryAddress()->update([
         'line1' => 'Persiaran Masjid',
         'google_maps_url' => 'https://www.google.com/maps/search/?api=1&query=3.139%2C101.6869&query_place_id=place_123',
-        'waze_url' => 'https://ul.waze.com/ul?place=ChIJ-test',
         'latitude' => 3.139,
         'longitude' => 101.6869,
     ]);
@@ -230,14 +259,13 @@ it('uses a public google maps embed on institution show pages instead of platfor
         ->assertSee('https://www.google.com/maps?q=3.139%2C101.6869&amp;output=embed', false)
         ->assertSeeInOrder([
             'output=embed',
-            'Waze',
             'Google Maps',
         ], false)
         ->assertDontSee('https://www.google.com/maps/embed/v1/place?key=', false)
         ->assertDontSee('https://maps.googleapis.com/maps/api/staticmap', false);
 });
 
-it('displays upcoming events for the institution', function () {
+it('displays upcoming events and links to the filtered past events listing', function () {
     $institution = Institution::factory()->create(['status' => 'verified']);
 
     $upcomingEvent = Event::factory()
@@ -261,7 +289,13 @@ it('displays upcoming events for the institution', function () {
     $this->get(route('institutions.show', $institution))
         ->assertSuccessful()
         ->assertSee('Kuliah Maghrib Akan Datang')
-        ->assertSee('Kuliah Subuh Lalu');
+        ->assertDontSee('Kuliah Subuh Lalu')
+        ->assertSeeHtml('data-testid="institution-past-events-cta"')
+        ->assertSee(route('events.index', [
+            'institution_id' => $institution->getKey(),
+            'time_scope' => 'past',
+            'filters_panel' => 'closed',
+        ]));
 });
 
 it('filters upcoming institution events by friendly date ranges', function () {
@@ -309,6 +343,49 @@ it('filters upcoming institution events by friendly date ranges', function () {
             ->call('applyCustomDateRange')
             ->assertSee('Majlis Bulan Depan')
             ->assertDontSee('Majlis Hari Ini');
+    } finally {
+        Carbon::setTestNow();
+    }
+});
+
+it('keeps hero event totals independent of the upcoming date filter', function () {
+    Carbon::setTestNow(Carbon::create(2026, 7, 30, 10, 0, 0, 'UTC'));
+
+    $institution = Institution::factory()->create(['status' => 'verified']);
+
+    Event::factory()->for($institution)->create([
+        'title' => 'Majlis Hari Ini',
+        'status' => 'approved',
+        'visibility' => EventVisibility::Public,
+        'starts_at' => Carbon::create(2026, 7, 30, 12, 0, 0, 'UTC'),
+    ]);
+    Event::factory()->for($institution)->create([
+        'title' => 'Majlis Bulan Depan',
+        'status' => 'approved',
+        'visibility' => EventVisibility::Public,
+        'starts_at' => Carbon::create(2026, 8, 3, 12, 0, 0, 'UTC'),
+    ]);
+    Event::factory()->for($institution)->create([
+        'title' => 'Majlis Lepas',
+        'status' => 'approved',
+        'visibility' => EventVisibility::Public,
+        'starts_at' => Carbon::create(2026, 7, 29, 12, 0, 0, 'UTC'),
+    ]);
+
+    try {
+        Livewire::withCookie('user_timezone', 'Asia/Kuala_Lumpur')
+            ->test('pages.institutions.show', ['institution' => $institution])
+            ->assertSeeHtml('data-testid="hero-upcoming-total">2</p>')
+            ->assertSeeHtml('data-testid="hero-past-total">1</p>')
+            ->set('upcomingDateFilter', 'today')
+            ->assertSee('Majlis Hari Ini')
+            ->assertDontSee('Majlis Bulan Depan')
+            ->assertSeeHtml('data-testid="hero-upcoming-total">2</p>')
+            ->assertSeeHtml('data-testid="hero-past-total">1</p>')
+            ->set('upcomingDateFilter', 'tomorrow')
+            ->assertSee('Tiada majlis untuk tempoh ini')
+            ->assertSeeHtml('data-testid="hero-upcoming-total">2</p>')
+            ->assertSeeHtml('data-testid="hero-past-total">1</p>');
     } finally {
         Carbon::setTestNow();
     }
@@ -868,8 +945,8 @@ it('renders prayer-relative start time and event timezone end time in institutio
             'status' => 'approved',
             'visibility' => EventVisibility::Public,
             'timezone' => 'Asia/Kuala_Lumpur',
-            'starts_at' => Carbon::parse('2026-02-18 09:00:00', 'UTC'),
-            'ends_at' => Carbon::parse('2026-02-18 12:40:00', 'UTC'),
+            'starts_at' => now()->addDays(3)->setTime(9, 0)->utc(),
+            'ends_at' => now()->addDays(3)->setTime(12, 40)->utc(),
             'timing_mode' => TimingMode::PrayerRelative,
             'prayer_reference' => PrayerReference::Asr,
             'prayer_offset' => PrayerOffset::Immediately,

@@ -42,9 +42,7 @@ class ResolveReportFormContextAction
             'redirect_url' => $presentation['redirect_url'],
             'default_category' => (string) array_key_first($categoryOptions),
             'profile_image_url' => $entity instanceof Person
-                ? ($entity->hasMedia('profile')
-                    ? $entity->public_main_url
-                    : ($entity->hasMedia('avatar') ? $entity->public_avatar_url : null))
+                ? $entity->public_main_url
                 : null,
         ];
     }

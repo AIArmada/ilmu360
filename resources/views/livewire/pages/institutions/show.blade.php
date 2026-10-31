@@ -1,20 +1,25 @@
+@php
+    $institutionShareImageUrl = $institution->public_cover_url
+        ?: ($institution->public_logo_url ?: asset('images/placeholders/institution-v2.png'));
+@endphp
+
 @section('title', $institution->name . ' - ' . config('app.name'))
 @section('meta_description', \Illuminate\Support\Str::limit(trim(strip_tags((string) $institution->description)) ?: __('Lihat profil, lokasi, saluran sumbangan, dan majlis akan datang oleh :name di :app.', ['name' => $institution->name, 'app' => config('app.name')]), 160))
 @section('meta_robots', $institution->status === \App\Enums\InstitutionStatus::Verified ? 'index, follow' : 'noindex, nofollow')
 @section('og_url', route('institutions.show', $institution))
-@section('og_image', $institution->public_cover_url ?: $institution->public_image_url)
+@section('og_image', $institutionShareImageUrl)
 @section('og_image_alt', __('Profil institusi :name', ['name' => $institution->name]))
 
 @php
     $address = $institution->primaryAddress();
-    $institutionCoverUrl = $institution->public_cover_url ?: $institution->public_image_url;
+    $institutionCoverUrl = $institutionShareImageUrl;
     $typeLabel = $institution->type?->getLabel();
     $addressLines = \App\Support\Location\AddressHierarchyFormatter::displayLines($address);
     $locationString = \App\Support\Location\AddressHierarchyFormatter::format($address);
     $upcomingEvents = $this->upcomingEvents;
-    $pastEvents = $this->pastEvents;
     $upcomingTotal = $this->upcomingTotal;
-    $pastTotal = $this->pastTotal;
+    $upcomingOverallTotal = $this->upcomingOverallTotal;
+    $pastOverallTotal = $this->pastOverallTotal;
     $publicContacts = $institution->contactMethods->where('is_public', true)->values();
     $socialLinks = $institution->publicSocialProfiles
         ->filter(function ($social): bool {
@@ -42,7 +47,7 @@
         'payloadEndpoint' => route('dawah-share.payload'),
     ];
     $institutionRouteSegment = \App\Enums\ContributionSubjectType::Institution->publicRouteSegment();
-    $showCancelledEventStatusNotice = $upcomingEvents->concat($pastEvents)->contains(
+    $showCancelledEventStatusNotice = $upcomingEvents->contains(
         fn (\App\Data\PublicScheduleLeaf $leaf): bool => (string) $leaf->event->status === 'cancelled'
     );
     $mapQuery = implode(', ', array_filter([
@@ -209,7 +214,7 @@
         <div class="absolute -right-24 -top-28 -z-10 h-96 w-96 rounded-full border border-emerald-900/10"></div>
         <div class="absolute -right-8 -top-12 -z-10 h-72 w-72 rounded-full border border-amber-700/10"></div>
 
-        <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+        <div class="mx-auto max-w-7xl px-4 pb-6 pt-32 sm:px-6 sm:pb-8 sm:pt-36 lg:px-8 lg:pb-10 lg:pt-40">
             <div
                 data-institution-hero
                 x-data="{
@@ -296,7 +301,7 @@
                         }
                     },
                 }"
-                class="overflow-hidden rounded-[2rem] border border-white/80 bg-white/82 shadow-[0_30px_90px_-42px_rgba(6,78,59,0.42)] backdrop-blur-xl"
+                class="overflow-hidden rounded-[2rem] bg-white/82 shadow-[0_30px_90px_-42px_rgba(6,78,59,0.42)] backdrop-blur-xl"
             >
                 <div class="grid lg:grid-cols-[minmax(0,1.12fr)_minmax(24rem,0.88fr)]">
                     <div
@@ -324,7 +329,7 @@
                                 </h1>
 
                                 @if($locationString !== '')
-                                    <p class="flex items-start gap-2 text-sm leading-6 text-slate-600 sm:text-base">
+                                    <p class="mt-4 flex items-start gap-2 text-sm leading-6 text-slate-600 sm:text-base">
                                         <flux:icon.map-pin class="mt-0.5 size-5 shrink-0 text-amber-600" />
                                         <span>{{ $locationString }}</span>
                                     </p>
@@ -333,13 +338,13 @@
                             </div>
 
                             <div data-institution-hero-actions class="mt-auto pt-6">
-                                <div class="grid grid-cols-2 gap-3 border-t border-emerald-950/10 pt-4 sm:max-w-md">
+                                <div class="grid grid-cols-2 gap-3 pt-4 sm:max-w-md">
                                     <div class="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-3 text-center">
-                                        <p class="font-heading text-2xl font-bold text-emerald-950">{{ number_format($upcomingTotal) }}</p>
+                                        <p class="font-heading text-2xl font-bold text-emerald-950" data-testid="hero-upcoming-total">{{ number_format($upcomingOverallTotal) }}</p>
                                         <p class="mt-1 text-[10px] font-semibold text-emerald-700">{{ __('Majlis akan datang') }}</p>
                                     </div>
                                     <div class="rounded-2xl border border-slate-200 bg-slate-50/80 p-3 text-center">
-                                        <p class="font-heading text-2xl font-bold text-emerald-950">{{ number_format($pastTotal) }}</p>
+                                        <p class="font-heading text-2xl font-bold text-emerald-950" data-testid="hero-past-total">{{ number_format($pastOverallTotal) }}</p>
                                         <p class="mt-1 text-[10px] font-semibold text-slate-500">{{ __('Majlis lepas') }}</p>
                                     </div>
                                 </div>
@@ -405,9 +410,7 @@
                 <section class="scroll-reveal reveal-up revealed space-y-6">
                     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                         <div>
-                            <p class="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700">{{ __('Jadual Institusi') }}</p>
-                            <h2 class="mt-1 font-heading text-3xl font-bold text-emerald-950">{{ __('Majlis Akan Datang') }}</h2>
-                            <p class="mt-2 text-sm leading-6 text-slate-500">{{ __('Senarai majlis akan datang dan yang telah berlangsung.') }}</p>
+                            <h2 class="font-heading text-3xl font-bold text-emerald-950">{{ __('Majlis Akan Datang') }}</h2>
                         </div>
 
                         @if($upcomingEvents->isNotEmpty())
@@ -712,93 +715,13 @@
                         @endif
                     </div>
 
-                    @if($pastEvents->isNotEmpty())
-                        <div class="space-y-4 pt-4">
-                            <div class="flex items-center justify-between">
-                                <h3 class="text-lg font-semibold text-slate-900">{{ __('Lepas') }}</h3>
-
-                                @if($pastTotal > $pastEvents->count())
-                                    <button
-                                        type="button"
-                                        wire:click="loadMorePast"
-                                        wire:loading.attr="disabled"
-                                        class="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-700"
-                                    >
-                                        {{ __('Lihat Lagi') }}
-                                    </button>
-                                @endif
-                            </div>
-
-                            @foreach($pastEvents as $scheduleLeaf)
-                                @php
-                                $event = $scheduleLeaf->event;
-                                $cardStart = $scheduleLeaf->startsAt();
-                                $cardEnd = $scheduleLeaf->endsAt();
-                                $cardTimingText = $scheduleLeaf->timingText('h:i A');
-                                    $scheduleLocation = $scheduleLeaf->session?->locations->first() ?? $scheduleLeaf->occurrence->locations->first();
-                                $venueLocation = $scheduleLocation?->venue?->name ?? $scheduleLocation?->label ?? $resolveVenueLocation($event);
-                                    $eventPeople = $resolveEventPeople($event);
-                                    $bookReferenceTitle = $event->reference_study_subtitle;
-                                $eventFormatValue = $event->delivery_mode?->value ?? $event->delivery_mode;
-                                    $isRemoteEvent = in_array($eventFormatValue, ['online', 'hybrid'], true);
-                                @endphp
-
-                                <a
-                                    href="{{ $scheduleLeaf->url() }}"
-                                    wire:key="past-{{ $scheduleLeaf->entityType() }}-{{ $scheduleLeaf->id() }}"
-                                    wire:navigate
-                                    class="group relative flex overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md"
-                                >
-                                    <div class="flex w-[4.5rem] shrink-0 flex-col items-center justify-center bg-gradient-to-b from-slate-700 to-slate-900 p-3 text-white sm:w-24">
-                                        <span class="text-[10px] font-bold uppercase tracking-widest text-white/80">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($cardStart, 'l') }}</span>
-                                        <span class="font-heading text-3xl font-black leading-none sm:text-4xl">{{ \App\Support\Timezone\UserDateTimeFormatter::format($cardStart, 'd') }}</span>
-                                        <span class="mt-1 text-[11px] font-bold tracking-wide text-white/80">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($cardStart, 'F') }}</span>
-                                    </div>
-
-                                    <div class="flex flex-1 flex-col gap-3 p-4 sm:p-5">
-                                        @if((string) $event->status === 'approved')
-                                            <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-900">{{ __('Diluluskan') }}</span>
-                                        @endif
-                                        <h3 class="font-heading text-lg font-bold text-slate-950 transition group-hover:text-emerald-700">
-                                            {{ $scheduleLeaf->title() }}
-                                        </h3>
-
-                                        @if($bookReferenceTitle)
-                                            <p class="pl-3 text-sm font-bold italic text-slate-500 sm:pl-4">
-                                                {{ $bookReferenceTitle }}
-                                            </p>
-                                        @endif
-
-                                        <div class="space-y-1.5 text-sm text-slate-500">
-                                            <div class="flex items-center gap-2">
-                                                <flux:icon.clock class="size-4 text-slate-400" />
-                                                <span>{{ $cardTimingText }}</span>
-
-                                                @if($cardEnd)
-                                                    <span class="text-slate-300">-</span>
-                                                    <span>{{ \App\Support\Timezone\UserDateTimeFormatter::format($cardEnd, 'h:i A') }}</span>
-                                                @endif
-                                            </div>
-
-                                            @if($eventPeople['persons'] !== '')
-                                                <div class="flex items-start gap-2">
-                                                    <flux:icon.users class="mt-0.5 size-4 shrink-0 text-slate-400" />
-                                                    <span class="line-clamp-2">{{ $eventPeople['persons'] }}</span>
-                                                </div>
-                                            @endif
-
-                                            @if($venueLocation !== '' && ! $isRemoteEvent)
-                                                <div class="flex items-center gap-2">
-                                                    <flux:icon.map-pin class="size-4 shrink-0 text-slate-400" />
-                                                    <span class="line-clamp-1">{{ $venueLocation }}</span>
-                                                </div>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </a>
-                            @endforeach
-                        </div>
-                    @endif
+                    <x-public.past-events-cta
+                        :count="$pastOverallTotal"
+                        :url="route('events.index', ['institution_id' => $institution->getKey(), 'time_scope' => 'past', 'filters_panel' => 'closed'])"
+                        :description="trans_choice(':count majlis telah berlangsung di institusi ini.', $pastOverallTotal, ['count' => number_format($pastOverallTotal)])"
+                        test-id="institution-past-events-cta"
+                        signal-component="institution_detail_past_events"
+                    />
                 </section>
             </div>
 
@@ -1084,13 +1007,9 @@
 
                 @if(! $this->hasAdminOrOwnerMember)
                     <section class="rounded-[1.5rem] border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-emerald-50/60 p-5 shadow-sm">
-                        <p class="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700">{{ __('Membership') }}</p>
-                        <h2 class="mt-1 font-heading text-xl font-bold text-emerald-950">{{ __('Claim Membership') }}</h2>
-                        <p class="mt-2 text-sm leading-6 text-slate-600">
-                            {{ __('Claim membership for this :subject', ['subject' => \Illuminate\Support\Str::lower(__('Institution'))]) }}
-                        </p>
-                        <p class="mt-3 text-xs leading-5 text-slate-500">
-                            {{ __('Your proof is reviewed first. Access is only added after an admin or moderator approves the claim.') }}
+                        <h2 class="font-heading text-xl font-bold text-emerald-950">{{ __('Claim Membership') }}</h2>
+                        <p class="mt-2 text-sm leading-6 text-slate-500">
+                            {{ __('Help keep this record accurate and useful for the community. Claims are reviewed by moderators before access is granted.') }}
                         </p>
                         <a
                             href="{{ route('membership-applications.create', ['subjectType' => \App\Enums\MemberSubjectType::Institution->publicRouteSegment(), 'subjectId' => $institution->getKey()]) }}"

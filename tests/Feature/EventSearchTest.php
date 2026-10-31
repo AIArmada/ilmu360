@@ -11,6 +11,7 @@ use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use AIArmada\Events\Models\EventTimeExpression;
 use App\Data\EventDiscoveryCriteriaFactory;
+use App\Data\PublicScheduleLeaf;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
@@ -28,6 +29,7 @@ use App\Models\Space;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\EventSearchService;
+use App\Services\PublicScheduleDiscoveryService;
 use App\Services\TypesenseEventDiscovery;
 use App\Support\Location\PublicGeolocationPermission;
 use App\Support\Location\VisitorCountryResolver;
@@ -227,6 +229,14 @@ describe('Event Search Filters', function () {
             ->assertSet('filtersPanelOpen', true);
 
         expect($filtered->instance()->activeFilterCount())->toBe(1);
+    });
+
+    it('keeps the filter panel closed when the landing link requests it', function (): void {
+        Livewire::withQueryParams([
+            'gender' => EventGenderRestriction::MenOnly->value,
+            'filters_panel' => 'closed',
+        ])->test(Index::class)
+            ->assertSet('filtersPanelOpen', false);
     });
 
     it('uses the first session timing expression on event cards', function (): void {
@@ -2583,7 +2593,7 @@ describe('Event Search Filters', function () {
             ->and($resultEvent?->card_image_url)->toContain('cover');
     });
 
-    it('displays event count', function () {
+    it('does not display the event count heading', function () {
         Event::factory()->count(5)->create([
             'institution_id' => Institution::factory(),
             'default_venue_id' => null,
@@ -2597,8 +2607,7 @@ describe('Event Search Filters', function () {
         $response = $this->get(eventsIndexUrl());
 
         $response->assertOk()
-            ->assertSee('5')
-            ->assertSee('majlis dijumpai');
+            ->assertDontSee('majlis dijumpai');
     });
 
     it('ignores prayer time filter when timing mode is absolute', function () {
@@ -2899,6 +2908,32 @@ describe('Event Search Filters', function () {
         $response->assertOk()
             ->assertSee('Past Scope Match')
             ->assertDontSee('Past Scope Non Match');
+    });
+
+    it('sorts past events newest first', function () {
+        createVisibleEventForSearch([
+            'title' => 'Past Older Majlis',
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now()->subDay(),
+            'starts_at' => now()->subDays(10),
+        ]);
+
+        createVisibleEventForSearch([
+            'title' => 'Past Newer Majlis',
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now()->subDay(),
+            'starts_at' => now()->subDays(2),
+        ]);
+
+        $leaves = collect(app(PublicScheduleDiscoveryService::class)->search(
+            filters: ['time_scope' => 'past'],
+            perPage: 10,
+        )->items());
+
+        expect($leaves->map(fn (PublicScheduleLeaf $leaf): string => $leaf->title())->take(2)->all())
+            ->toBe(['Past Newer Majlis', 'Past Older Majlis']);
     });
 
     it('shows both past and upcoming events when time scope is all', function () {

@@ -294,7 +294,7 @@ it('uses a wide placeholder aspect ratio for public events index cards without p
         ->assertSee('data-cover-aspect="16:9"', false);
 });
 
-it('uses the real person avatar in public person share metadata and preview', function () {
+it('uses the real person avatar in public person share metadata and the portrait fallback in the preview', function () {
     Storage::fake('public');
     config()->set('media-library.disk_name', 'public');
 
@@ -309,7 +309,8 @@ it('uses the real person avatar in public person share metadata and preview', fu
         ->assertSuccessful()
         ->assertSee('<meta property="og:image" content="'.$person->public_avatar_url.'">', false)
         ->assertSee('<meta name="twitter:image" content="'.$person->public_avatar_url.'">', false)
-        ->assertSee('src="'.$person->public_main_url.'"', false);
+        ->assertSee('src="'.$person->public_main_url.'"', false)
+        ->assertDontSee('src="'.$person->public_avatar_url.'"', false);
 });
 
 it('shows share actions on public series and reference pages', function () {

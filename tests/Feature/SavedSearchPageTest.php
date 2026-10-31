@@ -5,10 +5,12 @@ use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use App\Enums\EventKeyPersonRole;
 use App\Livewire\Pages\SavedSearches\Index as SavedSearchesIndex;
+use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\SavedSearch;
 use App\Models\User;
+use App\Support\Location\VisitorCountryResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
@@ -49,6 +51,30 @@ it('shows only authenticated user saved searches on the page', function () {
         ->assertOk()
         ->assertSee('My Search')
         ->assertDontSee('Other Search');
+});
+
+it('opens saved searches with the advanced filter panel closed', function () {
+    $user = User::factory()->create();
+    $institution = Institution::factory()->create();
+
+    SavedSearch::factory()->create([
+        'user_id' => $user->id,
+        'name' => 'Majlis Lepas Institusi',
+        'query' => null,
+        'filters' => [
+            'institution_id' => (string) $institution->getKey(),
+            'time_scope' => 'past',
+        ],
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('saved-searches.index'))
+        ->assertOk()
+        ->assertSee(route('events.index', [
+            'institution_id' => (string) $institution->getKey(),
+            'time_scope' => 'past',
+            'filters_panel' => 'closed',
+        ]));
 });
 
 it('allows authenticated users to create and delete saved searches', function () {
@@ -197,6 +223,38 @@ it('prefills country filter from query string when saving searches', function ()
         'country_id' => (string) $country->getKey(),
     ])->test(SavedSearchesIndex::class)
         ->assertSet('filters.country_id', (string) $country->getKey());
+});
+
+it('suggests a relevant name for a past person search', function () {
+    $user = User::factory()->create();
+    $country = ensureTestMalaysiaCountry();
+    $person = Person::factory()->create(['name' => 'Ustaz Fathullah Ishak']);
+
+    app(VisitorCountryResolver::class)->forget();
+    $this->actingAs($user);
+
+    Livewire::withQueryParams([
+        'country_id' => (string) $country->getKey(),
+        'person_ids' => [(string) $person->getKey()],
+        'time_scope' => 'past',
+    ])->test(SavedSearchesIndex::class)
+        ->assertSet('name', 'Majlis Lepas bersama Ustaz Fathullah Ishak');
+});
+
+it('suggests a relevant name for a past reference search', function () {
+    $user = User::factory()->create();
+    $reference = Reference::factory()->create([
+        'title' => 'Al-Fiqh Al-Manhaji',
+        'status' => 'verified',
+    ]);
+
+    $this->actingAs($user);
+
+    Livewire::withQueryParams([
+        'reference_ids' => [(string) $reference->getKey()],
+        'time_scope' => 'past',
+    ])->test(SavedSearchesIndex::class)
+        ->assertSet('name', 'Majlis Lepas: Al-Fiqh Al-Manhaji');
 });
 
 it('prefills domain kategori filters from query string when saving searches', function () {

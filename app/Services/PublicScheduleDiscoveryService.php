@@ -121,6 +121,11 @@ final class PublicScheduleDiscoveryService
 
         if ($sort === 'distance') {
             $leaves = $leaves->sort(fn (PublicScheduleLeaf $left, PublicScheduleLeaf $right): int => $this->compareByDistance($left, $right))->values();
+        } elseif (($criteria->filters['time_scope'] ?? null) === 'past') {
+            // Past listings read newest-first ("Terbaru"): the most recently
+            // held majlis should lead, mirroring how upcoming listings lead
+            // with the soonest one.
+            $leaves = $leaves->sort(fn (PublicScheduleLeaf $left, PublicScheduleLeaf $right): int => $this->compareByTime($right, $left))->values();
         } else {
             $leaves = $leaves->sort(fn (PublicScheduleLeaf $left, PublicScheduleLeaf $right): int => $this->compareByTime($left, $right))->values();
         }

@@ -371,14 +371,14 @@ new
         :aria-hidden="searchType === 'majlis' ? null : 'true'"
     >
         <div class="overflow-hidden">
-            <section class="relative z-20 mx-auto max-w-7xl px-5 pt-8 sm:px-6 sm:pt-10 lg:px-8">
+            <section class="relative z-20 mx-auto max-w-[120rem] px-5 pt-8 sm:px-8 sm:pt-10 lg:px-14 xl:px-16">
                 <livewire:components.event-filters :quick-filter-ranges="$eventDateLinks" :show-nearby-button="true" />
             </section>
         </div>
     </div>
 
     {{-- Featured events --}}
-    <section class="bg-[#f8f7f1] pt-6 pb-12 sm:pt-8 sm:pb-16 lg:pt-10 lg:pb-20">
+    <section class="bg-[#f8f7f1] pt-2 pb-12 sm:pb-16 lg:pb-20">
         <div class="mx-auto grid max-w-[120rem] gap-8 px-5 sm:px-8 lg:grid-cols-1 lg:px-14 xl:px-16">
             <div>
                 <div class="flex items-end justify-between gap-4"><div><h2 class="font-heading text-[1.4rem] font-bold tracking-tight text-[#112c26] sm:text-4xl">{{ __('Pilihan Majlis Minggu Ini') }}</h2></div><a href="{{ route('events.index') }}" wire:navigate class="hidden items-center gap-2 text-xs font-bold text-[#087f59] sm:inline-flex">{{ __('Lihat semua majlis') }} <span aria-hidden="true">→</span></a></div>

@@ -297,6 +297,15 @@ class Index extends Component implements HasForms
     public bool $filtersPanelOpen = false;
 
     /**
+     * Landing preference for the filter panel. Links that already carry a
+     * complete, ready-to-read result set (for example an institution's past
+     * events) pass `filters_panel=closed` so results appear immediately;
+     * active filters stay visible as chips and the panel can still be opened.
+     */
+    #[Url]
+    public ?string $filters_panel = null;
+
+    /**
      * @var array<string, Collection<int, string>>
      */
     private array $activeTaxonomyIdCache = [];
@@ -321,7 +330,7 @@ class Index extends Component implements HasForms
         $this->fillPublicPropertiesFromFilters($normalized);
         $this->filterData = $normalized;
         $this->filterData['area_assignments'] = $this->withAreaAssignmentDefaults($normalized['area_assignments']);
-        $this->filtersPanelOpen = $this->hasActiveFilters();
+        $this->filtersPanelOpen = $this->filters_panel !== 'closed' && $this->hasActiveFilters();
     }
 
     /**

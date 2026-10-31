@@ -432,16 +432,10 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
 
     public function getPublicMainUrlAttribute(): string
     {
-        if ($this->hasMedia('profile')) {
-            $profileMedia = $this->getFirstMedia('profile');
+        $profileMedia = $this->getFirstMedia('profile');
 
-            if ($profileMedia instanceof Media) {
-                return $profileMedia->getAvailableUrl(['profile_thumb']) ?: $profileMedia->getUrl();
-            }
-        }
-
-        if ($this->hasMedia('avatar')) {
-            return $this->public_avatar_url;
+        if ($profileMedia instanceof Media) {
+            return $profileMedia->getAvailableUrl(['profile_thumb']) ?: $profileMedia->getUrl();
         }
 
         return $this->default_portrait_url;
@@ -449,10 +443,6 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
 
     public function getDefaultPortraitUrlAttribute(): string
     {
-        if ($this->avatar_url) {
-            return $this->avatar_url;
-        }
-
         if ($this->gender === Gender::Female) {
             return asset('images/placeholders/person-female-portrait.webp');
         }

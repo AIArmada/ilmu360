@@ -20,7 +20,7 @@ trait LoadsEventPageData
      */
     private array $eventPageDataCache = [];
 
-    /** @var array<string, array{upcoming: Collection<int, PublicScheduleLeaf>, past: Collection<int, PublicScheduleLeaf>, upcoming_total: int, past_total: int}> */
+    /** @var array<string, array{upcoming: Collection<int, PublicScheduleLeaf>, past: Collection<int, PublicScheduleLeaf>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int}> */
     private array $schedulePageDataCache = [];
 
     public string $upcomingDateFilter = 'all';
@@ -216,7 +216,7 @@ trait LoadsEventPageData
             ->with($this->eventPageEagerLoads());
     }
 
-    /** @return array{upcoming: Collection<int, PublicScheduleLeaf>, past: Collection<int, PublicScheduleLeaf>, upcoming_total: int, past_total: int} */
+    /** @return array{upcoming: Collection<int, PublicScheduleLeaf>, past: Collection<int, PublicScheduleLeaf>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int} */
     protected function schedulePageData(): array
     {
         $cacheKey = 'schedule:'.$this->eventPageUpcomingLimit().':'.$this->eventPagePastLimit();
@@ -234,8 +234,9 @@ trait LoadsEventPageData
 
         $now = now();
         $range = $this->upcomingDateRange();
-        $upcoming = $leaves->filter(fn (PublicScheduleLeaf $leaf): bool => $leaf->startsAt() >= $now
-            && ($range === null || ($leaf->startsAt() >= $range['from'] && $leaf->startsAt() < $range['to'])))->values();
+        $upcomingOverall = $leaves->filter(fn (PublicScheduleLeaf $leaf): bool => $leaf->startsAt() >= $now)->values();
+        $upcoming = $upcomingOverall->filter(fn (PublicScheduleLeaf $leaf): bool => $range === null
+            || ($leaf->startsAt() >= $range['from'] && $leaf->startsAt() < $range['to']))->values();
         $past = $leaves->filter(fn (PublicScheduleLeaf $leaf): bool => $leaf->startsAt() < $now)->reverse()->values();
 
         return $this->schedulePageDataCache[$cacheKey] = [
@@ -243,6 +244,18 @@ trait LoadsEventPageData
             'past' => $past->take($this->eventPagePastLimit()),
             'upcoming_total' => $upcoming->count(),
             'past_total' => $past->count(),
+            'upcoming_overall_total' => $upcomingOverall->count(),
+            'past_overall_total' => $past->count(),
         ];
+    }
+
+    public function getUpcomingOverallTotalProperty(): int
+    {
+        return $this->schedulePageData()['upcoming_overall_total'];
+    }
+
+    public function getPastOverallTotalProperty(): int
+    {
+        return $this->schedulePageData()['past_overall_total'];
     }
 }

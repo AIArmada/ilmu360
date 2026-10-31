@@ -387,6 +387,15 @@ it('returns a gender-aware portrait fallback when Person has no profile photo', 
     [Gender::Female, 'images/placeholders/person-female-portrait.webp'],
 ]);
 
+it('ignores the avatar when resolving the public portrait url', function () {
+    $person = Person::factory()->create(['gender' => Gender::Male]);
+
+    $person->addMedia(fakeGeneratedImageUpload('avatar.png', 500, 500))
+        ->toMediaCollection('avatar');
+
+    expect($person->public_main_url)->toBe(asset('images/placeholders/person-male-portrait.webp'));
+});
+
 // ---------------------------------------------------------------
 // Venue model
 // ---------------------------------------------------------------

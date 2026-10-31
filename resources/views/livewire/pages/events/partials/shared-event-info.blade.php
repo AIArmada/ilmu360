@@ -219,7 +219,7 @@
                 <li>
                     <a href="{{ route('persons.show', $speaker) }}" wire:navigate class="group flex items-center gap-4 px-6 py-5 transition-colors duration-300 hover:bg-[#faf6ed] focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#14342e]">
                         @php($speakerPortraitWidth = ($largeSpeakerPortraits ?? false) ? 'w-36 sm:w-44' : 'w-[5.5rem]')
-                        @php($speakerPortraitUrl = $speaker->getFirstMedia('profile')?->getAvailableUrl(['profile_thumb']) ?? $speaker->getFirstMedia('avatar')?->getAvailableUrl(['thumb']))
+                        @php($speakerPortraitUrl = $speaker->getFirstMedia('profile')?->getAvailableUrl(['profile_thumb']))
                         @if(filled($speakerPortraitUrl))
                             <img src="{{ $speakerPortraitUrl }}" alt="" aria-hidden="true" loading="lazy" class="{{ $speakerPortraitWidth }} aspect-[3/4] shrink-0 rounded-xl border border-[#e6dccb] bg-[#f4f0e7] object-cover shadow-sm">
                         @else

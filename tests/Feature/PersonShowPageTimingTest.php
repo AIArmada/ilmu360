@@ -141,6 +141,84 @@ it('filters upcoming person events by friendly date ranges', function () {
     }
 });
 
+it('keeps hero event totals independent of the upcoming date filter', function () {
+    Carbon::setTestNow(Carbon::create(2026, 7, 30, 10, 0, 0, 'UTC'));
+
+    $person = Person::factory()->create(['status' => 'verified']);
+
+    $today = Event::factory()->create([
+        'title' => 'Majlis Hari Ini',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'starts_at' => Carbon::create(2026, 7, 30, 12, 0, 0, 'UTC'),
+    ]);
+    $nextMonth = Event::factory()->create([
+        'title' => 'Majlis Bulan Depan',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'starts_at' => Carbon::create(2026, 8, 3, 12, 0, 0, 'UTC'),
+    ]);
+    $past = Event::factory()->create([
+        'title' => 'Majlis Lepas',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'starts_at' => Carbon::create(2026, 7, 29, 12, 0, 0, 'UTC'),
+    ]);
+
+    linkPersonEvent($person, $today);
+    linkPersonEvent($person, $nextMonth);
+    linkPersonEvent($person, $past);
+
+    try {
+        Livewire::withCookie('user_timezone', 'Asia/Kuala_Lumpur')
+            ->test(Show::class, ['person' => $person])
+            ->assertSeeHtml('data-testid="hero-upcoming-total">2</p>')
+            ->assertSeeHtml('data-testid="hero-past-total">1</p>')
+            ->set('upcomingDateFilter', 'today')
+            ->assertSee('Majlis Hari Ini')
+            ->assertDontSee('Majlis Bulan Depan')
+            ->assertSeeHtml('data-testid="hero-upcoming-total">2</p>')
+            ->assertSeeHtml('data-testid="hero-past-total">1</p>')
+            ->set('upcomingDateFilter', 'tomorrow')
+            ->assertSee('Tiada majlis untuk tempoh ini')
+            ->assertSeeHtml('data-testid="hero-upcoming-total">2</p>')
+            ->assertSeeHtml('data-testid="hero-past-total">1</p>');
+    } finally {
+        Carbon::setTestNow();
+    }
+});
+
+it('links to the filtered past events listing instead of rendering the speaker archive', function () {
+    $person = Person::factory()->create(['status' => 'verified']);
+
+    $upcoming = Event::factory()->create([
+        'title' => 'Kuliah Penceramah Akan Datang',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'starts_at' => now()->addDays(3),
+    ]);
+    linkPersonEvent($person, $upcoming);
+
+    $past = Event::factory()->create([
+        'title' => 'Kuliah Penceramah Lepas',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'starts_at' => now()->subDays(3),
+    ]);
+    linkPersonEvent($person, $past);
+
+    $this->get(route('persons.show', $person))
+        ->assertSuccessful()
+        ->assertSee('Kuliah Penceramah Akan Datang')
+        ->assertDontSee('Kuliah Penceramah Lepas')
+        ->assertSeeHtml('data-testid="person-past-events-cta"')
+        ->assertSee(route('events.index', [
+            'person_ids' => [(string) $person->getKey()],
+            'time_scope' => 'past',
+            'filters_panel' => 'closed',
+        ]));
+});
+
 it('uses the localized tarawih label instead of the generic isha offset text', function () {
     $originalLocale = app()->getLocale();
     app()->setLocale('en');
@@ -243,8 +321,8 @@ it('renders event end time in event timezone on person page', function () {
         'status' => 'approved',
         'visibility' => 'public',
         'timezone' => 'Asia/Kuala_Lumpur',
-        'starts_at' => Carbon::parse('2026-02-18 09:00:00', 'UTC'),
-        'ends_at' => Carbon::parse('2026-02-18 12:40:00', 'UTC'),
+        'starts_at' => now()->addDays(3)->setTime(9, 0)->utc(),
+        'ends_at' => now()->addDays(3)->setTime(12, 40)->utc(),
         'timing_mode' => TimingMode::PrayerRelative,
         'prayer_reference' => PrayerReference::Asr,
         'prayer_offset' => PrayerOffset::Immediately,

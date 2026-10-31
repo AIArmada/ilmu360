@@ -1,6 +1,7 @@
 @php
     $showNearbyButton ??= true;
     $lat = $this->lat;
+    $activeFilterCount = $this->activeFilterCount();
 @endphp
 
 <div class="flex items-center justify-end gap-3">
@@ -20,11 +21,14 @@
         data-signal-category="filter"
         data-signal-component="events_index_filters"
         data-signal-control="filter_panel"
-        class="inline-flex h-11 items-center gap-2 rounded-xl bg-emerald-800 px-3.5 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 focus-visible:ring-offset-2">
+        class="inline-flex h-10 items-center gap-2 rounded-xl bg-emerald-800 px-3.5 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 focus-visible:ring-offset-2 sm:text-sm">
         <svg class="size-4 transition-transform duration-200" :class="filtersOpen ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
         </svg>
         {{ __('Carian Majlis Khusus') }}
+        @if($activeFilterCount > 0)
+            <span class="inline-flex min-w-5 items-center justify-center rounded-full bg-emerald-600 px-1.5 py-0.5 text-[10px] font-black text-white">{{ $activeFilterCount }}</span>
+        @endif
     </button>
 </div>
 

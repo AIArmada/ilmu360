@@ -17,8 +17,7 @@
         <section class="rounded-4xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
             <div class="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
                 <div>
-                    <p class="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600">{{ __('Membership') }}</p>
-                    <h1 class="mt-3 font-heading text-3xl font-bold text-slate-900">{{ __('My Membership Claims') }}</h1>
+                    <h1 class="font-heading text-3xl font-bold text-slate-900">{{ __('My Membership Claims') }}</h1>
                     <p class="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
                         {{ __('Track the speaker and institution records you asked to manage, including reviewer decisions and granted roles.') }}
                     </p>

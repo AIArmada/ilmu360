@@ -70,7 +70,7 @@ class Show extends Component
     private ?array $eventPageData = null;
 
     /**
-     * @var array{upcoming: int, past: int}|null
+     * @var array{upcoming: int, past: int, upcoming_overall: int, past_overall: int}|null
      */
     private ?array $eventTotals = null;
 
@@ -227,6 +227,11 @@ class Show extends Component
         return $this->eventTotals()['upcoming'];
     }
 
+    public function getUpcomingOverallTotalProperty(): int
+    {
+        return $this->eventTotals()['upcoming_overall'];
+    }
+
     /**
      * @return Collection<int, PublicScheduleLeaf>
      */
@@ -238,6 +243,11 @@ class Show extends Component
     public function getPastTotalProperty(): int
     {
         return $this->eventTotals()['past'];
+    }
+
+    public function getPastOverallTotalProperty(): int
+    {
+        return $this->eventTotals()['past_overall'];
     }
 
     /**
@@ -279,10 +289,16 @@ class Show extends Component
             ->filter(fn (PublicScheduleLeaf $leaf): bool => $this->isSpeakerForLeaf($leaf));
         $now = now();
         $range = $this->upcomingDateRange();
-        $upcoming = $leaves->filter(fn (PublicScheduleLeaf $leaf): bool => $leaf->startsAt() >= $now
-            && ($range === null || ($leaf->startsAt() >= $range['from'] && $leaf->startsAt() < $range['to'])))->values();
+        $upcomingOverall = $leaves->filter(fn (PublicScheduleLeaf $leaf): bool => $leaf->startsAt() >= $now)->values();
+        $upcoming = $upcomingOverall->filter(fn (PublicScheduleLeaf $leaf): bool => $range === null
+            || ($leaf->startsAt() >= $range['from'] && $leaf->startsAt() < $range['to']))->values();
         $past = $leaves->filter(fn (PublicScheduleLeaf $leaf): bool => $leaf->startsAt() < $now)->reverse()->values();
-        $this->eventTotals = ['upcoming' => $upcoming->count(), 'past' => $past->count()];
+        $this->eventTotals = [
+            'upcoming' => $upcoming->count(),
+            'past' => $past->count(),
+            'upcoming_overall' => $upcomingOverall->count(),
+            'past_overall' => $past->count(),
+        ];
         $upcoming = $upcoming->take($this->upcomingPerPage);
         $past = $past->take($this->pastPerPage);
 
@@ -386,13 +402,18 @@ class Show extends Component
     }
 
     /**
-     * @return array{upcoming: int, past: int}
+     * @return array{upcoming: int, past: int, upcoming_overall: int, past_overall: int}
      */
     private function eventTotals(): array
     {
         $this->eventPageData();
 
-        return $this->eventTotals ?? ['upcoming' => 0, 'past' => 0];
+        return $this->eventTotals ?? [
+            'upcoming' => 0,
+            'past' => 0,
+            'upcoming_overall' => 0,
+            'past_overall' => 0,
+        ];
     }
 
     private function isSpeakerForLeaf(PublicScheduleLeaf $leaf): bool

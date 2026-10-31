@@ -1137,3 +1137,40 @@ describe('Event Show Page Location & Contact Info', function () {
             ->assertDontSee('Kuala Lumpur, Kuala Lumpur');
     });
 });
+
+describe('Event Show Page Speaker Portraits', function () {
+    it('renders speaker portraits from the profile collection and never falls back to the avatar', function () {
+        Storage::fake('public');
+        config()->set('media-library.disk_name', 'public');
+
+        $event = Event::factory()->create([
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now()->subDay(),
+            'starts_at' => now()->addDay(),
+        ]);
+
+        $person = Person::factory()->create(['name' => 'Ustaz Potret Profil']);
+        $person->addMedia(fakeGeneratedImageUpload('speaker-avatar.jpg', 600, 600))
+            ->toMediaCollection('avatar');
+        $profile = $person->addMedia(fakeGeneratedImageUpload('speaker-profile.jpg', 900, 1200))
+            ->toMediaCollection('profile');
+
+        $avatarOnlyPerson = Person::factory()->create(['name' => 'Ustaz Avatar Sahaja']);
+        $avatarOnlyPerson->addMedia(fakeGeneratedImageUpload('speaker-avatar-only.jpg', 600, 600))
+            ->toMediaCollection('avatar');
+
+        $event->persons()->attach($person->id, ['visibility' => 'public']);
+        $event->persons()->attach($avatarOnlyPerson->id, ['visibility' => 'public']);
+
+        $html = (string) $this->get(route('events.show', $event))->assertOk()->getContent();
+
+        preg_match('/<section id="penceramah".*?<\/section>/s', $html, $matches);
+        $section = $matches[0] ?? '';
+
+        expect($section)
+            ->toContain('Ustaz Avatar Sahaja')
+            ->toContain($profile->refresh()->getAvailableUrl(['profile_thumb']))
+            ->not->toContain('/avatar/');
+    });
+});

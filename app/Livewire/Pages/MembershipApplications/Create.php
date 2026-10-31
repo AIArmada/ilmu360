@@ -363,9 +363,7 @@ class Create extends Component implements HasForms
                 : route('persons.show', $subject),
             'admin_url' => '',
             'profile_image_url' => $subject instanceof Person
-                ? ($subject->hasMedia('profile')
-                    ? $subject->public_main_url
-                    : ($subject->hasMedia('avatar') ? $subject->public_avatar_url : null))
+                ? $subject->public_main_url
                 : null,
         ];
     }

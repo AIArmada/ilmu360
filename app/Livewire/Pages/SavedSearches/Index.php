@@ -26,6 +26,7 @@ use App\Models\Reference;
 use App\Models\SavedSearch;
 use App\Models\User;
 use App\Models\Venue;
+use App\Support\Location\VisitorCountryResolver;
 use App\Support\Timezone\UserDateTimeFormatter;
 use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
@@ -237,6 +238,10 @@ class Index extends Component
             ['search' => $savedSearch->query],
             is_array($savedSearch->filters) ? $savedSearch->filters : []
         );
+
+        // Saved searches already carry a complete result set; land on the
+        // listings with the advanced filter panel collapsed.
+        $params['filters_panel'] = 'closed';
 
         if ($savedSearch->lat !== null && $savedSearch->lng !== null) {
             $params = array_merge($params, [
@@ -452,21 +457,172 @@ class Index extends Component
     protected function suggestedName(): string
     {
         if (filled($this->query)) {
-            return __('Search: :query', ['query' => Str::limit($this->query, 40)]);
+            return $this->limitSuggestedName(__('Search: :query', ['query' => Str::limit($this->query, 40)]));
         }
 
-        if (! empty($this->filters['event_category_ids'])) {
-            $eventType = is_array($this->filters['event_category_ids']) ? $this->filters['event_category_ids'][0] : $this->filters['event_category_ids'];
-            $eventTypeLabel = app(EventCategoryCatalog::class)->options()[(string) $eventType] ?? (string) $eventType;
+        $subject = $this->suggestedSubject();
+        $location = ($subject['facility'] ?? false) ? null : $this->suggestedLocation();
+        $hasTimeScope = in_array($this->filters['time_scope'] ?? null, ['upcoming', 'past', 'all'], true);
+        $hasDateRange = filled($this->filters['starts_after'] ?? null) || filled($this->filters['starts_before'] ?? null);
 
-            return __('Event type: :type', ['type' => $eventTypeLabel]);
+        if ($subject === null && $location === null && ! $hasTimeScope) {
+            return $hasDateRange ? __('Upcoming event dates') : __('My event search');
         }
 
-        if (! empty($this->filters['starts_after']) || ! empty($this->filters['starts_before'])) {
-            return __('Upcoming event dates');
+        $name = $this->suggestedTimeScopeLabel();
+
+        if ($subject !== null) {
+            $name .= str_starts_with($subject['phrase'], ':')
+                ? $subject['phrase']
+                : ' '.$subject['phrase'];
         }
 
-        return __('My event search');
+        if ($location !== null) {
+            $name .= ' '.$location;
+        }
+
+        return $this->limitSuggestedName($name);
+    }
+
+    private function suggestedTimeScopeLabel(): string
+    {
+        return match ($this->filters['time_scope'] ?? null) {
+            'past' => __('Majlis Lepas'),
+            'all' => __('Semua Majlis'),
+            'upcoming' => __('Majlis Akan Datang'),
+            default => __('Majlis'),
+        };
+    }
+
+    /**
+     * @return array{phrase: string, facility: bool}|null
+     */
+    private function suggestedSubject(): ?array
+    {
+        $personNames = $this->resolvedSuggestedLabels(
+            $this->filters['person_ids'] ?? [],
+            fn (string $id): ?string => $this->personName($id),
+        );
+
+        if ($personNames !== []) {
+            return [
+                'phrase' => __('bersama :names', ['names' => $this->joinSuggestedLabels($personNames)]),
+                'facility' => false,
+            ];
+        }
+
+        $referenceTitles = $this->resolvedSuggestedLabels(
+            $this->filters['reference_ids'] ?? [],
+            fn (string $id): ?string => $this->referenceTitle($id),
+        );
+
+        if ($referenceTitles !== []) {
+            return [
+                'phrase' => ': '.$this->joinSuggestedLabels($referenceTitles),
+                'facility' => false,
+            ];
+        }
+
+        $institutionId = $this->filters['institution_id'] ?? null;
+        $institutionName = filled($institutionId) ? $this->institutionName((string) $institutionId) : null;
+
+        if (filled($institutionName)) {
+            return [
+                'phrase' => __('di :name', ['name' => $institutionName]),
+                'facility' => true,
+            ];
+        }
+
+        $venueId = $this->filters['venue_id'] ?? null;
+        $venueName = filled($venueId) ? $this->venueName((string) $venueId) : null;
+
+        if (filled($venueName)) {
+            return [
+                'phrase' => __('di :name', ['name' => $venueName]),
+                'facility' => true,
+            ];
+        }
+
+        $categoryIds = array_values(array_filter((array) ($this->filters['event_category_ids'] ?? [])));
+
+        if ($categoryIds !== []) {
+            $categoryId = (string) $categoryIds[0];
+            $categoryLabel = app(EventCategoryCatalog::class)->options()[$categoryId] ?? $categoryId;
+
+            return [
+                'phrase' => ': '.$categoryLabel,
+                'facility' => false,
+            ];
+        }
+
+        return null;
+    }
+
+    private function suggestedLocation(): ?string
+    {
+        $areaAssignments = is_array($this->filters['area_assignments'] ?? null) ? $this->filters['area_assignments'] : [];
+
+        foreach (['administrative_subdivision', 'administrative_district', 'postal_locality', 'administrative_division'] as $role) {
+            $areaId = $areaAssignments[$role] ?? null;
+            $areaName = filled($areaId) ? $this->adminAreaName((string) $areaId) : null;
+
+            if (filled($areaName)) {
+                return __('di :place', ['place' => $areaName]);
+            }
+        }
+
+        $cityId = $this->filters['city_id'] ?? null;
+        $cityName = filled($cityId) ? $this->cityName((string) $cityId) : null;
+
+        if (filled($cityName)) {
+            return __('di :place', ['place' => $cityName]);
+        }
+
+        $stateId = $this->filters['state_id'] ?? null;
+        $stateName = filled($stateId) ? $this->stateName((string) $stateId) : null;
+
+        if (filled($stateName)) {
+            return __('di :place', ['place' => $stateName]);
+        }
+
+        $countryId = $this->filters['country_id'] ?? null;
+        $countryName = filled($countryId) && (string) $countryId !== (string) app(VisitorCountryResolver::class)->resolve()
+            ? $this->countryName((string) $countryId)
+            : null;
+
+        return filled($countryName) ? __('di :place', ['place' => $countryName]) : null;
+    }
+
+    /**
+     * @param  callable(string): ?string  $resolver
+     * @return list<string>
+     */
+    private function resolvedSuggestedLabels(mixed $ids, callable $resolver): array
+    {
+        return collect((array) $ids)
+            ->filter(fn (mixed $id): bool => is_scalar($id) && filled($id))
+            ->map(fn (mixed $id): ?string => $resolver((string) $id))
+            ->filter(filled(...))
+            ->take(2)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  list<string>  $labels
+     */
+    private function joinSuggestedLabels(array $labels): string
+    {
+        if (count($labels) <= 1) {
+            return $labels[0] ?? '';
+        }
+
+        return $labels[0].' & '.$labels[1];
+    }
+
+    private function limitSuggestedName(string $name): string
+    {
+        return Str::limit(trim($name), 100, '');
     }
 
     private function capturedFilterLabel(string $filterKey): string

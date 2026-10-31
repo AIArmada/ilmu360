@@ -6,7 +6,7 @@ use App\Models\Reference;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
 
-it('displays upcoming and past events for the reference', function () {
+it('displays upcoming events and links to the filtered past events for the reference', function () {
     $reference = Reference::factory()->create();
 
     $upcomingEvent = Event::factory()->create([
@@ -40,8 +40,14 @@ it('displays upcoming and past events for the reference', function () {
         ->assertSuccessful()
         ->assertSee('Majlis Akan Datang')
         ->assertSee('Kuliah Maghrib Akan Datang')
-        ->assertSee('Kuliah Subuh Lalu')
-        ->assertDontSee('Kuliah Rujukan Lain');
+        ->assertDontSee('Kuliah Subuh Lalu')
+        ->assertDontSee('Kuliah Rujukan Lain')
+        ->assertSeeHtml('data-testid="reference-past-events-cta"')
+        ->assertSee(route('events.index', [
+            'reference_ids' => [(string) $reference->getKey()],
+            'time_scope' => 'past',
+            'filters_panel' => 'closed',
+        ]));
 });
 
 it('filters upcoming reference events by friendly date ranges', function () {

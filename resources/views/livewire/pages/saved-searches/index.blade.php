@@ -34,13 +34,16 @@
 
                         <div class="max-w-sm space-y-2">
                             <label for="saved-search-notify"
-                                class="text-sm font-semibold text-slate-700">{{ __('Update frequency') }}</label>
+                                class="text-sm font-semibold text-slate-700">{{ __('Notification frequency') }}</label>
                             <select id="saved-search-notify" wire:model="notify"
                                 class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none">
                                 @foreach($this->notifyOptions() as $value => $label)
                                     <option value="{{ $value }}">{{ $label }}</option>
                                 @endforeach
                             </select>
+                            <p class="text-xs leading-5 text-slate-500">
+                                {{ __('How often we alert you when a new majlis matching this search is published. It does not change the results when you open the search.') }}
+                            </p>
                             @error('notify')
                                 <p class="text-sm text-danger-600">{{ $message }}</p>
                             @enderror
@@ -226,13 +229,16 @@
 
                                         <div class="space-y-2">
                                             <label for="edit-notify-{{ $savedSearch->id }}"
-                                                class="text-sm font-semibold text-slate-700">{{ __('Update frequency') }}</label>
+                                                class="text-sm font-semibold text-slate-700">{{ __('Notification frequency') }}</label>
                                             <select id="edit-notify-{{ $savedSearch->id }}" wire:model="editNotify"
                                                 class="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none">
                                                 @foreach($this->notifyOptions() as $value => $label)
                                                     <option value="{{ $value }}">{{ $label }}</option>
                                                 @endforeach
                                             </select>
+                                            <p class="text-xs leading-5 text-slate-500">
+                                                {{ __('How often we alert you when a new majlis matching this search is published. It does not change the results when you open the search.') }}
+                                            </p>
                                             @error('editNotify')
                                                 <p class="text-sm text-danger-600">{{ $message }}</p>
                                             @enderror

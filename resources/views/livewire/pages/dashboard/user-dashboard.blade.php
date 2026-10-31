@@ -496,7 +496,8 @@
                                 $savedSearchUrl = route('events.index', array_filter(
                                     array_merge(
                                         ['search' => $savedSearch->query ?: null],
-                                        is_array($savedSearch->filters) ? $savedSearch->filters : []
+                                        is_array($savedSearch->filters) ? $savedSearch->filters : [],
+                                        ['filters_panel' => 'closed']
                                     ),
                                     fn($v) => $v !== null && $v !== '' && $v !== []
                                 ));

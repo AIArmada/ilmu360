@@ -145,13 +145,17 @@ class EventMediaExtractionService
 
     protected function resolveAttachment(UploadedFile $file): Image|Document
     {
+        // Livewire's TemporaryUploadedFile reports a generic
+        // "application/octet-stream" client mime type, so relying on the
+        // SDK's getClientMimeType() fallback sends an invalid data URL that
+        // vision models reject. Always pass the sniffed mime type instead.
         $mimeType = (string) $file->getMimeType();
 
         if (str_starts_with($mimeType, 'image/')) {
-            return Image::fromUpload($file);
+            return Image::fromUpload($file, $mimeType);
         }
 
-        return Document::fromUpload($file);
+        return Document::fromUpload($file, $mimeType);
     }
 
     /**
