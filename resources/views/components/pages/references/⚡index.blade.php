@@ -452,7 +452,7 @@ new
                 role="region"
                 aria-label="{{ __('Reference list') }}"
             >
-                <div wire:loading.delay.short wire:target="{{ $referenceLoadingTarget }}" role="status" aria-live="polite">
+                <div wire:loading.delay.short wire:target="{{ $referenceLoadingTarget }}" class="w-full" role="status" aria-live="polite">
                     <span class="sr-only">{{ __('Loading reference list…') }}</span>
                     <x-ui.skeleton.institution-card-grid :items="12" columns="sm:grid-cols-2 lg:grid-cols-4" />
                 </div>
@@ -585,5 +585,58 @@ new
                 </div>
             </div>
         @endisland
+
+        <!-- Reference Contribution CTA -->
+        <section class="relative mt-16 sm:mt-20" data-testid="references-index-submit-cta">
+            <div data-material="opaque-cta" class="living-majlis-cta relative overflow-hidden rounded-[1.5rem] border border-emerald-800/15 px-6 py-10 text-white sm:px-8 md:px-10 md:py-11">
+                <div class="absolute inset-0 opacity-[0.08]" style="background-image: radial-gradient(circle at 1.5px 1.5px, rgba(255,255,255,.70) 1px, transparent 0); background-size: 22px 22px;"></div>
+                <div class="absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-emerald-700/[0.15] blur-3xl"></div>
+
+                <div class="relative flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+                    <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-6">
+                        <span class="relative mx-auto grid h-20 w-20 shrink-0 place-items-center rounded-[1.35rem] bg-emerald-800/35 text-[#f5d98f] shadow-[0_18px_34px_-22px_rgba(0,0,0,0.9)] sm:mx-0">
+                            <span class="pointer-events-none absolute inset-3 rounded-full bg-gold-300/10 blur-xl"></span>
+                            <svg class="relative h-14 w-14 drop-shadow-[0_6px_8px_rgba(0,0,0,0.18)]" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+                                <defs>
+                                    <linearGradient id="reference-gold" x1="12" y1="10" x2="52" y2="56" gradientUnits="userSpaceOnUse">
+                                        <stop stop-color="#FFF0B1" />
+                                        <stop offset="1" stop-color="#E8BA55" />
+                                    </linearGradient>
+                                </defs>
+                                <path d="M32 17c-4.8-3.6-11.5-4.2-18-2v34c6.5-2.2 13.2-1.6 18 2m0-34c4.8-3.6 11.5-4.2 18-2v34c-6.5-2.2-13.2-1.6-18 2m0-34v34" stroke="url(#reference-gold)" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" />
+                                <path d="M18 23h8M18 30h8M38 23h8M38 30h8" stroke="#FFF0B1" stroke-linecap="round" stroke-width="2" opacity=".85" />
+                            </svg>
+                        </span>
+
+                        <div class="max-w-2xl">
+                            <p class="text-[11px] font-black uppercase tracking-[0.22em] text-gold-300">
+                                {{ __('Community Contribution') }}
+                            </p>
+                            <h2 class="mt-2 max-w-xl font-heading text-2xl font-bold leading-snug tracking-tight text-balance sm:text-3xl">
+                                {{ __('Kenal rujukan yang belum tersenarai?') }}
+                            </h2>
+                            <p class="mt-3 max-w-2xl text-sm leading-6 text-emerald-100/75 sm:text-base">
+                                {{ __('Cadangkan kitab, buku, atau bahan rujukan yang patut ditemui ramai.') }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <a
+                        href="{{ route('contributions.submit-reference') }}"
+                        wire:navigate
+                        data-signal-event="submission.reference_suggested"
+                        data-signal-category="submission"
+                        data-signal-component="references_index_cta"
+                        data-signal-control="suggest_reference"
+                        class="living-majlis-cta-button group inline-flex min-h-14 w-full items-center justify-between gap-5 rounded-[1.25rem] px-5 py-3.5 text-left text-[#063b27] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-gold-400/40 sm:w-auto sm:min-w-[18rem]"
+                    >
+                        <span class="relative z-10 text-sm font-bold sm:text-base">{{ __('Cadangkan Rujukan') }}</span>
+                        <svg class="relative z-10 h-5 w-5 shrink-0" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.167 10h11.666m0 0-4.166-4.167M15.833 10l-4.166 4.167" />
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </section>
     </div>
 </div>

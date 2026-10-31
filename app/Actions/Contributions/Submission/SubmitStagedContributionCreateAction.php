@@ -6,6 +6,7 @@ use App\Actions\Institutions\WithInstitutionMapsIdentityLockAction;
 use App\Enums\ContributionSubjectType;
 use App\Models\Institution;
 use App\Models\Person;
+use App\Models\Reference;
 use App\Models\User;
 use App\Services\ContributionEntityMutationService;
 use Illuminate\Support\Arr;
@@ -27,7 +28,7 @@ class SubmitStagedContributionCreateAction
 
     /**
      * @param  array<string, mixed>  $state
-     * @param  (callable(Institution|Person): void)|null  $persistRelationships
+     * @param  (callable(Institution|Person|Reference): void)|null  $persistRelationships
      */
     public function handle(
         ContributionSubjectType $subjectType,
@@ -35,8 +36,8 @@ class SubmitStagedContributionCreateAction
         User $user,
         ?callable $persistRelationships = null,
         string $validationKeyPrefix = '',
-    ): Institution|Person {
-        $create = fn (): Institution|Person => DB::transaction(function () use ($subjectType, $state, $user, $persistRelationships, $validationKeyPrefix): Institution|Person {
+    ): Institution|Person|Reference {
+        $create = fn (): Institution|Person|Reference => DB::transaction(function () use ($subjectType, $state, $user, $persistRelationships, $validationKeyPrefix): Institution|Person|Reference {
             $submissionState = $this->normalizeContributionSubmissionAction->handle($state);
             $state = $submissionState['state'];
 
@@ -45,6 +46,7 @@ class SubmitStagedContributionCreateAction
             $entity = match ($subjectType) {
                 ContributionSubjectType::Institution => $this->contributionEntityMutationService->createInstitution($state, $user),
                 ContributionSubjectType::Person => $this->contributionEntityMutationService->createPerson($state, $user),
+                ContributionSubjectType::Reference => $this->contributionEntityMutationService->createReference($state, $user),
                 default => throw new InvalidArgumentException("Unsupported contribution subject type [{$subjectType->value}]"),
             };
 
@@ -76,6 +78,7 @@ class SubmitStagedContributionCreateAction
         return match ($subjectType) {
             ContributionSubjectType::Institution => ['logo', 'cover', 'gallery'],
             ContributionSubjectType::Person => ['avatar', 'cover', 'gallery'],
+            ContributionSubjectType::Reference => ['front_cover', 'back_cover', 'gallery'],
             default => [],
         };
     }

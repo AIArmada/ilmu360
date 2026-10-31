@@ -22,6 +22,7 @@ use App\Livewire\Pages\About\Show as AboutPage;
 use App\Livewire\Pages\Contributions\Index as ContributionsIndex;
 use App\Livewire\Pages\Contributions\SubmitInstitution;
 use App\Livewire\Pages\Contributions\SubmitPerson;
+use App\Livewire\Pages\Contributions\SubmitReference;
 use App\Livewire\Pages\Contributions\SuggestUpdate as SuggestContributionUpdate;
 use App\Livewire\Pages\Dashboard\AccountSettings;
 use App\Livewire\Pages\Dashboard\DawahImpactIndex;
@@ -198,10 +199,12 @@ Route::middleware('auth')->group(function () {
     Route::livewire('/sumbangan', ContributionsIndex::class)->name('contributions.index');
     Route::livewire('/sumbangan/institusi/baru', SubmitInstitution::class)->name('contributions.submit-institution');
     Route::livewire('/sumbangan/penceramah/baru', SubmitPerson::class)->name('contributions.submit-person');
+    Route::livewire('/sumbangan/rujukan/baru', SubmitReference::class)->name('contributions.submit-reference');
     Route::livewire('/sumbangan/{subjectType}/berjaya', 'pages.contributions.submission-success')
         ->whereIn('subjectType', [
             ContributionSubjectType::Institution->publicRouteSegment(),
             ContributionSubjectType::Person->publicRouteSegment(),
+            ContributionSubjectType::Reference->publicRouteSegment(),
         ])
         ->name('contributions.submission-success');
     Route::livewire('/permohonan-keahlian', MembershipApplicationsIndex::class)->name('membership-applications.index');

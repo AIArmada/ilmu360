@@ -13,6 +13,7 @@ new class extends Component
         $this->subjectType = match ($subjectType) {
             'institusi', 'institution' => 'institution',
             'penceramah', 'person' => 'person',
+            'rujukan', 'reference' => 'reference',
             default => abort(404),
         };
 
@@ -29,6 +30,7 @@ new class extends Component
         return match ($this->subjectType) {
             'institution' => __('Thank you for submitting a new institution.'),
             'person' => __('Thank you for submitting a new speaker.'),
+            'reference' => __('Thank you for suggesting a reference.'),
             default => __('Submission Received'),
         };
     }
@@ -38,6 +40,7 @@ new class extends Component
         return match ($this->subjectType) {
             'institution' => __('Explore Institutions'),
             'person' => __('Explore Speakers'),
+            'reference' => __('Explore References'),
             default => __('Browse'),
         };
     }
@@ -47,6 +50,7 @@ new class extends Component
         return match ($this->subjectType) {
             'institution' => __('Browse the institution directory and discover places of learning, worship, and community.'),
             'person' => __('Browse the speaker directory and discover teachers, scholars, and contributors across the country.'),
+            'reference' => __('Browse the reference directory and discover trusted sources of knowledge.'),
             default => __('Keep exploring the ilmu360° directory while your submission is being reviewed.'),
         };
     }
@@ -56,6 +60,7 @@ new class extends Component
         return match ($this->subjectType) {
             'institution' => route('institutions.index'),
             'person' => route('persons.index'),
+            'reference' => route('references.index'),
             default => route('home'),
         };
     }

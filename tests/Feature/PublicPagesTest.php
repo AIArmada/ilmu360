@@ -56,6 +56,13 @@ it('shows the add-event call to action on the events index', function () {
         ->assertSee('href="'.route('submit-event.create').'"', false);
 });
 
+it('shows the reference suggestion call to action on the references index', function () {
+    $this->get(route('references.index'))
+        ->assertSuccessful()
+        ->assertSee('data-testid="references-index-submit-cta"', false)
+        ->assertSee('href="'.route('contributions.submit-reference').'"', false);
+});
+
 it('serves the submit event form from the tambah-majlis route', function () {
     expect(route('submit-event.create'))->toEndWith('/tambah-majlis')
         ->and(route('submit-event.success'))->toEndWith('/tambah-majlis/berjaya');

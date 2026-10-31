@@ -437,6 +437,19 @@ class ContributionEntityMutationService
 
     /**
      * @param  array<string, mixed>  $payload
+     */
+    public function createReference(array $payload, User $proposer): Reference
+    {
+        $reference = new Reference;
+        $reference->status = 'pending';
+
+        $this->applyReference($reference, $payload);
+
+        return $reference;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */
     public function apply(Model $entity, array $payload): array

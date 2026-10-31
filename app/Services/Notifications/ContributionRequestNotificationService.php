@@ -10,6 +10,7 @@ use App\Enums\NotificationTrigger;
 use App\Models\ContributionRequest;
 use App\Models\Institution;
 use App\Models\Person;
+use App\Models\Reference;
 use App\Models\User;
 use App\Notifications\InAppNotification;
 use App\Support\Notifications\NotificationCatalog;
@@ -170,7 +171,11 @@ class ContributionRequestNotificationService
         $subjectType = $this->normalizedSubjectType($request);
 
         return $request->type === ContributionRequestType::Create
-            && in_array($subjectType, [ContributionSubjectType::Institution, ContributionSubjectType::Person], true);
+            && in_array($subjectType, [
+                ContributionSubjectType::Institution,
+                ContributionSubjectType::Person,
+                ContributionSubjectType::Reference,
+            ], true);
     }
 
     private function normalizedSubjectType(ContributionRequest $request): ?ContributionSubjectType
@@ -193,6 +198,7 @@ class ContributionRequestNotificationService
         return match ($this->normalizedSubjectType($request)) {
             ContributionSubjectType::Institution => __('Institution'),
             ContributionSubjectType::Person => __('Speaker'),
+            ContributionSubjectType::Reference => __('Reference'),
             default => __('Submission'),
         };
     }
@@ -204,6 +210,7 @@ class ContributionRequestNotificationService
         return match (true) {
             $entity instanceof Institution => $entity->name,
             $entity instanceof Person => $entity->name,
+            $entity instanceof Reference => $entity->displayTitle(),
             is_string(data_get($request->proposed_data, 'name')) && trim(data_get($request->proposed_data, 'name')) !== '' => trim(data_get($request->proposed_data, 'name')),
             default => $this->subjectLabel($request),
         };
@@ -216,6 +223,7 @@ class ContributionRequestNotificationService
         return match (true) {
             $entity instanceof Institution => route('institutions.show', $entity),
             $entity instanceof Person => route('persons.show', $entity),
+            $entity instanceof Reference => route('references.show', $entity),
             default => route('contributions.index'),
         };
     }

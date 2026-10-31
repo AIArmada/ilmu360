@@ -6,6 +6,7 @@ use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Institutions\GenerateInstitutionSlugAction;
 use App\Actions\Persons\GeneratePersonSlugAction;
+use App\Actions\References\SaveReferenceAction;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
@@ -36,6 +37,7 @@ class ApproveContributionRequestAction
         private readonly AddMemberAction $addMemberAction,
         private readonly GenerateInstitutionSlugAction $generateInstitutionSlugAction,
         private readonly GeneratePersonSlugAction $generatePersonSlugAction,
+        private readonly SaveReferenceAction $saveReferenceAction,
     ) {}
 
     public function handle(ContributionRequest $request, User $reviewer, ?string $reviewerNote = null): ContributionRequest
@@ -75,21 +77,23 @@ class ApproveContributionRequestAction
         return $freshRequest;
     }
 
-    private function approveCreateRequest(ContributionRequest $request): Institution|Person
+    private function approveCreateRequest(ContributionRequest $request): Institution|Person|Reference
     {
         /** @var array<string, mixed> $payload */
         $payload = $request->proposed_data ?? [];
 
         $entity = $request->entity;
 
-        if ($entity instanceof Institution || $entity instanceof Person) {
+        if ($entity instanceof Institution || $entity instanceof Person || $entity instanceof Reference) {
             $entity->forceFill([
                 'status' => 'verified',
                 'verified_at' => now(),
                 'last_state_change_at' => now(),
             ])->save();
 
-            $this->attachAsOwnerIfSupported($request->proposer, $entity);
+            if (! $entity instanceof Reference) {
+                $this->attachAsOwnerIfSupported($request->proposer, $entity);
+            }
 
             return $entity;
         }
@@ -97,6 +101,7 @@ class ApproveContributionRequestAction
         return match ($request->subject_type) {
             ContributionSubjectType::Institution => $this->createInstitutionFromRequest($payload),
             ContributionSubjectType::Person => $this->createPersonFromRequest($request, $payload),
+            ContributionSubjectType::Reference => $this->createReferenceFromRequest($payload),
             default => throw new RuntimeException('Unsupported create request subject.'),
         };
     }
@@ -200,6 +205,17 @@ class ApproveContributionRequestAction
         $this->attachAsOwnerIfSupported($request->proposer, $person);
 
         return $person;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function createReferenceFromRequest(array $payload): Reference
+    {
+        return $this->saveReferenceAction->handle([
+            ...$payload,
+            'status' => 'verified',
+        ]);
     }
 
     /**

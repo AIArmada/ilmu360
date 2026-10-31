@@ -8,6 +8,7 @@ use AIArmada\Persons\Enums\PersonNameType;
 use AIArmada\Persons\Models\Title;
 use AIArmada\Signals\Models\SignalEvent;
 use App\Actions\Contributions\Review\ApproveContributionRequestAction;
+use App\Actions\Contributions\Review\RejectContributionRequestAction;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
@@ -18,6 +19,7 @@ use App\Enums\TimingMode;
 use App\Livewire\Pages\Contributions\Index as ContributionsIndex;
 use App\Livewire\Pages\Contributions\SubmitInstitution;
 use App\Livewire\Pages\Contributions\SubmitPerson;
+use App\Livewire\Pages\Contributions\SubmitReference;
 use App\Livewire\Pages\Contributions\SuggestUpdate;
 use App\Livewire\Pages\Reports\Create as CreateReportPage;
 use App\Models\Affiliation;
@@ -105,6 +107,102 @@ it('renders the institution contribution page with translated copy when the loca
         ->assertSee('Semak Institusi Sedia Ada')
         ->assertDontSee('Apa yang berlaku seterusnya?')
         ->assertDontSee('Lihat Sumbangan Saya');
+});
+
+it('renders the dedicated reference contribution page', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user);
+
+    $this->get(route('contributions.submit-reference'))
+        ->assertOk()
+        ->assertSee(__('Add a New Reference'))
+        ->assertSee(__('Check the existing references directory first'))
+        ->assertSee(__('Check Existing References'))
+        ->assertSee(__('Submit Reference'));
+
+    $this->get(route('contributions.submission-success', ['subjectType' => 'rujukan']))
+        ->assertOk()
+        ->assertSee(__('Thank you for suggesting a reference.'));
+});
+
+it('stores a new reference submission from the dedicated reference page', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user);
+
+    Livewire::test(SubmitReference::class)
+        ->fillForm([
+            'title' => 'Kitab Ujian Rujukan',
+            'type' => 'book',
+            'record_kind' => 'work',
+            'publication_year' => 2024,
+            'publisher' => 'Penerbit Ujian',
+            'description' => 'Rujukan ujian untuk aliran sumbangan rujukan.',
+        ])
+        ->call('submit')
+        ->assertHasNoErrors()
+        ->assertRedirect(route('contributions.submission-success', [
+            'subjectType' => ContributionSubjectType::Reference->publicRouteSegment(),
+        ]));
+
+    $reference = Reference::query()
+        ->where('title', 'Kitab Ujian Rujukan')
+        ->firstOrFail();
+
+    $request = ContributionRequest::query()
+        ->where('subject_type', ContributionSubjectType::Reference->value)
+        ->where('entity_id', $reference->id)
+        ->firstOrFail();
+
+    expect($reference->status)->toBe('pending')
+        ->and($reference->year)->toBe(2024)
+        ->and($reference->publisher)->toBe('Penerbit Ujian')
+        ->and($request->type)->toBe(ContributionRequestType::Create)
+        ->and($request->status)->toBe(ContributionRequestStatus::Pending)
+        ->and($request->proposer_id)->toBe($user->id);
+});
+
+it('approves a pending reference creation request', function () {
+    $proposer = User::factory()->create();
+    $reviewer = User::factory()->create();
+    $reference = Reference::factory()->pending()->create([
+        'title' => 'Rujukan Menunggu Kelulusan',
+    ]);
+    $request = ContributionRequest::factory()->create([
+        'type' => ContributionRequestType::Create,
+        'subject_type' => ContributionSubjectType::Reference,
+        'entity_type' => $reference->getMorphClass(),
+        'entity_id' => $reference->id,
+        'proposer_id' => $proposer->id,
+        'status' => ContributionRequestStatus::Pending,
+    ]);
+
+    app(ApproveContributionRequestAction::class)->handle($request, $reviewer);
+
+    expect($reference->fresh()->status)->toBe('verified')
+        ->and($request->fresh()->status)->toBe(ContributionRequestStatus::Approved);
+});
+
+it('rejects a pending reference creation request', function () {
+    $proposer = User::factory()->create();
+    $reviewer = User::factory()->create();
+    $reference = Reference::factory()->pending()->create([
+        'title' => 'Rujukan Ditolak',
+    ]);
+    $request = ContributionRequest::factory()->create([
+        'type' => ContributionRequestType::Create,
+        'subject_type' => ContributionSubjectType::Reference,
+        'entity_type' => $reference->getMorphClass(),
+        'entity_id' => $reference->id,
+        'proposer_id' => $proposer->id,
+        'status' => ContributionRequestStatus::Pending,
+    ]);
+
+    app(RejectContributionRequestAction::class)->handle($request, $reviewer, 'incorrect_information');
+
+    expect($reference->fresh()->status)->toBe('rejected')
+        ->and($request->fresh()->status)->toBe(ContributionRequestStatus::Rejected);
 });
 
 it('renders the dedicated person contribution page', function () {
