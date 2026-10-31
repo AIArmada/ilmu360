@@ -37,7 +37,18 @@ it('renders the institution show page for a verified institution', function () {
     $this->get(route('institutions.show', $institution))
         ->assertSuccessful()
         ->assertSee($institution->name)
-        ->assertSee('Masjid yang terkenal di kawasan ini.');
+        ->assertSee('name="description" content="Masjid yang terkenal di kawasan ini."', false);
+});
+
+it('does not render the institution description inside the hero', function () {
+    $institution = Institution::factory()->create([
+        'status' => 'verified',
+        'description' => 'Penerangan institusi yang tidak dipaparkan dalam hero.',
+    ]);
+
+    $this->get(route('institutions.show', $institution))
+        ->assertSuccessful()
+        ->assertDontSee('h-24 max-h-24', false);
 });
 
 it('renders the institution show page for a pending institution', function () {
@@ -97,7 +108,7 @@ it('shows the institution edit action to admins', function () {
         ->assertSee(__('Edit'));
 });
 
-it('keeps the institution title free of redundant badges', function () {
+it('renders the verified tick beside the institution title without redundant labels', function () {
     $institution = Institution::factory()->create([
         'status' => 'verified',
         'type' => InstitutionType::Masjid,
@@ -105,9 +116,20 @@ it('keeps the institution title free of redundant badges', function () {
 
     $this->get(route('institutions.show', $institution))
         ->assertSuccessful()
-        ->assertSee($institution->name)
+        ->assertSeeInOrder([$institution->name, 'data-testid="verified-badge"'], false)
         ->assertDontSee('>Masjid<', false)
-        ->assertDontSee(__('Institusi Disahkan'));
+        ->assertDontSee(__('Institusi Disahkan'))
+        ->assertDontSee('Institusi ilmu360°');
+});
+
+it('does not render the verified tick for an unverified institution', function () {
+    $institution = Institution::factory()->create([
+        'status' => 'pending',
+    ]);
+
+    $this->get(route('institutions.show', $institution))
+        ->assertSuccessful()
+        ->assertDontSee('data-testid="verified-badge"', false);
 });
 
 it('marks the institution hero regions for responsive title fitting', function () {
@@ -818,7 +840,7 @@ it('preserves the institution url in guest auth links', function () {
         ->assertDontSee('href="'.route('login').'"', false);
 });
 
-it('renders a breadcrumb', function () {
+it('does not render a breadcrumb', function () {
     $institution = Institution::factory()->create([
         'status' => 'verified',
         'name' => 'Institusi Ujian',
@@ -834,7 +856,7 @@ it('renders a breadcrumb', function () {
 
     $this->get(route('institutions.show', $institution))
         ->assertSuccessful()
-        ->assertSee('data-ui="public-breadcrumbs"', false);
+        ->assertDontSee('data-ui="public-breadcrumbs"', false);
 });
 
 it('renders prayer-relative start time and event timezone end time in institution event list', function () {

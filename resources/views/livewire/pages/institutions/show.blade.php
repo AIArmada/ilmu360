@@ -210,14 +210,6 @@
         <div class="absolute -right-8 -top-12 -z-10 h-72 w-72 rounded-full border border-amber-700/10"></div>
 
         <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
-            <x-ui.breadcrumbs
-                class="mb-6"
-                :items="[
-                    ['label' => __('Laman Utama'), 'url' => route('home'), 'icon' => 'home'],
-                    ['label' => __('Institusi'), 'url' => route('institutions.index'), 'icon' => 'building', 'show_label' => true],
-                ]"
-            />
-
             <div
                 data-institution-hero
                 x-data="{
@@ -304,7 +296,7 @@
                         }
                     },
                 }"
-                class="mt-6 overflow-hidden rounded-[2rem] border border-white/80 bg-white/82 shadow-[0_30px_90px_-42px_rgba(6,78,59,0.42)] backdrop-blur-xl"
+                class="overflow-hidden rounded-[2rem] border border-white/80 bg-white/82 shadow-[0_30px_90px_-42px_rgba(6,78,59,0.42)] backdrop-blur-xl"
             >
                 <div class="grid lg:grid-cols-[minmax(0,1.12fr)_minmax(24rem,0.88fr)]">
                     <div
@@ -324,21 +316,11 @@
                     <div data-institution-hero-panel class="flex flex-col p-6 sm:p-8 lg:px-8 lg:pb-4 lg:pt-5">
                         <div class="flex flex-1 flex-col">
                             <div>
-                                <div class="flex flex-wrap items-center gap-2">
-                                    <p class="text-[11px] font-black uppercase tracking-[0.24em] text-amber-700">
-                                        {{ __('Institusi ilmu360°') }}
-                                    </p>
-
-                                    @if($institution->status === \App\Enums\InstitutionStatus::Verified)
-                                        <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-100 px-2.5 py-1 text-[10px] font-bold text-emerald-800">
-                                            <flux:icon.check variant="mini" class="size-3.5 text-emerald-700" />
-                                            {{ __('Disahkan') }}
-                                        </span>
-                                    @endif
-                                </div>
-
-                                <h1 data-institution-hero-title class="mt-3 max-w-3xl break-words font-heading text-4xl font-bold leading-[1.05] tracking-[-0.035em] text-emerald-950 sm:text-5xl lg:text-6xl">
+                                <h1 data-institution-hero-title class="max-w-3xl break-words font-heading text-4xl font-bold leading-[1.05] tracking-[-0.035em] text-emerald-950 sm:text-5xl lg:text-6xl">
                                     {{ $institution->name }}
+                                    @if($institution->status === \App\Enums\InstitutionStatus::Verified)
+                                        <x-ui.verified-badge class="text-emerald-600" data-testid="verified-badge" />
+                                    @endif
                                 </h1>
 
                                 @if($locationString !== '')
@@ -346,14 +328,6 @@
                                         <flux:icon.map-pin class="mt-0.5 size-5 shrink-0 text-amber-600" />
                                         <span>{{ $locationString }}</span>
                                     </p>
-                                @endif
-
-                                @if($institution->description)
-                                    <div class="mt-4">
-                                        <div class="mt-2 h-24 max-h-24 overflow-y-auto overscroll-contain pr-4 [scrollbar-color:#a7d5c7_transparent] [scrollbar-width:thin] prose prose-slate max-w-none leading-8 prose-headings:font-heading prose-headings:text-emerald-950 prose-a:text-emerald-700 prose-strong:text-slate-900">
-                                            {!! $institution->description !!}
-                                        </div>
-                                    </div>
                                 @endif
 
                             </div>
