@@ -672,29 +672,4 @@
         </div>
     </main>
 
-    <section class="relative mt-2 overflow-hidden bg-[#08243b] px-4 py-8 text-white sm:px-6">
-        <div class="absolute inset-0 bg-cover bg-center opacity-15"
-            style="background-image: url('{{ asset('images/pattern-bg.jpg') }}');"></div>
-        <div class="absolute inset-0 bg-gradient-to-b from-white/0 via-white/0 to-black/10"></div>
-        <div class="container relative mx-auto flex flex-col items-center gap-5 text-center lg:px-12">
-            <h2 class="max-w-4xl font-heading text-2xl font-bold leading-snug md:text-3xl">
-                {{ __('Ilmu dah ada. Masjid dah terbuka. Surau dah hidup.') }}
-                <span class="block text-amber-300">{{ __('Sekarang, mari bantu lebih ramai orang sampai.') }}</span>
-            </h2>
-            <div class="flex flex-col gap-3 sm:flex-row">
-                <a href="{{ route('events.index') }}" wire:navigate class="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-700 px-6 py-3 text-sm font-semibold text-white transition hover:bg-emerald-600">
-                    <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.2-5.2M10.8 18a7.2 7.2 0 100-14.4 7.2 7.2 0 000 14.4z" />
-                    </svg>
-                    {{ __('Cari Majlis Hari Ini') }}
-                </a>
-                <a href="{{ route('home') }}" wire:navigate class="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-6 py-3 text-sm font-semibold text-[#08243b] transition hover:bg-amber-50">
-                    {{ __('Download Ilmu360') }}
-                </a>
-                <a href="{{ route('submit-event.create') }}" wire:navigate class="inline-flex items-center justify-center gap-2 rounded-lg border border-white/50 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10">
-                    {{ __('Hantar Majlis') }}
-                </a>
-            </div>
-        </div>
-    </section>
 </div>
