@@ -89,14 +89,15 @@
 </head>
 
 <body class="min-h-full overflow-x-hidden bg-emerald-950 font-sans antialiased text-slate-900">
-    <div class="relative min-h-screen overflow-x-hidden bg-emerald-950">
+    {{-- svh, not vh: on mobile 100vh includes the area behind the browser chrome, which pushes centred content too low. --}}
+    <div class="relative min-h-svh overflow-x-hidden bg-emerald-950">
         {{-- Reference-derived courtyard scene. The form remains real HTML above it. --}}
         <img src="{{ asset('images/auth/login-background-v1.png') }}" alt="" aria-hidden="true"
             class="absolute inset-0 h-full w-full object-cover object-center">
         <div class="pointer-events-none absolute inset-0 bg-gradient-to-r from-emerald-950/35 via-transparent to-emerald-950/5"></div>
         <div class="pointer-events-none absolute inset-0 bg-gradient-to-b from-emerald-950/10 via-transparent to-emerald-950/40"></div>
 
-        <div class="relative z-10 mx-auto flex min-h-screen w-full max-w-[1600px] items-start justify-center px-4 py-5 sm:px-6 sm:py-8 lg:px-10 lg:py-16">
+        <div class="relative z-10 mx-auto flex min-h-svh w-full max-w-[1600px] items-start justify-center px-4 py-5 sm:px-6 sm:py-8 lg:px-10 lg:py-16">
             {{-- Editorial side note, intentionally hidden before very wide desktop widths. --}}
             <aside class="absolute left-[10%] top-[29%] hidden w-48 -translate-y-1/2 text-amber-100 xl:block">
                 <p class="font-serif text-[2rem] leading-[1.05]">Ilmu<br>Menyinari<br>Kehidupan</p>
@@ -104,7 +105,8 @@
                 <p class="max-w-[10rem] text-sm leading-6 text-amber-50/80">Lebih dekat dengan ilmu, lebih baik untuk esok.</p>
             </aside>
 
-            <div class="relative w-full max-w-[32rem] entry-1">
+            {{-- Auto margins keep the card centred on phones without clipping it when it is taller than the viewport. --}}
+            <div class="relative my-auto w-full max-w-[32rem] entry-1 sm:my-0">
                 <div class="absolute -inset-1 rounded-[2rem] bg-gradient-to-b from-amber-300/50 via-emerald-200/20 to-emerald-950/40 blur-lg"></div>
 
                 <div class="relative overflow-hidden rounded-[2rem] bg-[#fbfcf8]/95 shadow-[0_24px_80px_-24px_rgba(2,34,27,0.85)] ring-1 ring-white/75 backdrop-blur-xl">

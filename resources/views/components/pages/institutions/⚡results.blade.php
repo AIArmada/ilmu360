@@ -585,7 +585,7 @@ new class extends Component
 @endphp
 
 <div class="min-h-[32rem]" wire:transition="institution-results">
-    <div wire:loading.delay.short wire:target="{{ $institutionLoadingTarget }}">
+    <div wire:loading.delay.short wire:target="{{ $institutionLoadingTarget }}" class="w-full">
         <x-ui.skeleton.institution-card-grid />
     </div>
 

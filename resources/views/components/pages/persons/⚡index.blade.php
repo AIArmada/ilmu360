@@ -618,7 +618,7 @@ new
                 aria-label="{{ __('Speaker list') }}"
             >
                 <!-- Loading Skeleton -->
-                <div wire:loading.delay.short wire:target="{{ $personLoadingTarget }}" role="status" aria-live="polite">
+                <div wire:loading.delay.short wire:target="{{ $personLoadingTarget }}" class="w-full" role="status" aria-live="polite">
                     <span class="sr-only">{{ __('Loading speaker list…') }}</span>
                     <x-ui.skeleton.person-card-grid />
                 </div>
@@ -720,7 +720,7 @@ new
                                 wire:loading.attr="disabled"
                                 aria-pressed="{{ $this->upcoming_only === true ? 'true' : 'false' }}"
                                 aria-label="{{ __('Upcoming events only') }}"
-                                class="inline-flex h-9 w-full items-center justify-center gap-2 rounded-xl border px-3.5 text-xs font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/10 disabled:cursor-wait disabled:opacity-60 sm:w-auto {{ $this->upcoming_only === true ? 'border-emerald-700 bg-emerald-800 text-white shadow-sm' : 'border-slate-200/80 bg-white/75 text-slate-600 hover:border-emerald-200 hover:text-emerald-800' }}"
+                                class="order-2 inline-flex h-9 w-full items-center justify-center gap-2 rounded-xl border px-3.5 text-xs font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/10 disabled:cursor-wait disabled:opacity-60 sm:order-1 sm:w-auto {{ $this->upcoming_only === true ? 'border-emerald-700 bg-emerald-800 text-white shadow-sm' : 'border-slate-200/80 bg-white/75 text-slate-600 hover:border-emerald-200 hover:text-emerald-800' }}"
                             >
                                 <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 3.75v2.5m9-2.5v2.5M4.5 9.25h15m-13.5-5.5h11a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2Z" />
@@ -729,7 +729,7 @@ new
                                 {{ __('Upcoming events only') }}
                             </button>
 
-                            <div class="flex shrink-0 flex-col gap-1.5" role="group" aria-label="{{ __('Sort directory') }}">
+                            <div class="order-1 flex shrink-0 flex-col gap-1.5 sm:order-2" role="group" aria-label="{{ __('Sort directory') }}">
                                 <span class="px-1 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">{{ __('Sort') }}</span>
                                 <div data-material="translucent-control" class="living-majlis-veil flex items-center gap-1 rounded-xl p-0.5">
                                     <button
@@ -848,7 +848,7 @@ new
                                     data-next-event
                                     href="{{ route('events.show', ['event' => $person->next_event_slug]) }}"
                                     wire:navigate
-                                    class="group/next relative z-10 mx-4 mt-4 block min-w-0 border-t border-slate-100 pb-4 pt-4 transition-colors duration-200 group-hover:border-amber-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/15 sm:mx-5"
+                                    class="group/next relative z-10 mx-4 mt-0 block min-w-0 border-t border-slate-100 pb-4 pt-4 transition-colors duration-200 group-hover:border-amber-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/15 sm:mx-5 sm:mt-4"
                                 >
                                     <span class="min-w-0">
                                         <span class="block text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">{{ __('Next event') }}</span>
@@ -902,7 +902,7 @@ new
 
                     <div class="relative flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
                         <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-6">
-                            <span class="relative grid h-20 w-20 shrink-0 place-items-center rounded-[1.35rem] bg-emerald-800/35 text-[#f5d98f] shadow-[0_18px_34px_-22px_rgba(0,0,0,0.9)]">
+                            <span class="relative mx-auto grid h-20 w-20 shrink-0 place-items-center rounded-[1.35rem] bg-emerald-800/35 text-[#f5d98f] shadow-[0_18px_34px_-22px_rgba(0,0,0,0.9)] sm:mx-0">
                                 <span class="pointer-events-none absolute inset-3 rounded-full bg-gold-300/10 blur-xl"></span>
                                 <svg class="relative h-14 w-14 drop-shadow-[0_6px_8px_rgba(0,0,0,0.18)]" viewBox="0 0 64 64" fill="none" aria-hidden="true">
                                     <defs>

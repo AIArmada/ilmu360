@@ -757,7 +757,7 @@
 
                 <div class="relative flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
                     <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-6">
-                        <span class="relative grid h-20 w-20 shrink-0 place-items-center rounded-[1.35rem] bg-emerald-800/35 text-[#f5d98f] shadow-[0_18px_34px_-22px_rgba(0,0,0,0.9)]">
+                        <span class="relative mx-auto grid h-20 w-20 shrink-0 place-items-center rounded-[1.35rem] bg-emerald-800/35 text-[#f5d98f] shadow-[0_18px_34px_-22px_rgba(0,0,0,0.9)] sm:mx-0">
                             <span class="pointer-events-none absolute inset-3 rounded-full bg-gold-300/10 blur-xl"></span>
                             <svg class="relative h-14 w-14 drop-shadow-[0_6px_8px_rgba(0,0,0,0.18)]" viewBox="0 0 64 64" fill="none" aria-hidden="true">
                                 <defs>

@@ -217,7 +217,7 @@ new
 @endphp
 
 <div class="container mx-auto mt-12 px-6 lg:px-12">
-    <div wire:loading.delay.short wire:target="{{ $venueLoadingTarget }}">
+    <div wire:loading.delay.short wire:target="{{ $venueLoadingTarget }}" class="w-full">
         <x-ui.skeleton.institution-card-grid />
     </div>
 
