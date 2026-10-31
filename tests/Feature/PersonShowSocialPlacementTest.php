@@ -30,7 +30,7 @@ it('renders social media inside the consolidated profile panel on person show pa
         ->assertSuccessful()
         ->assertSee('Biodata')
         ->assertSee('Media Sosial')
-        ->assertSee('storage/social-media-icons/facebook.svg', false)
+        ->assertSee('social-media-icons/facebook.svg', false)
         ->assertSeeInOrder(['Biodata', 'Media Sosial']);
 });
 

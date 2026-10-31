@@ -556,9 +556,9 @@ it('renders threads in public share modals instead of line', function () {
         $this->get(route('references.show', $reference)),
     ])->each(function ($response): void {
         $response->assertSuccessful()
-            ->assertSee('storage/social-media-icons/threads.svg', false)
+            ->assertSee('social-media-icons/threads.svg', false)
             ->assertSee('title="Threads"', false)
-            ->assertDontSee('storage/social-media-icons/line.svg', false)
+            ->assertDontSee('social-media-icons/line.svg', false)
             ->assertDontSee('title="LINE"', false);
     });
 });

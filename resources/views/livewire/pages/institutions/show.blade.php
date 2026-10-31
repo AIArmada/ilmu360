@@ -916,7 +916,7 @@
                                     $handleLabel = $handle !== '' ? (str_starts_with($handle, '@') ? $handle : '@'.$handle) : __('Lihat profil rasmi');
                                 @endphp
                                 <a href="{{ $social->profileUrl() ?? $social->url }}" target="_blank" rel="noopener noreferrer" class="group flex min-w-0 items-center gap-3 rounded-2xl border border-slate-200/90 bg-slate-50/45 px-3 py-3 transition hover:bg-white hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/10 {{ $presentation['border'] }}">
-                                    <img src="{{ asset('storage/social-media-icons/'.$presentation['icon']) }}" alt="" class="h-10 w-10 shrink-0 object-contain" loading="lazy">
+                                    <img src="{{ \App\Support\Media\SocialIcon::url($presentation['icon']) }}" alt="" class="h-10 w-10 shrink-0 object-contain" loading="lazy">
                                     <span class="min-w-0 flex-1"><span class="block truncate text-sm font-bold text-slate-800 group-hover:text-emerald-800">{{ $presentation['label'] }}</span><span class="mt-0.5 block truncate text-xs text-slate-500">{{ $handleLabel }}</span></span>
                                 </a>
                             @endforeach

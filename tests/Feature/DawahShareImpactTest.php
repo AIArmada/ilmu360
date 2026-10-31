@@ -1854,7 +1854,7 @@ test('tracked share ui renders across supported public surfaces', function () {
             ->assertSee('payloadEndpoint', false)
             ->assertSee("copyLink(false, 'instagram')", false)
             ->assertSee("copyLink(false, 'tiktok')", false)
-            ->assertSee('storage/social-media-icons/telegram.svg', false);
+            ->assertSee('social-media-icons/telegram.svg', false);
     }
 });
 
