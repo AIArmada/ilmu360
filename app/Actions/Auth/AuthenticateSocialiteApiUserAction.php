@@ -31,7 +31,7 @@ final readonly class AuthenticateSocialiteApiUserAction
     {
         if (! SocialiteProviderConfiguration::supportsTokenExchange($provider)) {
             throw ValidationException::withMessages([
-                'provider' => [__('Google sign-in is not configured right now. Please use email and password instead.')],
+                'provider' => [__('Google sign-in is not configured right now. Please try again later.')],
             ]);
         }
 

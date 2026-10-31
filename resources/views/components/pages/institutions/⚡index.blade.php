@@ -974,7 +974,7 @@ class extends Component
                                             {{ __('Kenal institusi yang belum tersenarai?') }}
                                         </h2>
                                         <p class="mt-3 max-w-2xl text-sm leading-6 text-emerald-100/75 sm:text-base">
-                                            {{ __('Bantu kami menambah masjid, surau, madrasah, dan pusat ilmu yang patut ditemui ramai. Setiap cadangan akan disemak sebelum diterbitkan.') }}
+                                            {{ __('Bantu kami menambah masjid, surau, madrasah, dan pusat ilmu yang patut ditemui ramai.') }}
                                         </p>
                                     </div>
                                 </div>

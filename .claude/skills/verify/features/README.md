@@ -63,7 +63,7 @@ Keep implementation details out of the map. Name only visitor paths, stable hand
 
 These visitor surfaces exist and were reachable during the initial interview, but do not have a proven recipe yet:
 
-- Event submission: `/tambah-majlis` landing and `/hantar-majlis` form (first step renders; full submission is unproven).
+- Event submission: `/tambah-majlis` form (first step renders; full submission is unproven).
 - Ticketing and checkout: `/majlis/{event}/checkout/{ticket?}` and `/checkout/...`.
 - Institutions, speakers, and venues directories and detail pages.
 - Registration, pass, calendar, and share flows.

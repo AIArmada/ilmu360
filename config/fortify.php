@@ -136,6 +136,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Email Authentication
+    |--------------------------------------------------------------------------
+    |
+    | Google is the only public authentication method for now. The email and
+    | password forms stay in the application for the future email rollout;
+    | enable this flag when those forms should be shown again.
+    |
+    */
+
+    'email_authentication_enabled' => (bool) env('FORTIFY_EMAIL_AUTHENTICATION_ENABLED', false),
+
+    /*
+    |--------------------------------------------------------------------------
     | Features
     |--------------------------------------------------------------------------
     |

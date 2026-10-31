@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Services\ShareTrackingService;
 use App\Support\Auth\IntendedRedirect;
 use App\Support\Search\PersonSearchService;
+use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use App\Support\Timezone\UserDateTimeFormatter;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
@@ -182,22 +183,25 @@ new
                 return;
             }
 
-            $user->follow($person);
+            $follow = $user->follow($person);
 
             if (! in_array($personId, $this->followingPersonIds, true)) {
                 $this->followingPersonIds[] = $personId;
             }
 
-            app(ShareTrackingService::class)->recordOutcome(
-                type: DawahShareOutcomeType::PersonFollow,
-                outcomeKey: 'person_follow:user:'.$user->id.':person:'.$person->id,
-                subject: $person,
-                actor: $user,
-                request: request(),
-                metadata: [
-                    'person_id' => $person->id,
-                ],
-            );
+            if ($follow->wasRecentlyCreated) {
+                app(ShareTrackingService::class)->recordOutcome(
+                    type: DawahShareOutcomeType::PersonFollow,
+                    businessKey: ShareOutcomeBusinessKey::follow(DawahShareOutcomeType::PersonFollow, (string) $follow->getKey()),
+                    subject: $person,
+                    actor: $user,
+                    request: request(),
+                    metadata: [
+                        'person_id' => $person->id,
+                    ],
+                    occurredAt: $follow->created_at,
+                );
+            }
         }
 
         private function followablePerson(string $personId): ?Person
@@ -772,11 +776,7 @@ new
                                 <div class="absolute inset-0 opacity-[0.15]" style="background-image: radial-gradient(circle at 1.5px 1.5px, rgba(7,91,72,.14) 1px, transparent 0); background-size: 16px 16px;"></div>
                                 @php
                                     $gender = Gender::tryFrom((string) $person->getRawOriginal('gender'));
-                                    $placeholderImage = match ($gender) {
-                                        Gender::Female => asset('images/placeholders/person-female.png'),
-                                        Gender::Male => asset('images/placeholders/person-male.png'),
-                                        default => null,
-                                    };
+                                    $placeholderImage = $gender !== null ? $person->default_portrait_url : null;
                                     $initials = str($person->name)->explode(' ')
                                         ->reject(fn (string $word): bool => in_array(strtolower($word), ['bin', 'binti', 'ibni', 'ibn', 'binte', 'abd', 'abdul', 'abu'], true))
                                         ->take(2)
@@ -823,20 +823,15 @@ new
                                 <!-- Gradient fade at bottom -->
                                 <div class="absolute inset-x-0 bottom-0 hidden h-28 bg-gradient-to-t from-emerald-950/80 via-emerald-950/30 to-transparent sm:block"></div>
 
-                                <!-- Status badge -->
-                                @if((string) $person->status === 'verified')
-                                    <span data-testid="verified-badge" class="absolute start-2.5 top-2.5 inline-flex items-center gap-1.5 rounded-full border border-white/70 bg-white/92 px-2.5 py-1 text-[10px] font-bold text-emerald-800 shadow-sm backdrop-blur sm:start-3 sm:top-3">
-                                        <flux:icon.check variant="mini" class="size-3.5 text-emerald-700" />
-                                        {{ __('Disahkan') }}
-                                    </span>
-                                @endif
-
                             </div>
 
                             <!-- Content area -->
                             <div class="flex min-w-0 flex-1 flex-col p-4 pb-0 sm:p-5 sm:pb-0">
                                 <h3 class="font-heading text-lg font-bold leading-tight tracking-[-0.02em] text-emerald-950 transition-colors duration-200 group-hover:text-emerald-700">
                                     {{ $person->formatted_name }}
+                                    @if((string) $person->status === 'verified')
+                                        <x-ui.verified-badge class="text-emerald-600" data-testid="verified-badge" />
+                                    @endif
                                 </h3>
 
                                 @if(filled($personState))
@@ -934,7 +929,7 @@ new
                                     {{ __('Know a speaker who is missing?') }}
                                 </h2>
                                 <p class="mt-3 max-w-2xl text-sm leading-6 text-emerald-100/75 sm:text-base">
-                                    {{ __('Help the community find more teachers and preachers. Every suggestion is reviewed before it is published.') }}
+                                    {{ __('Help the community find more teachers and preachers.') }}
                                 </p>
                             </div>
                         </div>

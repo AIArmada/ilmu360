@@ -201,25 +201,34 @@
                     ? 'living-majlis-header-button inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full bg-[#0e8a63] px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-black/20 transition-all hover:bg-[#13a574]'
                     : 'living-majlis-header-button living-majlis-header-button--emerald inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full px-5 py-2 text-sm font-semibold';
                 $mobileMenuClass = $useHomeHeader
-                    ? 'mt-2 mx-4 rounded-3xl border border-white/20 bg-[#062e22]/95 text-white shadow-xl backdrop-blur-md md:hidden'
+                    ? 'mt-2 mx-4 rounded-3xl border border-white/15 bg-[#062e22]/[0.98] text-white shadow-[0_24px_60px_-24px_rgba(0,0,0,0.65)] backdrop-blur-md md:hidden'
                     : ($useFloatingHeader
-                    ? 'mt-2 mx-4 rounded-3xl border border-[#eadfca] bg-[#fffdf8]/95 shadow-xl backdrop-blur-md md:hidden'
-                    : 'border-t border-[#e5dccb] bg-[#f6f1e8] md:hidden');
-                $mobileNavLinkClass = $useHomeHeader
-                    ? 'relative text-white after:absolute after:bottom-1 after:left-0 after:h-1 after:w-0 after:rounded-full after:bg-[#e3b537] after:transition-all hover:text-emerald-200 hover:after:w-9'
-                    : 'relative text-slate-700 after:absolute after:bottom-1 after:left-0 after:h-1 after:w-0 after:rounded-full after:bg-[#e3b537] after:transition-all hover:text-emerald-600 hover:after:w-9';
-                $mobileMenuButtonClass = $useHomeHeader
-                    ? 'living-majlis-header-button border border-white/30 text-white'
-                    : 'living-majlis-header-button border border-slate-200 text-slate-700';
+                    ? 'mt-2 mx-4 rounded-3xl border border-[#eadfca] bg-[#fffdf8]/95 text-[#2d4b4c] shadow-[0_24px_60px_-30px_rgba(63,71,47,0.45)] backdrop-blur-md md:hidden'
+                    : 'border-t border-[#e5dccb] bg-[#f6f1e8] text-[#2d4b4c] md:hidden');
+                $mobileMenuToggleClass = $useHomeHeader
+                    ? 'border-white/25 bg-white/10 text-white hover:border-white/40 hover:bg-white/20'
+                    : 'border-[#dbe1dc] bg-white/70 text-[#2d4b4c] hover:border-[#006044] hover:text-[#006044]';
+                $mobileMenuLinkClass = $useHomeHeader
+                    ? 'text-white hover:bg-white/10'
+                    : 'text-[#2d4b4c] hover:bg-[#f3eee2] hover:text-[#005b3d]';
+                $mobileMenuRowClass = $useHomeHeader
+                    ? 'text-white/85 hover:bg-white/10 hover:text-white'
+                    : 'text-slate-700 hover:bg-slate-50 hover:text-[#005b3d]';
+                $mobileMenuDividerClass = $useHomeHeader ? 'border-white/15' : 'border-[#e5dccb]';
+                $mobileMenuSectionLabelClass = $useHomeHeader ? 'text-white/50' : 'text-slate-400';
+                $mobileMenuSecondaryClass = $useHomeHeader
+                    ? 'border border-white/25 bg-white/5 text-white hover:bg-white/15'
+                    : 'border border-[#dbe1dc] bg-white text-[#2d4b4c] hover:border-[#006044] hover:text-[#006044]';
                 $mobileMenuDangerClass = $useHomeHeader
-                    ? 'living-majlis-header-button border border-red-300/60 text-red-200'
-                    : 'living-majlis-header-button border border-red-200 text-red-600';
+                    ? 'border border-red-300/40 text-red-200 hover:bg-red-500/15'
+                    : 'border border-red-200 text-red-600 hover:bg-red-50';
                 $mobileMenuStrongTextClass = $useHomeHeader
                     ? 'text-white'
                     : 'text-slate-900';
                 $mobileMenuMutedTextClass = $useHomeHeader
                     ? 'text-white/70'
                     : 'text-slate-500';
+                $languagePillClass = 'inline-flex min-h-9 items-center rounded-full border px-3 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e3b537]';
             @endphp
 
             <!-- Premium Header -->
@@ -269,18 +278,7 @@
                             class="{{ $personsNavClass }}">{{ __('Speakers') }}</a>
                     </div>
 
-                    <div class="flex items-center gap-3">
-                        <!-- Mobile Menu Button -->
-                        <button @click="mobileMenuOpen = !mobileMenuOpen"
-                            class="living-majlis-header-button md:hidden rounded-lg p-2 {{ $useHomeHeader ? 'text-white hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100' }} transition-colors">
-                            <svg class="relative z-10 w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path x-show="!mobileMenuOpen" stroke-linecap="round" stroke-linejoin="round"
-                                    stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                                <path x-show="mobileMenuOpen" x-cloak stroke-linecap="round" stroke-linejoin="round"
-                                    stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-
+                    <div class="ml-auto flex items-center gap-3">
                         <!-- Language Switcher -->
                         <div class="relative group z-50 hidden sm:block" data-language-switcher-case="title">
                             <button
@@ -428,42 +426,63 @@
                                 </a>
                             </div>
                         @endauth
+
+                        <!-- Mobile Menu Button -->
+                        <button type="button"
+                            @click="mobileMenuOpen = !mobileMenuOpen"
+                            :aria-expanded="mobileMenuOpen"
+                            aria-controls="mobile-menu"
+                            aria-label="{{ __('Menu') }}"
+                            class="flex h-11 w-11 items-center justify-center rounded-full border transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e3b537] md:hidden {{ $mobileMenuToggleClass }}">
+                            <span class="relative block h-5 w-5" aria-hidden="true">
+                                <svg x-show="!mobileMenuOpen" x-transition.opacity.duration.150ms
+                                    class="absolute inset-0 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 7h16M4 12h16M4 17h16" />
+                                </svg>
+                                <svg x-show="mobileMenuOpen" x-cloak x-transition.opacity.duration.150ms
+                                    class="absolute inset-0 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </span>
+                        </button>
                     </div>
                 </nav>
 
                 <!-- Mobile Menu Dropdown -->
-                <div x-show="mobileMenuOpen" x-collapse x-cloak class="{{ $mobileMenuClass }}">
-                    <div class="container mx-auto px-6 py-4 space-y-4">
-                        <div class="flex flex-col gap-2">
+                <div id="mobile-menu" x-show="mobileMenuOpen" x-collapse x-cloak class="{{ $mobileMenuClass }}">
+                    <nav aria-label="{{ __('Mobile navigation') }}" class="p-3">
+                        <div class="flex flex-col gap-0.5">
                             <a href="{{ route('events.index') }}" wire:navigate
-                                class="block py-2 text-base font-semibold {{ $mobileNavLinkClass }}">{{ __('Events') }}</a>
+                                class="flex min-h-11 items-center rounded-xl px-3 text-base font-semibold transition-colors {{ $mobileMenuLinkClass }}">{{ __('Events') }}</a>
                             <a href="{{ route('institutions.index') }}" wire:navigate
-                                class="block py-2 text-base font-semibold {{ $mobileNavLinkClass }}">{{ __('Institutions') }}</a>
+                                class="flex min-h-11 items-center rounded-xl px-3 text-base font-semibold transition-colors {{ $mobileMenuLinkClass }}">{{ __('Institutions') }}</a>
                             <a href="{{ route('persons.index') }}" wire:navigate
-                                class="block py-2 text-base font-semibold {{ $mobileNavLinkClass }}">{{ __('Speakers') }}</a>
+                                class="flex min-h-11 items-center rounded-xl px-3 text-base font-semibold transition-colors {{ $mobileMenuLinkClass }}">{{ __('Speakers') }}</a>
                         </div>
-                        <div class="border-t border-[#e5dccb] pt-4 flex flex-col gap-3">
+                        <div class="mt-3 flex flex-col gap-3 border-t pt-3 {{ $mobileMenuDividerClass }}">
                             <a href="{{ route('submit-event.create') }}" wire:navigate
                                 data-signal-event="submission.event_start_clicked"
                                 data-signal-category="submission"
                                 data-signal-component="site_header"
                                 data-signal-control="add_event"
-                                class="living-majlis-header-button living-majlis-header-button--gold block w-full rounded-xl px-4 py-3 text-center text-sm font-semibold">
+                                class="living-majlis-header-button living-majlis-header-button--gold flex min-h-12 w-full items-center justify-center rounded-xl px-4 text-sm font-semibold">
                                 <span class="relative z-10">{{ __('Add Event') }}</span>
                             </a>
                             @guest
                                 <div class="grid grid-cols-2 gap-3">
                                     <a href="{{ \App\Support\Auth\IntendedRedirect::loginUrl(request()->fullUrl()) }}" wire:navigate
-                                        class="flex items-center justify-center rounded-lg px-4 py-3 text-sm font-semibold {{ $mobileMenuButtonClass }}">
-                                        <span class="relative z-10">{{ __('Log In') }}</span>
+                                        class="flex min-h-11 items-center justify-center rounded-xl px-4 text-sm font-semibold transition-colors {{ $mobileMenuSecondaryClass }}">
+                                        {{ __('Log In') }}
                                     </a>
                                     <a href="{{ \App\Support\Auth\IntendedRedirect::registerUrl(request()->fullUrl()) }}" wire:navigate
-                                        class="living-majlis-header-button living-majlis-header-button--emerald flex items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold">
+                                        class="living-majlis-header-button living-majlis-header-button--emerald flex min-h-11 items-center justify-center rounded-xl px-4 text-sm font-semibold">
                                         <span class="relative z-10">{{ __('Sign Up') }}</span>
                                     </a>
                                 </div>
                             @else
-                                <div class="flex items-center gap-3 py-2">
+                                <div class="flex items-center gap-3 py-1">
                                     <div
                                         class="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold uppercase">
                                         {{ substr(auth()->user()->name, 0, 1) }}
@@ -473,86 +492,84 @@
                                         <p class="text-xs truncate {{ $mobileMenuMutedTextClass }}">{{ auth()->user()->email }}</p>
                                     </div>
                                 </div>
-                                <div class="space-y-3 border-t border-slate-100 pt-4">
-                                    <div class="space-y-2">
-                                        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{{ $homeMenuHeading }}</p>
-                                        <a href="{{ route('dashboard') }}" wire:navigate
-                                            class="block rounded-lg px-4 py-2 text-sm font-semibold {{ $mobileMenuButtonClass }}">
-                                            <span class="relative z-10">{{ $dashboardMenuLabel }}</span>
-                                        </a>
-                                        <a href="{{ route('dashboard.notifications') }}" wire:navigate
-                                            class="flex items-center justify-between rounded-lg px-4 py-2 text-sm font-semibold {{ $mobileMenuButtonClass }}">
-                                            <span class="relative z-10">{{ $inboxMenuLabel }}</span>
-                                            @if($notificationUnreadCount > 0)
-                                                <span class="relative z-10 inline-flex min-w-6 items-center justify-center rounded-full bg-emerald-600 px-2 py-0.5 text-xs font-semibold text-white">
-                                                    {{ $notificationUnreadCount }}
-                                                </span>
-                                            @endif
-                                        </a>
-                                    </div>
-                                    <div class="space-y-2 border-t border-slate-100 pt-4">
-                                        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{{ $workspaceMenuHeading }}</p>
-                                        <a href="{{ route('contributions.index') }}" wire:navigate
-                                            class="block rounded-lg px-4 py-2 text-sm font-semibold {{ $mobileMenuButtonClass }}">
-                                            <span class="relative z-10">{{ $contributionsMenuLabel }}</span>
-                                        </a>
-                                        @if($hasInstitutionDashboardAccess)
-                                            <a href="{{ route('dashboard.institutions') }}" wire:navigate
-                                                class="block rounded-lg px-4 py-2 text-sm font-semibold {{ $mobileMenuButtonClass }}">
-                                                <span class="relative z-10">{{ $institutionDashboardMenuLabel }}</span>
-                                            </a>
+                                <div class="space-y-1 border-t pt-3 {{ $mobileMenuDividerClass }}">
+                                    <p class="px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.18em] {{ $mobileMenuSectionLabelClass }}">{{ $homeMenuHeading }}</p>
+                                    <a href="{{ route('dashboard') }}" wire:navigate
+                                        class="flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold transition-colors {{ $mobileMenuRowClass }}">
+                                        {{ $dashboardMenuLabel }}
+                                    </a>
+                                    <a href="{{ route('dashboard.notifications') }}" wire:navigate
+                                        class="flex min-h-11 items-center justify-between rounded-xl px-3 text-sm font-semibold transition-colors {{ $mobileMenuRowClass }}">
+                                        <span>{{ $inboxMenuLabel }}</span>
+                                        @if($notificationUnreadCount > 0)
+                                            <span class="inline-flex min-w-6 items-center justify-center rounded-full bg-emerald-600 px-2 py-0.5 text-xs font-semibold text-white">
+                                                {{ $notificationUnreadCount }}
+                                            </span>
                                         @endif
-                                        @if($hasOrganizationDashboardAccess)
-                                            <a href="{{ route('dashboard.organizations.index') }}" wire:navigate
-                                                class="block rounded-lg px-4 py-2 text-sm font-semibold {{ $mobileMenuButtonClass }}">
-                                                <span class="relative z-10">{{ $organizationDashboardMenuLabel }}</span>
-                                            </a>
-                                        @endif
-                                        @if($hasManagedWorkspaceAccess && ! $hasOrganizationDashboardAccess)
-                                            <a href="{{ route('dashboard.organizations.index') }}" wire:navigate
-                                                class="block rounded-lg px-4 py-2 text-sm font-semibold {{ $mobileMenuButtonClass }}">
-                                                <span class="relative z-10">{{ __('Manage Workspaces') }}</span>
-                                            </a>
-                                        @endif
-                                    </div>
-                                    <div class="space-y-2 border-t border-slate-100 pt-4">
-                                        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{{ $accountMenuHeading }}</p>
-                                        <a href="{{ route('dashboard.account-settings') }}" wire:navigate
-                                            class="block rounded-lg px-4 py-2 text-sm font-semibold {{ $mobileMenuButtonClass }}">
-                                            <span class="relative z-10">{{ $settingsMenuLabel }}</span>
+                                    </a>
+                                </div>
+                                <div class="space-y-1 border-t pt-3 {{ $mobileMenuDividerClass }}">
+                                    <p class="px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.18em] {{ $mobileMenuSectionLabelClass }}">{{ $workspaceMenuHeading }}</p>
+                                    <a href="{{ route('contributions.index') }}" wire:navigate
+                                        class="flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold transition-colors {{ $mobileMenuRowClass }}">
+                                        {{ $contributionsMenuLabel }}
+                                    </a>
+                                    @if($hasInstitutionDashboardAccess)
+                                        <a href="{{ route('dashboard.institutions') }}" wire:navigate
+                                            class="flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold transition-colors {{ $mobileMenuRowClass }}">
+                                            {{ $institutionDashboardMenuLabel }}
                                         </a>
-                                        <form method="POST" action="{{ route('logout') }}">
-                                            @csrf
-                                            <button type="submit"
-                                                class="w-full rounded-lg px-4 py-2 text-sm font-semibold {{ $mobileMenuDangerClass }}">
-                                                <span class="relative z-10">{{ __('Log Out') }}</span>
-                                            </button>
-                                        </form>
-                                    </div>
+                                    @endif
+                                    @if($hasOrganizationDashboardAccess)
+                                        <a href="{{ route('dashboard.organizations.index') }}" wire:navigate
+                                            class="flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold transition-colors {{ $mobileMenuRowClass }}">
+                                            {{ $organizationDashboardMenuLabel }}
+                                        </a>
+                                    @endif
+                                    @if($hasManagedWorkspaceAccess && ! $hasOrganizationDashboardAccess)
+                                        <a href="{{ route('dashboard.organizations.index') }}" wire:navigate
+                                            class="flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold transition-colors {{ $mobileMenuRowClass }}">
+                                            {{ __('Manage Workspaces') }}
+                                        </a>
+                                    @endif
+                                </div>
+                                <div class="space-y-1 border-t pt-3 {{ $mobileMenuDividerClass }}">
+                                    <p class="px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.18em] {{ $mobileMenuSectionLabelClass }}">{{ $accountMenuHeading }}</p>
+                                    <a href="{{ route('dashboard.account-settings') }}" wire:navigate
+                                        class="flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold transition-colors {{ $mobileMenuRowClass }}">
+                                        {{ $settingsMenuLabel }}
+                                    </a>
+                                    <form method="POST" action="{{ route('logout') }}">
+                                        @csrf
+                                        <button type="submit"
+                                            class="flex min-h-11 w-full items-center rounded-xl px-3 text-sm font-semibold transition-colors {{ $mobileMenuDangerClass }}">
+                                            {{ __('Log Out') }}
+                                        </button>
+                                    </form>
                                 </div>
                             @endguest
                         </div>
                         <!-- Mobile Language Switcher -->
-                        <div class="border-t border-[#e5dccb] pt-4" data-language-switcher-case="title">
-                            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                        <div class="mt-3 border-t pt-3 {{ $mobileMenuDividerClass }}" data-language-switcher-case="title">
+                            <p class="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.18em] {{ $mobileMenuSectionLabelClass }}">
                                 {{ __('Language') }}
                             </p>
-                            <div class="flex flex-wrap gap-2">
+                            <div class="flex flex-wrap gap-2 px-3">
                                 @foreach ($publicMenuLocales as $locale => $label)
                                     @php
-                                        $languagePillClass = $useHomeHeader
-                                            ? ($locale === $currentLocale ? 'border-emerald-300/60 bg-emerald-400/20 text-emerald-100' : 'border-white/25 text-white/80')
-                                            : ($locale === $currentLocale ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-100 text-slate-600');
+                                        $languagePillVariantClass = $useHomeHeader
+                                            ? ($locale === $currentLocale ? 'border-emerald-300/60 bg-emerald-400/20 text-emerald-100' : 'border-white/25 text-white/80 hover:bg-white/10')
+                                            : ($locale === $currentLocale ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-[#e5dccb] text-slate-600 hover:border-[#006044] hover:text-[#006044]');
                                     @endphp
                                     <a href="{{ route('locale.switch', $locale) }}"
                                         data-language-switcher-option="{{ $locale }}"
-                                        class="living-majlis-header-button px-3 py-1.5 rounded-full text-xs font-medium border {{ $languagePillClass }}">
-                                        <span class="relative z-10">{{ $label }}</span>
+                                        class="{{ $languagePillClass }} {{ $languagePillVariantClass }}">
+                                        {{ $label }}
                                     </a>
                                 @endforeach
                             </div>
                         </div>
-                    </div>
+                    </nav>
                 </div>
             </header>
 
@@ -590,11 +607,6 @@
                                 >
                                 <span class="mt-0.5 text-sm font-semibold text-gold-300" aria-hidden="true">™</span>
                             </div>
-                            <p class="living-majlis-footer-description text-white/85"
-                                style="text-shadow: 0 1px 3px rgba(2,33,22,0.8), 0 0 14px rgba(2,33,22,0.45);">
-                                {{ __('Connecting the community through knowledge. Discover classes, lectures, and gatherings across Malaysia.') }}
-                            </p>
-
                             <div class="living-majlis-footer-socials flex items-center">
                                 <a href="https://x.com/ilmu360" target="_blank" rel="noopener noreferrer" aria-label="X"
                                     class="living-majlis-footer-social flex items-center justify-center rounded-full border transition-colors duration-200 hover:border-gold-300 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">
@@ -676,17 +688,9 @@
                                 <li><a href="{{ route('contributions.submit-person') }}" wire:navigate
                                         class="transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">{{ __('Speaker suggestion') }}</a>
                                 </li>
-                                @php
-                                    $supportEmail = config('mail.from.address');
-                                    $hasSupportEmail = filled($supportEmail) && $supportEmail !== 'hello@example.com';
-                                @endphp
                                 <li>
-                                    @if ($hasSupportEmail)
-                                        <a href="mailto:{{ $supportEmail }}"
-                                            class="transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">{{ __('Contact Support') }}</a>
-                                    @else
-                                        <span>{{ __('Contact Support') }}</span>
-                                    @endif
+                                    <a href="{{ route('contact') }}" wire:navigate
+                                        class="transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">{{ __('Contact Support') }}</a>
                                 </li>
                             </ul>
                         </nav>
@@ -709,16 +713,14 @@
                         class="living-majlis-footer-bottom flex gap-4 text-white/70">
                         <p>&copy; {{ date('Y') }} ilmu360°. {{ __('All rights reserved.') }}</p>
                         <div class="flex items-center gap-3">
-                            <span>{{ __('Privacy') }}</span>
+                            <a href="{{ route('privacy') }}" wire:navigate
+                                class="transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">{{ __('Privacy') }}</a>
                             <span aria-hidden="true">|</span>
-                            <span>{{ __('Terms') }}</span>
+                            <a href="{{ route('terms') }}" wire:navigate
+                                class="transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">{{ __('Terms') }}</a>
                             <span aria-hidden="true">|</span>
-                            @if ($hasSupportEmail)
-                                <a href="mailto:{{ $supportEmail }}"
-                                    class="transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">{{ __('Contact Us') }}</a>
-                            @else
-                                <span>{{ __('Contact Us') }}</span>
-                            @endif
+                            <a href="{{ route('contact') }}" wire:navigate
+                                class="transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">{{ __('Contact Us') }}</a>
                         </div>
                     </div>
                 </div>

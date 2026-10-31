@@ -616,13 +616,6 @@ new class extends Component
                             <a href="{{ route('institutions.show', $institution) }}" wire:navigate class="flex flex-1 flex-col after:absolute after:inset-0">
                             <!-- Banner Area (16:9, cover-first) -->
                             <div class="institution-card-media aspect-video bg-slate-50 relative overflow-hidden">
-                                @if($institution->status === \App\Enums\InstitutionStatus::Verified)
-                                    <span data-testid="verified-badge" class="absolute start-2.5 top-2.5 z-10 inline-flex items-center gap-1.5 rounded-full border border-white/70 bg-white/92 px-2.5 py-1 text-[10px] font-bold text-emerald-800 shadow-sm backdrop-blur">
-                                        <flux:icon.check variant="mini" class="size-3.5 text-emerald-700" />
-                                        {{ __('Disahkan') }}
-                                    </span>
-                                @endif
-
                                 @if($cardInstitutionImageUrl)
                                     <img src="{{ $cardInstitutionImageUrl }}" alt="{{ $institution->name }}" class="h-full w-full object-cover" loading="lazy">
                                     <div class="absolute inset-0 bg-gradient-to-t from-slate-900/50 via-slate-900/15 to-transparent"></div>
@@ -641,6 +634,9 @@ new class extends Component
                             <div class="p-6 pb-0 pt-6 relative flex-1 flex flex-col">
                                 <h3 class="font-heading text-lg font-bold text-slate-900 group-hover:text-emerald-700 transition-colors mb-2 leading-tight">
                                     {{ $institution->name }}
+                                    @if($institution->status === \App\Enums\InstitutionStatus::Verified)
+                                        <x-ui.verified-badge class="text-emerald-600" data-testid="verified-badge" />
+                                    @endif
                                 </h3>
 
                                 @php

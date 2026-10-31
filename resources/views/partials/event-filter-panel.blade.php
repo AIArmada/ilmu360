@@ -1,56 +1,45 @@
 @php
     $showNearbyButton ??= true;
-    $activeFilterCount = $this->activeFilterCount();
-    $hasActiveFilters = $activeFilterCount > 0;
     $lat = $this->lat;
 @endphp
 
-<section class="living-majlis-veil overflow-hidden rounded-[1.5rem] border shadow-[0_20px_50px_-35px_rgba(15,23,42,0.55)]">
-            <div class="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between md:p-5">
-                <div class="flex min-w-0 items-start gap-3">
-                    <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100">
-                        <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M6.75 12h10.5m-7.5 5.25h4.5" />
-                        </svg>
-                    </span>
-                    <div class="min-w-0">
-                        <div class="flex flex-wrap items-center gap-2">
-                            <p class="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">{{ __('Filters') }}</p>
-                            @if($hasActiveFilters)
-                                <span class="inline-flex min-w-6 items-center justify-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-800" aria-label="{{ $activeFilterCount }} {{ __('Filters') }}">{{ $activeFilterCount }}</span>
-                            @endif
-                        </div>
-                        <p class="mt-1 text-sm text-slate-500">{{ __('Keputusan dikemas kini secara automatik.') }}</p>
-                    </div>
-                </div>
+<div class="flex items-center justify-end gap-3">
+    <div wire:loading.delay.short
+        wire:target="filterData,setLocation,clearLocation,clearAllFilters,toggleSave"
+        class="hidden items-center gap-2 text-xs font-semibold text-emerald-700 sm:inline-flex">
+        <svg class="size-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke-width="4"></circle>
+            <path class="opacity-75" stroke-width="4" d="M22 12a10 10 0 0 0-10-10"></path>
+        </svg>
+        {{ __('Updating results...') }}
+    </div>
+    <button type="button" @click="filtersOpen = !filtersOpen"
+        :aria-expanded="filtersOpen"
+        aria-controls="majlis-filter-panel"
+        data-signal-event="filter.panel_toggled"
+        data-signal-category="filter"
+        data-signal-component="events_index_filters"
+        data-signal-control="filter_panel"
+        class="inline-flex h-11 items-center gap-2 rounded-xl bg-emerald-800 px-3.5 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 focus-visible:ring-offset-2">
+        <svg class="size-4 transition-transform duration-200" :class="filtersOpen ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
+        </svg>
+        {{ __('Carian Majlis Khusus') }}
+    </button>
+</div>
 
-                <div class="flex shrink-0 items-center gap-3">
-                    <div wire:loading.delay.short
-                        wire:target="filterData,setLocation,clearLocation,clearAllFilters,toggleSave"
-                        class="hidden items-center gap-2 text-xs font-semibold text-emerald-700 sm:inline-flex">
-                        <svg class="size-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke-width="4"></circle>
-                            <path class="opacity-75" stroke-width="4" d="M22 12a10 10 0 0 0-10-10"></path>
-                        </svg>
-                        {{ __('Updating results...') }}
-                    </div>
-                    <button type="button" @click="filtersOpen = !filtersOpen"
-                        :aria-expanded="filtersOpen"
-                        aria-controls="majlis-filter-panel"
-                        data-signal-event="filter.panel_toggled"
-                        data-signal-category="filter"
-                        data-signal-component="events_index_filters"
-                        data-signal-control="filter_panel"
-                        class="inline-flex h-11 items-center gap-2 rounded-xl bg-emerald-800 px-3.5 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 focus-visible:ring-offset-2">
-                        <svg class="size-4 transition-transform duration-200" :class="filtersOpen ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
-                        </svg>
-                        {{ __('Filters') }}
-                    </button>
-                </div>
-            </div>
-
-            <div id="majlis-filter-panel" x-show="filtersOpen" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-2" class="border-t border-slate-100">
+<section
+    x-show="filtersOpen"
+    x-cloak
+    x-transition:enter="transition ease-out duration-200"
+    x-transition:enter-start="opacity-0 -translate-y-2"
+    x-transition:enter-end="opacity-100 translate-y-0"
+    x-transition:leave="transition ease-in duration-150"
+    x-transition:leave-start="opacity-100 translate-y-0"
+    x-transition:leave-end="opacity-0 -translate-y-2"
+    class="living-majlis-veil mt-4 overflow-hidden rounded-[1.5rem]"
+>
+            <div id="majlis-filter-panel">
                 <div class="p-4 md:p-5">
                     <div class="mb-5 flex flex-col gap-3 rounded-xl border border-emerald-100 bg-emerald-50/60 p-3.5 sm:flex-row sm:items-center sm:justify-between">
                         <div>
@@ -131,7 +120,6 @@
                             </svg>
                             {{ __('Set semula semua') }}
                         </button>
-                        <span class="text-xs font-medium text-slate-400">{{ __('Keputusan dikemas kini secara automatik.') }}</span>
                     </div>
                 </div>
             </div>

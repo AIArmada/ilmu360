@@ -338,10 +338,15 @@ new
                     <button type="submit" class="mt-1 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#087f59] px-7 text-sm font-bold text-white transition hover:bg-[#056747] sm:mt-0 sm:w-auto">{{ __('Cari') }}<span aria-hidden="true">→</span></button>
                 </form>
 
-                <div x-show="searchType === 'majlis'" class="mt-5 flex max-w-4xl flex-wrap gap-2">
+                <div
+                    class="mt-5 flex max-w-4xl flex-wrap gap-2 transition duration-200 ease-out motion-reduce:transition-none"
+                    :class="searchType === 'majlis' ? 'translate-y-0 opacity-100' : 'pointer-events-none -translate-y-2 opacity-0'"
+                    :aria-hidden="searchType === 'majlis' ? null : 'true'"
+                >
                     @foreach($quickFilters as $filter)
                         <button
                             type="button"
+                            :tabindex="searchType === 'majlis' ? 0 : -1"
                             x-on:click="selectHomeQuickFilter({ quickFilterKey: @js($filter['key']) })"
                             :class="activeQuickFilters.includes(@js($filter['key'])) ? 'border-[#e7bb57] bg-[#e7bb57] text-[#183128]' : 'border-white/25 bg-black/20 text-white/90 hover:border-[#e7bb57] hover:bg-[#e7bb57] hover:text-[#183128]'"
                             :aria-pressed="activeQuickFilters.includes(@js($filter['key']))"
@@ -360,15 +365,23 @@ new
     </section>
 
     {{-- Geography filter --}}
-    <section x-show="searchType === 'majlis'" x-cloak class="relative z-20 mx-auto max-w-7xl px-5 py-4 sm:px-6 lg:px-8">
-        <livewire:components.event-filters :quick-filter-ranges="$eventDateLinks" :show-nearby-button="true" />
-    </section>
+    <div
+        class="grid bg-[#f8f7f1] transition-[grid-template-rows,opacity,visibility] duration-300 ease-out motion-reduce:transition-none"
+        :class="searchType === 'majlis' ? 'visible grid-rows-[1fr] opacity-100' : 'invisible grid-rows-[0fr] opacity-0'"
+        :aria-hidden="searchType === 'majlis' ? null : 'true'"
+    >
+        <div class="overflow-hidden">
+            <section class="relative z-20 mx-auto max-w-7xl px-5 pt-8 sm:px-6 sm:pt-10 lg:px-8">
+                <livewire:components.event-filters :quick-filter-ranges="$eventDateLinks" :show-nearby-button="true" />
+            </section>
+        </div>
+    </div>
 
     {{-- Featured events --}}
-    <section class="bg-[#f8f7f1] py-12 sm:py-16 lg:py-20">
+    <section class="bg-[#f8f7f1] pt-6 pb-12 sm:pt-8 sm:pb-16 lg:pt-10 lg:pb-20">
         <div class="mx-auto grid max-w-[120rem] gap-8 px-5 sm:px-8 lg:grid-cols-1 lg:px-14 xl:px-16">
             <div>
-                <div class="flex items-end justify-between gap-4"><div><p class="flex items-center gap-2 text-[0.68rem] font-bold uppercase tracking-[0.2em] text-[#087f59]"><span class="h-2 w-2 rounded-full bg-[#087f59]"></span>{{ __('Majlis Akan Datang') }}</p><h2 class="mt-2 font-heading text-3xl font-bold tracking-tight text-[#112c26] sm:text-4xl">{{ __('Pilihan Majlis Minggu Ini') }}</h2></div><a href="{{ route('events.index') }}" wire:navigate class="hidden items-center gap-2 text-xs font-bold text-[#087f59] sm:inline-flex">{{ __('Lihat semua majlis') }} <span aria-hidden="true">→</span></a></div>
+                <div class="flex items-end justify-between gap-4"><div><h2 class="font-heading text-[1.4rem] font-bold tracking-tight text-[#112c26] sm:text-4xl">{{ __('Pilihan Majlis Minggu Ini') }}</h2></div><a href="{{ route('events.index') }}" wire:navigate class="hidden items-center gap-2 text-xs font-bold text-[#087f59] sm:inline-flex">{{ __('Lihat semua majlis') }} <span aria-hidden="true">→</span></a></div>
                 @if($this->featuredEvents->isNotEmpty())
                     <div class="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                         @foreach($this->featuredEvents as $scheduleLeaf)
@@ -483,10 +496,7 @@ new
 
         <div class="relative mx-auto grid max-w-[120rem] gap-6 px-5 py-8 sm:px-8 sm:py-9 lg:grid-cols-[17rem_minmax(0,1fr)_8rem] lg:items-center lg:gap-4 lg:px-14 lg:py-8 xl:px-16">
             <div>
-                <p class="flex items-center gap-2 text-[0.62rem] font-bold uppercase tracking-[0.12em] text-white/95 sm:text-[0.68rem]">
-                    <span class="h-2 w-2 rounded-full bg-[#54b77d]"></span>{{ __('Ikuti penceramah kegemaran anda') }}
-                </p>
-                <h2 class="mt-3 max-w-[14rem] font-serif text-[2rem] font-semibold leading-[0.94] tracking-[-0.025em] sm:text-[2.25rem]">
+                <h2 class="max-w-[14rem] font-serif text-[2rem] font-semibold leading-[0.94] tracking-[-0.025em] sm:text-[2.25rem]">
                     {{ __('Tokoh Ilmu,') }}<br>{{ __('Lebih Dekat') }}
                 </h2>
                 <p class="mt-3 max-w-[15rem] text-xs leading-[1.5] text-white/90">
@@ -500,7 +510,7 @@ new
             <div class="grid grid-cols-2 gap-2.5 sm:grid-cols-5 sm:gap-3">
                 @forelse($this->featuredPersons as $person)
                     <a href="{{ route('persons.show', $person) }}" wire:navigate wire:key="home-speaker-{{ $person->id }}" class="group relative aspect-[0.82] min-h-[10rem] overflow-hidden rounded-xl border border-white/35 bg-[#153d31]/55 shadow-lg shadow-black/15 sm:aspect-[0.58] sm:min-h-[10rem]">
-                        <img src="{{ $person->public_avatar_url ?: $person->default_avatar_url }}" alt="{{ $person->formatted_name }}" loading="lazy" class="absolute inset-0 h-full w-full object-cover object-top opacity-95 transition duration-500 group-hover:scale-[1.03]">
+                        <img src="{{ $person->public_main_url }}" alt="{{ $person->formatted_name }}" loading="lazy" class="absolute inset-0 h-full w-full object-cover object-top opacity-95 transition duration-500 group-hover:scale-[1.03]">
                         <div class="absolute inset-0 bg-gradient-to-t from-[#05251d]/95 via-[#05251d]/10 to-transparent"></div>
                         <span class="absolute inset-x-2.5 bottom-2.5 line-clamp-2 text-[0.66rem] font-bold leading-tight text-white sm:text-xs">{{ $person->formatted_name }}</span>
                     </a>

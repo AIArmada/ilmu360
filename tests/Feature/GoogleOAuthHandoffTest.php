@@ -223,7 +223,7 @@ it('maps bridge error codes to login toasts', function () {
 
     $this->get(route('socialite.error', ['code' => 'unconfigured']))
         ->assertRedirect(route('login'))
-        ->assertSessionHas('toast.message', __('Google sign-in is not configured right now. Please use email and password instead.'));
+        ->assertSessionHas('toast.message', __('Google sign-in is not configured right now. Please try again later.'));
 
     $this->get(route('socialite.error', ['code' => 'bogus']))
         ->assertRedirect(route('login'))

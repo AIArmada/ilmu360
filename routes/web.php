@@ -58,6 +58,9 @@ use Laravel\Fortify\Features;
 
 Route::livewire('/', 'pages.⚡home')->name('home');
 Route::livewire('/tentang-kami', AboutPage::class)->name('about');
+Route::view('/privasi', 'pages.legal', ['pageKey' => 'privacy'])->name('privacy');
+Route::view('/terma', 'pages.legal', ['pageKey' => 'terms'])->name('terms');
+Route::view('/hubungi-kami', 'pages.legal', ['pageKey' => 'contact'])->name('contact');
 Route::get('/bahasa/{locale}', LocaleController::class)->name('locale.switch');
 
 Route::get('/jemputan/{token}', ReferralInviteLandingController::class)
@@ -140,11 +143,9 @@ Route::livewire('/majlis/{event:slug}/{occurrenceSlug}', 'pages.events.occurrenc
     ->name('events.occurrence');
 
 // Event Submission (Public)
-Route::livewire('/tambah-majlis', 'pages.submit-event.landing')
-    ->name('submit-event.landing');
-Route::livewire('/hantar-majlis', Create::class)
+Route::livewire('/tambah-majlis', Create::class)
     ->name('submit-event.create');
-Route::livewire('/hantar-majlis/berjaya', 'pages.submit-event.success')->name('submit-event.success');
+Route::livewire('/tambah-majlis/berjaya', 'pages.submit-event.success')->name('submit-event.success');
 
 Route::get('/ops/network-diagnostics', NetworkDiagnosticsController::class)
     ->withoutMiddleware([

@@ -74,7 +74,7 @@ function submitAtomicityPayload(EventTerm $domainTag, EventTerm $disciplineTag, 
 
 function submitAtomicityRequest(): Request
 {
-    return Request::create('/hantar-majlis', 'POST', server: ['REMOTE_ADDR' => '127.0.0.1']);
+    return Request::create('/tambah-majlis', 'POST', server: ['REMOTE_ADDR' => '127.0.0.1']);
 }
 
 it('persists guest contacts privately with NONE admission and a single UTC occurrence', function () {

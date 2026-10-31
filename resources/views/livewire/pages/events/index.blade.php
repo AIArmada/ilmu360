@@ -432,15 +432,6 @@
                             <h2 aria-live="polite" class="font-heading text-2xl font-bold text-emerald-950">
                                 {{ trans_choice(':count majlis dijumpai', $events->total(), ['count' => number_format($events->total())]) }}
                             </h2>
-                            <p class="mt-1 text-sm text-slate-500">
-                                {{ match ($this->time_scope ?? 'upcoming') {
-                                    'past' => __('Past Gatherings'),
-                                    'all' => __('All Gatherings'),
-                                    default => __('Upcoming Gatherings'),
-                                } }}
-                                ·
-                                {{ filled($lat) ? __('Menunjukkan hasil dalam :radius km', ['radius' => $this->radius_km]) : __('Menunjukkan majlis yang sepadan dengan carian anda') }}
-                            </p>
                         </div>
 
                     </div>
@@ -621,34 +612,36 @@
                     @endphp
 
                 <div class="mt-5 min-h-[42rem]" wire:transition="event-results">
-                    <div wire:loading.delay.short wire:target="{{ $eventLoadingTarget }}" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                        @foreach(range(1, 6) as $index)
-                            <article class="animate-pulse overflow-hidden rounded-2xl border border-emerald-200 bg-white shadow-[0_12px_30px_-18px_rgba(24,53,43,0.35)]">
-                                <div class="aspect-video w-full bg-slate-200"></div>
-                                <div class="px-4 pt-4 pb-4">
-                                    <div class="flex items-center gap-3">
-                                        <div class="h-14 w-12 shrink-0 rounded-xl bg-slate-100"></div>
-                                        <div class="h-5 w-4/5 rounded-full bg-slate-200"></div>
+                    <div wire:loading.delay.short wire:target="{{ $eventLoadingTarget }}" data-testid="events-loading-skeleton" class="w-full">
+                        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                            @foreach(range(1, 6) as $index)
+                                <article class="animate-pulse overflow-hidden rounded-2xl border border-emerald-200 bg-white shadow-[0_12px_30px_-18px_rgba(24,53,43,0.35)]">
+                                    <div class="aspect-video w-full bg-slate-200"></div>
+                                    <div class="px-4 pt-4 pb-4">
+                                        <div class="flex items-center gap-3">
+                                            <div class="h-14 w-12 shrink-0 rounded-xl bg-slate-100"></div>
+                                            <div class="h-5 w-4/5 rounded-full bg-slate-200"></div>
+                                        </div>
+                                        <div class="mt-3 flex gap-1.5">
+                                            <div class="h-4 w-20 rounded-full bg-slate-100"></div>
+                                            <div class="h-4 w-16 rounded-full bg-slate-100"></div>
+                                        </div>
+                                        <div class="mt-4 space-y-2">
+                                            <div class="h-4 w-4/5 rounded-full bg-slate-100"></div>
+                                            <div class="h-4 w-3/5 rounded-full bg-slate-100"></div>
+                                            <div class="h-4 w-1/2 rounded-full bg-slate-100"></div>
+                                        </div>
                                     </div>
-                                    <div class="mt-3 flex gap-1.5">
-                                        <div class="h-4 w-20 rounded-full bg-slate-100"></div>
-                                        <div class="h-4 w-16 rounded-full bg-slate-100"></div>
+                                    <div class="mt-auto flex items-center justify-between gap-3 border-t border-slate-100 px-4 pb-4 pt-4">
+                                        <div class="h-4 w-24 rounded-full bg-slate-100"></div>
+                                        <div class="flex gap-2">
+                                            <div class="size-9 rounded-xl bg-slate-100"></div>
+                                            <div class="size-9 rounded-xl bg-slate-100"></div>
+                                        </div>
                                     </div>
-                                    <div class="mt-4 space-y-2">
-                                        <div class="h-4 w-4/5 rounded-full bg-slate-100"></div>
-                                        <div class="h-4 w-3/5 rounded-full bg-slate-100"></div>
-                                        <div class="h-4 w-1/2 rounded-full bg-slate-100"></div>
-                                    </div>
-                                </div>
-                                <div class="mt-auto flex items-center justify-between gap-3 border-t border-slate-100 px-4 pb-4 pt-4">
-                                    <div class="h-4 w-24 rounded-full bg-slate-100"></div>
-                                    <div class="flex gap-2">
-                                        <div class="size-9 rounded-xl bg-slate-100"></div>
-                                        <div class="size-9 rounded-xl bg-slate-100"></div>
-                                    </div>
-                                </div>
-                            </article>
-                        @endforeach
+                                </article>
+                            @endforeach
+                        </div>
                     </div>
 
                     <div wire:loading.remove wire:target="{{ $eventLoadingTarget }}">
@@ -755,6 +748,60 @@
 
                             </section>
         </form>
+
+        <!-- Add Event CTA -->
+        <section class="relative mt-14 sm:mt-16" data-testid="events-index-submit-cta">
+            <div data-material="opaque-cta" class="living-majlis-cta relative overflow-hidden rounded-[1.5rem] border border-emerald-800/15 px-6 py-10 text-white sm:px-8 md:px-10 md:py-11">
+                <div class="absolute inset-0 opacity-[0.08]" style="background-image: radial-gradient(circle at 1.5px 1.5px, rgba(255,255,255,.70) 1px, transparent 0); background-size: 22px 22px;"></div>
+                <div class="absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-emerald-700/[0.15] blur-3xl"></div>
+
+                <div class="relative flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+                    <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-6">
+                        <span class="relative grid h-20 w-20 shrink-0 place-items-center rounded-[1.35rem] bg-emerald-800/35 text-[#f5d98f] shadow-[0_18px_34px_-22px_rgba(0,0,0,0.9)]">
+                            <span class="pointer-events-none absolute inset-3 rounded-full bg-gold-300/10 blur-xl"></span>
+                            <svg class="relative h-14 w-14 drop-shadow-[0_6px_8px_rgba(0,0,0,0.18)]" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+                                <defs>
+                                    <linearGradient id="add-event-gold" x1="12" y1="8" x2="52" y2="58" gradientUnits="userSpaceOnUse">
+                                        <stop stop-color="#FFF0B1" />
+                                        <stop offset="1" stop-color="#E8BA55" />
+                                    </linearGradient>
+                                </defs>
+                                <rect x="9" y="14" width="46" height="41" rx="11" stroke="url(#add-event-gold)" stroke-width="3" />
+                                <path d="M9 26h46M22 9v10M42 9v10" stroke="url(#add-event-gold)" stroke-linecap="round" stroke-width="3" />
+                                <path d="M32 34v12M26 40h12" stroke="#FFF0B1" stroke-linecap="round" stroke-width="3" />
+                            </svg>
+                        </span>
+
+                        <div class="max-w-2xl">
+                            <p class="text-[11px] font-black uppercase tracking-[0.22em] text-gold-300">
+                                {{ __('For event organisers') }}
+                            </p>
+                            <h2 class="mt-2 max-w-xl font-heading text-2xl font-bold leading-snug tracking-tight text-balance sm:text-3xl">
+                                {{ __('Have a gathering to share?') }}
+                            </h2>
+                            <p class="mt-3 max-w-2xl text-sm leading-6 text-emerald-100/75 sm:text-base">
+                                {{ __('Add your event to the ilmu360° directory for free.') }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <a
+                        href="{{ route('submit-event.create') }}"
+                        wire:navigate
+                        data-signal-event="submission.event_start_clicked"
+                        data-signal-category="submission"
+                        data-signal-component="events_index_cta"
+                        data-signal-control="add_event"
+                        class="living-majlis-cta-button group inline-flex min-h-14 w-full items-center justify-between gap-5 rounded-[1.25rem] px-5 py-3.5 text-left text-[#063b27] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-gold-400/40 sm:w-auto sm:min-w-[18rem]"
+                    >
+                        <span class="relative z-10 text-sm font-bold sm:text-base">{{ __('Add Event') }}</span>
+                        <svg class="relative z-10 h-5 w-5 shrink-0" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.167 10h11.666m0 0-4.166-4.167M15.833 10l-4.166 4.167" />
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </section>
 
     </main>
 </div>

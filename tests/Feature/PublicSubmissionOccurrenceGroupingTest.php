@@ -83,7 +83,7 @@ function publicOccurrenceGroupingPayload(Institution $institution, array $overri
 
 function publicOccurrenceGroupingRequest(): Request
 {
-    return Request::create('/hantar-majlis', 'POST', server: ['REMOTE_ADDR' => '127.0.0.1']);
+    return Request::create('/tambah-majlis', 'POST', server: ['REMOTE_ADDR' => '127.0.0.1']);
 }
 
 function publicOccurrenceGroupingInstitution(string $name = 'Masjid Shah Alam'): Institution

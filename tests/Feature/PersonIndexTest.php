@@ -961,12 +961,12 @@ it('renders gender-aware placeholders for speakers without profile images', func
             ->assertSee('width="300"', false)
             ->assertSee('height="400"', false);
     } else {
-        $response->assertDontSee('src="'.asset('images/placeholders/person-male.png').'"', false)
-            ->assertDontSee('src="'.asset('images/placeholders/person-female.png').'"', false);
+        $response->assertDontSee('src="'.asset('images/placeholders/person-male-portrait.webp').'"', false)
+            ->assertDontSee('src="'.asset('images/placeholders/person-female-portrait.webp').'"', false);
     }
 })->with([
-    [Gender::Male, 'male', 'images/placeholders/person-male.png'],
-    [Gender::Female, 'female', 'images/placeholders/person-female.png'],
+    [Gender::Male, 'male', 'images/placeholders/person-male-portrait.webp'],
+    [Gender::Female, 'female', 'images/placeholders/person-female-portrait.webp'],
     [null, 'neutral', null],
 ]);
 

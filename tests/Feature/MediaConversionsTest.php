@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\Persons\Enums\Gender;
 use App\Models\DonationChannel;
 use App\Models\Event;
 use App\Models\Institution;
@@ -377,13 +378,14 @@ it('registers profile media collection for Person model', function () {
     expect($media->getMediaConversionNames())->toContain('profile_thumb');
 });
 
-it('returns public_main_url fallback when Person has no profile photo', function () {
-    $person = Person::factory()->create();
+it('returns a gender-aware portrait fallback when Person has no profile photo', function (Gender $gender, string $asset) {
+    $person = Person::factory()->create(['gender' => $gender]);
 
-    $mainUrl = $person->public_main_url;
-
-    expect($mainUrl)->not->toBeEmpty();
-});
+    expect($person->public_main_url)->toBe(asset($asset));
+})->with([
+    [Gender::Male, 'images/placeholders/person-male-portrait.webp'],
+    [Gender::Female, 'images/placeholders/person-female-portrait.webp'],
+]);
 
 // ---------------------------------------------------------------
 // Venue model

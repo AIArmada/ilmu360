@@ -2,12 +2,24 @@
 
 use App\Models\User;
 
-test('login screen can be rendered', function () {
+test('login screen hides email authentication by default', function () {
+    $response = $this->get('/login');
+
+    $response->assertStatus(200)
+        ->assertDontSee('autocomplete="email"', false)
+        ->assertDontSee('autocomplete="current-password"', false)
+        ->assertDontSee(route('register'), false);
+});
+
+test('email login form is available when email authentication is enabled', function () {
+    config()->set('fortify.email_authentication_enabled', true);
+
     $response = $this->get('/login');
 
     $response->assertStatus(200)
         ->assertSee('autocomplete="email"', false)
-        ->assertSee('autocomplete="current-password"', false);
+        ->assertSee('autocomplete="current-password"', false)
+        ->assertSee(route('register'), false);
 });
 
 test('users can authenticate using the login screen', function () {
@@ -33,8 +45,19 @@ test('users can not authenticate with invalid password', function () {
     $this->assertGuest();
 });
 
-test('register screen can be rendered', function () {
+test('register screen hides email registration by default', function () {
     $response = $this->get('/register');
+    $response->assertStatus(200)
+        ->assertDontSee('autocomplete="name"', false)
+        ->assertDontSee('autocomplete="email"', false)
+        ->assertDontSee('autocomplete="new-password"', false);
+});
+
+test('email registration form is available when email authentication is enabled', function () {
+    config()->set('fortify.email_authentication_enabled', true);
+
+    $response = $this->get('/register');
+
     $response->assertStatus(200)
         ->assertSee('autocomplete="name"', false)
         ->assertSee('autocomplete="email"', false)

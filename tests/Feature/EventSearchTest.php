@@ -2598,7 +2598,7 @@ describe('Event Search Filters', function () {
 
         $response->assertOk()
             ->assertSee('5')
-            ->assertSee('Upcoming Gatherings');
+            ->assertSee('majlis dijumpai');
     });
 
     it('ignores prayer time filter when timing mode is absolute', function () {

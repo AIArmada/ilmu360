@@ -63,7 +63,7 @@ it('redirects back to login when the provider is not configured', function () {
 
     $response->assertRedirect(route('login'));
     $response->assertSessionHas('toast.type', 'error');
-    $response->assertSessionHas('toast.message', __('Google sign-in is not configured right now. Please use email and password instead.'));
+    $response->assertSessionHas('toast.message', __('Google sign-in is not configured right now. Please try again later.'));
 });
 
 it('redirects to the intended page after password login', function () {

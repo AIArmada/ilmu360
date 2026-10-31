@@ -440,7 +440,24 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
             }
         }
 
-        return asset('images/placeholders/person.png');
+        if ($this->hasMedia('avatar')) {
+            return $this->public_avatar_url;
+        }
+
+        return $this->default_portrait_url;
+    }
+
+    public function getDefaultPortraitUrlAttribute(): string
+    {
+        if ($this->avatar_url) {
+            return $this->avatar_url;
+        }
+
+        if ($this->gender === Gender::Female) {
+            return asset('images/placeholders/person-female-portrait.webp');
+        }
+
+        return asset('images/placeholders/person-male-portrait.webp');
     }
 
     public function getDefaultAvatarUrlAttribute(): string

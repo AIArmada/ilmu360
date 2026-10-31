@@ -69,7 +69,7 @@ function submitInputValidationPayload(EventTerm $domainTag, EventTerm $disciplin
 
 function submitInputValidationRequest(): Request
 {
-    return Request::create('/hantar-majlis', 'POST', server: ['REMOTE_ADDR' => '127.0.0.1']);
+    return Request::create('/tambah-majlis', 'POST', server: ['REMOTE_ADDR' => '127.0.0.1']);
 }
 
 function enableInputValidationCaptchaTrap(): void

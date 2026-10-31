@@ -28,6 +28,11 @@
     $cardStatusClass = $statusClass !== '' ? $statusClass : 'border-sky-200 bg-sky-50 text-sky-800';
     $cardUrl = $url ?? route('events.show', $event);
     $cardTitle = $title ?? $event->title;
+    $cardTitleParts = $cardApprovalLabel !== null
+        ? (preg_split('/\s+/u', trim((string) $cardTitle), -1, PREG_SPLIT_NO_EMPTY) ?: [])
+        : [];
+    $cardTitleLastWord = $cardTitleParts === [] ? '' : (string) array_pop($cardTitleParts);
+    $cardTitleLead = implode(' ', $cardTitleParts);
     $cardStartsAt = $startsAt ?? $event->starts_at;
     $cardSignalEntityType = $signalEntityType;
     $cardSignalEntityId = $signalEntityId ?? $event->getKey();
@@ -106,26 +111,19 @@
                 <span class="absolute bottom-3 right-3 rounded-full bg-white/95 px-2.5 py-1 text-xs font-bold text-emerald-800 shadow-sm">{{ number_format((float) $distanceKm, 1) }} km</span>
             @endif
         </div>
-        <div class="px-4 pt-4 pb-4">
-            <div class="mb-3 flex flex-wrap items-center gap-2" data-testid="event-card-facts">
-                <span class="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700" data-testid="event-card-type-badge">{{ $event->eventType?->name ?? __('Kuliah') }}</span>
-                <span class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700" data-testid="event-card-format-badge">
-                    @if($cardFormat === \App\Enums\EventFormat::Online)<flux:icon.video-camera class="size-3.5 shrink-0" />@elseif($cardFormat === \App\Enums\EventFormat::Hybrid)<flux:icon.globe-alt class="size-3.5 shrink-0" />@else<flux:icon.map-pin class="size-3.5 shrink-0" />@endif
-                    {{ $cardFormatLabel }}
-                </span>
-                @if($cardApprovalLabel !== null)
-                    <span data-testid="event-card-approval-badge" title="{{ __('Diluluskan untuk paparan di ilmu360°') }}" class="relative z-10 ml-auto inline-flex max-w-full items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800">
-                        <flux:icon.check-circle class="size-3.5 shrink-0" />
-                        {{ $cardApprovalLabel }}
-                    </span>
-                @endif
-            </div>
+        <div class="flex flex-1 flex-col px-4 pt-4 pb-4">
             <div class="flex items-center gap-3">
                 <div class="flex h-14 w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-[#f2f8f1] text-[#087f59]" data-testid="event-card-date-badge">
                     <span class="text-[0.58rem] font-bold uppercase tracking-widest">{{ $eventMonth }}</span>
                     <span class="font-heading text-xl font-bold leading-none">{{ $eventDate }}</span>
                 </div>
-                <h3 class="min-w-0 line-clamp-2 font-heading text-base font-bold leading-tight text-[#142f28]">{{ $cardTitle }}</h3>
+                <h3 class="min-w-0 font-heading text-base font-bold leading-tight text-[#142f28]">
+                    @if($cardTitleLastWord !== '')
+                        @if($cardTitleLead !== ''){{ $cardTitleLead }} @endif<span class="whitespace-nowrap">{{ $cardTitleLastWord }}<x-ui.verified-badge :label="$cardApprovalLabel" class="ms-1 text-emerald-600" data-testid="event-card-approval-badge" /></span>
+                    @else
+                        {{ $cardTitle }}
+                    @endif
+                </h3>
             </div>
             @if(filled($cardStatusLabel) || $eventTopics->isNotEmpty() || $eventThemes->isNotEmpty())
                 <div class="mt-3 flex flex-wrap items-center gap-1.5">
@@ -136,14 +134,15 @@
             @endif
             <div class="mt-4 space-y-2 text-sm text-[#56716a]">
                 @if(filled($eventKitab))<p class="flex items-start gap-2"><flux:icon.book-open class="mt-0.5 size-3.5 shrink-0 text-[#087f59]" /><span class="line-clamp-2">{{ $eventKitab }}</span></p>@endif
-                <div class="flex items-start gap-2" data-testid="event-card-location">
-                    @if($cardFormat === \App\Enums\EventFormat::Online)<flux:icon.video-camera class="mt-0.5 size-4 shrink-0 text-[#087f59]" />@else<flux:icon.map-pin class="mt-0.5 size-4 shrink-0 text-[#087f59]" />@endif
-                    <div class="min-w-0">
-                        <p class="line-clamp-2 font-semibold text-[#304e44]">{{ $eventLocation }}</p>
-                        @if($eventLocationSubtitle !== '')<p class="mt-0.5 text-xs leading-5">{{ $eventLocationSubtitle }}</p>@endif
-                        @if($cardFormat === \App\Enums\EventFormat::Hybrid)<p class="mt-0.5 text-xs leading-5">{{ __('Turut tersedia dalam talian') }}</p>@endif
+                @if($cardFormat !== \App\Enums\EventFormat::Online)
+                    <div class="flex items-start gap-2" data-testid="event-card-location">
+                        <flux:icon.map-pin class="mt-0.5 size-4 shrink-0 text-[#087f59]" />
+                        <div class="min-w-0">
+                            <p class="line-clamp-2 font-semibold text-[#304e44]">{{ $eventLocation }}</p>
+                            @if($eventLocationSubtitle !== '')<p class="mt-0.5 text-xs leading-5">{{ $eventLocationSubtitle }}</p>@endif
+                        </div>
                     </div>
-                </div>
+                @endif
                 <p class="flex items-center gap-2">
                     @if($speakerAvatarItems->isNotEmpty())
                         <span class="flex shrink-0 -space-x-2"{!! $speakerAvatarsTestId !!} aria-label="{{ __('Penceramah') }}">
@@ -153,6 +152,24 @@
                     @else<flux:icon.user class="size-5 shrink-0 text-[#087f59]" />@endif
                     <span{!! $speakersTestId !!} class="line-clamp-2">{{ $eventSpeakerNames !== '' ? $eventSpeakerNames : __('Penceramah jemputan') }}</span>
                 </p>
+            </div>
+            <div class="mt-auto flex flex-wrap items-center gap-2 pt-4">
+                <span class="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700" data-testid="event-card-type-badge">{{ $event->eventType?->name ?? __('Kuliah') }}</span>
+                @if($cardFormat === \App\Enums\EventFormat::Hybrid)
+                    <span class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700" data-testid="event-card-format-badge">
+                        <flux:icon.map-pin class="size-3.5 shrink-0" />
+                        {{ \App\Enums\EventFormat::Physical->getLabel() }}
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700" data-testid="event-card-format-online-badge">
+                        <flux:icon.video-camera class="size-3.5 shrink-0" />
+                        {{ \App\Enums\EventFormat::Online->getLabel() }}
+                    </span>
+                @else
+                    <span class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700" data-testid="event-card-format-badge">
+                        @if($cardFormat === \App\Enums\EventFormat::Online)<flux:icon.video-camera class="size-3.5 shrink-0" />@else<flux:icon.map-pin class="size-3.5 shrink-0" />@endif
+                        {{ $cardFormatLabel }}
+                    </span>
+                @endif
             </div>
         </div>
     </a>

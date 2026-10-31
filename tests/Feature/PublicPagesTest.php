@@ -39,14 +39,31 @@ it('loads public index pages', function () {
     $this->get(route('persons.index'))->assertSuccessful()->assertSee(__('Cari ustaz, ustazah'));
     $this->get(route('venues.index'))->assertSuccessful()->assertSee('Majlis Ilmu');
     $this->get(route('references.index'))->assertSuccessful()->assertSee('Direktori Rujukan');
-    $this->get(route('submit-event.landing'))
-        ->assertSuccessful()
-        ->assertSee('Tambah Majlis')
-        ->assertSee('Ada majlis ilmu')
-        ->assertSee('yang patut orang tahu?')
-        ->assertSee('href="'.route('submit-event.create').'"', false);
-    $this->get(route('submit-event.create'))->assertSuccessful()->assertSee('Hantar Majlis');
+    $this->get(route('submit-event.create'))->assertSuccessful()->assertSee('Tambah Majlis');
     $this->get(route('submit-event.success'))->assertSuccessful()->assertSee(__('Event Submitted!'));
+});
+
+it('renders the events index loading skeleton inside a full width wrapper', function () {
+    $this->get(route('events.index'))
+        ->assertSuccessful()
+        ->assertSee('data-testid="events-loading-skeleton" class="w-full"', false);
+});
+
+it('shows the add-event call to action on the events index', function () {
+    $this->get(route('events.index'))
+        ->assertSuccessful()
+        ->assertSee('data-testid="events-index-submit-cta"', false)
+        ->assertSee('href="'.route('submit-event.create').'"', false);
+});
+
+it('serves the submit event form from the tambah-majlis route', function () {
+    expect(route('submit-event.create'))->toEndWith('/tambah-majlis')
+        ->and(route('submit-event.success'))->toEndWith('/tambah-majlis/berjaya');
+
+    $this->get('/tambah-majlis')
+        ->assertSuccessful()
+        ->assertSee('<title>Tambah Majlis - '.config('app.name').'</title>', false);
+    $this->get('/hantar-majlis')->assertNotFound();
 });
 
 it('respects the signals geolocation toggle in tracker markup', function () {
@@ -97,7 +114,7 @@ it('uses the floating menu header on the submit-event form like the speaker dire
 it('renders accessible labels on the public submit-event form', function () {
     $this->get(route('submit-event.create'))
         ->assertSuccessful()
-        ->assertSee('Hantar Majlis')
+        ->assertSee('Tambah Majlis')
         ->assertDontSee('Percuma untuk dihantar')
         ->assertDontSee('Semakan sebelum diterbitkan')
         ->assertSee('aria-label="Fizikal"', false)
@@ -150,11 +167,11 @@ it('uses the clean submit-event route for the manual entry point', function () {
         ->assertSee('data-signal-event="submission.poster_extraction_started"', false)
         ->getOriginalContent();
 
-    expect($manualForm)->toContain('Hantar Majlis');
+    expect($manualForm)->toContain('Tambah Majlis');
 
     $this->get(route('submit-event.create', ['mode' => 'manual']))
         ->assertSuccessful()
-        ->assertSee('Hantar Majlis')
+        ->assertSee('Tambah Majlis')
         ->assertSee('Ada poster? Biar kami bantu isi.');
 });
 
@@ -266,7 +283,7 @@ it('uses a wide placeholder aspect ratio for public events index cards without p
 
     $this->get(route('events.index', ['search' => 'Tanpa Poster']))
         ->assertSuccessful()
-        ->assertSee('Majlis Tanpa Poster')
+        ->assertSeeText('Majlis Tanpa Poster')
         ->assertSee('data-cover-aspect="16:9"', false);
 });
 
@@ -433,10 +450,10 @@ it('renders the date and event-type badges on public events index cards', functi
         ->assertSee('data-testid="event-card-date-badge"', false)
         ->assertSeeInOrder([
             'data-cover-aspect=',
+            'data-testid="event-card-date-badge"',
+            'data-testid="event-card-approval-badge"',
             'data-testid="event-card-type-badge"',
             'data-testid="event-card-format-badge"',
-            'data-testid="event-card-approval-badge"',
-            'data-testid="event-card-date-badge"',
         ], false);
 });
 

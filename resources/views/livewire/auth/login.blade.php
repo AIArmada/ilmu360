@@ -5,6 +5,7 @@
 @section('content')
     @php($googleOauthConfigured = \App\Support\Auth\SocialiteProviderConfiguration::isConfigured('google'))
     @php($authRedirectTarget = $redirectTarget ?? null)
+    @php($emailAuthenticationEnabled = (bool) config('fortify.email_authentication_enabled', false))
 
     <div class="space-y-6">
         <div class="space-y-2 text-center">
@@ -26,82 +27,86 @@
                 </a>
             </div>
 
-            <div class="relative flex items-center py-1">
-                <div class="grow border-t border-slate-200"></div>
-                <span class="mx-4 shrink-0 text-xs font-bold uppercase tracking-widest text-slate-400">{{ __('OR') }}</span>
-                <div class="grow border-t border-slate-200"></div>
-            </div>
+            @if ($emailAuthenticationEnabled)
+                <div class="relative flex items-center py-1">
+                    <div class="grow border-t border-slate-200"></div>
+                    <span class="mx-4 shrink-0 text-xs font-bold uppercase tracking-widest text-slate-400">{{ __('OR') }}</span>
+                    <div class="grow border-t border-slate-200"></div>
+                </div>
+            @endif
         @endif
 
-        <form method="POST" action="{{ route('login') }}" class="space-y-5">
-            @csrf
+        @if ($emailAuthenticationEnabled)
+            <form method="POST" action="{{ route('login') }}" class="space-y-5">
+                @csrf
 
-            <div class="space-y-1.5">
-                <label for="email" class="block text-sm font-semibold text-[#25384a]">{{ __('Email address') }}</label>
-                <div class="relative">
-                    <svg class="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-emerald-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 8.25 12 14l9-5.75M4.5 19.5h15A1.5 1.5 0 0 0 21 18V6a1.5 1.5 0 0 0-1.5-1.5h-15A1.5 1.5 0 0 0 3 6v12a1.5 1.5 0 0 0 1.5 1.5Z" />
-                    </svg>
-                    <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus
-                        autocomplete="email"
-                        class="block h-12 w-full appearance-none rounded-xl border border-slate-200 bg-white/90 pl-12 pr-4 text-sm text-slate-900 placeholder-slate-400 shadow-sm transition-all focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                        placeholder="you@example.com" />
+                <div class="space-y-1.5">
+                    <label for="email" class="block text-sm font-semibold text-[#25384a]">{{ __('Email address') }}</label>
+                    <div class="relative">
+                        <svg class="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-emerald-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 8.25 12 14l9-5.75M4.5 19.5h15A1.5 1.5 0 0 0 21 18V6a1.5 1.5 0 0 0-1.5-1.5h-15A1.5 1.5 0 0 0 3 6v12a1.5 1.5 0 0 0 1.5 1.5Z" />
+                        </svg>
+                        <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus
+                            autocomplete="email"
+                            class="block h-12 w-full appearance-none rounded-xl border border-slate-200 bg-white/90 pl-12 pr-4 text-sm text-slate-900 placeholder-slate-400 shadow-sm transition-all focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                            placeholder="you@example.com" />
+                    </div>
+                    @error('email')
+                        <p class="text-xs font-medium text-red-500">{{ $message }}</p>
+                    @enderror
                 </div>
-                @error('email')
-                    <p class="text-xs font-medium text-red-500">{{ $message }}</p>
-                @enderror
-            </div>
 
-            <div class="space-y-1.5">
-                <div class="flex items-center justify-between gap-4">
-                    <label for="password" class="block text-sm font-semibold text-[#25384a]">{{ __('Password') }}</label>
-                    @if (Route::has('password.request'))
-                        <a href="{{ route('password.request', \App\Support\Auth\IntendedRedirect::queryParameters($authRedirectTarget)) }}"
-                            class="text-xs font-semibold text-emerald-700 transition-colors decoration-2 underline-offset-4 hover:text-amber-600 hover:underline">
-                            {{ __('Forgot password?') }}
+                <div class="space-y-1.5">
+                    <div class="flex items-center justify-between gap-4">
+                        <label for="password" class="block text-sm font-semibold text-[#25384a]">{{ __('Password') }}</label>
+                        @if (Route::has('password.request'))
+                            <a href="{{ route('password.request', \App\Support\Auth\IntendedRedirect::queryParameters($authRedirectTarget)) }}"
+                                class="text-xs font-semibold text-emerald-700 transition-colors decoration-2 underline-offset-4 hover:text-amber-600 hover:underline">
+                                {{ __('Forgot password?') }}
+                            </a>
+                        @endif
+                    </div>
+                    <div class="relative">
+                        <svg class="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-emerald-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 10V7.5a4.5 4.5 0 0 1 9 0V10m-10.5 0h12A1.5 1.5 0 0 1 19.5 11.5v7A1.5 1.5 0 0 1 18 20H6a1.5 1.5 0 0 1-1.5-1.5v-7A1.5 1.5 0 0 1 6 10h.0Z" />
+                        </svg>
+                        <input id="password" type="password" name="password" required autocomplete="current-password"
+                            class="block h-12 w-full appearance-none rounded-xl border border-slate-200 bg-white/90 pl-12 pr-4 text-sm text-slate-900 placeholder-slate-400 shadow-sm transition-all focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                            placeholder="••••••••" />
+                    </div>
+                    @error('password')
+                        <p class="text-xs font-medium text-red-500">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div class="flex items-center">
+                    <input id="remember_me" type="checkbox" name="remember"
+                        class="h-4 w-4 rounded border-slate-300 text-emerald-700 transition duration-150 ease-in-out focus:ring-emerald-600" />
+                    <label for="remember_me" class="ml-2 block text-sm font-medium text-slate-600">{{ __('Keep me signed in') }}</label>
+                </div>
+
+                <button type="submit"
+                    class="group relative flex h-[3.65rem] w-full items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-[#087f4f] to-[#005b3d] text-sm font-bold uppercase tracking-[0.14em] text-white shadow-[0_10px_22px_-8px_rgba(0,92,62,0.65)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 active:scale-[0.98]">
+                    <span class="relative flex items-center gap-3">
+                        {{ __('Sign In') }}
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-5-5 5 5-5 5" />
+                        </svg>
+                    </span>
+                </button>
+            </form>
+
+            @if (Route::has('register'))
+                <div class="pt-1 text-center">
+                    <p class="text-sm text-slate-500">
+                        {{ __('Don\'t have an account?') }}
+                        <a href="{{ \App\Support\Auth\IntendedRedirect::registerUrl($authRedirectTarget) }}"
+                            class="ml-1 font-bold text-emerald-700 transition-colors decoration-2 underline-offset-4 hover:text-amber-600 hover:underline">
+                            {{ __('Create one') }}
                         </a>
-                    @endif
+                    </p>
                 </div>
-                <div class="relative">
-                    <svg class="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-emerald-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 10V7.5a4.5 4.5 0 0 1 9 0V10m-10.5 0h12A1.5 1.5 0 0 1 19.5 11.5v7A1.5 1.5 0 0 1 18 20H6a1.5 1.5 0 0 1-1.5-1.5v-7A1.5 1.5 0 0 1 6 10h.0Z" />
-                    </svg>
-                    <input id="password" type="password" name="password" required autocomplete="current-password"
-                        class="block h-12 w-full appearance-none rounded-xl border border-slate-200 bg-white/90 pl-12 pr-4 text-sm text-slate-900 placeholder-slate-400 shadow-sm transition-all focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                        placeholder="••••••••" />
-                </div>
-                @error('password')
-                    <p class="text-xs font-medium text-red-500">{{ $message }}</p>
-                @enderror
-            </div>
-
-            <div class="flex items-center">
-                <input id="remember_me" type="checkbox" name="remember"
-                    class="h-4 w-4 rounded border-slate-300 text-emerald-700 transition duration-150 ease-in-out focus:ring-emerald-600" />
-                <label for="remember_me" class="ml-2 block text-sm font-medium text-slate-600">{{ __('Keep me signed in') }}</label>
-            </div>
-
-            <button type="submit"
-                class="group relative flex h-[3.65rem] w-full items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-[#087f4f] to-[#005b3d] text-sm font-bold uppercase tracking-[0.14em] text-white shadow-[0_10px_22px_-8px_rgba(0,92,62,0.65)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 active:scale-[0.98]">
-                <span class="relative flex items-center gap-3">
-                    {{ __('Sign In') }}
-                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-5-5 5 5-5 5" />
-                    </svg>
-                </span>
-            </button>
-        </form>
-
-        @if (Route::has('register'))
-            <div class="pt-1 text-center">
-                <p class="text-sm text-slate-500">
-                    {{ __('Don\'t have an account?') }}
-                    <a href="{{ \App\Support\Auth\IntendedRedirect::registerUrl($authRedirectTarget) }}"
-                        class="ml-1 font-bold text-emerald-700 transition-colors decoration-2 underline-offset-4 hover:text-amber-600 hover:underline">
-                        {{ __('Create one') }}
-                    </a>
-                </p>
-            </div>
+            @endif
         @endif
 
         <p class="pt-1 text-center font-serif text-[0.95rem] italic text-[#8da0af]">“Menuntut ilmu adalah perjalanan seumur hidup.”</p>

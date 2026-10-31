@@ -4,7 +4,7 @@
 
 <div
     data-art-direction="living-majlis"
-    class="living-majlis-field text-slate-900"
+    class="living-majlis-field bg-transparent bg-none text-slate-900"
     x-init="window.dispatchEvent(new CustomEvent('home-quick-filter-state-updated', { detail: { activeQuickFilters: @js($this->activeHomeQuickFilters()) } }))"
     x-on:home-quick-filter-selected.window="handleHomeQuickFilter($event.detail)"
     x-data="{

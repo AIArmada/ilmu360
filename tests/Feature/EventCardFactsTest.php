@@ -33,6 +33,7 @@ it('shows online attendance without a physical venue on online-only cards', func
         ['event' => $event],
     )
         ->assertSee(__('Online'))
+        ->assertDontSee('data-testid="event-card-location"', false)
         ->assertDontSee('Physical venue')
         ->assertDontSee('Shah Alam, Selangor');
 });
@@ -44,10 +45,13 @@ it('shows both venue and online availability on hybrid cards', function () {
         '<x-events.card :event="$event" location-primary="Physical venue" location-secondary="Shah Alam, Selangor" />',
         ['event' => $event],
     )
-        ->assertSee(__('Hybrid'))
+        ->assertSee('data-testid="event-card-format-badge"', false)
+        ->assertSee('data-testid="event-card-format-online-badge"', false)
+        ->assertSee(__('Physical'))
+        ->assertSee(__('Online'))
         ->assertSee('Physical venue')
         ->assertSee('Shah Alam, Selangor')
-        ->assertSee(__('Turut tersedia dalam talian'));
+        ->assertDontSee(__('Turut tersedia dalam talian'));
 });
 
 it('removes repeated city and state names from public event card locations', function () {

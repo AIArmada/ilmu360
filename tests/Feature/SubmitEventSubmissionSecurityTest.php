@@ -59,7 +59,7 @@ function submitSecurityPayload(EventTerm $domainTag, EventTerm $disciplineTag, a
 
 function submitSecurityRequest(): Request
 {
-    return Request::create('/hantar-majlis', 'POST', server: ['REMOTE_ADDR' => '127.0.0.1']);
+    return Request::create('/tambah-majlis', 'POST', server: ['REMOTE_ADDR' => '127.0.0.1']);
 }
 
 it('rejects a forged scoped institution the submitter does not belong to', function () {
@@ -146,7 +146,7 @@ it('rejects session submissions to events the user cannot update', function () {
     ))->toThrow(ValidationException::class, 'mengubah majlis ini');
 
     $this->actingAs($intruder)
-        ->get('/hantar-majlis?event='.$event->getKey())
+        ->get('/tambah-majlis?event='.$event->getKey())
         ->assertForbidden();
 });
 
@@ -176,7 +176,7 @@ it('does not treat the location institution as ownership for scoped containers',
     ))->toThrow(ValidationException::class, 'bukan di bawah institusi ini');
 
     $this->actingAs($user)
-        ->get('/hantar-majlis?event='.$event->getKey().'&institution='.$locationInstitution->getKey())
+        ->get('/tambah-majlis?event='.$event->getKey().'&institution='.$locationInstitution->getKey())
         ->assertForbidden();
 });
 
@@ -184,11 +184,11 @@ it('fails closed on invalid or deleted container ids', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user)
-        ->get('/hantar-majlis?event=not-a-uuid')
+        ->get('/tambah-majlis?event=not-a-uuid')
         ->assertNotFound();
 
     $this->actingAs($user)
-        ->get('/hantar-majlis?event='.(string) Str::uuid())
+        ->get('/tambah-majlis?event='.(string) Str::uuid())
         ->assertNotFound();
 });
 

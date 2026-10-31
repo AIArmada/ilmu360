@@ -1,4 +1,4 @@
-@section('title', __('Hantar Majlis') . ' - ' . config('app.name'))
+@section('title', __('Tambah Majlis') . ' - ' . config('app.name'))
 
 @include('partials.filament-assets', [
     'scripts' => ['filament/support', 'filament/schemas', 'filament/forms', 'filament/actions', 'filament/notifications'],
@@ -102,7 +102,7 @@
             @endif
 
             <header class="mx-auto mb-8 max-w-3xl text-center sm:mb-10">
-                <h1 class="font-heading text-4xl font-bold leading-tight text-slate-950 sm:text-5xl">{{ __('Hantar Majlis') }}</h1>
+                <h1 class="font-heading text-4xl font-bold leading-tight text-slate-950 sm:text-5xl">{{ __('Tambah Majlis') }}</h1>
             </header>
 
             <section class="mb-8 overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-[0_24px_70px_-50px_rgba(6,95,70,0.65)]" aria-labelledby="poster-assist-title">

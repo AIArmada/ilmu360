@@ -78,7 +78,7 @@ function submitSessionPayload(EventTerm $domainTag, EventTerm $disciplineTag, ar
 
 function submitSessionRequest(): Request
 {
-    return Request::create('/hantar-majlis', 'POST', server: ['REMOTE_ADDR' => '127.0.0.1']);
+    return Request::create('/tambah-majlis', 'POST', server: ['REMOTE_ADDR' => '127.0.0.1']);
 }
 
 function submitSessionContainer(User $owner, Person $organizer): Event

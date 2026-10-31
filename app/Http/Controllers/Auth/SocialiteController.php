@@ -271,7 +271,7 @@ class SocialiteController extends Controller
     private static function errorMessage(string $error): string
     {
         return match ($error) {
-            'unconfigured' => __('Google sign-in is not configured right now. Please use email and password instead.'),
+            'unconfigured' => __('Google sign-in is not configured right now. Please try again later.'),
             'expired' => __('Your sign-in session expired. Please try again.'),
             default => __('Unable to authenticate. Please try again.'),
         };
