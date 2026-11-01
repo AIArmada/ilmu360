@@ -35,8 +35,8 @@
         'payloadEndpoint' => route('dawah-share.payload'),
     ];
     $referenceRouteSegment = \App\Enums\ContributionSubjectType::Reference->publicRouteSegment();
+    $authorNames = $reference->effectiveAuthorNamesList();
     $metadataItems = array_filter([
-        $reference->effectiveAuthorNames(),
         $reference->publisherValue(),
         filled($reference->isbn) ? 'ISBN '.$reference->isbn : null,
         filled($reference->language) ? __('Bahasa').': '.(app(\App\Support\Cache\SelectionCatalogCache::class)->languageLabel($reference->language) ?? $reference->language) : null,
@@ -83,11 +83,18 @@
                                     @endif
                                 </h1>
 
-                                @if($metadataItems !== [])
-                                    <p class="mt-4 flex items-start gap-2 text-sm leading-6 text-slate-600 sm:text-base">
+                                @if($authorNames !== [] || $metadataItems !== [])
+                                    <div class="mt-4 flex items-start gap-2 text-sm leading-6 text-slate-600 sm:text-base">
                                         <flux:icon.user-group class="mt-1 size-5 shrink-0 text-amber-600" />
-                                        <span>{{ implode(' · ', $metadataItems) }}</span>
-                                    </p>
+                                        <div class="min-w-0">
+                                            @foreach($authorNames as $authorName)
+                                                <p>{{ $authorName }}</p>
+                                            @endforeach
+                                            @if($metadataItems !== [])
+                                                <p class="{{ $authorNames !== [] ? 'mt-1' : '' }} text-slate-500">{{ implode(' · ', $metadataItems) }}</p>
+                                            @endif
+                                        </div>
+                                    </div>
                                 @endif
 
                                 <div class="mt-auto grid grid-cols-2 gap-3 pt-4 sm:max-w-md">

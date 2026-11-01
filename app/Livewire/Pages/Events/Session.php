@@ -9,7 +9,6 @@ use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
 use App\Models\Event;
 use App\Models\Institution;
-use App\Services\CalendarService;
 use App\Services\PublicScheduleDiscoveryService;
 use App\Support\Events\PublicSchedulePolicy;
 use Illuminate\Contracts\View\View;
@@ -76,27 +75,6 @@ class Session extends Occurrence
     public function selectedSession(): ?EventSession
     {
         return $this->session ?? null;
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    #[Computed]
-    public function calendarLinks(): array
-    {
-        if ($this->eventActionsDisabled()
-            || (string) $this->selectedOccurrence()?->status === 'cancelled'
-            || (string) $this->selectedSession()?->status === 'cancelled') {
-            return [];
-        }
-
-        $session = $this->selectedSession();
-
-        if (! $session instanceof EventSession) {
-            return parent::calendarLinks();
-        }
-
-        return app(CalendarService::class)->getAllCalendarLinksFor($this->event, $session, $this->selectedOccurrence());
     }
 
     /**

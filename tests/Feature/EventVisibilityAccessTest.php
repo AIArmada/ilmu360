@@ -49,27 +49,6 @@ describe('public events', function () {
             ->assertSuccessful();
     });
 
-    it('allows calendar export for public approved events', function () {
-        $event = Event::factory()->create([
-            'visibility' => EventVisibility::Public,
-            'status' => 'approved',
-            'published_at' => now(),
-        ]);
-
-        $this->get(route('events.calendar', $event))
-            ->assertOk();
-    });
-
-    it('returns 404 for calendar export on cancelled public events', function () {
-        $event = Event::factory()->create([
-            'visibility' => EventVisibility::Public,
-            'status' => 'cancelled',
-            'published_at' => now(),
-        ]);
-
-        $this->get(route('events.calendar', $event))
-            ->assertNotFound();
-    });
 });
 
 // Unlisted Event Tests

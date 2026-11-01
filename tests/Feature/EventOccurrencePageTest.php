@@ -77,8 +77,7 @@ it('renders the occurrence page with a bounded enriched query budget', function 
         ->assertSee('Jalan USJ 1/1, Subang Jaya')
         ->assertSee('47600, Petaling')
         ->assertSee('Petaling, Selangor')
-        ->assertSee('Buka Peta')
-        ->assertSee('Tambah ke Kalendar');
+        ->assertSee('Buka Peta');
 
     // Enriched child view: event identity + shared public info + selected leaf
     // commerce. Siblings must not widen the budget (see N+1 guard below).
@@ -259,8 +258,7 @@ it('renders the session page with a bounded enriched query budget', function ():
         'sessionSlug' => PublicScheduleSlug::session($session),
     ]))
         ->assertOk()
-        ->assertSee('Sesi Soal Jawab')
-        ->assertSee('Tambah ke Kalendar');
+        ->assertSee('Sesi Soal Jawab');
 
     // Session leaf plus parent date and event commerce, bounded.
     expect($queries)->toBeLessThan(65);
@@ -546,11 +544,6 @@ it('keeps hidden session records out of public date fallbacks', function (
     } else {
         $response->assertSee('Date Person')->assertSee('Date Policy');
     }
-
-    $this->get(route('events.'.$page.'.calendar', $parameters))
-        ->assertOk()
-        ->assertDontSee('Hidden Session Venue')
-        ->assertDontSee('Hidden Session Location');
 
     $this->get(route('events.show', $this->event))
         ->assertOk()

@@ -31,7 +31,6 @@ use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
 use App\Models\Venue;
-use App\Services\CalendarService;
 use App\Services\ShareTrackingService;
 use App\States\EventStatus\Approved;
 use App\States\EventStatus\Cancelled;
@@ -162,6 +161,7 @@ class Show extends Component
                 'locations.venueSpace',
                 'primaryLocation' => $publicLocationScope,
                 'primaryLocation.venue',
+                'primaryLocation.venue.media',
                 'primaryLocationVenue.addresses.country',
                 'primaryLocationVenue.addresses.state',
                 'primaryLocationVenue.addresses.city',
@@ -208,6 +208,7 @@ class Show extends Component
                     $publicLocationScope($query);
                     $query->whereNull('event_session_id');
                 },
+                'occurrences.locations.venue.media',
                 'occurrences.locations.venueSpace',
                 'occurrences.accessPolicies' => static function (Relation $query): void {
                     $query->whereNull('event_session_id');
@@ -334,26 +335,6 @@ class Show extends Component
     public function detail(): EventDetailPresenter
     {
         return new EventDetailPresenter($this->event, $this->selectedOccurrence(), $this->selectedSession());
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    #[Computed]
-    public function calendarLinks(): array
-    {
-        $occurrence = $this->selectedOccurrence();
-
-        if ($this->eventActionsDisabled()
-            || ($occurrence instanceof EventOccurrence && (string) $occurrence->status === 'cancelled')) {
-            return [];
-        }
-
-        if ($occurrence instanceof EventOccurrence) {
-            return app(CalendarService::class)->getAllCalendarLinksFor($this->event, $occurrence);
-        }
-
-        return app(CalendarService::class)->getAllCalendarLinks($this->event);
     }
 
     /**

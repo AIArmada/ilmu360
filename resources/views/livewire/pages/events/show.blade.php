@@ -114,6 +114,25 @@
     $placeTitle = $locationIsOrganizer ? $organizer->name : $venueDisplayName;
     $placeSpace = $locationSpace && $locationSpace->name !== $placeTitle ? $locationSpace->name : null;
 
+    // The place card is the reader's visual anchor for "where is this?".
+    // Prefer the actual venue/institution image, then the matching placeholder:
+    // an empty media collection must not leave the card without a picture.
+    $placeVenue = $locationVenue ?? $event->venue;
+    $venuePlaceImageUrl = $placeVenue !== null
+        ? ($placeVenue->getFirstMedia('main')?->getAvailableUrl(['thumb'])
+            ?? $placeVenue->getFirstMedia('cover')?->getAvailableUrl(['thumb'])
+            ?? asset('images/placeholders/venue.png'))
+        : null;
+    $institutionPlaceImageUrl = $organizer instanceof \App\Models\Institution
+        ? ($organizerCoverImageUrl ?? asset('images/placeholders/institution-v2.png'))
+        : null;
+    $locationImageUrl = match (true) {
+        $locationIsOrganizer && $institutionPlaceImageUrl !== null => $institutionPlaceImageUrl,
+        $venuePlaceImageUrl !== null => $venuePlaceImageUrl,
+        $institutionPlaceImageUrl !== null => $institutionPlaceImageUrl,
+        default => null,
+    };
+
     $classificationLabels = $event->classifications
         ->filter(fn ($classification): bool => $classification->term !== null)
         ->map(fn ($classification): string => (string) $classification->term->name)
@@ -147,7 +166,6 @@
     $eventPosterUrl = $event->getFirstMedia('poster')?->getAvailableUrl(['poster_thumb']);
 
     // ── Actions ──────────────────────────────────────────────────────
-    $calendarLinks = $this->calendarLinks;
     $eventActionsDisabled = $this->eventActionsDisabled();
     $checkInOffered = $detail->hasRegistration() || $detail->ticketEntries()->isNotEmpty();
     $canEditEvent = auth()->user()?->hasAnyRole(['super_admin', 'admin']) ?? false;
@@ -282,7 +300,6 @@
     {{-- ── Action strip ────────────────────────────────────────────── --}}
     @include('livewire.pages.events.partials.event-action-strip', [
         'event' => $event,
-        'calendarLinks' => $calendarLinks,
         'eventActionsDisabled' => $eventActionsDisabled,
         'checkInOffered' => $checkInOffered,
         'canEditEvent' => $canEditEvent,
@@ -473,7 +490,6 @@
                     'organizer' => $organizer,
                     'organizerHref' => $organizerHref,
                     'hideOrganizer' => true,
-                    'largeSpeakerPortraits' => true,
                     'galleryImages' => $galleryImages,
                     'occurrenceDateLabel' => $occurrenceCount > 1
                         ? trans_choice(':count tarikh', $occurrenceCount, ['count' => $occurrenceCount])
@@ -546,8 +562,7 @@
                     <section id="rujukan" class="scroll-mt-8" aria-labelledby="event-references-title">
                         <div class="mb-7">
                             <span class="block h-[2px] w-7 bg-[#c9962f]" aria-hidden="true"></span>
-                            <p class="mt-4 text-[11px] font-semibold uppercase tracking-[0.26em] text-[#8a5f13]">{{ __('Sumber') }}</p>
-                            <div class="mt-2 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+                            <div class="mt-4 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
                                 <h2 id="event-references-title" class="font-heading text-[1.75rem] leading-[1.15] tracking-[-0.01em] text-balance">{{ __('References') }}</h2>
                                 <p class="font-mono text-xs text-[#6b645e]">{{ $eventReferences->count() }}</p>
                             </div>
@@ -555,12 +570,24 @@
 
                         <ol class="mi-paper divide-y divide-[#f0e8d9] overflow-hidden rounded-2xl border border-[#e6dccb] bg-[#fffdf9]">
                             @foreach($eventReferences as $reference)
-                                <li class="flex gap-5 px-6 py-5">
-                                    <span class="mt-0.5 shrink-0 font-heading text-sm font-normal tabular-nums text-[#8a5f13]" aria-hidden="true">{{ str_pad((string) $loop->iteration, 2, '0', STR_PAD_LEFT) }}</span>
+                                @php
+                                    $referenceCoverUrl = $reference->getFirstMediaUrl('front_cover', 'thumb')
+                                        ?: $reference->getFirstMediaUrl('front_cover')
+                                        ?: $reference->getFirstMediaUrl('back_cover', 'thumb')
+                                        ?: $reference->getFirstMediaUrl('back_cover');
+                                @endphp
+                                <li class="flex gap-4 px-4 py-4 sm:px-6 sm:py-5">
+                                    @if(filled($referenceCoverUrl))
+                                        <img src="{{ $referenceCoverUrl }}" alt="" aria-hidden="true" loading="lazy" class="w-20 shrink-0 self-start rounded-lg border border-[#e6dccb] bg-[#f4f0e7] object-cover shadow-sm aspect-[3/4] sm:w-24">
+                                    @endif
                                     <div class="min-w-0">
                                         <p class="font-heading text-lg leading-snug text-[#14342e]">{{ $reference->displayTitle() }}</p>
-                                        @if(filled($reference->effectiveAuthorNames()))
-                                            <p class="mt-1 text-[13px] text-[#6b645e]">{{ $reference->effectiveAuthorNames() }}</p>
+                                        @if($reference->effectiveAuthorNamesList() !== [])
+                                            <div class="mt-1 space-y-0.5 text-[13px] text-[#6b645e]">
+                                                @foreach($reference->effectiveAuthorNamesList() as $authorName)
+                                                    <p>{{ $authorName }}</p>
+                                                @endforeach
+                                            </div>
                                         @endif
                                         @if(filled($reference->publisher))
                                             <p class="mt-0.5 text-[12px] text-[#8b8272]">{{ $reference->publisher }}</p>
@@ -647,8 +674,8 @@
             <aside class="min-w-0 space-y-4 lg:sticky lg:top-8 lg:self-start">
                 @if($hasLocationContent || $organizer)
                     <section class="mi-paper overflow-hidden rounded-2xl border border-[#e6dccb] bg-[#fffdf9]" aria-labelledby="event-sidebar-place-title">
-                        @if($locationIsOrganizer && filled($organizerCoverImageUrl))
-                            <img src="{{ $organizerCoverImageUrl }}" alt="" aria-hidden="true" loading="lazy" class="block aspect-[16/9] w-full object-cover">
+                        @if(filled($locationImageUrl))
+                            <img src="{{ $locationImageUrl }}" alt="" aria-hidden="true" loading="lazy" class="block aspect-[16/9] w-full object-cover">
                         @endif
 
                         @if($mapEmbedUrl)
@@ -800,26 +827,6 @@
                         </div>
                     @endif
                 </section>
-
-                @if($calendarLinks !== [])
-                    <section class="mi-paper rounded-2xl border border-[#e6dccb] bg-[#fffdf9] p-6" aria-labelledby="event-sidebar-calendar-title">
-                        <p class="text-[11px] font-semibold uppercase tracking-[0.26em] text-[#8a5f13]">{{ __('Simpan') }}</p>
-                        <h2 id="event-sidebar-calendar-title" class="mt-3 font-heading text-xl font-normal leading-snug text-[#14342e]">{{ __('Jangan terlepas') }}</h2>
-
-                        <a href="{{ $calendarLinks['google'] ?? $calendarLinks['ics'] ?? '#' }}" target="_blank" rel="noopener" class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#14342e] px-4 py-2.5 text-[13px] font-semibold text-[#fdfaf2] transition duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-[#1d4a41] active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14342e]">
-                            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 4h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5v12a2 2 0 002 2z" /></svg>
-                            {{ __('Tambah ke kalendar') }}
-                        </a>
-
-                        <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12px] font-medium text-[#6b645e]">
-                            @foreach(['ics' => 'Apple / iCal', 'outlook' => 'Outlook', 'office365' => 'Office 365'] as $calendarKey => $calendarLabel)
-                                @if(filled($calendarLinks[$calendarKey] ?? null))
-                                    <a href="{{ $calendarLinks[$calendarKey] }}" @if($calendarKey === 'ics') download @else target="_blank" rel="noopener" @endif class="underline decoration-[#c9bfae] underline-offset-4 transition-colors duration-300 hover:text-[#14342e] hover:decoration-[#14342e]">{{ $calendarLabel }}</a>
-                                @endif
-                            @endforeach
-                        </div>
-                    </section>
-                @endif
 
                 <section id="event-share-panel" aria-label="{{ __('Kongsi majlis') }}">
                     <x-dawah-share-panel :share-data="[

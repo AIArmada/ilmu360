@@ -43,3 +43,17 @@
 - `db:seed` wiring: `DatabaseSeeder.php:69` `SpeakerSeeder` (guarded, runs first) + `ReferenceSeeder` in the main call list — both run on every non-production `db:seed`.
 - Reference covers: embedded 51 prod media rows (48 front_cover, 1 back_cover, 2 gallery, disk s3) in `ReferenceSeeder`; S3 keys already match the local path generator so no bucket copy needed. Verified real S3 thumb URLs + rerun idempotent; `ReferenceSeederTest` now 3 tests. Full set (7 tests) green; pint + phpstan clean.
 - Admin 403 on `admin.ilmu360.test/`: panel home `/` served the signals plugin dashboard (Filament Dashboard defaults to route `/`), whose `signal-report.view` ability is held by nobody — every admin got 403 while `/dashboard` worked. Fixed in the package (`commerce/packages/filament-signals/.../SignalsDashboard.php` + explicit `$routePath = '/signals'` so a plugin dashboard can never squat the panel home); reverted the temporary app-side flag. Verified `/` → 302 → `/dashboard` → 200, `/signals` correctly 403s as a gated page; 45 panel/dashboard tests green.
+
+## Remove external calendar export (2026-11-01)
+
+- [x] Remove add-to-calendar menus and `.ics` downloads from the event, date, and session pages.
+- [x] Remove `events.calendar`, `events.occurrence.calendar`, and `events.session.calendar` routes, controller, and `CalendarService`.
+- [x] Remove obsolete calendar tests and translation keys; update about copy and the public share-tracking allowlist.
+- [x] Run Pint, route audit, PHPStan level 6, and affected Pest tests once.
+
+### Review
+
+- Public event surfaces no longer offer Google/Outlook/Office 365/Yahoo deep links or `.ics` files; the app is the only place readers see the current schedule.
+- In-app dashboard/planner calendars remain because they query live saved/going/check-in data rather than exporting a snapshot.
+- Verification: route list has no calendar routes; `vendor/bin/pint --dirty` passed; PHPStan level 6 reported 0 errors. Affected Pest run rendered the changed pages successfully; remaining failures in that run are pre-existing failures in unrelated in-progress work (hero/image, Waze link, share signal, replacement CTA, and query-budget assertions), with no remaining calendar references in the suite.
+- Evidence: `/tmp/ilmu360-calendar-removal-tests.log`, `/tmp/ilmu360-calendar-removal-phpstan.log`.

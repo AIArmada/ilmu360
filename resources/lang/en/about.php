@@ -36,7 +36,7 @@ return [
             ],
             [
                 'title' => 'Turn intent into action',
-                'body' => 'Save events, register, get reminded, add them to your calendar, navigate, and come.',
+                'body' => 'Save events, register, get reminded, navigate, and come.',
             ],
         ],
     ],
@@ -168,7 +168,7 @@ return [
             ],
             [
                 'title' => 'Tools that support real planning',
-                'body' => 'Save events, register, add them to a calendar, navigate, and turn good intentions into real attendance.',
+                'body' => 'Save events, register, navigate, and turn good intentions into real attendance.',
             ],
         ],
     ],

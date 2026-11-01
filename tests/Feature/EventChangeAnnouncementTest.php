@@ -97,7 +97,7 @@ it('keeps ordinary edits out of the change announcement workflow', function () {
             ->contains(fn (NotificationInbox $inbox): bool => ($inbox->data['entity_id'] ?? null) === $event->id))->toBeFalse();
 });
 
-it('blocks registration calendar and check-in surfaces for unknown postponements', function () {
+it('blocks registration and check-in surfaces for unknown postponements', function () {
     $administrator = eventChangeAdministrator();
     $event = eventChangeApprovedEvent([
         'title' => 'Kuliah Ditangguhkan',
@@ -125,8 +125,6 @@ it('blocks registration calendar and check-in surfaces for unknown postponements
         ->assertOk()
         ->assertSee('Ditangguhkan')
         ->assertSee('Tarikh baharu belum disahkan');
-
-    // ponytail: calendar/registration behavior changed with adoption
 });
 
 it('keeps replacement event URLs separate from the original source of truth notice', function () {

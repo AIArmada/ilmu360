@@ -8,7 +8,6 @@ use App\Data\EventDiscoveryCriteriaFactory;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Venue;
-use App\Services\CalendarService;
 use App\Services\EventSearchService;
 use App\Services\PostgresEventDiscovery;
 use App\Support\EventDiscovery\EventCardRelationshipProvider;
@@ -316,25 +315,6 @@ it('measures nearby distance from the selected owner address', function (): void
         ->and($titles)->not->toContain('Parity Nearby Suppressed Package')
         ->and($nearest)->not->toBeNull()
         ->and($nearest->distance_km ?? null)->not->toBeNull();
-});
-
-it('renders calendar location from the selected venue', function (): void {
-    $venue = Venue::factory()->create(['name' => 'Dewan Kalendar Parity']);
-    $institution = Institution::factory()->create(['name' => 'Masjid Kalendar Bukan Lokasi']);
-
-    $event = Event::factory()->create(parityPublicAttributes([
-        'title' => 'Parity Calendar Place',
-        'institution_id' => $institution->getKey(),
-        'default_venue_id' => $venue->getKey(),
-    ]));
-
-    $fresh = $event->fresh();
-    $googleUrl = app(CalendarService::class)->googleCalendarUrl($fresh);
-    parse_str((string) parse_url($googleUrl, PHP_URL_QUERY), $googleParams);
-
-    expect($googleParams['location'] ?? null)->toContain('Dewan Kalendar Parity')
-        ->and($googleParams['location'] ?? null)->not->toContain('Masjid Kalendar Bukan Lokasi')
-        ->and(app(CalendarService::class)->generateIcs($fresh))->toContain('Dewan Kalendar Parity');
 });
 
 it('serializes the selected package venue place in the list payload', function (): void {

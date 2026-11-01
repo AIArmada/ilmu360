@@ -179,12 +179,14 @@ class Occurrence extends Show
             'seatMaps.sections',
             'accessPolicy',
             'primaryLocation' => $locationScope,
+            'primaryLocation.venue.media',
             'primaryLocation.venueSpace',
             'occurrences.media',
             'occurrences.locations' => function (Relation $query) use ($locationScope): void {
                 $locationScope($query);
                 $query->whereNull('event_session_id');
             },
+            'occurrences.locations.venue.media',
             'occurrences.locations.venueSpace',
             'occurrences.sessions' => function (Relation $query) use ($scheduleScope, $capacityScope): void {
                 $scheduleScope($query);

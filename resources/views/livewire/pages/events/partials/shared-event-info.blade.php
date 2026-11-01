@@ -214,22 +214,31 @@
             </div>
         </div>
 
-        <ul class="mi-paper divide-y divide-[#f0e8d9] overflow-hidden rounded-[20px] border border-[#e6dccb] bg-[#fffdf9]">
+        <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             @foreach($sharedSpeakers as $speaker)
-                <li>
-                    <a href="{{ route('persons.show', $speaker) }}" wire:navigate class="group flex items-center gap-4 px-6 py-5 transition-colors duration-300 hover:bg-[#faf6ed] focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#14342e]">
-                        @php($speakerPortraitWidth = ($largeSpeakerPortraits ?? false) ? 'w-36 sm:w-44' : 'w-[5.5rem]')
-                        @php($speakerPortraitUrl = $speaker->getFirstMedia('profile')?->getAvailableUrl(['profile_thumb']))
-                        @if(filled($speakerPortraitUrl))
-                            <img src="{{ $speakerPortraitUrl }}" alt="" aria-hidden="true" loading="lazy" class="{{ $speakerPortraitWidth }} aspect-[3/4] shrink-0 rounded-xl border border-[#e6dccb] bg-[#f4f0e7] object-cover shadow-sm">
-                        @else
-                            <span class="flex {{ $speakerPortraitWidth }} aspect-[3/4] shrink-0 items-center justify-center rounded-xl bg-[#14342e] font-heading text-2xl text-[#f2c867]" aria-hidden="true">{{ mb_strtoupper(mb_substr((string) ($speaker->name ?? '?'), 0, 1)) }}</span>
-                        @endif
-                        <span class="min-w-0 flex-1">
-                            <span class="block {{ ($largeSpeakerPortraits ?? false) ? 'line-clamp-2 text-base leading-snug sm:text-lg' : 'truncate text-[15px]' }} font-semibold text-[#14342e]">{{ $speaker->name }}</span>
-                            <span class="mt-0.5 block truncate text-[13px] text-[#6b645e]">{{ __('Penceramah') }}</span>
-                        </span>
-                        <svg class="size-4 shrink-0 text-[#c9bfae] transition duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:translate-x-0.5 group-hover:text-[#c9962f]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 6l6 6-6 6" /></svg>
+                @php
+                    $speakerPortraitUrl = $speaker->getFirstMedia('profile')?->getAvailableUrl(['profile_thumb']);
+                    $speakerInitial = mb_strtoupper(mb_substr((string) ($speaker->name ?? '?'), 0, 1));
+                @endphp
+                <li class="h-full">
+                    <a href="{{ route('persons.show', $speaker) }}" wire:navigate class="mi-paper group flex h-full flex-col overflow-hidden rounded-[20px] border border-[#e6dccb] bg-[#fffdf9] transition duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:border-[#c9962f]/45 hover:shadow-[0_18px_40px_-30px_rgba(20,52,46,0.55)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14342e]">
+                        <div class="relative aspect-[3/4] w-full overflow-hidden bg-[#14342e]">
+                            @if(filled($speakerPortraitUrl))
+                                <img src="{{ $speakerPortraitUrl }}" alt="" aria-hidden="true" loading="lazy" class="size-full object-cover transition duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.03]">
+                            @else
+                                <span class="mi-lattice-light pointer-events-none absolute inset-0 opacity-[0.08]" aria-hidden="true"></span>
+                                <span class="relative flex size-full items-center justify-center font-heading text-6xl text-[#f2c867]" aria-hidden="true">{{ $speakerInitial }}</span>
+                            @endif
+                            <span class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_top,rgba(11,43,37,0.35),rgba(11,43,37,0)_45%)]" aria-hidden="true"></span>
+                        </div>
+                        <div class="flex flex-1 flex-col p-4">
+                            <p class="line-clamp-2 font-heading text-lg leading-snug text-[#14342e] transition-colors duration-300 group-hover:text-[#8a5f13]">{{ $speaker->name }}</p>
+                            <p class="mt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8a5f13]">{{ __('Penceramah') }}</p>
+                            <span class="mt-auto inline-flex items-center gap-1.5 pt-4 text-[12px] font-semibold text-[#6b645e] transition-colors duration-300 group-hover:text-[#8a5f13]">
+                                {{ __('Lihat profil') }}
+                                <svg class="size-3.5 transition-transform duration-300 group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 6l6 6-6 6" /></svg>
+                            </span>
+                        </div>
                     </a>
                 </li>
             @endforeach

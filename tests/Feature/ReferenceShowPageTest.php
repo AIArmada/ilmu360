@@ -1,7 +1,9 @@
 <?php
 
+use App\Actions\References\SaveReferenceAction;
 use App\Enums\EventVisibility;
 use App\Models\Event;
+use App\Models\Person;
 use App\Models\Reference;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
@@ -150,6 +152,25 @@ it('shows pending public events without a pending status badge or notice', funct
         ->assertSee('Kuliah Rujukan Menanti')
         ->assertDontSee('Menunggu Kelulusan')
         ->assertDontSee('Semak lencana status pada setiap majlis sebelum hadir.');
+});
+
+it('renders each reference author on its own line in the hero', function () {
+    $firstAuthor = Person::factory()->create(['name' => 'Imam al-Nawawi']);
+    $secondAuthor = Person::factory()->create(['name' => 'Ibn Hajar al-Asqalani']);
+
+    $reference = app(SaveReferenceAction::class)->handle([
+        'title' => 'Authored Work',
+        'type' => 'book',
+        'record_kind' => 'work',
+        'author_ids' => [(string) $firstAuthor->getKey(), (string) $secondAuthor->getKey()],
+        'status' => 'verified',
+    ]);
+
+    $this->get(route('references.show', $reference))
+        ->assertSuccessful()
+        ->assertSee('<p>Imam al-Nawawi</p>', false)
+        ->assertSee('<p>Ibn Hajar al-Asqalani</p>', false)
+        ->assertDontSee('Imam al-Nawawi · Ibn Hajar al-Asqalani');
 });
 
 it('loads more upcoming events via Livewire', function () {

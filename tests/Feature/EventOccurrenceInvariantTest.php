@@ -49,7 +49,6 @@ it('excludes occurrence-less published events from public reachability and activ
         ->assertJsonMissing(['id' => $event->id]);
     $this->get(route('events.show', $event))->assertNotFound();
     $this->getJson(route('api.events.show', $event))->assertNotFound();
-    $this->get(route('events.calendar', $event))->assertNotFound();
 });
 
 it('does not allow deleting the last occurrence from a published event', function (): void {

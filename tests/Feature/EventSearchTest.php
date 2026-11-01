@@ -3150,8 +3150,6 @@ describe('Event Detail Page', function () {
         $response->assertOk()
             ->assertSee('Cancelled Detail Event')
             ->assertSee('Majlis Dibatalkan')
-            ->assertSee('Kalendar tidak tersedia untuk majlis dibatalkan.')
-            ->assertDontSee('Tambah ke Kalendar')
             ->assertSee('https://schema.org/EventCancelled');
     });
 

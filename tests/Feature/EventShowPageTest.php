@@ -955,6 +955,30 @@ describe('Event Show Page Location & Contact Info', function () {
             ->toBeLessThan(strpos($html, 'data-testid="event-detail-location-section"'));
     });
 
+    it('renders reference cover images in the occurrence references section', function () {
+        Storage::fake('public');
+        config()->set('media-library.disk_name', 'public');
+
+        $reference = Reference::factory()->create(['title' => 'Al-Hikam']);
+        $reference->addMedia(fakeGeneratedImageUpload('al-hikam-cover.jpg', 1080, 1440))
+            ->toMediaCollection('front_cover');
+
+        $event = Event::factory()->create([
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now()->subDay(),
+            'starts_at' => now()->addDay(),
+        ]);
+        $event->references()->attach($reference->id);
+
+        $coverUrl = $reference->getFirstMediaUrl('front_cover', 'thumb')
+            ?: $reference->getFirstMediaUrl('front_cover');
+
+        $this->get(route('events.show', $event))
+            ->assertOk()
+            ->assertSee($coverUrl);
+    });
+
     it('does not use person images as hero background when location media is missing', function () {
         $person = Person::factory()->create();
         $person->addMedia(UploadedFile::fake()->image('person-avatar.jpg', 800, 800))
@@ -1023,6 +1047,54 @@ describe('Event Show Page Location & Contact Info', function () {
         if (filled($address?->postcode)) {
             $response->assertSee($address->postcode);
         }
+    });
+
+    it('shows the venue image in the occurrence place card, falling back to the venue placeholder', function () {
+        Storage::fake('public');
+        config()->set('media-library.disk_name', 'public');
+
+        $venue = Venue::factory()->create();
+
+        $event = Event::factory()->create([
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now()->subDay(),
+            'starts_at' => now()->addDay(),
+            'institution_id' => null,
+            'default_venue_id' => $venue->id,
+        ]);
+
+        $this->get(route('events.show', $event))
+            ->assertOk()
+            ->assertSee(asset('images/placeholders/venue.png'), false);
+
+        $venue->addMedia(fakeGeneratedImageUpload('venue-main.jpg', 1600, 900))
+            ->toMediaCollection('main');
+
+        $this->get(route('events.show', $event))
+            ->assertOk()
+            ->assertSee($venue->getFirstMedia('main')?->getAvailableUrl(['thumb']), false)
+            ->assertDontSee(asset('images/placeholders/venue.png'), false);
+    });
+
+    it('falls back to the institution placeholder when the institution is the place', function () {
+        Storage::fake('public');
+        config()->set('media-library.disk_name', 'public');
+
+        $institution = Institution::factory()->create();
+
+        $event = Event::factory()->create([
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now()->subDay(),
+            'starts_at' => now()->addDay(),
+            'institution_id' => $institution->id,
+            'default_venue_id' => null,
+        ]);
+
+        $this->get(route('events.show', $event))
+            ->assertOk()
+            ->assertSee(asset('images/placeholders/institution-v2.png'), false);
     });
 
     it('displays waze and google maps navigation buttons when coordinates exist', function () {
