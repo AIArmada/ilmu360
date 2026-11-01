@@ -13,6 +13,7 @@ use AIArmada\Rewards\Models\RewardProgram;
 use AIArmada\Signals\Contracts\SignalEventIngestor;
 use AIArmada\Signals\Models\SignalEvent;
 use AIArmada\Signals\Models\TrackedProperty;
+use App\Models\AppFeedback;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
@@ -337,6 +338,20 @@ final readonly class ProductSignalsService
                 'status' => (string) $report->getAttribute('status'),
             ],
             anonymousId: (string) $report->reporter_fingerprint,
+        );
+    }
+
+    public function recordAppFeedbackSubmitted(AppFeedback $feedback): ?SignalEvent
+    {
+        return $this->record(
+            request: null,
+            eventName: 'app_feedback.submitted',
+            eventCategory: 'feedback',
+            user: $feedback->reporter instanceof User ? $feedback->reporter : null,
+            properties: [
+                'category' => $feedback->category->value,
+                'status' => $feedback->status->value,
+            ],
         );
     }
 

@@ -485,6 +485,32 @@ return [
             'cta' => 'Buka peti notifikasi',
         ],
     ],
+    'app_feedback' => [
+        'received' => [
+            'subject' => 'Maklum balas diterima: :title',
+            'intro' => 'Kami telah menerima maklum balas anda. Pasukan kami akan menyemaknya.',
+            'reference' => 'Rujukan: :id',
+            'status' => 'Status semasa: :status',
+            'action' => 'Lihat maklum balas',
+            'footer' => 'Terima kasih kerana membantu kami menambah baik :app.',
+        ],
+        'submitted' => [
+            'subject' => 'Maklum balas aplikasi baharu: :title',
+            'intro' => 'Ada maklum balas aplikasi baharu yang perlu disemak.',
+            'category' => 'Kategori: :category',
+            'action' => 'Buka dalam panel admin',
+            'footer' => 'Semak maklum balas ini apabila sempat.',
+        ],
+        'closed' => [
+            'subject_resolved' => 'Maklum balas anda telah diselesaikan: :title',
+            'subject_declined' => 'Maklum balas anda telah ditutup: :title',
+            'intro' => 'Maklum balas anda telah disemak oleh pasukan kami.',
+            'status' => 'Status: :status',
+            'note' => 'Catatan: :note',
+            'action' => 'Lihat maklum balas',
+            'footer' => 'Terima kasih kerana membantu kami menambah baik :app.',
+        ],
+    ],
     'inbox' => [
         'page_title' => 'Notifikasi',
         'eyebrow' => 'Peti Notifikasi',

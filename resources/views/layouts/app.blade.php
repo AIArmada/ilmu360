@@ -394,6 +394,10 @@
                                     </div>
                                     <div class="pt-1">
                                         <p class="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{{ $accountMenuHeading }}</p>
+                                        <a href="{{ route('app-feedback.index') }}" wire:navigate
+                                            class="block rounded-lg px-3 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50">
+                                            {{ __('app-feedback.title') }}
+                                        </a>
                                         <a href="{{ route('dashboard.account-settings') }}" wire:navigate
                                             class="block rounded-lg px-3 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50">
                                             {{ $settingsMenuLabel }}
@@ -535,6 +539,10 @@
                                 </div>
                                 <div class="space-y-1 border-t pt-3 {{ $mobileMenuDividerClass }}">
                                     <p class="px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.18em] {{ $mobileMenuSectionLabelClass }}">{{ $accountMenuHeading }}</p>
+                                    <a href="{{ route('app-feedback.index') }}" wire:navigate
+                                        class="flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold transition-colors {{ $mobileMenuRowClass }}">
+                                        {{ __('app-feedback.title') }}
+                                    </a>
                                     <a href="{{ route('dashboard.account-settings') }}" wire:navigate
                                         class="flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold transition-colors {{ $mobileMenuRowClass }}">
                                         {{ $settingsMenuLabel }}
@@ -680,6 +688,10 @@
                                 </li>
                                 <li><a href="{{ route('contributions.submit-person') }}" wire:navigate
                                         class="transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">{{ __('Speaker suggestion') }}</a>
+                                </li>
+                                <li>
+                                    <a href="{{ route('app-feedback.index') }}" wire:navigate
+                                        class="transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">{{ __('app-feedback.title') }}</a>
                                 </li>
                                 <li>
                                     <a href="{{ route('contact') }}" wire:navigate

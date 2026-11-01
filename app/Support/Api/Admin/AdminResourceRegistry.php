@@ -14,6 +14,7 @@ use App\Enums\EventFormat;
 use App\Enums\EventVisibility;
 use App\Enums\PrayerReference;
 use App\Enums\TimingMode;
+use App\Filament\Resources\AppFeedback\AppFeedbackResource;
 use App\Filament\Resources\Persons\PersonResource;
 use App\Filament\Resources\Venues\VenueResource;
 use App\Models\Event;
@@ -89,10 +90,13 @@ class AdminResourceRegistry
         /** @var array<int|string, class-string<resource>> $resources */
         $resources = Filament::getPanel('admin')->getResources();
 
-        return $this->resourcesCache = array_values(array_unique([
-            ...array_values($resources),
-            ...$this->fallbackPluginResources(),
-        ]));
+        return $this->resourcesCache = array_values(array_filter(
+            array_unique([
+                ...array_values($resources),
+                ...$this->fallbackPluginResources(),
+            ]),
+            static fn (string $resource): bool => $resource !== AppFeedbackResource::class,
+        ));
     }
 
     /**

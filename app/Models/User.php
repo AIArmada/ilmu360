@@ -166,6 +166,11 @@ class User extends Authenticatable implements AuditableContract, CanInteract, Fi
         return ! $this->isDirectoryFeedbackBlocked();
     }
 
+    public function canSubmitAppFeedback(): bool
+    {
+        return ! $this->isDirectoryFeedbackBlocked();
+    }
+
     public function canSubmitIntegrationFeedback(): bool
     {
         return $this->canSubmitDirectoryFeedback();
@@ -343,6 +348,14 @@ class User extends Authenticatable implements AuditableContract, CanInteract, Fi
     public function reports(): HasMany
     {
         return $this->hasMany(Report::class, 'reporter_id');
+    }
+
+    /**
+     * @return HasMany<AppFeedback, $this>
+     */
+    public function appFeedback(): HasMany
+    {
+        return $this->hasMany(AppFeedback::class, 'reporter_id');
     }
 
     /**

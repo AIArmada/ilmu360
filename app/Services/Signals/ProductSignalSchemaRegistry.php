@@ -22,6 +22,7 @@ final class ProductSignalSchemaRegistry
             'reference.quick_created' => ['reference_id', 'record_kind', 'parent_id', 'status', 'source'],
             'author.quick_created' => ['person_id', 'status', 'source'],
             'report.submitted' => ['report_id', 'entity_type', 'entity_id', 'category', 'status'],
+            'app_feedback.submitted' => ['category', 'status'],
             'notification.read' => ['notification_id', 'family', 'trigger', 'action_url'],
             'notification.read_all' => ['updated_count'],
             'contribution.institution_maps_place_selected' => ['has_website', 'social_profile_count'],

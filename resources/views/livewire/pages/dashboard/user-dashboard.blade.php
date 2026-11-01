@@ -180,6 +180,11 @@
             'url' => route('dashboard.dawah-impact'),
             'icon' => 'M12 21s-7-4.4-7-10a4 4 0 017-2.6A4 4 0 0119 11c0 5.6-7 10-7 10z',
         ],
+        [
+            'label' => __('app-feedback.title'),
+            'url' => route('app-feedback.index'),
+            'icon' => 'M8 10h8M8 14h5m7 3.5a3.5 3.5 0 01-3.5 3.5H8l-4 3v-4.5A3.5 3.5 0 014 12.5v-6A3.5 3.5 0 017.5 3h9A3.5 3.5 0 0120 6.5v11z',
+        ],
     ];
 @endphp
 

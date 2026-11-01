@@ -485,6 +485,32 @@ return [
             'cta' => 'Open inbox',
         ],
     ],
+    'app_feedback' => [
+        'received' => [
+            'subject' => 'Feedback received: :title',
+            'intro' => 'We have received your feedback. Our team will review it.',
+            'reference' => 'Reference: :id',
+            'status' => 'Current status: :status',
+            'action' => 'View feedback',
+            'footer' => 'Thank you for helping us improve :app.',
+        ],
+        'submitted' => [
+            'subject' => 'New application feedback: :title',
+            'intro' => 'New application feedback needs review.',
+            'category' => 'Category: :category',
+            'action' => 'Open in the admin panel',
+            'footer' => 'Review this feedback when you can.',
+        ],
+        'closed' => [
+            'subject_resolved' => 'Your feedback was resolved: :title',
+            'subject_declined' => 'Your feedback was closed: :title',
+            'intro' => 'Your feedback has been reviewed by our team.',
+            'status' => 'Status: :status',
+            'note' => 'Note: :note',
+            'action' => 'View feedback',
+            'footer' => 'Thank you for helping us improve :app.',
+        ],
+    ],
     'inbox' => [
         'page_title' => 'Notifications',
         'eyebrow' => 'Notification Inbox',

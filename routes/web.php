@@ -3,6 +3,7 @@
 use App\Enums\ContributionSubjectType;
 use App\Enums\MemberSubjectType;
 use App\Http\Controllers\Api\RegistrationExportController;
+use App\Http\Controllers\AppFeedbackEvidenceController;
 use App\Http\Controllers\Auth\SocialiteController;
 use App\Http\Controllers\DawahShareController;
 use App\Http\Controllers\LocaleController;
@@ -19,6 +20,7 @@ use App\Http\Middleware\ResolvePublicSlugRedirect;
 use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\TrackDawahShareAttribution;
 use App\Livewire\Pages\About\Show as AboutPage;
+use App\Livewire\Pages\AppFeedback\Index as AppFeedbackIndex;
 use App\Livewire\Pages\Contributions\Index as ContributionsIndex;
 use App\Livewire\Pages\Contributions\SubmitInstitution;
 use App\Livewire\Pages\Contributions\SubmitPerson;
@@ -166,6 +168,9 @@ Route::middleware('auth')->group(function () {
     Route::livewire('/dashboard/rewards', RewardMemberIndex::class)->name('dashboard.rewards');
     Route::livewire('/dashboard/ajak-kawan', ReferralMemberIndex::class)->name('dashboard.referrals');
     Route::livewire('/tetapan-akaun', AccountSettings::class)->name('dashboard.account-settings');
+    Route::livewire('/maklum-balas', AppFeedbackIndex::class)->name('app-feedback.index');
+    Route::get('/maklum-balas/{feedback}/bukti/{mediaId}', AppFeedbackEvidenceController::class)
+        ->name('app-feedback.evidence.download');
     Route::livewire('/dashboard/institusi', InstitutionDashboard::class)->name('dashboard.institutions');
     Route::livewire('/dashboard/institusi/senarai-majlis', InstitutionDashboard::class)->name('dashboard.institutions.events');
     Route::livewire('/dashboard/institusi/tambah-majlis', Create::class)->name('dashboard.institutions.submit-event');

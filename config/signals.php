@@ -13,6 +13,7 @@ $propertyAllowlist = [
     'cart_identifier',
     'cart_instance',
     'cart_total_minor',
+    'category',
     'channel',
     'checkout',
     'checkout_session_id',
