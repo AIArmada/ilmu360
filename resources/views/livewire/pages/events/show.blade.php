@@ -254,7 +254,6 @@
             <div class="absolute inset-0 bg-[linear-gradient(90deg,#07231f_0%,#07231f_34%,rgba(7,35,31,0.92)_50%,rgba(7,35,31,0.45)_76%,rgba(7,35,31,0.6)_100%)]"></div>
             <div class="absolute inset-0 bg-[radial-gradient(95%_110%_at_8%_0%,rgba(242,200,103,0.18),transparent_58%)]"></div>
             <div class="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#07231f] via-[#07231f]/60 to-transparent"></div>
-            <div class="mi-lattice-light absolute inset-0 opacity-[0.06]"></div>
         </div>
 
         <div class="relative mx-auto max-w-7xl px-4 pt-12 sm:px-8 sm:pt-16 lg:px-12 lg:pt-16">
