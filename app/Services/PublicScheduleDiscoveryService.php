@@ -285,15 +285,7 @@ final class PublicScheduleDiscoveryService
                     ->filter(fn (EventSession $session): bool => PublicSchedulePolicy::isMeaningfulSession($session))
                     ->values();
 
-                if ($sessions->isEmpty()) {
-                    $leaves->push(new PublicScheduleLeaf($event, $occurrence));
-
-                    continue;
-                }
-
-                foreach ($sessions as $session) {
-                    $leaves->push(new PublicScheduleLeaf($event, $occurrence, $session));
-                }
+                $leaves->push(new PublicScheduleLeaf($event, $occurrence, $sessions));
             }
         }
 
@@ -640,10 +632,6 @@ final class PublicScheduleDiscoveryService
     /** @return Collection<int, mixed> */
     private function timeExpressions(PublicScheduleLeaf $leaf): Collection
     {
-        if ($leaf->session?->timeExpressions?->isNotEmpty()) {
-            return $leaf->session->timeExpressions;
-        }
-
         if ($leaf->occurrence->timeExpressions->isNotEmpty()) {
             return $leaf->occurrence->timeExpressions;
         }

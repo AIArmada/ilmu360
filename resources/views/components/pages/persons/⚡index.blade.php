@@ -269,8 +269,13 @@ new
                             ->whereIn('events.status', Event::PUBLIC_STATUSES)
                             ->where('events.visibility', EventVisibility::Public->value)
                             ->whereNotNull('events.published_at')
-                            ->where('events.starts_at', '>=', now())
-                            ->whereHas('occurrences');
+                            ->whereHas('occurrences', function (Builder $occurrenceQuery): void {
+                                $occurrenceQuery
+                                    ->whereIn('status', Event::PUBLIC_SCHEDULE_STATUSES)
+                                    ->whereIn('visibility', Event::PUBLIC_SCHEDULE_VISIBILITIES)
+                                    ->whereNotNull('starts_at')
+                                    ->where('starts_at', '>=', now());
+                            });
                     });
                 });
         }
@@ -409,33 +414,19 @@ new
             // Scoped to the listed persons' public events. Join duplication cannot
             // change MIN(starts_at), which stays the same earliest-occurrence
             // value used by EventBuilder, including the past-plus-future case.
-            $upcomingEvents = DB::table("{$occurrencesTable} as occurrences")
-                ->select('occurrences.event_id')
-                ->join("{$eventsTable} as events", 'events.id', '=', 'occurrences.event_id')
-                ->join("{$eventInvolvementsTable} as event_involvements", 'event_involvements.event_id', '=', 'events.id')
-                ->where('event_involvements.involveable_type', (new Person)->getMorphClass())
-                ->whereIn('event_involvements.involveable_id', $personIds->all())
-                ->whereIn('events.status', Event::PUBLIC_STATUSES)
-                ->where('events.visibility', EventVisibility::Public)
-                ->whereNotNull('events.published_at')
-                ->groupBy('occurrences.event_id')
-                ->havingRaw('min(occurrences.starts_at) >= ?', [$now]);
-
             $counts = DB::table("{$eventInvolvementsTable} as event_involvements")
                 ->join("{$eventsTable} as events", 'events.id', '=', 'event_involvements.event_id')
-                ->joinSub($upcomingEvents, 'upcoming_events', 'upcoming_events.event_id', '=', 'events.id')
+                ->join("{$occurrencesTable} as occurrences", 'occurrences.event_id', '=', 'events.id')
                 ->where('event_involvements.involveable_type', (new Person)->getMorphClass())
                 ->whereIn('event_involvements.involveable_id', $personIds->all())
                 ->whereIn('events.status', Event::PUBLIC_STATUSES)
                 ->where('events.visibility', EventVisibility::Public)
                 ->whereNotNull('events.published_at')
-                ->whereExists(function ($occurrenceQuery) use ($occurrencesTable): void {
-                    $occurrenceQuery
-                        ->selectRaw('1')
-                        ->from("{$occurrencesTable} as occurrences")
-                        ->whereColumn('occurrences.event_id', 'events.id');
-                })
-                ->selectRaw('event_involvements.involveable_id, count(*) as events_count')
+                ->whereIn('occurrences.status', Event::PUBLIC_SCHEDULE_STATUSES)
+                ->whereIn('occurrences.visibility', Event::PUBLIC_SCHEDULE_VISIBILITIES)
+                ->whereNotNull('occurrences.starts_at')
+                ->where('occurrences.starts_at', '>=', $now)
+                ->selectRaw('event_involvements.involveable_id, count(distinct occurrences.id) as events_count')
                 ->groupBy('event_involvements.involveable_id')
                 ->pluck('events_count', 'event_involvements.involveable_id');
 
@@ -866,7 +857,7 @@ new
                                     class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200"
                                 >
                                     <flux:icon.calendar class="size-3.5 text-emerald-500" />
-                                    {{ $person->events_count }} {{ __('Events') }}
+                                    {{ $person->events_count }} {{ __('Upcoming Events') }}
                                 </span>
                                 <button
                                     type="button"

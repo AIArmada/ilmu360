@@ -9,7 +9,6 @@
     $referenceTitle = $reference->displayTitle();
     $referenceDescription = trim(strip_tags((string) $reference->descriptionValue()));
     $referenceUrl = route('references.show', $reference);
-    $referenceRedirectUrl = route('references.show', $reference, absolute: false);
     $frontCoverUrl = $reference->getFirstMediaUrl('front_cover', 'thumb') ?: ($reference->getFirstMediaUrl('front_cover') ?: asset('images/default-mosque-hero.png'));
     $backCoverUrl = $reference->getFirstMediaUrl('back_cover', 'thumb') ?: $reference->getFirstMediaUrl('back_cover');
     $referenceUrlExternal = trim((string) $reference->url);
@@ -20,8 +19,6 @@
             return filled($social->platform) && filled($resolvedUrl);
         })
         ->values();
-    $referenceTypeLabel = \App\Enums\ReferenceType::tryFrom((string) $reference->typeValue())?->getLabel()
-        ?? \Illuminate\Support\Str::headline((string) $reference->typeValue());
     $shareText = trim($referenceTitle . ' - ' . config('app.name'));
     $shareLinks = app(\App\Services\ShareTrackingService::class)->redirectLinks(
         $referenceUrl,
@@ -39,7 +36,6 @@
     ];
     $referenceRouteSegment = \App\Enums\ContributionSubjectType::Reference->publicRouteSegment();
     $metadataItems = array_filter([
-        $referenceTypeLabel !== '' ? $referenceTypeLabel : null,
         $reference->effectiveAuthorNames(),
         $reference->publisherValue(),
         filled($reference->isbn) ? 'ISBN '.$reference->isbn : null,
@@ -47,208 +43,133 @@
         filled($reference->year) ? (string) $reference->year : null,
     ]);
     $upcomingEvents = $this->upcomingEvents;
+    $savedEventIds = $this->savedEventIds;
     $upcomingTotal = $this->upcomingTotal;
+    $upcomingOverallTotal = $this->upcomingOverallTotal;
+    $pastOverallTotal = $this->pastOverallTotal;
     $showCancelledEventStatusNotice = $upcomingEvents->contains(
         fn (\App\Data\PublicScheduleLeaf $leaf): bool => (string) $leaf->event->status === 'cancelled'
     );
 
-    $resolveEventCategoryLabel = static fn (\App\Models\Event $event): string => app(\App\Support\Events\EventCategoryPresenter::class)->forEvent($event)[0]['path'] ?? __('Umum');
-
-    $resolveVenueLocation = static function (\App\Models\Event $event): string {
-        $venueName = $event->venue?->name;
-        $address = $event->venue?->primaryAddress();
-        $parts = \App\Support\Location\AddressHierarchyFormatter::parts($address);
-        $addressValue = implode(', ', array_filter($parts));
-
-        if (filled($venueName) && filled($addressValue)) {
-            return $venueName . ' • ' . $addressValue;
-        }
-
-        if (filled($venueName)) {
-            return (string) $venueName;
-        }
-
-        return $addressValue;
-    };
-
-    $joinEventPeopleNames = static function (\Illuminate\Support\Collection $names): string {
-        return $names->join(', ', ' dan ');
-    };
-
-    $resolveEventPersonAvatarStack = static function (\App\Models\Event $event): array {
-        $avatars = $event->persons
-            ->map(function (\App\Models\Person $person): array {
-                return [
-                    'name' => trim((string) ($person->formatted_name !== '' ? $person->formatted_name : $person->name)),
-                    'url' => $person->public_avatar_url,
-                ];
-            })
-            ->filter(fn (array $avatar): bool => $avatar['name'] !== '' && $avatar['url'] !== '')
-            ->unique('name')
-            ->values();
-
-        return [
-            'items' => $avatars->take(3)->values(),
-            'overflow' => max(0, $avatars->count() - 3),
-        ];
-    };
-
-    $resolveEventPeople = static function (\App\Models\Event $event) use ($joinEventPeopleNames): array {
-        $personSummary = $event->persons
-            ->map(fn (\App\Models\Person $person): string => trim((string) ($person->formatted_name !== '' ? $person->formatted_name : $person->name)))
-            ->filter(fn (string $name): bool => $name !== '')
-            ->unique()
-            ->values();
-
-        $roleSummary = $event->keyPeople
-            ->filter(function (\App\Models\EventKeyPerson $keyPerson): bool {
-                $role = $keyPerson->role_code;
-                $role = $role instanceof \App\Enums\EventKeyPersonRole
-                    ? $role
-                    : \App\Enums\EventKeyPersonRole::tryFrom((string) $role);
-
-                return $keyPerson->visibility === 'public' && $role !== \App\Enums\EventKeyPersonRole::Speaker;
-            })
-            ->groupBy(function (\App\Models\EventKeyPerson $keyPerson): string {
-                $role = $keyPerson->role_code;
-
-                return $role instanceof \App\Enums\EventKeyPersonRole
-                    ? $role->value
-                    : (string) $role;
-            })
-            ->map(function (\Illuminate\Support\Collection $keyPeople, string $role) use ($joinEventPeopleNames): ?string {
-                $names = $keyPeople
-                    ->map(fn (\App\Models\EventKeyPerson $keyPerson): string => trim((string) ($keyPerson->display_name
-                        ?: $keyPerson->person?->formatted_name
-                        ?: $keyPerson->person?->name
-                        ?: '')))
-                    ->filter(fn (string $name): bool => $name !== '')
-                    ->unique()
-                    ->values();
-
-                if ($names->isEmpty()) {
-                    return null;
-                }
-
-                $roleLabel = \App\Enums\EventKeyPersonRole::tryFrom($role)?->getLabel()
-                    ?? \Illuminate\Support\Str::headline($role);
-
-                return $roleLabel . ': ' . $joinEventPeopleNames($names);
-            })
-            ->filter()
-            ->implode(' • ');
-
-        return [
-            'persons' => $personSummary->isNotEmpty() ? $joinEventPeopleNames($personSummary) : '',
-            'roles' => $roleSummary,
-        ];
-    };
 @endphp
 
-<div class="min-h-screen bg-slate-50/90">
-    <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <x-ui.breadcrumbs
-            class="mb-6"
-            :items="[
-                ['label' => __('Laman Utama'), 'url' => route('home'), 'icon' => 'home'],
-                ['label' => __('Rujukan'), 'url' => route('references.index'), 'icon' => 'book', 'show_label' => true],
-            ]"
-        />
-        <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
-            <div class="space-y-8">
-                <section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-                    <div class="grid gap-0 md:grid-cols-[15rem_minmax(0,1fr)]">
-                        <div class="bg-slate-100">
-                            <img
-                                src="{{ $frontCoverUrl }}"
-                                alt="{{ $referenceTitle }}"
-                                class="h-full min-h-72 w-full object-cover"
-                                loading="lazy"
-                            >
-                        </div>
+<div class="min-h-screen bg-[#f7f6f1] text-slate-900">
+    <section class="relative isolate overflow-hidden border-b border-emerald-950/10 bg-[#f4efe4]">
+        <div class="absolute inset-0 -z-20 bg-[radial-gradient(circle_at_12%_15%,rgba(201,154,55,0.18),transparent_28%),radial-gradient(circle_at_88%_8%,rgba(5,98,76,0.18),transparent_34%),linear-gradient(135deg,#fffdf8_0%,#f3eee2_55%,#e6eee8_100%)]"></div>
+        <div class="absolute inset-0 -z-10 opacity-[0.24]" style="background-image: radial-gradient(circle at 1px 1px, rgba(6,78,59,.22) 1px, transparent 0); background-size: 26px 26px;"></div>
+        <div class="absolute -right-24 -top-28 -z-10 h-96 w-96 rounded-full border border-emerald-900/10"></div>
+        <div class="absolute -right-8 -top-12 -z-10 h-72 w-72 rounded-full border border-amber-700/10"></div>
 
-                        <div class="space-y-6 p-6 sm:p-8">
-                            <div class="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-                                <div class="space-y-3">
-                                    <div class="flex flex-wrap items-center gap-2">
-                                        @if($referenceTypeLabel !== '')
-                                            <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-900">
-                                                {{ $referenceTypeLabel }}
-                                            </span>
-                                        @endif
+        <div class="mx-auto max-w-7xl px-4 pb-6 pt-32 sm:px-6 sm:pb-8 sm:pt-36 lg:px-8 lg:pb-10 lg:pt-40">
+            <div class="overflow-hidden rounded-[2rem] bg-white/82 shadow-[0_30px_90px_-42px_rgba(6,78,59,0.42)] backdrop-blur-xl">
+                <div class="grid lg:grid-cols-[20rem_minmax(0,1fr)]">
+                    <div class="relative min-h-[20rem] overflow-hidden bg-gradient-to-br from-emerald-100 via-[#f4efe4] to-amber-100 lg:min-h-[24rem]">
+                        <div class="absolute inset-0 opacity-40" style="background-image: radial-gradient(circle at 1px 1px, rgba(7,91,72,.2) 1px, transparent 0); background-size: 20px 20px;"></div>
+                        <img
+                            src="{{ $frontCoverUrl }}"
+                            alt="{{ $referenceTitle }}"
+                            class="relative mx-auto h-full w-full object-contain p-6 drop-shadow-xl"
+                            loading="eager"
+                        >
+                    </div>
 
-                                        @if((string) $reference->status === 'verified')
-                                            <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800">
-                                                <flux:icon.check variant="mini" class="size-3.5" />
-                                                {{ __('Disahkan') }}
-                                            </span>
-                                        @endif
+                    <div class="flex flex-col p-6 sm:p-8 lg:p-8">
+                        <div class="flex flex-1 flex-col">
+                            <div class="flex flex-1 flex-col">
+                                <h1 class="max-w-3xl font-heading text-4xl font-bold leading-[1.05] tracking-[-0.035em] text-emerald-950 sm:text-5xl lg:text-6xl">
+                                    {{ $referenceTitle }}
+                                    @if((string) $reference->status === 'verified')
+                                        <x-ui.verified-badge class="text-emerald-600" data-testid="reference-verified-badge" />
+                                    @endif
+                                </h1>
+
+                                @if($metadataItems !== [])
+                                    <p class="mt-4 flex items-start gap-2 text-sm leading-6 text-slate-600 sm:text-base">
+                                        <flux:icon.user-group class="mt-1 size-5 shrink-0 text-amber-600" />
+                                        <span>{{ implode(' · ', $metadataItems) }}</span>
+                                    </p>
+                                @endif
+
+                                <div class="mt-auto grid grid-cols-2 gap-3 pt-4 sm:max-w-md">
+                                    <div class="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-3 text-center">
+                                        <p class="font-heading text-2xl font-bold text-emerald-950">{{ number_format($upcomingOverallTotal) }}</p>
+                                        <p class="mt-1 text-[10px] font-semibold text-emerald-700">{{ __('Majlis akan datang') }}</p>
                                     </div>
-
-                                    <div>
-                                        <h1 class="font-heading text-3xl font-bold text-slate-950 sm:text-4xl">{{ $referenceTitle }}</h1>
-
-                                        @if($metadataItems !== [])
-                                            <p class="mt-4 text-sm text-slate-500">{{ implode(' · ', $metadataItems) }}</p>
-                                        @endif
+                                    <div class="rounded-2xl border border-slate-200 bg-slate-50/80 p-3 text-center">
+                                        <p class="font-heading text-2xl font-bold text-emerald-950">{{ number_format($pastOverallTotal) }}</p>
+                                        <p class="mt-1 text-[10px] font-semibold text-slate-500">{{ __('Majlis lepas') }}</p>
                                     </div>
-                                </div>
-
-                                <div class="flex flex-wrap items-center gap-3">
-                                    <button
-                                        type="button"
-                                        wire:click="toggleFollow"
-                                        wire:loading.attr="disabled"
-                                        class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-700"
-                                    >
-                                        @if($this->isFollowing)
-                                            {{ __('Mengikuti') }}
-                                        @else
-                                            {{ __('Ikuti') }}
-                                        @endif
-                                    </button>
-
-                                    <a
-                                        href="#reference-share-panel"
-                                        class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-700"
-                                    >
-                                        {{ __('Kongsi') }}
-                                    </a>
                                 </div>
                             </div>
 
-                            @if($referenceDescription !== '')
-                                <div class="prose max-w-none text-slate-700 prose-headings:text-slate-950">
-                                    <p>{{ $referenceDescription }}</p>
-                                </div>
-                            @endif
+                            <div class="mt-6 flex flex-row flex-wrap gap-3">
+                                <button
+                                    type="button"
+                                    wire:click="toggleFollow"
+                                    wire:loading.attr="disabled"
+                                    class="inline-flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl bg-emerald-800 px-6 text-sm font-bold text-white shadow-lg shadow-emerald-900/15 transition hover:-translate-y-0.5 hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-70 sm:flex-none"
+                                >
+                                    <svg class="h-5 w-5" fill="{{ $this->isFollowing ? 'currentColor' : 'none' }}" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185v15.065L12 16.197l-7.5 4.375V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
+                                    </svg>
+                                    <span wire:loading.remove wire:target="toggleFollow">
+                                        @if($this->isFollowing)
+                                            <span class="sm:hidden">{{ __('Mengikuti') }}</span>
+                                            <span class="hidden sm:inline">{{ __('Mengikuti Rujukan') }}</span>
+                                        @else
+                                            <span class="sm:hidden">{{ __('Ikuti') }}</span>
+                                            <span class="hidden sm:inline">{{ __('Ikuti Rujukan') }}</span>
+                                        @endif
+                                    </span>
+                                    <span wire:loading wire:target="toggleFollow">{{ __('Memproses...') }}</span>
+                                </button>
 
-                            @guest
-                                <div class="flex flex-wrap gap-3">
+                                <a
+                                    href="#reference-share-panel"
+                                    class="inline-flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-white px-6 text-sm font-bold text-emerald-800 transition hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50 sm:flex-none"
+                                >
+                                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 12a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm12-6a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm0 12a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-11.11-7.1 7.22-3.8m-7.22 9.8 7.22 3.8" />
+                                    </svg>
+                                    <span class="sm:hidden">{{ __('Kongsi') }}</span>
+                                    <span class="hidden sm:inline">{{ __('Kongsi Rujukan') }}</span>
+                                </a>
+
+                                @if(auth()->user()?->hasAnyRole(['super_admin', 'admin']))
                                     <a
-                                        href="{{ \App\Support\Auth\IntendedRedirect::registerUrl($referenceRedirectUrl) }}"
-                                        class="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                                        href="{{ \App\Filament\Resources\References\ReferenceResource::getUrl('edit', ['record' => $reference], panel: 'admin') }}"
+                                        target="_blank"
+                                        class="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-6 text-sm font-bold text-amber-800 transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-100"
                                     >
-                                        {{ __('Daftar') }}
+                                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                                        </svg>
+                                        {{ __('Edit') }}
                                     </a>
-                                    <a
-                                        href="{{ \App\Support\Auth\IntendedRedirect::loginUrl($referenceRedirectUrl) }}"
-                                        class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-700"
-                                    >
-                                        {{ __('Log Masuk') }}
-                                    </a>
-                                </div>
-                            @endguest
+                                @endif
+                            </div>
                         </div>
                     </div>
-                </section>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+        <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
+            <div class="min-w-0 space-y-8">
+                @if($referenceDescription !== '')
+                    <section class="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                        <p class="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700">{{ __('Tentang Rujukan') }}</p>
+                        <h2 class="mt-1 font-heading text-xl font-bold text-emerald-950">{{ __('Ringkasan') }}</h2>
+                        <div class="mt-3 text-sm leading-7 text-slate-600">{!! nl2br(e($referenceDescription)) !!}</div>
+                    </section>
+                @endif
 
                 <section class="scroll-reveal reveal-up revealed space-y-6">
                     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                         <div>
-                            <p class="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700">{{ __('Jadual Rujukan') }}</p>
-                            <h2 class="mt-1 font-heading text-3xl font-bold text-emerald-950">{{ __('Majlis Akan Datang') }}</h2>
-                            <p class="mt-2 text-sm leading-6 text-slate-500">{{ __('Majlis yang menggunakan rujukan ini.') }}</p>
+                            <h2 class="font-heading text-3xl font-bold text-emerald-950">{{ __('Majlis Akan Datang') }}</h2>
                         </div>
 
                         @if($upcomingEvents->isNotEmpty())
@@ -399,132 +320,20 @@
                         wire:loading.attr="aria-busy"
                         wire:target="upcomingDateFilter,applyCustomDateRange,clearUpcomingDateFilter"
                     >
-                        @foreach($upcomingEvents as $scheduleLeaf)
-                            @php
-                                $event = $scheduleLeaf->event;
-                                $cardStart = $scheduleLeaf->startsAt();
-                                $cardEnd = $scheduleLeaf->endsAt();
-                                $cardTimingText = $scheduleLeaf->timingText('h:i A');
-                                $scheduleLocation = $scheduleLeaf->session?->locations->first() ?? $scheduleLeaf->occurrence->locations->first();
-                                $venueLocation = $scheduleLocation?->venue?->name ?? $scheduleLocation?->label ?? $resolveVenueLocation($event);
-                                $eventPeople = $resolveEventPeople($event);
-                                $personAvatarStack = $resolveEventPersonAvatarStack($event);
-                                $eventTypeLabel = $resolveEventCategoryLabel($event);
-                                $bookReferenceTitle = $event->reference_study_subtitle;
-                                $eventFormatValue = $event->delivery_mode?->value ?? $event->delivery_mode;
-                                $isRemoteEvent = in_array($eventFormatValue, ['online', 'hybrid'], true);
-                                $isPendingEvent = (string) $event->status === 'pending';
-                                $isCancelledEvent = (string) $event->status === 'cancelled';
-                            @endphp
-
-                            <a
-                                href="{{ $scheduleLeaf->url() }}"
-                                wire:key="upcoming-{{ $scheduleLeaf->entityType() }}-{{ $scheduleLeaf->id() }}"
-                                wire:navigate
-                                class="group relative flex overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md"
-                            >
-                                <div class="flex w-[4.5rem] shrink-0 flex-col items-center justify-center bg-gradient-to-b {{ $isCancelledEvent ? 'from-rose-600 to-rose-800' : ($isPendingEvent ? 'from-amber-600 to-amber-800' : ($isRemoteEvent ? 'from-sky-600 to-sky-800' : 'from-emerald-600 to-emerald-800')) }} p-3 text-white sm:w-24">
-                                    <span class="text-[10px] font-bold uppercase tracking-widest text-white/80">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($cardStart, 'l') }}</span>
-                                    <span class="font-heading text-3xl font-black leading-none sm:text-4xl">{{ \App\Support\Timezone\UserDateTimeFormatter::format($cardStart, 'd') }}</span>
-                                    <span class="mt-1 text-[11px] font-bold tracking-wide text-white/80">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($cardStart, 'F') }}</span>
-                                </div>
-
-                                <div class="flex flex-1 flex-col gap-3 p-4 sm:p-5">
-                                    <div class="flex items-start justify-between gap-4">
-                                        <div class="flex flex-wrap items-center gap-2">
-                                            <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-900">
-                                                {{ $eventTypeLabel }}
-                                            </span>
-                                            @if((string) $event->status === 'approved')
-                                                <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-900">{{ __('Diluluskan') }}</span>
-                                            @endif
-
-                                            @if($isCancelledEvent)
-                                                <span class="inline-flex items-center rounded-full bg-rose-100 px-2.5 py-0.5 text-[11px] font-semibold text-rose-800">
-                                                    {{ __('Dibatalkan') }}
-                                                </span>
-                                            @endif
-                                        </div>
-
-                                        @if($personAvatarStack['items']->isNotEmpty())
-                                            <div class="flex -space-x-3" aria-label="{{ __('Penceramah') }}">
-                                                @foreach($personAvatarStack['items'] as $avatar)
-                                                    <img
-                                                        src="{{ $avatar['url'] }}"
-                                                        alt="{{ $avatar['name'] }}"
-                                                        title="{{ $avatar['name'] }}"
-                                                        class="h-9 w-9 rounded-full object-cover ring-2 ring-white shadow-sm sm:h-11 sm:w-11"
-                                                    >
-                                                @endforeach
-
-                                                @if($personAvatarStack['overflow'] > 0)
-                                                    <span class="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-[10px] font-semibold text-slate-600 ring-2 ring-white shadow-sm sm:h-11 sm:w-11 sm:text-[11px]">
-                                                        +{{ $personAvatarStack['overflow'] }}
-                                                    </span>
-                                                @endif
-                                            </div>
-                                        @endif
-                                    </div>
-
-                                    <div class="space-y-2">
-                                        <h3 class="font-heading text-lg font-bold text-slate-950 transition group-hover:text-emerald-700">
-                                            {{ $scheduleLeaf->title() }}
-                                        </h3>
-
-                                        @if($bookReferenceTitle)
-                                            <p class="pl-3 text-sm font-bold italic text-slate-500 sm:pl-4">
-                                                {{ $bookReferenceTitle }}
-                                            </p>
-                                        @endif
-                                    </div>
-
-                                    <div class="space-y-1.5 text-sm text-slate-500">
-                                        <div class="flex items-center gap-2">
-                                            <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                            <span>{{ $cardTimingText }}</span>
-
-                                            @if($cardEnd)
-                                                <span class="text-slate-300">-</span>
-                                                <span>{{ \App\Support\Timezone\UserDateTimeFormatter::format($cardEnd, 'h:i A') }}</span>
-                                            @endif
-                                        </div>
-
-                                        @if($eventPeople['persons'] !== '')
-                                            <div class="flex items-start gap-2">
-                                                <svg class="mt-0.5 h-4 w-4 shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.742-.479 3 3 0 00-4.682-2.72m.94 3.198v.75c0 .414-.336.75-.75.75H4.75a.75.75 0 01-.75-.75v-.75a4.5 4.5 0 014.5-4.5h4.5a4.5 4.5 0 014.5 4.5z" />
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 7.5a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
-                                                </svg>
-                                                <span class="line-clamp-2">{{ $eventPeople['persons'] }}</span>
-                                            </div>
-                                        @endif
-
-                                        @if($eventPeople['roles'] !== '')
-                                            <div class="flex items-start gap-2">
-                                                <svg class="mt-0.5 h-4 w-4 shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.008v.008H3.75V6.75zm0 5.25h.008v.008H3.75V12zm0 5.25h.008v.008H3.75v-.008z" />
-                                                </svg>
-                                                <span class="line-clamp-2">{{ $eventPeople['roles'] }}</span>
-                                            </div>
-                                        @endif
-
-                                        @if($venueLocation !== '' && ! $isRemoteEvent)
-                                            <div class="flex items-center gap-2">
-                                                <svg class="h-4 w-4 shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                                                </svg>
-                                                <span class="line-clamp-1">{{ $venueLocation }}</span>
-                                            </div>
-                                        @endif
-                                    </div>
-                                </div>
-                            </a>
-                        @endforeach
-
-                        @if($upcomingEvents->isEmpty())
+                        @if($upcomingEvents->isNotEmpty())
+                            <div class="flex flex-wrap justify-center gap-4 *:w-full md:*:w-[calc(50%_-_0.5rem)]">
+                                @foreach($upcomingEvents as $scheduleLeaf)
+                                    <x-events.schedule-card
+                                        :schedule-leaf="$scheduleLeaf"
+                                        :saved-event-ids="$savedEventIds"
+                                        :hide-reference="true"
+                                        signal-component="reference_detail_upcoming_events"
+                                        testid-prefix="reference-detail-card"
+                                        :wire-key="'upcoming-'.$scheduleLeaf->entityType().'-'.$scheduleLeaf->id()"
+                                    />
+                                @endforeach
+                            </div>
+                        @else
                             <div class="rounded-2xl border border-dashed border-slate-200 bg-white p-10 text-center">
                                 <h3 class="font-heading text-xl font-bold text-emerald-950">
                                     {{ $upcomingDateFilter === 'all' ? __('Belum ada majlis akan datang') : __('Tiada majlis untuk tempoh ini') }}
@@ -653,9 +462,9 @@
                 @endif
             </div>
 
-            <aside class="space-y-6">
+            <aside class="space-y-6 lg:sticky lg:top-24 lg:self-start">
                 @if($backCoverUrl !== '')
-                    <section class="scroll-reveal reveal-right revealed rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <section class="scroll-reveal reveal-right revealed rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm">
                         <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{{ __('Kulit Belakang') }}</p>
                         <img
                             src="{{ $backCoverUrl }}"
@@ -666,40 +475,13 @@
                     </section>
                 @endif
 
-                <section class="scroll-reveal reveal-right revealed rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <div class="flex flex-col gap-4">
-                        <div>
-                            <p class="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400">{{ __('Bantu Semak Rujukan') }}</p>
-                            <p class="mt-2 text-sm leading-6 text-slate-600">
-                                {{ __('Jumpa maklumat yang perlu diperbetulkan atau kandungan yang meragukan?') }}
-                            </p>
-                        </div>
-
-                        <div class="flex flex-wrap gap-2">
-                            <a
-                                href="{{ route('contributions.suggest-update', ['subjectType' => $referenceRouteSegment, 'subjectId' => $reference->slug]) }}"
-                                wire:navigate
-                                class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700"
-                            >
-                                {{ __('Cadang Kemaskini') }}
-                            </a>
-                            <a
-                                href="{{ route('reports.create', ['subjectType' => $referenceRouteSegment, 'subjectId' => $reference->slug]) }}"
-                                wire:navigate
-                                class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
-                            >
-                                {{ __('Lapor') }}
-                            </a>
-                        </div>
-                    </div>
-                </section>
-
-                <section id="reference-share-panel" class="scroll-reveal reveal-right revealed">
-                    <x-dawah-share-panel
-                        :share-data="$shareData"
-                        :share-links="$shareLinks"
-                    />
-                </section>
+                <x-public-record-feedback
+                    share-panel-id="reference-share-panel"
+                    :subject-type="$referenceRouteSegment"
+                    :subject-id="$reference->slug"
+                    :share-data="$shareData"
+                    :share-links="$shareLinks"
+                />
 
                 <x-sidebar-inspiration />
             </aside>

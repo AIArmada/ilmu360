@@ -17,6 +17,7 @@ use App\Enums\EventKeyPersonRole;
 use App\Enums\EventVisibility;
 use App\Enums\SpeakerStatus;
 use App\Livewire\Concerns\JoinsHierarchyAreaName;
+use App\Livewire\Concerns\TogglesEventSave;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\EventKeyPersonPivot;
@@ -47,6 +48,7 @@ use Livewire\Component;
 class Show extends Component
 {
     use JoinsHierarchyAreaName;
+    use TogglesEventSave;
 
     public Person $person;
 
@@ -155,6 +157,11 @@ class Show extends Component
             }
         });
         $this->isFollowing = true;
+    }
+
+    protected function eventSaveReturnUrl(): string
+    {
+        return route('persons.show', $this->person, absolute: false);
     }
 
     public function loadMoreUpcoming(): void
@@ -286,7 +293,9 @@ class Show extends Component
 
         $events = $this->personEventQuery()->reorder()->with('involvements')->get()->unique('id');
         $leaves = app(PublicScheduleDiscoveryService::class)->leavesForEvents($events)
-            ->filter(fn (PublicScheduleLeaf $leaf): bool => $this->isSpeakerForLeaf($leaf));
+            ->map(fn (PublicScheduleLeaf $leaf): ?PublicScheduleLeaf => $this->speakerLeafFor($leaf))
+            ->filter()
+            ->values();
         $now = now();
         $range = $this->upcomingDateRange();
         $upcomingOverall = $leaves->filter(fn (PublicScheduleLeaf $leaf): bool => $leaf->startsAt() >= $now)->values();
@@ -343,6 +352,9 @@ class Show extends Component
         if ($speakerEvents->isNotEmpty()) {
             $speakerEvents->load([
                 'references' => fn ($query) => $query->active(),
+                'media',
+                'institution.media',
+                'persons.media',
                 'primaryOccurrence',
                 'displayOccurrence.media',
                 'timeExpressions',
@@ -416,19 +428,32 @@ class Show extends Component
         ];
     }
 
-    private function isSpeakerForLeaf(PublicScheduleLeaf $leaf): bool
+    private function speakerLeafFor(PublicScheduleLeaf $leaf): ?PublicScheduleLeaf
     {
         $involvements = $leaf->event->involvements
             ->filter(fn ($involvement): bool => $involvement->role_code === EventKeyPersonRole::Speaker->value
                 && in_array($involvement->status, [null, 'active'], true)
                 && $involvement->visibility === 'public');
-        $session = $leaf->session === null ? collect() : $involvements->where('event_session_id', $leaf->session->getKey());
+
+        $matchesPerson = fn ($involvement): bool => $involvement->involveable_type === $this->person->getMorphClass()
+            && (string) $involvement->involveable_id === (string) $this->person->getKey();
+
+        $sessions = $leaf->sessions
+            ->filter(fn ($session): bool => $involvements
+                ->where('event_session_id', $session->getKey())
+                ->contains($matchesPerson))
+            ->values();
+
+        if ($sessions->isNotEmpty()) {
+            return new PublicScheduleLeaf($leaf->event, $leaf->occurrence, $sessions);
+        }
+
         $occurrence = $involvements->where('event_occurrence_id', $leaf->occurrence->getKey())->whereNull('event_session_id');
         $event = $involvements->whereNull('event_occurrence_id')->whereNull('event_session_id');
-        $effective = $session->isNotEmpty() ? $session : ($occurrence->isNotEmpty() ? $occurrence : $event);
 
-        return $effective->contains(fn ($involvement): bool => $involvement->involveable_type === $this->person->getMorphClass()
-            && (string) $involvement->involveable_id === (string) $this->person->getKey());
+        return $occurrence->contains($matchesPerson) || $event->contains($matchesPerson)
+            ? $leaf
+            : null;
     }
 
     /**

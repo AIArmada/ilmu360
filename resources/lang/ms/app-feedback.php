@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 return [
-    'page_title' => 'Maklum Balas Aplikasi',
-    'title' => 'Maklum Balas Aplikasi',
+    'page_title' => 'Maklum Balas',
+    'title' => 'Maklum Balas',
     'intro' => 'Beritahu kami tentang masalah yang anda hadapi atau cadangan untuk menambah baik ilmu360°.',
     'form' => [
         'heading' => 'Hantar maklum balas',

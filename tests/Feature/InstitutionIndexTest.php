@@ -556,7 +556,7 @@ it('filters institutions by negeri, daerah, and subdistrict scopes', function ()
         ->assertDontSee('Institusi Scope B');
 });
 
-it('counts approved and pending public active events on institution cards', function () {
+it('counts approved and pending public upcoming events on institution cards', function () {
     $institution = Institution::factory()->create([
         'name' => 'Institusi Kiraan Acara',
         'slug' => 'institusi-kiraan-acara',
@@ -580,11 +580,74 @@ it('counts approved and pending public active events on institution cards', func
         'published_at' => now(),
     ]);
 
+    Event::factory()->for($institution)->create([
+        'title' => 'Past Event',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'starts_at' => now()->subDay(),
+        'published_at' => now()->subDays(2),
+    ]);
+
     get('/institusi?search=Kiraan')
         ->assertSuccessful()
         ->assertSee('Institusi Kiraan Acara')
-        ->assertSee('2 '.__('Events'))
-        ->assertDontSee('1 '.__('Events'));
+        ->assertSee('2 '.__('Upcoming Events'))
+        ->assertDontSee('3 '.__('Upcoming Events'));
+});
+
+it('counts occurrences as majlis and nests sessions inside the institution card', function () {
+    $institution = Institution::factory()->create([
+        'name' => 'Institusi Kiraan Sesi',
+        'slug' => 'institusi-kiraan-sesi',
+        'status' => 'verified',
+    ]);
+
+    $multiSessionEvent = Event::factory()->for($institution)->create([
+        'title' => 'Event With Sessions',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'starts_at' => now()->addDay(),
+        'published_at' => now(),
+    ]);
+
+    $occurrence = $multiSessionEvent->occurrences()->firstOrFail();
+
+    foreach (['Sesi Pagi', 'Sesi Petang'] as $index => $sessionTitle) {
+        $occurrence->sessions()->create([
+            'event_id' => $multiSessionEvent->getKey(),
+            'title' => $sessionTitle,
+            'slug' => 'sesi-'.$index,
+            'starts_at' => now()->addDay()->addHours($index + 1),
+            'ends_at' => now()->addDay()->addHours($index + 2),
+            'timezone' => 'Asia/Kuala_Lumpur',
+            'status' => 'scheduled',
+            'visibility' => 'public',
+            'delivery_mode' => 'physical',
+        ]);
+    }
+
+    Event::factory()->for($institution)->create([
+        'title' => 'Single Majlis Event',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'starts_at' => now()->addDay(),
+        'published_at' => now(),
+    ]);
+
+    get('/institusi?search=Kiraan Sesi')
+        ->assertSuccessful()
+        ->assertSee('Institusi Kiraan Sesi')
+        ->assertSee('2 '.__('Upcoming Events'))
+        ->assertDontSee('3 '.__('Upcoming Events'));
+
+    get(route('institutions.show', $institution))
+        ->assertSuccessful()
+        ->assertSeeHtml('data-testid="hero-upcoming-total">2</p>')
+        ->assertSee('Sesi Pagi')
+        ->assertSee('Sesi Petang')
+        ->assertSeeHtml('data-testid="event-card-sessions"')
+        ->assertDontSee('upcoming-session-', false)
+        ->assertDontSeeHtml('data-testid="hero-upcoming-total">3</p>');
 });
 
 it('uses postal locality children for federal territory directory filters', function () {
@@ -777,7 +840,7 @@ it('shows the nearest upcoming public majlis on state-filtered cards with one ba
     get('/institusi?state=johor-ujian-terdekat')
         ->assertSuccessful()
         ->assertSee('Institusi Majlis Negeri Terdekat')
-        ->assertSee('2 '.__('Events'))
+        ->assertSee('2 '.__('Upcoming Events'))
         ->assertSee('data-next-event', false)
         ->assertSee('href="'.route('events.show', $nearestEvent).'"', false)
         ->assertSee('Majlis Negeri Terdekat')

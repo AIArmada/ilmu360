@@ -163,7 +163,7 @@
                 $institutionsNavActive = request()->routeIs('institutions.*');
                 $personsNavActive = request()->routeIs('persons.*');
                 $useHomeHeader = request()->routeIs('home');
-                $useFloatingHeader = request()->routeIs('events.index', 'persons.index', 'persons.show', 'institutions.index', 'institutions.show', 'references.index', 'submit-event.create');
+                $useFloatingHeader = request()->routeIs('events.index', 'persons.index', 'persons.show', 'institutions.index', 'institutions.show', 'references.index', 'references.show', 'submit-event.create');
                 $useOverlayHeader = $useHomeHeader || $useFloatingHeader;
                 $currentLocaleLabel = str_starts_with($currentLocale, 'ms')
                     ? 'BM'
@@ -683,11 +683,8 @@
                                 <li><a href="{{ route('about') }}" wire:navigate
                                         class="transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">{{ __('About Us') }}</a>
                                 </li>
-                                <li><a href="{{ route('home') }}#submit" wire:navigate
-                                        class="transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">{{ __('Submit Event') }}</a>
-                                </li>
-                                <li><a href="{{ route('contributions.submit-person') }}" wire:navigate
-                                        class="transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">{{ __('Speaker suggestion') }}</a>
+                                <li><a href="{{ route('submit-event.create') }}" wire:navigate
+                                        class="transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">{{ __('Add Event') }}</a>
                                 </li>
                                 <li>
                                     <a href="{{ route('app-feedback.index') }}" wire:navigate

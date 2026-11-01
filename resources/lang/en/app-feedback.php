@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 return [
-    'page_title' => 'Application Feedback',
-    'title' => 'Application Feedback',
+    'page_title' => 'Feedback',
+    'title' => 'Feedback',
     'intro' => 'Tell us about a problem you encountered or a suggestion to improve ilmu360°.',
     'form' => [
         'heading' => 'Send feedback',

@@ -17,6 +17,7 @@
     $addressLines = \App\Support\Location\AddressHierarchyFormatter::displayLines($address);
     $locationString = \App\Support\Location\AddressHierarchyFormatter::format($address);
     $upcomingEvents = $this->upcomingEvents;
+    $savedEventIds = $this->savedEventIds;
     $upcomingTotal = $this->upcomingTotal;
     $upcomingOverallTotal = $this->upcomingOverallTotal;
     $pastOverallTotal = $this->pastOverallTotal;
@@ -114,97 +115,6 @@
         'linkedin' => ['label' => 'LinkedIn', 'icon' => 'linkedin.svg', 'border' => 'group-hover:border-[#0A66C2]/35'],
     ];
 
-    $resolveEventCategoryLabel = static fn (\App\Models\Event $event): string => app(\App\Support\Events\EventCategoryPresenter::class)->forEvent($event)[0]['path'] ?? __('Umum');
-
-    $resolveVenueLocation = static function (\App\Models\Event $event): string {
-        $venueName = $event->venue?->name;
-        $address = $event->venue?->primaryAddress();
-        $parts = \App\Support\Location\AddressHierarchyFormatter::parts($address);
-        $addressValue = implode(', ', array_filter($parts));
-
-        if (filled($venueName) && filled($addressValue)) {
-            return $venueName . ' • ' . $addressValue;
-        }
-
-        if (filled($venueName)) {
-            return (string) $venueName;
-        }
-
-        return $addressValue;
-    };
-
-    $joinEventPeopleNames = static function (\Illuminate\Support\Collection $names): string {
-        return $names->join(', ', ' dan ');
-    };
-
-    $resolveEventPersonAvatarStack = static function (\App\Models\Event $event): array {
-        $avatars = $event->persons
-            ->map(function (\App\Models\Person $person): array {
-                return [
-                    'name' => trim((string) ($person->formatted_name !== '' ? $person->formatted_name : $person->name)),
-                    'url' => $person->public_avatar_url,
-                ];
-            })
-            ->filter(fn (array $avatar): bool => $avatar['name'] !== '' && $avatar['url'] !== '')
-            ->unique('name')
-            ->values();
-
-        return [
-            'items' => $avatars->take(3)->values(),
-            'overflow' => max(0, $avatars->count() - 3),
-        ];
-    };
-
-    $resolveEventPeople = static function (\App\Models\Event $event) use ($joinEventPeopleNames): array {
-        $personSummary = $event->persons
-            ->map(fn (\App\Models\Person $person): string => trim((string) ($person->formatted_name !== '' ? $person->formatted_name : $person->name)))
-            ->filter(fn (string $name): bool => $name !== '')
-            ->unique()
-            ->values();
-
-        $roleSummary = $event->keyPeople
-            ->filter(function (\App\Models\EventKeyPerson $keyPerson): bool {
-                $role = $keyPerson->role_code;
-                $role = $role instanceof \App\Enums\EventKeyPersonRole
-                    ? $role
-                    : \App\Enums\EventKeyPersonRole::tryFrom((string) $role);
-
-                return $keyPerson->visibility === 'public' && $role !== \App\Enums\EventKeyPersonRole::Speaker;
-            })
-            ->groupBy(function (\App\Models\EventKeyPerson $keyPerson): string {
-                $role = $keyPerson->role_code;
-
-                return $role instanceof \App\Enums\EventKeyPersonRole
-                    ? $role->value
-                    : (string) $role;
-            })
-            ->map(function (\Illuminate\Support\Collection $keyPeople, string $role) use ($joinEventPeopleNames): ?string {
-                $names = $keyPeople
-                    ->map(fn (\App\Models\EventKeyPerson $keyPerson): string => trim((string) ($keyPerson->display_name
-                        ?: $keyPerson->person?->formatted_name
-                        ?: $keyPerson->person?->name
-                        ?: '')))
-                    ->filter(fn (string $name): bool => $name !== '')
-                    ->unique()
-                    ->values();
-
-                if ($names->isEmpty()) {
-                    return null;
-                }
-
-                $roleLabel = \App\Enums\EventKeyPersonRole::tryFrom($role)?->getLabel()
-                    ?? \Illuminate\Support\Str::headline($role);
-
-                return $roleLabel . ': ' . $joinEventPeopleNames($names);
-            })
-            ->filter()
-            ->implode(' • ');
-
-        return [
-            'persons' => $personSummary->isNotEmpty() ? $joinEventPeopleNames($personSummary) : '',
-            'roles' => $roleSummary,
-        ];
-    };
 @endphp
 
 <div class="min-h-screen bg-[#f7f6f1] text-slate-900">
@@ -561,122 +471,20 @@
                         wire:loading.attr="aria-busy"
                         wire:target="upcomingDateFilter,applyCustomDateRange,clearUpcomingDateFilter"
                     >
-                        @foreach($upcomingEvents as $scheduleLeaf)
-                            @php
-                                $event = $scheduleLeaf->event;
-                                $cardStart = $scheduleLeaf->startsAt();
-                                $cardEnd = $scheduleLeaf->endsAt();
-                                $cardTimingText = $scheduleLeaf->timingText('h:i A');
-                                $scheduleLocation = $scheduleLeaf->session?->locations->first() ?? $scheduleLeaf->occurrence->locations->first();
-                                $venueLocation = $scheduleLocation?->venue?->name ?? $scheduleLocation?->label ?? $resolveVenueLocation($event);
-                                $eventPeople = $resolveEventPeople($event);
-                                $personAvatarStack = $resolveEventPersonAvatarStack($event);
-                                $eventTypeLabel = $resolveEventCategoryLabel($event);
-                                $bookReferenceTitle = $event->reference_study_subtitle;
-                                $eventFormatValue = $event->delivery_mode?->value ?? $event->delivery_mode;
-                                $isRemoteEvent = in_array($eventFormatValue, ['online', 'hybrid'], true);
-                                $isPendingEvent = (string) $event->status === 'pending';
-                                $isCancelledEvent = (string) $event->status === 'cancelled';
-                            @endphp
-
-                            <a
-                                href="{{ $scheduleLeaf->url() }}"
-                                wire:key="upcoming-{{ $scheduleLeaf->entityType() }}-{{ $scheduleLeaf->id() }}"
-                                wire:navigate
-                                class="group relative flex overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md"
-                            >
-                                <div class="flex w-[4.5rem] shrink-0 flex-col items-center justify-center bg-gradient-to-b {{ $isCancelledEvent ? 'from-rose-600 to-rose-800' : ($isPendingEvent ? 'from-amber-600 to-amber-800' : ($isRemoteEvent ? 'from-sky-600 to-sky-800' : 'from-emerald-600 to-emerald-800')) }} p-3 text-white sm:w-24">
-                                    <span class="text-[10px] font-bold uppercase tracking-widest text-white/80">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($cardStart, 'l') }}</span>
-                                    <span class="font-heading text-3xl font-black leading-none sm:text-4xl">{{ \App\Support\Timezone\UserDateTimeFormatter::format($cardStart, 'd') }}</span>
-                                    <span class="mt-1 text-[11px] font-bold tracking-wide text-white/80">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($cardStart, 'F') }}</span>
-                                </div>
-
-                                <div class="flex flex-1 flex-col gap-3 p-4 sm:p-5">
-                                    <div class="flex items-start justify-between gap-4">
-                                        <div class="flex flex-wrap items-center gap-2">
-                                            <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-900">
-                                                {{ $eventTypeLabel }}
-                                            </span>
-                                            @if((string) $event->status === 'approved')
-                                                <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-900">{{ __('Diluluskan') }}</span>
-                                            @endif
-
-                                            @if($isCancelledEvent)
-                                                <span class="inline-flex items-center rounded-full bg-rose-100 px-2.5 py-0.5 text-[11px] font-semibold text-rose-800">
-                                                    {{ __('Dibatalkan') }}
-                                                </span>
-                                            @endif
-                                        </div>
-
-                                        @if($personAvatarStack['items']->isNotEmpty())
-                                            <div class="flex -space-x-3" aria-label="{{ __('Penceramah') }}">
-                                                @foreach($personAvatarStack['items'] as $avatar)
-                                                    <img
-                                                        src="{{ $avatar['url'] }}"
-                                                        alt="{{ $avatar['name'] }}"
-                                                        title="{{ $avatar['name'] }}"
-                                                        class="h-9 w-9 rounded-full object-cover ring-2 ring-white shadow-sm sm:h-11 sm:w-11"
-                                                    >
-                                                @endforeach
-
-                                                @if($personAvatarStack['overflow'] > 0)
-                                                    <span class="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-[10px] font-semibold text-slate-600 ring-2 ring-white shadow-sm sm:h-11 sm:w-11 sm:text-[11px]">
-                                                        +{{ $personAvatarStack['overflow'] }}
-                                                    </span>
-                                                @endif
-                                            </div>
-                                        @endif
-                                    </div>
-
-                                    <div class="space-y-2">
-                                        <h3 class="font-heading text-lg font-bold text-slate-950 transition group-hover:text-emerald-700">
-                                            {{ $scheduleLeaf->title() }}
-                                        </h3>
-
-                                        @if($bookReferenceTitle)
-                                            <p class="pl-3 text-sm font-bold italic text-slate-500 sm:pl-4">
-                                                {{ $bookReferenceTitle }}
-                                            </p>
-                                        @endif
-                                    </div>
-
-                                    <div class="space-y-1.5 text-sm text-slate-500">
-                                        <div class="flex items-center gap-2">
-                                            <flux:icon.clock class="size-4 text-slate-400" />
-                                            <span>{{ $cardTimingText }}</span>
-
-                                            @if($cardEnd)
-                                                <span class="text-slate-300">-</span>
-                                                <span>{{ \App\Support\Timezone\UserDateTimeFormatter::format($cardEnd, 'h:i A') }}</span>
-                                            @endif
-                                        </div>
-
-                                        @if($eventPeople['persons'] !== '')
-                                            <div class="flex items-start gap-2">
-                                                <flux:icon.users class="mt-0.5 size-4 shrink-0 text-slate-400" />
-                                                <span class="line-clamp-2">{{ $eventPeople['persons'] }}</span>
-                                            </div>
-                                        @endif
-
-                                        @if($eventPeople['roles'] !== '')
-                                            <div class="flex items-start gap-2">
-                                                <flux:icon.list-bullet class="mt-0.5 size-4 shrink-0 text-slate-400" />
-                                                <span class="line-clamp-2">{{ $eventPeople['roles'] }}</span>
-                                            </div>
-                                        @endif
-
-                                        @if($venueLocation !== '' && ! $isRemoteEvent)
-                                            <div class="flex items-center gap-2">
-                                                <flux:icon.map-pin class="size-4 shrink-0 text-slate-400" />
-                                                <span class="line-clamp-1">{{ $venueLocation }}</span>
-                                            </div>
-                                        @endif
-                                    </div>
-                                </div>
-                            </a>
-                        @endforeach
-
-                        @if($upcomingEvents->isEmpty())
+                        @if($upcomingEvents->isNotEmpty())
+                            <div class="flex flex-wrap justify-center gap-4 *:w-full md:*:w-[calc(50%_-_0.5rem)]">
+                                @foreach($upcomingEvents as $scheduleLeaf)
+                                    <x-events.schedule-card
+                                        :schedule-leaf="$scheduleLeaf"
+                                        :saved-event-ids="$savedEventIds"
+                                        :hide-location="true"
+                                        signal-component="institution_detail_upcoming_events"
+                                        testid-prefix="institution-detail-card"
+                                        :wire-key="'upcoming-'.$scheduleLeaf->entityType().'-'.$scheduleLeaf->id()"
+                                    />
+                                @endforeach
+                            </div>
+                        @else
                             <div class="rounded-2xl border border-dashed border-slate-200 bg-white p-10 text-center">
                                 <h3 class="font-heading text-xl font-bold text-emerald-950">
                                     {{ $upcomingDateFilter === 'all' ? __('Belum ada majlis akan datang') : __('Tiada majlis untuk tempoh ini') }}
@@ -728,8 +536,7 @@
             <aside class="space-y-6 lg:sticky lg:top-24 lg:self-start">
                 @if($addressLines['street'] || $addressLines['locality'] || $addressLines['regional'] || $googleMapsEmbedUrl)
                     <section class="scroll-reveal reveal-right revealed rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
-                        <p class="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700">{{ __('Lokasi Institusi') }}</p>
-                        <div class="mt-4 grid gap-5">
+                        <div class="grid gap-5">
                             @if($addressLines['street'] || $addressLines['locality'] || $addressLines['regional'])
                                 <div>
                                     <h2 class="font-heading text-xl font-bold text-emerald-950">{{ __('Alamat') }}</h2>

@@ -419,6 +419,7 @@ it('renders institution event cards with localized prayer timing stacked person 
             ->create([
                 'status' => 'approved',
                 'visibility' => EventVisibility::Public,
+                'delivery_mode' => EventFormat::Physical,
                 'starts_at' => now()->addDays(3)->setTime(18, 45),
                 'title' => 'Kuliah Maghrib Institusi',
                 'timing_mode' => TimingMode::PrayerRelative,
@@ -475,7 +476,7 @@ it('renders institution event cards with localized prayer timing stacked person 
 
         $html = $response->getContent();
 
-        preg_match('/<a[^>]*wire:key="upcoming-occurrence-'.preg_quote((string) $event->occurrences()->firstOrFail()->getKey(), '/').'"[^>]*>.*?<\/a>/s', (string) $html, $matches);
+        preg_match('/<article[^>]*wire:key="upcoming-occurrence-'.preg_quote((string) $event->occurrences()->firstOrFail()->getKey(), '/').'"[^>]*>.*?<\/article>/s', (string) $html, $matches);
 
         $eventCard = $matches[0] ?? null;
 
@@ -484,11 +485,13 @@ it('renders institution event cards with localized prayer timing stacked person 
             ->toContain('After Maghrib')
             ->toContain('Ustaz Abdullah Fahmi')
             ->toContain('Ustaz Ahmad Razak')
-            ->toContain('Moderator: Ustazah Mariam Yusuf')
             ->toContain($person->public_avatar_url)
             ->toContain($secondPerson->public_avatar_url)
-            ->toContain('-space-x-3')
-            ->toContain('sm:h-11 sm:w-11')
+            ->toContain('-space-x-2')
+            ->toContain('h-9 w-9')
+            ->toContain('data-testid="event-card-date-badge"')
+            ->not->toContain('data-testid="event-card-location"', false)
+            ->not->toContain('Masjid Sultan Salahuddin Abdul Aziz Shah')
             ->not->toContain('Selepas Maghrib')
             ->not->toContain('Penceramah:')
             ->not->toContain('Shah Alam, Petaling, Selangor');
@@ -539,8 +542,8 @@ it('renders the book title on institution event cards without parentheses', func
 
     $html = $response->getContent();
 
-    preg_match('/<a[^>]*wire:key="upcoming-occurrence-'.preg_quote((string) $bookEvent->occurrences()->firstOrFail()->getKey(), '/').'"[^>]*>.*?<\/a>/s', (string) $html, $bookMatches);
-    preg_match('/<a[^>]*wire:key="upcoming-occurrence-'.preg_quote((string) $articleEvent->occurrences()->firstOrFail()->getKey(), '/').'"[^>]*>.*?<\/a>/s', (string) $html, $articleMatches);
+    preg_match('/<article[^>]*wire:key="upcoming-occurrence-'.preg_quote((string) $bookEvent->occurrences()->firstOrFail()->getKey(), '/').'"[^>]*>.*?<\/article>/s', (string) $html, $bookMatches);
+    preg_match('/<article[^>]*wire:key="upcoming-occurrence-'.preg_quote((string) $articleEvent->occurrences()->firstOrFail()->getKey(), '/').'"[^>]*>.*?<\/article>/s', (string) $html, $articleMatches);
 
     $bookEventCard = $bookMatches[0] ?? null;
     $articleEventCard = $articleMatches[0] ?? null;
@@ -553,8 +556,8 @@ it('renders the book title on institution event cards without parentheses', func
         ->toContain('Riyadhus Solihin')
         ->not->toContain('(Riyadhus Solihin)')
         ->toContain('font-bold')
-        ->toContain('italic')
-        ->toContain('sm:pl-4');
+        ->toContain('line-clamp-2')
+        ->toContain('data-testid="event-card-date-badge"');
 
     expect($articleEventCard)
         ->toContain('Kuliah Maghrib Artikel')
@@ -582,7 +585,7 @@ it('renders institution event cards cleanly when an event has no persons', funct
 
     $html = $response->getContent();
 
-    preg_match('/<a[^>]*wire:key="upcoming-occurrence-'.preg_quote((string) $event->occurrences()->firstOrFail()->getKey(), '/').'"[^>]*>.*?<\/a>/s', (string) $html, $matches);
+    preg_match('/<article[^>]*wire:key="upcoming-occurrence-'.preg_quote((string) $event->occurrences()->firstOrFail()->getKey(), '/').'"[^>]*>.*?<\/article>/s', (string) $html, $matches);
 
     $eventCard = $matches[0] ?? null;
 
@@ -936,7 +939,7 @@ it('does not render a breadcrumb', function () {
         ->assertDontSee('data-ui="public-breadcrumbs"', false);
 });
 
-it('renders prayer-relative start time and event timezone end time in institution event list', function () {
+it('renders prayer-relative start time in institution event list', function () {
     $institution = Institution::factory()->create(['status' => 'verified']);
 
     $event = Event::factory()
@@ -954,18 +957,15 @@ it('renders prayer-relative start time and event timezone end time in institutio
             'title' => 'Kuliah Khas Timing',
         ]);
 
-    $expectedEndTime = $event->ends_at?->copy()->timezone('Asia/Kuala_Lumpur')->format('h:i A');
-
     $this->withUnencryptedCookie('user_timezone', 'Asia/Kuala_Lumpur')
         ->get(route('institutions.show', $institution))
         ->assertSuccessful()
         ->assertSeeText('Kuliah Khas Timing')
         ->assertSeeText('Selepas Asar')
-        ->assertSeeText((string) $expectedEndTime)
         ->assertDontSeeText('12:40 PM');
 });
 
-it('hides duplicated state for kuala lumpur putrajaya and labuan in institution event location list', function () {
+it('hides event card locations on the institution event list but keeps them on the majlis directory', function () {
     $institution = Institution::factory()->create(['status' => 'verified']);
     $venue = Venue::factory()->create(['name' => 'Dewan Utama KL']);
 
@@ -993,7 +993,16 @@ it('hides duplicated state for kuala lumpur putrajaya and labuan in institution 
 
     $this->get(route('institutions.show', $institution))
         ->assertSuccessful()
-        ->assertSee('Dewan Utama KL • Setiawangsa, Kuala Lumpur')
+        ->assertSee('Kuliah KL')
+        ->assertDontSee('Dewan Utama KL')
+        ->assertDontSee('Setiawangsa, Kuala Lumpur');
+
+    $this->get(route('events.index', ['search' => 'Kuliah KL']))
+        ->assertSuccessful()
+        ->assertSee('Dewan Utama KL')
+        ->assertSee('Setiawangsa, Kuala Lumpur')
+        ->assertDontSee('Dewan Utama KL • Setiawangsa, Kuala Lumpur')
+        ->assertDontSee('Kuala Lumpur, Kuala Lumpur')
         ->assertDontSee('Dewan Utama KL • Negeri: - • Daerah: Kuala Lumpur • Bandar / Mukim / Zon: -')
         ->assertDontSee('Dewan Utama KL • Negeri: Kuala Lumpur • Daerah: Kuala Lumpur');
 });

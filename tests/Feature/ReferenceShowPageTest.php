@@ -50,6 +50,33 @@ it('displays upcoming events and links to the filtered past events for the refer
         ]));
 });
 
+it('does not repeat the reference title inside its majlis cards', function () {
+    $reference = Reference::factory()->create([
+        'title' => 'Al-Fiqh Al-Manhaji',
+        'status' => 'verified',
+    ]);
+
+    $event = Event::factory()->create([
+        'title' => 'Kuliah Fiqh Al-Manhaji',
+        'status' => 'approved',
+        'visibility' => EventVisibility::Public,
+        'published_at' => now()->subMinute(),
+        'starts_at' => now()->addDays(3),
+    ]);
+    $event->references()->attach($reference->id);
+
+    $html = (string) $this->get(route('references.show', $reference))
+        ->assertSuccessful()
+        ->getContent();
+
+    preg_match('/<article[^>]*wire:key="upcoming-occurrence-'.preg_quote((string) $event->occurrences()->firstOrFail()->getKey(), '/').'"[^>]*>.*?<\/article>/s', $html, $matches);
+
+    expect($matches[0] ?? null)
+        ->not->toBeNull()
+        ->toContain('Kuliah Fiqh Al-Manhaji')
+        ->not->toContain('Al-Fiqh Al-Manhaji');
+});
+
 it('filters upcoming reference events by friendly date ranges', function () {
     Carbon::setTestNow(Carbon::create(2026, 7, 30, 10, 0, 0, 'UTC'));
 

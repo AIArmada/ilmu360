@@ -49,13 +49,10 @@ it('shows prayer-relative timing text on person page instead of absolute time', 
 
     linkPersonEvent($person, $event);
 
-    $expectedEndTime = $event->ends_at?->copy()->timezone('Asia/Kuala_Lumpur')->format('h:i A');
-
     $this->withUnencryptedCookie('user_timezone', 'Asia/Kuala_Lumpur')
         ->get(route('persons.show', $person))
         ->assertSuccessful()
         ->assertSeeText('Selepas Asar')
-        ->assertSeeText((string) $expectedEndTime)
         ->assertDontSeeText((string) $event->starts_at?->format('h:i A'));
 });
 
@@ -291,7 +288,7 @@ it('shows pending public events without a pending status badge or notice', funct
         ->assertDontSee('Semak lencana status pada setiap majlis sebelum hadir.');
 });
 
-it('uses stronger calendar event colors on person page', function () {
+it('uses the shared majlis card design on person page', function () {
     $person = Person::factory()->create([
         'status' => 'verified',
     ]);
@@ -308,8 +305,9 @@ it('uses stronger calendar event colors on person page', function () {
 
     $this->get(route('persons.show', $person))
         ->assertSuccessful()
-        ->assertSee('from-emerald-700 to-emerald-950', false)
-        ->assertSee('hover:border-emerald-300', false);
+        ->assertSee('data-testid="event-card-date-badge"', false)
+        ->assertSee('data-testid="event-card-location"', false)
+        ->assertSee('rounded-2xl border border-emerald-200', false);
 });
 
 it('renders event end time in event timezone on person page', function () {
@@ -542,12 +540,11 @@ it('shows linked non-person roles in a separate section on the person page', fun
         ->assertSee('Moderator')
         ->assertSee('Forum Dengan Moderator')
         ->assertSee('Peranan: Moderator')
-        ->assertSee('<div class="mt-5 space-y-4">', false)
-        ->assertSee('sm:grid-cols-[7.5rem_minmax(0,1fr)]', false)
-        ->assertSee('from-violet-700 to-indigo-950', false)
-        ->assertSee('hover:border-violet-300', false);
+        ->assertSee('<div class="mt-5 flex flex-wrap justify-center gap-4 *:w-full md:*:w-[calc(50%_-_0.5rem)]">', false)
+        ->assertSee('border-violet-200 bg-violet-50 text-violet-800', false)
+        ->assertSee('data-testid="event-card-date-badge"', false);
 
-    expect(substr_count((string) $response->getContent(), 'Forum Dengan Moderator'))->toBe(1);
+    expect(substr_count((string) $response->getContent(), 'data-testid="person-role-card-speakers"'))->toBe(1);
 });
 
 it('renders the book title on person event cards without parentheses', function () {
@@ -590,8 +587,8 @@ it('renders the book title on person event cards without parentheses', function 
 
     $html = $response->getContent();
 
-    preg_match('/<a[^>]*wire:key="upcoming-occurrence-'.preg_quote((string) $bookEvent->occurrences()->firstOrFail()->getKey(), '/').'"[^>]*>.*?<\/a>/s', (string) $html, $bookMatches);
-    preg_match('/<a[^>]*wire:key="upcoming-occurrence-'.preg_quote((string) $articleEvent->occurrences()->firstOrFail()->getKey(), '/').'"[^>]*>.*?<\/a>/s', (string) $html, $articleMatches);
+    preg_match('/<article[^>]*wire:key="upcoming-occurrence-'.preg_quote((string) $bookEvent->occurrences()->firstOrFail()->getKey(), '/').'"[^>]*>.*?<\/article>/s', (string) $html, $bookMatches);
+    preg_match('/<article[^>]*wire:key="upcoming-occurrence-'.preg_quote((string) $articleEvent->occurrences()->firstOrFail()->getKey(), '/').'"[^>]*>.*?<\/article>/s', (string) $html, $articleMatches);
 
     $bookEventCard = $bookMatches[0] ?? null;
     $articleEventCard = $articleMatches[0] ?? null;
@@ -604,8 +601,8 @@ it('renders the book title on person event cards without parentheses', function 
         ->toContain('Al-Hikam')
         ->not->toContain('(Al-Hikam)')
         ->toContain('font-bold')
-        ->toContain('italic')
-        ->toContain('sm:grid-cols-[7.5rem_minmax(0,1fr)]');
+        ->toContain('line-clamp-2')
+        ->toContain('data-testid="event-card-date-badge"');
 
     expect($articleEventCard)
         ->toContain('Kuliah Maghrib Artikel Penceramah')

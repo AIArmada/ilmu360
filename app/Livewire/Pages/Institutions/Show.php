@@ -13,6 +13,7 @@ use App\Enums\DawahShareOutcomeType;
 use App\Enums\InstitutionStatus;
 use App\Livewire\Concerns\JoinsHierarchyAreaName;
 use App\Livewire\Concerns\LoadsEventPageData;
+use App\Livewire\Concerns\TogglesEventSave;
 use App\Models\Builders\EventBuilder;
 use App\Models\Event;
 use App\Models\EventReferencePivot;
@@ -38,6 +39,7 @@ class Show extends Component
 {
     use JoinsHierarchyAreaName;
     use LoadsEventPageData;
+    use TogglesEventSave;
 
     public Institution $institution;
 
@@ -65,6 +67,11 @@ class Show extends Component
         $this->loadInstitutionRelations();
 
         $this->isFollowing = auth()->user()?->isFollowing($institution) ?? false;
+    }
+
+    protected function eventSaveReturnUrl(): string
+    {
+        return route('institutions.show', $this->institution, absolute: false);
     }
 
     public function toggleFollow(): void
@@ -201,6 +208,8 @@ class Show extends Component
                     Reference::applyPublicVisibility($references->getQuery());
                 },
                 'media',
+                'institution.media',
+                'classifications.term',
                 'primaryOccurrence',
                 'displayOccurrence.media',
                 'timeExpressions',
@@ -227,6 +236,8 @@ class Show extends Component
             'keyPeople.person',
             'references' => fn ($query) => $query->active(),
             'media',
+            'institution.media',
+            'classifications.term',
             'primaryOccurrence',
             'displayOccurrence.media',
             'timeExpressions',

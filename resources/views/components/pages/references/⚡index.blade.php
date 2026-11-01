@@ -157,12 +157,22 @@ new
 
         private function baseReferencesQuery(bool $includeParts = false): Builder
         {
+            $occurrencesTable = config('events.database.tables.event_occurrences', 'event_occurrences');
+
             $query = Reference::query()
                 ->active()
                 ->select('references.*')
                 ->selectSub($this->nextPublicEventQuery()->select('events.id'), 'next_event_id')
-                ->selectSub(Reference::constrainEventReferenceSubtree(Event::query()->active())
-                    ->selectRaw('COUNT(DISTINCT events.id)'), 'events_count')
+                ->selectSub(
+                    Reference::constrainEventReferenceSubtree(Event::query()->active())
+                        ->join("{$occurrencesTable} as upcoming_event_occurrences", 'upcoming_event_occurrences.event_id', '=', 'events.id')
+                        ->whereIn('upcoming_event_occurrences.status', Event::PUBLIC_SCHEDULE_STATUSES)
+                        ->whereIn('upcoming_event_occurrences.visibility', Event::PUBLIC_SCHEDULE_VISIBILITIES)
+                        ->whereNotNull('upcoming_event_occurrences.starts_at')
+                        ->where('upcoming_event_occurrences.starts_at', '>=', now())
+                        ->selectRaw('COUNT(DISTINCT upcoming_event_occurrences.id)'),
+                    'upcoming_events_count',
+                )
                 // Cards only read front/back covers, so skip the gallery
                 // collection instead of loading every media row per page.
                 ->with([
@@ -327,7 +337,7 @@ new
             }
 
             // Lean scope check: same active visibility as the card query
-            // but without the events_count subselect and media eager load.
+            // but without the upcoming-events count subselect and media eager load.
             $scopedIds = Reference::query()
                 ->active()
                 ->whereIn('references.id', $orderedIds)
@@ -558,7 +568,7 @@ new
                             <div class="mt-auto flex items-center justify-between gap-3 border-t border-slate-100 px-6 pb-6 pt-5 group-hover:border-amber-200">
                                 <span class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">
                                     <flux:icon.calendar class="size-3.5 text-emerald-500" />
-                                    {{ $reference->events_count }} {{ __('Events') }}
+                                    {{ $reference->upcoming_events_count }} {{ __('Upcoming Events') }}
                                 </span>
                                 <button
                                     type="button"

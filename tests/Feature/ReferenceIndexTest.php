@@ -226,7 +226,7 @@ it('shows the nearest upcoming public majlis on reference cards', function () {
         ->assertSee('Majlis Rujukan Terdekat')
         ->assertDontSee('Majlis Rujukan Lebih Lewat')
         ->assertDontSee('Majlis Rujukan Lalu')
-        ->assertSee('3 '.__('Events'));
+        ->assertSee('2 '.__('Upcoming Events'));
 
     expect($listedReference)->not->toBeNull()
         ->and($listedReference?->next_event_slug)->toBe($nearestEvent->slug)

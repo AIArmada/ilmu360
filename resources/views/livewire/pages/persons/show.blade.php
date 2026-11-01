@@ -23,11 +23,10 @@
     $bioRenderer = $bioIsTiptap
         ? \Filament\Forms\Components\RichEditor\RichContentRenderer::make($person->bio)
         : null;
-    $bioHtml = $bioIsTiptap ? $bioRenderer?->toHtml() ?? '' : (trim((string) $bioLocaleText) !== '' ? nl2br(e(trim((string) $bioLocaleText))) : '');
     $bioText = $bioIsTiptap ? trim($bioRenderer?->toText() ?? '') : trim(strip_tags((string) $bioLocaleText));
-    $shouldCollapseBio = \Illuminate\Support\Str::length($bioText) > 680;
     $locationString = \App\Support\Location\AddressHierarchyFormatter::format($person->primaryAddress());
     $upcomingEvents = $this->upcomingEvents;
+    $savedEventIds = $this->savedEventIds;
     $upcomingTotal = $this->upcomingTotal;
     $upcomingOverallTotal = $this->upcomingOverallTotal;
     $pastOverallTotal = $this->pastOverallTotal;
@@ -119,19 +118,33 @@
     );
     $personRouteSegment = \App\Enums\ContributionSubjectType::Person->publicRouteSegment();
 
-    $resolveEventCategoryLabel = static fn (\App\Models\Event $event): string => app(\App\Support\Events\EventCategoryPresenter::class)->forEvent($event)[0]['path'] ?? __('Umum');
+    $resolveEventCardLocation = static function (\App\Models\Event $event, ?\App\Data\PublicScheduleLeaf $scheduleLeaf = null): array {
+        $location = $scheduleLeaf?->occurrence->locations->first()
+            ?? $scheduleLeaf?->sessions->first()?->locations->first();
+        $primary = $location?->venue?->name ?? $location?->label ?? $event->resolvedLocationName();
+        $address = $location?->venue instanceof \App\Models\Venue
+            ? $location->venue->primaryAddress()
+            : null;
+        $address ??= $event->resolvedLocationAddress();
 
-    $resolveEventLocation = static function (\App\Models\Event $event): string {
-        $primaryLocationName = $event->resolvedLocationName();
-        $address = $event->resolvedLocationAddress();
-        $parts = \App\Support\Location\AddressHierarchyFormatter::parts($address);
+        return [
+            is_string($primary) && trim($primary) !== '' ? $primary : null,
+            \App\Support\Location\AddressHierarchyFormatter::formatShort($address) ?: null,
+        ];
+    };
 
-        $locationParts = array_filter([
-            $primaryLocationName,
-            ...$parts,
-        ]);
+    $resolveEventStatusBadgeClass = static function (\App\Models\Event $event): string {
+        if ((string) $event->status === 'pending') {
+            return 'border-amber-100 bg-amber-50 text-amber-700';
+        }
 
-        return implode(', ', $locationParts);
+        if ((string) $event->status === 'cancelled') {
+            return 'border-rose-100 bg-rose-50 text-rose-700';
+        }
+
+        return filled($event->public_change_badge_label)
+            ? 'border-sky-100 bg-sky-50 text-sky-700'
+            : 'border-emerald-100 bg-emerald-50 text-emerald-700';
     };
 
     $resolveKeyPersonRoleLabel = static function (\App\Models\EventKeyPerson $keyPerson): string {
@@ -186,19 +199,6 @@
                                         <flux:icon.map-pin class="mt-0.5 size-5 shrink-0 text-amber-600" />
                                         <span>{{ $locationString }}</span>
                                     </p>
-                                @endif
-
-                                @if($bioText !== '')
-                                    <div class="mt-4">
-                                        <div class="flex items-center justify-between gap-4">
-                                            @if($shouldCollapseBio)
-                                                <span class="shrink-0 text-[11px] font-semibold text-slate-500">{{ __('Skrol untuk membaca') }}</span>
-                                            @endif
-                                        </div>
-                                        <div class="mt-2 h-24 max-h-24 overflow-y-auto overscroll-contain pr-4 [scrollbar-color:#a7d5c7_transparent] [scrollbar-width:thin] prose prose-slate max-w-none leading-8 prose-headings:font-heading prose-headings:text-emerald-950 prose-a:text-emerald-700 prose-strong:text-slate-900">
-                                            {!! $bioHtml !!}
-                                        </div>
-                                    </div>
                                 @endif
 
                                 <div class="mt-auto grid grid-cols-2 gap-3 pt-4 sm:max-w-md">
@@ -427,21 +427,24 @@
                     </div>
 
                     <div
-                        class="mt-5 space-y-4"
+                        class="mt-5"
                         wire:loading.class="opacity-60"
                         wire:loading.attr="aria-busy"
                         wire:target="upcomingDateFilter,applyCustomDateRange,clearUpcomingDateFilter"
                     >
-                        @foreach($upcomingEvents as $scheduleLeaf)
-                            @include('livewire.pages.persons.partials.event-card', [
-                                'event' => $scheduleLeaf->event,
-                                'scheduleLeaf' => $scheduleLeaf,
-                                'roleLabel' => null,
-                                'wireKey' => 'upcoming-'.$scheduleLeaf->entityType().'-'.$scheduleLeaf->id(),
-                            ])
-                        @endforeach
-
-                        @if($upcomingEvents->isEmpty())
+                        @if($upcomingEvents->isNotEmpty())
+                            <div class="flex flex-wrap justify-center gap-4 *:w-full md:*:w-[calc(50%_-_0.5rem)]">
+                                @foreach($upcomingEvents as $scheduleLeaf)
+                                    <x-events.schedule-card
+                                        :schedule-leaf="$scheduleLeaf"
+                                        :saved-event-ids="$savedEventIds"
+                                        signal-component="person_detail_upcoming_events"
+                                        testid-prefix="person-detail-card"
+                                        :wire-key="'upcoming-'.$scheduleLeaf->entityType().'-'.$scheduleLeaf->id()"
+                                    />
+                                @endforeach
+                            </div>
+                        @else
                             <div class="rounded-[1.5rem] border border-dashed border-emerald-200 bg-gradient-to-br from-white to-emerald-50/70 p-8 text-center sm:p-10">
                                 <span class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-emerald-100 text-emerald-700">
                                     <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
@@ -498,20 +501,31 @@
                             </span>
                         </div>
 
-                        <div class="mt-5 space-y-4">
+                        <div class="mt-5 flex flex-wrap justify-center gap-4 *:w-full md:*:w-[calc(50%_-_0.5rem)]">
                             @foreach($otherRoleParticipations as $keyPerson)
                                 @php
                                     $event = $keyPerson->event;
                                     $roleLabel = $resolveKeyPersonRoleLabel($keyPerson);
+                                    [$locationPrimary, $locationSecondary] = $event instanceof \App\Models\Event
+                                        ? $resolveEventCardLocation($event)
+                                        : [null, null];
                                 @endphp
 
-                                @if($event)
-                                    @include('livewire.pages.persons.partials.event-card', [
-                                        'event' => $event,
-                                        'scheduleLeaf' => null,
-                                        'roleLabel' => $roleLabel,
-                                        'wireKey' => 'role-participation-'.$keyPerson->id,
-                                    ])
+                                @if($event instanceof \App\Models\Event)
+                                    <x-events.card
+                                        :event="$event"
+                                        :is-saved="in_array((string) $event->getKey(), $savedEventIds, true)"
+                                        :role-label="$roleLabel"
+                                        :status-label="$event->public_change_badge_label"
+                                        :status-class="$resolveEventStatusBadgeClass($event)"
+                                        :location-primary="$locationPrimary"
+                                        :location-secondary="$locationSecondary"
+                                        signal-component="person_detail_other_roles"
+                                        signal-entity-type="event"
+                                        :signal-entity-id="$event->getKey()"
+                                        testid-prefix="person-role-card"
+                                        :wire-key="'role-participation-'.$keyPerson->id"
+                                    />
                                 @endif
                             @endforeach
                         </div>
@@ -561,8 +575,7 @@
 
                 @if($socialLinks->isNotEmpty())
                     <section class="rounded-[1.5rem] border border-emerald-100 bg-white p-5 shadow-sm">
-                        <p class="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700">{{ __('Pautan Penceramah') }}</p>
-                        <h2 class="mt-1 font-heading text-xl font-bold text-emerald-950">{{ __('Media Sosial Rasmi') }}</h2>
+                        <h2 class="font-heading text-xl font-bold text-emerald-950">{{ __('Media Sosial Rasmi') }}</h2>
                         <div class="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
                             @foreach($socialLinks as $social)
                                 @php $platform = strtolower((string) $social->platform); $presentation = $socialPresentation[$platform] ?? ['label' => \Illuminate\Support\Str::headline($platform), 'icon' => 'link.svg', 'border' => 'group-hover:border-emerald-300']; $handle = trim((string) ($social->handle ?? '')); $handleLabel = $handle !== '' ? (str_starts_with($handle, '@') ? $handle : '@'.$handle) : __('Lihat profil rasmi'); @endphp

@@ -698,7 +698,6 @@
                                     @php
                                         $event = $scheduleLeaf->event;
                                         $primaryOccurrence = $scheduleLeaf->occurrence;
-                                        $primarySession = $scheduleLeaf->session;
                                         $scheduleTitle = $scheduleLeaf->title();
                                         $eventChangeBadgeLabel = $event->public_change_badge_label;
                                         $eventFormat = $event->delivery_mode instanceof \App\Enums\EventFormat
@@ -706,8 +705,8 @@
                                             : \App\Enums\EventFormat::tryFrom((string) $event->delivery_mode);
                                         $formatValue = $eventFormat?->value ?? \App\Enums\EventFormat::Physical->value;
                                         $formatLabel = $eventFormat?->getLabel() ?? __('Physical');
-                                        $scheduleLocation = $primarySession?->locations->first()
-                                            ?? $primaryOccurrence->locations->first()
+                                        $scheduleLocation = $primaryOccurrence->locations->first()
+                                            ?? $scheduleLeaf->sessions->first()?->locations->first()
                                             ?? $event->primaryLocation;
                                         $primaryLocationName = $scheduleLocation?->venue?->name
                                             ?? $scheduleLocation?->label
@@ -732,7 +731,7 @@
 
                                         $cardStart = $scheduleLeaf->startsAt();
                                         $cardTimingText = $scheduleLeaf->timingText();
-                                        $scheduleStatus = $primarySession?->status ?? $primaryOccurrence->status;
+                                        $scheduleStatus = $primaryOccurrence->status;
                                         $statusBadgeLabel = $eventChangeBadgeLabel;
                                         $statusBadgeClass = $event->status instanceof \App\States\EventStatus\Pending
                                             ? 'border-amber-100 bg-amber-50 text-amber-700'
@@ -757,6 +756,8 @@
                                         :format-label="$formatLabel"
                                         :location-primary="$locationPrimaryText"
                                         :location-secondary="$locationSecondaryText"
+                                        :occurrence="$primaryOccurrence"
+                                        :sessions="$scheduleLeaf->sessions"
                                         :distance-km="isset($event->distance_km) ? $event->distance_km : null"
                                         signal-component="events_index_results"
                                         :signal-entity-type="$signalEntityType"

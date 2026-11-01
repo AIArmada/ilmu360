@@ -36,7 +36,7 @@ use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 
 #[Layout('layouts.app')]
-#[Title('Maklum Balas Aplikasi')]
+#[Title('Maklum Balas')]
 class Index extends Component implements HasForms
 {
     use InteractsWithForms;

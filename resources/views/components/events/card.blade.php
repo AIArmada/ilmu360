@@ -6,11 +6,17 @@
     'timingText' => null,
     'locationPrimary' => null,
     'locationSecondary' => null,
+    'hideLocation' => false,
+    'hideReference' => false,
+    'occurrence' => null,
+    'sessions' => [],
     'isSaved' => false,
     'statusLabel' => null,
     'statusClass' => '',
     'formatLabel' => null,
     'distanceKm' => null,
+    'roleLabel' => null,
+    'roleClass' => 'border-violet-200 bg-violet-50 text-violet-800',
     'signalComponent' => 'event_card',
     'signalEntityType' => 'event',
     'signalEntityId' => null,
@@ -70,6 +76,7 @@
         ->take(2)
         ->values();
     $eventKitab = $event->reference_study_subtitle;
+    $cardSessions = collect($sessions);
     $eventCardImageAspectRatio = $event->card_image_aspect_ratio;
     $eventCardFrameClass = $eventCardImageAspectRatio === '3:4' ? 'aspect-[3/4] sm:aspect-video' : 'aspect-video';
     $eventDate = $cardStartsAt ? \App\Support\Timezone\UserDateTimeFormatter::format($cardStartsAt, 'd') : '--';
@@ -125,16 +132,16 @@
                     @endif
                 </h3>
             </div>
-            @if(filled($cardStatusLabel) || $eventTopics->isNotEmpty() || $eventThemes->isNotEmpty())
+            @if(filled($roleLabel) || filled($cardStatusLabel) || $eventTopics->isNotEmpty() || $eventThemes->isNotEmpty())
                 <div class="mt-3 flex flex-wrap items-center gap-1.5">
+                    @if(filled($roleLabel))<span class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-bold {{ $roleClass }}">{{ __('Peranan') }}: {{ $roleLabel }}</span>@endif
                     @if(filled($cardStatusLabel))<span class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-bold {{ $cardStatusClass }}">{{ $cardStatusLabel }}</span>@endif
                     @foreach($eventTopics as $eventTopic)<span class="inline-flex items-center rounded-full bg-[#f2f8f1] px-2 py-0.5 text-[0.68rem] font-bold text-[#087f59]">{{ $eventTopic }}</span>@endforeach
                     @foreach($eventThemes as $eventTheme)<span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[0.68rem] font-bold text-slate-600">{{ $eventTheme }}</span>@endforeach
                 </div>
             @endif
             <div class="mt-4 space-y-2 text-sm text-[#56716a]">
-                @if(filled($eventKitab))<p class="flex items-start gap-2"><flux:icon.book-open class="mt-0.5 size-3.5 shrink-0 text-[#087f59]" /><span class="line-clamp-2">{{ $eventKitab }}</span></p>@endif
-                @if($cardFormat !== \App\Enums\EventFormat::Online)
+                @if(! $hideLocation && $cardFormat !== \App\Enums\EventFormat::Online)
                     <div class="flex items-start gap-2" data-testid="event-card-location">
                         <flux:icon.map-pin class="mt-0.5 size-4 shrink-0 text-[#087f59]" />
                         <div class="min-w-0">
@@ -152,6 +159,12 @@
                     @else<flux:icon.user class="size-5 shrink-0 text-[#087f59]" />@endif
                     <span{!! $speakersTestId !!} class="line-clamp-2">{{ $eventSpeakerNames !== '' ? $eventSpeakerNames : __('Penceramah jemputan') }}</span>
                 </p>
+                @if(! $hideReference && filled($eventKitab))
+                    <p class="flex items-start gap-2" data-testid="event-card-kitab">
+                        <flux:icon.book-open class="mt-0.5 size-3.5 shrink-0 text-[#087f59]" />
+                        <span class="line-clamp-2">{{ $eventKitab }}</span>
+                    </p>
+                @endif
             </div>
             <div class="mt-auto flex flex-wrap items-center gap-2 pt-4">
                 <span class="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700" data-testid="event-card-type-badge">{{ $event->eventType?->name ?? __('Kuliah') }}</span>
@@ -173,4 +186,38 @@
             </div>
         </div>
     </a>
+    @if($cardSessions->isNotEmpty() && $occurrence instanceof \AIArmada\Events\Models\EventOccurrence)
+        <div class="relative z-10 border-t border-slate-100 px-4 py-3 group-hover:border-amber-200" data-testid="event-card-sessions">
+            <p class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                <flux:icon.list-bullet class="size-3.5 text-[#087f59]" />
+                {{ $cardSessions->count() }} {{ __('Sesi') }}
+            </p>
+            <ul class="mt-2 space-y-1">
+                @foreach($cardSessions as $session)
+                    @php
+                        $sessionUrl = route('events.session', [
+                            'event' => $event,
+                            'occurrenceSlug' => \App\Support\Events\PublicScheduleSlug::occurrence($occurrence),
+                            'sessionSlug' => \App\Support\Events\PublicScheduleSlug::session($session),
+                        ]);
+                        $sessionTimingLabel = $session->timeExpressions->firstWhere('anchor_type', 'prayer')?->display_label;
+
+                        if (! filled($sessionTimingLabel) && $event->isPrayerRelative()) {
+                            $sessionTimingLabel = $event->timing_display;
+                        }
+
+                        $sessionTiming = filled($sessionTimingLabel)
+                            ? __((string) $sessionTimingLabel)
+                            : \App\Support\Timezone\UserDateTimeFormatter::format($session->starts_at, 'g:i A');
+                    @endphp
+                    <li>
+                        <a href="{{ $sessionUrl }}" wire:navigate class="flex items-start gap-2 rounded-lg px-1.5 py-1 text-xs leading-5 text-slate-600 transition-colors hover:bg-emerald-50 hover:text-emerald-800">
+                            <span class="shrink-0 font-semibold text-emerald-700">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($session->starts_at, 'j M') }} · {{ $sessionTiming }}</span>
+                            <span class="line-clamp-2">{{ $session->title }}</span>
+                        </a>
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 <div class="mt-auto flex items-center justify-between gap-3 border-t border-slate-100 px-4 pb-4 pt-4 group-hover:border-amber-200"><p class="flex min-w-0 items-center gap-2"><flux:icon.clock class="size-4 shrink-0 text-[#087f59]" /><span class="truncate text-sm font-semibold text-[#087f59]">{{ $eventTime }}</span></p><div class="flex shrink-0 items-center gap-2"><button type="button" x-data="{ copied: false, async share() { const url = @js($cardUrl); const title = @js($cardTitle); if (navigator.share) { try { await navigator.share({ url, title, text: title }); return; } catch (error) {} } if (! navigator.clipboard) { window.prompt(@js(__('Copy this link:')), url); return; } await navigator.clipboard.writeText(url); this.copied = true; setTimeout(() => this.copied = false, 1800); } }" @click="share()" aria-label="{{ __('Kongsi') }}" title="{{ __('Kongsi') }}" data-signal-event="share.event_clicked" data-signal-category="share" data-signal-component="{{ $signalComponent }}" data-signal-control="share_event" data-signal-entity-type="{{ $cardSignalEntityType }}" data-signal-entity-id="{{ $cardSignalEntityId }}" class="relative z-10 grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-slate-200 bg-white text-slate-400 transition-colors duration-200 group-hover:border-emerald-200 group-hover:text-[#087f59] hover:border-emerald-200 hover:bg-emerald-100 hover:text-[#087f59] hover:shadow-sm"><flux:icon.share class="size-4" x-show="!copied" /><flux:icon.check class="size-4 text-emerald-700" x-show="copied" x-cloak /></button><button type="button" wire:click.stop.prevent="toggleSave('{{ $event->getKey() }}')" wire:loading.attr="disabled" data-save-icon="event" data-save-state="{{ $isSaved ? 'saved' : 'unsaved' }}" aria-label="{{ $isSaved ? __('Disimpan') : __('Simpan') }}" aria-pressed="{{ $isSaved ? 'true' : 'false' }}" title="{{ $isSaved ? __('Disimpan') : __('Simpan') }}" data-signal-event="engagement.event_save_clicked" data-signal-category="engagement" data-signal-component="{{ $signalComponent }}" data-signal-control="save" data-signal-entity-type="{{ $cardSignalEntityType }}" data-signal-entity-id="{{ $cardSignalEntityId }}" data-signal-props='@json(['currently_saved' => $isSaved])' class="relative z-10 grid h-9 w-9 shrink-0 place-items-center rounded-xl border transition-colors duration-200 disabled:cursor-wait disabled:opacity-60 {{ $isSaved ? 'border-[#087f59] bg-[#087f59] text-white' : 'border-slate-200 bg-white text-slate-400 group-hover:border-emerald-200 group-hover:text-[#087f59] hover:border-emerald-200 hover:bg-emerald-100 hover:text-[#087f59] hover:shadow-sm' }}"><flux:icon.bookmark class="size-4" :variant="$isSaved ? 'solid' : 'outline'" /></button></div></div></article>

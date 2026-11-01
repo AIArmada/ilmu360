@@ -481,7 +481,7 @@ it('exposes directory status semantics and aligned loading skeleton markup', fun
         ->assertSee('aria-busy', false)
         ->assertSee('aria-pressed="true"', false)
         ->assertSee(__('Verified'))
-        ->assertSee('0 '.__('Events'))
+        ->assertSee('0 '.__('Upcoming Events'))
         ->assertDontSee(__('View profile & majlis'))
         ->assertDontSee('mt-4 flex items-center gap-2.5 text-xs text-slate-500', false)
         ->assertSee('motion-safe:animate-pulse', false)
@@ -814,7 +814,7 @@ it('redirects guests to login when opening add person form', function () {
         ->assertRedirect(route('login'));
 });
 
-it('counts only upcoming public events on the person index cards', function () {
+it('counts only upcoming public occurrences on the person index cards', function () {
     $this->seed(EventRoleSeeder::class);
 
     $person = Person::factory()->create([
@@ -876,7 +876,7 @@ it('counts only upcoming public events on the person index cards', function () {
     );
 
     expect($listedPerson)->not->toBeNull()
-        ->and((int) $listedPerson?->events_count)->toBe(1)
+        ->and((int) $listedPerson?->events_count)->toBe(2)
         ->and($listedPerson?->next_event_slug)->toBe($upcomingEvent->slug)
         ->and($listedPerson?->next_event_title)->toBe('Majlis Penceramah Terdekat')
         ->and($listedPerson?->next_event_starts_at)->not->toBeNull();

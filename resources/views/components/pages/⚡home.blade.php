@@ -388,8 +388,7 @@ new
                             @php
                                 $event = $scheduleLeaf->event;
                                 $occurrence = $scheduleLeaf->occurrence;
-                                $session = $scheduleLeaf->session;
-                                $scheduleLocation = $session?->locations->first() ?? $occurrence->locations->first() ?? $event->primaryLocation;
+                                $scheduleLocation = $occurrence->locations->first() ?? $scheduleLeaf->sessions->first()?->locations->first() ?? $event->primaryLocation;
                                 $locationName = $scheduleLocation?->venue?->name ?? $scheduleLocation?->label ?? $event->resolvedLocationName();
                                 $spaceName = \App\Support\Spaces\SpaceLocationPresenter::name($scheduleLocation);
                                 if (filled($spaceName)) {
@@ -416,6 +415,8 @@ new
                                 :timing-text="$timing"
                                 :location-primary="$locationName"
                                 :location-secondary="$locationSecondary"
+                                :occurrence="$occurrence"
+                                :sessions="$scheduleLeaf->sessions"
                                 :is-saved="$isSaved"
                                 signal-component="home_featured_events"
                                 :signal-entity-type="$scheduleLeaf->entityType()"

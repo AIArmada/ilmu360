@@ -26,7 +26,7 @@ beforeEach(function (): void {
     app(VisitorCountryResolver::class)->forget();
 });
 
-it('lists meaningful sessions and otherwise falls back to occurrences', function (): void {
+it('lists occurrences with meaningful sessions nested under their occurrence', function (): void {
     $event = Event::factory()->create([
         'title' => 'Programme Parent',
         'status' => 'approved',
@@ -75,7 +75,7 @@ it('lists meaningful sessions and otherwise falls back to occurrences', function
         ->assertSee('Session One')
         ->assertSee('Session Two')
         ->assertSee('Occurrence Without Sessions')
-        ->assertDontSee('Occurrence With Sessions')
+        ->assertSee('Occurrence With Sessions')
         ->assertSee(route('events.occurrence', [
             'event' => $event,
             'occurrenceSlug' => 'occurrence-without-sessions',
@@ -88,7 +88,7 @@ it('lists meaningful sessions and otherwise falls back to occurrences', function
 
     $component = Livewire::test(Index::class);
 
-    expect($component->instance()->scheduleItems->total())->toBe(3);
+    expect($component->instance()->scheduleItems->total())->toBe(2);
 });
 
 it('renders schedule locations whose venue is the package model', function (): void {
@@ -395,23 +395,27 @@ it('lists scoped schedule leaves on institution, reference and speaker pages', f
     ]);
 
     $this->get(route('institutions.show', $institution))->assertOk()
-        ->assertSee('Matching Profile Session')->assertSee('Different Profile Session')
-        ->assertDontSee('Parent Occurrence');
+        ->assertSee('Parent Occurrence')
+        ->assertSee('Matching Profile Session')
+        ->assertSee('Different Profile Session');
     $this->get(route('references.show', $reference))->assertOk()
-        ->assertSee('Matching Profile Session')->assertDontSee('Different Profile Session')
-        ->assertDontSee('Parent Occurrence');
+        ->assertSee('Parent Occurrence')
+        ->assertSee('Matching Profile Session')
+        ->assertDontSee('Different Profile Session');
     $this->get(route('persons.show', $speaker))->assertOk()
-        ->assertSee('Matching Profile Session')->assertDontSee('Different Profile Session')
-        ->assertDontSee('Parent Occurrence');
+        ->assertSee('Parent Occurrence')
+        ->assertSee('Matching Profile Session')
+        ->assertDontSee('Different Profile Session');
 
     $component = Livewire::withCookie('user_timezone', 'UTC')
         ->test(Show::class, ['institution' => $institution]);
-    expect($component->instance()->getUpcomingTotalProperty())->toBe(2);
+    expect($component->instance()->getUpcomingTotalProperty())->toBe(1);
     $component->set('customStartDate', now()->addDays(2)->toDateString())
         ->set('customEndDate', now()->addDays(2)->toDateString())
         ->call('applyCustomDateRange')
+        ->assertSee('Parent Occurrence')
         ->assertSee('Matching Profile Session')
-        ->assertDontSee('Different Profile Session');
+        ->assertSee('Different Profile Session');
     expect($component->instance()->getUpcomingTotalProperty())->toBe(1);
 });
 
@@ -457,11 +461,13 @@ it('renders localized inherited prayer timing and keeps session-specific labels 
         ]);
 
         $html = (string) $this->get(route('institutions.show', $institution))->assertOk()->getContent();
-        preg_match('/<a[^>]*wire:key="upcoming-session-'.preg_quote((string) $sessionOne->getKey(), '/').'"[^>]*>.*?<\/a>/s', $html, $first);
-        preg_match('/<a[^>]*wire:key="upcoming-session-'.preg_quote((string) $sessionTwo->getKey(), '/').'"[^>]*>.*?<\/a>/s', $html, $second);
+        preg_match('/<article[^>]*wire:key="upcoming-occurrence-'.preg_quote((string) $occurrence->getKey(), '/').'"[^>]*>.*?<\/article>/s', $html, $card);
 
-        expect($first[0] ?? null)->not->toBeNull()->toContain('Waktu Sesi Khas');
-        expect($second[0] ?? null)->not->toBeNull()->toContain('After Tarawih')->not->toContain('Waktu Sesi Khas');
+        expect($card[0] ?? null)->not->toBeNull()
+            ->toContain('Waktu Sesi Khas')
+            ->toContain('After Tarawih')
+            ->toContain('Session Specific Prayer')
+            ->toContain('Session Inherited Prayer');
     } finally {
         app()->setLocale($previousLocale);
     }

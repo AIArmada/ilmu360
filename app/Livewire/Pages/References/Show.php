@@ -12,6 +12,7 @@ use App\Data\PublicScheduleLeaf;
 use App\Enums\DawahShareOutcomeType;
 use App\Livewire\Concerns\JoinsHierarchyAreaName;
 use App\Livewire\Concerns\LoadsEventPageData;
+use App\Livewire\Concerns\TogglesEventSave;
 use App\Models\Builders\EventBuilder;
 use App\Models\Event;
 use App\Models\EventReferencePivot;
@@ -36,6 +37,7 @@ class Show extends Component
 {
     use JoinsHierarchyAreaName;
     use LoadsEventPageData;
+    use TogglesEventSave;
 
     public Reference $reference;
 
@@ -62,6 +64,11 @@ class Show extends Component
         $this->reference = $reference;
         $this->loadReferenceRelations();
         $this->isFollowing = auth()->user()?->isFollowing($reference) ?? false;
+    }
+
+    protected function eventSaveReturnUrl(): string
+    {
+        return route('references.show', $this->reference, absolute: false);
     }
 
     public function toggleFollow(): void
@@ -206,6 +213,8 @@ class Show extends Component
                     Reference::applyPublicVisibility($references->getQuery());
                 },
                 'media',
+                'institution.media',
+                'classifications.term',
                 'primaryOccurrence',
                 'displayOccurrence.media',
                 'timeExpressions',
@@ -222,16 +231,34 @@ class Show extends Component
     {
         $referenceIds = $this->reference->defaultEventReferenceIds();
 
-        return $leaves->filter(function (PublicScheduleLeaf $leaf) use ($referenceIds): bool {
-            if ($leaf->event->references->contains(fn (Reference $reference): bool => in_array((string) $reference->getKey(), $referenceIds, true))) {
-                return true;
-            }
+        return $leaves
+            ->map(function (PublicScheduleLeaf $leaf) use ($referenceIds): ?PublicScheduleLeaf {
+                if ($leaf->event->references->contains(fn (Reference $reference): bool => in_array((string) $reference->getKey(), $referenceIds, true))) {
+                    return $leaf;
+                }
 
-            return $leaf->occurrence->references->contains(fn ($reference): bool => $reference->visibility === 'public'
-                && $reference->referenceable_type === $this->reference->getMorphClass()
-                && in_array((string) $reference->referenceable_id, $referenceIds, true)
-                && ($reference->event_session_id === null || $reference->event_session_id === $leaf->session?->getKey()));
-        })->values();
+                $occurrenceMatches = $leaf->occurrence->references->contains(fn ($reference): bool => $reference->visibility === 'public'
+                    && $reference->referenceable_type === $this->reference->getMorphClass()
+                    && in_array((string) $reference->referenceable_id, $referenceIds, true)
+                    && $reference->event_session_id === null);
+
+                if ($occurrenceMatches) {
+                    return $leaf;
+                }
+
+                $sessions = $leaf->sessions->filter(function ($session) use ($leaf, $referenceIds): bool {
+                    return $leaf->occurrence->references->contains(fn ($reference): bool => $reference->visibility === 'public'
+                        && $reference->referenceable_type === $this->reference->getMorphClass()
+                        && in_array((string) $reference->referenceable_id, $referenceIds, true)
+                        && $reference->event_session_id === $session->getKey());
+                })->values();
+
+                return $sessions->isEmpty()
+                    ? null
+                    : new PublicScheduleLeaf($leaf->event, $leaf->occurrence, $sessions);
+            })
+            ->filter()
+            ->values();
     }
 
     /** @return Builder<Event> */
@@ -253,6 +280,8 @@ class Show extends Component
             'keyPeople.person',
             'references' => fn ($query) => $query->active(),
             'media',
+            'institution.media',
+            'classifications.term',
             'primaryOccurrence',
             'displayOccurrence.media',
             'timeExpressions',

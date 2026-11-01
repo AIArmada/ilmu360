@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
@@ -155,7 +156,7 @@ new class extends Component
     {
         return $this->scopedInstitutionsQuery()
             ->select('institutions.*')
-            ->selectSub($this->publicEventCountSubquery(), 'events_count')
+            ->selectSub($this->upcomingOccurrenceCountSubquery(), 'events_count')
             ->selectSub($this->nextPublicEventQuery()->select('events.id'), 'next_event_id')
             ->with([
                 'addresses.state',
@@ -237,27 +238,25 @@ new class extends Component
     }
 
     /**
-     * @return Builder<Event>
+     * Count upcoming majlis as occurrences: sessions live inside an
+     * occurrence and must not inflate the directory card. This matches the
+     * institution page hero and card list.
      */
-    private function publicEventCountSubquery(): Builder
+    private function upcomingOccurrenceCountSubquery(): QueryBuilder
     {
         $occurrencesTable = config('events.database.tables.event_occurrences', 'event_occurrences');
 
-        return Event::query()
-            ->selectRaw('count(*)')
+        return DB::table("{$occurrencesTable} as public_occurrences")
+            ->join('events', 'events.id', '=', 'public_occurrences.event_id')
             ->whereColumn('events.institution_id', 'institutions.id')
             ->whereNotNull('events.published_at')
             ->whereIn('events.status', Event::PUBLIC_STATUSES)
             ->where('events.visibility', EventVisibility::Public->value)
-            // A plain table EXISTS, not whereHas('occurrences'): the occurrence
-            // relation carries the event-owner global scope, which degrades to
-            // a tautological nested EXISTS in this public global context. The
-            // next-event lookup below already bypasses it with a plain join.
-            ->whereExists(function (QueryBuilder $query) use ($occurrencesTable): void {
-                $query->selectRaw('1')
-                    ->from($occurrencesTable)
-                    ->whereColumn("{$occurrencesTable}.event_id", 'events.id');
-            });
+            ->whereIn('public_occurrences.status', Event::PUBLIC_SCHEDULE_STATUSES)
+            ->whereIn('public_occurrences.visibility', Event::PUBLIC_SCHEDULE_VISIBILITIES)
+            ->whereNotNull('public_occurrences.starts_at')
+            ->where('public_occurrences.starts_at', '>=', now())
+            ->selectRaw('count(*)');
     }
 
     /**
@@ -676,7 +675,7 @@ new class extends Component
                             <div class="flex items-center justify-between gap-3 border-t border-slate-100 px-6 pb-6 pt-5 group-hover:border-amber-200">
                                 <span class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">
                                     <flux:icon.calendar class="size-3.5 text-emerald-500" />
-                                    {{ $institution->events_count }} {{ __('Events') }}
+                                    {{ $institution->events_count }} {{ __('Upcoming Events') }}
                                 </span>
                                 <button
                                     type="button"

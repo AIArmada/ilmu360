@@ -717,17 +717,17 @@ it('shows upcoming occurrence and session cards with their own links, times and 
 
     Livewire::test('pages.home')
         ->assertSee('Homepage Day One')
+        ->assertSee('Homepage Day Two')
         ->assertSee('Homepage Session One')
         ->assertSee('Homepage Session Two')
         ->assertDontSee('Homepage Programme Parent')
-        ->assertDontSee('Homepage Day Two')
         ->assertSee('Homepage Session Venue')
         ->assertSee(UserDateTimeFormatter::format($session->starts_at, 'g:i A'))
         ->assertSee(route('events.occurrence', ['event' => $event, 'occurrenceSlug' => 'homepage-day-one']), false)
         ->assertSee(route('events.session', ['event' => $event, 'occurrenceSlug' => 'homepage-day-two', 'sessionSlug' => 'homepage-session-one']), false)
         ->assertSee('home-featured-occurrence-'.$occurrence->getKey(), false)
-        ->assertSee('home-featured-session-'.$session->getKey(), false)
-        ->assertSee('home-featured-session-'.$secondSession->getKey(), false)
-        ->assertSee('data-signal-entity-type="session"', false)
-        ->assertSee('data-signal-entity-id="'.$session->getKey().'"', false);
+        ->assertSee('home-featured-occurrence-'.$otherOccurrence->getKey(), false)
+        ->assertDontSee('home-featured-session-', false)
+        ->assertSee('data-signal-entity-type="occurrence"', false)
+        ->assertSee('data-signal-entity-id="'.$otherOccurrence->getKey().'"', false);
 });

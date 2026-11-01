@@ -10,6 +10,7 @@
     $feedbackHeadingKey = match ($subjectType) {
         'institusi' => 'Bantu Semak Institusi Ini',
         'penceramah' => 'Bantu Semak Penceramah Ini',
+        'rujukan' => 'Bantu Semak Rujukan Ini',
         default => 'Bantu Semak Maklumat Ini',
     };
 @endphp
