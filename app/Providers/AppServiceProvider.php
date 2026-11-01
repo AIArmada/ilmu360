@@ -579,8 +579,7 @@ class AppServiceProvider extends ServiceProvider
                         $extension = $file->getClientOriginalExtension();
                         $baseName = MediaFileNamer::resolveBaseNameFromModel($record);
 
-                        // Append 8-char ULID suffix for uniqueness
-                        $suffix = strtolower(substr(Str::ulid(), 0, 8));
+                        $suffix = strtolower(substr((string) Str::ulid(), -8));
 
                         return "{$baseName}-{$suffix}.{$extension}";
                     }

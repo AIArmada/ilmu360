@@ -5,6 +5,7 @@ use App\Enums\AppFeedbackStatus;
 use App\Models\AppFeedback;
 use App\Models\User;
 use App\Notifications\AppFeedbackClosedNotification;
+use App\Notifications\AppFeedbackReceivedNotification;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -169,3 +170,38 @@ it('denies status transitions to moderators', function () {
         AppFeedbackStatus::Triaged,
     ))->toThrow(AuthorizationException::class);
 });
+
+it('opens older feedback from reporter notification emails', function (string $notificationClass) {
+    $this->freezeTime();
+
+    $reporter = User::factory()->create();
+    $feedback = AppFeedback::factory()
+        ->resolved($reporter, 'Masalah terdahulu telah diselesaikan.')
+        ->create([
+            'reporter_id' => $reporter->getKey(),
+            'title' => 'Maklum balas terdahulu untuk disemak',
+            'created_at' => now()->subDay(),
+        ]);
+
+    AppFeedback::factory()->count(5)->create([
+        'reporter_id' => $reporter->getKey(),
+    ]);
+
+    /** @var AppFeedbackClosedNotification|AppFeedbackReceivedNotification $notification */
+    $notification = new $notificationClass($feedback);
+    $actionUrl = $notification->toMail($reporter)->actionUrl;
+
+    $this->actingAs($reporter)
+        ->get(route('app-feedback.index'))
+        ->assertSuccessful()
+        ->assertDontSee($feedback->title);
+
+    $this->get($actionUrl)
+        ->assertSuccessful()
+        ->assertSee($feedback->title)
+        ->assertSee($feedback->resolution_note)
+        ->assertSee('id="maklum-balas-'.$feedback->getKey().'"', false);
+})->with([
+    'received' => AppFeedbackReceivedNotification::class,
+    'closed' => AppFeedbackClosedNotification::class,
+]);

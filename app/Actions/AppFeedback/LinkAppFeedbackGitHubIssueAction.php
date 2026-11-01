@@ -7,6 +7,7 @@ namespace App\Actions\AppFeedback;
 use App\Enums\AppFeedbackGitHubStatus;
 use App\Models\AppFeedback;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
@@ -36,19 +37,27 @@ class LinkAppFeedbackGitHubIssueAction
             ]);
         }
 
-        if ($feedback->github_escalation_status === AppFeedbackGitHubStatus::Created) {
-            throw ValidationException::withMessages([
-                'issue_url' => __('app-feedback.validation.github_already_escalated'),
-            ]);
-        }
+        $feedback = DB::transaction(function () use ($feedback, $issueNumber, $issueUrl): AppFeedback {
+            $feedback = AppFeedback::query()
+                ->lockForUpdate()
+                ->findOrFail($feedback->getKey());
 
-        $feedback->forceFill([
-            'github_escalation_status' => AppFeedbackGitHubStatus::Created,
-            'github_issue_number' => $issueNumber,
-            'github_issue_url' => $issueUrl,
-            'github_created_at' => now(),
-            'github_unknown_at' => null,
-        ])->save();
+            if ($feedback->github_escalation_status === AppFeedbackGitHubStatus::Created) {
+                throw ValidationException::withMessages([
+                    'issue_url' => __('app-feedback.validation.github_already_escalated'),
+                ]);
+            }
+
+            $feedback->forceFill([
+                'github_escalation_status' => AppFeedbackGitHubStatus::Created,
+                'github_issue_number' => $issueNumber,
+                'github_issue_url' => $issueUrl,
+                'github_created_at' => now(),
+                'github_unknown_at' => null,
+            ])->save();
+
+            return $feedback;
+        });
 
         return $feedback->fresh(['reporter', 'handler']) ?? $feedback;
     }

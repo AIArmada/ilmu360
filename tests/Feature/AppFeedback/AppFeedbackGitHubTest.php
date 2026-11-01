@@ -16,14 +16,17 @@ beforeEach(function () {
     $this->seed(PermissionSeeder::class);
 });
 
-function fakeGitHubReporter(bool $fail = false): GitHubIssueReporterContract
+function fakeGitHubReporter(bool $fail = false, ?Closure $duringCreate = null): GitHubIssueReporterContract
 {
-    return new class($fail) implements GitHubIssueReporterContract
+    return new class($fail, $duringCreate) implements GitHubIssueReporterContract
     {
         /** @var list<array{title: string, body: string}> */
         public array $calls = [];
 
-        public function __construct(private readonly bool $fail) {}
+        public function __construct(
+            private readonly bool $fail,
+            private readonly ?Closure $duringCreate,
+        ) {}
 
         public function isEnabled(): bool
         {
@@ -38,6 +41,10 @@ function fakeGitHubReporter(bool $fail = false): GitHubIssueReporterContract
         public function createPlainIssue(string $title, string $body): array
         {
             $this->calls[] = ['title' => $title, 'body' => $body];
+
+            if ($this->duringCreate !== null) {
+                ($this->duringCreate)();
+            }
 
             if ($this->fail) {
                 throw new RuntimeException('GitHub is unavailable.');
@@ -227,4 +234,91 @@ it('rejects a github issue url outside the configured repository', function () {
         $feedback,
         'https://github.com/other/repository/issues/321',
     ))->toThrow(ValidationException::class);
+});
+
+it('does not replace a linked github issue when passed a stale feedback model', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('super_admin');
+
+    $feedback = AppFeedback::factory()->githubUnknown()->create();
+    $staleFeedback = $feedback->fresh();
+    $action = app(LinkAppFeedbackGitHubIssueAction::class);
+    $action->handle($admin, $feedback, 'https://github.com/AIArmada/ilmu360/issues/321');
+
+    expect(fn () => $action->handle($admin, $staleFeedback, 'https://github.com/AIArmada/ilmu360/issues/456'))
+        ->toThrow(ValidationException::class);
+
+    $this->assertDatabaseHas('app_feedback', [
+        'id' => $feedback->getKey(),
+        'github_escalation_status' => 'created',
+        'github_issue_number' => 321,
+        'github_issue_url' => 'https://github.com/AIArmada/ilmu360/issues/321',
+    ]);
+});
+
+it('preserves a reconciled github issue when an in flight creation succeeds', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('super_admin');
+    $feedback = AppFeedback::factory()->create();
+
+    $reporter = fakeGitHubReporter(duringCreate: function () use ($admin, $feedback): void {
+        app(LinkAppFeedbackGitHubIssueAction::class)->handle(
+            $admin,
+            $feedback,
+            'https://github.com/AIArmada/ilmu360/issues/321',
+        );
+    });
+    $this->app->instance(GitHubIssueReporterContract::class, $reporter);
+
+    $result = app(EscalateAppFeedbackToGitHubAction::class)->handle(
+        $admin,
+        $feedback,
+        'Isu disemak',
+        'Ringkasan isu yang telah disemak oleh pentadbir.',
+    );
+
+    expect($result->github_issue_number)->toBe(321)
+        ->and($reporter->calls)->toHaveCount(1);
+
+    $this->assertDatabaseHas('app_feedback', [
+        'id' => $feedback->getKey(),
+        'github_escalation_status' => 'created',
+        'github_issue_number' => 321,
+        'github_issue_url' => 'https://github.com/AIArmada/ilmu360/issues/321',
+        'github_unknown_at' => null,
+    ]);
+});
+
+it('preserves a reconciled github issue when an in flight creation fails', function () {
+    Log::spy();
+
+    $admin = User::factory()->create();
+    $admin->assignRole('super_admin');
+    $feedback = AppFeedback::factory()->create();
+
+    $reporter = fakeGitHubReporter(fail: true, duringCreate: function () use ($admin, $feedback): void {
+        app(LinkAppFeedbackGitHubIssueAction::class)->handle(
+            $admin,
+            $feedback,
+            'https://github.com/AIArmada/ilmu360/issues/321',
+        );
+    });
+    $this->app->instance(GitHubIssueReporterContract::class, $reporter);
+
+    expect(fn () => app(EscalateAppFeedbackToGitHubAction::class)->handle(
+        $admin,
+        $feedback,
+        'Isu disemak',
+        'Ringkasan isu yang telah disemak oleh pentadbir.',
+    ))->toThrow(ValidationException::class);
+
+    expect($reporter->calls)->toHaveCount(1);
+
+    $this->assertDatabaseHas('app_feedback', [
+        'id' => $feedback->getKey(),
+        'github_escalation_status' => 'created',
+        'github_issue_number' => 321,
+        'github_issue_url' => 'https://github.com/AIArmada/ilmu360/issues/321',
+        'github_unknown_at' => null,
+    ]);
 });

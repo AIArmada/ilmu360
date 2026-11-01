@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
+use Symfony\Component\Uid\Ulid;
 
 it('requires authentication to view the app feedback page', function () {
     $this->get('/maklum-balas')->assertRedirect();
@@ -251,6 +252,43 @@ it('stores evidence on the private app feedback disk', function () {
             'mediaId' => $media->getKey(),
         ]))
         ->assertDownload($media->file_name);
+});
+
+it('preserves distinct evidence files uploaded in the same timestamp bucket', function () {
+    Notification::fake();
+    Storage::fake('app_feedback_private');
+
+    $user = User::factory()->create();
+    $first = UploadedFile::fake()->image('first.png', 10, 10);
+    $second = UploadedFile::fake()->image('second.png', 20, 20);
+    $firstContents = file_get_contents($first->getRealPath());
+    $secondContents = file_get_contents($second->getRealPath());
+
+    Str::createUlidsUsingSequence([
+        new Ulid('01ARZ3NDEKTSV4RRFFQ69G5FAV'),
+        new Ulid('01ARZ3NDEKTSV4RRFFQ69G5FAW'),
+    ]);
+
+    try {
+        $feedback = app(SubmitAppFeedbackAction::class)->handle($user, [
+            'submission_key' => (string) Str::uuid(),
+            'category' => AppFeedbackCategory::Bug->value,
+            'title' => 'Multiple screenshots',
+            'description' => 'Both screenshots must retain their original contents.',
+            'evidence' => [$first, $second],
+        ], request());
+    } finally {
+        Str::createUlidsNormally();
+    }
+
+    $media = $feedback->getMedia('evidence');
+
+    expect($media)->toHaveCount(2);
+    expect($media[0]->getPathRelativeToRoot())->not->toBe($media[1]->getPathRelativeToRoot());
+    expect(Storage::disk('app_feedback_private')->get($media[0]->getPathRelativeToRoot()))->toBe($firstContents);
+    expect(Storage::disk('app_feedback_private')->get($media[1]->getPathRelativeToRoot()))->toBe($secondContents);
+
+    Notification::assertSentTo($user, AppFeedbackReceivedNotification::class);
 });
 
 it('does not expose evidence to other users or moderators', function () {

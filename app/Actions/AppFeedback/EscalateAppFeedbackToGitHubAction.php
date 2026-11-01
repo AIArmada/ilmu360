@@ -73,18 +73,18 @@ class EscalateAppFeedbackToGitHubAction
             $response = $this->gitHubIssueReporter->createPlainIssue(trim($validated['title']), $body);
             $issue = $response['issue'];
 
-            $feedback->forceFill([
+            $feedback = $this->updatePendingEscalation($feedback, [
                 'github_escalation_status' => AppFeedbackGitHubStatus::Created,
                 'github_issue_number' => (int) $issue['number'],
                 'github_issue_url' => (string) $issue['html_url'],
                 'github_created_at' => now(),
                 'github_unknown_at' => null,
-            ])->save();
+            ]);
         } catch (Throwable $exception) {
-            $feedback->forceFill([
+            $feedback = $this->updatePendingEscalation($feedback, [
                 'github_escalation_status' => AppFeedbackGitHubStatus::Unknown,
                 'github_unknown_at' => now(),
-            ])->save();
+            ]);
 
             Log::warning('Unable to create a GitHub issue for app feedback.', [
                 'feedback_id' => (string) $feedback->getKey(),
@@ -97,6 +97,25 @@ class EscalateAppFeedbackToGitHubAction
         }
 
         return $feedback->fresh(['reporter', 'handler']) ?? $feedback;
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    private function updatePendingEscalation(AppFeedback $feedback, array $attributes): AppFeedback
+    {
+        return DB::transaction(function () use ($feedback, $attributes): AppFeedback {
+            $current = AppFeedback::query()
+                ->lockForUpdate()
+                ->findOrFail($feedback->getKey());
+
+            if ($current->github_escalation_status === AppFeedbackGitHubStatus::Pending
+                && $current->github_escalation_token === $feedback->github_escalation_token) {
+                $current->forceFill($attributes)->save();
+            }
+
+            return $current;
+        });
     }
 
     private function issueBody(AppFeedback $feedback, string $summary): string

@@ -1,5 +1,19 @@
 # Todo — Production Reference + Author Seeder
 
+## App feedback audit fixes (9f4f853c)
+
+- [x] Preserve distinct attachment contents with random ULID suffixes in both shared upload entry points; add regression coverage.
+- [x] Link acknowledgement and closure emails to the selected feedback, including older history entries; add regression coverage.
+- [x] Serialize GitHub reconciliation and prevent late escalation results from replacing established links; cover stale and in-flight updates.
+- [x] Run affected parallel Pest tests once, Pint, PHPStan level 6, and review the final diff.
+
+### App feedback review
+
+- Direct canonical fixes only: no compatibility branches, legacy aliases, transitional storage, or task-created temporary files in the repository.
+- Keep existing server-confirmed submission Signals; these fixes introduce no new user intents or workflows requiring extra tracking.
+- Verification: affected parallel Pest run passed 103 tests (334 assertions), including seven new regression cases. Pint, PHPStan level 6 (zero errors), and diff whitespace checks passed. Independent review found no further material issues.
+- Evidence: `/tmp/ilmu360-feedback-fixes-tests.log`, `/tmp/ilmu360-feedback-fixes-phpstan.log`.
+
 ## Guest-share audit fixes
 
 - [x] Centralize marked guest-share claim reads and exclude commercial package claims from reporting and cleanup.

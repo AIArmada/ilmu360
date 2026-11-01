@@ -48,7 +48,7 @@ class ModelMediaSyncService
     {
         $modelRecord = $model instanceof Model ? $model : null;
         $extension = strtolower((string) ($file->extension() ?: $file->getClientOriginalExtension()));
-        $suffix = strtolower(substr((string) Str::ulid(), 0, 8));
+        $suffix = strtolower(substr((string) Str::ulid(), -8));
         $fileName = MediaFileNamer::resolveBaseNameFromModel($modelRecord)."-{$suffix}";
 
         if ($extension !== '') {

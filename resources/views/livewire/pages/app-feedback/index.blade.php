@@ -76,7 +76,7 @@
             </div>
 
             @if ($selected instanceof \App\Models\AppFeedback && ! $history->getCollection()->contains('id', $selected->id))
-                <article class="mt-6 rounded-2xl border border-emerald-200 bg-white p-5 shadow-sm">
+                <article id="maklum-balas-{{ $selected->id }}" class="mt-6 scroll-mt-24 rounded-2xl border border-emerald-200 bg-white p-5 shadow-sm">
                     <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">{{ __('app-feedback.history.view') }}</p>
                     <h3 class="mt-2 text-lg font-semibold text-slate-900">{{ $selected->title }}</h3>
                     <p class="mt-1 text-xs text-slate-500">{{ \App\Support\Timezone\UserDateTimeFormatter::format($selected->created_at, 'd M Y, h:i A') }}</p>

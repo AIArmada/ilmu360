@@ -73,6 +73,6 @@ class AppFeedbackClosedNotification extends Notification implements ShouldQueue
 
     protected function actionUrl(): string
     {
-        return route('app-feedback.index').'#maklum-balas-'.$this->feedback->getKey();
+        return route('app-feedback.index', ['lihat' => $this->feedback->getKey()]).'#maklum-balas-'.$this->feedback->getKey();
     }
 }
