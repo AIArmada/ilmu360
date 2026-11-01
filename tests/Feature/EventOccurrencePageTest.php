@@ -135,6 +135,7 @@ it('shows shared parent info on the occurrence page', function (): void {
     ]))
         ->assertOk()
         ->assertSee('Ustaz Induk Kongsi')
+        ->assertSee($speaker->default_portrait_url, false)
         ->assertSee('Kitab Rujukan Induk');
 });
 

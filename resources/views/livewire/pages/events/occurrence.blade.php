@@ -225,6 +225,12 @@
     // Occurrence `cover` is converted to 1920x1080 (16:9); the event `poster` is
     // 1080x1440 (3:4). Both are cropped by object-cover, so either works here.
     $heroImageUrl = $occurrenceCoverUrl ?? $occurrencePosterUrl;
+    // The hero backdrop always carries a photograph: the event's own cover, or
+    // the wide majlis placeholder. The plate below stays uploads-only, so the
+    // page never claims an event photo it does not have.
+    $heroBackdropUrl = $occurrenceCoverUrl
+        ?? $event->getFirstMedia('cover')?->getAvailableUrl(['banner', 'thumb'])
+        ?? asset('images/placeholders/event-wide-v1.jpg');
     $occurrenceHasParticipation = $occurrenceCapacity !== null || $occurrencePolicy !== null || $tickets->isNotEmpty() || $detail->hasRegistration();
     // Two ways to take part: pick a ticket, or — when the majlis sells none —
     // go straight to checkout. Ticket sales gate the first; the second is gated
@@ -358,10 +364,22 @@
     }"
 >
     {{-- ── Hero ────────────────────────────────────────────────────── --}}
-    <header class="event-detail-hero relative isolate overflow-hidden bg-[#131209] text-[#f7f3e8]">
-        {{-- Ambient wash: the same photo, scaled and blurred, so the dark panel
-             carries the colour of the room without competing with the type. --}}
-        <div class="mi-lattice-light pointer-events-none absolute inset-0 opacity-[0.05]" aria-hidden="true"></div>
+    <header class="event-detail-hero relative isolate overflow-hidden bg-[#07231f] text-[#f7f3e8]">
+        {{-- Ambient art: the room behind the majlis. A photograph carries
+             warmth into the panel; the emerald wash keeps the type legible. --}}
+        <div class="pointer-events-none absolute inset-0" aria-hidden="true">
+            <img
+                src="{{ $heroBackdropUrl }}"
+                alt=""
+                class="absolute inset-y-0 right-0 h-full w-full object-cover object-center opacity-40 sm:w-[82%] sm:opacity-60 lg:w-[66%] lg:opacity-75"
+                loading="eager"
+                fetchpriority="low"
+            >
+            <div class="absolute inset-0 bg-[linear-gradient(90deg,#07231f_0%,#07231f_34%,rgba(7,35,31,0.92)_50%,rgba(7,35,31,0.45)_76%,rgba(7,35,31,0.6)_100%)]"></div>
+            <div class="absolute inset-0 bg-[radial-gradient(95%_110%_at_8%_0%,rgba(242,200,103,0.18),transparent_58%)]"></div>
+            <div class="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#07231f] via-[#07231f]/60 to-transparent"></div>
+            <div class="mi-lattice-light absolute inset-0 opacity-[0.06]"></div>
+        </div>
 
         <div class="relative mx-auto max-w-7xl px-4 pt-12 sm:px-8 sm:pt-16 lg:px-12 lg:pt-16">
             <div class="grid items-stretch gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,23rem)] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_minmax(0,32rem)] xl:gap-14">
@@ -433,7 +451,7 @@
                      missing image. --}}
                 @if($heroImageUrl)
                     <div class="relative">
-                        <figure class="mi-plate aspect-[4/3] overflow-hidden rounded-2xl ring-1 ring-[#f2c867]/25">
+                        <figure class="mi-plate aspect-[4/3] overflow-hidden rounded-2xl ring-1 ring-[#f2c867]/25" data-testid="event-hero-media">
                             <img
                                 src="{{ $heroImageUrl }}"
                                 alt="{{ __('Suasana :title', ['title' => $occurrenceDisplayTitle]) }}"
@@ -452,23 +470,24 @@
 
                     </div>
                 @elseif($occurrenceStartLocal)
-                    {{-- No photograph uploaded: the date becomes the image. --}}
+                    {{-- No photograph uploaded: the date becomes the image. Cream,
+                         not another dark pane, so the hero has a focal point. --}}
                     <div class="hidden items-center lg:flex">
-                        <div class="relative w-full overflow-hidden rounded-2xl border border-[#f2c867]/25 bg-[#f7f3e8]/[0.06] px-8 py-9 text-center">
-                            <div class="mi-lattice-light pointer-events-none absolute inset-0 opacity-[0.06]" aria-hidden="true"></div>
+                        <div class="relative w-full overflow-hidden rounded-2xl border border-[#f2c867]/50 bg-[#f7f3e8] px-8 py-9 text-center shadow-[0_34px_70px_-30px_rgba(3,15,13,0.85)]">
+                            <span class="mx-auto block h-[2px] w-10 bg-[#c9962f]" aria-hidden="true"></span>
                             <div class="relative">
-                                <p class="text-[11px] font-semibold uppercase tracking-[0.3em] text-[#f2c867]">
+                                <p class="mt-6 text-[11px] font-semibold uppercase tracking-[0.3em] text-[#8a5f13]">
                                     {{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($occurrenceStartLocal, 'l') }}
                                 </p>
-                                <p class="mt-3 font-heading text-[5.5rem] font-normal leading-[0.85] tracking-[-0.03em] text-[#fdfaf2]">
+                                <p class="mt-3 font-heading text-[5.5rem] font-normal leading-[0.85] tracking-[-0.03em] text-[#14342e]">
                                     {{ $occurrenceStartLocal->format('j') }}
                                 </p>
-                                <p class="mt-4 text-[11px] font-semibold uppercase tracking-[0.3em] text-[#f7f3e8]/75">
+                                <p class="mt-4 text-[11px] font-semibold uppercase tracking-[0.3em] text-[#4c5b56]">
                                     {{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($occurrenceStartLocal, 'F Y') }}
                                 </p>
                                 @if($occurrenceTimeLabel)
-                                    <div class="mt-7 border-t border-[#f2c867]/20 pt-6">
-                                        <p class="font-mono text-xs tracking-[0.06em] text-[#f7f3e8]/85">{{ $occurrenceTimeLabel }}</p>
+                                    <div class="mt-7 border-t border-[#c9962f]/25 pt-6">
+                                        <p class="font-mono text-xs tracking-[0.06em] text-[#14342e]">{{ $occurrenceTimeLabel }}</p>
                                     </div>
                                 @endif
                             </div>

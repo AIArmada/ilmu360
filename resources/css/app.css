@@ -1063,7 +1063,7 @@ html.light [data-flux-button][data-variant="primary"]:hover {
 }
 
 .event-detail-hero h1 {
-    background-image: linear-gradient(90deg, #fff, #9b9b9b);
+    background-image: linear-gradient(94deg, #fdfaf2 0%, #f7f3e8 52%, #ecd9a9 100%);
     background-clip: text;
     color: transparent;
 }

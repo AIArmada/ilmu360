@@ -164,6 +164,10 @@
     $heroImageUrl = $event->getFirstMedia('cover')?->getAvailableUrl(['thumb'])
         ?? $event->getFirstMedia('poster')?->getAvailableUrl(['poster_thumb']);
     $eventPosterUrl = $event->getFirstMedia('poster')?->getAvailableUrl(['poster_thumb']);
+    // The ambient backdrop always has a photograph: the event's own cover, or
+    // the wide majlis placeholder. The plate itself stays uploads-only.
+    $heroBackdropUrl = $event->getFirstMedia('cover')?->getAvailableUrl(['banner', 'thumb'])
+        ?? asset('images/placeholders/event-wide-v1.jpg');
 
     // ── Actions ──────────────────────────────────────────────────────
     $eventActionsDisabled = $this->eventActionsDisabled();
@@ -236,8 +240,22 @@
     }"
 >
     {{-- ── Hero ────────────────────────────────────────────────────── --}}
-    <header class="event-detail-hero relative isolate overflow-hidden bg-[#131209] text-[#f7f3e8]">
-        <div class="mi-lattice-light pointer-events-none absolute inset-0 opacity-[0.05]" aria-hidden="true"></div>
+    <header class="event-detail-hero relative isolate overflow-hidden bg-[#07231f] text-[#f7f3e8]">
+        {{-- Ambient art: the room behind the majlis. A photograph carries
+             warmth into the panel; the emerald wash keeps the type legible. --}}
+        <div class="pointer-events-none absolute inset-0" aria-hidden="true">
+            <img
+                src="{{ $heroBackdropUrl }}"
+                alt=""
+                class="absolute inset-y-0 right-0 h-full w-full object-cover object-center opacity-40 sm:w-[82%] sm:opacity-60 lg:w-[66%] lg:opacity-75"
+                loading="eager"
+                fetchpriority="low"
+            >
+            <div class="absolute inset-0 bg-[linear-gradient(90deg,#07231f_0%,#07231f_34%,rgba(7,35,31,0.92)_50%,rgba(7,35,31,0.45)_76%,rgba(7,35,31,0.6)_100%)]"></div>
+            <div class="absolute inset-0 bg-[radial-gradient(95%_110%_at_8%_0%,rgba(242,200,103,0.18),transparent_58%)]"></div>
+            <div class="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#07231f] via-[#07231f]/60 to-transparent"></div>
+            <div class="mi-lattice-light absolute inset-0 opacity-[0.06]"></div>
+        </div>
 
         <div class="relative mx-auto max-w-7xl px-4 pt-12 sm:px-8 sm:pt-16 lg:px-12 lg:pt-16">
             <div class="grid items-stretch gap-10 {{ $heroImageUrl ? 'lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)] lg:gap-10 xl:gap-12' : '' }}">
@@ -277,7 +295,7 @@
 
                 @if($heroImageUrl)
                     <div class="relative">
-                        <figure class="mi-plate aspect-[4/3] overflow-hidden rounded-2xl">
+                        <figure class="mi-plate aspect-[4/3] overflow-hidden rounded-2xl" data-testid="event-hero-media">
                             <img src="{{ $heroImageUrl }}" alt="{{ $event->title }}" class="size-full object-cover" loading="eager">
                         </figure>
                     </div>

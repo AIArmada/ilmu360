@@ -219,12 +219,16 @@
                 @php
                     $speakerPortraitUrl = $speaker->getFirstMedia('profile')?->getAvailableUrl(['profile_thumb']);
                     $speakerInitial = mb_strtoupper(mb_substr((string) ($speaker->name ?? '?'), 0, 1));
+                    $speakerGender = \AIArmada\Persons\Enums\Gender::tryFrom((string) $speaker->getRawOriginal('gender'));
+                    $speakerPlaceholderUrl = $speakerGender !== null ? $speaker->default_portrait_url : null;
                 @endphp
                 <li class="h-full">
                     <a href="{{ route('persons.show', $speaker) }}" wire:navigate class="mi-paper group flex h-full flex-col overflow-hidden rounded-[20px] border border-[#e6dccb] bg-[#fffdf9] transition duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:border-[#c9962f]/45 hover:shadow-[0_18px_40px_-30px_rgba(20,52,46,0.55)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14342e]">
                         <div class="relative aspect-[3/4] w-full overflow-hidden bg-[#14342e]">
                             @if(filled($speakerPortraitUrl))
                                 <img src="{{ $speakerPortraitUrl }}" alt="" aria-hidden="true" loading="lazy" class="size-full object-cover transition duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.03]">
+                            @elseif($speakerPlaceholderUrl !== null)
+                                <img src="{{ $speakerPlaceholderUrl }}" alt="" aria-hidden="true" loading="lazy" data-placeholder="speaker-image" data-placeholder-variant="{{ $speakerGender->value }}" class="size-full object-cover object-top transition duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.03]">
                             @else
                                 <span class="mi-lattice-light pointer-events-none absolute inset-0 opacity-[0.08]" aria-hidden="true"></span>
                                 <span class="relative flex size-full items-center justify-center font-heading text-6xl text-[#f2c867]" aria-hidden="true">{{ $speakerInitial }}</span>
