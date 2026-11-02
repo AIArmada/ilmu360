@@ -499,9 +499,11 @@ new
                 <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
                     @foreach($references as $reference)
                         @php
-                            $coverUrl = $reference->getFirstMediaUrl('front_cover', 'thumb') ?: $reference->getFirstMediaUrl('back_cover', 'thumb');
-                            $metaParts = array_values(array_filter([
-                                $reference->effectiveAuthorNames(),
+                            $coverUrl = $reference->getFirstMediaUrl('front_cover', 'thumb')
+                                ?: $reference->getFirstMediaUrl('back_cover', 'thumb')
+                                ?: asset('images/placeholders/reference-portrait-v1.webp');
+                            $authorNames = $reference->effectiveAuthorNamesList();
+                            $publicationParts = array_values(array_filter([
                                 $reference->publisher,
                                 $reference->year,
                             ], fn (mixed $value): bool => filled($value)));
@@ -521,12 +523,8 @@ new
                                 class="flex flex-1 flex-col after:absolute after:inset-0"
                             >
                                 <div class="relative flex aspect-4/5 items-center justify-center overflow-hidden bg-linear-to-br from-slate-50 to-emerald-50">
-                                    @if($coverUrl)
-                                        <img src="{{ $coverUrl }}" alt="{{ $reference->displayTitle() }}" class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" width="200" height="280" loading="lazy">
-                                        <div class="absolute inset-0 bg-linear-to-t from-slate-900/55 via-slate-900/10 to-transparent"></div>
-                                    @else
-                                        <flux:icon.book-open class="size-20 text-emerald-200 transition-transform duration-700 group-hover:scale-110" />
-                                    @endif
+                                    <img src="{{ $coverUrl }}" alt="{{ $reference->displayTitle() }}" class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" width="200" height="280" loading="lazy">
+                                    <div class="absolute inset-0 bg-linear-to-t from-slate-900/55 via-slate-900/10 to-transparent"></div>
                                 </div>
 
                                 <div class="flex flex-1 flex-col p-6 pb-0">
@@ -537,12 +535,17 @@ new
                                         @endif
                                     </h3>
 
-                                    @if($metaParts !== [])
-                                        <p class="mb-4 line-clamp-3 text-sm font-medium leading-6 text-slate-600">
-                                            {{ implode(' / ', $metaParts) }}
-                                        </p>
+                                    @if($authorNames !== [] || $publicationParts !== [])
+                                        <div class="mb-4 space-y-1 text-sm font-medium leading-6 text-slate-600">
+                                            @foreach($authorNames as $authorName)
+                                                <p>{{ $authorName }}</p>
+                                            @endforeach
+                                            @if($publicationParts !== [])
+                                                <p class="text-slate-500">{{ implode(' / ', $publicationParts) }}</p>
+                                            @endif
+                                        </div>
                                     @else
-                                        <p class="mb-4 line-clamp-3 text-sm font-medium leading-6 text-slate-500">
+                                        <p class="mb-4 text-sm font-medium leading-6 text-slate-500">
                                             {{ __('Reference details will be updated soon.') }}
                                         </p>
                                     @endif

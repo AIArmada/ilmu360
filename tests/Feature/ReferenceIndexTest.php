@@ -1,6 +1,8 @@
 <?php
 
+use App\Actions\References\SaveReferenceAction;
 use App\Models\Event;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
 use App\Support\Search\ReferenceSearchService;
@@ -158,6 +160,35 @@ it('scopes reference index media loads to cover collections', function () {
                 && str_contains($query, 'front_cover')
                 && str_contains($query, 'back_cover'),
         ))->toBeTrue();
+});
+
+it('shows the reference card placeholder when no cover is available', function () {
+    Reference::factory()->create([
+        'title' => 'Rujukan Tanpa Sampul',
+        'status' => 'verified',
+    ]);
+
+    get('/rujukan')
+        ->assertSuccessful()
+        ->assertSee(asset('images/placeholders/reference-portrait-v1.webp'), false);
+});
+
+it('renders multiple reference authors on separate rows', function () {
+    $firstAuthor = Person::factory()->create(['name' => 'Imam al-Nawawi']);
+    $secondAuthor = Person::factory()->create(['name' => 'Ibn Hajar al-Asqalani']);
+
+    app(SaveReferenceAction::class)->handle([
+        'title' => 'Rujukan Dua Penulis',
+        'type' => 'book',
+        'record_kind' => 'work',
+        'author_ids' => [(string) $firstAuthor->getKey(), (string) $secondAuthor->getKey()],
+        'status' => 'verified',
+    ]);
+
+    get('/rujukan')
+        ->assertSuccessful()
+        ->assertSee('<p>Imam al-Nawawi</p>', false)
+        ->assertSee('<p>Ibn Hajar al-Asqalani</p>', false);
 });
 
 it('refreshes cached reference search results when a reference becomes verified', function () {
