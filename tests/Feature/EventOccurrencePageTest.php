@@ -118,6 +118,58 @@ it('keeps the occurrence budget stable when sibling dates grow', function (): vo
     expect($queries)->toBeLessThan(56);
 });
 
+it('lists only sibling dates in the related majlis section', function (): void {
+    $sibling = $this->event->occurrences()->create([
+        'title' => 'Siri Kedua Saudara',
+        'slug' => 'siri-kedua-saudara',
+        'status' => 'published',
+        'visibility' => 'public',
+        'starts_at' => now()->addDays(4),
+    ]);
+
+    $term = submitEventTerm('domain');
+    $classification = [
+        'event_taxonomy_id' => $term->event_taxonomy_id,
+        'event_term_id' => $term->getKey(),
+        'taxonomy_code' => 'domain',
+    ];
+    $this->event->classifications()->create($classification);
+
+    $unrelated = Event::factory()->create([
+        'title' => 'Majlis Bukan Saudara',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDay(),
+        'starts_at' => now()->addDays(6),
+    ]);
+    $unrelated->classifications()->create($classification);
+
+    $this->get(route('events.occurrence', [
+        'event' => $this->event,
+        'occurrenceSlug' => PublicScheduleSlug::occurrence($this->occurrence),
+    ]))
+        ->assertOk()
+        ->assertSee('Majlis lain yang berkaitan')
+        ->assertSee('Lihat Semua')
+        ->assertDontSee('Teruskan')
+        ->assertSee('data-testid="event-card-date-badge"', false)
+        ->assertSee('Siri Kedua Saudara')
+        ->assertSee(route('events.occurrence', [
+            'event' => $this->event,
+            'occurrenceSlug' => PublicScheduleSlug::occurrence($sibling),
+        ]), false)
+        ->assertDontSee('Majlis Bukan Saudara');
+});
+
+it('omits the related majlis section when the event has no sibling dates', function (): void {
+    $this->get(route('events.occurrence', [
+        'event' => $this->event,
+        'occurrenceSlug' => PublicScheduleSlug::occurrence($this->occurrence),
+    ]))
+        ->assertOk()
+        ->assertDontSee('Majlis lain yang berkaitan');
+});
+
 it('shows shared parent info on the occurrence page', function (): void {
     $speaker = Person::factory()->create(['name' => 'Ustaz Induk Kongsi', 'status' => 'verified']);
     $this->event->persons()->attach($speaker->getKey(), [

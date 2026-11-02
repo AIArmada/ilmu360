@@ -115,7 +115,7 @@
     $galleryImages = $this->galleryImages;
 @endphp
 
-<div class="mx-auto max-w-7xl space-y-8 px-5 pb-20 sm:px-8 lg:px-12">
+<div class="mx-auto max-w-7xl space-y-8 px-5 pt-32 pb-20 sm:px-8 sm:pt-36 lg:px-12 lg:pt-40">
     <nav class="text-xs font-semibold text-slate-500" aria-label="{{ __('Breadcrumb') }}">
         <ol class="flex flex-wrap items-center gap-1.5">
             <li><a href="{{ route('events.index') }}" wire:navigate class="hover:text-emerald-800">{{ __('Majlis') }}</a></li>

@@ -523,8 +523,10 @@ it('renders every public occurrence and session with hierarchical cover media', 
     $response->assertOk()
         ->assertSee('data-testid="event-occurrence-'.$firstOccurrence->id.'"', false)
         ->assertSee('data-testid="event-occurrence-'.$secondOccurrence->id.'"', false)
+        ->assertSee('data-testid="event-card-date-badge"', false)
         ->assertSee('Sesi Dengan Imej Sendiri')
         ->assertSee('Tarikh Kedua Tanpa Imej')
+        ->assertDontSee('Majlis lain yang berkaitan')
         ->assertDontSee('data-testid="event-session-'.$firstSession->id.'"', false);
 
     // Session-level media belongs to the date page, where each node resolves

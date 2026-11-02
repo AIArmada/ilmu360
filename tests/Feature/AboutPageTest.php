@@ -1,5 +1,10 @@
 <?php
 
+use App\Enums\InstitutionStatus;
+use App\Models\Institution;
+use App\Models\Person;
+use Illuminate\Support\Facades\Cache;
+
 use function Pest\Laravel\get;
 
 it('loads the about page through the canonical route', function (): void {
@@ -20,17 +25,79 @@ it('renders the about page in each supported locale', function (string $locale, 
         ->assertOk()
         ->assertSee($expected);
 })->with([
-    ['en', 'Malaysia is not lacking majlis ilmu. What people need is a clearer way to find them.'],
-    ['ms', 'Malaysia tak kurang majlis ilmu. Yang kurang cumalah cara untuk nampak.'],
-    ['ar', 'ماليزيا لا ينقصها مجلس علم. ما ينقص الناس هو طريق أوضح للوصول إليه.'],
-    ['zh', '马来西亚不缺 majlis ilmu，缺的是一条让人找得到的路。'],
-    ['ta', 'மலேசியாவில் majlis ilmu குறைவில்லை; அதை மக்கள் கண்டுபிடிக்கும் பாதைய்தான் குறைவு.'],
-    ['jv', 'Malaysia dudu kekurangan majlis ilmu. Sing kerep kurang kuwi dalan supaya wong bisa nemokake.'],
+    ['en', 'The masjid is here. The majlis is here.'],
+    ['ms', 'Masjidnya ada. Majlisnya ada.'],
+    ['ar', 'المسجد موجود. المجلس موجود.'],
+    ['zh', 'Masjid 在这里。Majlis 也在这里。'],
+    ['ta', 'Masjid உள்ளது. Majlis உள்ளது.'],
+    ['jv', 'Masjide wis ana. Majlise wis ana.'],
 ]);
+
+it('tells the whole story the page is built around', function (): void {
+    $this->withSession(['locale' => 'ms'])
+        ->get(route('about'))
+        ->assertOk()
+        ->assertSee('Cuma khabarnya belum sampai.')
+        ->assertSee('Anak-anak sudah tidur')
+        ->assertSee('Hassan')
+        ->assertSee('Sarah')
+        ->assertSee('Amir')
+        ->assertSee('Rantaian yang selalu putus')
+        ->assertSee('Apa yang ilmu360° buat.')
+        ->assertSee('menyelamatkan malam Selasa Hassan')
+        ->assertSee('Jalan yang tenang.')
+        ->assertSee('Cari yang dekat')
+        ->assertSee('Ajak seorang lagi')
+        ->assertSee('Siapa yang kami bina untuk ini.')
+        ->assertSee('Nabi Muhammad')
+        ->assertSee('Dengar. Faham. Amal.')
+        ->assertSee('dalam perjalanan pulang yang sunyi')
+        ->assertSee('Sertai komuniti');
+});
+
+it('exposes canonical SEO and structured data for the about page', function (): void {
+    $this->withSession(['locale' => 'ms'])
+        ->get(route('about'))
+        ->assertOk()
+        ->assertSee('<link rel="canonical" href="'.route('about').'"', false)
+        ->assertSee('"@type":"AboutPage"', false)
+        ->assertSee('ilmu360°', false);
+});
+
+it('does not advertise capabilities the product does not have', function (): void {
+    $this->withSession(['locale' => 'ms'])
+        ->get(route('about'))
+        ->assertOk()
+        ->assertDontSee('2KM')
+        ->assertDontSee('Waze')
+        ->assertDontSee('Apple Celendar');
+});
 
 it('links to the about page from the public layout', function (): void {
     get(route('home'))
         ->assertOk()
         ->assertSee(route('about'), false)
         ->assertSee(__('About Us'));
+});
+
+it('hides the living proof band when the database is empty', function (): void {
+    Cache::forget('about.stats');
+
+    $this->withSession(['locale' => 'ms'])
+        ->get(route('about'))
+        ->assertOk()
+        ->assertDontSee('Yang sudah berjalan.');
+});
+
+it('shows living proof with real counts once the ummah is inside', function (): void {
+    Institution::factory()->create(['status' => InstitutionStatus::Verified]);
+    Person::factory()->create(['status' => 'verified']);
+    Cache::forget('about.stats');
+
+    $this->withSession(['locale' => 'ms'])
+        ->get(route('about'))
+        ->assertOk()
+        ->assertSee('Yang sudah berjalan.')
+        ->assertSee('Masjid &amp; Surau', false)
+        ->assertSee('Asatizah');
 });

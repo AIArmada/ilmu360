@@ -104,9 +104,7 @@
 @if($sharedSummary !== '' || $sharedAboutHtml !== '')
     <section id="tentang" class="scroll-mt-8" aria-labelledby="shared-event-about-title">
         <div class="mb-7">
-            <span class="block h-[2px] w-7 bg-[#c9962f]" aria-hidden="true"></span>
-            <p class="mt-4 text-[11px] font-semibold uppercase tracking-[0.26em] text-[#8a5f13]">{{ __('Maklumat majlis') }}</p>
-            <h2 id="shared-event-about-title" class="mt-2 font-heading text-[1.75rem] leading-[1.15] tracking-[-0.01em] text-balance">{{ __('Tentang majlis') }}</h2>
+            <h2 id="shared-event-about-title" class="font-heading text-[1.75rem] leading-[1.15] tracking-[-0.01em] text-balance">{{ __('Tentang majlis') }}</h2>
         </div>
 
         {{-- Prose sits on the page, not in a card: a bordered box around one
@@ -131,9 +129,7 @@
 @if($sharedHasDetailRows)
     <section id="butiran" class="scroll-mt-8" aria-labelledby="shared-event-details-title">
         <div class="mb-7">
-            <span class="block h-[2px] w-7 bg-[#c9962f]" aria-hidden="true"></span>
-            <p class="mt-4 text-[11px] font-semibold uppercase tracking-[0.26em] text-[#8a5f13]">{{ __('Gambaran') }}</p>
-            <h2 id="shared-event-details-title" class="mt-2 font-heading text-[1.75rem] leading-[1.15] tracking-[-0.01em] text-balance">{{ __('Butiran majlis') }}</h2>
+            <h2 id="shared-event-details-title" class="font-heading text-[1.75rem] leading-[1.15] tracking-[-0.01em] text-balance">{{ __('Butiran majlis') }}</h2>
         </div>
 
         {{-- A ruled fact sheet, not a boxed table: the page already carries
@@ -206,9 +202,7 @@
 @if($sharedSpeakers->isNotEmpty())
     <section id="penceramah" class="scroll-mt-8" aria-labelledby="shared-event-speakers-title">
         <div class="mb-7">
-            <span class="block h-[2px] w-7 bg-[#c9962f]" aria-hidden="true"></span>
-            <p class="mt-4 text-[11px] font-semibold uppercase tracking-[0.26em] text-[#8a5f13]">{{ __('Penceramah') }}</p>
-            <div class="mt-2 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+            <div class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
                 <h2 id="shared-event-speakers-title" class="font-heading text-[1.75rem] leading-[1.15] tracking-[-0.01em] text-balance">{{ __('Penceramah majlis') }}</h2>
                 <p class="font-mono text-xs text-[#6b645e]">{{ $sharedSpeakers->count() }}</p>
             </div>
@@ -238,10 +232,6 @@
                         <div class="flex flex-1 flex-col p-4">
                             <p class="line-clamp-2 font-heading text-lg leading-snug text-[#14342e] transition-colors duration-300 group-hover:text-[#8a5f13]">{{ $speaker->name }}</p>
                             <p class="mt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8a5f13]">{{ __('Penceramah') }}</p>
-                            <span class="mt-auto inline-flex items-center gap-1.5 pt-4 text-[12px] font-semibold text-[#6b645e] transition-colors duration-300 group-hover:text-[#8a5f13]">
-                                {{ __('Lihat profil') }}
-                                <svg class="size-3.5 transition-transform duration-300 group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 6l6 6-6 6" /></svg>
-                            </span>
                         </div>
                     </a>
                 </li>
@@ -253,9 +243,7 @@
 @if($sharedKeyPeople->isNotEmpty())
     <section id="peranan" class="scroll-mt-8" aria-labelledby="shared-event-roles-title">
         <div class="mb-7">
-            <span class="block h-[2px] w-7 bg-[#c9962f]" aria-hidden="true"></span>
-            <p class="mt-4 text-[11px] font-semibold uppercase tracking-[0.26em] text-[#8a5f13]">{{ __('Barisan') }}</p>
-            <h2 id="shared-event-roles-title" class="mt-2 font-heading text-[1.75rem] leading-[1.15] tracking-[-0.01em] text-balance">{{ __('Peranan') }}</h2>
+            <h2 id="shared-event-roles-title" class="font-heading text-[1.75rem] leading-[1.15] tracking-[-0.01em] text-balance">{{ __('Peranan') }}</h2>
         </div>
 
         <div class="grid gap-3 sm:grid-cols-2">

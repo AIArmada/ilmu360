@@ -3,226 +3,140 @@
 return [
     'meta' => [
         'title' => 'Babagan ilmu360°',
-        'description' => 'ilmu360° mbantu wong ing Malaysia supaya luwih gampang nemokake, mriksa, lan rawuh ing majlis sing migunani.',
+        'description' => 'ilmu360° nglumpukake majlis ilmu ing masjid lan surau saindenging Malaysia supaya luwih akeh wong sing bisa teka.',
     ],
     'hero' => [
-        'page_label' => 'Babagan ilmu360°',
-        'title' => 'Malaysia dudu kekurangan majlis ilmu. Sing kerep kurang kuwi dalan supaya wong bisa nemokake.',
-        'intro' => 'Kadhang majlis sing paling dibutuhake minggu iki sejatiné lagi kelakon cedhak panggonanmu.',
-        'lead' => 'Ing Malaysia, masjid lan surau dudu panggonan sing adoh. Ing kawasan omah, tengah kutha, kampus, deretan toko, malah sekitar mall, biasané wis ana papan kanggo wong mampir, shalat, sinau, lan kumpul.',
-        'body' => 'Tegesé, negara iki sejatiné wis nduweni jaringan gedhé kanggo ibadah, ilmu, lan urip komunitas. Sing isih ringkih dudu papané utawa programé. Sing ringkih kuwi cara wong ngerti apa sing lagi kelakon. ilmu360° dibangun kanggo nutup jurang kuwi.',
-        'chips' => [
-            'Masjid',
-            'Surau',
-            'Kelas',
-            'Ceramah',
-            'Keluarga',
-            'Komunitas',
+        'title' => 'Masjide wis ana. Majlise wis ana.',
+        'emphasis' => 'Sing durung tekan mung kabare.',
+        'intro' => 'Wengi Selasa. Bocah-bocah wis turu, omah pungkasane sepi, nanging atine isih rame karo gawean sing ora rampung. Sepuluh menit saka omah, ing surau gang sebelah, ana kuliah Maghrib sing ngrembug persis karesahan kuwi — lan Hassan ora nate ngerti. Sing ajeg ora tekan dudu majlise — kabare.',
+        'primary' => 'Golek majlis cedhak kene',
+        'secondary' => 'Melu komunitas',
+        'image_alt' => 'Jendela surau desa sing dibukak ing wayah sore, cahyane tiba ing tembok blok angin.',
+    ],
+    'gap' => [
+        'label' => 'Ngapa awake dhewe ana',
+        'title' => 'Sing cedhak, aja nganti kelewatan.',
+        'paragraphs' => [
+            'Masjid lan surau ing saindenging Malaysia wis madeg, lan programe ing njero ora tau mandheg. Kuliah Maghrib, tazkirah Subuh, kelas tafsir akhir minggu — kabeh mlaku, wengi demi wengi, kanggo wong kaya Hassan.',
+            'Wengi Selasa kuwi, Hassan mulih telat. Postere ana — klelep ing grup WhatsApp kampung, ketutup ucapan sugeng enjing lan resi kiriman. Bareng dheweke weruh maneh, penceramahe wis mulih. Majlise wis wingi.',
+            'ilmu360° ana kanggo wengi-wengi kaya ngono. Ora nggawe majlis anyar — mesthekake majlis sing wis ana tekan wong sing nggoleki, sadurunge diwiwiti. Supaya ora ana maneh sing ngadeg ing lawang surau sing wis dikunci.',
+        ],
+        'chain' => [
+            'title' => 'Rantai sing tansah pedhot',
+            'items' => [
+                'Penyelenggara wis nyiapake majlis.',
+                'Kabar mung ana ing grup sing padha.',
+                'Kariah ngerti sawise kabeh wis rampung.',
+            ],
         ],
     ],
-    'hero_panel' => [
-        'eyebrow' => 'Yen diomong prasaja',
-        'badge' => 'Kanggo saben dina',
-        'title' => 'ilmu360° dadi panggonan wong miwiti nggoleki',
-        'body' => 'Informasi sing biyèn buyar diklumpukake dadi siji supaya wong bisa golek, mriksa, nyimpen, ngrancang, lan pungkasane rawuh tenanan.',
+    'cost' => [
+        'title' => 'Sing ilang dudu mung siji majlis.',
+        'intro' => 'Yen ana majlis sing ora tekan wong sing butuhake, sing ilang dudu mung siji bengi. Iku masa depan sing katunda.',
+        'image_alt' => 'Ruang shalat surau sing sepi ing wayah sore, sajadah ditata lan jendela mbukak.',
         'items' => [
             [
-                'title' => 'Werenana luwih dhisik',
-                'body' => 'Golek adhedhasar topik, penceramah, panggonan, utawa apa sing lagi kelakon cedhakmu.',
+                'title' => 'Kepala keluarga',
+                'body' => 'Hassan, 34, nggolek dalan nentremake omahe sawise padu karo bojone. Siji tazkirah bab sabar ing surau gang sebelah bisa ngowahi minggune — nanging dheweke nembe krungu dina Jumat sabanjure, saka tangga.',
             ],
             [
-                'title' => 'Mriksa kanthi luwih manteb',
-                'body' => 'Kaca acara sing cetha, konteks panitia, moderasi, lan pelaporan nggawe wong luwih yakin.',
+                'title' => 'Sedulur mualaf',
+                'body' => 'Sarah mlebu Islam telung sasi kepungkur. Dheweke kangen takon tanpa isin, langkah demi langkah, ing kariah sing ngerti jenenge. Kelas pambuka kuwi ana saben Setu — nanging ora ana sing ngandhani.',
             ],
             [
-                'title' => 'Banjur tumindak',
-                'body' => 'Simpen acara, ndaftar, oleh pangeling, lebokake ing kalender, goleki arah, lan teka.',
+                'title' => 'Kanca sing lagi abot',
+                'body' => 'Amir ora bisa turu kepenak wiwit kelangan gawean. Dheweke ora butuh ceramah gedhe — mung siji tazkirah entheng, lungguh ing saf mburi, nenangake ati tanpa dihakimi. Surau sebelah omah nganakake. Dheweke ora nate ngerti.',
+            ],
+            [
+                'title' => 'Tetangga',
+                'body' => 'Bale surau sing kosong kuwi biyen papan kenduren, papan bocah-bocah mlayu. Tanpa kabar sing tekan, tangga mandheg ketemu — lan kampung sing adem alon-alon dadi asing.',
+            ],
+        ],
+    ],
+    'work' => [
+        'title' => 'Apa sing ditindakake ilmu360°.',
+        'intro' => 'Limang bab sing nylametake wengi Selasane Hassan. Siji tujuwan: supaya kowe ngerti luwih dhisik lan bisa teka.',
+        'items' => [
+            [
+                'title' => 'Golek miturut wilayah',
+                'body' => 'Hassan ngetik kampunge — lan kuliah sepuluh menit saka omahe metu, dudu ing provinsi liya.',
+            ],
+            [
+                'title' => 'Penyelenggara sing wis diverifikasi',
+                'body' => 'Kabare teka saka AJK surau dhewe, jenenge tinulis sawise pamriksan. Dudu kabar angin.',
+            ],
+            [
+                'title' => 'Status sing tansah dianyari',
+                'body' => 'Bale pindah menyang emper amarga pipa bocor? Owah-owahan kuwi tinulis ing kaca sadurunge dheweke mangkat.',
+            ],
+            [
+                'title' => 'Pangeling sadurunge diwiwiti',
+                'body' => 'Dheweke mencet simpen wayah Zohor. Jam 6.45 sore, telpone ngelingake kanthi alus.',
+            ],
+            [
+                'title' => 'Arah langsung menyang lawang',
+                'body' => 'Dheweke mbukak lokasi ing aplikasi peta lan mlaku terus menyang lawang surau — kober wudu sadurunge azan.',
+            ],
+        ],
+        'note' => 'Yen ana informasi sing ora bener, laporake saka kaca majlis. Saben laporan dipriksa.',
+    ],
+    'audience' => [
+        'title' => 'Sapa sing dibangun iki.',
+        'items' => [
+            [
+                'title' => 'Kariah',
+                'body' => 'Kowe sing kepengin ngerti apa sing kelakon ing suraumu dhewe minggu iki — supaya wengi Selasamu ora pungkasane getun.',
+            ],
+            [
+                'title' => 'AJK masjid lan surau',
+                'body' => 'Kowe sing wis ngupaya nata program nganti larut wengi, lan mung butuh siji papan hebahan sing tekan tanpa ngemis ing sepuluh grup.',
+            ],
+            [
+                'title' => 'Asatizah',
+                'body' => 'Kowe sing nyopir saka surau siji menyang surau liyane, lan kepengin saf sing kebak wong sing tenan ngelak pengajianmu.',
+            ],
+        ],
+    ],
+    'path' => [
+        'title' => 'Dalan sing tenang.',
+        'intro' => 'Papat langkah, siji tujuwan: ilmu tekan, ati hadir, banjur diterusake.',
+        'items' => [
+            [
+                'title' => 'Golek sing cedhak',
+                'body' => 'Saring miturut jarak, provinsi, utawa topik — miwiti saka suraumu dhewe.',
+            ],
+            [
+                'title' => 'Priksa sing sahih',
+                'body' => 'Waca saka penyelenggara sing wis diverifikasi; status anyar tinulis ing kaca.',
+            ],
+            [
+                'title' => 'Teka kanthi tenang',
+                'body' => 'Simpen majlis, tampa pangeling, lan mlaku menyang lawang.',
+            ],
+            [
+                'title' => 'Ajak siji maneh',
+                'body' => 'Bagikake menyang tangga lan kulawarga supaya ora ngerti wingi.',
             ],
         ],
     ],
     'stats' => [
-        [
-            'value' => 'Wis ana',
-            'title' => 'Jaringan papan kuwi pancen wis kawangun',
-            'body' => 'Masjid lan surau ing saindenging negara wis dadi jaringan fisik sing amba. Dhasaré ora perlu digawe saka awal maneh.',
-        ],
-        [
-            'value' => '<1 km',
-            'title' => 'Asring sejatiné cedhak',
-            'body' => 'Kanggo akèh wong, papan kanggo shalat utawa sinau sejatiné wis mlebu radius urip saben dina.',
-        ],
-        [
-            'value' => 'Saben minggu',
-            'title' => 'Programé sejatiné terus mlaku',
-            'body' => 'Senajan saben panggon mung nganakake siji loro program saben wulan, jumlah totalé tetep gedhé banget.',
-        ],
+        'title' => 'Wis mlaku.',
+        'intro' => 'Angka ing ngisor saka pangkalan data, dudu hiasan. Yen kosong didhelikake.',
+        'events' => 'Majlis',
+        'institutions' => 'Masjid & Surau',
+        'speakers' => 'Asatizah',
     ],
-    'sections' => [
-        [
-            'eyebrow' => 'Kelangan sing meneng',
-            'title' => 'Akèh wong kélangan dudu amarga ora gelem teka',
-            'paragraphs' => [
-                'Ana kalané siji kelas mung sawetara atus meter saka awake dhewe iku sakjané pas banget karo sing dibutuhake awaké dhéwé, keluarga, utawa wong sing lagi berjuang minggu kuwi.',
-                'Wong akèh ora kélangan amarga males utawa ora peduli. Wong kélangan amarga informasiné ora tekan, utawa tekané kasep kanggo dirancang.',
-                'Mula ukara kaya “nek ngerti luwih awal, mesthi aku teko” dadi akrab banget. ilmu360° dibangun supaya penyesalan kaya ngono saya suda.',
-            ],
-        ],
-        [
-            'eyebrow' => 'Paradoks sing kerep dirasa',
-            'title' => 'Program akèh, nanging rasane kaya ora ana apa-apa',
-            'paragraphs' => [
-                'Majlis kelakon saben dina, saben minggu, lan saben akhir minggu. Nanging akèh wong mung ngerti apa sing kelakon ing masjid dhewe, surau dhewe, utawa grup WhatsApp dhewe.',
-                'Mula sing dirasa dadi sempit, senajan kasunyatane ora mangkono. Ilmu kuwi ana. Sing kurang kuwi keterlihatané.',
-                'ilmu360° miwiti saka kasunyatan kuwi: sing kurang dudu programé, nanging kesempatan supaya wong bisa ndeleng program sing wis ana.',
-            ],
-        ],
-        [
-            'eyebrow' => 'Infrastruktur sing sejatiné wis ana',
-            'title' => 'Masjid lan surau kuduné luwih urip tinimbang saiki',
-            'paragraphs' => [
-                'Malaysia ora perlu nggawe jaringan fisik anyar kanggo ilmu. Jaringan kuwi wis ana lan cedhak banget karo urip lingkungan.',
-                'Masjid lan surau dudu mung panggonan shalat banjur bubar. Iku uga bisa dadi papan sinau, nguatake keluarga, nuntun nom-noman, menehi sokongan sosial, lan nguripake komunitas.',
-                'Mula iki dudu mung soal acara. Iki soal penemuan, soal koordinasi, lan soal mbangun kebiasaan rawuh.',
-            ],
-        ],
-    ],
-    'causes' => [
-        'eyebrow' => 'Napa iki terus kelakon',
-        'title' => 'Akar masalahé cedhak karo pengalaman saben dina',
-        'items' => [
-            [
-                'title' => 'Informasi buyar ing akèh panggonan',
-                'body' => 'Poster, WhatsApp, Facebook, Instagram Story, lan kabar saka cangkem menyang cangkem kabeh mlaku dhewe-dhewe.',
-            ],
-            [
-                'title' => 'Ora ana siji rujukan utama',
-                'body' => 'Nalika wektu owah, panggonan owah, utawa penceramah owah, ora kabeh wong oleh kabar sing bisa diandelake.',
-            ],
-            [
-                'title' => 'Wong biasané mung weruh lingkarane dhewe',
-                'body' => 'Wong arang njelajah sing ora katon, senajan mung sak utawa rong kilometer saka panggonane.',
-            ],
-            [
-                'title' => 'Ora ana sistem kanggo mbantu wong konsisten rawuh',
-                'body' => 'Tanpa pangeling, minat sing disimpen, lan jadwal sing cetha, penemuan arang malih dadi rawuh sing bola-bali.',
-            ],
-        ],
-    ],
-    'losses' => [
-        'eyebrow' => 'Apa sing sejatiné lagi kélangan',
-        'title' => 'Sing kliwat kuwi dudu mung siji acara. Kadhang nyentuh arah urip wong.',
-        'items' => [
-            'Keluarga kélangan program sing sakjané cocog kanggo bocah lan remaja.',
-            'Muallaf lan wong sing lagi miwiti kélangan kelas sing bisa nggampangake langkah awal.',
-            'Wong sing nggoleki pitulungan bab stres, ketagihan, rumah tangga, utang, utawa arah urip kélangan siji majlis sing paling nyambung karo kahanane.',
-            'Komunitas tetep ora nyambung senajan urip ing radius sing sakjané wis cedhak banget.',
-        ],
-    ],
-    'definition' => [
-        'eyebrow' => 'Apa sing arep dibenerake ilmu360°',
-        'title' => 'Sing biyèn buyar, saiki digandheng dadi siji',
-        'body' => 'ilmu360° ora nggawe ilmu anyar. Platform iki mung mbantu ngetokake maneh majlis sing wis ana supaya wong sing pengin rawuh tenan oleh kesempatan kanggo teka.',
-        'shifts' => [
-            [
-                'before' => 'Poster lan kiriman sing buyar',
-                'after' => 'Daftar acara sing tertata lan gampang digoleki',
-            ],
-            [
-                'before' => 'Rincian samar lan owah-owahan menit pungkasan',
-                'after' => 'Siji kaca acara sing cetha lan bisa dianyari',
-            ],
-            [
-                'before' => 'Rasa ragu apa iso dipercaya utawa ora',
-                'after' => 'Moderasi, pelaporan, lan status sing terang',
-            ],
-            [
-                'before' => 'Wong mung ngira-ngira sing cocok kanggo dheweke',
-                'after' => 'Discovery cedhak, filter, lan minat sing disimpen',
-            ],
-        ],
-    ],
-    'proof' => [
-        'eyebrow' => 'Apa sing wis didhukung platform iki',
-        'title' => 'Dirancang manut perjalanan nyata wong menyang majlis',
-        'body' => 'ilmu360° dudu mung direktori. Iku dibangun manut cara wong nemokake majlis, mriksa rincihané, ngrancang rawuh, lan pungkasane teka.',
-        'items' => [
-            [
-                'title' => 'Golek lan penemuan cedhak',
-                'body' => 'Wong bisa golek adhedhasar topik, penceramah, institusi, panggonan, kawasan, lan apa sing lagi kelakon cedhak dheweke.',
-            ],
-            [
-                'title' => 'Ngirim acara kanthi tanggung jawab',
-                'body' => 'Acara bisa dikirim déning komunitas lan saya suwe saya dijaga déning anggota institusi utawa penceramah sing pancen tanggung jawab.',
-            ],
-            [
-                'title' => 'Alur moderasi sing cetha',
-                'body' => 'Status review mbantu wong ngerti kualitas lan kedudukan sawijining rekaman, ora mung ngira-ngira.',
-            ],
-            [
-                'title' => 'Pelaporan lan review maneh',
-                'body' => 'Informasi sing mbingungake, curiga, utawa durung pepak bisa dilapor lan dipriksa maneh.',
-            ],
-            [
-                'title' => 'Minat sing disimpen lan pangeling',
-                'body' => 'Wong bisa mbangun kebiasaan rawuh saka perkara sing pancen dipeduleni, ora mung ngandel kebeneran weruh.',
-            ],
-            [
-                'title' => 'Piranti kanggo ngrancang tenanan',
-                'body' => 'Simpen acara, ndaftar, lebokake menyang kalender, goleki arah, banjur owahi niat apik dadi rawuh nyata.',
-            ],
-        ],
-    ],
-    'magnet' => [
-        'eyebrow' => 'Tarikan sing sejatine',
-        'title' => 'Wong ora teka amarga bangunane. Wong teka amarga majlisé.',
-        'paragraphs' => [
-            'Sing narik wong biasané topiké, penceramahe, kabutuhan wektu kuwi, utawa gegayutane karo urip keluarga lan komunitas.',
-            'ilmu360° banjur dadi mesin penemuan, saluran sebaran, lan lapisan keyakinan sing mbantu majlis sing pas tekan wong sing pas.',
-            'Mula iki ora mung situs daftar acara. Iki undhangan sing bisa mlaku luwih adoh tinimbang poster.',
-        ],
-    ],
-    'impact' => [
-        'eyebrow' => 'Napa iki penting luwih saka mung penemuan',
-        'title' => 'Nalika majlis luwih gampang katon, jaringan sakabèhé dadi luwih urip',
-        'items' => [
-            [
-                'title' => 'Surau sing kurang katon bisa urip maneh',
-                'paragraphs' => [
-                    'Topik sing kuwat utawa penceramah sing relevan ing surau sing sepi bisa ngowahi swasana panggonan kuwi, nanging undhangane kudu tekan wong sing pas ing wektu sing pas.',
-                    'Ngikuti topik, ngikuti penceramah, penemuan cedhak, lan pangeling nulungi supaya sing rawuh ora mandheg mung ing lingkar cilik.',
-                ],
-            ],
-            [
-                'title' => 'Masjid bisa luwih kebak dadi ruang komunitas',
-                'paragraphs' => [
-                    'Nalika penemuan luwih gampang, masjid ora mung dadi panggonan sing dilewati. Iku bisa luwih aktif kanggo sinau, keluarga, nom-noman, sokongan sosial, lan koordinasi relawan.',
-                    'Dhasaré wis ana. Keterlihatan sing luwih apik mung nulungi supaya bisa mlaku luwih cedhak karo potensi sejatine.',
-                ],
-            ],
-            [
-                'title' => 'Keyakinan sing mbukak tumindak',
-                'paragraphs' => [
-                    'Wong mung gelem nggawa keluarga, nyumbang, dadi relawan, utawa lelungan yen dheweke yakin karo apa sing didelok.',
-                    'Konteks panitia sing cetha, moderasi, pelaporan, lan status sing terang dudu hiasan. Kuwi sing nggawe partisipasi kroso aman lan masuk akal.',
-                ],
-            ],
-        ],
-    ],
-    'motivation' => [
-        'eyebrow' => 'Sing ndorong awake dhewe',
-        'quote' => 'Nggoleki ilmu kuwi wajib tumrap saben Muslim.',
-        'attribution' => 'Nabi Muhammad ﷺ (Sunan Ibn Majah)',
-    ],
-    'images' => [
-        'hero_alt' => 'Swasana sinau Islam',
-        'gathering_alt' => 'Suasana kumpul kanggo ilmu sing migunani',
+    'hadith' => [
+        'title' => 'Sing dadi dhasar karya iki',
+        'quote' => 'Nggolek ilmu iku fardu tumrap saben Muslim.',
+        'attribution' => 'Nabi Muhammad SAW · Sunan Ibnu Majah',
     ],
     'cta' => [
-        'title' => 'Ayo nggawe ukara “nek ngerti luwih awal, mesthi aku teko” saya arang kedadeyan.',
-        'body' => 'Malaysia wis nduweni papan, wong, lan programé. Sing dibutuhake saiki yaiku cara sing luwih cetha supaya kabeh kuwi bisa ditemokake ing wektu sing pas.',
-        'closing' => 'Daftar, simpen minatmu, tindakake sing penting, lan tulung supaya majlis sing migunani tekan wong sing mesthi rawuh yen ngerti.',
-        'primary' => 'Daftar Dina Iki',
-        'secondary' => 'Jelajahi Majlis',
-        'tertiary' => 'Kirim Acara',
+        'title' => '“Yen aku ngerti saka awal.”',
+        'body' => 'Ukara kuwi tansah teka sawise majlise liwat — ing meja mangan, ing grup WhatsApp, ing dalan mulih sing sepi. Golek majlis minggu iki. Teka. Banjur ajak siji maneh, supaya ukara kuwi ora perlu diulang.',
+        'primary' => 'Melu komunitas',
+        'secondary' => 'Bukak direktori majlis',
+        'tertiary' => 'Unggah poster majlis',
+        'image_alt' => 'Jemaah lungguh baris ing bale surau, dideleng saka mburi ing wayah sore.',
     ],
 ];

@@ -3,226 +3,140 @@
 return [
     'meta' => [
         'title' => 'About ilmu360°',
-        'description' => 'ilmu360° helps people in Malaysia discover, trust, and attend beneficial gatherings more easily.',
+        'description' => 'ilmu360° gathers Islamic study gatherings at masjid and surau across Malaysia, so more people make it in time.',
     ],
     'hero' => [
-        'page_label' => 'About ilmu360°',
-        'title' => 'Malaysia is not lacking majlis ilmu. What people need is a clearer way to find them.',
-        'intro' => 'Sometimes the gathering that could steady your week is happening just around the corner.',
-        'lead' => 'In Malaysia, masjid and surau are already part of everyday geography. In housing areas, city neighbourhoods, campuses, shop rows, and even around malls, there is usually already a place where people can stop, pray, learn, and gather.',
-        'body' => 'That means the country already has a vast network for worship, learning, and community life. The weak point is not the existence of places or programmes. The weak point is whether people know what is happening and in time to act on it. ilmu360° exists to close that gap.',
-        'chips' => [
-            'Masjid',
-            'Surau',
-            'Classes',
-            'Talks',
-            'Families',
-            'Community',
+        'title' => 'The masjid is here. The majlis is here.',
+        'emphasis' => 'It is the news that never arrives.',
+        'intro' => 'Tuesday night. The children are asleep, the house is finally quiet, but his heart is still loud with unfinished work. Ten minutes from home, at the surau down the lane, a Maghrib kuliah is speaking to exactly that restlessness — and Hassan never knew. What goes missing is not the gathering — it is the announcement.',
+        'primary' => 'Find a majlis nearby',
+        'secondary' => 'Join the community',
+        'image_alt' => 'A village surau window standing open in the late afternoon, light falling across a breeze-block wall.',
+    ],
+    'gap' => [
+        'label' => 'Why we exist',
+        'title' => 'What is close should not be missed.',
+        'paragraphs' => [
+            'Masjid and surau already stand across Malaysia, and the programmes inside them never really stop. Maghrib kuliah, Subuh tazkirah, weekend tafsir classes — all of it running, night after night, for people like Hassan.',
+            'That Tuesday, Hassan came home late. The poster existed — buried in the neighbourhood WhatsApp group, drowned under greetings and delivery receipts. When he saw it again, the speaker had gone home. The majlis was yesterday.',
+            'ilmu360° exists for nights like that. It does not invent new gatherings — it makes sure the ones that already exist reach the people looking for them, before they begin. So no one else stands before a surau door already locked.',
+        ],
+        'chain' => [
+            'title' => 'The chain that always breaks',
+            'items' => [
+                'The organiser has prepared the majlis.',
+                'The news stays inside the same group.',
+                'The kariah only hears about it afterwards.',
+            ],
         ],
     ],
-    'hero_panel' => [
-        'eyebrow' => 'In plain terms',
-        'badge' => 'Built for daily use',
-        'title' => 'ilmu360° is where discovery starts',
-        'body' => 'ilmu360° gathers what was previously scattered so people can search, verify, save, plan, and actually show up with confidence.',
+    'cost' => [
+        'title' => 'What is lost is more than one missed majlis.',
+        'intro' => 'When a gathering never reaches the person who needed it, the loss is not just one evening. It is a future postponed.',
+        'image_alt' => 'An empty surau prayer hall in the afternoon, prayer mats stacked and windows open.',
         'items' => [
             [
-                'title' => 'See what is out there',
-                'body' => 'Search by topic, speaker, place, or what is happening near you tonight.',
+                'title' => 'A household',
+                'body' => 'Hassan, 34, is looking for a way to steady his home after a quarrel with his wife. One tazkirah on patience at the surau down the lane could change their week — but he only hears of it the following Friday, from a neighbour.',
             ],
             [
-                'title' => 'Check with confidence',
-                'body' => 'Clear event pages, organiser context, moderation, and reporting make it easier to trust what you see.',
+                'title' => 'A new Muslim',
+                'body' => 'Sarah embraced Islam three months ago. She longs to ask without shame, step by step, in a kariah that knows her name. The introductory class exists every Saturday — but no one told her.',
             ],
             [
-                'title' => 'Turn intent into action',
-                'body' => 'Save events, register, get reminded, navigate, and come.',
+                'title' => 'A friend under strain',
+                'body' => 'Amir has not slept well since losing his job. He needs no grand ceramah — just one quiet tazkirah, a seat in the back saf, a heart settled without judgment. The surau next door held it. He never knew.',
+            ],
+            [
+                'title' => 'A neighbourhood',
+                'body' => 'That empty surau hall was once a wedding feast, a place where children ran. Without news that arrives, neighbours stop meeting — and a cool neighbourhood slowly turns strange.',
+            ],
+        ],
+    ],
+    'work' => [
+        'title' => 'What ilmu360° actually does.',
+        'intro' => 'Five things that saved Hassan\'s Tuesday night. One purpose: that you know earlier, and make it in time.',
+        'items' => [
+            [
+                'title' => 'Search by area',
+                'body' => 'Hassan types his housing estate — and the kuliah ten minutes from his home appears, not one in another state.',
+            ],
+            [
+                'title' => 'Verified organisers',
+                'body' => 'The news comes from the surau committee itself, its name shown after review. Not a rumour.',
+            ],
+            [
+                'title' => 'Status that stays current',
+                'body' => 'Hall moved to the porch over a burst pipe? The change is written on the page before he leaves.',
+            ],
+            [
+                'title' => 'A reminder before it starts',
+                'body' => 'He presses save at Zohor. At 6.45 in the evening, his phone reminds him gently.',
+            ],
+            [
+                'title' => 'Directions to the door',
+                'body' => 'He opens the location in his maps app and walks straight to the surau door — in time for wuduk before azan.',
+            ],
+        ],
+        'note' => 'If something on a page is wrong, report it from the majlis page. Every report is reviewed.',
+    ],
+    'audience' => [
+        'title' => 'Who this is built for.',
+        'items' => [
+            [
+                'title' => 'The kariah',
+                'body' => 'You, who want to know what is happening at your own surau this week — so your Tuesday night does not end in regret.',
+            ],
+            [
+                'title' => 'Masjid and surau committees',
+                'body' => 'You, who have laboured over a programme till late at night, and need one announcement channel that arrives without begging across ten groups.',
+            ],
+            [
+                'title' => 'Asatizah',
+                'body' => 'You, who drive from one surau to another, and want a saf filled with people truly thirsty for your class.',
+            ],
+        ],
+    ],
+    'path' => [
+        'title' => 'A calm path.',
+        'intro' => 'Four steps, one purpose: knowledge arrives, hearts attend, then it is passed on.',
+        'items' => [
+            [
+                'title' => 'Find what is near',
+                'body' => 'Filter by distance, state, or topic — start from your own surau.',
+            ],
+            [
+                'title' => 'Check what is sound',
+                'body' => 'Read from verified organisers; the current status is written on the page.',
+            ],
+            [
+                'title' => 'Attend in calm',
+                'body' => 'Save the majlis, receive a reminder, and walk to the door.',
+            ],
+            [
+                'title' => 'Invite one more',
+                'body' => 'Share with neighbours and family, so they do not learn of it yesterday.',
             ],
         ],
     ],
     'stats' => [
-        [
-            'value' => 'Already here',
-            'title' => 'The physical network exists',
-            'body' => 'Across the country, masjid and surau already form a very large physical network. The foundation does not need to be invented again.',
-        ],
-        [
-            'value' => '<1 km',
-            'title' => 'Often already nearby',
-            'body' => 'For many people, a place to pray or learn is already inside the radius of daily life.',
-        ],
-        [
-            'value' => 'Every week',
-            'title' => 'Programmes are already happening',
-            'body' => 'Even if each place only runs one or two sessions a month, the total rhythm of learning is still enormous.',
-        ],
+        'title' => 'Already running.',
+        'intro' => 'Numbers below come from the database, not decoration. Empty stays hidden.',
+        'events' => 'Majlis',
+        'institutions' => 'Masjids & Suraus',
+        'speakers' => 'Asatizah',
     ],
-    'sections' => [
-        [
-            'eyebrow' => 'The quiet loss',
-            'title' => 'People do not miss majlis because they do not care',
-            'paragraphs' => [
-                'Sometimes a class a few hundred metres away is exactly what a person, a family, or a struggling heart needed that week.',
-                'Most people do not miss it because they are lazy or indifferent. They miss it because the information never reached them, or reached them too late to plan around it.',
-                'That is why the line “If I had known earlier, I would have gone” feels so familiar. ilmu360° is built to make that sentence far less common.',
-            ],
-        ],
-        [
-            'eyebrow' => 'The paradox we all recognise',
-            'title' => 'There are many events, yet it still feels like nothing is happening',
-            'paragraphs' => [
-                'Programmes happen every day, every week, and every weekend. Yet most people only know what is happening in their own masjid, their own surau, or their own WhatsApp circles.',
-                'So the lived experience feels narrow even when reality is not. Ilmu is present. What is missing is visibility.',
-                'ilmu360° starts from that truth: the real shortage is not programmes. It is people being able to see the programmes that already exist.',
-            ],
-        ],
-        [
-            'eyebrow' => 'The infrastructure we already have',
-            'title' => 'Masjid and surau should feel more alive than this',
-            'paragraphs' => [
-                'Malaysia does not need a brand-new physical network for beneficial knowledge. That network already exists and sits close to neighbourhood life.',
-                'Masjid and surau are not only places to pray and leave. They can also be places to learn, reconnect, support families, guide youth, and bring a community into motion.',
-                'That is why this is not merely an events problem. It is a discovery problem, a coordination problem, and a habit-building problem.',
-            ],
-        ],
-    ],
-    'causes' => [
-        'eyebrow' => 'Why this keeps happening',
-        'title' => 'The causes are familiar to almost everyone',
-        'items' => [
-            [
-                'title' => 'Information lives in too many places',
-                'body' => 'Posters, WhatsApp forwards, Facebook pages, Instagram Stories, and word of mouth all move separately.',
-            ],
-            [
-                'title' => 'There is no single reference point',
-                'body' => 'When the time changes, the venue changes, or the speaker changes, not everybody receives the update in a reliable way.',
-            ],
-            [
-                'title' => 'People mainly see their own circle',
-                'body' => 'Most people do not explore what they cannot see, even when it is only one or two kilometres away.',
-            ],
-            [
-                'title' => 'There is no system that helps attendance become a habit',
-                'body' => 'Without reminders, saved interests, and a clear schedule view, discovery rarely turns into repeated presence.',
-            ],
-        ],
-    ],
-    'losses' => [
-        'eyebrow' => 'What is really being missed',
-        'title' => 'What slips through is not just an event. Sometimes it touches the direction of a life.',
-        'items' => [
-            'Families miss programmes that would suit their children and teenagers.',
-            'New Muslims and beginners miss classes that would have made the first step easier.',
-            'People looking for help with stress, addiction, marriage, debt, or direction miss the one gathering that speaks directly to where they are.',
-            'Communities remain disconnected even while living inside a radius where they should already know one another.',
-        ],
-    ],
-    'definition' => [
-        'eyebrow' => 'What ilmu360° is trying to fix',
-        'title' => 'It brings back together what was previously scattered',
-        'body' => 'ilmu360° does not manufacture knowledge from nothing. It reveals and organises beneficial gatherings that already exist so the people who want to attend actually get the chance to do so.',
-        'shifts' => [
-            [
-                'before' => 'Scattered posters and stray forwards',
-                'after' => 'Structured event listings people can actually search',
-            ],
-            [
-                'before' => 'Blurred details and last-minute confusion',
-                'after' => 'One clear event page that can be updated',
-            ],
-            [
-                'before' => 'Uncertainty about whether something is trustworthy',
-                'after' => 'Moderation, reporting, and explicit status',
-            ],
-            [
-                'before' => 'People guessing what might suit them',
-                'after' => 'Near-me discovery, filters, and saved interests',
-            ],
-        ],
-    ],
-    'proof' => [
-        'eyebrow' => 'What the platform already supports',
-        'title' => 'Built around the real journey into a majlis',
-        'body' => 'ilmu360° is not only a directory. It is shaped around how people discover a gathering, verify the details, plan around it, and finally attend.',
-        'items' => [
-            [
-                'title' => 'Search and nearby discovery',
-                'body' => 'People can search by topic, speaker, institution, venue, geography, and what is happening near them.',
-            ],
-            [
-                'title' => 'Event submission with accountability',
-                'body' => 'Events can be submitted by the community and increasingly maintained by institution or speaker members who are actually responsible for them.',
-            ],
-            [
-                'title' => 'A clear moderation flow',
-                'body' => 'Review states help people see the quality and standing of a record instead of assuming it.',
-            ],
-            [
-                'title' => 'Reporting and review',
-                'body' => 'Misleading, suspicious, or incomplete information can be flagged and checked again.',
-            ],
-            [
-                'title' => 'Saved interests and reminders',
-                'body' => 'People can build a real habit around what matters to them instead of relying on chance exposure.',
-            ],
-            [
-                'title' => 'Tools that support real planning',
-                'body' => 'Save events, register, navigate, and turn good intentions into real attendance.',
-            ],
-        ],
-    ],
-    'magnet' => [
-        'eyebrow' => 'The real pull',
-        'title' => 'People do not come for the building. They come for the majlis.',
-        'paragraphs' => [
-            'What draws people in is usually the topic, the speaker, the need of the moment, or its relevance to family and community life.',
-            'ilmu360° then serves as the discovery engine, distribution channel, and trust layer that helps the right gathering reach the right people.',
-            'That is why it is more than a listings site. It is the invitation travelling further than a poster can.',
-        ],
-    ],
-    'impact' => [
-        'eyebrow' => 'Why this matters beyond discovery alone',
-        'title' => 'When gatherings become easier to see, the whole network becomes more alive',
-        'items' => [
-            [
-                'title' => 'Less visible surau can come back to life',
-                'paragraphs' => [
-                    'A strong topic or a relevant speaker in a quieter surau can change the feel of that place, but the invitation has to reach the right people in time.',
-                    'Topic follows, speaker follows, nearby discovery, and reminders help attendance move beyond the usual small circle.',
-                ],
-            ],
-            [
-                'title' => 'Masjid can function more fully as community space',
-                'paragraphs' => [
-                    'When discovery becomes easier, a masjid no longer feels like a place people only pass through. It can become more active in learning, family life, youth work, social support, and volunteer coordination.',
-                    'The physical base is already there. Better visibility simply helps it work closer to its full potential.',
-                ],
-            ],
-            [
-                'title' => 'Trust is what unlocks action',
-                'paragraphs' => [
-                    'People bring family, donate, volunteer, and travel only when they feel confident about what they are seeing.',
-                    'Clear organiser context, moderation, reporting, and explicit status are not decorative features. They are part of what makes participation feel sensible and safe.',
-                ],
-            ],
-        ],
-    ],
-    'motivation' => [
-        'eyebrow' => 'What drives us',
-        'quote' => 'Seeking knowledge is obligatory upon every Muslim.',
-        'attribution' => 'Prophet Muhammad ﷺ (Sunan Ibn Majah)',
-    ],
-    'images' => [
-        'hero_alt' => 'Islamic learning atmosphere',
-        'gathering_alt' => 'Gathering for beneficial knowledge',
+    'hadith' => [
+        'title' => 'The basis of this work',
+        'quote' => 'Seeking knowledge is an obligation upon every Muslim.',
+        'attribution' => 'The Prophet Muhammad (peace be upon him) · Sunan Ibn Majah',
     ],
     'cta' => [
-        'title' => 'Let us make “If I had known earlier, I would have gone” much rarer.',
-        'body' => 'Malaysia already has the places, the people, and the programmes. What it needs is a clearer way for all of that to be found at the right time.',
-        'closing' => 'Sign up, save your interests, follow what matters, and help beneficial gatherings reach the people who would attend if only they knew.',
-        'primary' => 'Sign Up Today',
-        'secondary' => 'Browse Gatherings',
-        'tertiary' => 'Submit an Event',
+        'title' => '“If only I had known earlier.”',
+        'body' => 'That sentence always arrives after the majlis has passed — at the dinner table, in the WhatsApp group, on the quiet drive home. Find this week\'s majlis. Attend. Then invite one more, so the sentence never needs repeating.',
+        'primary' => 'Join the community',
+        'secondary' => 'Browse the majlis directory',
+        'tertiary' => 'Upload a majlis poster',
+        'image_alt' => 'A congregation seated in rows in a surau hall, seen from behind in the late afternoon.',
     ],
 ];

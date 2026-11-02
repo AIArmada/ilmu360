@@ -30,7 +30,6 @@
     $viewerTimezone = \App\Support\Timezone\UserTimezoneResolver::resolve();
     $occurrences = $detail->occurrences();
     $occurrenceCount = $occurrences->count();
-    $nextOccurrence = $occurrences->first(fn ($row): bool => $row->starts_at !== null && $row->starts_at->isFuture());
     $firstOccurrence = $occurrences->first();
     $lastOccurrence = $occurrences->last();
 
@@ -171,9 +170,10 @@
 
     // ── Actions ──────────────────────────────────────────────────────
     $eventActionsDisabled = $this->eventActionsDisabled();
-    $checkInOffered = $detail->hasRegistration() || $detail->ticketEntries()->isNotEmpty();
+    $checkInOffered = $this->checkInOffered;
     $canEditEvent = auth()->user()?->hasAnyRole(['super_admin', 'admin']) ?? false;
-    $relatedEvents = $this->relatedEvents;
+    $scheduleLeaves = $this->scheduleLeaves;
+    $savedEventIds = $this->isSaved ? [(string) $event->getKey()] : [];
     $changeNotice = $this->activeChangeNotice;
     $replacementEvent = $this->replacementEvent;
 
@@ -256,13 +256,11 @@
             <div class="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#07231f] via-[#07231f]/60 to-transparent"></div>
         </div>
 
-        <div class="relative mx-auto max-w-7xl px-4 pt-12 sm:px-8 sm:pt-16 lg:px-12 lg:pt-16">
+        <div class="relative mx-auto max-w-7xl px-4 pt-32 sm:px-8 sm:pt-36 lg:px-12 lg:pt-40">
             <div class="grid items-stretch gap-10 {{ $heroImageUrl ? 'lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)] lg:gap-10 xl:gap-12' : '' }}">
                 <div class="flex min-w-0 flex-col justify-center">
                     <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
                         <span class="text-[11px] font-semibold uppercase tracking-[0.26em] text-[#f2c867]">{{ __('Majlis Ilmu') }}</span>
-                        <span class="size-1 rounded-full bg-[#f2c867]/40" aria-hidden="true"></span>
-                        <span class="text-[11px] font-semibold uppercase tracking-[0.26em] text-[#f7f3e8]/70">{{ $eventFormatLabel }}</span>
                         @if($occurrenceCount > 1)
                             <span class="size-1 rounded-full bg-[#f2c867]/40" aria-hidden="true"></span>
                             <span class="text-[11px] font-semibold uppercase tracking-[0.26em] text-[#f7f3e8]/70">{{ trans_choice(':count tarikh', $occurrenceCount, ['count' => $occurrenceCount]) }}</span>
@@ -345,7 +343,7 @@
 
     {{-- ── Body ────────────────────────────────────────────────────── --}}
     <div class="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
-        <div class="grid gap-x-16 gap-y-16 pt-14 pb-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:pt-20 lg:pb-8">
+        <div class="grid gap-x-16 gap-y-16 pt-8 pb-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:pt-10 lg:pb-8">
 
             <div class="min-w-0 space-y-16">
 
@@ -362,96 +360,19 @@
                         </div>
                     </div>
 
-                    <ol class="mi-paper divide-y divide-[#f0e8d9] overflow-hidden rounded-2xl border border-[#e6dccb] bg-[#fffdf9]">
-                        @foreach($occurrences as $row)
-                            @php
-                                $rowStart = $row->starts_at?->copy()->timezone($viewerTimezone);
-                                $rowEnd = $row->ends_at?->copy()->timezone($viewerTimezone);
-                                $rowTime = $rowStart
-                                    ? \App\Support\Timezone\UserDateTimeFormatter::format($rowStart, 'h:i A')
-                                    : null;
-                                if ($rowTime !== null && $rowEnd !== null) {
-                                    $rowTime .= ' — '.\App\Support\Timezone\UserDateTimeFormatter::format($rowEnd, $rowStart->isSameDay($rowEnd) ? 'h:i A' : 'j M, h:i A');
-                                }
-                                $rowLocation = $detail->primaryLocationFor($row);
-                                $rowVenue = $rowLocation?->relationLoaded('venue') ? $rowLocation->venue : null;
-                                $rowPlace = $rowVenue?->name
-                                    ?? $detail->locationLabel($rowLocation)
-                                    ?? $placeTitle;
-                                $rowSessionItems = $detail->sessionsFor($row)
-                                    ->filter(fn (\AIArmada\Events\Models\EventSession $session): bool => \App\Support\Events\PublicSchedulePolicy::isMeaningfulSession($session))
-                                    ->values();
-                                $rowSessions = $rowSessionItems->count();
-                                $rowCancelled = (string) $row->status === 'cancelled';
-                                $rowRemaining = $detail->effectiveCapacityRemaining($row);
-                                $rowFull = $rowRemaining !== null && $rowRemaining <= 0;
-                                $rowIsNext = $nextOccurrence !== null && $nextOccurrence->is($row);
-                                $rowTitle = trim((string) ($row->title ?? ''));
-                                $rowHasOwnTitle = $rowTitle !== '' && $rowTitle !== $event->title;
-                            @endphp
-                            <li data-testid="event-occurrence-{{ $row->id }}">
-                                <a
-                                    href="{{ route('events.occurrence', [$event, \App\Support\Events\PublicScheduleSlug::occurrence($row)]) }}"
-                                    wire:navigate
-                                    class="group flex items-start gap-5 px-5 py-5 transition-colors duration-300 hover:bg-[#faf6ed] focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#14342e] sm:px-6"
-                                >
-                                    <div class="flex w-[4.25rem] shrink-0 flex-col items-center rounded-xl border border-[#e6dccb] bg-[#f8f3e8] py-2.5">
-                                        @if($rowStart)
-                                            <p class="text-[9px] font-bold uppercase tracking-[0.16em] text-[#8a5f13]">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($rowStart, 'D') }}</p>
-                                            <p class="font-heading text-[1.6rem] leading-none text-[#14342e]">{{ $rowStart->format('j') }}</p>
-                                            <p class="mt-1 text-[9px] font-bold uppercase tracking-[0.16em] text-[#6b645e]">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($rowStart, 'M Y') }}</p>
-                                        @else
-                                            <p class="py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#6b645e]">{{ __('TBC') }}</p>
-                                        @endif
-                                    </div>
-
-                                    <div class="min-w-0 flex-1">
-                                        {{-- Time is the constant every row shares, so it
-                                             carries the primary line; a date-specific
-                                             title is a qualifier above it. --}}
-                                        @if($rowHasOwnTitle)
-                                            <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8a5f13]">{{ $rowTitle }}</p>
-                                        @endif
-
-                                        <p class="{{ $rowHasOwnTitle ? 'mt-1.5' : '' }} font-heading text-[1.0625rem] leading-snug text-[#14342e]">
-                                            {{ $rowTime ?? __('Masa akan dikemas kini') }}
-                                        </p>
-
-                                        @if(filled($rowPlace))
-                                            <p class="mt-1 truncate text-[13px] text-[#6b645e]">{{ $rowPlace }}</p>
-                                        @endif
-
-                                        @if($rowSessionItems->isNotEmpty())
-                                            <ul class="mt-1.5 space-y-0.5">
-                                                @foreach($rowSessionItems as $rowSessionItem)
-                                                    <li class="truncate text-[12px] text-[#8a7f72]">{{ $rowSessionItem->title }}</li>
-                                                @endforeach
-                                            </ul>
-                                        @endif
-
-                                        @if($rowSessions > 0 || $rowIsNext || $rowCancelled || $rowFull)
-                                            <div class="mt-2.5 flex flex-wrap items-center gap-1.5">
-                                                @if($rowIsNext)
-                                                    <span class="rounded-full bg-[#14342e] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[#f2c867]">{{ __('Seterusnya') }}</span>
-                                                @endif
-                                                @if($rowCancelled)
-                                                    <span class="rounded-full bg-[#fdf0ee] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[#9a3324]">{{ __('Dibatalkan') }}</span>
-                                                @endif
-                                                @if($rowFull)
-                                                    <span class="rounded-full bg-[#fdf0ee] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[#9a3324]">{{ __('Penuh') }}</span>
-                                                @endif
-                                                @if($rowSessions > 0)
-                                                    <span class="rounded-full bg-[#f3efe6] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#6b645e]">{{ trans_choice(':count sesi', $rowSessions, ['count' => $rowSessions]) }}</span>
-                                                @endif
-                                            </div>
-                                        @endif
-                                    </div>
-
-                                    <svg class="mt-1 size-4 shrink-0 text-[#c9bfae] transition duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:translate-x-0.5 group-hover:text-[#c9962f]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M13 6l6 6-6 6" /></svg>
-                                </a>
-                            </li>
+                    <div class="flex flex-wrap justify-center gap-4 *:w-full sm:*:w-[calc(50%_-_0.5rem)]">
+                        @foreach($scheduleLeaves as $scheduleLeaf)
+                            <div data-testid="event-occurrence-{{ $scheduleLeaf->id() }}">
+                                <x-events.schedule-card
+                                    :schedule-leaf="$scheduleLeaf"
+                                    :saved-event-ids="$savedEventIds"
+                                    signal-component="event_detail_schedule"
+                                    testid-prefix="event-detail-schedule-card"
+                                    :wire-key="'event-detail-schedule-'.$scheduleLeaf->entityType().'-'.$scheduleLeaf->id()"
+                                />
+                            </div>
                         @endforeach
-                    </ol>
+                    </div>
                 </section>
 
                 @php
@@ -593,14 +514,16 @@
                                         ?: $reference->getFirstMediaUrl('back_cover', 'thumb')
                                         ?: $reference->getFirstMediaUrl('back_cover');
                                 @endphp
-                                <li class="flex gap-4 px-4 py-4 sm:px-6 sm:py-5">
+                                <li class="relative flex gap-4 px-4 py-4 transition duration-300 hover:bg-[#faf6ed] sm:px-6 sm:py-5">
                                     @if(filled($referenceCoverUrl))
                                         <img src="{{ $referenceCoverUrl }}" alt="" aria-hidden="true" loading="lazy" class="w-20 shrink-0 self-start rounded-lg border border-[#e6dccb] bg-[#f4f0e7] object-cover shadow-sm aspect-[3/4] sm:w-24">
                                     @endif
                                     <div class="min-w-0">
-                                        <p class="font-heading text-lg leading-snug text-[#14342e]">{{ $reference->displayTitle() }}</p>
+                                        <p class="font-heading text-lg leading-snug text-[#14342e]">
+                                            <a href="{{ route('references.show', $reference) }}" wire:navigate class="after:absolute after:inset-0 underline decoration-[#c9bfae] underline-offset-4 transition-colors duration-300 hover:text-[#8a5f13] hover:decoration-[#c9962f] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14342e]">{{ $reference->displayTitle() }}</a>
+                                        </p>
                                         @if($reference->effectiveAuthorNamesList() !== [])
-                                            <div class="mt-1 space-y-0.5 text-[13px] text-[#6b645e]">
+                                            <div class="mt-2 space-y-0.5 text-[13px] text-[#6b645e]">
                                                 @foreach($reference->effectiveAuthorNamesList() as $authorName)
                                                     <p>{{ $authorName }}</p>
                                                 @endforeach
@@ -633,9 +556,7 @@
                 @if($resourceRows->isNotEmpty() || $rawEventUrls->isNotEmpty())
                     <section id="pautan" class="scroll-mt-8" aria-labelledby="event-links-title">
                         <div class="mb-7">
-                            <span class="block h-[2px] w-7 bg-[#c9962f]" aria-hidden="true"></span>
-                            <p class="mt-4 text-[11px] font-semibold uppercase tracking-[0.26em] text-[#8a5f13]">{{ __('Bahan') }}</p>
-                            <h2 id="event-links-title" class="mt-2 font-heading text-[1.75rem] leading-[1.15] tracking-[-0.01em] text-balance">{{ __('Pautan & bahan') }}</h2>
+                            <h2 id="event-links-title" class="font-heading text-[1.75rem] leading-[1.15] tracking-[-0.01em] text-balance">{{ __('Pautan & bahan') }}</h2>
                         </div>
 
                         <ul class="mi-paper divide-y divide-[#f0e8d9] overflow-hidden rounded-2xl border border-[#e6dccb] bg-[#fffdf9]">
@@ -669,22 +590,6 @@
                     </section>
                 @endif
 
-                {{-- Closing invitation --}}
-                <section class="relative overflow-hidden rounded-2xl bg-[#14342e] px-7 py-8 text-[#f7f3e8] sm:px-9 sm:py-10">
-                    <div class="mi-lattice-light pointer-events-none absolute inset-0 opacity-[0.05]" aria-hidden="true"></div>
-                    <div class="relative flex flex-wrap items-center justify-between gap-6">
-                        <div class="max-w-md">
-                            <p class="text-[11px] font-semibold uppercase tracking-[0.26em] text-[#f2c867]">{{ __('Sebarkan') }}</p>
-                            <p class="mt-3 font-heading text-2xl font-normal leading-snug text-balance">{{ __('Kongsi majlis ini, moga lebih ramai hadir.') }}</p>
-                        </div>
-                        <div class="flex flex-wrap items-center gap-3">
-                            <button type="button" @click="openShare()" data-signal-event="share.modal_opened" data-signal-category="share" data-signal-component="event_detail_actions" data-signal-control="share" data-signal-entity-type="event" data-signal-entity-id="{{ $event->id }}" class="inline-flex items-center gap-2 rounded-full bg-[#f2c867] px-5 py-3 text-sm font-semibold text-[#0e2e27] transition duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-[#f7d98d] active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f2c867]">
-                                <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684zm0 9.316a3 3 0 105.368 2.684z" /></svg>
-                                {{ __('Kongsi pautan') }}
-                            </button>
-                        </div>
-                    </div>
-                </section>
             </div>
 
             {{-- ── Sidebar ─────────────────────────────────────────────── --}}
@@ -858,8 +763,7 @@
                 </section>
 
                 <section class="mi-paper rounded-2xl border border-[#e6dccb] bg-[#fffdf9] p-6" aria-labelledby="event-sidebar-feedback-title">
-                    <p class="text-[11px] font-semibold uppercase tracking-[0.26em] text-[#8a5f13]">{{ __('Ketepatan maklumat') }}</p>
-                    <h2 id="event-sidebar-feedback-title" class="mt-3 font-heading text-xl font-normal leading-snug text-[#14342e]">{{ __('Bantu semak majlis ini') }}</h2>
+                    <h2 id="event-sidebar-feedback-title" class="font-heading text-xl font-normal leading-snug text-[#14342e]">{{ __('Bantu semak majlis ini') }}</h2>
                     <p class="mt-2 text-[13px] leading-6 text-[#4c5b56]">{{ __('Nampak maklumat yang tidak tepat? Maklumkan kepada kami.') }}</p>
                     @php
                         $feedbackSubjectType = \App\Enums\ContributionSubjectType::Event->publicRouteSegment();
@@ -872,52 +776,6 @@
             </aside>
         </div>
     </div>
-
-    {{-- ── Related majlis ──────────────────────────────────────────── --}}
-    @if($relatedEvents->isNotEmpty())
-        <section class="mt-16 border-t border-[#e6dccb] bg-[#faf6ed]" aria-labelledby="event-related-title">
-            <div class="mx-auto max-w-7xl px-5 py-14 sm:px-8 lg:px-12">
-                <div class="flex flex-wrap items-end justify-between gap-4">
-                    <div>
-                        <span class="block h-[2px] w-7 bg-[#c9962f]" aria-hidden="true"></span>
-                        <p class="mt-4 text-[11px] font-semibold uppercase tracking-[0.26em] text-[#8a5f13]">{{ __('Teruskan') }}</p>
-                        <h2 id="event-related-title" class="mt-2 font-heading text-[1.75rem] leading-[1.15] tracking-[-0.01em]">{{ __('Majlis lain yang berdekatan') }}</h2>
-                    </div>
-                    <a href="{{ route('events.index') }}" wire:navigate class="hidden items-center gap-2 rounded-full border border-[#e6dccb] bg-white px-4 py-2 text-[13px] font-semibold text-[#14342e] transition duration-300 hover:border-[#c9962f]/50 hover:bg-[#f8f3e8] sm:inline-flex">
-                        {{ __('Lihat semua majlis') }}
-                        <span aria-hidden="true">→</span>
-                    </a>
-                </div>
-
-                <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    @foreach($relatedEvents as $relatedEvent)
-                        @php
-                            $relatedImage = $relatedEvent->getFirstMedia('cover')?->getAvailableUrl(['thumb'])
-                                ?? $relatedEvent->displayOccurrence?->getFirstMedia('cover')?->getAvailableUrl(['thumb']);
-                        @endphp
-                        <a href="{{ route('events.show', $relatedEvent) }}" wire:navigate class="group mi-paper flex flex-col overflow-hidden rounded-2xl border border-[#e6dccb] bg-[#fffdf9] transition duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:border-[#c9962f]/45 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14342e]">
-                            @if($relatedImage)
-                                <img src="{{ $relatedImage }}" alt="" class="aspect-[16/9] w-full object-cover" loading="lazy">
-                            @else
-                                <div class="relative flex aspect-[16/9] items-end overflow-hidden bg-[#14342e] p-5">
-                                    <div class="mi-lattice-light pointer-events-none absolute inset-0 opacity-[0.08]" aria-hidden="true"></div>
-                                    <span class="relative font-heading text-lg leading-tight text-[#f2c867]">{{ $relatedEvent->title }}</span>
-                                </div>
-                            @endif
-                            <div class="flex flex-1 flex-col p-5">
-                                @if($relatedImage)
-                                    <p class="font-heading text-lg leading-snug text-[#14342e] transition-colors duration-300 group-hover:text-[#8a5f13]">{{ $relatedEvent->title }}</p>
-                                @endif
-                                @if($relatedEvent->starts_at)
-                                    <p class="mt-auto pt-2 text-[12px] font-medium text-[#6b645e]">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($relatedEvent->starts_at, 'j M Y, h:i A') }}</p>
-                                @endif
-                            </div>
-                        </a>
-                    @endforeach
-                </div>
-            </div>
-        </section>
-    @endif
 
     @if($eventPosterUrl)
         <div x-show="posterOpen" x-cloak x-transition.opacity @keydown.escape.window="posterOpen = false" class="fixed inset-0 z-50 flex items-center justify-center bg-[#0b2b25]/95 p-4" role="dialog" aria-modal="true" aria-label="{{ __('Poster majlis') }}">

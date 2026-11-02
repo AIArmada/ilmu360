@@ -594,15 +594,14 @@ describe('Event Search Filters', function () {
             ->assertSee('/carian-tersimpan?search=halaqah', false);
     });
 
-    it('shows a saved searches re-entry link for authenticated users without active filters', function () {
+    it('hides the saved searches re-entry prompt for authenticated users without active filters', function () {
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->get(eventsIndexUrl());
 
         $response->assertOk()
-            ->assertSee('Saved Searches')
-            ->assertSee('Keep the filters you use often for quick access.')
-            ->assertSee(route('saved-searches.index'), false);
+            ->assertDontSee('Saved Searches')
+            ->assertDontSee('Keep the filters you use often for quick access.');
     });
 
     it('keeps the nearby button visible while gating radius controls on geolocation permission', function () {

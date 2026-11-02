@@ -426,7 +426,7 @@
             @include('partials.event-filter-panel', ['showNearbyButton' => true])
 
             <section class="min-w-0">
-                @if($hasActiveFilters || auth()->check())
+                @if($hasActiveFilters)
                 <div class="living-majlis-veil rounded-[1.5rem] border p-4 shadow-[0_20px_50px_-35px_rgba(15,23,42,0.55)] md:p-5">
                     @if($hasActiveFilters)
                         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -615,20 +615,6 @@
                             </svg>
                             {{ __('Link copied to clipboard!') }}
                         </div>
-                    @else
-                        @auth
-                            <div class="flex flex-col gap-3 rounded-xl border border-sky-100 bg-sky-50/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                                <p class="text-sm text-slate-600">{{ __('Keep the filters you use often for quick access.') }}</p>
-                                <a href="{{ route('saved-searches.index') }}" wire:navigate
-                                    data-signal-event="navigation.saved_searches_clicked"
-                                    data-signal-category="navigation"
-                                    data-signal-component="events_index_filters"
-                                    data-signal-control="saved_searches"
-                                    class="text-sm font-semibold text-sky-700 transition hover:text-sky-800">
-                                    {{ __('Saved Searches') }}
-                                </a>
-                            </div>
-                        @endauth
                     @endif
                 </div>
                 @endif

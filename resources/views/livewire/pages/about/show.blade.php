@@ -1,456 +1,376 @@
 @section('title', (string) data_get($content, 'meta.title', __('About')) . ' - ' . config('app.name'))
 @section('meta_description', (string) data_get($content, 'meta.description'))
 @section('og_url', route('about'))
-@section('og_image', asset('images/default-mosque-hero.png'))
-@section('og_image_alt', data_get($content, 'meta.title', __('About')))
-@section('og_image_width', '1024')
-@section('og_image_height', '1024')
+@section('og_image', asset('images/about/surau-window.png'))
+@section('og_image_alt', (string) data_get($content, 'hero.image_alt'))
+@section('og_image_width', '1086')
+@section('og_image_height', '1448')
+@section('meta_og_type', 'website')
 
 @push('head')
+    <link rel="preload" as="image" href="{{ asset('images/about/surau-window.png') }}" fetchpriority="high">
+    <link rel="canonical" href="{{ route('about') }}">
+    <script type="application/ld+json">
+        {!! json_encode([
+            '@context' => 'https://schema.org',
+            '@type' => 'AboutPage',
+            'name' => (string) data_get($content, 'meta.title'),
+            'description' => (string) data_get($content, 'meta.description'),
+            'url' => route('about'),
+            'inLanguage' => app()->getLocale(),
+            'about' => [
+                '@type' => 'Organization',
+                'name' => 'ilmu360°',
+                'url' => url('/'),
+                'logo' => asset('images/logo-ilmu360.png'),
+                'sameAs' => [
+                    'https://x.com/ilmu360',
+                    'https://www.instagram.com/ilmu.360',
+                    'https://www.tiktok.com/@ilmu.360',
+                ],
+            ],
+        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}
+    </script>
 @endpush
 
 @php
     $hero = data_get($content, 'hero', []);
-    $heroPanel = data_get($content, 'hero_panel', []);
-    $stats = data_get($content, 'stats', []);
-    $sections = data_get($content, 'sections', []);
-    $causes = data_get($content, 'causes', []);
-    $losses = data_get($content, 'losses', []);
-    $definition = data_get($content, 'definition', []);
-    $proof = data_get($content, 'proof', []);
-    $magnet = data_get($content, 'magnet', []);
-    $impact = data_get($content, 'impact', []);
-    $motivation = data_get($content, 'motivation', []);
-    $images = data_get($content, 'images', []);
+    $gap = data_get($content, 'gap', []);
+    $cost = data_get($content, 'cost', []);
+    $work = data_get($content, 'work', []);
+    $path = data_get($content, 'path', []);
+    $audience = data_get($content, 'audience', []);
+    $pageStats = data_get($content, 'stats', []);
+    $hadith = data_get($content, 'hadith', []);
     $cta = data_get($content, 'cta', []);
-    $sectionImages = [
-        '/images/about/section_01.png',
-        '/images/about/section_02.png',
-        '/images/about/section_03.png',
-    ];
+
+    $primaryButton = 'inline-flex min-h-12 items-center justify-center rounded-full bg-[#006044] px-7 text-[15px] font-semibold text-[#fbf6ea] transition-colors duration-200 hover:bg-[#065f46] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006044] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f2e9d5]';
+    $textLink = 'inline-flex min-h-12 items-center border-b border-[#006044]/30 text-[15px] font-semibold text-[#006044] transition-colors duration-200 hover:border-[#006044] hover:text-[#054d38] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006044] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f2e9d5]';
+    $sheet = 'rounded-3xl border border-[#e5dccb] bg-[#fbf6ea] shadow-[0_1px_2px_rgba(45,44,43,0.05),0_12px_32px_rgba(45,44,43,0.08)]';
+
+    // Serif italic reads as voice in the Latin-script locales; synthetic obliques on
+    // Chinese and Tamil glyphs are a typographic defect, so those stay upright.
+    $emphasisClass = in_array(app()->getLocale(), ['ms', 'en', 'jv'], true) ? 'italic' : '';
 @endphp
 
-<div
-    class="relative w-full overflow-hidden bg-white pb-24 font-sans selection:bg-emerald-200 selection:text-emerald-900">
-    <!-- HERO SECTION -->
-    <section class="relative min-h-[90vh] flex items-center justify-center overflow-hidden bg-slate-950 text-white">
-        <!-- Abstract Background -->
-        <div class="absolute inset-0 bg-slate-950">
-            <div
-                class="absolute inset-0 opacity-40 bg-cover bg-center mix-blend-screen mix-blend-luminosity" style="background-image: url('{{ asset('images/about/islamic_geometry.png') }}');">
-            </div>
-            <div
-                class="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(16,185,129,0.3),rgba(255,255,255,0))]">
-            </div>
-            <div class="absolute bottom-0 h-1/2 w-full bg-gradient-to-t from-slate-950 to-transparent"></div>
-        </div>
+<div class="w-full bg-[#f2e9d5] text-[#2d2c2b]">
 
-        <div class="container relative z-10 mx-auto px-6 py-32 lg:px-12 lg:py-40">
-            <div class="grid gap-16 lg:grid-cols-2 lg:items-center">
-                <div class="max-w-2xl">
-                    <div
-                        class="inline-flex items-center gap-3 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-5 py-2 text-sm font-bold uppercase tracking-widest text-emerald-300 backdrop-blur-md">
-                        <span class="relative flex h-2 w-2">
-                            <span
-                                class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                        </span>
-                        {{ data_get($hero, 'page_label') }}
-                    </div>
+    {{-- Hero ---------------------------------------------------------------- --}}
+    <section aria-labelledby="about-hero" class="mx-auto max-w-[1240px] px-5 pt-12 sm:px-6 lg:px-10 lg:pt-20">
+        <div class="grid items-end gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-16">
+            <div class="max-w-[36rem]">
+                <h1 id="about-hero"
+                    class="font-heading text-[clamp(2.4rem,6.2vw,4.6rem)] font-normal leading-[1.04] tracking-[-0.02em] text-[#17191c] text-balance">
+                    {{ data_get($hero, 'title') }}
+                    <span class="mt-1 block {{ $emphasisClass }} text-[#006044]">{{ data_get($hero, 'emphasis') }}</span>
+                </h1>
 
-                    <h1
-                        class="mt-8 font-heading text-6xl font-black leading-[1.1] tracking-tight text-white xl:text-7xl drop-shadow-2xl">
-                        {{ data_get($hero, 'title') }}
-                    </h1>
-
-                    <p class="mt-8 text-2xl font-medium leading-relaxed text-emerald-100/90 text-pretty">
-                        {{ data_get($hero, 'intro') }}
-                    </p>
-
-                    <div class="mt-8 text-lg leading-8 text-slate-300 space-y-4">
-                        <p>{{ data_get($hero, 'lead') }}</p>
-                        <p>{{ data_get($hero, 'body') }}</p>
-                    </div>
-
-                    <div class="mt-10 flex flex-wrap gap-4">
-                        <a href="{{ route('register') }}" wire:navigate
-                            class="group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-full bg-emerald-500 px-8 py-4 text-base font-bold text-slate-950 transition-all hover:bg-emerald-400 hover:scale-105 hover:shadow-[0_0_40px_-10px_rgba(52,211,153,0.8)] focus:outline-none focus:ring-4 focus:ring-emerald-500/30">
-                            {{ data_get($cta, 'primary') }}
-                            <svg class="h-4 w-4 transition-transform group-hover:translate-x-1" viewBox="0 0 20 20"
-                                fill="currentColor">
-                                <path fill-rule="evenodd"
-                                    d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z"
-                                    clip-rule="evenodd" />
-                            </svg>
-                        </a>
-                        <a href="{{ route('events.index') }}" wire:navigate
-                            class="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/5 px-8 py-4 text-base font-bold text-white backdrop-blur-md transition-all hover:bg-white/10 hover:border-white/40">
-                            {{ data_get($cta, 'secondary') }}
-                        </a>
-                    </div>
-                </div>
-
-                <div class="relative hidden lg:block">
-                    <!-- Image composite -->
-                    <div
-                        class="relative w-full aspect-[4/5] rounded-[2.5rem] overflow-hidden shadow-2xl ring-1 ring-white/20 transform md:-rotate-2 transition-transform duration-700 hover:rotate-0">
-                        <img src="/images/about/hero_learning.png"
-                            alt="{{ data_get($images, 'hero_alt', 'Islamic Learning') }}"
-                            class="absolute inset-0 h-full w-full object-cover object-center filter saturate-110">
-                        <div
-                            class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent">
-                        </div>
-
-                        <!-- Floating Panel inside image -->
-                        <div
-                            class="absolute bottom-6 left-6 right-6 rounded-[1.5rem] border border-white/20 bg-slate-950/60 p-6 backdrop-blur-xl shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5)]">
-                            <div class="flex items-center justify-between mb-3">
-                                <span
-                                    class="text-xs font-bold uppercase tracking-widest text-emerald-400">{{ data_get($heroPanel, 'eyebrow') }}</span>
-                                <span
-                                    class="rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 px-3 py-1 text-[10px] font-black uppercase tracking-widest">
-                                    {{ data_get($heroPanel, 'badge') }}
-                                </span>
-                            </div>
-                            <h3 class="font-heading text-xl font-bold text-white">{{ data_get($heroPanel, 'title') }}
-                            </h3>
-                            <p class="mt-2 text-sm text-slate-300 line-clamp-2">{{ data_get($heroPanel, 'body') }}</p>
-                        </div>
-                    </div>
-
-                    <!-- Decorative elements -->
-                    <div class="absolute -right-12 -top-12 h-64 w-64 rounded-full bg-teal-500/20 blur-[80px]"></div>
-                    <div class="absolute -left-12 -bottom-12 h-64 w-64 rounded-full bg-emerald-500/20 blur-[80px]">
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- STATS (Overlapping Hero) -->
-    <section class="container relative z-20 mx-auto -mt-16 px-6 lg:px-12">
-        <div class="grid gap-6 md:grid-cols-3">
-            @foreach ($stats as $stat)
-                <div
-                    class="group relative overflow-hidden rounded-[2rem] bg-white p-8 shadow-[0_20px_40px_-15px_rgba(15,23,42,0.1)] ring-1 ring-slate-200 transition-all hover:-translate-y-2 hover:shadow-[0_40px_60px_-15px_rgba(15,23,42,0.15)]">
-                    <div
-                        class="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-emerald-50 transition-transform group-hover:scale-[3]">
-                    </div>
-                    <div class="relative z-10">
-                        <div class="text-5xl font-black tracking-tight text-emerald-600 drop-shadow-sm">
-                            {{ data_get($stat, 'value') }}</div>
-                        <h2 class="mt-2 font-heading text-xl font-bold tracking-tight text-slate-900">
-                            {{ data_get($stat, 'title') }}</h2>
-                        <p class="mt-3 text-sm leading-relaxed text-slate-600">{{ data_get($stat, 'body') }}</p>
-                    </div>
-                </div>
-            @endforeach
-        </div>
-    </section>
-
-    <!-- MAIN VISION SECTIONS -->
-    <section class="container mx-auto px-6 py-32 lg:px-12">
-        <div class="grid gap-12 lg:gap-24">
-            @foreach ($sections as $index => $section)
-                <div
-                    class="flex flex-col {{ $index % 2 == 1 ? 'lg:flex-row-reverse' : 'lg:flex-row' }} items-center gap-12 lg:gap-20">
-                    <div class="flex-1 space-y-8">
-                        <div>
-                            <span
-                                class="inline-block text-sm font-bold uppercase tracking-[0.3em] text-emerald-600 mb-4">{{ data_get($section, 'eyebrow') }}</span>
-                            <h2
-                                class="font-heading text-4xl font-black tracking-tight text-slate-900 sm:text-5xl drop-shadow-sm">
-                                {{ data_get($section, 'title') }}
-                            </h2>
-                        </div>
-                        <div class="space-y-6 text-lg leading-relaxed text-slate-600">
-                            @foreach (data_get($section, 'paragraphs', []) as $paragraph)
-                                <p>{{ $paragraph }}</p>
-                            @endforeach
-                        </div>
-                    </div>
-                    <div class="flex-1 w-full relative">
-                        <div class="relative aspect-square w-full sm:aspect-video lg:aspect-[4/3] rounded-[2.5rem] overflow-hidden shadow-2xl ring-1 ring-slate-200/50 transform {{ $index % 2 == 1 ? 'md:rotate-2' : 'md:-rotate-2' }} transition-transform duration-700 hover:rotate-0">
-                            <img src="{{ $sectionImages[$index] ?? '/images/about/islamic_geometry.png' }}"
-                                alt="{{ data_get($section, 'title') }}"
-                                class="absolute inset-0 h-full w-full object-cover">
-                            <div class="absolute inset-0 bg-gradient-to-t from-slate-950/40 via-transparent to-transparent"></div>
-                        </div>
-                        <div class="absolute -bottom-4 {{ $index % 2 == 1 ? '-left-4' : '-right-4' }} h-32 w-32 rounded-full bg-emerald-400/20 blur-3xl"></div>
-                    </div>
-                </div>
-            @endforeach
-        </div>
-    </section>
-
-    <!-- FULL BLEED PARALLAX BREAK -->
-    <section
-        class="relative flex min-h-[60vh] items-center justify-center overflow-hidden bg-slate-900 py-32 text-center shadow-inner">
-        <div class="absolute inset-0">
-            <img src="/images/about/majlis_gathering.png"
-                alt="{{ data_get($images, 'gathering_alt', 'Majlis Gathering') }}"
-                class="h-full w-full object-cover opacity-40 mix-blend-overlay">
-            <div class="absolute inset-0 bg-gradient-to-b from-slate-950/80 via-slate-900/60 to-slate-950/90"></div>
-        </div>
-
-        <div class="container relative z-10 mx-auto px-6 lg:px-12 max-w-4xl">
-            <span class="text-emerald-400 font-bold tracking-[0.3em] text-sm uppercase mb-6 block">
-                {{ data_get($motivation, 'eyebrow') }}
-            </span>
-            <p class="font-heading text-3xl font-light leading-snug text-white sm:text-5xl lg:leading-tight">
-                "{{ data_get($motivation, 'quote') }}" <br />
-                <span class="text-xl sm:text-2xl mt-4 block text-emerald-100/70 font-medium">—
-                    {{ data_get($motivation, 'attribution') }}</span>
-            </p>
-        </div>
-    </section>
-
-    <!-- CAUSES / WHY WE DO THIS -->
-    <section class="relative isolate overflow-hidden bg-slate-950 py-32 text-white">
-        <div
-            class="absolute inset-0 bg-[size:400px] opacity-[0.05] mix-blend-screen" style="background-image: url('{{ asset('images/about/islamic_geometry.png') }}');">
-        </div>
-        <div class="absolute top-0 w-full h-px bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent">
-        </div>
-
-        <div class="container relative z-10 mx-auto px-6 lg:px-12">
-            <div class="max-w-3xl mb-16">
-                <p class="text-sm font-bold uppercase tracking-[0.3em] text-emerald-400 mb-4 flex items-center gap-3">
-                    <span class="h-px w-8 bg-emerald-400"></span>
-                    {{ data_get($causes, 'eyebrow') }}
+                <p class="mt-7 max-w-[54ch] text-[17px] leading-[28px] text-[#2d2c2b] text-pretty">
+                    {{ data_get($hero, 'intro') }}
                 </p>
-                <h2 class="font-heading text-5xl font-black tracking-tight drop-shadow-lg">
-                    {{ data_get($causes, 'title') }}</h2>
+
+                <div class="mt-9 flex flex-wrap items-center gap-x-8 gap-y-3">
+                    <a href="{{ route('events.index') }}" wire:navigate class="{{ $primaryButton }}">
+                        {{ data_get($hero, 'primary') }}
+                    </a>
+                    <a href="{{ route('register') }}" wire:navigate class="{{ $textLink }}">
+                        {{ data_get($hero, 'secondary') }}
+                    </a>
+                </div>
             </div>
 
-            <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-                @foreach (data_get($causes, 'items', []) as $item)
-                    <div
-                        class="relative group rounded-[2rem] border border-white/10 bg-white/5 p-8 backdrop-blur-md transition-all hover:-translate-y-2 hover:bg-white/10 hover:border-emerald-500/30 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.3)]">
-                        <div
-                            class="absolute top-0 right-8 -translate-y-1/2 rounded-b-xl bg-emerald-500 px-3 py-1 font-heading text-lg font-black text-slate-950 shadow-lg">
-                            {{ str_pad((string) $loop->iteration, 2, '0', STR_PAD_LEFT) }}
-                        </div>
-                        <h3 class="mt-4 font-heading text-2xl font-bold text-white">{{ data_get($item, 'title') }}</h3>
-                        <p class="mt-4 text-base leading-relaxed text-slate-300">{{ data_get($item, 'body') }}</p>
-                    </div>
-                @endforeach
-            </div>
+            <figure class="relative">
+                <div class="overflow-hidden rounded-xl border border-[#e5dccb] bg-[#fbf6ea] p-2 shadow-[0_1px_2px_rgba(45,44,43,0.05),0_18px_40px_-12px_rgba(45,44,43,0.22)]">
+                    <img src="{{ asset('images/about/surau-window.png') }}"
+                        alt="{{ data_get($hero, 'image_alt') }}" width="1086" height="1448" fetchpriority="high"
+                        class="h-[420px] w-full rounded-lg object-cover object-[50%_45%] sm:h-[520px] lg:h-auto lg:aspect-[3/4]">
+                </div>
+            </figure>
         </div>
+
+        <div class="mt-12 h-px w-full bg-[#e3b537] lg:mt-16" aria-hidden="true"></div>
     </section>
 
-    <!-- PROBLEM VS SOLUTION (LOSSES VS DEFINITION) -->
-    <section class="container mx-auto px-6 py-32 lg:px-12">
-        <div class="grid gap-12 lg:grid-cols-2 lg:gap-8">
-            <!-- Losses Structure -->
-            <div
-                class="flex flex-col rounded-[2.5rem] bg-gradient-to-br from-slate-50 to-slate-100 p-8 shadow-[0_30px_60px_-15px_rgba(15,23,42,0.1)] ring-1 ring-slate-200/50 sm:p-12">
-                <p class="text-sm font-bold uppercase tracking-[0.3em] text-slate-500 mb-4 flex items-center gap-3">
-                    <svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
-                        </path>
-                    </svg>
-                    {{ data_get($losses, 'eyebrow') }}
-                </p>
-                <h2 class="font-heading text-4xl font-black tracking-tight text-slate-900 mb-8">
-                    {{ data_get($losses, 'title') }}</h2>
+    {{-- The gap ------------------------------------------------------------- --}}
+    <section aria-labelledby="about-gap" class="mx-auto mt-16 max-w-[1240px] px-5 sm:px-6 lg:mt-24 lg:px-10">
+        <div class="{{ $sheet }} grid gap-10 p-7 sm:p-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-16 lg:p-14">
+            <div>
+                <p class="font-heading text-[17px] {{ $emphasisClass }} leading-6 text-[#6b645e]">{{ data_get($gap, 'label') }}</p>
 
-                <div class="flex-1 space-y-4">
-                    @foreach (data_get($losses, 'items', []) as $item)
-                        <div
-                            class="flex items-start gap-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100 hover:shadow-md transition-shadow">
-                            <div
-                                class="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-600">
-                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </div>
-                            <p class="text-lg leading-relaxed text-slate-700">{{ $item }}</p>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
+                <h2 id="about-gap"
+                    class="mt-4 font-heading text-[clamp(1.85rem,3.4vw,2.5rem)] font-normal leading-[1.12] tracking-[-0.01em] text-[#17191c] text-balance">
+                    {{ data_get($gap, 'title') }}
+                </h2>
 
-            <!-- Definition Structure -->
-            <div
-                class="relative flex flex-col overflow-hidden rounded-[2.5rem] bg-slate-950 p-8 text-white shadow-[0_30px_60px_-15px_rgba(15,23,42,0.5)] sm:p-12">
-                <div
-                    class="absolute top-0 right-0 w-full h-full opacity-20 bg-cover mix-blend-screen" style="background-image: url('{{ asset('images/about/islamic_geometry.png') }}');">
-                </div>
-                <!-- glow -->
-                <div class="absolute -right-20 -top-20 w-80 h-80 bg-emerald-500/30 rounded-full blur-[100px]"></div>
-
-                <div class="relative z-10 h-full flex flex-col">
-                    <p
-                        class="text-sm font-bold uppercase tracking-[0.3em] text-emerald-400 mb-4 flex items-center gap-3">
-                        <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        {{ data_get($definition, 'eyebrow') }}
-                    </p>
-                    <h2 class="font-heading text-4xl font-black tracking-tight mb-6">
-                        {{ data_get($definition, 'title') }}</h2>
-                    <p class="text-lg leading-relaxed text-slate-300 mb-10">{{ data_get($definition, 'body') }}</p>
-
-                    <div class="mt-auto space-y-4">
-                        @foreach (data_get($definition, 'shifts', []) as $shift)
-                            <div
-                                class="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm transition-colors hover:bg-white/10">
-                                <div
-                                    class="relative z-10 flex flex-col items-center gap-4 text-center md:flex-row md:justify-between md:text-left">
-                                    <p
-                                        class="flex-1 text-base font-medium text-slate-400 line-through decoration-rose-500/50 decoration-2">
-                                        {{ data_get($shift, 'before') }}</p>
-                                    <div
-                                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/30">
-                                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                        </svg>
-                                    </div>
-                                    <p class="flex-1 text-lg font-bold text-white">{{ data_get($shift, 'after') }}</p>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- MAGNET & PROOF -->
-    <section class="container mx-auto px-6 pb-32 lg:px-12">
-        <div class="grid gap-8 lg:grid-cols-[1fr_1.2fr]">
-            <!-- Magnet -->
-            <div
-                class="rounded-[2.5rem] bg-white p-8 sm:p-12 shadow-[0_20px_50px_-15px_rgba(15,23,42,0.1)] ring-1 ring-slate-200">
-                <p class="text-sm font-bold uppercase tracking-[0.3em] text-emerald-600 mb-4">
-                    {{ data_get($magnet, 'eyebrow') }}</p>
-                <h2 class="font-heading text-4xl font-black tracking-tight text-slate-900 mb-8">
-                    {{ data_get($magnet, 'title') }}</h2>
-                <div class="space-y-6 text-lg leading-relaxed text-slate-600">
-                    @foreach (data_get($magnet, 'paragraphs', []) as $paragraph)
+                <div class="mt-6 space-y-5 text-[17px] leading-[28px] text-[#2d2c2b] text-pretty">
+                    @foreach (data_get($gap, 'paragraphs', []) as $paragraph)
                         <p>{{ $paragraph }}</p>
                     @endforeach
                 </div>
             </div>
 
-            <!-- Proof -->
-            <div
-                class="relative overflow-hidden rounded-[2.5rem] bg-emerald-50 p-8 sm:p-12 ring-1 ring-emerald-200 shadow-[inset_0_2px_4px_rgba(255,255,255,0.5)]">
-                <!-- Bg pattern -->
-                <div
-                    class="absolute right-0 top-0 opacity-10 blur-sm scale-150 transform translate-x-1/3 -translate-y-1/3">
-                    <img src="/images/about/islamic_geometry.png" class="w-full h-full object-cover"
-                        alt="" />
-                </div>
+            <div class="self-center">
+                <p class="font-heading text-[17px] {{ $emphasisClass }} leading-6 text-[#6b645e]">
+                    {{ data_get($gap, 'chain.title') }}</p>
 
-                <div class="relative z-10">
-                    <p
-                        class="text-sm font-bold uppercase tracking-[0.3em] text-emerald-700 mb-4 ring-1 ring-emerald-500/20 inline-block px-4 py-1.5 rounded-full bg-emerald-100/50 backdrop-blur-sm">
-                        {{ data_get($proof, 'eyebrow') }}</p>
-                    <h2 class="font-heading text-4xl font-black tracking-tight text-slate-900 mb-6">
-                        {{ data_get($proof, 'title') }}</h2>
-                    <p class="text-lg leading-relaxed text-slate-700 mb-10 max-w-2xl">{{ data_get($proof, 'body') }}</p>
+                <ol class="relative mt-5 space-y-3">
+                    <span class="pointer-events-none absolute inset-y-3 left-1/2 w-px -translate-x-1/2 bg-[#e3b537]/40"
+                        aria-hidden="true"></span>
 
-                    <div class="grid gap-5 sm:grid-cols-2">
-                        @foreach (data_get($proof, 'items', []) as $item)
-                            <div
-                                class="rounded-2xl border border-emerald-100 bg-white/80 p-6 backdrop-blur-md shadow-sm transition hover:shadow-md hover:scale-[1.02] transform origin-bottom">
-                                <h3 class="font-heading text-xl font-bold flex items-center gap-3 text-slate-900">
-                                    <span
-                                        class="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500 text-white shadow-md">
-                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-                                                d="M5 13l4 4L19 7" />
-                                        </svg>
-                                    </span>
-                                    {{ data_get($item, 'title') }}
+                    @foreach (data_get($gap, 'chain.items', []) as $item)
+                        <li
+                            class="relative rounded-xl border border-[#e5dccb] bg-white px-6 py-5 shadow-[0_1px_2px_rgba(45,44,43,0.05)]">
+                            <span
+                                class="absolute left-1/2 top-0 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle_at_32%_30%,#e8c87a,#9a7a2e)] ring-2 ring-[#f0e3c4]"
+                                aria-hidden="true"></span>
+                            <p class="text-center font-heading text-[17px] leading-[1.55] text-[#2d2c2b]">
+                                {{ $item }}</p>
+                        </li>
+                    @endforeach
+                </ol>
+            </div>
+        </div>
+    </section>
+
+    {{-- What it costs ------------------------------------------------------- --}}
+    <section aria-labelledby="about-cost" class="mt-20 lg:mt-28">
+        <div class="relative h-[38vh] min-h-[260px] w-full overflow-hidden lg:h-[46vh]">
+            <img src="{{ asset('images/about/surau-hall.png') }}" alt="{{ data_get($cost, 'image_alt') }}"
+                width="1536" height="1024" loading="lazy"
+                class="h-full w-full object-cover object-center">
+            <div class="absolute inset-0 bg-[linear-gradient(to_top,#f2e9d5_0%,rgba(242,233,213,0.72)_14%,rgba(242,233,213,0)_52%)]"
+                aria-hidden="true"></div>
+        </div>
+
+        <div class="relative z-10 mx-auto -mt-20 max-w-[1240px] px-5 sm:px-6 lg:-mt-28 lg:px-10">
+            <div class="{{ $sheet }} p-7 sm:p-10 lg:p-14">
+                <h2 id="about-cost"
+                    class="max-w-[24ch] font-heading text-[clamp(1.85rem,3.8vw,2.85rem)] font-normal leading-[1.1] tracking-[-0.01em] text-[#17191c] text-balance">
+                    {{ data_get($cost, 'title') }}
+                </h2>
+
+                <p class="mt-5 max-w-[62ch] text-[17px] leading-[28px] text-[#6b645e] text-pretty">
+                    {{ data_get($cost, 'intro') }}
+                </p>
+
+                <dl class="mt-10 grid gap-x-14 sm:grid-cols-2">
+                    @foreach (data_get($cost, 'items', []) as $item)
+                        <div class="border-t border-[#e5dccb] py-6">
+                            <dt class="font-heading text-xl leading-7 text-[#006044]">{{ data_get($item, 'title') }}</dt>
+                            <dd class="mt-2 text-[17px] leading-[28px] text-[#2d2c2b] text-pretty">
+                                {{ data_get($item, 'body') }}</dd>
+                        </div>
+                    @endforeach
+                </dl>
+            </div>
+        </div>
+    </section>
+
+    {{-- What it does -------------------------------------------------------- --}}
+    <section aria-labelledby="about-work" class="mx-auto mt-20 max-w-[1240px] px-5 sm:px-6 lg:mt-28 lg:px-10">
+        <div class="grid gap-10 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-20">
+            <div class="lg:sticky lg:top-28 lg:self-start">
+                <h2 id="about-work"
+                    class="font-heading text-[clamp(1.85rem,3.4vw,2.5rem)] font-normal leading-[1.12] tracking-[-0.01em] text-[#17191c] text-balance">
+                    {{ data_get($work, 'title') }}
+                </h2>
+                <p class="mt-5 max-w-[42ch] text-[17px] leading-[28px] text-[#2d2c2b] text-pretty">
+                    {{ data_get($work, 'intro') }}
+                </p>
+            </div>
+
+            <div>
+                <ul>
+                    @foreach (data_get($work, 'items', []) as $item)
+                        <li class="flex gap-4 border-t border-[#e5dccb] py-6">
+                            <svg class="mt-1 h-5 w-5 shrink-0 text-[#006044]" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                            </svg>
+                            <div>
+                                <h3 class="font-heading text-xl leading-7 text-[#17191c]">{{ data_get($item, 'title') }}
                                 </h3>
-                                <p class="mt-4 text-base leading-relaxed text-slate-600">{{ data_get($item, 'body') }}</p>
+                                <p class="mt-1.5 text-[17px] leading-[28px] text-[#2d2c2b] text-pretty">
+                                    {{ data_get($item, 'body') }}</p>
                             </div>
-                        @endforeach
-                    </div>
+                        </li>
+                    @endforeach
+                </ul>
+
+                <div class="mt-6 flex gap-3 rounded-2xl border border-[#006044]/20 bg-white p-5 shadow-[0_1px_2px_rgba(45,44,43,0.05)]">
+                    <svg class="mt-0.5 h-5 w-5 shrink-0 text-[#006044]" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
+                    </svg>
+                    <p class="text-sm leading-6 text-[#2d2c2b]">
+                        {{ data_get($work, 'note') }}
+                    </p>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- IMPACT -->
-    <section class="bg-slate-50 border-y border-slate-200">
-        <div class="container mx-auto px-6 py-32 lg:px-12">
-            <div class="text-center max-w-3xl mx-auto mb-16">
-                <p class="text-sm font-bold uppercase tracking-[0.3em] text-emerald-600 mb-4">
-                    {{ data_get($impact, 'eyebrow') }}</p>
-                <h2 class="font-heading text-4xl font-black tracking-tight text-slate-900 sm:text-5xl drop-shadow-sm">
-                    {{ data_get($impact, 'title') }}</h2>
-            </div>
+    {{-- The calm path ------------------------------------------------------- --}}
+    <section aria-labelledby="about-path" class="mx-auto mt-20 max-w-[1240px] px-5 sm:px-6 lg:mt-28 lg:px-10">
+        <div class="{{ $sheet }} p-7 sm:p-10 lg:p-14">
+            <p class="font-heading text-[17px] {{ $emphasisClass }} leading-6 text-[#6b645e]">
+                {{ data_get($path, 'intro') }}</p>
 
-            <div class="grid gap-8 lg:grid-cols-3">
-                @foreach (data_get($impact, 'items', []) as $item)
-                    <div
-                        class="group flex flex-col rounded-[2.5rem] bg-white p-10 shadow-[0_20px_50px_-15px_rgba(15,23,42,0.05)] ring-1 ring-slate-200 transition-all hover:-translate-y-2 hover:shadow-[0_40px_60px_-15px_rgba(15,23,42,0.1)]">
-                        <div
-                            class="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 font-heading text-2xl font-black text-white shadow-lg shadow-emerald-500/30">
-                            {{ str_pad((string) $loop->iteration, 2, '0', STR_PAD_LEFT) }}
-                        </div>
-                        <h3 class="mb-6 font-heading text-3xl font-black tracking-tight text-slate-900">
-                            {{ data_get($item, 'title') }}</h3>
-                        <div class="mt-auto space-y-4 text-lg leading-relaxed text-slate-600">
-                            @foreach (data_get($item, 'paragraphs', []) as $paragraph)
-                                <p>{{ $paragraph }}</p>
-                            @endforeach
-                        </div>
-                    </div>
+            <h2 id="about-path"
+                class="mt-4 max-w-[26ch] font-heading text-[clamp(1.85rem,3.4vw,2.5rem)] font-normal leading-[1.12] tracking-[-0.01em] text-[#17191c] text-balance">
+                {{ data_get($path, 'title') }}
+            </h2>
+
+            <ol class="mt-10 grid gap-10 sm:grid-cols-2 sm:gap-8 lg:grid-cols-4">
+                @foreach (data_get($path, 'items', []) as $item)
+                    <li class="border-t-2 border-[#e3b537] pt-5">
+                        <h3 class="font-heading text-xl leading-7 text-[#17191c]">{{ data_get($item, 'title') }}</h3>
+                        <p class="mt-3 text-[17px] leading-[28px] text-[#2d2c2b] text-pretty">
+                            {{ data_get($item, 'body') }}</p>
+                    </li>
                 @endforeach
-            </div>
+            </ol>
         </div>
     </section>
 
-    <!-- CTA SECTION -->
-    <section class="container mx-auto px-6 py-32 lg:px-12 relative">
-        <div
-            class="relative overflow-hidden rounded-[3rem] bg-slate-950 px-8 py-20 text-white shadow-[0_40px_100px_-20px_rgba(16,185,129,0.5)] sm:px-16 md:py-24 text-center md:text-left">
-            <!-- Background Image parallax layer -->
-            <div class="absolute inset-0 z-0">
-                <img src="/images/about/islamic_geometry.png" alt=""
-                    class="absolute w-full h-full object-cover transform scale-110 opacity-30 mix-blend-color-dodge filter saturate-200">
-                <div class="absolute inset-0 bg-gradient-to-br from-emerald-950/90 via-slate-950/95 to-slate-950/90">
+    {{-- Who it is for ------------------------------------------------------- --}}
+    <section aria-labelledby="about-audience"
+        class="mx-auto mt-20 max-w-[1240px] px-5 sm:px-6 lg:mt-28 lg:px-10">
+        <h2 id="about-audience"
+            class="max-w-[26ch] font-heading text-[clamp(1.85rem,3.4vw,2.5rem)] font-normal leading-[1.12] tracking-[-0.01em] text-[#17191c] text-balance">
+            {{ data_get($audience, 'title') }}
+        </h2>
+
+        <div class="mt-10 grid gap-10 sm:grid-cols-2 lg:grid-cols-3 sm:gap-8">
+            @foreach (data_get($audience, 'items', []) as $item)
+                <div class="border-t-2 border-[#e3b537] pt-5">
+                    <h3 class="font-heading text-xl leading-7 text-[#17191c]">{{ data_get($item, 'title') }}</h3>
+                    <p class="mt-3 text-[17px] leading-[28px] text-[#2d2c2b] text-pretty">{{ data_get($item, 'body') }}
+                    </p>
                 </div>
+            @endforeach
+        </div>
+    </section>
+
+    @if (($stats['events'] ?? 0) + ($stats['institutions'] ?? 0) + ($stats['speakers'] ?? 0) > 0)
+        {{-- Living proof -------------------------------------------------------- --}}
+        <section aria-labelledby="about-stats" class="mx-auto mt-20 max-w-[1240px] px-5 sm:px-6 lg:mt-28 lg:px-10">
+            <div class="{{ $sheet }} p-7 text-center sm:p-10 lg:p-14">
+                <h2 id="about-stats"
+                    class="mx-auto max-w-[26ch] font-heading text-[clamp(1.85rem,3.4vw,2.5rem)] font-normal leading-[1.12] tracking-[-0.01em] text-[#17191c] text-balance">
+                    {{ data_get($pageStats, 'title') }}
+                </h2>
+
+                <p class="mx-auto mt-4 max-w-[62ch] text-[17px] leading-[28px] text-[#6b645e] text-pretty">
+                    {{ data_get($pageStats, 'intro') }}
+                </p>
+
+                <dl
+                    class="mx-auto mt-10 grid max-w-[54rem] grid-cols-1 gap-8 sm:grid-cols-3 sm:gap-6 sm:divide-x sm:divide-[#e5dccb]">
+                    <div class="px-2">
+                        <dd
+                            class="font-heading text-[clamp(2rem,4vw,2.9rem)] font-normal leading-none text-[#006044] tabular-nums">
+                            {{ number_format((int) ($stats['events'] ?? 0)) }}</dd>
+                        <dt class="mt-2 text-[15px] font-semibold leading-6 text-[#2d2c2b]">
+                            {{ data_get($pageStats, 'events') }}</dt>
+                    </div>
+                    <div class="px-2">
+                        <dd
+                            class="font-heading text-[clamp(2rem,4vw,2.9rem)] font-normal leading-none text-[#006044] tabular-nums">
+                            {{ number_format((int) ($stats['institutions'] ?? 0)) }}</dd>
+                        <dt class="mt-2 text-[15px] font-semibold leading-6 text-[#2d2c2b]">
+                            {{ data_get($pageStats, 'institutions') }}</dt>
+                    </div>
+                    <div class="px-2">
+                        <dd
+                            class="font-heading text-[clamp(2rem,4vw,2.9rem)] font-normal leading-none text-[#006044] tabular-nums">
+                            {{ number_format((int) ($stats['speakers'] ?? 0)) }}</dd>
+                        <dt class="mt-2 text-[15px] font-semibold leading-6 text-[#2d2c2b]">
+                            {{ data_get($pageStats, 'speakers') }}</dt>
+                    </div>
+                </dl>
             </div>
+        </section>
+    @endif
 
-            <div class="relative z-10 grid gap-12 lg:grid-cols-[1fr_auto] lg:items-center">
-                <div class="max-w-3xl mx-auto lg:mx-0">
-                    <h2
-                        class="font-heading text-5xl font-black tracking-tight sm:text-6xl drop-shadow-lg text-transparent bg-clip-text bg-gradient-to-r from-white to-emerald-200">
-                        {{ data_get($cta, 'title') }}</h2>
-                    <p class="mt-6 text-xl leading-relaxed text-emerald-100/90">{{ data_get($cta, 'body') }}</p>
-                    <p class="mt-8 text-2xl font-bold text-white border-l-4 border-emerald-400 pl-6">
-                        {{ data_get($cta, 'closing') }}</p>
-                </div>
+    {{-- Hadith -------------------------------------------------------------- --}}
+    <section aria-labelledby="about-hadith"
+        class="mx-auto mt-20 max-w-[1240px] px-5 sm:px-6 lg:mt-28 lg:px-10">
+        <div
+            class="relative mx-auto max-w-[68rem] overflow-hidden rounded-3xl bg-[#006044] px-7 py-14 text-center shadow-[0_2px_4px_rgba(45,44,43,0.06),0_18px_40px_-18px_rgba(0,96,68,0.45)] sm:px-12 lg:py-20">
+            <svg class="pointer-events-none absolute inset-0 h-full w-full text-[#e3b537] opacity-[0.13]"
+                aria-hidden="true" focusable="false">
+                <defs>
+                    <pattern id="about-girih" width="120" height="120" patternUnits="userSpaceOnUse">
+                        <g fill="none" stroke="currentColor" stroke-width="1">
+                            <rect x="24" y="24" width="72" height="72" />
+                            <rect x="24" y="24" width="72" height="72" transform="rotate(45 60 60)" />
+                            <circle cx="60" cy="60" r="51" />
+                            <circle cx="60" cy="60" r="22" />
+                        </g>
+                    </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#about-girih)" />
+            </svg>
 
-                <div class="flex flex-col items-center lg:items-end gap-4 w-full sm:w-auto">
+            <figure class="relative mx-auto max-w-[46rem]">
+                <p class="font-heading text-[15px] {{ $emphasisClass }} leading-6 text-[#e3b537]">
+                    {{ data_get($hadith, 'title') }}</p>
+
+                <blockquote
+                    class="mt-6 font-heading text-[clamp(1.6rem,3.6vw,2.5rem)] font-normal {{ $emphasisClass }} leading-[1.25] text-[#fbf6ea] text-balance">
+                    “{{ data_get($hadith, 'quote') }}”
+                </blockquote>
+
+                <figcaption class="mt-7 text-sm leading-6 text-[#fbf6ea]/70">
+                    {{ data_get($hadith, 'attribution') }}
+                </figcaption>
+
+                <p class="mt-6 font-heading text-[15px] leading-6 tracking-wide text-[#e3b537]">
+                    Dengar. Faham. Amal.</p>
+            </figure>
+        </div>
+    </section>
+
+    {{-- Closing ------------------------------------------------------------- --}}
+    <section aria-labelledby="about-cta" class="mt-20 pb-24 lg:mt-28">
+        <div class="relative h-[46vh] min-h-[300px] w-full overflow-hidden lg:h-[54vh]">
+            <img src="{{ asset('images/about/surau-congregation.png') }}" alt="{{ data_get($cta, 'image_alt') }}"
+                width="1536" height="1024" loading="lazy"
+                class="h-full w-full object-cover object-[50%_32%]">
+            <div class="absolute inset-0 bg-[linear-gradient(to_top,#f2e9d5_0%,rgba(242,233,213,0.72)_14%,rgba(242,233,213,0)_52%)]"
+                aria-hidden="true"></div>
+        </div>
+
+        <div class="relative z-10 mx-auto -mt-24 max-w-[1240px] px-5 sm:px-6 lg:-mt-28 lg:px-10">
+            <div class="{{ $sheet }} max-w-[42rem] p-7 sm:p-10 lg:p-14">
+                <h2 id="about-cta"
+                    class="font-heading text-[clamp(1.85rem,3.8vw,2.75rem)] font-normal leading-[1.1] tracking-[-0.01em] text-[#17191c] text-balance">
+                    {{ data_get($cta, 'title') }}
+                </h2>
+
+                <p class="mt-5 max-w-[52ch] text-[17px] leading-[28px] text-[#2d2c2b] text-pretty">
+                    {{ data_get($cta, 'body') }}
+                </p>
+
+                <div class="mt-8 flex flex-wrap items-center gap-4">
                     <a href="{{ route('register') }}" wire:navigate
-                        class="w-full sm:w-auto inline-flex items-center justify-center rounded-full bg-emerald-500 px-10 py-5 text-lg font-bold text-slate-950 transition-all hover:scale-105 hover:bg-emerald-400 hover:shadow-[0_0_40px_-10px_rgba(52,211,153,0.8)] focus:outline-none">
+                        class="{{ $primaryButton }} w-full sm:w-auto">
                         {{ data_get($cta, 'primary') }}
                     </a>
                     <a href="{{ route('events.index') }}" wire:navigate
-                        class="w-full sm:w-auto inline-flex items-center justify-center rounded-full border border-white/20 bg-white/10 px-10 py-5 text-lg font-bold text-white backdrop-blur-md transition-all hover:bg-white/20 hover:border-white/40">
+                        class="inline-flex min-h-12 w-full items-center justify-center rounded-full border border-[#006044]/30 px-7 text-[15px] font-semibold text-[#006044] transition-colors duration-200 hover:border-[#006044] hover:bg-[#006044]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006044] focus-visible:ring-offset-2 focus-visible:ring-offset-[#fbf6ea] sm:w-auto">
                         {{ data_get($cta, 'secondary') }}
                     </a>
-                    <a href="{{ route('submit-event.create') }}" wire:navigate
-                        class="mt-2 text-sm font-semibold text-emerald-400 transition hover:text-emerald-300 underline underline-offset-4 decoration-emerald-400/30 hover:decoration-emerald-300">
-                        {{ data_get($cta, 'tertiary') }} &rarr;
-                    </a>
                 </div>
-            </div>
 
-            <!-- decorative circles -->
-            <div class="absolute -top-24 -left-24 w-64 h-64 bg-emerald-500/20 rounded-full blur-[80px]"></div>
-            <div class="absolute -bottom-24 -right-24 w-64 h-64 bg-teal-500/30 rounded-full blur-[80px]"></div>
+                <a href="{{ route('submit-event.create') }}" wire:navigate
+                    class="mt-6 inline-flex min-h-11 items-center border-b border-[#006044]/30 text-sm font-semibold text-[#006044] transition-colors duration-200 hover:border-[#006044] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006044] focus-visible:ring-offset-2 focus-visible:ring-offset-[#fbf6ea]">
+                    {{ data_get($cta, 'tertiary') }}
+                </a>
+            </div>
         </div>
     </section>
+
 </div>

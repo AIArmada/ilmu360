@@ -17,6 +17,7 @@ use App\Actions\Events\Attendance\ResolveEventCheckInStateAction;
 use App\Actions\Events\Engagement\MarkEventGoingAction;
 use App\Actions\Events\Engagement\RemoveEventGoingAction;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
+use App\Data\PublicScheduleLeaf;
 use App\Enums\DawahShareOutcomeType;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventVisibility;
@@ -39,6 +40,7 @@ use App\States\EventStatus\Pending;
 use App\Support\Auth\IntendedRedirect;
 use App\Support\Cache\SelectionCatalogCache;
 use App\Support\Events\EventDetailPresenter;
+use App\Support\Events\PublicSchedulePolicy;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use App\Support\Timezone\UserDateTimeFormatter;
 use Carbon\Carbon;
@@ -58,6 +60,10 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
+/**
+ * @property-read Collection<int, PublicScheduleLeaf> $scheduleLeaves
+ * @property-read Collection<int, PublicScheduleLeaf> $siblingScheduleLeaves
+ */
 #[Layout('layouts.app')]
 #[Title('Event Details')]
 class Show extends Component
@@ -709,63 +715,61 @@ class Show extends Component
     }
 
     /**
-     * Find a small set of public events that share the event's institution or
-     * taxonomy terms. This keeps recommendations tied to actual event graph
-     * relationships instead of using an opaque search-only similarity score.
+     * Every public date on the event, shaped as the same schedule cards used
+     * by the public directory.
      *
-     * @return Collection<int, Event>
+     * @return Collection<int, PublicScheduleLeaf>
      */
     #[Computed]
-    public function relatedEvents(): Collection
+    public function scheduleLeaves(): Collection
     {
-        $institutionId = $this->event->institution_id;
-        $termIds = $this->event->classifications
-            ->pluck('event_term_id')
-            ->filter(fn (mixed $id): bool => is_string($id) && $id !== '')
-            ->unique()
-            ->values();
-
-        if (! filled($institutionId) && $termIds->isEmpty()) {
+        if (! $this->event->relationLoaded('occurrences')) {
             return collect();
         }
 
-        $query = Event::query()
-            ->whereKeyNot($this->event->getKey())
-            ->where('status', 'approved')
-            ->where('visibility', EventVisibility::Public->value)
-            ->whereNotNull('published_at')
-            ->whereHas('occurrences')
-            ->with([
-                'media',
-                'institution',
-                'venue',
-                'primaryOccurrence',
-                'displayOccurrence.media',
-            ])
-            ->when(
-                filled($institutionId),
-                fn (Builder $query): Builder => $query->orderByRaw(
-                    'CASE WHEN institution_id = ? THEN 0 ELSE 1 END',
-                    [$institutionId],
-                ),
-            )
-            ->orderBy('starts_at')
-            ->limit(6);
+        $occurrences = $this->event->occurrences
+            ->filter(fn (EventOccurrence $occurrence): bool => PublicSchedulePolicy::isPublicOccurrence($occurrence))
+            ->values();
 
-        $query->where(function (Builder $query) use ($institutionId, $termIds): void {
-            if (filled($institutionId)) {
-                $query->where('institution_id', $institutionId);
-            }
+        if ($occurrences->isEmpty()) {
+            return collect();
+        }
 
-            if ($termIds->isNotEmpty()) {
-                $query->orWhereHas(
-                    'classifications',
-                    fn (Builder $classificationQuery): Builder => $classificationQuery->whereIn('event_term_id', $termIds->all()),
-                );
-            }
-        });
+        $venue = $this->event->venue;
 
-        return $query->get();
+        if ($venue instanceof Venue) {
+            $venue->loadMissing('addresses.areaAssignments.area');
+        }
+
+        return $occurrences
+            ->map(fn (EventOccurrence $occurrence): PublicScheduleLeaf => new PublicScheduleLeaf(
+                $this->event,
+                $occurrence,
+                $occurrence->sessions
+                    ->filter(fn (EventSession $session): bool => PublicSchedulePolicy::isMeaningfulSession($session))
+                    ->values(),
+            ))
+            ->values();
+    }
+
+    /**
+     * Other public dates of the selected occurrence's own event.
+     *
+     * @return Collection<int, PublicScheduleLeaf>
+     */
+    #[Computed]
+    public function siblingScheduleLeaves(): Collection
+    {
+        $selected = $this->selectedOccurrence();
+
+        if (! $selected instanceof EventOccurrence) {
+            return collect();
+        }
+
+        return $this->scheduleLeaves
+            ->reject(fn (PublicScheduleLeaf $leaf): bool => $leaf->occurrence->is($selected))
+            ->take(6)
+            ->values();
     }
 
     private function hasRenderableHtmlContent(string $html): bool
@@ -865,6 +869,21 @@ class Show extends Component
             ->title(__('Check-in berjaya direkodkan.'))
             ->success()
             ->send();
+    }
+
+    #[Computed]
+    public function checkInOffered(): bool
+    {
+        if ($this->eventActionsDisabled()) {
+            return false;
+        }
+
+        $checkInEnabled = data_get(
+            is_array($this->event->metadata) ? $this->event->metadata : [],
+            'registration.check_in_enabled',
+        );
+
+        return $checkInEnabled !== false;
     }
 
     /**

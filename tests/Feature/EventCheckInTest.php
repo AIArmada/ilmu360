@@ -32,6 +32,39 @@ it('allows logged in users to self check in for open events within check-in wind
         ->count())->toBe(1);
 });
 
+it('offers check-in for open events without registration', function (): void {
+    $event = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDay(),
+        'starts_at' => now()->addHour(),
+    ]);
+
+    $event->accessPolicy()->delete();
+
+    Livewire::test('pages.events.show', ['event' => $event])
+        ->assertSee('Check-in');
+});
+
+it('hides check-in when the event disables it', function (): void {
+    $event = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDay(),
+        'starts_at' => now()->addHour(),
+        'metadata' => [
+            'registration' => [
+                'check_in_enabled' => false,
+            ],
+        ],
+    ]);
+
+    $event->accessPolicy()->delete();
+
+    Livewire::test('pages.events.show', ['event' => $event])
+        ->assertDontSee('Check-in');
+});
+
 it('requires registration before check-in when event requires registration', function () {
     $user = User::factory()->create();
     $startsAt = now('Asia/Kuala_Lumpur')->addHour()->utc();

@@ -163,7 +163,7 @@
                 $institutionsNavActive = request()->routeIs('institutions.*');
                 $personsNavActive = request()->routeIs('persons.*');
                 $useHomeHeader = request()->routeIs('home');
-                $useFloatingHeader = request()->routeIs('events.index', 'persons.index', 'persons.show', 'institutions.index', 'institutions.show', 'references.index', 'references.show', 'submit-event.create');
+                $useFloatingHeader = request()->routeIs('events.index', 'events.show', 'events.occurrence', 'events.session', 'persons.index', 'persons.show', 'institutions.index', 'institutions.show', 'references.index', 'references.show', 'submit-event.create');
                 $useOverlayHeader = $useHomeHeader || $useFloatingHeader;
                 $currentLocaleLabel = str_starts_with($currentLocale, 'ms')
                     ? 'BM'
@@ -201,7 +201,7 @@
                     ? 'living-majlis-header-button inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full bg-[#0e8a63] px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-black/20 transition-all hover:bg-[#13a574]'
                     : 'living-majlis-header-button living-majlis-header-button--emerald inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full px-5 py-2 text-sm font-semibold';
                 $mobileMenuClass = $useHomeHeader
-                    ? 'mt-2 mx-4 rounded-3xl border border-white/15 bg-[#062e22]/[0.98] text-white shadow-[0_24px_60px_-24px_rgba(0,0,0,0.65)] backdrop-blur-md md:hidden'
+                    ? 'mt-2 mx-4 rounded-3xl border border-white/15 bg-[linear-gradient(160deg,#0d3f82_0%,#0a3a63_38%,#075044_72%,#053b2f_100%)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_24px_60px_-24px_rgba(2,12,35,0.75)] backdrop-blur-md md:hidden'
                     : ($useFloatingHeader
                     ? 'mt-2 mx-4 rounded-3xl border border-[#eadfca] bg-[#fffdf8]/95 text-[#2d4b4c] shadow-[0_24px_60px_-30px_rgba(63,71,47,0.45)] backdrop-blur-md md:hidden'
                     : 'border-t border-[#e5dccb] bg-[#f6f1e8] text-[#2d4b4c] md:hidden');
@@ -211,6 +211,9 @@
                 $mobileMenuLinkClass = $useHomeHeader
                     ? 'text-white hover:bg-white/10'
                     : 'text-[#2d4b4c] hover:bg-[#f3eee2] hover:text-[#005b3d]';
+                $mobileMenuIconClass = $useHomeHeader
+                    ? 'border-white/10 bg-white/10 text-white/80 group-hover:border-white/20 group-hover:bg-white/15 group-hover:text-white'
+                    : 'border-[#e5dccb] bg-white text-[#55706c] group-hover:text-[#005b3d]';
                 $mobileMenuRowClass = $useHomeHeader
                     ? 'text-white/85 hover:bg-white/10 hover:text-white'
                     : 'text-slate-700 hover:bg-slate-50 hover:text-[#005b3d]';
@@ -219,6 +222,9 @@
                 $mobileMenuSecondaryClass = $useHomeHeader
                     ? 'border border-white/25 bg-white/5 text-white hover:bg-white/15'
                     : 'border border-[#dbe1dc] bg-white text-[#2d4b4c] hover:border-[#006044] hover:text-[#006044]';
+                $mobileMenuLoginClass = $useHomeHeader
+                    ? 'living-majlis-header-button living-majlis-header-button--blue flex min-h-11 items-center justify-center rounded-xl px-4 text-sm font-semibold'
+                    : 'flex min-h-11 items-center justify-center rounded-xl px-4 text-sm font-semibold transition-colors '.$mobileMenuSecondaryClass;
                 $mobileMenuDangerClass = $useHomeHeader
                     ? 'border border-red-300/40 text-red-200 hover:bg-red-500/15'
                     : 'border border-red-200 text-red-600 hover:bg-red-50';
@@ -459,11 +465,26 @@
                     <nav aria-label="{{ __('Mobile navigation') }}" class="p-3">
                         <div class="flex flex-col gap-0.5">
                             <a href="{{ route('events.index') }}" wire:navigate
-                                class="flex min-h-11 items-center rounded-xl px-3 text-base font-semibold transition-colors {{ $mobileMenuLinkClass }}">{{ __('Events') }}</a>
+                                class="group flex min-h-11 items-center gap-3 rounded-xl px-3 text-base font-semibold transition-colors {{ $mobileMenuLinkClass }}">
+                                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-colors {{ $mobileMenuIconClass }}" aria-hidden="true">
+                                    <x-heroicon-o-calendar-days class="h-5 w-5" />
+                                </span>
+                                {{ __('Events') }}
+                            </a>
                             <a href="{{ route('institutions.index') }}" wire:navigate
-                                class="flex min-h-11 items-center rounded-xl px-3 text-base font-semibold transition-colors {{ $mobileMenuLinkClass }}">{{ __('Institutions') }}</a>
+                                class="group flex min-h-11 items-center gap-3 rounded-xl px-3 text-base font-semibold transition-colors {{ $mobileMenuLinkClass }}">
+                                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-colors {{ $mobileMenuIconClass }}" aria-hidden="true">
+                                    <x-heroicon-o-building-office-2 class="h-5 w-5" />
+                                </span>
+                                {{ __('Institutions') }}
+                            </a>
                             <a href="{{ route('persons.index') }}" wire:navigate
-                                class="flex min-h-11 items-center rounded-xl px-3 text-base font-semibold transition-colors {{ $mobileMenuLinkClass }}">{{ __('Speakers') }}</a>
+                                class="group flex min-h-11 items-center gap-3 rounded-xl px-3 text-base font-semibold transition-colors {{ $mobileMenuLinkClass }}">
+                                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-colors {{ $mobileMenuIconClass }}" aria-hidden="true">
+                                    <x-heroicon-o-user class="h-5 w-5" />
+                                </span>
+                                {{ __('Speakers') }}
+                            </a>
                         </div>
                         <div class="mt-3 flex flex-col gap-3 border-t pt-3 {{ $mobileMenuDividerClass }}">
                             <a href="{{ route('submit-event.create') }}" wire:navigate
@@ -477,7 +498,7 @@
                             @guest
                                 <div class="grid grid-cols-2 gap-3">
                                     <a href="{{ \App\Support\Auth\IntendedRedirect::loginUrl(request()->fullUrl()) }}" wire:navigate
-                                        class="flex min-h-11 items-center justify-center rounded-xl px-4 text-sm font-semibold transition-colors {{ $mobileMenuSecondaryClass }}">
+                                        class="{{ $mobileMenuLoginClass }}">
                                         {{ __('Log In') }}
                                     </a>
                                     <a href="{{ \App\Support\Auth\IntendedRedirect::registerUrl(request()->fullUrl()) }}" wire:navigate
@@ -566,7 +587,7 @@
                                 @foreach ($publicMenuLocales as $locale => $label)
                                     @php
                                         $languagePillVariantClass = $useHomeHeader
-                                            ? ($locale === $currentLocale ? 'border-emerald-300/60 bg-emerald-400/20 text-emerald-100' : 'border-white/25 text-white/80 hover:bg-white/10')
+                                            ? ($locale === $currentLocale ? 'border-sky-300/60 bg-sky-400/20 text-sky-100' : 'border-white/25 text-white/80 hover:bg-white/10')
                                             : ($locale === $currentLocale ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-[#e5dccb] text-slate-600 hover:border-[#006044] hover:text-[#006044]');
                                     @endphp
                                     <a href="{{ route('locale.switch', $locale) }}"

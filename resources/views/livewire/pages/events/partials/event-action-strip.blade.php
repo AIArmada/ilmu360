@@ -6,8 +6,8 @@
 
      Expects: $event, $eventActionsDisabled, $checkInOffered, $canEditEvent. --}}
 <div class="border-b border-[#e6dccb] bg-[#fffdf9]">
-    <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-6 gap-y-2.5 px-5 py-3 sm:px-8 lg:px-12">
-        <div class="flex flex-wrap items-center gap-2">
+    <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-6 gap-y-2.5 px-5 py-3 sm:justify-between sm:px-8 lg:px-12">
+        <div class="flex min-w-0 items-center gap-1.5 overflow-x-auto scrollbar-hide sm:flex-wrap sm:gap-2 sm:overflow-visible">
             {{-- "Akan Hadir" is a promise to turn up; offering it for a majlis
                  that has already finished would be a lie. --}}
             @if(! $eventActionsDisabled && $this->eventTimeStatus !== 'past')
@@ -16,7 +16,7 @@
                     wire:click="toggleGoing"
                     data-signal-event="engagement.event_going_clicked" data-signal-category="engagement" data-signal-component="event_detail_actions" data-signal-control="going" data-signal-entity-type="event" data-signal-entity-id="{{ $event->id }}"
                     wire:loading.attr="disabled"
-                    class="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-[13px] font-semibold transition duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14342e] {{ $this->isGoing ? 'border-[#14342e] bg-[#14342e] text-[#fdfaf2] hover:bg-[#1d4a41]' : 'border-[#e6dccb] bg-white text-[#14342e] hover:border-[#c9962f]/50 hover:bg-[#f8f3e8]' }}"
+                    class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-2 text-[12px] font-semibold transition duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] sm:gap-2 sm:px-4 sm:text-[13px] active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14342e] {{ $this->isGoing ? 'border-[#14342e] bg-[#14342e] text-[#fdfaf2] hover:bg-[#1d4a41]' : 'border-[#e6dccb] bg-white text-[#14342e] hover:border-[#c9962f]/50 hover:bg-[#f8f3e8]' }}"
                 >
                     <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     {{ $this->isGoing ? __('Hadir') : __('Akan Hadir') }}
@@ -31,7 +31,7 @@
                 wire:click="toggleSave"
                     data-signal-event="engagement.event_save_clicked" data-signal-category="engagement" data-signal-component="event_detail_actions" data-signal-control="save" data-signal-entity-type="event" data-signal-entity-id="{{ $event->id }}"
                 wire:loading.attr="disabled"
-                class="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-[13px] font-semibold transition duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14342e] {{ $this->isSaved ? 'border-[#14342e] bg-[#14342e] text-[#fdfaf2] hover:bg-[#1d4a41]' : 'border-[#e6dccb] bg-white text-[#14342e] hover:border-[#c9962f]/50 hover:bg-[#f8f3e8]' }}"
+                class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-2 text-[12px] font-semibold transition duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] sm:gap-2 sm:px-4 sm:text-[13px] active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14342e] {{ $this->isSaved ? 'border-[#14342e] bg-[#14342e] text-[#fdfaf2] hover:bg-[#1d4a41]' : 'border-[#e6dccb] bg-white text-[#14342e] hover:border-[#c9962f]/50 hover:bg-[#f8f3e8]' }}"
             >
                 <svg class="size-4" viewBox="0 0 24 24" fill="{{ $this->isSaved ? 'currentColor' : 'none' }}" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg>
                 {{ $this->isSaved ? __('Disimpan') : __('Simpan') }}
@@ -49,7 +49,7 @@
                     wire:loading.attr="disabled"
                     @disabled($checkInBlocked)
                     @if($checkInBlocked && filled($this->checkInState['reason'] ?? null)) title="{{ $this->checkInState['reason'] }}" @endif
-                    class="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-[13px] font-semibold transition duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14342e] {{ $this->isCheckedIn ? 'border-[#2f5d43] bg-[#eef4ee] text-[#2f5d43]' : ($checkInBlocked ? 'cursor-not-allowed border-[#eee7d8] bg-[#faf6ed] text-[#a49a8a]' : 'border-[#e6dccb] bg-white text-[#14342e] hover:border-[#2f5d43]/40 hover:bg-[#f2f7f2] active:scale-[0.98]') }}"
+                    class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-2 text-[12px] font-semibold transition duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] sm:gap-2 sm:px-4 sm:text-[13px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14342e] {{ $this->isCheckedIn ? 'border-[#2f5d43] bg-[#eef4ee] text-[#2f5d43]' : ($checkInBlocked ? 'cursor-not-allowed border-[#eee7d8] bg-[#faf6ed] text-[#a49a8a]' : 'border-[#e6dccb] bg-white text-[#14342e] hover:border-[#2f5d43]/40 hover:bg-[#f2f7f2] active:scale-[0.98]') }}"
                 >
                     <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
                     {{ $this->isCheckedIn ? __('Sudah check-in') : __('Check-in') }}
