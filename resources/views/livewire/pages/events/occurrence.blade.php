@@ -225,12 +225,9 @@
     // Occurrence `cover` is converted to 1920x1080 (16:9); the event `poster` is
     // 1080x1440 (3:4). Both are cropped by object-cover, so either works here.
     $heroImageUrl = $occurrenceCoverUrl ?? $occurrencePosterUrl;
-    // The hero backdrop always carries a photograph: the event's own cover, or
-    // the wide majlis placeholder. The plate below stays uploads-only, so the
-    // page never claims an event photo it does not have.
-    $heroBackdropUrl = $occurrenceCoverUrl
-        ?? $event->getFirstMedia('cover')?->getAvailableUrl(['banner', 'thumb'])
-        ?? asset('images/placeholders/event-wide-v1.jpg');
+    // Permanent ambient art: a rotating backdrop from the site's own set,
+    // never the event cover. The cover itself lives in the body.
+    $heroBackdropUrl = \App\Support\Events\HeroBackdrop::randomUrl();
     $occurrenceHasParticipation = $occurrenceCapacity !== null || $occurrencePolicy !== null || $tickets->isNotEmpty() || $detail->hasRegistration();
     // Two ways to take part: pick a ticket, or — when the majlis sells none —
     // go straight to checkout. Ticket sales gate the first; the second is gated
@@ -372,17 +369,19 @@
             <img
                 src="{{ $heroBackdropUrl }}"
                 alt=""
-                class="absolute inset-y-0 right-0 h-full w-full object-cover object-center opacity-40 sm:w-[82%] sm:opacity-60 lg:w-[66%] lg:opacity-75"
+                class="absolute inset-0 h-full w-full object-cover object-right"
                 loading="eager"
                 fetchpriority="low"
             >
-            <div class="absolute inset-0 bg-[linear-gradient(90deg,#07231f_0%,#07231f_34%,rgba(7,35,31,0.92)_50%,rgba(7,35,31,0.45)_76%,rgba(7,35,31,0.6)_100%)]"></div>
             <div class="absolute inset-0 bg-[radial-gradient(95%_110%_at_8%_0%,rgba(242,200,103,0.18),transparent_58%)]"></div>
+            {{-- Mobile keeps the photo full-bleed under the copy, so it needs
+                 its own scrim; wider layouts rely on the dark right of frame. --}}
+            <div class="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,35,31,0.88)_0%,rgba(7,35,31,0.66)_42%,rgba(7,35,31,0.40)_100%)] sm:hidden"></div>
             <div class="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#07231f] via-[#07231f]/60 to-transparent"></div>
         </div>
 
         <div class="relative mx-auto max-w-7xl px-4 pt-32 sm:px-8 sm:pt-36 lg:px-12 lg:pt-40">
-            <div class="grid items-stretch gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,23rem)] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_minmax(0,32rem)] xl:gap-14">
+            <div class="grid items-stretch gap-10 {{ $heroImageUrl ? '' : 'lg:grid-cols-[minmax(0,1fr)_minmax(0,23rem)] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_minmax(0,32rem)] xl:gap-14' }}">
                 <div class="flex min-w-0 flex-col justify-center">
                     {{-- Eyebrow --}}
                     @if($classificationLabels->take(2)->isNotEmpty() || $occurrenceCancelled)
@@ -449,30 +448,9 @@
                     </div>
                 </div>
 
-                {{-- Photo plate, or a typographic date leaf when nothing is
-                     uploaded. Same slot, so the hero never reflows around a
-                     missing image. --}}
-                @if($heroImageUrl)
-                    <div class="relative">
-                        <figure class="mi-plate aspect-[4/3] overflow-hidden rounded-2xl ring-1 ring-[#f2c867]/25" data-testid="event-hero-media">
-                            <img
-                                src="{{ $heroImageUrl }}"
-                                alt="{{ __('Suasana :title', ['title' => $occurrenceDisplayTitle]) }}"
-                                class="size-full object-cover"
-                                loading="eager"
-                                fetchpriority="high"
-                            >
-                        </figure>
-
-                        @if($occurrencePosterUrl)
-                            <button type="button" @click="posterOpen = true" class="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-[#0b2b25]/80 px-3 py-1.5 text-[11px] font-semibold text-[#f7f3e8] backdrop-blur-sm transition duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-[#0b2b25] active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f2c867]">
-                                <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.5h16.5v15H3.75zM3.75 15l4.5-4.5 3.75 3.75 2.25-2.25 4.5 4.5" /></svg>
-                                {{ __('Lihat poster') }}
-                            </button>
-                        @endif
-
-                    </div>
-                @elseif($occurrenceStartLocal)
+                {{-- Without an uploaded cover, the date becomes the hero's
+                     focal point. --}}
+                @if(! $heroImageUrl && $occurrenceStartLocal)
                     {{-- No photograph uploaded: the date becomes the image. Cream,
                          not another dark pane, so the hero has a focal point. --}}
                     <div class="hidden items-center lg:flex">
@@ -550,6 +528,26 @@
 
             <div class="min-w-0 space-y-16">
 
+                {{-- Cover plate: the page opens on the uploaded imagery before
+                     any section copy. --}}
+                @if($heroImageUrl)
+                    <figure class="mi-plate relative {{ $occurrenceCoverUrl ? 'aspect-[16/9]' : 'aspect-[4/3]' }} overflow-hidden rounded-2xl ring-1 ring-[#e6dccb]" data-testid="event-hero-media">
+                        <img
+                            src="{{ $heroImageUrl }}"
+                            alt="{{ __('Suasana :title', ['title' => $occurrenceDisplayTitle]) }}"
+                            class="size-full object-cover"
+                            loading="eager"
+                            fetchpriority="high"
+                        >
+                        @if($occurrencePosterUrl)
+                            <button type="button" @click="posterOpen = true" class="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-[#0b2b25]/80 px-3 py-1.5 text-[11px] font-semibold text-[#f7f3e8] backdrop-blur-sm transition duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-[#0b2b25] active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f2c867]">
+                                <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.5h16.5v15H3.75zM3.75 15l4.5-4.5 3.75 3.75 2.25-2.25 4.5 4.5" /></svg>
+                                {{ __('Lihat poster') }}
+                            </button>
+                        @endif
+                    </figure>
+                @endif
+
                 {{-- Schedule --}}
                 @if($occurrenceSessions->isNotEmpty())
                     <section id="jadual" data-testid="event-schedule-section" class="scroll-mt-8" aria-labelledby="occurrence-schedule-title">
@@ -611,9 +609,7 @@
                 @if($occurrenceHasParticipation)
                     <section id="penyertaan" data-testid="event-admission-section" class="scroll-mt-8" aria-labelledby="occurrence-participation-title">
                         <div class="mb-7">
-                            <span class="block h-[2px] w-7 bg-[#c9962f]" aria-hidden="true"></span>
-                            <p class="mt-4 text-[11px] font-semibold uppercase tracking-[0.26em] text-[#8a5f13]">{{ __('Penyertaan') }}</p>
-                            <h2 id="occurrence-participation-title" class="mt-2 font-heading text-[1.75rem] leading-[1.15] tracking-[-0.01em] text-balance">{{ __('Cara menyertai') }}</h2>
+                            <h2 id="occurrence-participation-title" class="font-heading text-[1.75rem] leading-[1.15] tracking-[-0.01em] text-balance">{{ __('Cara menyertai') }}</h2>
                         </div>
 
                         <div class="mi-paper rounded-2xl border border-[#e6dccb] bg-[#fffdf9] p-6 sm:p-8">
@@ -697,7 +693,6 @@
                     'occurrence' => $occurrence,
                     'detail' => $detail,
                     'languageLabels' => $languageLabels,
-                    'classificationLabels' => $classificationLabels,
                     'audienceLabels' => $audienceLabels,
                     'muslimOnly' => $muslimOnly,
                     'genderRestriction' => $genderRestriction,
@@ -706,9 +701,6 @@
                     'organizerHref' => $organizerHref,
                     'hideOrganizer' => true,
                     'galleryImages' => $galleryImages,
-                    'occurrenceDateLabel' => $occurrenceDateLabel,
-                    'occurrenceTimeLabel' => $occurrenceTimeLabel,
-                    'occurrenceFormatLabel' => $occurrenceFormatLabel,
                 ])
 
                 @php
@@ -720,8 +712,7 @@
                 @if($referenceRows->isNotEmpty() || $eventReferences->isNotEmpty())
                     <section id="rujukan" data-testid="event-detail-references-section" class="scroll-mt-8" aria-labelledby="occurrence-references-title">
                         <div class="mb-7">
-                            <span class="block h-[2px] w-7 bg-[#c9962f]" aria-hidden="true"></span>
-                            <div class="mt-4 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+                            <div class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
                                 <h2 id="occurrence-references-title" class="font-heading text-[1.75rem] leading-[1.15] tracking-[-0.01em] text-balance">{{ __('References') }}</h2>
                                 <p class="font-mono text-xs text-[#6b645e]">{{ $referenceTotal }}</p>
                             </div>
@@ -804,7 +795,14 @@
                         $resourceRows->push(['label' => $material->title, 'url' => $material->url, 'scope' => null, 'kind' => 'material']);
                     }
                     foreach ($eventLinks as $link) {
-                        $resourceRows->push(['label' => $detail->linkTypeLabel($link), 'url' => $link->url, 'scope' => __('Majlis'), 'kind' => 'link']);
+                        // A recording is the majlis itself, so the scope pill
+                        // adds nothing to that row.
+                        $resourceRows->push([
+                            'label' => $detail->linkTypeLabel($link),
+                            'url' => $link->url,
+                            'scope' => (string) $link->link_type === 'recording' ? null : __('Majlis'),
+                            'kind' => 'link',
+                        ]);
                     }
                     foreach ($eventMaterials as $material) {
                         $resourceRows->push(['label' => $material->title, 'url' => $material->url, 'scope' => __('Majlis'), 'kind' => 'material']);

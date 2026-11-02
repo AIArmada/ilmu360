@@ -1,4 +1,4 @@
-{{-- Shared parent-event info for the date and session pages. Expects $event, $detail, $languageLabels, $classificationLabels, $audienceLabels, $muslimOnly, $keyPeopleByRole, $organizer, $organizerHref, $galleryImages. --}}
+{{-- Shared parent-event info for the date and session pages. Expects $event, $detail, $languageLabels, $audienceLabels, $muslimOnly, $keyPeopleByRole, $organizer, $organizerHref, $galleryImages. --}}
 @php
     $occurrenceDescription = $occurrence?->metadata['description_localized'] ?? null;
     $occurrenceDescriptionText = null;
@@ -26,14 +26,6 @@
     $hasOccurrenceContext = $occurrence instanceof \AIArmada\Events\Models\EventOccurrence;
     $occurrenceOwnsSubmissionContent = $hasOccurrenceContext
         && is_array($occurrence->metadata['public_submission'] ?? null);
-    $occurrenceClassifications = $occurrenceOwnsSubmissionContent && $occurrence->relationLoaded('classifications')
-        ? $occurrence->classifications
-        : $event->classifications;
-    $classificationLabels = $occurrenceClassifications
-        ->filter(fn ($classification): bool => $classification->term !== null)
-        ->map(fn ($classification): string => (string) $classification->term->name)
-        ->unique()
-        ->values();
     $occurrenceAudiences = $occurrenceOwnsSubmissionContent && $occurrence->relationLoaded('audiences')
         ? $occurrence->audiences
         : $event->audiences;
@@ -56,7 +48,6 @@
     $sharedChildFriendly = $occurrenceOwnsSubmissionContent
         ? (bool) ($occurrence->relationLoaded('audienceProfiles') ? $occurrence->audienceProfiles->first()?->is_child_friendly : false)
         : ($event->audienceProfiles->first()?->is_child_friendly ?? (bool) $event->children_allowed);
-    $sharedGenderLabel = $occurrenceGender instanceof \BackedEnum ? $occurrenceGender->getLabel() : null;
     $sharedAgeLabels = collect($occurrenceAgeValues)
         ->map(fn (mixed $value): ?string => $value instanceof \BackedEnum
             ? $value->getLabel()
@@ -68,37 +59,65 @@
         : (bool) ($muslimOnly ?? false);
     $sharedKeyPeople = $occurrenceOwnsSubmissionContent ? collect() : ($keyPeopleByRole ?? collect());
 
-    // Reference table rows: label => value. Only non-empty pairs survive.
-    // Each row carries an icon key so the fact sheet reads as a spec panel
-    // rather than a two-column form.
+    // Attendance is a welcome, not a spec sheet: one soft card of tinted
+    // pills states who the majlis is for without reading like a policy table.
+    $sharedGenderChipLabel = match ($occurrenceGender) {
+        \App\Enums\EventGenderRestriction::WomenOnly => __('Women'),
+        \App\Enums\EventGenderRestriction::MenOnly => __('Men'),
+        default => null,
+    };
     $sharedDetailIcons = [
-        'calendar' => 'M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5',
-        'clock' => 'M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z',
-        'format' => 'M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25',
+        'heart' => 'M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z',
+        'moon' => 'M21.752 15.002A9.72 9.72 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z',
+        'smile' => 'M15.182 15.182a4.5 4.5 0 01-6.364 0M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9.75 9.75c0 .414-.168.75-.375.75S9 10.164 9 9.75s.168-.75.375-.75.375.336.375.75zm-.375 0h.008v.015h-.008V9.75zm5.625 0c0 .414-.168.75-.375.75s-.375-.336-.375-.75.168-.75.375-.75.375.336.375.75zm-.375 0h.008v.015h-.008V9.75z',
         'language' => 'M10.5 21l5.25-11.25L21 21m-9-3h7.5M3 5.621a48.474 48.474 0 016-.371m0 0c1.12 0 2.233.038 3.334.114M9 5.25V3m3.334 2.364C11.176 10.658 7.69 15.08 3 17.502m9.334-12.138c.896.061 1.785.147 2.666.257m-4.589 8.495a18.023 18.023 0 01-3.827-5.802',
         'people' => 'M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z',
-        'age' => 'M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z',
         'target' => 'M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z',
     ];
 
-    $sharedDetailRows = collect([
-        ['icon' => 'calendar', 'label' => __('Tarikh'), 'value' => $occurrenceDateLabel ?? null],
-        ['icon' => 'clock', 'label' => __('Masa'), 'value' => $occurrenceTimeLabel ?? null],
-        ['icon' => 'format', 'label' => __('Format'), 'value' => $occurrenceFormatLabel ?? null],
-        ['icon' => 'language', 'label' => __('Bahasa'), 'value' => $languageLabels->isNotEmpty() ? $languageLabels->implode(', ') : null],
-        ['icon' => 'people', 'label' => __('Kehadiran'), 'value' => $sharedGenderLabel],
-        ['icon' => 'age', 'label' => __('Peringkat umur'), 'value' => $sharedAgeLabels->isNotEmpty() ? $sharedAgeLabels->implode(', ') : null],
-        ['icon' => 'target', 'label' => __('Sasaran'), 'value' => $audienceLabels->isNotEmpty() ? $audienceLabels->implode(' · ') : null],
-    ])->filter(fn (array $row): bool => filled($row['value']))->values();
+    $sharedAttendanceChips = collect([
+        filled($sharedGenderChipLabel) ? [
+            'icon' => 'people',
+            'prefix' => null,
+            'value' => $sharedGenderChipLabel,
+            'tone' => 'border-[#e7c9c4]/70 bg-[#fbf0ee] text-[#7c3a33]',
+            'iconTone' => 'text-[#a8544a]',
+        ] : null,
+        $sharedMuslimOnly ? [
+            'icon' => 'moon',
+            'prefix' => null,
+            'value' => __('Muslim'),
+            'tone' => 'border-[#cfe0d5] bg-[#eef4ee] text-[#1c4636]',
+            'iconTone' => 'text-[#2f5d43]',
+        ] : null,
+        $sharedAgeLabels->isNotEmpty() ? [
+            'icon' => 'smile',
+            'prefix' => null,
+            'value' => $sharedAgeLabels->implode(', '),
+            'tone' => 'border-[#cfe0e8] bg-[#eef5f9] text-[#21506a]',
+            'iconTone' => 'text-[#2c6e91]',
+        ] : null,
+        $languageLabels->isNotEmpty() ? [
+            'icon' => 'language',
+            'prefix' => __('Bahasa'),
+            'value' => $languageLabels->implode(', '),
+            'tone' => 'border-[#e6dccb] bg-[#f8f3e8] text-[#4c5b56]',
+            'iconTone' => 'text-[#8a7f72]',
+        ] : null,
+        $audienceLabels->isNotEmpty() ? [
+            'icon' => 'target',
+            'prefix' => __('Sasaran'),
+            'value' => $audienceLabels->implode(' · '),
+            'tone' => 'border-[#ddd3ea] bg-[#f3eff8] text-[#4f3d6b]',
+            'iconTone' => 'text-[#7c5fa8]',
+        ] : null,
+    ])->filter()->values();
 
     // A drop cap only works on a paragraph long enough to wrap around it. On a
     // one-line description it is decoration, so short copy becomes a lead line.
     $sharedAboutIsLong = mb_strlen(trim(strip_tags((string) $sharedDescription))) > 320;
 
-    $sharedHasDetailRows = $sharedDetailRows->isNotEmpty()
-        || $classificationLabels->isNotEmpty()
-        || $sharedMuslimOnly
-        || $sharedChildFriendly;
+    $sharedHasDetailRows = $sharedAttendanceChips->isNotEmpty();
 @endphp
 
 @if($sharedSummary !== '' || $sharedAboutHtml !== '')
@@ -129,42 +148,43 @@
 @if($sharedHasDetailRows)
     <section id="butiran" class="scroll-mt-8" aria-labelledby="shared-event-details-title">
         <div class="mb-7">
-            <h2 id="shared-event-details-title" class="font-heading text-[1.75rem] leading-[1.15] tracking-[-0.01em] text-balance">{{ __('Butiran majlis') }}</h2>
+            <h2 id="shared-event-details-title" class="font-heading text-[1.75rem] leading-[1.15] tracking-[-0.01em] text-balance">{{ __('Who this majlis welcomes') }}</h2>
+            <p class="mt-2 max-w-[48ch] text-[14px] leading-6 text-[#6b645e]">{{ __('Everyone listed here is welcome to attend.') }}</p>
         </div>
 
-        {{-- A ruled fact sheet, not a boxed table: the page already carries
-             enough cards, and full-width rules let the values carry the
-             hierarchy. One column keeps the rules unbroken whatever the row
-             count — a two-column grid leaves a hole in the last row. --}}
-        @if($sharedDetailRows->isNotEmpty())
-            <dl class="border-b border-[#e6dccb]">
-                @foreach($sharedDetailRows as $detailRow)
-                    <div class="flex flex-wrap items-baseline gap-x-6 gap-y-1 border-t border-[#e6dccb] py-4 sm:flex-nowrap">
-                        <dt class="flex w-full shrink-0 items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8a5f13] sm:w-[11rem]">
-                            <svg class="size-3.5 shrink-0 text-[#c9962f]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="{{ $sharedDetailIcons[$detailRow['icon']] ?? '' }}" />
-                            </svg>
-                            {{ $detailRow['label'] }}
-                        </dt>
-                        <dd class="min-w-0 flex-1 font-heading text-[1.125rem] leading-snug text-balance text-[#14342e]">{{ $detailRow['value'] }}</dd>
-                    </div>
+        <div class="mi-paper rounded-[20px] border border-[#e6dccb] bg-[#fffdf9] p-5 sm:p-6">
+            <ul class="flex flex-wrap gap-2.5">
+                @foreach($sharedAttendanceChips as $chip)
+                    <li class="inline-flex items-start gap-2.5 rounded-2xl border px-4 py-2.5 sm:items-center {{ $chip['tone'] }}">
+                        <svg class="mt-0.5 size-4 shrink-0 sm:mt-0 {{ $chip['iconTone'] }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="{{ $sharedDetailIcons[$chip['icon']] ?? '' }}" />
+                        </svg>
+                        <span class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                            @if(filled($chip['prefix']))
+                                <span class="text-[10px] font-semibold uppercase tracking-[0.14em] opacity-70">{{ $chip['prefix'] }}</span>
+                            @endif
+                            <span class="text-[13px] font-semibold leading-snug">{{ $chip['value'] }}</span>
+                        </span>
+                    </li>
                 @endforeach
-            </dl>
-        @endif
+            </ul>
 
-        @if($classificationLabels->isNotEmpty() || $sharedMuslimOnly || $sharedChildFriendly)
-            <div class="mt-6 flex flex-wrap items-center gap-2">
-                @foreach($classificationLabels as $classificationLabel)
-                    <span class="rounded-full border border-[#c9962f]/30 bg-[#f2c867]/20 px-3 py-1 text-[12px] font-semibold text-[#8a5f13]">{{ $classificationLabel }}</span>
-                @endforeach
-                @if($sharedMuslimOnly)
-                    <span class="rounded-full bg-[#14342e] px-3 py-1 text-[12px] font-semibold text-[#fdfaf2]">{{ __('Muslim sahaja') }}</span>
-                @endif
-                @if($sharedChildFriendly)
-                    <span class="rounded-full bg-[#eef4ee] px-3 py-1 text-[12px] font-semibold text-[#2f5d43]">{{ __('Mesra kanak-kanak') }}</span>
-                @endif
-            </div>
-        @endif
+            {{-- Child-friendliness is the room's atmosphere, not a gate on
+                 who may attend, so it sits apart from the attendance pills. --}}
+            @if($sharedChildFriendly)
+                <div class="mt-4 flex items-start gap-3 rounded-2xl border border-[#ecd9a9]/70 bg-[#fcf7ea] px-4 py-3">
+                    <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#f2c867]/25 text-[#a3730f]">
+                        <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="{{ $sharedDetailIcons['heart'] }}" />
+                        </svg>
+                    </span>
+                    <div class="min-w-0">
+                        <p class="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8a5f13]">{{ __('Suasana') }}</p>
+                        <p class="mt-0.5 text-[13px] font-medium leading-5 text-[#4c5b56]">{{ __('Persekitaran mesra kanak-kanak') }}</p>
+                    </div>
+                </div>
+            @endif
+        </div>
     </section>
 @endif
 

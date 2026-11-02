@@ -3,6 +3,7 @@
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Events\Actions\CreateEventOccurrenceAction;
 use AIArmada\Events\Actions\CreateEventSessionAction;
 use AIArmada\Events\Models\EventAccessPolicy;
@@ -229,6 +230,89 @@ describe('Event Search Filters', function () {
             ->assertSet('filtersPanelOpen', true);
 
         expect($filtered->instance()->activeFilterCount())->toBe(1);
+    });
+
+    it('filters the events index to the current user saved majlis', function () {
+        config(['scout.driver' => 'database']);
+
+        $user = User::factory()->create();
+
+        $savedEvent = createVisibleEventForSearch([
+            'title' => 'Saved Majlis Filter',
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now()->subHour(),
+            'starts_at' => now()->addDays(2),
+        ]);
+
+        $otherEvent = createVisibleEventForSearch([
+            'title' => 'Other Majlis Filter',
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now()->subHour(),
+            'starts_at' => now()->addDays(3),
+        ]);
+
+        app(EngagementManager::class)->bookmark($user, $savedEvent);
+
+        Livewire::actingAs($user)
+            ->test(Index::class)
+            ->call('toggleSavedOnly')
+            ->assertSet('saved_only', true)
+            ->assertSee('Saved Majlis Filter')
+            ->assertDontSee('Other Majlis Filter')
+            ->assertSee('data-saved-filter', false);
+    });
+
+    it('shows the saved majlis empty state when the user has no saved events', function () {
+        config(['scout.driver' => 'database']);
+
+        $user = User::factory()->create();
+
+        createVisibleEventForSearch([
+            'title' => 'Unsaved Majlis Filter',
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now()->subHour(),
+            'starts_at' => now()->addDays(2),
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(Index::class)
+            ->call('toggleSavedOnly')
+            ->assertSee(__('No saved majlis found'))
+            ->assertDontSee('Unsaved Majlis Filter');
+    });
+
+    it('renders only saved majlis for the saved filter on the events index', function () {
+        config(['scout.driver' => 'database']);
+
+        $user = User::factory()->create();
+
+        $savedEvent = createVisibleEventForSearch([
+            'title' => 'Saved Majlis Page Filter',
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now()->subHour(),
+            'starts_at' => now()->addDays(2),
+        ]);
+
+        $otherEvent = createVisibleEventForSearch([
+            'title' => 'Other Majlis Page Filter',
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now()->subHour(),
+            'starts_at' => now()->addDays(3),
+        ]);
+
+        app(EngagementManager::class)->bookmark($user, $savedEvent);
+
+        $this->actingAs($user)
+            ->get(eventsIndexUrl(['saved_only' => 1]))
+            ->assertOk()
+            ->assertSee('Saved Majlis Page Filter')
+            ->assertDontSee('Other Majlis Page Filter')
+            ->assertSee('data-saved-filter', false);
     });
 
     it('keeps the filter panel closed when the landing link requests it', function (): void {

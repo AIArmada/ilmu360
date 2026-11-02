@@ -11,12 +11,10 @@
     $followingReferences = $this->followingReferences;
     $followingInstitutions = $this->followingInstitutions;
     $recentSavedSearches = $this->recentSavedSearches;
-    $recentNotifications = $this->recentNotifications;
     $dawahImpactSummary = $this->dawahImpactSummary;
     $shareRewardEnrollmentPrompt = $this->shareRewardEnrollmentPrompt;
     $recommendedEvent = $this->recommendedEvent;
     $majlisCards = $this->paginatedMajlisCards;
-    $unreadNotificationCount = $this->unreadNotificationCount;
 
     $translateStatusLabel = static function (string $status): string {
         $translated = __($status);
@@ -51,14 +49,6 @@
         'cancelled', 'rejected' => 'bg-rose-50 text-rose-800 ring-1 ring-rose-100',
         'draft' => 'bg-slate-100 text-slate-700 ring-1 ring-slate-200',
         default => 'bg-slate-100 text-slate-700 ring-1 ring-slate-200',
-    };
-    $notificationTimeLabel = static function (mixed $date): string {
-        if (! $date instanceof \Carbon\CarbonInterface) {
-            return __('Recently');
-        }
-
-        return \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($date, 'j M Y')
-            . ', ' . \App\Support\Timezone\UserDateTimeFormatter::format($date, 'h:i A');
     };
 
     $dashboardStats = [
@@ -100,63 +90,6 @@
         ],
     ];
 
-    $followingPanels = [
-        [
-            'label' => __('Institusi'),
-            'count' => $followingInstitutions->count(),
-            'description' => __('Masjid dan surau yang saya ikuti'),
-            'url' => route('institutions.index'),
-            'type' => 'institution',
-            'images' => $followingInstitutions
-                ->filter(fn ($institution) => $institution->hasMedia('cover'))
-                ->map(fn ($institution) => $institution->getFirstMediaUrl('cover', 'banner') ?: $institution->getFirstMediaUrl('cover'))
-                ->filter()
-                ->shuffle()
-                ->take(4)
-                ->values()
-                ->all(),
-            'placeholder' => asset('images/placeholders/institution.png'),
-        ],
-        [
-            'label' => __('Penceramah'),
-            'count' => $followingPersons->count(),
-            'description' => __('Ulama dan ustaz yang saya ikuti'),
-            'url' => route('persons.index'),
-            'type' => 'person',
-            'images' => $followingPersons->map(fn($s) => $s->public_avatar_url)->filter()->values()->take(4)->all(),
-            'placeholder' => asset('images/placeholders/person.png'),
-        ],
-        [
-            'label' => __('Rujukan'),
-            'count' => $followingReferences->count(),
-            'description' => __('Kitab dan bahan bacaan yang saya ikuti'),
-            'url' => route('references.index'),
-            'type' => 'reference',
-            'images' => $followingReferences
-                ->filter(fn ($reference) => $reference->hasMedia('front_cover'))
-                ->map(fn ($reference) => $reference->getFirstMediaUrl('front_cover', 'thumb') ?: $reference->getFirstMediaUrl('front_cover'))
-                ->filter()
-                ->values()
-                ->take(4)
-                ->all(),
-            'placeholder' => asset('images/about/section_02.png'),
-        ],
-        [
-            'label' => __('Carian'),
-            'count' => $recentSavedSearches->count(),
-            'description' => __('Carian ilmu yang saya simpan'),
-            'url' => route('saved-searches.index'),
-            'type' => 'search',
-            'keywords' => $recentSavedSearches
-                ->pluck('name')
-                ->filter()
-                ->take(3)
-                ->values()
-                ->all(),
-            'image' => asset('images/pattern-bg.jpg'),
-        ],
-    ];
-
     $impactMetrics = [
         ['label' => __('Sesi Ilmu Disokong'), 'value' => $dawahImpactSummary['total_outcomes']],
         ['label' => __('Jumlah Jangkauan'), 'value' => $dawahImpactSummary['visits']],
@@ -164,28 +97,6 @@
         ['label' => __('Pelayar Berbeza'), 'value' => $dawahImpactSummary['distinct_browsers']],
     ];
 
-    $quickActions = [
-        [
-            'label' => __('Cari majlis berdekatan'),
-            'url' => route('events.index'),
-            'icon' => 'M21 21l-5.2-5.2M10.8 18a7.2 7.2 0 100-14.4 7.2 7.2 0 000 14.4z',
-        ],
-        [
-            'label' => __('Hantar majlis baharu'),
-            'url' => route('submit-event.create'),
-            'icon' => 'M12 5v14m7-7H5',
-        ],
-        [
-            'label' => __('Sumbang untuk ilmu'),
-            'url' => route('dashboard.dawah-impact'),
-            'icon' => 'M12 21s-7-4.4-7-10a4 4 0 017-2.6A4 4 0 0119 11c0 5.6-7 10-7 10z',
-        ],
-        [
-            'label' => __('app-feedback.title'),
-            'url' => route('app-feedback.index'),
-            'icon' => 'M8 10h8M8 14h5m7 3.5a3.5 3.5 0 01-3.5 3.5H8l-4 3v-4.5A3.5 3.5 0 014 12.5v-6A3.5 3.5 0 017.5 3h9A3.5 3.5 0 0120 6.5v11z',
-        ],
-    ];
 @endphp
 
 <div class="min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-[#f7f3ea] pb-0">
@@ -193,45 +104,20 @@
         <div class="pointer-events-none absolute inset-0 opacity-[0.16]"
             style="background-image: url('{{ asset('images/pattern-bg.jpg') }}'); background-position: center; background-size: 420px;"></div>
         <div class="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#fbf8f1] via-[#fbf8f1]/96 to-[#f6efe0]/90"></div>
-        <div class="container relative mx-auto px-6 py-10 lg:px-12 lg:py-14">
-            <div data-testid="dashboard-hero-shell" class="relative overflow-hidden rounded-[2rem] border border-[#eadfca] bg-white/80 shadow-[0_30px_70px_-40px_rgba(11,42,66,0.45)] backdrop-blur-sm">
-                <div class="absolute inset-y-0 right-0 hidden w-full max-w-[44%] bg-gradient-to-br from-[#f8f0df] via-[#f4ead6] to-[#efe0c3] lg:block"></div>
-
-                <div class="grid lg:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)] lg:items-stretch">
-                    <div class="relative z-10 px-6 py-8 sm:px-8 sm:py-10 lg:px-12 lg:py-12">
-                        <span class="inline-flex items-center rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-xs font-semibold tracking-[0.2em] text-emerald-800 uppercase">
-                            {{ __('Dashboard') }}
-                        </span>
-
-                        <div class="mt-5 max-w-3xl">
-                            <h1 class="break-words font-heading text-4xl font-bold leading-tight text-[#0b2a42] md:text-5xl">
-                                {{ __('Perjalanan Menuju Allah') }}
-                            </h1>
-                            <p class="mt-5 max-w-2xl break-words text-base leading-7 text-slate-600 sm:text-lg">
-                                {{ __('Teruskan istiqamah mencari ilmu dan sebarkan manfaatnya. Setiap langkah kecil hari ini, membawa kita lebih dekat kepada keredhaan Allah.') }}
-                            </p>
-                            <a href="{{ route('dashboard.referrals') }}" wire:navigate class="mt-5 inline-flex rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-900 transition hover:bg-emerald-50">{{ __('Ajak kawan') }}</a>
-                        </div>
-                    </div>
-
-                    <div class="relative border-t border-[#eadfca] lg:border-t-0 lg:border-l lg:border-l-[#eadfca]/80">
-                        <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.95),_transparent_58%)]"></div>
-                        <div class="absolute inset-0 opacity-25"
-                            style="background-image: url('{{ asset('images/pattern-bg.jpg') }}'); background-position: center; background-size: 300px;"></div>
-
-                        <div class="relative h-full p-4 sm:p-5 lg:p-6">
-                            <div data-testid="dashboard-hero-media" class="overflow-hidden rounded-[1.75rem] border border-white/70 bg-[#f8f1e2] shadow-2xl shadow-amber-950/10">
-                                <img src="{{ asset('images/default-mosque-hero.png') }}" alt="" class="aspect-[5/4] h-full w-full object-cover object-center lg:min-h-[22rem] lg:aspect-auto">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="relative z-10 mt-6 rounded-lg border border-[#eadfca] bg-white/95 p-4 shadow-xl shadow-amber-950/10 backdrop-blur">
+        <div class="container relative mx-auto px-6 py-6 lg:px-12 lg:py-8">
+            <div class="relative z-10 rounded-lg border border-[#eadfca] bg-white/95 p-4 shadow-xl shadow-amber-950/10 backdrop-blur">
                 <div class="grid grid-cols-3 gap-2 md:grid-cols-3 xl:grid-cols-6">
                     @foreach($dashboardStats as $stat)
-                        <a href="{{ $loop->index < 2 ? '#majlis-saya' : ($loop->index === 5 ? route('dashboard.dawah-impact') : '#ikuti') }}"
+                        @php
+                            $statHref = match ($loop->index) {
+                                0, 1 => '#majlis-saya',
+                                2 => route('institutions.index'),
+                                3 => route('persons.index'),
+                                4 => route('references.index'),
+                                default => route('dashboard.dawah-impact'),
+                            };
+                        @endphp
+                        <a href="{{ $statHref }}"
                             @if($loop->index === 5) wire:navigate @endif
                             class="group flex flex-col items-center justify-center gap-1.5 rounded-lg border border-[#eee4d3] bg-white px-2 py-3 text-center transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-lg hover:shadow-emerald-950/5">
                             <span class="flex size-8 items-center justify-center rounded-full {{ $stat['class'] }}">
@@ -371,118 +257,7 @@
                     @endif
                 </section>
 
-                <section id="ikuti" class="rounded-lg border border-[#eadfca] bg-white p-5 shadow-sm">
-                    <div class="flex items-center gap-4">
-                        <div class="flex items-center gap-3">
-                            <span class="flex size-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
-                                <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.4-1.8M17 20H7m10 0v-2a5 5 0 00-10 0v2m0 0H2v-2a3 3 0 015.4-1.8M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                                </svg>
-                            </span>
-                            <h2 class="font-heading text-2xl font-bold text-[#0b2a42]">{{ __('Ikuti') }}</h2>
-                        </div>
-                    </div>
-
-                    <div class="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                        @foreach($followingPanels as $panel)
-                            <a href="{{ $panel['url'] }}" wire:navigate class="group rounded-lg border border-[#eadfca] bg-white p-3 transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-lg hover:shadow-emerald-950/10">
-                                <div class="relative aspect-video overflow-hidden rounded-lg bg-[#f7f3ea]">
-                                    @php
-                                        $panelType = $panel['type'] ?? 'institution';
-                                        $panelImages = $panel['images'] ?? [];
-                                        $panelPlaceholder = $panel['placeholder'] ?? '';
-                                    @endphp
-                                    @if($panelType === 'person' && count($panelImages) > 0)
-                                        <div class="flex h-full w-full items-center justify-center bg-[#f7f3ea]">
-                                            <div class="flex items-center -space-x-4">
-                                                @foreach(array_slice($panelImages, 0, 3) as $idx => $imgUrl)
-                                                    <div class="size-12 overflow-hidden rounded-full border-2 border-white shadow" style="z-index: {{ 10 - $idx }}">
-                                                        <img src="{{ $imgUrl }}" alt="" loading="lazy" class="h-full w-full object-cover">
-                                                    </div>
-                                                @endforeach
-                                                @if(count($panelImages) > 3)
-                                                    <div class="flex size-12 items-center justify-center rounded-full border-2 border-white bg-emerald-700 text-xs font-bold text-white shadow" style="z-index: 1">
-                                                        +{{ count($panelImages) - 3 }}
-                                                    </div>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    @elseif($panelType === 'reference' && count($panelImages) > 0)
-                                        <div data-testid="dashboard-follow-reference-stack" class="flex h-full w-full items-center justify-center bg-[#f7f3ea]">
-                                            <div class="flex items-center -space-x-3">
-                                                @foreach(array_slice($panelImages, 0, 3) as $idx => $imgUrl)
-                                                    <div class="h-16 w-12 overflow-hidden rounded-md border-2 border-white shadow" style="z-index: {{ 10 - $idx }}">
-                                                        <img src="{{ $imgUrl }}" alt="" loading="lazy" class="h-full w-full object-cover">
-                                                    </div>
-                                                @endforeach
-                                                @if(count($panelImages) > 3)
-                                                    <div class="flex h-16 w-12 items-center justify-center rounded-md border-2 border-white bg-emerald-700 text-xs font-bold text-white shadow" style="z-index: 1">
-                                                        +{{ count($panelImages) - 3 }}
-                                                    </div>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    @elseif($panelType === 'institution' && count($panelImages) > 0)
-                                        <div data-testid="dashboard-follow-institution-covers" class="flex h-full w-full items-center justify-center bg-[#f7f3ea]">
-                                            <div class="relative h-24 w-44">
-                                                @foreach(array_slice($panelImages, 0, 3) as $idx => $imgUrl)
-                                                    <div
-                                                        class="absolute h-20 w-32 overflow-hidden rounded-lg border-2 border-white shadow-lg"
-                                                        style="
-                                                            z-index: {{ 10 - $idx }};
-                                                            left: {{ [8, 24, 52][$idx] ?? 24 }}px;
-                                                            top: {{ [14, 8, 14][$idx] ?? 10 }}px;
-                                                            transform: rotate({{ [-8, 0, 8][$idx] ?? 0 }}deg);
-                                                        "
-                                                    >
-                                                        <img src="{{ $imgUrl }}" alt="" loading="lazy" class="h-full w-full object-cover transition duration-500 group-hover:scale-105">
-                                                    </div>
-                                                @endforeach
-                                            </div>
-                                        </div>
-                                    @elseif($panelType === 'search')
-                                        <div data-testid="dashboard-follow-search-preview" class="relative h-full w-full overflow-hidden bg-linear-to-br from-emerald-50 via-teal-50 to-cyan-100">
-                                            <div class="absolute -right-3 -top-6 h-20 w-20 rounded-full bg-emerald-200/45 blur-sm"></div>
-                                            <div class="absolute -bottom-6 -left-4 h-20 w-20 rounded-full bg-cyan-200/45 blur-sm"></div>
-
-                                            <div class="relative flex h-full flex-col justify-between p-3">
-                                                <div class="inline-flex w-fit items-center gap-1.5 rounded-full border border-emerald-200/90 bg-white/85 px-2.5 py-1 text-[11px] font-semibold text-emerald-800">
-                                                    <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z" />
-                                                    </svg>
-                                                    {{ __('Trend') }}
-                                                </div>
-
-                                                <div class="mt-2 flex flex-wrap gap-1.5">
-                                                    @forelse(($panel['keywords'] ?? []) as $keyword)
-                                                        <span class="inline-flex max-w-full truncate rounded-md bg-white/90 px-2 py-1 text-[10px] font-medium text-slate-700 ring-1 ring-emerald-100">{{ $keyword }}</span>
-                                                    @empty
-                                                        <span class="rounded-md bg-white/90 px-2 py-1 text-[10px] font-medium text-slate-600 ring-1 ring-emerald-100">{{ __('Majlis berhampiran') }}</span>
-                                                        <span class="rounded-md bg-white/90 px-2 py-1 text-[10px] font-medium text-slate-600 ring-1 ring-emerald-100">{{ __('Kuliah maghrib') }}</span>
-                                                        <span class="rounded-md bg-white/90 px-2 py-1 text-[10px] font-medium text-slate-600 ring-1 ring-emerald-100">{{ __('Tafsir minggu ini') }}</span>
-                                                    @endforelse
-                                                </div>
-                                            </div>
-                                        </div>
-                                    @else
-                                        <img src="{{ $panelPlaceholder }}" alt="" loading="lazy" class="h-full w-full object-cover opacity-60">
-                                    @endif
-                                    <span class="absolute right-2 top-2 flex size-9 items-center justify-center rounded-full bg-emerald-50 text-sm font-bold text-emerald-800 ring-1 ring-emerald-100">{{ number_format($panel['count']) }}</span>
-                                </div>
-                                <h3 class="mt-3 font-heading text-lg font-bold text-[#0b2a42]">{{ $panel['label'] }}</h3>
-                                <p class="mt-1 min-h-10 text-sm leading-5 text-slate-600">{{ $panel['description'] }}</p>
-                                <span class="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-emerald-800">
-                                    {{ __('Lihat semua') }}
-                                    <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-6l6 6-6 6" />
-                                    </svg>
-                                </span>
-                            </a>
-                        @endforeach
-                    </div>
-                </section>
-
-                <section class="rounded-lg border border-[#eadfca] bg-white p-5 shadow-sm">
+                <section id="carian-saya" class="rounded-lg border border-[#eadfca] bg-white p-5 shadow-sm">
                     <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                         <div class="flex items-center gap-3">
                             <span class="flex size-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
@@ -579,56 +354,6 @@
             </div>
 
             <aside class="min-w-0 space-y-7">
-                <section class="rounded-lg border border-[#eadfca] bg-white p-5 shadow-sm">
-                    <div class="flex items-center justify-between gap-3">
-                        <h2 class="font-heading text-2xl font-bold text-[#0b2a42]">{{ __('Notifikasi Terkini') }}</h2>
-                        <a href="{{ route('dashboard.notifications') }}" wire:navigate class="text-sm font-semibold text-emerald-800">{{ __('Lihat semua') }}</a>
-                    </div>
-
-                    <div class="mt-5 rounded-lg border border-[#eadfca] bg-[#fbf8f1]">
-                        @forelse($recentNotifications as $message)
-                            <a href="{{ ($message->data['action_url'] ?? null) ?: route('dashboard.notifications') }}" wire:navigate class="flex gap-4 border-b border-[#eadfca] p-4 last:border-b-0">
-                                <span class="flex size-10 shrink-0 items-center justify-center rounded-full {{ $message->read_at === null ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700' }}">
-                                    <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2a2 2 0 01-.6 1.4L4 17h5m6 0a3 3 0 01-6 0" />
-                                    </svg>
-                                </span>
-                                <span class="min-w-0">
-                                    <span class="line-clamp-2 text-sm font-bold text-emerald-900">{{ $message->title }}</span>
-                                    <span class="mt-1 line-clamp-2 text-sm leading-5 text-slate-600">{{ $message->body }}</span>
-                                    <span class="mt-2 block text-xs text-slate-500">{{ $notificationTimeLabel($message->data['occurred_at'] ?? null) }}</span>
-                                </span>
-                            </a>
-                        @empty
-                            <div class="p-6 text-center text-sm text-slate-600">
-                                {{ __('Tiada notifikasi baharu buat masa ini.') }}
-                            </div>
-                        @endforelse
-                        <div class="p-4">
-                            <a href="{{ route('dashboard.notifications') }}" wire:navigate class="flex w-full items-center justify-center rounded-lg border border-[#eadfca] bg-white px-4 py-2.5 text-sm font-semibold text-emerald-800 transition hover:border-emerald-200 hover:bg-emerald-50">
-                                {{ trans_choice(':count notifikasi belum dibaca', $unreadNotificationCount, ['count' => number_format($unreadNotificationCount)]) }}
-                            </a>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="rounded-lg border border-[#eadfca] bg-white p-5 shadow-sm">
-                    <h2 class="font-heading text-2xl font-bold text-[#0b2a42]">{{ __('Tindakan Pantas') }}</h2>
-                    <div class="mt-4 overflow-hidden rounded-lg border border-[#eadfca]">
-                        @foreach($quickActions as $action)
-                            <a href="{{ $action['url'] }}" wire:navigate class="flex items-center gap-3 border-b border-[#eadfca] bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition last:border-b-0 hover:bg-emerald-50/70 hover:text-emerald-900">
-                                <svg class="size-5 shrink-0 text-emerald-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="{{ $action['icon'] }}" />
-                                </svg>
-                                <span class="min-w-0 flex-1">{{ $action['label'] }}</span>
-                                <svg class="size-4 shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-                                </svg>
-                            </a>
-                        @endforeach
-                    </div>
-                </section>
-
                 <section class="relative overflow-hidden rounded-lg border border-emerald-900 bg-emerald-900 p-6 text-white shadow-sm">
                     <div class="pointer-events-none absolute inset-0 bg-repeat opacity-15"
                         style="background-image: url('{{ asset('images/pattern-bg.jpg') }}'); background-size: 260px;"></div>

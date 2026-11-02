@@ -173,6 +173,7 @@ final class EventDiscoveryCriteriaFactory
     {
         return $this->arrayValue($filters['prayer_time'] ?? null) !== []
             || $this->arrayValue($filters['language_codes'] ?? null) !== []
+            || $this->uuidList($filters['saved_event_ids'] ?? null) !== []
             || $this->arrayValue($filters['reference_author_search'] ?? null) !== []
             || $this->normalizeText($filters['person_in_charge_search'] ?? null) !== null
             || $this->normalizeText($filters['person_name_search'] ?? null) !== null

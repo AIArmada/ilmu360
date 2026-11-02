@@ -460,6 +460,38 @@ it('filters institutions by country', function () {
         ->assertDontSee('Institusi Indonesia');
 });
 
+it('filters the institution directory to followed institutions', function () {
+    $user = User::factory()->create();
+    $followedInstitution = Institution::factory()->create([
+        'name' => 'Institusi Diikuti Filter',
+        'status' => 'verified',
+    ]);
+    $otherInstitution = Institution::factory()->create([
+        'name' => 'Institusi Lain Filter',
+        'status' => 'verified',
+    ]);
+
+    $user->follow($followedInstitution);
+
+    $this->actingAs($user);
+
+    get('/institusi?followed_only=1')
+        ->assertSuccessful()
+        ->assertSee('Institusi Diikuti Filter')
+        ->assertDontSee('Institusi Lain Filter')
+        ->assertSee('data-followed-filter', false);
+});
+
+it('dispatches the followed institution filter to the results component', function () {
+    $user = User::factory()->create();
+
+    Livewire::actingAs($user)
+        ->test('pages.institutions.index')
+        ->call('toggleFollowedOnly')
+        ->assertSet('followed_only', true)
+        ->assertDispatched('institution-filters-updated');
+});
+
 it('does not infer the institution country from an unencrypted browser timezone cookie', function () {
     Livewire::withCookie('user_timezone', 'Asia/Jakarta')
         ->test('pages.institutions.index')

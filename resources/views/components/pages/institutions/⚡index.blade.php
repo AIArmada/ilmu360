@@ -1,6 +1,7 @@
 <?php
 
 use App\Forms\SharedFormSchema;
+use App\Models\User;
 use App\Support\Location\LocationSlugResolver;
 use App\Support\Location\VisitorCountryResolver;
 use Livewire\Attributes\Computed;
@@ -23,6 +24,10 @@ class extends Component
 
     public function mount(): void
     {
+        if (! auth()->user() instanceof User) {
+            $this->followed_only = null;
+        }
+
         if ($this->country === null) {
             $this->country = $this->defaultCountrySlug();
         }
@@ -51,6 +56,9 @@ class extends Component
 
     #[Url]
     public ?string $locality = null;
+
+    #[Url]
+    public ?bool $followed_only = null;
 
     public ?string $district = null;
 
@@ -545,6 +553,12 @@ class extends Component
         $this->syncResults();
     }
 
+    public function toggleFollowedOnly(): void
+    {
+        $this->followed_only = $this->followed_only === true ? null : true;
+        $this->syncResults();
+    }
+
     public function clearFilters(): void
     {
         $this->search = null;
@@ -555,6 +569,7 @@ class extends Component
         $this->district = null;
         $this->subdivision = null;
         $this->areas = [];
+        $this->followed_only = null;
         $this->memoizedLocationIds = null;
         $this->syncResults();
     }
@@ -575,7 +590,7 @@ class extends Component
      * The filter snapshot shared with the results child: same shape for the
      * initial mount params and every later sync dispatch.
      *
-     * @return array{search: ?string, country: ?string, state: ?string, city: ?string, locality: ?string, district: ?string, subdivision: ?string, areas?: array<string, ?string>}
+     * @return array{search: ?string, country: ?string, state: ?string, city: ?string, locality: ?string, district: ?string, subdivision: ?string, areas?: array<string, ?string>, followed_only?: bool}
      */
     public function filterPayload(): array
     {
@@ -591,6 +606,10 @@ class extends Component
 
         if ($this->areas !== []) {
             $payload['areas'] = $this->areas;
+        }
+
+        if ($this->followed_only === true) {
+            $payload['followed_only'] = true;
         }
 
         return $payload;
@@ -761,17 +780,24 @@ class extends Component
         <!-- Hero Section -->
         <div class="relative isolate overflow-hidden border-b border-emerald-900/[0.06]">
             <div data-material="hero-field" class="absolute inset-0 overflow-hidden bg-[#f7f3e8]">
-                <img
-                    src="{{ asset('images/institutions/pusat-ilmu-hero-background-v1.png') }}"
-                    alt=""
-                    aria-hidden="true"
-                    class="absolute inset-0 h-full w-full object-cover object-[35%_center] sm:object-[42%_center] lg:object-center"
-                    width="1672"
-                    height="941"
-                    loading="eager"
-                    decoding="async"
-                >
+                <picture class="absolute inset-0">
+                    <source media="(max-width: 639px)" srcset="{{ asset('images/institutions/pusat-ilmu-hero-background-mobile-v1.webp') }}" type="image/webp">
+                    <img
+                        src="{{ asset('images/institutions/pusat-ilmu-hero-background-v1.png') }}"
+                        alt=""
+                        aria-hidden="true"
+                        class="absolute inset-0 h-full w-full object-cover object-center sm:object-[42%_center] lg:object-center"
+                        width="1672"
+                        height="941"
+                        loading="eager"
+                        decoding="async"
+                    >
+                </picture>
                 <div class="absolute inset-0 bg-gradient-to-r from-[#fffdf8]/78 via-[#fffdf8]/24 to-transparent"></div>
+                <div
+                    class="absolute inset-0 sm:hidden"
+                    style="background: linear-gradient(90deg, rgba(255,253,248,.97) 0%, rgba(255,253,248,.92) 50%, rgba(255,253,248,.65) 78%, rgba(255,253,248,.28) 94%, rgba(255,253,248,.12) 100%);"
+                ></div>
             </div>
 
             <div class="relative mx-auto max-w-7xl px-5 pt-48 pb-14 sm:px-6 sm:pt-52 sm:pb-20 lg:px-8 lg:pt-52 lg:pb-16">
@@ -784,7 +810,7 @@ class extends Component
                         </svg>
                     </span>
                 </h1>
-                <p class="mt-6 max-w-xl text-base leading-7 text-slate-600 text-balance sm:mt-7 sm:text-lg">
+                <p class="mt-6 max-w-xl text-base leading-7 text-slate-800 text-balance sm:mt-7 sm:text-lg sm:text-slate-600">
                     {{ __('Connect with the mosques, suraus, and educational centers nurturing our community.') }}
                 </p>
                 
@@ -806,6 +832,26 @@ class extends Component
         <div class="relative z-10 mx-auto max-w-7xl px-5 py-5 sm:px-6 sm:py-6 lg:px-8">
             <div data-institution-filters class="mx-auto max-w-5xl text-left">
                         <div class="flex flex-wrap justify-center gap-4 *:w-full md:*:w-[calc(50%_-_0.5rem)] lg:*:w-[calc(20%_-_0.8rem)]">
+                        @auth
+                        <div>
+                            <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                {{ __('Filter') }}
+                            </span>
+                            <button
+                                type="button"
+                                wire:click="toggleFollowedOnly"
+                                wire:loading.attr="disabled"
+                                aria-pressed="{{ $this->followed_only === true ? 'true' : 'false' }}"
+                                aria-label="{{ __('Followed institutions only') }}"
+                                data-followed-filter
+                                class="inline-flex h-9 w-full items-center justify-center gap-2 rounded-xl border px-3 text-sm font-semibold shadow-sm transition-[border-color,background-color,color,box-shadow] disabled:cursor-wait disabled:opacity-60 {{ $this->followed_only === true ? 'border-emerald-700 bg-emerald-800 text-white' : 'border-slate-300 bg-white text-slate-700 hover:border-emerald-300 hover:text-emerald-800' }}"
+                            >
+                                <flux:icon.bookmark class="size-4 shrink-0" :variant="$this->followed_only === true ? 'solid' : 'outline'" />
+                                {{ __('Followed') }}
+                            </button>
+                        </div>
+                        @endauth
+
                         <div>
                             <label for="institution-country-filter" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
                                 {{ __('Country') }}

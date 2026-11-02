@@ -228,7 +228,6 @@ it('shows classifications even without a parent description', function (): void 
         'occurrenceSlug' => PublicScheduleSlug::occurrence($this->occurrence),
     ]))
         ->assertOk()
-        ->assertSee('Klasifikasi')
         ->assertSee('Akidah Ujian Klasifikasi');
 });
 
@@ -241,7 +240,7 @@ it('shows the muslim-only audience marker on the occurrence page', function (): 
         'occurrenceSlug' => PublicScheduleSlug::occurrence($this->occurrence),
     ]))
         ->assertOk()
-        ->assertSee('Muslim sahaja');
+        ->assertSee('Muslim');
 });
 
 it('shows shared key people beyond speakers on the occurrence page', function (): void {

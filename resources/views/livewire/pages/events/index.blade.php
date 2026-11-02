@@ -100,6 +100,7 @@
     $timingModeLabel = \App\Enums\TimingMode::tryFrom((string) $timingMode)?->label();
     $activeFilterCount = $this->activeFilterCount();
     $hasActiveFilters = $activeFilterCount > 0;
+    $savedOnly = $this->saved_only === true;
     $savedSearchQuery = array_filter([
         'search' => $search,
         'country_id' => $countryId,
@@ -366,14 +367,21 @@
     }">
     <section class="relative isolate overflow-hidden border-b border-emerald-900/[0.06]">
         <div class="absolute inset-0 bg-[#f7f3e8]">
-            <img
-                src="{{ asset('images/events/majlis-hero-background-v1.png') }}"
-                alt="{{ __('Laman masjid pada waktu keemasan') }}"
-                class="h-full w-full object-cover object-[35%_center] lg:object-center"
-            >
+            <picture class="block h-full w-full">
+                <source media="(max-width: 639px)" srcset="{{ asset('images/events/majlis-hero-background-mobile-v1.webp') }}" type="image/webp">
+                <img
+                    src="{{ asset('images/events/majlis-hero-background-v1.png') }}"
+                    alt="{{ __('Laman masjid pada waktu keemasan') }}"
+                    class="h-full w-full object-cover object-center sm:object-[35%_center] lg:object-center"
+                >
+            </picture>
             <div
                 class="absolute inset-0"
                 style="background: linear-gradient(90deg, rgba(255,253,248,.94) 0%, rgba(255,253,248,.88) 25%, rgba(255,253,248,.60) 44%, rgba(255,253,248,.15) 58%, transparent 68%);"
+            ></div>
+            <div
+                class="absolute inset-0 sm:hidden"
+                style="background: linear-gradient(90deg, rgba(255,253,248,.97) 0%, rgba(255,253,248,.92) 50%, rgba(255,253,248,.65) 78%, rgba(255,253,248,.28) 94%, rgba(255,253,248,.12) 100%);"
             ></div>
         </div>
 
@@ -388,7 +396,7 @@
                         </svg>
                     </span>
                 </h1>
-                <p class="mt-5 max-w-2xl text-lg leading-8 text-slate-700">
+                <p class="mt-5 max-w-2xl text-lg leading-8 text-slate-800 sm:text-slate-700">
                     {{ __('Cari ikut lokasi, masa, topik, penceramah atau institusi.') }}
                 </p>
 
@@ -454,6 +462,12 @@
                         <div class="flex flex-wrap items-center gap-2">
                             @if($search)
                                 <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Carian') }}: "{{ $search }}"</span>
+                            @endif
+                            @if($savedOnly)
+                                <span class="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900">
+                                    <flux:icon.bookmark class="size-3.5" variant="solid" />
+                                    {{ __('Disimpan') }}
+                                </span>
                             @endif
                             @if($lat)
                                 <span class="inline-flex items-center gap-1 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800">{{ __('Dekat saya') }} · {{ $this->radius_km }} km</span>
@@ -623,7 +637,8 @@
                     @php
                         $events = $this->scheduleItems;
                         $savedEventIds = $this->savedEventIds;
-                        $eventLoadingTarget = 'filterData,setLocation,clearLocation,clearAllFilters,toggleSave,gotoPage,setPage';
+                        $savedOnly = $this->saved_only === true;
+                        $eventLoadingTarget = 'filterData,setLocation,clearLocation,clearAllFilters,toggleSave,toggleSavedOnly,gotoPage,setPage';
                     @endphp
 
                 <div class="mt-5 min-h-[42rem]" wire:transition="event-results">
@@ -667,8 +682,8 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3.75 8.25h16.5M5.25 5.25h13.5A1.5 1.5 0 0 1 20.25 6.75v12A1.5 1.5 0 0 1 18.75 20.25H5.25A1.5 1.5 0 0 1 3.75 18.75v-12A1.5 1.5 0 0 1 5.25 5.25Z" />
                                     </svg>
                                 </div>
-                                <h3 class="mt-5 font-heading text-2xl font-bold text-slate-900">{{ __('No events found') }}</h3>
-                                <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-600">{{ __('Try adjusting your search terms or filters to find what you\'re looking for.') }}</p>
+                                <h3 class="mt-5 font-heading text-2xl font-bold text-slate-900">{{ $savedOnly ? __('No saved majlis found') : __('No events found') }}</h3>
+                                <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-600">{{ $savedOnly ? __('Save a majlis to see it here.') : __('Try adjusting your search terms or filters to find what you\'re looking for.') }}</p>
                                 <button type="button" wire:click="clearAllFilters"
                                     data-signal-event="filter.cleared"
                                     data-signal-category="filter"

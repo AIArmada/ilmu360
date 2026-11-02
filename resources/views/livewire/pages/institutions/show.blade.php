@@ -216,7 +216,7 @@
                 <div class="grid lg:grid-cols-[minmax(0,1.12fr)_minmax(24rem,0.88fr)]">
                     <div
                         data-institution-hero-media
-                        class="relative aspect-video self-start overflow-hidden bg-gradient-to-br from-emerald-100 via-[#f4efe4] to-amber-100"
+                        class="relative aspect-video overflow-hidden bg-gradient-to-br from-emerald-100 via-[#f4efe4] to-amber-100 lg:aspect-auto"
                     >
                         <div class="absolute inset-0 opacity-40" style="background-image: radial-gradient(circle at 1px 1px, rgba(7,91,72,.2) 1px, transparent 0); background-size: 20px 20px;"></div>
                         <img

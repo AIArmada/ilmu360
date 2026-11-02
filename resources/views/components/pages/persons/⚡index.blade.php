@@ -54,6 +54,9 @@ new
         #[Url]
         public ?bool $upcoming_only = null;
 
+        #[Url]
+        public ?bool $followed_only = null;
+
         /**
          * @var list<string>
          */
@@ -64,6 +67,8 @@ new
             $user = auth()->user();
 
             if (! $user instanceof User) {
+                $this->followed_only = null;
+
                 return;
             }
 
@@ -131,9 +136,20 @@ new
             $this->resetPage();
         }
 
+        public function updatedFollowedOnly(): void
+        {
+            $this->resetPage();
+        }
+
         public function toggleUpcomingOnly(): void
         {
             $this->upcoming_only = $this->upcoming_only === true ? null : true;
+            $this->resetPage();
+        }
+
+        public function toggleFollowedOnly(): void
+        {
+            $this->followed_only = $this->followed_only === true ? null : true;
             $this->resetPage();
         }
 
@@ -143,6 +159,7 @@ new
             $this->language_id = null;
             $this->state_id = null;
             $this->upcoming_only = null;
+            $this->followed_only = null;
             $this->resetPage();
         }
 
@@ -244,8 +261,12 @@ new
             $languageId = $this->normalizedFilterId($this->language_id);
             $stateId = $this->normalizedFilterId($this->state_id);
             $upcomingOnly = $this->upcoming_only === true;
+            $followedOnly = $this->followed_only === true && auth()->user() instanceof User;
 
             return $query
+                ->when($followedOnly, function (Builder $query): void {
+                    $query->whereIn('persons.id', $this->followedPersonIds());
+                })
                 ->when($titleId !== null, function (Builder $query) use ($titleId): void {
                     $query->whereHas('titleAssignments', function (Builder $titleQuery) use ($titleId): void {
                         $titleQuery
@@ -289,6 +310,14 @@ new
             $value = trim($value);
 
             return Str::isUuid($value) ? $value : null;
+        }
+
+        /**
+         * @return list<string>
+         */
+        private function followedPersonIds(): array
+        {
+            return $this->followingPersonIds;
         }
 
         private function directSearch(string $search): LengthAwarePaginatorContract
@@ -497,6 +526,7 @@ new
                 'language_id' => $this->normalizedFilterId($this->language_id),
                 'state_id' => $this->normalizedFilterId($this->state_id),
                 'upcoming_only' => $this->upcoming_only === true ? '1' : null,
+                'followed_only' => $this->followed_only === true ? '1' : null,
             ])
                 ->filter(static fn (mixed $value): bool => filled($value))
                 ->map(static fn (mixed $value): string => (string) $value)
@@ -534,24 +564,31 @@ new
     <div class="relative isolate overflow-hidden border-b border-emerald-900/[0.06]">
         <!-- Reference-matched architectural background with a clear text field on the left. -->
         <div data-material="hero-field" class="absolute inset-0 overflow-hidden bg-[#f7f3e8]">
-            <img
-                src="{{ asset('images/speakers/penceramah-hero-background-v3.png') }}"
-                alt=""
-                aria-hidden="true"
-                class="absolute inset-0 h-full w-full object-cover object-[35%_center] sm:object-[42%_center] lg:object-center"
-                width="1672"
-                height="941"
-                loading="eager"
-                fetchpriority="high"
-                decoding="async"
-            >
+            <picture class="absolute inset-0">
+                <source media="(max-width: 639px)" srcset="{{ asset('images/speakers/penceramah-hero-background-mobile-v1.webp') }}" type="image/webp">
+                <img
+                    src="{{ asset('images/speakers/penceramah-hero-background-v3.png') }}"
+                    alt=""
+                    aria-hidden="true"
+                    class="absolute inset-0 h-full w-full object-cover object-center sm:object-[42%_center] lg:object-center"
+                    width="1672"
+                    height="941"
+                    loading="eager"
+                    fetchpriority="high"
+                    decoding="async"
+                >
+            </picture>
             <div class="absolute inset-0 bg-gradient-to-r from-[#fffdf8]/78 via-[#fffdf8]/24 to-transparent"></div>
+            <div
+                class="absolute inset-0 sm:hidden"
+                style="background: linear-gradient(90deg, rgba(255,253,248,.97) 0%, rgba(255,253,248,.92) 50%, rgba(255,253,248,.65) 78%, rgba(255,253,248,.28) 94%, rgba(255,253,248,.12) 100%);"
+            ></div>
         </div>
 
         <div class="relative mx-auto max-w-7xl px-5 pt-48 pb-14 sm:px-6 sm:pt-52 sm:pb-20 lg:px-8 lg:pt-52 lg:pb-16">
             <div class="relative z-10 max-w-2xl">
                     <h1 class="mt-6 max-w-3xl font-heading text-4xl font-bold leading-[1.06] tracking-[-0.035em] text-emerald-950 sm:text-5xl lg:text-6xl">
-                        {{ __('Meet speakers who are') }}
+                        {{ __('Meet speakers') }}<span class="hidden sm:inline"> {{ __('who are') }}</span>
                         <span class="relative inline-block text-emerald-700">
                             {{ __('trusted and knowledgeable') }}
                             <svg class="absolute -bottom-2 left-0 h-3.5 w-full text-amber-500/80" viewBox="0 0 320 18" preserveAspectRatio="none" aria-hidden="true">
@@ -560,7 +597,7 @@ new
                         </span>
                     </h1>
 
-                    <p class="mt-6 max-w-xl text-base leading-7 text-slate-600 sm:mt-7 sm:text-lg">
+                    <p class="mt-6 max-w-xl text-base leading-7 text-slate-800 sm:mt-7 sm:text-lg sm:text-slate-600">
                         {{ __('Find ustaz, ustazah, and preachers across Malaysia. Learn about their work, see upcoming majlis, and continue your learning journey.') }}
                     </p>
 
@@ -590,12 +627,12 @@ new
             @php
                 $persons = $this->persons;
                 $search = $this->search;
-                $personLoadingTarget = 'search,sort,title_id,language_id,state_id,upcoming_only,toggleUpcomingOnly,clearSearch,clearFilters,gotoPage,setPage,nextPage,previousPage';
+                $personLoadingTarget = 'search,sort,title_id,language_id,state_id,upcoming_only,followed_only,toggleUpcomingOnly,toggleFollowedOnly,clearSearch,clearFilters,gotoPage,setPage,nextPage,previousPage';
                 $submitPersonUrl = route('contributions.submit-person');
                 $personTotal = $persons->total();
                 $activeFilterCount = collect([$this->title_id, $this->language_id, $this->state_id])
                     ->filter(static fn (mixed $value): bool => filled($value))
-                    ->count() + ($this->upcoming_only === true ? 1 : 0);
+                    ->count() + ($this->upcoming_only === true ? 1 : 0) + ($this->followed_only === true ? 1 : 0);
             @endphp
 
             <div
@@ -637,6 +674,8 @@ new
                                 {{ __('Type at least 3 characters to search.') }}
                             @elseif(filled($search))
                                 {{ __('No profile matches “:search”. Try a different spelling or the full name.', ['search' => $search]) }}
+                            @elseif($this->followed_only === true)
+                                {{ __('You are not following any speakers yet. Follow a speaker to see them here.') }}
                             @elseif($activeFilterCount > 0)
                                 {{ __('No speakers match these filters. Try changing or clearing them.') }}
                             @else
@@ -705,13 +744,28 @@ new
 
                     @unless(filled($search))
                         <div class="flex w-full flex-wrap items-end justify-end gap-3 sm:w-auto sm:flex-nowrap">
+                            @auth
+                                <button
+                                    type="button"
+                                    wire:click="toggleFollowedOnly"
+                                    wire:loading.attr="disabled"
+                                    aria-pressed="{{ $this->followed_only === true ? 'true' : 'false' }}"
+                                    aria-label="{{ __('Followed speakers only') }}"
+                                    data-followed-filter
+                                    class="order-3 inline-flex h-9 w-full items-center justify-center gap-2 rounded-xl border px-3.5 text-xs font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/10 disabled:cursor-wait disabled:opacity-60 sm:order-1 sm:w-auto {{ $this->followed_only === true ? 'border-emerald-700 bg-emerald-800 text-white shadow-sm' : 'border-slate-200/80 bg-white/75 text-slate-600 hover:border-emerald-200 hover:text-emerald-800' }}"
+                                >
+                                    <flux:icon.bookmark class="size-4 shrink-0" :variant="$this->followed_only === true ? 'solid' : 'outline'" />
+                                    {{ __('Followed') }}
+                                </button>
+                            @endauth
+
                             <button
                                 type="button"
                                 wire:click="toggleUpcomingOnly"
                                 wire:loading.attr="disabled"
                                 aria-pressed="{{ $this->upcoming_only === true ? 'true' : 'false' }}"
                                 aria-label="{{ __('Upcoming events only') }}"
-                                class="order-2 inline-flex h-9 w-full items-center justify-center gap-2 rounded-xl border px-3.5 text-xs font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/10 disabled:cursor-wait disabled:opacity-60 sm:order-1 sm:w-auto {{ $this->upcoming_only === true ? 'border-emerald-700 bg-emerald-800 text-white shadow-sm' : 'border-slate-200/80 bg-white/75 text-slate-600 hover:border-emerald-200 hover:text-emerald-800' }}"
+                                class="order-2 inline-flex h-9 w-full items-center justify-center gap-2 rounded-xl border px-3.5 text-xs font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/10 disabled:cursor-wait disabled:opacity-60 sm:order-2 sm:w-auto {{ $this->upcoming_only === true ? 'border-emerald-700 bg-emerald-800 text-white shadow-sm' : 'border-slate-200/80 bg-white/75 text-slate-600 hover:border-emerald-200 hover:text-emerald-800' }}"
                             >
                                 <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 3.75v2.5m9-2.5v2.5M4.5 9.25h15m-13.5-5.5h11a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2Z" />
@@ -720,7 +774,7 @@ new
                                 {{ __('Upcoming events only') }}
                             </button>
 
-                            <div class="order-1 flex shrink-0 flex-col gap-1.5 sm:order-2" role="group" aria-label="{{ __('Sort directory') }}">
+                            <div class="order-1 flex shrink-0 flex-col gap-1.5 sm:order-3" role="group" aria-label="{{ __('Sort directory') }}">
                                 <span class="px-1 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">{{ __('Sort') }}</span>
                                 <div data-material="translucent-control" class="living-majlis-veil flex items-center gap-1 rounded-xl p-0.5">
                                     <button

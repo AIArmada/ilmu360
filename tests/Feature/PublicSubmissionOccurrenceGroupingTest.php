@@ -547,7 +547,7 @@ it('renders the selected occurrence submission content on its public detail page
         ->assertSee('Occurrence Speaker Only')
         ->assertSee('Occurrence Organizer Only')
         ->assertSee('Occurrence Reference Only')
-        ->assertSee('Wanita Sahaja')
+        ->assertSee('Wanita')
         ->assertSee('Dewasa')
         ->assertSee('Malay')
         ->assertDontSee('Semua (Lelaki &amp; Wanita)')

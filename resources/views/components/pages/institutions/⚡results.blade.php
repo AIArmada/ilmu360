@@ -9,6 +9,7 @@ use App\Services\ShareTrackingService;
 use App\Support\Auth\IntendedRedirect;
 use App\Support\Location\LocationSlugResolver;
 use App\Support\Search\InstitutionSearchService;
+use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use App\Support\Timezone\UserDateTimeFormatter;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
@@ -57,13 +58,15 @@ new class extends Component
      */
     public array $areas = [];
 
+    public bool $followed_only = false;
+
     /**
      * @var list<string>
      */
     public array $followingInstitutionIds = [];
 
     /**
-     * @param  array{search?: ?string, country?: ?string, state?: ?string, city?: ?string, locality?: ?string, district?: ?string, subdivision?: ?string, areas?: array<string, ?string>}  $filters
+     * @param  array{search?: ?string, country?: ?string, state?: ?string, city?: ?string, locality?: ?string, district?: ?string, subdivision?: ?string, areas?: array<string, ?string>, followed_only?: bool}  $filters
      */
     public function mount(array $filters = []): void
     {
@@ -88,7 +91,7 @@ new class extends Component
     }
 
     /**
-     * @param  array{search?: ?string, country?: ?string, state?: ?string, city?: ?string, locality?: ?string, district?: ?string, subdivision?: ?string, areas?: array<string, ?string>}  $filters
+     * @param  array{search?: ?string, country?: ?string, state?: ?string, city?: ?string, locality?: ?string, district?: ?string, subdivision?: ?string, areas?: array<string, ?string>, followed_only?: bool}  $filters
      */
     #[On('institution-filters-updated')]
     public function syncFilters(array $filters): void
@@ -99,7 +102,7 @@ new class extends Component
     }
 
     /**
-     * @param  array{search?: ?string, country?: ?string, state?: ?string, city?: ?string, locality?: ?string, district?: ?string, subdivision?: ?string, areas?: array<string, ?string>}  $filters
+     * @param  array{search?: ?string, country?: ?string, state?: ?string, city?: ?string, locality?: ?string, district?: ?string, subdivision?: ?string, areas?: array<string, ?string>, followed_only?: bool}  $filters
      */
     private function applyFilters(array $filters): void
     {
@@ -112,6 +115,7 @@ new class extends Component
         $this->locality = LocationSlugResolver::cleanSlug($this->filterString($filters, 'locality'));
         $this->district = LocationSlugResolver::cleanSlug($this->filterString($filters, 'district'));
         $this->subdivision = LocationSlugResolver::cleanSlug($this->filterString($filters, 'subdivision'));
+        $this->followed_only = filter_var($filters['followed_only'] ?? false, FILTER_VALIDATE_BOOLEAN);
         $this->areas = array_filter(
             array_map(
                 static fn (mixed $value): ?string => LocationSlugResolver::cleanSlug(is_string($value) ? $value : null),
@@ -231,10 +235,31 @@ new class extends Component
 
     private function scopedInstitutionsQuery(): Builder
     {
-        return $this->applyLocationScope(
-            Institution::query()
-                ->whereIn('status', ['verified', 'pending']),
+        return $this->applyFollowedOnlyFilter(
+            $this->applyLocationScope(
+                Institution::query()
+                    ->whereIn('status', ['verified', 'pending']),
+            ),
         );
+    }
+
+    private function applyFollowedOnlyFilter(Builder $query): Builder
+    {
+        $user = auth()->user();
+
+        if (! $this->followed_only || ! $user instanceof User) {
+            return $query;
+        }
+
+        return $query->whereIn('institutions.id', $this->followedInstitutionIds());
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function followedInstitutionIds(): array
+    {
+        return $this->followingInstitutionIds;
     }
 
     /**
@@ -461,22 +486,25 @@ new class extends Component
             return;
         }
 
-        $user->follow($institution);
+        $follow = $user->follow($institution);
 
         if (! in_array($institutionId, $this->followingInstitutionIds, true)) {
             $this->followingInstitutionIds[] = $institutionId;
         }
 
-        app(ShareTrackingService::class)->recordOutcome(
-            type: DawahShareOutcomeType::InstitutionFollow,
-            outcomeKey: 'institution_follow:user:'.$user->id.':institution:'.$institution->id,
-            subject: $institution,
-            actor: $user,
-            request: request(),
-            metadata: [
-                'institution_id' => $institution->id,
-            ],
-        );
+        if ($follow->wasRecentlyCreated) {
+            app(ShareTrackingService::class)->recordOutcome(
+                type: DawahShareOutcomeType::InstitutionFollow,
+                businessKey: ShareOutcomeBusinessKey::follow(DawahShareOutcomeType::InstitutionFollow, (string) $follow->getKey()),
+                subject: $institution,
+                actor: $user,
+                request: request(),
+                metadata: [
+                    'institution_id' => $institution->id,
+                ],
+                occurredAt: $follow->created_at,
+            );
+        }
     }
 
     private function followableInstitution(string $institutionId): ?Institution
@@ -594,8 +622,8 @@ new class extends Component
                     <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-white text-slate-300 shadow-sm mb-6">
                         <svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                     </div>
-                    <h3 class="text-xl font-bold text-slate-900">{{ __('No institutions found') }}</h3>
-                    <p class="text-slate-500 mt-2 max-w-md mx-auto">{{ __('We couldn\'t find any institutions matching your search.') }}</p>
+                    <h3 class="text-xl font-bold text-slate-900">{{ $this->followed_only ? __('No followed institutions yet') : __('No institutions found') }}</h3>
+                    <p class="text-slate-500 mt-2 max-w-md mx-auto">{{ $this->followed_only ? __('Follow an institution to see it here.') : __('We couldn\'t find any institutions matching your search.') }}</p>
                         <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
                             <button type="button" wire:click="$parent.clearFilters()" class="font-semibold text-emerald-600 hover:text-emerald-700">
                                 {{ __('Clear Filters') }} &rarr;

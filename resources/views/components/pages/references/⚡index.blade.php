@@ -34,6 +34,9 @@ new
         #[Url]
         public ?string $search = null;
 
+        #[Url]
+        public ?bool $followed_only = null;
+
         /**
          * @var list<string>
          */
@@ -44,6 +47,8 @@ new
             $user = auth()->user();
 
             if (! $user instanceof User) {
+                $this->followed_only = null;
+
                 return;
             }
 
@@ -85,9 +90,20 @@ new
             $this->resetPage();
         }
 
+        public function updatedFollowedOnly(): void
+        {
+            $this->resetPage();
+        }
+
         public function clearSearch(): void
         {
             $this->search = null;
+            $this->resetPage();
+        }
+
+        public function toggleFollowedOnly(): void
+        {
+            $this->followed_only = $this->followed_only === true ? null : true;
             $this->resetPage();
         }
 
@@ -159,8 +175,9 @@ new
         {
             $occurrencesTable = config('events.database.tables.event_occurrences', 'event_occurrences');
 
-            $query = Reference::query()
-                ->active()
+            $query = $this->applyFollowedOnlyFilter(
+                Reference::query()->active(),
+            )
                 ->select('references.*')
                 ->selectSub($this->nextPublicEventQuery()->select('events.id'), 'next_event_id')
                 ->selectSub(
@@ -338,8 +355,7 @@ new
 
             // Lean scope check: same active visibility as the card query
             // but without the upcoming-events count subselect and media eager load.
-            $scopedIds = Reference::query()
-                ->active()
+            $scopedIds = $this->applyFollowedOnlyFilter(Reference::query()->active())
                 ->whereIn('references.id', $orderedIds)
                 ->pluck('references.id')
                 ->map(static fn (mixed $id): string => (string) $id)
@@ -371,6 +387,25 @@ new
             return $search === '' ? null : $search;
         }
 
+        private function applyFollowedOnlyFilter(Builder $query): Builder
+        {
+            $user = auth()->user();
+
+            if ($this->followed_only !== true || ! $user instanceof User) {
+                return $query;
+            }
+
+            return $query->whereIn('references.id', $this->followedReferenceIds());
+        }
+
+        /**
+         * @return list<string>
+         */
+        private function followedReferenceIds(): array
+        {
+            return $this->followingReferenceIds;
+        }
+
         /**
          * @return array{path: string, query: array<string, mixed>}
          */
@@ -400,19 +435,26 @@ new
 <div data-art-direction="living-majlis" class="living-majlis-field relative min-h-screen overflow-x-clip text-slate-800">
     <div class="relative isolate overflow-hidden border-b border-emerald-900/[0.06]">
         <div data-material="hero-field" class="absolute inset-0 overflow-hidden bg-[#f7f3e8]">
-            <img
-                src="{{ asset('images/references/rujukan-hero-background-v1.png') }}"
-                alt=""
-                aria-hidden="true"
-                class="absolute inset-0 h-full w-full object-cover object-[35%_center] sm:object-[42%_center] lg:object-center"
-                width="1916"
-                height="821"
-                loading="eager"
-                decoding="async"
-            >
+            <picture class="absolute inset-0">
+                <source media="(max-width: 639px)" srcset="{{ asset('images/references/rujukan-hero-background-mobile-v1.webp') }}" type="image/webp">
+                <img
+                    src="{{ asset('images/references/rujukan-hero-background-v1.png') }}"
+                    alt=""
+                    aria-hidden="true"
+                    class="absolute inset-0 h-full w-full object-cover object-center sm:object-[42%_center] lg:object-center"
+                    width="1916"
+                    height="821"
+                    loading="eager"
+                    decoding="async"
+                >
+            </picture>
             <div
                 class="absolute inset-0"
                 style="background: linear-gradient(90deg, rgba(255,253,248,.96) 0%, rgba(255,253,248,.90) 26%, rgba(255,253,248,.68) 45%, rgba(255,253,248,.22) 62%, transparent 72%);"
+            ></div>
+            <div
+                class="absolute inset-0 sm:hidden"
+                style="background: linear-gradient(90deg, rgba(255,253,248,.98) 0%, rgba(255,253,248,.94) 55%, rgba(255,253,248,.78) 78%, rgba(255,253,248,.55) 94%, rgba(255,253,248,.30) 100%);"
             ></div>
         </div>
 
@@ -426,7 +468,7 @@ new
                     </svg>
                 </span>
             </h1>
-            <p class="mt-6 max-w-xl text-balance text-base leading-7 text-slate-600 sm:mt-7 sm:text-lg">
+            <p class="mt-6 max-w-xl text-balance text-base leading-7 text-slate-800 sm:mt-7 sm:text-lg sm:text-slate-600">
                 {{ __('Terokai kitab, buku, artikel dan bahan rujukan pilihan untuk menyokong perjalanan ilmu anda.') }}
             </p>
 
@@ -449,7 +491,7 @@ new
             @php
                 $references = $this->references;
                 $search = $this->search;
-                $referenceLoadingTarget = 'search,clearSearch,gotoPage,setPage,nextPage,previousPage';
+                $referenceLoadingTarget = 'search,followed_only,toggleFollowedOnly,clearSearch,gotoPage,setPage,nextPage,previousPage';
             @endphp
 
             <div
@@ -478,6 +520,8 @@ new
                     <h3 class="text-xl font-bold text-slate-900">
                         @if(filled($search) && mb_strlen(trim((string) $search)) < 3)
                             {{ __('Continue typing to search') }}
+                        @elseif($this->followed_only === true)
+                            {{ __('No followed references yet') }}
                         @else
                             {{ __('No references found') }}
                         @endif
@@ -485,17 +529,48 @@ new
                     <p class="mx-auto mt-2 max-w-md text-slate-500">
                         @if(filled($search) && mb_strlen(trim((string) $search)) < 3)
                             {{ __('Type at least 3 characters to search.') }}
+                        @elseif($this->followed_only === true)
+                            {{ __('Follow a reference to see it here.') }}
                         @else
                             {{ __('We couldn\'t find any references matching your search.') }}
                         @endif
                     </p>
                     <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
-                        <button type="button" wire:click="clearSearch" class="font-semibold text-emerald-600 hover:text-emerald-700">
-                            {{ __('Clear Search') }} &rarr;
-                        </button>
+                        @if($this->followed_only === true)
+                            <button type="button" wire:click="toggleFollowedOnly" class="font-semibold text-emerald-600 hover:text-emerald-700">
+                                {{ __('View all references') }} &rarr;
+                            </button>
+                        @endif
+
+                        @if(filled($search))
+                            <button type="button" wire:click="clearSearch" class="font-semibold text-emerald-600 hover:text-emerald-700">
+                                {{ __('Clear Search') }} &rarr;
+                            </button>
+                        @endif
                     </div>
                 </div>
             @else
+                <div class="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/70 pb-5">
+                    <p class="text-sm font-semibold text-slate-600">
+                        {{ trans_choice(':count reference found|:count references found', $references->total(), ['count' => number_format($references->total())]) }}
+                    </p>
+
+                    @auth
+                        <button
+                            type="button"
+                            wire:click="toggleFollowedOnly"
+                            wire:loading.attr="disabled"
+                            aria-pressed="{{ $this->followed_only === true ? 'true' : 'false' }}"
+                            aria-label="{{ __('Followed references only') }}"
+                            data-followed-filter
+                            class="inline-flex h-9 items-center justify-center gap-2 rounded-xl border px-3.5 text-xs font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/10 disabled:cursor-wait disabled:opacity-60 {{ $this->followed_only === true ? 'border-emerald-700 bg-emerald-800 text-white shadow-sm' : 'border-slate-200/80 bg-white/75 text-slate-600 hover:border-emerald-200 hover:text-emerald-800' }}"
+                        >
+                            <flux:icon.bookmark class="size-4 shrink-0" :variant="$this->followed_only === true ? 'solid' : 'outline'" />
+                            {{ __('Followed') }}
+                        </button>
+                    @endauth
+                </div>
+
                 <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
                     @foreach($references as $reference)
                         @php

@@ -287,7 +287,10 @@ new
 >
     {{-- Hero --}}
     <section class="relative isolate min-h-[43rem] overflow-hidden bg-[#09251c] sm:min-h-[48rem] lg:min-h-[43rem]">
-        <img src="{{ asset('images/home/hero-mosque-v4.png') }}" alt="" class="absolute inset-0 h-full w-full object-cover object-[74%_center]" fetchpriority="high">
+        <picture class="absolute inset-0">
+            <source media="(max-width: 639px)" srcset="{{ asset('images/home/hero-mosque-mobile-v1.webp') }}" type="image/webp">
+            <img src="{{ asset('images/home/hero-mosque-v4.png') }}" alt="" class="absolute inset-0 h-full w-full object-cover object-center sm:object-[74%_center]" fetchpriority="high">
+        </picture>
         <div class="absolute inset-0 bg-[linear-gradient(90deg,rgba(4,20,15,0.96)_0%,rgba(4,20,15,0.86)_26%,rgba(4,20,15,0.62)_44%,rgba(4,20,15,0.3)_58%,rgba(4,20,15,0.06)_74%,rgba(4,20,15,0.18)_100%)]"></div>
         <div class="absolute inset-0 bg-[linear-gradient(0deg,rgba(3,24,17,0.45),transparent_45%,rgba(3,24,17,0.08))]"></div>
         <div class="absolute inset-0 bg-[linear-gradient(180deg,rgba(3,24,17,0.55)_0%,rgba(3,24,17,0.22)_16%,transparent_32%)]"></div>

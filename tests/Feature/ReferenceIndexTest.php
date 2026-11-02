@@ -44,6 +44,49 @@ it('searches published verified and pending references by title', function () {
         ->assertDontSee('Bulughul Maram');
 });
 
+it('filters the reference directory to followed references', function () {
+    $user = User::factory()->create();
+    $followedReference = Reference::factory()->create([
+        'title' => 'Rujukan Diikuti Filter',
+        'status' => 'verified',
+    ]);
+    $otherReference = Reference::factory()->create([
+        'title' => 'Rujukan Lain Filter',
+        'status' => 'verified',
+    ]);
+
+    $user->follow($followedReference);
+
+    $this->actingAs($user);
+
+    get('/rujukan?followed_only=1')
+        ->assertSuccessful()
+        ->assertSee('Rujukan Diikuti Filter')
+        ->assertDontSee('Rujukan Lain Filter')
+        ->assertSee('data-followed-filter', false);
+});
+
+it('keeps the followed reference filter active across search', function () {
+    $user = User::factory()->create();
+    $followedReference = Reference::factory()->create([
+        'title' => 'Rujukan Diikuti Carian',
+        'status' => 'verified',
+    ]);
+    $otherReference = Reference::factory()->create([
+        'title' => 'Rujukan Lain Carian',
+        'status' => 'verified',
+    ]);
+
+    $user->follow($followedReference);
+
+    Livewire::actingAs($user)
+        ->test('pages.references.index')
+        ->set('followed_only', true)
+        ->set('search', 'Carian')
+        ->assertSee('Rujukan Diikuti Carian')
+        ->assertDontSee('Rujukan Lain Carian');
+});
+
 it('only lists published verified and pending references on the public index', function () {
     Reference::factory()->create([
         'title' => 'Rujukan Sah Paparan',

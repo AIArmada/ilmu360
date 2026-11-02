@@ -211,6 +211,62 @@ it('hydrates an existing speaker follow in the directory card', function () {
         ->assertSee('fill="currentColor"', false);
 });
 
+it('filters the person directory to followed speakers', function () {
+    $user = User::factory()->create();
+    $followedPerson = Person::factory()->create([
+        'name' => 'Followed Speaker Filter',
+        'status' => 'verified',
+    ]);
+    $otherPerson = Person::factory()->create([
+        'name' => 'Other Speaker Filter',
+        'status' => 'verified',
+    ]);
+
+    $user->follow($followedPerson);
+
+    Livewire::actingAs($user)
+        ->test('pages.persons.index')
+        ->set('followed_only', true)
+        ->assertSee('Followed Speaker Filter')
+        ->assertDontSee('Other Speaker Filter')
+        ->assertSee('data-followed-filter', false)
+        ->assertSee('aria-pressed="true"', false);
+});
+
+it('keeps the followed speaker filter active across search', function () {
+    $user = User::factory()->create();
+    $followedPerson = Person::factory()->create([
+        'name' => 'Followed Search Speaker',
+        'status' => 'verified',
+    ]);
+    $otherPerson = Person::factory()->create([
+        'name' => 'Other Search Speaker',
+        'status' => 'verified',
+    ]);
+
+    $user->follow($followedPerson);
+    app(PersonSearchService::class)->syncPersonRecord($followedPerson);
+    app(PersonSearchService::class)->syncPersonRecord($otherPerson);
+
+    Livewire::actingAs($user)
+        ->test('pages.persons.index')
+        ->set('followed_only', true)
+        ->set('search', 'Speaker')
+        ->assertSee('Followed Search Speaker')
+        ->assertDontSee('Other Search Speaker');
+});
+
+it('ignores the followed speaker filter for guests', function () {
+    Person::factory()->create([
+        'name' => 'Guest Followed Speaker',
+        'status' => 'verified',
+    ]);
+
+    get('/penceramah?followed_only=1')
+        ->assertSuccessful()
+        ->assertSee('Guest Followed Speaker');
+});
+
 it('redirects guests to login when trying to follow from a directory card', function () {
     $person = Person::factory()->create([
         'status' => 'verified',

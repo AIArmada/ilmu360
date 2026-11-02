@@ -301,7 +301,6 @@
                 'occurrence' => $occurrence,
                 'detail' => $detail,
                 'languageLabels' => $languageLabels,
-                'classificationLabels' => $classificationLabels,
                 'audienceLabels' => $audienceLabels,
                 'muslimOnly' => $muslimOnly,
                 'keyPeopleByRole' => $keyPeopleByRole,

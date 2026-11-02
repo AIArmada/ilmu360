@@ -135,6 +135,7 @@ class EventFilters extends EventsIndex
 
         return collect([
             filled($this->search),
+            $this->saved_only === true,
             $hasCountryScope,
             filled($this->state_id),
             filled($areaAssignments['administrative_division'] ?? null),

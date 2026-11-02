@@ -115,7 +115,7 @@
 
 <body
     class="min-h-screen bg-background text-text-main font-sans antialiased selection:bg-emerald-500/30 selection:text-emerald-900">
-    <div class="relative min-h-screen overflow-hidden">
+    <div class="relative min-h-screen overflow-clip">
         <!-- Background Gradients -->
         <div class="pointer-events-none absolute inset-0 z-0">
             <div class="absolute inset-0 opacity-[0.03]"
@@ -143,13 +143,7 @@
                 $hasPersonDashboardAccess = $authenticatedUser?->persons()->exists() ?? false;
                 $hasOrganizationDashboardAccess = $authenticatedUser?->organizations()->exists() ?? false;
                 $hasManagedWorkspaceAccess = $hasInstitutionDashboardAccess || $hasPersonDashboardAccess || $hasOrganizationDashboardAccess;
-                $notificationUnreadCount = $authenticatedUser
-                    ? $authenticatedUser
-                        ->notificationInboxes()
-                        ->whereNull('archived_at')
-                        ->whereNull('read_at')
-                        ->count()
-                    : 0;
+                $authenticatedUserAvatarUrl = $authenticatedUser?->profile_avatar_url;
                 $dashboardMenuLabel = __('My Dashboard');
                 $homeMenuHeading = __('Home');
                 $workspaceMenuHeading = __('Workspaces');
@@ -164,22 +158,25 @@
                 $personsNavActive = request()->routeIs('persons.*');
                 $useHomeHeader = request()->routeIs('home');
                 $useFloatingHeader = request()->routeIs('events.index', 'events.show', 'events.occurrence', 'events.session', 'persons.index', 'persons.show', 'institutions.index', 'institutions.show', 'references.index', 'references.show', 'submit-event.create');
+                $useDashboardFloatingHeader = request()->routeIs('dashboard', 'dashboard.*');
                 $useOverlayHeader = $useHomeHeader || $useFloatingHeader;
                 $currentLocaleLabel = str_starts_with($currentLocale, 'ms')
                     ? 'BM'
                     : ($publicMenuLocales[$currentLocale] ?? $supportedLocales[$currentLocale] ?? strtoupper($currentLocale));
                 $headerClass = $useOverlayHeader
                     ? 'absolute inset-x-0 top-0 z-50 w-full transition-all'
-                    : 'sticky top-0 z-50 w-full border-b border-[#e5dccb] bg-[#f6f1e8]/95 backdrop-blur-md transition-all';
+                    : ($useDashboardFloatingHeader
+                    ? 'sticky top-0 z-50 w-full bg-transparent transition-all'
+                    : 'sticky top-0 z-50 w-full border-b border-[#e5dccb] bg-[#f6f1e8]/95 backdrop-blur-md transition-all');
                 $navClass = $useHomeHeader
                     ? 'relative mx-auto flex h-20 w-full max-w-[120rem] items-center gap-3 px-5 sm:px-8 lg:gap-5 lg:px-14 xl:px-16'
-                    : ($useFloatingHeader
+                    : (($useFloatingHeader || $useDashboardFloatingHeader)
                     ? 'relative mx-auto mt-4 flex h-20 w-[calc(100%_-_1rem)] max-w-[120rem] items-center gap-3 rounded-[2rem] border border-[#eadfca]/90 bg-[#fffdf8]/90 px-5 shadow-[0_24px_55px_-30px_rgba(63,71,47,0.48)] backdrop-blur-xl sm:mt-6 sm:w-[calc(100%_-_3rem)] sm:px-8 lg:mt-8 lg:w-[94%] lg:gap-4 lg:px-8 xl:gap-6 xl:px-24'
                     : 'container mx-auto flex h-20 items-center justify-between px-6 lg:px-12');
                 $logoClass = $useHomeHeader ? 'h-12 w-auto drop-shadow-[0_2px_10px_rgba(0,0,0,0.35)]' : 'h-12 w-auto';
                 $desktopMenuClass = $useHomeHeader
-                    ? 'hidden flex-1 items-center justify-center gap-6 text-sm font-medium text-white md:flex lg:gap-10'
-                    : 'hidden flex-1 items-center justify-center gap-7 text-sm font-medium md:flex lg:gap-10';
+                    ? 'hidden flex-1 items-center justify-center gap-6 text-sm font-medium text-white lg:flex lg:gap-10'
+                    : 'hidden flex-1 items-center justify-center gap-7 text-sm font-medium lg:flex lg:gap-10';
                 $eventsNavClass = $useHomeHeader
                     ? 'relative flex h-12 items-center px-2 text-sm font-medium text-white/90 transition-colors after:absolute after:bottom-1 after:left-1/2 after:h-1 after:-translate-x-1/2 after:rounded-full after:bg-[#e3b537] after:transition-all after:w-0 hover:text-white hover:after:w-9'
                     : 'relative flex h-12 items-center px-2 text-sm font-medium transition-colors after:absolute after:bottom-1 after:left-1/2 after:h-1 after:-translate-x-1/2 after:rounded-full after:bg-[#e3b537] after:transition-all '.($eventsNavActive ? 'text-[#005b3d] after:w-9' : 'text-[#37495a] after:w-0 hover:text-[#005b3d] hover:after:w-9');
@@ -193,18 +190,15 @@
                     ? 'living-majlis-header-button living-majlis-header-button--glass flex items-center gap-2 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold tracking-wider text-white transition-all'
                     : 'flex items-center gap-2 whitespace-nowrap rounded-full border border-[#dbe1dc] bg-white/50 px-3 py-1.5 text-xs font-semibold tracking-wider text-[#2d4b4c] transition-all group-hover:border-[#006044] group-hover:bg-[#006044] group-hover:text-white group-hover:shadow-[0_6px_16px_-8px_rgba(0,96,68,0.7)]';
                 $addButtonClass = 'living-majlis-header-button living-majlis-header-button--gold hidden items-center justify-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold sm:inline-flex';
-                $userButtonClass = 'flex items-center gap-2 rounded-full border border-[#198663] bg-white/50 p-1 pr-3 text-[#006044] transition-all hover:bg-white/80';
-                $guestLoginClass = $useHomeHeader
-                    ? 'living-majlis-header-button living-majlis-header-button--glass hidden items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold text-white transition-all lg:inline-flex'
-                    : 'hidden items-center gap-2 whitespace-nowrap rounded-full border border-[#198663] bg-white/45 px-3 py-1.5 text-sm font-semibold text-[#006044] transition-all hover:border-[#006044] hover:bg-[#006044] hover:text-white hover:shadow-[0_6px_16px_-8px_rgba(0,96,68,0.7)] lg:inline-flex';
+                $guestLoginClass = 'living-majlis-header-button living-majlis-header-button--blue hidden items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold lg:inline-flex';
                 $guestRegisterClass = $useHomeHeader
                     ? 'living-majlis-header-button inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full bg-[#0e8a63] px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-black/20 transition-all hover:bg-[#13a574]'
                     : 'living-majlis-header-button living-majlis-header-button--emerald inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full px-5 py-2 text-sm font-semibold';
                 $mobileMenuClass = $useHomeHeader
-                    ? 'mt-2 mx-4 rounded-3xl border border-white/15 bg-[linear-gradient(160deg,#0d3f82_0%,#0a3a63_38%,#075044_72%,#053b2f_100%)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_24px_60px_-24px_rgba(2,12,35,0.75)] backdrop-blur-md md:hidden'
-                    : ($useFloatingHeader
-                    ? 'mt-2 mx-4 rounded-3xl border border-[#eadfca] bg-[#fffdf8]/95 text-[#2d4b4c] shadow-[0_24px_60px_-30px_rgba(63,71,47,0.45)] backdrop-blur-md md:hidden'
-                    : 'border-t border-[#e5dccb] bg-[#f6f1e8] text-[#2d4b4c] md:hidden');
+                    ? 'mt-2 mx-4 rounded-3xl border border-white/15 bg-[linear-gradient(340deg,#0d3f82_0%,#0a3a63_38%,#075044_72%,#053b2f_100%)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_24px_60px_-24px_rgba(2,12,35,0.75)] backdrop-blur-md lg:hidden'
+                    : (($useFloatingHeader || $useDashboardFloatingHeader)
+                    ? 'mt-2 mx-4 rounded-3xl border border-[#eadfca] bg-[#fffdf8]/95 text-[#2d4b4c] shadow-[0_24px_60px_-30px_rgba(63,71,47,0.45)] backdrop-blur-md lg:hidden'
+                    : 'border-t border-[#e5dccb] bg-[#f6f1e8] text-[#2d4b4c] lg:hidden');
                 $mobileMenuToggleClass = $useHomeHeader
                     ? 'border-white/25 bg-white/10 text-white hover:border-white/40 hover:bg-white/20'
                     : 'border-[#dbe1dc] bg-white/70 text-[#2d4b4c] hover:border-[#006044] hover:text-[#006044]';
@@ -219,12 +213,7 @@
                     : 'text-slate-700 hover:bg-slate-50 hover:text-[#005b3d]';
                 $mobileMenuDividerClass = $useHomeHeader ? 'border-white/15' : 'border-[#e5dccb]';
                 $mobileMenuSectionLabelClass = $useHomeHeader ? 'text-white/50' : 'text-slate-400';
-                $mobileMenuSecondaryClass = $useHomeHeader
-                    ? 'border border-white/25 bg-white/5 text-white hover:bg-white/15'
-                    : 'border border-[#dbe1dc] bg-white text-[#2d4b4c] hover:border-[#006044] hover:text-[#006044]';
-                $mobileMenuLoginClass = $useHomeHeader
-                    ? 'living-majlis-header-button living-majlis-header-button--blue flex min-h-11 items-center justify-center rounded-xl px-4 text-sm font-semibold'
-                    : 'flex min-h-11 items-center justify-center rounded-xl px-4 text-sm font-semibold transition-colors '.$mobileMenuSecondaryClass;
+                $mobileMenuLoginClass = 'living-majlis-header-button living-majlis-header-button--blue flex min-h-11 items-center justify-center rounded-xl px-4 text-sm font-semibold';
                 $mobileMenuDangerClass = $useHomeHeader
                     ? 'border border-red-300/40 text-red-200 hover:bg-red-500/15'
                     : 'border border-red-200 text-red-600 hover:bg-red-50';
@@ -240,10 +229,11 @@
             <!-- Premium Header -->
             <header
                 class="jp-shell-header {{ $headerClass }}"
-                x-data="{ mobileMenuOpen: false }">
+                x-data="{ mobileMenuOpen: false }"
+                x-on:notification-bell-opened.window="mobileMenuOpen = false">
                 <nav class="{{ $navClass }}">
                     @if($useFloatingHeader)
-                        <span aria-hidden="true" class="pointer-events-none absolute left-0 top-1/2 hidden -translate-y-1/2 opacity-70 md:block">
+                        <span aria-hidden="true" class="pointer-events-none absolute left-0 top-1/2 hidden -translate-y-1/2 opacity-70 lg:block">
                         <svg class="h-10 w-10 text-[#cda54a]" viewBox="0 0 56 56" fill="none">
                             <g stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M1 28h10M45 28h10" stroke-width="0.8" opacity=".5" />
@@ -255,7 +245,7 @@
                             </g>
                         </svg>
                         </span>
-                        <span aria-hidden="true" class="pointer-events-none absolute right-0 top-1/2 hidden -translate-y-1/2 opacity-70 md:block">
+                        <span aria-hidden="true" class="pointer-events-none absolute right-0 top-1/2 hidden -translate-y-1/2 opacity-70 lg:block">
                         <svg class="h-10 w-10 text-[#cda54a]" viewBox="0 0 56 56" fill="none">
                             <g stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M1 28h10M45 28h10" stroke-width="0.8" opacity=".5" />
@@ -329,27 +319,30 @@
                             <svg class="relative z-10 h-4 w-4 rounded-full bg-[#087f4f] p-0.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-width="2.5" d="M12 6v12M6 12h12" />
                             </svg>
-                            <span class="relative z-10">{{ __('Add Event') }}</span>
+                            <span class="relative z-10">{{ __('Majlis') }}</span>
                         </a>
 
                         <span class="hidden h-8 w-px bg-[#dfd7c7] sm:block" aria-hidden="true"></span>
 
                         @auth
+                            <livewire:components.notification-bell :variant="$useHomeHeader ? 'glass' : 'light'" />
+
                             <!-- User Menu -->
                             <div class="relative group z-50 hidden sm:block">
                                 <button
-                                    class="{{ $userButtonClass }}">
-                                    <div
-                                        class="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold uppercase">
-                                        {{ substr(auth()->user()->name, 0, 1) }}
-                                    </div>
-                                    <span
-                                        class="hidden lg:inline text-xs font-semibold text-slate-700 max-w-[80px] truncate">{{ explode(' ', auth()->user()->name)[0] }}</span>
-                                    <svg class="h-3 w-3 text-slate-400" fill="none" viewBox="0 0 24 24"
-                                        stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M19 9l-7 7-7-7" />
-                                    </svg>
+                                    type="button"
+                                    aria-label="{{ $authenticatedUser->name }}"
+                                    aria-haspopup="true"
+                                    class="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-[#198663] bg-emerald-100 text-sm font-bold uppercase text-emerald-700 transition-all hover:border-[#0f6f52] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#198663]/60">
+                                    @if ($authenticatedUserAvatarUrl)
+                                        <img src="{{ $authenticatedUserAvatarUrl }}"
+                                            alt=""
+                                            width="40" height="40"
+                                            referrerpolicy="no-referrer"
+                                            class="h-full w-full object-cover">
+                                    @else
+                                        {{ substr($authenticatedUser->name, 0, 1) }}
+                                    @endif
                                 </button>
                                 <div
                                     class="absolute right-0 top-full mt-2 w-56 origin-top-right scale-95 opacity-0 invisible group-hover:scale-100 group-hover:opacity-100 group-hover:visible transition-all duration-200 rounded-xl border border-slate-100 bg-white p-1.5 shadow-xl shadow-slate-200/50">
@@ -364,13 +357,8 @@
                                             {{ $dashboardMenuLabel }}
                                         </a>
                                         <a href="{{ route('dashboard.notifications') }}" wire:navigate
-                                            class="flex items-center justify-between rounded-lg px-3 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50">
-                                            <span>{{ $inboxMenuLabel }}</span>
-                                            @if($notificationUnreadCount > 0)
-                                                <span class="inline-flex min-w-6 items-center justify-center rounded-full bg-emerald-600 px-2 py-0.5 text-xs font-semibold text-white">
-                                                    {{ $notificationUnreadCount }}
-                                                </span>
-                                            @endif
+                                            class="block rounded-lg px-3 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50">
+                                            {{ $inboxMenuLabel }}
                                         </a>
                                     </div>
                                     <div class="border-b border-slate-50 py-1">
@@ -439,11 +427,11 @@
 
                         <!-- Mobile Menu Button -->
                         <button type="button"
-                            @click="mobileMenuOpen = !mobileMenuOpen"
+                            @click="mobileMenuOpen = !mobileMenuOpen; if (mobileMenuOpen) { $dispatch('notification-bell-close') }"
                             :aria-expanded="mobileMenuOpen"
                             aria-controls="mobile-menu"
                             aria-label="{{ __('Menu') }}"
-                            class="flex h-11 w-11 items-center justify-center rounded-full border transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e3b537] md:hidden {{ $mobileMenuToggleClass }}">
+                            class="flex h-11 w-11 items-center justify-center rounded-full border transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e3b537] lg:hidden {{ $mobileMenuToggleClass }}">
                             <span class="relative block h-5 w-5" aria-hidden="true">
                                 <svg x-show="!mobileMenuOpen" x-transition.opacity.duration.150ms
                                     class="absolute inset-0 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -493,7 +481,10 @@
                                 data-signal-component="site_header"
                                 data-signal-control="add_event"
                                 class="living-majlis-header-button living-majlis-header-button--gold flex min-h-12 w-full items-center justify-center rounded-xl px-4 text-sm font-semibold">
-                                <span class="relative z-10">{{ __('Add Event') }}</span>
+                                <svg class="relative z-10 mr-2 h-4 w-4 rounded-full bg-[#087f4f] p-0.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-width="2.5" d="M12 6v12M6 12h12" />
+                                </svg>
+                                <span class="relative z-10">{{ __('Majlis') }}</span>
                             </a>
                             @guest
                                 <div class="grid grid-cols-2 gap-3">
@@ -509,8 +500,17 @@
                             @else
                                 <div class="flex items-center gap-3 py-1">
                                     <div
-                                        class="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold uppercase">
-                                        {{ substr(auth()->user()->name, 0, 1) }}
+                                        class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-emerald-100 font-bold uppercase text-emerald-700">
+                                        @if ($authenticatedUserAvatarUrl)
+                                            <img src="{{ $authenticatedUserAvatarUrl }}"
+                                                alt=""
+                                                width="40" height="40"
+                                                loading="lazy"
+                                                referrerpolicy="no-referrer"
+                                                class="h-full w-full object-cover">
+                                        @else
+                                            {{ substr(auth()->user()->name, 0, 1) }}
+                                        @endif
                                     </div>
                                     <div class="flex-1 min-w-0">
                                         <p class="text-sm font-bold truncate {{ $mobileMenuStrongTextClass }}">{{ auth()->user()->name }}</p>
@@ -524,13 +524,8 @@
                                         {{ $dashboardMenuLabel }}
                                     </a>
                                     <a href="{{ route('dashboard.notifications') }}" wire:navigate
-                                        class="flex min-h-11 items-center justify-between rounded-xl px-3 text-sm font-semibold transition-colors {{ $mobileMenuRowClass }}">
-                                        <span>{{ $inboxMenuLabel }}</span>
-                                        @if($notificationUnreadCount > 0)
-                                            <span class="inline-flex min-w-6 items-center justify-center rounded-full bg-emerald-600 px-2 py-0.5 text-xs font-semibold text-white">
-                                                {{ $notificationUnreadCount }}
-                                            </span>
-                                        @endif
+                                        class="flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold transition-colors {{ $mobileMenuRowClass }}">
+                                        {{ $inboxMenuLabel }}
                                     </a>
                                 </div>
                                 <div class="space-y-1 border-t pt-3 {{ $mobileMenuDividerClass }}">

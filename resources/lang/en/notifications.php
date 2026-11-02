@@ -535,4 +535,33 @@ return [
             'description' => 'New alerts will appear here once something you follow or track needs your attention.',
         ],
     ],
+    'bell' => [
+        'label' => 'Notifications',
+        'unread_aria' => 'Notifications, :count unread',
+        'heading' => 'Notifications',
+        'menu_label' => 'Notification options',
+        'mark_all_read' => 'Mark all as read',
+        'settings' => 'Notification settings',
+        'open' => 'Open notifications',
+        'tabs' => [
+            'label' => 'Notification filters',
+            'all' => 'All',
+            'unread' => 'Unread',
+        ],
+        'today' => 'Today',
+        'earlier' => 'Earlier',
+        'see_all' => 'See all notifications',
+        'empty' => [
+            'heading' => 'No notifications yet',
+            'description' => 'Updates about events, submissions, and things you follow will appear here.',
+        ],
+        'empty_unread' => [
+            'heading' => 'You\'re all caught up',
+            'description' => 'You have no unread notifications.',
+        ],
+        'loading' => 'Loading notifications...',
+        'load_failed' => 'Could not load notifications.',
+        'retry' => 'Try again',
+        'unread_dot' => 'Unread',
+    ],
 ];

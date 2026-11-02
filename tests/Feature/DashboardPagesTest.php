@@ -24,9 +24,7 @@ use App\Support\Authz\MemberRoleScopes;
 use App\Support\Authz\ScopedMemberRoleSeeder;
 use Filament\Tables\Enums\PaginationMode;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -52,7 +50,7 @@ it('requires authentication for user and institution dashboards', function () {
     $this->get(route('dashboard.events.create-advanced'))->assertRedirect(route('login'));
 });
 
-it('renders the reference-inspired user dashboard with real saved search and notification panels', function () {
+it('renders the reference-inspired user dashboard with a real saved search panel', function () {
     $user = User::factory()->create();
     $otherUser = User::factory()->create();
 
@@ -160,13 +158,10 @@ it('renders the reference-inspired user dashboard with real saved search and not
 
     $response->assertOk()
         ->assertSee('Dashboard')
-        ->assertSee('Perjalanan Menuju Allah')
-        ->assertSee('Keep seeking knowledge steadily')
-        ->assertSee('data-testid="dashboard-hero-shell"', false)
-        ->assertSee('data-testid="dashboard-hero-media"', false)
+        ->assertDontSee('data-testid="dashboard-hero-shell"', false)
         ->assertSee('My Events')
-        ->assertSee('Latest Notifications')
-        ->assertSee('Quick Actions')
+        ->assertDontSee('Latest Notifications')
+        ->assertDontSee('Quick Actions')
         ->assertSee('Recommended for you')
         ->assertSee('Home')
         ->assertSee('Workspaces')
@@ -185,15 +180,15 @@ it('renders the reference-inspired user dashboard with real saved search and not
         ->assertSee('Saved Dashboard Event')
         ->assertSee('Going Dashboard Event')
         ->assertSee('Kuliah KL Daily')
-        ->assertSee('Reminder majlis akan datang')
-        ->assertSee('Find nearby events')
+        ->assertDontSee('Reminder majlis akan datang')
+        ->assertDontSee('Find nearby events')
         ->assertSee('My Contribution')
         ->assertDontSee('Checked In Dashboard Event')
         ->assertDontSee('My Saved Searches')
         ->assertDontSee('Notification Preferences');
 
     $html = (string) $response->getContent();
-    $majlisSayaSection = str($html)->between('id="majlis-saya"', 'id="ikuti"')->toString();
+    $majlisSayaSection = str($html)->between('id="majlis-saya"', 'id="carian-saya"')->toString();
 
     expect($majlisSayaSection)
         ->toContain('Saved Dashboard Event')
@@ -210,7 +205,7 @@ it('renders the reference-inspired user dashboard with real saved search and not
     expect($html)->toContain(route('dashboard.dawah-impact'));
 });
 
-it('shows the redesigned followed-entity category cards on the dashboard', function () {
+it('shows followed-entity stats without the follow category cards on the dashboard', function () {
     $user = User::factory()->create();
     $otherUser = User::factory()->create();
 
@@ -259,9 +254,9 @@ it('shows the redesigned followed-entity category cards on the dashboard', funct
     $response->assertOk()
         ->assertDontSee('Planner menu')
         ->assertDontSee('planner-calendar', false)
-        ->assertSee('id="ikuti"', false)
+        ->assertDontSee('id="ikuti"', false)
+        ->assertDontSee('data-testid="dashboard-follow-institution-covers"', false)
         ->assertSee('My Events')
-        ->assertSee('Follow')
         ->assertSee('Institution')
         ->assertSee('Speakers')
         ->assertSee('Saved')
@@ -273,62 +268,32 @@ it('shows the redesigned followed-entity category cards on the dashboard', funct
         ->actingAs($user)
         ->get('/dashboard')
         ->assertOk()
-        ->assertSee('Ikuti')
-        ->assertSee('Masjid dan surau yang saya ikuti')
-        ->assertSee('Kitab dan bahan bacaan yang saya ikuti')
+        ->assertDontSee('Masjid dan surau yang saya ikuti')
+        ->assertDontSee('Kitab dan bahan bacaan yang saya ikuti')
         ->assertSee('Penceramah Diikuti')
         ->assertSee('Institusi Diikuti');
 });
 
-it('uses institution cover media only for the follow cards and renders reference/search visual stacks', function () {
-    Storage::fake('public');
-
+it('does not render the follow category cards on the dashboard', function () {
     $user = User::factory()->create();
-    $otherUser = User::factory()->create();
 
     $institution = Institution::factory()->create(['name' => 'Masjid Ikuti Utama']);
+    $reference = Reference::factory()->create(['title' => 'Rujukan Dashboard Visual']);
 
-    Event::factory()->for($otherUser, 'owner')->for($institution)->create([
-        'title' => 'Follow Cards Event',
-        'status' => 'approved',
-        'visibility' => 'public',
-        'starts_at' => now()->addDays(2),
-    ]);
-
-    $coverOnlyInstitution = Institution::factory()->create(['name' => 'Masjid Cover Sahaja']);
-    $logoOnlyInstitution = Institution::factory()->create(['name' => 'Masjid Logo Sahaja']);
-
-    $coverOnlyInstitution->addMedia(UploadedFile::fake()->image('dashboard-cover.jpg', 1600, 900))
-        ->toMediaCollection('cover');
-
-    $logoOnlyInstitution->addMedia(UploadedFile::fake()->image('dashboard-logo.png', 600, 600))
-        ->toMediaCollection('logo');
-
-    $reference = Reference::factory()->create([
-        'title' => 'Rujukan Dashboard Visual',
-    ]);
-
-    $reference->addMedia(UploadedFile::fake()->image('dashboard-reference.jpg', 900, 1200))
-        ->toMediaCollection('front_cover');
+    $user->follow($institution);
+    $user->follow($reference);
 
     SavedSearch::factory()->for($user)->create([
         'name' => 'Kuliah Subuh KL',
     ]);
 
-    $user->follow($coverOnlyInstitution);
-    $user->follow($logoOnlyInstitution);
-    $user->follow($reference);
-
-    $response = $this->withSession(['locale' => 'en'])
+    $this->withSession(['locale' => 'en'])
         ->actingAs($user)
-        ->get('/dashboard');
-
-    $response->assertOk()
-        ->assertSee('data-testid="dashboard-follow-institution-covers"', false)
-        ->assertSee('data-testid="dashboard-follow-reference-stack"', false)
-        ->assertSee('data-testid="dashboard-follow-search-preview"', false)
-        ->assertSee('dashboard-cover', false)
-        ->assertDontSee('dashboard-logo', false);
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertDontSee('data-testid="dashboard-follow-institution-covers"', false)
+        ->assertDontSee('data-testid="dashboard-follow-reference-stack"', false)
+        ->assertDontSee('data-testid="dashboard-follow-search-preview"', false);
 });
 
 it('renders a valid event management link on the user dashboard for manageable events', function () {
@@ -417,11 +382,10 @@ it('renders the redesigned dashboard in Malay with reference-inspired sections',
 
     $response->assertOk()
         ->assertSee('Dashboard')
-        ->assertSee('Perjalanan Menuju Allah')
-        ->assertSee('Teruskan istiqamah mencari ilmu dan sebarkan manfaatnya.')
+        ->assertDontSee('data-testid="dashboard-hero-shell"', false)
         ->assertSee('Majlis Saya')
-        ->assertSee('Notifikasi Terkini')
-        ->assertSee('Tindakan Pantas')
+        ->assertDontSee('Notifikasi Terkini')
+        ->assertDontSee('Tindakan Pantas')
         ->assertSee('Sumbangan Saya')
         ->assertDontSee('Perancang Kehadiran')
         ->assertSee('Dashboard')
@@ -431,7 +395,7 @@ it('renders the redesigned dashboard in Malay with reference-inspired sections',
         ->assertDontSee('Lihat lagi')
         ->assertDontSee('Approved');
 
-    $majlisSayaSection = str((string) $response->getContent())->between('id="majlis-saya"', 'id="ikuti"')->toString();
+    $majlisSayaSection = str((string) $response->getContent())->between('id="majlis-saya"', 'id="carian-saya"')->toString();
 
     expect($majlisSayaSection)
         ->toContain('Majlis Akan Hadir')

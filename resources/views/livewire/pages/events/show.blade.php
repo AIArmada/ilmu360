@@ -163,10 +163,9 @@
     $heroImageUrl = $event->getFirstMedia('cover')?->getAvailableUrl(['thumb'])
         ?? $event->getFirstMedia('poster')?->getAvailableUrl(['poster_thumb']);
     $eventPosterUrl = $event->getFirstMedia('poster')?->getAvailableUrl(['poster_thumb']);
-    // The ambient backdrop always has a photograph: the event's own cover, or
-    // the wide majlis placeholder. The plate itself stays uploads-only.
-    $heroBackdropUrl = $event->getFirstMedia('cover')?->getAvailableUrl(['banner', 'thumb'])
-        ?? asset('images/placeholders/event-wide-v1.jpg');
+    // Permanent ambient art: a rotating backdrop from the site's own set,
+    // never the event cover. The cover itself lives in the body.
+    $heroBackdropUrl = \App\Support\Events\HeroBackdrop::randomUrl();
 
     // ── Actions ──────────────────────────────────────────────────────
     $eventActionsDisabled = $this->eventActionsDisabled();
@@ -247,12 +246,14 @@
             <img
                 src="{{ $heroBackdropUrl }}"
                 alt=""
-                class="absolute inset-y-0 right-0 h-full w-full object-cover object-center opacity-40 sm:w-[82%] sm:opacity-60 lg:w-[66%] lg:opacity-75"
+                class="absolute inset-0 h-full w-full object-cover object-right"
                 loading="eager"
                 fetchpriority="low"
             >
-            <div class="absolute inset-0 bg-[linear-gradient(90deg,#07231f_0%,#07231f_34%,rgba(7,35,31,0.92)_50%,rgba(7,35,31,0.45)_76%,rgba(7,35,31,0.6)_100%)]"></div>
             <div class="absolute inset-0 bg-[radial-gradient(95%_110%_at_8%_0%,rgba(242,200,103,0.18),transparent_58%)]"></div>
+            {{-- Mobile keeps the photo full-bleed under the copy, so it needs
+                 its own scrim; wider layouts rely on the dark right of frame. --}}
+            <div class="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,35,31,0.88)_0%,rgba(7,35,31,0.66)_42%,rgba(7,35,31,0.40)_100%)] sm:hidden"></div>
             <div class="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#07231f] via-[#07231f]/60 to-transparent"></div>
         </div>
 
@@ -420,7 +421,6 @@
                     'occurrence' => null,
                     'detail' => $detail,
                     'languageLabels' => $languageLabels,
-                    'classificationLabels' => $classificationLabels,
                     'audienceLabels' => $audienceLabels,
                     'muslimOnly' => $muslimOnly,
                     'genderRestriction' => $genderRestriction,
@@ -429,11 +429,6 @@
                     'organizerHref' => $organizerHref,
                     'hideOrganizer' => true,
                     'galleryImages' => $galleryImages,
-                    'occurrenceDateLabel' => $occurrenceCount > 1
-                        ? trans_choice(':count tarikh', $occurrenceCount, ['count' => $occurrenceCount])
-                        : $firstDateLabel,
-                    'occurrenceTimeLabel' => null,
-                    'occurrenceFormatLabel' => $eventFormatLabel,
                 ])
 
                 {{-- Location --}}
@@ -499,8 +494,7 @@
                 @if($eventReferences->isNotEmpty())
                     <section id="rujukan" class="scroll-mt-8" aria-labelledby="event-references-title">
                         <div class="mb-7">
-                            <span class="block h-[2px] w-7 bg-[#c9962f]" aria-hidden="true"></span>
-                            <div class="mt-4 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+                            <div class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
                                 <h2 id="event-references-title" class="font-heading text-[1.75rem] leading-[1.15] tracking-[-0.01em] text-balance">{{ __('References') }}</h2>
                                 <p class="font-mono text-xs text-[#6b645e]">{{ $eventReferences->count() }}</p>
                             </div>

@@ -54,6 +54,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
@@ -88,6 +89,9 @@ class Index extends Component implements HasForms
 
     #[Url]
     public ?string $search = null;
+
+    #[Url]
+    public ?bool $saved_only = null;
 
     #[Url]
     public ?string $country_id = null;
@@ -310,6 +314,11 @@ class Index extends Component implements HasForms
      */
     private array $activeTaxonomyIdCache = [];
 
+    /**
+     * @var list<string>|null
+     */
+    private ?array $savedEventIdsForFilterCache = null;
+
     /** @var LengthAwarePaginator<int, Event>|null */
     private ?LengthAwarePaginator $eventsForRequest = null;
 
@@ -323,6 +332,10 @@ class Index extends Component implements HasForms
 
     public function mount(): void
     {
+        if (! auth()->user() instanceof User) {
+            $this->saved_only = null;
+        }
+
         $this->applyDefaultCountryScope();
 
         $normalized = $this->normalizedUrlState();
@@ -376,6 +389,7 @@ class Index extends Component implements HasForms
 
         return collect([
             filled($this->search),
+            $this->saved_only === true,
             $hasCountryScope,
             filled($this->state_id),
             filled($areaAssignments['administrative_division'] ?? null),
@@ -900,6 +914,19 @@ class Index extends Component implements HasForms
     {
         $this->search = null;
         $this->filterData['search'] = null;
+        $this->resetPage();
+    }
+
+    public function toggleSavedOnly(): void
+    {
+        if (! auth()->user() instanceof User) {
+            $this->redirect(IntendedRedirect::loginUrl(request()->fullUrl()), navigate: true);
+
+            return;
+        }
+
+        $this->saved_only = $this->saved_only === true ? null : true;
+        $this->filterData['saved_only'] = $this->saved_only;
         $this->resetPage();
     }
 
@@ -1579,6 +1606,10 @@ class Index extends Component implements HasForms
             return $this->eventsForRequest;
         }
 
+        if ($this->savedOnlyHasNoMatches()) {
+            return $this->eventsForRequest = $this->emptyEventPaginator();
+        }
+
         $filters = $this->normalizedUrlState();
         $searchFilters = $this->buildSearchFilters($filters);
         $searchService = app(EventSearchService::class);
@@ -1609,6 +1640,10 @@ class Index extends Component implements HasForms
     {
         if ($this->scheduleItemsForRequest instanceof LengthAwarePaginator) {
             return $this->scheduleItemsForRequest;
+        }
+
+        if ($this->savedOnlyHasNoMatches()) {
+            return $this->scheduleItemsForRequest = $this->emptySchedulePaginator();
         }
 
         $filters = $this->normalizedUrlState();
@@ -1691,7 +1726,67 @@ class Index extends Component implements HasForms
         $searchFilters['search_include_persons'] = false;
         $searchFilters['search_include_references'] = false;
 
+        if ($this->saved_only === true && auth()->user() instanceof User) {
+            $searchFilters['saved_event_ids'] = $this->savedEventIdsForFilter();
+        }
+
         return $searchFilters;
+    }
+
+    private function savedOnlyHasNoMatches(): bool
+    {
+        return $this->saved_only === true
+            && auth()->user() instanceof User
+            && $this->savedEventIdsForFilter() === [];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function savedEventIdsForFilter(): array
+    {
+        if ($this->savedEventIdsForFilterCache !== null) {
+            return $this->savedEventIdsForFilterCache;
+        }
+
+        $user = auth()->user();
+
+        if (! $user instanceof User) {
+            return $this->savedEventIdsForFilterCache = [];
+        }
+
+        return $this->savedEventIdsForFilterCache = $user->savedEventIds()
+            ->map(static fn (mixed $eventId): string => (string) $eventId)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return LengthAwarePaginator<int, Event>
+     */
+    private function emptyEventPaginator(): LengthAwarePaginator
+    {
+        return new Paginator(
+            items: collect(),
+            total: 0,
+            perPage: 12,
+            currentPage: max(1, (int) $this->getPage()),
+            options: ['path' => request()->url(), 'query' => request()->query()],
+        );
+    }
+
+    /**
+     * @return LengthAwarePaginator<int, PublicScheduleLeaf>
+     */
+    private function emptySchedulePaginator(): LengthAwarePaginator
+    {
+        return new Paginator(
+            items: collect(),
+            total: 0,
+            perPage: 12,
+            currentPage: max(1, (int) $this->getPage()),
+            options: ['path' => request()->url(), 'query' => request()->query()],
+        );
     }
 
     /**
@@ -1735,6 +1830,7 @@ class Index extends Component implements HasForms
 
         return [
             'search' => null,
+            'saved_only' => null,
             'country_id' => null,
             'state_id' => null,
             'area_assignments' => $this->withAreaAssignmentDefaults([]),
@@ -1798,6 +1894,7 @@ class Index extends Component implements HasForms
 
         return [
             'search' => filled($this->search) ? trim($this->search) : null,
+            'saved_only' => $this->normalizeNullableBoolean($this->saved_only),
             'country_id' => filled($this->country_id) ? $this->country_id : null,
             'state_id' => filled($this->state_id) ? $this->state_id : null,
             'area_assignments' => $this->normalizeAreaAssignments($this->area_assignments),
@@ -1849,6 +1946,7 @@ class Index extends Component implements HasForms
     private function fillPublicPropertiesFromFilters(array $filters): void
     {
         $this->search = $filters['search'];
+        $this->saved_only = $filters['saved_only'] ?? null;
         $this->country_id = $filters['country_id'];
         $this->state_id = $filters['state_id'] ?? null;
         $this->area_assignments = $filters['area_assignments'];
@@ -1939,6 +2037,7 @@ class Index extends Component implements HasForms
 
         return [
             'search' => filled($normalized['search']) ? trim((string) $normalized['search']) : null,
+            'saved_only' => $this->normalizeNullableBoolean($normalized['saved_only'] ?? null),
             'country_id' => filled($normalized['country_id']) ? (string) $normalized['country_id'] : null,
             'state_id' => filled($normalized['state_id'] ?? null) ? (string) $normalized['state_id'] : null,
             'area_assignments' => $this->normalizeAreaAssignments($normalized['area_assignments'] ?? []),

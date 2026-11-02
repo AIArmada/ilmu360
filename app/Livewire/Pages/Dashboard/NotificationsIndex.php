@@ -12,6 +12,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -53,11 +54,22 @@ class NotificationsIndex extends Component
     public function markAsRead(string $messageId): void
     {
         app(MarkNotificationMessageReadAction::class)->handle($this->currentUser(), $messageId, request());
+
+        $this->dispatch('notification-count-updated');
     }
 
     public function markAllAsRead(): void
     {
         app(MarkAllNotificationMessagesReadAction::class)->handle($this->currentUser(), request());
+
+        $this->dispatch('notification-count-updated');
+    }
+
+    #[On('notification-inbox-updated')]
+    public function refreshInbox(): void
+    {
+        unset($this->notifications);
+        unset($this->unreadCount);
     }
 
     /**

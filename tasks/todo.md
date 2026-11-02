@@ -1,5 +1,24 @@
 # Todo — Production Reference + Author Seeder
 
+## Notification bell (2026-11-02)
+
+- [x] Build `App\Livewire\Components\NotificationBell` + view: count on mount, list on open, All/Unread filter, Today/Earlier grouping in viewer timezone, unread dots, family icons, empty/loading/error states.
+- [x] Reuse `MarkNotificationMessageReadAction` / `MarkAllNotificationMessagesReadAction`; scope queries/actions to the authenticated recipient, exclude archived, use explicit global owner context.
+- [x] Wire the bell into the header (glass/light variants, 44px target, 99+ badge); remove the duplicate Inbox badges and layout count query; coordinate with the mobile menu.
+- [x] Add EN/MS `notifications.bell` translations; keep See all → inbox `status=all`.
+- [x] Dispatch `notification-count-updated` from `NotificationsIndex` so the bell follows inbox read actions.
+- [x] Add feature tests for guest visibility, recipient isolation, archived exclusion, latest-eight ordering, filters, read/read-all, redirects, count sync, empty/error states, timezone grouping.
+- [x] Run affected Pest once, Pint, PHPStan; browser-check mobile, 640–767, desktop; record evidence.
+
+### Review
+
+- The bell is a Livewire component rendered only for signed-in users. It reads the unread count on mount, loads the eight newest notifications when opened, groups them Today/Earlier in the viewer's timezone, and renders family icons, unread dots, relative times, and Empty/Loading/Retry states.
+- Queries and reads stay scoped to the authenticated recipient and exclude archived rows; both read actions are reused inside explicit global owner context. The panel reuses the existing Signals-aware mark-read actions.
+- Header changes: glass variant on the home hero, light variant elsewhere; 44px target; gold `99+` badge. The duplicate Inbox badges and layout count query were removed. The desktop nav now starts at `lg` because the 768px layout no longer fit the bell, avatar, and actions without clipping.
+- The full inbox dispatches `notification-count-updated` after read/read-all so the bell count follows inbox actions. The bell dispatches `notification-inbox-updated` when it marks items read, so the inbox list refreshes in the other direction. See all opens `/dashboard/notifications?status=all`.
+- Verification: `NotificationBellTest` 14 passed / 43 assertions; `NotificationInboxPageTest` 2/10; `ProductSignalsTelemetryTest` 16/81; `DashboardPagesTest` 27/286; `HeaderUserMenuTest` 2/6. Pint passed; PHPStan level 6 reported 0 errors. Browser probes at 1920, 768, 700, 375, and 1024 confirmed the styled panel, menu actions, unread filtering, read-all, inbox refresh, no JavaScript errors, and the tablet header fix. Screenshots: `storage/verify/notification-bell/`.
+- A broad `PublicPagesTest` run surfaced unrelated failures in concurrent search/submission work; the focused notification, header, and dashboard checks pass.
+
 ## About page — divine intention upgrade (2026-11-02)
 
 - [x] `Show.php`: cached live stats (events/institutions/speakers, active scopes, hidden when empty)
@@ -72,3 +91,22 @@
 - In-app dashboard/planner calendars remain because they query live saved/going/check-in data rather than exporting a snapshot.
 - Verification: route list has no calendar routes; `vendor/bin/pint --dirty` passed; PHPStan level 6 reported 0 errors. Affected Pest run rendered the changed pages successfully; remaining failures in that run are pre-existing failures in unrelated in-progress work (hero/image, Waze link, share signal, replacement CTA, and query-budget assertions), with no remaining calendar references in the suite.
 - Evidence: `/tmp/ilmu360-calendar-removal-tests.log`, `/tmp/ilmu360-calendar-removal-phpstan.log`.
+
+## Followed / saved directory filters (2026-11-02)
+
+- [x] Add `followed_only` URL filter to `/penceramah` with a directory toggle and followed-ID scoping across search paths.
+- [x] Add `followed_only` to `/institusi` parent filter payload + child results query.
+- [x] Add `followed_only` URL filter to `/rujukan` with scoped directory query.
+- [x] Add `saved_only` URL filter to `/majlis`, resolving current user's saved event IDs into the event discovery query.
+- [x] Add UI toggles, empty states, and translations.
+- [x] Add feature tests for each filter (guest + authenticated + combined with search).
+- [x] Run affected Pest tests, Pint, and PHPStan level 6 (no `graphify-out/` in this checkout, so no graph update).
+
+### Review
+
+- `/penceramah`, `/institusi`, and `/rujukan` now expose a bookmark-icon `Diikuti` toggle for signed-in users; `?followed_only=1` narrows listings to the current user's active follows and keeps the filter through search/sort/pagination.
+- `/majlis` exposes a `Disimpan` toggle; `?saved_only=1` resolves the signed-in user's bookmarks on the server and adds a `saved_event_ids` predicate, so the filter composes with text search, time scope, location, and nearby search. Guests never see the control and direct guest URLs are ignored.
+- Empty states are entity-specific (`No followed … yet`, `No saved majlis found`) and the saved/followed filter is included in the active-filter count and reset flow.
+- Verification: 21 targeted tests pass (90 assertions); existing `InstitutionIndexTest` 38/38 and `ReferenceIndexTest` 17/17 pass; Pint and PHPStan level 6 are clean. The four-file regression run has pre-existing failures in unrelated in-progress work (`PersonIndexTest` CTA copy and `EventSearchTest` event-detail registration/share/banner tests), with the filter suite itself green.
+- Follow-up fix: institution directory follow 500 (`Unknown named parameter $outcomeKey`). Replaced the stale named argument with the service's `businessKey` contract, reused `ShareOutcomeBusinessKey::follow()`, and guarded recording with `wasRecentlyCreated`. `InstitutionResultsTest` 8/8 and `InstitutionIndexTest` 38/38 pass; PHPStan clean.
+- Evidence: `/tmp/ilmu360-followed-filters-tests.log`, `/tmp/ilmu360-followed-filters-regression-tests.log`, `/tmp/ilmu360-followed-filters-phpstan.log`, `/tmp/ilmu360-institution-follow-fix-tests.log`, `/tmp/ilmu360-institution-follow-fix-phpstan.log`.

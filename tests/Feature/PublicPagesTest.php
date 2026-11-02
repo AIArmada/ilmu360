@@ -43,6 +43,25 @@ it('loads public index pages', function () {
     $this->get(route('submit-event.success'))->assertSuccessful()->assertSee(__('Event Submitted!'));
 });
 
+it('serves dedicated portrait hero art to mobile visitors', function () {
+    $heroes = [
+        'home' => 'images/home/hero-mosque-mobile-v1.webp',
+        'events.index' => 'images/events/majlis-hero-background-mobile-v1.webp',
+        'institutions.index' => 'images/institutions/pusat-ilmu-hero-background-mobile-v1.webp',
+        'persons.index' => 'images/speakers/penceramah-hero-background-mobile-v1.webp',
+        'references.index' => 'images/references/rujukan-hero-background-mobile-v1.webp',
+    ];
+
+    foreach ($heroes as $route => $path) {
+        expect(public_path($path))->toBeFile();
+
+        $this->get(route($route))
+            ->assertSuccessful()
+            ->assertSee('media="(max-width: 639px)"', false)
+            ->assertSee('srcset="'.asset($path).'"', false);
+    }
+});
+
 it('renders the events index loading skeleton inside a full width wrapper', function () {
     $this->get(route('events.index'))
         ->assertSuccessful()

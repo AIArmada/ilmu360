@@ -398,6 +398,16 @@ class User extends Authenticatable implements AuditableContract, CanInteract, Fi
         return $this->hasMany(SocialAccount::class);
     }
 
+    public function getProfileAvatarUrlAttribute(): ?string
+    {
+        $avatarUrl = $this->socialAccounts()
+            ->whereNotNull('avatar_url')
+            ->latest('updated_at')
+            ->value('avatar_url');
+
+        return is_string($avatarUrl) && $avatarUrl !== '' ? $avatarUrl : null;
+    }
+
     /**
      * @return MorphMany<SavedSearch, $this>
      */

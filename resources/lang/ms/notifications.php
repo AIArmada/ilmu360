@@ -535,4 +535,33 @@ return [
             'description' => 'Makluman baharu akan muncul di sini apabila sesuatu yang anda ikuti atau jejak memerlukan perhatian anda.',
         ],
     ],
+    'bell' => [
+        'label' => 'Notifikasi',
+        'unread_aria' => 'Notifikasi, :count belum dibaca',
+        'heading' => 'Notifikasi',
+        'menu_label' => 'Pilihan notifikasi',
+        'mark_all_read' => 'Tandakan semua sebagai dibaca',
+        'settings' => 'Tetapan notifikasi',
+        'open' => 'Buka notifikasi',
+        'tabs' => [
+            'label' => 'Penapis notifikasi',
+            'all' => 'Semua',
+            'unread' => 'Belum dibaca',
+        ],
+        'today' => 'Hari ini',
+        'earlier' => 'Terdahulu',
+        'see_all' => 'Lihat semua notifikasi',
+        'empty' => [
+            'heading' => 'Belum ada notifikasi',
+            'description' => 'Kemas kini tentang majlis, sumbangan, dan perkara yang anda ikuti akan muncul di sini.',
+        ],
+        'empty_unread' => [
+            'heading' => 'Semua sudah dibaca',
+            'description' => 'Tiada notifikasi yang belum dibaca.',
+        ],
+        'loading' => 'Memuatkan notifikasi...',
+        'load_failed' => 'Tidak dapat memuatkan notifikasi.',
+        'retry' => 'Cuba lagi',
+        'unread_dot' => 'Belum dibaca',
+    ],
 ];

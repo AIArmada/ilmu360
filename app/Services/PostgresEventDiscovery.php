@@ -252,6 +252,12 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
             $queryBuilder->where('institution_id', $filters['institution_id']);
         }
 
+        $savedEventIds = $this->uuidFilterValues($filters['saved_event_ids'] ?? null);
+
+        if ($savedEventIds !== []) {
+            $queryBuilder->whereIn('events.id', $savedEventIds);
+        }
+
         if (! empty($filters['venue_id'])) {
             $venueId = $filters['venue_id'];
 
