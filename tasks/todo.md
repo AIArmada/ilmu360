@@ -1,5 +1,20 @@
 # Todo — Production Reference + Author Seeder
 
+## About page — divine intention upgrade (2026-11-02)
+
+- [x] `Show.php`: cached live stats (events/institutions/speakers, active scopes, hidden when empty)
+- [x] `about.php` ×6 locales: add `path` (Cari→Semak→Hadir→Ajak) + `stats` (real-numbers proof band)
+- [x] `show.blade.php`: canonical + JSON-LD, path section, stats band, amanah callout, tagline `Dengar. Faham. Amal.`
+- [x] `AboutPageTest.php`: cover path/stats/SEO/tagline without advertising missing capabilities
+- [x] Run Pint, PHPStan level 6, affected Pest once
+
+### Review
+
+- Divine intention: ilmu360° exists so fulfilling the fardhu of seeking knowledge is not blocked by broken khabar — amanah (verified, fresh, correctable), tenang, hormat, boleh dibaca semua. Page now shows the calm path (find → verify → attend → invite) and proves it with live database numbers, never placeholders.
+- Storyline pass: one human arc across the page — Hassan's Tuesday night (hero → gap), four named stakes (Hassan/Sarah/Amir/kejiranan in cost), five capabilities as the rescue (work), direct second-person address (audience), invitation close (cta). All six locales rewritten with the same arc.
+- Verification: `vendor/bin/pint --dirty --format agent` passed; `vendor/bin/phpstan analyse` 0 errors; `vendor/bin/pest tests/Feature/AboutPageTest.php --parallel --compact` 13 passed, 50 assertions.
+- Evidence: `/tmp/ilmu360-about-pint.log`, `/tmp/ilmu360-about-phpstan.log`, `/tmp/ilmu360-about-tests.log`, `/tmp/ilmu360-story-pint.log`, `/tmp/ilmu360-story-phpstan.log`, `/tmp/ilmu360-story-tests.log`.
+
 ## App feedback audit fixes (9f4f853c)
 
 - [x] Preserve distinct attachment contents with random ULID suffixes in both shared upload entry points; add regression coverage.

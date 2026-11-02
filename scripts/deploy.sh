@@ -37,11 +37,15 @@ echo "==> Clearing Laravel caches"
 php artisan optimize:clear --ansi
 
 echo "==> Reloading ${PHP_FPM_SERVICE} (resets OPcache)"
+# The sudoers rule on this host grants `service <pool> reload`, not `systemctl`,
+# so fall back to service(8) when systemctl is refused.
 if [ -t 0 ]; then
-    sudo systemctl reload "$PHP_FPM_SERVICE"
+    sudo systemctl reload "$PHP_FPM_SERVICE" 2>/dev/null ||
+        sudo /usr/sbin/service "$PHP_FPM_SERVICE" reload
 else
     # No TTY: never block waiting for a password prompt.
-    sudo -n systemctl reload "$PHP_FPM_SERVICE"
+    sudo -n systemctl reload "$PHP_FPM_SERVICE" 2>/dev/null ||
+        sudo -n /usr/sbin/service "$PHP_FPM_SERVICE" reload
 fi
 
 echo "==> Done. Staging now serves the current working tree."
