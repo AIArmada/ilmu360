@@ -60,7 +60,7 @@ final readonly class AppFeedbackInput
             category: AppFeedbackCategory::from((string) $validated['category']),
             title: trim((string) $validated['title']),
             description: trim((string) $validated['description']),
-            pageUrl: self::sanitizePageUrl($validated['page_url'] ?? null),
+            pageUrl: self::sanitizePageUrl($validated['page_url'] ?? null, $request),
             includeDiagnostics: $includeDiagnostics,
             submissionKey: (string) $validated['submission_key'],
             evidence: $evidence,
@@ -116,7 +116,7 @@ final readonly class AppFeedbackInput
         ], JSON_THROW_ON_ERROR));
     }
 
-    public static function sanitizePageUrl(mixed $value): ?string
+    public static function sanitizePageUrl(mixed $value, ?Request $request = null): ?string
     {
         if (! is_string($value)) {
             return null;
@@ -144,7 +144,12 @@ final readonly class AppFeedbackInput
         $host = $parts['host'] ?? null;
 
         if (is_string($host)) {
-            if (! is_string($appHost) || strcasecmp($host, $appHost) !== 0) {
+            $requestHost = $request?->getHost();
+
+            $matchesApp = is_string($appHost) && strcasecmp($host, $appHost) === 0;
+            $matchesRequest = is_string($requestHost) && $requestHost !== '' && strcasecmp($host, $requestHost) === 0;
+
+            if (! $matchesApp && ! $matchesRequest) {
                 return null;
             }
 
@@ -172,8 +177,8 @@ final readonly class AppFeedbackInput
         }
 
         $origin = is_string($host)
-            ? $appScheme.'://'.$appHost
-            : rtrim($appUrl, '/');
+            ? strtolower((string) ($parts['scheme'] ?? $appScheme)).'://'.$host
+            : ($request instanceof Request ? $request->getSchemeAndHttpHost() : rtrim($appUrl, '/'));
 
         return $origin.$path;
     }
@@ -181,14 +186,27 @@ final readonly class AppFeedbackInput
     private static function isBlockedPath(string $path): bool
     {
         foreach ([
-            '/api', '/admin', '/ahli', '/mcp', '/docs', '/login', '/register', '/password',
-            '/oauth', '/auth', '/checkout', '/storage', '/media', '/livewire', '/dashboard', '/sumbangan',
-            '/notifications', '/tetapan', '/carian-tersimpan', '/permohonan-keahlian', '/jemputan-ahli', '/jemputan',
-            '/lapor', '/maklum-balas',
+            '/maklum-balas',
+            '/livewire',
+            '/storage',
+            '/media',
+            '/api',
+            '/mcp',
+            '/docs',
+            '/login',
+            '/register',
+            '/password',
+            '/oauth',
+            '/auth',
+            '/checkout',
         ] as $prefix) {
             if ($path === $prefix || str_starts_with($path, $prefix.'/')) {
                 return true;
             }
+        }
+
+        if (preg_match('#^/jemputan(?:/|$)#', $path) === 1) {
+            return true;
         }
 
         return preg_match('#^/majlis/[^/]+/(?:pas|pendaftaran|refund)(?:/|$)#', $path) === 1

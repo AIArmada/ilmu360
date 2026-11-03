@@ -17,13 +17,20 @@ it('sanitizes same-origin page urls and strips query strings and fragments', fun
         ->toBe('https://ilmu360.test/institusi/contoh');
 });
 
-it('rejects external, credential-bearing, and private page urls', function () {
+it('preserves private dashboard path without query or fragment', function () {
+    config()->set('app.url', 'https://ilmu360.test');
+
+    expect(AppFeedbackInput::sanitizePageUrl('https://ilmu360.test/dashboard/majlis/pendaftaran?token=abc#top'))
+        ->toBe('https://ilmu360.test/dashboard/majlis/pendaftaran');
+});
+
+it('rejects external, credential-bearing, and tokenized page urls', function () {
     config()->set('app.url', 'https://ilmu360.test');
 
     expect(AppFeedbackInput::sanitizePageUrl('https://evil.example/majlis'))->toBeNull()
         ->and(AppFeedbackInput::sanitizePageUrl('https://user:pass@ilmu360.test/majlis'))->toBeNull()
-        ->and(AppFeedbackInput::sanitizePageUrl('/dashboard'))->toBeNull()
-        ->and(AppFeedbackInput::sanitizePageUrl('/sumbangan'))->toBeNull()
+        ->and(AppFeedbackInput::sanitizePageUrl('/dashboard'))->toBe('https://ilmu360.test/dashboard')
+        ->and(AppFeedbackInput::sanitizePageUrl('/sumbangan'))->toBe('https://ilmu360.test/sumbangan')
         ->and(AppFeedbackInput::sanitizePageUrl('/majlis/contoh/pas/abc'))->toBeNull()
         ->and(AppFeedbackInput::sanitizePageUrl('/majlis/contoh/pendaftaran/abc'))->toBeNull()
         ->and(AppFeedbackInput::sanitizePageUrl('/maklum-balas'))->toBeNull();

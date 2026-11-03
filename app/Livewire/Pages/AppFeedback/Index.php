@@ -93,6 +93,8 @@ class Index extends Component implements HasForms
                         TextInput::make('page_url')
                             ->label(__('app-feedback.form.page_url'))
                             ->maxLength(2048)
+                            ->readOnly()
+                            ->dehydrated()
                             ->helperText(__('app-feedback.form.page_url_help'))
                             ->columnSpanFull(),
                         Toggle::make('include_diagnostics')
@@ -200,11 +202,14 @@ class Index extends Component implements HasForms
      */
     private function defaultFormState(Request $request): array
     {
+        $dari = is_string($request->query('dari')) ? $request->query('dari') : null;
+
         return [
             'category' => AppFeedbackCategory::Bug->value,
             'title' => '',
             'description' => '',
-            'page_url' => AppFeedbackInput::sanitizePageUrl($request->headers->get('referer')),
+            'page_url' => AppFeedbackInput::sanitizePageUrl($dari, $request)
+                ?? AppFeedbackInput::sanitizePageUrl($request->headers->get('referer'), $request),
             'include_diagnostics' => false,
             'evidence' => [],
         ];
