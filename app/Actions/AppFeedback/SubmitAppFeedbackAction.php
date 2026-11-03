@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\AppFeedback;
 
+use App\Enums\AppFeedbackCategory;
 use App\Enums\AppFeedbackStatus;
 use App\Models\AppFeedback;
 use App\Models\User;
@@ -46,6 +47,8 @@ class SubmitAppFeedbackAction
 
         /** @var array<string, mixed> $validated */
         $validated = Validator::make($data, AppFeedbackInput::rules($maxUploadSizeKb))->validate();
+
+        $this->rejectLowEffortContent($validated);
 
         $input = AppFeedbackInput::fromValidated($validated, $request);
         $payloadHash = $input->payloadHash();
@@ -114,6 +117,39 @@ class SubmitAppFeedbackAction
         }
 
         return $feedback;
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    private function rejectLowEffortContent(array $validated): void
+    {
+        $normalize = static function (?string $value): string {
+            $value = mb_strtolower(trim((string) $value));
+            $value = (string) preg_replace('/[^\p{L}\p{N}\s]/u', '', $value);
+            $value = (string) preg_replace('/\s+/u', ' ', $value);
+
+            return trim($value);
+        };
+
+        $title = $normalize(is_string($validated['title'] ?? null) ? $validated['title'] : null);
+        $description = $normalize(is_string($validated['description'] ?? null) ? $validated['description'] : null);
+
+        if ($title !== '' && $description !== '' && $description === $title) {
+            throw ValidationException::withMessages([
+                'description' => __('app-feedback.validation.description_repeats_title'),
+            ]);
+        }
+
+        if (($validated['category'] ?? null) === AppFeedbackCategory::Bug->value) {
+            $words = $description === '' ? [] : preg_split('/\s+/u', $description);
+
+            if (! is_array($words) || count($words) < 4) {
+                throw ValidationException::withMessages([
+                    'description' => __('app-feedback.validation.description_too_brief'),
+                ]);
+            }
+        }
     }
 
     private function notify(AppFeedback $feedback, User $reporter): void

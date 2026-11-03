@@ -105,6 +105,20 @@ it('notifies global maintainers about a new submission', function () {
     Notification::assertSentTo($admin, AppFeedbackSubmittedNotification::class);
 });
 
+it('rejects description that repeats the title', function () {
+    $user = User::factory()->create();
+
+    $data = [
+        'submission_key' => (string) Str::uuid(),
+        'category' => AppFeedbackCategory::Bug->value,
+        'title' => 'Butang rosak',
+        'description' => 'Butang rosak',
+    ];
+
+    expect(fn () => app(SubmitAppFeedbackAction::class)->handle($user, $data, request()))
+        ->toThrow(ValidationException::class);
+});
+
 it('validates required feedback fields', function () {
     $user = User::factory()->create();
 

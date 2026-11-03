@@ -26,6 +26,7 @@ return [
         'evidence_help' => 'Upload up to 8 JPG, PNG, WebP, or PDF files. Files are stored privately. For bugs or UI suggestions, a screenshot helps a lot — you can paste it straight from your clipboard.',
         'submit' => 'Send feedback',
         'submitting' => 'Sending...',
+        'quota_left' => 'left this hour',
     ],
     'history' => [
         'heading' => 'My feedback',
@@ -59,6 +60,8 @@ return [
     'validation' => [
         'quota_exceeded' => 'You have sent too much feedback in the last hour. Please try again later.',
         'submission_changed' => 'This feedback content has changed. Please submit it again.',
+        'description_repeats_title' => 'The details are too similar to the title. Please explain what happened in more depth.',
+        'description_too_brief' => 'For bugs, please describe the issue in at least 4 words.',
         'resolution_note_required' => 'A resolution note is required before closing this feedback.',
         'resolution_note_max' => 'The resolution note may not exceed 2000 characters.',
         'resolution_note_locked' => 'This feedback was already closed with a different note.',

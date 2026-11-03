@@ -56,6 +56,8 @@ class Index extends Component implements HasForms
 
     public ?string $successMessage = null;
 
+    public ?string $formError = null;
+
     public function mount(Request $request): void
     {
         $user = auth()->user();
@@ -166,6 +168,7 @@ class Index extends Component implements HasForms
 
         $state = $this->appFeedbackForm()->getState();
         $state['submission_key'] = $this->submissionKey;
+        $this->formError = null;
 
         try {
             $feedback = $submitAppFeedbackAction->handle($user, $state, request());
@@ -250,13 +253,33 @@ class Index extends Component implements HasForms
         ];
     }
 
+    #[Computed]
+    public function quotaRemaining(): int
+    {
+        $user = auth()->user();
+
+        abort_unless($user instanceof User, 403);
+
+        $recentCount = AppFeedback::query()
+            ->where('reporter_id', $user->getKey())
+            ->where('created_at', '>=', now()->subHour())
+            ->count();
+
+        return max(0, 3 - $recentCount);
+    }
+
     private function mapValidationErrors(ValidationException $exception): void
     {
         foreach ($exception->errors() as $key => $messages) {
-            $field = match ($key) {
-                'quota', 'submission_key' => 'data.category',
-                default => str_starts_with($key, 'data.') ? $key : 'data.'.$key,
-            };
+            if (in_array($key, ['quota', 'submission_key'], true)) {
+                foreach ($messages as $message) {
+                    $this->formError = is_string($message) ? $message : (string) $message;
+                }
+
+                continue;
+            }
+
+            $field = str_starts_with($key, 'data.') ? $key : 'data.'.$key;
 
             foreach ($messages as $message) {
                 $this->addError($field, $message);

@@ -26,6 +26,7 @@ return [
         'evidence_help' => 'Muat naik sehingga 8 fail JPG, PNG, WebP, atau PDF. Fail disimpan secara peribadi. Untuk ralat atau cadangan paparan, tangkap layar sangat membantu — anda boleh tampal terus dari papan klip.',
         'submit' => 'Hantar maklum balas',
         'submitting' => 'Menghantar...',
+        'quota_left' => 'baki sejam ini',
     ],
     'history' => [
         'heading' => 'Maklum balas saya',
@@ -59,6 +60,8 @@ return [
     'validation' => [
         'quota_exceeded' => 'Anda telah menghantar terlalu banyak maklum balas dalam satu jam. Sila cuba lagi sebentar lagi.',
         'submission_changed' => 'Kandungan maklum balas ini telah berubah. Sila hantar semula.',
+        'description_repeats_title' => 'Huraian terlalu sama dengan tajuk. Sila terangkan apa yang berlaku dengan lebih lanjut.',
+        'description_too_brief' => 'Untuk ralat, sila huraikan dalam sekurang-kurangnya 4 patah perkataan.',
         'resolution_note_required' => 'Sila berikan catatan penyelesaian sebelum menutup maklum balas ini.',
         'resolution_note_max' => 'Catatan penyelesaian tidak boleh melebihi 2000 aksara.',
         'resolution_note_locked' => 'Maklum balas ini telah ditutup dengan catatan yang berbeza.',
