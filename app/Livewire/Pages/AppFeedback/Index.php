@@ -146,7 +146,10 @@ class Index extends Component implements HasForms
                             ->dehydrated()
                             ->saveRelationshipsUsing(null)
                             ->loadStateFromRelationshipsUsing(null)
-                            ->previewable(false)
+                            ->previewable()
+                            ->pasteable()
+                            ->reorderable()
+                            ->imageEditor()
                             ->openable(false)
                             ->downloadable(false)
                             ->columnSpanFull(),

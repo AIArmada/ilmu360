@@ -143,10 +143,20 @@
                                 <ul class="mt-2 flex flex-wrap gap-2">
                                     @foreach ($evidence as $media)
                                         <li wire:key="app-feedback-evidence-{{ $feedback->id }}-{{ $media->getKey() }}">
-                                            <a href="{{ route('app-feedback.evidence.download', ['feedback' => $feedback, 'mediaId' => $media->getKey()]) }}"
-                                                class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800">
-                                                {{ $media->name ?: $media->file_name }}
-                                            </a>
+                                            @if (str_starts_with((string) $media->mime_type, 'image/'))
+                                                <a href="{{ route('app-feedback.evidence.download', ['feedback' => $feedback, 'mediaId' => $media->getKey(), 'preview' => 1]) }}"
+                                                    target="_blank" rel="noopener noreferrer"
+                                                    class="block overflow-hidden rounded-xl border border-slate-200 transition hover:border-emerald-300">
+                                                    <img src="{{ route('app-feedback.evidence.download', ['feedback' => $feedback, 'mediaId' => $media->getKey(), 'preview' => 1]) }}"
+                                                        alt="{{ $media->name ?: $media->file_name }}"
+                                                        class="h-24 w-24 object-cover" loading="lazy" />
+                                                </a>
+                                            @else
+                                                <a href="{{ route('app-feedback.evidence.download', ['feedback' => $feedback, 'mediaId' => $media->getKey()]) }}"
+                                                    class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800">
+                                                    {{ $media->name ?: $media->file_name }}
+                                                </a>
+                                            @endif
                                         </li>
                                     @endforeach
                                 </ul>

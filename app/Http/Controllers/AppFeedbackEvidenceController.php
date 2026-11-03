@@ -6,13 +6,14 @@ namespace App\Http\Controllers;
 
 use App\Models\AppFeedback;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AppFeedbackEvidenceController extends Controller
 {
-    public function __invoke(AppFeedback $feedback, string $mediaId): StreamedResponse
+    public function __invoke(Request $request, AppFeedback $feedback, string $mediaId): StreamedResponse
     {
         $user = auth()->user();
 
@@ -32,6 +33,25 @@ class AppFeedbackEvidenceController extends Controller
             ->firstOrFail();
 
         abort_unless($media->disk === 'app_feedback_private', 404);
+
+        if ($request->query('preview') && str_starts_with((string) $media->mime_type, 'image/')) {
+            $path = $media->hasGeneratedConversion('thumb')
+                ? $media->getPath('thumb')
+                : $media->getPath();
+
+            abort_unless(is_string($path) && $path !== '' && is_file($path), 404);
+
+            return Storage::disk('app_feedback_private')->response(
+                $media->hasGeneratedConversion('thumb')
+                    ? $media->getPathRelativeToRoot('thumb')
+                    : $media->getPathRelativeToRoot(),
+                $media->file_name,
+                [
+                    'Cache-Control' => 'private, no-store',
+                    'X-Content-Type-Options' => 'nosniff',
+                ],
+            );
+        }
 
         return Storage::disk('app_feedback_private')->download(
             $media->getPathRelativeToRoot(),

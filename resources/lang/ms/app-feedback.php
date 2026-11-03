@@ -23,7 +23,7 @@ return [
         'diagnostics' => 'Sertakan maklumat teknikal',
         'diagnostics_help' => 'Maklumat pelayar dan versi aplikasi membantu kami menyiasat masalah.',
         'evidence' => 'Lampiran (pilihan)',
-        'evidence_help' => 'Muat naik sehingga 8 fail JPG, PNG, WebP, atau PDF. Fail disimpan secara peribadi.',
+        'evidence_help' => 'Muat naik sehingga 8 fail JPG, PNG, WebP, atau PDF. Fail disimpan secara peribadi. Untuk ralat atau cadangan paparan, tangkap layar sangat membantu — anda boleh tampal terus dari papan klip.',
         'submit' => 'Hantar maklum balas',
         'submitting' => 'Menghantar...',
     ],

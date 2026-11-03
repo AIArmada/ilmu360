@@ -274,6 +274,37 @@ it('stores evidence on the private app feedback disk', function () {
         ->assertDownload($media->file_name);
 });
 
+it('serves image evidence inline for preview', function () {
+    Notification::fake();
+    Storage::fake('app_feedback_private');
+
+    $user = User::factory()->create();
+
+    $this->actingAs($user);
+
+    Livewire::test(Index::class)
+        ->fillForm([
+            'category' => AppFeedbackCategory::Bug->value,
+            'title' => 'Ujian pratonton',
+            'description' => 'Ini ialah ujian pratonton imej lampiran maklum balas.',
+            'evidence' => [UploadedFile::fake()->image('preview.png')],
+        ])
+        ->call('submit')
+        ->assertHasNoFormErrors();
+
+    $feedback = AppFeedback::sole();
+    $media = $feedback->getMedia('evidence')->first();
+
+    $this->actingAs($user)
+        ->get(route('app-feedback.evidence.download', [
+            'feedback' => $feedback,
+            'mediaId' => $media->getKey(),
+            'preview' => 1,
+        ]))
+        ->assertSuccessful()
+        ->assertHeader('X-Content-Type-Options', 'nosniff');
+});
+
 it('preserves distinct evidence files uploaded in the same timestamp bucket', function () {
     Notification::fake();
     Storage::fake('app_feedback_private');

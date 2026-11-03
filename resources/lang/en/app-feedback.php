@@ -23,7 +23,7 @@ return [
         'diagnostics' => 'Include technical details',
         'diagnostics_help' => 'Browser and application version details help us investigate the issue.',
         'evidence' => 'Attachments (optional)',
-        'evidence_help' => 'Upload up to 8 JPG, PNG, WebP, or PDF files. Files are stored privately.',
+        'evidence_help' => 'Upload up to 8 JPG, PNG, WebP, or PDF files. Files are stored privately. For bugs or UI suggestions, a screenshot helps a lot — you can paste it straight from your clipboard.',
         'submit' => 'Send feedback',
         'submitting' => 'Sending...',
     ],
