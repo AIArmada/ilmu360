@@ -34,6 +34,11 @@ class AppFeedbackPolicy
         return $this->viewOwn($user, $feedback) || $this->view($user, $feedback);
     }
 
+    public function reply(User $user, AppFeedback $feedback): bool
+    {
+        return $this->viewOwn($user, $feedback) || $user->hasGlobalAdminAccess();
+    }
+
     public function transition(User $user, AppFeedback $feedback): bool
     {
         return $user->hasGlobalAdminAccess();

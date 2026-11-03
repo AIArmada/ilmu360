@@ -37,6 +37,12 @@ return [
         'resolution' => 'Resolution note',
         'attachments' => 'Attachments',
         'view' => 'View details',
+        'follow_up' => 'Follow-up',
+        'maintainer' => 'ilmu360° team',
+        'you' => 'You',
+        'add_info' => 'Add information',
+        'add_info_placeholder' => 'E.g. happens in Chrome on Android...',
+        'send_reply' => 'Send reply',
     ],
     'categories' => [
         'bug' => 'Application bug',

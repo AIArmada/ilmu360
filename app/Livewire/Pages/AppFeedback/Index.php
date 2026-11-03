@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\Pages\AppFeedback;
 
+use App\Actions\AppFeedback\PostAppFeedbackMessageAction;
 use App\Actions\AppFeedback\SubmitAppFeedbackAction;
 use App\Enums\AppFeedbackCategory;
 use App\Livewire\Concerns\InteractsWithToasts;
@@ -57,6 +58,9 @@ class Index extends Component implements HasForms
     public ?string $successMessage = null;
 
     public ?string $formError = null;
+
+    /** @var array<string, string> */
+    public array $replyBodies = [];
 
     public function mount(Request $request): void
     {
@@ -189,6 +193,39 @@ class Index extends Component implements HasForms
         $this->resetPage('feedback_page');
     }
 
+    public function postReply(string $feedbackId, PostAppFeedbackMessageAction $postReply): void
+    {
+        $user = auth()->user();
+
+        abort_unless($user instanceof User, 403);
+
+        if (! Str::isUuid($feedbackId)) {
+            abort(404);
+        }
+
+        $feedback = AppFeedback::query()
+            ->where('reporter_id', $user->getKey())
+            ->findOrFail($feedbackId);
+
+        $body = trim((string) ($this->replyBodies[$feedbackId] ?? ''));
+
+        try {
+            $postReply->handle($user, $feedback, $body);
+        } catch (ValidationException $exception) {
+            foreach ($exception->errors() as $messages) {
+                foreach ($messages as $message) {
+                    $this->addError("replyBodies.{$feedbackId}", is_string($message) ? $message : (string) $message);
+                }
+            }
+
+            return;
+        }
+
+        unset($this->replyBodies[$feedbackId]);
+        unset($this->history);
+        unset($this->selectedFeedback);
+    }
+
     /**
      * @return LengthAwarePaginator<int, AppFeedback>
      */
@@ -201,7 +238,7 @@ class Index extends Component implements HasForms
 
         return AppFeedback::query()
             ->where('reporter_id', $user->getKey())
-            ->with('media')
+            ->with(['media', 'visibleMessages'])
             ->latest('created_at')
             ->paginate(perPage: 5, pageName: 'feedback_page');
     }
@@ -223,7 +260,7 @@ class Index extends Component implements HasForms
 
         return AppFeedback::query()
             ->where('reporter_id', $user->getKey())
-            ->with('media')
+            ->with(['media', 'visibleMessages'])
             ->findOrFail($this->selectedFeedbackId);
     }
 

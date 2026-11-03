@@ -37,6 +37,12 @@ return [
         'resolution' => 'Catatan penyelesaian',
         'attachments' => 'Lampiran',
         'view' => 'Lihat butiran',
+        'follow_up' => 'Maklumat tambahan',
+        'maintainer' => 'Pasukan ilmu360°',
+        'you' => 'Anda',
+        'add_info' => 'Tambah maklumat',
+        'add_info_placeholder' => 'Contoh: berlaku di Chrome pada Android...',
+        'send_reply' => 'Hantar maklum balas',
     ],
     'categories' => [
         'bug' => 'Ralat aplikasi',

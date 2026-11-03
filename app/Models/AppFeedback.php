@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\DeletedModels\Models\Concerns\KeepsDeletedModels;
 use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
@@ -123,6 +124,24 @@ class AppFeedback extends Model implements HasMedia
     public function handler(): BelongsTo
     {
         return $this->belongsTo(User::class, 'handled_by');
+    }
+
+    /**
+     * @return HasMany<AppFeedbackMessage, $this>
+     */
+    public function messages(): HasMany
+    {
+        return $this->hasMany(AppFeedbackMessage::class, 'feedback_id')->latest('created_at');
+    }
+
+    /**
+     * @return HasMany<AppFeedbackMessage, $this>
+     */
+    public function visibleMessages(): HasMany
+    {
+        return $this->hasMany(AppFeedbackMessage::class, 'feedback_id')
+            ->where('visibility', 'reporter')
+            ->oldest('created_at');
     }
 
     public function registerMediaCollections(): void

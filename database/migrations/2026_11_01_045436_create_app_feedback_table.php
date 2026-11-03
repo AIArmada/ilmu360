@@ -49,10 +49,27 @@ return new class extends Migration
             $table->index(['reporter_id', 'created_at']);
             $table->index(['status', 'created_at']);
         });
+
+        if (Schema::hasTable('app_feedback_messages')) {
+            return;
+        }
+
+        Schema::create('app_feedback_messages', function (Blueprint $table): void {
+            $table->uuid('id')->primary();
+            $table->foreignUuid('feedback_id');
+            $table->foreignUuid('author_id')->nullable();
+            $table->string('author_role', 16);
+            $table->string('visibility', 16)->default('reporter');
+            $table->text('body');
+            $table->timestampsTz();
+
+            $table->index(['feedback_id', 'created_at']);
+        });
     }
 
     public function down(): void
     {
+        Schema::dropIfExists('app_feedback_messages');
         Schema::dropIfExists('app_feedback');
     }
 };
