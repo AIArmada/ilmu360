@@ -71,7 +71,7 @@ it('renders the notifications inbox for authenticated users', function () {
 
     $response = $this->withSession(['locale' => 'en'])
         ->actingAs($user)
-        ->get(route('dashboard.notifications'));
+        ->get(route('notifications'));
 
     $response->assertOk()
         ->assertSee('Notifications')

@@ -82,16 +82,6 @@ return [
             'field' => 'title',
             'label' => 'Event',
         ],
-        'daily_prayer_institution_id' => [
-            'model' => Institution::class,
-            'field' => 'name',
-            'label' => 'Daily Prayer Institution',
-        ],
-        'friday_prayer_institution_id' => [
-            'model' => Institution::class,
-            'field' => 'name',
-            'label' => 'Friday Prayer Institution',
-        ],
     ],
 
     'resources' => [

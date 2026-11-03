@@ -13,10 +13,13 @@
 ### Review
 
 - The bell is a Livewire component rendered only for signed-in users. It reads the unread count on mount, loads the eight newest notifications when opened, groups them Today/Earlier in the viewer's timezone, and renders family icons, unread dots, relative times, and Empty/Loading/Retry states.
+- The trigger icon fills while the panel is open, even when there are zero unread notifications, and returns to the outline variant on close. The unread state still fills the icon while closed.
+- The unread badge is a sibling of the trigger rather than a child, so the trigger's `overflow: hidden` gloss no longer clips the badge; the full count stays visible over the circle edge.
 - Queries and reads stay scoped to the authenticated recipient and exclude archived rows; both read actions are reused inside explicit global owner context. The panel reuses the existing Signals-aware mark-read actions.
 - Header changes: glass variant on the home hero, light variant elsewhere; 44px target; gold `99+` badge. The duplicate Inbox badges and layout count query were removed. The desktop nav now starts at `lg` because the 768px layout no longer fit the bell, avatar, and actions without clipping.
-- The full inbox dispatches `notification-count-updated` after read/read-all so the bell count follows inbox actions. The bell dispatches `notification-inbox-updated` when it marks items read, so the inbox list refreshes in the other direction. See all opens `/dashboard/notifications?status=all`.
-- Verification: `NotificationBellTest` 14 passed / 43 assertions; `NotificationInboxPageTest` 2/10; `ProductSignalsTelemetryTest` 16/81; `DashboardPagesTest` 27/286; `HeaderUserMenuTest` 2/6. Pint passed; PHPStan level 6 reported 0 errors. Browser probes at 1920, 768, 700, 375, and 1024 confirmed the styled panel, menu actions, unread filtering, read-all, inbox refresh, no JavaScript errors, and the tablet header fix. Screenshots: `storage/verify/notification-bell/`.
+- The full inbox dispatches `notification-count-updated` after read/read-all so the bell count follows inbox actions. The bell dispatches `notification-inbox-updated` when it marks items read, so the inbox list refreshes in the other direction. See all opens `/notifications?status=all`.
+- Verification: `NotificationBellTest` 14 passed / 43 assertions; `NotificationInboxPageTest` 2/10; `ProductSignalsTelemetryTest` 16/81; `DashboardPagesTest` 27/286; `HeaderUserMenuTest` 2/6. Pint passed; PHPStan level 6 reported 0 errors. Browser probes at 1920, 768, 700, 375, and 1024 confirmed the styled panel, menu actions, unread filtering, read-all, inbox refresh, icon fill-on-open, no JavaScript errors, and the tablet header fix. Screenshots: `storage/verify/notification-bell/`.
+- Seeded 8 demo notifications for `saiffil@maxx.my` in the local dev database (5 unread, 3 read; mixed families and Today/Earlier groups) so the bell can be reviewed with realistic data.
 - A broad `PublicPagesTest` run surfaced unrelated failures in concurrent search/submission work; the focused notification, header, and dashboard checks pass.
 
 ## About page — divine intention upgrade (2026-11-02)

@@ -1,5 +1,6 @@
 @php
     $showNearbyButton ??= true;
+    $showSavedFilter ??= true;
     $lat = $this->lat;
     $activeFilterCount = $this->activeFilterCount();
     $savedOnly = $this->saved_only === true;
@@ -7,7 +8,7 @@
 
 <div class="flex items-center justify-end gap-3">
     <div wire:loading.delay.short
-        wire:target="filterData,setLocation,clearLocation,clearAllFilters,toggleSave,toggleSavedOnly"
+        wire:target="filterData,setLocation,clearLocation,clearAllFilters,toggleSavedOnly"
         class="hidden items-center gap-2 text-xs font-semibold text-emerald-700 sm:inline-flex">
         <svg class="size-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke-width="4"></circle>
@@ -15,19 +16,21 @@
         </svg>
         {{ __('Updating results...') }}
     </div>
-    @auth
-        <button type="button"
-            wire:click="toggleSavedOnly"
-            wire:loading.attr="disabled"
-            wire:target="toggleSavedOnly"
-            aria-pressed="{{ $savedOnly ? 'true' : 'false' }}"
-            aria-label="{{ __('Saved majlis only') }}"
-            data-saved-filter
-            class="inline-flex h-10 items-center gap-2 rounded-xl border px-3.5 text-xs font-bold shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-700 focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60 sm:text-sm {{ $savedOnly ? 'border-amber-300 bg-amber-100 text-amber-950' : 'border-slate-200 bg-white text-slate-600 hover:border-amber-200 hover:bg-amber-50 hover:text-amber-800' }}">
-            <flux:icon.bookmark class="size-4" :variant="$savedOnly ? 'solid' : 'outline'" />
-            {{ __('Saved') }}
-        </button>
-    @endauth
+    @if($showSavedFilter)
+        @auth
+            <button type="button"
+                wire:click="toggleSavedOnly"
+                wire:loading.attr="disabled"
+                wire:target="toggleSavedOnly"
+                aria-pressed="{{ $savedOnly ? 'true' : 'false' }}"
+                aria-label="{{ __('Saved majlis only') }}"
+                data-saved-filter
+                class="inline-flex h-10 items-center gap-2 rounded-xl border px-3.5 text-xs font-bold shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-700 focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60 sm:text-sm {{ $savedOnly ? 'border-amber-300 bg-amber-100 text-amber-950' : 'border-slate-200 bg-white text-slate-600 hover:border-amber-200 hover:bg-amber-50 hover:text-amber-800' }}">
+                <flux:icon.bookmark class="size-4" :variant="$savedOnly ? 'solid' : 'outline'" />
+                {{ __('Saved') }}
+            </button>
+        @endauth
+    @endif
 
     <button type="button" @click="filtersOpen = !filtersOpen"
         :aria-expanded="filtersOpen"

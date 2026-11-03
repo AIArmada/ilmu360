@@ -709,16 +709,18 @@ new
                                 </button>
                             @endif
 
-                            <a
-                                href="{{ $submitPersonUrl }}"
-                                wire:navigate
-                                class="inline-flex h-11 items-center justify-center gap-2.5 rounded-xl border-2 border-emerald-200 bg-white px-5 text-sm font-bold text-emerald-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50 hover:shadow-md"
-                            >
-                                {{ __('Suggest a speaker') }}
-                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m-7-7h14" />
-                                </svg>
-                            </a>
+                            @if($activeFilterCount === 0)
+                                <a
+                                    href="{{ $submitPersonUrl }}"
+                                    wire:navigate
+                                    class="inline-flex h-11 items-center justify-center gap-2.5 rounded-xl border-2 border-emerald-200 bg-white px-5 text-sm font-bold text-emerald-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50 hover:shadow-md"
+                                >
+                                    {{ __('Suggest a speaker') }}
+                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m-7-7h14" />
+                                    </svg>
+                                </a>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -743,7 +745,7 @@ new
                     </div>
 
                     @unless(filled($search))
-                        <div class="flex w-full flex-wrap items-end justify-end gap-3 sm:w-auto sm:flex-nowrap">
+                        <div class="flex w-full flex-wrap items-end justify-between gap-3 sm:w-auto sm:flex-nowrap sm:justify-end">
                             @auth
                                 <button
                                     type="button"
@@ -752,7 +754,7 @@ new
                                     aria-pressed="{{ $this->followed_only === true ? 'true' : 'false' }}"
                                     aria-label="{{ __('Followed speakers only') }}"
                                     data-followed-filter
-                                    class="order-3 inline-flex h-9 w-full items-center justify-center gap-2 rounded-xl border px-3.5 text-xs font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/10 disabled:cursor-wait disabled:opacity-60 sm:order-1 sm:w-auto {{ $this->followed_only === true ? 'border-emerald-700 bg-emerald-800 text-white shadow-sm' : 'border-slate-200/80 bg-white/75 text-slate-600 hover:border-emerald-200 hover:text-emerald-800' }}"
+                                    class="order-1 inline-flex h-9 w-auto items-center justify-center gap-2 rounded-xl border px-3.5 text-xs font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/10 disabled:cursor-wait disabled:opacity-60 sm:order-1 sm:w-auto {{ $this->followed_only === true ? 'border-emerald-700 bg-emerald-800 text-white shadow-sm' : 'border-slate-200/80 bg-white/75 text-slate-600 hover:border-emerald-200 hover:text-emerald-800' }}"
                                 >
                                     <flux:icon.bookmark class="size-4 shrink-0" :variant="$this->followed_only === true ? 'solid' : 'outline'" />
                                     {{ __('Followed') }}
@@ -765,7 +767,7 @@ new
                                 wire:loading.attr="disabled"
                                 aria-pressed="{{ $this->upcoming_only === true ? 'true' : 'false' }}"
                                 aria-label="{{ __('Upcoming events only') }}"
-                                class="order-2 inline-flex h-9 w-full items-center justify-center gap-2 rounded-xl border px-3.5 text-xs font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/10 disabled:cursor-wait disabled:opacity-60 sm:order-2 sm:w-auto {{ $this->upcoming_only === true ? 'border-emerald-700 bg-emerald-800 text-white shadow-sm' : 'border-slate-200/80 bg-white/75 text-slate-600 hover:border-emerald-200 hover:text-emerald-800' }}"
+                                class="order-3 inline-flex h-9 w-full items-center justify-center gap-2 rounded-xl border px-3.5 text-xs font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/10 disabled:cursor-wait disabled:opacity-60 sm:order-2 sm:w-auto {{ $this->upcoming_only === true ? 'border-emerald-700 bg-emerald-800 text-white shadow-sm' : 'border-slate-200/80 bg-white/75 text-slate-600 hover:border-emerald-200 hover:text-emerald-800' }}"
                             >
                                 <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 3.75v2.5m9-2.5v2.5M4.5 9.25h15m-13.5-5.5h11a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2Z" />
@@ -774,7 +776,7 @@ new
                                 {{ __('Upcoming events only') }}
                             </button>
 
-                            <div class="order-1 flex shrink-0 flex-col gap-1.5 sm:order-3" role="group" aria-label="{{ __('Sort directory') }}">
+                            <div class="order-2 ml-auto flex shrink-0 flex-col gap-1.5 sm:order-3 sm:ml-0" role="group" aria-label="{{ __('Sort directory') }}">
                                 <span class="px-1 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">{{ __('Sort') }}</span>
                                 <div data-material="translucent-control" class="living-majlis-veil flex items-center gap-1 rounded-xl p-0.5">
                                     <button

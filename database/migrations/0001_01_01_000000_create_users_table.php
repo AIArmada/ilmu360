@@ -27,8 +27,6 @@ return new class extends Migration
             $table->timestamp('two_factor_confirmed_at')->nullable();
             $table->rememberToken();
             $table->foreignUuid('current_team_id')->nullable();
-            $table->foreignUuid('daily_prayer_institution_id')->nullable();
-            $table->foreignUuid('friday_prayer_institution_id')->nullable();
             $table->timestamps();
         });
 

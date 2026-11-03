@@ -30,7 +30,7 @@
                             </p>
                         </div>
 
-                        <a href="{{ route('dashboard.notifications') }}" wire:navigate
+                        <a href="{{ route('notifications') }}" wire:navigate
                             class="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-emerald-200 hover:text-emerald-700">
                             {{ __('notifications.pages.inbox.cta') }}
                         </a>

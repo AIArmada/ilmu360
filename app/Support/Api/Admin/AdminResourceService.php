@@ -815,8 +815,8 @@ class AdminResourceService
                 'email_verified_at',
                 'phone',
                 'phone_verified_at',
-                'daily_prayer_institution_id',
-                'friday_prayer_institution_id',
+                'daily_prayer_institutions',
+                'friday_prayer_institutions',
             ]);
         }
 

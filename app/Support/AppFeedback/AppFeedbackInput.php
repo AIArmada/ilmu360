@@ -183,7 +183,7 @@ final readonly class AppFeedbackInput
         foreach ([
             '/api', '/admin', '/ahli', '/mcp', '/docs', '/login', '/register', '/password',
             '/oauth', '/auth', '/checkout', '/storage', '/media', '/livewire', '/dashboard', '/sumbangan',
-            '/tetapan-akaun', '/carian-tersimpan', '/permohonan-keahlian', '/jemputan-ahli', '/jemputan',
+            '/notifications', '/tetapan', '/carian-tersimpan', '/permohonan-keahlian', '/jemputan-ahli', '/jemputan',
             '/lapor', '/maklum-balas',
         ] as $prefix) {
             if ($path === $prefix || str_starts_with($path, $prefix.'/')) {

@@ -375,7 +375,7 @@ new
     >
         <div class="overflow-hidden">
             <section class="relative z-20 mx-auto max-w-[120rem] px-5 pt-8 sm:px-8 sm:pt-10 lg:px-14 xl:px-16">
-                <livewire:components.event-filters :quick-filter-ranges="$eventDateLinks" :show-nearby-button="true" />
+                <livewire:components.event-filters :quick-filter-ranges="$eventDateLinks" :show-nearby-button="true" :show-saved-filter="false" />
             </section>
         </div>
     </div>
@@ -494,7 +494,10 @@ new
 
     {{-- Speakers --}}
     <section class="relative isolate overflow-hidden bg-[#0b3027] text-white">
-        <img src="{{ asset('images/home/speaker-feature-v1.png') }}" alt="" aria-hidden="true" class="absolute inset-0 h-full w-full object-cover object-[center_58%]">
+        <picture class="absolute inset-0">
+            <source media="(max-width: 639px)" srcset="{{ asset('images/home/speaker-feature-mobile-v1.webp') }}" type="image/webp">
+            <img src="{{ asset('images/home/speaker-feature-v1.png') }}" alt="" aria-hidden="true" loading="lazy" class="absolute inset-0 h-full w-full object-cover object-[center_58%]">
+        </picture>
         <div class="absolute inset-0 bg-[linear-gradient(90deg,rgba(4,24,19,0.28)_0%,rgba(4,24,19,0.12)_30%,transparent_58%,rgba(255,247,228,0.12)_100%)]"></div>
         <div class="absolute inset-0 bg-[linear-gradient(0deg,rgba(4,25,19,0.2),transparent_46%)]"></div>
 
@@ -533,12 +536,15 @@ new
 
     {{-- Community CTA --}}
     <section class="relative isolate min-h-[28rem] overflow-hidden bg-[#071b27] text-white sm:min-h-[24rem] lg:min-h-[19rem]">
-        <img
-            src="{{ asset('images/home/community-lake-cta-v2.png') }}"
-            alt=""
-            loading="lazy"
-            class="absolute inset-0 h-full w-full object-cover object-[73%_center] md:object-center"
-        >
+        <picture class="absolute inset-0">
+            <source media="(max-width: 639px)" srcset="{{ asset('images/home/community-lake-cta-mobile-v1.webp') }}" type="image/webp">
+            <img
+                src="{{ asset('images/home/community-lake-cta-v2.png') }}"
+                alt=""
+                loading="lazy"
+                class="absolute inset-0 h-full w-full object-cover object-center sm:object-[73%_center] md:object-center"
+            >
+        </picture>
         <div class="absolute inset-0 bg-[linear-gradient(90deg,rgba(3,16,29,0.4)_0%,rgba(3,16,29,0.22)_38%,rgba(3,16,29,0.04)_72%,rgba(3,16,29,0.08)_100%)]"></div>
         <div class="absolute inset-0 bg-[linear-gradient(0deg,rgba(2,13,24,0.24)_0%,rgba(2,13,24,0)_74%)]"></div>
 

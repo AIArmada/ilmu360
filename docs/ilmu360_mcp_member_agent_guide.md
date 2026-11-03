@@ -341,7 +341,7 @@ When the user asks you to “look for” a named place, start with the most like
 - Handle-style social platforms (`facebook`, `twitter`, `instagram`, `youtube`, `tiktok`, `telegram`, `whatsapp`, `linkedin`, `threads`) may canonicalize a submitted URL into stored `username`, so persisted `url` can come back as `null` after normalization.
 - Even though the schema advertises model-layer normalization notes for Twitter / X, validated MCP payloads should still use the canonical platform value `twitter`, not `x`.
 - Enum fields and filters use enum backing values, not display labels. For events, use values like `kuliah_ceramah`, `all_ages`, `prayer_relative`, `maghrib`, and `immediately` instead of labels like `Kuliah / Ceramah` or localized prayer text.
-- Generic user record payloads intentionally redact `email`, `email_verified_at`, `phone`, `phone_verified_at`, `daily_prayer_institution_id`, and `friday_prayer_institution_id`.
+- Generic user record payloads intentionally redact `email`, `email_verified_at`, `phone`, `phone_verified_at`, `daily_prayer_institution_ids`, and `friday_prayer_institution_ids`.
 - Record lookups use `route_key` for record-specific paths; missing records return 404 rather than a generic server error.
 - Public/mobile surface additions do not automatically imply new MCP tools. The existing generic `member-list-records` flow is still the correct path for resources without a dedicated tool.
 - MCP event records come from the member resource service, not the public event controller. Public/mobile event detail payload changes do not automatically appear in `member-get-record` results.

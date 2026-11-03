@@ -233,6 +233,18 @@ it('filters the person directory to followed speakers', function () {
         ->assertSee('aria-pressed="true"', false);
 });
 
+it('hides the suggestion button when a filter returns no speakers', function () {
+    $user = User::factory()->create();
+    $suggestionLink = 'inline-flex h-11 items-center justify-center gap-2.5 rounded-xl border-2 border-emerald-200';
+
+    Livewire::actingAs($user)
+        ->test('pages.persons.index')
+        ->assertSee($suggestionLink, false)
+        ->set('followed_only', true)
+        ->assertSee(__('Clear filters'))
+        ->assertDontSee($suggestionLink, false);
+});
+
 it('keeps the followed speaker filter active across search', function () {
     $user = User::factory()->create();
     $followedPerson = Person::factory()->create([
@@ -585,9 +597,9 @@ it('renders the search clear control as an icon button instead of text', functio
 it('shows add-missing-person call to action on person index', function () {
     get('/penceramah')
         ->assertSuccessful()
-        ->assertSee(__('Kenal penceramah yang belum tersenarai?'))
-        ->assertSee(__('Bantu masyarakat menemui lebih banyak guru dan pendakwah. Setiap cadangan akan melalui proses semakan sebelum diterbitkan.'))
-        ->assertSee(__('Cadangkan penceramah'));
+        ->assertSee(__('Know a speaker who is missing?'))
+        ->assertSee(__('Help the community find more teachers and preachers.'))
+        ->assertSee(__('Suggest a speaker'));
 });
 
 it('supports fuzzy search with minor typos', function () {

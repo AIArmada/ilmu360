@@ -35,8 +35,8 @@ final class ApiRequestBodyExamplesExtension extends OperationExtension
             'email' => 'superadmin@ilmu360.com',
             'phone' => '+60111222333',
             'timezone' => 'Asia/Kuala_Lumpur',
-            'daily_prayer_institution_id' => null,
-            'friday_prayer_institution_id' => null,
+            'daily_prayer_institution_ids' => [],
+            'friday_prayer_institution_ids' => [],
         ],
         'put notification-settings' => [
             'settings' => [

@@ -5,51 +5,12 @@
 
 @php
     $summary = $this->summaryStats;
-    $savedEvents = $this->savedEvents;
-    $goingEvents = $this->goingEvents;
     $followingPersons = $this->followingPersons;
     $followingReferences = $this->followingReferences;
     $followingInstitutions = $this->followingInstitutions;
     $recentSavedSearches = $this->recentSavedSearches;
     $dawahImpactSummary = $this->dawahImpactSummary;
     $shareRewardEnrollmentPrompt = $this->shareRewardEnrollmentPrompt;
-    $recommendedEvent = $this->recommendedEvent;
-    $majlisCards = $this->paginatedMajlisCards;
-
-    $translateStatusLabel = static function (string $status): string {
-        $translated = __($status);
-
-        if ($translated !== $status) {
-            return $translated;
-        }
-
-        return str($status)->replace('_', ' ')->headline()->toString();
-    };
-    $eventDateTimeLabel = static function (mixed $date): string {
-        if (! $date instanceof \Carbon\CarbonInterface) {
-            return __('Time to be confirmed');
-        }
-
-        return \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($date, 'd M')
-            . ', ' . \App\Support\Timezone\UserDateTimeFormatter::format($date, 'h:i A');
-    };
-    $eventLocationLabel = static fn (\App\Models\Event $event): string => $event->venue?->name
-        ?? $event->institution?->name
-        ?? __('Online / TBD');
-    $eventWorkflowStatusLabel = static function (string $status) use ($translateStatusLabel): string {
-        return match ($status) {
-            'pending' => __('Menunggu Kelulusan'),
-            default => $translateStatusLabel($status),
-        };
-    };
-    $shouldShowEventStatusBadge = static fn (string $status): bool => $status !== 'approved';
-    $eventStatusClass = static fn (string $status): string => match ($status) {
-        'approved' => 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-100',
-        'pending', 'needs_changes' => 'bg-amber-50 text-amber-800 ring-1 ring-amber-100',
-        'cancelled', 'rejected' => 'bg-rose-50 text-rose-800 ring-1 ring-rose-100',
-        'draft' => 'bg-slate-100 text-slate-700 ring-1 ring-slate-200',
-        default => 'bg-slate-100 text-slate-700 ring-1 ring-slate-200',
-    };
 
     $dashboardStats = [
         [
@@ -110,15 +71,16 @@
                     @foreach($dashboardStats as $stat)
                         @php
                             $statHref = match ($loop->index) {
-                                0, 1 => '#majlis-saya',
-                                2 => route('institutions.index'),
-                                3 => route('persons.index'),
-                                4 => route('references.index'),
+                                0 => route('events.index', ['saved_only' => 1]),
+                                1 => route('events.index', ['going_only' => 1]),
+                                2 => route('institutions.index', ['followed_only' => 1]),
+                                3 => route('persons.index', ['followed_only' => 1]),
+                                4 => route('references.index', ['followed_only' => 1]),
                                 default => route('dashboard.dawah-impact'),
                             };
                         @endphp
                         <a href="{{ $statHref }}"
-                            @if($loop->index === 5) wire:navigate @endif
+                            wire:navigate
                             class="group flex flex-col items-center justify-center gap-1.5 rounded-lg border border-[#eee4d3] bg-white px-2 py-3 text-center transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-lg hover:shadow-emerald-950/5">
                             <span class="flex size-8 items-center justify-center rounded-full {{ $stat['class'] }}">
                                 <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
@@ -153,110 +115,6 @@
         @include('share.claim-prompt')
         <div class="grid gap-7 xl:grid-cols-[minmax(0,1fr)_380px]">
             <div class="min-w-0 space-y-7">
-                <section id="majlis-saya" x-data="{ activeMajlisTab: 'all' }" class="max-w-full rounded-lg border border-[#eadfca] bg-white p-5 shadow-sm">
-                    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                        <div class="flex items-center gap-3">
-                            <span class="flex size-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
-                                <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M4 11h16M5 5h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z" />
-                                </svg>
-                            </span>
-                            <h2 class="font-heading text-2xl font-bold text-[#0b2a42]">{{ __('Majlis Saya') }}</h2>
-                        </div>
-
-                        <a href="{{ route('events.index') }}" wire:navigate class="inline-flex items-center gap-2 text-sm font-semibold text-emerald-800 transition hover:text-emerald-950">
-                            {{ __('Lihat semua majlis saya') }}
-                            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-6l6 6-6 6" />
-                            </svg>
-                        </a>
-                    </div>
-
-                    <div class="mt-5 flex max-w-full gap-2 overflow-x-auto">
-                        @foreach([
-                            'all' => __('Semua'),
-                            'saved' => __('Disimpan'),
-                            'going' => __('Going'),
-                        ] as $tabKey => $tabLabel)
-                            <button type="button"
-                                @click="activeMajlisTab = '{{ $tabKey }}'"
-                                class="min-w-28 rounded-lg border px-4 py-2 text-sm font-semibold transition"
-                                :class="activeMajlisTab === '{{ $tabKey }}' ? 'border-emerald-700 bg-emerald-700 text-white shadow-sm' : 'border-[#eadfca] bg-[#f7f3ea] text-slate-600 hover:border-emerald-200 hover:text-emerald-800'">
-                                {{ $tabLabel }}
-                            </button>
-                        @endforeach
-                    </div>
-
-                    @if($majlisCards->count() === 0)
-                        <div class="mt-5 rounded-lg border border-dashed border-[#eadfca] bg-[#fbf8f1] p-8 text-center">
-                            <h3 class="font-heading text-xl font-bold text-[#0b2a42]">{{ __('Belum ada majlis disimpan.') }}</h3>
-                            <p class="mt-2 text-sm leading-6 text-slate-600">{{ __('Simpan atau tandakan Going pada majlis untuk mula membina perjalanan ilmu anda.') }}</p>
-                            <a href="{{ route('events.index') }}" wire:navigate class="mt-5 inline-flex items-center justify-center rounded-lg bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-800">
-                                {{ __('Cari Majlis Hari Ini') }}
-                            </a>
-                        </div>
-                    @else
-                        <div class="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                            @foreach($majlisCards as $card)
-                                @php
-                                    $event = $card['event'];
-                                    $cardRoles = $card['roles'];
-                                    $cardLabel = in_array('saved', $cardRoles, true) && in_array('going', $cardRoles, true)
-                                        ? __('Saved + Going')
-                                        : (in_array('going', $cardRoles, true) ? __('Going') : __('Saved'));
-                                    $cardAction = in_array('going', $cardRoles, true) ? __('View event') : __('Open event');
-                                    $cardRoles = array_filter($cardRoles, fn($r) => $r !== 'reminder');
-                                    $roleString = implode(' ', $cardRoles);
-                                @endphp
-                                <article
-                                    x-show="activeMajlisTab === 'all' || '{{ $roleString }}'.includes(activeMajlisTab)"
-                                    x-cloak
-                                    class="group overflow-hidden rounded-lg border border-[#eadfca] bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-emerald-950/10"
-                                >
-                                    <a href="{{ route('events.show', $event) }}" wire:navigate class="block">
-                                        <div class="relative aspect-[16/8.5] overflow-hidden bg-slate-100">
-                                            <img src="{{ $event->card_image_url }}" alt="{{ $event->title }}" loading="lazy" class="h-full w-full transition duration-500 group-hover:scale-105 object-cover">
-                                            <span class="absolute right-3 top-3 rounded-lg bg-emerald-700 px-3 py-1 text-xs font-semibold text-white">{{ $cardLabel }}</span>
-                                        </div>
-                                        <div class="p-4">
-                                            <div class="flex items-start justify-between gap-3">
-                                                <h3 class="line-clamp-2 min-h-12 font-heading text-xl font-bold leading-tight text-[#0b2a42] transition group-hover:text-emerald-800">{{ $event->title }}</h3>
-                                                @if($shouldShowEventStatusBadge((string) $event->status))
-                                                    <span class="shrink-0 rounded-lg px-2 py-1 text-[11px] font-semibold {{ $eventStatusClass((string) $event->status) }}">
-                                                        {{ $eventWorkflowStatusLabel((string) $event->status) }}
-                                                    </span>
-                                                @endif
-                                            </div>
-                                            <p class="mt-2 text-sm font-medium text-slate-700">{{ $eventLocationLabel($event) }}</p>
-                                            <p class="mt-3 flex items-center gap-2 text-xs text-slate-500">
-                                                <svg class="size-4 text-emerald-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                </svg>
-                                                {{ $eventDateTimeLabel($event->starts_at) }}
-                                            </p>
-                                            <div class="mt-4 flex items-center justify-between gap-3">
-                                                <span class="inline-flex items-center gap-1 text-xs text-slate-500">
-                                                    <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 21s7-5.2 7-11a7 7 0 10-14 0c0 5.8 7 11 7 11z" />
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 10h.01" />
-                                                    </svg>
-                                                    {{ __('Lokasi') }}
-                                                </span>
-                                                <span class="rounded-lg border border-[#eadfca] bg-[#fbf8f1] px-3 py-1.5 text-xs font-semibold text-emerald-800">{{ $cardAction }}</span>
-                                            </div>
-                                        </div>
-                                    </a>
-                                </article>
-                            @endforeach
-                        </div>
-                        @if($majlisCards->hasPages())
-                            <div class="mt-5">
-                                {{ $majlisCards->links(data: ['scrollTo' => '#majlis-saya']) }}
-                            </div>
-                        @endif
-                    @endif
-                </section>
-
                 <section id="carian-saya" class="rounded-lg border border-[#eadfca] bg-white p-5 shadow-sm">
                     <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                         <div class="flex items-center gap-3">
@@ -370,34 +228,6 @@
                     </div>
                 </section>
 
-                <section class="rounded-lg border border-[#eadfca] bg-white p-5 shadow-sm">
-                    <div class="flex items-center justify-between gap-3">
-                        <h2 class="font-heading text-xl font-bold text-[#0b2a42]">{{ __('Saranan untuk anda') }}</h2>
-                        <a href="{{ route('events.index') }}" wire:navigate class="text-xs font-semibold text-emerald-800">{{ __('Lihat semua') }}</a>
-                    </div>
-
-                    @if($recommendedEvent instanceof \App\Models\Event)
-                        <a href="{{ route('events.show', $recommendedEvent) }}" wire:navigate class="group mt-4 block overflow-hidden rounded-lg border border-[#eadfca] transition hover:border-emerald-200 hover:shadow-lg hover:shadow-emerald-950/10">
-                            <div class="aspect-video overflow-hidden bg-slate-100">
-                                <img src="{{ $recommendedEvent->recommendation_image_url }}" alt="{{ $recommendedEvent->title }}" loading="lazy" class="h-full w-full object-cover">
-                            </div>
-                            <div class="p-4">
-                                <h3 class="line-clamp-2 font-heading text-lg font-bold text-[#0b2a42]">{{ $recommendedEvent->title }}</h3>
-                                <p class="mt-2 text-sm text-slate-600">{{ $eventLocationLabel($recommendedEvent) }}</p>
-                                <p class="mt-1 text-sm text-slate-500">{{ $eventDateTimeLabel($recommendedEvent->starts_at) }}</p>
-                                <span class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#eadfca] bg-[#fbf8f1] px-4 py-2 text-sm font-semibold text-emerald-800">
-                                    <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M4 11h16M5 5h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z" />
-                                    </svg>
-                                    {{ __('Lihat Majlis') }}
-                                </span>
-                            </div>
-                        </a>
-                    @else
-                        <div class="mt-4 rounded-lg border border-dashed border-[#eadfca] bg-[#fbf8f1] p-6 text-center text-sm text-slate-600">
-                            {{ __('Tiada saranan khusus lagi. Terokai majlis untuk mendapatkan cadangan baharu.') }}
-                        </div>
-                    @endif
                 </section>
             </aside>
         </div>

@@ -16,8 +16,6 @@ it('normalizes missing optional account settings fields as empty strings', funct
         'email' => 'blank-profile@example.test',
         'phone' => null,
         'timezone' => null,
-        'daily_prayer_institution_id' => null,
-        'friday_prayer_institution_id' => null,
         'email_verified_at' => null,
         'phone_verified_at' => null,
     ]);
@@ -33,8 +31,8 @@ it('normalizes missing optional account settings fields as empty strings', funct
         'email' => 'blank-profile@example.test',
         'phone' => '',
         'timezone' => '',
-        'daily_prayer_institution_id' => '',
-        'friday_prayer_institution_id' => '',
+        'daily_prayer_institution_ids' => [],
+        'friday_prayer_institution_ids' => [],
         'email_verified_at' => null,
         'phone_verified_at' => null,
     ]);
@@ -55,11 +53,12 @@ it('shows the authenticated account settings profile contract', function () {
         'email' => 'settings@example.test',
         'phone' => '+60112223344',
         'timezone' => 'Asia/Kuala_Lumpur',
-        'daily_prayer_institution_id' => $dailyInstitution->id,
-        'friday_prayer_institution_id' => $fridayInstitution->id,
         'email_verified_at' => now()->subHour()->startOfSecond(),
         'phone_verified_at' => now()->subMinutes(20)->startOfSecond(),
     ]);
+
+    $user->dailyPrayerInstitutions()->syncWithPivotValues([$dailyInstitution->id], ['prayer_type' => 'daily']);
+    $user->fridayPrayerInstitutions()->syncWithPivotValues([$fridayInstitution->id], ['prayer_type' => 'friday']);
 
     Sanctum::actingAs($user);
 
@@ -73,8 +72,8 @@ it('shows the authenticated account settings profile contract', function () {
         'email' => 'settings@example.test',
         'phone' => '+60112223344',
         'timezone' => 'Asia/Kuala_Lumpur',
-        'daily_prayer_institution_id' => $dailyInstitution->id,
-        'friday_prayer_institution_id' => $fridayInstitution->id,
+        'daily_prayer_institution_ids' => [$dailyInstitution->id],
+        'friday_prayer_institution_ids' => [$fridayInstitution->id],
         'email_verified_at' => $user->fresh()->email_verified_at?->toIso8601String(),
         'phone_verified_at' => $user->fresh()->phone_verified_at?->toIso8601String(),
     ]);
@@ -83,6 +82,10 @@ it('shows the authenticated account settings profile contract', function () {
 it('returns the updated account settings profile payload after saving', function () {
     $dailyInstitution = Institution::factory()->create([
         'name' => 'Masjid Harian Baru',
+        'status' => 'verified',
+    ]);
+    $secondDailyInstitution = Institution::factory()->create([
+        'name' => 'Surau Harian Baru',
         'status' => 'verified',
     ]);
     $fridayInstitution = Institution::factory()->create([
@@ -106,8 +109,8 @@ it('returns the updated account settings profile payload after saving', function
         'email' => 'original@example.test',
         'phone' => '+60117778899',
         'timezone' => 'Asia/Kuala_Lumpur',
-        'daily_prayer_institution_id' => $dailyInstitution->id,
-        'friday_prayer_institution_id' => $fridayInstitution->id,
+        'daily_prayer_institution_ids' => [$dailyInstitution->id, $secondDailyInstitution->id],
+        'friday_prayer_institution_ids' => [$fridayInstitution->id],
     ]);
 
     $response->assertOk()
@@ -121,16 +124,19 @@ it('returns the updated account settings profile payload after saving', function
         'email' => 'original@example.test',
         'phone' => '+60117778899',
         'timezone' => 'Asia/Kuala_Lumpur',
-        'daily_prayer_institution_id' => $dailyInstitution->id,
-        'friday_prayer_institution_id' => $fridayInstitution->id,
+        'daily_prayer_institution_ids' => [$dailyInstitution->id, $secondDailyInstitution->id],
+        'friday_prayer_institution_ids' => [$fridayInstitution->id],
         'email_verified_at' => $user->email_verified_at?->toIso8601String(),
         'phone_verified_at' => $user->phone_verified_at?->toIso8601String(),
     ]);
 
     expect($user->name)->toBe('Updated API User')
         ->and($user->timezone)->toBe('Asia/Kuala_Lumpur')
-        ->and($user->daily_prayer_institution_id)->toBe($dailyInstitution->id)
-        ->and($user->friday_prayer_institution_id)->toBe($fridayInstitution->id);
+        ->and($user->dailyPrayerInstitutions()->pluck('institutions.id')->all())
+        ->toContain($dailyInstitution->id)
+        ->toContain($secondDailyInstitution->id)
+        ->toHaveCount(2)
+        ->and($user->fridayPrayerInstitutions()->pluck('institutions.id')->all())->toBe([$fridayInstitution->id]);
 });
 
 it('preserves omitted account settings fields during sparse updates', function () {
@@ -148,11 +154,12 @@ it('preserves omitted account settings fields during sparse updates', function (
         'email' => 'sparse@example.test',
         'phone' => '+60123334444',
         'timezone' => 'Asia/Kuala_Lumpur',
-        'daily_prayer_institution_id' => $dailyInstitution->id,
-        'friday_prayer_institution_id' => $fridayInstitution->id,
         'email_verified_at' => now()->subDay()->startOfSecond(),
         'phone_verified_at' => now()->subHours(12)->startOfSecond(),
     ]);
+
+    $user->dailyPrayerInstitutions()->syncWithPivotValues([$dailyInstitution->id], ['prayer_type' => 'daily']);
+    $user->fridayPrayerInstitutions()->syncWithPivotValues([$fridayInstitution->id], ['prayer_type' => 'friday']);
 
     Sanctum::actingAs($user);
 
@@ -170,10 +177,64 @@ it('preserves omitted account settings fields during sparse updates', function (
         ->and($user->email)->toBe('sparse@example.test')
         ->and($user->phone)->toBe('+60123334444')
         ->and($user->timezone)->toBe('Asia/Kuala_Lumpur')
-        ->and($user->daily_prayer_institution_id)->toBe($dailyInstitution->id)
-        ->and($user->friday_prayer_institution_id)->toBe($fridayInstitution->id)
+        ->and($user->dailyPrayerInstitutions()->pluck('institutions.id')->all())->toBe([$dailyInstitution->id])
+        ->and($user->fridayPrayerInstitutions()->pluck('institutions.id')->all())->toBe([$fridayInstitution->id])
         ->and($user->email_verified_at)->not->toBeNull()
         ->and($user->phone_verified_at)->not->toBeNull();
+});
+
+it('clears prayer institution preferences with empty arrays', function () {
+    $dailyInstitution = Institution::factory()->create(['status' => 'verified']);
+    $fridayInstitution = Institution::factory()->create(['status' => 'verified']);
+
+    $user = User::factory()->create([
+        'name' => 'Clearing User',
+        'email' => 'clearing@example.test',
+        'phone' => '+60124445555',
+    ]);
+
+    $user->dailyPrayerInstitutions()->syncWithPivotValues([$dailyInstitution->id], ['prayer_type' => 'daily']);
+    $user->fridayPrayerInstitutions()->syncWithPivotValues([$fridayInstitution->id], ['prayer_type' => 'friday']);
+
+    Sanctum::actingAs($user);
+
+    $response = $this->putJson(route('api.client.account-settings.update'), [
+        'name' => 'Clearing User',
+        'daily_prayer_institution_ids' => [],
+        'friday_prayer_institution_ids' => [],
+    ]);
+
+    $response->assertOk();
+
+    $user->refresh();
+
+    expect($response->json('data.profile.daily_prayer_institution_ids'))->toBe([])
+        ->and($response->json('data.profile.friday_prayer_institution_ids'))->toBe([])
+        ->and($user->dailyPrayerInstitutions()->count())->toBe(0)
+        ->and($user->fridayPrayerInstitutions()->count())->toBe(0);
+});
+
+it('rejects inactive or unknown prayer institution ids', function () {
+    $inactiveInstitution = Institution::factory()->create(['status' => 'inactive']);
+
+    $user = User::factory()->create([
+        'email' => 'invalid-prayer@example.test',
+        'phone' => '+60125556666',
+    ]);
+
+    Sanctum::actingAs($user);
+
+    $this->putJson(route('api.client.account-settings.update'), [
+        'name' => $user->name,
+        'daily_prayer_institution_ids' => [$inactiveInstitution->id],
+    ])->assertUnprocessable()
+        ->assertJsonValidationErrors(['daily_prayer_institution_ids']);
+
+    $this->putJson(route('api.client.account-settings.update'), [
+        'name' => $user->name,
+        'friday_prayer_institution_ids' => [(string) Str::uuid()],
+    ])->assertUnprocessable()
+        ->assertJsonValidationErrors(['friday_prayer_institution_ids']);
 });
 
 it('lists, creates, and revokes member MCP tokens through account settings', function () {

@@ -50,6 +50,15 @@ it('contains livewire components on the homepage', function () {
     $response->assertSee('livewire.js', false);
 });
 
+it('does not show the saved majlis filter on the homepage', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get('/')
+        ->assertOk()
+        ->assertDontSee('data-saved-filter', false);
+});
+
 it('keeps Hari ini all-day and applies both evening prayer filters to Malam Ini', function () {
     Carbon::setTestNow(Carbon::create(2026, 4, 16, 10, 0, 0, 'UTC'));
     $todayRange = ['starts_after' => '2026-04-16', 'starts_before' => '2026-04-16', 'time_scope' => 'all'];

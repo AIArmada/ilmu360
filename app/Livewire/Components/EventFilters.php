@@ -23,6 +23,8 @@ class EventFilters extends EventsIndex
 
     public bool $showNearbyButton = true;
 
+    public bool $showSavedFilter = true;
+
     public ?string $selectedHomeQuickFilter = null;
 
     private bool $applyingHomeQuickFilter = false;
@@ -30,12 +32,13 @@ class EventFilters extends EventsIndex
     /**
      * @param  array<string, array{starts_after: string, starts_before: string, time_scope: string}>  $quickFilterRanges
      */
-    public function mount(array $quickFilterRanges = [], bool $showNearbyButton = true): void
+    public function mount(array $quickFilterRanges = [], bool $showNearbyButton = true, bool $showSavedFilter = true): void
     {
         parent::mount();
 
         $this->quickFilterRanges = $quickFilterRanges;
         $this->showNearbyButton = $showNearbyButton;
+        $this->showSavedFilter = $showSavedFilter;
 
         $this->applyHomepageDefaults();
     }

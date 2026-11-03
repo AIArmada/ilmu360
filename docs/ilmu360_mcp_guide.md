@@ -36,7 +36,7 @@ Key rules:
 - Public/mobile discovery additions also do not automatically imply new MCP tools. For example, the public `GET /api/v1/references` directory now exists for native reference browsing, but MCP still uses the existing generic `admin-list-records` and `member-list-records` flows for the `references` resource rather than a dedicated public-reference tool.
 - For `people`, `institutions`, and `references`, `admin-list-records` and `member-list-records` now reuse the same specialized search services as the public directory endpoints. Expect decorated speaker-title matching, institution name or alias matching across the `institution_names` table, and reference descriptive-text matching to behave similarly while still honoring each surface's own visibility or membership scope.
 - `current_media` contains metadata only; it does not expose signed or temporary URLs.
-- Generic user record payloads intentionally redact `email`, `email_verified_at`, `phone`, `phone_verified_at`, `daily_prayer_institution_id`, and `friday_prayer_institution_id`.
+- Generic user record payloads intentionally redact `email`, `email_verified_at`, `phone`, `phone_verified_at`, `daily_prayer_institution_ids`, and `friday_prayer_institution_ids`.
 - Record lookups use `route_key` for record-specific paths, and missing records return 404 rather than a generic server error.
 - Supported admin update flows are schema-guided `PUT` requests: required fields must be sent, while optional omitted fields are merged by the underlying save actions when that resource supports merge-based updates.
 

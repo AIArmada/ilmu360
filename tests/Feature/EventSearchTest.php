@@ -315,6 +315,53 @@ describe('Event Search Filters', function () {
             ->assertSee('data-saved-filter', false);
     });
 
+    it('renders only going majlis for the going filter on the events index', function () {
+        config(['scout.driver' => 'database']);
+
+        $user = User::factory()->create();
+
+        $goingEvent = createVisibleEventForSearch([
+            'title' => 'Going Majlis Page Filter',
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now()->subHour(),
+            'starts_at' => now()->addDays(2),
+        ]);
+
+        $otherEvent = createVisibleEventForSearch([
+            'title' => 'Other Going Majlis Page Filter',
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now()->subHour(),
+            'starts_at' => now()->addDays(3),
+        ]);
+
+        $user->responses()->create([
+            'respondable_type' => $goingEvent->getMorphClass(),
+            'respondable_id' => $goingEvent->id,
+            'response_type' => 'going',
+            'status' => 'active',
+            'visibility' => 'public',
+            'responded_at' => now(),
+        ]);
+
+        $this->actingAs($user)
+            ->get(eventsIndexUrl(['going_only' => 1]))
+            ->assertOk()
+            ->assertSee('Going Majlis Page Filter')
+            ->assertDontSee('Other Going Majlis Page Filter');
+    });
+
+    it('keeps majlis cards visible while saving an event', function (): void {
+        config(['scout.driver' => 'database']);
+
+        $html = Livewire::test(Index::class)->html();
+
+        preg_match('/wire:loading\.delay\.short wire:target="([^"]+)" data-testid="events-loading-skeleton"/', $html, $matches);
+
+        expect(explode(',', $matches[1] ?? ''))->not->toContain('toggleSave');
+    });
+
     it('keeps the filter panel closed when the landing link requests it', function (): void {
         Livewire::withQueryParams([
             'gender' => EventGenderRestriction::MenOnly->value,

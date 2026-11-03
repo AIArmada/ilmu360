@@ -249,8 +249,8 @@ Passport              → OAuth routes for token issuance
 | GET/LW | `/dashboard/dawah-impact` | `dashboard.dawah-impact` | DawahImpactIndex | web, auth | Auth |
 | GET/LW | `/dashboard/dawah-impact/links` | `dashboard.dawah-impact.links` | DawahImpactIndex | web, auth | Auth |
 | GET/LW | `/dashboard/dawah-impact/links/{link}` | `dashboard.dawah-impact.links.show` | DawahImpactLinkShow | web, auth | Auth |
-| GET/LW | `/dashboard/notifications` | `dashboard.notifications` | NotificationsIndex | web, auth | Auth |
-| GET/LW | `/tetapan-akaun` | `dashboard.account-settings` | AccountSettings | web, auth | Auth |
+| GET/LW | `/notifications` | `notifications` | NotificationsIndex | web, auth | Auth |
+| GET/LW | `/tetapan` | `account-settings` | AccountSettings | web, auth | Auth |
 | GET/LW | `/dashboard/institusi` | `dashboard.institutions` | InstitutionDashboard | web, auth | Auth |
 | GET/LW | `/dashboard/institusi/senarai-majlis` | `dashboard.institutions.events` | InstitutionDashboard | web, auth | Auth |
 | GET/LW | `/dashboard/institusi/tambah-majlis` | `dashboard.institutions.submit-event` | Submit\Event\Create | web, auth | Auth |
@@ -469,8 +469,8 @@ Passport              → OAuth routes for token issuance
 | `GET /dashboard/dawah-impact` | [x] Complete |
 | `GET /dashboard/dawah-impact/links` | [x] Complete |
 | `GET /dashboard/dawah-impact/links/{link}` | [x] Complete |
-| `GET /dashboard/notifications` | [x] Complete |
-| `GET /tetapan-akaun` | [x] Complete |
+| `GET /notifications` | [x] Complete |
+| `GET /tetapan` | [x] Complete |
 | `GET /dashboard/institusi` | [x] Complete |
 | `GET /dashboard/institusi/senarai-majlis` | [x] Complete |
 | `GET /dashboard/institusi/tambah-majlis` | [x] Complete |

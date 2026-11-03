@@ -4,6 +4,7 @@ use AIArmada\Authz\Models\Role;
 use AIArmada\Engagement\Contracts\EngagementCounterService;
 use AIArmada\Engagement\Contracts\EngagementManager;
 use App\Models\Event;
+use App\Models\Institution;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -91,8 +92,8 @@ it('serializes the auth user payload with verification timestamps and timezone',
 });
 
 it('preserves the authenticated user endpoint payload contract', function () {
-    $dailyPrayerInstitutionId = (string) str()->uuid();
-    $fridayPrayerInstitutionId = (string) str()->uuid();
+    $dailyPrayerInstitution = Institution::factory()->create(['status' => 'verified']);
+    $fridayPrayerInstitution = Institution::factory()->create(['status' => 'verified']);
     $previousTeam = getPermissionsTeamId();
 
     try {
@@ -113,11 +114,12 @@ it('preserves the authenticated user endpoint payload contract', function () {
             'email' => 'current-user@example.test',
             'phone' => '+60115550000',
             'timezone' => 'Asia/Kuala_Lumpur',
-            'daily_prayer_institution_id' => $dailyPrayerInstitutionId,
-            'friday_prayer_institution_id' => $fridayPrayerInstitutionId,
             'email_verified_at' => now()->subHour()->startOfSecond(),
             'phone_verified_at' => now()->subMinutes(30)->startOfSecond(),
         ]);
+
+        $user->dailyPrayerInstitutions()->syncWithPivotValues([$dailyPrayerInstitution->id], ['prayer_type' => 'daily']);
+        $user->fridayPrayerInstitutions()->syncWithPivotValues([$fridayPrayerInstitution->id], ['prayer_type' => 'friday']);
 
         $user->assignRole('viewer');
         app(PermissionRegistrar::class)->forgetCachedPermissions();
@@ -132,6 +134,8 @@ it('preserves the authenticated user endpoint payload contract', function () {
 
         $expectedPayload = $user->fresh()->toArray();
         unset($expectedPayload['current_team_id']);
+        $expectedPayload['daily_prayer_institution_ids'] = [$dailyPrayerInstitution->id];
+        $expectedPayload['friday_prayer_institution_ids'] = [$fridayPrayerInstitution->id];
 
         expect($response->json('data'))->toEqual(array_merge($expectedPayload, [
             'roles' => ['viewer'],

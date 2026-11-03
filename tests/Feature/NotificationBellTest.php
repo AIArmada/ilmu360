@@ -264,5 +264,5 @@ it('links see all notifications to the all view of the inbox', function () {
 
     Livewire::actingAs($user)
         ->test(NotificationBell::class)
-        ->assertSeeHtml('href="'.route('dashboard.notifications', ['status' => 'all']).'"');
+        ->assertSeeHtml('href="'.route('notifications', ['status' => 'all']).'"');
 });

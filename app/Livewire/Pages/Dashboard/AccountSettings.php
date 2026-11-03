@@ -21,6 +21,8 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
@@ -51,8 +53,8 @@ class AccountSettings extends Component implements HasForms
      *     date_of_birth: string,
      *     password: string,
      *     password_confirmation: string,
-     *     daily_prayer_institution_id: string,
-     *     friday_prayer_institution_id: string
+     *     daily_prayer_institution_ids: list<string>,
+     *     friday_prayer_institution_ids: list<string>
      * }
      */
     public array $formData = [
@@ -64,8 +66,8 @@ class AccountSettings extends Component implements HasForms
         'date_of_birth' => '',
         'password' => '',
         'password_confirmation' => '',
-        'daily_prayer_institution_id' => '',
-        'friday_prayer_institution_id' => '',
+        'daily_prayer_institution_ids' => [],
+        'friday_prayer_institution_ids' => [],
     ];
 
     /**
@@ -244,29 +246,33 @@ class AccountSettings extends Component implements HasForms
                             ->maxLength(255),
                     ]),
                 Section::make(__('Prayer Institutions'))
-                    ->description(__('Save the institutions you usually attend for daily prayers and Friday prayers. Friday can be the same as your daily institution.'))
+                    ->description(__('Save the institutions you usually attend for daily prayers and Friday prayers. You can select more than one for each.'))
                     ->columns(2)
                     ->schema([
-                        Select::make('daily_prayer_institution_id')
-                            ->label(__('Daily Prayer Institution'))
+                        Select::make('daily_prayer_institution_ids')
+                            ->label(__('Daily Prayer Institutions'))
                             ->placeholder(__('Search institution...'))
                             ->searchable()
+                            ->multiple()
                             ->native(false)
                             ->getSearchResultsUsing(fn (string $search): array => $this->searchPrayerInstitutionOptions($search))
                             ->getOptionLabelUsing(fn (mixed $value): ?string => $this->prayerInstitutionOptionLabel($value))
-                            ->helperText(__('Your usual mosque or surau for daily prayers.'))
-                            ->mutateStateForValidationUsing(fn (mixed $state): ?string => $this->normalizeOptionalString($state))
-                            ->rules(['nullable', 'uuid']),
-                        Select::make('friday_prayer_institution_id')
-                            ->label(__('Friday Prayer Institution'))
+                            ->getOptionLabelsUsing(fn (array $values): array => $this->prayerInstitutionOptionLabels($values))
+                            ->helperText(__('Your usual mosques or suraus for daily prayers.'))
+                            ->mutateStateForValidationUsing(fn (mixed $state): array => $this->normalizeOptionalStringArray($state))
+                            ->rules(['array']),
+                        Select::make('friday_prayer_institution_ids')
+                            ->label(__('Friday Prayer Institutions'))
                             ->placeholder(__('Search institution...'))
                             ->searchable()
+                            ->multiple()
                             ->native(false)
                             ->getSearchResultsUsing(fn (string $search): array => $this->searchPrayerInstitutionOptions($search))
                             ->getOptionLabelUsing(fn (mixed $value): ?string => $this->prayerInstitutionOptionLabel($value))
-                            ->helperText(__('Leave blank if you do not want to save a separate Friday location.'))
-                            ->mutateStateForValidationUsing(fn (mixed $state): ?string => $this->normalizeOptionalString($state))
-                            ->rules(['nullable', 'uuid']),
+                            ->getOptionLabelsUsing(fn (array $values): array => $this->prayerInstitutionOptionLabels($values))
+                            ->helperText(__('Leave blank if you do not want to save separate Friday locations.'))
+                            ->mutateStateForValidationUsing(fn (mixed $state): array => $this->normalizeOptionalStringArray($state))
+                            ->rules(['array']),
                     ]),
             ]);
     }
@@ -283,21 +289,24 @@ class AccountSettings extends Component implements HasForms
         $normalizedGender = $this->normalizeOptionalString($validated['gender'] ?? null);
         $normalizedDateOfBirth = $this->normalizeOptionalString($validated['date_of_birth'] ?? null);
         $normalizedPassword = $this->normalizeOptionalPassword($validated['password'] ?? null);
-        $dailyPrayerInstitutionId = $this->normalizeOptionalString($validated['daily_prayer_institution_id'] ?? null);
-        $fridayPrayerInstitutionId = $this->normalizeOptionalString($validated['friday_prayer_institution_id'] ?? null);
+        $dailyPrayerInstitutionIds = $this->normalizeOptionalStringArray($validated['daily_prayer_institution_ids'] ?? []);
+        $fridayPrayerInstitutionIds = $this->normalizeOptionalStringArray($validated['friday_prayer_institution_ids'] ?? []);
 
         $emailChanged = $normalizedEmail !== $user->email;
         $phoneChanged = $normalizedPhone !== $user->phone;
 
-        $this->assertPrayerInstitutionSelectionAllowed(
-            $dailyPrayerInstitutionId,
-            $user->daily_prayer_institution_id,
-            'formData.daily_prayer_institution_id',
+        $currentDailyPrayerInstitutionIds = $user->dailyPrayerInstitutions()->pluck('institutions.id')->all();
+        $currentFridayPrayerInstitutionIds = $user->fridayPrayerInstitutions()->pluck('institutions.id')->all();
+
+        $this->assertPrayerInstitutionSelectionsAllowed(
+            $dailyPrayerInstitutionIds,
+            $currentDailyPrayerInstitutionIds,
+            'formData.daily_prayer_institution_ids',
         );
-        $this->assertPrayerInstitutionSelectionAllowed(
-            $fridayPrayerInstitutionId,
-            $user->friday_prayer_institution_id,
-            'formData.friday_prayer_institution_id',
+        $this->assertPrayerInstitutionSelectionsAllowed(
+            $fridayPrayerInstitutionIds,
+            $currentFridayPrayerInstitutionIds,
+            'formData.friday_prayer_institution_ids',
         );
 
         $forceFill = [
@@ -307,8 +316,6 @@ class AccountSettings extends Component implements HasForms
             'timezone' => $normalizedTimezone,
             'gender' => $normalizedGender,
             'date_of_birth' => $normalizedDateOfBirth,
-            'daily_prayer_institution_id' => $dailyPrayerInstitutionId,
-            'friday_prayer_institution_id' => $fridayPrayerInstitutionId,
             'email_verified_at' => $emailChanged ? null : $user->email_verified_at,
             'phone_verified_at' => $phoneChanged ? null : $user->phone_verified_at,
         ];
@@ -318,9 +325,14 @@ class AccountSettings extends Component implements HasForms
         }
 
         try {
-            $user->forceFill($forceFill)->save();
+            DB::transaction(function () use ($user, $forceFill, $dailyPrayerInstitutionIds, $fridayPrayerInstitutionIds): void {
+                $user->forceFill($forceFill)->save();
+                $user->dailyPrayerInstitutions()->syncWithPivotValues($dailyPrayerInstitutionIds, ['prayer_type' => 'daily']);
+                $user->fridayPrayerInstitutions()->syncWithPivotValues($fridayPrayerInstitutionIds, ['prayer_type' => 'friday']);
+            });
 
-            $this->accountSettingsForm()->fill($this->initialFormData($user));
+            $freshUser = $user->fresh() ?? $user;
+            $this->accountSettingsForm()->fill($this->initialFormData($freshUser));
             if (request()->hasSession()) {
                 if ($normalizedTimezone !== null) {
                     request()->session()->put('user_timezone', $normalizedTimezone);
@@ -329,7 +341,6 @@ class AccountSettings extends Component implements HasForms
                 }
             }
 
-            $freshUser = $user->fresh() ?? $user;
             $this->settingsManager()->syncProfileSettings($freshUser);
 
             if ($emailChanged) {
@@ -435,8 +446,8 @@ class AccountSettings extends Component implements HasForms
      *     date_of_birth: string,
      *     password: string,
      *     password_confirmation: string,
-     *     daily_prayer_institution_id: string,
-     *     friday_prayer_institution_id: string
+     *     daily_prayer_institution_ids: list<string>,
+     *     friday_prayer_institution_ids: list<string>
      * }
      */
     protected function initialFormData(User $user): array
@@ -452,8 +463,8 @@ class AccountSettings extends Component implements HasForms
                 : '',
             'password' => '',
             'password_confirmation' => '',
-            'daily_prayer_institution_id' => (string) ($user->daily_prayer_institution_id ?? ''),
-            'friday_prayer_institution_id' => (string) ($user->friday_prayer_institution_id ?? ''),
+            'daily_prayer_institution_ids' => $user->dailyPrayerInstitutions->pluck('id')->values()->all(),
+            'friday_prayer_institution_ids' => $user->fridayPrayerInstitutions->pluck('id')->values()->all(),
         ];
     }
 
@@ -491,17 +502,57 @@ class AccountSettings extends Component implements HasForms
             ?->display_name;
     }
 
-    protected function assertPrayerInstitutionSelectionAllowed(?string $selectedInstitutionId, ?string $currentInstitutionId, string $errorKey): void
+    /**
+     * @param  array<int|string, mixed>  $values
+     * @return array<string, string>
+     */
+    protected function prayerInstitutionOptionLabels(array $values): array
     {
-        if ($selectedInstitutionId === null) {
+        $institutionIds = $this->normalizeOptionalStringArray($values);
+
+        if ($institutionIds === []) {
+            return [];
+        }
+
+        $labels = Institution::query()
+            ->whereKey($institutionIds)
+            ->with('names')
+            ->get(['id', 'name'])
+            ->mapWithKeys(fn (Institution $institution): array => [(string) $institution->id => $institution->display_name])
+            ->all();
+
+        foreach ($institutionIds as $institutionId) {
+            $labels[$institutionId] ??= $institutionId;
+        }
+
+        return $labels;
+    }
+
+    /**
+     * @param  list<string>  $selectedInstitutionIds
+     * @param  list<string>  $currentInstitutionIds
+     */
+    protected function assertPrayerInstitutionSelectionsAllowed(array $selectedInstitutionIds, array $currentInstitutionIds, string $errorKey): void
+    {
+        $newInstitutionIds = array_values(array_diff($selectedInstitutionIds, $currentInstitutionIds));
+
+        if ($newInstitutionIds === []) {
             return;
         }
 
-        if ($selectedInstitutionId === $currentInstitutionId) {
-            return;
+        foreach ($newInstitutionIds as $institutionId) {
+            if (! Str::isUuid($institutionId)) {
+                throw ValidationException::withMessages([
+                    $errorKey => __('Please select a valid active institution.'),
+                ]);
+            }
         }
 
-        if ($this->selectablePrayerInstitutionQuery()->whereKey($selectedInstitutionId)->exists()) {
+        $allowedCount = $this->selectablePrayerInstitutionQuery()
+            ->whereKey($newInstitutionIds)
+            ->count();
+
+        if ($allowedCount === count($newInstitutionIds)) {
             return;
         }
 
@@ -529,6 +580,21 @@ class AccountSettings extends Component implements HasForms
         $trimmed = trim($value);
 
         return $trimmed !== '' ? $trimmed : null;
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function normalizeOptionalStringArray(mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        return array_values(array_unique(array_filter(
+            array_map(static fn (mixed $item): string => is_string($item) ? trim($item) : '', $value),
+            static fn (string $item): bool => $item !== '',
+        )));
     }
 
     protected function normalizeOptionalPhone(mixed $value): ?string

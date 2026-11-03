@@ -67,10 +67,27 @@ return new class extends Migration
 
             $table->unique(['source', 'external_ref'], 'institution_import_exclusions_source_ref_unique');
         });
+
+        Schema::create('user_prayer_institutions', function (Blueprint $table) {
+            $table->foreignUuid('user_id');
+            $table->foreignUuid('institution_id');
+            $table->string('prayer_type');
+            $table->timestamps();
+
+            $table->primary(
+                ['user_id', 'prayer_type', 'institution_id'],
+                'user_prayer_institutions_primary',
+            );
+            $table->index(
+                ['institution_id', 'prayer_type'],
+                'user_prayer_institutions_institution_type_index',
+            );
+        });
     }
 
     public function down(): void
     {
+        Schema::dropIfExists('user_prayer_institutions');
         Schema::dropIfExists('institution_import_exclusions');
         Schema::dropIfExists('institutions');
     }

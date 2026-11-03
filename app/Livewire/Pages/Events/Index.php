@@ -94,6 +94,9 @@ class Index extends Component implements HasForms
     public ?bool $saved_only = null;
 
     #[Url]
+    public ?bool $going_only = null;
+
+    #[Url]
     public ?string $country_id = null;
 
     #[Url]
@@ -319,6 +322,11 @@ class Index extends Component implements HasForms
      */
     private ?array $savedEventIdsForFilterCache = null;
 
+    /**
+     * @var list<string>|null
+     */
+    private ?array $goingEventIdsForFilterCache = null;
+
     /** @var LengthAwarePaginator<int, Event>|null */
     private ?LengthAwarePaginator $eventsForRequest = null;
 
@@ -334,6 +342,7 @@ class Index extends Component implements HasForms
     {
         if (! auth()->user() instanceof User) {
             $this->saved_only = null;
+            $this->going_only = null;
         }
 
         $this->applyDefaultCountryScope();
@@ -390,6 +399,7 @@ class Index extends Component implements HasForms
         return collect([
             filled($this->search),
             $this->saved_only === true,
+            $this->going_only === true,
             $hasCountryScope,
             filled($this->state_id),
             filled($areaAssignments['administrative_division'] ?? null),
@@ -1606,7 +1616,7 @@ class Index extends Component implements HasForms
             return $this->eventsForRequest;
         }
 
-        if ($this->savedOnlyHasNoMatches()) {
+        if ($this->savedOnlyHasNoMatches() || $this->goingOnlyHasNoMatches()) {
             return $this->eventsForRequest = $this->emptyEventPaginator();
         }
 
@@ -1642,7 +1652,7 @@ class Index extends Component implements HasForms
             return $this->scheduleItemsForRequest;
         }
 
-        if ($this->savedOnlyHasNoMatches()) {
+        if ($this->savedOnlyHasNoMatches() || $this->goingOnlyHasNoMatches()) {
             return $this->scheduleItemsForRequest = $this->emptySchedulePaginator();
         }
 
@@ -1730,6 +1740,10 @@ class Index extends Component implements HasForms
             $searchFilters['saved_event_ids'] = $this->savedEventIdsForFilter();
         }
 
+        if ($this->going_only === true && auth()->user() instanceof User) {
+            $searchFilters['going_event_ids'] = $this->goingEventIdsForFilter();
+        }
+
         return $searchFilters;
     }
 
@@ -1738,6 +1752,13 @@ class Index extends Component implements HasForms
         return $this->saved_only === true
             && auth()->user() instanceof User
             && $this->savedEventIdsForFilter() === [];
+    }
+
+    private function goingOnlyHasNoMatches(): bool
+    {
+        return $this->going_only === true
+            && auth()->user() instanceof User
+            && $this->goingEventIdsForFilter() === [];
     }
 
     /**
@@ -1756,6 +1777,28 @@ class Index extends Component implements HasForms
         }
 
         return $this->savedEventIdsForFilterCache = $user->savedEventIds()
+            ->map(static fn (mixed $eventId): string => (string) $eventId)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function goingEventIdsForFilter(): array
+    {
+        if ($this->goingEventIdsForFilterCache !== null) {
+            return $this->goingEventIdsForFilterCache;
+        }
+
+        $user = auth()->user();
+
+        if (! $user instanceof User) {
+            return $this->goingEventIdsForFilterCache = [];
+        }
+
+        return $this->goingEventIdsForFilterCache = $user->goingEvents()
+            ->pluck('events.id')
             ->map(static fn (mixed $eventId): string => (string) $eventId)
             ->values()
             ->all();
@@ -1831,6 +1874,7 @@ class Index extends Component implements HasForms
         return [
             'search' => null,
             'saved_only' => null,
+            'going_only' => null,
             'country_id' => null,
             'state_id' => null,
             'area_assignments' => $this->withAreaAssignmentDefaults([]),
@@ -1895,6 +1939,7 @@ class Index extends Component implements HasForms
         return [
             'search' => filled($this->search) ? trim($this->search) : null,
             'saved_only' => $this->normalizeNullableBoolean($this->saved_only),
+            'going_only' => $this->normalizeNullableBoolean($this->going_only),
             'country_id' => filled($this->country_id) ? $this->country_id : null,
             'state_id' => filled($this->state_id) ? $this->state_id : null,
             'area_assignments' => $this->normalizeAreaAssignments($this->area_assignments),
@@ -1947,6 +1992,7 @@ class Index extends Component implements HasForms
     {
         $this->search = $filters['search'];
         $this->saved_only = $filters['saved_only'] ?? null;
+        $this->going_only = $filters['going_only'] ?? null;
         $this->country_id = $filters['country_id'];
         $this->state_id = $filters['state_id'] ?? null;
         $this->area_assignments = $filters['area_assignments'];
@@ -2038,6 +2084,7 @@ class Index extends Component implements HasForms
         return [
             'search' => filled($normalized['search']) ? trim((string) $normalized['search']) : null,
             'saved_only' => $this->normalizeNullableBoolean($normalized['saved_only'] ?? null),
+            'going_only' => $this->normalizeNullableBoolean($normalized['going_only'] ?? null),
             'country_id' => filled($normalized['country_id']) ? (string) $normalized['country_id'] : null,
             'state_id' => filled($normalized['state_id'] ?? null) ? (string) $normalized['state_id'] : null,
             'area_assignments' => $this->normalizeAreaAssignments($normalized['area_assignments'] ?? []),

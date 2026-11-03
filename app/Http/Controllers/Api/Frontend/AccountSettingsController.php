@@ -13,6 +13,8 @@ use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -56,16 +58,18 @@ class AccountSettingsController extends FrontendController
             'email' => ['nullable', 'email', 'max:255', Rule::unique(User::class, 'email')->ignore($user->getKey())],
             'phone' => ['nullable', 'string', Rule::unique(User::class, 'phone')->ignore($user->getKey())],
             'timezone' => ['nullable', 'string', Rule::in(DateTimeZone::listIdentifiers())],
-            'daily_prayer_institution_id' => ['nullable', 'uuid'],
-            'friday_prayer_institution_id' => ['nullable', 'uuid'],
+            'daily_prayer_institution_ids' => ['nullable', 'array'],
+            'daily_prayer_institution_ids.*' => ['uuid'],
+            'friday_prayer_institution_ids' => ['nullable', 'array'],
+            'friday_prayer_institution_ids.*' => ['uuid'],
         ]);
 
         $nameProvided = $request->exists('name');
         $emailProvided = $request->exists('email');
         $phoneProvided = $request->exists('phone');
         $timezoneProvided = $request->exists('timezone');
-        $dailyPrayerInstitutionProvided = $request->exists('daily_prayer_institution_id');
-        $fridayPrayerInstitutionProvided = $request->exists('friday_prayer_institution_id');
+        $dailyPrayerInstitutionsProvided = $request->exists('daily_prayer_institution_ids');
+        $fridayPrayerInstitutionsProvided = $request->exists('friday_prayer_institution_ids');
 
         $normalizedName = $nameProvided
             ? trim((string) ($validated['name'] ?? ''))
@@ -79,12 +83,14 @@ class AccountSettingsController extends FrontendController
         $normalizedTimezone = $timezoneProvided
             ? $this->normalizeOptionalString($validated['timezone'] ?? null)
             : $user->timezone;
-        $dailyPrayerInstitutionId = $dailyPrayerInstitutionProvided
-            ? $this->normalizeOptionalString($validated['daily_prayer_institution_id'] ?? null)
-            : $user->daily_prayer_institution_id;
-        $fridayPrayerInstitutionId = $fridayPrayerInstitutionProvided
-            ? $this->normalizeOptionalString($validated['friday_prayer_institution_id'] ?? null)
-            : $user->friday_prayer_institution_id;
+        $currentDailyPrayerInstitutionIds = $user->dailyPrayerInstitutions()->pluck('institutions.id')->all();
+        $currentFridayPrayerInstitutionIds = $user->fridayPrayerInstitutions()->pluck('institutions.id')->all();
+        $dailyPrayerInstitutionIds = $dailyPrayerInstitutionsProvided
+            ? $this->normalizeOptionalStringArray($validated['daily_prayer_institution_ids'] ?? [])
+            : $currentDailyPrayerInstitutionIds;
+        $fridayPrayerInstitutionIds = $fridayPrayerInstitutionsProvided
+            ? $this->normalizeOptionalStringArray($validated['friday_prayer_institution_ids'] ?? [])
+            : $currentFridayPrayerInstitutionIds;
 
         if ($normalizedEmail === null && $normalizedPhone === null) {
             throw ValidationException::withMessages([
@@ -96,27 +102,30 @@ class AccountSettingsController extends FrontendController
         $emailChanged = $normalizedEmail !== $user->email;
         $phoneChanged = $normalizedPhone !== $user->phone;
 
-        $this->assertPrayerInstitutionSelectionAllowed(
-            $dailyPrayerInstitutionId,
-            $user->daily_prayer_institution_id,
-            'daily_prayer_institution_id',
+        $this->assertPrayerInstitutionSelectionsAllowed(
+            $dailyPrayerInstitutionIds,
+            $currentDailyPrayerInstitutionIds,
+            'daily_prayer_institution_ids',
         );
-        $this->assertPrayerInstitutionSelectionAllowed(
-            $fridayPrayerInstitutionId,
-            $user->friday_prayer_institution_id,
-            'friday_prayer_institution_id',
+        $this->assertPrayerInstitutionSelectionsAllowed(
+            $fridayPrayerInstitutionIds,
+            $currentFridayPrayerInstitutionIds,
+            'friday_prayer_institution_ids',
         );
 
-        $user->forceFill([
-            'name' => $normalizedName,
-            'email' => $normalizedEmail,
-            'phone' => $normalizedPhone,
-            'timezone' => $normalizedTimezone,
-            'daily_prayer_institution_id' => $dailyPrayerInstitutionId,
-            'friday_prayer_institution_id' => $fridayPrayerInstitutionId,
-            'email_verified_at' => $emailChanged ? null : $user->email_verified_at,
-            'phone_verified_at' => $phoneChanged ? null : $user->phone_verified_at,
-        ])->save();
+        DB::transaction(function () use ($user, $normalizedName, $normalizedEmail, $normalizedPhone, $normalizedTimezone, $emailChanged, $phoneChanged, $dailyPrayerInstitutionIds, $fridayPrayerInstitutionIds): void {
+            $user->forceFill([
+                'name' => $normalizedName,
+                'email' => $normalizedEmail,
+                'phone' => $normalizedPhone,
+                'timezone' => $normalizedTimezone,
+                'email_verified_at' => $emailChanged ? null : $user->email_verified_at,
+                'phone_verified_at' => $phoneChanged ? null : $user->phone_verified_at,
+            ])->save();
+
+            $user->dailyPrayerInstitutions()->syncWithPivotValues($dailyPrayerInstitutionIds, ['prayer_type' => 'daily']);
+            $user->fridayPrayerInstitutions()->syncWithPivotValues($fridayPrayerInstitutionIds, ['prayer_type' => 'friday']);
+        });
 
         $freshUser = $user->fresh() ?? $user;
         $this->notificationSettingsManager->syncProfileSettings($freshUser);
@@ -146,13 +155,31 @@ class AccountSettingsController extends FrontendController
             ->where('status', InstitutionStatus::Verified->value);
     }
 
-    private function assertPrayerInstitutionSelectionAllowed(?string $selectedInstitutionId, ?string $currentInstitutionId, string $errorKey): void
+    /**
+     * @param  list<string>  $selectedInstitutionIds
+     * @param  list<string>  $currentInstitutionIds
+     */
+    private function assertPrayerInstitutionSelectionsAllowed(array $selectedInstitutionIds, array $currentInstitutionIds, string $errorKey): void
     {
-        if ($selectedInstitutionId === null || $selectedInstitutionId === $currentInstitutionId) {
+        $newInstitutionIds = array_values(array_diff($selectedInstitutionIds, $currentInstitutionIds));
+
+        if ($newInstitutionIds === []) {
             return;
         }
 
-        if ($this->selectablePrayerInstitutionQuery()->whereKey($selectedInstitutionId)->exists()) {
+        foreach ($newInstitutionIds as $institutionId) {
+            if (! Str::isUuid($institutionId)) {
+                throw ValidationException::withMessages([
+                    $errorKey => __('Please select a valid active institution.'),
+                ]);
+            }
+        }
+
+        $allowedCount = $this->selectablePrayerInstitutionQuery()
+            ->whereKey($newInstitutionIds)
+            ->count();
+
+        if ($allowedCount === count($newInstitutionIds)) {
             return;
         }
 
@@ -170,5 +197,20 @@ class AccountSettingsController extends FrontendController
         $trimmed = trim($value);
 
         return $trimmed !== '' ? $trimmed : null;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function normalizeOptionalStringArray(mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        return array_values(array_unique(array_filter(
+            array_map(static fn (mixed $item): string => is_string($item) ? trim($item) : '', $value),
+            static fn (string $item): bool => $item !== '',
+        )));
     }
 }

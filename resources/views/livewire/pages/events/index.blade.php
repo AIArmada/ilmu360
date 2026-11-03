@@ -638,7 +638,7 @@
                         $events = $this->scheduleItems;
                         $savedEventIds = $this->savedEventIds;
                         $savedOnly = $this->saved_only === true;
-                        $eventLoadingTarget = 'filterData,setLocation,clearLocation,clearAllFilters,toggleSave,toggleSavedOnly,gotoPage,setPage';
+                        $eventLoadingTarget = 'filterData,setLocation,clearLocation,clearAllFilters,toggleSavedOnly,gotoPage,setPage';
                     @endphp
 
                 <div class="mt-5 min-h-[42rem]" wire:transition="event-results">

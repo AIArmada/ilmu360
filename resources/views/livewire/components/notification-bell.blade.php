@@ -3,7 +3,9 @@
         ? 'living-majlis-header-button living-majlis-header-button--glass text-white'
         : 'border border-[#dbe1dc] bg-white/60 text-[#005b3d] hover:border-[#006044] hover:bg-white hover:shadow-[0_6px_16px_-8px_rgba(0,96,68,0.45)]';
 
-    $triggerLabel = $unreadCount > 0
+    $hasUnread = $unreadCount > 0;
+
+    $triggerLabel = $hasUnread
         ? __('notifications.bell.unread_aria', ['count' => $unreadCount])
         : __('notifications.bell.label');
 
@@ -32,19 +34,34 @@
         data-testid="notification-bell"
         class="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e3b537] focus-visible:ring-offset-2 {{ $triggerClass }}"
     >
-        @if ($unreadCount > 0)
-            <x-heroicon-s-bell class="h-5 w-5" aria-hidden="true" />
-            <span
-                data-testid="notification-unread-count"
-                aria-hidden="true"
-                class="absolute -right-1 -top-1 inline-flex min-w-[1.15rem] items-center justify-center rounded-full border border-[#fffdf8] bg-[#e3b537] px-1 text-[10px] font-bold leading-[1.15rem] text-[#063b27] shadow-sm"
-            >
-                {{ $unreadCount > 99 ? '99+' : $unreadCount }}
-            </span>
+        @if ($hasUnread)
+            <x-heroicon-s-bell data-testid="notification-bell-icon-filled" class="h-5 w-5" aria-hidden="true" />
         @else
-            <x-heroicon-o-bell class="h-5 w-5" aria-hidden="true" />
+            <x-heroicon-o-bell
+                x-show="! open"
+                data-testid="notification-bell-icon-outline"
+                class="h-5 w-5"
+                aria-hidden="true"
+            />
+            <x-heroicon-s-bell
+                x-show="open"
+                x-cloak
+                data-testid="notification-bell-icon-filled"
+                class="h-5 w-5"
+                aria-hidden="true"
+            />
         @endif
     </button>
+
+    @if ($hasUnread)
+        <span
+            data-testid="notification-unread-count"
+            aria-hidden="true"
+            class="pointer-events-none absolute -right-1 -top-1 z-10 inline-flex min-w-[1.15rem] items-center justify-center rounded-full border border-[#fffdf8] bg-[#e3b537] px-1 text-[10px] font-bold leading-[1.15rem] text-[#063b27] shadow-sm"
+        >
+            {{ $unreadCount > 99 ? '99+' : $unreadCount }}
+        </span>
+    @endif
 
     <div
         id="notification-panel"
@@ -104,7 +121,7 @@
                     </button>
 
                     <a
-                        href="{{ route('dashboard.account-settings', ['tab' => 'notifications']) }}"
+                        href="{{ route('account-settings', ['tab' => 'notifications']) }}"
                         wire:navigate
                         role="menuitem"
                         x-on:click="menuOpen = false; open = false"
@@ -115,7 +132,7 @@
                     </a>
 
                     <a
-                        href="{{ route('dashboard.notifications') }}"
+                        href="{{ route('notifications') }}"
                         wire:navigate
                         role="menuitem"
                         x-on:click="menuOpen = false; open = false"
@@ -244,7 +261,7 @@
 
         <div class="shrink-0 border-t border-[#eadfca] bg-[#fffdf8] p-2">
             <a
-                href="{{ route('dashboard.notifications', ['status' => 'all']) }}"
+                href="{{ route('notifications', ['status' => 'all']) }}"
                 wire:navigate
                 x-on:click="open = false"
                 class="flex min-h-10 items-center justify-center gap-1.5 rounded-xl px-3 text-xs font-semibold text-[#006044] transition-colors hover:bg-[#f3eee2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e3b537]"

@@ -16,13 +16,13 @@ use Livewire\Livewire;
 uses(RefreshDatabase::class);
 
 it('renders the account settings page with profile and notifications tabs', function () {
-    expect(route('dashboard.account-settings'))->toEndWith('/tetapan-akaun');
+    expect(route('account-settings'))->toEndWith('/tetapan');
 
     $user = User::factory()->create();
 
     $response = $this->withSession(['locale' => 'en'])
         ->actingAs($user)
-        ->get(route('dashboard.account-settings'));
+        ->get(route('account-settings'));
 
     $response->assertOk()
         ->assertSee('Account Settings')
@@ -39,8 +39,8 @@ it('renders the account settings page with profile and notifications tabs', func
         ->assertDontSee('Changes to email or phone reset their verification status until they are confirmed again.')
         ->assertDontSee('Prayer institution preferences are private and only saved to your account for now.')
         ->assertSee('Prayer Institutions')
-        ->assertSee('Daily Prayer Institution')
-        ->assertSee('Friday Prayer Institution')
+        ->assertSee('Daily Prayer Institutions')
+        ->assertSee('Friday Prayer Institutions')
         ->assertSee('Save Account Settings')
         ->assertDontSee('Digest Preferences')
         ->assertDontSee('Save Preferences')
@@ -86,7 +86,7 @@ it('renders the account settings profile tab in Malay with password labels and n
 
     $this->withSession(['locale' => 'ms'])
         ->actingAs($user)
-        ->get(route('dashboard.account-settings'))
+        ->get(route('account-settings'))
         ->assertOk()
         ->assertSee('Tetapan Akaun')
         ->assertSee('Kata laluan baharu')
@@ -116,7 +116,7 @@ it('renders the notifications tab in Malay without leaking raw translation keys'
 
     $response = $this->withSession(['locale' => 'ms'])
         ->actingAs($user)
-        ->get(route('dashboard.account-settings', ['tab' => 'notifications']));
+        ->get(route('account-settings', ['tab' => 'notifications']));
 
     $response->assertOk()
         ->assertSee('Tetapan Akaun')
@@ -376,11 +376,12 @@ it('searches both prayer institution selectors from the institution database', f
 
     $component = Livewire::actingAs($user)->test(AccountSettings::class);
 
-    foreach (['daily_prayer_institution_id', 'friday_prayer_institution_id'] as $field) {
+    foreach (['daily_prayer_institution_ids', 'friday_prayer_institution_ids'] as $field) {
         $component->assertFormFieldExists($field, function (FormSelect $select) use ($dailyInstitution, $fridayInstitution, $inactiveInstitution, $pendingInstitution): bool {
             $results = $select->getSearchResults('searchable');
 
             expect($select->isSearchable())->toBeTrue()
+                ->and($select->isMultiple())->toBeTrue()
                 ->and($select->hasDynamicSearchResults())->toBeTrue()
                 ->and($results)->toHaveKey($dailyInstitution->id)
                 ->and($results[$dailyInstitution->id])->toBe('Masjid Searchable Daily')
@@ -394,9 +395,13 @@ it('searches both prayer institution selectors from the institution database', f
     }
 });
 
-it('saves optional prayer institution preferences and preserves contact verification when contact details are unchanged', function () {
+it('saves multiple prayer institution preferences and preserves contact verification when contact details are unchanged', function () {
     $dailyInstitution = Institution::factory()->create([
         'name' => 'Masjid Harian',
+        'status' => 'verified',
+    ]);
+    $secondDailyInstitution = Institution::factory()->create([
+        'name' => 'Surau Harian',
         'status' => 'verified',
     ]);
     $fridayInstitution = Institution::factory()->create([
@@ -414,61 +419,67 @@ it('saves optional prayer institution preferences and preserves contact verifica
     $component = Livewire::actingAs($user)->test(AccountSettings::class);
 
     $component
-        ->set('formData.daily_prayer_institution_id', $dailyInstitution->id)
-        ->set('formData.friday_prayer_institution_id', '')
+        ->set('formData.daily_prayer_institution_ids', [$dailyInstitution->id, $secondDailyInstitution->id])
+        ->set('formData.friday_prayer_institution_ids', [])
         ->call('saveAccountSettings')
         ->assertHasNoErrors();
 
     $user->refresh();
 
-    expect($user->daily_prayer_institution_id)->toBe($dailyInstitution->id)
-        ->and($user->friday_prayer_institution_id)->toBeNull()
+    expect($user->dailyPrayerInstitutions()->pluck('institutions.id')->all())
+        ->toContain($dailyInstitution->id)
+        ->toContain($secondDailyInstitution->id)
+        ->toHaveCount(2)
+        ->and($user->fridayPrayerInstitutions()->count())->toBe(0)
         ->and($user->email_verified_at)->not->toBeNull()
         ->and($user->phone_verified_at)->not->toBeNull();
 
     $component
-        ->set('formData.daily_prayer_institution_id', '')
-        ->set('formData.friday_prayer_institution_id', $fridayInstitution->id)
+        ->set('formData.daily_prayer_institution_ids', [])
+        ->set('formData.friday_prayer_institution_ids', [$fridayInstitution->id])
         ->call('saveAccountSettings')
         ->assertHasNoErrors();
 
     $user->refresh();
 
-    expect($user->daily_prayer_institution_id)->toBeNull()
-        ->and($user->friday_prayer_institution_id)->toBe($fridayInstitution->id);
+    expect($user->dailyPrayerInstitutions()->count())->toBe(0)
+        ->and($user->fridayPrayerInstitutions()->pluck('institutions.id')->all())->toBe([$fridayInstitution->id]);
 
     $component
-        ->set('formData.daily_prayer_institution_id', $dailyInstitution->id)
-        ->set('formData.friday_prayer_institution_id', $dailyInstitution->id)
+        ->set('formData.daily_prayer_institution_ids', [$dailyInstitution->id])
+        ->set('formData.friday_prayer_institution_ids', [$dailyInstitution->id])
         ->call('saveAccountSettings')
         ->assertHasNoErrors();
 
     $user->refresh();
 
-    expect($user->daily_prayer_institution_id)->toBe($dailyInstitution->id)
-        ->and($user->friday_prayer_institution_id)->toBe($dailyInstitution->id);
+    expect($user->dailyPrayerInstitutions()->pluck('institutions.id')->all())->toBe([$dailyInstitution->id])
+        ->and($user->fridayPrayerInstitutions()->pluck('institutions.id')->all())->toBe([$dailyInstitution->id]);
 
     $component
-        ->set('formData.daily_prayer_institution_id', $dailyInstitution->id)
-        ->set('formData.friday_prayer_institution_id', $fridayInstitution->id)
+        ->set('formData.daily_prayer_institution_ids', [$dailyInstitution->id, $secondDailyInstitution->id])
+        ->set('formData.friday_prayer_institution_ids', [$fridayInstitution->id])
         ->call('saveAccountSettings')
         ->assertHasNoErrors();
 
     $user->refresh();
 
-    expect($user->daily_prayer_institution_id)->toBe($dailyInstitution->id)
-        ->and($user->friday_prayer_institution_id)->toBe($fridayInstitution->id);
+    expect($user->dailyPrayerInstitutions()->pluck('institutions.id')->all())
+        ->toContain($dailyInstitution->id)
+        ->toContain($secondDailyInstitution->id)
+        ->toHaveCount(2)
+        ->and($user->fridayPrayerInstitutions()->pluck('institutions.id')->all())->toBe([$fridayInstitution->id]);
 
     $component
-        ->set('formData.daily_prayer_institution_id', '')
-        ->set('formData.friday_prayer_institution_id', '')
+        ->set('formData.daily_prayer_institution_ids', [])
+        ->set('formData.friday_prayer_institution_ids', [])
         ->call('saveAccountSettings')
         ->assertHasNoErrors();
 
     $user->refresh();
 
-    expect($user->daily_prayer_institution_id)->toBeNull()
-        ->and($user->friday_prayer_institution_id)->toBeNull()
+    expect($user->dailyPrayerInstitutions()->count())->toBe(0)
+        ->and($user->fridayPrayerInstitutions()->count())->toBe(0)
         ->and($user->email_verified_at)->not->toBeNull()
         ->and($user->phone_verified_at)->not->toBeNull();
 });
@@ -481,9 +492,9 @@ it('rejects invalid prayer institution ids on account settings', function () {
 
     Livewire::actingAs($user)
         ->test(AccountSettings::class)
-        ->set('formData.daily_prayer_institution_id', (string) str()->uuid())
+        ->set('formData.daily_prayer_institution_ids', [(string) str()->uuid()])
         ->call('saveAccountSettings')
-        ->assertHasErrors(['formData.daily_prayer_institution_id']);
+        ->assertHasErrors(['formData.daily_prayer_institution_ids']);
 });
 
 it('rejects inactive or pending institutions for new prayer preferences', function () {
@@ -501,15 +512,15 @@ it('rejects inactive or pending institutions for new prayer preferences', functi
 
     Livewire::actingAs($user)
         ->test(AccountSettings::class)
-        ->set('formData.daily_prayer_institution_id', $inactiveInstitution->id)
+        ->set('formData.daily_prayer_institution_ids', [$inactiveInstitution->id])
         ->call('saveAccountSettings')
-        ->assertHasErrors(['formData.daily_prayer_institution_id']);
+        ->assertHasErrors(['formData.daily_prayer_institution_ids']);
 
     Livewire::actingAs($user)
         ->test(AccountSettings::class)
-        ->set('formData.friday_prayer_institution_id', $pendingInstitution->id)
+        ->set('formData.friday_prayer_institution_ids', [$pendingInstitution->id])
         ->call('saveAccountSettings')
-        ->assertHasErrors(['formData.friday_prayer_institution_id']);
+        ->assertHasErrors(['formData.friday_prayer_institution_ids']);
 });
 
 it('allows stale saved prayer institution preferences to remain while saving unrelated profile changes', function () {
@@ -522,9 +533,10 @@ it('allows stale saved prayer institution preferences to remain while saving unr
         'name' => 'Original Name',
         'email' => 'member@example.test',
         'phone' => '+60113334444',
-        'daily_prayer_institution_id' => $institution->id,
-        'friday_prayer_institution_id' => $institution->id,
     ]);
+
+    $user->dailyPrayerInstitutions()->syncWithPivotValues([$institution->id], ['prayer_type' => 'daily']);
+    $user->fridayPrayerInstitutions()->syncWithPivotValues([$institution->id], ['prayer_type' => 'friday']);
 
     $institution->update([
         'status' => 'inactive',
@@ -532,8 +544,8 @@ it('allows stale saved prayer institution preferences to remain while saving unr
 
     Livewire::actingAs($user)
         ->test(AccountSettings::class)
-        ->assertSet('formData.daily_prayer_institution_id', $institution->id)
-        ->assertSet('formData.friday_prayer_institution_id', $institution->id)
+        ->assertSet('formData.daily_prayer_institution_ids', [$institution->id])
+        ->assertSet('formData.friday_prayer_institution_ids', [$institution->id])
         ->set('formData.name', 'Updated Name')
         ->call('saveAccountSettings')
         ->assertHasNoErrors();
@@ -541,8 +553,8 @@ it('allows stale saved prayer institution preferences to remain while saving unr
     $user->refresh();
 
     expect($user->name)->toBe('Updated Name')
-        ->and($user->daily_prayer_institution_id)->toBe($institution->id)
-        ->and($user->friday_prayer_institution_id)->toBe($institution->id);
+        ->and($user->dailyPrayerInstitutions()->pluck('institutions.id')->all())->toBe([$institution->id])
+        ->and($user->fridayPrayerInstitutions()->pluck('institutions.id')->all())->toBe([$institution->id]);
 });
 
 it('renders gender and date of birth fields in Malay', function () {
@@ -550,7 +562,7 @@ it('renders gender and date of birth fields in Malay', function () {
 
     $this->withSession(['locale' => 'ms'])
         ->actingAs($user)
-        ->get(route('dashboard.account-settings'))
+        ->get(route('account-settings'))
         ->assertOk()
         ->assertSee('Jantina')
         ->assertSee('Tarikh Lahir')

@@ -77,6 +77,6 @@
         data-signal-control="filter_form"
         data-signal-props='@json(['surface' => 'homepage'])'
         class="space-y-5">
-        @include('partials.event-filter-panel', ['showNearbyButton' => $showNearbyButton])
+        @include('partials.event-filter-panel', ['showNearbyButton' => $showNearbyButton, 'showSavedFilter' => $showSavedFilter])
     </form>
 </div>

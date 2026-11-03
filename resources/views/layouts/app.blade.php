@@ -148,7 +148,6 @@
                 $homeMenuHeading = __('Home');
                 $workspaceMenuHeading = __('Workspaces');
                 $accountMenuHeading = __('Account');
-                $inboxMenuLabel = __('Inbox');
                 $contributionsMenuLabel = __('My Contributions');
                 $settingsMenuLabel = __('Settings');
                 $institutionDashboardMenuLabel = __('Manage Institution');
@@ -356,10 +355,6 @@
                                             class="block rounded-lg px-3 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50">
                                             {{ $dashboardMenuLabel }}
                                         </a>
-                                        <a href="{{ route('dashboard.notifications') }}" wire:navigate
-                                            class="block rounded-lg px-3 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50">
-                                            {{ $inboxMenuLabel }}
-                                        </a>
                                     </div>
                                     <div class="border-b border-slate-50 py-1">
                                         <p class="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{{ $workspaceMenuHeading }}</p>
@@ -392,7 +387,7 @@
                                             class="block rounded-lg px-3 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50">
                                             {{ __('app-feedback.title') }}
                                         </a>
-                                        <a href="{{ route('dashboard.account-settings') }}" wire:navigate
+                                        <a href="{{ route('account-settings') }}" wire:navigate
                                             class="block rounded-lg px-3 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50">
                                             {{ $settingsMenuLabel }}
                                         </a>
@@ -523,10 +518,6 @@
                                         class="flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold transition-colors {{ $mobileMenuRowClass }}">
                                         {{ $dashboardMenuLabel }}
                                     </a>
-                                    <a href="{{ route('dashboard.notifications') }}" wire:navigate
-                                        class="flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold transition-colors {{ $mobileMenuRowClass }}">
-                                        {{ $inboxMenuLabel }}
-                                    </a>
                                 </div>
                                 <div class="space-y-1 border-t pt-3 {{ $mobileMenuDividerClass }}">
                                     <p class="px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.18em] {{ $mobileMenuSectionLabelClass }}">{{ $workspaceMenuHeading }}</p>
@@ -559,7 +550,7 @@
                                         class="flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold transition-colors {{ $mobileMenuRowClass }}">
                                         {{ __('app-feedback.title') }}
                                     </a>
-                                    <a href="{{ route('dashboard.account-settings') }}" wire:navigate
+                                    <a href="{{ route('account-settings') }}" wire:navigate
                                         class="flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold transition-colors {{ $mobileMenuRowClass }}">
                                         {{ $settingsMenuLabel }}
                                     </a>
@@ -708,7 +699,7 @@
                                 </li>
                                 <li>
                                     <a href="{{ route('contact') }}" wire:navigate
-                                        class="transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">{{ __('Contact Support') }}</a>
+                                        class="transition-colors duration-200 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">{{ __('Contact Us') }}</a>
                                 </li>
                             </ul>
                         </nav>

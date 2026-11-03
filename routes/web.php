@@ -157,10 +157,10 @@ Route::middleware('auth')->group(function () {
     Route::livewire('/dashboard/dawah-impact', DawahImpactIndex::class)->name('dashboard.dawah-impact');
     Route::livewire('/dashboard/dawah-impact/links', DawahImpactIndex::class)->name('dashboard.dawah-impact.links');
     Route::livewire('/dashboard/dawah-impact/links/{link}', DawahImpactLinkShow::class)->name('dashboard.dawah-impact.links.show');
-    Route::livewire('/dashboard/notifications', NotificationsIndex::class)->name('dashboard.notifications');
+    Route::livewire('/notifications', NotificationsIndex::class)->name('notifications');
     Route::livewire('/dashboard/rewards', RewardMemberIndex::class)->name('dashboard.rewards');
     Route::livewire('/dashboard/ajak-kawan', ReferralMemberIndex::class)->name('dashboard.referrals');
-    Route::livewire('/tetapan-akaun', AccountSettings::class)->name('dashboard.account-settings');
+    Route::livewire('/tetapan', AccountSettings::class)->name('account-settings');
     Route::livewire('/maklum-balas', AppFeedbackIndex::class)->name('app-feedback.index');
     Route::get('/maklum-balas/{feedback}/bukti/{mediaId}', AppFeedbackEvidenceController::class)
         ->name('app-feedback.evidence.download');

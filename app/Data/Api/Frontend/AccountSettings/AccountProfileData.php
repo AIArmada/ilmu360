@@ -14,8 +14,10 @@ class AccountProfileData extends Data
         public string $email,
         public string $phone,
         public string $timezone,
-        public string $daily_prayer_institution_id,
-        public string $friday_prayer_institution_id,
+        /** @var list<string> */
+        public array $daily_prayer_institution_ids,
+        /** @var list<string> */
+        public array $friday_prayer_institution_ids,
         public ?string $email_verified_at,
         public ?string $phone_verified_at,
     ) {}
@@ -29,8 +31,8 @@ class AccountProfileData extends Data
             email: self::stringValue($payload['email'] ?? ''),
             phone: self::stringValue($payload['phone'] ?? ''),
             timezone: self::stringValue($payload['timezone'] ?? ''),
-            daily_prayer_institution_id: self::stringValue($payload['daily_prayer_institution_id'] ?? ''),
-            friday_prayer_institution_id: self::stringValue($payload['friday_prayer_institution_id'] ?? ''),
+            daily_prayer_institution_ids: self::stringList($payload['daily_prayer_institution_ids'] ?? []),
+            friday_prayer_institution_ids: self::stringList($payload['friday_prayer_institution_ids'] ?? []),
             email_verified_at: self::optionalDateTimeString($user->email_verified_at),
             phone_verified_at: self::optionalDateTimeString($user->phone_verified_at),
         );
@@ -39,6 +41,26 @@ class AccountProfileData extends Data
     private static function stringValue(mixed $value): string
     {
         return is_string($value) ? $value : '';
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function stringList(mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        $strings = [];
+
+        foreach ($value as $item) {
+            if (is_string($item) && $item !== '') {
+                $strings[] = $item;
+            }
+        }
+
+        return $strings;
     }
 
     private static function optionalDateTimeString(mixed $value): ?string

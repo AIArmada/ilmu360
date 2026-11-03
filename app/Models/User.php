@@ -35,7 +35,6 @@ use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
@@ -127,8 +126,6 @@ class User extends Authenticatable implements AuditableContract, CanInteract, Fi
         'date_of_birth',
         'timezone',
         'current_team_id',
-        'daily_prayer_institution_id',
-        'friday_prayer_institution_id',
         'password',
     ];
 
@@ -199,19 +196,31 @@ class User extends Authenticatable implements AuditableContract, CanInteract, Fi
     }
 
     /**
-     * @return BelongsTo<Institution, $this>
+     * @return BelongsToMany<Institution, $this>
      */
-    public function dailyPrayerInstitution(): BelongsTo
+    public function dailyPrayerInstitutions(): BelongsToMany
     {
-        return $this->belongsTo(Institution::class, 'daily_prayer_institution_id');
+        return $this->prayerInstitutionsByType('daily');
     }
 
     /**
-     * @return BelongsTo<Institution, $this>
+     * @return BelongsToMany<Institution, $this>
      */
-    public function fridayPrayerInstitution(): BelongsTo
+    public function fridayPrayerInstitutions(): BelongsToMany
     {
-        return $this->belongsTo(Institution::class, 'friday_prayer_institution_id');
+        return $this->prayerInstitutionsByType('friday');
+    }
+
+    /**
+     * @return BelongsToMany<Institution, $this>
+     */
+    protected function prayerInstitutionsByType(string $prayerType): BelongsToMany
+    {
+        return $this->belongsToMany(Institution::class, 'user_prayer_institutions')
+            ->wherePivot('prayer_type', $prayerType)
+            ->withPivot('prayer_type')
+            ->withTimestamps()
+            ->orderBy('institutions.name');
     }
 
     /**

@@ -807,7 +807,7 @@ Current scope:
 - Optional `validate_only=true` preview mode for admin create/update requests
 - `current_media` is metadata only; it is useful for pre-populating edit forms, but it does not expose signed or temporary file URLs
 - File fields in schema responses include `accepted_mime_types`, `max_file_size_kb`, and `max_files` where applicable
-- User record payloads intentionally redact sensitive fields such as `email`, `email_verified_at`, `phone`, `phone_verified_at`, `daily_prayer_institution_id`, and `friday_prayer_institution_id`
+- User record payloads intentionally redact sensitive fields such as `email`, `email_verified_at`, `phone`, `phone_verified_at`, `daily_prayer_institution_ids`, and `friday_prayer_institution_ids`
 
 Current limitation:
 

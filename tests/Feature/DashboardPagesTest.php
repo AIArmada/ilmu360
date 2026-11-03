@@ -36,14 +36,14 @@ beforeEach(function (): void {
 
 it('requires authentication for user and institution dashboards', function () {
     expect(route('dashboard'))->toEndWith('/dashboard');
-    expect(route('dashboard.account-settings'))->toEndWith('/tetapan-akaun');
+    expect(route('account-settings'))->toEndWith('/tetapan');
     expect(route('dashboard.institutions'))->toEndWith('/dashboard/institusi');
     expect(route('dashboard.institutions.events'))->toEndWith('/dashboard/institusi/senarai-majlis');
     expect(route('dashboard.institutions.submit-event'))->toEndWith('/dashboard/institusi/tambah-majlis');
 
     $this->get('/dashboard')->assertRedirect(route('login'));
-    $this->get('/dashboard/notifications')->assertRedirect(route('login'));
-    $this->get('/tetapan-akaun')->assertRedirect(route('login'));
+    $this->get('/notifications')->assertRedirect(route('login'));
+    $this->get('/tetapan')->assertRedirect(route('login'));
     $this->get('/dashboard/institusi')->assertRedirect(route('login'));
     $this->get('/dashboard/institusi/senarai-majlis')->assertRedirect(route('login'));
     $this->get('/dashboard/institusi/tambah-majlis')->assertRedirect(route('login'));
@@ -159,15 +159,15 @@ it('renders the reference-inspired user dashboard with a real saved search panel
     $response->assertOk()
         ->assertSee('Dashboard')
         ->assertDontSee('data-testid="dashboard-hero-shell"', false)
-        ->assertSee('My Events')
+        ->assertDontSee('My Events')
         ->assertDontSee('Latest Notifications')
         ->assertDontSee('Quick Actions')
-        ->assertSee('Recommended for you')
+        ->assertDontSee('Recommended for you')
         ->assertSee('Home')
         ->assertSee('Workspaces')
         ->assertSee('Account')
         ->assertSee('My Dashboard')
-        ->assertSee('Inbox')
+        ->assertDontSee('Inbox')
         ->assertSee('My Contributions')
         ->assertDontSee('Planner menu')
         ->assertDontSee('Overview Calendar')
@@ -177,8 +177,8 @@ it('renders the reference-inspired user dashboard with a real saved search panel
         ->assertDontSee('Recent Check-ins')
         ->assertDontSee('Submitted + Check-ins')
         ->assertDontSee('Going + Registered')
-        ->assertSee('Saved Dashboard Event')
-        ->assertSee('Going Dashboard Event')
+        ->assertDontSee('Saved Dashboard Event')
+        ->assertDontSee('Going Dashboard Event')
         ->assertSee('Kuliah KL Daily')
         ->assertDontSee('Reminder majlis akan datang')
         ->assertDontSee('Find nearby events')
@@ -188,13 +188,8 @@ it('renders the reference-inspired user dashboard with a real saved search panel
         ->assertDontSee('Notification Preferences');
 
     $html = (string) $response->getContent();
-    $majlisSayaSection = str($html)->between('id="majlis-saya"', 'id="carian-saya"')->toString();
 
-    expect($majlisSayaSection)
-        ->toContain('Saved Dashboard Event')
-        ->toContain('Going Dashboard Event')
-        ->not->toContain('Registered Dashboard Event')
-        ->not->toContain('Submitted Dashboard Event');
+    $response->assertDontSee('id="majlis-saya"', false);
 
     $response->assertDontSee('Other User Search');
     $response->assertDontSee('x-show="cell.entries.length > 0"', false);
@@ -202,7 +197,13 @@ it('renders the reference-inspired user dashboard with a real saved search panel
     $response->assertDontSee('bg-emerald-50/80', false);
     $response->assertDontSee('absolute inset-y-0 right-0 hidden w-1/2', false);
 
-    expect($html)->toContain(route('dashboard.dawah-impact'));
+    expect($html)
+        ->toContain(route('events.index', ['saved_only' => 1]))
+        ->toContain(route('events.index', ['going_only' => 1]))
+        ->toContain(route('institutions.index', ['followed_only' => 1]))
+        ->toContain(route('persons.index', ['followed_only' => 1]))
+        ->toContain(route('references.index', ['followed_only' => 1]))
+        ->toContain(route('dashboard.dawah-impact'));
 });
 
 it('shows followed-entity stats without the follow category cards on the dashboard', function () {
@@ -256,13 +257,13 @@ it('shows followed-entity stats without the follow category cards on the dashboa
         ->assertDontSee('planner-calendar', false)
         ->assertDontSee('id="ikuti"', false)
         ->assertDontSee('data-testid="dashboard-follow-institution-covers"', false)
-        ->assertSee('My Events')
+        ->assertDontSee('My Events')
         ->assertSee('Institution')
         ->assertSee('Speakers')
         ->assertSee('Saved')
         ->assertSee('Going')
-        ->assertSee('Sidebar Saved Event')
-        ->assertSee('Sidebar Going Event');
+        ->assertDontSee('Sidebar Saved Event')
+        ->assertDontSee('Sidebar Going Event');
 
     $this->withSession(['locale' => 'ms'])
         ->actingAs($user)
@@ -314,7 +315,7 @@ it('renders a valid event management link on the user dashboard for manageable e
         ->assertDontSee($expectedManagementUrl, false);
 });
 
-it('shows a featured next event without repeating it inside an otherwise empty agenda list', function () {
+it('does not show a featured next event on the dashboard', function () {
     $user = User::factory()->create();
     $institution = Institution::factory()->create();
 
@@ -339,7 +340,7 @@ it('shows a featured next event without repeating it inside an otherwise empty a
         ->get('/dashboard');
 
     $response->assertOk()
-        ->assertSee('Single Upcoming Planner Event')
+        ->assertDontSee('Single Upcoming Planner Event')
         ->assertDontSee('Your next event is already featured above.')
         ->assertDontSee('No events are on your immediate agenda.');
 });
@@ -383,23 +384,19 @@ it('renders the redesigned dashboard in Malay with reference-inspired sections',
     $response->assertOk()
         ->assertSee('Dashboard')
         ->assertDontSee('data-testid="dashboard-hero-shell"', false)
-        ->assertSee('Majlis Saya')
+        ->assertDontSee('Majlis Saya')
         ->assertDontSee('Notifikasi Terkini')
         ->assertDontSee('Tindakan Pantas')
         ->assertSee('Sumbangan Saya')
         ->assertDontSee('Perancang Kehadiran')
         ->assertSee('Dashboard')
         ->assertSee('Urus Institusi')
-        ->assertSee('Majlis Akan Hadir')
+        ->assertDontSee('Majlis Akan Hadir')
         ->assertDontSee('Yang perlu anda urus selepas ini')
         ->assertDontSee('Lihat lagi')
         ->assertDontSee('Approved');
 
-    $majlisSayaSection = str((string) $response->getContent())->between('id="majlis-saya"', 'id="carian-saya"')->toString();
-
-    expect($majlisSayaSection)
-        ->toContain('Majlis Akan Hadir')
-        ->not->toContain('Majlis Dihantar Sendiri');
+    $response->assertDontSee('id="majlis-saya"', false);
 
     $html = $response->getContent();
 
@@ -416,48 +413,35 @@ it('renders the redesigned dashboard in Malay with reference-inspired sections',
         ->and($institutionDashboardMenuText)->toBe('Urus Institusi');
 });
 
-it('paginates redesigned majlis cards when counts exceed the dashboard page size', function () {
+it('does not render saved or going majlis cards on the dashboard', function () {
     $user = User::factory()->create();
     $otherUser = User::factory()->create();
     $institution = Institution::factory()->create();
 
-    foreach (range(1, 8) as $index) {
-        $event = Event::factory()->for($otherUser, 'owner')->for($institution)->create([
-            'title' => 'Going Page Event '.$index,
-            'status' => 'approved',
-            'visibility' => 'public',
-            'starts_at' => now()->addDays($index),
-        ]);
+    $event = Event::factory()->for($otherUser, 'owner')->for($institution)->create([
+        'title' => 'Dashboard Majlis Card Event',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'starts_at' => now()->addDay(),
+    ]);
 
-        $user->responses()->create([
-            'respondable_type' => $event->getMorphClass(),
-            'respondable_id' => $event->id,
-            'response_type' => 'going',
-            'status' => 'active',
-            'visibility' => 'public',
-            'responded_at' => now(),
-        ]);
-    }
+    app(EngagementManager::class)->bookmark($user, $event);
 
-    $response = $this->withSession(['locale' => 'en'])
+    $user->responses()->create([
+        'respondable_type' => $event->getMorphClass(),
+        'respondable_id' => $event->id,
+        'response_type' => 'going',
+        'status' => 'active',
+        'visibility' => 'public',
+        'responded_at' => now(),
+    ]);
+
+    $this->withSession(['locale' => 'en'])
         ->actingAs($user)
-        ->get('/dashboard?majlis_page=2');
-
-    $response->assertOk();
-
-    $html = (string) $response->getContent();
-
-    $majlisSectionText = str($html)
-        ->after('id="majlis-saya"')
-        ->toString();
-
-    expect($html)->toContain('Going Page Event 8');
-    expect($majlisSectionText)->toContain('Going Page Event 7')
-        ->toContain('Going Page Event 8')
-        ->not->toContain('Going Page Event 1')
-        ->not->toContain('Going Page Event 6');
-    expect($html)->toContain('window.scrollTo({ top: targetTop, left: 0, behavior: &#039;auto&#039; })')
-        ->not->toContain('scrollIntoView()');
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertDontSee('id="majlis-saya"', false)
+        ->assertDontSee('Dashboard Majlis Card Event');
 });
 
 it('renders the account settings notifications tab', function () {
@@ -465,7 +449,7 @@ it('renders the account settings notifications tab', function () {
 
     $followedResponse = $this->withSession(['locale' => 'en'])
         ->actingAs($user)
-        ->get(route('dashboard.account-settings', ['tab' => 'notifications']));
+        ->get(route('account-settings', ['tab' => 'notifications']));
 
     $followedResponse->assertOk()
         ->assertSee('Account Settings')

@@ -136,7 +136,7 @@ it('records no visit for private dashboard account and admin navigation', functi
         ->get(route('dashboard'))->assertOk();
 
     $this->actingAs($this->sharer)->withCookie($cookieName, $cookie)
-        ->get(route('dashboard.account-settings'))->assertOk();
+        ->get(route('account-settings'))->assertOk();
 
     $adminResponse = $this->actingAs($this->sharer)->withCookie($cookieName, $cookie)->get('/admin');
 

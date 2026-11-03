@@ -23,7 +23,7 @@
                                 {{ trans_choice('notifications.inbox.unread_count', $this->unreadCount, ['count' => $this->unreadCount]) }}
                             </span>
                             <a
-                                href="{{ route('dashboard.account-settings', ['tab' => 'notifications']) }}"
+                                href="{{ route('account-settings', ['tab' => 'notifications']) }}"
                                 wire:navigate
                                 class="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-700"
                             >

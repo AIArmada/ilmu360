@@ -136,8 +136,8 @@
 | 33 | GET | `/dashboard/dawah-impact` | `DawahImpactIndex` (Livewire) | `dashboard.dawah-impact` | Share analytics |
 | 34 | GET | `/dashboard/dawah-impact/links` | `DawahImpactIndex` (Livewire) | `dashboard.dawah-impact.links` | Share links |
 | 35 | GET | `/dashboard/dawah-impact/links/{link}` | `DawahImpactLinkShow` (Livewire) | `dashboard.dawah-impact.links.show` | Link detail |
-| 36 | GET | `/dashboard/notifications` | `NotificationsIndex` (Livewire) | `dashboard.notifications` | Notifications |
-| 37 | GET | `/tetapan-akaun` | `AccountSettings` (Livewire) | `dashboard.account-settings` | Account settings |
+| 36 | GET | `/notifications` | `NotificationsIndex` (Livewire) | `notifications` | Notifications |
+| 37 | GET | `/tetapan` | `AccountSettings` (Livewire) | `account-settings` | Account settings |
 | 38 | GET | `/dashboard/institusi` | `InstitutionDashboard` (Livewire) | `dashboard.institutions` | Institution dashboard |
 | 39 | GET | `/dashboard/institusi/senarai-majlis` | `InstitutionDashboard` (Livewire) | `dashboard.institutions.events` | Institution events |
 | 40 | GET | `/dashboard/institusi/tambah-majlis` | `Create` (Livewire) | `dashboard.institutions.submit-event` | Scoped event submit |
@@ -429,8 +429,8 @@ ACTIONS
 AUTH USER MENU (when logged in)
   ├── Dashboard (/dashboard)
   ├── Dawah Impact (/dashboard/dawah-impact)
-  ├── Notifications (/dashboard/notifications)
-  ├── Account Settings (/tetapan-akaun)
+  ├── Notifications (/notifications)
+  ├── Account Settings (/tetapan)
   ├── My Contributions (/sumbangan)
   ├── My Membership Claims (/permohonan-keahlian)
   ├── Saved Searches (/carian-tersimpan)
@@ -490,7 +490,7 @@ AUTH USER MENU (when logged in)
 | 6 | **Suggest Update** | `/sumbangan/{type}/{id}/kemas-kini` | Auth (Livewire) | Array state | `ApplyDirectContributionUpdateAction` / `SubmitContributionUpdateRequestAction` |
 | 7 | **Create Report** | `/lapor/{type}/{id}` | Auth (Livewire) | Array state | `SubmitReportAction` |
 | 8 | **Membership Application** | `/pohon-keahlian/{type}/{id}` | Auth (Livewire) | Array state | `SubmitMembershipApplicationAction` |
-| 9 | **Account Settings** | `/tetapan-akaun` | Auth (Livewire) | Array state | Inline `saveAccountSettings()` |
+| 9 | **Account Settings** | `/tetapan` | Auth (Livewire) | Array state | Inline `saveAccountSettings()` |
 | 10 | **Create Event (API admin)** | `POST /v1/admin/{resourceKey}` | Auth (API) | JSON | `AdminResourceService::storeRecord()` |
 | 11 | **Batch Create (API admin)** | `POST /v1/admin/{resourceKey}/batch` | Auth (API) | JSON array | `AdminResourceService::batchStoreRecords()` |
 | 12 | **Event Registration** | `POST /api/v1/events/{event}/registrations` | Public (API) | Request | `EventRegistrationController@store` |

@@ -833,10 +833,7 @@ class extends Component
             <div data-institution-filters class="mx-auto max-w-5xl text-left">
                         <div class="flex flex-wrap justify-center gap-4 *:w-full md:*:w-[calc(50%_-_0.5rem)] lg:*:w-[calc(20%_-_0.8rem)]">
                         @auth
-                        <div>
-                            <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                {{ __('Filter') }}
-                            </span>
+                        <div class="flex w-full items-center justify-end pt-5 md:!w-auto">
                             <button
                                 type="button"
                                 wire:click="toggleFollowedOnly"
@@ -844,7 +841,7 @@ class extends Component
                                 aria-pressed="{{ $this->followed_only === true ? 'true' : 'false' }}"
                                 aria-label="{{ __('Followed institutions only') }}"
                                 data-followed-filter
-                                class="inline-flex h-9 w-full items-center justify-center gap-2 rounded-xl border px-3 text-sm font-semibold shadow-sm transition-[border-color,background-color,color,box-shadow] disabled:cursor-wait disabled:opacity-60 {{ $this->followed_only === true ? 'border-emerald-700 bg-emerald-800 text-white' : 'border-slate-300 bg-white text-slate-700 hover:border-emerald-300 hover:text-emerald-800' }}"
+                                class="inline-flex h-11 w-auto items-center justify-center gap-2 rounded-xl border px-3 text-sm font-semibold shadow-sm transition-[border-color,background-color,color,box-shadow] disabled:cursor-wait disabled:opacity-60 {{ $this->followed_only === true ? 'border-emerald-700 bg-emerald-800 text-white' : 'border-slate-300 bg-white text-slate-700 hover:border-emerald-300 hover:text-emerald-800' }}"
                             >
                                 <flux:icon.bookmark class="size-4 shrink-0" :variant="$this->followed_only === true ? 'solid' : 'outline'" />
                                 {{ __('Followed') }}

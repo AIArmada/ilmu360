@@ -192,7 +192,7 @@ For rebuild acceptance, each feature above should be implemented as an independe
 
 ### Authenticated screens
 
-`/dashboard`, `/dashboard/dawah-impact`, `/dashboard/dawah-impact/links`, `/dashboard/dawah-impact/links/{link}`, `/dashboard/notifications`, `/tetapan-akaun`, `/dashboard/institusi`, `/dashboard/institusi/senarai-majlis`, `/dashboard/institusi/tambah-majlis`, `/dashboard/majlis/cipta-lanjutan`, `/carian-tersimpan`, `/jemputan-ahli/{token}`, `/sumbangan`, contribution creation/success/update screens, `/permohonan-keahlian`, `/pohon-keahlian/...`, and `/lapor/...`. [Evidence: `routes/web.php`]
+`/dashboard`, `/dashboard/dawah-impact`, `/dashboard/dawah-impact/links`, `/dashboard/dawah-impact/links/{link}`, `/notifications`, `/tetapan`, `/dashboard/institusi`, `/dashboard/institusi/senarai-majlis`, `/dashboard/institusi/tambah-majlis`, `/dashboard/majlis/cipta-lanjutan`, `/carian-tersimpan`, `/jemputan-ahli/{token}`, `/sumbangan`, contribution creation/success/update screens, `/permohonan-keahlian`, `/pohon-keahlian/...`, and `/lapor/...`. [Evidence: `routes/web.php`]
 
 ### Administrative screens
 
