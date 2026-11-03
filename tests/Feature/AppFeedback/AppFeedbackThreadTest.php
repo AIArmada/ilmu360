@@ -4,6 +4,7 @@ use App\Actions\AppFeedback\PostAppFeedbackMessageAction;
 use App\Models\AppFeedback;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Validation\ValidationException;
 
 it('lets the reporter reply to their own feedback', function () {
     $user = User::factory()->create();
@@ -17,6 +18,17 @@ it('lets the reporter reply to their own feedback', function () {
     expect($message->visibility)->toBe('reporter')
         ->and($feedback->messages()->count())->toBe(1)
         ->and($message->body)->toBe('Maklumat tambahan: berlaku di Chrome.');
+});
+
+it('rejects replies to closed feedback', function () {
+    $owner = User::factory()->create();
+
+    $feedback = AppFeedback::factory()->resolved()->create([
+        'reporter_id' => $owner->getKey(),
+    ]);
+
+    expect(fn () => app(PostAppFeedbackMessageAction::class)->handle($owner, $feedback, 'Maklumat tambahan.'))
+        ->toThrow(ValidationException::class);
 });
 
 it('prevents other members from replying to someone else feedback', function () {

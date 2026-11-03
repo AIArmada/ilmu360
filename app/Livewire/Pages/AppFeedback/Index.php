@@ -101,31 +101,31 @@ class Index extends Component implements HasForms
                             ->label(__('app-feedback.form.details_steps'))
                             ->maxLength(2000)
                             ->rows(4)
-                            ->visible(fn (Get $get): bool => $get('category') === AppFeedbackCategory::Bug->value)
+                            ->visible(fn (Get $get): bool => self::isCategory($get('category'), AppFeedbackCategory::Bug))
                             ->columnSpanFull(),
                         Textarea::make('details.expected')
                             ->label(__('app-feedback.form.details_expected'))
                             ->maxLength(2000)
                             ->rows(3)
-                            ->visible(fn (Get $get): bool => $get('category') === AppFeedbackCategory::Bug->value)
+                            ->visible(fn (Get $get): bool => self::isCategory($get('category'), AppFeedbackCategory::Bug))
                             ->columnSpanFull(),
                         Textarea::make('details.actual')
                             ->label(__('app-feedback.form.details_actual'))
                             ->maxLength(2000)
                             ->rows(3)
-                            ->visible(fn (Get $get): bool => $get('category') === AppFeedbackCategory::Bug->value)
+                            ->visible(fn (Get $get): bool => self::isCategory($get('category'), AppFeedbackCategory::Bug))
                             ->columnSpanFull(),
                         Textarea::make('details.problem')
                             ->label(__('app-feedback.form.details_problem'))
                             ->maxLength(2000)
                             ->rows(4)
-                            ->visible(fn (Get $get): bool => in_array($get('category'), [AppFeedbackCategory::FeatureRequest->value, AppFeedbackCategory::UiUx->value, AppFeedbackCategory::Performance->value], true))
+                            ->visible(fn (Get $get): bool => self::isAnyCategory($get('category'), [AppFeedbackCategory::FeatureRequest, AppFeedbackCategory::UiUx, AppFeedbackCategory::Performance]))
                             ->columnSpanFull(),
                         Textarea::make('details.suggestion')
                             ->label(__('app-feedback.form.details_suggestion'))
                             ->maxLength(2000)
                             ->rows(4)
-                            ->visible(fn (Get $get): bool => in_array($get('category'), [AppFeedbackCategory::FeatureRequest->value, AppFeedbackCategory::UiUx->value], true))
+                            ->visible(fn (Get $get): bool => self::isAnyCategory($get('category'), [AppFeedbackCategory::FeatureRequest, AppFeedbackCategory::UiUx]))
                             ->columnSpanFull(),
                         TextInput::make('page_url')
                             ->label(__('app-feedback.form.page_url'))
@@ -190,6 +190,7 @@ class Index extends Component implements HasForms
         $this->selectedFeedbackId = (string) $feedback->getKey();
         $this->submissionKey = (string) Str::uuid();
         $this->appFeedbackForm()->fill($this->defaultFormState(request()));
+        unset($this->quotaRemaining);
         $this->resetPage('feedback_page');
     }
 
@@ -303,6 +304,25 @@ class Index extends Component implements HasForms
             ->count();
 
         return max(0, 3 - $recentCount);
+    }
+
+    private static function isCategory(mixed $state, AppFeedbackCategory $category): bool
+    {
+        return $state === $category || $state === $category->value;
+    }
+
+    /**
+     * @param  list<AppFeedbackCategory>  $categories
+     */
+    private static function isAnyCategory(mixed $state, array $categories): bool
+    {
+        foreach ($categories as $category) {
+            if (self::isCategory($state, $category)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function mapValidationErrors(ValidationException $exception): void

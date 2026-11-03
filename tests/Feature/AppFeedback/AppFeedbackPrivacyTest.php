@@ -5,6 +5,7 @@ use App\Enums\AppFeedbackCategory;
 use App\Models\AppFeedback;
 use App\Models\User;
 use App\Support\AppFeedback\AppFeedbackInput;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 
@@ -22,6 +23,25 @@ it('preserves private dashboard path without query or fragment', function () {
 
     expect(AppFeedbackInput::sanitizePageUrl('https://ilmu360.test/dashboard/majlis/pendaftaran?token=abc#top'))
         ->toBe('https://ilmu360.test/dashboard/majlis/pendaftaran');
+});
+
+it('blocks invitation token routes but allows plain pages', function () {
+    config()->set('app.url', 'https://ilmu360.test');
+
+    expect(AppFeedbackInput::sanitizePageUrl('/jemputan/abc123'))->toBeNull()
+        ->and(AppFeedbackInput::sanitizePageUrl('/jemputan-ahli/abc123'))->toBeNull()
+        ->and(AppFeedbackInput::sanitizePageUrl('/dashboard'))->toBe('https://ilmu360.test/dashboard');
+});
+
+it('normalizes stored urls to the application origin', function () {
+    config()->set('app.url', 'https://ilmu360.test');
+
+    $request = Request::create('https://evil.example/dashboard/majlis');
+
+    expect(AppFeedbackInput::sanitizePageUrl('https://evil.example/dashboard/majlis', $request))
+        ->toBe('https://ilmu360.test/dashboard/majlis')
+        ->and(AppFeedbackInput::sanitizePageUrl('HTTPS://ILMU360.TEST/Majlis', $request))
+        ->toBe('https://ilmu360.test/Majlis');
 });
 
 it('rejects external, credential-bearing, and tokenized page urls', function () {

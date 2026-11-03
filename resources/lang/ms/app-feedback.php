@@ -86,6 +86,7 @@ return [
     'admin' => [
         'section_submission' => 'Maklum balas',
         'section_details' => 'Butiran berstruktur',
+        'section_follow_up' => 'Susulan',
         'section_reporter' => 'Penghantar',
         'section_resolution' => 'Penyelesaian',
         'section_internal' => 'Catatan dalaman',

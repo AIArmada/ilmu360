@@ -3,6 +3,7 @@
 use App\Filament\Resources\AppFeedback\AppFeedbackResource;
 use App\Filament\Resources\AppFeedback\Pages\ViewAppFeedback;
 use App\Models\AppFeedback;
+use App\Models\AppFeedbackMessage;
 use App\Models\User;
 use App\Notifications\AppFeedbackClosedNotification;
 use App\Support\Api\Admin\AdminResourceRegistry;
@@ -58,6 +59,29 @@ it('does not expose create, edit, or delete actions', function () {
 
     expect(AppFeedbackResource::canEdit($feedback))->toBeFalse()
         ->and(AppFeedbackResource::canDelete($feedback))->toBeFalse();
+});
+
+it('shows reporter follow-up messages on the admin view', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('super_admin');
+
+    $feedback = AppFeedback::factory()->create();
+    $message = new AppFeedbackMessage;
+    $message->fill([
+        'author_role' => 'reporter',
+        'visibility' => 'reporter',
+        'body' => 'Maklumat tambahan untuk pasukan semakan.',
+    ]);
+    $message->forceFill([
+        'feedback_id' => $feedback->getKey(),
+        'author_id' => $feedback->reporter_id,
+    ]);
+    $message->save();
+
+    $this->actingAs($admin);
+
+    Livewire::test(ViewAppFeedback::class, ['record' => $feedback->getRouteKey()])
+        ->assertSee('Maklumat tambahan untuk pasukan semakan.');
 });
 
 it('updates only internal notes from the admin action', function () {

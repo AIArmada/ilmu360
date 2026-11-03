@@ -86,6 +86,7 @@ return [
     'admin' => [
         'section_submission' => 'Feedback',
         'section_details' => 'Structured details',
+        'section_follow_up' => 'Follow-up',
         'section_reporter' => 'Reporter',
         'section_resolution' => 'Resolution',
         'section_internal' => 'Internal notes',

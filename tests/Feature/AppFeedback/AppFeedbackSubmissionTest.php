@@ -213,6 +213,47 @@ it('limits each user to three new submissions per hour', function () {
         ->toThrow(ValidationException::class);
 });
 
+it('returns the same record when evidence order differs on retry', function () {
+    Notification::fake();
+    Storage::fake('app_feedback_private');
+
+    $user = User::factory()->create();
+
+    $makeFiles = function (): array {
+        $dir = sys_get_temp_dir().'/app-feedback-test-'.Str::uuid()->toString();
+
+        mkdir($dir, 0755, true);
+
+        $png = (string) base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
+
+        file_put_contents($dir.'/a.png', $png);
+        file_put_contents($dir.'/b.png', $png);
+
+        return [
+            new UploadedFile($dir.'/a.png', 'a.png', 'image/png', null, true),
+            new UploadedFile($dir.'/b.png', 'b.png', 'image/png', null, true),
+        ];
+    };
+
+    $key = (string) Str::uuid();
+
+    $base = [
+        'submission_key' => $key,
+        'category' => AppFeedbackCategory::Bug->value,
+        'title' => 'Ujian susunan lampiran',
+        'description' => 'Susunan lampiran yang berbeza tidak boleh dianggap kandungan berbeza.',
+        'include_diagnostics' => false,
+    ];
+
+    [$a1, $b1] = $makeFiles();
+    $one = app(SubmitAppFeedbackAction::class)->handle($user, [...$base, 'evidence' => [$a1, $b1]], request());
+
+    [$a2, $b2] = $makeFiles();
+    $two = app(SubmitAppFeedbackAction::class)->handle($user, [...$base, 'evidence' => [$b2, $a2]], request());
+
+    expect($two->getKey())->toBe($one->getKey());
+});
+
 it('returns the same record when the same submission is retried', function () {
     Notification::fake();
 

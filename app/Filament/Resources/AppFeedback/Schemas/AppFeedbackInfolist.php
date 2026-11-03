@@ -69,6 +69,15 @@ class AppFeedbackInfolist
                             ->html()
                             ->columnSpanFull(),
                     ]),
+                Section::make(__('app-feedback.admin.section_follow_up'))
+                    ->schema([
+                        TextEntry::make('follow_up_messages')
+                            ->hiddenLabel()
+                            ->state(fn (AppFeedback $record): string => self::formatMessages($record))
+                            ->extraAttributes(['class' => 'whitespace-pre-line text-sm'])
+                            ->placeholder('—')
+                            ->columnSpanFull(),
+                    ]),
                 Section::make(__('app-feedback.admin.section_resolution'))
                     ->schema([
                         TextEntry::make('resolution_note')
@@ -157,6 +166,29 @@ class AppFeedbackInfolist
         }
 
         return $lines === [] ? '—' : implode("\n\n", $lines);
+    }
+
+    private static function formatMessages(AppFeedback $feedback): string
+    {
+        $messages = $feedback->messages()->with('author')->oldest('created_at')->get();
+
+        if ($messages->isEmpty()) {
+            return '—';
+        }
+
+        return $messages
+            ->map(static function ($message): string {
+                $role = match ($message->author_role) {
+                    'maintainer' => 'Pasukan',
+                    'system' => 'Sistem',
+                    default => 'Penghantar',
+                };
+
+                $visibility = $message->visibility === 'internal' ? ' (dalaman)' : '';
+
+                return '['.$message->created_at->format('d M Y, h:i A').'] '.$role.$visibility.': '.$message->body;
+            })
+            ->implode("\n\n");
     }
 
     private static function evidenceLinks(AppFeedback $feedback): HtmlString

@@ -137,6 +137,9 @@ final readonly class AppFeedbackInput
             ];
         }, $this->evidence);
 
+        usort($manifest, static fn (array $a, array $b): int => [$a['hash'] ?? '', $a['name'] ?? '', $a['size'] ?? 0, $a['mime'] ?? '']
+            <=> [$b['hash'] ?? '', $b['name'] ?? '', $b['size'] ?? 0, $b['mime'] ?? '']);
+
         return hash('sha256', json_encode([
             'category' => $this->category->value,
             'title' => $this->title,
@@ -170,7 +173,6 @@ final readonly class AppFeedbackInput
 
         $appUrl = (string) config('app.url');
         $appHost = parse_url($appUrl, PHP_URL_HOST);
-        $appScheme = (string) (parse_url($appUrl, PHP_URL_SCHEME) ?: 'https');
         $host = $parts['host'] ?? null;
 
         if (is_string($host)) {
@@ -206,9 +208,7 @@ final readonly class AppFeedbackInput
             return null;
         }
 
-        $origin = is_string($host)
-            ? strtolower((string) ($parts['scheme'] ?? $appScheme)).'://'.$host
-            : ($request instanceof Request ? $request->getSchemeAndHttpHost() : rtrim($appUrl, '/'));
+        $origin = rtrim($appUrl, '/');
 
         return $origin.$path;
     }
@@ -235,7 +235,7 @@ final readonly class AppFeedbackInput
             }
         }
 
-        if (preg_match('#^/jemputan(?:/|$)#', $path) === 1) {
+        if (preg_match('#^/jemputan(?:-ahli)?(?:/|$)#', $path) === 1) {
             return true;
         }
 

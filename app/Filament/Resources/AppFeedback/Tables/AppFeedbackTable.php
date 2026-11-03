@@ -52,7 +52,9 @@ class AppFeedbackTable
                 SelectFilter::make('category')
                     ->options(AppFeedbackCategory::options()),
                 SelectFilter::make('status')
-                    ->options(AppFeedbackStatus::options()),
+                    ->options(AppFeedbackStatus::options())
+                    ->multiple()
+                    ->default([AppFeedbackStatus::New->value, AppFeedbackStatus::Triaged->value]),
             ])
             ->recordActions([
                 ViewAction::make(),

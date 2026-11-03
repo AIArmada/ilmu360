@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Actions\AppFeedback;
 
+use App\Enums\AppFeedbackStatus;
 use App\Models\AppFeedback;
 use App\Models\AppFeedbackMessage;
 use App\Models\User;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class PostAppFeedbackMessageAction
@@ -18,6 +20,12 @@ class PostAppFeedbackMessageAction
     public function handle(User $author, AppFeedback $feedback, string $body): AppFeedbackMessage
     {
         Gate::forUser($author)->authorize('reply', $feedback);
+
+        if (! in_array($feedback->status, [AppFeedbackStatus::New, AppFeedbackStatus::Triaged], true)) {
+            throw ValidationException::withMessages([
+                'body' => __('app-feedback.validation.invalid_transition'),
+            ]);
+        }
 
         $body = trim($body);
 
