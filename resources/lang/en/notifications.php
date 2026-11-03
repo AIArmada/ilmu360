@@ -510,6 +510,13 @@ return [
             'action' => 'View feedback',
             'footer' => 'Thank you for helping us improve :app.',
         ],
+        'triaged' => [
+            'subject' => 'Your feedback is under review: :title',
+            'intro' => 'Our team has started reviewing your feedback. We will let you know once it is resolved.',
+            'status' => 'Current status: :status',
+            'action' => 'View feedback',
+            'footer' => 'Thank you for helping us improve :app.',
+        ],
     ],
     'inbox' => [
         'page_title' => 'Notifications',

@@ -6,6 +6,7 @@ use App\Models\AppFeedback;
 use App\Models\User;
 use App\Notifications\AppFeedbackClosedNotification;
 use App\Notifications\AppFeedbackReceivedNotification;
+use App\Notifications\AppFeedbackTriagedNotification;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -33,6 +34,24 @@ it('moves feedback from new to triaged and records the handler', function () {
         ->and($result->handled_by)->toBe($admin->getKey())
         ->and($result->triaged_at)->not->toBeNull()
         ->and($result->last_state_change_at)->not->toBeNull();
+});
+
+it('notifies the reporter when feedback is triaged', function () {
+    Notification::fake();
+
+    $admin = User::factory()->create();
+    $admin->assignRole('super_admin');
+
+    $feedback = AppFeedback::factory()->create();
+    $reporter = $feedback->reporter;
+
+    app(TransitionAppFeedbackAction::class)->handle(
+        $admin,
+        $feedback,
+        AppFeedbackStatus::Triaged,
+    );
+
+    Notification::assertSentTo($reporter, AppFeedbackTriagedNotification::class);
 });
 
 it('requires a resolution note before closing feedback', function () {

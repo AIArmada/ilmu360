@@ -351,6 +351,9 @@ final readonly class ProductSignalsService
             properties: [
                 'category' => $feedback->category->value,
                 'status' => $feedback->status->value,
+                'has_evidence' => $feedback->getMedia('evidence')->isNotEmpty(),
+                'details_keys' => is_array($feedback->details) ? array_keys($feedback->details) : [],
+                'has_page_url' => is_string($feedback->page_url) && $feedback->page_url !== '',
             ],
         );
     }

@@ -510,6 +510,13 @@ return [
             'action' => 'Lihat maklum balas',
             'footer' => 'Terima kasih kerana membantu kami menambah baik :app.',
         ],
+        'triaged' => [
+            'subject' => 'Maklum balas anda sedang disemak: :title',
+            'intro' => 'Pasukan kami telah mula menyemak maklum balas anda. Kami akan memaklumkan anda apabila selesai.',
+            'status' => 'Status semasa: :status',
+            'action' => 'Lihat maklum balas',
+            'footer' => 'Terima kasih kerana membantu kami menambah baik :app.',
+        ],
     ],
     'inbox' => [
         'page_title' => 'Notifikasi',

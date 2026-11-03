@@ -8,6 +8,7 @@ use App\Enums\AppFeedbackStatus;
 use App\Models\AppFeedback;
 use App\Models\User;
 use App\Notifications\AppFeedbackClosedNotification;
+use App\Notifications\AppFeedbackTriagedNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
@@ -85,7 +86,29 @@ class TransitionAppFeedbackAction
             $this->notifyReporter($feedback);
         }
 
+        if ($changed && $feedback->status === AppFeedbackStatus::Triaged) {
+            $this->notifyTriaged($feedback);
+        }
+
         return $feedback->fresh(['reporter', 'handler']) ?? $feedback;
+    }
+
+    private function notifyTriaged(AppFeedback $feedback): void
+    {
+        $reporter = $feedback->reporter;
+
+        if (! $reporter instanceof User) {
+            return;
+        }
+
+        try {
+            Notification::send($reporter, new AppFeedbackTriagedNotification($feedback));
+        } catch (Throwable $exception) {
+            Log::warning('Unable to send app feedback triage notification.', [
+                'feedback_id' => (string) $feedback->getKey(),
+                'error' => $exception->getMessage(),
+            ]);
+        }
     }
 
     private function notifyReporter(AppFeedback $feedback): void

@@ -22,6 +22,10 @@ class AppFeedbackTable
                 TextColumn::make('title')
                     ->searchable()
                     ->limit(80),
+                TextColumn::make('description')
+                    ->searchable()
+                    ->limit(80)
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('category')
                     ->badge()
                     ->sortable(),
@@ -30,11 +34,16 @@ class AppFeedbackTable
                     ->sortable(),
                 TextColumn::make('reporter.email')
                     ->label('Reporter')
+                    ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('github_escalation_status')
                     ->label('GitHub')
                     ->badge()
                     ->toggleable(),
+                TextColumn::make('last_state_change_at')
+                    ->label('Aging')
+                    ->since()
+                    ->sortable(),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable(),

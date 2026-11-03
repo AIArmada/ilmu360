@@ -31,6 +31,12 @@ class AppFeedbackInfolist
                         TextEntry::make('description')
                             ->label(__('app-feedback.form.description_field'))
                             ->columnSpanFull(),
+                        TextEntry::make('details')
+                            ->label(__('app-feedback.admin.section_details'))
+                            ->state(fn (AppFeedback $record): string => self::formatDetails($record))
+                            ->extraAttributes(['class' => 'whitespace-pre-line text-sm'])
+                            ->placeholder('—')
+                            ->columnSpanFull(),
                         TextEntry::make('page_url')
                             ->label(__('app-feedback.form.page_url'))
                             ->url(fn (AppFeedback $record): ?string => $record->page_url, shouldOpenInNewTab: true)
@@ -121,6 +127,36 @@ class AppFeedbackInfolist
                     ])
                     ->columns(2),
             ]);
+    }
+
+    private static function formatDetails(AppFeedback $feedback): string
+    {
+        $details = $feedback->details;
+
+        if (! is_array($details) || $details === []) {
+            return '—';
+        }
+
+        $labels = [
+            'steps' => 'Steps',
+            'expected' => 'Expected',
+            'actual' => 'Actual',
+            'problem' => 'Problem',
+            'suggestion' => 'Suggestion',
+            'frequency' => 'Frequency',
+        ];
+
+        $lines = [];
+
+        foreach ($details as $key => $value) {
+            if (! is_string($value) || trim($value) === '') {
+                continue;
+            }
+
+            $lines[] = ($labels[$key] ?? $key).': '.$value;
+        }
+
+        return $lines === [] ? '—' : implode("\n\n", $lines);
     }
 
     private static function evidenceLinks(AppFeedback $feedback): HtmlString
