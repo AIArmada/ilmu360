@@ -32,6 +32,26 @@ it('renders the app feedback page for members', function () {
         ->assertSee(__('app-feedback.title'));
 });
 
+it('stores structured bug details without concatenation', function () {
+    Notification::fake();
+
+    $user = User::factory()->create();
+
+    $this->actingAs($user);
+
+    Livewire::test(Index::class)
+        ->fillForm([
+            'category' => AppFeedbackCategory::Bug->value,
+            'title' => 'Butang simpan gagal',
+            'description' => 'Menekan simpan tiada respons di halaman majlis.',
+            'details' => ['expected' => 'Rekod tersimpan', 'steps' => "1. Buka majlis\n2. Tekan simpan"],
+        ])
+        ->call('submit')
+        ->assertHasNoFormErrors();
+
+    expect(AppFeedback::sole()->details['expected'])->toBe('Rekod tersimpan');
+});
+
 it('submits app feedback with the reporter and initial status', function () {
     Notification::fake();
 

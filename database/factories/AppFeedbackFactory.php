@@ -33,6 +33,7 @@ class AppFeedbackFactory extends Factory
             'description' => fake()->paragraph(),
             'page_url' => null,
             'diagnostics' => null,
+            'details' => null,
             'status' => AppFeedbackStatus::New,
             'handled_by' => null,
             'internal_notes' => null,

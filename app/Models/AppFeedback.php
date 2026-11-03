@@ -67,6 +67,7 @@ class AppFeedback extends Model implements HasMedia
         'description',
         'page_url',
         'diagnostics',
+        'details',
     ];
 
     /**
@@ -93,6 +94,7 @@ class AppFeedback extends Model implements HasMedia
             'status' => AppFeedbackStatus::class,
             'github_escalation_status' => AppFeedbackGitHubStatus::class,
             'diagnostics' => 'array',
+            'details' => 'array',
             'triaged_at' => 'immutable_datetime',
             'resolved_at' => 'immutable_datetime',
             'declined_at' => 'immutable_datetime',

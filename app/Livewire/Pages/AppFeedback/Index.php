@@ -18,6 +18,7 @@ use Filament\Forms\Components\Toggle;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -89,6 +90,36 @@ class Index extends Component implements HasForms
                             ->maxLength(5000)
                             ->rows(6)
                             ->helperText(__('app-feedback.form.description_help'))
+                            ->columnSpanFull(),
+                        Textarea::make('details.steps')
+                            ->label(__('app-feedback.form.details_steps'))
+                            ->maxLength(2000)
+                            ->rows(4)
+                            ->visible(fn (Get $get): bool => $get('category') === AppFeedbackCategory::Bug->value)
+                            ->columnSpanFull(),
+                        Textarea::make('details.expected')
+                            ->label(__('app-feedback.form.details_expected'))
+                            ->maxLength(2000)
+                            ->rows(3)
+                            ->visible(fn (Get $get): bool => $get('category') === AppFeedbackCategory::Bug->value)
+                            ->columnSpanFull(),
+                        Textarea::make('details.actual')
+                            ->label(__('app-feedback.form.details_actual'))
+                            ->maxLength(2000)
+                            ->rows(3)
+                            ->visible(fn (Get $get): bool => $get('category') === AppFeedbackCategory::Bug->value)
+                            ->columnSpanFull(),
+                        Textarea::make('details.problem')
+                            ->label(__('app-feedback.form.details_problem'))
+                            ->maxLength(2000)
+                            ->rows(4)
+                            ->visible(fn (Get $get): bool => in_array($get('category'), [AppFeedbackCategory::FeatureRequest->value, AppFeedbackCategory::UiUx->value, AppFeedbackCategory::Performance->value], true))
+                            ->columnSpanFull(),
+                        Textarea::make('details.suggestion')
+                            ->label(__('app-feedback.form.details_suggestion'))
+                            ->maxLength(2000)
+                            ->rows(4)
+                            ->visible(fn (Get $get): bool => in_array($get('category'), [AppFeedbackCategory::FeatureRequest->value, AppFeedbackCategory::UiUx->value], true))
                             ->columnSpanFull(),
                         TextInput::make('page_url')
                             ->label(__('app-feedback.form.page_url'))
@@ -211,6 +242,7 @@ class Index extends Component implements HasForms
             'page_url' => AppFeedbackInput::sanitizePageUrl($dari, $request)
                 ?? AppFeedbackInput::sanitizePageUrl($request->headers->get('referer'), $request),
             'include_diagnostics' => false,
+            'details' => [],
             'evidence' => [],
         ];
     }

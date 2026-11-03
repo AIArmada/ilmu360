@@ -86,6 +86,7 @@ class SubmitAppFeedbackAction
                 'description' => $input->description,
                 'page_url' => $input->pageUrl,
                 'diagnostics' => $input->diagnostics(),
+                'details' => $input->details === [] ? null : $input->details,
             ]);
             $feedback->forceFill([
                 'reporter_id' => $user->getKey(),

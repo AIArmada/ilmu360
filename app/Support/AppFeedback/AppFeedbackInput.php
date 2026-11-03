@@ -13,6 +13,7 @@ final readonly class AppFeedbackInput
 {
     /**
      * @param  list<UploadedFile>  $evidence
+     * @param  array<string, string|null>  $details
      */
     public function __construct(
         public AppFeedbackCategory $category,
@@ -24,6 +25,7 @@ final readonly class AppFeedbackInput
         public array $evidence,
         public ?string $userAgent,
         public ?string $appVersion,
+        public array $details = [],
     ) {}
 
     /**
@@ -38,6 +40,13 @@ final readonly class AppFeedbackInput
             'description' => ['required', 'string', 'min:10', 'max:5000'],
             'page_url' => ['nullable', 'string', 'max:2048'],
             'include_diagnostics' => ['sometimes', 'boolean'],
+            'details' => ['nullable', 'array'],
+            'details.steps' => ['nullable', 'string', 'max:2000'],
+            'details.expected' => ['nullable', 'string', 'max:2000'],
+            'details.actual' => ['nullable', 'string', 'max:2000'],
+            'details.problem' => ['nullable', 'string', 'max:2000'],
+            'details.suggestion' => ['nullable', 'string', 'max:2000'],
+            'details.frequency' => ['nullable', 'string', 'max:50'],
             'evidence' => ['nullable', 'array', 'max:8'],
             'evidence.*' => ['file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:'.$maxUploadSizeKb],
         ];
@@ -56,6 +65,26 @@ final readonly class AppFeedbackInput
 
         $includeDiagnostics = (bool) ($validated['include_diagnostics'] ?? false);
 
+        $details = [];
+
+        if (is_array($validated['details'] ?? null)) {
+            foreach (['steps', 'expected', 'actual', 'problem', 'suggestion', 'frequency'] as $key) {
+                $detailValue = $validated['details'][$key] ?? null;
+
+                if (! is_string($detailValue)) {
+                    continue;
+                }
+
+                $detailValue = trim($detailValue);
+
+                if ($detailValue !== '') {
+                    $details[$key] = mb_substr($detailValue, 0, 2000);
+                }
+            }
+
+            ksort($details);
+        }
+
         return new self(
             category: AppFeedbackCategory::from((string) $validated['category']),
             title: trim((string) $validated['title']),
@@ -66,6 +95,7 @@ final readonly class AppFeedbackInput
             evidence: $evidence,
             userAgent: $includeDiagnostics ? self::sanitizeUserAgent($request->userAgent()) : null,
             appVersion: $includeDiagnostics ? self::sanitizeAppVersion(config('app.version')) : null,
+            details: $details,
         );
     }
 
@@ -111,7 +141,7 @@ final readonly class AppFeedbackInput
             'category' => $this->category->value,
             'title' => $this->title,
             'description' => $this->description,
-            'page_url' => $this->pageUrl,
+            'details' => $this->details,
             'evidence' => $manifest,
         ], JSON_THROW_ON_ERROR));
     }

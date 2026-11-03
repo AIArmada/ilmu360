@@ -23,6 +23,7 @@ return new class extends Migration
             $table->text('description');
             $table->string('page_url', 2048)->nullable();
             $table->json('diagnostics')->nullable();
+            $table->json('details')->nullable();
 
             $table->string('status', 24)->default('new');
             $table->foreignUuid('handled_by')->nullable();
