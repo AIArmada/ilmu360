@@ -71,8 +71,8 @@
                     @foreach($dashboardStats as $stat)
                         @php
                             $statHref = match ($loop->index) {
-                                0 => route('events.index', ['saved_only' => 1]),
-                                1 => route('events.index', ['going_only' => 1]),
+                                0 => route('events.index', ['saved_only' => 1, 'filters_panel' => 'closed']),
+                                1 => route('events.index', ['going_only' => 1, 'filters_panel' => 'closed']),
                                 2 => route('institutions.index', ['followed_only' => 1]),
                                 3 => route('persons.index', ['followed_only' => 1]),
                                 4 => route('references.index', ['followed_only' => 1]),

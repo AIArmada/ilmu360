@@ -198,8 +198,8 @@ it('renders the reference-inspired user dashboard with a real saved search panel
     $response->assertDontSee('absolute inset-y-0 right-0 hidden w-1/2', false);
 
     expect($html)
-        ->toContain(route('events.index', ['saved_only' => 1]))
-        ->toContain(route('events.index', ['going_only' => 1]))
+        ->toContain(e(route('events.index', ['saved_only' => 1, 'filters_panel' => 'closed'])))
+        ->toContain(e(route('events.index', ['going_only' => 1, 'filters_panel' => 'closed'])))
         ->toContain(route('institutions.index', ['followed_only' => 1]))
         ->toContain(route('persons.index', ['followed_only' => 1]))
         ->toContain(route('references.index', ['followed_only' => 1]))
