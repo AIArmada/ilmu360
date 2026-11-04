@@ -8,7 +8,7 @@
 <style>
     .living-majlis-field.submit-event-background {
         background-color: var(--living-sand);
-        background-image: url('{{ asset('images/hantar-majlis-top-background-v1.png') }}');
+        background-image: url('{{ asset('images/hantar-majlis-top-background-v1.webp') }}');
         background-position: center top;
         background-repeat: no-repeat;
         background-size: max(100%, 64rem) auto;

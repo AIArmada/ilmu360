@@ -81,16 +81,16 @@ it('localizes followed-content inbox notifications per recipient locale', functi
     $englishUser->follow($person);
     $malayUser->follow($person);
 
+    app()->setLocale('en');
     app(NotificationSettingsManager::class)->save($englishUser, [
         'settings' => [
-            'locale' => 'en',
             'timezone' => 'UTC',
         ],
     ]);
 
+    app()->setLocale('ms');
     app(NotificationSettingsManager::class)->save($malayUser, [
         'settings' => [
-            'locale' => 'ms',
             'timezone' => 'Asia/Kuala_Lumpur',
         ],
     ]);

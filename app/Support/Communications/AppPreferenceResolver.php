@@ -31,9 +31,9 @@ class AppPreferenceResolver implements PreferenceResolver
         }
 
         $metadata = is_array($setting->metadata) ? $setting->metadata : [];
-        $preferred = is_array($metadata['preferred_channels'] ?? null) ? $metadata['preferred_channels'] : [];
+        $channels = is_array($metadata['channels'] ?? null) ? $metadata['channels'] : null;
 
-        if ($preferred !== [] && ! in_array($this->mapChannel($channel), $preferred, true)) {
+        if ($channels !== null && ! in_array($this->mapChannel($channel), $channels, true)) {
             return false;
         }
 
@@ -70,9 +70,13 @@ class AppPreferenceResolver implements PreferenceResolver
         }
 
         $metadata = is_array($setting->metadata) ? $setting->metadata : [];
-        $preferred = is_array($metadata['preferred_channels'] ?? null) ? $metadata['preferred_channels'] : [];
+        $channels = is_array($metadata['channels'] ?? null) ? $metadata['channels'] : null;
 
-        return in_array($this->mapChannel($channel), $preferred, true);
+        if ($channels === null) {
+            return null;
+        }
+
+        return in_array($this->mapChannel($channel), $channels, true);
     }
 
     private function resolveUser(?string $recipientType, ?string $recipientId): ?object

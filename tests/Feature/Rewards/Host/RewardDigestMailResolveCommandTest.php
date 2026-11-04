@@ -101,7 +101,8 @@ function resolveCmdAmbiguous(string $prefix, string $source): array
 
         app(NotificationSettingsManager::class)->save($user, [
             'settings' => [],
-            'triggers' => ['share_gratitude_digest' => ['enabled' => true, 'cadence' => 'daily']],
+            'families' => ['sharing' => ['enabled' => true, 'cadence' => 'daily']],
+            'triggers' => ['share_gratitude_digest' => ['enabled' => true]],
         ]);
 
         $memberId = (string) $user->getKey();

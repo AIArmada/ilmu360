@@ -6,12 +6,14 @@ use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Contacting\Support\SocialProfileConfig;
+use AIArmada\FilamentPersons\Resources\PersonResource\Schemas\PersonForm as PackagePersonForm;
 use AIArmada\Persons\Enums\Gender;
 use App\Enums\SpeakerStatus;
 use App\Forms\SharedFormSchema;
 use App\Models\Person;
 use App\Models\User;
 use App\Support\Submission\PublicSubmissionLockService;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
@@ -338,6 +340,12 @@ class PersonForm
                                             ->placeholder(__('Not a speaker'))
                                             ->options(SpeakerStatus::class)
                                             ->helperText(__('Mark as active speaker to feature on the penceramah directory.')),
+                                        ...((Filament::getCurrentPanel()?->getId() !== 'ahli'
+                                            && auth()->user() instanceof User && auth()->user()->hasGlobalAdminAccess()) ? [
+                                                PackagePersonForm::featuredToggle()
+                                                    ->label(__('Featured on homepage'))
+                                                    ->helperText(__('Show this speaker in the homepage selection. Only active speakers with verified or pending status appear publicly.')),
+                                            ] : []),
                                         Toggle::make('allow_public_event_submission')
                                             ->label(__('Allow Public Event Submission'))
                                             ->disabled(fn (?Person $record, string $operation): bool => ! self::canManagePublicSubmissionToggle($record, $operation))

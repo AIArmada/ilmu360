@@ -1,34 +1,80 @@
 @php
     $showNearbyButton ??= true;
     $showSavedFilter ??= true;
+    $goingFilterUrl ??= null;
+    $savedFilterUrl ??= null;
     $lat = $this->lat;
     $activeFilterCount = $this->activeFilterCount();
     $savedOnly = $this->saved_only === true;
+    $goingOnly = $this->going_only === true;
 @endphp
 
-<div class="flex items-center justify-end gap-3">
-    <div wire:loading.delay.short
-        wire:target="filterData,setLocation,clearLocation,clearAllFilters,toggleSavedOnly"
-        class="hidden items-center gap-2 text-xs font-semibold text-emerald-700 sm:inline-flex">
-        <svg class="size-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+<div class="flex flex-wrap items-center justify-end gap-3">
+    <div wire:loading.delay.short.flex
+        wire:target="filterData,setLocation,clearLocation,clearAllFilters,toggleSavedOnly,toggleGoingOnly"
+        class="hidden items-center text-xs font-semibold text-emerald-700"
+        role="status"
+        aria-label="{{ __('Updating results...') }}">
+        <svg class="size-4 shrink-0 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke-width="4"></circle>
             <path class="opacity-75" stroke-width="4" d="M22 12a10 10 0 0 0-10-10"></path>
         </svg>
-        {{ __('Updating results...') }}
     </div>
     @if($showSavedFilter)
         @auth
-            <button type="button"
-                wire:click="toggleSavedOnly"
-                wire:loading.attr="disabled"
-                wire:target="toggleSavedOnly"
-                aria-pressed="{{ $savedOnly ? 'true' : 'false' }}"
-                aria-label="{{ __('Saved majlis only') }}"
-                data-saved-filter
-                class="inline-flex h-10 items-center gap-2 rounded-xl border px-3.5 text-xs font-bold shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-700 focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60 sm:text-sm {{ $savedOnly ? 'border-amber-300 bg-amber-100 text-amber-950' : 'border-slate-200 bg-white text-slate-600 hover:border-amber-200 hover:bg-amber-50 hover:text-amber-800' }}">
-                <flux:icon.bookmark class="size-4" :variant="$savedOnly ? 'solid' : 'outline'" />
-                {{ __('Saved') }}
-            </button>
+            @if(filled($goingFilterUrl))
+                <a href="{{ $goingFilterUrl }}"
+                    wire:navigate
+                    aria-label="{{ __('Attending majlis only') }}"
+                    data-going-filter
+                    data-signal-event="navigation.internal_link_clicked"
+                    data-signal-category="navigation"
+                    data-signal-component="home_filters"
+                    data-signal-control="going_only"
+                    class="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-600 shadow-sm transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 focus-visible:ring-offset-2 sm:text-sm">
+                    <flux:icon.calendar-days class="size-4" variant="outline" />
+                    {{ __('Akan Hadir') }}
+                </a>
+            @else
+                <button type="button"
+                    wire:click="toggleGoingOnly"
+                    wire:loading.attr="disabled"
+                    wire:target="toggleGoingOnly"
+                    aria-pressed="{{ $goingOnly ? 'true' : 'false' }}"
+                    aria-label="{{ __('Attending majlis only') }}"
+                    data-going-filter
+                    class="inline-flex h-10 items-center gap-2 rounded-xl border px-3.5 text-xs font-bold shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60 sm:text-sm {{ $goingOnly ? 'border-emerald-300 bg-emerald-100 text-emerald-950' : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800' }}">
+                    <flux:icon.calendar-days class="size-4" :variant="$goingOnly ? 'solid' : 'outline'" />
+                    {{ __('Akan Hadir') }}
+                </button>
+            @endif
+
+            @if(filled($savedFilterUrl))
+                <a href="{{ $savedFilterUrl }}"
+                    wire:navigate
+                    aria-label="{{ __('Saved majlis only') }}"
+                    data-saved-filter
+                    data-signal-event="navigation.internal_link_clicked"
+                    data-signal-category="navigation"
+                    data-signal-component="home_filters"
+                    data-signal-control="saved_only"
+                    class="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-600 shadow-sm transition hover:border-amber-200 hover:bg-amber-50 hover:text-amber-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-700 focus-visible:ring-offset-2 sm:text-sm">
+                    <flux:icon.bookmark class="size-4" variant="outline" />
+                    {{ __('Saved') }}
+                </a>
+            @else
+                <button type="button"
+                    wire:click="toggleSavedOnly"
+                    wire:loading.attr="disabled"
+                    wire:target="toggleSavedOnly"
+                    aria-pressed="{{ $savedOnly ? 'true' : 'false' }}"
+                    aria-label="{{ __('Saved majlis only') }}"
+                    data-saved-filter
+                    class="inline-flex h-10 items-center gap-2 rounded-xl border px-3.5 text-xs font-bold shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-700 focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60 sm:text-sm {{ $savedOnly ? 'border-amber-300 bg-amber-100 text-amber-950' : 'border-slate-200 bg-white text-slate-600 hover:border-amber-200 hover:bg-amber-50 hover:text-amber-800' }}">
+                    <flux:icon.bookmark class="size-4" :variant="$savedOnly ? 'solid' : 'outline'" />
+                    {{ __('Saved') }}
+                </button>
+            @endif
         @endauth
     @endif
 
@@ -43,7 +89,7 @@
         <svg class="size-4 transition-transform duration-200" :class="filtersOpen ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
         </svg>
-        {{ __('Carian Majlis Khusus') }}
+        {{ __('Carian Majlis') }}
         @if($activeFilterCount > 0)
             <span class="inline-flex min-w-5 items-center justify-center rounded-full bg-emerald-600 px-1.5 py-0.5 text-[10px] font-black text-white">{{ $activeFilterCount }}</span>
         @endif

@@ -44,6 +44,7 @@
     ]);
     $upcomingEvents = $this->upcomingEvents;
     $savedEventIds = $this->savedEventIds;
+    $goingEventIds = $this->goingEventIds;
     $upcomingTotal = $this->upcomingTotal;
     $upcomingOverallTotal = $this->upcomingOverallTotal;
     $pastOverallTotal = $this->pastOverallTotal;
@@ -333,6 +334,7 @@
                                     <x-events.schedule-card
                                         :schedule-leaf="$scheduleLeaf"
                                         :saved-event-ids="$savedEventIds"
+                                        :is-going="in_array((string) $scheduleLeaf->event->getKey(), $goingEventIds, true)"
                                         :hide-reference="true"
                                         signal-component="reference_detail_upcoming_events"
                                         testid-prefix="reference-detail-card"

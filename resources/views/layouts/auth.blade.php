@@ -92,7 +92,7 @@
     {{-- svh, not vh: on mobile 100vh includes the area behind the browser chrome, which pushes centred content too low. --}}
     <div class="relative min-h-svh overflow-x-hidden bg-emerald-950">
         {{-- Reference-derived courtyard scene. The form remains real HTML above it. --}}
-        <img src="{{ asset('images/auth/login-background-v1.png') }}" alt="" aria-hidden="true"
+        <img srcset="{{ asset('images/auth/login-background-v1.webp') }}" src="{{ asset('images/auth/login-background-v1.png') }}" alt="" aria-hidden="true"
             class="absolute inset-0 h-full w-full object-cover object-center">
         <div class="pointer-events-none absolute inset-0 bg-gradient-to-r from-emerald-950/35 via-transparent to-emerald-950/5"></div>
         <div class="pointer-events-none absolute inset-0 bg-gradient-to-b from-emerald-950/10 via-transparent to-emerald-950/40"></div>

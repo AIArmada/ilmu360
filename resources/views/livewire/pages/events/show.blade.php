@@ -281,10 +281,10 @@
                             {{ __('Lihat :count tarikh', ['count' => $occurrenceCount]) }}
                             <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M13 6l6 6-6 6" /></svg>
                         </a>
-                        <button type="button" @click="openShare()" data-signal-event="share.modal_opened" data-signal-category="share" data-signal-component="event_detail_actions" data-signal-control="share" data-signal-entity-type="event" data-signal-entity-id="{{ $event->id }}" class="inline-flex items-center gap-2 rounded-full border border-[#f7f3e8]/40 px-5 py-3 text-sm font-semibold text-[#f7f3e8] transition duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-[#f2c867]/60 hover:bg-[#f7f3e8]/10 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f2c867]">
+                        <a href="#event-share-panel" class="inline-flex items-center gap-2 rounded-full border border-[#f7f3e8]/40 px-5 py-3 text-sm font-semibold text-[#f7f3e8] transition duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-[#f2c867]/60 hover:bg-[#f7f3e8]/10 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f2c867]">
                             <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684zm0 9.316a3 3 0 105.368 2.684z" /></svg>
                             {{ __('Kongsi') }}
-                        </button>
+                        </a>
                         @if($eventPosterUrl)
                             <button type="button" @click="posterOpen = true" data-signal-event="engagement.poster_opened" data-signal-category="engagement" data-signal-component="event_detail_hero" data-signal-control="poster" data-signal-entity-type="event" data-signal-entity-id="{{ $event->id }}" class="inline-flex items-center gap-2 rounded-full border border-[#f7f3e8]/40 px-5 py-3 text-sm font-semibold text-[#f7f3e8]">{{ __('Lihat poster') }}</button>
                         @endif
@@ -367,6 +367,7 @@
                                 <x-events.schedule-card
                                     :schedule-leaf="$scheduleLeaf"
                                     :saved-event-ids="$savedEventIds"
+                                    :is-going="$isGoing"
                                     signal-component="event_detail_schedule"
                                     testid-prefix="event-detail-schedule-card"
                                     :wire-key="'event-detail-schedule-'.$scheduleLeaf->entityType().'-'.$scheduleLeaf->id()"

@@ -783,7 +783,7 @@ class extends Component
                 <picture class="absolute inset-0">
                     <source media="(max-width: 639px)" srcset="{{ asset('images/institutions/pusat-ilmu-hero-background-mobile-v1.webp') }}" type="image/webp">
                     <img
-                        src="{{ asset('images/institutions/pusat-ilmu-hero-background-v1.png') }}"
+                        srcset="{{ asset('images/institutions/pusat-ilmu-hero-background-v1.webp') }}" src="{{ asset('images/institutions/pusat-ilmu-hero-background-v1.png') }}"
                         alt=""
                         aria-hidden="true"
                         class="absolute inset-0 h-full w-full object-cover object-center sm:object-[42%_center] lg:object-center"

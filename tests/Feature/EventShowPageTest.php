@@ -594,7 +594,8 @@ it('offers attributed sharing on the event and occurrence pages', function (): v
             ->assertSee('aria-label="Instagram"', false)
             ->assertSee('aria-label="TikTok"', false)
             ->assertSee('payloadEndpoint', false)
-            ->assertSee('share.modal_opened', false);
+            ->assertSee('href="#event-share-panel"', false)
+            ->assertDontSee('data-signal-event="share.modal_opened"', false);
     }
 });
 

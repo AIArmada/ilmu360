@@ -27,6 +27,7 @@
     $locationString = \App\Support\Location\AddressHierarchyFormatter::format($person->primaryAddress());
     $upcomingEvents = $this->upcomingEvents;
     $savedEventIds = $this->savedEventIds;
+    $goingEventIds = $this->goingEventIds;
     $upcomingTotal = $this->upcomingTotal;
     $upcomingOverallTotal = $this->upcomingOverallTotal;
     $pastOverallTotal = $this->pastOverallTotal;
@@ -438,6 +439,7 @@
                                     <x-events.schedule-card
                                         :schedule-leaf="$scheduleLeaf"
                                         :saved-event-ids="$savedEventIds"
+                                        :is-going="in_array((string) $scheduleLeaf->event->getKey(), $goingEventIds, true)"
                                         signal-component="person_detail_upcoming_events"
                                         testid-prefix="person-detail-card"
                                         :wire-key="'upcoming-'.$scheduleLeaf->entityType().'-'.$scheduleLeaf->id()"
@@ -515,6 +517,7 @@
                                     <x-events.card
                                         :event="$event"
                                         :is-saved="in_array((string) $event->getKey(), $savedEventIds, true)"
+                                        :is-going="in_array((string) $event->getKey(), $goingEventIds, true)"
                                         :role-label="$roleLabel"
                                         :status-label="$event->public_change_badge_label"
                                         :status-class="$resolveEventStatusBadgeClass($event)"

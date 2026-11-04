@@ -26,7 +26,6 @@ use Symfony\Component\Process\Process;
 use Tests\Feature\Rewards\Host\Support\FakeRewardSourceFactReader;
 use Tests\Feature\Rewards\Host\Support\RewardFinanceWorkerDb;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
-use Tests\Support\RealDriverFixture;
 
 function digestRaceReadyDir(string $case): string
 {
@@ -53,7 +52,6 @@ function runDigestRacePair(string $database, string|array $modes, array $payload
 {
     $readyDir = digestRaceReadyDir($case);
     file_put_contents($readyDir.'/payload.json', json_encode($payload, JSON_THROW_ON_ERROR));
-
 
     $worker = __DIR__.'/RewardDigestRaceWorker.php';
 
@@ -129,7 +127,8 @@ function digestRaceDueSlot(string $prefix, string $source): array
 
     app(NotificationSettingsManager::class)->save($user, [
         'settings' => [],
-        'triggers' => ['share_gratitude_digest' => ['enabled' => true, 'cadence' => 'daily']],
+        'families' => ['sharing' => ['enabled' => true, 'cadence' => 'daily']],
+        'triggers' => ['share_gratitude_digest' => ['enabled' => true]],
     ]);
 
     EnrollRewardMemberAction::run(
@@ -232,148 +231,148 @@ function digestRaceAssertDispatchCancelCoherent(string $memberId): void
 }
 
 $digestLabel = 'PostgreSQL 17';
-    it("sends a due digest exactly once under a raced double dispatch on {$digestLabel}", function (): void {
-        [$database, $previous] = RewardFinanceWorkerDb::setUp('dgclaim');
+it("sends a due digest exactly once under a raced double dispatch on {$digestLabel}", function (): void {
+    [$database, $previous] = RewardFinanceWorkerDb::setUp('dgclaim');
 
-        try {
-            [$user] = digestRaceDueSlot('dg-claim', 'dg-claim-source-1');
+    try {
+        [$user] = digestRaceDueSlot('dg-claim', 'dg-claim-source-1');
 
-            [$first, $second] = runDigestRacePair($database, 'dispatch', [
-                'now' => '2026-06-23T08:00:00Z',
-            ], 'dgclaim');
+        [$first, $second] = runDigestRacePair($database, 'dispatch', [
+            'now' => '2026-06-23T08:00:00Z',
+        ], 'dgclaim');
 
-            digestRaceWorkersExited($first, $second);
+        digestRaceWorkersExited($first, $second);
 
-            $dispatched = (int) ($first['outcome']['dispatched'] ?? 0) + (int) ($second['outcome']['dispatched'] ?? 0);
-            $reconciled = (int) ($first['outcome']['reconciled'] ?? 0) + (int) ($second['outcome']['reconciled'] ?? 0);
-            $cancelled = (int) ($first['outcome']['cancelled'] ?? 0) + (int) ($second['outcome']['cancelled'] ?? 0);
-            $skipped = (int) ($first['outcome']['skipped'] ?? 0) + (int) ($second['outcome']['skipped'] ?? 0);
+        $dispatched = (int) ($first['outcome']['dispatched'] ?? 0) + (int) ($second['outcome']['dispatched'] ?? 0);
+        $reconciled = (int) ($first['outcome']['reconciled'] ?? 0) + (int) ($second['outcome']['reconciled'] ?? 0);
+        $cancelled = (int) ($first['outcome']['cancelled'] ?? 0) + (int) ($second['outcome']['cancelled'] ?? 0);
+        $skipped = (int) ($first['outcome']['skipped'] ?? 0) + (int) ($second['outcome']['skipped'] ?? 0);
 
-            // One claim wins; its sync transport sends inline, so exactly
-            // one reconcile settles the slot. The loser always skips the
-            // lost claim; its reconcile scan may or may not observe the
-            // slot mid-send, so skipped is 1 or 2 — never 0, never 3.
-            expect($dispatched)->toBe(1)
-                ->and($reconciled)->toBe(1)
-                ->and($cancelled)->toBe(0)
-                ->and($skipped)->toBeGreaterThanOrEqual(1)
-                ->and($skipped)->toBeLessThanOrEqual(2);
+        // One claim wins; its sync transport sends inline, so exactly
+        // one reconcile settles the slot. The loser always skips the
+        // lost claim; its reconcile scan may or may not observe the
+        // slot mid-send, so skipped is 1 or 2 — never 0, never 3.
+        expect($dispatched)->toBe(1)
+            ->and($reconciled)->toBe(1)
+            ->and($cancelled)->toBe(0)
+            ->and($skipped)->toBeGreaterThanOrEqual(1)
+            ->and($skipped)->toBeLessThanOrEqual(2);
 
-            $slot = RewardDigestSlot::query()
-                ->where('recipient_type', 'user')
-                ->where('recipient_id', (string) $user->getKey())
-                ->firstOrFail();
+        $slot = RewardDigestSlot::query()
+            ->where('recipient_type', 'user')
+            ->where('recipient_id', (string) $user->getKey())
+            ->firstOrFail();
 
-            expect($slot->status)->toBe(RewardDigestSlot::STATUS_SENT)
-                ->and($slot->communication_id)->not->toBeNull()
-                ->and(Communication::query()->whereKey((string) $slot->communication_id)->count())->toBe(1)
-                ->and(NotificationInbox::query()->where('recipient_id', (string) $user->getKey())->count())->toBe(1);
-        } finally {
-            RewardFinanceWorkerDb::tearDown($database, $previous);
-        }
-    });
+        expect($slot->status)->toBe(RewardDigestSlot::STATUS_SENT)
+            ->and($slot->communication_id)->not->toBeNull()
+            ->and(Communication::query()->whereKey((string) $slot->communication_id)->count())->toBe(1)
+            ->and(NotificationInbox::query()->where('recipient_id', (string) $user->getKey())->count())->toBe(1);
+    } finally {
+        RewardFinanceWorkerDb::tearDown($database, $previous);
+    }
+});
 
-    it("converges concurrent same-category plans into one slot on {$digestLabel}", function (): void {
-        [$database, $previous] = RewardFinanceWorkerDb::setUp('dgplan');
+it("converges concurrent same-category plans into one slot on {$digestLabel}", function (): void {
+    [$database, $previous] = RewardFinanceWorkerDb::setUp('dgplan');
 
-        try {
-            [$user] = digestRaceDueSlot('dg-plan', 'dg-plan-source-1');
+    try {
+        [$user] = digestRaceDueSlot('dg-plan', 'dg-plan-source-1');
 
-            // Both workers re-plan the same won day from scratch: the
-            // insert race must merge, never duplicate.
-            RewardDigestSlot::query()->delete();
+        // Both workers re-plan the same won day from scratch: the
+        // insert race must merge, never duplicate.
+        RewardDigestSlot::query()->delete();
 
-            $decided = '2026-06-16T00:00:00Z';
+        $decided = '2026-06-16T00:00:00Z';
 
-            [$first, $second] = runDigestRacePair($database, 'plan', [
-                'member_id' => (string) $user->getKey(),
-                'categories' => ['awards'],
-                'decided_at' => $decided,
-            ], 'dgplan');
+        [$first, $second] = runDigestRacePair($database, 'plan', [
+            'member_id' => (string) $user->getKey(),
+            'categories' => ['awards'],
+            'decided_at' => $decided,
+        ], 'dgplan');
 
-            digestRaceWorkersExited($first, $second);
+        digestRaceWorkersExited($first, $second);
 
-            expect(RewardDigestSlot::query()->count())->toBe(1)
-                ->and($first['slot_id'] ?? null)->toBe($second['slot_id'] ?? null);
+        expect(RewardDigestSlot::query()->count())->toBe(1)
+            ->and($first['slot_id'] ?? null)->toBe($second['slot_id'] ?? null);
 
-            $slot = RewardDigestSlot::query()->firstOrFail();
+        $slot = RewardDigestSlot::query()->firstOrFail();
 
-            expect($slot->status)->toBe(RewardDigestSlot::STATUS_PLANNED)
-                ->and(array_values((array) $slot->categories))->toBe(['awards']);
-        } finally {
-            RewardFinanceWorkerDb::tearDown($database, $previous);
-        }
-    });
+        expect($slot->status)->toBe(RewardDigestSlot::STATUS_PLANNED)
+            ->and(array_values((array) $slot->categories))->toBe(['awards']);
+    } finally {
+        RewardFinanceWorkerDb::tearDown($database, $previous);
+    }
+});
 
-    it("merges concurrent cross-category plans into one ceiling slot on {$digestLabel}", function (): void {
-        [$database, $previous] = RewardFinanceWorkerDb::setUp('dgmerge');
+it("merges concurrent cross-category plans into one ceiling slot on {$digestLabel}", function (): void {
+    [$database, $previous] = RewardFinanceWorkerDb::setUp('dgmerge');
 
-        try {
-            [$user] = digestRaceDueSlot('dg-merge', 'dg-merge-source-1');
+    try {
+        [$user] = digestRaceDueSlot('dg-merge', 'dg-merge-source-1');
 
-            $decided = '2026-06-16T00:00:00Z';
+        $decided = '2026-06-16T00:00:00Z';
 
-            [$first, $second] = runDigestRacePair($database, 'plan', [
-                'slots' => [
-                    ['member_id' => (string) $user->getKey(), 'categories' => ['badges'], 'decided_at' => $decided],
-                    ['member_id' => (string) $user->getKey(), 'categories' => ['milestones'], 'decided_at' => $decided],
-                ],
-            ], 'dgmerge');
+        [$first, $second] = runDigestRacePair($database, 'plan', [
+            'slots' => [
+                ['member_id' => (string) $user->getKey(), 'categories' => ['badges'], 'decided_at' => $decided],
+                ['member_id' => (string) $user->getKey(), 'categories' => ['milestones'], 'decided_at' => $decided],
+            ],
+        ], 'dgmerge');
 
-            digestRaceWorkersExited($first, $second);
+        digestRaceWorkersExited($first, $second);
 
-            expect(RewardDigestSlot::query()->count())->toBe(1);
+        expect(RewardDigestSlot::query()->count())->toBe(1);
 
-            $slot = RewardDigestSlot::query()->firstOrFail();
-            $categories = array_values((array) $slot->categories);
-            sort($categories);
+        $slot = RewardDigestSlot::query()->firstOrFail();
+        $categories = array_values((array) $slot->categories);
+        sort($categories);
 
-            expect($categories)->toBe(['awards', 'badges', 'milestones']);
-        } finally {
-            RewardFinanceWorkerDb::tearDown($database, $previous);
-        }
-    });
+        expect($categories)->toBe(['awards', 'badges', 'milestones']);
+    } finally {
+        RewardFinanceWorkerDb::tearDown($database, $previous);
+    }
+});
 
-    it("keeps a raced dispatch and cancel coherent on {$digestLabel}", function (): void {
-        [$database, $previous] = RewardFinanceWorkerDb::setUp('dgcxl');
+it("keeps a raced dispatch and cancel coherent on {$digestLabel}", function (): void {
+    [$database, $previous] = RewardFinanceWorkerDb::setUp('dgcxl');
 
-        try {
-            [$user] = digestRaceDueSlot('dg-cxl', 'dg-cxl-source-1');
-            $memberId = (string) $user->getKey();
+    try {
+        [$user] = digestRaceDueSlot('dg-cxl', 'dg-cxl-source-1');
+        $memberId = (string) $user->getKey();
 
-            [$dispatch, $cancel] = runDigestRacePair($database, ['dispatch', 'cancel'], [
-                'slots' => [
-                    ['now' => '2026-06-23T08:00:00Z'],
-                    ['member_id' => $memberId, 'reason' => 'member-opt-out-race', 'decided_at' => '2026-06-23T08:00:00Z'],
-                ],
-            ], 'dgcxl');
+        [$dispatch, $cancel] = runDigestRacePair($database, ['dispatch', 'cancel'], [
+            'slots' => [
+                ['now' => '2026-06-23T08:00:00Z'],
+                ['member_id' => $memberId, 'reason' => 'member-opt-out-race', 'decided_at' => '2026-06-23T08:00:00Z'],
+            ],
+        ], 'dgcxl');
 
-            digestRaceWorkersExited($dispatch, $cancel);
+        digestRaceWorkersExited($dispatch, $cancel);
 
-            digestRaceAssertDispatchCancelCoherent($memberId);
-        } finally {
-            RewardFinanceWorkerDb::tearDown($database, $previous);
-        }
-    });
+        digestRaceAssertDispatchCancelCoherent($memberId);
+    } finally {
+        RewardFinanceWorkerDb::tearDown($database, $previous);
+    }
+});
 
-    it("keeps a raced cancel and dispatch coherent on {$digestLabel}", function (): void {
-        [$database, $previous] = RewardFinanceWorkerDb::setUp('dgxcl');
+it("keeps a raced cancel and dispatch coherent on {$digestLabel}", function (): void {
+    [$database, $previous] = RewardFinanceWorkerDb::setUp('dgxcl');
 
-        try {
-            [$user] = digestRaceDueSlot('dg-xcl', 'dg-xcl-source-1');
-            $memberId = (string) $user->getKey();
+    try {
+        [$user] = digestRaceDueSlot('dg-xcl', 'dg-xcl-source-1');
+        $memberId = (string) $user->getKey();
 
-            [$cancel, $dispatch] = runDigestRacePair($database, ['cancel', 'dispatch'], [
-                'slots' => [
-                    ['member_id' => $memberId, 'reason' => 'member-opt-out-race', 'decided_at' => '2026-06-23T08:00:00Z'],
-                    ['now' => '2026-06-23T08:00:00Z'],
-                ],
-            ], 'dgxcl');
+        [$cancel, $dispatch] = runDigestRacePair($database, ['cancel', 'dispatch'], [
+            'slots' => [
+                ['member_id' => $memberId, 'reason' => 'member-opt-out-race', 'decided_at' => '2026-06-23T08:00:00Z'],
+                ['now' => '2026-06-23T08:00:00Z'],
+            ],
+        ], 'dgxcl');
 
-            digestRaceWorkersExited($cancel, $dispatch);
+        digestRaceWorkersExited($cancel, $dispatch);
 
-            digestRaceAssertDispatchCancelCoherent($memberId);
-        } finally {
-            RewardFinanceWorkerDb::tearDown($database, $previous);
-        }
-    });
+        digestRaceAssertDispatchCancelCoherent($memberId);
+    } finally {
+        RewardFinanceWorkerDb::tearDown($database, $previous);
+    }
+});

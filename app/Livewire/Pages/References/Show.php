@@ -12,6 +12,7 @@ use App\Data\PublicScheduleLeaf;
 use App\Enums\DawahShareOutcomeType;
 use App\Livewire\Concerns\JoinsHierarchyAreaName;
 use App\Livewire\Concerns\LoadsEventPageData;
+use App\Livewire\Concerns\TogglesEventGoing;
 use App\Livewire\Concerns\TogglesEventSave;
 use App\Models\Builders\EventBuilder;
 use App\Models\Event;
@@ -37,6 +38,7 @@ class Show extends Component
 {
     use JoinsHierarchyAreaName;
     use LoadsEventPageData;
+    use TogglesEventGoing;
     use TogglesEventSave;
 
     public Reference $reference;
@@ -69,6 +71,11 @@ class Show extends Component
     protected function eventSaveReturnUrl(): string
     {
         return route('references.show', $this->reference, absolute: false);
+    }
+
+    protected function eventGoingReturnUrl(): string
+    {
+        return $this->eventSaveReturnUrl();
     }
 
     public function toggleFollow(): void

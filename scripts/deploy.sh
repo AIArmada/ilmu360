@@ -36,6 +36,10 @@ fi
 echo "==> Clearing Laravel caches"
 php artisan optimize:clear --ansi
 
+echo "==> Rebuilding optimized caches (config, routes, events, views, Filament components)"
+php artisan optimize --ansi
+php artisan filament:optimize --ansi
+
 echo "==> Reloading ${PHP_FPM_SERVICE} (resets OPcache)"
 # The sudoers rule on this host grants `service <pool> reload`, not `systemctl`,
 # so fall back to service(8) when systemctl is refused.

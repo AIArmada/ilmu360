@@ -25,6 +25,12 @@ class EventFilters extends EventsIndex
 
     public bool $showSavedFilter = true;
 
+    /** When set, the going/saved controls navigate there instead of toggling local filters. */
+    public ?string $goingFilterUrl = null;
+
+    /** When set, the saved control navigates there instead of toggling local filters. */
+    public ?string $savedFilterUrl = null;
+
     public ?string $selectedHomeQuickFilter = null;
 
     private bool $applyingHomeQuickFilter = false;
@@ -32,13 +38,20 @@ class EventFilters extends EventsIndex
     /**
      * @param  array<string, array{starts_after: string, starts_before: string, time_scope: string}>  $quickFilterRanges
      */
-    public function mount(array $quickFilterRanges = [], bool $showNearbyButton = true, bool $showSavedFilter = true): void
-    {
+    public function mount(
+        array $quickFilterRanges = [],
+        bool $showNearbyButton = true,
+        bool $showSavedFilter = true,
+        ?string $goingFilterUrl = null,
+        ?string $savedFilterUrl = null,
+    ): void {
         parent::mount();
 
         $this->quickFilterRanges = $quickFilterRanges;
         $this->showNearbyButton = $showNearbyButton;
         $this->showSavedFilter = $showSavedFilter;
+        $this->goingFilterUrl = $goingFilterUrl;
+        $this->savedFilterUrl = $savedFilterUrl;
 
         $this->applyHomepageDefaults();
     }
@@ -139,6 +152,7 @@ class EventFilters extends EventsIndex
         return collect([
             filled($this->search),
             $this->saved_only === true,
+            $this->going_only === true,
             $hasCountryScope,
             filled($this->state_id),
             filled($areaAssignments['administrative_division'] ?? null),

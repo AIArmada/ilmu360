@@ -41,7 +41,6 @@ it('registers redis-backed horizon supervisors and metrics snapshots', function 
             'notifications-inbox',
             'notifications-mail',
             'notifications-push',
-            'notifications-whatsapp',
         ])
         ->and(config('horizon.defaults.supervisor-media.queue'))->toBe(['media']);
 

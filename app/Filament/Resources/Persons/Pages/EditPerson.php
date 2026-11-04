@@ -11,6 +11,7 @@ use App\Filament\Resources\Persons\PersonResource;
 use App\Forms\SharedFormSchema;
 use App\Models\Person;
 use App\Services\ContributionEntityMutationService;
+use App\Support\Persons\PersonBioContent;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
 
@@ -34,6 +35,8 @@ class EditPerson extends EditRecord
     #[\Override]
     protected function mutateFormDataBeforeFill(array $data): array
     {
+        $data['bio'] = PersonBioContent::toRichContent($data['bio'] ?? null);
+
         $record = $this->getRecord();
 
         if ($record instanceof Person) {

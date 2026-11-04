@@ -381,7 +381,7 @@
         </div>
 
         <div class="relative mx-auto max-w-7xl px-4 pt-32 sm:px-8 sm:pt-36 lg:px-12 lg:pt-40">
-            <div class="grid items-stretch gap-10 {{ $heroImageUrl ? '' : 'lg:grid-cols-[minmax(0,1fr)_minmax(0,23rem)] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_minmax(0,32rem)] xl:gap-14' }}">
+            <div class="grid items-stretch gap-10">
                 <div class="flex min-w-0 flex-col justify-center">
                     {{-- Eyebrow --}}
                     @if($classificationLabels->take(2)->isNotEmpty() || $occurrenceCancelled)
@@ -441,40 +441,12 @@
                             </a>
                         @endif
 
-                        <button type="button" @click="openShare()" data-signal-event="share.modal_opened" data-signal-category="share" data-signal-component="event_detail_actions" data-signal-control="share" data-signal-entity-type="event" data-signal-entity-id="{{ $event->id }}" class="inline-flex items-center gap-2 rounded-full border border-[#f7f3e8]/40 px-5 py-3 text-sm font-semibold text-[#f7f3e8] transition duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-[#f2c867]/60 hover:bg-[#f7f3e8]/10 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f2c867]">
+                        <a href="#event-share-panel" class="inline-flex items-center gap-2 rounded-full border border-[#f7f3e8]/40 px-5 py-3 text-sm font-semibold text-[#f7f3e8] transition duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-[#f2c867]/60 hover:bg-[#f7f3e8]/10 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f2c867]">
                             <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684zm0 9.316a3 3 0 105.368 2.684z" /></svg>
                             {{ __('Kongsi') }}
-                        </button>
+                        </a>
                     </div>
                 </div>
-
-                {{-- Without an uploaded cover, the date becomes the hero's
-                     focal point. --}}
-                @if(! $heroImageUrl && $occurrenceStartLocal)
-                    {{-- No photograph uploaded: the date becomes the image. Cream,
-                         not another dark pane, so the hero has a focal point. --}}
-                    <div class="hidden items-center lg:flex">
-                        <div class="relative w-full overflow-hidden rounded-2xl border border-[#f2c867]/50 bg-[#f7f3e8] px-8 py-9 text-center shadow-[0_34px_70px_-30px_rgba(3,15,13,0.85)]">
-                            <span class="mx-auto block h-[2px] w-10 bg-[#c9962f]" aria-hidden="true"></span>
-                            <div class="relative">
-                                <p class="mt-6 text-[11px] font-semibold uppercase tracking-[0.3em] text-[#8a5f13]">
-                                    {{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($occurrenceStartLocal, 'l') }}
-                                </p>
-                                <p class="mt-3 font-heading text-[5.5rem] font-normal leading-[0.85] tracking-[-0.03em] text-[#14342e]">
-                                    {{ $occurrenceStartLocal->format('j') }}
-                                </p>
-                                <p class="mt-4 text-[11px] font-semibold uppercase tracking-[0.3em] text-[#4c5b56]">
-                                    {{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($occurrenceStartLocal, 'F Y') }}
-                                </p>
-                                @if($occurrenceTimeLabel)
-                                    <div class="mt-7 border-t border-[#c9962f]/25 pt-6">
-                                        <p class="font-mono text-xs tracking-[0.06em] text-[#14342e]">{{ $occurrenceTimeLabel }}</p>
-                                    </div>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-                @endif
             </div>
 
             {{-- Fact band. Four answers before any prose: when, what time, where,
@@ -1050,6 +1022,7 @@
                         <x-events.schedule-card
                             :schedule-leaf="$siblingLeaf"
                             :saved-event-ids="$siblingSavedEventIds"
+                            :is-going="$isGoing"
                             signal-component="event_detail_related"
                             testid-prefix="event-detail-related-card"
                             :wire-key="'event-detail-related-'.$siblingLeaf->entityType().'-'.$siblingLeaf->id()"

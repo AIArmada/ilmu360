@@ -816,7 +816,7 @@ it('publishes request examples for agentic write endpoints', function () {
     expect(data_get($paths, '/auth/login.post.requestBody.content.application/json.example.login'))->toBe('superadmin@ilmu360.com')
         ->and(data_get($paths, '/auth/register.post.requestBody.content.application/json.example.device_name'))->toBe('OpenClaw iPhone')
         ->and(data_get($paths, '/account-settings.put.requestBody.content.application/json.example.timezone'))->toBe('Asia/Kuala_Lumpur')
-        ->and(data_get($paths, '/notification-settings.put.requestBody.content.application/json.example.settings.preferred_channels.0'))->toBe('in_app')
+        ->and(data_get($paths, '/notification-settings.put.requestBody.content.application/json.example.settings.channels.0'))->toBe('in_app')
         ->and(data_get($paths, '/events/{event}/registrations.post.requestBody.content.application/json.example.email'))->toBe('guest@example.com')
         ->and(data_get($paths, '/saved-searches.post.requestBody.content.application/json.example.notify'))->toBe('daily')
         ->and(data_get($paths, '/saved-searches/{savedSearch}.put.requestBody.content.application/json.example.notify'))->toBe('instant')

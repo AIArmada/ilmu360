@@ -806,8 +806,12 @@ class Show extends Component
         $this->toggleEngagement('savedEvents', 'isSaved', 'saves_count');
     }
 
-    public function toggleGoing(): void
+    public function toggleGoing(?string $eventId = null): void
     {
+        if ($eventId !== null && $eventId !== (string) $this->event->getKey()) {
+            return;
+        }
+
         $this->toggleEngagement('goingEvents', 'isGoing', 'going_count', 'goingCount', requiresActiveEvent: true);
     }
 

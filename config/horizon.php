@@ -102,7 +102,6 @@ return [
         'redis:notifications-mail' => 60,
         'redis:notifications-inbox' => 30,
         'redis:notifications-push' => 30,
-        'redis:notifications-whatsapp' => 60,
     ],
 
     /*
@@ -220,7 +219,7 @@ return [
 
         'supervisor-notifications' => [
             'connection' => 'redis',
-            'queue' => ['notifications-inbox', 'notifications-mail', 'notifications-push', 'notifications-whatsapp'],
+            'queue' => ['notifications-inbox', 'notifications-mail', 'notifications-push'],
             'balance' => 'auto',
             'autoScalingStrategy' => 'time',
             'minProcesses' => 1,

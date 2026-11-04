@@ -103,7 +103,7 @@ new
                     $query->active();
                 }])
                 ->with([
-                    'addresses',
+                    'addresses.areaAssignments.area',
                     'media',
                 ]);
 

@@ -3,6 +3,7 @@
 namespace App\Support\Media;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Spatie\MediaLibrary\Support\UrlGenerator\DefaultUrlGenerator;
 use Throwable;
 
@@ -10,6 +11,35 @@ class MediaUrlGenerator extends DefaultUrlGenerator
 {
     #[\Override]
     public function getUrl(): string
+    {
+        if (! $this->shouldUseTemporaryUrl()) {
+            return $this->resolveUrl();
+        }
+
+        $mediaKey = $this->media?->getKey();
+
+        if ($mediaKey === null) {
+            return $this->resolveUrl();
+        }
+
+        $lifetimeMinutes = max(1, (int) config('media-library.temporary_url_default_lifetime', 5));
+
+        $cacheKey = sprintf(
+            'media-library:url:%s:%s:%s:%s',
+            $mediaKey,
+            $this->conversion?->getName() ?? 'original',
+            $this->getDiskName(),
+            $this->media?->updated_at?->getTimestamp() ?? 0,
+        );
+
+        return Cache::remember(
+            $cacheKey,
+            now()->addMinutes(max(1, $lifetimeMinutes - 1)),
+            fn (): string => $this->resolveUrl(),
+        );
+    }
+
+    private function resolveUrl(): string
     {
         if ($this->mediaFileIsMissing()) {
             return $this->resolveFallbackUrl();
@@ -69,7 +99,36 @@ class MediaUrlGenerator extends DefaultUrlGenerator
     protected function mediaFileIsMissing(): bool
     {
         try {
-            return ! $this->getDisk()->exists($this->getPathRelativeToRoot());
+            if ($this->getDiskName() !== 's3' || $this->media?->getKey() === null) {
+                return ! $this->getDisk()->exists($this->getPathRelativeToRoot());
+            }
+
+            $cacheKey = sprintf(
+                'media-library:exists:%s:%s:%s',
+                $this->media->getKey(),
+                $this->getPathRelativeToRoot(),
+                $this->media->updated_at?->getTimestamp() ?? 0,
+            );
+
+            $cached = Cache::get($cacheKey);
+
+            if ($cached === true) {
+                return false;
+            }
+
+            if ($cached === false) {
+                return true;
+            }
+
+            $exists = $this->getDisk()->exists($this->getPathRelativeToRoot());
+
+            Cache::put(
+                $cacheKey,
+                $exists,
+                $exists ? now()->addHours(6) : now()->addMinutes(5),
+            );
+
+            return ! $exists;
         } catch (Throwable) {
             return false;
         }

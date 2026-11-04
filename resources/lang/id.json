@@ -1754,6 +1754,7 @@
   "Followed references only": "Referensi yang diikuti saja",
   "Followed institutions only": "Institusi yang diikuti saja",
   "Saved majlis only": "Majlis tersimpan saja",
+  "Attending majlis only": "Majelis yang dihadiri saja",
   "No followed references yet": "Belum ada referensi yang diikuti",
   "Follow a reference to see it here.": "Ikuti referensi untuk melihatnya di sini.",
   "View all references": "Lihat semua referensi",
@@ -1762,5 +1763,7 @@
   "You are not following any speakers yet. Follow a speaker to see them here.": "Anda belum mengikuti penceramah mana pun. Ikuti penceramah untuk melihatnya di sini.",
   "No saved majlis found": "Tidak ada majlis tersimpan",
   "Save a majlis to see it here.": "Simpan majlis untuk melihatnya di sini.",
+  "No attending majlis found": "Tidak ada majelis yang dihadiri",
+  "Mark a majlis as Hadir to see it here.": "Tandai majlis sebagai Hadir untuk melihatnya di sini.",
   "Filter": "Filter"
 }

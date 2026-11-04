@@ -12,6 +12,9 @@ use App\Models\Event;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
+use Filament\Actions\EditAction;
+use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Table;
 
 beforeEach(function (): void {
     $this->seed(PermissionSeeder::class);
@@ -49,6 +52,29 @@ it('exposes the event domain graph on the admin edit resource', function (): voi
         ->assertSee('References')
         ->assertSee('Schedule')
         ->assertSee('Audience');
+});
+
+it('exposes edit access from the events list and view page', function (): void {
+    $administrator = User::factory()->create();
+    $administrator->assignRole('super_admin');
+
+    $event = Event::factory()->create();
+
+    $table = EventResource::table(Table::make(Mockery::mock(HasTable::class)));
+    $editAction = collect($table->getRecordActions())
+        ->first(fn ($action): bool => $action instanceof EditAction);
+
+    expect($editAction)->not->toBeNull();
+
+    $this->actingAs($administrator)
+        ->get(EventResource::getUrl('index', panel: 'admin'))
+        ->assertSuccessful()
+        ->assertSee(EventResource::getUrl('edit', ['record' => $event], panel: 'admin'), false);
+
+    $this->actingAs($administrator)
+        ->get(EventResource::getUrl('view', ['record' => $event], panel: 'admin'))
+        ->assertSuccessful()
+        ->assertSee(EventResource::getUrl('edit', ['record' => $event], panel: 'admin'), false);
 });
 
 it('exposes independent cover and schedule controls on occurrence and session resources', function (): void {

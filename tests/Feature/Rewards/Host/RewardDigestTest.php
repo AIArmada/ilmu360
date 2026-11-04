@@ -49,17 +49,34 @@ uses(RefreshDatabase::class);
 
 function digestUser(array $settings = [], array $triggers = []): User
 {
-    $user = User::factory()->create();
+    $user = User::factory()->create([
+        'timezone' => (string) ($settings['timezone'] ?? 'UTC'),
+    ]);
 
-    // Daily unless the test says otherwise (the catalog default is
-    // weekly); the trigger stays enabled unless disabled explicitly.
-    $triggers['share_gratitude_digest'] = array_merge(
-        ['enabled' => true, 'cadence' => 'daily'],
-        $triggers['share_gratitude_digest'] ?? [],
-    );
+    if (array_key_exists('digest_delivery_time', $settings)) {
+        config(['notification-center.defaults.digest_delivery_time' => (string) $settings['digest_delivery_time']]);
+        unset($settings['digest_delivery_time']);
+    }
+
+    if (array_key_exists('digest_weekly_day', $settings)) {
+        config(['notification-center.defaults.digest_weekly_day' => (int) $settings['digest_weekly_day']]);
+        unset($settings['digest_weekly_day']);
+    }
+
+    $sharing = $triggers['share_gratitude_digest'] ?? [];
+    $cadence = (string) ($sharing['cadence'] ?? 'daily');
+    unset($sharing['cadence']);
+
+    $triggers['share_gratitude_digest'] = array_merge(['enabled' => true], $sharing);
 
     app(NotificationSettingsManager::class)->save($user, [
         'settings' => $settings,
+        'families' => [
+            'sharing' => [
+                'enabled' => true,
+                'cadence' => $cadence,
+            ],
+        ],
         'triggers' => $triggers,
     ]);
 

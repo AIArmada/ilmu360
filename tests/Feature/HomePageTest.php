@@ -50,13 +50,34 @@ it('contains livewire components on the homepage', function () {
     $response->assertSee('livewire.js', false);
 });
 
-it('does not show the saved majlis filter on the homepage', function () {
+it('links the homepage saved and attending filters to the majlis listing', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user)
         ->get('/')
         ->assertOk()
+        ->assertSee('data-going-filter', false)
+        ->assertSee('data-saved-filter', false)
+        ->assertSee('/majlis?going_only=1&amp;filters_panel=closed', false)
+        ->assertSee('/majlis?saved_only=1&amp;filters_panel=closed', false);
+});
+
+it('hides the saved and attending link filters from homepage guests', function () {
+    $this->get('/')
+        ->assertOk()
+        ->assertDontSee('data-going-filter', false)
         ->assertDontSee('data-saved-filter', false);
+});
+
+it('shows the register call to action on the homepage only to guests', function () {
+    $this->get('/')
+        ->assertOk()
+        ->assertSee('Daftar Sekarang');
+
+    $this->actingAs(User::factory()->create())
+        ->get('/')
+        ->assertOk()
+        ->assertDontSee('Daftar Sekarang');
 });
 
 it('keeps Hari ini all-day and applies both evening prayer filters to Malam Ini', function () {
@@ -394,6 +415,7 @@ it('lists every speaker name below the location on the featured homepage cards',
 
     $startsAt = now()->addDays(3)->setTime(9, 20);
     $event = Event::factory()->create([
+        'is_featured' => true,
         'title' => 'Kuliah Pelbagai Penceramah',
         'status' => 'approved',
         'visibility' => 'public',
@@ -439,6 +461,7 @@ it('lists every speaker name below the location on the featured homepage cards',
     });
 
     Event::factory()->create([
+        'is_featured' => true,
         'title' => 'Kuliah Negeri Pantai Timur',
         'status' => 'approved',
         'visibility' => 'public',
@@ -466,6 +489,7 @@ it('lists every speaker name below the location on the featured homepage cards',
 
 it('shows prayer labels and suppresses cross-day end times on featured homepage cards', function () {
     $prayerEvent = Event::factory()->create([
+        'is_featured' => true,
         'title' => 'Kuliah Petang Jumaat',
         'status' => 'approved',
         'visibility' => 'public',
@@ -485,6 +509,7 @@ it('shows prayer labels and suppresses cross-day end times on featured homepage 
 
     $multiDayStartsAt = now()->addDays(4)->setTime(9, 0);
     $multiDayEvent = Event::factory()->create([
+        'is_featured' => true,
         'title' => 'Daurah Tiga Hari',
         'status' => 'approved',
         'visibility' => 'public',
@@ -507,6 +532,7 @@ it('shows prayer labels and suppresses cross-day end times on featured homepage 
 it('toggles saved events from the featured homepage cards', function () {
     $user = User::factory()->create();
     $event = Event::factory()->create([
+        'is_featured' => true,
         'title' => 'Kuliah Boleh Disimpan',
         'status' => 'approved',
         'visibility' => 'public',
@@ -543,6 +569,7 @@ it('toggles saved events from the featured homepage cards', function () {
 
 it('redirects guests to login when saving from featured homepage cards', function () {
     $event = Event::factory()->create([
+        'is_featured' => true,
         'title' => 'Kuliah Tetamu Cuba Simpan',
         'status' => 'approved',
         'visibility' => 'public',
@@ -678,6 +705,7 @@ it('resets filters to empty and restores the landed country', function () {
 it('shows upcoming occurrence and session cards with their own links, times and locations', function (): void {
     $this->freezeTime();
     $event = Event::factory()->create([
+        'is_featured' => true,
         'title' => 'Homepage Programme Parent',
         'status' => 'approved',
         'visibility' => 'public',

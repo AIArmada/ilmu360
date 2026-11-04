@@ -1,6 +1,7 @@
 @props([
     'scheduleLeaf',
     'savedEventIds' => [],
+    'isGoing' => false,
     'signalComponent' => 'event_card',
     'testidPrefix' => null,
     'wireKey' => null,
@@ -38,6 +39,7 @@
     :starts-at="$scheduleLeaf->startsAt()"
     :timing-text="$scheduleLeaf->timingText()"
     :is-saved="in_array((string) $event->getKey(), (array) $savedEventIds, true)"
+    :is-going="$isGoing"
     :status-label="$statusLabel"
     :status-class="$statusClass"
     :location-primary="is_string($locationPrimary) && trim($locationPrimary) !== '' ? $locationPrimary : null"

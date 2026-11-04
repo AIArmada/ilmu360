@@ -40,26 +40,19 @@ final class ApiRequestBodyExamplesExtension extends OperationExtension
         ],
         'put notification-settings' => [
             'settings' => [
-                'locale' => 'ms',
-                'timezone' => 'Asia/Kuala_Lumpur',
-                'digest_delivery_time' => '08:00:00',
-                'digest_weekly_day' => 1,
-                'preferred_channels' => ['in_app', 'push', 'email'],
-                'fallback_channels' => ['in_app', 'email'],
-                'fallback_strategy' => 'next_available',
-                'urgent_override' => true,
+                'channels' => ['in_app', 'email', 'push'],
+                'quiet_hours_start' => '22:00',
+                'quiet_hours_end' => '07:00',
             ],
             'families' => [
                 'event_updates' => [
                     'enabled' => true,
                     'cadence' => 'instant',
-                    'channels' => ['in_app', 'email'],
                 ],
             ],
             'triggers' => [
                 'checkin_open' => [
                     'enabled' => true,
-                    'channels' => ['push', 'in_app'],
                 ],
             ],
         ],

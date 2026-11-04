@@ -937,6 +937,46 @@ html.light [data-flux-button][data-variant="primary"]:hover {
     transform: translateY(-1px);
 }
 
+/* Notification settings: keep off-state switches clearly visible on light cards. */
+.notification-settings [data-flux-switch] {
+    background-color: var(--color-zinc-300);
+    box-shadow: inset 0 0 0 1px var(--color-zinc-400);
+}
+
+.notification-settings [data-flux-switch][data-checked] {
+    background-color: var(--color-emerald-600);
+    box-shadow: inset 0 0 0 1px var(--color-emerald-600);
+}
+
+.notification-settings [data-flux-switch][disabled] {
+    opacity: 0.7;
+}
+
+.dark .notification-settings [data-flux-switch] {
+    background-color: var(--color-zinc-300);
+    box-shadow: inset 0 0 0 1px var(--color-zinc-400);
+}
+
+.dark .notification-settings [data-flux-switch][data-checked] {
+    background-color: var(--color-emerald-600);
+    box-shadow: inset 0 0 0 1px var(--color-emerald-600);
+}
+
+/* The notification settings panel is always a light surface, so keep Flux fields in light styling even when dark mode is active. */
+.notification-settings input[data-flux-control],
+.notification-settings select[data-flux-select-native],
+.dark .notification-settings input[data-flux-control],
+.dark .notification-settings select[data-flux-select-native] {
+    background-color: var(--color-white);
+    color: var(--color-zinc-700);
+    border-color: var(--color-zinc-200);
+}
+
+.dark .notification-settings select[data-flux-select-native] option {
+    background-color: var(--color-white);
+    color: var(--color-zinc-700);
+}
+
 /* Filament select chevron aligned to the Flux select style */
 .fi-select-input .fi-select-input-btn {
     background-image: url("data:image/svg+xml,%3csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M8 9L12 5L16 9' stroke='%23d4d4d4' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3cpath d='M16 15L12 19L8 15' stroke='%23d4d4d4' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e") !important;

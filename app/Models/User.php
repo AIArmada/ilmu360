@@ -745,18 +745,6 @@ class User extends Authenticatable implements AuditableContract, CanInteract, Fi
             ->get();
     }
 
-    /**
-     * @return Collection<int, CommunicationDestination>
-     */
-    public function routeNotificationForWhatsapp(?Notification $notification = null): Collection
-    {
-        return $this->notificationDestinations()
-            ->where('channel', NotificationChannel::Whatsapp->value)
-            ->where('status', 'active')
-            ->orderByDesc('is_primary')
-            ->get();
-    }
-
     public function canAccessPanel(Panel $panel): bool
     {
         if ($panel->getId() === 'ahli') {

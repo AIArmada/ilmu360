@@ -88,7 +88,8 @@ it('renders event detail conversion tracking hooks', function () {
         ->assertSee('data-signal-event="engagement.event_going_clicked"', false)
         ->assertSee('data-signal-event="engagement.event_save_clicked"', false)
         ->assertSee('data-signal-event="engagement.event_check_in_clicked"', false)
-        ->assertSee('data-signal-event="share.modal_opened"', false)
+        ->assertSee('href="#event-share-panel"', false)
+        ->assertDontSee('data-signal-event="share.modal_opened"', false)
         ->assertSee('data-signal-event="share.provider_clicked"', false)
         ->assertSee('data-signal-event="navigation.external_link_clicked"', false);
 });

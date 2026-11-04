@@ -41,35 +41,30 @@ it('updates notification settings through the api', function () {
 
     $response = $this->putJson('/api/v1/notification-settings', [
         'settings' => [
-            'locale' => 'en',
             'quiet_hours_start' => '21:30',
             'quiet_hours_end' => '06:30',
-            'preferred_channels' => ['push', 'in_app'],
+            'channels' => ['in_app', 'email', 'push'],
         ],
         'families' => [
             'submission_workflow' => [
                 'enabled' => true,
                 'cadence' => 'instant',
-                'channels' => ['whatsapp', 'email'],
             ],
         ],
         'triggers' => [
             'submission_cancelled' => [
                 'enabled' => true,
-                'inherits_family' => false,
-                'cadence' => 'instant',
-                'channels' => ['whatsapp'],
-                'urgent_override' => true,
             ],
         ],
     ]);
 
     $response->assertOk()
-        ->assertJsonPath('data.settings.locale', 'en')
         ->assertJsonPath('data.settings.quiet_hours_start', '21:30:00')
-        ->assertJsonPath('data.families.submission_workflow.channels.0', 'whatsapp')
-        ->assertJsonPath('data.triggers.submission_cancelled.channels.0', 'whatsapp')
-        ->assertJsonPath('data.triggers.submission_cancelled.inherits_family', false);
+        ->assertJsonPath('data.settings.channels.2', 'push')
+        ->assertJsonPath('data.families.submission_workflow.enabled', true)
+        ->assertJsonPath('data.triggers.submission_cancelled.enabled', true)
+        ->assertJsonMissingPath('data.families.submission_workflow.channels')
+        ->assertJsonMissingPath('data.triggers.submission_cancelled.channels');
 });
 
 it('registers updates and removes push destinations through the api', function () {

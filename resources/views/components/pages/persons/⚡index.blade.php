@@ -1,18 +1,19 @@
 <?php
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
+
+use App\Actions\ToggleDirectoryFollowAction;
+
 use AIArmada\Persons\Enums\AssignmentStatus;
 use AIArmada\Persons\Enums\Gender;
-use App\Enums\DawahShareOutcomeType;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\Person;
 use App\Models\User;
-use App\Services\ShareTrackingService;
 use App\Support\Auth\IntendedRedirect;
 use App\Support\Search\PersonSearchService;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use App\Support\Timezone\UserDateTimeFormatter;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
@@ -23,6 +24,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -174,64 +176,34 @@ new
             $user = auth()->user();
 
             if (! $user instanceof User) {
-                $this->redirect(
-                    IntendedRedirect::loginUrl(route('persons.index', $this->directoryQueryString(), absolute: false)),
-                    navigate: true,
-                );
+                $this->redirect(IntendedRedirect::loginUrl(route('persons.index', $this->directoryQueryString(), absolute: false)), navigate: true);
 
                 return;
             }
 
-            $person = $this->followablePerson($personId);
+            $state = app(ToggleDirectoryFollowAction::class)->handle('person', $personId, $user);
 
-            if ($person === null) {
+            if ($state === null) {
                 return;
             }
 
-            $personId = (string) $person->getKey();
-
-            if ($user->isFollowing($person)) {
-                $user->unfollow($person);
-                $this->followingPersonIds = array_values(array_filter(
-                    $this->followingPersonIds,
-                    static fn (mixed $id): bool => (string) $id !== $personId,
-                ));
-
-                return;
-            }
-
-            $follow = $user->follow($person);
-
-            if (! in_array($personId, $this->followingPersonIds, true)) {
-                $this->followingPersonIds[] = $personId;
-            }
-
-            if ($follow->wasRecentlyCreated) {
-                app(ShareTrackingService::class)->recordOutcome(
-                    type: DawahShareOutcomeType::PersonFollow,
-                    businessKey: ShareOutcomeBusinessKey::follow(DawahShareOutcomeType::PersonFollow, (string) $follow->getKey()),
-                    subject: $person,
-                    actor: $user,
-                    request: request(),
-                    metadata: [
-                        'person_id' => $person->id,
-                    ],
-                    occurredAt: $follow->created_at,
-                );
-            }
+            $this->hydrate();
         }
 
-        private function followablePerson(string $personId): ?Person
+        public function hydrate(): void
         {
-            if (! Str::isUuid($personId)) {
-                return null;
-            }
+            $user = auth()->user();
+            $this->followingPersonIds = $user instanceof User
+                ? OwnerContext::withOwner(null, fn (): array => $user->followingPersons()->pluck((new Person)->qualifyColumn('id'))->map(static fn (mixed $id): string => (string) $id)->values()->all())
+                : [];
+        }
 
-            return Person::query()
-                ->speakers()
-                ->whereIn('status', ['verified', 'pending'])
-                ->whereKey($personId)
-                ->first();
+        #[On('directory-follow-updated.person')]
+        public function refreshFollowedListing(): void
+        {
+            if (! $this->followed_only) {
+                $this->skipRender();
+            }
         }
 
         private function basePersonsQuery(): Builder
@@ -567,7 +539,7 @@ new
             <picture class="absolute inset-0">
                 <source media="(max-width: 639px)" srcset="{{ asset('images/speakers/penceramah-hero-background-mobile-v1.webp') }}" type="image/webp">
                 <img
-                    src="{{ asset('images/speakers/penceramah-hero-background-v3.png') }}"
+                    srcset="{{ asset('images/speakers/penceramah-hero-background-v3.webp') }}" src="{{ asset('images/speakers/penceramah-hero-background-v3.png') }}"
                     alt=""
                     aria-hidden="true"
                     class="absolute inset-0 h-full w-full object-cover object-center sm:object-[42%_center] lg:object-center"
@@ -915,18 +887,14 @@ new
                                     <flux:icon.calendar class="size-3.5 text-emerald-500" />
                                     {{ $person->events_count }} {{ __('Upcoming Events') }}
                                 </span>
-                                <button
-                                    type="button"
-                                    wire:click.stop.prevent="toggleFollow('{{ $person->id }}')"
-                                    wire:loading.attr="disabled"
-                                    data-follow-icon="speaker"
-                                    data-follow-state="{{ $isFollowing ? 'following' : 'not-following' }}"
-                                    aria-label="{{ $isFollowing ? __('Nyahikut') : __('Ikuti') }}"
-                                    aria-pressed="{{ $isFollowing ? 'true' : 'false' }}"
-                                    class="relative z-10 grid h-9 w-9 shrink-0 place-items-center rounded-xl border transition-colors duration-200 disabled:cursor-wait disabled:opacity-60 {{ $isFollowing ? 'border-emerald-200 bg-emerald-50 text-emerald-700 group-hover:border-emerald-300 group-hover:bg-emerald-100' : 'border-slate-200 bg-white text-slate-400 group-hover:border-emerald-200 group-hover:text-[#087f59] hover:border-emerald-200 hover:bg-emerald-100 hover:text-[#087f59] hover:shadow-sm' }}"
-                                >
-                                    <flux:icon.bookmark class="size-4" :variant="$isFollowing ? 'solid' : 'outline'" />
-                                </button>
+                                <livewire:components.directory-card-follow
+                                    subject-type="person"
+                                    :subject-id="(string) $person->getKey()"
+                                    :is-following="$isFollowing"
+                                    :refresh-listing="(bool) $this->followed_only"
+                                    :return-url="route('persons.index', $this->directoryQueryString(), absolute: false)"
+                                    :key="'directory-follow-person-'.$person->getKey().'-'.(int) $isFollowing.'-'.(int) $this->followed_only.'-'.md5(route('persons.index', $this->directoryQueryString(), absolute: false))"
+                                />
                             </div>
                         </article>
                     @endforeach

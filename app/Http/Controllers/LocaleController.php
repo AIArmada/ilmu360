@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -16,6 +17,12 @@ class LocaleController extends Controller
         }
 
         $request->session()->put('locale', $locale);
+
+        $user = $request->user();
+
+        if ($user instanceof User) {
+            $user->notificationSetting()->update(['locale' => $locale]);
+        }
 
         return redirect()->back();
     }

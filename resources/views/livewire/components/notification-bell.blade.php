@@ -32,22 +32,22 @@
         aria-label="{{ $triggerLabel }}"
         title="{{ $triggerLabel }}"
         data-testid="notification-bell"
-        class="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e3b537] focus-visible:ring-offset-2 {{ $triggerClass }}"
+        class="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e3b537] focus-visible:ring-offset-2 {{ $triggerClass }}"
     >
         @if ($hasUnread)
-            <x-heroicon-s-bell data-testid="notification-bell-icon-filled" class="h-5 w-5" aria-hidden="true" />
+            <x-heroicon-s-bell data-testid="notification-bell-icon-filled" class="h-4 w-4" aria-hidden="true" />
         @else
             <x-heroicon-o-bell
                 x-show="! open"
                 data-testid="notification-bell-icon-outline"
-                class="h-5 w-5"
+                class="h-4 w-4"
                 aria-hidden="true"
             />
             <x-heroicon-s-bell
                 x-show="open"
                 x-cloak
                 data-testid="notification-bell-icon-filled"
-                class="h-5 w-5"
+                class="h-4 w-4"
                 aria-hidden="true"
             />
         @endif

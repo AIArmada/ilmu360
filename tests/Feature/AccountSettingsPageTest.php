@@ -6,6 +6,7 @@ use App\Models\Institution;
 use App\Models\User;
 use App\Notifications\Auth\VerifyEmailNotification;
 use App\Services\Notifications\NotificationSettingsManager;
+use App\Support\Notifications\NotificationCatalog;
 use Filament\Forms\Components\Select as FormSelect;
 use Filament\Forms\Components\TextInput;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -111,7 +112,7 @@ it('formats timezone options with offsets and timezone identifiers', function ()
         ->and($options['UTC'])->toBe('UTC (GMT)');
 });
 
-it('renders the notifications tab in Malay without leaking raw translation keys', function () {
+it('renders the simplified notifications tab in Malay without leaking raw translation keys', function () {
     $user = User::factory()->create();
 
     $response = $this->withSession(['locale' => 'ms'])
@@ -121,12 +122,30 @@ it('renders the notifications tab in Malay without leaking raw translation keys'
     $response->assertOk()
         ->assertSee('Tetapan Akaun')
         ->assertSee('Notifikasi')
-        ->assertSee('Notifikasi Push')
-        ->assertSee('Ikut tetapan kumpulan')
-        ->assertDontSee('notifications.settings.triggers.use_family_defaults')
-        ->assertDontSee('notifications.settings.triggers.inherits_family_help')
-        ->assertDontSee('notifications.settings.triggers.urgent_override')
-        ->assertDontSee('Push Notification');
+        ->assertSee('Makluman wajib')
+        ->assertSee('Saluran')
+        ->assertSee('Majlis baharu untuk anda')
+        ->assertSee('Majlis yang saya sertai')
+        ->assertSee('Akan datang')
+        ->assertDontSee('Pasang aplikasi')
+        ->assertDontSee('Ringkasan komuniti')
+        ->assertDontSee('Daftar masuk dibuka')
+        ->assertSee('data-flux-switch', false)
+        ->assertSee('data-flux-select-native', false)
+        ->assertSee('data-flux-button', false)
+        ->assertDontSee('Semua perubahan disimpan.')
+        ->assertDontSee('Perubahan belum disimpan.')
+        ->assertDontSee('WhatsApp')
+        ->assertDontSee('Ikut tetapan kumpulan')
+        ->assertDontSee('notifications.triggers.')
+        ->assertDontSee('notifications.pages.');
+});
+
+it('has a translation for every notification trigger', function () {
+    foreach (NotificationCatalog::triggers() as $trigger) {
+        expect($trigger['label'])->not->toContain('notifications.')
+            ->and($trigger['description'])->not->toContain('notifications.');
+    }
 });
 
 it('updates account settings and resets verification when contact details change', function () {
@@ -148,14 +167,6 @@ it('updates account settings and resets verification when contact details change
         'address' => 'old@example.test',
         'external_id' => null,
     ])->save();
-    (new CommunicationDestination)->forceFill([
-        'recipient_type' => $user->getMorphClass(),
-        'recipient_id' => $user->getKey(),
-        'channel' => 'whatsapp',
-        'address' => '+60111111111',
-        'external_id' => null,
-    ])->save();
-
     session(['user_timezone' => 'Asia/Kuala_Lumpur']);
 
     Livewire::actingAs($user)
@@ -196,13 +207,6 @@ it('updates account settings and resets verification when contact details change
 
     expect($newDestination)->not->toBeNull()
         ->and($newDestination->status)->toBe('inactive');
-
-    expect(CommunicationDestination::query()
-        ->where('recipient_type', $user->getMorphClass())
-        ->where('recipient_id', $user->id)
-        ->where('channel', 'whatsapp')
-        ->pluck('address')
-        ->all())->not->toContain('+60111111111');
 
     $notificationState = app(NotificationSettingsManager::class)->stateFor($user->fresh());
 
@@ -248,36 +252,61 @@ it('rejects password changes when the confirmation does not match', function () 
         ]);
 });
 
-it('saves trigger overrides and fallback channels from account settings', function () {
+it('saves simplified notification preferences from account settings', function () {
     $user = User::factory()->create([
         'email' => 'member@example.test',
         'email_verified_at' => now(),
-        'phone' => '+60128889999',
-        'phone_verified_at' => now(),
     ]);
 
     Livewire::actingAs($user)
         ->test(AccountSettings::class)
         ->set('tab', 'notifications')
-        ->set('preferredChannelSlots', ['push', 'email', 'in_app', ''])
-        ->set('fallbackChannelSlots', ['whatsapp', 'email', '', ''])
-        ->set('notificationTriggersState.event_cancelled.inherits_family', false)
-        ->set('notificationTriggersState.event_cancelled.channels', ['whatsapp'])
-        ->set('notificationTriggersState.event_cancelled.urgent_override', true)
+        ->set('notificationSettingsState.channels', ['in_app', 'email', 'push'])
+        ->set('notificationSettingsState.quiet_hours_start', '22:00')
+        ->set('notificationSettingsState.quiet_hours_end', '07:00')
+        ->set('quietHoursEnabled', true)
+        ->set('notificationGroupsState.discovery.enabled', true)
+        ->set('notificationGroupsState.discovery.cadence', 'weekly')
+        ->set('notificationTriggersState.reminder_2_hours.enabled', false)
         ->call('saveNotificationPreferences')
         ->assertHasNoErrors();
 
     $state = app(NotificationSettingsManager::class)->stateFor($user->fresh());
 
-    expect($state['settings']['preferred_channels'])
-        ->toContain('push')
-        ->toContain('email')
+    expect($state['settings']['channels'])
         ->toContain('in_app')
-        ->and($state['settings']['fallback_channels'])
         ->toContain('email')
-        ->and($state['triggers']['event_cancelled']['inherits_family'])->toBeFalse()
-        ->and($state['triggers']['event_cancelled']['channels'])->toBe(['whatsapp'])
-        ->and($state['triggers']['event_cancelled']['urgent_override'])->toBeTrue();
+        ->toContain('push')
+        ->and($state['settings']['quiet_hours_start'])->toBe('22:00:00')
+        ->and($state['settings']['quiet_hours_end'])->toBe('07:00:00')
+        ->and($state['families']['followed_content']['cadence'])->toBe('weekly')
+        ->and($state['families']['saved_search_matches']['cadence'])->toBe('weekly')
+        ->and($state['triggers']['reminder_2_hours']['enabled'])->toBeFalse();
+});
+
+it('leaves hidden notification preferences unchanged when saving', function () {
+    $user = User::factory()->create();
+
+    $manager = app(NotificationSettingsManager::class);
+    $manager->save($user, [
+        'families' => [
+            'sharing' => ['enabled' => true],
+        ],
+        'triggers' => [
+            'checkin_open' => ['enabled' => false],
+        ],
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(AccountSettings::class)
+        ->set('tab', 'notifications')
+        ->call('saveNotificationPreferences')
+        ->assertHasNoErrors();
+
+    $state = $manager->stateFor($user->fresh());
+
+    expect($state['families']['sharing']['enabled'])->toBeTrue()
+        ->and($state['triggers']['checkin_open']['enabled'])->toBeFalse();
 });
 
 it('does not persist unsaved notification changes when saving profile details', function () {
@@ -289,14 +318,12 @@ it('does not persist unsaved notification changes when saving profile details', 
 
     app(NotificationSettingsManager::class)->save($user, [
         'settings' => [
-            'preferred_channels' => ['email'],
-            'fallback_channels' => ['email'],
+            'channels' => ['in_app', 'email'],
         ],
         'families' => [
             'event_updates' => [
                 'enabled' => true,
                 'cadence' => 'instant',
-                'channels' => ['email'],
             ],
         ],
     ]);
@@ -304,8 +331,8 @@ it('does not persist unsaved notification changes when saving profile details', 
     Livewire::actingAs($user)
         ->test(AccountSettings::class)
         ->set('tab', 'notifications')
-        ->set('preferredChannelSlots', ['push', '', '', ''])
-        ->set('notificationFamiliesState.event_updates.channels', ['push'])
+        ->set('notificationSettingsState.channels', ['in_app', 'push'])
+        ->set('notificationGroupsState.discovery.cadence', 'weekly')
         ->set('formData.name', 'Profile Saved Name')
         ->call('saveAccountSettings')
         ->assertHasNoErrors();
@@ -314,24 +341,38 @@ it('does not persist unsaved notification changes when saving profile details', 
     $state = app(NotificationSettingsManager::class)->stateFor($user);
 
     expect($user->name)->toBe('Profile Saved Name')
-        ->and($state['settings']['preferred_channels'])->toBe(['email'])
-        ->and($state['families']['event_updates']['channels'])->toBe(['email']);
+        ->and($state['settings']['channels'])->toBe(['in_app', 'email'])
+        ->and($state['families']['followed_content']['cadence'])->not->toBe('weekly');
 });
 
-it('keeps inherited trigger controls aligned with live family changes', function () {
-    $user = User::factory()->create([
-        'email' => 'sync@example.test',
-        'email_verified_at' => now(),
-    ]);
+it('hides submission settings from attendees without organizer access', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('account-settings', ['tab' => 'notifications']))
+        ->assertOk()
+        ->assertDontSee('Sumbangan majlis');
+});
+
+it('removes a push destination from account settings', function () {
+    $user = User::factory()->create();
+
+    $destination = new CommunicationDestination;
+    $destination->forceFill([
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->getKey(),
+        'channel' => 'push',
+        'address' => 'ios-remove-me',
+        'external_id' => 'push-token',
+        'status' => 'active',
+    ])->save();
 
     Livewire::actingAs($user)
         ->test(AccountSettings::class)
-        ->set('tab', 'notifications')
-        ->assertSet('notificationTriggersState.followed_person_event.inherits_family', true)
-        ->set('notificationFamiliesState.followed_content.cadence', 'weekly')
-        ->set('notificationFamiliesState.followed_content.channels', ['push'])
-        ->assertSet('notificationTriggersState.followed_person_event.cadence', 'weekly')
-        ->assertSet('notificationTriggersState.followed_person_event.channels', ['push']);
+        ->call('removePushDestination', $destination->id)
+        ->assertHasNoErrors();
+
+    expect(CommunicationDestination::query()->whereKey($destination->id)->exists())->toBeFalse();
 });
 
 it('requires at least one contact method on account settings', function () {

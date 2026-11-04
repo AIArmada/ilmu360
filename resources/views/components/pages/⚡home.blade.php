@@ -3,6 +3,7 @@
 use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Models\Bookmark;
 use App\Data\PublicScheduleLeaf;
+use App\Livewire\Concerns\TogglesEventGoing;
 use App\Models\Event;
 use App\Models\Person;
 use App\Models\User;
@@ -22,17 +23,13 @@ new
     #[Title('ilmu360° - Cari Kuliah & Majlis Ilmu di Malaysia')]
     class extends Component
     {
+        use TogglesEventGoing;
+
         /** @return \Illuminate\Support\Collection<int, PublicScheduleLeaf> */
         #[Computed]
         public function featuredEvents(): \Illuminate\Support\Collection
         {
-            return collect(app(PublicScheduleDiscoveryService::class)->search(
-                filters: [
-                    'time_scope' => 'upcoming',
-                    'starts_before' => UserDateTimeFormatter::userNow()->addDays(14)->toDateString(),
-                ],
-                perPage: 3,
-            )->items());
+            return app(PublicScheduleDiscoveryService::class)->homepageSelection(auth()->user());
         }
 
         public function toggleSave(string $eventId): void
@@ -66,6 +63,11 @@ new
             }
 
             app(EngagementManager::class)->bookmark($user, $event);
+        }
+
+        protected function eventGoingReturnUrl(): string
+        {
+            return route('home');
         }
 
         /**
@@ -180,20 +182,15 @@ new
         #[Computed]
         public function featuredPersons(): Collection
         {
-            $featuredPersonSlugs = [
-                'wadi-annuar',
-                'azhar-idrus',
-                'mohd-asri-zainul-abidin',
-                'don-daniyal',
-                'rozaimi-ramle',
-            ];
-
-            return Person::active()
-                ->whereIn('persons.slug', $featuredPersonSlugs)
+            return Person::query()
+                ->active()
+                ->speakers()
+                ->featured()
+                ->ordered()
+                ->orderBy('persons.id')
                 ->with('media')
-                ->get()
-                ->sortBy(fn (Person $person): int => (int) array_search($person->slug, $featuredPersonSlugs, true))
-                ->values();
+                ->take(5)
+                ->get();
         }
 
         #[Computed]
@@ -289,7 +286,7 @@ new
     <section class="relative isolate min-h-[43rem] overflow-hidden bg-[#09251c] sm:min-h-[48rem] lg:min-h-[43rem]">
         <picture class="absolute inset-0">
             <source media="(max-width: 639px)" srcset="{{ asset('images/home/hero-mosque-mobile-v1.webp') }}" type="image/webp">
-            <img src="{{ asset('images/home/hero-mosque-v4.png') }}" alt="" class="absolute inset-0 h-full w-full object-cover object-center sm:object-[74%_center]" fetchpriority="high">
+            <img srcset="{{ asset('images/home/hero-mosque-v4.webp') }}" src="{{ asset('images/home/hero-mosque-v4.png') }}" alt="" class="absolute inset-0 h-full w-full object-cover object-center sm:object-[74%_center]" fetchpriority="high">
         </picture>
         <div class="absolute inset-0 bg-[linear-gradient(90deg,rgba(4,20,15,0.96)_0%,rgba(4,20,15,0.86)_26%,rgba(4,20,15,0.62)_44%,rgba(4,20,15,0.3)_58%,rgba(4,20,15,0.06)_74%,rgba(4,20,15,0.18)_100%)]"></div>
         <div class="absolute inset-0 bg-[linear-gradient(0deg,rgba(3,24,17,0.45),transparent_45%,rgba(3,24,17,0.08))]"></div>
@@ -375,7 +372,9 @@ new
     >
         <div class="overflow-hidden">
             <section class="relative z-20 mx-auto max-w-[120rem] px-5 pt-8 sm:px-8 sm:pt-10 lg:px-14 xl:px-16">
-                <livewire:components.event-filters :quick-filter-ranges="$eventDateLinks" :show-nearby-button="true" :show-saved-filter="false" />
+                <livewire:components.event-filters :quick-filter-ranges="$eventDateLinks" :show-nearby-button="true" :show-saved-filter="true"
+                    :going-filter-url="route('events.index', ['going_only' => 1, 'filters_panel' => 'closed'])"
+                    :saved-filter-url="route('events.index', ['saved_only' => 1, 'filters_panel' => 'closed'])" />
             </section>
         </div>
     </div>
@@ -386,7 +385,7 @@ new
             <div>
                 <div class="flex items-end justify-between gap-4"><div><h2 class="font-heading text-[1.4rem] font-bold tracking-tight text-[#112c26] sm:text-4xl">{{ __('Pilihan Majlis Minggu Ini') }}</h2></div><a href="{{ route('events.index') }}" wire:navigate class="hidden items-center gap-2 text-xs font-bold text-[#087f59] sm:inline-flex">{{ __('Lihat semua majlis') }} <span aria-hidden="true">→</span></a></div>
                 @if($this->featuredEvents->isNotEmpty())
-                    <div class="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                    <div class="mt-7 flex flex-wrap justify-center gap-4 *:w-full sm:*:w-[calc(50%_-_0.5rem)] xl:*:w-[calc(33.333%_-_0.6667rem)]">
                         @foreach($this->featuredEvents as $scheduleLeaf)
                             @php
                                 $event = $scheduleLeaf->event;
@@ -409,8 +408,9 @@ new
                                     $timing .= ' — '.UserDateTimeFormatter::format($endsAt, 'g:i A');
                                 }
                                 $isSaved = in_array((string) $event->getKey(), $this->savedEventIds, true);
+                                $isGoing = in_array((string) $event->getKey(), $this->goingEventIds, true);
                             @endphp
-                            <x-events.card
+                            <x-events.card :isolated-engagement="true"
                                 :event="$event"
                                 :url="$scheduleLeaf->url()"
                                 :title="$scheduleLeaf->title()"
@@ -421,6 +421,7 @@ new
                                 :occurrence="$occurrence"
                                 :sessions="$scheduleLeaf->sessions"
                                 :is-saved="$isSaved"
+                                :is-going="$isGoing"
                                 signal-component="home_featured_events"
                                 :signal-entity-type="$scheduleLeaf->entityType()"
                                 :signal-entity-id="$scheduleLeaf->id()"
@@ -557,10 +558,12 @@ new
                     {{ __('Sertai komuniti ilmu360° dan jangan terlepas majlis ilmu berhampiran anda.') }}
                 </p>
                 <div class="mt-5 flex flex-wrap gap-3">
-                    <a href="{{ route('register') }}" class="inline-flex min-h-11 items-center gap-3 rounded-full bg-[#f1cb64] px-5 py-3 text-xs font-bold text-[#15372d] shadow-lg shadow-black/20 transition hover:bg-[#ffe39b] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#f4dfa0]">
-                        {{ __('Daftar Sekarang') }}
-                        <span aria-hidden="true">→</span>
-                    </a>
+                    @guest
+                        <a href="{{ route('register') }}" class="inline-flex min-h-11 items-center gap-3 rounded-full bg-[#f1cb64] px-5 py-3 text-xs font-bold text-[#15372d] shadow-lg shadow-black/20 transition hover:bg-[#ffe39b] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#f4dfa0]">
+                            {{ __('Daftar Sekarang') }}
+                            <span aria-hidden="true">→</span>
+                        </a>
+                    @endguest
                     <a href="{{ route('about') }}" wire:navigate class="inline-flex min-h-11 items-center gap-3 rounded-full border border-white/80 bg-black/10 px-5 py-3 text-xs font-bold text-white shadow-lg shadow-black/10 backdrop-blur-sm transition hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#f4dfa0]">
                         {{ __('Ketahui Lebih Lanjut') }}
                         <span aria-hidden="true">→</span>

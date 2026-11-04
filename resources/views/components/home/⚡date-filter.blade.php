@@ -2,6 +2,7 @@
 
 use App\Models\Event;
 use App\Support\Timezone\UserDateTimeFormatter;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -20,8 +21,9 @@ new class extends Component {
             ->active()
             ->join($occurrencesTable, "{$occurrencesTable}.event_id", '=', 'events.id')
             ->whereBetween("{$occurrencesTable}.starts_at", [$startDate->copy()->utc(), $endDate->copy()->utc()])
-            ->get(['events.id', "{$occurrencesTable}.starts_at"])
-            ->countBy(fn (Event $event): string => UserDateTimeFormatter::format($event->starts_at, 'Y-m-d'));
+            ->pluck("{$occurrencesTable}.starts_at")
+            ->filter(fn (mixed $startsAt): bool => $startsAt !== null)
+            ->countBy(fn (mixed $startsAt): string => UserDateTimeFormatter::format(Carbon::parse((string) $startsAt), 'Y-m-d'));
 
         $dates = collect();
 

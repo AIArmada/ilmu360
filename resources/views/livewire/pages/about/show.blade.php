@@ -8,7 +8,7 @@
 @section('meta_og_type', 'website')
 
 @push('head')
-    <link rel="preload" as="image" href="{{ asset('images/about/surau-window.png') }}" fetchpriority="high">
+    <link rel="preload" as="image" href="{{ asset('images/about/surau-window.webp') }}" fetchpriority="high">
     <link rel="canonical" href="{{ route('about') }}">
     <script type="application/ld+json">
         {!! json_encode([
@@ -81,7 +81,7 @@
 
             <figure class="relative">
                 <div class="overflow-hidden rounded-xl border border-[#e5dccb] bg-[#fbf6ea] p-2 shadow-[0_1px_2px_rgba(45,44,43,0.05),0_18px_40px_-12px_rgba(45,44,43,0.22)]">
-                    <img src="{{ asset('images/about/surau-window.png') }}"
+                    <img srcset="{{ asset('images/about/surau-window.webp') }}" src="{{ asset('images/about/surau-window.png') }}"
                         alt="{{ data_get($hero, 'image_alt') }}" width="1086" height="1448" fetchpriority="high"
                         class="h-[420px] w-full rounded-lg object-cover object-[50%_45%] sm:h-[520px] lg:h-auto lg:aspect-[3/4]">
                 </div>
@@ -135,7 +135,7 @@
     {{-- What it costs ------------------------------------------------------- --}}
     <section aria-labelledby="about-cost" class="mt-20 lg:mt-28">
         <div class="relative h-[38vh] min-h-[260px] w-full overflow-hidden lg:h-[46vh]">
-            <img src="{{ asset('images/about/surau-hall.png') }}" alt="{{ data_get($cost, 'image_alt') }}"
+            <img srcset="{{ asset('images/about/surau-hall.webp') }}" src="{{ asset('images/about/surau-hall.png') }}" alt="{{ data_get($cost, 'image_alt') }}"
                 width="1536" height="1024" loading="lazy"
                 class="h-full w-full object-cover object-center">
             <div class="absolute inset-0 bg-[linear-gradient(to_top,#f2e9d5_0%,rgba(242,233,213,0.72)_14%,rgba(242,233,213,0)_52%)]"

@@ -26,14 +26,18 @@ it('returns the notification settings catalog and bootstrapped user state', func
     $catalogResponse->assertOk()
         ->assertJsonPath('data.families.0.key', 'followed_content')
         ->assertJsonPath('data.triggers.0.key', 'followed_person_event')
-        ->assertJsonPath('data.options.cadences.instant', __('notifications.options.cadence.instant'));
+        ->assertJsonPath('data.options.cadences.instant', __('notifications.options.cadence.instant'))
+        ->assertJsonCount(2, 'data.options.channels')
+        ->assertJsonPath('data.options.channels.0.value', 'email')
+        ->assertJsonPath('data.options.channels.1.value', 'push')
+        ->assertJsonMissingPath('data.options.channels.2');
 
     $stateResponse->assertOk()
-        ->assertJsonPath('data.settings.locale', config('app.locale'))
+        ->assertJsonPath('data.settings.channels.0', 'in_app')
         ->assertJsonPath('data.destinations.email.address', 'notify@example.test')
-        ->assertJsonPath('data.destinations.whatsapp.address', '+60128889999')
         ->assertJsonPath('data.families.event_updates.scope_key', 'event_updates')
-        ->assertJsonPath('data.triggers.event_cancelled.scope_key', 'event_cancelled');
+        ->assertJsonPath('data.triggers.event_cancelled.scope_key', 'event_cancelled')
+        ->assertJsonMissingPath('data.destinations.whatsapp');
 });
 
 it('updates notification settings through the authenticated api', function () {
@@ -46,40 +50,33 @@ it('updates notification settings through the authenticated api', function () {
 
     $response = $this->putJson('/api/v1/notification-settings', [
         'settings' => [
-            'locale' => 'en',
             'timezone' => 'Asia/Kuala_Lumpur',
             'quiet_hours_start' => '22:30',
             'quiet_hours_end' => '06:30',
-            'digest_delivery_time' => '09:15',
-            'digest_weekly_day' => 4,
-            'preferred_channels' => ['push', 'in_app', 'email'],
-            'fallback_strategy' => 'in_app_only',
-            'urgent_override' => true,
+            'channels' => ['in_app', 'email', 'push'],
         ],
         'families' => [
             'event_updates' => [
                 'enabled' => true,
                 'cadence' => 'instant',
-                'channels' => ['in_app', 'email', 'push'],
             ],
         ],
         'triggers' => [
             'event_cancelled' => [
-                'inherits_family' => false,
                 'enabled' => true,
-                'cadence' => 'instant',
-                'channels' => ['in_app', 'email', 'whatsapp'],
             ],
         ],
     ]);
 
     $response->assertOk()
-        ->assertJsonPath('data.settings.locale', 'en')
-        ->assertJsonPath('data.settings.digest_weekly_day', 4)
-        ->assertJsonPath('data.settings.preferred_channels.0', 'push')
-        ->assertJsonPath('data.settings.fallback_strategy', 'in_app_only')
-        ->assertJsonPath('data.families.event_updates.channels.2', 'push')
-        ->assertJsonPath('data.triggers.event_cancelled.channels.2', 'whatsapp');
+        ->assertJsonPath('data.settings.channels.0', 'in_app')
+        ->assertJsonPath('data.settings.channels.1', 'email')
+        ->assertJsonPath('data.settings.channels.2', 'push')
+        ->assertJsonPath('data.settings.quiet_hours_start', '22:30:00')
+        ->assertJsonPath('data.families.event_updates.cadence', 'instant')
+        ->assertJsonPath('data.triggers.event_cancelled.enabled', true)
+        ->assertJsonMissingPath('data.families.event_updates.channels')
+        ->assertJsonMissingPath('data.triggers.event_cancelled.channels');
 });
 
 it('registers, updates, and removes push destinations through the api', function () {

@@ -1849,6 +1849,7 @@
   "Followed references only": "Rujukan diikuti sahaja",
   "Followed institutions only": "Institusi diikuti sahaja",
   "Saved majlis only": "Majlis disimpan sahaja",
+  "Attending majlis only": "Majlis yang dihadiri sahaja",
   "No followed references yet": "Belum ada rujukan diikuti",
   "Follow a reference to see it here.": "Ikuti rujukan untuk melihatnya di sini.",
   "View all references": "Lihat semua rujukan",
@@ -1857,5 +1858,7 @@
   "You are not following any speakers yet. Follow a speaker to see them here.": "Anda belum mengikuti mana-mana penceramah. Ikuti penceramah untuk melihatnya di sini.",
   "No saved majlis found": "Tiada majlis disimpan ditemui",
   "Save a majlis to see it here.": "Simpan majlis untuk melihatnya di sini.",
+  "No attending majlis found": "Tiada majlis yang dihadiri ditemui",
+  "Mark a majlis as Hadir to see it here.": "Tandakan majlis sebagai Hadir untuk melihatnya di sini.",
   "Filter": "Penapis"
 }

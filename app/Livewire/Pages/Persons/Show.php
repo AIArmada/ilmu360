@@ -17,6 +17,7 @@ use App\Enums\EventKeyPersonRole;
 use App\Enums\EventVisibility;
 use App\Enums\SpeakerStatus;
 use App\Livewire\Concerns\JoinsHierarchyAreaName;
+use App\Livewire\Concerns\TogglesEventGoing;
 use App\Livewire\Concerns\TogglesEventSave;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
@@ -48,6 +49,7 @@ use Livewire\Component;
 class Show extends Component
 {
     use JoinsHierarchyAreaName;
+    use TogglesEventGoing;
     use TogglesEventSave;
 
     public Person $person;
@@ -162,6 +164,11 @@ class Show extends Component
     protected function eventSaveReturnUrl(): string
     {
         return route('persons.show', $this->person, absolute: false);
+    }
+
+    protected function eventGoingReturnUrl(): string
+    {
+        return $this->eventSaveReturnUrl();
     }
 
     public function loadMoreUpcoming(): void
@@ -355,6 +362,10 @@ class Show extends Component
                 'media',
                 'institution.media',
                 'persons.media',
+                'persons.titleAssignments' => function (MorphMany $relation): void {
+                    $relation->where('status', AssignmentStatus::Active);
+                    $relation->with('title.category');
+                },
                 'primaryOccurrence',
                 'displayOccurrence.media',
                 'timeExpressions',

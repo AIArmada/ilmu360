@@ -13,6 +13,7 @@ use App\Enums\DawahShareOutcomeType;
 use App\Enums\InstitutionStatus;
 use App\Livewire\Concerns\JoinsHierarchyAreaName;
 use App\Livewire\Concerns\LoadsEventPageData;
+use App\Livewire\Concerns\TogglesEventGoing;
 use App\Livewire\Concerns\TogglesEventSave;
 use App\Models\Builders\EventBuilder;
 use App\Models\Event;
@@ -39,6 +40,7 @@ class Show extends Component
 {
     use JoinsHierarchyAreaName;
     use LoadsEventPageData;
+    use TogglesEventGoing;
     use TogglesEventSave;
 
     public Institution $institution;
@@ -72,6 +74,11 @@ class Show extends Component
     protected function eventSaveReturnUrl(): string
     {
         return route('institutions.show', $this->institution, absolute: false);
+    }
+
+    protected function eventGoingReturnUrl(): string
+    {
+        return $this->eventSaveReturnUrl();
     }
 
     public function toggleFollow(): void

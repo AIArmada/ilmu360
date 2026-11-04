@@ -5,7 +5,6 @@ namespace App\Enums;
 enum NotificationChannel: string
 {
     case Email = 'email';
-    case Whatsapp = 'whatsapp';
     case Push = 'push';
     case InApp = 'in_app';
 
@@ -13,22 +12,34 @@ enum NotificationChannel: string
     {
         return match ($this) {
             self::Email => __('Email'),
-            self::Whatsapp => __('WhatsApp'),
             self::Push => __('Push Notification'),
             self::InApp => __('In-app'),
         };
     }
 
     /**
+     * Channels a user may opt into. In-app delivery is implicit for every
+     * enabled group, so it is not a user-selectable switch.
+     *
      * @return list<self>
      */
     public static function userSelectable(): array
     {
         return [
             self::Email,
-            self::InApp,
             self::Push,
-            self::Whatsapp,
+        ];
+    }
+
+    /**
+     * @return list<self>
+     */
+    public static function supported(): array
+    {
+        return [
+            self::InApp,
+            self::Email,
+            self::Push,
         ];
     }
 }

@@ -63,6 +63,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->domain($adminDomain)
             ->path(filled($adminDomain) ? '' : 'admin')
+            ->spa(hasPrefetching: true)
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->brandLogo(asset('images/logo-ilmu360.png'))
             ->brandLogoHeight('3rem')

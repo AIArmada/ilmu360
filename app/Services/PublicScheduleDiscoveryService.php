@@ -14,12 +14,15 @@ use App\Data\PublicScheduleLeaf;
 use App\Enums\EventPrayerTime;
 use App\Models\Event;
 use App\Models\Person;
+use App\Models\Reference;
+use App\Models\User;
 use App\Models\Venue;
 use App\Support\Events\PublicSchedulePolicy;
 use App\Support\Events\PublicScheduleSlug;
 use App\Support\Timezone\UserDateTimeFormatter;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
@@ -131,6 +134,53 @@ final class PublicScheduleDiscoveryService
         }
 
         return $this->paginate($leaves, $perPage);
+    }
+
+    /** @return Collection<int, PublicScheduleLeaf> */
+    public function homepageSelection(?User $user): Collection
+    {
+        $personIds = $user?->followingPersons()->pluck('persons.id')->all() ?? [];
+        $institutionIds = $user?->followingInstitutions()->pluck('institutions.id')->all() ?? [];
+        $referenceIds = $user?->followingReferences()->pluck('references.id')->all() ?? [];
+
+        $events = $this->eventDiscovery->publicEventQuery(null, ['time_scope' => 'all'])
+            ->where('events.status', 'approved')
+            ->where(function (Builder $query) use ($personIds, $institutionIds, $referenceIds): void {
+                $query->featured();
+
+                if ($personIds !== []) {
+                    $query->orWhereHas('persons', fn (Builder $query): Builder => $query->whereIn('persons.id', $personIds));
+                }
+                if ($institutionIds !== []) {
+                    $query->orWhereIn('events.institution_id', $institutionIds);
+                }
+                if ($referenceIds !== []) {
+                    $query->orWhereHas('references', function (Builder $query) use ($referenceIds): void {
+                        Reference::applyPublicVisibility($query)->whereIn('references.id', $referenceIds);
+                    });
+                }
+            })
+            ->with($this->searchRelations())
+            ->get();
+
+        $featuredIds = Event::query()->featured()->whereKey($events->modelKeys())->pluck('events.id')->flip();
+        $this->hydrateApplicationVenues($events);
+        $filters = [
+            'time_scope' => 'upcoming',
+            'starts_before' => UserDateTimeFormatter::userNow()->addDays(14)->toDateString(),
+        ];
+        $leaves = $this->flatten($events)
+            ->filter(fn (PublicScheduleLeaf $leaf): bool => $this->matchesFilters($leaf, $filters))
+            ->unique(fn (PublicScheduleLeaf $leaf): string => $leaf->id());
+
+        $featured = $leaves->filter(fn (PublicScheduleLeaf $leaf): bool => $featuredIds->has($leaf->event->id))
+            ->sort(fn (PublicScheduleLeaf $left, PublicScheduleLeaf $right): int => $this->compareByTime($left, $right))
+            ->take(9);
+
+        return $featured->concat(
+            $leaves->reject(fn (PublicScheduleLeaf $leaf): bool => $featuredIds->has($leaf->event->id))
+                ->shuffle()->take(9 - $featured->count()),
+        )->values();
     }
 
     /**

@@ -1,14 +1,15 @@
 <?php
 
-use App\Enums\DawahShareOutcomeType;
+use AIArmada\CommerceSupport\Support\OwnerContext;
+
+use App\Actions\ToggleDirectoryFollowAction;
+
 use App\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\Reference;
 use App\Models\User;
-use App\Services\ShareTrackingService;
 use App\Support\Auth\IntendedRedirect;
 use App\Support\Search\ReferenceSearchService;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use App\Support\Timezone\UserDateTimeFormatter;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
@@ -16,8 +17,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -112,63 +113,34 @@ new
             $user = auth()->user();
 
             if (! $user instanceof User) {
-                $this->redirect(
-                    IntendedRedirect::loginUrl(route('references.index', absolute: false)),
-                    navigate: true,
-                );
+                $this->redirect(IntendedRedirect::loginUrl(route('references.index', absolute: false)), navigate: true);
 
                 return;
             }
 
-            $reference = $this->followableReference($referenceId);
+            $state = app(ToggleDirectoryFollowAction::class)->handle('reference', $referenceId, $user);
 
-            if ($reference === null) {
+            if ($state === null) {
                 return;
             }
 
-            $referenceId = (string) $reference->getKey();
-
-            if ($user->isFollowing($reference)) {
-                $user->unfollow($reference);
-                $this->followingReferenceIds = array_values(array_filter(
-                    $this->followingReferenceIds,
-                    static fn (mixed $id): bool => (string) $id !== $referenceId,
-                ));
-
-                return;
-            }
-
-            $follow = $user->follow($reference);
-
-            if (! in_array($referenceId, $this->followingReferenceIds, true)) {
-                $this->followingReferenceIds[] = $referenceId;
-            }
-
-            if ($follow->wasRecentlyCreated) {
-                app(ShareTrackingService::class)->recordOutcome(
-                    type: DawahShareOutcomeType::ReferenceFollow,
-                    businessKey: ShareOutcomeBusinessKey::follow(DawahShareOutcomeType::ReferenceFollow, (string) $follow->getKey()),
-                    subject: $reference,
-                    actor: $user,
-                    request: request(),
-                    metadata: [
-                        'reference_id' => $reference->id,
-                    ],
-                    occurredAt: $follow->created_at,
-                );
-            }
+            $this->hydrate();
         }
 
-        private function followableReference(string $referenceId): ?Reference
+        public function hydrate(): void
         {
-            if (! Str::isUuid($referenceId)) {
-                return null;
-            }
+            $user = auth()->user();
+            $this->followingReferenceIds = $user instanceof User
+                ? OwnerContext::withOwner(null, fn (): array => $user->followingReferences()->pluck((new Reference)->qualifyColumn('id'))->map(static fn (mixed $id): string => (string) $id)->values()->all())
+                : [];
+        }
 
-            return Reference::query()
-                ->active()
-                ->whereKey($referenceId)
-                ->first();
+        #[On('directory-follow-updated.reference')]
+        public function refreshFollowedListing(): void
+        {
+            if (! $this->followed_only) {
+                $this->skipRender();
+            }
         }
 
         private function baseReferencesQuery(bool $includeParts = false): Builder
@@ -438,7 +410,7 @@ new
             <picture class="absolute inset-0">
                 <source media="(max-width: 639px)" srcset="{{ asset('images/references/rujukan-hero-background-mobile-v1.webp') }}" type="image/webp">
                 <img
-                    src="{{ asset('images/references/rujukan-hero-background-v1.png') }}"
+                    srcset="{{ asset('images/references/rujukan-hero-background-v1.webp') }}" src="{{ asset('images/references/rujukan-hero-background-v1.png') }}"
                     alt=""
                     aria-hidden="true"
                     class="absolute inset-0 h-full w-full object-cover object-center sm:object-[42%_center] lg:object-center"
@@ -648,18 +620,14 @@ new
                                     <flux:icon.calendar class="size-3.5 text-emerald-500" />
                                     {{ $reference->upcoming_events_count }} {{ __('Upcoming Events') }}
                                 </span>
-                                <button
-                                    type="button"
-                                    wire:click.stop.prevent="toggleFollow('{{ $reference->id }}')"
-                                    wire:loading.attr="disabled"
-                                    data-follow-icon="reference"
-                                    data-follow-state="{{ $isFollowing ? 'following' : 'not-following' }}"
-                                    aria-label="{{ $isFollowing ? __('Nyahikut') : __('Ikuti') }}"
-                                    aria-pressed="{{ $isFollowing ? 'true' : 'false' }}"
-                                    class="relative z-10 grid h-9 w-9 shrink-0 place-items-center rounded-xl border transition-colors duration-200 disabled:cursor-wait disabled:opacity-60 {{ $isFollowing ? 'border-emerald-200 bg-emerald-50 text-emerald-700 group-hover:border-emerald-300 group-hover:bg-emerald-100' : 'border-slate-200 bg-white text-slate-400 group-hover:border-emerald-200 group-hover:text-[#087f59] hover:border-emerald-200 hover:bg-emerald-100 hover:text-[#087f59] hover:shadow-sm' }}"
-                                >
-                                    <flux:icon.bookmark class="size-4" :variant="$isFollowing ? 'solid' : 'outline'" />
-                                </button>
+                                <livewire:components.directory-card-follow
+                                    subject-type="reference"
+                                    :subject-id="(string) $reference->getKey()"
+                                    :is-following="$isFollowing"
+                                    :refresh-listing="(bool) $this->followed_only"
+                                    :return-url="route('references.index', absolute: false)"
+                                    :key="'directory-follow-reference-'.$reference->getKey().'-'.(int) $isFollowing.'-'.(int) $this->followed_only.'-'.md5(route('references.index', absolute: false))"
+                                />
                             </div>
                         </article>
                     @endforeach

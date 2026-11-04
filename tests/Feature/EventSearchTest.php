@@ -349,7 +349,67 @@ describe('Event Search Filters', function () {
             ->get(eventsIndexUrl(['going_only' => 1]))
             ->assertOk()
             ->assertSee('Going Majlis Page Filter')
-            ->assertDontSee('Other Going Majlis Page Filter');
+            ->assertDontSee('Other Going Majlis Page Filter')
+            ->assertSee('data-going-filter', false);
+    });
+
+    it('toggles the going filter from the events index', function () {
+        config(['scout.driver' => 'database']);
+
+        $user = User::factory()->create();
+
+        $goingEvent = createVisibleEventForSearch([
+            'title' => 'Going Majlis Filter',
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now()->subHour(),
+            'starts_at' => now()->addDays(2),
+        ]);
+
+        $otherEvent = createVisibleEventForSearch([
+            'title' => 'Other Going Majlis Filter',
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now()->subHour(),
+            'starts_at' => now()->addDays(3),
+        ]);
+
+        $user->responses()->create([
+            'respondable_type' => $goingEvent->getMorphClass(),
+            'respondable_id' => $goingEvent->id,
+            'response_type' => 'going',
+            'status' => 'active',
+            'visibility' => 'public',
+            'responded_at' => now(),
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(Index::class)
+            ->call('toggleGoingOnly')
+            ->assertSet('going_only', true)
+            ->assertSee('Going Majlis Filter')
+            ->assertDontSee('Other Going Majlis Filter')
+            ->assertSeeInOrder(['data-going-filter', 'Akan Hadir', 'data-saved-filter'], false);
+    });
+
+    it('shows the going majlis empty state when the user has no going events', function () {
+        config(['scout.driver' => 'database']);
+
+        $user = User::factory()->create();
+
+        createVisibleEventForSearch([
+            'title' => 'Not Going Majlis Filter',
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now()->subHour(),
+            'starts_at' => now()->addDays(2),
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(Index::class)
+            ->call('toggleGoingOnly')
+            ->assertSee(__('No attending majlis found'))
+            ->assertDontSee('Not Going Majlis Filter');
     });
 
     it('keeps majlis cards visible while saving an event', function (): void {

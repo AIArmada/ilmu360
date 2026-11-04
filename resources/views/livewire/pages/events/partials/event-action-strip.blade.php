@@ -18,7 +18,7 @@
                     wire:loading.attr="disabled"
                     class="inline-flex flex-none items-center justify-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-2 text-[12px] font-semibold backdrop-blur-md transition duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] sm:gap-2 sm:px-4 sm:text-[13px] active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14342e] {{ $this->isGoing ? 'border-[#14342e] bg-[linear-gradient(180deg,#1d4a41,#14342e)] text-[#fdfaf2] shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_10px_22px_-16px_rgba(20,52,46,0.8)] hover:bg-[#1d4a41]' : 'border-[#2f5d43]/30 bg-[linear-gradient(180deg,rgba(255,255,255,0.95),rgba(230,241,233,0.92))] text-[#1c4636] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_8px_18px_-14px_rgba(20,52,46,0.55)] hover:border-[#2f5d43]/55 hover:bg-[linear-gradient(180deg,rgba(255,255,255,1),rgba(220,236,225,0.95))]' }}"
                 >
-                    <svg class="size-4 max-[359px]:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <flux:icon.calendar-days class="size-4 max-[359px]:hidden" :variant="$this->isGoing ? 'solid' : 'outline'" />
                     {{ $this->isGoing ? __('Hadir') : __('Akan Hadir') }}
                     @if($this->goingCount > 0)
                         <span class="hidden rounded-full px-1.5 py-0.5 font-mono text-[11px] min-[400px]:inline-block {{ $this->isGoing ? 'bg-[#f7f3e8]/20 text-[#fdfaf2]' : 'bg-[#d8e6db] text-[#1c4636]' }}">{{ $this->goingCount }}</span>

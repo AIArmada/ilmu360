@@ -1,5 +1,7 @@
 @props([
     'event',
+    'isolatedEngagement' => false,
+    'refreshEngagementListing' => false,
     'url' => null,
     'title' => null,
     'startsAt' => null,
@@ -11,6 +13,7 @@
     'occurrence' => null,
     'sessions' => [],
     'isSaved' => false,
+    'isGoing' => false,
     'statusLabel' => null,
     'statusClass' => '',
     'formatLabel' => null,
@@ -25,6 +28,7 @@
 ])
 
 @php
+    $cardReturnUrl = request()->isMethod('GET') ? request()->fullUrl() : url()->previous();
     $cardFormat = $event->delivery_mode instanceof \App\Enums\EventFormat
         ? $event->delivery_mode
         : (\App\Enums\EventFormat::tryFrom((string) $event->delivery_mode) ?? \App\Enums\EventFormat::Physical);
@@ -42,6 +46,11 @@
     $cardStartsAt = $startsAt ?? $event->starts_at;
     $cardSignalEntityType = $signalEntityType;
     $cardSignalEntityId = $signalEntityId ?? $event->getKey();
+    $cardGoingStartsAt = $cardStartsAt instanceof \Carbon\CarbonInterface
+        ? $cardStartsAt
+        : ($event->ends_at ?? $event->starts_at);
+    $cardGoingAvailable = in_array((string) $event->status, \App\Models\Event::ENGAGEABLE_STATUSES, true)
+        && (! $cardGoingStartsAt instanceof \Carbon\CarbonInterface || $cardGoingStartsAt->isFuture());
     $speakerAvatarsTestId = $testidPrefix !== null ? ' data-testid="'.$testidPrefix.'-speaker-avatars"' : '';
     $speakersTestId = $testidPrefix !== null ? ' data-testid="'.$testidPrefix.'-speakers"' : '';
 
@@ -220,4 +229,28 @@
             </ul>
         </div>
     @endif
-<div class="mt-auto flex items-center justify-between gap-3 border-t border-slate-100 px-4 pb-4 pt-4 group-hover:border-amber-200"><p class="flex min-w-0 items-center gap-2"><flux:icon.clock class="size-4 shrink-0 text-[#087f59]" /><span class="truncate text-sm font-semibold text-[#087f59]">{{ $eventTime }}</span></p><div class="flex shrink-0 items-center gap-2"><button type="button" x-data="{ copied: false, async share() { const url = @js($cardUrl); const title = @js($cardTitle); if (navigator.share) { try { await navigator.share({ url, title, text: title }); return; } catch (error) {} } if (! navigator.clipboard) { window.prompt(@js(__('Copy this link:')), url); return; } await navigator.clipboard.writeText(url); this.copied = true; setTimeout(() => this.copied = false, 1800); } }" @click="share()" aria-label="{{ __('Kongsi') }}" title="{{ __('Kongsi') }}" data-signal-event="share.event_clicked" data-signal-category="share" data-signal-component="{{ $signalComponent }}" data-signal-control="share_event" data-signal-entity-type="{{ $cardSignalEntityType }}" data-signal-entity-id="{{ $cardSignalEntityId }}" class="relative z-10 grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-slate-200 bg-white text-slate-400 transition-colors duration-200 group-hover:border-emerald-200 group-hover:text-[#087f59] hover:border-emerald-200 hover:bg-emerald-100 hover:text-[#087f59] hover:shadow-sm"><flux:icon.share class="size-4" x-show="!copied" /><flux:icon.check class="size-4 text-emerald-700" x-show="copied" x-cloak /></button><button type="button" wire:click.stop.prevent="toggleSave('{{ $event->getKey() }}')" wire:loading.attr="disabled" wire:target="toggleSave('{{ $event->getKey() }}')" data-save-icon="event" data-save-state="{{ $isSaved ? 'saved' : 'unsaved' }}" aria-label="{{ $isSaved ? __('Disimpan') : __('Simpan') }}" aria-pressed="{{ $isSaved ? 'true' : 'false' }}" title="{{ $isSaved ? __('Disimpan') : __('Simpan') }}" data-signal-event="engagement.event_save_clicked" data-signal-category="engagement" data-signal-component="{{ $signalComponent }}" data-signal-control="save" data-signal-entity-type="{{ $cardSignalEntityType }}" data-signal-entity-id="{{ $cardSignalEntityId }}" data-signal-props='@json(['currently_saved' => $isSaved])' class="relative z-10 grid h-9 w-9 shrink-0 place-items-center rounded-xl border transition-colors duration-200 disabled:cursor-wait disabled:opacity-60 {{ $isSaved ? 'border-[#087f59] bg-[#087f59] text-white' : 'border-slate-200 bg-white text-slate-400 group-hover:border-emerald-200 group-hover:text-[#087f59] hover:border-emerald-200 hover:bg-emerald-100 hover:text-[#087f59] hover:shadow-sm' }}"><flux:icon.bookmark class="size-4" :variant="$isSaved ? 'solid' : 'outline'" /></button></div></div></article>
+<div class="mt-auto flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-slate-100 px-4 pb-4 pt-4 group-hover:border-amber-200">
+    <p class="flex min-w-0 items-center gap-2">
+        <flux:icon.clock class="size-4 shrink-0 text-[#087f59]" />
+        <span class="truncate text-sm font-semibold text-[#087f59]">{{ $eventTime }}</span>
+    </p>
+    <div class="flex shrink-0 items-center gap-2">
+        @if($isolatedEngagement)
+            <livewire:components.event-card-engagement
+                :event-id="(string) $event->getKey()"
+                :refresh-listing="$refreshEngagementListing"
+                :is-saved="$isSaved"
+                :is-going="$isGoing"
+                :card-going-available="$cardGoingAvailable"
+                :signal-component="$signalComponent"
+                :card-signal-entity-type="$cardSignalEntityType"
+                :card-signal-entity-id="(string) $cardSignalEntityId"
+                :return-url="$cardReturnUrl"
+                :key="'engagement-'.($wireKey ?? $cardSignalEntityType.'-'.$cardSignalEntityId).'-'.(int) $isSaved.'-'.(int) $isGoing.'-'.(int) $refreshEngagementListing.'-'.md5($cardReturnUrl)"
+            />
+        @else
+            @include('livewire.partials.event-card-engagement-buttons')
+        @endif
+    </div>
+</div>
+</article>

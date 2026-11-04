@@ -113,3 +113,89 @@
 - Verification: 21 targeted tests pass (90 assertions); existing `InstitutionIndexTest` 38/38 and `ReferenceIndexTest` 17/17 pass; Pint and PHPStan level 6 are clean. The four-file regression run has pre-existing failures in unrelated in-progress work (`PersonIndexTest` CTA copy and `EventSearchTest` event-detail registration/share/banner tests), with the filter suite itself green.
 - Follow-up fix: institution directory follow 500 (`Unknown named parameter $outcomeKey`). Replaced the stale named argument with the service's `businessKey` contract, reused `ShareOutcomeBusinessKey::follow()`, and guarded recording with `wasRecentlyCreated`. `InstitutionResultsTest` 8/8 and `InstitutionIndexTest` 38/38 pass; PHPStan clean.
 - Evidence: `/tmp/ilmu360-followed-filters-tests.log`, `/tmp/ilmu360-followed-filters-regression-tests.log`, `/tmp/ilmu360-followed-filters-phpstan.log`, `/tmp/ilmu360-institution-follow-fix-tests.log`, `/tmp/ilmu360-institution-follow-fix-phpstan.log`.
+
+## Card engagement performance (2026-11-03)
+
+- [x] Trace action queries, registration/pass side effects, tracking and filtered listings.
+- [x] Isolate homepage and /majlis card controls; retain parent action APIs and filtered refresh.
+- [x] Verify persistence, counters, guest flow, duplicate card sync and discovery isolation.
+
+Review: 10 focused engagement tests passed (40 assertions); card/homepage checks had 32 other passes with one unrelated date-filter missing-visibility error. PHPStan passed with zero errors. Existing engagement queries and action side effects retained; only full-page discovery/render work is avoided on ordinary clicks. Filter mode and return URL participate in child identity to preserve filtered refresh and guest destinations.
+
+Live verification: reloaded PHP-FPM and fetched both pages successfully: homepage renders 3 isolated controls, /majlis renders 12. Shared partial lives outside the Blaze component directory so includes render correctly in staging.
+
+Follow-up: removed the share button from all majlis cards (homepage featured cards, `/majlis`, and every other `x-events.card` surface); event-detail/hero share controls remain. Regression coverage now asserts the share control is absent from card markup while going/save remain present. Also removed the homepage date-filter N+1/`visibility` failure by grouping occurrence timestamps directly instead of hydrating partial `Event` models. Focused verification: 44 tests, 299 assertions, all passing; Pint clean, PHPStan 0 errors. Live `/` and `/majlis` return 200 and render 3/12 going + save controls with 0 card share controls. Earlier broader event/public-page run: 246/257 passing; the 11 failures are pre-existing unrelated event-detail banner/gallery/share-preview/registration, SEO, Waze and guest-submission cases.
+
+## Directory card follow performance (2026-11-03)
+
+- [x] Trace follow eligibility, owner context, share outcomes and followed-only state.
+- [x] Share existing follow orchestration through an Action and isolate card controls.
+- [x] Refresh parent followed IDs on hydration; refresh listings only when filtered.
+- [x] Verify directory regressions, isolated query behavior, analysis and live rendering.
+
+Review: initial directory suite ran 86 tests; after correcting reference hydration owner context and a child key prefix collision, all 28 affected follow/reference tests passed (124 assertions), with the other 58 tests passing in the initial run. PHPStan reports zero errors, Pint and diff checks pass. Live directories each render 12 isolated controls. Eligibility, User follow owner-context wrappers and share outcome semantics remain intact; hydration explicitly uses the global directory context and filtered lists refresh from authoritative IDs.
+
+## Clockwork frontend profiling (2026-11-03)
+
+- [x] Confirm Clockwork 5.3.5 is installed and inspect profiling/browser access.
+- [ ] Enable private, on-demand collection and connect configured Chrome MCP.
+- [ ] Profile public page families and representative detail pages; inspect engagement timings where authenticated access exists.
+- [ ] Rank measured bottlenecks, validate safe fixes where justified, and preserve results with coverage limits.
+## Homepage featured speakers — implementation plan (2026-11-04)
+
+Scope: make the existing homepage speaker selection manageable through the Persons admin. Planning only; implementation awaits review. Revised ownership: generic featuring and ordering belong in `aiarmada/persons` and `aiarmada/filament-persons`; homepage placement and speaker eligibility remain in the app. Installed packages resolve to the sibling `commerce/packages` source tree; inspect that repository's rules before editing.
+
+- [x] Inspect the homepage selection, Persons form/model, installed ordering package, and project rules.
+- [x] Add an explicit `is_featured` boolean (default false) and nullable unsigned `order_column` to the canonical persons package schema migration in its source repository. This is editorial selection, independent of lifecycle `status` and app-specific `speaker_status`. Follow the existing-migration convention; do not edit installed vendor copies or reset data.
+- [x] Add featuring casts/fillable fields and a reusable `featured` scope to the package Person model; implement Spatie `Sortable` / `SortableTrait` using `order_column`, preserving explicit positions on create and appending newly featured records. App's overridden fillable/casts carry the fields.
+- [x] In Persons → Edit → Status, add the “Featured on homepage” toggle (built from the package `featuredToggle()` helper). Selection stays independent of status and speaker eligibility.
+- [x] Add reusable `featuredColumn()`, `featuredFilter()`, and `applyFeaturedOrdering()` in `filament-persons`; the app table consumes them. Reordering is gated by the same `person.update` ability as editing.
+- [x] Replace the hardcoded slug list in `featuredPersons()` with `active()->speakers()->featured()->ordered()->orderBy(id)->take(5)`.
+- [x] No new tracking added; person curation changes flow through the model's existing audit logging.
+- [x] Add regression coverage for admin selection/authorization, reorder authorization/order persistence, homepage ordering, five-speaker limit, exclusions, removal, and empty state. Package-level tests cover scope/order assignment.
+- [x] Verify with affected parallel Pest files, Pint, and PHPStan level 6; inspect the scoped diff. Commerce monorepo tests/analysis could not run locally because that repository has no installed `vendor/`; app-side tests exercise the package behavior.
+
+### Plan review
+
+- Confirmed: homepage now uses the editorial selection; no hardcoded slugs remain.
+- Behavior: admins select any number in Persons → Edit → Status. The homepage shows the first five eligible selections in curated order. Selections default off; initial curation happens in admin.
+- Reorder: Persons list is reorderable by `order_column`; the trigger and request are authorized by `person.update`, and only visible records in the reorder request are renumbered.
+- Eligibility: `verified`/`pending` status plus active `speaker_status`; inactive or non-speaker people never appear publicly.
+- Schema rollout: the canonical package migration was edited in place. The local staging database was synchronized non-destructively with the two columns; other environments need the same rollout before deploying the code.
+- Verification: `HomepageFeaturedSpeakersTest` 3/3, `PersonFeaturedAdminTest` 4/4, `HomePageTest` 27/27, `PersonAdminEditSocialMediaLabelTest` 5/5, `PersonAdminFollowersTableTest` 1/1, `FilamentPanelAccessTest` 9/9. App Pint and PHPStan level 6 clean; commerce Pint clean. Browser probe produced the styled homepage artifact at `storage/verify/homepage-featured-speakers/` (the command timed out on teardown, so no clean browser-run report).
+
+
+
+## Featured speakers audit fixes (2026-11-04)
+
+- [x] Restrict selection and ordering to global admin/super_admin roles; block non-admin model writes and hide inherited selection controls.
+- [x] Introduce package reorder action that merges submitted subsets into the full locked featured sequence and uses Spatie ordering.
+- [x] Record actor and before/after sequence through existing custom audits in the app transaction.
+- [x] Verify direct authorization, ordering validation and audit persistence. Per user direction, omit the toggle from the member schema and remove the member-panel test.
+- [x] Final verification: admin/authorization/reorder suite 7 passed (23 assertions); homepage suite 3 passed (13 assertions); PHPStan 0 errors; app/package Pint and diff checks passed. No additional database changes.
+
+## Homepage majlis selection (2026-11-04)
+
+- [x] Inspect public schedule discovery and active follow relations.
+- [x] Select admin-featured upcoming schedules first, then random schedules related to followed speakers/institutions/references; use the user-requested nine-card limit and existing 14-day window, approved public visibility and deduplication.
+- [x] Verified selection tests: 7 passed / 21 assertions; homepage regression suite: 27 passed. PHPStan 0 errors; Pint and diff checks passed. Covers guests, all active follow sources/unfollow, priority, nine-card cap, exclusions and insufficient matches. No database changes.
+- Tracking review: this changes recommendation content only; existing card navigation/engagement tracking remains applicable.
+
+## Admin event edit + homepage card centering (2026-11-04)
+
+- [x] Add Edit to the Events admin list row actions and the event View header; content remains authorized by the Event policy.
+- [x] Replace the homepage featured-majlis CSS grid with a centered flex wrap layout so incomplete last rows center on tablet and desktop.
+- [x] Verify the edit URL appears on both list and view pages for an authorized admin, and the homepage suites still pass.
+
+Review: the package `EventResource` now exposes `EditAction` in the table and `ViewEvent` header (canonical `commerce/packages/filament-events`). The homepage featured cards use `flex flex-wrap justify-center` with child width utilities (`*:w-full`, `sm:*:w-[calc(50%_-_0.5rem)]`, `xl:*:w-[calc(33.333%_-_0.6667rem)]`) matching the existing directory card pattern; the production Vite build confirmed the generated widths. Verification: `FilamentEventResourceTest` 3 passed (36 assertions), `HomePageTest` 27 passed, `HomepageMajlisSelectionTest` 7 passed; app and package Pint clean. No database changes.
+
+## Admin Filament performance (2026-11-04)
+
+- [x] Baseline with Chrome MCP: dashboard LCP 2,375 ms / TTFB 1,011 ms; `/events` TTFB ~0.95 s; `/persons` TTFB 1.5–2.8 s; 111 identical role queries per admin page; dashboard widgets defaulted to Filament's 5 s polling.
+- [x] Memoise global-role verdicts per request (object-keyed WeakMap) and invalidate on role-table writes plus Octane request start; delegate `FilamentPermission` to the same checker.
+- [x] Stop default 5 s widget polling: set explicit `null`/60 s intervals on dashboard stats and chart widgets.
+- [x] Enable Filament SPA navigation with hover prefetch on the admin panel.
+- [x] Cache S3 presigned media URLs for four minutes and cache S3 object-existence checks (6 h when present, 5 min when missing); previously every avatar URL did an S3 HEAD (~60 ms each).
+- [x] Fix `scripts/deploy.sh` so `optimize:clear` is followed by `php artisan optimize` + `php artisan filament:optimize`; staging was serving with config/routes/events uncached after every deploy.
+- [x] Verification: `AuthzGlobalRoleCacheTest` 3 passed (10 assertions), `FilamentPanelAccessTest` 9 passed, `MediaConversionsTest` 46 passed, `SubmitEventMediaTest` 3 passed, `FilamentMediaAssetTest` 3 passed; app/package Pint and PHPStan level 6 clean.
+- Review: warm admin TTFB after deploy is ~0.51–0.60 s for dashboard/events/persons; dashboard LCP 1,754 ms; dashboard now fires three initial lazy-widget requests and no 5 s refresh loop; SPA navigation stays on one document and prefetches on hover. Remaining infrastructure win (requires nginx write access): enable `http2 on` and long-lived `Cache-Control` for `/build/assets` and `/js/filament`.

@@ -18,6 +18,7 @@
     $locationString = \App\Support\Location\AddressHierarchyFormatter::format($address);
     $upcomingEvents = $this->upcomingEvents;
     $savedEventIds = $this->savedEventIds;
+    $goingEventIds = $this->goingEventIds;
     $upcomingTotal = $this->upcomingTotal;
     $upcomingOverallTotal = $this->upcomingOverallTotal;
     $pastOverallTotal = $this->pastOverallTotal;
@@ -477,6 +478,7 @@
                                     <x-events.schedule-card
                                         :schedule-leaf="$scheduleLeaf"
                                         :saved-event-ids="$savedEventIds"
+                                        :is-going="in_array((string) $scheduleLeaf->event->getKey(), $goingEventIds, true)"
                                         :hide-location="true"
                                         signal-component="institution_detail_upcoming_events"
                                         testid-prefix="institution-detail-card"

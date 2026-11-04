@@ -2,8 +2,10 @@
 
 namespace App\Filament\Resources\Persons\Tables;
 
+use AIArmada\FilamentPersons\Resources\PersonResource\Tables\PersonsTable as PackagePersonsTable;
 use App\Enums\SpeakerStatus;
 use App\Models\Person;
+use App\Models\User;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -18,7 +20,7 @@ class PersonsTable
 {
     public static function configure(Table $table): Table
     {
-        return $table
+        $table = $table
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with('media'))
             ->columns([
                 SpatieMediaLibraryImageColumn::make('avatar')
@@ -43,6 +45,7 @@ class PersonsTable
                     ->badge()
                     ->sortable()
                     ->toggleable(),
+                PackagePersonsTable::featuredColumn(),
                 TextColumn::make('email')
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('phone')
@@ -64,6 +67,7 @@ class PersonsTable
                     ->label('Speaker')
                     ->options(SpeakerStatus::class)
                     ->placeholder('All'),
+                PackagePersonsTable::featuredFilter(),
                 SelectFilter::make('avatar')
                     ->label('Avatar')
                     ->options([
@@ -97,5 +101,8 @@ class PersonsTable
                         ->authorizeIndividualRecords('delete'),
                 ]),
             ]);
+
+        return PackagePersonsTable::applyFeaturedOrdering($table)
+            ->authorizeReorder(fn (): bool => auth()->user() instanceof User && auth()->user()->hasGlobalAdminAccess());
     }
 }

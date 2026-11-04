@@ -35,8 +35,6 @@ class NotificationSettingsController extends Controller
                         'label' => $definition['label'],
                         'description' => $definition['description'],
                         'default_cadence' => $definition['default_cadence']->value,
-                        'allowed_channels' => $definition['allowed_channels'],
-                        'default_channels' => $definition['default_channels'],
                         'triggers' => $definition['triggers'],
                     ])
                     ->values()
@@ -47,10 +45,6 @@ class NotificationSettingsController extends Controller
                         'family' => $definition['family']->value,
                         'label' => $definition['label'],
                         'description' => $definition['description'],
-                        'default_cadence' => $definition['default_cadence']->value,
-                        'allowed_channels' => $definition['allowed_channels'],
-                        'default_channels' => $definition['default_channels'],
-                        'priority' => $definition['priority']->value,
                     ])
                     ->values()
                     ->all(),

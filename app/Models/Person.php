@@ -52,6 +52,8 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 /**
  * @property string $status
  * @property bool $allow_public_event_submission
+ * @property bool $is_featured
+ * @property int|null $order_column
  * @property CarbonImmutable|null $last_state_change_at
  * @property CarbonImmutable|null $verified_at
  * @property CarbonImmutable|null $rejected_at
@@ -95,6 +97,8 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
         'last_state_change_at',
         'published_at',
         'speaker_status',
+        'is_featured',
+        'order_column',
         'allow_public_event_submission',
         'public_submission_locked_at',
         'public_submission_locked_by',
@@ -405,6 +409,15 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
                     $person->verified_by ??= auth()->id();
                 }
             }
+
+            if ((($person->exists && ($person->isDirty('is_featured') || $person->isDirty('order_column')))
+                || (! $person->exists && ($person->is_featured || $person->order_column !== null)))
+                && auth()->user() instanceof User
+                && ! auth()->user()->hasGlobalAdminAccess()) {
+                throw new AuthorizationException('Only global administrators may curate featured people.');
+            }
+
+            $person->syncFeaturedOrder();
         });
     }
 

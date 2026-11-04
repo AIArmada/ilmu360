@@ -66,7 +66,6 @@ class AppConsentResolver implements ConsentResolver
             'mail', DigestMailChannel::class => AppChannel::Email,
             'database', 'in_app' => AppChannel::InApp,
             'push', 'fcm' => AppChannel::Push,
-            'whatsapp' => AppChannel::Whatsapp,
             default => AppChannel::tryFrom($channel),
         };
     }

@@ -1,15 +1,16 @@
 <?php
 
-use App\Enums\DawahShareOutcomeType;
+use AIArmada\CommerceSupport\Support\OwnerContext;
+
+use App\Actions\ToggleDirectoryFollowAction;
+
 use App\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\User;
-use App\Services\ShareTrackingService;
 use App\Support\Auth\IntendedRedirect;
 use App\Support\Location\LocationSlugResolver;
 use App\Support\Search\InstitutionSearchService;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use App\Support\Timezone\UserDateTimeFormatter;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
@@ -18,7 +19,6 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -460,63 +460,34 @@ new class extends Component
         $user = auth()->user();
 
         if (! $user instanceof User) {
-            $this->redirect(
-                IntendedRedirect::loginUrl(route('institutions.index', absolute: false)),
-                navigate: true,
-            );
+            $this->redirect(IntendedRedirect::loginUrl(route('institutions.index', absolute: false)), navigate: true);
 
             return;
         }
 
-        $institution = $this->followableInstitution($institutionId);
+        $state = app(ToggleDirectoryFollowAction::class)->handle('institution', $institutionId, $user);
 
-        if ($institution === null) {
+        if ($state === null) {
             return;
         }
 
-        $institutionId = (string) $institution->getKey();
-
-        if ($user->isFollowing($institution)) {
-            $user->unfollow($institution);
-            $this->followingInstitutionIds = array_values(array_filter(
-                $this->followingInstitutionIds,
-                static fn (mixed $id): bool => (string) $id !== $institutionId,
-            ));
-
-            return;
-        }
-
-        $follow = $user->follow($institution);
-
-        if (! in_array($institutionId, $this->followingInstitutionIds, true)) {
-            $this->followingInstitutionIds[] = $institutionId;
-        }
-
-        if ($follow->wasRecentlyCreated) {
-            app(ShareTrackingService::class)->recordOutcome(
-                type: DawahShareOutcomeType::InstitutionFollow,
-                businessKey: ShareOutcomeBusinessKey::follow(DawahShareOutcomeType::InstitutionFollow, (string) $follow->getKey()),
-                subject: $institution,
-                actor: $user,
-                request: request(),
-                metadata: [
-                    'institution_id' => $institution->id,
-                ],
-                occurredAt: $follow->created_at,
-            );
-        }
+        $this->hydrate();
     }
 
-    private function followableInstitution(string $institutionId): ?Institution
+    public function hydrate(): void
     {
-        if (! Str::isUuid($institutionId)) {
-            return null;
-        }
+        $user = auth()->user();
+        $this->followingInstitutionIds = $user instanceof User
+            ? OwnerContext::withOwner(null, fn (): array => $user->followingInstitutions()->pluck((new Institution)->qualifyColumn('id'))->map(static fn (mixed $id): string => (string) $id)->values()->all())
+            : [];
+    }
 
-        return Institution::query()
-            ->whereIn('status', ['verified', 'pending'])
-            ->whereKey($institutionId)
-            ->first();
+    #[On('directory-follow-updated.institution')]
+    public function refreshFollowedListing(): void
+    {
+        if (! $this->followed_only) {
+            $this->skipRender();
+        }
     }
 
     private function applyLocationScope(Builder $query): Builder
@@ -648,7 +619,7 @@ new class extends Component
                                     <div class="absolute inset-0 bg-gradient-to-t from-slate-900/50 via-slate-900/15 to-transparent"></div>
                                 @else
                                     <img
-                                        src="{{ asset('images/placeholders/institution-v2.png') }}"
+                                        srcset="{{ asset('images/placeholders/institution-v2.webp') }}" src="{{ asset('images/placeholders/institution-v2.png') }}"
                                         alt=""
                                         aria-hidden="true"
                                         class="h-full w-full object-cover"
@@ -705,18 +676,14 @@ new class extends Component
                                     <flux:icon.calendar class="size-3.5 text-emerald-500" />
                                     {{ $institution->events_count }} {{ __('Upcoming Events') }}
                                 </span>
-                                <button
-                                    type="button"
-                                    wire:click.stop.prevent="toggleFollow('{{ $institution->id }}')"
-                                    wire:loading.attr="disabled"
-                                    data-follow-icon="institution"
-                                    data-follow-state="{{ $isFollowing ? 'following' : 'not-following' }}"
-                                    aria-label="{{ $isFollowing ? __('Nyahikut') : __('Ikuti') }}"
-                                    aria-pressed="{{ $isFollowing ? 'true' : 'false' }}"
-                                    class="relative z-10 grid h-9 w-9 shrink-0 place-items-center rounded-xl border transition-colors duration-200 disabled:cursor-wait disabled:opacity-60 {{ $isFollowing ? 'border-emerald-200 bg-emerald-50 text-emerald-700 group-hover:border-emerald-300 group-hover:bg-emerald-100' : 'border-slate-200 bg-white text-slate-400 group-hover:border-emerald-200 group-hover:text-[#087f59] hover:border-emerald-200 hover:bg-emerald-100 hover:text-[#087f59] hover:shadow-sm' }}"
-                                >
-                                    <flux:icon.bookmark class="size-4" :variant="$isFollowing ? 'solid' : 'outline'" />
-                                </button>
+                                <livewire:components.directory-card-follow
+                                    subject-type="institution"
+                                    :subject-id="(string) $institution->getKey()"
+                                    :is-following="$isFollowing"
+                                    :refresh-listing="(bool) $this->followed_only"
+                                    :return-url="route('institutions.index', absolute: false)"
+                                    :key="'directory-follow-institution-'.$institution->getKey().'-'.(int) $isFollowing.'-'.(int) $this->followed_only.'-'.md5(route('institutions.index', absolute: false))"
+                                />
                             </div>
                         </article>
                     @endforeach

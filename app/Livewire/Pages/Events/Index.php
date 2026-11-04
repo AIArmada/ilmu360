@@ -24,6 +24,7 @@ use App\Enums\EventPrayerTime;
 use App\Enums\InstitutionStatus;
 use App\Enums\TimingMode;
 use App\Forms\SharedFormSchema;
+use App\Livewire\Concerns\TogglesEventGoing;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Language;
@@ -59,6 +60,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -74,6 +76,7 @@ use Livewire\WithPagination;
 class Index extends Component implements HasForms
 {
     use InteractsWithForms;
+    use TogglesEventGoing;
     use WithPagination;
 
     /**
@@ -927,6 +930,14 @@ class Index extends Component implements HasForms
         $this->resetPage();
     }
 
+    #[On('event-card-list-changed')]
+    public function refreshEngagementListing(): void
+    {
+        if (! $this->saved_only && ! $this->going_only) {
+            $this->skipRender();
+        }
+    }
+
     public function toggleSavedOnly(): void
     {
         if (! auth()->user() instanceof User) {
@@ -937,6 +948,19 @@ class Index extends Component implements HasForms
 
         $this->saved_only = $this->saved_only === true ? null : true;
         $this->filterData['saved_only'] = $this->saved_only;
+        $this->resetPage();
+    }
+
+    public function toggleGoingOnly(): void
+    {
+        if (! auth()->user() instanceof User) {
+            $this->redirect(IntendedRedirect::loginUrl(request()->fullUrl()), navigate: true);
+
+            return;
+        }
+
+        $this->going_only = $this->going_only === true ? null : true;
+        $this->filterData['going_only'] = $this->going_only;
         $this->resetPage();
     }
 
@@ -956,12 +980,20 @@ class Index extends Component implements HasForms
         $this->resetPage();
     }
 
+    protected function eventGoingReturnUrl(): string
+    {
+        return route('events.index');
+    }
+
     public function toggleSave(string $eventId): void
     {
         $user = auth()->user();
 
         if (! $user instanceof User) {
-            $this->redirect(IntendedRedirect::loginUrl(request()->fullUrl()), navigate: true);
+            $this->redirect(
+                IntendedRedirect::loginUrl(request()->fullUrl()),
+                navigate: true,
+            );
 
             return;
         }

@@ -101,6 +101,7 @@
     $activeFilterCount = $this->activeFilterCount();
     $hasActiveFilters = $activeFilterCount > 0;
     $savedOnly = $this->saved_only === true;
+    $goingOnly = $this->going_only === true;
     $savedSearchQuery = array_filter([
         'search' => $search,
         'country_id' => $countryId,
@@ -370,7 +371,7 @@
             <picture class="block h-full w-full">
                 <source media="(max-width: 639px)" srcset="{{ asset('images/events/majlis-hero-background-mobile-v1.webp') }}" type="image/webp">
                 <img
-                    src="{{ asset('images/events/majlis-hero-background-v1.png') }}"
+                    srcset="{{ asset('images/events/majlis-hero-background-v1.webp') }}" src="{{ asset('images/events/majlis-hero-background-v1.png') }}"
                     alt="{{ __('Laman masjid pada waktu keemasan') }}"
                     class="h-full w-full object-cover object-center sm:object-[35%_center] lg:object-center"
                 >
@@ -467,6 +468,12 @@
                                 <span class="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900">
                                     <flux:icon.bookmark class="size-3.5" variant="solid" />
                                     {{ __('Disimpan') }}
+                                </span>
+                            @endif
+                            @if($goingOnly)
+                                <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-900">
+                                    <flux:icon.calendar-days class="size-3.5" variant="solid" />
+                                    {{ __('Akan Hadir') }}
                                 </span>
                             @endif
                             @if($lat)
@@ -637,8 +644,10 @@
                     @php
                         $events = $this->scheduleItems;
                         $savedEventIds = $this->savedEventIds;
+                        $goingEventIds = $this->goingEventIds;
                         $savedOnly = $this->saved_only === true;
-                        $eventLoadingTarget = 'filterData,setLocation,clearLocation,clearAllFilters,toggleSavedOnly,gotoPage,setPage';
+                        $goingOnly = $this->going_only === true;
+                        $eventLoadingTarget = 'filterData,setLocation,clearLocation,clearAllFilters,toggleSavedOnly,toggleGoingOnly,gotoPage,setPage';
                     @endphp
 
                 <div class="mt-5 min-h-[42rem]" wire:transition="event-results">
@@ -682,8 +691,8 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3.75 8.25h16.5M5.25 5.25h13.5A1.5 1.5 0 0 1 20.25 6.75v12A1.5 1.5 0 0 1 18.75 20.25H5.25A1.5 1.5 0 0 1 3.75 18.75v-12A1.5 1.5 0 0 1 5.25 5.25Z" />
                                     </svg>
                                 </div>
-                                <h3 class="mt-5 font-heading text-2xl font-bold text-slate-900">{{ $savedOnly ? __('No saved majlis found') : __('No events found') }}</h3>
-                                <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-600">{{ $savedOnly ? __('Save a majlis to see it here.') : __('Try adjusting your search terms or filters to find what you\'re looking for.') }}</p>
+                                <h3 class="mt-5 font-heading text-2xl font-bold text-slate-900">{{ $goingOnly ? __('No attending majlis found') : ($savedOnly ? __('No saved majlis found') : __('No events found')) }}</h3>
+                                <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-600">{{ $goingOnly ? __('Mark a majlis as Hadir to see it here.') : ($savedOnly ? __('Save a majlis to see it here.') : __('Try adjusting your search terms or filters to find what you\'re looking for.')) }}</p>
                                 <button type="button" wire:click="clearAllFilters"
                                     data-signal-event="filter.cleared"
                                     data-signal-category="filter"
@@ -743,15 +752,17 @@
                                         $signalEntityType = $scheduleLeaf->entityType();
                                         $signalEntityId = $scheduleLeaf->id();
                                         $isSaved = in_array((string) $event->getKey(), $savedEventIds, true);
+                                        $isGoing = in_array((string) $event->getKey(), $goingEventIds, true);
                                     @endphp
 
-                                    <x-events.card
+                                    <x-events.card :isolated-engagement="true" :refresh-engagement-listing="(bool) ($saved_only || $going_only)"
                                         :event="$event"
                                         :url="$eventUrl"
                                         :title="$scheduleTitle"
                                         :starts-at="$cardStart"
                                         :timing-text="$cardTimingText"
                                         :is-saved="$isSaved"
+                                        :is-going="$isGoing"
                                         :status-label="$statusBadgeLabel"
                                         :status-class="$statusBadgeClass"
                                         :format-label="$formatLabel"

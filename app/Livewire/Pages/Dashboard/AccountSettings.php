@@ -2,12 +2,13 @@
 
 namespace App\Livewire\Pages\Dashboard;
 
+use AIArmada\Events\Models\EventSubmission;
 use AIArmada\Persons\Enums\Gender;
+use App\Enums\NotificationChannel;
 use App\Livewire\Concerns\InteractsWithToasts;
 use App\Models\Institution;
 use App\Models\User;
 use App\Services\Notifications\NotificationSettingsManager;
-use App\Support\Notifications\NotificationCatalog;
 use Carbon\CarbonInterface;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -38,7 +39,13 @@ class AccountSettings extends Component implements HasForms
     use InteractsWithForms;
     use InteractsWithToasts;
 
-    protected bool $syncingInheritedTriggerState = false;
+    /**
+     * @var list<string>
+     */
+    private const VISIBLE_TRIGGER_KEYS = [
+        'reminder_24_hours',
+        'reminder_2_hours',
+    ];
 
     #[Url(as: 'tab')]
     public string $tab = 'profile';
@@ -71,24 +78,33 @@ class AccountSettings extends Component implements HasForms
     ];
 
     /**
-     * @var array<string, mixed>
+     * @var array{
+     *     quiet_hours_start: string,
+     *     quiet_hours_end: string,
+     *     channels: list<string>
+     * }
      */
-    public array $notificationSettingsState = [];
+    public array $notificationSettingsState = [
+        'quiet_hours_start' => '',
+        'quiet_hours_end' => '',
+        'channels' => ['in_app', 'email'],
+    ];
+
+    public bool $quietHoursEnabled = false;
 
     /**
-     * @var array<string, array<string, mixed>>
+     * @var array<string, array{enabled: bool, cadence?: string}>
      */
-    public array $notificationFamiliesState = [];
+    public array $notificationGroupsState = [
+        'discovery' => ['enabled' => true, 'cadence' => 'daily'],
+        'my_events' => ['enabled' => true],
+        'submission' => ['enabled' => true],
+    ];
 
     /**
-     * @var array<string, array<string, mixed>>
+     * @var array<string, array{enabled: bool, label: string, description: string}>
      */
     public array $notificationTriggersState = [];
-
-    /**
-     * @var array<string, list<array<string, mixed>>>
-     */
-    public array $notificationGroupedTriggers = [];
 
     /**
      * @var array<string, mixed>
@@ -100,15 +116,7 @@ class AccountSettings extends Component implements HasForms
      */
     public array $notificationDestinations = [];
 
-    /**
-     * @var array<int, string>
-     */
-    public array $preferredChannelSlots = ['', '', '', ''];
-
-    /**
-     * @var array<int, string>
-     */
-    public array $fallbackChannelSlots = ['', '', '', ''];
+    public bool $showSubmissionGroup = false;
 
     public function mount(): void
     {
@@ -129,24 +137,17 @@ class AccountSettings extends Component implements HasForms
         $this->tab = $this->normalizeTab($tab);
     }
 
-    public function updated(string $property, mixed $value): void
+    public function updatedQuietHoursEnabled(bool $enabled): void
     {
-        if ($this->syncingInheritedTriggerState) {
-            return;
-        }
-
-        if (str_starts_with($property, 'notificationFamiliesState.')) {
-            $this->syncInheritedTriggerStates();
+        if (! $enabled) {
+            $this->notificationSettingsState['quiet_hours_start'] = '';
+            $this->notificationSettingsState['quiet_hours_end'] = '';
 
             return;
         }
 
-        if (
-            str_starts_with($property, 'notificationTriggersState.')
-            && str_ends_with($property, '.inherits_family')
-        ) {
-            $this->syncInheritedTriggerStates();
-        }
+        $this->notificationSettingsState['quiet_hours_start'] = $this->notificationSettingsState['quiet_hours_start'] ?: '22:00';
+        $this->notificationSettingsState['quiet_hours_end'] = $this->notificationSettingsState['quiet_hours_end'] ?: '07:00';
     }
 
     /**
@@ -369,9 +370,27 @@ class AccountSettings extends Component implements HasForms
         $user = $this->currentUser();
 
         $this->settingsManager()->save($user, $this->notificationPayload());
-        $this->hydrateNotificationCenter($user->fresh());
+        $this->hydrateNotificationCenter($user->fresh() ?? $user);
 
         $this->successToast(__('notifications.flash.updated'));
+        $this->tab = 'notifications';
+    }
+
+    public function removePushDestination(string $destinationId): void
+    {
+        $user = $this->currentUser();
+
+        $destination = $user->notificationDestinations()
+            ->whereKey($destinationId)
+            ->where('channel', NotificationChannel::Push->value)
+            ->first();
+
+        abort_unless($destination !== null, 404);
+
+        $destination->delete();
+
+        $this->hydrateNotificationCenter($user->fresh() ?? $user);
+        $this->successToast(__('notifications.flash.device_removed'));
         $this->tab = 'notifications';
     }
 
@@ -379,23 +398,62 @@ class AccountSettings extends Component implements HasForms
     {
         $state = $this->settingsManager()->stateFor($user);
 
-        $this->notificationSettingsState = $state['settings'];
-        $this->notificationFamiliesState = $state['families'];
-        $this->notificationTriggersState = $state['triggers'];
-        $this->notificationGroupedTriggers = $state['grouped_triggers'];
+        /** @var array<string, mixed> $settings */
+        $settings = $state['settings'];
+        $settings['quiet_hours_start'] = $this->timeInputValue((string) ($settings['quiet_hours_start'] ?? ''));
+        $settings['quiet_hours_end'] = $this->timeInputValue((string) ($settings['quiet_hours_end'] ?? ''));
+
+        $this->notificationSettingsState = [
+            'quiet_hours_start' => (string) ($settings['quiet_hours_start'] ?? ''),
+            'quiet_hours_end' => (string) ($settings['quiet_hours_end'] ?? ''),
+            'channels' => array_values(array_map('strval', (array) ($settings['channels'] ?? []))),
+        ];
+
+        $this->quietHoursEnabled = $this->notificationSettingsState['quiet_hours_start'] !== ''
+            || $this->notificationSettingsState['quiet_hours_end'] !== '';
+
+        if ($this->quietHoursEnabled) {
+            $this->notificationSettingsState['quiet_hours_start'] = $this->notificationSettingsState['quiet_hours_start'] ?: '22:00';
+            $this->notificationSettingsState['quiet_hours_end'] = $this->notificationSettingsState['quiet_hours_end'] ?: '07:00';
+        }
+
         $this->notificationOptions = $state['options'];
         $this->notificationDestinations = $state['destinations'];
-        $this->preferredChannelSlots = array_pad(
-            array_values($this->notificationSettingsState['preferred_channels'] ?? []),
-            4,
-            ''
-        );
-        $this->fallbackChannelSlots = array_pad(
-            array_values($this->notificationSettingsState['fallback_channels'] ?? []),
-            4,
-            ''
-        );
-        $this->syncInheritedTriggerStates();
+        $this->showSubmissionGroup = $this->canSeeSubmissionSettings($user);
+
+        /** @var array<string, array<string, mixed>> $families */
+        $families = $state['families'];
+        /** @var array<string, array<string, mixed>> $triggers */
+        $triggers = $state['triggers'];
+
+        $this->notificationGroupsState = [
+            'discovery' => [
+                'enabled' => (bool) ($families['followed_content']['enabled'] ?? true),
+                'cadence' => (string) ($families['followed_content']['cadence'] ?? 'daily'),
+            ],
+            'my_events' => [
+                'enabled' => (bool) ($families['event_reminders']['enabled'] ?? true),
+            ],
+            'submission' => [
+                'enabled' => (bool) ($families['submission_workflow']['enabled'] ?? true),
+            ],
+        ];
+
+        $this->notificationTriggersState = [];
+
+        foreach (self::VISIBLE_TRIGGER_KEYS as $triggerKey) {
+            $trigger = $triggers[$triggerKey] ?? null;
+
+            if (! is_array($trigger)) {
+                continue;
+            }
+
+            $this->notificationTriggersState[$triggerKey] = [
+                'enabled' => (bool) ($trigger['enabled'] ?? true),
+                'label' => (string) ($trigger['label'] ?? ''),
+                'description' => (string) ($trigger['description'] ?? ''),
+            ];
+        }
     }
 
     /**
@@ -403,29 +461,44 @@ class AccountSettings extends Component implements HasForms
      */
     protected function notificationPayload(): array
     {
-        $preferredChannels = collect($this->preferredChannelSlots)
-            ->map(static fn (mixed $value): string => $value)
-            ->filter(static fn (string $value): bool => $value !== '')
-            ->unique()
-            ->values()
-            ->all();
-        $fallbackChannels = collect($this->fallbackChannelSlots)
-            ->map(static fn (mixed $value): string => $value)
-            ->filter(static fn (string $value): bool => $value !== '')
-            ->unique()
-            ->values()
-            ->all();
-
         $settings = $this->notificationSettingsState;
-        $settings['preferred_channels'] = $preferredChannels;
-        $settings['fallback_channels'] = $fallbackChannels;
-        $settings['timezone'] = (string) ($this->notificationSettingsState['timezone'] ?? config('app.timezone'));
+
+        if (! $this->quietHoursEnabled) {
+            $settings['quiet_hours_start'] = '';
+            $settings['quiet_hours_end'] = '';
+        }
+
+        $discoveryEnabled = (bool) ($this->notificationGroupsState['discovery']['enabled'] ?? true);
+        $discoveryCadence = (string) ($this->notificationGroupsState['discovery']['cadence'] ?? 'daily');
+        $myEventsEnabled = (bool) ($this->notificationGroupsState['my_events']['enabled'] ?? true);
+        $submissionEnabled = (bool) ($this->notificationGroupsState['submission']['enabled'] ?? true);
+
+        $families = [
+            'followed_content' => ['enabled' => $discoveryEnabled, 'cadence' => $discoveryCadence],
+            'saved_search_matches' => ['enabled' => $discoveryEnabled, 'cadence' => $discoveryCadence],
+            'event_updates' => ['enabled' => true, 'cadence' => 'instant'],
+            'event_reminders' => ['enabled' => $myEventsEnabled, 'cadence' => 'instant'],
+            'registration_checkin' => ['enabled' => true, 'cadence' => 'instant'],
+            'submission_workflow' => ['enabled' => $submissionEnabled, 'cadence' => 'instant'],
+        ];
+
+        $triggers = [];
+        foreach (array_keys($this->notificationTriggersState) as $triggerKey) {
+            $triggers[$triggerKey] = [
+                'enabled' => (bool) ($this->notificationTriggersState[$triggerKey]['enabled'] ?? true),
+            ];
+        }
 
         return [
             'settings' => $settings,
-            'families' => $this->notificationFamiliesState,
-            'triggers' => $this->notificationTriggersState,
+            'families' => $families,
+            'triggers' => $triggers,
         ];
+    }
+
+    protected function timeInputValue(string $value): string
+    {
+        return mb_strlen($value) >= 5 ? mb_substr($value, 0, 5) : $value;
     }
 
     /**
@@ -652,40 +725,12 @@ class AccountSettings extends Component implements HasForms
         return $freshUser;
     }
 
-    protected function syncInheritedTriggerStates(): void
+    protected function canSeeSubmissionSettings(User $user): bool
     {
-        $this->syncingInheritedTriggerState = true;
-
-        try {
-            foreach (NotificationCatalog::triggers() as $triggerKey => $definition) {
-                $triggerState = $this->notificationTriggersState[$triggerKey] ?? null;
-
-                if (! is_array($triggerState) || ! (bool) ($triggerState['inherits_family'] ?? true)) {
-                    continue;
-                }
-
-                $familyKey = (string) ($triggerState['family'] ?? $definition['family']->value);
-                $familyState = $this->notificationFamiliesState[$familyKey] ?? [];
-                $allowedChannels = is_array($triggerState['allowed_channels'] ?? null)
-                    ? $triggerState['allowed_channels']
-                    : $definition['allowed_channels'];
-                $defaultChannels = array_values(array_intersect($definition['default_channels'], $allowedChannels));
-                $familyChannels = collect(is_array($familyState['channels'] ?? null) ? $familyState['channels'] : $defaultChannels)
-                    ->map(static fn (mixed $channel): string => (string) $channel)
-                    ->filter(static fn (string $channel): bool => in_array($channel, $allowedChannels, true))
-                    ->unique()
-                    ->values()
-                    ->all();
-
-                $this->notificationTriggersState[$triggerKey]['cadence'] = (string) ($familyState['cadence'] ?? $definition['default_cadence']->value);
-                $this->notificationTriggersState[$triggerKey]['channels'] = $familyChannels === []
-                    ? $defaultChannels
-                    : $familyChannels;
-                $this->notificationTriggersState[$triggerKey]['urgent_override'] = null;
-            }
-        } finally {
-            $this->syncingInheritedTriggerState = false;
-        }
+        return $user->hasAhliPanelAccess()
+            || EventSubmission::query()
+                ->where('submitter_id', $user->getKey())
+                ->exists();
     }
 
     protected function settingsManager(): NotificationSettingsManager
