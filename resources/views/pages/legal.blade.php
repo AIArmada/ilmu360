@@ -7,7 +7,6 @@
     $pageTitle = (string) data_get($pageContent, 'meta.title', __('Privacy'));
     $pageIntro = (string) data_get($pageContent, 'intro', '');
     $sections = data_get($pageContent, 'sections', []);
-    $channels = data_get($pageContent, 'channels', []);
     $summary = data_get($pageContent, 'summary', []);
     $lastUpdated = (string) data_get(trans('legal'), 'last_updated', '');
     $legalTabs = [
@@ -104,24 +103,27 @@
                         </div>
                     @endif
 
-                    @if (is_array($channels) && $channels !== [])
-                        <div class="mt-6 flex flex-wrap gap-x-4 gap-y-2">
-                            @foreach ($channels as $channel)
-                                @php
-                                    $channelType = (string) data_get($channel, 'type', 'route');
-                                    $channelHref = $channelType === 'email'
-                                        ? 'mailto:'.data_get($channel, 'mailto')
-                                        : route((string) data_get($channel, 'route'));
-                                @endphp
-                                <a
-                                    href="{{ $channelHref }}"
-                                    @if ($channelType !== 'email') wire:navigate @endif
-                                    class="inline-flex items-baseline gap-2 font-semibold text-[#0b3b2e] underline decoration-emerald-700/30 underline-offset-4 transition hover:text-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-800"
-                                >
-                                    <span class="text-sm font-medium text-[#5b7268]">{{ data_get($channel, 'label') }}:</span>
-                                    <span>{{ data_get($channel, 'value') }}</span>
-                                </a>
-                            @endforeach
+                    @if ($pageKey === 'contact')
+                        <div
+                            x-data="{ emailAddress: '', emailRevealed: false }"
+                            aria-live="polite"
+                            class="mt-6"
+                        >
+                            <button
+                                type="button"
+                                x-show="!emailRevealed"
+                                @click="emailAddress = String.fromCharCode(97, 100, 109, 105, 110, 64, 105, 108, 109, 117, 51, 54, 48, 46, 99, 111, 109); emailRevealed = true"
+                                class="inline-flex items-center font-semibold text-[#0b3b2e] underline decoration-emerald-700/30 underline-offset-4 transition hover:text-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-800"
+                            >
+                                {{ data_get($pageContent, 'reveal_email') }}
+                            </button>
+                            <a
+                                x-cloak
+                                x-show="emailRevealed"
+                                x-bind:href="'mailto:' + emailAddress"
+                                x-text="emailAddress"
+                                class="font-semibold text-[#0b3b2e] underline decoration-emerald-700/30 underline-offset-4 transition hover:text-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-800"
+                            ></a>
                         </div>
                     @endif
 
@@ -158,7 +160,6 @@
                                                 ['label' => 'X', 'icon' => 'x.svg', 'url' => 'https://x.com/ilmu360'],
                                                 ['label' => 'Instagram', 'icon' => 'instagram.svg', 'url' => 'https://www.instagram.com/ilmu.360'],
                                                 ['label' => 'TikTok', 'icon' => 'tiktok.svg', 'url' => 'https://www.tiktok.com/@ilmu.360'],
-                                                ['label' => 'YouTube', 'icon' => 'youtube.svg', 'url' => 'https://www.youtube.com/'],
                                             ] as $social)
                                                 <a href="{{ $social['url'] }}" target="_blank" rel="noopener noreferrer" title="{{ $social['label'] }}" aria-label="{{ $social['label'] }}" class="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#dfe6da] bg-white px-4 text-sm font-semibold text-[#2d5447] transition hover:border-emerald-700/30 hover:text-emerald-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-800">
                                                     <img src="{{ \App\Support\Media\SocialIcon::url($social['icon']) }}" alt="" class="h-5 w-5 object-contain" loading="lazy">

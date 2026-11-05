@@ -21,7 +21,7 @@ return [
             [
                 'title' => 'Siapa kami',
                 'paragraphs' => [
-                    '“ilmu360°”, “kami” dan “kita” merujuk kepada perkhidmatan ilmu360° dan pihak yang mengendalikannya. Untuk pertanyaan atau permintaan privasi, e-mel admin@ilmu360.com.',
+                    '“ilmu360°”, “kami” dan “kita” merujuk kepada perkhidmatan ilmu360° dan pihak yang mengendalikannya.',
                 ],
             ],
             [
@@ -73,7 +73,7 @@ return [
                 'title' => 'Pilihan dan hak anda',
                 'paragraphs' => [
                     'Anda boleh meminta akses atau pembetulan data peribadi, menarik balik persetujuan jika pemprosesan bergantung padanya, atau meminta kami menghentikan pemasaran langsung. Anda juga boleh meminta penutupan akaun dan pemadaman data; sesetengah rekod mungkin perlu disimpan atas sebab undang-undang, transaksi atau keselamatan. Hak lain yang tersedia di bawah undang-undang, termasuk kemudahalihan data apabila berkenaan, turut terpakai.',
-                    'E-mel admin@ilmu360.com dengan subjek “Permintaan Privasi”. Kami mungkin meminta maklumat untuk mengesahkan identiti anda.',
+                    'Untuk membuat permintaan privasi, gunakan alamat e-mel pada halaman Hubungi Kami dan nyatakan subjek “Permintaan Privasi”. Kami mungkin meminta maklumat untuk mengesahkan identiti anda.',
                 ],
             ],
             [
@@ -159,15 +159,8 @@ return [
         ],
         'eyebrow' => 'Perlukan bantuan?',
         'title' => 'Hubungi Kami',
-        'intro' => 'Hubungi kami melalui e-mel atau ikuti kami di media sosial.',
-        'channels' => [
-            [
-                'type' => 'email',
-                'label' => 'E-mel',
-                'value' => 'admin@ilmu360.com',
-                'mailto' => 'admin@ilmu360.com',
-            ],
-        ],
+        'intro' => 'Pilih untuk memaparkan alamat e-mel kami atau ikuti kami di media sosial.',
+        'reveal_email' => 'Tunjukkan alamat e-mel',
         'sections' => [
             [
                 'title' => 'Ikuti kami',

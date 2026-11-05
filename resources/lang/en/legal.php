@@ -21,7 +21,7 @@ return [
             [
                 'title' => 'Who we are',
                 'paragraphs' => [
-                    '“ilmu360°”, “we” and “us” refer to the ilmu360° service and the party operating it. For privacy questions or requests, email admin@ilmu360.com.',
+                    '“ilmu360°”, “we” and “us” refer to the ilmu360° service and the party operating it.',
                 ],
             ],
             [
@@ -73,7 +73,7 @@ return [
                 'title' => 'Your choices and rights',
                 'paragraphs' => [
                     'You may request access to or correction of your personal data, withdraw consent where processing relies on it, or ask us to stop direct marketing. You may also ask to close your account and delete data; some records may need to be kept for legal, transaction or security reasons. Other rights available under law, including data portability where applicable, also apply.',
-                    'Email admin@ilmu360.com with the subject “Privacy Request”. We may ask for information to verify your identity.',
+                    'To make a privacy request, use the email address on the Contact Us page and include the subject “Privacy Request”. We may ask for information to verify your identity.',
                 ],
             ],
             [
@@ -159,15 +159,8 @@ return [
         ],
         'eyebrow' => 'Need help?',
         'title' => 'Contact Us',
-        'intro' => 'Email us or follow us on social media.',
-        'channels' => [
-            [
-                'type' => 'email',
-                'label' => 'Email',
-                'value' => 'admin@ilmu360.com',
-                'mailto' => 'admin@ilmu360.com',
-            ],
-        ],
+        'intro' => 'Choose to reveal our email address or follow us on social media.',
+        'reveal_email' => 'Show email address',
         'sections' => [
             [
                 'title' => 'Follow us',
