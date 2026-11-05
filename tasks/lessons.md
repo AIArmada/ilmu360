@@ -1,6 +1,6 @@
 # Lessons
 
-- For legal-page copy edits, remove requested contact prompts from every locale and remove the whole section when the user asks to remove a numbered section.
+- Contact-page simplifications should keep locales aligned, avoid unnecessary cards and numbering, use the app's social brand icons, and not tie behavior to a section index that changes with the copy.
 
 - User clarification (2026-11-01, app feedback audit fixes): apply direct canonical fixes with no backward compatibility, legacy paths, or leftovers. Correct shared causes and current consumers together; retain only durable regression coverage and the concise task record.
 

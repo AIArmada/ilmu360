@@ -155,56 +155,24 @@ return [
     'contact' => [
         'meta' => [
             'title' => 'Contact Us',
-            'description' => 'Ways to contact ilmu360° about questions, account help, events or corrections.',
+            'description' => 'Email ilmu360° or follow our official social media channels.',
         ],
         'eyebrow' => 'Need help?',
         'title' => 'Contact Us',
-        'intro' => 'Use the dedicated options below to submit an event or request a correction. Email us only for account, privacy or website support.',
+        'intro' => 'Email us or follow us on social media.',
         'channels' => [
             [
                 'type' => 'email',
                 'label' => 'Email',
                 'value' => 'admin@ilmu360.com',
-                'description' => 'For account, privacy or website support. Use the dedicated options below for events and corrections.',
                 'mailto' => 'admin@ilmu360.com',
-            ],
-            [
-                'type' => 'route',
-                'label' => 'Submit an event',
-                'value' => 'Submit an event',
-                'description' => 'Use this form to submit a new event or update organiser information.',
-                'route' => 'submit-event.create',
-            ],
-            [
-                'type' => 'route',
-                'label' => 'Suggestions & corrections',
-                'value' => 'Suggestions & corrections',
-                'description' => 'Use this form to suggest a speaker or institution, or correct inaccurate information.',
-                'route' => 'contributions.index',
             ],
         ],
         'sections' => [
             [
-                'title' => 'Questions about an event',
-                'paragraphs' => [
-                    'For schedules, locations, tickets, cancellations or refunds, contact the organiser using the details on the event page. To submit a new event, choose “Submit an event” above. To suggest a speaker or institution, or correct information, choose “Suggestions & corrections”.',
-                ],
-            ],
-            [
-                'title' => 'Details that help',
-                'paragraphs' => [
-                    'Include relevant details so we can understand your request.',
-                ],
-                'bullets' => [
-                    'To report content or request a correction, use “Suggestions & corrections” and include the link and details to review.',
-                    'For account or website issues, email us with a description of the problem. Do not include your password.',
-                    'For a privacy request, say whether you want to access, correct or request deletion of your data.',
-                ],
-            ],
-            [
                 'title' => 'Follow us',
                 'paragraphs' => [
-                    'Follow our official social media channels for event updates and community news.',
+                    'Follow ilmu360° on social media for event updates and community news.',
                 ],
             ],
         ],

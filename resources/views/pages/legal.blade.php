@@ -105,7 +105,7 @@
                     @endif
 
                     @if (is_array($channels) && $channels !== [])
-                        <div class="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                        <div class="mt-6 flex flex-wrap gap-x-4 gap-y-2">
                             @foreach ($channels as $channel)
                                 @php
                                     $channelType = (string) data_get($channel, 'type', 'route');
@@ -116,28 +116,10 @@
                                 <a
                                     href="{{ $channelHref }}"
                                     @if ($channelType !== 'email') wire:navigate @endif
-                                    class="group flex h-full flex-col rounded-2xl border border-[#dfe6da] bg-white p-5 transition hover:-translate-y-0.5 hover:border-emerald-700/30 hover:shadow-[0_18px_40px_-30px_rgba(11,59,46,0.55)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-800"
+                                    class="inline-flex items-baseline gap-2 font-semibold text-[#0b3b2e] underline decoration-emerald-700/30 underline-offset-4 transition hover:text-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-800"
                                 >
-                                    <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-[#eef5ee] text-emerald-800">
-                                        @if ($channelType === 'email')
-                                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5v10.5H3.75V6.75Zm0 .5 8.25 6 8.25-6" />
-                                            </svg>
-                                        @elseif (data_get($channel, 'route') === 'contributions.index')
-                                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="m16.5 4.5 3 3L8 19H5v-3L16.5 4.5Z" />
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M14.5 6.5 17.5 9.5" />
-                                            </svg>
-                                        @else
-                                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3.75 8.25h16.5M5.25 5.25h13.5A1.5 1.5 0 0 1 20.25 6.75v12A1.5 1.5 0 0 1 18.75 20.25H5.25A1.5 1.5 0 0 1 3.75 18.75v-12A1.5 1.5 0 0 1 5.25 5.25Z" />
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 11.25v6m-3-3h6" />
-                                            </svg>
-                                        @endif
-                                    </span>
-                                    <span class="mt-4 text-[0.66rem] font-bold uppercase tracking-[0.18em] text-[#7b8f84]">{{ data_get($channel, 'label') }}</span>
-                                    <span class="mt-1 break-words text-base font-bold leading-6 text-[#0b3b2e] group-hover:text-emerald-800">{{ data_get($channel, 'value') }}</span>
-                                    <span class="mt-2 text-sm leading-6 text-[#5b7268]">{{ data_get($channel, 'description') }}</span>
+                                    <span class="text-sm font-medium text-[#5b7268]">{{ data_get($channel, 'label') }}:</span>
+                                    <span>{{ data_get($channel, 'value') }}</span>
                                 </a>
                             @endforeach
                         </div>
@@ -147,11 +129,13 @@
                         @foreach ($sections as $index => $section)
                             <section id="seksyen-{{ $index + 1 }}" class="scroll-mt-28 border-t border-[#edf0e8] pt-8 first:border-0 first:pt-0 {{ $index > 0 ? 'mt-8' : '' }}">
                                 <div class="flex items-start gap-3">
-                                    <span class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-emerald-800/15 bg-[#f2f7f1] text-xs font-bold text-emerald-800">{{ $index + 1 }}</span>
+                                    @if ($pageKey !== 'contact')
+                                        <span class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-emerald-800/15 bg-[#f2f7f1] text-xs font-bold text-emerald-800">{{ $index + 1 }}</span>
+                                    @endif
                                     <h2 class="font-heading text-xl font-semibold leading-8 tracking-[-0.015em] text-[#0b3b2e] sm:text-2xl">{{ data_get($section, 'title') }}</h2>
                                 </div>
 
-                                <div class="mt-3 pl-10">
+                                <div class="mt-3 {{ $pageKey === 'contact' ? '' : 'pl-10' }}">
                                     @foreach ((array) data_get($section, 'paragraphs', []) as $paragraph)
                                         <p class="mt-3 text-[0.95rem] leading-7 text-[#4b5f59] first:mt-0">{{ $paragraph }}</p>
                                     @endforeach
@@ -168,17 +152,17 @@
                                         </ul>
                                     @endif
 
-                                    @if ($pageKey === 'contact' && $index === 2)
+                                    @if ($pageKey === 'contact')
                                         <div class="mt-5 flex flex-wrap gap-2">
                                             @foreach ([
-                                                ['label' => 'X', 'url' => 'https://x.com/ilmu360'],
-                                                ['label' => 'Instagram', 'url' => 'https://www.instagram.com/ilmu.360'],
-                                                ['label' => 'TikTok', 'url' => 'https://www.tiktok.com/@ilmu.360'],
-                                                ['label' => 'YouTube', 'url' => 'https://www.youtube.com/'],
+                                                ['label' => 'X', 'icon' => 'x.svg', 'url' => 'https://x.com/ilmu360'],
+                                                ['label' => 'Instagram', 'icon' => 'instagram.svg', 'url' => 'https://www.instagram.com/ilmu.360'],
+                                                ['label' => 'TikTok', 'icon' => 'tiktok.svg', 'url' => 'https://www.tiktok.com/@ilmu.360'],
+                                                ['label' => 'YouTube', 'icon' => 'youtube.svg', 'url' => 'https://www.youtube.com/'],
                                             ] as $social)
-                                                <a href="{{ $social['url'] }}" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#dfe6da] bg-white px-4 text-sm font-semibold text-[#2d5447] transition hover:border-emerald-700/30 hover:text-emerald-900">
+                                                <a href="{{ $social['url'] }}" target="_blank" rel="noopener noreferrer" title="{{ $social['label'] }}" aria-label="{{ $social['label'] }}" class="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#dfe6da] bg-white px-4 text-sm font-semibold text-[#2d5447] transition hover:border-emerald-700/30 hover:text-emerald-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-800">
+                                                    <img src="{{ \App\Support\Media\SocialIcon::url($social['icon']) }}" alt="" class="h-5 w-5 object-contain" loading="lazy">
                                                     {{ $social['label'] }}
-                                                    <span aria-hidden="true">↗</span>
                                                 </a>
                                             @endforeach
                                         </div>

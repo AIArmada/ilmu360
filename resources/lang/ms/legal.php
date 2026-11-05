@@ -155,56 +155,24 @@ return [
     'contact' => [
         'meta' => [
             'title' => 'Hubungi Kami',
-            'description' => 'Saluran untuk pertanyaan, bantuan akaun, majlis dan pembetulan maklumat ilmu360°.',
+            'description' => 'E-mel ilmu360° atau ikuti saluran media sosial rasmi kami.',
         ],
         'eyebrow' => 'Perlukan bantuan?',
         'title' => 'Hubungi Kami',
-        'intro' => 'Untuk menghantar majlis atau meminta pembetulan, gunakan saluran khusus di bawah. E-mel kami hanya untuk bantuan akaun, privasi atau masalah laman.',
+        'intro' => 'Hubungi kami melalui e-mel atau ikuti kami di media sosial.',
         'channels' => [
             [
                 'type' => 'email',
                 'label' => 'E-mel',
                 'value' => 'admin@ilmu360.com',
-                'description' => 'Untuk bantuan akaun, privasi atau masalah laman. Gunakan pilihan khusus di bawah untuk majlis dan pembetulan.',
                 'mailto' => 'admin@ilmu360.com',
-            ],
-            [
-                'type' => 'route',
-                'label' => 'Hantar majlis',
-                'value' => 'Hantar majlis baharu',
-                'description' => 'Gunakan borang ini untuk menghantar majlis baharu atau mengemas kini maklumat penganjur.',
-                'route' => 'submit-event.create',
-            ],
-            [
-                'type' => 'route',
-                'label' => 'Cadangan & pembetulan',
-                'value' => 'Cadangan & pembetulan',
-                'description' => 'Gunakan borang ini untuk mencadangkan penceramah atau institusi, atau membetulkan maklumat.',
-                'route' => 'contributions.index',
             ],
         ],
         'sections' => [
             [
-                'title' => 'Pertanyaan tentang majlis',
-                'paragraphs' => [
-                    'Untuk jadual, lokasi, tiket, pembatalan atau bayaran balik, hubungi penganjur melalui maklumat pada halaman majlis. Untuk menghantar majlis baharu, pilih “Hantar majlis baharu” di atas. Untuk mencadangkan penceramah atau institusi, atau membetulkan maklumat, pilih “Cadangan & pembetulan”.',
-                ],
-            ],
-            [
-                'title' => 'Maklumat yang membantu',
-                'paragraphs' => [
-                    'Sertakan butiran yang berkaitan supaya kami boleh memahami permintaan anda.',
-                ],
-                'bullets' => [
-                    'Untuk melaporkan kandungan atau mencadangkan pembetulan, gunakan saluran “Cadangan & pembetulan” dan sertakan pautan serta butiran yang perlu disemak.',
-                    'Untuk isu akaun atau laman, e-mel kami dan terangkan masalahnya. Jangan sertakan kata laluan.',
-                    'Untuk permintaan privasi, nyatakan sama ada anda mahu mengakses, membetulkan atau meminta pemadaman data.',
-                ],
-            ],
-            [
                 'title' => 'Ikuti kami',
                 'paragraphs' => [
-                    'Ikuti saluran media sosial rasmi kami untuk kemas kini majlis dan berita komuniti.',
+                    'Ikuti media sosial rasmi ilmu360° untuk kemas kini majlis dan berita komuniti.',
                 ],
             ],
         ],
