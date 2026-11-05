@@ -32,14 +32,9 @@
         </div>
 
         <section class="relative border-b border-emerald-900/[0.06]">
-            <div class="mx-auto max-w-6xl px-5 pb-10 pt-14 sm:px-8 sm:pb-12 sm:pt-16 lg:px-10 lg:pt-20">
+            <div class="mx-auto max-w-6xl px-5 pb-10 pt-48 sm:px-8 sm:pb-12 sm:pt-52 lg:px-10 lg:pt-52">
                 <div class="max-w-3xl">
-                    <p class="inline-flex items-center gap-2 rounded-full border border-emerald-800/15 bg-white/70 px-3.5 py-1.5 text-[0.66rem] font-bold uppercase tracking-[0.18em] text-emerald-800 shadow-sm backdrop-blur-sm">
-                        <span class="h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden="true"></span>
-                        {{ data_get($pageContent, 'eyebrow') }}
-                    </p>
-
-                    <h1 class="mt-5 text-balance font-heading text-4xl font-semibold leading-[1.04] tracking-[-0.035em] text-[#0b3b2e] sm:text-5xl lg:text-6xl">
+                    <h1 class="text-balance font-heading text-4xl font-semibold leading-[1.04] tracking-[-0.035em] text-[#0b3b2e] sm:text-5xl lg:text-6xl">
                         {{ $pageTitle }}
                     </h1>
 
@@ -194,20 +189,6 @@
                     </div>
                 </div>
 
-                <div class="mt-8 flex flex-col gap-4 rounded-2xl border border-[#dfe6da] bg-white/70 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-                    <div>
-                        <p class="font-heading text-lg font-semibold text-[#0b3b2e]">{{ __('Looking for a gathering?') }}</p>
-                        <p class="mt-1 text-sm leading-6 text-[#5b7268]">{{ __('Browse upcoming majlis ilmu near you.') }}</p>
-                    </div>
-                    <div class="flex flex-wrap gap-2">
-                        <a href="{{ route('events.index') }}" wire:navigate class="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#0e5b43] px-4 text-sm font-bold text-white transition hover:bg-[#0a4634]">
-                            {{ __('Browse Majlis') }} <span aria-hidden="true">→</span>
-                        </a>
-                        <a href="{{ route('about') }}" wire:navigate class="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#dbe3d6] bg-white px-4 text-sm font-bold text-[#2d5447] transition hover:border-emerald-700/30 hover:text-emerald-900">
-                            {{ __('About Us') }}
-                        </a>
-                    </div>
-                </div>
             </article>
         </section>
     </div>

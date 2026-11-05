@@ -1,111 +1,85 @@
 <?php
 
 return [
-    'last_updated' => 'Last updated: 31 October 2026',
+    'last_updated' => 'Last updated: 5 November 2026',
     'updated_label' => 'Updated',
 
     'privacy' => [
         'meta' => [
-            'title' => 'Privacy Policy',
-            'description' => 'How ilmu360° collects, uses and protects your personal data.',
+            'title' => 'Privacy Notice',
+            'description' => 'Learn how ilmu360° uses and protects your personal data.',
         ],
         'eyebrow' => 'Privacy & trust',
-        'title' => 'Privacy Policy',
-        'intro' => 'We respect your privacy. This policy explains the personal data we collect, why we collect it, and how you can control it when using ilmu360°.',
+        'title' => 'Privacy Notice',
+        'intro' => 'This notice explains what data we collect when you use ilmu360°, why we use it and how to make a privacy request.',
         'summary' => [
-            'We do not sell your personal data.',
-            'We only collect what we need to provide the service.',
-            'You can request access, correction or deletion of your data.',
+            'We use data to run accounts, events and registrations.',
+            'Organisers receive the information needed to manage your registration.',
+            'You can request access or correction by email.',
         ],
         'sections' => [
             [
-                'title' => 'Information we collect',
+                'title' => 'Who we are',
                 'paragraphs' => [
-                    'We collect information you provide to us directly and information generated when you use the platform.',
-                ],
-                'bullets' => [
-                    'Account information: name, email address, language preference and a hashed password.',
-                    'Event and institution information: event details, organisers, speakers, locations, ticket prices and media files you submit.',
-                    'Registration information: attendee name, email, phone number and answers to registration questions when you register for an event.',
-                    'Usage data: pages visited, searches, device type, browser and IP address for security and improvement purposes.',
-                    'Location: only when you choose the “Near me” feature and allow location access on your device.',
+                    '“ilmu360°”, “we” and “us” refer to the ilmu360° service and the party operating it. For privacy questions or requests, email admin@ilmu360.com.',
                 ],
             ],
             [
-                'title' => 'Why we use your information',
+                'title' => 'Data we collect',
                 'paragraphs' => [
-                    'We use personal data to operate the platform safely and provide a useful experience.',
+                    'Depending on how you use ilmu360°, we may collect information you provide, usage data from your browser or device, and event information from organisers or relevant public sources:',
                 ],
                 'bullets' => [
-                    'To provide, maintain and protect your account.',
-                    'To show events, institutions and speakers relevant to your searches.',
-                    'To process registrations, tickets, payments and event-related communication.',
-                    'To send notifications you choose, such as event reminders or organiser updates.',
-                    'To review submitted content and prevent fraud, spam or abuse.',
-                    'To comply with legal obligations and valid requests from authorities.',
+                    'Account and contact details such as your name, email, phone number, language and timezone. Other profile details are collected only if you provide them.',
+                    'Event or content details you submit, including names, contact details, locations, images and files. Published content may be visible to the public.',
+                    'Registration and order details such as attendee names, contact details, registration answers, tickets, payment amounts, status and transaction references.',
+                    'Usage and security information such as IP address, browser/device type, pages and features used, searches, cookies and location if you allow location access.',
+                    'Messages, reports and feedback you send us.',
                 ],
             ],
             [
-                'title' => 'Basis for processing',
+                'title' => 'How we use data',
                 'paragraphs' => [
-                    'Under the Personal Data Protection Act 2010 (PDPA), we process personal data based on your consent, the need to perform a service you requested, legal obligations, and our legitimate interest in operating the platform securely.',
-                    'Where consent is the basis, you may withdraw it at any time. Withdrawal does not affect processing that already took place before the withdrawal.',
+                    'We use data to operate and secure accounts and the platform; help you find events; manage submissions, registrations, tickets, payments and notifications; respond to enquiries; prevent fraud or misuse; and meet legal obligations.',
+                    'Some information is needed to create an account, register or use a feature. If you do not provide it, we may not be able to provide that feature. You can still browse public content without an account.',
                 ],
             ],
             [
-                'title' => 'Sharing data',
+                'title' => 'Who we share data with',
                 'paragraphs' => [
-                    'We do not sell your personal data. We only share data with parties that help us provide the service, and only to the extent necessary.',
+                    'We do not sell personal data. We share it only when needed to provide the service, when you allow it, or when the law permits or requires it.',
                 ],
                 'bullets' => [
-                    'Technical service providers such as hosting, email delivery, media storage and analytics.',
-                    'Event organisers, when you register or contact them through the platform.',
-                    'Authorities or professional advisers, where required by law or necessary to protect rights and safety.',
+                    'Event organisers receive the registration details needed to manage your attendance. They handle that information under their own privacy practices.',
+                    'Service providers that help with hosting, email, file storage, analytics, security, maps or payments.',
+                    'Authorities, courts or professional advisers when needed to comply with law or protect rights and safety.',
+                    'Information you submit to public pages, such as event details, may be shown to site visitors.',
+                ],
+            ],
+            [
+                'title' => 'Cookies, location and data transfers',
+                'paragraphs' => [
+                    'Cookies support sign-in, preferences, security and understanding platform use. You can manage cookies in your browser settings, but blocking essential cookies may affect some features. Location is sent only when you choose a location feature and allow access on your device.',
+                    'Some service providers may process or store data outside Malaysia. We handle these transfers with the safeguards required by law. Contact us if you have a question about a particular transfer.',
                 ],
             ],
             [
                 'title' => 'Retention and security',
                 'paragraphs' => [
-                    'We keep personal data for as long as needed for the purposes described above, or as required by law. When data is no longer needed, we delete or anonymise it in a reasonable manner.',
-                    'We use reasonable technical and organisational measures, including encryption in transit and access controls, to protect your data. However, no internet system can be guaranteed completely secure.',
+                    'We keep data only as long as needed to provide the service, manage transactions, resolve disputes, prevent misuse or meet legal obligations. Some records may need to remain after an account closes. We use reasonable security measures, but no online system can be guaranteed completely secure.',
                 ],
             ],
             [
-                'title' => 'Your rights',
+                'title' => 'Your choices and rights',
                 'paragraphs' => [
-                    'You have rights over your personal data. To make a request, contact us using the details below. We may need to verify your identity before processing a request.',
-                ],
-                'bullets' => [
-                    'Access the personal data we hold about you.',
-                    'Correct inaccurate or incomplete data.',
-                    'Withdraw consent for processing that relies on consent.',
-                    'Request deletion of your account and personal data, subject to legal obligations.',
-                    'Object to or restrict certain processing, subject to applicable law.',
+                    'You may request access to or correction of your personal data, withdraw consent where processing relies on it, or ask us to stop direct marketing. You may also ask to close your account and delete data; some records may need to be kept for legal, transaction or security reasons. Other rights available under law, including data portability where applicable, also apply.',
+                    'Email admin@ilmu360.com with the subject “Privacy Request”. We may ask for information to verify your identity.',
                 ],
             ],
             [
-                'title' => 'Cookies and analytics',
+                'title' => 'Children and changes',
                 'paragraphs' => [
-                    'We use cookies necessary for sign-in, language preference, security and core platform functions. Aggregate analytics help us understand how the platform is used so we can improve it.',
-                    'You can control or delete cookies through your browser settings. If essential cookies are disabled, some platform features may not work properly.',
-                ],
-            ],
-            [
-                'title' => 'Children',
-                'paragraphs' => [
-                    'The platform is not directed at children under 13. We do not knowingly collect personal data from children. If you believe a child has provided personal data to us, please contact us so we can take appropriate action.',
-                ],
-            ],
-            [
-                'title' => 'Changes to this policy',
-                'paragraphs' => [
-                    'We may update this policy from time to time to reflect changes to the platform, our practices or legal requirements. The latest version will always be shown on this page with its update date.',
-                ],
-            ],
-            [
-                'title' => 'Contact us',
-                'paragraphs' => [
-                    'For privacy questions, access requests or data correction, contact us at hantar@ilmu360.com. We will try to respond within a reasonable time.',
+                    'If you provide information for a child, make sure you have any permission required from a parent or guardian. We may update this notice when our practices change; the date above shows the latest update.',
                 ],
             ],
         ],
@@ -114,94 +88,65 @@ return [
     'terms' => [
         'meta' => [
             'title' => 'Terms of Use',
-            'description' => 'Terms and conditions for using the ilmu360° platform.',
+            'description' => 'Terms for using the ilmu360° website and services.',
         ],
-        'eyebrow' => 'Terms & responsibility',
+        'eyebrow' => 'Terms of use',
         'title' => 'Terms of Use',
-        'intro' => 'These terms govern your use of ilmu360°. By using the platform, you agree to comply with the terms below.',
+        'intro' => 'These terms explain the rules for using ilmu360° and our role when you discover or register for an event.',
         'summary' => [
-            'ilmu360° is an event discovery platform, not an event organiser.',
-            'Event information is the responsibility of each organiser.',
-            'Please use the platform respectfully and responsibly.',
+            'ilmu360° helps you find events and manage registrations.',
+            'Organisers are responsible for the events they run.',
+            'Consumer rights protected by law still apply.',
         ],
         'sections' => [
             [
-                'title' => 'Acceptance of terms',
+                'title' => 'Using ilmu360°',
                 'paragraphs' => [
-                    'By accessing or using ilmu360°, you agree to be bound by these terms and our Privacy Policy. If you do not agree, please stop using the platform.',
+                    'By using ilmu360°, you agree to these terms and our Privacy Notice. Additional terms shown for a registration or payment also apply to that transaction.',
                 ],
             ],
             [
-                'title' => 'Our role',
+                'title' => 'Our role and event organisers',
                 'paragraphs' => [
-                    'ilmu360° helps people discover events, institutions and speakers. We are not the organiser and do not run the events shown on the platform.',
-                    'Event information, schedules, locations, prices and organiser details are provided by organisers or contributors. Although we review content, we do not guarantee that all information is always accurate, complete or current. Please confirm important details with the organiser before attending.',
+                    'ilmu360° provides a platform to find events and tools for registration, tickets or payment. Organisers are responsible for event content, venue, schedule, participant safety, changes and cancellations. Event details may change, so confirm important information with the organiser before attending or paying.',
                 ],
             ],
             [
-                'title' => 'User accounts',
+                'title' => 'Accounts and age',
                 'paragraphs' => [
-                    'You are responsible for providing accurate information when registering and for keeping your password confidential. You are responsible for activity that takes place through your account.',
-                    'The platform is intended for users aged 18 and above. If you are under 18, you need permission from a parent or guardian before using the platform.',
+                    'Provide accurate information, keep your account secure and tell us if you suspect unauthorised use. You must have legal capacity to agree to these terms. If you are under 18, ask a parent or guardian to review these terms and handle any account, registration or payment that creates obligations.',
                 ],
             ],
             [
-                'title' => 'Event submissions and content',
+                'title' => 'Registrations, tickets and payments',
                 'paragraphs' => [
-                    'When you submit an event, institution, speaker or other content, you confirm that you have the right to do so and that the information is not misleading, unlawful or infringing on the rights of others.',
-                    'We may review, edit, reject or remove content that does not meet our standards. Submission does not guarantee publication, and publication does not mean endorsement by ilmu360°.',
+                    'Make sure participant details are accurate and that you are allowed to provide them for others. Required details will be shared with the organiser to manage your attendance. Ticket, cancellation and refund terms vary by event; review them before registering.',
+                    'Payments may be processed by a third-party provider. Contact the organiser about the event or a refund; we will help with platform or payment issues within our control. Consumer rights that cannot be excluded by law still apply.',
                 ],
             ],
             [
-                'title' => 'Acceptable use',
+                'title' => 'Content you submit',
                 'paragraphs' => [
-                    'You agree not to misuse the platform. This includes sending spam, scraping data automatically without permission, impersonating another person, harassing other users, distributing malware, or using the platform for unlawful purposes.',
+                    'You keep ownership of the content you submit and are responsible for having the right to share it. You allow ilmu360° to store, display, format and promote it as needed to operate the service. We may reject or remove content that breaks the law, infringes someone’s rights or breaches these terms. Publication does not mean ilmu360° endorses the content or organiser.',
                 ],
             ],
             [
-                'title' => 'Registrations and payments',
+                'title' => 'Unacceptable use',
                 'paragraphs' => [
-                    'Some events require registration or payment. Registration, cancellation, transfer and refund terms are set by each organiser. Payments may be processed by third-party payment providers, and those providers’ terms also apply.',
-                    'Any dispute about an event, ticket or refund should be resolved with the organiser. We may help relay information but are not responsible for the organiser’s decisions.',
+                    'Do not use the platform to break the law or violate others’ rights, impersonate or harass users, send spam or malware, gain unauthorised access, disrupt the service or collect data automatically without our written permission.',
                 ],
             ],
             [
-                'title' => 'Intellectual property',
+                'title' => 'ilmu360° property and access',
                 'paragraphs' => [
-                    'Platform content, including design, logos, text and software, is owned by ilmu360° or its licensors and is protected by intellectual property law. You may not copy, modify or distribute that content without written permission.',
-                    'By submitting content to us, you grant us a non-exclusive licence to display, store and promote that content on the platform and our promotional channels.',
+                    'The design, trademarks, software and content of ilmu360° belong to us or our licensors. Do not copy or use them without permission. We may maintain or change platform features, or restrict access for security, legal compliance or a breach of these terms. We work to keep the platform available but cannot promise uninterrupted access or error-free content supplied by others.',
+                    'Organisers are responsible for their events. These terms do not exclude ilmu360°’s own responsibilities or consumer rights that cannot be excluded under Malaysian law.',
                 ],
             ],
             [
-                'title' => 'Third-party links',
+                'title' => 'Changes and governing law',
                 'paragraphs' => [
-                    'The platform may contain links to third-party websites or services. We do not control and are not responsible for the content, privacy policies or practices of those third parties.',
-                ],
-            ],
-            [
-                'title' => 'Disclaimers and limitation of liability',
-                'paragraphs' => [
-                    'The platform is provided “as is” and “as available”. To the extent permitted by law, we make no express or implied warranties about the platform or its content.',
-                    'To the extent permitted by law, ilmu360° is not liable for any indirect, incidental, special or consequential loss arising from the use of, or inability to use, the platform.',
-                ],
-            ],
-            [
-                'title' => 'Changes and termination',
-                'paragraphs' => [
-                    'We may change, suspend or discontinue access to the platform or any of its features at any time. We may also suspend or terminate accounts that violate these terms.',
-                    'We may update these terms from time to time. Continued use after a change is published means you accept the updated terms.',
-                ],
-            ],
-            [
-                'title' => 'Governing law',
-                'paragraphs' => [
-                    'These terms are governed by the laws of Malaysia. Any dispute shall be subject to the jurisdiction of the Malaysian courts.',
-                ],
-            ],
-            [
-                'title' => 'Contact us',
-                'paragraphs' => [
-                    'If you have questions about these terms, contact us at hantar@ilmu360.com.',
+                    'We may update these terms and will show the update date on this page. Malaysian law governs these terms, subject to any consumer rights required by law.',
                 ],
             ],
         ],
@@ -210,56 +155,56 @@ return [
     'contact' => [
         'meta' => [
             'title' => 'Contact Us',
-            'description' => 'Contact the ilmu360° team for questions, support or suggestions.',
+            'description' => 'Ways to contact ilmu360° about questions, account help, events or corrections.',
         ],
-        'eyebrow' => 'We are here to listen',
+        'eyebrow' => 'Need help?',
         'title' => 'Contact Us',
-        'intro' => 'Have a question, suggestion or a problem to report? Send us a message and the ilmu360° team will help as best we can.',
+        'intro' => 'Use the dedicated options below to submit an event or request a correction. Email us only for account, privacy or website support.',
         'channels' => [
             [
                 'type' => 'email',
                 'label' => 'Email',
-                'value' => 'hantar@ilmu360.com',
-                'description' => 'For general questions, privacy, account support and event-related matters.',
-                'mailto' => 'hantar@ilmu360.com',
+                'value' => 'admin@ilmu360.com',
+                'description' => 'For account, privacy or website support. Use the dedicated options below for events and corrections.',
+                'mailto' => 'admin@ilmu360.com',
             ],
             [
                 'type' => 'route',
                 'label' => 'Submit an event',
-                'value' => 'Share a gathering',
-                'description' => 'Submit a new event or update organiser information.',
+                'value' => 'Submit an event',
+                'description' => 'Use this form to submit a new event or update organiser information.',
                 'route' => 'submit-event.create',
             ],
             [
                 'type' => 'route',
                 'label' => 'Suggestions & corrections',
-                'value' => 'Help us improve the directory',
-                'description' => 'Suggest a speaker, institution or correction to inaccurate information.',
+                'value' => 'Suggestions & corrections',
+                'description' => 'Use this form to suggest a speaker or institution, or correct inaccurate information.',
                 'route' => 'contributions.index',
             ],
         ],
         'sections' => [
             [
-                'title' => 'Response time',
+                'title' => 'Questions about an event',
                 'paragraphs' => [
-                    'We usually reply within two to three working days. For matters involving an event happening soon, please include the event link and important details in your email so we can help faster.',
+                    'For schedules, locations, tickets, cancellations or refunds, contact the organiser using the details on the event page. To submit a new event, choose “Submit an event” above. To suggest a speaker or institution, or correct information, choose “Suggestions & corrections”.',
                 ],
             ],
             [
-                'title' => 'Before contacting us',
+                'title' => 'Details that help',
                 'paragraphs' => [
-                    'If your question is about a specific event, check the event page first for organiser details, the latest schedule and registration information. Many questions can be answered directly by the organiser.',
+                    'Include relevant details so we can understand your request.',
                 ],
                 'bullets' => [
-                    'For cancellations, refunds or ticket changes, contact the event organiser.',
-                    'To report inappropriate content, include the link and the reason for your report.',
-                    'For privacy questions, tell us whether you want to access, correct or delete your data.',
+                    'To report content or request a correction, use “Suggestions & corrections” and include the link and details to review.',
+                    'For account or website issues, email us with a description of the problem. Do not include your password.',
+                    'For a privacy request, say whether you want to access, correct or request deletion of your data.',
                 ],
             ],
             [
                 'title' => 'Follow us',
                 'paragraphs' => [
-                    'Get event updates and community news through our official social media channels.',
+                    'Follow our official social media channels for event updates and community news.',
                 ],
             ],
         ],

@@ -1,111 +1,85 @@
 <?php
 
 return [
-    'last_updated' => 'Kemas kini terakhir: 31 Oktober 2026',
+    'last_updated' => 'Kemas kini terakhir: 5 November 2026',
     'updated_label' => 'Dikemas kini',
 
     'privacy' => [
         'meta' => [
-            'title' => 'Dasar Privasi',
-            'description' => 'Bagaimana ilmu360° mengumpul, menggunakan dan melindungi data peribadi anda.',
+            'title' => 'Notis Privasi',
+            'description' => 'Ketahui cara ilmu360° menggunakan dan melindungi data peribadi anda.',
         ],
         'eyebrow' => 'Privasi & kepercayaan',
-        'title' => 'Dasar Privasi',
-        'intro' => 'Kami menghormati privasi anda. Dasar ini menerangkan data peribadi yang kami kumpul, sebab kami mengumpulnya, dan cara anda boleh mengawalnya semasa menggunakan ilmu360°.',
+        'title' => 'Notis Privasi',
+        'intro' => 'Notis ini menerangkan data yang kami kumpul apabila anda menggunakan ilmu360°, sebab kami menggunakannya dan cara anda boleh membuat permintaan privasi.',
         'summary' => [
-            'Kami tidak menjual data peribadi anda.',
-            'Kami hanya mengumpul apa yang diperlukan untuk menyediakan perkhidmatan.',
-            'Anda boleh meminta akses, pembetulan atau pemadaman data anda.',
+            'Kami menggunakan data untuk mengendalikan akaun, majlis dan pendaftaran.',
+            'Penganjur menerima maklumat yang diperlukan untuk mengurus penyertaan anda.',
+            'Anda boleh meminta akses atau pembetulan melalui e-mel.',
         ],
         'sections' => [
             [
-                'title' => 'Maklumat yang kami kumpul',
+                'title' => 'Siapa kami',
                 'paragraphs' => [
-                    'Kami mengumpul maklumat yang anda berikan secara langsung kepada kami dan maklumat yang terhasil daripada penggunaan platform.',
-                ],
-                'bullets' => [
-                    'Maklumat akaun: nama, alamat e-mel, pilihan bahasa dan kata laluan yang disimpan dalam bentuk hash.',
-                    'Maklumat majlis dan institusi: butiran majlis, penganjur, penceramah, lokasi, harga tiket dan fail media yang anda hantar.',
-                    'Maklumat pendaftaran: nama peserta, e-mel, nombor telefon dan jawapan kepada soalan pendaftaran apabila anda mendaftar untuk sesuatu majlis.',
-                    'Data penggunaan: halaman yang dilawati, carian, jenis peranti, pelayar dan alamat IP untuk tujuan keselamatan dan penambahbaikan.',
-                    'Lokasi: hanya apabila anda memilih ciri “Dekat saya” dan membenarkan akses lokasi pada peranti anda.',
+                    '“ilmu360°”, “kami” dan “kita” merujuk kepada perkhidmatan ilmu360° dan pihak yang mengendalikannya. Untuk pertanyaan atau permintaan privasi, e-mel admin@ilmu360.com.',
                 ],
             ],
             [
-                'title' => 'Mengapa kami menggunakan maklumat anda',
+                'title' => 'Data yang kami kumpul',
                 'paragraphs' => [
-                    'Kami menggunakan data peribadi untuk mengendalikan platform dengan selamat dan memberikan pengalaman yang berguna kepada anda.',
+                    'Bergantung pada cara anda menggunakan ilmu360°, kami mungkin mengumpul data yang anda berikan, data penggunaan daripada pelayar atau peranti anda, serta maklumat majlis daripada penganjur atau sumber awam yang berkaitan:',
                 ],
                 'bullets' => [
-                    'Menyediakan, menyelenggara dan melindungi akaun anda.',
-                    'Memaparkan majlis, institusi dan penceramah yang relevan dengan carian anda.',
-                    'Memproses pendaftaran, tiket, pembayaran dan komunikasi berkaitan majlis.',
-                    'Menghantar notifikasi yang anda pilih, seperti peringatan majlis atau kemas kini penganjur.',
-                    'Menyemak kandungan yang dihantar dan mengelakkan penipuan, spam atau penyalahgunaan.',
-                    'Mematuhi kewajipan undang-undang dan permintaan pihak berkuasa yang sah.',
+                    'Maklumat akaun dan hubungan seperti nama, e-mel, nombor telefon, bahasa dan zon waktu. Maklumat profil lain hanya dikumpul jika anda memberikannya.',
+                    'Maklumat majlis atau kandungan yang anda hantar, termasuk nama, butiran hubungan, lokasi, imej dan fail. Kandungan yang diterbitkan boleh dilihat oleh orang ramai.',
+                    'Maklumat pendaftaran dan pesanan seperti nama peserta, butiran hubungan, jawapan pendaftaran, tiket, jumlah bayaran, status dan rujukan transaksi.',
+                    'Maklumat penggunaan dan keselamatan seperti alamat IP, jenis pelayar/peranti, halaman dan ciri yang digunakan, carian, kuki serta lokasi jika anda membenarkan akses lokasi.',
+                    'Mesej, laporan dan maklum balas yang anda hantar kepada kami.',
                 ],
             ],
             [
-                'title' => 'Asas pemprosesan',
+                'title' => 'Cara kami menggunakan data',
                 'paragraphs' => [
-                    'Di bawah Akta Perlindungan Data Peribadi 2010 (PDPA), kami memproses data peribadi berdasarkan persetujuan anda, keperluan untuk melaksanakan perkhidmatan yang anda minta, kewajipan undang-undang, dan kepentingan sah kami dalam mengendalikan platform dengan selamat.',
-                    'Apabila persetujuan menjadi asas pemprosesan, anda boleh menarik balik persetujuan itu pada bila-bila masa. Penarikan balik ini tidak menjejaskan pemprosesan yang telah dilakukan sebelum ini.',
+                    'Kami menggunakan data untuk mengendalikan dan melindungi akaun serta platform; membantu anda mencari majlis; mengurus sumbangan, pendaftaran, tiket, bayaran dan notifikasi; menjawab pertanyaan; mencegah penipuan atau penyalahgunaan; dan memenuhi kewajipan undang-undang.',
+                    'Maklumat tertentu diperlukan untuk membuat akaun, mendaftar atau menggunakan ciri tertentu. Jika anda tidak memberikannya, kami mungkin tidak dapat menyediakan ciri tersebut. Anda masih boleh melayari kandungan awam tanpa akaun.',
                 ],
             ],
             [
                 'title' => 'Perkongsian data',
                 'paragraphs' => [
-                    'Kami tidak menjual data peribadi anda. Kami hanya berkongsi data dengan pihak yang membantu kami menyediakan perkhidmatan, dan hanya setakat yang diperlukan.',
+                    'Kami tidak menjual data peribadi anda. Kami berkongsi data hanya apabila diperlukan untuk menyediakan perkhidmatan, apabila anda membenarkannya, atau apabila undang-undang membenarkan atau mewajibkannya.',
                 ],
                 'bullets' => [
-                    'Penyedia perkhidmatan teknikal seperti pengehosan, penghantaran e-mel, storan media dan analitik.',
-                    'Penganjur majlis, apabila anda mendaftar atau menghubungi mereka melalui platform.',
-                    'Pihak berkuasa atau penasihat profesional, jika diwajibkan oleh undang-undang atau diperlukan untuk melindungi hak dan keselamatan.',
+                    'Penganjur majlis menerima maklumat pendaftaran yang diperlukan untuk mengurus penyertaan anda. Mereka mengendalikan maklumat itu mengikut amalan privasi mereka sendiri.',
+                    'Penyedia perkhidmatan yang membantu kami dengan pengehosan, e-mel, storan fail, analitik, keselamatan, peta atau pembayaran.',
+                    'Pihak berkuasa, mahkamah atau penasihat profesional apabila perlu untuk mematuhi undang-undang atau melindungi hak dan keselamatan.',
+                    'Maklumat yang anda hantar ke halaman awam, seperti butiran majlis, boleh dipaparkan kepada pengunjung laman.',
+                ],
+            ],
+            [
+                'title' => 'Kuki, lokasi dan pemindahan data',
+                'paragraphs' => [
+                    'Kuki membantu log masuk, menyimpan pilihan, melindungi akaun dan memahami penggunaan platform. Anda boleh mengurus kuki melalui tetapan pelayar, tetapi menyekat kuki penting boleh menjejaskan sesetengah ciri. Lokasi hanya dihantar apabila anda memilih ciri berasaskan lokasi dan membenarkan akses pada peranti anda.',
+                    'Sesetengah penyedia perkhidmatan mungkin memproses atau menyimpan data di luar Malaysia. Kami mengendalikan pemindahan tersebut mengikut perlindungan yang diwajibkan undang-undang. Hubungi kami jika anda ingin bertanya tentang pemindahan tertentu.',
                 ],
             ],
             [
                 'title' => 'Penyimpanan dan keselamatan',
                 'paragraphs' => [
-                    'Kami menyimpan data peribadi selama diperlukan untuk tujuan yang dinyatakan di atas, atau selama yang diwajibkan oleh undang-undang. Apabila data tidak lagi diperlukan, kami akan memadam atau menyahkenal pastinya dengan cara yang munasabah.',
-                    'Kami menggunakan langkah teknikal dan organisasi yang munasabah, termasuk penyulitan dalam transit dan kawalan akses, untuk melindungi data anda. Walau bagaimanapun, tiada sistem internet yang boleh dijamin sepenuhnya selamat.',
+                    'Kami menyimpan data selama yang diperlukan untuk menyediakan perkhidmatan, mengurus urus niaga, menyelesaikan pertikaian, mencegah penyalahgunaan atau memenuhi undang-undang. Sesetengah rekod mungkin perlu disimpan selepas akaun ditutup. Kami menggunakan langkah keselamatan yang munasabah, tetapi tiada sistem dalam talian yang boleh dijamin selamat sepenuhnya.',
                 ],
             ],
             [
-                'title' => 'Hak anda',
+                'title' => 'Pilihan dan hak anda',
                 'paragraphs' => [
-                    'Anda mempunyai hak untuk mengawal data peribadi anda. Untuk membuat permintaan, hubungi kami menggunakan butiran di bawah. Kami mungkin perlu mengesahkan identiti anda sebelum memproses permintaan.',
-                ],
-                'bullets' => [
-                    'Mendapat akses kepada data peribadi yang kami simpan tentang anda.',
-                    'Membetulkan data yang tidak tepat atau tidak lengkap.',
-                    'Menarik balik persetujuan untuk pemprosesan yang bergantung pada persetujuan.',
-                    'Meminta pemadaman akaun dan data peribadi anda, tertakluk kepada kewajipan undang-undang.',
-                    'Membantah atau mengehadkan pemprosesan tertentu, tertakluk kepada undang-undang yang terpakai.',
+                    'Anda boleh meminta akses atau pembetulan data peribadi, menarik balik persetujuan jika pemprosesan bergantung padanya, atau meminta kami menghentikan pemasaran langsung. Anda juga boleh meminta penutupan akaun dan pemadaman data; sesetengah rekod mungkin perlu disimpan atas sebab undang-undang, transaksi atau keselamatan. Hak lain yang tersedia di bawah undang-undang, termasuk kemudahalihan data apabila berkenaan, turut terpakai.',
+                    'E-mel admin@ilmu360.com dengan subjek “Permintaan Privasi”. Kami mungkin meminta maklumat untuk mengesahkan identiti anda.',
                 ],
             ],
             [
-                'title' => 'Kuki dan analitik',
+                'title' => 'Kanak-kanak dan perubahan notis',
                 'paragraphs' => [
-                    'Kami menggunakan kuki yang diperlukan untuk log masuk, pilihan bahasa, keselamatan dan fungsi asas platform. Analitik agregat membantu kami memahami cara platform digunakan supaya kami boleh memperbaikinya.',
-                    'Anda boleh mengawal atau memadam kuki melalui tetapan pelayar anda. Jika kuki yang diperlukan dimatikan, sebahagian ciri platform mungkin tidak berfungsi dengan baik.',
-                ],
-            ],
-            [
-                'title' => 'Kanak-kanak',
-                'paragraphs' => [
-                    'Platform ini tidak ditujukan kepada kanak-kanak di bawah umur 13 tahun. Kami tidak dengan sengaja mengumpul data peribadi kanak-kanak. Jika anda percaya seorang kanak-kanak telah memberikan data peribadi kepada kami, sila hubungi kami supaya kami boleh mengambil tindakan yang sewajarnya.',
-                ],
-            ],
-            [
-                'title' => 'Perubahan pada dasar ini',
-                'paragraphs' => [
-                    'Kami boleh mengemas kini dasar ini dari semasa ke semasa untuk mencerminkan perubahan pada platform, amalan kami atau keperluan undang-undang. Versi terkini akan sentiasa dipaparkan di halaman ini bersama tarikh kemas kini.',
-                ],
-            ],
-            [
-                'title' => 'Hubungi kami',
-                'paragraphs' => [
-                    'Untuk pertanyaan berkaitan privasi, permintaan akses atau pembetulan data, hubungi kami di hantar@ilmu360.com. Kami akan berusaha untuk membalas dalam masa yang munasabah.',
+                    'Jika anda memberikan maklumat bagi pihak kanak-kanak, pastikan anda mendapat kebenaran ibu bapa atau penjaga apabila diperlukan. Kami boleh mengemas kini notis ini apabila amalan kami berubah; tarikh di bahagian atas menunjukkan kemas kini terakhir.',
                 ],
             ],
         ],
@@ -114,94 +88,65 @@ return [
     'terms' => [
         'meta' => [
             'title' => 'Terma Penggunaan',
-            'description' => 'Terma dan syarat penggunaan platform ilmu360°.',
+            'description' => 'Terma penggunaan laman dan perkhidmatan ilmu360°.',
         ],
-        'eyebrow' => 'Terma & tanggungjawab',
+        'eyebrow' => 'Terma penggunaan',
         'title' => 'Terma Penggunaan',
-        'intro' => 'Terma ini mengawal penggunaan anda terhadap ilmu360°. Dengan menggunakan platform ini, anda bersetuju untuk mematuhi terma yang dinyatakan di bawah.',
+        'intro' => 'Terma ini menerangkan peraturan penggunaan ilmu360° dan peranan kami apabila anda mencari atau mendaftar untuk majlis.',
         'summary' => [
-            'ilmu360° ialah platform penemuan majlis ilmu, bukan penganjur majlis.',
-            'Maklumat majlis adalah tanggungjawab penganjur masing-masing.',
-            'Sila gunakan platform dengan hormat dan bertanggungjawab.',
+            'ilmu360° membantu anda mencari majlis dan mengurus pendaftaran.',
+            'Penganjur bertanggungjawab terhadap majlis yang mereka anjurkan.',
+            'Hak pengguna yang dilindungi undang-undang tetap terpakai.',
         ],
         'sections' => [
             [
-                'title' => 'Penerimaan terma',
+                'title' => 'Menggunakan ilmu360°',
                 'paragraphs' => [
-                    'Dengan mengakses atau menggunakan ilmu360°, anda bersetuju untuk terikat dengan terma ini dan Dasar Privasi kami. Jika anda tidak bersetuju, sila berhenti menggunakan platform.',
+                    'Dengan menggunakan ilmu360°, anda bersetuju dengan terma ini dan Notis Privasi kami. Syarat tambahan yang dipaparkan untuk pendaftaran atau pembayaran juga terpakai bagi urus niaga tersebut.',
                 ],
             ],
             [
-                'title' => 'Peranan ilmu360°',
+                'title' => 'Peranan kami dan penganjur',
                 'paragraphs' => [
-                    'ilmu360° membantu orang ramai menemui majlis ilmu, institusi dan penceramah. Kami bukan penganjur majlis dan tidak mengendalikan majlis yang dipaparkan di platform.',
-                    'Maklumat majlis, jadual, lokasi, harga dan butiran penganjur disediakan oleh penganjur atau penyumbang. Walaupun kami menyemak kandungan, kami tidak menjamin bahawa semua maklumat sentiasa tepat, lengkap atau terkini. Sila sahkan butiran penting dengan penganjur sebelum hadir.',
+                    'ilmu360° menyediakan platform untuk mencari majlis serta alat pendaftaran, tiket atau pembayaran. Penganjur bertanggungjawab terhadap kandungan, tempat, jadual, keselamatan, perubahan dan pembatalan majlis. Maklumat majlis mungkin berubah; sahkan butiran penting dengan penganjur sebelum hadir atau membuat bayaran.',
                 ],
             ],
             [
-                'title' => 'Akaun pengguna',
+                'title' => 'Akaun dan umur',
                 'paragraphs' => [
-                    'Anda bertanggungjawab untuk memberikan maklumat yang tepat semasa mendaftar dan untuk menjaga kerahsiaan kata laluan anda. Anda bertanggungjawab terhadap aktiviti yang berlaku melalui akaun anda.',
-                    'Platform ini bertujuan untuk pengguna berumur 18 tahun ke atas. Jika anda di bawah umur 18 tahun, anda perlu mendapatkan kebenaran ibu bapa atau penjaga sebelum menggunakan platform.',
+                    'Berikan maklumat yang tepat, jaga keselamatan akaun anda dan maklumkan kepada kami jika anda mengesyaki akaun digunakan tanpa izin. Anda mesti mempunyai keupayaan undang-undang untuk bersetuju dengan terma ini. Jika anda belum berumur 18 tahun, minta ibu bapa atau penjaga menyemak terma ini dan mengendalikan akaun, pendaftaran atau pembayaran yang menimbulkan kewajipan.',
                 ],
             ],
             [
-                'title' => 'Penghantaran majlis dan kandungan',
+                'title' => 'Pendaftaran, tiket dan bayaran',
                 'paragraphs' => [
-                    'Apabila anda menghantar majlis, institusi, penceramah atau kandungan lain, anda mengesahkan bahawa anda mempunyai hak untuk berbuat demikian dan bahawa maklumat tersebut tidak mengelirukan, menyalahi undang-undang atau melanggar hak pihak lain.',
-                    'Kami boleh menyemak, menyunting, menolak atau membuang kandungan yang tidak memenuhi piawaian kami. Penghantaran tidak menjamin penyiaran, dan penyiaran tidak bermaksud pengesahan oleh ilmu360°.',
+                    'Pastikan maklumat peserta tepat dan anda dibenarkan memberikannya bagi pihak orang lain. Maklumat yang diperlukan akan dikongsi dengan penganjur untuk mengurus penyertaan anda. Syarat tiket, pembatalan dan bayaran balik berbeza mengikut majlis; semak syarat yang dipaparkan sebelum mendaftar.',
+                    'Bayaran mungkin diproses oleh penyedia pembayaran pihak ketiga. Hubungi penganjur tentang majlis atau bayaran balik; kami akan membantu bagi isu platform atau pembayaran yang berada di bawah kawalan kami. Hak pengguna yang tidak boleh diketepikan oleh undang-undang tetap terpakai.',
                 ],
             ],
             [
-                'title' => 'Penggunaan yang dibenarkan',
+                'title' => 'Kandungan yang anda hantar',
                 'paragraphs' => [
-                    'Anda bersetuju untuk tidak menyalahgunakan platform. Ini termasuk menghantar spam, mengikis data secara automatik tanpa kebenaran, menyamar sebagai orang lain, mengganggu pengguna lain, menyebarkan malware, atau menggunakan platform untuk tujuan yang menyalahi undang-undang.',
+                    'Anda kekal sebagai pemilik kandungan yang dihantar dan bertanggungjawab memastikan anda berhak berkongsinya. Anda memberi ilmu360° kebenaran untuk menyimpan, memaparkan, mengubah format dan mempromosikan kandungan itu bagi mengendalikan perkhidmatan. Kami boleh menolak atau membuang kandungan yang melanggar undang-undang, hak orang lain atau terma ini. Penerbitan bukan pengesahan ilmu360° terhadap kandungan atau penganjur.',
                 ],
             ],
             [
-                'title' => 'Pendaftaran dan pembayaran',
+                'title' => 'Penggunaan yang tidak dibenarkan',
                 'paragraphs' => [
-                    'Sesetengah majlis memerlukan pendaftaran atau pembayaran. Terma pendaftaran, pembatalan, pemindahan dan bayaran balik ditetapkan oleh penganjur masing-masing. Pembayaran mungkin diproses oleh penyedia pembayaran pihak ketiga, dan terma penyedia tersebut juga terpakai.',
-                    'Sebarang pertikaian berkaitan majlis, tiket atau bayaran balik hendaklah diselesaikan dengan penganjur. Kami boleh membantu menyampaikan maklumat, tetapi tidak bertanggungjawab atas keputusan penganjur.',
+                    'Jangan gunakan platform untuk melanggar undang-undang atau hak orang lain, menyamar, mengganggu pengguna, menghantar spam atau perisian berbahaya, mendapatkan akses tanpa izin, mengganggu operasi atau mengumpul data secara automatik tanpa kebenaran bertulis kami.',
                 ],
             ],
             [
-                'title' => 'Harta intelek',
+                'title' => 'Harta ilmu360° dan akses',
                 'paragraphs' => [
-                    'Kandungan platform, termasuk reka bentuk, logo, teks dan perisian, dimiliki oleh ilmu360° atau pemberi lesennya dan dilindungi oleh undang-undang harta intelek. Anda tidak boleh menyalin, mengubah atau mengedar kandungan tersebut tanpa kebenaran bertulis.',
-                    'Dengan menghantar kandungan kepada kami, anda memberikan kami lesen bukan eksklusif untuk memaparkan, menyimpan dan mempromosikan kandungan tersebut dalam platform dan saluran promosi kami.',
+                    'Reka bentuk, tanda dagangan, perisian dan kandungan ilmu360° dimiliki oleh kami atau pemberi lesen kami. Jangan salin atau gunakannya tanpa kebenaran. Kami boleh menyelenggara atau mengubah ciri platform, dan mengehadkan akses jika perlu atas sebab keselamatan, undang-undang atau pelanggaran terma. Kami berusaha memastikan platform boleh digunakan, tetapi tidak menjamin akses tanpa gangguan atau ketepatan kandungan yang diberikan pihak lain.',
+                    'Penganjur bertanggungjawab terhadap majlis mereka. Terma ini tidak mengecualikan tanggungjawab ilmu360° atau hak pengguna yang tidak boleh dikecualikan di bawah undang-undang Malaysia.',
                 ],
             ],
             [
-                'title' => 'Pautan pihak ketiga',
+                'title' => 'Perubahan dan undang-undang',
                 'paragraphs' => [
-                    'Platform mungkin mengandungi pautan kepada laman web atau perkhidmatan pihak ketiga. Kami tidak mengawal dan tidak bertanggungjawab atas kandungan, dasar privasi atau amalan pihak ketiga tersebut.',
-                ],
-            ],
-            [
-                'title' => 'Penafian dan had liabiliti',
-                'paragraphs' => [
-                    'Platform disediakan “seadanya” dan “sebagaimana tersedia”. Setakat yang dibenarkan oleh undang-undang, kami tidak memberikan sebarang jaminan tersurat atau tersirat berkenaan platform atau kandungannya.',
-                    'Setakat yang dibenarkan oleh undang-undang, ilmu360° tidak bertanggungjawab atas sebarang kerugian tidak langsung, sampingan, khas atau berbangkit yang timbul daripada penggunaan atau ketidakupayaan menggunakan platform.',
-                ],
-            ],
-            [
-                'title' => 'Perubahan dan penamatan',
-                'paragraphs' => [
-                    'Kami boleh mengubah, menggantung atau menamatkan akses kepada platform atau mana-mana cirinya pada bila-bila masa. Kami juga boleh menggantung atau menamatkan akaun yang melanggar terma ini.',
-                    'Kami boleh mengemas kini terma ini dari semasa ke semasa. Penggunaan berterusan selepas perubahan diterbitkan bermaksud anda menerima terma yang dikemas kini.',
-                ],
-            ],
-            [
-                'title' => 'Undang-undang yang mentadbir',
-                'paragraphs' => [
-                    'Terma ini ditadbir oleh undang-undang Malaysia. Sebarang pertikaian hendaklah tertakluk kepada bidang kuasa mahkamah Malaysia.',
-                ],
-            ],
-            [
-                'title' => 'Hubungi kami',
-                'paragraphs' => [
-                    'Jika anda mempunyai soalan tentang terma ini, hubungi kami di hantar@ilmu360.com.',
+                    'Kami boleh mengemas kini terma ini dan akan memaparkan tarikh kemas kini di halaman ini. Terma ini ditadbir oleh undang-undang Malaysia, tertakluk kepada hak pengguna yang diwajibkan undang-undang.',
                 ],
             ],
         ],
@@ -210,56 +155,56 @@ return [
     'contact' => [
         'meta' => [
             'title' => 'Hubungi Kami',
-            'description' => 'Hubungi pasukan ilmu360° untuk pertanyaan, sokongan atau cadangan.',
+            'description' => 'Saluran untuk pertanyaan, bantuan akaun, majlis dan pembetulan maklumat ilmu360°.',
         ],
-        'eyebrow' => 'Kami sedia mendengar',
+        'eyebrow' => 'Perlukan bantuan?',
         'title' => 'Hubungi Kami',
-        'intro' => 'Ada soalan, cadangan atau menghadapi masalah? Hantar mesej kepada kami dan pasukan ilmu360° akan membantu sebaik mungkin.',
+        'intro' => 'Untuk menghantar majlis atau meminta pembetulan, gunakan saluran khusus di bawah. E-mel kami hanya untuk bantuan akaun, privasi atau masalah laman.',
         'channels' => [
             [
                 'type' => 'email',
                 'label' => 'E-mel',
-                'value' => 'hantar@ilmu360.com',
-                'description' => 'Untuk pertanyaan umum, privasi, sokongan akaun dan perkara berkaitan majlis.',
-                'mailto' => 'hantar@ilmu360.com',
+                'value' => 'admin@ilmu360.com',
+                'description' => 'Untuk bantuan akaun, privasi atau masalah laman. Gunakan pilihan khusus di bawah untuk majlis dan pembetulan.',
+                'mailto' => 'admin@ilmu360.com',
             ],
             [
                 'type' => 'route',
                 'label' => 'Hantar majlis',
-                'value' => 'Kongsi majlis ilmu',
-                'description' => 'Hantar majlis baharu atau kemas kini maklumat penganjur.',
+                'value' => 'Hantar majlis baharu',
+                'description' => 'Gunakan borang ini untuk menghantar majlis baharu atau mengemas kini maklumat penganjur.',
                 'route' => 'submit-event.create',
             ],
             [
                 'type' => 'route',
                 'label' => 'Cadangan & pembetulan',
-                'value' => 'Bantu kami perbaiki direktori',
-                'description' => 'Cadang penceramah, institusi atau kemas kini maklumat yang tidak tepat.',
+                'value' => 'Cadangan & pembetulan',
+                'description' => 'Gunakan borang ini untuk mencadangkan penceramah atau institusi, atau membetulkan maklumat.',
                 'route' => 'contributions.index',
             ],
         ],
         'sections' => [
             [
-                'title' => 'Masa respons',
+                'title' => 'Pertanyaan tentang majlis',
                 'paragraphs' => [
-                    'Kami biasanya membalas dalam tempoh dua hingga tiga hari bekerja. Untuk urusan yang melibatkan majlis yang akan berlangsung dalam masa terdekat, sila sertakan pautan majlis dan butiran penting dalam e-mel anda supaya kami boleh membantu dengan lebih cepat.',
+                    'Untuk jadual, lokasi, tiket, pembatalan atau bayaran balik, hubungi penganjur melalui maklumat pada halaman majlis. Untuk menghantar majlis baharu, pilih “Hantar majlis baharu” di atas. Untuk mencadangkan penceramah atau institusi, atau membetulkan maklumat, pilih “Cadangan & pembetulan”.',
                 ],
             ],
             [
-                'title' => 'Sebelum menghubungi kami',
+                'title' => 'Maklumat yang membantu',
                 'paragraphs' => [
-                    'Jika pertanyaan anda berkaitan majlis tertentu, semak halaman majlis tersebut terlebih dahulu untuk butiran penganjur, jadual terkini dan maklumat pendaftaran. Banyak soalan boleh dijawab terus oleh penganjur.',
+                    'Sertakan butiran yang berkaitan supaya kami boleh memahami permintaan anda.',
                 ],
                 'bullets' => [
-                    'Untuk pembatalan, bayaran balik atau pertukaran tiket, hubungi penganjur majlis.',
-                    'Untuk melaporkan kandungan yang tidak sesuai, sertakan pautan dan sebab laporan anda.',
-                    'Untuk pertanyaan privasi, nyatakan sama ada anda mahu mengakses, membetulkan atau memadam data anda.',
+                    'Untuk melaporkan kandungan atau mencadangkan pembetulan, gunakan saluran “Cadangan & pembetulan” dan sertakan pautan serta butiran yang perlu disemak.',
+                    'Untuk isu akaun atau laman, e-mel kami dan terangkan masalahnya. Jangan sertakan kata laluan.',
+                    'Untuk permintaan privasi, nyatakan sama ada anda mahu mengakses, membetulkan atau meminta pemadaman data.',
                 ],
             ],
             [
                 'title' => 'Ikuti kami',
                 'paragraphs' => [
-                    'Dapatkan kemas kini majlis dan berita komuniti melalui saluran media sosial rasmi kami.',
+                    'Ikuti saluran media sosial rasmi kami untuk kemas kini majlis dan berita komuniti.',
                 ],
             ],
         ],
