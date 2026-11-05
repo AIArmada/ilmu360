@@ -160,7 +160,7 @@ return [
         'eyebrow' => 'Perlukan bantuan?',
         'title' => 'Hubungi Kami',
         'intro' => 'Pilih untuk memaparkan alamat e-mel kami atau ikuti kami di media sosial.',
-        'reveal_email' => 'Tunjukkan alamat e-mel',
+        'reveal_email' => 'Dedahkan alamat email',
         'sections' => [
             [
                 'title' => 'Ikuti kami',

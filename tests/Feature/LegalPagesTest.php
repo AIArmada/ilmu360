@@ -15,7 +15,7 @@ it('loads the legal pages', function (): void {
     get(route('contact'))
         ->assertOk()
         ->assertSee('Hubungi Kami')
-        ->assertSee('Tunjukkan alamat e-mel')
+        ->assertSee('Dedahkan alamat email')
         ->assertDontSee('admin@ilmu360.com')
         ->assertDontSee('youtube.svg');
 });

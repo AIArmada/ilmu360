@@ -1,6 +1,6 @@
 # Lessons
 
-- Contact pages should keep locales aligned, avoid unnecessary cards and numbering, use the app's social brand icons, and reveal public email only on demand without emitting plain address text or mailto URLs in page source.
+- Contact pages should keep locales aligned, use the user's exact wording for localized labels, avoid unnecessary cards and numbering, use the app's social brand icons, and reveal public email only on demand without emitting plain address text or mailto URLs in page source.
 
 - User clarification (2026-11-01, app feedback audit fixes): apply direct canonical fixes with no backward compatibility, legacy paths, or leftovers. Correct shared causes and current consumers together; retain only durable regression coverage and the concise task record.
 
