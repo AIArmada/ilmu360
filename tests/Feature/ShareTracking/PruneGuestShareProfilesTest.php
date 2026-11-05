@@ -28,7 +28,7 @@ uses(RefreshDatabase::class);
  */
 function pgspGuestShare(): array
 {
-    $response = test()->getJson(route('dawah-share.payload', [
+    $response = test()->getJson(route('share.payload', [
         'url' => route('events.index'),
         'text' => 'Share this page',
     ]));

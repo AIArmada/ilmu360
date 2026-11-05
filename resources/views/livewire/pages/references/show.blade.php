@@ -32,7 +32,7 @@
         'sourceUrl' => $referenceUrl,
         'shareText' => $shareText,
         'fallbackTitle' => $referenceTitle,
-        'payloadEndpoint' => route('dawah-share.payload'),
+        'payloadEndpoint' => route('share.payload'),
     ];
     $referenceRouteSegment = \App\Enums\ContributionSubjectType::Reference->publicRouteSegment();
     $authorNames = $reference->effectiveAuthorNamesList();

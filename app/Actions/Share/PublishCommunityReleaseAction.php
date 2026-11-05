@@ -10,7 +10,7 @@ use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateFraudSignal;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\Rewards\Actions\CreateRewardProgramAction;
-use App\Enums\DawahShareOutcomeType;
+use App\Enums\ShareOutcomeType;
 use App\Models\CommunityRelease;
 use App\Models\Registration;
 use App\Models\User;
@@ -195,8 +195,8 @@ final readonly class PublishCommunityReleaseAction
         $users = (new User)->getTable();
 
         $kinds = array_map(
-            static fn (DawahShareOutcomeType $case): string => $case->value,
-            DawahShareOutcomeType::cases()
+            static fn (ShareOutcomeType $case): string => $case->value,
+            ShareOutcomeType::cases()
         );
 
         $query = DB::table("{$conversions} as c")

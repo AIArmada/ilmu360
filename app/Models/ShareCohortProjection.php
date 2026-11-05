@@ -12,7 +12,7 @@ use LogicException;
  * Cohort projection for one committed outbound share.
  *
  * Written ONLY by the committed-share Signals reader as the final
- * effect of a `dawah.committed_share` signal — never directly by
+ * effect of a `share.committed_share` signal — never directly by
  * web/API callers. Keyed by the signal's semantic key
  * (`committed-share:{touchpoint_id}`). Stage moves forward
  * (observed → participated) as outcome evidence settles; rows are

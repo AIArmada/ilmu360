@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Api\Frontend;
 use AIArmada\Engagement\Models\Follow;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Data\Api\Frontend\Follow\FollowStateData;
-use App\Enums\DawahShareOutcomeType;
 use App\Enums\InstitutionStatus;
+use App\Enums\ShareOutcomeType;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
@@ -219,13 +219,13 @@ class FollowController extends FrontendController
         return FollowStateData::fromModel($record, $user)->toArray();
     }
 
-    private function followOutcomeType(Institution|Person|Reference|Series $record): DawahShareOutcomeType
+    private function followOutcomeType(Institution|Person|Reference|Series $record): ShareOutcomeType
     {
         return match (true) {
-            $record instanceof Institution => DawahShareOutcomeType::InstitutionFollow,
-            $record instanceof Person => DawahShareOutcomeType::PersonFollow,
-            $record instanceof Reference => DawahShareOutcomeType::ReferenceFollow,
-            default => DawahShareOutcomeType::SeriesFollow,
+            $record instanceof Institution => ShareOutcomeType::InstitutionFollow,
+            $record instanceof Person => ShareOutcomeType::PersonFollow,
+            $record instanceof Reference => ShareOutcomeType::ReferenceFollow,
+            default => ShareOutcomeType::SeriesFollow,
         };
     }
 }

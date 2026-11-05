@@ -46,7 +46,7 @@
         'sourceUrl' => $personUrl,
         'shareText' => $shareText,
         'fallbackTitle' => $person->formatted_name,
-        'payloadEndpoint' => route('dawah-share.payload'),
+        'payloadEndpoint' => route('share.payload'),
     ];
     $publicContacts = $person->contactMethods
         ->where('is_public', true)

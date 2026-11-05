@@ -6,7 +6,7 @@ namespace App\Actions\Events\Registration;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Actions\RegisterForFreeAction;
-use App\Enums\DawahShareOutcomeType;
+use App\Enums\ShareOutcomeType;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;
@@ -69,7 +69,7 @@ final readonly class RegisterEventWithShareProvenanceAction
                 $actor = $registrant instanceof User ? $registrant : null;
 
                 $this->shareTracking->recordOutcome(
-                    type: DawahShareOutcomeType::EventRegistration,
+                    type: ShareOutcomeType::EventRegistration,
                     businessKey: ShareOutcomeBusinessKey::eventRegistration((string) $appRegistration->getKey()),
                     subject: $target,
                     actor: $actor,

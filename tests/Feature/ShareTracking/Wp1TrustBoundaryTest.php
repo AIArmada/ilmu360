@@ -16,7 +16,7 @@ use AIArmada\Affiliates\States\ApprovedConversion;
 use AIArmada\Affiliates\States\Disabled;
 use AIArmada\Affiliates\States\PaidConversion;
 use AIArmada\Affiliates\Support\IpHasher;
-use App\Enums\DawahShareOutcomeType;
+use App\Enums\ShareOutcomeType;
 use App\Models\Event;
 use App\Models\User;
 use App\Services\ShareTracking\AdminShareAnalyticsService;
@@ -46,14 +46,14 @@ beforeEach(function (): void {
         'visibility' => 'public',
     ]);
 
-    config(['dawah-share.reporting.reporting_start' => '2026-10-01']);
+    config(['share-tracking.reporting.reporting_start' => '2026-10-01']);
 });
 
 function wp1SharePayload(TestCase $testCase, ?User $user, string $url): array
 {
     $call = $user instanceof User ? $testCase->actingAs($user) : $testCase;
 
-    return $call->getJson(route('dawah-share.payload', [
+    return $call->getJson(route('share.payload', [
         'url' => $url,
         'text' => 'Share this page',
         'title' => 'Shared Page',
@@ -72,7 +72,7 @@ function wp1LandingCookie(TestCase $testCase, string $sharedUrl): string
     // WP3 cutover: the emitted share URL is a branded short redirect, so
     // the harness traverses the mandated 302 hop. Every assertion below
     // still reads the destination landing exactly as before.
-    $cookie = $testCase->followingRedirects()->get($sharedUrl)->assertOk()->getCookie((string) config('dawah-share.cookie.name'));
+    $cookie = $testCase->followingRedirects()->get($sharedUrl)->assertOk()->getCookie((string) config('share-tracking.cookie.name'));
 
     expect($cookie)->not->toBeNull();
 
@@ -163,7 +163,7 @@ it('falls back to a plain share payload for suspended profiles without reactivat
     $affiliate->forceFill(['status' => Disabled::class])->save();
 
     $payload = $this->actingAs($this->sharer)
-        ->getJson(route('dawah-share.payload', [
+        ->getJson(route('share.payload', [
             'url' => route('events.show', $this->event),
             'text' => 'Share this page',
             'title' => 'Shared Page',
@@ -187,7 +187,7 @@ it('refuses to reuse a deactivated link and never repairs its token', function (
     expect($disabledAt)->not->toBeNull();
 
     $this->actingAs($this->sharer)
-        ->getJson(route('dawah-share.payload', [
+        ->getJson(route('share.payload', [
             'url' => route('events.show', $this->event),
             'text' => 'Share this page',
             'title' => 'Shared Page',
@@ -224,13 +224,13 @@ it('invalidates a stale cookie once its link is deactivated', function (): void 
         ->deactivate();
 
     $request = Request::create(route('events.show', $this->event), 'GET');
-    $request->cookies->set((string) config('dawah-share.cookie.name'), $cookie);
+    $request->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
     $request->setUserResolver(fn (): User => $visitor);
 
     expect(app(ShareTrackingService::class)->resolveActiveAttribution($request))->toBeNull();
 
     $outcome = app(ShareTrackingService::class)->recordOutcome(
-        DawahShareOutcomeType::EventSave,
+        ShareOutcomeType::EventSave,
         ShareOutcomeBusinessKey::eventSave((string) Str::uuid()),
         $this->event,
         $visitor,
@@ -245,17 +245,17 @@ it('clears an unrelated stale selection when an explicit token is invalid', func
     $payload = wp1SharePayload($this, $this->sharer, route('events.show', $this->event));
     $cookie = wp1LandingCookie($this, (string) $payload['url']);
 
-    $response = $this->withCookie((string) config('dawah-share.cookie.name'), $cookie)
+    $response = $this->withCookie((string) config('share-tracking.cookie.name'), $cookie)
         ->get(route('events.show', [$this->event, 'share' => 'deadbeefdeadbeef']));
 
     $response->assertOk();
 
-    $cleared = $response->getCookie((string) config('dawah-share.cookie.name'));
+    $cleared = $response->getCookie((string) config('share-tracking.cookie.name'));
 
     expect($cleared)->not->toBeNull();
 
     $request = Request::create(route('events.show', $this->event), 'GET');
-    $request->cookies->set((string) config('dawah-share.cookie.name'), (string) $cleared?->getValue());
+    $request->cookies->set((string) config('share-tracking.cookie.name'), (string) $cleared?->getValue());
 
     expect(app(ShareTrackingService::class)->resolveActiveAttribution($request))->toBeNull()
         ->and(AffiliateAttribution::query()->count())->toBe(1);
@@ -270,7 +270,7 @@ it('does not renew attribution expiry on passive navigation', function (): void 
 
     $this->travel(24)->hours();
 
-    $this->withCookie((string) config('dawah-share.cookie.name'), $cookie)
+    $this->withCookie((string) config('share-tracking.cookie.name'), $cookie)
         ->get(route('events.index'))
         ->assertOk();
 
@@ -282,11 +282,11 @@ it('excludes proven self-referral credit without inventing identities', function
     $cookie = wp1LandingCookie($this, (string) $payload['url']);
 
     $request = Request::create(route('events.show', $this->event), 'GET');
-    $request->cookies->set((string) config('dawah-share.cookie.name'), $cookie);
+    $request->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
     $request->setUserResolver(fn (): User => $this->sharer);
 
     $outcome = app(ShareTrackingService::class)->recordOutcome(
-        DawahShareOutcomeType::EventSave,
+        ShareOutcomeType::EventSave,
         ShareOutcomeBusinessKey::eventSave((string) Str::uuid()),
         $this->event,
         $this->sharer,
@@ -298,11 +298,11 @@ it('excludes proven self-referral credit without inventing identities', function
 
     $visitor = User::factory()->create(['email' => 'wp1-other@example.test']);
     $visitorRequest = Request::create(route('events.show', $this->event), 'GET');
-    $visitorRequest->cookies->set((string) config('dawah-share.cookie.name'), $cookie);
+    $visitorRequest->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
     $visitorRequest->setUserResolver(fn (): User => $visitor);
 
     $credited = app(ShareTrackingService::class)->recordOutcome(
-        DawahShareOutcomeType::EventSave,
+        ShareOutcomeType::EventSave,
         ShareOutcomeBusinessKey::eventSave((string) Str::uuid()),
         $this->event,
         $visitor,
@@ -316,13 +316,13 @@ it('excludes proven self-referral credit without inventing identities', function
 it('issues server credentials for guests and rejects spoofed tracking', function (): void {
     $eventUrl = route('events.show', $this->event);
 
-    $first = $this->getJson(route('dawah-share.payload', [
+    $first = $this->getJson(route('share.payload', [
         'url' => $eventUrl,
         'text' => 'Share this page',
         'title' => 'Shared Page',
     ]))->assertOk()->json();
 
-    $second = $this->getJson(route('dawah-share.payload', [
+    $second = $this->getJson(route('share.payload', [
         'url' => $eventUrl,
         'text' => 'Share this page',
         'title' => 'Shared Page',
@@ -332,18 +332,18 @@ it('issues server credentials for guests and rejects spoofed tracking', function
     // own profile. WP3 claim continuity builds on this foundation.
     expect((string) $first['guest_credential'])->not->toBe((string) $second['guest_credential']);
 
-    $header = (string) config('dawah-share.guest_credential.header', 'X-Dawah-Guest-Credential');
+    $header = (string) config('share-tracking.guest_credential.header', 'X-Guest-Credential');
 
     // Credential-less and forged tracking attempts fail before any
     // default header is set on this test case.
-    $this->postJson(route('dawah-share.track'), [
+    $this->postJson(route('share.track'), [
         'provider' => 'copy_link',
         'tracking_token' => (string) $first['tracking_token'],
     ])->assertUnprocessable();
 
     // A forged public Signals cookie is not ownership proof.
     $this->withCookie((string) config('signals.integrations.browser.identifiers.visitor_cookie_name', 'sig_vid'), 'forged-visitor')
-        ->postJson(route('dawah-share.track'), [
+        ->postJson(route('share.track'), [
             'provider' => 'copy_link',
             'tracking_token' => (string) $first['tracking_token'],
         ])
@@ -351,14 +351,14 @@ it('issues server credentials for guests and rejects spoofed tracking', function
 
     // Another guest's credential cannot borrow this link.
     $this->withHeader($header, (string) $second['guest_credential'])
-        ->postJson(route('dawah-share.track'), [
+        ->postJson(route('share.track'), [
             'provider' => 'copy_link',
             'tracking_token' => (string) $first['tracking_token'],
         ])
         ->assertUnprocessable();
 
     $reused = $this->withHeader($header, (string) $first['guest_credential'])
-        ->getJson(route('dawah-share.payload', [
+        ->getJson(route('share.payload', [
             'url' => $eventUrl,
             'text' => 'Share this page',
             'title' => 'Shared Page',
@@ -368,7 +368,7 @@ it('issues server credentials for guests and rejects spoofed tracking', function
         ->and($reused['guest_credential'] ?? null)->toBeNull();
 
     $this->withHeader($header, (string) $first['guest_credential'])
-        ->postJson(route('dawah-share.track'), [
+        ->postJson(route('share.track'), [
             'provider' => 'copy_link',
             'tracking_token' => (string) $first['tracking_token'],
         ])
@@ -378,14 +378,14 @@ it('issues server credentials for guests and rejects spoofed tracking', function
 });
 
 it('stores only credential verifiers and honors expiry and revocation', function (): void {
-    $payload = $this->getJson(route('dawah-share.payload', [
+    $payload = $this->getJson(route('share.payload', [
         'url' => route('events.show', $this->event),
         'text' => 'Share this page',
         'title' => 'Shared Page',
     ]))->assertOk()->json();
 
     $credential = (string) $payload['guest_credential'];
-    $header = (string) config('dawah-share.guest_credential.header', 'X-Dawah-Guest-Credential');
+    $header = (string) config('share-tracking.guest_credential.header', 'X-Guest-Credential');
 
     expect(AffiliateCredential::query()->where('verifier_hash', $credential)->exists())->toBeFalse();
 
@@ -396,7 +396,7 @@ it('stores only credential verifiers and honors expiry and revocation', function
     $record->forceFill(['expires_at' => now()->subMinute()])->save();
 
     $this->withHeader($header, $credential)
-        ->postJson(route('dawah-share.track'), [
+        ->postJson(route('share.track'), [
             'provider' => 'copy_link',
             'tracking_token' => (string) $payload['tracking_token'],
         ])
@@ -420,7 +420,7 @@ it('stores only credential verifiers and honors expiry and revocation', function
         ]))->toBe(0);
 
     $this->withHeader($header, $credential)
-        ->postJson(route('dawah-share.track'), [
+        ->postJson(route('share.track'), [
             'provider' => 'copy_link',
             'tracking_token' => (string) $payload['tracking_token'],
         ])
@@ -442,8 +442,8 @@ it('minimizes stored visitor data at every share write site', function (): void 
     $cookie = wp1LandingCookie($this, $landingUrl);
 
     $this->withHeader('Referer', 'https://search.example.test/?q=sensitive')
-        ->withCookie((string) config('dawah-share.cookie.name'), $cookie)
-        ->postJson(route('dawah-share.track'), [
+        ->withCookie((string) config('share-tracking.cookie.name'), $cookie)
+        ->postJson(route('share.track'), [
             'provider' => 'copy_link',
             'tracking_token' => (string) $payload['tracking_token'],
         ])
@@ -480,7 +480,7 @@ it('minimizes stored visitor data at every share write site', function (): void 
 
 it('rejects private and secret-bearing share targets while keeping visit classification safe', function (): void {
     $this->actingAs($this->sharer)
-        ->getJson(route('dawah-share.payload', [
+        ->getJson(route('share.payload', [
             'url' => route('dashboard'),
             'text' => 'Share this page',
             'title' => 'Shared Page',
@@ -488,7 +488,7 @@ it('rejects private and secret-bearing share targets while keeping visit classif
         ->assertUnprocessable();
 
     $this->actingAs($this->sharer)
-        ->getJson(route('dawah-share.payload', [
+        ->getJson(route('share.payload', [
             'url' => route('events.show', [$this->event, 'token' => 'secret-reset-token']),
             'text' => 'Share this page',
             'title' => 'Shared Page',
@@ -502,7 +502,7 @@ it('rejects private and secret-bearing share targets while keeping visit classif
     $cookie = wp1LandingCookie($this, (string) $payload['url']);
 
     $this->actingAs($this->sharer)
-        ->withCookie((string) config('dawah-share.cookie.name'), $cookie)
+        ->withCookie((string) config('share-tracking.cookie.name'), $cookie)
         ->get(route('dashboard'))
         ->assertOk();
 });
@@ -515,11 +515,11 @@ it('rejects cross-account reads and token borrowing without revealing existence'
     expect(app(ShareTrackingAnalyticsService::class)->findLinkForUser($otherUser, $link->id))->toBeNull();
 
     $this->actingAs($otherUser)
-        ->get(route('dashboard.dawah-impact.links.show', ['link' => $link->id]))
+        ->get(route('dakwah.links.show', ['link' => $link->id]))
         ->assertNotFound();
 
     $this->actingAs($otherUser)
-        ->postJson(route('dawah-share.track'), [
+        ->postJson(route('share.track'), [
             'provider' => 'copy_link',
             'tracking_token' => (string) $payload['tracking_token'],
         ])
@@ -587,7 +587,7 @@ it('hides recipient trails on the web link page while keeping own-link context',
     $cookie = wp1LandingCookie($this, (string) $payload['url']);
     $link = AffiliateLink::query()->where('custom_slug', (string) $payload['tracking_token'])->firstOrFail();
 
-    $this->withCookie((string) config('dawah-share.cookie.name'), $cookie)
+    $this->withCookie((string) config('share-tracking.cookie.name'), $cookie)
         ->get(route('events.index', ['search' => 'wp1-private-trail-marker']))
         ->assertOk();
 
@@ -596,7 +596,7 @@ it('hides recipient trails on the web link page while keeping own-link context',
 
     try {
         $this->actingAs($this->sharer)
-            ->get(route('dashboard.dawah-impact.links.show', ['link' => $link->id]))
+            ->get(route('dakwah.links.show', ['link' => $link->id]))
             ->assertOk()
             ->assertSee($link->destination_url)
             ->assertSee('Distinct Browsers')
@@ -614,7 +614,7 @@ it('shows honest measurement labels with consistent ms and en resources', functi
 
     try {
         $this->actingAs($this->sharer)
-            ->get(route('dashboard.dawah-impact'))
+            ->get(route('dakwah'))
             ->assertOk()
             ->assertSee('Distinct Browsers')
             ->assertSee('Recorded Responses')
@@ -706,7 +706,7 @@ it('restores only canonical owned share records and skips foreign snapshots', fu
         ->and(ShareTrackingProfile::isEligibleForNewCredit($restoredProfile))->toBeFalse();
 
     $payload = $this->actingAs($restored)
-        ->getJson(route('dawah-share.payload', [
+        ->getJson(route('share.payload', [
             'url' => route('events.show', $this->event),
             'text' => 'Share this page',
             'title' => 'Shared Page',
@@ -719,7 +719,7 @@ it('restores only canonical owned share records and skips foreign snapshots', fu
 });
 
 it('withholds uncertified measurements until reporting is configured', function (): void {
-    config(['dawah-share.reporting.reporting_start' => null]);
+    config(['share-tracking.reporting.reporting_start' => null]);
 
     $payload = wp1SharePayload($this, $this->sharer, route('events.show', $this->event));
     wp1LandingCookie($this, (string) $payload['url']);
@@ -758,7 +758,7 @@ it('withholds uncertified measurements until reporting is configured', function 
 
     try {
         $this->actingAs($this->sharer)
-            ->get(route('dashboard.dawah-impact'))
+            ->get(route('dakwah'))
             ->assertOk()
             ->assertSee('Reporting is not configured yet');
     } finally {
@@ -768,9 +768,9 @@ it('withholds uncertified measurements until reporting is configured', function 
 
 it('ignores guest credentials presented through the GET query string', function (): void {
     $eventUrl = route('events.show', $this->event);
-    $input = (string) config('dawah-share.guest_credential.input', 'guest_credential');
+    $input = (string) config('share-tracking.guest_credential.input', 'guest_credential');
 
-    $first = $this->getJson(route('dawah-share.payload', [
+    $first = $this->getJson(route('share.payload', [
         'url' => $eventUrl,
         'text' => 'Share this page',
         'title' => 'Shared Page',
@@ -778,7 +778,7 @@ it('ignores guest credentials presented through the GET query string', function 
 
     // A valid credential smuggled in the query string must not prove
     // ownership: issuance starts a fresh profile instead of reusing.
-    $querySmuggled = $this->getJson(route('dawah-share.payload', [
+    $querySmuggled = $this->getJson(route('share.payload', [
         'url' => $eventUrl,
         'text' => 'Share this page',
         'title' => 'Shared Page',
@@ -789,16 +789,16 @@ it('ignores guest credentials presented through the GET query string', function 
         ->and((string) $querySmuggled['tracking_token'])->not->toBe((string) $first['tracking_token']);
 
     // The same applies to the track endpoint: query-only secrets fail.
-    $this->postJson(route('dawah-share.track', [$input => (string) $first['guest_credential']]), [
+    $this->postJson(route('share.track', [$input => (string) $first['guest_credential']]), [
         'provider' => 'copy_link',
         'tracking_token' => (string) $first['tracking_token'],
     ])->assertUnprocessable();
 
     // A stolen public tracking token is not a guest credential either.
-    $header = (string) config('dawah-share.guest_credential.header', 'X-Dawah-Guest-Credential');
+    $header = (string) config('share-tracking.guest_credential.header', 'X-Guest-Credential');
 
     $this->withHeader($header, (string) $first['tracking_token'])
-        ->postJson(route('dawah-share.track'), [
+        ->postJson(route('share.track'), [
             'provider' => 'copy_link',
             'tracking_token' => (string) $first['tracking_token'],
         ])
@@ -808,15 +808,15 @@ it('ignores guest credentials presented through the GET query string', function 
 });
 
 it('accepts guest credentials from a private POST body', function (): void {
-    $input = (string) config('dawah-share.guest_credential.input', 'guest_credential');
+    $input = (string) config('share-tracking.guest_credential.input', 'guest_credential');
 
-    $first = $this->getJson(route('dawah-share.payload', [
+    $first = $this->getJson(route('share.payload', [
         'url' => route('events.show', $this->event),
         'text' => 'Share this page',
         'title' => 'Shared Page',
     ]))->assertOk()->json();
 
-    $this->postJson(route('dawah-share.track'), [
+    $this->postJson(route('share.track'), [
         'provider' => 'copy_link',
         'tracking_token' => (string) $first['tracking_token'],
         $input => (string) $first['guest_credential'],
@@ -859,7 +859,7 @@ it('preserves extra profile metadata across share payload reuse without purpose 
 
     // A public caller cannot smuggle metadata/purpose through payload input.
     $this->actingAs($this->sharer)
-        ->getJson(route('dawah-share.payload', [
+        ->getJson(route('share.payload', [
             'url' => route('events.show', $this->event),
             'text' => 'Share this page',
             'title' => 'Shared Page',
@@ -933,7 +933,7 @@ it('excludes new credit for marked profiles whose member owner is missing', func
     ]);
 
     $request = Request::create(route('events.show', $this->event), 'GET');
-    $request->cookies->set((string) config('dawah-share.cookie.name'), base64_encode(json_encode([
+    $request->cookies->set((string) config('share-tracking.cookie.name'), base64_encode(json_encode([
         'visitor_key' => 'visitor-wp1-orphan',
         'attribution_cookie' => 'cookie-wp1-orphan',
     ], JSON_THROW_ON_ERROR)));
@@ -943,7 +943,7 @@ it('excludes new credit for marked profiles whose member owner is missing', func
     $visitor = User::factory()->create(['email' => 'wp1-orphan-visitor@example.test']);
 
     expect(app(ShareTrackingService::class)->recordOutcome(
-        DawahShareOutcomeType::EventSave,
+        ShareOutcomeType::EventSave,
         ShareOutcomeBusinessKey::eventSave((string) Str::uuid()),
         $this->event,
         $visitor,
@@ -957,7 +957,7 @@ it('survives a canonical member code collision inside a caller transaction', fun
     $otherUser = User::factory()->create(['email' => 'wp1-collision-squatter@example.test']);
 
     // Canonical deterministic identity (see AffiliatesShareTrackingService::memberAffiliateCode).
-    $code = 'MI'.strtoupper(substr(hash('sha256', 'dawah-share-member-v1|'.$victim->getMorphClass().'|'.$victim->getKey()), 0, 12));
+    $code = 'MI'.strtoupper(substr(hash('sha256', 'share-member-v1|'.$victim->getMorphClass().'|'.$victim->getKey()), 0, 12));
 
     $squatter = new Affiliate([
         'code' => $code,

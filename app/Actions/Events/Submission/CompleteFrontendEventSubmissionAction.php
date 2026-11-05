@@ -9,7 +9,7 @@ use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Events\Enums\RegistrationMode;
 use AIArmada\Events\Models\EventOccurrence;
 use App\Contracts\ShareTrackingContract;
-use App\Enums\DawahShareOutcomeType;
+use App\Enums\ShareOutcomeType;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\User;
@@ -58,7 +58,7 @@ final readonly class CompleteFrontendEventSubmissionAction
         // keeps its admission defaults and lifecycle state untouched.
         if ($sessionSubmission) {
             $this->shareTracking->recordOutcome(
-                type: DawahShareOutcomeType::EventSubmission,
+                type: ShareOutcomeType::EventSubmission,
                 businessKey: ShareOutcomeBusinessKey::eventSubmission((string) $submission->getKey()),
                 subject: $event,
                 actor: $submitter,
@@ -80,7 +80,7 @@ final readonly class CompleteFrontendEventSubmissionAction
             }
 
             $this->shareTracking->recordOutcome(
-                type: DawahShareOutcomeType::EventSubmission,
+                type: ShareOutcomeType::EventSubmission,
                 businessKey: ShareOutcomeBusinessKey::eventSubmission((string) $submission->getKey()),
                 subject: $event,
                 actor: $submitter,
@@ -110,7 +110,7 @@ final readonly class CompleteFrontendEventSubmissionAction
         }
 
         $this->shareTracking->recordOutcome(
-            type: DawahShareOutcomeType::EventSubmission,
+            type: ShareOutcomeType::EventSubmission,
             businessKey: ShareOutcomeBusinessKey::eventSubmission((string) $submission->getKey()),
             subject: $event,
             actor: $submitter,

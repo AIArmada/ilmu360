@@ -6,7 +6,7 @@ use AIArmada\Engagement\Models\Response;
 use App\Actions\Events\Engagement\MarkEventGoingAction;
 use App\Actions\Events\Engagement\RemoveEventGoingAction;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
-use App\Enums\DawahShareOutcomeType;
+use App\Enums\ShareOutcomeType;
 use App\Models\Event;
 use App\Models\User;
 use App\Services\ShareTrackingService;
@@ -89,7 +89,7 @@ trait TogglesEventGoing
 
                 if ($response instanceof Response) {
                     app(ShareTrackingService::class)->recordOutcome(
-                        type: DawahShareOutcomeType::EventGoing,
+                        type: ShareOutcomeType::EventGoing,
                         businessKey: ShareOutcomeBusinessKey::eventGoing((string) $response->getKey()),
                         subject: $event,
                         actor: $user,

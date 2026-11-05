@@ -9,7 +9,7 @@ use AIArmada\Engagement\Models\Follow;
 use AIArmada\Events\Models\EventOccurrence;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Data\PublicScheduleLeaf;
-use App\Enums\DawahShareOutcomeType;
+use App\Enums\ShareOutcomeType;
 use App\Livewire\Concerns\JoinsHierarchyAreaName;
 use App\Livewire\Concerns\LoadsEventPageData;
 use App\Livewire\Concerns\TogglesEventGoing;
@@ -105,7 +105,7 @@ class Show extends Component
 
                 if ($follow instanceof Follow) {
                     app(ReverseShareOutcomeAction::class)->handle(
-                        ShareOutcomeBusinessKey::follow(DawahShareOutcomeType::ReferenceFollow, (string) $follow->getKey()),
+                        ShareOutcomeBusinessKey::follow(ShareOutcomeType::ReferenceFollow, (string) $follow->getKey()),
                         'unfollowed',
                         $user,
                         request(),
@@ -125,8 +125,8 @@ class Show extends Component
             // can never earn later through a new cookie.
             if ($created->wasRecentlyCreated) {
                 app(ShareTrackingService::class)->recordOutcome(
-                    type: DawahShareOutcomeType::ReferenceFollow,
-                    businessKey: ShareOutcomeBusinessKey::follow(DawahShareOutcomeType::ReferenceFollow, (string) $created->getKey()),
+                    type: ShareOutcomeType::ReferenceFollow,
+                    businessKey: ShareOutcomeBusinessKey::follow(ShareOutcomeType::ReferenceFollow, (string) $created->getKey()),
                     subject: $this->reference,
                     actor: $user,
                     request: request(),

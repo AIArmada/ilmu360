@@ -8,8 +8,8 @@ use App\Actions\Events\Engagement\RemoveEventGoingAction;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Data\Api\EventEngagement\EventEngagementListItemData;
 use App\Data\Api\EventGoing\EventGoingStateData;
-use App\Enums\DawahShareOutcomeType;
 use App\Enums\EventVisibility;
+use App\Enums\ShareOutcomeType;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Models\User;
@@ -115,7 +115,7 @@ class EventGoingController extends Controller
 
                 if ($response instanceof Response) {
                     app(ShareTrackingService::class)->recordOutcome(
-                        type: DawahShareOutcomeType::EventGoing,
+                        type: ShareOutcomeType::EventGoing,
                         businessKey: ShareOutcomeBusinessKey::eventGoing((string) $response->getKey()),
                         subject: $event,
                         actor: $this->currentUser($request),

@@ -16,8 +16,8 @@
 
 ## Current Dashboard Coverage
 
-- The Dawah Impact dashboard exposes provider and channel impact at the user level.
-- The per-link Dawah Impact detail page also exposes provider and channel impact.
+- The Dakwah dashboard exposes provider and channel impact at the user level.
+- The per-link Dakwah detail page also exposes provider and channel impact.
 - If future work adds sorting or filtering by provider, reuse:
   - `ShareTrackingAnalyticsService::providerBreakdownForUser()`
   - `ShareTrackingAnalyticsService::providerBreakdownForLink()`

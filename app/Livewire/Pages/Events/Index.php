@@ -16,12 +16,12 @@ use AIArmada\Events\Models\EventTerm;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Contracts\EventCategoryCatalog;
 use App\Data\PublicScheduleLeaf;
-use App\Enums\DawahShareOutcomeType;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
 use App\Enums\InstitutionStatus;
+use App\Enums\ShareOutcomeType;
 use App\Enums\TimingMode;
 use App\Forms\SharedFormSchema;
 use App\Livewire\Concerns\TogglesEventGoing;
@@ -1036,7 +1036,7 @@ class Index extends Component implements HasForms
 
             if ($bookmark instanceof Bookmark && $bookmark->wasRecentlyCreated) {
                 app(ShareTrackingService::class)->recordOutcome(
-                    type: DawahShareOutcomeType::EventSave,
+                    type: ShareOutcomeType::EventSave,
                     businessKey: ShareOutcomeBusinessKey::eventSave((string) $bookmark->getKey()),
                     subject: $event,
                     actor: $user,

@@ -6,7 +6,7 @@ use AIArmada\Signals\Models\SignalIdentity;
 use AIArmada\Signals\Models\SignalSession;
 use AIArmada\Signals\Models\TrackedProperty;
 use AIArmada\Signals\SignalsServiceProvider;
-use App\Enums\DawahShareOutcomeType;
+use App\Enums\ShareOutcomeType;
 use App\Models\Event;
 use App\Models\User;
 use App\Services\ShareTrackingService;
@@ -123,18 +123,18 @@ it('records authoritative share outcomes without writing unread share-fact telem
     $sharedUrl = $shareService->attributedUrl($sharer, route('events.show', $event), $event->title);
 
     $landingResponse = $this->get($sharedUrl);
-    $cookie = $landingResponse->getCookie(config('dawah-share.cookie.name'));
+    $cookie = $landingResponse->getCookie(config('share-tracking.cookie.name'));
 
     expect($cookie)->not->toBeNull();
 
     $request = Request::create(route('events.show', $event), 'GET');
-    $request->cookies->set((string) config('dawah-share.cookie.name'), (string) $cookie?->getValue());
+    $request->cookies->set((string) config('share-tracking.cookie.name'), (string) $cookie?->getValue());
     $request->setUserResolver(fn (): User => $visitor);
 
     $businessKey = ShareOutcomeBusinessKey::eventSave((string) Str::uuid());
 
     $outcome = $shareService->recordOutcome(
-        DawahShareOutcomeType::EventSave,
+        ShareOutcomeType::EventSave,
         $businessKey,
         $event,
         $visitor,
@@ -142,10 +142,10 @@ it('records authoritative share outcomes without writing unread share-fact telem
     );
 
     expect($outcome)->not->toBeNull();
-    expect($outcome?->outcomeType)->toBe(DawahShareOutcomeType::EventSave->value);
+    expect($outcome?->outcomeType)->toBe(ShareOutcomeType::EventSave->value);
 
     $this->assertDatabaseHas('affiliate_conversions', [
-        'conversion_type' => DawahShareOutcomeType::EventSave->value,
+        'conversion_type' => ShareOutcomeType::EventSave->value,
         'external_reference' => $businessKey,
     ]);
 
@@ -168,18 +168,18 @@ it('records authoritative share outcomes when signals delivery is unavailable', 
     $sharedUrl = $shareService->attributedUrl($sharer, route('events.show', $event), $event->title);
 
     $landingResponse = $this->get($sharedUrl);
-    $cookie = $landingResponse->getCookie(config('dawah-share.cookie.name'));
+    $cookie = $landingResponse->getCookie(config('share-tracking.cookie.name'));
 
     expect($cookie)->not->toBeNull();
 
     $request = Request::create(route('events.show', $event), 'GET');
-    $request->cookies->set((string) config('dawah-share.cookie.name'), (string) $cookie?->getValue());
+    $request->cookies->set((string) config('share-tracking.cookie.name'), (string) $cookie?->getValue());
     $request->setUserResolver(fn (): User => $visitor);
 
     $businessKey = ShareOutcomeBusinessKey::eventSave((string) Str::uuid());
 
     $outcome = $shareService->recordOutcome(
-        DawahShareOutcomeType::EventSave,
+        ShareOutcomeType::EventSave,
         $businessKey,
         $event,
         $visitor,
@@ -187,10 +187,10 @@ it('records authoritative share outcomes when signals delivery is unavailable', 
     );
 
     expect($outcome)->not->toBeNull();
-    expect($outcome?->outcomeType)->toBe(DawahShareOutcomeType::EventSave->value);
+    expect($outcome?->outcomeType)->toBe(ShareOutcomeType::EventSave->value);
 
     $this->assertDatabaseHas('affiliate_conversions', [
-        'conversion_type' => DawahShareOutcomeType::EventSave->value,
+        'conversion_type' => ShareOutcomeType::EventSave->value,
         'external_reference' => $businessKey,
     ]);
 });

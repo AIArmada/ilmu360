@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Support\ShareTracking;
 
+use Carbon\CarbonImmutable;
+use Throwable;
+
 /**
  * Canonical share-measurement contract.
  *
@@ -20,14 +23,35 @@ final class ShareTrackingMeasurement
 
     public static function definitionVersion(): string
     {
-        return (string) config('dawah-share.reporting.definition_version', 'wp1');
+        return (string) config('share-tracking.reporting.definition_version', 'wp1');
     }
 
     public static function reportingStart(): ?string
     {
-        $reportingStart = config('dawah-share.reporting.reporting_start');
+        $reportingStart = config('share-tracking.reporting.reporting_start');
 
-        return is_string($reportingStart) && trim($reportingStart) !== '' ? trim($reportingStart) : null;
+        if (! is_string($reportingStart) || trim($reportingStart) === '') {
+            return null;
+        }
+
+        $reportingStart = trim($reportingStart);
+
+        try {
+            if (CarbonImmutable::hasRelativeKeywords($reportingStart)) {
+                return null;
+            }
+
+            CarbonImmutable::parse($reportingStart, 'UTC');
+            $errors = CarbonImmutable::getLastErrors();
+
+            if ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0)) {
+                return null;
+            }
+        } catch (Throwable) {
+            return null;
+        }
+
+        return $reportingStart;
     }
 
     public static function isConfigured(): bool

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Support\ShareTracking;
 
-use App\Enums\DawahShareSubjectType;
 use App\Enums\InstitutionStatus;
+use App\Enums\ShareSubjectType;
 use App\Enums\SpeakerStatus;
 use App\Models\Event;
 use App\Models\Institution;
@@ -44,12 +44,12 @@ final readonly class ShareDestinationPolicy
             ? $target['subject_id']
             : null;
 
-        return match ($target['subject_type'] ?? DawahShareSubjectType::Page->value) {
-            DawahShareSubjectType::Event->value => $this->isEventReachable($subjectId),
-            DawahShareSubjectType::Institution->value => $this->isInstitutionReachable($subjectId),
-            DawahShareSubjectType::Person->value => $this->isPersonReachable($subjectId),
-            DawahShareSubjectType::Series->value => $this->isSeriesReachable($subjectId),
-            DawahShareSubjectType::Reference->value => $this->isReferenceReachable($subjectId),
+        return match ($target['subject_type'] ?? ShareSubjectType::Page->value) {
+            ShareSubjectType::Event->value => $this->isEventReachable($subjectId),
+            ShareSubjectType::Institution->value => $this->isInstitutionReachable($subjectId),
+            ShareSubjectType::Person->value => $this->isPersonReachable($subjectId),
+            ShareSubjectType::Series->value => $this->isSeriesReachable($subjectId),
+            ShareSubjectType::Reference->value => $this->isReferenceReachable($subjectId),
             // Generic public pages and search listings carry no subject
             // lifecycle; the route allowlist above is the whole check.
             default => true,

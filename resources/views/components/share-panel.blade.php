@@ -9,8 +9,8 @@
     x-data="{
         copied: false,
         shareData: @js($shareData),
-        trackEndpoint: @js(route('dawah-share.track')),
-        providerQueryParameter: @js(config('dawah-share.provider_query_parameter', 'channel')),
+        trackEndpoint: @js(route('share.track')),
+        providerQueryParameter: @js(config('share-tracking.provider_query_parameter', 'channel')),
         attributedShareData: null,
         async resolveShareData() {
             if (this.attributedShareData) {

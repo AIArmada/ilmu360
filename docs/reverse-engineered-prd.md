@@ -174,7 +174,7 @@ Exact role assignment and package permission names must be confirmed from `datab
 | USER-003 | Follows | Confirmed | `FollowController`, supported subject route constraint |
 | COMM-001 | In-app notifications | Confirmed | notification centre, inbox channel, notification page/tests |
 | COMM-002 | Reminder/digest automation | Confirmed | `DispatchEventReminderNotifications`, `communications:send-digests`, console schedule |
-| SHARE-001 | Tracked sharing and analytics | Confirmed | `DawahShareController`, share routes, dashboards/API |
+| SHARE-001 | Tracked sharing and analytics | Confirmed | `ShareController`, share routes, dashboards/API |
 | ADMIN-001 | Filament CRUD/admin resources | Confirmed | 137 files under `app/Filament` |
 | ADMIN-002 | Audit/deleted-model views | Confirmed | audit resources, `deleted_models` migration, deleted-users page |
 | API-001 | Versioned client/admin API | Confirmed | `routes/api.php`, controllers and manifests |
@@ -192,7 +192,7 @@ For rebuild acceptance, each feature above should be implemented as an independe
 
 ### Authenticated screens
 
-`/dashboard`, `/dashboard/dawah-impact`, `/dashboard/dawah-impact/links`, `/dashboard/dawah-impact/links/{link}`, `/notifications`, `/tetapan`, `/dashboard/institusi`, `/dashboard/institusi/senarai-majlis`, `/dashboard/institusi/tambah-majlis`, `/dashboard/majlis/cipta-lanjutan`, `/carian-tersimpan`, `/jemputan-ahli/{token}`, `/sumbangan`, contribution creation/success/update screens, `/permohonan-keahlian`, `/pohon-keahlian/...`, and `/lapor/...`. [Evidence: `routes/web.php`]
+`/dashboard`, `/dakwah`, `/dakwah/links`, `/dakwah/links/{link}`, `/notifications`, `/tetapan`, `/dashboard/institusi`, `/dashboard/institusi/senarai-majlis`, `/dashboard/institusi/tambah-majlis`, `/dashboard/majlis/cipta-lanjutan`, `/carian-tersimpan`, `/jemputan-ahli/{token}`, `/sumbangan`, contribution creation/success/update screens, `/permohonan-keahlian`, `/pohon-keahlian/...`, and `/lapor/...`. [Evidence: `routes/web.php`]
 
 ### Administrative screens
 
@@ -499,7 +499,7 @@ Exact request/response schemas are implementation-defined by each controller/req
 | S3-compatible storage | Media/files | filesystem config and AWS package | Configured capability; production use unverified |
 | Email | auth/transactional/digest notifications | mail config, notification classes | Confirmed in code; provider unverified |
 | WhatsApp/push | Notification channels | `WhatsappChannel`, `PushChannel` | Confirmed in code; provider credentials/retry unverified |
-| Social share providers | share redirect/tracking | `DawahShareController`, allowed providers | Confirmed |
+| Social share providers | share redirect/tracking | `ShareController`, allowed providers | Confirmed |
 | GitHub | Issue/report submission endpoint | `GitHubIssueController` | Confirmed in code; token/config unverified |
 | OpenAI/other AI model services | AI features/usage pricing | `laravel/ai`, AI model pricing/usage tables/config | Configured/implemented pieces; user-facing product scope unverified |
 | MCP OAuth/API | AI-agent access | `routes/ai.php`, MCP servers | Confirmed |
@@ -543,7 +543,7 @@ Filament provides CRUD and workflow operations across core catalogue and operati
 
 ### Existing
 
-Signals schema includes auth signup/email verification and notification read/read-all events; share analytics, mobile telemetry, Horizon snapshots, audit/activity logs, and AI usage logs exist. [Evidence: `ProductSignalSchemaRegistry`, `DawahShareController`, `config/product-signals.php`, `config/signals.php`, `config/horizon.php`]
+Signals schema includes auth signup/email verification and notification read/read-all events; share analytics, mobile telemetry, Horizon snapshots, audit/activity logs, and AI usage logs exist. [Evidence: `ProductSignalSchemaRegistry`, `ShareController`, `config/product-signals.php`, `config/signals.php`, `config/horizon.php`]
 
 ### Recommended framework
 

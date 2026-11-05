@@ -9,7 +9,7 @@ use AIArmada\Rewards\Jobs\EvaluateRewardEntitlementJob;
 use AIArmada\Rewards\Models\RewardProgram;
 use AIArmada\Rewards\Models\RewardProgramVersion;
 use AIArmada\Rewards\Support\RewardSourceFact;
-use App\Enums\DawahShareOutcomeType;
+use App\Enums\ShareOutcomeType;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
 use App\Support\Rewards\ActivityRewardSourceFactReader;
@@ -123,7 +123,7 @@ final class EvaluatePreclaimShareOutcomesAction
 
     private function activityBusinessKeyFor(string $businessKey): ?string
     {
-        foreach (DawahShareOutcomeType::cases() as $outcome) {
+        foreach (ShareOutcomeType::cases() as $outcome) {
             try {
                 $parsed = ShareOutcomeBusinessKey::parse($businessKey, $outcome);
             } catch (InvalidArgumentException) {

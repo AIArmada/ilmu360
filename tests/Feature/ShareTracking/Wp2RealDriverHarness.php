@@ -41,7 +41,7 @@ final class Wp2RealDriverHarness
         $request->setRouteResolver(static fn (): mixed => $route);
 
         if (is_string($cookie) && $cookie !== '') {
-            $request->cookies->set((string) config('dawah-share.cookie.name', 'mi_dawah_share'), $cookie);
+            $request->cookies->set((string) config('share-tracking.cookie.name', 'i360_share'), $cookie);
         }
 
         return $request;

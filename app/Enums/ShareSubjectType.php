@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Enums;
 
-enum DawahShareSubjectType: string
+enum ShareSubjectType: string
 {
     case Event = 'event';
     case Institution = 'institution';

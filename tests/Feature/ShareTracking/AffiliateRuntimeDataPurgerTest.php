@@ -161,5 +161,5 @@ it('never deletes an unmarked commercial profile through tracking cleanup', func
 
 it('exposes no global affiliate runtime purge path', function (): void {
     expect(class_exists('App\Services\ShareTracking\AffiliateRuntimeDataPurger'))->toBeFalse()
-        ->and(config('dawah-share.runtime_data_purge'))->toBeNull();
+        ->and(config('share-tracking.runtime_data_purge'))->toBeNull();
 });

@@ -46,7 +46,7 @@
         'sourceUrl' => $institutionUrl,
         'shareText' => $shareText,
         'fallbackTitle' => $institution->name,
-        'payloadEndpoint' => route('dawah-share.payload'),
+        'payloadEndpoint' => route('share.payload'),
     ];
     $institutionRouteSegment = \App\Enums\ContributionSubjectType::Institution->publicRouteSegment();
     $showCancelledEventStatusNotice = $upcomingEvents->contains(

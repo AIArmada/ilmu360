@@ -18,7 +18,7 @@ use AIArmada\Rewards\Jobs\EvaluateRewardEntitlementJob;
 use AIArmada\Rewards\Models\RewardAward;
 use AIArmada\Rewards\Models\RewardFundingEntry;
 use AIArmada\Rewards\Models\RewardFundingSource;
-use App\Enums\DawahShareOutcomeType;
+use App\Enums\ShareOutcomeType;
 use App\Models\EventCheckin;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
@@ -118,12 +118,12 @@ it('runs a staff-managed funded programme through explicit enrolment and a direc
     ]);
     $shareOutcomeKey = ShareOutcomeBusinessKey::eventCheckin((string) $checkin->getKey());
     $activityKey = ActivityRewardBusinessKey::for(
-        DawahShareOutcomeType::EventCheckin,
+        ShareOutcomeType::EventCheckin,
         'checkin:'.(string) $checkin->getKey(),
     );
 
     app(ShareTrackingService::class)->recordOutcome(
-        DawahShareOutcomeType::EventCheckin,
+        ShareOutcomeType::EventCheckin,
         $shareOutcomeKey,
         actor: $member,
         occurredAt: $checkin->checked_in_at,

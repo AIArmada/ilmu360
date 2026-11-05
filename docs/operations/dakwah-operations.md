@@ -1,6 +1,6 @@
-# Dawah impact operations
+# Dakwah operations
 
-This runbook covers the local Ilmu360 Dawah impact example and the staff
+This runbook covers the local Ilmu360 share example and the staff
 workflow for operating member share profiles. Share-profile affiliates are
 impact-only: they can produce points and community measurements, but never
 commercial payouts. Paid ticket commission uses a separate commercial
@@ -8,23 +8,23 @@ affiliate link and attribution.
 
 ## Measurement start and local examples
 
-`config('dawah-share.reporting.reporting_start')` reads
-`DAWAH_SHARE_REPORTING_START`. Without a start date, the admin Dawah analytics
+`config('share-tracking.reporting.reporting_start')` reads
+`SHARE_REPORTING_START`. Without a start date, the admin Dakwah analytics
 page reports measurement as **not configured** and withholds impact totals.
 Set the baseline in the local, gitignored `.env`, then clear cached config:
 
 ```dotenv
-DAWAH_SHARE_REPORTING_START=2026-10-16
+SHARE_REPORTING_START=2026-10-16
 ```
 
 ```bash
 php artisan config:clear
-php artisan app:dawah:activate-local-examples
+php artisan app:share:activate-local-examples
 ```
 
 The activation command refuses to run unless `APP_ENV=local`. It idempotently
-publishes and activates the points family `dawah-points-v1`, activates the
-referral program `ilmu360-dawah-community`, and provisions the benefit item
+publishes and activates the points family `share-points-v1`, activates the
+referral program `ilmu360-share-community`, and provisions the benefit item
 `community-learning-pack` plus local sharer and visitor demo accounts. The v1
 amounts are 3 points for the first accepted signup, 5 points for an accepted
 event registration, and 15 points for a staff-verified check-in. Daily and
@@ -60,11 +60,11 @@ shares, visits, signup and event outcomes, and suppression notes. `Ready`
 means the reporting baseline is configured; it does not promise that every
 metric has non-zero evidence.
 
-In Filament **Affiliate Links**, deactivate an individual Dawah
-`AffiliateLink` to stop Dawah credit through that link. Deactivating its
-tracked row in the generic **Links** resource does not stop Dawah credit;
+In Filament **Affiliate Links**, deactivate an individual share
+`AffiliateLink` to stop share credit through that link. Deactivating its
+tracked row in the generic **Links** resource does not stop share credit;
 the `/k` flow checks `AffiliateLink.deactivated_at`. Use **Affiliate Links**
-for this operation, and preserve the Dawah purpose marker and identity
+for this operation, and preserve the share purpose marker and identity
 fields. A tracked `Link` whose subject is an `AffiliateLink` is managed
 through the affiliate link resource, so staff should not change its slug or
 destination in the generic Links resource.
@@ -101,16 +101,15 @@ aggregate rebuilds are intentionally not scheduled.
 
 Other package commands remain manual by design: `affiliates:process-ranks`,
 `affiliates:aggregate-performance`, and `affiliates:process-bonuses` are not
-part of Dawah activation. Do not run them to repair a Dawah member profile.
+part of share activation. Do not run them to repair a share member profile.
 
 ## Commercial ticket commission separation
 
 Paid-ticket commission is recorded only from frozen checkout attribution for
 a commercial-purpose affiliate with active program membership. It is one
 pending conversion per paid registration, based on that order line's unit
-price times quantity minus the line discount, excluding tax. Dawah
-share-member links earn impact and points only. Keep commercial affiliate
-links separate from Dawah share links so a shared Dawah link can never also
+price times quantity minus the line discount, excluding tax. Share-member links earn impact and points only. Keep commercial affiliate
+links separate from share links so a shared link can never also
 pay a ticket commission.
 
 ## Reserved payout reversal follow-up

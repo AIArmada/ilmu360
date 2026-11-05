@@ -7,8 +7,8 @@ namespace App\Http\Controllers\Api\Frontend;
 use App\Data\ShareTracking\ShareTrackingLinkData;
 use App\Data\ShareTracking\ShareTrackingOutcomeData;
 use App\Data\ShareTracking\ShareTrackingVisitData;
-use App\Enums\DawahShareOutcomeType;
-use App\Enums\DawahShareSubjectType;
+use App\Enums\ShareOutcomeType;
+use App\Enums\ShareSubjectType;
 use App\Services\ShareTrackingAnalyticsService;
 use App\Services\ShareTrackingService;
 use App\Support\Api\ApiPagination;
@@ -160,8 +160,8 @@ class ShareAnalyticsController extends FrontendController
     private function subjectTypes(): array
     {
         return array_map(
-            static fn (DawahShareSubjectType $type): string => $type->value,
-            DawahShareSubjectType::cases(),
+            static fn (ShareSubjectType $type): string => $type->value,
+            ShareSubjectType::cases(),
         );
     }
 
@@ -187,8 +187,8 @@ class ShareAnalyticsController extends FrontendController
     private function outcomeTypes(): array
     {
         return array_map(
-            static fn (DawahShareOutcomeType $type): string => $type->value,
-            DawahShareOutcomeType::cases(),
+            static fn (ShareOutcomeType $type): string => $type->value,
+            ShareOutcomeType::cases(),
         );
     }
 

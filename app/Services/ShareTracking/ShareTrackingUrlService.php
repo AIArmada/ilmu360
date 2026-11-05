@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\ShareTracking;
 
-use App\Enums\DawahShareSubjectType;
+use App\Enums\ShareSubjectType;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
@@ -189,7 +189,7 @@ final readonly class ShareTrackingUrlService
 
             if ($event instanceof Event) {
                 return $this->subjectResult(
-                    DawahShareSubjectType::Event,
+                    ShareSubjectType::Event,
                     $event->id,
                     'event:'.$event->id,
                     route('events.show', $event),
@@ -201,7 +201,7 @@ final readonly class ShareTrackingUrlService
         }
 
         return $this->subjectResult(
-            DawahShareSubjectType::Page,
+            ShareSubjectType::Page,
             null,
             'page:'.trim($path, '/'),
             $absoluteUrl,
@@ -221,32 +221,32 @@ final readonly class ShareTrackingUrlService
     {
         return match (true) {
             $subject instanceof Event => [
-                'subject_type' => DawahShareSubjectType::Event->value,
+                'subject_type' => ShareSubjectType::Event->value,
                 'subject_id' => $subject->id,
                 'subject_key' => 'event:'.$subject->id,
             ],
             $subject instanceof Institution => [
-                'subject_type' => DawahShareSubjectType::Institution->value,
+                'subject_type' => ShareSubjectType::Institution->value,
                 'subject_id' => $subject->id,
                 'subject_key' => 'institution:'.$subject->id,
             ],
             $subject instanceof Person => [
-                'subject_type' => DawahShareSubjectType::Person->value,
+                'subject_type' => ShareSubjectType::Person->value,
                 'subject_id' => $subject->id,
                 'subject_key' => 'person:'.$subject->id,
             ],
             $subject instanceof Series => [
-                'subject_type' => DawahShareSubjectType::Series->value,
+                'subject_type' => ShareSubjectType::Series->value,
                 'subject_id' => $subject->id,
                 'subject_key' => 'series:'.$subject->id,
             ],
             $subject instanceof Reference => [
-                'subject_type' => DawahShareSubjectType::Reference->value,
+                'subject_type' => ShareSubjectType::Reference->value,
                 'subject_id' => $subject->id,
                 'subject_key' => 'reference:'.$subject->id,
             ],
             default => [
-                'subject_type' => DawahShareSubjectType::Page->value,
+                'subject_type' => ShareSubjectType::Page->value,
                 'subject_id' => null,
                 'subject_key' => 'page:model:'.$subject->getMorphClass().':'.$subject->getKey(),
             ],
@@ -353,7 +353,7 @@ final readonly class ShareTrackingUrlService
             return false;
         }
 
-        return array_any((array) config('dawah-share.bot_user_agents', []), fn ($needle) => str_contains($userAgent, Str::lower((string) $needle)));
+        return array_any((array) config('share-tracking.bot_user_agents', []), fn ($needle) => str_contains($userAgent, Str::lower((string) $needle)));
     }
 
     /**
@@ -457,7 +457,7 @@ final readonly class ShareTrackingUrlService
      */
     public function sanitizedCampaignParams(Request $request): array
     {
-        $allowedKeys = array_filter((array) config('dawah-share.campaign_metadata_keys', []));
+        $allowedKeys = array_filter((array) config('share-tracking.campaign_metadata_keys', []));
         $metadata = [];
 
         foreach ($allowedKeys as $key) {
@@ -520,7 +520,7 @@ final readonly class ShareTrackingUrlService
         }
 
         return $this->appendQueryParameters($url, [
-            (string) config('dawah-share.provider_query_parameter', 'channel') => $provider,
+            (string) config('share-tracking.provider_query_parameter', 'channel') => $provider,
         ]);
     }
 
@@ -532,8 +532,8 @@ final readonly class ShareTrackingUrlService
         parse_str((string) parse_url($this->normalizeAbsoluteInternalUrl($url), PHP_URL_QUERY), $query);
 
         $query = Arr::where($query, fn (mixed $value): bool => $this->filledQueryValue($value));
-        unset($query[(string) config('dawah-share.query_parameter', 'share')]);
-        unset($query[(string) config('dawah-share.provider_query_parameter', 'channel')]);
+        unset($query[(string) config('share-tracking.query_parameter', 'share')]);
+        unset($query[(string) config('share-tracking.provider_query_parameter', 'channel')]);
 
         return $this->sortQueryRecursively($query);
     }
@@ -634,7 +634,7 @@ final readonly class ShareTrackingUrlService
             'references.show' => $this->referenceTarget((string) ($parameters['reference'] ?? '')),
             'events.index' => $this->searchOrPageTarget($query, $fallbackTitle),
             default => $this->subjectResult(
-                DawahShareSubjectType::Page,
+                ShareSubjectType::Page,
                 null,
                 'page:'.$routeName,
                 $this->buildAbsoluteUrl((string) parse_url(route($routeName, $parameters, false), PHP_URL_PATH), $query),
@@ -666,7 +666,7 @@ final readonly class ShareTrackingUrlService
 
         if (! $event instanceof Event) {
             return $this->subjectResult(
-                DawahShareSubjectType::Page,
+                ShareSubjectType::Page,
                 null,
                 'page:majlis:'.$slug,
                 $this->buildAbsoluteUrl('/majlis/'.$slug, []),
@@ -677,7 +677,7 @@ final readonly class ShareTrackingUrlService
         }
 
         return $this->subjectResult(
-            DawahShareSubjectType::Event,
+            ShareSubjectType::Event,
             $event->id,
             'event:'.$event->id,
             route('events.show', $event),
@@ -704,7 +704,7 @@ final readonly class ShareTrackingUrlService
 
         if (! $institution instanceof Institution) {
             return $this->subjectResult(
-                DawahShareSubjectType::Page,
+                ShareSubjectType::Page,
                 null,
                 'page:institusi:'.$slug,
                 $this->buildAbsoluteUrl('/institusi/'.$slug, []),
@@ -715,7 +715,7 @@ final readonly class ShareTrackingUrlService
         }
 
         return $this->subjectResult(
-            DawahShareSubjectType::Institution,
+            ShareSubjectType::Institution,
             $institution->id,
             'institution:'.$institution->id,
             route('institutions.show', $institution),
@@ -742,7 +742,7 @@ final readonly class ShareTrackingUrlService
 
         if (! $person instanceof Person) {
             return $this->subjectResult(
-                DawahShareSubjectType::Page,
+                ShareSubjectType::Page,
                 null,
                 'page:penceramah:'.$slug,
                 $this->buildAbsoluteUrl('/penceramah/'.$slug, []),
@@ -753,7 +753,7 @@ final readonly class ShareTrackingUrlService
         }
 
         return $this->subjectResult(
-            DawahShareSubjectType::Person,
+            ShareSubjectType::Person,
             $person->id,
             'person:'.$person->id,
             route('persons.show', $person),
@@ -780,7 +780,7 @@ final readonly class ShareTrackingUrlService
 
         if (! $series instanceof Series) {
             return $this->subjectResult(
-                DawahShareSubjectType::Page,
+                ShareSubjectType::Page,
                 null,
                 'page:series:'.$slug,
                 $this->buildAbsoluteUrl('/siri/'.$slug, []),
@@ -791,7 +791,7 @@ final readonly class ShareTrackingUrlService
         }
 
         return $this->subjectResult(
-            DawahShareSubjectType::Series,
+            ShareSubjectType::Series,
             $series->id,
             'series:'.$series->id,
             route('series.show', $series),
@@ -822,7 +822,7 @@ final readonly class ShareTrackingUrlService
 
         if (! $reference instanceof Reference) {
             return $this->subjectResult(
-                DawahShareSubjectType::Page,
+                ShareSubjectType::Page,
                 null,
                 'page:reference:'.$referenceIdentifier,
                 $this->buildAbsoluteUrl('/rujukan/'.$referenceIdentifier, []),
@@ -833,7 +833,7 @@ final readonly class ShareTrackingUrlService
         }
 
         return $this->subjectResult(
-            DawahShareSubjectType::Reference,
+            ShareSubjectType::Reference,
             $reference->id,
             'reference:'.$reference->id,
             route('references.show', $reference),
@@ -861,7 +861,7 @@ final readonly class ShareTrackingUrlService
 
         if ($query === []) {
             return $this->subjectResult(
-                DawahShareSubjectType::Page,
+                ShareSubjectType::Page,
                 null,
                 'page:events.index',
                 $canonicalUrl,
@@ -872,7 +872,7 @@ final readonly class ShareTrackingUrlService
         }
 
         return $this->subjectResult(
-            DawahShareSubjectType::Search,
+            ShareSubjectType::Search,
             null,
             'search:'.$canonicalUrl,
             $canonicalUrl,
@@ -895,7 +895,7 @@ final readonly class ShareTrackingUrlService
      * }
      */
     private function subjectResult(
-        DawahShareSubjectType $type,
+        ShareSubjectType $type,
         ?string $subjectId,
         string $subjectKey,
         string $destinationUrl,

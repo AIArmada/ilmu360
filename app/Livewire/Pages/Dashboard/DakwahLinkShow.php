@@ -8,8 +8,8 @@ use App\Data\ShareTracking\ShareTrackingVisitData;
 use App\Models\User;
 use App\Services\ShareTrackingAnalyticsService;
 use App\Services\ShareTrackingService;
-use App\Support\ShareTracking\ShareProfileNotEligibleException;
 use App\Support\ShareTracking\ShareTrackingMeasurement;
+use App\Support\Timezone\UserDateTimeFormatter;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
@@ -18,7 +18,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Component;
 
 #[Layout('layouts.app')]
-class DawahImpactLinkShow extends Component
+class DakwahLinkShow extends Component
 {
     public string $linkId;
 
@@ -99,17 +99,8 @@ class DawahImpactLinkShow extends Component
     #[Computed]
     public function trackedUrl(): string
     {
-        $link = $this->linkData();
-
-        try {
-            return $this->shareService()->attributedUrl(
-                $this->currentUser(),
-                $link->destinationUrl,
-                $link->titleSnapshot,
-            );
-        } catch (ShareProfileNotEligibleException) {
-            return $link->destinationUrl;
-        }
+        return $this->analytics()->trackedUrlForUser($this->currentUser(), $this->linkId)
+            ?? $this->linkData()->destinationUrl;
     }
 
     /**
@@ -126,7 +117,7 @@ class DawahImpactLinkShow extends Component
     #[Computed]
     public function dailyPerformance(): Collection
     {
-        return $this->analytics()->dailyPerformanceForLink($this->linkData(), 14, $this->currentUser()->preferredTimezone());
+        return $this->analytics()->dailyPerformanceForLink($this->linkData(), 14, UserDateTimeFormatter::resolveTimezone());
     }
 
     /**
@@ -191,6 +182,6 @@ class DawahImpactLinkShow extends Component
 
     public function render(): View
     {
-        return view('livewire.pages.dashboard.dawah-impact-link-show');
+        return view('livewire.pages.dashboard.dakwah-link-show');
     }
 }

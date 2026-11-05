@@ -55,7 +55,7 @@ it('stashes a guest invite token for sign-in and keeps share capture active on t
         ->assertSessionHas('url.intended', $landingUrl);
 
     expect($invite->refresh()->status)->toBe(ReferralInviteStatus::Pending)
-        ->and($response->getCookie((string) config('dawah-share.cookie.name', 'mi_dawah_share')))->not->toBeNull();
+        ->and($response->getCookie((string) config('share-tracking.cookie.name', 'i360_share')))->not->toBeNull();
 });
 
 it('accepts a landing invite with the authenticated user email before phone and records a signal', function (): void {

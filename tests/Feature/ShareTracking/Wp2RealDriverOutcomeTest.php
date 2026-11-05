@@ -30,8 +30,8 @@ use AIArmada\Engagement\Models\Response;
 use AIArmada\Events\Models\EventOccurrence;
 use App\Actions\ShareTracking\DispatchShareEffectReceiptsAction;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
-use App\Enums\DawahShareOutcomeType;
 use App\Enums\ShareEffectStatus;
+use App\Enums\ShareOutcomeType;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\ShareBrowserSelection;
@@ -123,7 +123,7 @@ function wp2OutcomeRequest(?string $cookie = null): Request
     $request = Request::create((string) config('app.url'), 'GET');
 
     if (is_string($cookie) && $cookie !== '') {
-        $request->cookies->set((string) config('dawah-share.cookie.name', 'mi_dawah_share'), $cookie);
+        $request->cookies->set((string) config('share-tracking.cookie.name', 'i360_share'), $cookie);
     }
 
     return $request;
@@ -147,7 +147,7 @@ function wp2OutcomeCase(TestCase $testCase): void
         $occurredAt = CarbonImmutable::now()->subMinutes(7)->startOfSecond();
 
         $outcome = $service->recordOutcome(
-            DawahShareOutcomeType::EventSave,
+            ShareOutcomeType::EventSave,
             $businessKey,
             null,
             $actor,
@@ -174,7 +174,7 @@ function wp2OutcomeCase(TestCase $testCase): void
         // committed decision and the original immutable source time, and
         // writes nothing more.
         $replayed = $service->recordOutcome(
-            DawahShareOutcomeType::EventSave,
+            ShareOutcomeType::EventSave,
             $businessKey,
             null,
             $actor,
@@ -209,7 +209,7 @@ function wp2UnattributedCase(TestCase $testCase): void
         // No cookie at the original transition: the freeze is explicitly
         // unattributed and earns nothing.
         expect($service->recordOutcome(
-            DawahShareOutcomeType::EventSave,
+            ShareOutcomeType::EventSave,
             $businessKey,
             null,
             $actor,
@@ -224,7 +224,7 @@ function wp2UnattributedCase(TestCase $testCase): void
 
         // A later landing cookie can never revive the frozen decision.
         expect($service->recordOutcome(
-            DawahShareOutcomeType::EventSave,
+            ShareOutcomeType::EventSave,
             $businessKey,
             null,
             $actor,
@@ -258,7 +258,7 @@ function wp2FraudRejectionCase(TestCase $testCase): void
         $businessKey = ShareOutcomeBusinessKey::eventSave((string) Str::uuid());
 
         expect($service->recordOutcome(
-            DawahShareOutcomeType::EventSave,
+            ShareOutcomeType::EventSave,
             $businessKey,
             null,
             $actor,
@@ -279,7 +279,7 @@ function wp2FraudRejectionCase(TestCase $testCase): void
         // A rejected conversion stays rejected at the receipt boundary:
         // replay never revives it into credit.
         expect($service->recordOutcome(
-            DawahShareOutcomeType::EventSave,
+            ShareOutcomeType::EventSave,
             $businessKey,
             null,
             $actor,
@@ -311,7 +311,7 @@ function wp2RollbackCase(TestCase $testCase): void
 
         try {
             $service->recordOutcome(
-                DawahShareOutcomeType::EventSave,
+                ShareOutcomeType::EventSave,
                 $businessKey,
                 null,
                 $actor,
@@ -371,7 +371,7 @@ function wp2AccountingFaultCase(TestCase $testCase): void
 
         try {
             $service->recordOutcome(
-                DawahShareOutcomeType::EventSave,
+                ShareOutcomeType::EventSave,
                 $businessKey,
                 null,
                 $actor,
@@ -395,7 +395,7 @@ function wp2AccountingFaultCase(TestCase $testCase): void
         // A subsequent legitimate retry records the frozen decision
         // exactly once.
         $retry = $service->recordOutcome(
-            DawahShareOutcomeType::EventSave,
+            ShareOutcomeType::EventSave,
             $businessKey,
             null,
             $actor,
@@ -428,7 +428,7 @@ function wp2DispatchRecoveryCase(TestCase $testCase): void
         $service = app(ShareTrackingService::class);
 
         $service->recordOutcome(
-            DawahShareOutcomeType::EventSave,
+            ShareOutcomeType::EventSave,
             ShareOutcomeBusinessKey::eventSave((string) Str::uuid()),
             null,
             $actor,
@@ -452,7 +452,7 @@ function wp2DispatchRecoveryCase(TestCase $testCase): void
         // An expired lease from a dead worker is reclaimed and applied
         // once instead of stranding the effect.
         $service->recordOutcome(
-            DawahShareOutcomeType::EventSave,
+            ShareOutcomeType::EventSave,
             ShareOutcomeBusinessKey::eventSave((string) Str::uuid()),
             null,
             $actor,
@@ -519,7 +519,7 @@ function wp2TtlDedupeCase(TestCase $testCase): void
         $testCase->travel(31)->days();
 
         $staleOutcome = $service->recordOutcome(
-            DawahShareOutcomeType::EventSave,
+            ShareOutcomeType::EventSave,
             ShareOutcomeBusinessKey::eventSave((string) Str::uuid()),
             null,
             $actor,
@@ -534,7 +534,7 @@ function wp2TtlDedupeCase(TestCase $testCase): void
         expect(AffiliateAttribution::query()->count())->toBe(3);
 
         $freshOutcome = $service->recordOutcome(
-            DawahShareOutcomeType::EventSave,
+            ShareOutcomeType::EventSave,
             ShareOutcomeBusinessKey::eventSave((string) Str::uuid()),
             null,
             $actor,
@@ -565,7 +565,7 @@ function wp2InheritanceCase(TestCase $testCase): void
         $sourceKey = ShareOutcomeBusinessKey::eventRegistration((string) Str::uuid());
 
         expect($service->recordOutcome(
-            DawahShareOutcomeType::EventRegistration,
+            ShareOutcomeType::EventRegistration,
             $sourceKey,
             null,
             $actor,
@@ -582,7 +582,7 @@ function wp2InheritanceCase(TestCase $testCase): void
         $testCase->travel(31)->days();
 
         $inherited = $service->recordInheritedOutcome(
-            DawahShareOutcomeType::EventCheckin,
+            ShareOutcomeType::EventCheckin,
             ShareOutcomeBusinessKey::eventCheckin((string) Str::uuid()),
             $sourceKey,
             null,
@@ -593,7 +593,7 @@ function wp2InheritanceCase(TestCase $testCase): void
         expect($inherited)->not->toBeNull();
 
         $checkinReceipt = ShareSourceAttributionReceipt::query()
-            ->where('outcome_type', DawahShareOutcomeType::EventCheckin->value)
+            ->where('outcome_type', ShareOutcomeType::EventCheckin->value)
             ->firstOrFail();
 
         expect((string) $checkinReceipt->attribution_id)->toBe((string) $sourceReceipt->attribution_id)
@@ -620,7 +620,7 @@ function wp2CorrectionCase(TestCase $testCase): void
         $businessKey = ShareOutcomeBusinessKey::eventSave((string) Str::uuid());
 
         expect($service->recordOutcome(
-            DawahShareOutcomeType::EventSave,
+            ShareOutcomeType::EventSave,
             $businessKey,
             null,
             $actor,
@@ -649,7 +649,7 @@ function wp2CorrectionCase(TestCase $testCase): void
         $moneyKey = ShareOutcomeBusinessKey::eventSave((string) Str::uuid());
 
         expect($service->recordOutcome(
-            DawahShareOutcomeType::EventSave,
+            ShareOutcomeType::EventSave,
             $moneyKey,
             null,
             $actor,
@@ -696,7 +696,7 @@ function wp2MalformedKeyCase(TestCase $testCase): void
             $failure = null;
 
             try {
-                $service->recordOutcome(DawahShareOutcomeType::EventSave, $key, null, $actor, null);
+                $service->recordOutcome(ShareOutcomeType::EventSave, $key, null, $actor, null);
             } catch (InvalidArgumentException $exception) {
                 $failure = $exception->getMessage();
             }
@@ -722,7 +722,7 @@ function wp2GoingCrashCase(TestCase $testCase): void
         $sharer = User::factory()->create(['email' => 'wp2-sharer@example.test']);
         $actor = User::factory()->create(['email' => 'wp2-actor@example.test']);
         $link = wp2OutcomeLink($sharer, $pageUrl);
-        $cookieName = (string) config('dawah-share.cookie.name', 'mi_dawah_share');
+        $cookieName = (string) config('share-tracking.cookie.name', 'i360_share');
 
         // The landing runs through real HTTP so the attribution cookie
         // round-trips encrypted exactly like a browser.
@@ -831,7 +831,7 @@ function wp2BrowserReversedArrivalCase(TestCase $testCase): void
         expect((string) $resolved->id)->toBe((string) $winnerB->getKey());
 
         $businessKey = ShareOutcomeBusinessKey::eventSave((string) Str::uuid());
-        $outcome = $service->recordOutcome(DawahShareOutcomeType::EventSave, $businessKey, null, $actor, wp2OutcomeRequest($cookieA));
+        $outcome = $service->recordOutcome(ShareOutcomeType::EventSave, $businessKey, null, $actor, wp2OutcomeRequest($cookieA));
 
         expect($outcome)->not->toBeNull();
         expect((string) $outcome->linkId)->toBe((string) $linkB->getKey());
@@ -868,7 +868,7 @@ function wp2BrowserInvalidTokenCase(TestCase $testCase): void
         expect($service->resolveActiveAttribution(wp2OutcomeRequest($cookie)))->toBeNull();
 
         $businessKey = ShareOutcomeBusinessKey::eventSave((string) Str::uuid());
-        expect($service->recordOutcome(DawahShareOutcomeType::EventSave, $businessKey, null, $actor, wp2OutcomeRequest($cookie)))->toBeNull();
+        expect($service->recordOutcome(ShareOutcomeType::EventSave, $businessKey, null, $actor, wp2OutcomeRequest($cookie)))->toBeNull();
 
         $receipt = ShareSourceAttributionReceipt::query()->where('business_key', $businessKey)->firstOrFail();
         expect($receipt->isAttributed())->toBeFalse();
@@ -940,7 +940,7 @@ function wp2CancelledSourceInheritanceCase(TestCase $testCase): void
 
         $cookie = wp2OutcomeLanding($pageUrl.'?share='.$link->custom_slug);
         $sourceKey = ShareOutcomeBusinessKey::eventRegistration((string) Str::uuid());
-        $source = $service->recordOutcome(DawahShareOutcomeType::EventRegistration, $sourceKey, null, $actor, wp2OutcomeRequest($cookie));
+        $source = $service->recordOutcome(ShareOutcomeType::EventRegistration, $sourceKey, null, $actor, wp2OutcomeRequest($cookie));
         expect($source)->not->toBeNull();
 
         $correction = app(ReverseShareOutcomeAction::class)->handle($sourceKey, 'registration_cancelled', $actor, wp2OutcomeRequest($cookie));
@@ -948,7 +948,7 @@ function wp2CancelledSourceInheritanceCase(TestCase $testCase): void
         expect(wp2ConversionStatusValue(AffiliateConversion::query()->where('idempotency_key', hash('sha256', $sourceKey))->firstOrFail()))->toBe('reversed');
 
         $childKey = ShareOutcomeBusinessKey::eventCheckin((string) Str::uuid());
-        $child = $service->recordInheritedOutcome(DawahShareOutcomeType::EventCheckin, $childKey, $sourceKey, null, $actor, ['staff_assisted' => true]);
+        $child = $service->recordInheritedOutcome(ShareOutcomeType::EventCheckin, $childKey, $sourceKey, null, $actor, ['staff_assisted' => true]);
 
         expect($child)->toBeNull();
         expect(ShareSourceAttributionReceipt::query()->where('business_key', $childKey)->firstOrFail()->isAttributed())->toBeFalse();
@@ -973,7 +973,7 @@ function wp2FraudConfirmedInheritanceCase(TestCase $testCase): void
 
         $cookie = wp2OutcomeLanding($pageUrl.'?share='.$link->custom_slug);
         $sourceKey = ShareOutcomeBusinessKey::eventRegistration((string) Str::uuid());
-        expect($service->recordOutcome(DawahShareOutcomeType::EventRegistration, $sourceKey, null, $actor, wp2OutcomeRequest($cookie)))->not->toBeNull();
+        expect($service->recordOutcome(ShareOutcomeType::EventRegistration, $sourceKey, null, $actor, wp2OutcomeRequest($cookie)))->not->toBeNull();
 
         $sourceConversion = AffiliateConversion::query()->where('idempotency_key', hash('sha256', $sourceKey))->firstOrFail();
         AffiliateFraudSignal::query()->create([
@@ -989,7 +989,7 @@ function wp2FraudConfirmedInheritanceCase(TestCase $testCase): void
         ]);
 
         $childKey = ShareOutcomeBusinessKey::eventCheckin((string) Str::uuid());
-        expect($service->recordInheritedOutcome(DawahShareOutcomeType::EventCheckin, $childKey, $sourceKey, null, $actor))->toBeNull();
+        expect($service->recordInheritedOutcome(ShareOutcomeType::EventCheckin, $childKey, $sourceKey, null, $actor))->toBeNull();
         expect(ShareSourceAttributionReceipt::query()->where('business_key', $childKey)->firstOrFail()->isAttributed())->toBeFalse();
         expect(AffiliateConversion::query()->where('idempotency_key', hash('sha256', $childKey))->count())->toBe(0);
     } finally {
@@ -1011,8 +1011,8 @@ function wp2CorrectionDispatchCase(TestCase $testCase): void
         $cookie = wp2OutcomeLanding($pageUrl.'?share='.$link->custom_slug);
         $revokedKey = ShareOutcomeBusinessKey::eventSave((string) Str::uuid());
         $validKey = ShareOutcomeBusinessKey::eventSave((string) Str::uuid());
-        expect($service->recordOutcome(DawahShareOutcomeType::EventSave, $revokedKey, null, $actor, wp2OutcomeRequest($cookie)))->not->toBeNull();
-        expect($service->recordOutcome(DawahShareOutcomeType::EventSave, $validKey, null, $actor, wp2OutcomeRequest($cookie)))->not->toBeNull();
+        expect($service->recordOutcome(ShareOutcomeType::EventSave, $revokedKey, null, $actor, wp2OutcomeRequest($cookie)))->not->toBeNull();
+        expect($service->recordOutcome(ShareOutcomeType::EventSave, $validKey, null, $actor, wp2OutcomeRequest($cookie)))->not->toBeNull();
 
         expect(app(ReverseShareOutcomeAction::class)->handle($revokedKey, 'registration_cancelled', $actor, wp2OutcomeRequest($cookie)))->not->toBeNull();
 
@@ -1039,7 +1039,7 @@ function wp2LeaseFencingCase(TestCase $testCase): void
 
         $cookie = wp2OutcomeLanding($pageUrl.'?share='.$link->custom_slug);
         $businessKey = ShareOutcomeBusinessKey::eventSave((string) Str::uuid());
-        expect($service->recordOutcome(DawahShareOutcomeType::EventSave, $businessKey, null, $actor, wp2OutcomeRequest($cookie)))->not->toBeNull();
+        expect($service->recordOutcome(ShareOutcomeType::EventSave, $businessKey, null, $actor, wp2OutcomeRequest($cookie)))->not->toBeNull();
 
         $effect = ShareEffectReceipt::query()->where('source_id', $businessKey)->firstOrFail();
         $effect->forceFill([
@@ -1164,7 +1164,7 @@ function wp2BrowserAbaDifferentSharersCase(TestCase $testCase): void
 
         $businessKey = ShareOutcomeBusinessKey::eventSave((string) Str::uuid());
         $outcome = $service->recordOutcome(
-            DawahShareOutcomeType::EventSave,
+            ShareOutcomeType::EventSave,
             $businessKey,
             null,
             $actor,
@@ -1306,7 +1306,7 @@ function wp2BrowserAbaSameSharerCase(TestCase $testCase): void
 
         $businessKey = ShareOutcomeBusinessKey::eventSave((string) Str::uuid());
         $outcome = $service->recordOutcome(
-            DawahShareOutcomeType::EventSave,
+            ShareOutcomeType::EventSave,
             $businessKey,
             null,
             $actor,
@@ -1418,7 +1418,7 @@ function wp2BrowserChannelChangeCase(TestCase $testCase): void
 
         $businessKey = ShareOutcomeBusinessKey::eventSave((string) Str::uuid());
         $outcome = $service->recordOutcome(
-            DawahShareOutcomeType::EventSave,
+            ShareOutcomeType::EventSave,
             $businessKey,
             null,
             $actor,

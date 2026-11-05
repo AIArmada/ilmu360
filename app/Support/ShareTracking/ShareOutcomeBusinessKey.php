@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\ShareTracking;
 
-use App\Enums\DawahShareOutcomeType;
+use App\Enums\ShareOutcomeType;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 
@@ -29,22 +29,22 @@ final class ShareOutcomeBusinessKey
     public static function sourcePrefixes(): array
     {
         return [
-            DawahShareOutcomeType::Signup->value => 'user:',
-            DawahShareOutcomeType::EventRegistration->value => 'registration:',
-            DawahShareOutcomeType::EventCheckin->value => 'checkin:',
-            DawahShareOutcomeType::EventSubmission->value => 'submission:',
-            DawahShareOutcomeType::EventSave->value => 'bookmark:',
-            DawahShareOutcomeType::EventGoing->value => 'response:',
-            DawahShareOutcomeType::InstitutionFollow->value => 'follow:',
-            DawahShareOutcomeType::PersonFollow->value => 'follow:',
-            DawahShareOutcomeType::SeriesFollow->value => 'follow:',
-            DawahShareOutcomeType::ReferenceFollow->value => 'follow:',
-            DawahShareOutcomeType::SavedSearchCreated->value => 'saved_search:',
+            ShareOutcomeType::Signup->value => 'user:',
+            ShareOutcomeType::EventRegistration->value => 'registration:',
+            ShareOutcomeType::EventCheckin->value => 'checkin:',
+            ShareOutcomeType::EventSubmission->value => 'submission:',
+            ShareOutcomeType::EventSave->value => 'bookmark:',
+            ShareOutcomeType::EventGoing->value => 'response:',
+            ShareOutcomeType::InstitutionFollow->value => 'follow:',
+            ShareOutcomeType::PersonFollow->value => 'follow:',
+            ShareOutcomeType::SeriesFollow->value => 'follow:',
+            ShareOutcomeType::ReferenceFollow->value => 'follow:',
+            ShareOutcomeType::SavedSearchCreated->value => 'saved_search:',
         ];
     }
 
     public static function for(
-        DawahShareOutcomeType $type,
+        ShareOutcomeType $type,
         string $sourceTransitionId,
     ): string {
         $sourceTransitionId = trim($sourceTransitionId);
@@ -66,48 +66,48 @@ final class ShareOutcomeBusinessKey
 
     public static function signup(string $userId): string
     {
-        return self::for(DawahShareOutcomeType::Signup, 'user:'.trim($userId));
+        return self::for(ShareOutcomeType::Signup, 'user:'.trim($userId));
     }
 
     public static function eventRegistration(string $registrationId): string
     {
-        return self::for(DawahShareOutcomeType::EventRegistration, 'registration:'.trim($registrationId));
+        return self::for(ShareOutcomeType::EventRegistration, 'registration:'.trim($registrationId));
     }
 
     public static function eventCheckin(string $checkinId): string
     {
-        return self::for(DawahShareOutcomeType::EventCheckin, 'checkin:'.trim($checkinId));
+        return self::for(ShareOutcomeType::EventCheckin, 'checkin:'.trim($checkinId));
     }
 
     public static function eventSubmission(string $submissionId): string
     {
-        return self::for(DawahShareOutcomeType::EventSubmission, 'submission:'.trim($submissionId));
+        return self::for(ShareOutcomeType::EventSubmission, 'submission:'.trim($submissionId));
     }
 
     public static function eventSave(string $bookmarkId): string
     {
-        return self::for(DawahShareOutcomeType::EventSave, 'bookmark:'.trim($bookmarkId));
+        return self::for(ShareOutcomeType::EventSave, 'bookmark:'.trim($bookmarkId));
     }
 
     public static function eventGoing(string $responseId): string
     {
-        return self::for(DawahShareOutcomeType::EventGoing, 'response:'.trim($responseId));
+        return self::for(ShareOutcomeType::EventGoing, 'response:'.trim($responseId));
     }
 
-    public static function follow(DawahShareOutcomeType $type, string $followId): string
+    public static function follow(ShareOutcomeType $type, string $followId): string
     {
         return self::for($type, 'follow:'.trim($followId));
     }
 
     public static function savedSearch(string $savedSearchId): string
     {
-        return self::for(DawahShareOutcomeType::SavedSearchCreated, 'saved_search:'.trim($savedSearchId));
+        return self::for(ShareOutcomeType::SavedSearchCreated, 'saved_search:'.trim($savedSearchId));
     }
 
     /**
      * @return array{namespace: string, outcome_type: string, source_transition_id: string}
      */
-    public static function parse(string $businessKey, DawahShareOutcomeType $expectedType): array
+    public static function parse(string $businessKey, ShareOutcomeType $expectedType): array
     {
         $businessKey = trim($businessKey);
 
@@ -146,7 +146,7 @@ final class ShareOutcomeBusinessKey
         ];
     }
 
-    public static function assertCanonicalSourceTransition(DawahShareOutcomeType $type, string $sourceTransitionId): void
+    public static function assertCanonicalSourceTransition(ShareOutcomeType $type, string $sourceTransitionId): void
     {
         $prefix = self::sourcePrefixes()[$type->value] ?? null;
 

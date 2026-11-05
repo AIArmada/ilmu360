@@ -8,7 +8,7 @@ use AIArmada\Organizations\Http\Middleware\CurrentOrganizationMiddleware;
 use App\Http\Middleware\NormalizeApiJsonResponse;
 use App\Http\Middleware\SetFilamentTimezone;
 use App\Http\Middleware\SetLocale;
-use App\Http\Middleware\TrackDawahShareAttribution;
+use App\Http\Middleware\TrackShareAttribution;
 use App\Support\Api\ApiJsonResponseNormalizer;
 use App\Support\Api\ApiResponseFactory;
 use App\Support\Location\PublicGeolocationPermission;
@@ -48,7 +48,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->web(append: [
             SetLocale::class,
-            TrackDawahShareAttribution::class,
+            TrackShareAttribution::class,
         ]);
 
         // Set default Filament timezone for every request (fixes Octane state persistence)

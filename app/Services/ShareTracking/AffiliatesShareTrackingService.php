@@ -35,8 +35,8 @@ use AIArmada\Rewards\Jobs\EvaluateRewardEntitlementJob;
 use App\Data\ShareTracking\ShareTrackingAttributionData;
 use App\Data\ShareTracking\ShareTrackingLinkData;
 use App\Data\ShareTracking\ShareTrackingOutcomeData;
-use App\Enums\DawahShareOutcomeType;
 use App\Enums\ShareEffectStatus;
+use App\Enums\ShareOutcomeType;
 use App\Jobs\Referrals\QualifyReferralFromShareOutcomeJob;
 use App\Models\Event;
 use App\Models\Institution;
@@ -181,7 +181,7 @@ final readonly class AffiliatesShareTrackingService
 
         return collect($this->supportedProviders())
             ->mapWithKeys(fn (string $provider): array => [
-                $provider => route('dawah-share.redirect', ['provider' => $provider] + $query),
+                $provider => route('share.redirect', ['provider' => $provider] + $query),
             ])
             ->all();
     }
@@ -290,7 +290,7 @@ final readonly class AffiliatesShareTrackingService
             return $cookieState['encoded'] ?? null;
         }
 
-        $parameter = (string) config('dawah-share.query_parameter', 'share');
+        $parameter = (string) config('share-tracking.query_parameter', 'share');
         $shareToken = $request->query($parameter);
         $incomingBrowserKey = $cookieState['visitor_key'] ?? null;
         $browserKey = is_string($incomingBrowserKey) && $incomingBrowserKey !== '' && mb_strlen($incomingBrowserKey) <= 160
@@ -408,7 +408,7 @@ final readonly class AffiliatesShareTrackingService
     public function recordSignup(User $user, ?Request $request = null): ?ShareTrackingOutcomeData
     {
         return $this->recordOutcome(
-            type: DawahShareOutcomeType::Signup,
+            type: ShareOutcomeType::Signup,
             businessKey: ShareOutcomeBusinessKey::signup((string) $user->getKey()),
             actor: $user,
             request: $request,
@@ -423,7 +423,7 @@ final readonly class AffiliatesShareTrackingService
      * @param  array<string, mixed>  $metadata
      */
     public function recordOutcome(
-        DawahShareOutcomeType $type,
+        ShareOutcomeType $type,
         string $businessKey,
         ?Model $subject = null,
         ?User $actor = null,
@@ -589,7 +589,7 @@ final readonly class AffiliatesShareTrackingService
     }
 
     private function dispatchActivityRewardIfUnattributed(
-        DawahShareOutcomeType $type,
+        ShareOutcomeType $type,
         string $sourceTransitionId,
         string $shareBusinessKey,
     ): void {
@@ -606,9 +606,9 @@ final readonly class AffiliatesShareTrackingService
         EvaluateRewardEntitlementJob::dispatch($activityBusinessKey)->afterCommit();
     }
 
-    private function dispatchReferralQualification(DawahShareOutcomeType $type, string $businessKey): void
+    private function dispatchReferralQualification(ShareOutcomeType $type, string $businessKey): void
     {
-        if (! in_array($type, [DawahShareOutcomeType::EventRegistration, DawahShareOutcomeType::EventCheckin], true)) {
+        if (! in_array($type, [ShareOutcomeType::EventRegistration, ShareOutcomeType::EventCheckin], true)) {
             return;
         }
 
@@ -649,7 +649,7 @@ final readonly class AffiliatesShareTrackingService
     }
 
     private function freezeUnattributedReceipt(
-        DawahShareOutcomeType $type,
+        ShareOutcomeType $type,
         string $businessKey,
         string $sourceTransitionId,
         string $provenance,
@@ -676,7 +676,7 @@ final readonly class AffiliatesShareTrackingService
     }
 
     private function freezeAttributedReceipt(
-        DawahShareOutcomeType $type,
+        ShareOutcomeType $type,
         string $businessKey,
         string $sourceTransitionId,
         AffiliateAttribution $attribution,
@@ -745,7 +745,7 @@ final readonly class AffiliatesShareTrackingService
      * @param  array<string, mixed>  $metadata
      */
     public function recordInheritedOutcome(
-        DawahShareOutcomeType $type,
+        ShareOutcomeType $type,
         string $businessKey,
         string $sourceBusinessKey,
         ?Model $subject = null,
@@ -919,7 +919,7 @@ final readonly class AffiliatesShareTrackingService
      * @param  array<string, mixed>  $metadata
      */
     public function recordCheckoutInheritedOutcome(
-        DawahShareOutcomeType $type,
+        ShareOutcomeType $type,
         string $businessKey,
         ?string $persistedAttributionId,
         ?Model $subject = null,
@@ -1286,9 +1286,9 @@ final readonly class AffiliatesShareTrackingService
 
     public function presentedClaimCapability(Request $request): ?string
     {
-        $header = (string) config('dawah-share.claim_capability.header', 'X-Dawah-Claim-Capability');
-        $input = (string) config('dawah-share.claim_capability.input', 'guest_claim_capability');
-        $cookie = (string) config('dawah-share.claim_cookie.name', 'mi_dawah_guest_claim');
+        $header = (string) config('share-tracking.claim_capability.header', 'X-Claim-Capability');
+        $input = (string) config('share-tracking.claim_capability.input', 'guest_claim_capability');
+        $cookie = (string) config('share-tracking.claim_cookie.name', 'i360_guest_claim');
 
         // Private transports only: dedicated header, encrypted cookie, or an
         // explicitly validated non-cacheable POST body field. GET query input
@@ -1857,7 +1857,7 @@ final readonly class AffiliatesShareTrackingService
 
     private function memberAffiliateCode(User $user): string
     {
-        return 'MI'.Str::upper(substr(hash('sha256', 'dawah-share-member-v1|'.$user->getMorphClass().'|'.$user->getKey()), 0, 12));
+        return 'I360'.Str::upper(substr(hash('sha256', 'share-member-v1|'.$user->getMorphClass().'|'.$user->getKey()), 0, 12));
     }
 
     /**
@@ -2007,13 +2007,13 @@ final readonly class AffiliatesShareTrackingService
                     ]));
 
                     $credential = app(IssueActivityCredential::class)->run($affiliate, [
-                        'ttl_days' => (int) config('dawah-share.guest_credential.ttl_days', 30),
+                        'ttl_days' => (int) config('share-tracking.guest_credential.ttl_days', 30),
                     ]);
 
                     // Separate single-purpose claim capability: the only
                     // ownership proof a future authenticated claim accepts.
                     $claimCapability = app(IssueOwnershipCapability::class)->run($affiliate, [
-                        'ttl_days' => (int) config('dawah-share.claim_capability.ttl_days', 30),
+                        'ttl_days' => (int) config('share-tracking.claim_capability.ttl_days', 30),
                     ]);
 
                     $this->queueGuestCredentialCookie($credential['plaintext_secret']);
@@ -2057,9 +2057,9 @@ final readonly class AffiliatesShareTrackingService
 
     private function presentedGuestCredential(Request $request): ?string
     {
-        $header = (string) config('dawah-share.guest_credential.header', 'X-Dawah-Guest-Credential');
-        $input = (string) config('dawah-share.guest_credential.input', 'guest_credential');
-        $cookie = (string) config('dawah-share.guest_cookie.name', 'mi_dawah_guest');
+        $header = (string) config('share-tracking.guest_credential.header', 'X-Guest-Credential');
+        $input = (string) config('share-tracking.guest_credential.input', 'guest_credential');
+        $cookie = (string) config('share-tracking.guest_cookie.name', 'i360_guest');
 
         // Private transports only: dedicated header, encrypted cookie, or an
         // explicitly validated non-cacheable POST body field. GET query input
@@ -2085,30 +2085,30 @@ final readonly class AffiliatesShareTrackingService
     private function queueGuestCredentialCookie(string $credential): void
     {
         Cookie::queue(Cookie::make(
-            name: (string) config('dawah-share.guest_cookie.name', 'mi_dawah_guest'),
+            name: (string) config('share-tracking.guest_cookie.name', 'i360_guest'),
             value: $credential,
-            minutes: (int) config('dawah-share.guest_cookie.minutes', 60 * 24 * 30),
-            path: (string) config('dawah-share.guest_cookie.path', '/'),
-            domain: config('dawah-share.guest_cookie.domain'),
-            secure: (bool) (config('dawah-share.guest_cookie.secure') ?? config('session.secure_cookie', false)),
-            httpOnly: (bool) config('dawah-share.guest_cookie.http_only', true),
+            minutes: (int) config('share-tracking.guest_cookie.minutes', 60 * 24 * 30),
+            path: (string) config('share-tracking.guest_cookie.path', '/'),
+            domain: config('share-tracking.guest_cookie.domain'),
+            secure: (bool) (config('share-tracking.guest_cookie.secure') ?? config('session.secure_cookie', false)),
+            httpOnly: (bool) config('share-tracking.guest_cookie.http_only', true),
             raw: false,
-            sameSite: (string) config('dawah-share.guest_cookie.same_site', 'lax'),
+            sameSite: (string) config('share-tracking.guest_cookie.same_site', 'lax'),
         ));
     }
 
     private function queueClaimCapabilityCookie(string $capability): void
     {
         Cookie::queue(Cookie::make(
-            name: (string) config('dawah-share.claim_cookie.name', 'mi_dawah_guest_claim'),
+            name: (string) config('share-tracking.claim_cookie.name', 'i360_guest_claim'),
             value: $capability,
-            minutes: (int) config('dawah-share.claim_cookie.minutes', 60 * 24 * 30),
-            path: (string) config('dawah-share.claim_cookie.path', '/'),
-            domain: config('dawah-share.claim_cookie.domain'),
-            secure: (bool) (config('dawah-share.claim_cookie.secure') ?? config('session.secure_cookie', false)),
-            httpOnly: (bool) config('dawah-share.claim_cookie.http_only', true),
+            minutes: (int) config('share-tracking.claim_cookie.minutes', 60 * 24 * 30),
+            path: (string) config('share-tracking.claim_cookie.path', '/'),
+            domain: config('share-tracking.claim_cookie.domain'),
+            secure: (bool) (config('share-tracking.claim_cookie.secure') ?? config('session.secure_cookie', false)),
+            httpOnly: (bool) config('share-tracking.claim_cookie.http_only', true),
             raw: false,
-            sameSite: (string) config('dawah-share.claim_cookie.same_site', 'lax'),
+            sameSite: (string) config('share-tracking.claim_cookie.same_site', 'lax'),
         ));
     }
 
@@ -2120,7 +2120,7 @@ final readonly class AffiliatesShareTrackingService
     private function directAttributedUrlForLink(AffiliateLink $link): string
     {
         $queryParameters = [
-            (string) config('dawah-share.query_parameter', 'share') => (string) $link->custom_slug,
+            (string) config('share-tracking.query_parameter', 'share') => (string) $link->custom_slug,
         ];
 
         $origin = $this->shareOriginForLink($link);
@@ -2475,7 +2475,7 @@ final readonly class AffiliatesShareTrackingService
         return $browserKey;
     }
 
-    private function assertValidInheritancePairing(DawahShareOutcomeType $childType, string $sourceBusinessKey): void
+    private function assertValidInheritancePairing(ShareOutcomeType $childType, string $sourceBusinessKey): void
     {
         $segments = explode(':', $sourceBusinessKey, 3);
 
@@ -2483,15 +2483,15 @@ final readonly class AffiliatesShareTrackingService
             throw new InvalidArgumentException('Source business key must be a canonical namespace:type:source identity.');
         }
 
-        $sourceType = DawahShareOutcomeType::tryFrom($segments[1]);
+        $sourceType = ShareOutcomeType::tryFrom($segments[1]);
 
-        if (! $sourceType instanceof DawahShareOutcomeType) {
+        if (! $sourceType instanceof ShareOutcomeType) {
             throw new InvalidArgumentException('Source business key carries an unknown outcome type.');
         }
 
         ShareOutcomeBusinessKey::parse($sourceBusinessKey, $sourceType);
 
-        if ($childType === DawahShareOutcomeType::EventCheckin && $sourceType !== DawahShareOutcomeType::EventRegistration) {
+        if ($childType === ShareOutcomeType::EventCheckin && $sourceType !== ShareOutcomeType::EventRegistration) {
             throw new InvalidArgumentException('Event check-in inheritance requires an event registration source.');
         }
     }
@@ -2580,7 +2580,7 @@ final readonly class AffiliatesShareTrackingService
             ->where('affiliate_link_id', $linkId)
             ->where('touchpoint_type', 'visit')
             ->where('url', $safeUrl)
-            ->where('touched_at', '>=', now()->subMinutes((int) config('dawah-share.visit_dedupe_minutes', 5)))
+            ->where('touched_at', '>=', now()->subMinutes((int) config('share-tracking.visit_dedupe_minutes', 5)))
             ->exists();
     }
 
@@ -2945,7 +2945,7 @@ final readonly class AffiliatesShareTrackingService
 
     private function expiryTimestamp(): ?CarbonInterface
     {
-        $ttlDays = (int) config('dawah-share.ttl_days', 30);
+        $ttlDays = (int) config('share-tracking.ttl_days', 30);
 
         return $ttlDays > 0 ? now()->addDays($ttlDays) : null;
     }
@@ -2963,7 +2963,7 @@ final readonly class AffiliatesShareTrackingService
      */
     private function readCookieState(Request $request): array
     {
-        $cookieName = (string) config('dawah-share.cookie.name', 'mi_dawah_share');
+        $cookieName = (string) config('share-tracking.cookie.name', 'i360_share');
         $encoded = $request->cookie($cookieName);
 
         if (! is_string($encoded) || $encoded === '') {
@@ -3053,7 +3053,7 @@ final readonly class AffiliatesShareTrackingService
 
     private function shareProviderFromRequest(Request $request): ?string
     {
-        $provider = $request->query((string) config('dawah-share.provider_query_parameter', 'channel'));
+        $provider = $request->query((string) config('share-tracking.provider_query_parameter', 'channel'));
 
         return is_string($provider) ? $this->shareTrackingUrlService->normalizeProvider($provider) : null;
     }

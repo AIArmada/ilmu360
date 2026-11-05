@@ -15,7 +15,7 @@ use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateFraudSignal;
 use App\Actions\ShareTracking\ClaimGuestShareProfileAction;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
-use App\Enums\DawahShareOutcomeType;
+use App\Enums\ShareOutcomeType;
 use App\Models\Event;
 use App\Models\User;
 use App\Services\ShareTrackingService;
@@ -36,14 +36,14 @@ beforeEach(function (): void {
         'visibility' => 'public',
     ]);
 
-    config(['dawah-share.reporting.reporting_start' => '2026-05-01']);
+    config(['share-tracking.reporting.reporting_start' => '2026-05-01']);
 });
 
 function scoPayload(TestCase $testCase, ?User $user, string $url): array
 {
     $call = $user instanceof User ? $testCase->actingAs($user) : $testCase;
 
-    return $call->getJson(route('dawah-share.payload', [
+    return $call->getJson(route('share.payload', [
         'url' => $url,
         'text' => 'Share this page',
         'title' => 'Shared Page',
@@ -53,7 +53,7 @@ function scoPayload(TestCase $testCase, ?User $user, string $url): array
 function scoLandingCookie(TestCase $testCase, string $sharedUrl): string
 {
     $cookie = $testCase->followingRedirects()->get($sharedUrl)->assertOk()
-        ->getCookie((string) config('dawah-share.cookie.name'));
+        ->getCookie((string) config('share-tracking.cookie.name'));
 
     expect($cookie)->not->toBeNull();
 
@@ -74,7 +74,7 @@ function scoSignup(TestCase $testCase, User $sharer, string $name, string $email
     $cookie = scoLandingCookie($testCase, (string) $payload['url']);
 
     $request = Request::create('/register', 'POST');
-    $request->cookies->set((string) config('dawah-share.cookie.name'), $cookie);
+    $request->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
 
     $outcome = app(ShareTrackingService::class)->recordSignup($user, $request);
 
@@ -91,7 +91,7 @@ function scoFirstShare(TestCase $testCase, User $user, CarbonImmutable $at): voi
 
     Carbon::setTestNow(Carbon::parse($at->toIso8601String()));
 
-    $testCase->actingAs($user)->postJson(route('dawah-share.track'), [
+    $testCase->actingAs($user)->postJson(route('share.track'), [
         'provider' => 'copy_link',
         'tracking_token' => (string) $payload['tracking_token'],
     ])->assertNoContent();
@@ -116,10 +116,10 @@ function scoParticipation(TestCase $testCase, User $sharer, CarbonImmutable $at)
     Carbon::setTestNow(Carbon::parse($at->toIso8601String()));
 
     $request = Request::create('/noop', 'GET');
-    $request->cookies->set((string) config('dawah-share.cookie.name'), $cookie);
+    $request->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
 
     app(ShareTrackingService::class)->recordOutcome(
-        DawahShareOutcomeType::EventRegistration,
+        ShareOutcomeType::EventRegistration,
         $key,
         null,
         $actor,
@@ -205,10 +205,10 @@ function scoMatureWeek(TestCase $testCase): array
     auth()->logout();
     $guest = scoPayload($testCase, null, route('events.show', $testCase->event));
     Carbon::setTestNow(Carbon::parse('2026-05-20T16:00:00Z'));
-    $testCase->postJson(route('dawah-share.track'), [
+    $testCase->postJson(route('share.track'), [
         'provider' => 'copy_link',
         'tracking_token' => (string) $guest['tracking_token'],
-        (string) config('dawah-share.guest_credential.input') => (string) $guest['guest_credential'],
+        (string) config('share-tracking.guest_credential.input') => (string) $guest['guest_credential'],
     ])->assertNoContent();
     Carbon::setTestNow();
     app(ClaimGuestShareProfileAction::class)->handle($u10, (string) $guest['guest_claim_capability'], true);
@@ -298,7 +298,7 @@ it('refuses to mature a week on the week-start clock', function (): void {
 });
 
 it('withholds cohorts before the reporting start', function (): void {
-    config(['dawah-share.reporting.reporting_start' => null]);
+    config(['share-tracking.reporting.reporting_start' => null]);
 
     $report = (new ShareCohortAuthority)->summarize(CarbonImmutable::parse('2026-06-17T00:00:00Z'), 6);
 

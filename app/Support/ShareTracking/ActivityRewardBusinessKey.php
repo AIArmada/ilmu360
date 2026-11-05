@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\ShareTracking;
 
-use App\Enums\DawahShareOutcomeType;
+use App\Enums\ShareOutcomeType;
 use InvalidArgumentException;
 
 /**
@@ -34,9 +34,9 @@ final class ActivityRewardBusinessKey
             throw new InvalidArgumentException('Activity reward business key must use the canonical activity namespace.');
         }
 
-        $type = DawahShareOutcomeType::tryFrom($parts[1]);
+        $type = ShareOutcomeType::tryFrom($parts[1]);
 
-        if (! $type instanceof DawahShareOutcomeType) {
+        if (! $type instanceof ShareOutcomeType) {
             throw new InvalidArgumentException('Activity reward business key must name a known outcome type.');
         }
 
@@ -55,7 +55,7 @@ final class ActivityRewardBusinessKey
         ];
     }
 
-    public static function for(DawahShareOutcomeType $type, string $sourceTransitionId): string
+    public static function for(ShareOutcomeType $type, string $sourceTransitionId): string
     {
         $sourceTransitionId = trim($sourceTransitionId);
 

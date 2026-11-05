@@ -160,7 +160,7 @@
             'sourceUrl' => $searchShareUrl,
             'shareText' => $searchShareText,
             'fallbackTitle' => __('Search Results'),
-            'payloadEndpoint' => route('dawah-share.payload'),
+            'payloadEndpoint' => route('share.payload'),
         ]
         : null;
     $showsGeolocationControls = $this->showsGeolocationControls();
@@ -180,8 +180,8 @@
         copiedShareLink: false,
         copiedEventId: null,
         shareData: @js($searchShareData),
-        trackEndpoint: @js(route('dawah-share.track')),
-        providerQueryParameter: @js(config('dawah-share.provider_query_parameter', 'channel')),
+        trackEndpoint: @js(route('share.track')),
+        providerQueryParameter: @js(config('share-tracking.provider_query_parameter', 'channel')),
         attributedShareData: null,
         setLocationNotice(message) {
             this.locationNotice = message;

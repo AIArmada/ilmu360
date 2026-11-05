@@ -15,7 +15,7 @@ beforeEach(function (): void {
     $this->seed(PermissionSeeder::class);
     $this->seed(RoleSeeder::class);
 
-    config(['dawah-share.reporting.reporting_start' => '2026-10-01']);
+    config(['share-tracking.reporting.reporting_start' => '2026-10-01']);
 });
 
 it('registers the signals reports inside the admin panel', function () {
@@ -58,7 +58,7 @@ it('renders the admin share analytics page', function () {
 });
 
 it('shows the configured reporting start as the measurement status', function () {
-    config(['dawah-share.reporting.reporting_start' => '2026-10-16']);
+    config(['share-tracking.reporting.reporting_start' => '2026-10-16']);
     app()->setLocale('en');
 
     $administrator = User::factory()->create();
@@ -72,7 +72,7 @@ it('shows the configured reporting start as the measurement status', function ()
 });
 
 it('shows not configured and withholds share measurements without a reporting start', function () {
-    config(['dawah-share.reporting.reporting_start' => null]);
+    config(['share-tracking.reporting.reporting_start' => null]);
     app()->setLocale('ms');
 
     $administrator = User::factory()->create();
@@ -181,7 +181,7 @@ it('shows copy link activity on the admin share analytics page', function () {
     ]);
 
     $trackingToken = $this->actingAs($sharer)
-        ->getJson(route('dawah-share.payload', [
+        ->getJson(route('share.payload', [
             'url' => route('events.show', $event),
             'text' => 'Share this event',
             'title' => $event->title,
@@ -190,7 +190,7 @@ it('shows copy link activity on the admin share analytics page', function () {
         ->json('tracking_token');
 
     $this->actingAs($sharer)
-        ->postJson(route('dawah-share.track'), [
+        ->postJson(route('share.track'), [
             'provider' => 'copy_link',
             'tracking_token' => $trackingToken,
         ])
@@ -213,7 +213,7 @@ it('shows threads activity on the admin share analytics page', function () {
     ]);
 
     $trackingToken = $this->actingAs($sharer)
-        ->getJson(route('dawah-share.payload', [
+        ->getJson(route('share.payload', [
             'url' => route('events.show', $event),
             'text' => 'Share this event',
             'title' => $event->title,
@@ -222,7 +222,7 @@ it('shows threads activity on the admin share analytics page', function () {
         ->json('tracking_token');
 
     $this->actingAs($sharer)
-        ->postJson(route('dawah-share.track'), [
+        ->postJson(route('share.track'), [
             'provider' => 'threads',
             'tracking_token' => $trackingToken,
         ])

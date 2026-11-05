@@ -10,7 +10,7 @@ use AIArmada\Rewards\Models\RewardEnrollment;
 use AIArmada\Rewards\Models\RewardProgram;
 use AIArmada\Rewards\Models\RewardProgramVersion;
 use AIArmada\Signals\Models\SignalEvent;
-use App\Enums\DawahShareOutcomeType;
+use App\Enums\ShareOutcomeType;
 use App\Livewire\Pages\Dashboard\UserDashboard;
 use App\Models\EventCheckin;
 use App\Models\User;
@@ -47,7 +47,7 @@ function makePromptActivityReceipt(User $user): EventCheckin
     ]);
 
     app(ShareTrackingService::class)->recordOutcome(
-        DawahShareOutcomeType::EventCheckin,
+        ShareOutcomeType::EventCheckin,
         ShareOutcomeBusinessKey::eventCheckin((string) $checkin->getKey()),
         actor: $user,
         occurredAt: $checkin->checked_in_at,

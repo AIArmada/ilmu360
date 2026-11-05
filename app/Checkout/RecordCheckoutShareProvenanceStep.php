@@ -10,7 +10,7 @@ use AIArmada\Checkout\Steps\AbstractCheckoutStep;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
-use App\Enums\DawahShareOutcomeType;
+use App\Enums\ShareOutcomeType;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;
@@ -96,7 +96,7 @@ final class RecordCheckoutShareProvenanceStep extends AbstractCheckoutStep
             }
 
             $this->shareTracking->recordCheckoutInheritedOutcome(
-                type: DawahShareOutcomeType::EventRegistration,
+                type: ShareOutcomeType::EventRegistration,
                 businessKey: ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey()),
                 persistedAttributionId: $effectiveAttributionId,
                 subject: $subject instanceof Model ? $subject : null,

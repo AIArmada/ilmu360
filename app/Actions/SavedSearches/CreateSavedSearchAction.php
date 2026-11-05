@@ -2,7 +2,7 @@
 
 namespace App\Actions\SavedSearches;
 
-use App\Enums\DawahShareOutcomeType;
+use App\Enums\ShareOutcomeType;
 use App\Exceptions\SavedSearchLimitReachedException;
 use App\Models\SavedSearch;
 use App\Models\User;
@@ -37,7 +37,7 @@ final readonly class CreateSavedSearchAction
             $savedSearch = $user->savedSearches()->create($this->normalizeAttributes($attributes));
 
             $this->shareTrackingService->recordOutcome(
-                type: DawahShareOutcomeType::SavedSearchCreated,
+                type: ShareOutcomeType::SavedSearchCreated,
                 businessKey: ShareOutcomeBusinessKey::savedSearch((string) $savedSearch->getKey()),
                 actor: $user,
                 request: $request ?? request(),

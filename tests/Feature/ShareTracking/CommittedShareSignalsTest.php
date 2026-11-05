@@ -14,8 +14,8 @@ use AIArmada\Signals\Contracts\SignalEventIngestor;
 use AIArmada\Signals\Models\SignalEvent;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Actions\ShareTracking\DispatchShareEffectReceiptsAction;
-use App\Enums\DawahShareOutcomeType;
 use App\Enums\ShareEffectStatus;
+use App\Enums\ShareOutcomeType;
 use App\Models\Event;
 use App\Models\ShareCohortProjection;
 use App\Models\ShareEffectReceipt;
@@ -41,12 +41,12 @@ beforeEach(function (): void {
         'visibility' => 'public',
     ]);
 
-    config(['dawah-share.reporting.reporting_start' => '2026-05-01']);
+    config(['share-tracking.reporting.reporting_start' => '2026-05-01']);
 });
 
 function cssPayload(TestCase $testCase, User $user, string $url): array
 {
-    return $testCase->actingAs($user)->getJson(route('dawah-share.payload', [
+    return $testCase->actingAs($user)->getJson(route('share.payload', [
         'url' => $url,
         'text' => 'Share this page',
         'title' => 'Shared Page',
@@ -55,7 +55,7 @@ function cssPayload(TestCase $testCase, User $user, string $url): array
 
 function cssTrack(TestCase $testCase, User $user, string $token, string $provider): void
 {
-    $testCase->actingAs($user)->postJson(route('dawah-share.track'), [
+    $testCase->actingAs($user)->postJson(route('share.track'), [
         'provider' => $provider,
         'tracking_token' => $token,
     ])->assertNoContent();
@@ -64,7 +64,7 @@ function cssTrack(TestCase $testCase, User $user, string $token, string $provide
 function cssLandingCookie(TestCase $testCase, string $sharedUrl): string
 {
     $cookie = $testCase->followingRedirects()->get($sharedUrl)->assertOk()
-        ->getCookie((string) config('dawah-share.cookie.name'));
+        ->getCookie((string) config('share-tracking.cookie.name'));
 
     expect($cookie)->not->toBeNull();
 
@@ -147,7 +147,7 @@ it('fails loudly without a tracked property but keeps the committed source', fun
     $payload = cssPayload($this, $this->sharer, route('events.show', $this->event));
 
     try {
-        $this->actingAs($this->sharer)->postJson(route('dawah-share.track'), [
+        $this->actingAs($this->sharer)->postJson(route('share.track'), [
             'provider' => 'copy_link',
             'tracking_token' => (string) $payload['tracking_token'],
         ]);
@@ -187,7 +187,7 @@ it('survives a signals outage without rolling back the source and recovers once'
     $payload = cssPayload($this, $this->sharer, route('events.show', $this->event));
 
     try {
-        $this->actingAs($this->sharer)->postJson(route('dawah-share.track'), [
+        $this->actingAs($this->sharer)->postJson(route('share.track'), [
             'provider' => 'copy_link',
             'tracking_token' => (string) $payload['tracking_token'],
         ]);
@@ -224,10 +224,10 @@ it('projects signals into cohort stages and resumes after partial drains', funct
 
     $actor = User::factory()->create();
     $request = Request::create('/noop', 'GET');
-    $request->cookies->set((string) config('dawah-share.cookie.name'), $cookie);
+    $request->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
     app(ShareTrackingService::class)->recordOutcome(
-        DawahShareOutcomeType::EventCheckin,
-        ShareOutcomeBusinessKey::for(DawahShareOutcomeType::EventCheckin, 'checkin:'.((string) Str::uuid())),
+        ShareOutcomeType::EventCheckin,
+        ShareOutcomeBusinessKey::for(ShareOutcomeType::EventCheckin, 'checkin:'.((string) Str::uuid())),
         null,
         $actor,
         $request,
@@ -336,10 +336,10 @@ it('keeps the generic dispatcher away from committed-share work, both directions
 
     $actor = User::factory()->create();
     $request = Request::create('/noop', 'GET');
-    $request->cookies->set((string) config('dawah-share.cookie.name'), $cookie);
+    $request->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
     app(ShareTrackingService::class)->recordOutcome(
-        DawahShareOutcomeType::EventCheckin,
-        ShareOutcomeBusinessKey::for(DawahShareOutcomeType::EventCheckin, 'checkin:'.((string) Str::uuid())),
+        ShareOutcomeType::EventCheckin,
+        ShareOutcomeBusinessKey::for(ShareOutcomeType::EventCheckin, 'checkin:'.((string) Str::uuid())),
         null,
         $actor,
         $request,

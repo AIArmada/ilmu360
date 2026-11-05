@@ -18,9 +18,9 @@ use App\Actions\Events\Engagement\MarkEventGoingAction;
 use App\Actions\Events\Engagement\RemoveEventGoingAction;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Data\PublicScheduleLeaf;
-use App\Enums\DawahShareOutcomeType;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventVisibility;
+use App\Enums\ShareOutcomeType;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\EventCheckin;
@@ -995,7 +995,7 @@ class Show extends Component
 
                     if ($bookmark instanceof Bookmark && $bookmark->wasRecentlyCreated) {
                         app(ShareTrackingService::class)->recordOutcome(
-                            type: DawahShareOutcomeType::EventSave,
+                            type: ShareOutcomeType::EventSave,
                             businessKey: ShareOutcomeBusinessKey::eventSave((string) $bookmark->getKey()),
                             subject: $this->event,
                             actor: $user,
@@ -1026,7 +1026,7 @@ class Show extends Component
 
                         if ($response instanceof Response) {
                             app(ShareTrackingService::class)->recordOutcome(
-                                type: DawahShareOutcomeType::EventGoing,
+                                type: ShareOutcomeType::EventGoing,
                                 businessKey: ShareOutcomeBusinessKey::eventGoing((string) $response->getKey()),
                                 subject: $this->event,
                                 actor: $user,

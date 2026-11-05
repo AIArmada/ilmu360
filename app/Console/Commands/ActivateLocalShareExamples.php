@@ -24,13 +24,13 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
-#[Signature('app:dawah:activate-local-examples')]
-#[Description('Activate the local-only Ilmu360 Dawah points and referral examples.')]
-final class ActivateLocalDawahExamples extends Command
+#[Signature('app:share:activate-local-examples')]
+#[Description('Activate the local-only Ilmu360 Share points and referral examples.')]
+final class ActivateLocalShareExamples extends Command
 {
-    private const string POINTS_FAMILY_KEY = 'dawah-points-v1';
+    private const string POINTS_FAMILY_KEY = 'share-points-v1';
 
-    private const string REFERRAL_SLUG = 'ilmu360-dawah-community';
+    private const string REFERRAL_SLUG = 'ilmu360-share-community';
 
     private const string DEMO_PASSWORD = 'Ilmu360Demo!2026';
 
@@ -46,13 +46,13 @@ final class ActivateLocalDawahExamples extends Command
             $result = DB::transaction(fn (): array => $this->activateExamples());
         } catch (\Throwable $exception) {
             report($exception);
-            $this->error('Local Dawah example activation failed: '.$exception->getMessage());
+            $this->error('Local Share example activation failed: '.$exception->getMessage());
 
             return self::FAILURE;
         }
 
         $this->info(sprintf(
-            'Local Dawah examples active: points=%s, referral=%s, benefit=%s, demo_users=%d.',
+            'Local Share examples active: points=%s, referral=%s, benefit=%s, demo_users=%d.',
             $result['points_program'],
             $result['referral_program'],
             $result['benefit_item'],
@@ -73,8 +73,8 @@ final class ActivateLocalDawahExamples extends Command
             throw new RuntimeException('The local superadmin account is required to provision the benefit item.');
         }
 
-        $sharer = $this->upsertDemoUser('sharer.demo@ilmu360.test', 'Dawah Demo Sharer');
-        $visitor = $this->upsertDemoUser('visitor.demo@ilmu360.test', 'Dawah Demo Visitor');
+        $sharer = $this->upsertDemoUser('sharer.demo@ilmu360.test', 'Share Demo Sharer');
+        $visitor = $this->upsertDemoUser('visitor.demo@ilmu360.test', 'Share Demo Visitor');
 
         $program = RewardProgram::query()->where('family_key', self::POINTS_FAMILY_KEY)->first();
 
@@ -85,10 +85,10 @@ final class ActivateLocalDawahExamples extends Command
                 RewardProgramMode::Points,
                 null,
                 null,
-                'dawah-community',
+                'share-community',
             );
         } elseif ($program->mode !== RewardProgramMode::Points) {
-            throw new RuntimeException('The local Dawah points family already exists with a different mode.');
+            throw new RuntimeException('The local Share points family already exists with a different mode.');
         }
 
         $version = $program->versions()->reorderDesc('version')->first();
@@ -110,7 +110,7 @@ final class ActivateLocalDawahExamples extends Command
                 $effectiveFrom,
                 $published['rules'],
                 $published['terms'],
-                reason: 'Local Dawah example activation',
+                reason: 'Local Share example activation',
                 publishedByType: 'system',
                 publishedAt: $publishedAt,
             );
@@ -128,7 +128,7 @@ final class ActivateLocalDawahExamples extends Command
         }
 
         if ($program->status !== RewardProgramStatus::Active) {
-            throw new RuntimeException('The local Dawah points family could not be activated.');
+            throw new RuntimeException('The local Share points family could not be activated.');
         }
 
         $benefit = RewardBenefitItem::query()

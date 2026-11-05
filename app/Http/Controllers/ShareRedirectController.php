@@ -82,7 +82,7 @@ final class ShareRedirectController extends Controller
         }
 
         $forwarded = [
-            (string) config('dawah-share.query_parameter', 'share') => $token,
+            (string) config('share-tracking.query_parameter', 'share') => $token,
         ];
 
         $origin = $this->shareTrackingUrlService->normalizeOrigin($shareLink->origin) ?? 'web';
@@ -92,13 +92,13 @@ final class ShareRedirectController extends Controller
         }
 
         $channel = $this->shareTrackingUrlService->normalizeProvider(
-            is_string($request->query((string) config('dawah-share.provider_query_parameter', 'channel')))
-                ? (string) $request->query((string) config('dawah-share.provider_query_parameter', 'channel'))
+            is_string($request->query((string) config('share-tracking.provider_query_parameter', 'channel')))
+                ? (string) $request->query((string) config('share-tracking.provider_query_parameter', 'channel'))
                 : null
         );
 
         if (is_string($channel)) {
-            $forwarded[(string) config('dawah-share.provider_query_parameter', 'channel')] = $channel;
+            $forwarded[(string) config('share-tracking.provider_query_parameter', 'channel')] = $channel;
         }
 
         // Only the canonical validated channel and allowlisted campaign

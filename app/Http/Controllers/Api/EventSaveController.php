@@ -8,8 +8,8 @@ use AIArmada\Engagement\Models\Bookmark;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Data\Api\EventEngagement\EventEngagementListItemData;
 use App\Data\Api\EventSave\EventSaveStateData;
-use App\Enums\DawahShareOutcomeType;
 use App\Enums\EventVisibility;
+use App\Enums\ShareOutcomeType;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Models\User;
@@ -86,7 +86,7 @@ class EventSaveController extends Controller
 
             if ($created) {
                 app(ShareTrackingService::class)->recordOutcome(
-                    type: DawahShareOutcomeType::EventSave,
+                    type: ShareOutcomeType::EventSave,
                     businessKey: ShareOutcomeBusinessKey::eventSave((string) $bookmark->getKey()),
                     subject: $event,
                     actor: $user,

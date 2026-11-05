@@ -321,7 +321,7 @@ transaction:
 
 `handleAfterCommit()` runs via `DB::afterCommit`, after the transaction commits:
 
-- Share-tracking outcome recorded (`DawahShareOutcomeType::EventSubmission`,
+- Share-tracking outcome recorded (`ShareOutcomeType::EventSubmission`,
   outcome key `event_submission:submission:{submissionId}`, metadata carries the
   submission id). Failures are caught (`Throwable`), warning-logged with the
   submission id, and **never** poison the already-valid submission.

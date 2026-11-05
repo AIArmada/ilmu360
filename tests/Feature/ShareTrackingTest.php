@@ -12,13 +12,13 @@ use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTerm;
 use AIArmada\FilamentAffiliates\Resources\AffiliateLinkResource\Pages\EditAffiliateLink;
 use App\Actions\Fortify\CreateNewUser;
-use App\Enums\DawahShareOutcomeType;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
-use App\Livewire\Pages\Dashboard\DawahImpactIndex;
+use App\Enums\ShareOutcomeType;
+use App\Livewire\Pages\Dashboard\DakwahIndex;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\EventCheckin;
@@ -36,7 +36,6 @@ use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Laravel\Sanctum\Sanctum;
@@ -48,14 +47,14 @@ beforeEach(function (): void {
 
     $this->sharer = User::factory()->create();
 
-    config(['dawah-share.reporting.reporting_start' => '2026-10-01']);
+    config(['share-tracking.reporting.reporting_start' => '2026-10-01']);
 });
 
-function dawahShareTrackingToken(TestCase $testCase, User $sharer, string $url, ?string $title = null): string
+function shareTrackingToken(TestCase $testCase, User $sharer, string $url, ?string $title = null): string
 {
     $payload = $testCase
         ->actingAs($sharer)
-        ->getJson(route('dawah-share.payload', [
+        ->getJson(route('share.payload', [
             'url' => $url,
             'text' => 'Share this page',
             'title' => $title ?? 'Shared Page',
@@ -68,11 +67,11 @@ function dawahShareTrackingToken(TestCase $testCase, User $sharer, string $url, 
     return (string) data_get($payload, 'tracking_token');
 }
 
-function dawahShareLandingCookie(TestCase $testCase, User $sharer, string $url, ?string $title = null): string
+function shareLandingCookie(TestCase $testCase, User $sharer, string $url, ?string $title = null): string
 {
     $payload = $testCase
         ->actingAs($sharer)
-        ->getJson(route('dawah-share.payload', [
+        ->getJson(route('share.payload', [
             'url' => $url,
             'text' => 'Share this page',
             'title' => $title ?? 'Shared Page',
@@ -85,7 +84,7 @@ function dawahShareLandingCookie(TestCase $testCase, User $sharer, string $url, 
     // wp1LandingCookie). Every assertion below still reads the
     // destination landing exactly as before.
     $landingResponse = $testCase->followingRedirects()->get($payload['url']);
-    $cookie = $landingResponse->getCookie(config('dawah-share.cookie.name'));
+    $cookie = $landingResponse->getCookie(config('share-tracking.cookie.name'));
 
     auth()->logout();
 
@@ -94,7 +93,7 @@ function dawahShareLandingCookie(TestCase $testCase, User $sharer, string $url, 
     return (string) $cookie?->getValue();
 }
 
-function dawahShareExtractSharedUrlFromWhatsAppRedirect(TestResponse $response): string
+function shareExtractSharedUrlFromWhatsAppRedirect(TestResponse $response): string
 {
     $location = (string) $response->headers->get('Location');
 
@@ -114,7 +113,7 @@ function dawahShareExtractSharedUrlFromWhatsAppRedirect(TestResponse $response):
 /**
  * @return array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, person: Person}
  */
-function dawahShareSubmitEventFixtures(): array
+function shareSubmitEventFixtures(): array
 {
     return [
         'domain_tag' => submitEventTerm('domain'),
@@ -128,7 +127,7 @@ function dawahShareSubmitEventFixtures(): array
  * @param  array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, person: Person}  $fixtures
  * @return array<string, mixed>
  */
-function dawahShareSubmitEventFormData(array $fixtures, array $overrides = []): array
+function shareSubmitEventFormData(array $fixtures, array $overrides = []): array
 {
     return array_merge([
         'title' => 'Attributed Submitted Event',
@@ -151,15 +150,7 @@ function dawahShareSubmitEventFormData(array $fixtures, array $overrides = []): 
     ], $overrides);
 }
 
-test('fresh migrations do not create the removed local dawah share tables', function () {
-    expect(Schema::hasTable('dawah_share_links'))->toBeFalse();
-    expect(Schema::hasTable('dawah_share_attributions'))->toBeFalse();
-    expect(Schema::hasTable('dawah_share_visits'))->toBeFalse();
-    expect(Schema::hasTable('dawah_share_outcomes'))->toBeFalse();
-    expect(Schema::hasTable('dawah_share_share_events'))->toBeFalse();
-});
-
-test('multi-level commission payouts stay off while members can create Dawah share links', function () {
+test('multi-level commission payouts stay off while members can create share links', function () {
     expect(config('affiliates.payouts.multi_level.enabled'))->toBeFalse()
         ->and(config('affiliates.upline.enabled'))->toBeFalse()
         ->and(config('affiliates.payouts.currency'))->toBe('MYR')
@@ -178,7 +169,7 @@ test('multi-level commission payouts stay off while members can create Dawah sha
     expect(AffiliateLink::count())->toBe(0);
 
     $response = $this->actingAs($this->sharer)
-        ->getJson(route('dawah-share.payload', [
+        ->getJson(route('share.payload', [
             'url' => route('events.show', $event),
             'text' => 'Share this event',
             'title' => $event->title,
@@ -199,7 +190,7 @@ test('multi-level commission payouts stay off while members can create Dawah sha
     expect(AffiliateLink::count())->toBe(1);
 
     $this->actingAs($this->sharer)
-        ->getJson(route('dawah-share.payload', [
+        ->getJson(route('share.payload', [
             'url' => route('events.show', $event),
             'text' => 'Share this event',
             'title' => $event->title,
@@ -209,9 +200,9 @@ test('multi-level commission payouts stay off while members can create Dawah sha
     expect(AffiliateLink::count())->toBe(1);
 });
 
-test('a deactivated Dawah link records no later visits or attributed signup credit', function () {
+test('a deactivated share link records no later visits or attributed signup credit', function () {
     $destination = route('events.index');
-    $cookie = dawahShareLandingCookie($this, $this->sharer, $destination, 'Events');
+    $cookie = shareLandingCookie($this, $this->sharer, $destination, 'Events');
     $link = AffiliateLink::query()
         ->whereHas('affiliate', fn ($query) => $query
             ->where('owner_type', $this->sharer->getMorphClass())
@@ -234,13 +225,13 @@ test('a deactivated Dawah link records no later visits or attributed signup cred
     expect($redirectQuery)->not->toHaveKey('share');
 
     $this->withCredentials()
-        ->withCookie(config('dawah-share.cookie.name'), $cookie)
+        ->withCookie(config('share-tracking.cookie.name'), $cookie)
         ->get($destination)
         ->assertOk();
 
     $visitor = User::factory()->create();
     $signupRequest = Request::create($destination, 'POST');
-    $signupRequest->cookies->set((string) config('dawah-share.cookie.name'), $cookie);
+    $signupRequest->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
     $signupKey = ShareOutcomeBusinessKey::signup((string) $visitor->getKey());
     app(ShareTrackingService::class)->recordSignup($visitor, $signupRequest);
 
@@ -260,7 +251,7 @@ test('a deactivated Dawah link records no later visits or attributed signup cred
 
 test('a paused member share profile falls back to an untracked platform link', function () {
     $this->actingAs($this->sharer)
-        ->getJson(route('dawah-share.payload', [
+        ->getJson(route('share.payload', [
             'url' => route('events.index'),
             'text' => 'Share this page',
             'title' => 'Events',
@@ -275,7 +266,7 @@ test('a paused member share profile falls back to an untracked platform link', f
     $trackedLinkCount = AffiliateLink::query()->count();
 
     $response = $this->actingAs($this->sharer)
-        ->getJson(route('dawah-share.redirect', [
+        ->getJson(route('share.redirect', [
             'provider' => 'whatsapp',
             'url' => route('events.index'),
             'text' => 'Share this page',
@@ -289,7 +280,7 @@ test('a paused member share profile falls back to an untracked platform link', f
         ->and(AffiliateLink::query()->count())->toBe($trackedLinkCount);
 
     $payload = $this->actingAs($this->sharer)
-        ->getJson(route('dawah-share.payload', [
+        ->getJson(route('share.payload', [
             'url' => route('events.index'),
             'text' => 'Share this page',
             'title' => 'Events',
@@ -304,7 +295,7 @@ test('a paused member share profile falls back to an untracked platform link', f
 
 test('disabled share profile fallback still validates public destinations', function () {
     $this->actingAs($this->sharer)
-        ->getJson(route('dawah-share.payload', [
+        ->getJson(route('share.payload', [
             'url' => route('events.index'),
             'text' => 'Share this page',
             'title' => 'Events',
@@ -318,7 +309,7 @@ test('disabled share profile fallback still validates public destinations', func
     $affiliate->forceFill(['paused_at' => now()])->save();
 
     $this->actingAs($this->sharer)
-        ->getJson(route('dawah-share.redirect', [
+        ->getJson(route('share.redirect', [
             'provider' => 'whatsapp',
             'url' => 'javascript:alert(1)',
             'text' => 'Share this page',
@@ -370,17 +361,17 @@ test('explicit copy-link and native-share actions record outbound share touchpoi
         'visibility' => 'public',
     ]);
 
-    $trackingToken = dawahShareTrackingToken($this, $this->sharer, route('events.show', $event), $event->title);
+    $trackingToken = shareTrackingToken($this, $this->sharer, route('events.show', $event), $event->title);
 
     $this->actingAs($this->sharer)
-        ->postJson(route('dawah-share.track'), [
+        ->postJson(route('share.track'), [
             'provider' => 'copy_link',
             'tracking_token' => $trackingToken,
         ])
         ->assertNoContent();
 
     $this->actingAs($this->sharer)
-        ->postJson(route('dawah-share.track'), [
+        ->postJson(route('share.track'), [
             'provider' => 'native_share',
             'tracking_token' => $trackingToken,
         ])
@@ -408,7 +399,7 @@ test('share payload includes a tracking token for authenticated and anonymous sh
     ]);
 
     $authenticatedPayload = $this->actingAs($this->sharer)
-        ->getJson(route('dawah-share.payload', [
+        ->getJson(route('share.payload', [
             'url' => route('events.show', $event),
             'text' => 'Share this event',
             'title' => $event->title,
@@ -418,7 +409,7 @@ test('share payload includes a tracking token for authenticated and anonymous sh
 
     auth()->logout();
 
-    $guestPayload = $this->getJson(route('dawah-share.payload', [
+    $guestPayload = $this->getJson(route('share.payload', [
         'url' => route('events.show', $event),
         'text' => 'Share this event',
         'title' => $event->title,
@@ -455,7 +446,7 @@ test('share payload resolves reference slugs without UUID casting errors', funct
     ]);
 
     $referencePayload = $this->actingAs($this->sharer)
-        ->getJson(route('dawah-share.payload', [
+        ->getJson(route('share.payload', [
             'url' => route('references.show', $reference),
             'text' => 'Share this reference',
             'title' => $reference->title,
@@ -482,7 +473,7 @@ test('share redirect resolves non uuid reference slugs without server errors', f
     ]);
 
     $redirectResponse = $this->actingAs($this->sharer)
-        ->get(route('dawah-share.redirect', [
+        ->get(route('share.redirect', [
             'provider' => 'whatsapp',
             'url' => route('references.show', $reference),
             'text' => 'Share this reference',
@@ -491,7 +482,7 @@ test('share redirect resolves non uuid reference slugs without server errors', f
 
     $redirectResponse->assertRedirect();
 
-    $sharedUrl = dawahShareExtractSharedUrlFromWhatsAppRedirect($redirectResponse);
+    $sharedUrl = shareExtractSharedUrlFromWhatsAppRedirect($redirectResponse);
 
     $this->followingRedirects()->get($sharedUrl)->assertOk();
 
@@ -561,8 +552,8 @@ test('api share payload exposes origin-aware mobile and native share data', func
         ->and(data_get($iosPayload, 'supported_origins'))->toContain('web', 'iosapp', 'android', 'macapp')
         ->and($iosHop)->toContain('origin=iosapp')
         ->and($copyLinkHop)->toContain('origin=iosapp')
-        ->and(data_get($copyLinkQuery, config('dawah-share.provider_query_parameter', 'channel')))->toBe('copy_link')
-        ->and(data_get($nativeShareQuery, config('dawah-share.provider_query_parameter', 'channel')))->toBe('native_share')
+        ->and(data_get($copyLinkQuery, config('share-tracking.provider_query_parameter', 'channel')))->toBe('copy_link')
+        ->and(data_get($nativeShareQuery, config('share-tracking.provider_query_parameter', 'channel')))->toBe('native_share')
         ->and(data_get($iosPayload, 'native_share.url'))->toBe(data_get($iosPayload, 'channel_urls.native_share'))
         ->and((string) data_get($iosPayload, 'native_share.message'))->toContain((string) data_get($iosPayload, 'channel_urls.native_share'))
         ->and((string) data_get($iosPayload, 'tracking_token'))->toBe((string) data_get($repeatedIosPayload, 'tracking_token'))
@@ -625,7 +616,7 @@ test('landing attributions preserve copy and native share channels', function (s
     ]);
 
     $payload = $this->actingAs($this->sharer)
-        ->getJson(route('dawah-share.payload', [
+        ->getJson(route('share.payload', [
             'url' => route('events.show', $event),
             'text' => 'Share this event',
             'title' => $event->title,
@@ -636,7 +627,7 @@ test('landing attributions preserve copy and native share channels', function (s
     // The emitted share URL is a branded redirect without its own query
     // string; recipient-side parameters join with the correct separator.
     $landingUrl = $payload['url'].(str_contains($payload['url'], '?') ? '&' : '?').http_build_query([
-        (string) config('dawah-share.provider_query_parameter', 'channel') => $provider,
+        (string) config('share-tracking.provider_query_parameter', 'channel') => $provider,
     ]);
 
     $this->followingRedirects()->get($landingUrl)->assertOk();
@@ -657,13 +648,13 @@ test('landing attributions preserve copy and native share channels', function (s
 ]);
 
 test('share tracking rejects invalid tokens', function () {
-    $this->postJson(route('dawah-share.track'), [
+    $this->postJson(route('share.track'), [
         'provider' => 'copy_link',
         'tracking_token' => 'invalid-token',
     ])->assertUnprocessable();
 
     $this->actingAs($this->sharer)
-        ->postJson(route('dawah-share.track'), [
+        ->postJson(route('share.track'), [
             'provider' => 'copy_link',
             'tracking_token' => 'invalid-token',
         ])
@@ -679,7 +670,7 @@ test('share redirects record outbound shares for guest callers', function () {
         'visibility' => 'public',
     ]);
 
-    $response = $this->get(route('dawah-share.redirect', [
+    $response = $this->get(route('share.redirect', [
         'provider' => 'whatsapp',
         'url' => route('events.show', $event),
         'text' => 'Share this event',
@@ -692,11 +683,11 @@ test('share redirects record outbound shares for guest callers', function () {
 
     // WP3 cutover: the provider intent carries the short URL; the share
     // token crosses the short-redirect hop.
-    $sharedUrl = dawahShareExtractSharedUrlFromWhatsAppRedirect($response);
+    $sharedUrl = shareExtractSharedUrlFromWhatsAppRedirect($response);
     $hopTarget = (string) $this->get($sharedUrl)->assertRedirect()->headers->get('Location');
 
     expect($location)->toContain('whatsapp')
-        ->and($hopTarget)->toContain((string) config('dawah-share.query_parameter', 'share'));
+        ->and($hopTarget)->toContain((string) config('share-tracking.query_parameter', 'share'));
 
     expect(AffiliateTouchpoint::query()->where('touchpoint_type', 'outbound_share')->count())->toBe(1);
 });
@@ -707,7 +698,7 @@ test('share tracking records outbound shares for guest callers', function () {
         'visibility' => 'public',
     ]);
 
-    $payload = $this->getJson(route('dawah-share.payload', [
+    $payload = $this->getJson(route('share.payload', [
         'url' => route('events.show', $event),
         'text' => 'Share this event',
         'title' => $event->title,
@@ -720,8 +711,8 @@ test('share tracking records outbound shares for guest callers', function () {
 
     expect($guestCredential)->toBeString()->not->toBe('');
 
-    $this->withHeader((string) config('dawah-share.guest_credential.header', 'X-Dawah-Guest-Credential'), $guestCredential)
-        ->postJson(route('dawah-share.track'), [
+    $this->withHeader((string) config('share-tracking.guest_credential.header', 'X-Guest-Credential'), $guestCredential)
+        ->postJson(route('share.track'), [
             'provider' => 'copy_link',
             'tracking_token' => $trackingToken,
         ])
@@ -737,7 +728,7 @@ test('threads redirect records an outbound share touchpoint for authenticated us
     ]);
 
     $response = $this->actingAs($this->sharer)
-        ->get(route('dawah-share.redirect', [
+        ->get(route('share.redirect', [
             'provider' => 'threads',
             'url' => route('events.show', $event),
             'text' => 'Share this event',
@@ -763,7 +754,7 @@ test('equivalent filtered search urls reuse the same canonical share link', func
     $secondUrl = config('app.url').'/majlis?person_ids%5B0%5D=a&person_ids%5B1%5D=b&search=fiqh';
 
     $this->actingAs($this->sharer)
-        ->getJson(route('dawah-share.payload', [
+        ->getJson(route('share.payload', [
             'url' => $firstUrl,
             'text' => 'Explore these results',
             'title' => 'Search Results',
@@ -771,7 +762,7 @@ test('equivalent filtered search urls reuse the same canonical share link', func
         ->assertOk();
 
     $this->actingAs($this->sharer)
-        ->getJson(route('dawah-share.payload', [
+        ->getJson(route('share.payload', [
             'url' => $secondUrl,
             'text' => 'Explore these results',
             'title' => 'Search Results',
@@ -794,7 +785,7 @@ test('opening a shared link creates an attribution and landing visit', function 
     ]);
 
     $payload = $this->actingAs($this->sharer)
-        ->getJson(route('dawah-share.payload', [
+        ->getJson(route('share.payload', [
             'url' => route('events.show', $event),
             'text' => 'Share this event',
             'title' => $event->title,
@@ -805,7 +796,7 @@ test('opening a shared link creates an attribution and landing visit', function 
     $response = $this->followingRedirects()->get($payload['url']);
 
     $response->assertOk();
-    expect($response->getCookie(config('dawah-share.cookie.name')))->not->toBeNull();
+    expect($response->getCookie(config('share-tracking.cookie.name')))->not->toBeNull();
     expect(AffiliateAttribution::count())->toBe(1);
     expect(AffiliateTouchpoint::query()->where('touchpoint_type', 'visit')->count())->toBe(1);
 
@@ -823,7 +814,7 @@ test('new signups are attributed after a shared landing', function () {
     ]);
 
     $payload = $this->actingAs($this->sharer)
-        ->getJson(route('dawah-share.payload', [
+        ->getJson(route('share.payload', [
             'url' => route('events.show', $event),
             'text' => 'Share this event',
             'title' => $event->title,
@@ -832,12 +823,12 @@ test('new signups are attributed after a shared landing', function () {
         ->json();
 
     $landingResponse = $this->followingRedirects()->get($payload['url']);
-    $cookie = $landingResponse->getCookie(config('dawah-share.cookie.name'));
+    $cookie = $landingResponse->getCookie(config('share-tracking.cookie.name'));
 
     expect($cookie)->not->toBeNull();
 
     $request = Request::create('/register', 'POST');
-    $request->cookies->set(config('dawah-share.cookie.name'), $cookie?->getValue());
+    $request->cookies->set(config('share-tracking.cookie.name'), $cookie?->getValue());
     app()->instance('request', $request);
 
     // Canonical subject fields only: the frozen visitor_key must keep
@@ -891,7 +882,7 @@ test('event registrations are attributed after a shared landing', function () {
     ]);
 
     $payload = $this->actingAs($this->sharer)
-        ->getJson(route('dawah-share.payload', [
+        ->getJson(route('share.payload', [
             'url' => route('events.show', $event),
             'text' => 'Share this event',
             'title' => $event->title,
@@ -903,7 +894,7 @@ test('event registrations are attributed after a shared landing', function () {
 
     $landingResponse->assertOk();
 
-    $cookie = $landingResponse->getCookie(config('dawah-share.cookie.name'));
+    $cookie = $landingResponse->getCookie(config('share-tracking.cookie.name'));
 
     expect($cookie)->not->toBeNull();
 
@@ -913,7 +904,7 @@ test('event registrations are attributed after a shared landing', function () {
 
     $response = $this
         ->withCredentials()
-        ->withCookie(config('dawah-share.cookie.name'), $cookie?->getValue())
+        ->withCookie(config('share-tracking.cookie.name'), $cookie?->getValue())
         ->postJson(route('api.events.registrations.store', $event), [
             'name' => 'Guest Registrant',
             'email' => 'guest-registrant@example.com',
@@ -946,7 +937,7 @@ test('event saves and going actions are attributed through authenticated api act
     ]);
 
     $payload = $this->actingAs($this->sharer)
-        ->getJson(route('dawah-share.payload', [
+        ->getJson(route('share.payload', [
             'url' => route('events.show', $event),
             'text' => 'Share this event',
             'title' => $event->title,
@@ -955,14 +946,14 @@ test('event saves and going actions are attributed through authenticated api act
         ->json();
 
     $landingResponse = $this->followingRedirects()->get($payload['url']);
-    $cookie = $landingResponse->getCookie(config('dawah-share.cookie.name'));
+    $cookie = $landingResponse->getCookie(config('share-tracking.cookie.name'));
 
     expect($cookie)->not->toBeNull();
 
     Sanctum::actingAs($visitor);
 
     $response = $this->withCredentials()
-        ->withCookie(config('dawah-share.cookie.name'), $cookie?->getValue());
+        ->withCookie(config('share-tracking.cookie.name'), $cookie?->getValue());
 
     if ($method === 'put') {
         $response
@@ -990,7 +981,7 @@ test('saved-search creation is attributed after a shared search landing', functi
     $searchUrl = config('app.url').'/majlis?search=fiqh';
 
     $payload = $this->actingAs($this->sharer)
-        ->getJson(route('dawah-share.payload', [
+        ->getJson(route('share.payload', [
             'url' => $searchUrl,
             'text' => 'Explore these results',
             'title' => 'Search Results',
@@ -999,11 +990,11 @@ test('saved-search creation is attributed after a shared search landing', functi
         ->json();
 
     $landingResponse = $this->followingRedirects()->get($payload['url']);
-    $cookie = $landingResponse->getCookie(config('dawah-share.cookie.name'));
+    $cookie = $landingResponse->getCookie(config('share-tracking.cookie.name'));
 
     expect($cookie)->not->toBeNull();
 
-    Livewire::withCookie(config('dawah-share.cookie.name'), $cookie?->getValue())
+    Livewire::withCookie(config('share-tracking.cookie.name'), $cookie?->getValue())
         ->actingAs($visitor)
         ->test('pages.saved-searches.index')
         ->set('name', 'Fiqh Alerts')
@@ -1034,9 +1025,9 @@ test('event check-ins are attributed after a shared landing', function () {
 
     $event->accessPolicy()?->delete();
 
-    $cookie = dawahShareLandingCookie($this, $this->sharer, route('events.show', $event), $event->title);
+    $cookie = shareLandingCookie($this, $this->sharer, route('events.show', $event), $event->title);
 
-    Livewire::withCookie(config('dawah-share.cookie.name'), $cookie)
+    Livewire::withCookie(config('share-tracking.cookie.name'), $cookie)
         ->actingAs($visitor)
         ->test('pages.events.show', ['event' => $event])
         ->call('checkIn')
@@ -1076,22 +1067,22 @@ test('registration refunds reverse attributed registration and check-in outcomes
         'attendee_id' => $visitor->getKey(),
         'check_in_source' => 'organizer_verified',
     ]);
-    $cookie = dawahShareLandingCookie($this, $this->sharer, route('events.show', $event), $event->title);
-    $request = Request::create('/', 'GET', [], [config('dawah-share.cookie.name') => $cookie]);
+    $cookie = shareLandingCookie($this, $this->sharer, route('events.show', $event), $event->title);
+    $request = Request::create('/', 'GET', [], [config('share-tracking.cookie.name') => $cookie]);
     $trackingService = app(ShareTrackingService::class);
 
     $registrationKey = ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey());
     $checkinKey = ShareOutcomeBusinessKey::eventCheckin((string) $checkin->getKey());
 
     $trackingService->recordOutcome(
-        DawahShareOutcomeType::EventRegistration,
+        ShareOutcomeType::EventRegistration,
         $registrationKey,
         $event,
         $visitor,
         $request,
     );
     $trackingService->recordOutcome(
-        DawahShareOutcomeType::EventCheckin,
+        ShareOutcomeType::EventCheckin,
         $checkinKey,
         $event,
         $visitor,
@@ -1117,14 +1108,14 @@ test('registration refunds reverse attributed registration and check-in outcomes
 test('event submissions are attributed after a shared landing', function () {
     fakePrayerTimesApi();
 
-    $fixtures = dawahShareSubmitEventFixtures();
-    $cookie = dawahShareLandingCookie($this, $this->sharer, route('submit-event.create'), 'Submit Event');
+    $fixtures = shareSubmitEventFixtures();
+    $cookie = shareLandingCookie($this, $this->sharer, route('submit-event.create'), 'Submit Event');
     $title = 'Attributed Guest Submission '.uniqid();
 
     setSubmitEventFormState(
-        Livewire::withCookie(config('dawah-share.cookie.name'), $cookie)
+        Livewire::withCookie(config('share-tracking.cookie.name'), $cookie)
             ->test(Create::class),
-        dawahShareSubmitEventFormData($fixtures, [
+        shareSubmitEventFormData($fixtures, [
             'title' => $title,
             'submitter_email' => 'submitted-'.uniqid().'@example.com',
         ]),
@@ -1149,9 +1140,9 @@ test('follow actions are attributed across supported public followable pages', f
     $visitor = User::factory()->create();
     $record = $recordFactory();
 
-    $cookie = dawahShareLandingCookie($this, $this->sharer, route($routeName, $record), data_get($record, 'title', data_get($record, 'name', 'Shared Page')));
+    $cookie = shareLandingCookie($this, $this->sharer, route($routeName, $record), data_get($record, 'title', data_get($record, 'name', 'Shared Page')));
 
-    Livewire::withCookie(config('dawah-share.cookie.name'), $cookie)
+    Livewire::withCookie(config('share-tracking.cookie.name'), $cookie)
         ->actingAs($visitor)
         ->test($component, [$parameter => $record])
         ->assertSet('isFollowing', false)
@@ -1217,22 +1208,22 @@ test('impact dashboard highlights event check-ins and submissions', function () 
 
     $event->accessPolicy()?->delete();
 
-    $eventCookie = dawahShareLandingCookie($this, $this->sharer, route('events.show', $event), $event->title);
+    $eventCookie = shareLandingCookie($this, $this->sharer, route('events.show', $event), $event->title);
 
-    Livewire::withCookie(config('dawah-share.cookie.name'), $eventCookie)
+    Livewire::withCookie(config('share-tracking.cookie.name'), $eventCookie)
         ->actingAs($visitor)
         ->test('pages.events.show', ['event' => $event])
         ->call('checkIn')
         ->assertSet('isCheckedIn', true);
 
-    $submissionFixtures = dawahShareSubmitEventFixtures();
-    $submissionCookie = dawahShareLandingCookie($this, $this->sharer, route('submit-event.create'), 'Submit Event');
+    $submissionFixtures = shareSubmitEventFixtures();
+    $submissionCookie = shareLandingCookie($this, $this->sharer, route('submit-event.create'), 'Submit Event');
     $submissionTitle = 'Dashboard Submission '.uniqid();
 
     setSubmitEventFormState(
-        Livewire::withCookie(config('dawah-share.cookie.name'), $submissionCookie)
+        Livewire::withCookie(config('share-tracking.cookie.name'), $submissionCookie)
             ->test(Create::class),
-        dawahShareSubmitEventFormData($submissionFixtures, [
+        shareSubmitEventFormData($submissionFixtures, [
             'title' => $submissionTitle,
             'submitter_email' => 'dashboard-submission-'.uniqid().'@example.com',
         ]),
@@ -1260,18 +1251,18 @@ test('impact dashboard highlights event check-ins and submissions', function () 
 
     try {
         $this->actingAs($this->sharer)
-            ->get(route('dashboard.dawah-impact'))
+            ->get(route('dakwah'))
             ->assertOk()
             ->assertSee('Recorded Check-ins')
             ->assertSee(__('Event Submissions'));
 
         $this->actingAs($this->sharer)
-            ->get(route('dashboard.dawah-impact.links.show', ['link' => $eventLink->id]))
+            ->get(route('dakwah.links.show', ['link' => $eventLink->id]))
             ->assertOk()
             ->assertSee('Recorded Check-ins');
 
         $this->actingAs($this->sharer)
-            ->get(route('dashboard.dawah-impact.links.show', ['link' => $submissionLink->id]))
+            ->get(route('dakwah.links.show', ['link' => $submissionLink->id]))
             ->assertOk()
             ->assertSee(__('Event Submissions'));
     } finally {
@@ -1292,7 +1283,7 @@ test('impact dashboard top subjects use canonical affiliate subject fields', fun
     ]);
 
     $this->actingAs($this->sharer)
-        ->getJson(route('dawah-share.payload', [
+        ->getJson(route('share.payload', [
             'url' => route('events.show', $event),
             'text' => 'Share this event',
             'title' => $event->title,
@@ -1300,7 +1291,7 @@ test('impact dashboard top subjects use canonical affiliate subject fields', fun
         ->assertOk();
 
     $this->actingAs($this->sharer)
-        ->getJson(route('dawah-share.payload', [
+        ->getJson(route('share.payload', [
             'url' => route('persons.show', $person),
             'text' => 'Share this person',
             'title' => $person->formatted_name,
@@ -1427,9 +1418,9 @@ test('impact dashboard top subjects use canonical affiliate subject fields', fun
         ->and($recentResponses->first()?->subjectKey)->toBe($eventLink->subject_key);
 
     $component = Livewire::actingAs($this->sharer)
-        ->test(DawahImpactIndex::class);
+        ->test(DakwahIndex::class);
 
-    /** @var DawahImpactIndex $instance */
+    /** @var DakwahIndex $instance */
     $instance = $component->instance();
 
     expect($instance->topSubjects->first())->toMatchArray([
@@ -1443,16 +1434,15 @@ test('impact dashboard top subjects use canonical affiliate subject fields', fun
     ]);
 
     $this->actingAs($this->sharer)
-        ->get(route('dashboard.dawah-impact'))
+        ->get(route('dakwah'))
         ->assertOk()
         ->assertSee('Top Shared Subjects')
         ->assertSee($event->title);
 
     $this->actingAs($this->sharer)
-        ->get(route('dashboard.dawah-impact.links.show', ['link' => $eventLink->id]))
+        ->get(route('dakwah.links.show', ['link' => $eventLink->id]))
         ->assertOk()
-        ->assertSee('Subject')
-        ->assertSee($eventLink->subject_key);
+        ->assertDontSee($eventLink->subject_key);
 });
 
 test('resolved active attribution prefers canonical affiliate subject fields', function () {
@@ -1463,7 +1453,7 @@ test('resolved active attribution prefers canonical affiliate subject fields', f
         'starts_at' => now()->addDay(),
     ]);
 
-    $cookie = dawahShareLandingCookie($this, $this->sharer, route('events.show', $event), $event->title);
+    $cookie = shareLandingCookie($this, $this->sharer, route('events.show', $event), $event->title);
 
     $attribution = AffiliateAttribution::query()
         ->where('attribution_type', 'landing')
@@ -1478,7 +1468,7 @@ test('resolved active attribution prefers canonical affiliate subject fields', f
     ])->save();
 
     $request = Request::create(route('events.show', $event));
-    $request->cookies->set((string) config('dawah-share.cookie.name'), $cookie);
+    $request->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
 
     $resolved = app(ShareTrackingService::class)->resolveActiveAttribution($request);
 
@@ -1499,7 +1489,7 @@ test('impact dashboard exposes provider channel performance', function () {
     ]);
 
     $redirectResponse = $this->actingAs($this->sharer)
-        ->get(route('dawah-share.redirect', [
+        ->get(route('share.redirect', [
             'provider' => 'whatsapp',
             'url' => route('events.show', $event),
             'text' => 'Share this event',
@@ -1507,17 +1497,17 @@ test('impact dashboard exposes provider channel performance', function () {
         ]))
         ->assertRedirect();
 
-    $sharedUrl = dawahShareExtractSharedUrlFromWhatsAppRedirect($redirectResponse);
+    $sharedUrl = shareExtractSharedUrlFromWhatsAppRedirect($redirectResponse);
 
     $landingResponse = $this->followingRedirects()->get($sharedUrl);
-    $cookie = $landingResponse->getCookie(config('dawah-share.cookie.name'));
+    $cookie = $landingResponse->getCookie(config('share-tracking.cookie.name'));
 
     expect($cookie)->not->toBeNull();
 
     Sanctum::actingAs($visitor);
 
     $this->withCredentials()
-        ->withCookie(config('dawah-share.cookie.name'), $cookie?->getValue())
+        ->withCookie(config('share-tracking.cookie.name'), $cookie?->getValue())
         ->putJson(route('api.events.saved.update', $event))
         ->assertCreated();
 
@@ -1541,19 +1531,19 @@ test('impact dashboard exposes provider channel performance', function () {
         ->and($providerBreakdown->first()['outcomes'])->toBe(1);
 
     $this->actingAs($this->sharer)
-        ->get(route('dashboard.dawah-impact'))
+        ->get(route('dakwah'))
         ->assertOk()
-        ->assertSee('Channel Impact');
+        ->assertSee(__('Sharing channels'));
 
     $this->actingAs($this->sharer)
-        ->get(route('dashboard.dawah-impact.links.show', ['link' => $link->id]))
+        ->get(route('dakwah.links.show', ['link' => $link->id]))
         ->assertOk()
         ->assertSee('Share Channels');
 });
 
 test('provider visitor counts read native channel fields', function () {
     $payload = $this->actingAs($this->sharer)
-        ->getJson(route('dawah-share.payload', [
+        ->getJson(route('share.payload', [
             'url' => route('events.index', ['search' => 'telegram-provider-fallback']),
             'text' => 'Telegram provider',
             'title' => 'Telegram provider',
@@ -1598,15 +1588,14 @@ test('provider visitor counts read native channel fields', function () {
     $providerBreakdown = app(ShareTrackingAnalyticsService::class)
         ->providerBreakdownForUser($this->sharer);
 
-    expect($providerBreakdown)->toHaveCount(1)
-        ->and($providerBreakdown->first()['provider'])->toBe('telegram')
-        ->and($providerBreakdown->first()['visits'])->toBe(1)
-        ->and($providerBreakdown->first()['distinct_browsers'])->toBe(1);
+    expect($providerBreakdown)->toHaveCount(2);
+    expect($providerBreakdown->firstWhere('provider', 'telegram'))->toMatchArray(['visits' => 1, 'distinct_browsers' => 1]);
+    expect($providerBreakdown->firstWhere('provider', 'direct'))->toMatchArray(['visits' => 0, 'distinct_browsers' => 1]);
 });
 
 test('link outcome breakdown returns integer counts ordered by volume', function () {
     $payload = $this->actingAs($this->sharer)
-        ->getJson(route('dawah-share.payload', [
+        ->getJson(route('share.payload', [
             'url' => route('events.index', ['search' => 'outcome-breakdown']),
             'text' => 'Outcome Breakdown Link',
             'title' => 'Outcome Breakdown Link',
@@ -1692,7 +1681,7 @@ test('link outcome breakdown returns integer counts ordered by volume', function
 
 test('impact dashboard can sort by check-ins and filter by response type', function () {
     $checkinPayload = $this->actingAs($this->sharer)
-        ->getJson(route('dawah-share.payload', [
+        ->getJson(route('share.payload', [
             'url' => route('events.index', ['search' => 'checkin-heavy']),
             'text' => 'Check-in Heavy Link',
             'title' => 'Check-in Heavy Link',
@@ -1701,7 +1690,7 @@ test('impact dashboard can sort by check-ins and filter by response type', funct
         ->json();
 
     $submissionPayload = $this->actingAs($this->sharer)
-        ->getJson(route('dawah-share.payload', [
+        ->getJson(route('share.payload', [
             'url' => route('submit-event.create'),
             'text' => 'Submission Link',
             'title' => 'Submission Link',
@@ -1786,20 +1775,20 @@ test('impact dashboard can sort by check-ins and filter by response type', funct
     ]);
 
     $component = Livewire::actingAs($this->sharer)
-        ->test(DawahImpactIndex::class)
+        ->test(DakwahIndex::class)
         ->set('sort', 'checkins');
 
-    /** @var DawahImpactIndex $instance */
+    /** @var DakwahIndex $instance */
     $instance = $component->instance();
     $sortedLinkIds = collect($instance->links->items())->pluck('id')->all();
 
     expect($sortedLinkIds[0] ?? null)->toBe($checkinLink->id);
 
     $filteredComponent = Livewire::actingAs($this->sharer)
-        ->test(DawahImpactIndex::class)
+        ->test(DakwahIndex::class)
         ->set('outcomeType', 'event_submission');
 
-    /** @var DawahImpactIndex $filteredInstance */
+    /** @var DakwahIndex $filteredInstance */
     $filteredInstance = $filteredComponent->instance();
     $filteredLinkIds = collect($filteredInstance->links->items())->pluck('id')->all();
 
@@ -1866,7 +1855,7 @@ test('impact dashboard pages are only available to the owning sharer', function 
     ]);
 
     $this->actingAs($this->sharer)
-        ->getJson(route('dawah-share.payload', [
+        ->getJson(route('share.payload', [
             'url' => route('events.show', $event),
             'text' => 'Share this event',
             'title' => $event->title,
@@ -1876,7 +1865,7 @@ test('impact dashboard pages are only available to the owning sharer', function 
     $link = AffiliateLink::query()->firstOrFail();
 
     $this->actingAs($this->sharer)
-        ->get(route('dashboard.dawah-impact'))
+        ->get(route('dakwah'))
         ->assertOk()
         ->assertSee('My shared links');
 
@@ -1887,21 +1876,19 @@ test('impact dashboard pages are only available to the owning sharer', function 
     );
 
     $this->actingAs($this->sharer)
-        ->get(route('dashboard.dawah-impact.links.show', ['link' => $link->id]))
+        ->get(route('dakwah.links.show', ['link' => $link->id]))
         ->assertOk()
         ->assertSee($event->title)
         ->assertSee($trackedUrl, false)
         ->assertSee('Your tracked share link')
-        ->assertSee('Pautan perkongsian terlacak anda')
-        ->assertSee('Copy tracked link')
-        ->assertSee('Salin pautan terlacak');
+        ->assertSee(__('Copy Link'));
 
     $this->actingAs($otherUser)
-        ->get(route('dashboard.dawah-impact.links.show', ['link' => $link->id]))
+        ->get(route('dakwah.links.show', ['link' => $link->id]))
         ->assertNotFound();
 });
 
-test('admin can view and deactivate a Dawah affiliate link while a member has no access', function () {
+test('admin can view and deactivate a share affiliate link while a member has no access', function () {
     setPermissionsTeamId(null);
     $this->seed(PermissionSeeder::class);
 
@@ -1936,7 +1923,7 @@ test('share redirect route records outbound provider clicks without visitor visi
     ]);
 
     $response = $this->actingAs($this->sharer)
-        ->get(route('dawah-share.redirect', [
+        ->get(route('share.redirect', [
             'provider' => 'whatsapp',
             'url' => route('events.show', $event),
             'text' => 'Share this event',

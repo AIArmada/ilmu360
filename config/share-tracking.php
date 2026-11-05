@@ -10,7 +10,7 @@ return [
     'ttl_days' => 30,
 
     'cookie' => [
-        'name' => 'mi_dawah_share',
+        'name' => 'i360_share',
         'minutes' => 60 * 24 * 30,
         'path' => '/',
         'domain' => env('SESSION_DOMAIN'),
@@ -20,7 +20,7 @@ return [
     ],
 
     'guest_cookie' => [
-        'name' => 'mi_dawah_guest',
+        'name' => 'i360_guest',
         'minutes' => 60 * 24 * 30,
         'path' => '/',
         'domain' => env('SESSION_DOMAIN'),
@@ -31,7 +31,7 @@ return [
 
     'guest_credential' => [
         'ttl_days' => 30,
-        'header' => 'X-Dawah-Guest-Credential',
+        'header' => 'X-Guest-Credential',
         'input' => 'guest_credential',
     ],
 
@@ -40,7 +40,7 @@ return [
     ],
 
     'claim_cookie' => [
-        'name' => 'mi_dawah_guest_claim',
+        'name' => 'i360_guest_claim',
         'minutes' => 60 * 24 * 30,
         'path' => '/',
         'domain' => env('SESSION_DOMAIN'),
@@ -51,11 +51,11 @@ return [
 
     'claim_capability' => [
         'ttl_days' => 30,
-        'header' => 'X-Dawah-Claim-Capability',
+        'header' => 'X-Claim-Capability',
         'input' => 'guest_claim_capability',
     ],
 
-    'signing_key' => env('DAWAH_SHARE_SIGNING_KEY', (string) env('APP_KEY')),
+    'signing_key' => env('SHARE_SIGNING_KEY', (string) env('APP_KEY')),
 
     'visit_dedupe_minutes' => 5,
 
@@ -69,7 +69,7 @@ return [
 
     'reporting' => [
         'definition_version' => 'wp1',
-        'reporting_start' => env('DAWAH_SHARE_REPORTING_START'),
+        'reporting_start' => env('SHARE_REPORTING_START'),
     ],
 
     'bot_user_agents' => [

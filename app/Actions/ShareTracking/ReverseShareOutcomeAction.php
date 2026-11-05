@@ -7,8 +7,8 @@ namespace App\Actions\ShareTracking;
 use AIArmada\Affiliates\Actions\Conversions\ReverseAffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\States\ConversionStatus;
-use App\Enums\DawahShareOutcomeType;
 use App\Enums\ShareEffectStatus;
+use App\Enums\ShareOutcomeType;
 use App\Jobs\Referrals\ReverseReferralRewardsForShareOutcomeJob;
 use App\Models\ShareEffectReceipt;
 use App\Models\ShareOutcomeCorrection;
@@ -68,9 +68,9 @@ final readonly class ReverseShareOutcomeAction
             return null;
         }
 
-        $outcomeType = DawahShareOutcomeType::tryFrom($receipt->outcome_type);
+        $outcomeType = ShareOutcomeType::tryFrom($receipt->outcome_type);
 
-        if (! $outcomeType instanceof DawahShareOutcomeType) {
+        if (! $outcomeType instanceof ShareOutcomeType) {
             throw new InvalidArgumentException('Share outcome receipt carries an unknown outcome type.');
         }
 

@@ -15,7 +15,7 @@ use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use App\Actions\ShareTracking\ClaimGuestShareProfileAction;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
-use App\Enums\DawahShareOutcomeType;
+use App\Enums\ShareOutcomeType;
 use App\Models\Event;
 use App\Models\User;
 use App\Services\ShareTracking\AdminShareAnalyticsService;
@@ -40,14 +40,14 @@ beforeEach(function (): void {
         'visibility' => 'public',
     ]);
 
-    config(['dawah-share.reporting.reporting_start' => '2026-05-01']);
+    config(['share-tracking.reporting.reporting_start' => '2026-05-01']);
 });
 
 function smrPayload(TestCase $testCase, ?User $user, string $url): array
 {
     $call = $user instanceof User ? $testCase->actingAs($user) : $testCase;
 
-    return $call->getJson(route('dawah-share.payload', [
+    return $call->getJson(route('share.payload', [
         'url' => $url,
         'text' => 'Share this page',
         'title' => 'Shared Page',
@@ -58,7 +58,7 @@ function smrTrack(TestCase $testCase, ?User $user, string $token, string $provid
 {
     $call = $user instanceof User ? $testCase->actingAs($user) : $testCase;
 
-    $call->postJson(route('dawah-share.track'), array_merge([
+    $call->postJson(route('share.track'), array_merge([
         'provider' => $provider,
         'tracking_token' => $token,
     ], $extra))->assertNoContent();
@@ -74,9 +74,9 @@ function smrLandingCookie(TestCase $testCase, string $sharedUrl, ?string $channe
 
     $call = $browserCookie === null
         ? $testCase->followingRedirects()
-        : $testCase->withCookie((string) config('dawah-share.cookie.name'), $browserCookie)->followingRedirects();
+        : $testCase->withCookie((string) config('share-tracking.cookie.name'), $browserCookie)->followingRedirects();
 
-    $cookie = $call->get($url)->assertOk()->getCookie((string) config('dawah-share.cookie.name'));
+    $cookie = $call->get($url)->assertOk()->getCookie((string) config('share-tracking.cookie.name'));
 
     expect($cookie)->not->toBeNull();
 
@@ -86,12 +86,12 @@ function smrLandingCookie(TestCase $testCase, string $sharedUrl, ?string $channe
 function smrOutcomeRequest(string $cookieValue): Request
 {
     $request = Request::create('/noop', 'GET');
-    $request->cookies->set((string) config('dawah-share.cookie.name'), $cookieValue);
+    $request->cookies->set((string) config('share-tracking.cookie.name'), $cookieValue);
 
     return $request;
 }
 
-function smrRecordOutcome(DawahShareOutcomeType $type, string $businessKey, ?User $actor, ?string $cookieValue, ?CarbonImmutable $at = null): void
+function smrRecordOutcome(ShareOutcomeType $type, string $businessKey, ?User $actor, ?string $cookieValue, ?CarbonImmutable $at = null): void
 {
     app(ShareTrackingService::class)->recordOutcome(
         $type,
@@ -117,7 +117,7 @@ it('counts committed outbound shares, never downstream outcomes', function (): v
     Carbon::setTestNow(CarbonImmutable::parse('2026-05-11T08:00:00Z'));
     $actor = User::factory()->create();
     smrRecordOutcome(
-        DawahShareOutcomeType::EventRegistration,
+        ShareOutcomeType::EventRegistration,
         ShareOutcomeBusinessKey::eventRegistration((string) $actor->getKey()),
         $actor,
         $cookie,
@@ -217,7 +217,7 @@ it('splits outcomes into valid, unknown, reversed, rejected, and unattributed ca
 
     $at = CarbonImmutable::parse('2026-05-10T08:00:00Z');
 
-    $make = function (DawahShareOutcomeType $type = DawahShareOutcomeType::EventCheckin) use ($cookie, $at): AffiliateConversion {
+    $make = function (ShareOutcomeType $type = ShareOutcomeType::EventCheckin) use ($cookie, $at): AffiliateConversion {
         $actor = User::factory()->create();
         $key = ShareOutcomeBusinessKey::for($type, 'checkin:'.((string) Str::uuid()));
         smrRecordOutcome($type, $key, $actor, $cookie, $at);
@@ -233,9 +233,9 @@ it('splits outcomes into valid, unknown, reversed, rejected, and unattributed ca
     $pending = $make();
     $pending->forceFill(['status' => 'pending'])->save();
 
-    $reversedKey = ShareOutcomeBusinessKey::for(DawahShareOutcomeType::EventCheckin, 'checkin:'.((string) Str::uuid()));
+    $reversedKey = ShareOutcomeBusinessKey::for(ShareOutcomeType::EventCheckin, 'checkin:'.((string) Str::uuid()));
     $reversedActor = User::factory()->create();
-    smrRecordOutcome(DawahShareOutcomeType::EventCheckin, $reversedKey, $reversedActor, $cookie, $at);
+    smrRecordOutcome(ShareOutcomeType::EventCheckin, $reversedKey, $reversedActor, $cookie, $at);
     app(ReverseShareOutcomeAction::class)->handle($reversedKey, 'source-corrected', $this->sharer);
 
     $rejected = $make();
@@ -245,8 +245,8 @@ it('splits outcomes into valid, unknown, reversed, rejected, and unattributed ca
     // receipt with no conversion and no owner.
     $lonely = User::factory()->create();
     smrRecordOutcome(
-        DawahShareOutcomeType::EventCheckin,
-        ShareOutcomeBusinessKey::for(DawahShareOutcomeType::EventCheckin, 'checkin:'.((string) Str::uuid())),
+        ShareOutcomeType::EventCheckin,
+        ShareOutcomeBusinessKey::for(ShareOutcomeType::EventCheckin, 'checkin:'.((string) Str::uuid())),
         $lonely,
         null,
         $at,
@@ -288,7 +288,7 @@ it('counts primary plus actively claimed guest history for the member scope', fu
 
     Carbon::setTestNow(CarbonImmutable::parse('2026-05-10T08:00:00Z'));
     smrTrack($this, null, (string) $guest['tracking_token'], 'copy_link', [
-        (string) config('dawah-share.guest_credential.input') => (string) $guest['guest_credential'],
+        (string) config('share-tracking.guest_credential.input') => (string) $guest['guest_credential'],
     ]);
     Carbon::setTestNow();
 
@@ -316,7 +316,7 @@ it('counts primary plus actively claimed guest history for the member scope', fu
 });
 
 it('withholds measurements before the reporting start and rejects bad input', function (): void {
-    config(['dawah-share.reporting.reporting_start' => null]);
+    config(['share-tracking.reporting.reporting_start' => null]);
 
     $payload = smrPayload($this, $this->sharer, route('events.show', $this->event));
     smrTrack($this, $this->sharer, (string) $payload['tracking_token'], 'copy_link');
@@ -331,7 +331,7 @@ it('withholds measurements before the reporting start and rejects bad input', fu
     expect($summary['status'])->toBe('not_configured')
         ->and($summary['totals']['recorded_shares'])->toBe(0);
 
-    config(['dawah-share.reporting.reporting_start' => '2026-05-01']);
+    config(['share-tracking.reporting.reporting_start' => '2026-05-01']);
 
     $unknown = (new ShareMetricReader)->summarize(
         'UTC',
@@ -381,7 +381,7 @@ it('agrees with member and admin surfaces on the same definitions', function ():
 
     $actor = User::factory()->create();
     smrRecordOutcome(
-        DawahShareOutcomeType::Signup,
+        ShareOutcomeType::Signup,
         ShareOutcomeBusinessKey::signup((string) $actor->getKey()),
         $actor,
         $cookie,

@@ -12,7 +12,7 @@ use AIArmada\Ticketing\Models\TicketType;
 use App\Actions\Events\Commerce\PrepareEventCheckoutAction;
 use App\Actions\ShareTracking\DispatchShareEffectReceiptsAction;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
-use App\Enums\DawahShareOutcomeType;
+use App\Enums\ShareOutcomeType;
 use App\Models\Event;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\ShareSourceAttributionReceipt;
@@ -124,7 +124,7 @@ $buildRequest = static function (?string $cookie): Request {
     $request = Request::create((string) config('app.url'), 'GET');
 
     if (is_string($cookie) && $cookie !== '') {
-        $request->cookies->set((string) config('dawah-share.cookie.name', 'mi_dawah_share'), $cookie);
+        $request->cookies->set((string) config('share-tracking.cookie.name', 'i360_share'), $cookie);
     }
 
     return $request;
@@ -150,7 +150,7 @@ try {
                 ];
             }
 
-            $type = DawahShareOutcomeType::from((string) ($payload['type'] ?? ''));
+            $type = ShareOutcomeType::from((string) ($payload['type'] ?? ''));
             ShareOutcomeBusinessKey::parse((string) ($payload['business_key'] ?? ''), $type);
 
             $actor = User::query()->whereKey((string) ($payload['actor_id'] ?? ''))->firstOrFail();
@@ -202,7 +202,7 @@ try {
             $cookie = (string) ($payload['cookie'] ?? '');
 
             if ($cookie !== '') {
-                $request->cookies->set((string) config('dawah-share.cookie.name', 'mi_dawah_share'), $cookie);
+                $request->cookies->set((string) config('share-tracking.cookie.name', 'i360_share'), $cookie);
             }
 
             $encoded = app(ShareTrackingService::class)->captureRequest($request);
@@ -247,7 +247,7 @@ try {
             $actor = User::query()->whereKey((string) ($payload['actor_id'] ?? ''))->firstOrFail();
 
             $outcome = app(ShareTrackingService::class)->recordInheritedOutcome(
-                type: DawahShareOutcomeType::EventCheckin,
+                type: ShareOutcomeType::EventCheckin,
                 businessKey: (string) $payload['child_key'],
                 sourceBusinessKey: (string) $payload['source_key'],
                 subject: null,

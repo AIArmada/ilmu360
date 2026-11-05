@@ -968,14 +968,14 @@
                 {{-- Ask the reader to fact-check, not just to share. Same two
                      routes as the shared feedback panel, in the page palette. --}}
                 <section id="event-share-panel" aria-label="{{ __('Kongsi majlis') }}">
-                    <x-dawah-share-panel :share-data="[
+                    <x-share-panel :share-data="[
                         'title' => $occurrenceDisplayTitle,
                         'text' => \Illuminate\Support\Str::limit($event->description_text, 100),
                         'url' => $occurrenceShareUrl,
                         'sourceUrl' => $occurrenceShareUrl,
                         'shareText' => trim($occurrenceDisplayTitle.' - '.config('app.name')),
                         'fallbackTitle' => $occurrenceDisplayTitle,
-                        'payloadEndpoint' => route('dawah-share.payload'),
+                        'payloadEndpoint' => route('share.payload'),
                     ]" :share-links="$this->shareLinks" />
                 </section>
 

@@ -19,7 +19,7 @@ use Throwable;
 
 /**
  * The committed-share Signals reader: the actual reader of the package's
- * durable `dawah.committed_share` signal log.
+ * durable `share.committed_share` signal log.
  *
  * Reads trusted committed-share events strictly after its own durable
  * cursor and applies the final effect — an idempotent cohort-projection

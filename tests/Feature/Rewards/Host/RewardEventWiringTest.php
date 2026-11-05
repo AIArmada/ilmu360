@@ -162,7 +162,7 @@ it('dispatches claimed-history evaluation on claim', function (): void {
     $claimant = User::factory()->create(['email' => 'rewire-claimant@example.test']);
     rewireEnrolledRecognition('rewire-claim', $claimant);
 
-    $response = test()->getJson(route('dawah-share.payload', [
+    $response = test()->getJson(route('share.payload', [
         'url' => route('events.index'),
         'text' => 'Share this page',
         'title' => 'Shared Page',
@@ -195,7 +195,7 @@ it('dispatches claimed-history evaluation on claim', function (): void {
 
     $claim = test()->actingAs($claimant)
         ->withCredentials()
-        ->withCookie('mi_dawah_guest_claim', $payload['guest_claim_capability'])
+        ->withCookie('i360_guest_claim', $payload['guest_claim_capability'])
         ->post(route('share.claim.store'), ['confirm' => true]);
 
     $claim->assertRedirect(route('share.claim.show'));

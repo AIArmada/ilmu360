@@ -199,3 +199,36 @@ Review: the package `EventResource` now exposes `EditAction` in the table and `V
 - [x] Fix `scripts/deploy.sh` so `optimize:clear` is followed by `php artisan optimize` + `php artisan filament:optimize`; staging was serving with config/routes/events uncached after every deploy.
 - [x] Verification: `AuthzGlobalRoleCacheTest` 3 passed (10 assertions), `FilamentPanelAccessTest` 9 passed, `MediaConversionsTest` 46 passed, `SubmitEventMediaTest` 3 passed, `FilamentMediaAssetTest` 3 passed; app/package Pint and PHPStan level 6 clean.
 - Review: warm admin TTFB after deploy is ~0.51–0.60 s for dashboard/events/persons; dashboard LCP 1,754 ms; dashboard now fires three initial lazy-widget requests and no 5 s refresh loop; SPA navigation stays on one document and prefetches on hover. Remaining infrastructure win (requires nginx write access): enable `http2 on` and long-lived `Cache-Control` for `/build/assets` and `/js/filament`.
+
+## Fix Dakwah member experience (2026-11-05)
+
+- [x] Confirm Dakwah remains the sharing analytics page, with separate invitation/reward workflows.
+- [x] Correct dashboard invitation navigation; connect Dakwah, invitations, and rewards.
+- [x] Put sharing actions before analytics and allow re-sharing from link rows using the shared panel.
+- [x] Withhold unconfigured measurements consistently, fix activity/channel semantics, remove internal identifiers, and reduce repeated queries.
+- [x] Verify focused regressions, PHPStan, formatting, and frontend build; record results.
+
+Review: Dakwah stays the private sharing report. Added prominent browse/share, personal invitation and reward destinations; dashboard invitation CTA now opens the invitation form, with reciprocal navigation. Reused the existing share panel on index/detail so outbound tracking stays on the existing engine; invitation outcomes retain existing server-side Signals. Reduced hero to four metrics with counting explanations, removed internal subject keys and old impact copy, localized additions, and improved responsive grids/focus/contrast. Measurements and measurement filters are withheld consistently before reporting is configured. Actual outbound touchpoints determine last-shared time; direct/unknown channels reconcile totals. A request-computed link library and batched measurement queries remove per-link query growth without cross-request caches. Daily bucket labels use the same viewer timezone as aggregation.
+
+Validation: 53 focused tests passed across ShareTrackingTest, DakwahPageTest, DakwahAnalyticsSemanticsTest, DakwahReportingStateTest and the dashboard CTA regression (50 passing in the combined corrected run, the corrected channel fixture passed separately, and 2 reporting-state/timezone regressions passed). Full PHPStan level 6: zero errors using temporary CLI-only memory settings; Pint, production Vite build and git diff --check passed. The broader initial dashboard run exposed an unrelated existing account-settings assertion expecting “Manage your account and notifications from one place.”; account-settings code was not changed. No dependencies or database schema changed.
+
+## Reconcile every Dakwah count (2026-11-05)
+
+- [x] Map every dashboard/Dakwah summary, library, subject, channel, daily and response count to its canonical source.
+- [x] Audit reporting windows, ownership/claimed guest profiles, distinct browser identity, reversals, deduplication and invitation/reward boundaries.
+- [x] Fix discrepancies and add explicit known-total reconciliation regressions.
+- [x] Run focused tests once, formatting/static analysis and record verified invariants and remaining limitations.
+
+Count-audit review: traced every Dakwah-related dashboard and Dakwah index/detail value through its component, DTO, query and committed source. Fixed additional defects: invalid/relative/impossible reporting-start dates now withhold centrally; every Dakwah fact query stops at read time; detail facts must belong to the same affiliate as their link; attribution-only browser channels remain visible; report URL resolution is authorized/read-only and no longer prepares extra member links from claimed guest reports or fails on deactivated history. Dashboard labels now identify responses/visits/account signups/browsers exactly, with withheld states instead of zero success claims. Removed fabricated active-activity badges and explained counters honestly.
+
+Verified metric map:
+- Outbound shares: committed outbound_share touchpoints; prepared link counts are separate identities.
+- Visits: committed visit touchpoints (landing/return/navigation, ingestion dedupe retained), not people or delivered messages.
+- Browsers: unique nonempty frozen visitor_key union from landing attributions and visits. Channel/browser counts overlap and are intentionally non-additive.
+- Signups, registrations, check-ins, submissions: matching conversion_type with qualified/approved/paid status; total responses includes all 11 action types, not sessions, current following/saved counts, or rewards.
+- Library/type/subject counts: source-link groupings; additive activity totals reconcile where links survive. Historical null-link facts remain in overall/channel totals and are disclosed, not silently dropped.
+- Detail outcome and channel breakdowns reconcile with its summary. Recent responses are limited to 12 globally/20 per detail; recent visits to 20. Daily breakdown is 14 viewer-local calendar days, with start/read bounds and DST tested. Library filters do not alter global summaries.
+- Marked primary member plus actively claimed guest history only; other members/commercial profiles/revoked claims excluded. Deactivation/attribution expiry stop future credit, not historical reporting. Reversed/rejected/pending conversions excluded from valid counts without deleting history.
+- Referral acceptance/qualification and reward ledgers are independent; recorded share responses are not invitation totals or balances. Existing signup/referral/reward integration tests cover their interaction and reversal/idempotency paths.
+
+Proof: 168 distinct relevant tests verified (159 passed in initial integration run; nine failures were corrected and affected suites re-run: 74/74 passed). New reconciliation fixtures assert 3 outbound shares, 5 visits, 3 global browsers, 12 valid responses across all 11 action types, excluded statuses, exact boundaries, ownership, guest claim/revocation, deactivated history, orphan history and 25-hour DST buckets. Seven initial failures came from a relation-callback type error caught/fixed by static analysis and runtime tests; two test expectations were corrected for claim-created recipient profiles and retained unknown-channel browser evidence. PHPStan level 6 zero errors, Pint, production build and git diff --check pass. Validation uses isolated records plus real-ingestion integration tests, not a production database export.

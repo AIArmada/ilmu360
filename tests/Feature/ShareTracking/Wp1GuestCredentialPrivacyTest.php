@@ -33,7 +33,7 @@ function wp1GuestPayloadParams(TestCase $testCase): array
 }
 
 it('serves share payloads with private no-store cache headers', function (): void {
-    $guest = $this->getJson(route('dawah-share.payload', wp1GuestPayloadParams($this)))->assertOk();
+    $guest = $this->getJson(route('share.payload', wp1GuestPayloadParams($this)))->assertOk();
 
     // Symfony normalizes directive order; both directives must be present.
     expect($guest->headers->get('Cache-Control'))->toContain('private')
@@ -42,7 +42,7 @@ it('serves share payloads with private no-store cache headers', function (): voi
         ->and($guest->json('guest_credential'))->toBeString()->not->toBe('');
 
     $authed = $this->actingAs($this->sharer)
-        ->getJson(route('dawah-share.payload', wp1GuestPayloadParams($this)))
+        ->getJson(route('share.payload', wp1GuestPayloadParams($this)))
         ->assertOk();
 
     expect($authed->headers->get('Cache-Control'))->toContain('private')
@@ -51,7 +51,7 @@ it('serves share payloads with private no-store cache headers', function (): voi
 });
 
 it('keeps the issued guest credential out of share urls platform links and native data', function (): void {
-    $payload = $this->getJson(route('dawah-share.payload', wp1GuestPayloadParams($this)))
+    $payload = $this->getJson(route('share.payload', wp1GuestPayloadParams($this)))
         ->assertOk()
         ->json();
 
@@ -85,8 +85,8 @@ it('redacts guest credential transports through the central redactor', function 
 
     expect($redactor)->toBeInstanceOf(ListSafePayloadRedactor::class);
 
-    $header = (string) config('dawah-share.guest_credential.header', 'X-Dawah-Guest-Credential');
-    $input = (string) config('dawah-share.guest_credential.input', 'guest_credential');
+    $header = (string) config('share-tracking.guest_credential.header', 'X-Guest-Credential');
+    $input = (string) config('share-tracking.guest_credential.input', 'guest_credential');
 
     $sample = [
         $input => 'wp1-secret-credential-value',

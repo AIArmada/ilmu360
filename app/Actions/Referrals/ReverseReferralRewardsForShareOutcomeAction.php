@@ -7,7 +7,7 @@ namespace App\Actions\Referrals;
 use AIArmada\Referrals\Actions\ReverseReferralReward;
 use AIArmada\Referrals\Enums\ReferralRewardStatus;
 use AIArmada\Referrals\Models\ReferralInvite;
-use App\Enums\DawahShareOutcomeType;
+use App\Enums\ShareOutcomeType;
 use App\Support\Rewards\ReferralRewardSourceFactReader;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Illuminate\Support\Facades\Log;
@@ -63,7 +63,7 @@ final readonly class ReverseReferralRewardsForShareOutcomeAction
 
     private function isSupportedBusinessKey(string $businessKey): bool
     {
-        foreach ([DawahShareOutcomeType::EventRegistration, DawahShareOutcomeType::EventCheckin] as $outcome) {
+        foreach ([ShareOutcomeType::EventRegistration, ShareOutcomeType::EventCheckin] as $outcome) {
             try {
                 ShareOutcomeBusinessKey::parse($businessKey, $outcome);
 

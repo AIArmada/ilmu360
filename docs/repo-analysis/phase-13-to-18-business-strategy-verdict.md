@@ -84,7 +84,7 @@ Practical counter-reality: social feeds are poor as operational truth systems fo
 |---|---|---:|---|---|
 | SEO + structured discovery | event/institution/speaker routes + sitemap endpoints in `web.php` | 8/10 | Evergreen indexed pages beat ephemeral posts | Content freshness burden if contribution loop weak |
 | Community-driven update loop | submit-event + contribution suggest/update + moderation/review flows | 9/10 | Reduces single-admin dependency; many contributors keep data fresh | Needs trust controls and reviewer throughput |
-| Share + invitation chain | `DawahShareController` and share tracking routes | 8/10 | Ajak culture can compound attendance growth | Without relevance, can become noise |
+| Share + invitation chain | `ShareController` and share tracking routes | 8/10 | Ajak culture can compound attendance growth | Without relevance, can become noise |
 | Notification reactivation | saved searches/follows/notifications APIs | 8/10 | Timely reminders beat passive social feed exposure | Fatigue risk if targeting weak |
 | Mobile loop potential | mobile telemetry and app-facing API contracts (`/api/v1/forms/mobile-telemetry`, telemetry ingest) | 9/10 | iOS/Android surfaces can increase habit frequency | Requires strong app execution and content freshness |
 | Language-expanded reach | language catalogs and event language metadata flows | 8/10 | Event-level language improves match across communities | Requires consistent tagging and quality metadata |

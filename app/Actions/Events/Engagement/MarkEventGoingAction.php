@@ -5,7 +5,7 @@ namespace App\Actions\Events\Engagement;
 use AIArmada\Engagement\Contracts\EngagementCounterService;
 use AIArmada\Events\Actions\RegisterForFreeAction;
 use AIArmada\Ticketing\Enums\PricingMode;
-use App\Enums\DawahShareOutcomeType;
+use App\Enums\ShareOutcomeType;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;
@@ -81,7 +81,7 @@ final readonly class MarkEventGoingAction
                     $createdAt = $admission->created_at;
 
                     $this->shareTrackingService->recordOutcome(
-                        type: DawahShareOutcomeType::EventRegistration,
+                        type: ShareOutcomeType::EventRegistration,
                         businessKey: ShareOutcomeBusinessKey::eventRegistration((string) $admission->getKey()),
                         subject: $event,
                         actor: $user,

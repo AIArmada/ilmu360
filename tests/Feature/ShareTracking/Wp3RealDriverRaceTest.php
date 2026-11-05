@@ -327,7 +327,7 @@ function wp3GuestSlugForcedRaceCase(TestCase $testCase): void
 
         $requestForRace = static function () use ($raceUrl, $credential): Request {
             $request = Request::create($raceUrl, 'GET');
-            $request->headers->set('X-Dawah-Guest-Credential', $credential);
+            $request->headers->set('X-Guest-Credential', $credential);
 
             return $request;
         };
@@ -896,7 +896,7 @@ function wp3CreationBeforeClaimRaceCase(TestCase $testCase): void
                 ],
             ], static function () use ($raceUrl, $credential): array {
                 $request = Request::create($raceUrl, 'GET');
-                $request->headers->set('X-Dawah-Guest-Credential', $credential);
+                $request->headers->set('X-Guest-Credential', $credential);
 
                 $result = app(ShareTrackingService::class)->sharePayload(
                     null,

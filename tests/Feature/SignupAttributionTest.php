@@ -179,7 +179,7 @@ it('refuses revoked invitations and invalid public tokens as signup evidence', f
 });
 
 it('links guest signup history through an explicit claim while preserving the source and excluding self referrals', function (): void {
-    $payload = $this->getJson(route('dawah-share.payload', [
+    $payload = $this->getJson(route('share.payload', [
         'url' => route('events.index'), 'text' => 'Shared page', 'title' => 'Signup guest share',
     ]))->assertOk()->json();
     $link = AffiliateLink::query()->where('custom_slug', $payload['tracking_token'])->firstOrFail();

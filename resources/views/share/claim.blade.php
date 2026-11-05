@@ -58,7 +58,7 @@
                     {{ __('Those past shares are already linked to your account. Nothing further is needed.') }}
                 </p>
                 <div class="mt-5">
-                    <a href="{{ route('dashboard.dawah-impact') }}"
+                    <a href="{{ route('dakwah') }}"
                         class="inline-block rounded-xl bg-[#173c34] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#21594c]">
                         {{ __('View your impact') }}
                     </a>

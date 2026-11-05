@@ -15,7 +15,7 @@ use RuntimeException;
 
 /**
  * THE committed-share Signals producer: the one named producer of
- * `dawah.committed_share` trusted Signals.
+ * `share.committed_share` trusted Signals.
  *
  * Authority is the committed OUTBOUND share (an outbound_share
  * touchpoint row) — never downstream outcome receipts. Each committed
@@ -38,7 +38,7 @@ use RuntimeException;
  */
 final readonly class CommittedShareSignalProducer
 {
-    public const string EVENT_NAME = 'dawah.committed_share';
+    public const string EVENT_NAME = 'share.committed_share';
 
     public const string EVENT_CATEGORY = 'shares';
 

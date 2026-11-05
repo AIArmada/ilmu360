@@ -746,14 +746,14 @@
                 </section>
 
                 <section id="event-share-panel" aria-label="{{ __('Kongsi majlis') }}">
-                    <x-dawah-share-panel :share-data="[
+                    <x-share-panel :share-data="[
                         'title' => $event->title,
                         'text' => \Illuminate\Support\Str::limit($event->description_text, 100),
                         'url' => $eventShareUrl,
                         'sourceUrl' => $eventShareUrl,
                         'shareText' => trim($event->title.' - '.config('app.name')),
                         'fallbackTitle' => $event->title,
-                        'payloadEndpoint' => route('dawah-share.payload'),
+                        'payloadEndpoint' => route('share.payload'),
                     ]" :share-links="$shareLinks" />
                 </section>
 

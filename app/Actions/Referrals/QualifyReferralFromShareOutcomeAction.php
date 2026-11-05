@@ -11,7 +11,7 @@ use AIArmada\Referrals\Enums\ReferralRewardStatus;
 use AIArmada\Referrals\Models\ReferralInvite;
 use AIArmada\Rewards\Enums\RewardVerificationLevel;
 use AIArmada\Rewards\Support\RewardSourceFact;
-use App\Enums\DawahShareOutcomeType;
+use App\Enums\ShareOutcomeType;
 use App\Models\User;
 use App\Support\Rewards\ActivityRewardSourceFactReader;
 use App\Support\ShareTracking\ActivityRewardBusinessKey;
@@ -115,7 +115,7 @@ final readonly class QualifyReferralFromShareOutcomeAction
 
     private function readSupportedSource(string $businessKey): ?RewardSourceFact
     {
-        foreach ([DawahShareOutcomeType::EventRegistration, DawahShareOutcomeType::EventCheckin] as $outcome) {
+        foreach ([ShareOutcomeType::EventRegistration, ShareOutcomeType::EventCheckin] as $outcome) {
             try {
                 $parsed = ShareOutcomeBusinessKey::parse($businessKey, $outcome);
             } catch (\InvalidArgumentException) {
@@ -133,8 +133,8 @@ final readonly class QualifyReferralFromShareOutcomeAction
     private function hasQualificationVerification(string $outcome, RewardVerificationLevel $verification): bool
     {
         return match ($outcome) {
-            DawahShareOutcomeType::EventRegistration->value => $verification === RewardVerificationLevel::Accepted,
-            DawahShareOutcomeType::EventCheckin->value => $verification === RewardVerificationLevel::StaffVerified,
+            ShareOutcomeType::EventRegistration->value => $verification === RewardVerificationLevel::Accepted,
+            ShareOutcomeType::EventCheckin->value => $verification === RewardVerificationLevel::StaffVerified,
             default => false,
         };
     }

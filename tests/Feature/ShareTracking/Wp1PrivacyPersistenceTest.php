@@ -29,7 +29,7 @@ beforeEach(function (): void {
 
 function wp1PrivacySharePayload(TestCase $testCase, User $user, string $url): array
 {
-    return $testCase->actingAs($user)->getJson(route('dawah-share.payload', [
+    return $testCase->actingAs($user)->getJson(route('share.payload', [
         'url' => $url,
         'text' => 'Share this page',
         'title' => 'Shared Page',
@@ -48,7 +48,7 @@ function wp1PrivacyLandingCookie(TestCase $testCase, string $sharedUrl): string
     // WP3 cutover: the emitted share URL is a branded short redirect, so
     // the harness traverses the mandated 302 hop. Every assertion below
     // still reads the destination landing exactly as before.
-    $cookie = $testCase->followingRedirects()->get($sharedUrl)->assertOk()->getCookie((string) config('dawah-share.cookie.name'));
+    $cookie = $testCase->followingRedirects()->get($sharedUrl)->assertOk()->getCookie((string) config('share-tracking.cookie.name'));
 
     expect($cookie)->not->toBeNull();
 
@@ -123,7 +123,7 @@ it('persists only minimal route identity after landing with private recipient qu
 it('records no visit for private dashboard account and admin navigation', function (): void {
     $payload = wp1PrivacySharePayload($this, $this->sharer, route('events.show', $this->event));
     $cookie = wp1PrivacyLandingCookie($this, (string) $payload['url']);
-    $cookieName = (string) config('dawah-share.cookie.name');
+    $cookieName = (string) config('share-tracking.cookie.name');
 
     expect(AffiliateTouchpoint::query()->where('touchpoint_type', 'visit')->count())->toBe(1);
 

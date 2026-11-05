@@ -5,7 +5,7 @@ namespace App\Livewire\Concerns;
 use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Models\Bookmark;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
-use App\Enums\DawahShareOutcomeType;
+use App\Enums\ShareOutcomeType;
 use App\Models\Event;
 use App\Models\User;
 use App\Services\ShareTrackingService;
@@ -69,7 +69,7 @@ trait TogglesEventSave
 
             if ($bookmark instanceof Bookmark && $bookmark->wasRecentlyCreated) {
                 app(ShareTrackingService::class)->recordOutcome(
-                    type: DawahShareOutcomeType::EventSave,
+                    type: ShareOutcomeType::EventSave,
                     businessKey: ShareOutcomeBusinessKey::eventSave((string) $bookmark->getKey()),
                     subject: $event,
                     actor: $user,

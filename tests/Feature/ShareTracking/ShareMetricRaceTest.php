@@ -20,7 +20,7 @@ use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateFraudSignal;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use App\Actions\ShareTracking\ClaimGuestShareProfileAction;
-use App\Enums\DawahShareOutcomeType;
+use App\Enums\ShareOutcomeType;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
 use App\Services\ShareTrackingService;
@@ -38,8 +38,8 @@ function smrIngestionRaceCase(TestCase $testCase): void
 {
     [$database, $previous] = ShareMetricRaceHarness::worker('shrmetric');
 
-    $previousReportingStart = config('dawah-share.reporting.reporting_start');
-    config(['dawah-share.reporting.reporting_start' => '2026-01-01']);
+    $previousReportingStart = config('share-tracking.reporting.reporting_start');
+    config(['share-tracking.reporting.reporting_start' => '2026-01-01']);
 
     try {
         $pageUrl = route('events.index');
@@ -88,7 +88,7 @@ function smrIngestionRaceCase(TestCase $testCase): void
             'mode' => 'outcome',
             'payload' => [
                 'business_key' => $businessKey,
-                'type' => DawahShareOutcomeType::Signup->value,
+                'type' => ShareOutcomeType::Signup->value,
                 'actor_id' => (string) $actor->getKey(),
                 'cookies' => [$landingCookie, $landingCookie],
             ],
@@ -116,7 +116,7 @@ function smrIngestionRaceCase(TestCase $testCase): void
         $guest = ShareMetricRaceHarness::guestPayload($pageUrl);
         $guestRequest = Request::create($pageUrl, 'POST');
         $guestRequest->request->set(
-            (string) config('dawah-share.guest_credential.input', 'guest_credential'),
+            (string) config('share-tracking.guest_credential.input', 'guest_credential'),
             (string) $guest['guest_credential']
         );
         app(ShareTrackingService::class)->recordShareAction(
@@ -172,7 +172,7 @@ function smrIngestionRaceCase(TestCase $testCase): void
             ->and($week['first_shares'])->toBe(1)
             ->and($week['participations'])->toBe(1);
     } finally {
-        config(['dawah-share.reporting.reporting_start' => $previousReportingStart]);
+        config(['share-tracking.reporting.reporting_start' => $previousReportingStart]);
         ShareMetricRaceHarness::teardown($database, $previous);
     }
 }
@@ -181,8 +181,8 @@ function smrCohortBoundaryRaceCase(TestCase $testCase): void
 {
     [$database, $previous] = ShareMetricRaceHarness::worker('shrcohort');
 
-    $previousReportingStart = config('dawah-share.reporting.reporting_start');
-    config(['dawah-share.reporting.reporting_start' => '2026-01-01']);
+    $previousReportingStart = config('share-tracking.reporting.reporting_start');
+    config(['share-tracking.reporting.reporting_start' => '2026-01-01']);
 
     try {
         $pageUrl = route('events.index');
@@ -202,7 +202,7 @@ function smrCohortBoundaryRaceCase(TestCase $testCase): void
         $founderLink = ShareMetricRaceHarness::link($founder, $pageUrl);
         $signupCookie = ShareMetricRaceHarness::landing($pageUrl.'?share='.$founderLink->custom_slug);
         $signupRequest = Request::create($pageUrl, 'GET');
-        $signupRequest->cookies->set((string) config('dawah-share.cookie.name'), (string) $signupCookie);
+        $signupRequest->cookies->set((string) config('share-tracking.cookie.name'), (string) $signupCookie);
         app(ShareTrackingService::class)->recordSignup($member, $signupRequest);
 
         $link = ShareMetricRaceHarness::link($member, $pageUrl);
@@ -236,7 +236,7 @@ function smrCohortBoundaryRaceCase(TestCase $testCase): void
             'mode' => 'outcome',
             'payload' => [
                 'business_key' => $businessKey,
-                'type' => DawahShareOutcomeType::Signup->value,
+                'type' => ShareOutcomeType::Signup->value,
                 'actor_id' => (string) $edgeActor->getKey(),
                 'cookies' => [$landingCookie, $landingCookie],
             ],
@@ -264,11 +264,11 @@ function smrCohortBoundaryRaceCase(TestCase $testCase): void
         $fraudLink = ShareMetricRaceHarness::link($fraudMember, $pageUrl);
         $fraudCookie = ShareMetricRaceHarness::landing($pageUrl.'?share='.$fraudLink->custom_slug);
         $fraudRequest = Request::create($pageUrl, 'GET');
-        $fraudRequest->cookies->set((string) config('dawah-share.cookie.name'), (string) $fraudCookie);
+        $fraudRequest->cookies->set((string) config('share-tracking.cookie.name'), (string) $fraudCookie);
         $fraudActor = User::factory()->create(['email' => 'smr-fraud-actor@example.test']);
         $fraudKey = ShareOutcomeBusinessKey::signup((string) $fraudActor->getKey());
         app(ShareTrackingService::class)->recordOutcome(
-            DawahShareOutcomeType::Signup,
+            ShareOutcomeType::Signup,
             $fraudKey,
             null,
             $fraudActor,
@@ -319,7 +319,7 @@ function smrCohortBoundaryRaceCase(TestCase $testCase): void
             ->and($summary['totals']['accepted_participations'])->toBe(1)
             ->and($summary['by_day']['2026-06-11'] ?? 0)->toBe(2);
     } finally {
-        config(['dawah-share.reporting.reporting_start' => $previousReportingStart]);
+        config(['share-tracking.reporting.reporting_start' => $previousReportingStart]);
         ShareMetricRaceHarness::teardown($database, $previous);
     }
 }

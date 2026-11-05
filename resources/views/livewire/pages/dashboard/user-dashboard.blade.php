@@ -9,7 +9,8 @@
     $followingReferences = $this->followingReferences;
     $followingInstitutions = $this->followingInstitutions;
     $recentSavedSearches = $this->recentSavedSearches;
-    $dawahImpactSummary = $this->dawahImpactSummary;
+    $dakwahSummary = $this->dakwahSummary;
+    $dakwahMeasurementsAvailable = \App\Support\ShareTracking\ShareTrackingMeasurement::isConfigured();
     $shareRewardEnrollmentPrompt = $this->shareRewardEnrollmentPrompt;
 
     $dashboardStats = [
@@ -44,18 +45,18 @@
             'class' => 'bg-sky-50 text-sky-700',
         ],
         [
-            'label' => __('Sumbangan Saya'),
-            'value' => $dawahImpactSummary['total_outcomes'],
+            'label' => __('Recorded Responses'),
+            'value' => $dakwahMeasurementsAvailable ? $dakwahSummary['total_outcomes'] : null,
             'icon' => 'M12 21s-7-4.4-7-10a4 4 0 017-2.6A4 4 0 0119 11c0 5.6-7 10-7 10z',
             'class' => 'bg-amber-50 text-amber-700',
         ],
     ];
 
     $impactMetrics = [
-        ['label' => __('Sesi Ilmu Disokong'), 'value' => $dawahImpactSummary['total_outcomes']],
-        ['label' => __('Jumlah Jangkauan'), 'value' => $dawahImpactSummary['visits']],
-        ['label' => __('Pendaftaran Dibantu'), 'value' => $dawahImpactSummary['signups']],
-        ['label' => __('Pelayar Berbeza'), 'value' => $dawahImpactSummary['distinct_browsers']],
+        ['label' => __('Recorded Responses'), 'value' => $dakwahSummary['total_outcomes']],
+        ['label' => __('Visits'), 'value' => $dakwahSummary['visits']],
+        ['label' => __('Signups'), 'value' => $dakwahSummary['signups']],
+        ['label' => __('Distinct Browsers'), 'value' => $dakwahSummary['distinct_browsers']],
     ];
 
 @endphp
@@ -76,7 +77,7 @@
                                 2 => route('institutions.index', ['followed_only' => 1]),
                                 3 => route('persons.index', ['followed_only' => 1]),
                                 4 => route('references.index', ['followed_only' => 1]),
-                                default => route('dashboard.dawah-impact'),
+                                default => route('dakwah'),
                             };
                         @endphp
                         <a href="{{ $statHref }}"
@@ -87,7 +88,14 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" d="{{ $stat['icon'] }}" />
                                 </svg>
                             </span>
-                            <span class="font-heading text-2xl font-bold leading-none text-[#0b2a42]">{{ number_format($stat['value']) }}</span>
+                            <span class="font-heading text-2xl font-bold leading-none text-[#0b2a42]">
+                                @if($stat['value'] === null)
+                                    <span aria-hidden="true">—</span>
+                                    <span class="sr-only">{{ __('Measurements withheld') }}</span>
+                                @else
+                                    {{ number_format($stat['value']) }}
+                                @endif
+                            </span>
                             <span class="text-xs font-medium leading-tight text-slate-500">{{ $stat['label'] }}</span>
                         </a>
                     @endforeach
@@ -170,43 +178,43 @@
                             </span>
                             <div>
                                 <h2 class="font-heading text-2xl font-bold text-[#0b2a42]">{{ __('Sumbangan Saya') }}</h2>
-                                <p class="mt-2 max-w-xl text-xl leading-8 text-[#0b2a42]">
-                                    {{ __('Anda telah membantu membuka jalan kepada ilmu sebanyak :count kali.', ['count' => number_format($dawahImpactSummary['total_outcomes'])]) }}
-                                </p>
+                                @if($dakwahMeasurementsAvailable)
+                                    <p class="mt-2 max-w-xl text-sm leading-6 text-slate-600">{{ __('Currently valid follow-up actions. Counts actions, not people.') }}</p>
+                                @else
+                                    <p role="status" class="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">{{ __('Reporting is not configured yet. Measurements appear after the operator declares a reporting start.') }}</p>
+                                @endif
                             </div>
                         </div>
-                        <a href="{{ route('dashboard.dawah-impact') }}" wire:navigate class="text-sm font-semibold text-emerald-800 transition hover:text-emerald-950">{{ __('Lihat laporan penuh') }}</a>
+                        <a href="{{ route('dakwah') }}" wire:navigate class="text-sm font-semibold text-emerald-800 transition hover:text-emerald-950">{{ __('Lihat laporan penuh') }}</a>
                     </div>
 
-                    <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                        @foreach($impactMetrics as $metric)
-                            <div class="rounded-lg border border-[#eadfca] bg-[#fbf8f1] px-4 py-3 text-center">
-                                <p class="font-heading text-2xl font-bold text-[#0b2a42]">{{ number_format($metric['value']) }}</p>
-                                <p class="mt-1 text-xs font-medium text-slate-600">{{ $metric['label'] }}</p>
-                            </div>
-                        @endforeach
-                    </div>
-
-                    <div class="mt-5 rounded-lg border border-[#eadfca]">
-                        <div class="flex border-b border-[#eadfca] text-sm font-semibold text-emerald-800">
-                            <span class="border-b-2 border-emerald-700 px-4 py-3">{{ __('Aktiviti Terkini') }}</span>
-                            <span class="px-4 py-3 text-slate-500">{{ __('Institusi Disokong') }}</span>
-                        </div>
-                        <div class="divide-y divide-[#eadfca]">
-                            @foreach([
-                                __('Lawatan daripada pautan yang anda kongsi'),
-                                __('Pendaftaran yang dibantu oleh perkongsian'),
-                                __('Tindakan bermanfaat daripada komuniti'),
-                            ] as $activity)
-                                <div class="flex items-center justify-between gap-4 px-4 py-3 text-sm">
-                                    <span class="flex items-center gap-3 text-slate-700">
-                                        <span class="size-2 rounded-full bg-emerald-700"></span>
-                                        {{ $activity }}
-                                    </span>
-                                    <span class="rounded-lg bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">{{ __('Aktif') }}</span>
+                    @if($dakwahMeasurementsAvailable)
+                        <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                            @foreach($impactMetrics as $metric)
+                                <div class="rounded-lg border border-[#eadfca] bg-[#fbf8f1] px-4 py-3 text-center">
+                                    <p class="font-heading text-2xl font-bold text-[#0b2a42]">{{ number_format($metric['value']) }}</p>
+                                    <p class="mt-1 text-xs font-medium text-slate-600">{{ $metric['label'] }}</p>
                                 </div>
                             @endforeach
                         </div>
+
+                    @endif
+
+                    <div class="mt-5 rounded-lg border border-[#eadfca]">
+                        <h3 class="border-b border-[#eadfca] px-4 py-3 text-sm font-semibold text-emerald-800">{{ __('How we count') }}</h3>
+                        <dl class="divide-y divide-[#eadfca]">
+                            @foreach([
+                                [__('Visits'), __('Visits attributed to your sharing.')],
+                                [__('Signups'), __('New accounts created after a share touch.')],
+                                [__('Recorded Responses'), __('Currently valid follow-up actions. Counts actions, not people.')],
+                            ] as [$label, $description])
+                                <div class="px-4 py-3 text-sm">
+                                    <dt class="font-semibold text-slate-700">{{ $label }}</dt>
+                                    <dd class="mt-1 text-slate-600">{{ $description }}</dd>
+                                </div>
+                            @endforeach
+                        </dl>
+                        <p class="border-t border-[#eadfca] px-4 py-3 text-sm text-slate-600">{{ __('Responses count recorded actions, not your current saved items or followed pages.') }}</p>
                     </div>
                 </section>
             </div>
@@ -219,7 +227,7 @@
                     <div class="relative">
                     <h2 class="font-heading text-2xl font-bold">{{ __('Sebarkan ilmu, luaskan manfaat.') }}</h2>
                     <p class="mt-3 text-sm leading-6 text-emerald-50">{{ __('Jemput rakan dan keluarga untuk sertai Ilmu360 dan temui majlis ilmu yang bermanfaat.') }}</p>
-                    <a href="{{ route('dashboard.dawah-impact') }}" wire:navigate class="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-200/50 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10">
+                    <a href="{{ route('dashboard.referrals') }}" wire:navigate class="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-200/50 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10">
                         <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15 7a3 3 0 11-6 0 3 3 0 016 0zM4 21a8 8 0 0116 0" />
                         </svg>

@@ -7,7 +7,7 @@ declare(strict_types=1);
 // autoloaders never execute it.
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Enums\DawahShareOutcomeType;
+use App\Enums\ShareOutcomeType;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
 use App\Services\ShareTrackingService;
@@ -124,7 +124,7 @@ while (! is_file($readyDir.'/ready-'.$peer)) {
     usleep(5000);
 }
 
-$cookieName = (string) config('dawah-share.cookie.name', 'mi_dawah_share');
+$cookieName = (string) config('share-tracking.cookie.name', 'i360_share');
 
 try {
     $report = match ($mode) {
@@ -139,7 +139,7 @@ try {
 
             if (is_string($credential) && $credential !== '') {
                 $request->request->set(
-                    (string) config('dawah-share.guest_credential.input', 'guest_credential'),
+                    (string) config('share-tracking.guest_credential.input', 'guest_credential'),
                     $credential
                 );
             }
@@ -156,7 +156,7 @@ try {
             return ['shared' => true];
         })(),
         'outcome' => (static function () use ($payload, $slot, $cookieName): array {
-            $type = DawahShareOutcomeType::from((string) ($payload['type'] ?? ''));
+            $type = ShareOutcomeType::from((string) ($payload['type'] ?? ''));
             $businessKey = (string) ($payload['business_key'] ?? '');
             ShareOutcomeBusinessKey::parse($businessKey, $type);
 

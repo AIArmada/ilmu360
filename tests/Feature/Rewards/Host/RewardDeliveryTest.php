@@ -57,14 +57,14 @@ function deliveryCommittedShare(object $testCase, User $user, CarbonImmutable $a
 {
     $event = Event::factory()->create(['status' => 'approved', 'visibility' => 'public']);
 
-    $payload = $testCase->actingAs($user)->getJson(route('dawah-share.payload', [
+    $payload = $testCase->actingAs($user)->getJson(route('share.payload', [
         'url' => route('events.show', $event),
         'text' => 'Share this page',
         'title' => 'Shared Page',
     ]))->assertOk()->json();
 
     Carbon::setTestNow(Carbon::parse($at->toIso8601String()));
-    $testCase->actingAs($user)->postJson(route('dawah-share.track'), [
+    $testCase->actingAs($user)->postJson(route('share.track'), [
         'provider' => 'copy_link',
         'tracking_token' => (string) $payload['tracking_token'],
     ])->assertNoContent();
@@ -79,7 +79,7 @@ it('summarizes share metrics with viewer-local bounds and freshness', function (
     // claimed guest, categories, viewer-local boundary, 30-day edges).
     // This pins the delivery-surface shape: status, canonical version,
     // scope, and privacy (no actor ids).
-    config(['dawah-share.reporting.reporting_start' => '2026-05-01']);
+    config(['share-tracking.reporting.reporting_start' => '2026-05-01']);
 
     $sharer = User::factory()->create();
 
@@ -117,7 +117,7 @@ it('drains committed-share signals to projections through the operations command
     // (real package ingest, semantic keys, dispatcher isolation, outage
     // survival). This pins the delivery/operations surface: the scheduled
     // drain command projecting the durable log exactly once.
-    config(['dawah-share.reporting.reporting_start' => '2026-05-01']);
+    config(['share-tracking.reporting.reporting_start' => '2026-05-01']);
 
     $touchpoint = deliveryCommittedShare($this, User::factory()->create(), CarbonImmutable::parse('2026-05-10T08:00:00Z'));
 
@@ -140,7 +140,7 @@ it('drains committed-share signals to projections through the operations command
 });
 
 it('resumes interrupted drains and skips poison signals through the operations command', function () {
-    config(['dawah-share.reporting.reporting_start' => '2026-05-01']);
+    config(['share-tracking.reporting.reporting_start' => '2026-05-01']);
 
     $sharer = User::factory()->create();
 
@@ -179,7 +179,7 @@ it('reports cohorts with fixed maturity, pending unknowns, and fraud separation'
     // Canonical funnel coverage (per-signup windows, edges, fraud vs
     // reversal) lives in ShareCohortAuthorityTest with real ingestion.
     // This pins delivery-surface maturity/pending behavior.
-    config(['dawah-share.reporting.reporting_start' => '2026-01-01']);
+    config(['share-tracking.reporting.reporting_start' => '2026-01-01']);
 
     User::factory()->create(['created_at' => CarbonImmutable::parse('2026-04-06T00:00:00Z')]);
     User::factory()->create(['created_at' => CarbonImmutable::now('UTC')->startOfWeek()->addDay()]);
@@ -284,7 +284,7 @@ it('serves impact, cohort, and community endpoints with correct authorization', 
     setPermissionsTeamId(null);
     $this->seed(RoleSeeder::class);
     app(PermissionRegistrar::class)->forgetCachedPermissions();
-    config(['dawah-share.reporting.reporting_start' => '2026-05-01']);
+    config(['share-tracking.reporting.reporting_start' => '2026-05-01']);
 
     $member = User::factory()->create();
     $staff = User::factory()->create();

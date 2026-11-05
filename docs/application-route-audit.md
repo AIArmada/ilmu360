@@ -177,7 +177,7 @@ Passport              → OAuth routes for token issuance
 
 **Web Middleware** (appended by `bootstrap/app.php`):
 - `SetLocale` — Sets application locale based on session/cookie
-- `TrackDawahShareAttribution` — Tracks share attribution cookies
+- `TrackShareAttribution` — Tracks share attribution cookies
 
 **API Middleware** (appended by `bootstrap/app.php`):
 - `NormalizeApiJsonResponse` — Wraps API responses in consistent JSON structure
@@ -234,9 +234,9 @@ Passport              → OAuth routes for token issuance
 | GET | `/bahasa/{locale}` | `locale.switch` | LocaleController | web | Guest+ |
 | GET | `/oauth/{provider}/redirect` | `socialite.redirect` | SocialiteController@redirect | web | Guest |
 | GET | `/oauth/{provider}/callback` | `socialite.callback` | SocialiteController@callback | web | Guest |
-| GET | `/kongsi/payload` | `dawah-share.payload` | DawahShareController@payload | throttle:share-tracking | Guest+ |
-| POST | `/kongsi/track` | `dawah-share.track` | DawahShareController@track | throttle:30,1 | Guest+ |
-| GET | `/kongsi/{provider}` | `dawah-share.redirect` | DawahShareController@redirect | throttle:share-tracking | Guest+ |
+| GET | `/kongsi/payload` | `share-tracking.payload` | ShareController@payload | throttle:share-tracking | Guest+ |
+| POST | `/kongsi/track` | `share-tracking.track` | ShareController@track | throttle:30,1 | Guest+ |
+| GET | `/kongsi/{provider}` | `share-tracking.redirect` | ShareController@redirect | throttle:share-tracking | Guest+ |
 | GET/LW | `/carian` | `search.index` | Search\Index | web, throttle:search | Guest+ |
 | GET/LW | `/majlis` | `events.index` | Events\Index | web, throttle:search | Guest+ |
 | GET/LW | `/majlis/{event:slug}` | `events.show` | Events\Show | ResolvePublicSlugRedirect | Guest+ |
@@ -246,9 +246,9 @@ Passport              → OAuth routes for token issuance
 | GET/LW | `/hantar-majlis/berjaya` | `submit-event.success` | ⚡success SFC | web | Guest+ |
 | GET | `/ops/network-diagnostics` | `network-diagnostics` | NetworkDiagnosticsController | none (CSRF/etc excluded) | Guest+ |
 | GET/LW | `/dashboard` | `dashboard` | UserDashboard | web, auth | Auth |
-| GET/LW | `/dashboard/dawah-impact` | `dashboard.dawah-impact` | DawahImpactIndex | web, auth | Auth |
-| GET/LW | `/dashboard/dawah-impact/links` | `dashboard.dawah-impact.links` | DawahImpactIndex | web, auth | Auth |
-| GET/LW | `/dashboard/dawah-impact/links/{link}` | `dashboard.dawah-impact.links.show` | DawahImpactLinkShow | web, auth | Auth |
+| GET/LW | `/dakwah` | `dakwah` | DakwahIndex | web, auth | Auth |
+| GET/LW | `/dakwah/links` | `dakwah.links` | DakwahIndex | web, auth | Auth |
+| GET/LW | `/dakwah/links/{link}` | `dakwah.links.show` | DakwahLinkShow | web, auth | Auth |
 | GET/LW | `/notifications` | `notifications` | NotificationsIndex | web, auth | Auth |
 | GET/LW | `/tetapan` | `account-settings` | AccountSettings | web, auth | Auth |
 | GET/LW | `/dashboard/institusi` | `dashboard.institutions` | InstitutionDashboard | web, auth | Auth |
@@ -315,8 +315,8 @@ Passport              → OAuth routes for token issuance
 | GET | `/api/v1/catalogs/membership-claim-subjects/{subjectType}` | `api.client.catalogs.membership-claim-subjects` | CatalogController@membershipClaimSubjects | — |
 | GET | `/api/v1/catalogs/prayer-institutions` | `api.client.catalogs.prayer-institutions` | CatalogController@prayerInstitutions | — |
 | GET | `/api/v1/search` | `api.client.search.index` | SearchController@search | — |
-| GET | `/api/v1/share/payload` | `api.client.share.payload` | DawahShareController@payload | throttle:share-tracking |
-| POST | `/api/v1/share/track` | `api.client.share.track` | DawahShareController@track | throttle:30,1 |
+| GET | `/api/v1/share/payload` | `api.client.share.payload` | ShareController@payload | throttle:share-tracking |
+| POST | `/api/v1/share/track` | `api.client.share.track` | ShareController@track | throttle:30,1 |
 | POST | `/api/v1/mobile/telemetry/events` | `api.client.mobile-telemetry.store` | MobileTelemetryController@store | throttle:mobile-telemetry |
 | GET | `/api/v1/institutions` | `api.client.institutions.index` | SearchController@institutions | — |
 | GET | `/api/v1/institutions/near` | `api.client.institutions.near` | SearchController@institutionsNear | — |
@@ -466,9 +466,9 @@ Passport              → OAuth routes for token issuance
 | `GET /hantar-majlis/berjaya` | [x] Complete |
 | `GET /ops/network-diagnostics` | [x] Complete |
 | `GET /dashboard` | [x] Complete |
-| `GET /dashboard/dawah-impact` | [x] Complete |
-| `GET /dashboard/dawah-impact/links` | [x] Complete |
-| `GET /dashboard/dawah-impact/links/{link}` | [x] Complete |
+| `GET /dakwah` | [x] Complete |
+| `GET /dakwah/links` | [x] Complete |
+| `GET /dakwah/links/{link}` | [x] Complete |
 | `GET /notifications` | [x] Complete |
 | `GET /tetapan` | [x] Complete |
 | `GET /dashboard/institusi` | [x] Complete |
@@ -542,7 +542,7 @@ Passport              → OAuth routes for token issuance
 | Name | `home` |
 | Source | `routes/web.php:38` |
 | Handler | `⚡home` (anonymous SFC component at `resources/views/components/pages/⚡home.blade.php`) |
-| Middleware | `web`, `SetLocale`, `TrackDawahShareAttribution` |
+| Middleware | `web`, `SetLocale`, `TrackShareAttribution` |
 | Parameters | None |
 | Authentication | Guest+ (anyone) |
 | Authorization | None |
@@ -1012,9 +1012,9 @@ Passport              → OAuth routes for token issuance
 
 ### [MEDIUM] 21.8 Share Analytics User Scoping Dependency
 
-**Affected routes**: `GET /dashboard/dawah-impact`, `GET /dashboard/dawah-impact/links/{link}`
+**Affected routes**: `GET /dakwah`, `GET /dakwah/links/{link}`
 
-**Observation**: DawahImpactIndex and DawahImpactLinkShow delegate entirely to `ShareTrackingAnalyticsService`. The security boundary depends entirely on `findLinkForUser()` and `linksForUser()` properly scoping to the authenticated user. If these service methods have a bug, users could see other users' share data.
+**Observation**: DakwahIndex and DakwahLinkShow delegate entirely to `ShareTrackingAnalyticsService`. The security boundary depends entirely on `findLinkForUser()` and `linksForUser()` properly scoping to the authenticated user. If these service methods have a bug, users could see other users' share data.
 
 **Impact**: Potential data leakage between users.
 

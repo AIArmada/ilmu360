@@ -161,12 +161,12 @@ final class ListSafePayloadRedactor implements PayloadRedactor
     private function configuredSecretKeys(): array
     {
         $names = [
-            (string) config('dawah-share.guest_credential.header', 'X-Dawah-Guest-Credential'),
-            (string) config('dawah-share.guest_credential.input', 'guest_credential'),
-            (string) config('dawah-share.guest_cookie.name', 'mi_dawah_guest'),
-            (string) config('dawah-share.claim_capability.header', 'X-Dawah-Claim-Capability'),
-            (string) config('dawah-share.claim_capability.input', 'guest_claim_capability'),
-            (string) config('dawah-share.claim_cookie.name', 'mi_dawah_guest_claim'),
+            (string) config('share-tracking.guest_credential.header', 'X-Guest-Credential'),
+            (string) config('share-tracking.guest_credential.input', 'guest_credential'),
+            (string) config('share-tracking.guest_cookie.name', 'i360_guest'),
+            (string) config('share-tracking.claim_capability.header', 'X-Claim-Capability'),
+            (string) config('share-tracking.claim_capability.input', 'guest_claim_capability'),
+            (string) config('share-tracking.claim_cookie.name', 'i360_guest_claim'),
         ];
 
         return array_values(array_filter(array_map(

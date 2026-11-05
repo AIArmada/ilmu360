@@ -52,8 +52,8 @@ use App\Http\Controllers\Api\RegistrationExportController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\SavedSearchController;
 use App\Http\Controllers\Api\UserRegistrationController;
-use App\Http\Controllers\DawahShareController;
 use App\Http\Controllers\ShareClaimController;
+use App\Http\Controllers\ShareController;
 use App\Http\Middleware\EnsureAdminApiAccess;
 use Illuminate\Support\Facades\Route;
 
@@ -114,10 +114,10 @@ Route::prefix('v1')->group(function () {
         });
 
         Route::get('/search', [SearchController::class, 'search'])->name('search.index');
-        Route::get('/share/payload', [DawahShareController::class, 'payload'])
+        Route::get('/share/payload', [ShareController::class, 'payload'])
             ->middleware('throttle:share-tracking')
             ->name('share.payload');
-        Route::post('/share/track', [DawahShareController::class, 'track'])
+        Route::post('/share/track', [ShareController::class, 'track'])
             ->middleware('throttle:30,1')
             ->name('share.track');
         Route::get('/share/claim', [ShareClaimController::class, 'availability'])

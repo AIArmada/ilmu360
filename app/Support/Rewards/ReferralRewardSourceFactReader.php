@@ -15,7 +15,7 @@ use AIArmada\Rewards\Enums\RewardSourceCorrectionStatus;
 use AIArmada\Rewards\Enums\RewardSourceFraudStatus;
 use AIArmada\Rewards\Enums\RewardVerificationLevel;
 use AIArmada\Rewards\Support\RewardSourceFact;
-use App\Enums\DawahShareOutcomeType;
+use App\Enums\ShareOutcomeType;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\User;
 use App\Support\ShareTracking\ActivityRewardBusinessKey;
@@ -79,8 +79,8 @@ final readonly class ReferralRewardSourceFactReader implements RewardSourceFactR
             && ! $source->isCancelled
             && $source->isClaimedIdentity
             && match ($source->outcome) {
-                DawahShareOutcomeType::EventRegistration->value => $source->verification === RewardVerificationLevel::Accepted,
-                DawahShareOutcomeType::EventCheckin->value => $source->verification === RewardVerificationLevel::StaffVerified,
+                ShareOutcomeType::EventRegistration->value => $source->verification === RewardVerificationLevel::Accepted,
+                ShareOutcomeType::EventCheckin->value => $source->verification === RewardVerificationLevel::StaffVerified,
                 default => false,
             };
         $sourceIsCancelled = $source === null || $source->isCancelled;
@@ -150,7 +150,7 @@ final readonly class ReferralRewardSourceFactReader implements RewardSourceFactR
 
     private function readQualifyingSource(string $businessKey): ?RewardSourceFact
     {
-        foreach ([DawahShareOutcomeType::EventRegistration, DawahShareOutcomeType::EventCheckin] as $outcome) {
+        foreach ([ShareOutcomeType::EventRegistration, ShareOutcomeType::EventCheckin] as $outcome) {
             try {
                 $parsed = ShareOutcomeBusinessKey::parse($businessKey, $outcome);
             } catch (\InvalidArgumentException) {

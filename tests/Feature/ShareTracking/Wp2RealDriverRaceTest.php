@@ -30,8 +30,8 @@ use AIArmada\Inventory\Models\InventoryLocation;
 use AIArmada\Seating\Enums\SeatingMode;
 use AIArmada\Ticketing\Models\TicketType;
 use App\Actions\Events\Commerce\PrepareEventCheckoutAction;
-use App\Enums\DawahShareOutcomeType;
 use App\Enums\ShareEffectStatus;
+use App\Enums\ShareOutcomeType;
 use App\Models\Event;
 use App\Models\ShareBrowserSelection;
 use App\Models\ShareEffectReceipt;
@@ -114,7 +114,7 @@ function wp2AttributedUnattributedRaceCase(TestCase $testCase): void
             'mode' => 'outcome',
             'payload' => [
                 'business_key' => $businessKey,
-                'type' => DawahShareOutcomeType::EventSave->value,
+                'type' => ShareOutcomeType::EventSave->value,
                 'actor_id' => (string) $actor->getKey(),
                 'cookies' => [$cookie, null],
             ],
@@ -162,7 +162,7 @@ function wp2DifferentSharerRaceCase(TestCase $testCase): void
             'mode' => 'outcome',
             'payload' => [
                 'business_key' => $businessKey,
-                'type' => DawahShareOutcomeType::EventSave->value,
+                'type' => ShareOutcomeType::EventSave->value,
                 'actor_id' => (string) $actor->getKey(),
                 'cookies' => [$cookieA, $cookieB],
             ],
@@ -351,10 +351,10 @@ function wp2DispatchFencingRaceCase(TestCase $testCase): void
         $cookie = wp2RaceLanding($pageUrl.'?share='.$link->custom_slug);
 
         $request = Request::create((string) config('app.url'), 'GET');
-        $request->cookies->set((string) config('dawah-share.cookie.name', 'mi_dawah_share'), (string) $cookie);
+        $request->cookies->set((string) config('share-tracking.cookie.name', 'i360_share'), (string) $cookie);
 
         app(ShareTrackingService::class)->recordOutcome(
-            DawahShareOutcomeType::EventSave,
+            ShareOutcomeType::EventSave,
             ShareOutcomeBusinessKey::eventSave((string) Str::uuid()),
             null,
             $actor,
@@ -401,7 +401,7 @@ function wp2CorrectionRaceCase(TestCase $testCase): void
             'mode' => 'correction',
             'payload' => [
                 'business_key' => $businessKey,
-                'type' => DawahShareOutcomeType::EventSave->value,
+                'type' => ShareOutcomeType::EventSave->value,
                 'actor_id' => (string) $actor->getKey(),
                 'cookies' => [$cookie, null],
             ],
@@ -486,13 +486,13 @@ function wp2InheritCorrectionRaceCase(TestCase $testCase): void
         $cookie = wp2RaceLanding($pageUrl.'?share='.$link->custom_slug);
 
         $request = Request::create((string) config('app.url'), 'GET');
-        $request->cookies->set((string) config('dawah-share.cookie.name', 'mi_dawah_share'), (string) $cookie);
+        $request->cookies->set((string) config('share-tracking.cookie.name', 'i360_share'), (string) $cookie);
 
         $sourceKey = ShareOutcomeBusinessKey::eventRegistration((string) Str::uuid());
         $childKey = ShareOutcomeBusinessKey::eventCheckin((string) Str::uuid());
 
         expect(app(ShareTrackingService::class)->recordOutcome(
-            DawahShareOutcomeType::EventRegistration,
+            ShareOutcomeType::EventRegistration,
             $sourceKey,
             null,
             $actor,
@@ -644,7 +644,7 @@ function wp2PrepareRaceCase(TestCase $testCase): void
         $originalSnapshot = CheckoutSession::query()->whereKey($sessionId)->firstOrFail()->payment_data;
 
         $retryRequest = Request::create((string) config('app.url'), 'GET');
-        $retryRequest->cookies->set((string) config('dawah-share.cookie.name', 'mi_dawah_share'), (string) $cookie);
+        $retryRequest->cookies->set((string) config('share-tracking.cookie.name', 'i360_share'), (string) $cookie);
 
         $retry = OwnerContext::withOwner(null, fn (): CheckoutSession => app(PrepareEventCheckoutAction::class)->handle(
             event: $event->fresh(),

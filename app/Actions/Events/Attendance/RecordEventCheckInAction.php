@@ -3,7 +3,7 @@
 namespace App\Actions\Events\Attendance;
 
 use AIArmada\Events\Contracts\EventCheckInService;
-use App\Enums\DawahShareOutcomeType;
+use App\Enums\ShareOutcomeType;
 use App\Models\Event;
 use App\Models\EventCheckin;
 use App\Models\User;
@@ -68,7 +68,7 @@ final readonly class RecordEventCheckInAction
 
             if (is_string($linkedRegistrationId) && $linkedRegistrationId !== '') {
                 $this->shareTrackingService->recordInheritedOutcome(
-                    type: DawahShareOutcomeType::EventCheckin,
+                    type: ShareOutcomeType::EventCheckin,
                     businessKey: $businessKey,
                     sourceBusinessKey: ShareOutcomeBusinessKey::eventRegistration($linkedRegistrationId),
                     subject: $event,
@@ -82,7 +82,7 @@ final readonly class RecordEventCheckInAction
                 );
             } else {
                 $this->shareTrackingService->recordOutcome(
-                    type: DawahShareOutcomeType::EventCheckin,
+                    type: ShareOutcomeType::EventCheckin,
                     businessKey: $businessKey,
                     subject: $event,
                     actor: $user,

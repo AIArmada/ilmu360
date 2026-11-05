@@ -81,7 +81,7 @@ class UserDashboard extends Component
      * }
      */
     #[Computed]
-    public function dawahImpactSummary(): array
+    public function dakwahSummary(): array
     {
         return app(ShareTrackingAnalyticsService::class)->summaryForUser($this->user());
     }

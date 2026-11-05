@@ -73,7 +73,7 @@ it('claims reads and revokes guest history with ownership enabled', function (bo
     config([
         'affiliates.owner.enabled' => true,
         'affiliates.owner.include_global' => $includeGlobal,
-        'dawah-share.reporting.reporting_start' => '2026-10-01',
+        'share-tracking.reporting.reporting_start' => '2026-10-01',
     ]);
     Model::clearBootedModels();
     $claimant = User::factory()->create();
@@ -84,7 +84,7 @@ it('claims reads and revokes guest history with ownership enabled', function (bo
     $payload = $service->sharePayload(null, route('events.index'), 'Share', 'Page', 'web', Request::create(route('events.index')));
     $link = AffiliateLink::query()->withoutGlobalScope(OwnerScope::class)->where('custom_slug', $payload['tracking_token'])->firstOrFail();
     $request = Request::create(route('share.claim.show'));
-    $request->headers->set('X-Dawah-Claim-Capability', $payload['guest_claim_capability']);
+    $request->headers->set('X-Claim-Capability', $payload['guest_claim_capability']);
     $context = [
         'referral_invite_id' => null,
         'affiliate_source' => (new SignupAttributionSource(

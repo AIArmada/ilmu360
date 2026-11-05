@@ -43,7 +43,7 @@ staff-managed in Filament.
   `saved_search_created`) are recorded as zero-value affiliate
   conversions via `RecordAffiliateOutcome`, frozen behind
   `ShareSourceAttributionReceipt` / `ShareEffectReceipt`
-  (`app/Enums/DawahShareOutcomeType.php`, `config/rewards.php` outcomes).
+  (`app/Enums/ShareOutcomeType.php`, `config/rewards.php` outcomes).
 - `ShareAttributionRewardSourceFactReader` turns a frozen receipt +
   conversion into a reward source fact (sharer/actor, verification,
   first-time, fraud, corrections); `EvaluateRewardEntitlementJob`
@@ -212,7 +212,7 @@ reconcile per order reference.
 ### G4 — Future-benefit terms and attribution window undecided
 
 **Evidence.** Attribution mechanics exist (30-day share cookie and
-`ttl_days` in `config/dawah-share.php`, registration → check-in
+`ttl_days` in `config/share-tracking.php`, registration → check-in
 inheritance, 30-day cohort maturation), and the codebase already
 states the honesty rule — "fact counts are never cash, points, or paid
 value" (`app/Support/Share/ShareMetricDefinitions.php`). What does

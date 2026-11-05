@@ -3,7 +3,7 @@
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Models\Follow;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
-use App\Enums\DawahShareOutcomeType;
+use App\Enums\ShareOutcomeType;
 use App\Livewire\Concerns\LoadsEventPageData;
 use App\Models\Event;
 use App\Models\Series;
@@ -76,7 +76,7 @@ new
 
                     if ($follow instanceof Follow) {
                         app(ReverseShareOutcomeAction::class)->handle(
-                            ShareOutcomeBusinessKey::follow(DawahShareOutcomeType::SeriesFollow, (string) $follow->getKey()),
+                            ShareOutcomeBusinessKey::follow(ShareOutcomeType::SeriesFollow, (string) $follow->getKey()),
                             'unfollowed',
                             $user,
                             request(),
@@ -94,8 +94,8 @@ new
                     // cookie.
                     if ($created->wasRecentlyCreated) {
                         app(ShareTrackingService::class)->recordOutcome(
-                            type: DawahShareOutcomeType::SeriesFollow,
-                            businessKey: ShareOutcomeBusinessKey::follow(DawahShareOutcomeType::SeriesFollow, (string) $created->getKey()),
+                            type: ShareOutcomeType::SeriesFollow,
+                            businessKey: ShareOutcomeBusinessKey::follow(ShareOutcomeType::SeriesFollow, (string) $created->getKey()),
                             subject: $this->series,
                             actor: $user,
                             request: request(),
@@ -198,7 +198,7 @@ new
         'sourceUrl' => $seriesUrl,
         'shareText' => $seriesShareText,
         'fallbackTitle' => $series->title,
-        'payloadEndpoint' => route('dawah-share.payload'),
+        'payloadEndpoint' => route('share.payload'),
     ];
     $seriesShareLinks = app(\App\Services\ShareTrackingService::class)->redirectLinks(
         $seriesUrl,
@@ -868,7 +868,7 @@ new
                 </div>
 
                 <div class="p-6 sm:p-8">
-                    <x-dawah-share-panel
+                    <x-share-panel
                         :share-data="$seriesShareData"
                         :share-links="$seriesShareLinks"
                     />

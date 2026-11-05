@@ -1248,3 +1248,5 @@ Do not turn organizer identity selection into speaker/institution membership onb
 - User correction (2026-11-04, homepage curation): do not build an admin-only homepage toggle into the member form schema, even as a hidden field. Omit it entirely and do not add a member-panel test solely for that absent toggle; retain direct authorization regression coverage.
 
 - Homepage majlis selection (2026-11-04): cap recommendations at nine cards per user direction; admin-featured schedules take priority, with random upcoming schedules from followed persons, institutions and references filling remaining slots.
+
+- User correction (2026-11-05, Dawah verification): fixing an analytics page includes reconciling every visible number against its source records, ownership/reporting boundaries and lifecycle changes. Passing existing tests for selected fixes is not a full metric audit; trace each UI label/query and verify explicit expected totals before claiming the page is verified.

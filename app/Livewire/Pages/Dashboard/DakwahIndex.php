@@ -4,8 +4,8 @@ namespace App\Livewire\Pages\Dashboard;
 
 use App\Data\ShareTracking\ShareTrackingLinkData;
 use App\Data\ShareTracking\ShareTrackingOutcomeData;
-use App\Enums\DawahShareOutcomeType;
-use App\Enums\DawahShareSubjectType;
+use App\Enums\ShareOutcomeType;
+use App\Enums\ShareSubjectType;
 use App\Models\User;
 use App\Services\ShareTrackingAnalyticsService;
 use App\Support\ShareTracking\ShareTrackingMeasurement;
@@ -19,8 +19,12 @@ use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 
+/**
+ * @property-read Collection<int, ShareTrackingLinkData> $linkLibrary
+ * @property-read string $measurementStatus
+ */
 #[Layout('layouts.app')]
-class DawahImpactIndex extends Component
+class DakwahIndex extends Component
 {
     use WithPagination;
 
@@ -76,15 +80,15 @@ class DawahImpactIndex extends Component
     {
         $options = ['all' => __('All Shared Pages')];
 
-        foreach (DawahShareSubjectType::cases() as $type) {
+        foreach (ShareSubjectType::cases() as $type) {
             $options[$type->value] = match ($type) {
-                DawahShareSubjectType::Event => __('Events'),
-                DawahShareSubjectType::Institution => __('Institutions'),
-                DawahShareSubjectType::Person => __('Speakers'),
-                DawahShareSubjectType::Series => __('Series'),
-                DawahShareSubjectType::Reference => __('References'),
-                DawahShareSubjectType::Search => __('Search Results'),
-                DawahShareSubjectType::Page => __('Pages'),
+                ShareSubjectType::Event => __('Events'),
+                ShareSubjectType::Institution => __('Institutions'),
+                ShareSubjectType::Person => __('Speakers'),
+                ShareSubjectType::Series => __('Series'),
+                ShareSubjectType::Reference => __('References'),
+                ShareSubjectType::Search => __('Search Results'),
+                ShareSubjectType::Page => __('Pages'),
             };
         }
 
@@ -115,19 +119,19 @@ class DawahImpactIndex extends Component
     {
         $options = ['all' => __('All Responses')];
 
-        foreach (DawahShareOutcomeType::cases() as $type) {
+        foreach (ShareOutcomeType::cases() as $type) {
             $options[$type->value] = match ($type) {
-                DawahShareOutcomeType::Signup => __('Signups'),
-                DawahShareOutcomeType::EventRegistration => __('Event registrations'),
-                DawahShareOutcomeType::EventCheckin => __('Event check-ins'),
-                DawahShareOutcomeType::EventSubmission => __('Event submissions'),
-                DawahShareOutcomeType::EventSave => __('Event saves'),
-                DawahShareOutcomeType::EventGoing => __('Going responses'),
-                DawahShareOutcomeType::InstitutionFollow => __('Institution follows'),
-                DawahShareOutcomeType::PersonFollow => __('Person follows'),
-                DawahShareOutcomeType::SeriesFollow => __('Series follows'),
-                DawahShareOutcomeType::ReferenceFollow => __('Reference follows'),
-                DawahShareOutcomeType::SavedSearchCreated => __('Saved searches created'),
+                ShareOutcomeType::Signup => __('Signups'),
+                ShareOutcomeType::EventRegistration => __('Event registrations'),
+                ShareOutcomeType::EventCheckin => __('Event check-ins'),
+                ShareOutcomeType::EventSubmission => __('Event submissions'),
+                ShareOutcomeType::EventSave => __('Event saves'),
+                ShareOutcomeType::EventGoing => __('Going responses'),
+                ShareOutcomeType::InstitutionFollow => __('Institution follows'),
+                ShareOutcomeType::PersonFollow => __('Person follows'),
+                ShareOutcomeType::SeriesFollow => __('Series follows'),
+                ShareOutcomeType::ReferenceFollow => __('Reference follows'),
+                ShareOutcomeType::SavedSearchCreated => __('Saved searches created'),
             };
         }
 
@@ -142,8 +146,8 @@ class DawahImpactIndex extends Component
     {
         return [
             'all' => __('All Links'),
-            'active' => __('Active Links'),
-            'inactive' => __('Inactive Links'),
+            'active' => __('Recently active'),
+            'inactive' => __('No recent activity'),
         ];
     }
 
@@ -207,7 +211,7 @@ class DawahImpactIndex extends Component
     #[Computed]
     public function subjectSummaries(): Collection
     {
-        return $this->analytics()->subjectSummariesForUser($this->currentUser());
+        return $this->analytics()->subjectSummariesForUser($this->currentUser(), $this->linkLibrary);
     }
 
     /**
@@ -228,7 +232,7 @@ class DawahImpactIndex extends Component
     #[Computed]
     public function topSubjects(): Collection
     {
-        return $this->analytics()->topSubjectsForUser($this->currentUser());
+        return $this->analytics()->topSubjectsForUser($this->currentUser(), links: $this->linkLibrary);
     }
 
     /**
@@ -237,8 +241,8 @@ class DawahImpactIndex extends Component
     #[Computed]
     public function topLinks(): Collection
     {
-        return $this->analytics()
-            ->linksForUser($this->currentUser(), 'visits')
+        return $this->linkLibrary
+            ->sortByDesc('visitsCount')
             ->take(3)
             ->values();
     }
@@ -258,13 +262,15 @@ class DawahImpactIndex extends Component
     #[Computed]
     public function links(): LengthAwarePaginator
     {
-        $links = $this->analytics()->linksForUser(
-            $this->currentUser(),
-            $this->sort,
-            $this->subjectType,
-            $this->status,
-            $this->outcomeType,
-        );
+        $links = $this->subjectType === 'all' && $this->sort === 'recent' && $this->status === 'all' && $this->outcomeType === 'all'
+            ? $this->linkLibrary
+            : $this->analytics()->linksForUser(
+                $this->currentUser(),
+                $this->measurementStatus === 'not_configured' ? 'recent' : $this->sort,
+                $this->subjectType,
+                $this->measurementStatus === 'not_configured' ? 'all' : $this->status,
+                $this->measurementStatus === 'not_configured' ? 'all' : $this->outcomeType,
+            );
 
         $perPage = 12;
         $page = Paginator::resolveCurrentPage('links_page');
@@ -279,6 +285,13 @@ class DawahImpactIndex extends Component
                 'path' => request()->url(),
             ],
         );
+    }
+
+    /** @return Collection<int, ShareTrackingLinkData> */
+    #[Computed]
+    public function linkLibrary(): Collection
+    {
+        return $this->analytics()->linksForUser($this->currentUser());
     }
 
     protected function analytics(): ShareTrackingAnalyticsService
@@ -301,8 +314,8 @@ class DawahImpactIndex extends Component
             return $subjectType;
         }
 
-        return collect(DawahShareSubjectType::cases())
-            ->contains(fn (DawahShareSubjectType $type): bool => $type->value === $subjectType)
+        return collect(ShareSubjectType::cases())
+            ->contains(fn (ShareSubjectType $type): bool => $type->value === $subjectType)
             ? $subjectType
             : 'all';
     }
@@ -327,14 +340,14 @@ class DawahImpactIndex extends Component
             return $outcomeType;
         }
 
-        return collect(DawahShareOutcomeType::cases())
-            ->contains(fn (DawahShareOutcomeType $type): bool => $type->value === $outcomeType)
+        return collect(ShareOutcomeType::cases())
+            ->contains(fn (ShareOutcomeType $type): bool => $type->value === $outcomeType)
             ? $outcomeType
             : 'all';
     }
 
     public function render(): View
     {
-        return view('livewire.pages.dashboard.dawah-impact-index');
+        return view('livewire.pages.dashboard.dakwah-index');
     }
 }

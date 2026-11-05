@@ -189,6 +189,11 @@ it('renders the reference-inspired user dashboard with a real saved search panel
 
     $html = (string) $response->getContent();
 
+    $document = new DOMDocument;
+    @$document->loadHTML($html);
+    $inviteLink = (new DOMXPath($document))->query('//a[contains(., "'.__('Jemput Sekarang').'")]')->item(0);
+    expect($inviteLink?->attributes?->getNamedItem('href')?->nodeValue)->toBe(route('dashboard.referrals'));
+
     $response->assertDontSee('id="majlis-saya"', false);
 
     $response->assertDontSee('Other User Search');
@@ -203,7 +208,7 @@ it('renders the reference-inspired user dashboard with a real saved search panel
         ->toContain(route('institutions.index', ['followed_only' => 1]))
         ->toContain(route('persons.index', ['followed_only' => 1]))
         ->toContain(route('references.index', ['followed_only' => 1]))
-        ->toContain(route('dashboard.dawah-impact'));
+        ->toContain(route('dakwah'));
 });
 
 it('shows followed-entity stats without the follow category cards on the dashboard', function () {

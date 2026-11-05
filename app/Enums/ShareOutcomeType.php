@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Enums;
 
-enum DawahShareOutcomeType: string
+enum ShareOutcomeType: string
 {
     case Signup = 'signup';
     case EventRegistration = 'event_registration';

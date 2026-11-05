@@ -6,8 +6,8 @@ namespace App\Actions\Events\Attendance;
 
 use AIArmada\Events\Contracts\EventCheckInService;
 use AIArmada\Events\Models\EventRegistrationParticipant;
-use App\Enums\DawahShareOutcomeType;
 use App\Enums\EventAttendanceStatus;
+use App\Enums\ShareOutcomeType;
 use App\Models\Event;
 use App\Models\EventCheckin;
 use App\Models\Registration;
@@ -77,7 +77,7 @@ final class RecordEventParticipantCheckInAction
                 );
 
                 $this->shareTracking->recordInheritedOutcome(
-                    type: DawahShareOutcomeType::EventCheckin,
+                    type: ShareOutcomeType::EventCheckin,
                     businessKey: ShareOutcomeBusinessKey::eventCheckin((string) $created->getKey()),
                     sourceBusinessKey: ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey()),
                     subject: $event,
@@ -136,7 +136,7 @@ final class RecordEventParticipantCheckInAction
                 );
 
                 $this->shareTracking->recordInheritedOutcome(
-                    type: DawahShareOutcomeType::EventCheckin,
+                    type: ShareOutcomeType::EventCheckin,
                     businessKey: ShareOutcomeBusinessKey::eventCheckin((string) $created->getKey()),
                     sourceBusinessKey: ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey()),
                     subject: $event,
@@ -182,7 +182,7 @@ final class RecordEventParticipantCheckInAction
                 $checkin->refresh();
 
                 $this->shareTracking->recordInheritedOutcome(
-                    type: DawahShareOutcomeType::EventCheckin,
+                    type: ShareOutcomeType::EventCheckin,
                     businessKey: ShareOutcomeBusinessKey::eventCheckin((string) $checkin->getKey()),
                     sourceBusinessKey: ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey()),
                     subject: $event,

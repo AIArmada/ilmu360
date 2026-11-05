@@ -2,7 +2,7 @@
 
 namespace App\Actions;
 
-use App\Enums\DawahShareOutcomeType;
+use App\Enums\ShareOutcomeType;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
@@ -23,9 +23,9 @@ class ToggleDirectoryFollowAction
         }
 
         [$subject, $outcomeType] = match ($type) {
-            'institution' => [Institution::query()->whereIn('status', ['verified', 'pending'])->whereKey($id)->first(), DawahShareOutcomeType::InstitutionFollow],
-            'person' => [Person::query()->speakers()->whereIn('status', ['verified', 'pending'])->whereKey($id)->first(), DawahShareOutcomeType::PersonFollow],
-            'reference' => [Reference::query()->active()->whereKey($id)->first(), DawahShareOutcomeType::ReferenceFollow],
+            'institution' => [Institution::query()->whereIn('status', ['verified', 'pending'])->whereKey($id)->first(), ShareOutcomeType::InstitutionFollow],
+            'person' => [Person::query()->speakers()->whereIn('status', ['verified', 'pending'])->whereKey($id)->first(), ShareOutcomeType::PersonFollow],
+            'reference' => [Reference::query()->active()->whereKey($id)->first(), ShareOutcomeType::ReferenceFollow],
             default => [null, null],
         };
 

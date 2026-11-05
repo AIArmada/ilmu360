@@ -17,14 +17,14 @@
         </div>
 
         <div class="p-5">
-            <x-dawah-share-panel :share-data="[
+            <x-share-panel :share-data="[
                 'title' => $shareTitle,
                 'text' => \Illuminate\Support\Str::limit($event->description_text, 100),
                 'url' => $shareUrl,
                 'sourceUrl' => $shareUrl,
                 'shareText' => trim($shareTitle.' - '.config('app.name')),
                 'fallbackTitle' => $shareTitle,
-                'payloadEndpoint' => route('dawah-share.payload'),
+                'payloadEndpoint' => route('share.payload'),
             ]" :share-links="$shareLinks" />
         </div>
     </div>

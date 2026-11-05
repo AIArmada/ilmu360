@@ -7,7 +7,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class TrackDawahShareAttribution
+class TrackShareAttribution
 {
     public function __construct(
         private readonly ShareTrackingService $shareTrackingService
@@ -28,15 +28,15 @@ class TrackDawahShareAttribution
         }
 
         $response->headers->setCookie(cookie(
-            name: (string) config('dawah-share.cookie.name', 'mi_dawah_share'),
+            name: (string) config('share-tracking.cookie.name', 'i360_share'),
             value: $cookieValue,
-            minutes: (int) config('dawah-share.cookie.minutes', 60 * 24 * 30),
-            path: (string) config('dawah-share.cookie.path', '/'),
-            domain: config('dawah-share.cookie.domain'),
-            secure: config('dawah-share.cookie.secure'),
-            httpOnly: (bool) config('dawah-share.cookie.http_only', true),
+            minutes: (int) config('share-tracking.cookie.minutes', 60 * 24 * 30),
+            path: (string) config('share-tracking.cookie.path', '/'),
+            domain: config('share-tracking.cookie.domain'),
+            secure: config('share-tracking.cookie.secure'),
+            httpOnly: (bool) config('share-tracking.cookie.http_only', true),
             raw: false,
-            sameSite: (string) config('dawah-share.cookie.same_site', 'lax'),
+            sameSite: (string) config('share-tracking.cookie.same_site', 'lax'),
         ));
 
         return $response;

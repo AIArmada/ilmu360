@@ -5,7 +5,7 @@ use App\Enums\MemberSubjectType;
 use App\Http\Controllers\Api\RegistrationExportController;
 use App\Http\Controllers\AppFeedbackEvidenceController;
 use App\Http\Controllers\Auth\SocialiteController;
-use App\Http\Controllers\DawahShareController;
+use App\Http\Controllers\ShareController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\NetworkDiagnosticsController;
 use App\Http\Controllers\Public\EventCheckoutResultController;
@@ -17,7 +17,7 @@ use App\Http\Controllers\ShareRedirectController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Middleware\ResolvePublicSlugRedirect;
 use App\Http\Middleware\SetLocale;
-use App\Http\Middleware\TrackDawahShareAttribution;
+use App\Http\Middleware\TrackShareAttribution;
 use App\Livewire\Pages\About\Show as AboutPage;
 use App\Livewire\Pages\AppFeedback\Index as AppFeedbackIndex;
 use App\Livewire\Pages\Contributions\Index as ContributionsIndex;
@@ -26,8 +26,8 @@ use App\Livewire\Pages\Contributions\SubmitPerson;
 use App\Livewire\Pages\Contributions\SubmitReference;
 use App\Livewire\Pages\Contributions\SuggestUpdate as SuggestContributionUpdate;
 use App\Livewire\Pages\Dashboard\AccountSettings;
-use App\Livewire\Pages\Dashboard\DawahImpactIndex;
-use App\Livewire\Pages\Dashboard\DawahImpactLinkShow;
+use App\Livewire\Pages\Dashboard\DakwahIndex;
+use App\Livewire\Pages\Dashboard\DakwahLinkShow;
 use App\Livewire\Pages\Dashboard\Events\CreateAdvanced;
 use App\Livewire\Pages\Dashboard\Events\OfflineAdmissions as EventOfflineAdmissions;
 use App\Livewire\Pages\Dashboard\Events\Participants as EventParticipants;
@@ -66,7 +66,7 @@ Route::view('/hubungi-kami', 'pages.legal', ['pageKey' => 'contact'])->name('con
 Route::get('/bahasa/{locale}', LocaleController::class)->name('locale.switch');
 
 Route::get('/jemputan/{token}', ReferralInviteLandingController::class)
-    ->middleware(['throttle:share-tracking', TrackDawahShareAttribution::class])
+    ->middleware(['throttle:share-tracking', TrackShareAttribution::class])
     ->where('token', '[A-Za-z0-9]+')
     ->name('referrals.invite.landing');
 
@@ -84,16 +84,16 @@ Route::get('/oauth/error/{code}', [SocialiteController::class, 'error'])
     ->name('socialite.error')
     ->where('code', '[a-z]+');
 
-Route::get('/kongsi/payload', [DawahShareController::class, 'payload'])
+Route::get('/kongsi/payload', [ShareController::class, 'payload'])
     ->middleware('throttle:share-tracking')
-    ->name('dawah-share.payload');
-Route::post('/kongsi/track', [DawahShareController::class, 'track'])
+    ->name('share.payload');
+Route::post('/kongsi/track', [ShareController::class, 'track'])
     ->middleware('throttle:30,1')
-    ->name('dawah-share.track');
-Route::get('/kongsi/{provider}', [DawahShareController::class, 'redirect'])
+    ->name('share.track');
+Route::get('/kongsi/{provider}', [ShareController::class, 'redirect'])
     ->middleware('throttle:share-tracking')
     ->whereIn('provider', ['whatsapp', 'telegram', 'threads', 'facebook', 'x', 'instagram', 'tiktok', 'email'])
-    ->name('dawah-share.redirect');
+    ->name('share.redirect');
 
 // Explicit authenticated guest-share claim: surfacing never auto-claims,
 // and the POST needs confirmation plus the private claim capability.
@@ -154,9 +154,9 @@ Route::get('/ops/network-diagnostics', NetworkDiagnosticsController::class)
 
 Route::middleware('auth')->group(function () {
     Route::livewire('/dashboard', UserDashboard::class)->name('dashboard');
-    Route::livewire('/dashboard/dawah-impact', DawahImpactIndex::class)->name('dashboard.dawah-impact');
-    Route::livewire('/dashboard/dawah-impact/links', DawahImpactIndex::class)->name('dashboard.dawah-impact.links');
-    Route::livewire('/dashboard/dawah-impact/links/{link}', DawahImpactLinkShow::class)->name('dashboard.dawah-impact.links.show');
+    Route::livewire('/dakwah', DakwahIndex::class)->name('dakwah');
+    Route::livewire('/dakwah/links', DakwahIndex::class)->name('dakwah.links');
+    Route::livewire('/dakwah/links/{link}', DakwahLinkShow::class)->name('dakwah.links.show');
     Route::livewire('/notifications', NotificationsIndex::class)->name('notifications');
     Route::livewire('/dashboard/rewards', RewardMemberIndex::class)->name('dashboard.rewards');
     Route::livewire('/dashboard/ajak-kawan', ReferralMemberIndex::class)->name('dashboard.referrals');

@@ -9,12 +9,12 @@ use AIArmada\Events\Models\EventTerm;
 use AIArmada\Signals\Models\SignalEvent;
 use App\Actions\Events\Submission\SubmitFrontendEventAction;
 use App\Contracts\ShareTrackingContract;
-use App\Enums\DawahShareOutcomeType;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
+use App\Enums\ShareOutcomeType;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
@@ -155,7 +155,7 @@ it('rolls back the submission when share tracking fails', function () {
 it('records the share outcome in the submission transaction', function () {
     $tracker = $this->mock(ShareTrackingContract::class);
     $tracker->shouldReceive('recordOutcome')->once()->with(
-        DawahShareOutcomeType::EventSubmission,
+        ShareOutcomeType::EventSubmission,
         Mockery::pattern('/^share-outcome:event_submission:submission:/'),
         Mockery::type(Event::class),
         Mockery::type(User::class),

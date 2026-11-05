@@ -57,10 +57,10 @@ it('redacts the claim capability across its canonical transports through the bou
     $capability = $secrets['capability'];
     $credential = $secrets['credential'];
 
-    $header = (string) config('dawah-share.claim_capability.header', 'X-Dawah-Claim-Capability');
-    $input = (string) config('dawah-share.claim_capability.input', 'guest_claim_capability');
-    $cookie = (string) config('dawah-share.claim_cookie.name', 'mi_dawah_guest_claim');
-    $guestCookie = (string) config('dawah-share.guest_cookie.name', 'mi_dawah_guest');
+    $header = (string) config('share-tracking.claim_capability.header', 'X-Claim-Capability');
+    $input = (string) config('share-tracking.claim_capability.input', 'guest_claim_capability');
+    $cookie = (string) config('share-tracking.claim_cookie.name', 'i360_guest_claim');
+    $guestCookie = (string) config('share-tracking.guest_cookie.name', 'i360_guest');
 
     // Every canonical issuance/POST/header/cookie shape, nested forms, and
     // the real HeaderBag::all() array-valued header shape.
@@ -129,7 +129,7 @@ it('redacts sensitive array-valued subtrees before visiting their values', funct
 });
 
 it('keeps issued claim secrets out of shared payload surfaces', function (): void {
-    $payload = $this->getJson(route('dawah-share.payload', [
+    $payload = $this->getJson(route('share.payload', [
         'url' => route('events.index'),
         'text' => 'Share this page',
         'title' => 'Shared Page',

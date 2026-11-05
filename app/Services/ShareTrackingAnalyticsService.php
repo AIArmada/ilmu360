@@ -55,6 +55,7 @@ final readonly class ShareTrackingAnalyticsService
     }
 
     /**
+     * @param  Collection<int, ShareTrackingLinkData>|null  $links
      * @return Collection<int, array{
      *     subject_type: string,
      *     label: string,
@@ -67,9 +68,9 @@ final readonly class ShareTrackingAnalyticsService
      *     total_outcomes: int
      * }>
      */
-    public function subjectSummariesForUser(User $user): Collection
+    public function subjectSummariesForUser(User $user, ?Collection $links = null): Collection
     {
-        return $this->linksForUser($user)
+        return ($links ?? $this->linksForUser($user))
             ->groupBy(fn (ShareTrackingLinkData $link): string => $link->subjectType)
             ->map(fn (Collection $links, string $subjectType): array => [
                 'subject_type' => $subjectType,
@@ -87,6 +88,7 @@ final readonly class ShareTrackingAnalyticsService
     }
 
     /**
+     * @param  Collection<int, ShareTrackingLinkData>|null  $links
      * @return Collection<int, array{
      *     subject_type: string,
      *     subject_key: string,
@@ -101,9 +103,9 @@ final readonly class ShareTrackingAnalyticsService
      *     total_outcomes: int
      * }>
      */
-    public function topSubjectsForUser(User $user, int $limit = 5): Collection
+    public function topSubjectsForUser(User $user, int $limit = 5, ?Collection $links = null): Collection
     {
-        return $this->linksForUser($user)
+        return ($links ?? $this->linksForUser($user))
             ->groupBy(fn (ShareTrackingLinkData $link): string => $link->subjectKey)
             ->map(function (Collection $links, string $subjectKey): array {
                 /** @var ShareTrackingLinkData $first */
@@ -157,6 +159,11 @@ final readonly class ShareTrackingAnalyticsService
     public function recentOutcomesForUser(User $user, int $limit = 12): Collection
     {
         return $this->affiliates->recentOutcomesForUser($user, $limit);
+    }
+
+    public function trackedUrlForUser(User $user, string $linkId): ?string
+    {
+        return $this->affiliates->trackedUrlForUser($user, $linkId);
     }
 
     public function findLinkForUser(User $user, string $linkId): ?ShareTrackingLinkData

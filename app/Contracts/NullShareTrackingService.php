@@ -7,7 +7,7 @@ namespace App\Contracts;
 use App\Data\ShareTracking\ShareTrackingAttributionData;
 use App\Data\ShareTracking\ShareTrackingLinkData;
 use App\Data\ShareTracking\ShareTrackingOutcomeData;
-use App\Enums\DawahShareOutcomeType;
+use App\Enums\ShareOutcomeType;
 use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
@@ -90,7 +90,7 @@ final class NullShareTrackingService implements ShareTrackingContract
     }
 
     public function recordOutcome(
-        DawahShareOutcomeType $type,
+        ShareOutcomeType $type,
         string $businessKey,
         ?Model $subject = null,
         ?User $actor = null,
@@ -102,7 +102,7 @@ final class NullShareTrackingService implements ShareTrackingContract
     }
 
     public function recordInheritedOutcome(
-        DawahShareOutcomeType $type,
+        ShareOutcomeType $type,
         string $businessKey,
         string $sourceBusinessKey,
         ?Model $subject = null,
@@ -114,7 +114,7 @@ final class NullShareTrackingService implements ShareTrackingContract
     }
 
     public function recordCheckoutInheritedOutcome(
-        DawahShareOutcomeType $type,
+        ShareOutcomeType $type,
         string $businessKey,
         ?string $persistedAttributionId,
         ?Model $subject = null,

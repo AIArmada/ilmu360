@@ -12,8 +12,8 @@ use AIArmada\Orders\Contracts\OrderServiceInterface;
 use AIArmada\Orders\Models\Order;
 use AIArmada\Ticketing\Models\Pass;
 use AIArmada\Ticketing\Models\TicketType;
-use App\Enums\DawahShareOutcomeType;
 use App\Enums\OfflineAdmissionPaymentMethod;
+use App\Enums\ShareOutcomeType;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;
@@ -221,7 +221,7 @@ final class CreateOfflineEventAdmissionAction
             $admissionActor = $this->resolveParticipantUser($participant);
 
             $this->shareTracking->recordOutcome(
-                type: DawahShareOutcomeType::EventRegistration,
+                type: ShareOutcomeType::EventRegistration,
                 businessKey: ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey()),
                 subject: $event,
                 actor: $admissionActor,

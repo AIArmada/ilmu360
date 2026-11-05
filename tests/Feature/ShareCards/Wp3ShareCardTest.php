@@ -392,7 +392,7 @@ it('keeps credentials and private state out of card URLs, keys, and pixels', fun
     $event = wp3scEvent();
     $url = (string) $this->cards->cardUrl($event);
 
-    $guest = $this->getJson(route('dawah-share.payload', [
+    $guest = $this->getJson(route('share.payload', [
         'url' => route('events.show', $event),
         'text' => 'Share this page',
         'title' => 'Shared Page',

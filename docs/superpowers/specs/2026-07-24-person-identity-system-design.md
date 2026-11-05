@@ -501,7 +501,7 @@ These tables are renamed as part of the refactor. No data migration needed beyon
 |---|---|
 | `MemberSubjectType` | `Speaker = 'speaker'` → `Person = 'person'` |
 | `ContributionSubjectType` | `Speaker = 'speaker'` → `Person = 'person'` |
-| `DawahShareSubjectType` | `Speaker = 'speaker'` → `Person = 'person'` |
+| `ShareSubjectType` | `Speaker = 'speaker'` → `Person = 'person'` |
 | `EventKeyPersonRole` | **No change.** `Speaker = 'speaker'` stays — this is an event role, not the entity. |
 
 ### Enums to delete
@@ -589,7 +589,7 @@ Do NOT conflate these during refactor:
 | `EventKeyPersonRole.php` | **[KEEP]** — `Speaker = 'speaker'` stays. This is an event role, not the entity. |
 | `MemberSubjectType.php` | **[UPDATE]** `Speaker = 'speaker'` → `Person = 'person'`. DB data migration for stored values. |
 | `ContributionSubjectType.php` | **[UPDATE]** `Speaker = 'speaker'` → `Person = 'person'`. |
-| `DawahShareSubjectType.php` | **[UPDATE]** `Speaker = 'speaker'` → `Person = 'person'`. |
+| `ShareSubjectType.php` | **[UPDATE]** `Speaker = 'speaker'` → `Person = 'person'`. |
 
 ### 3. Filament (`app/Filament/`)
 
@@ -614,7 +614,7 @@ Do NOT conflate these during refactor:
 | `Pages/Membership/ShowInvitation.php` | **[UPDATE]** subject union. |
 | `Pages/Events/{Index,Show,AdvancedFiltersPanel}.php` | **[UPDATE]** `speaker_ids` filter, options methods. |
 | `Pages/SavedSearches/Index.php` | **[UPDATE]** speaker lookups. |
-| `Pages/Dashboard/DawahImpactIndex.php` | **[UPDATE]** share subject type. |
+| `Pages/Dashboard/DakwahIndex.php` | **[UPDATE]** share subject type. |
 | `Pages/Dashboard/Events/CreateAdvanced.php` | **[UPDATE]** organizer kind. |
 | `Pages/Dashboard/InstitutionDashboard.php` | **[UPDATE]** eager loads. |
 | `Pages/SubmitEvent/Create.php` | **[UPDATE]** speaker subset sync. |

@@ -11,7 +11,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 it('marks guest share profiles with the neutral purpose', function (): void {
-    $response = test()->getJson(route('dawah-share.payload', [
+    $response = test()->getJson(route('share.payload', [
         'url' => route('events.index'),
         'text' => 'Share this page',
         'title' => 'Shared Page',
@@ -28,7 +28,7 @@ it('marks guest share profiles with the neutral purpose', function (): void {
 it('marks member share profiles with the neutral purpose', function (): void {
     $member = User::factory()->create();
 
-    $response = test()->actingAs($member)->getJson(route('dawah-share.payload', [
+    $response = test()->actingAs($member)->getJson(route('share.payload', [
         'url' => route('events.index'),
         'text' => 'Share this page',
         'title' => 'Shared Page',

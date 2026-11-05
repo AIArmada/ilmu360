@@ -222,7 +222,7 @@ try {
         })(),
         'guest_slug_solo' => (static function () use ($payload, $readyDir): array {
             $request = Request::create((string) ($payload['url'] ?? ''), 'GET');
-            $request->headers->set('X-Dawah-Guest-Credential', (string) ($payload['credential'] ?? ''));
+            $request->headers->set('X-Guest-Credential', (string) ($payload['credential'] ?? ''));
 
             // Forced guest overlap: same protocol as the member leg, over
             // the anonymous credential transport.

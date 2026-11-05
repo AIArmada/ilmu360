@@ -35,9 +35,9 @@ use App\Actions\Events\Commerce\PrepareEventCheckoutAction;
 use App\Actions\Events\Registration\RegisterEventWithShareProvenanceAction;
 use App\Actions\ShareTracking\ReverseEventParticipationOutcomesAction;
 use App\Checkout\RecordCheckoutShareProvenanceStep;
-use App\Enums\DawahShareOutcomeType;
 use App\Enums\EventAttendanceStatus;
 use App\Enums\ShareEffectStatus;
+use App\Enums\ShareOutcomeType;
 use App\Livewire\Pages\Dashboard\Events\OfflineAdmissions;
 use App\Livewire\Pages\Institutions\Show;
 use App\Models\Event;
@@ -91,7 +91,7 @@ function wp2lcLandingCookie(TestCase $testCase, string $url): string
     $response = $testCase->get($url);
     $response->assertOk();
 
-    $cookie = $response->getCookie((string) config('dawah-share.cookie.name'));
+    $cookie = $response->getCookie((string) config('share-tracking.cookie.name'));
 
     expect($cookie)->not->toBeNull();
 
@@ -208,7 +208,7 @@ it('records self check-in and its outcome in one transaction', function (): void
     Sanctum::actingAs($actor);
 
     $this->withCredentials()
-        ->withCookie((string) config('dawah-share.cookie.name'), $cookie)
+        ->withCookie((string) config('share-tracking.cookie.name'), $cookie)
         ->postJson(route('api.events.check-ins.store', $event))
         ->assertCreated();
 
@@ -227,7 +227,7 @@ it('records self check-in and its outcome in one transaction', function (): void
     // A duplicate check-in replays the committed decision and writes
     // nothing more.
     $this->withCredentials()
-        ->withCookie((string) config('dawah-share.cookie.name'), $cookie)
+        ->withCookie((string) config('share-tracking.cookie.name'), $cookie)
         ->postJson(route('api.events.check-ins.store', $event))
         ->assertOk();
 
@@ -256,7 +256,7 @@ it('rolls back self check-in together with its outcome on failure', function ():
     Sanctum::actingAs($actor);
 
     $this->withCredentials()
-        ->withCookie((string) config('dawah-share.cookie.name'), $cookie)
+        ->withCookie((string) config('share-tracking.cookie.name'), $cookie)
         ->postJson(route('api.events.check-ins.store', $event))
         ->assertServerError();
 
@@ -271,7 +271,7 @@ it('inherits registration provenance for staff check-in and reverses on attendan
     $cookie = wp2lcLandingCookie($this, route('events.show', $event).'?share='.$link->custom_slug);
 
     $this->withCredentials()
-        ->withCookie((string) config('dawah-share.cookie.name'), $cookie)
+        ->withCookie((string) config('share-tracking.cookie.name'), $cookie)
         ->postJson(route('api.events.registrations.store', $event), [
             'name' => 'Staff Door Guest',
             'email' => 'staff-door-guest@example.test',
@@ -334,7 +334,7 @@ it('reverses the check-in outcome when attendance is cleared', function (): void
     $cookie = wp2lcLandingCookie($this, route('events.show', $event).'?share='.$link->custom_slug);
 
     $this->withCredentials()
-        ->withCookie((string) config('dawah-share.cookie.name'), $cookie)
+        ->withCookie((string) config('share-tracking.cookie.name'), $cookie)
         ->postJson(route('api.events.registrations.store', $event), [
             'name' => 'Cleared Guest',
             'email' => 'cleared-guest@example.test',
@@ -368,7 +368,7 @@ it('reverses event-scope submissions on reject without cascading into session su
     $cookie = wp2lcLandingCookie($this, route('events.show', $event).'?share='.$link->custom_slug);
 
     $request = Request::create(route('events.show', $event), 'GET');
-    $request->cookies->set((string) config('dawah-share.cookie.name'), $cookie);
+    $request->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
 
     $eventSubmission = EventSubmission::factory()->create(['event_id' => $event->getKey()]);
     $sessionSubmission = EventSubmission::factory()->create([
@@ -380,8 +380,8 @@ it('reverses event-scope submissions on reject without cascading into session su
     $eventKey = ShareOutcomeBusinessKey::eventSubmission((string) $eventSubmission->getKey());
     $sessionKey = ShareOutcomeBusinessKey::eventSubmission((string) $sessionSubmission->getKey());
 
-    expect($service->recordOutcome(DawahShareOutcomeType::EventSubmission, $eventKey, $event, $actor, $request))->not->toBeNull()
-        ->and($service->recordOutcome(DawahShareOutcomeType::EventSubmission, $sessionKey, $event, $actor, $request))->not->toBeNull();
+    expect($service->recordOutcome(ShareOutcomeType::EventSubmission, $eventKey, $event, $actor, $request))->not->toBeNull()
+        ->and($service->recordOutcome(ShareOutcomeType::EventSubmission, $sessionKey, $event, $actor, $request))->not->toBeNull();
 
     app(ModerationService::class)->reject($event, $moderator, 'spam', 'WP2 probe');
 
@@ -395,7 +395,7 @@ it('reverses registration outcomes on cancel and reject through the lifecycle li
     $event = wp2lcRegistrationEvent();
     $link = wp2lcLink($this->sharer, route('events.show', $event));
     $cookie = wp2lcLandingCookie($this, route('events.show', $event).'?share='.$link->custom_slug);
-    $cookieName = (string) config('dawah-share.cookie.name');
+    $cookieName = (string) config('share-tracking.cookie.name');
 
     $cancelId = $this->withCredentials()
         ->withCookie($cookieName, $cookie)
@@ -420,7 +420,7 @@ it('reverses registration outcomes on cancel and reject through the lifecycle li
     $attributedRequest->cookies->set($cookieName, $cookie);
 
     expect(app(ShareTrackingService::class)->recordOutcome(
-        DawahShareOutcomeType::EventRegistration,
+        ShareOutcomeType::EventRegistration,
         ShareOutcomeBusinessKey::eventRegistration((string) $rejected->getKey()),
         $event,
         null,
@@ -451,7 +451,7 @@ it('reverses the saved-search outcome on delete', function (): void {
     Sanctum::actingAs($visitor);
 
     $created = $this->withCredentials()
-        ->withCookie((string) config('dawah-share.cookie.name'), $cookie)
+        ->withCookie((string) config('share-tracking.cookie.name'), $cookie)
         ->postJson(route('api.saved-searches.store'), [
             'name' => 'Fiqh Alerts',
             'query' => 'fiqh',
@@ -481,7 +481,7 @@ it('records and reverses web save and going flows on the event page', function (
 
     $link = wp2lcLink($this->sharer, route('events.show', $event));
     $cookie = wp2lcLandingCookie($this, route('events.show', $event).'?share='.$link->custom_slug);
-    $cookieName = (string) config('dawah-share.cookie.name');
+    $cookieName = (string) config('share-tracking.cookie.name');
 
     $page = Livewire::withCookie($cookieName, $cookie)
         ->actingAs($visitor)
@@ -489,27 +489,27 @@ it('records and reverses web save and going flows on the event page', function (
 
     $page->call('toggleSave')->assertSet('isSaved', true);
 
-    expect(AffiliateConversion::query()->where('conversion_type', DawahShareOutcomeType::EventSave->value)->count())->toBe(1);
+    expect(AffiliateConversion::query()->where('conversion_type', ShareOutcomeType::EventSave->value)->count())->toBe(1);
 
     $page->call('toggleSave')->assertSet('isSaved', false);
 
-    $saveConversion = AffiliateConversion::query()->where('conversion_type', DawahShareOutcomeType::EventSave->value)->firstOrFail();
+    $saveConversion = AffiliateConversion::query()->where('conversion_type', ShareOutcomeType::EventSave->value)->firstOrFail();
 
     expect(wp2lcConversionStatus($saveConversion))->toBe('reversed')
         ->and(ShareOutcomeCorrection::query()->count())->toBe(1);
 
     $page->call('toggleGoing')->assertSet('isGoing', true);
 
-    expect(AffiliateConversion::query()->where('conversion_type', DawahShareOutcomeType::EventGoing->value)->count())->toBe(1);
+    expect(AffiliateConversion::query()->where('conversion_type', ShareOutcomeType::EventGoing->value)->count())->toBe(1);
 
     $page->call('toggleGoing')->assertSet('isGoing', false);
 
-    $goingConversion = AffiliateConversion::query()->where('conversion_type', DawahShareOutcomeType::EventGoing->value)->firstOrFail();
+    $goingConversion = AffiliateConversion::query()->where('conversion_type', ShareOutcomeType::EventGoing->value)->firstOrFail();
 
     expect(wp2lcConversionStatus($goingConversion))->toBe('reversed');
 });
 
-it('records and reverses follows across every followable type', function (string $type, array $attributes, DawahShareOutcomeType $outcomeType): void {
+it('records and reverses follows across every followable type', function (string $type, array $attributes, ShareOutcomeType $outcomeType): void {
     $visitor = User::factory()->create();
 
     $record = match ($type) {
@@ -532,7 +532,7 @@ it('records and reverses follows across every followable type', function (string
     Sanctum::actingAs($visitor);
 
     $this->withCredentials()
-        ->withCookie((string) config('dawah-share.cookie.name'), $cookie)
+        ->withCookie((string) config('share-tracking.cookie.name'), $cookie)
         ->postJson(route('api.client.follows.store', ['type' => $type, 'subject' => $record->slug]))
         ->assertCreated();
 
@@ -552,10 +552,10 @@ it('records and reverses follows across every followable type', function (string
     expect(wp2lcConversionStatus(AffiliateConversion::query()->where('idempotency_key', hash('sha256', $businessKey))->firstOrFail()))->toBe('reversed')
         ->and(ShareOutcomeCorrection::query()->where('business_key', $businessKey)->value('reason'))->toBe('unfollowed');
 })->with([
-    'institution' => ['institution', ['status' => 'verified'], DawahShareOutcomeType::InstitutionFollow],
-    'person' => ['person', ['status' => 'verified'], DawahShareOutcomeType::PersonFollow],
-    'reference' => ['reference', ['status' => 'verified'], DawahShareOutcomeType::ReferenceFollow],
-    'series' => ['series', ['visibility' => 'public', 'status' => 'active'], DawahShareOutcomeType::SeriesFollow],
+    'institution' => ['institution', ['status' => 'verified'], ShareOutcomeType::InstitutionFollow],
+    'person' => ['person', ['status' => 'verified'], ShareOutcomeType::PersonFollow],
+    'reference' => ['reference', ['status' => 'verified'], ShareOutcomeType::ReferenceFollow],
+    'series' => ['series', ['visibility' => 'public', 'status' => 'active'], ShareOutcomeType::SeriesFollow],
 ]);
 
 it('records and reverses web follows on the institution page', function (): void {
@@ -566,7 +566,7 @@ it('records and reverses web follows on the institution page', function (): void
     $link = wp2lcLink($this->sharer, $showUrl);
     $cookie = wp2lcLandingCookie($this, $showUrl.'?share='.$link->custom_slug);
 
-    $page = Livewire::withCookie((string) config('dawah-share.cookie.name'), $cookie)
+    $page = Livewire::withCookie((string) config('share-tracking.cookie.name'), $cookie)
         ->actingAs($visitor)
         ->test(Show::class, ['institution' => $institution]);
 
@@ -579,7 +579,7 @@ it('records and reverses web follows on the institution page', function (): void
         ->where('followable_id', $institution->getKey())
         ->firstOrFail();
 
-    $businessKey = ShareOutcomeBusinessKey::follow(DawahShareOutcomeType::InstitutionFollow, (string) $follow->getKey());
+    $businessKey = ShareOutcomeBusinessKey::follow(ShareOutcomeType::InstitutionFollow, (string) $follow->getKey());
 
     expect(AffiliateConversion::query()->where('idempotency_key', hash('sha256', $businessKey))->count())->toBe(1);
 
@@ -633,7 +633,7 @@ it('freezes staff-issued offline admissions unattributed without leaking the sta
     $link = wp2lcLink($this->sharer, route('events.show', $event));
     $cookie = wp2lcLandingCookie($this, route('events.show', $event).'?share='.$link->custom_slug);
 
-    Livewire::withCookie((string) config('dawah-share.cookie.name'), $cookie)
+    Livewire::withCookie((string) config('share-tracking.cookie.name'), $cookie)
         ->actingAs($organizer)
         ->test(OfflineAdmissions::class, ['event' => $event])
         ->set('ticketId', (string) $ticket->getKey())
@@ -678,13 +678,13 @@ it('never late-credits a going reactivation through a new cookie', function (): 
     // response_created is false, so no going decision may freeze even
     // though the fresh cookie is eligible.
     $this->withCredentials()
-        ->withCookie((string) config('dawah-share.cookie.name'), $cookie)
+        ->withCookie((string) config('share-tracking.cookie.name'), $cookie)
         ->putJson(route('api.events.going.update', $event))
         ->assertCreated();
 
     expect(Response::query()->where('response_type', 'going')->count())->toBe(1)
-        ->and(ShareSourceAttributionReceipt::query()->where('outcome_type', DawahShareOutcomeType::EventGoing->value)->count())->toBe(0)
-        ->and(AffiliateConversion::query()->where('conversion_type', DawahShareOutcomeType::EventGoing->value)->count())->toBe(0);
+        ->and(ShareSourceAttributionReceipt::query()->where('outcome_type', ShareOutcomeType::EventGoing->value)->count())->toBe(0)
+        ->and(AffiliateConversion::query()->where('conversion_type', ShareOutcomeType::EventGoing->value)->count())->toBe(0);
 });
 
 it('freezes the paid-checkout intent decision once and never on retry', function (): void {
@@ -697,7 +697,7 @@ it('freezes the paid-checkout intent decision once and never on retry', function
     $cookie = wp2lcLandingCookie($this, route('events.show', $event).'?share='.$link->custom_slug);
 
     $attributedRequest = Request::create(route('events.show', $event), 'GET');
-    $attributedRequest->cookies->set((string) config('dawah-share.cookie.name'), $cookie);
+    $attributedRequest->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
 
     $session = OwnerContext::withOwner(null, fn () => app(PrepareEventCheckoutAction::class)->handle(
         event: $event,
@@ -747,7 +747,7 @@ it('inherits the frozen checkout decision for paid order registrations', functio
     $cookie = wp2lcLandingCookie($this, route('events.show', $event).'?share='.$link->custom_slug);
 
     $attributedRequest = Request::create(route('events.show', $event), 'GET');
-    $attributedRequest->cookies->set((string) config('dawah-share.cookie.name'), $cookie);
+    $attributedRequest->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
 
     $participants = [
         array_merge(wp2lcCheckoutParticipant('Checkout Buyer', true), [
@@ -869,7 +869,7 @@ it('fails checkout inheritance closed on unknown refs and self-credit', function
 
     // An unknown persisted ref can never confer provenance.
     expect(app(ShareTrackingService::class)->recordCheckoutInheritedOutcome(
-        DawahShareOutcomeType::EventRegistration,
+        ShareOutcomeType::EventRegistration,
         ShareOutcomeBusinessKey::eventRegistration((string) Str::uuid()),
         (string) Str::uuid(),
         null,
@@ -880,7 +880,7 @@ it('fails checkout inheritance closed on unknown refs and self-credit', function
 
     // Neither can an explicitly unattributed intent.
     expect(app(ShareTrackingService::class)->recordCheckoutInheritedOutcome(
-        DawahShareOutcomeType::EventRegistration,
+        ShareOutcomeType::EventRegistration,
         ShareOutcomeBusinessKey::eventRegistration((string) Str::uuid()),
         null,
         null,
@@ -895,14 +895,14 @@ it('fails checkout inheritance closed on unknown refs and self-credit', function
     $cookie = wp2lcLandingCookie($this, $pageUrl.'?share='.$link->custom_slug);
 
     $selfRequest = Request::create($pageUrl, 'GET');
-    $selfRequest->cookies->set((string) config('dawah-share.cookie.name'), $cookie);
+    $selfRequest->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
 
     $attributionId = (string) app(ShareTrackingService::class)->resolveActiveAttribution($selfRequest)?->id;
 
     expect($attributionId)->not->toBe('');
 
     expect(app(ShareTrackingService::class)->recordCheckoutInheritedOutcome(
-        DawahShareOutcomeType::EventRegistration,
+        ShareOutcomeType::EventRegistration,
         ShareOutcomeBusinessKey::eventRegistration((string) Str::uuid()),
         $attributionId,
         null,
@@ -925,7 +925,7 @@ it('reverses participation outcomes on event cancel while preserving contributio
     $cookie = wp2lcLandingCookie($this, route('events.show', $event).'?share='.$link->custom_slug);
 
     $this->withCredentials()
-        ->withCookie((string) config('dawah-share.cookie.name'), $cookie)
+        ->withCookie((string) config('share-tracking.cookie.name'), $cookie)
         ->postJson(route('api.events.registrations.store', $event), [
             'name' => 'Cancel Probe Guest',
             'email' => 'cancel-probe-guest@example.test',
@@ -945,10 +945,10 @@ it('reverses participation outcomes on event cancel while preserving contributio
     $submission = EventSubmission::factory()->create(['event_id' => $event->getKey()]);
 
     $attributedRequest = Request::create(route('events.show', $event), 'GET');
-    $attributedRequest->cookies->set((string) config('dawah-share.cookie.name'), $cookie);
+    $attributedRequest->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
 
     expect(app(ShareTrackingService::class)->recordOutcome(
-        DawahShareOutcomeType::EventSubmission,
+        ShareOutcomeType::EventSubmission,
         ShareOutcomeBusinessKey::eventSubmission((string) $submission->getKey()),
         $event,
         $actor,
@@ -960,7 +960,7 @@ it('reverses participation outcomes on event cancel while preserving contributio
     $otherCookie = wp2lcLandingCookie($this, route('events.show', $otherEvent).'?share='.$otherLink->custom_slug);
 
     $this->withCredentials()
-        ->withCookie((string) config('dawah-share.cookie.name'), $otherCookie)
+        ->withCookie((string) config('share-tracking.cookie.name'), $otherCookie)
         ->postJson(route('api.events.registrations.store', $otherEvent), [
             'name' => 'Other Event Guest',
             'email' => 'other-event-guest@example.test',
@@ -1013,7 +1013,7 @@ it('scopes occurrence and session cancellations to their actual registrations', 
     ]);
 
     $attributedRequest = Request::create(route('events.show', $event), 'GET');
-    $attributedRequest->cookies->set((string) config('dawah-share.cookie.name'), $cookie);
+    $attributedRequest->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
 
     $service = app(ShareTrackingService::class);
     $registrations = app(RegistrationServiceInterface::class);
@@ -1039,7 +1039,7 @@ it('scopes occurrence and session cancellations to their actual registrations', 
 
     foreach ([$eventLevel, $scopedA, $scopedSession] as $registration) {
         expect($service->recordOutcome(
-            DawahShareOutcomeType::EventRegistration,
+            ShareOutcomeType::EventRegistration,
             ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey()),
             $event,
             null,
@@ -1094,7 +1094,7 @@ it('never late-credits an idempotent registration replay through a new cookie', 
     // The idempotent retry returns the same registration and must not
     // freeze a new decision from the fresh landing cookie.
     $attributedRequest = Request::create(route('events.show', $event), 'GET');
-    $attributedRequest->cookies->set((string) config('dawah-share.cookie.name'), $cookie);
+    $attributedRequest->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
 
     $second = $action->handle($event, $participants, $actor, ['idempotency_key' => 'wp2-replay-probe'], $attributedRequest);
 
@@ -1113,7 +1113,7 @@ it('freezes missing checkout provenance unattributed and blocks later repair cre
     $cookie = wp2lcLandingCookie($this, route('events.show', $event).'?share='.$link->custom_slug);
 
     $attributedRequest = Request::create(route('events.show', $event), 'GET');
-    $attributedRequest->cookies->set((string) config('dawah-share.cookie.name'), $cookie);
+    $attributedRequest->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
 
     $session = OwnerContext::withOwner(null, fn () => app(PrepareEventCheckoutAction::class)->handle(
         event: $event,
@@ -1200,7 +1200,7 @@ it('freezes mismatched checkout intents unattributed and blocks later repair cre
     $cookie = wp2lcLandingCookie($this, route('events.show', $event).'?share='.$link->custom_slug);
 
     $attributedRequest = Request::create(route('events.show', $event), 'GET');
-    $attributedRequest->cookies->set((string) config('dawah-share.cookie.name'), $cookie);
+    $attributedRequest->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
 
     $session = OwnerContext::withOwner(null, fn () => app(PrepareEventCheckoutAction::class)->handle(
         event: $event,
@@ -1283,7 +1283,7 @@ it('uses the trusted intent timestamp for corrupt checkout provenance clocks', f
     $cookie = wp2lcLandingCookie($this, route('events.show', $event).'?share='.$link->custom_slug);
 
     $attributedRequest = Request::create(route('events.show', $event), 'GET');
-    $attributedRequest->cookies->set((string) config('dawah-share.cookie.name'), $cookie);
+    $attributedRequest->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
 
     $session = OwnerContext::withOwner(null, fn () => app(PrepareEventCheckoutAction::class)->handle(
         event: $event,
@@ -1358,7 +1358,7 @@ it('freezes paid registrations unattributed when scope cancels before fulfillmen
     $cookie = wp2lcLandingCookie($this, route('events.show', $event).'?share='.$link->custom_slug);
 
     $attributedRequest = Request::create(route('events.show', $event), 'GET');
-    $attributedRequest->cookies->set((string) config('dawah-share.cookie.name'), $cookie);
+    $attributedRequest->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
 
     $session = OwnerContext::withOwner(null, fn () => app(PrepareEventCheckoutAction::class)->handle(
         event: $event,

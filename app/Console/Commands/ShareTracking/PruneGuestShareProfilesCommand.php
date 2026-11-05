@@ -15,7 +15,7 @@ class PruneGuestShareProfilesCommand extends Command
 {
     public function handle(AffiliatesShareTrackingService $shareTrackingService): int
     {
-        $days = (int) ($this->option('days') ?: config('dawah-share.guest_profile.retention_days', 90));
+        $days = (int) ($this->option('days') ?: config('share-tracking.guest_profile.retention_days', 90));
 
         $result = $shareTrackingService->pruneAbandonedGuestProfiles(
             retentionDays: $days,

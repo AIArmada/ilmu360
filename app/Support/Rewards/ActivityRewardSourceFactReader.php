@@ -13,7 +13,7 @@ use AIArmada\Rewards\Enums\RewardSourceCorrectionStatus;
 use AIArmada\Rewards\Enums\RewardSourceFraudStatus;
 use AIArmada\Rewards\Enums\RewardVerificationLevel;
 use AIArmada\Rewards\Support\RewardSourceFact;
-use App\Enums\DawahShareOutcomeType;
+use App\Enums\ShareOutcomeType;
 use App\Models\EventCheckin;
 use App\Models\EventSubmission;
 use App\Models\Registration;
@@ -43,9 +43,9 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
             return null;
         }
 
-        $outcome = DawahShareOutcomeType::tryFrom($parsed['outcome_type']);
+        $outcome = ShareOutcomeType::tryFrom($parsed['outcome_type']);
 
-        if (! $outcome instanceof DawahShareOutcomeType) {
+        if (! $outcome instanceof ShareOutcomeType) {
             return null;
         }
 
@@ -123,20 +123,20 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
         return null;
     }
 
-    private function actorFor(DawahShareOutcomeType $outcome, Model $source): ?User
+    private function actorFor(ShareOutcomeType $outcome, Model $source): ?User
     {
-        if ($outcome === DawahShareOutcomeType::Signup && $source instanceof User) {
+        if ($outcome === ShareOutcomeType::Signup && $source instanceof User) {
             return $source;
         }
 
-        if ($outcome === DawahShareOutcomeType::EventRegistration && $source instanceof Registration) {
+        if ($outcome === ShareOutcomeType::EventRegistration && $source instanceof Registration) {
             return $this->userForMorph(
                 $this->stringAttribute($source, 'registrant_type'),
                 $this->stringAttribute($source, 'registrant_id'),
             );
         }
 
-        if ($outcome === DawahShareOutcomeType::EventCheckin && $source instanceof EventCheckin) {
+        if ($outcome === ShareOutcomeType::EventCheckin && $source instanceof EventCheckin) {
             $attendee = $this->userForMorph(
                 $this->stringAttribute($source, 'attendee_type'),
                 $this->stringAttribute($source, 'attendee_id'),
@@ -152,14 +152,14 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
         }
 
         $actorColumns = match ($outcome) {
-            DawahShareOutcomeType::EventSubmission => ['submitter_type', 'submitter_id'],
-            DawahShareOutcomeType::EventSave => ['bookmarker_type', 'bookmarker_id'],
-            DawahShareOutcomeType::EventGoing => ['responder_type', 'responder_id'],
-            DawahShareOutcomeType::InstitutionFollow,
-            DawahShareOutcomeType::PersonFollow,
-            DawahShareOutcomeType::SeriesFollow,
-            DawahShareOutcomeType::ReferenceFollow => ['follower_type', 'follower_id'],
-            DawahShareOutcomeType::SavedSearchCreated => ['user_type', 'user_id'],
+            ShareOutcomeType::EventSubmission => ['submitter_type', 'submitter_id'],
+            ShareOutcomeType::EventSave => ['bookmarker_type', 'bookmarker_id'],
+            ShareOutcomeType::EventGoing => ['responder_type', 'responder_id'],
+            ShareOutcomeType::InstitutionFollow,
+            ShareOutcomeType::PersonFollow,
+            ShareOutcomeType::SeriesFollow,
+            ShareOutcomeType::ReferenceFollow => ['follower_type', 'follower_id'],
+            ShareOutcomeType::SavedSearchCreated => ['user_type', 'user_id'],
             default => null,
         };
 
@@ -188,20 +188,20 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
         return User::query()->whereKey($id)->first();
     }
 
-    private function occurredAtFor(DawahShareOutcomeType $outcome, Model $source): ?CarbonImmutable
+    private function occurredAtFor(ShareOutcomeType $outcome, Model $source): ?CarbonImmutable
     {
         $column = match ($outcome) {
-            DawahShareOutcomeType::Signup => 'created_at',
-            DawahShareOutcomeType::EventRegistration => 'registered_at',
-            DawahShareOutcomeType::EventCheckin => 'checked_in_at',
-            DawahShareOutcomeType::EventSubmission => 'submitted_at',
-            DawahShareOutcomeType::EventSave => 'bookmarked_at',
-            DawahShareOutcomeType::EventGoing => 'responded_at',
-            DawahShareOutcomeType::InstitutionFollow,
-            DawahShareOutcomeType::PersonFollow,
-            DawahShareOutcomeType::SeriesFollow,
-            DawahShareOutcomeType::ReferenceFollow => 'followed_at',
-            DawahShareOutcomeType::SavedSearchCreated => 'created_at',
+            ShareOutcomeType::Signup => 'created_at',
+            ShareOutcomeType::EventRegistration => 'registered_at',
+            ShareOutcomeType::EventCheckin => 'checked_in_at',
+            ShareOutcomeType::EventSubmission => 'submitted_at',
+            ShareOutcomeType::EventSave => 'bookmarked_at',
+            ShareOutcomeType::EventGoing => 'responded_at',
+            ShareOutcomeType::InstitutionFollow,
+            ShareOutcomeType::PersonFollow,
+            ShareOutcomeType::SeriesFollow,
+            ShareOutcomeType::ReferenceFollow => 'followed_at',
+            ShareOutcomeType::SavedSearchCreated => 'created_at',
         };
 
         $value = $this->attribute($source, $column) ?? $this->attribute($source, 'created_at');
@@ -220,23 +220,23 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
     /**
      * @return array{cancelled: bool, invalid: bool}
      */
-    private function sourceInvalidates(DawahShareOutcomeType $outcome, Model $source): array
+    private function sourceInvalidates(ShareOutcomeType $outcome, Model $source): array
     {
         $status = $this->stringAttribute($source, 'status');
         $cancelled = $this->attribute($source, 'cancelled_at') !== null;
 
         $invalid = match ($outcome) {
-            DawahShareOutcomeType::EventRegistration => in_array($status, ['cancelled', 'rejected', 'expired', 'refunded'], true),
-            DawahShareOutcomeType::EventCheckin => $cancelled
+            ShareOutcomeType::EventRegistration => in_array($status, ['cancelled', 'rejected', 'expired', 'refunded'], true),
+            ShareOutcomeType::EventCheckin => $cancelled
                 || in_array($status, ['cancelled', 'rejected', 'voided'], true)
                 || $this->stringAttribute($source, 'attendance_type') === 'did_not_attend',
-            DawahShareOutcomeType::EventSubmission => $status === 'rejected',
-            DawahShareOutcomeType::EventSave => ! in_array($status, [null, 'active'], true),
-            DawahShareOutcomeType::EventGoing => in_array($status, ['cancelled', 'expired'], true),
-            DawahShareOutcomeType::InstitutionFollow,
-            DawahShareOutcomeType::PersonFollow,
-            DawahShareOutcomeType::SeriesFollow,
-            DawahShareOutcomeType::ReferenceFollow => in_array($status, ['unfollowed', 'blocked'], true),
+            ShareOutcomeType::EventSubmission => $status === 'rejected',
+            ShareOutcomeType::EventSave => ! in_array($status, [null, 'active'], true),
+            ShareOutcomeType::EventGoing => in_array($status, ['cancelled', 'expired'], true),
+            ShareOutcomeType::InstitutionFollow,
+            ShareOutcomeType::PersonFollow,
+            ShareOutcomeType::SeriesFollow,
+            ShareOutcomeType::ReferenceFollow => in_array($status, ['unfollowed', 'blocked'], true),
             default => false,
         };
 
@@ -246,21 +246,21 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
         ];
     }
 
-    private function verificationFor(DawahShareOutcomeType $outcome, Model $source): RewardVerificationLevel
+    private function verificationFor(ShareOutcomeType $outcome, Model $source): RewardVerificationLevel
     {
-        if ($outcome === DawahShareOutcomeType::EventCheckin) {
+        if ($outcome === ShareOutcomeType::EventCheckin) {
             return $this->stringAttribute($source, 'verified_by_user_id') !== null
                 ? RewardVerificationLevel::StaffVerified
                 : RewardVerificationLevel::Unverified;
         }
 
-        if ($outcome === DawahShareOutcomeType::EventRegistration) {
+        if ($outcome === ShareOutcomeType::EventRegistration) {
             return in_array($this->stringAttribute($source, 'status'), ['confirmed', 'checked_in', 'completed'], true)
                 ? RewardVerificationLevel::Accepted
                 : RewardVerificationLevel::Unverified;
         }
 
-        if ($outcome === DawahShareOutcomeType::EventSubmission) {
+        if ($outcome === ShareOutcomeType::EventSubmission) {
             return $this->stringAttribute($source, 'status') === 'approved'
                 ? RewardVerificationLevel::ModeratedApproved
                 : RewardVerificationLevel::Unverified;
@@ -269,16 +269,16 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
         return RewardVerificationLevel::Accepted;
     }
 
-    private function actorRoleFor(DawahShareOutcomeType $outcome, Model $source, User $actor): RewardBeneficiaryRole
+    private function actorRoleFor(ShareOutcomeType $outcome, Model $source, User $actor): RewardBeneficiaryRole
     {
-        if ($outcome === DawahShareOutcomeType::EventRegistration
+        if ($outcome === ShareOutcomeType::EventRegistration
             && (float) $source->getAttribute('total_amount') > 0
             && $this->stringAttribute($source, 'payment_status') === 'paid'
         ) {
             return RewardBeneficiaryRole::Purchaser;
         }
 
-        if ($outcome === DawahShareOutcomeType::EventCheckin
+        if ($outcome === ShareOutcomeType::EventCheckin
             && $source instanceof EventCheckin
             && $this->userForMorph(
                 $this->stringAttribute($source, 'attendee_type'),
@@ -293,26 +293,26 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
     }
 
     private function isFirstTime(
-        DawahShareOutcomeType $outcome,
+        ShareOutcomeType $outcome,
         Model $source,
         User $actor,
         CarbonImmutable $occurredAt,
     ): bool {
-        if ($outcome === DawahShareOutcomeType::Signup) {
+        if ($outcome === ShareOutcomeType::Signup) {
             return true;
         }
 
         [$modelClass, $actorColumns, $occurredColumn] = match ($outcome) {
-            DawahShareOutcomeType::EventRegistration => [Registration::class, ['registrant_type', 'registrant_id'], 'registered_at'],
-            DawahShareOutcomeType::EventCheckin => [EventCheckin::class, ['attendee_type', 'attendee_id'], 'checked_in_at'],
-            DawahShareOutcomeType::EventSubmission => [EventSubmission::class, ['submitter_type', 'submitter_id'], 'submitted_at'],
-            DawahShareOutcomeType::EventSave => [Bookmark::class, ['bookmarker_type', 'bookmarker_id'], 'bookmarked_at'],
-            DawahShareOutcomeType::EventGoing => [Response::class, ['responder_type', 'responder_id'], 'responded_at'],
-            DawahShareOutcomeType::InstitutionFollow,
-            DawahShareOutcomeType::PersonFollow,
-            DawahShareOutcomeType::SeriesFollow,
-            DawahShareOutcomeType::ReferenceFollow => [Follow::class, ['follower_type', 'follower_id'], 'followed_at'],
-            DawahShareOutcomeType::SavedSearchCreated => [SavedSearch::class, ['user_type', 'user_id'], 'created_at'],
+            ShareOutcomeType::EventRegistration => [Registration::class, ['registrant_type', 'registrant_id'], 'registered_at'],
+            ShareOutcomeType::EventCheckin => [EventCheckin::class, ['attendee_type', 'attendee_id'], 'checked_in_at'],
+            ShareOutcomeType::EventSubmission => [EventSubmission::class, ['submitter_type', 'submitter_id'], 'submitted_at'],
+            ShareOutcomeType::EventSave => [Bookmark::class, ['bookmarker_type', 'bookmarker_id'], 'bookmarked_at'],
+            ShareOutcomeType::EventGoing => [Response::class, ['responder_type', 'responder_id'], 'responded_at'],
+            ShareOutcomeType::InstitutionFollow,
+            ShareOutcomeType::PersonFollow,
+            ShareOutcomeType::SeriesFollow,
+            ShareOutcomeType::ReferenceFollow => [Follow::class, ['follower_type', 'follower_id'], 'followed_at'],
+            ShareOutcomeType::SavedSearchCreated => [SavedSearch::class, ['user_type', 'user_id'], 'created_at'],
         };
 
         $query = $modelClass::query()
@@ -322,7 +322,7 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
                         ->where($actorColumns[1], (string) $actor->getKey());
                 });
 
-                if ($outcome === DawahShareOutcomeType::EventCheckin) {
+                if ($outcome === ShareOutcomeType::EventCheckin) {
                     $query->orWhere('verified_by_user_id', (string) $actor->getKey());
                 }
             })

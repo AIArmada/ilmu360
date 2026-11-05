@@ -30,12 +30,12 @@ beforeEach(function (): void {
         'visibility' => 'public',
     ]);
 
-    config(['dawah-share.reporting.reporting_start' => '2026-05-01']);
+    config(['share-tracking.reporting.reporting_start' => '2026-05-01']);
 });
 
 function cslPayload(TestCase $testCase, User $user, string $url): array
 {
-    return $testCase->actingAs($user)->getJson(route('dawah-share.payload', [
+    return $testCase->actingAs($user)->getJson(route('share.payload', [
         'url' => $url,
         'text' => 'Share this page',
         'title' => 'Shared Page',
@@ -44,7 +44,7 @@ function cslPayload(TestCase $testCase, User $user, string $url): array
 
 function cslTrack(TestCase $testCase, User $user, string $token, string $provider): void
 {
-    $testCase->actingAs($user)->postJson(route('dawah-share.track'), [
+    $testCase->actingAs($user)->postJson(route('share.track'), [
         'provider' => $provider,
         'tracking_token' => $token,
     ])->assertNoContent();
@@ -94,7 +94,7 @@ it('projects a late older signal after a newer event drained, without reset', fu
     Carbon::setTestNow(Carbon::parse('2026-05-10T08:00:00Z'));
 
     try {
-        $this->actingAs($this->sharer)->postJson(route('dawah-share.track'), [
+        $this->actingAs($this->sharer)->postJson(route('share.track'), [
             'provider' => 'copy_link',
             'tracking_token' => (string) $oldPayload['tracking_token'],
         ]);

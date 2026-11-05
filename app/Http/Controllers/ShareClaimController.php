@@ -90,7 +90,7 @@ final class ShareClaimController extends Controller
         description: 'Links the guest share history proven by the presented private claim capability to the authenticated account. Requires explicit confirmation; public share tokens, email addresses, and device similarity never prove ownership.',
     )]
     #[BodyParameter('confirm', 'Must be true: explicit confirmation that the past shares on this device are yours.', type: 'boolean', infer: false, example: true)]
-    #[BodyParameter('guest_claim_capability', 'Private claim capability issued with the anonymous share payload. May also travel in the X-Dawah-Claim-Capability header or the claim cookie. Never a public share token.', type: 'string', infer: false, example: 'Ab3dEf7hIj2kLm4nOp6qRs8tUv0wXy9z')]
+    #[BodyParameter('guest_claim_capability', 'Private claim capability issued with the anonymous share payload. May also travel in the X-Claim-Capability header or the claim cookie. Never a public share token.', type: 'string', infer: false, example: 'Ab3dEf7hIj2kLm4nOp6qRs8tUv0wXy9z')]
     public function claim(Request $request): JsonResponse
     {
         $user = $this->apiUser($request);

@@ -32,7 +32,7 @@ beforeEach(function (): void {
         'affiliates.cookies.enabled' => true,
         'affiliates.cookies.respect_dnt' => false,
         'affiliates.cookies.require_consent' => false,
-        'dawah-share.reporting.reporting_start' => '2026-10-01',
+        'share-tracking.reporting.reporting_start' => '2026-10-01',
     ]);
 });
 
@@ -57,7 +57,7 @@ function signupResolverShareFixture(?User $sharer = null): array
     $landing->setRouteResolver(static fn (): mixed => $route);
     $cookie = $service->captureRequest($landing);
     $request = Request::create(route('register'), 'POST');
-    $request->cookies->set((string) config('dawah-share.cookie.name', 'mi_dawah_share'), $cookie);
+    $request->cookies->set((string) config('share-tracking.cookie.name', 'i360_share'), $cookie);
 
     return [
         'request' => $request,

@@ -25,7 +25,7 @@ beforeEach(function (): void {
         'email' => 'wp3-sharer@example.test',
     ]);
 
-    config(['dawah-share.reporting.reporting_start' => '2026-10-01']);
+    config(['share-tracking.reporting.reporting_start' => '2026-10-01']);
 });
 
 function wp3slLink(User $sharer, string $url): AffiliateLink
@@ -73,7 +73,7 @@ function wp3slShortSlug(AffiliateLink $link): string
 }
 
 it('emits one canonical short URL per share payload', function (): void {
-    $response = $this->actingAs($this->sharer)->getJson(route('dawah-share.payload', [
+    $response = $this->actingAs($this->sharer)->getJson(route('share.payload', [
         'url' => route('events.index'),
         'text' => 'Share this page',
         'title' => 'Shared Page',
@@ -94,7 +94,7 @@ it('emits one canonical short URL per share payload', function (): void {
 });
 
 it('issues a separate claim capability alongside the guest credential', function (): void {
-    $response = $this->getJson(route('dawah-share.payload', [
+    $response = $this->getJson(route('share.payload', [
         'url' => route('events.index'),
         'text' => 'Share this page',
         'title' => 'Shared Page',
@@ -107,15 +107,15 @@ it('issues a separate claim capability alongside the guest credential', function
         ->and($payload['guest_claim_capability'])->toMatch('/^[0-9a-f]{64}$/')
         ->and($payload['guest_claim_capability'])->not->toBe($payload['guest_credential']);
 
-    $response->assertCookie('mi_dawah_guest')
-        ->assertCookie('mi_dawah_guest_claim');
+    $response->assertCookie('i360_guest')
+        ->assertCookie('i360_guest_claim');
 
     // Reuse never re-issues the capability: presenting the share
     // credential again yields no fresh ownership proof. Header transport
     // here follows the proven API pattern; encrypted-cookie presentation
     // is covered on the web claim routes.
-    $repeat = $this->withHeader('X-Dawah-Guest-Credential', $payload['guest_credential'])
-        ->getJson(route('dawah-share.payload', [
+    $repeat = $this->withHeader('X-Guest-Credential', $payload['guest_credential'])
+        ->getJson(route('share.payload', [
             'url' => route('events.index'),
             'text' => 'Share this page',
             'title' => 'Shared Page',
@@ -143,7 +143,7 @@ it('forwards share, origin, channel, and allowlisted campaign across the hop', f
     expect(LinkClick::query()->count())->toBe(0)
         ->and(AffiliateAttribution::query()->count())->toBe(0)
         ->and(AffiliateTouchpoint::query()->count())->toBe(0)
-        ->and($response->getCookie((string) config('dawah-share.cookie.name')))->toBeNull();
+        ->and($response->getCookie((string) config('share-tracking.cookie.name')))->toBeNull();
 });
 
 it('drops invalid channels, click IDs, and secret-bearing campaign values', function (): void {
@@ -299,7 +299,7 @@ it('falls back to a safe direct attributed URL when the managed row is missing',
     $link = wp3slLink($this->sharer, route('events.index'));
     $link->trackedLink()->delete();
 
-    $payload = $this->actingAs($this->sharer)->getJson(route('dawah-share.payload', [
+    $payload = $this->actingAs($this->sharer)->getJson(route('share.payload', [
         'url' => route('events.index'),
         'text' => 'Share this page',
         'title' => 'Shared Page',

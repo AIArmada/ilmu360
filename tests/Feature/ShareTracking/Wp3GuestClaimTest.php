@@ -38,7 +38,7 @@ beforeEach(function (): void {
         'email' => 'wp3-rival@example.test',
     ]);
 
-    config(['dawah-share.reporting.reporting_start' => '2026-10-01']);
+    config(['share-tracking.reporting.reporting_start' => '2026-10-01']);
 });
 
 /**
@@ -46,7 +46,7 @@ beforeEach(function (): void {
  */
 function wp3gcGuestShare(?string $url = null): array
 {
-    $response = test()->getJson(route('dawah-share.payload', [
+    $response = test()->getJson(route('share.payload', [
         'url' => $url ?? route('events.index'),
         'text' => 'Share this page',
         'title' => 'Shared Page',
@@ -94,7 +94,7 @@ it('claims a guest history explicitly after signup', function (): void {
 
     $page = $this->actingAs($this->claimant)
         ->withCredentials()
-        ->withCookie('mi_dawah_guest_claim', $guest['capability'])
+        ->withCookie('i360_guest_claim', $guest['capability'])
         ->get(route('share.claim.show'));
 
     $page->assertOk();
@@ -102,7 +102,7 @@ it('claims a guest history explicitly after signup', function (): void {
 
     $claim = $this->actingAs($this->claimant)
         ->withCredentials()
-        ->withCookie('mi_dawah_guest_claim', $guest['capability'])
+        ->withCookie('i360_guest_claim', $guest['capability'])
         ->post(route('share.claim.store'), ['confirm' => true]);
 
     $claim->assertRedirect(route('share.claim.show'));
@@ -147,7 +147,7 @@ it('replays success idempotently to the original claimant without effects', func
 
     $call = fn () => $this->actingAs($this->claimant)
         ->withCredentials()
-        ->withCookie('mi_dawah_guest_claim', $guest['capability'])
+        ->withCookie('i360_guest_claim', $guest['capability'])
         ->postJson(route('share.claim.store'), ['confirm' => true]);
 
     $first = $call();
@@ -177,7 +177,7 @@ it('refuses competing claimants generically without leaking history', function (
 
     $rival = $this->actingAs($this->rival)
         ->withCredentials()
-        ->withCookie('mi_dawah_guest_claim', $guest['capability'])
+        ->withCookie('i360_guest_claim', $guest['capability'])
         ->postJson(route('share.claim.store'), ['confirm' => true]);
 
     $rival->assertStatus(422);
@@ -186,7 +186,7 @@ it('refuses competing claimants generically without leaking history', function (
     $stranger = User::factory()->create();
     $expired = $this->actingAs($stranger)
         ->withCredentials()
-        ->withCookie('mi_dawah_guest_claim', str_repeat('z', 32))
+        ->withCookie('i360_guest_claim', str_repeat('z', 32))
         ->postJson(route('share.claim.store'), ['confirm' => true]);
 
     $expired->assertStatus(422);
@@ -246,7 +246,7 @@ it('treats expired capabilities as honestly unverifiable', function (): void {
 
     $response = $this->actingAs($this->claimant)
         ->withCredentials()
-        ->withCookie('mi_dawah_guest_claim', $guest['capability'])
+        ->withCookie('i360_guest_claim', $guest['capability'])
         ->postJson(route('share.claim.store'), ['confirm' => true]);
 
     $response->assertStatus(422);
@@ -255,7 +255,7 @@ it('treats expired capabilities as honestly unverifiable', function (): void {
 
     $page = $this->actingAs($this->claimant)
         ->withCredentials()
-        ->withCookie('mi_dawah_guest_claim', $guest['capability'])
+        ->withCookie('i360_guest_claim', $guest['capability'])
         ->get(route('share.claim.show'));
 
     $page->assertOk();
@@ -271,7 +271,7 @@ it('never silently inherits claimed history across logout and account switch', f
     // prompt and cannot take the history.
     $page = $this->actingAs($this->rival)
         ->withCredentials()
-        ->withCookie('mi_dawah_guest_claim', $guest['capability'])
+        ->withCookie('i360_guest_claim', $guest['capability'])
         ->get(route('share.claim.show'));
 
     $page->assertOk();
@@ -279,7 +279,7 @@ it('never silently inherits claimed history across logout and account switch', f
 
     $steal = $this->actingAs($this->rival)
         ->withCredentials()
-        ->withCookie('mi_dawah_guest_claim', $guest['capability'])
+        ->withCookie('i360_guest_claim', $guest['capability'])
         ->postJson(route('share.claim.store'), ['confirm' => true]);
 
     $steal->assertStatus(422);
@@ -287,7 +287,7 @@ it('never silently inherits claimed history across logout and account switch', f
 
     $dashboard = $this->actingAs($this->rival)
         ->withCredentials()
-        ->withCookie('mi_dawah_guest_claim', $guest['capability'])
+        ->withCookie('i360_guest_claim', $guest['capability'])
         ->get(route('dashboard'));
 
     $dashboard->assertOk();
@@ -296,7 +296,7 @@ it('never silently inherits claimed history across logout and account switch', f
     // The original claimant replays their own success.
     $mine = $this->actingAs($this->claimant)
         ->withCredentials()
-        ->withCookie('mi_dawah_guest_claim', $guest['capability'])
+        ->withCookie('i360_guest_claim', $guest['capability'])
         ->get(route('share.claim.show'));
 
     $mine->assertOk();
@@ -315,7 +315,7 @@ it('prompts an unclaimed browser on the dashboard without auto-claiming', functi
 
     $prompted = $this->actingAs($this->claimant)
         ->withCredentials()
-        ->withCookie('mi_dawah_guest_claim', $guest['capability'])
+        ->withCookie('i360_guest_claim', $guest['capability'])
         ->get(route('dashboard'));
 
     $prompted->assertOk();
@@ -341,7 +341,7 @@ it('revokes claims on claimant deletion without steal, reassign, or restore', fu
 
     $rival = $this->actingAs($this->rival)
         ->withCredentials()
-        ->withCookie('mi_dawah_guest_claim', $guest['capability'])
+        ->withCookie('i360_guest_claim', $guest['capability'])
         ->postJson(route('share.claim.store'), ['confirm' => true]);
 
     $rival->assertStatus(422);
@@ -361,7 +361,7 @@ it('revokes claims on claimant deletion without steal, reassign, or restore', fu
 
     $retry = $this->actingAs($restoredClaimant)
         ->withCredentials()
-        ->withCookie('mi_dawah_guest_claim', $guest['capability'])
+        ->withCookie('i360_guest_claim', $guest['capability'])
         ->postJson(route('share.claim.store'), ['confirm' => true]);
 
     $retry->assertStatus(422);
@@ -374,7 +374,7 @@ it('revokes claims on claimant deletion without steal, reassign, or restore', fu
 it('re-evaluates self credit after the claim without rewriting frozen attribution', function (): void {
     $event = wp3gcEvent();
 
-    $response = $this->getJson(route('dawah-share.payload', [
+    $response = $this->getJson(route('share.payload', [
         'url' => route('events.show', $event),
         'text' => 'Share this page',
         'title' => 'Shared Page',
@@ -385,7 +385,7 @@ it('re-evaluates self credit after the claim without rewriting frozen attributio
 
     $landing = $this->get(route('events.show', $event).'?share='.$link->custom_slug);
     $landing->assertOk();
-    $cookie = (string) $landing->getCookie((string) config('dawah-share.cookie.name'))?->getValue();
+    $cookie = (string) $landing->getCookie((string) config('share-tracking.cookie.name'))?->getValue();
 
     expect($cookie)->not->toBe('');
 
@@ -397,7 +397,7 @@ it('re-evaluates self credit after the claim without rewriting frozen attributio
     expect((string) $attributionBefore->fresh()->affiliate_id)->toBe((string) $link->affiliate_id);
 
     $signupRequest = Request::create(route('events.show', $event), 'GET');
-    $signupRequest->cookies->set((string) config('dawah-share.cookie.name'), $cookie);
+    $signupRequest->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
 
     // The claimant acting through their own claimed history earns
     // nothing: self credit with an honest unattributed receipt.
@@ -417,7 +417,7 @@ it('scopes ownership reads to primary plus actively claimed profiles', function 
     $guest = wp3gcGuestShare(route('events.show', $event));
     $guestLinkId = (string) AffiliateLink::query()->where('custom_slug', $guest['token'])->value('id');
 
-    $this->withHeader('X-Dawah-Guest-Credential', $guest['credential'])
+    $this->withHeader('X-Guest-Credential', $guest['credential'])
         ->postJson(route('api.client.share.track'), [
             'tracking_token' => $guest['token'],
             'provider' => 'copy_link',
@@ -456,7 +456,7 @@ it('never auto-claims through signup or login', function (): void {
     $guest = wp3gcGuestShare();
 
     $registered = $this->withCredentials()
-        ->withCookie('mi_dawah_guest_claim', $guest['capability'])
+        ->withCookie('i360_guest_claim', $guest['capability'])
         ->post(route('register.store'), [
             'name' => 'Fresh Signup',
             'email' => 'wp3-fresh-signup@example.test',
@@ -474,7 +474,7 @@ it('never auto-claims through signup or login', function (): void {
 
     $claim = $this->actingAs($user)
         ->withCredentials()
-        ->withCookie('mi_dawah_guest_claim', $guest['capability'])
+        ->withCookie('i360_guest_claim', $guest['capability'])
         ->post(route('share.claim.store'), ['confirm' => true]);
 
     $claim->assertRedirect(route('share.claim.show'));
@@ -494,7 +494,7 @@ it('fails honestly when the member recipient cannot receive', function (): void 
 
     $response = $this->actingAs($this->claimant)
         ->withCredentials()
-        ->withCookie('mi_dawah_guest_claim', $guest['capability'])
+        ->withCookie('i360_guest_claim', $guest['capability'])
         ->postJson(route('share.claim.store'), ['confirm' => true]);
 
     $response->assertStatus(422);
@@ -509,19 +509,19 @@ it('claims natively after API login with the same guarantees', function (): void
 
     Sanctum::actingAs($this->claimant);
 
-    $available = $this->withHeader('X-Dawah-Claim-Capability', $guest['capability'])
+    $available = $this->withHeader('X-Claim-Capability', $guest['capability'])
         ->getJson(route('api.client.share.claim.availability'));
 
     $available->assertOk();
     expect($available->json('available'))->toBeTrue();
 
-    $claim = $this->withHeader('X-Dawah-Claim-Capability', $guest['capability'])
+    $claim = $this->withHeader('X-Claim-Capability', $guest['capability'])
         ->postJson(route('api.client.share.claim'), ['confirm' => true]);
 
     $claim->assertOk();
     expect($claim->json('result'))->toBe(ShareGuestClaimResult::Claimed->value);
 
-    $spent = $this->withHeader('X-Dawah-Claim-Capability', $guest['capability'])
+    $spent = $this->withHeader('X-Claim-Capability', $guest['capability'])
         ->getJson(route('api.client.share.claim.availability'));
 
     expect($spent->json('available'))->toBeFalse()
@@ -529,7 +529,7 @@ it('claims natively after API login with the same guarantees', function (): void
 
     Sanctum::actingAs($this->rival);
 
-    $rival = $this->withHeader('X-Dawah-Claim-Capability', $guest['capability'])
+    $rival = $this->withHeader('X-Claim-Capability', $guest['capability'])
         ->postJson(route('api.client.share.claim'), ['confirm' => true]);
 
     $rival->assertStatus(422);
@@ -543,7 +543,7 @@ it('renders the claim success message in Malay when the session is Malay', funct
 
     $claim = $this->actingAs($this->claimant)
         ->withCredentials()
-        ->withCookie('mi_dawah_guest_claim', $guest['capability'])
+        ->withCookie('i360_guest_claim', $guest['capability'])
         ->postJson(route('share.claim.store'), ['confirm' => true]);
 
     $claim->assertOk();
@@ -557,7 +557,7 @@ it('renders the claim success message in English when the session is English', f
 
     $claim = $this->actingAs($this->claimant)
         ->withCredentials()
-        ->withCookie('mi_dawah_guest_claim', $guest['capability'])
+        ->withCookie('i360_guest_claim', $guest['capability'])
         ->postJson(route('share.claim.store'), ['confirm' => true]);
 
     $claim->assertOk();
@@ -569,7 +569,7 @@ it('requires explicit confirmation for every claim', function (): void {
 
     $this->actingAs($this->claimant)
         ->withCredentials()
-        ->withCookie('mi_dawah_guest_claim', $guest['capability'])
+        ->withCookie('i360_guest_claim', $guest['capability'])
         ->postJson(route('share.claim.store'), [])
         ->assertStatus(422);
 
@@ -584,7 +584,7 @@ it('seals claimed history from later anonymous activity on the same browser', fu
     $guest = wp3gcGuestShare(route('events.show', $event));
 
     // Pre-claim activity on the old history.
-    $this->withHeader('X-Dawah-Guest-Credential', $guest['credential'])
+    $this->withHeader('X-Guest-Credential', $guest['credential'])
         ->postJson(route('api.client.share.track'), [
             'tracking_token' => $guest['token'],
             'provider' => 'copy_link',
@@ -595,7 +595,7 @@ it('seals claimed history from later anonymous activity on the same browser', fu
     // A claims explicitly over the web, then logs out.
     $this->actingAs($this->claimant)
         ->withCredentials()
-        ->withCookie('mi_dawah_guest_claim', $guest['capability'])
+        ->withCookie('i360_guest_claim', $guest['capability'])
         ->post(route('share.claim.store'), ['confirm' => true])
         ->assertRedirect(route('share.claim.show'));
 
@@ -612,8 +612,8 @@ it('seals claimed history from later anonymous activity on the same browser', fu
     // B anonymously shares from the same browser presenting the stale
     // credential: a genuinely new guest identity is issued, never a
     // write into A's claimed history.
-    $second = $this->withHeader('X-Dawah-Guest-Credential', $guest['credential'])
-        ->getJson(route('dawah-share.payload', [
+    $second = $this->withHeader('X-Guest-Credential', $guest['credential'])
+        ->getJson(route('share.payload', [
             'url' => route('events.index'),
             'text' => 'Share this page',
             'title' => 'Shared Page',
@@ -632,8 +632,8 @@ it('seals claimed history from later anonymous activity on the same browser', fu
 
     // The new identity is stable and reusable; replaying the dead
     // credential mints fresh again instead of reusing claimed history.
-    $reuse = $this->withHeader('X-Dawah-Guest-Credential', $second['guest_credential'])
-        ->getJson(route('dawah-share.payload', [
+    $reuse = $this->withHeader('X-Guest-Credential', $second['guest_credential'])
+        ->getJson(route('share.payload', [
             'url' => route('events.index'),
             'text' => 'Share this page',
             'title' => 'Shared Page',
@@ -644,8 +644,8 @@ it('seals claimed history from later anonymous activity on the same browser', fu
     expect($reuse['tracking_token'])->toBe($second['tracking_token'])
         ->and($reuse['guest_claim_capability'] ?? null)->toBeNull();
 
-    $replay = $this->withHeader('X-Dawah-Guest-Credential', $guest['credential'])
-        ->getJson(route('dawah-share.payload', [
+    $replay = $this->withHeader('X-Guest-Credential', $guest['credential'])
+        ->getJson(route('share.payload', [
             'url' => route('events.index', ['category' => 'fiqh']),
             'text' => 'Share this page',
             'title' => 'Shared Page',
@@ -693,8 +693,8 @@ it('attributes later anonymous history to its own claimant, never the first', fu
 
     app(ClaimGuestShareProfileAction::class)->handle($this->claimant, $guest['capability'], true);
 
-    $second = $this->withHeader('X-Dawah-Guest-Credential', $guest['credential'])
-        ->getJson(route('dawah-share.payload', [
+    $second = $this->withHeader('X-Guest-Credential', $guest['credential'])
+        ->getJson(route('share.payload', [
             'url' => route('events.index'),
             'text' => 'Share this page',
             'title' => 'Shared Page',
@@ -707,7 +707,7 @@ it('attributes later anonymous history to its own claimant, never the first', fu
     // B logs in and claims the new history explicitly.
     $bClaim = $this->actingAs($this->rival)
         ->withCredentials()
-        ->withCookie('mi_dawah_guest_claim', $second['guest_claim_capability'])
+        ->withCookie('i360_guest_claim', $second['guest_claim_capability'])
         ->postJson(route('share.claim.store'), ['confirm' => true]);
 
     $bClaim->assertOk();
@@ -738,13 +738,13 @@ it('attributes later anonymous history to its own claimant, never the first', fu
     // attributes honestly, while B acting through it earns nothing.
     $landing = $this->get(route('events.index').'?share='.$second['tracking_token']);
     $landing->assertOk();
-    $cookie = (string) $landing->getCookie((string) config('dawah-share.cookie.name'))?->getValue();
+    $cookie = (string) $landing->getCookie((string) config('share-tracking.cookie.name'))?->getValue();
 
     expect($cookie)->not->toBe('');
 
     $requestFor = function (string $cookieValue): Request {
         $request = Request::create(route('events.index'), 'GET');
-        $request->cookies->set((string) config('dawah-share.cookie.name'), $cookieValue);
+        $request->cookies->set((string) config('share-tracking.cookie.name'), $cookieValue);
 
         return $request;
     };
@@ -764,7 +764,7 @@ it('attributes later anonymous history to its own claimant, never the first', fu
 
     auth()->logout();
 
-    $this->withHeader('X-Dawah-Guest-Credential', $guest['credential'])
+    $this->withHeader('X-Guest-Credential', $guest['credential'])
         ->postJson(route('api.client.share.track'), ['tracking_token' => $guest['token'], 'provider' => 'copy_link'])
         ->assertStatus(422);
 });
@@ -783,7 +783,7 @@ it('seals claimed history across native API transport with the same guarantees',
 
     Sanctum::actingAs($this->claimant);
 
-    $claim = $this->withHeader('X-Dawah-Claim-Capability', $guest['guest_claim_capability'])
+    $claim = $this->withHeader('X-Claim-Capability', $guest['guest_claim_capability'])
         ->postJson(route('api.client.share.claim'), ['confirm' => true]);
 
     $claim->assertOk();
@@ -795,7 +795,7 @@ it('seals claimed history across native API transport with the same guarantees',
     // Back to an anonymous native client for B's share.
     auth()->forgetGuards();
 
-    $second = $this->withHeader('X-Dawah-Guest-Credential', $guest['guest_credential'])
+    $second = $this->withHeader('X-Guest-Credential', $guest['guest_credential'])
         ->getJson(route('api.client.share.payload', [
             'url' => route('events.index', ['category' => 'aqidah']),
             'text' => 'Share this page',
@@ -810,7 +810,7 @@ it('seals claimed history across native API transport with the same guarantees',
 
     Sanctum::actingAs($this->rival);
 
-    $bClaim = $this->withHeader('X-Dawah-Claim-Capability', $second['guest_claim_capability'])
+    $bClaim = $this->withHeader('X-Claim-Capability', $second['guest_claim_capability'])
         ->postJson(route('api.client.share.claim'), ['confirm' => true]);
 
     $bClaim->assertOk();
@@ -826,13 +826,13 @@ it('seals claimed history across native API transport with the same guarantees',
 
     auth()->forgetGuards();
 
-    $this->withHeader('X-Dawah-Guest-Credential', $guest['guest_credential'])
+    $this->withHeader('X-Guest-Credential', $guest['guest_credential'])
         ->postJson(route('api.client.share.track'), ['tracking_token' => $guest['tracking_token'], 'provider' => 'copy_link'])
         ->assertStatus(422);
 
     // B's claim sealed the second credential too: anonymous recording on
     // the new history refuses once owned.
-    $this->withHeader('X-Dawah-Guest-Credential', $second['guest_credential'])
+    $this->withHeader('X-Guest-Credential', $second['guest_credential'])
         ->postJson(route('api.client.share.track'), ['tracking_token' => $second['tracking_token'], 'provider' => 'copy_link'])
         ->assertStatus(422);
 });
@@ -861,7 +861,7 @@ it('centralizes claim transitions in actions with no model-level mutation path',
 
     $retry = $this->actingAs($this->claimant)
         ->withCredentials()
-        ->withCookie('mi_dawah_guest_claim', $guest['capability'])
+        ->withCookie('i360_guest_claim', $guest['capability'])
         ->postJson(route('share.claim.store'), ['confirm' => true]);
 
     $retry->assertStatus(422);
@@ -869,7 +869,7 @@ it('centralizes claim transitions in actions with no model-level mutation path',
 
     $reassign = $this->actingAs($this->rival)
         ->withCredentials()
-        ->withCookie('mi_dawah_guest_claim', $guest['capability'])
+        ->withCookie('i360_guest_claim', $guest['capability'])
         ->postJson(route('share.claim.store'), ['confirm' => true]);
 
     $reassign->assertStatus(422);
@@ -918,13 +918,13 @@ it('preserves settlement and the public redirect when a claimant is deleted', fu
 
     $landing = $this->get(route('events.show', $event).'?share='.$guest['token']);
     $landing->assertOk();
-    $cookie = (string) $landing->getCookie((string) config('dawah-share.cookie.name'))?->getValue();
+    $cookie = (string) $landing->getCookie((string) config('share-tracking.cookie.name'))?->getValue();
 
     expect($cookie)->not->toBe('');
 
     $stranger = User::factory()->create();
     $request = Request::create(route('events.show', $event), 'GET');
-    $request->cookies->set((string) config('dawah-share.cookie.name'), $cookie);
+    $request->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
 
     expect(app(ShareTrackingService::class)->recordSignup($stranger, $request))->not->toBeNull();
 

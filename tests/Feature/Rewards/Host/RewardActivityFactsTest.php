@@ -27,7 +27,7 @@ use AIArmada\Rewards\Models\RewardProgram;
 use AIArmada\Rewards\Models\RewardProgramVersion;
 use AIArmada\Rewards\Models\RewardSourceComponentClaim;
 use App\Actions\Rewards\EnrollRewardProgramMemberAction as HostEnrollRewardProgramMemberAction;
-use App\Enums\DawahShareOutcomeType;
+use App\Enums\ShareOutcomeType;
 use App\Livewire\Pages\Dashboard\RewardMemberIndex;
 use App\Models\EventCheckin;
 use App\Models\Registration;
@@ -126,7 +126,7 @@ function activityShareRequest(User $sharer): array
     $landing->setRouteResolver(static fn (): mixed => $route);
     $cookie = $tracking->captureRequest($landing);
     $request = Request::create($pageUrl);
-    $request->cookies->set((string) config('dawah-share.cookie.name', 'mi_dawah_share'), $cookie);
+    $request->cookies->set((string) config('share-tracking.cookie.name', 'i360_share'), $cookie);
 
     $attribution = $tracking->resolveActiveAttribution($request);
 
@@ -206,7 +206,7 @@ it('reads an unattributed registration directly from its authenticated registran
         'payment_status' => 'unpaid',
     ]);
     $key = ActivityRewardBusinessKey::for(
-        DawahShareOutcomeType::EventRegistration,
+        ShareOutcomeType::EventRegistration,
         'registration:'.(string) $registration->getKey(),
     );
 
@@ -214,7 +214,7 @@ it('reads an unattributed registration directly from its authenticated registran
 
     expect($fact)->not->toBeNull()
         ->and($fact->sourceBusinessKey)->toBe($key)
-        ->and($fact->outcome)->toBe(DawahShareOutcomeType::EventRegistration->value)
+        ->and($fact->outcome)->toBe(ShareOutcomeType::EventRegistration->value)
         ->and($fact->actorId)->toBe((string) $actor->getKey())
         ->and($fact->sharerId)->toBeNull()
         ->and($fact->actorRole)->toBe(RewardBeneficiaryRole::Participant)
@@ -239,12 +239,12 @@ it('awards direct registrations and check-ins once to the participant', function
     ]);
     $registrationKey = ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey());
     $registrationActivityKey = ActivityRewardBusinessKey::for(
-        DawahShareOutcomeType::EventRegistration,
+        ShareOutcomeType::EventRegistration,
         'registration:'.(string) $registration->getKey(),
     );
 
     app(ShareTrackingService::class)->recordOutcome(
-        DawahShareOutcomeType::EventRegistration,
+        ShareOutcomeType::EventRegistration,
         $registrationKey,
         actor: $actor,
         occurredAt: $registration->registered_at,
@@ -261,12 +261,12 @@ it('awards direct registrations and check-ins once to the participant', function
     ]);
     $checkinKey = ShareOutcomeBusinessKey::eventCheckin((string) $checkin->getKey());
     $checkinActivityKey = ActivityRewardBusinessKey::for(
-        DawahShareOutcomeType::EventCheckin,
+        ShareOutcomeType::EventCheckin,
         'checkin:'.(string) $checkin->getKey(),
     );
 
     app(ShareTrackingService::class)->recordInheritedOutcome(
-        DawahShareOutcomeType::EventCheckin,
+        ShareOutcomeType::EventCheckin,
         $checkinKey,
         $registrationKey,
         actor: $actor,
@@ -293,8 +293,8 @@ it('awards direct registrations and check-ins once to the participant', function
 it('awards distinct host point amounts for signup and staff-verified check-in', function (): void {
     config(['rewards.outcomes' => array_values(array_unique([
         ...config('rewards.outcomes', []),
-        DawahShareOutcomeType::Signup->value,
-        DawahShareOutcomeType::EventCheckin->value,
+        ShareOutcomeType::Signup->value,
+        ShareOutcomeType::EventCheckin->value,
     ]))]);
 
     $actor = User::factory()->create();
@@ -304,7 +304,7 @@ it('awards distinct host point amounts for signup and staff-verified check-in', 
             'type' => 'points',
             'variants' => [
                 [
-                    'outcomes' => [DawahShareOutcomeType::Signup->value],
+                    'outcomes' => [ShareOutcomeType::Signup->value],
                     'roles' => [RewardBeneficiaryRole::Participant->value],
                     'min_verification' => RewardVerificationLevel::Accepted->value,
                     'first_only' => true,
@@ -312,7 +312,7 @@ it('awards distinct host point amounts for signup and staff-verified check-in', 
                     'unit' => 'pts',
                 ],
                 [
-                    'outcomes' => [DawahShareOutcomeType::EventCheckin->value],
+                    'outcomes' => [ShareOutcomeType::EventCheckin->value],
                     'roles' => [RewardBeneficiaryRole::Participant->value],
                     'min_verification' => RewardVerificationLevel::StaffVerified->value,
                     'first_only' => false,
@@ -322,7 +322,7 @@ it('awards distinct host point amounts for signup and staff-verified check-in', 
             ],
         ]],
         'eligibility' => [
-            'outcomes' => [DawahShareOutcomeType::Signup->value, DawahShareOutcomeType::EventCheckin->value],
+            'outcomes' => [ShareOutcomeType::Signup->value, ShareOutcomeType::EventCheckin->value],
             'min_verification' => RewardVerificationLevel::Accepted->value,
             'first_only' => false,
         ],
@@ -330,7 +330,7 @@ it('awards distinct host point amounts for signup and staff-verified check-in', 
 
     $shareTracking = app(ShareTrackingService::class);
     $shareTracking->recordSignup($actor);
-    $signupKey = ActivityRewardBusinessKey::for(DawahShareOutcomeType::Signup, 'user:'.(string) $actor->getKey());
+    $signupKey = ActivityRewardBusinessKey::for(ShareOutcomeType::Signup, 'user:'.(string) $actor->getKey());
     evaluateHostRewardFact($program, $signupKey, (string) $actor->getKey(), RewardBeneficiaryRole::Participant);
 
     $registration = Registration::factory()->forRegistrant($actor)->create([
@@ -340,7 +340,7 @@ it('awards distinct host point amounts for signup and staff-verified check-in', 
     ]);
     $registrationShareKey = ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey());
     $shareTracking->recordOutcome(
-        DawahShareOutcomeType::EventRegistration,
+        ShareOutcomeType::EventRegistration,
         $registrationShareKey,
         actor: $actor,
         occurredAt: $registration->registered_at,
@@ -356,14 +356,14 @@ it('awards distinct host point amounts for signup and staff-verified check-in', 
     ]);
     $checkinShareKey = ShareOutcomeBusinessKey::eventCheckin((string) $checkin->getKey());
     $shareTracking->recordInheritedOutcome(
-        DawahShareOutcomeType::EventCheckin,
+        ShareOutcomeType::EventCheckin,
         $checkinShareKey,
         $registrationShareKey,
         actor: $actor,
         occurredAt: $checkin->checked_in_at,
     );
     $checkinActivityKey = ActivityRewardBusinessKey::for(
-        DawahShareOutcomeType::EventCheckin,
+        ShareOutcomeType::EventCheckin,
         'checkin:'.(string) $checkin->getKey(),
     );
     evaluateHostRewardFact($program, $checkinActivityKey, (string) $actor->getKey(), RewardBeneficiaryRole::Participant);
@@ -398,7 +398,7 @@ it('awards the participant and sharer once each for attributed registration and 
     ]);
     $registrationShareKey = ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey());
     $registrationOutcome = app(ShareTrackingService::class)->recordOutcome(
-        DawahShareOutcomeType::EventRegistration,
+        ShareOutcomeType::EventRegistration,
         $registrationShareKey,
         actor: $actor,
         request: $request,
@@ -418,7 +418,7 @@ it('awards the participant and sharer once each for attributed registration and 
     ]);
     $checkinShareKey = ShareOutcomeBusinessKey::eventCheckin((string) $checkin->getKey());
     $checkinOutcome = app(ShareTrackingService::class)->recordInheritedOutcome(
-        DawahShareOutcomeType::EventCheckin,
+        ShareOutcomeType::EventCheckin,
         $checkinShareKey,
         $registrationShareKey,
         actor: $actor,
@@ -458,11 +458,11 @@ it('rejects cancelled registrations and reverses an award when a source is cance
         'payment_status' => 'unpaid',
     ]);
     $cancelledKey = ActivityRewardBusinessKey::for(
-        DawahShareOutcomeType::EventRegistration,
+        ShareOutcomeType::EventRegistration,
         'registration:'.(string) $cancelled->getKey(),
     );
     $service->recordOutcome(
-        DawahShareOutcomeType::EventRegistration,
+        ShareOutcomeType::EventRegistration,
         ShareOutcomeBusinessKey::eventRegistration((string) $cancelled->getKey()),
         actor: $actor,
     );
@@ -476,11 +476,11 @@ it('rejects cancelled registrations and reverses an award when a source is cance
         'payment_status' => 'unpaid',
     ]);
     $activityKey = ActivityRewardBusinessKey::for(
-        DawahShareOutcomeType::EventRegistration,
+        ShareOutcomeType::EventRegistration,
         'registration:'.(string) $registration->getKey(),
     );
     $service->recordOutcome(
-        DawahShareOutcomeType::EventRegistration,
+        ShareOutcomeType::EventRegistration,
         ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey()),
         actor: $actor,
     );
@@ -504,14 +504,14 @@ it('completes a private named star milestone from a verified check-in fact', fun
     $staff = User::factory()->create();
     [$program] = seedActivityRewardProgramWithRules('activity-bintang', [
         'eligibility' => [
-            'outcomes' => [DawahShareOutcomeType::EventCheckin->value],
+            'outcomes' => [ShareOutcomeType::EventCheckin->value],
             'min_verification' => RewardVerificationLevel::StaffVerified->value,
             'first_only' => false,
         ],
         'milestones' => [[
             'key' => 'bintang-1',
             'label' => 'Bintang 1',
-            'outcomes' => [DawahShareOutcomeType::EventCheckin->value],
+            'outcomes' => [ShareOutcomeType::EventCheckin->value],
             'roles' => [RewardBeneficiaryRole::Participant->value],
             'min_verification' => RewardVerificationLevel::StaffVerified->value,
             'first_only' => false,
@@ -536,7 +536,7 @@ it('completes a private named star milestone from a verified check-in fact', fun
         'attendance_type' => 'check_in',
     ]);
     $activityKey = ActivityRewardBusinessKey::for(
-        DawahShareOutcomeType::EventCheckin,
+        ShareOutcomeType::EventCheckin,
         'checkin:'.(string) $checkin->getKey(),
     );
 
@@ -562,7 +562,7 @@ it('completes a private named star milestone from a verified check-in fact', fun
 it('keeps the activity and share namespaces separate and refuses unknown sources', function (): void {
     $registrationId = (string) Str::uuid();
     $activityKey = ActivityRewardBusinessKey::for(
-        DawahShareOutcomeType::EventRegistration,
+        ShareOutcomeType::EventRegistration,
         'registration:'.$registrationId,
     );
     $shareKey = ShareOutcomeBusinessKey::eventRegistration($registrationId);
@@ -579,7 +579,7 @@ it('dispatches signup activity evaluation after recording the user', function ()
     Queue::fake([EvaluateRewardEntitlementJob::class]);
     $user = User::factory()->create();
     $activityKey = ActivityRewardBusinessKey::for(
-        DawahShareOutcomeType::Signup,
+        ShareOutcomeType::Signup,
         'user:'.(string) $user->getKey(),
     );
 
@@ -592,14 +592,14 @@ it('dispatches signup activity evaluation after recording the user', function ()
 it('backfills eligible preclaim signup facts for both the sharer and participant roles on enrollment', function (): void {
     config(['rewards.outcomes' => array_values(array_unique([
         ...config('rewards.outcomes', []),
-        DawahShareOutcomeType::Signup->value,
+        ShareOutcomeType::Signup->value,
     ]))]);
 
     $member = User::factory()->create();
     $visitor = User::factory()->create();
     [$program] = seedActivityRewardProgramWithRules('preclaim-both-roles', [
         'eligibility' => [
-            'outcomes' => [DawahShareOutcomeType::Signup->value],
+            'outcomes' => [ShareOutcomeType::Signup->value],
             'min_verification' => RewardVerificationLevel::Accepted->value,
             'first_only' => false,
             'exclude_self_credit' => true,
@@ -611,7 +611,7 @@ it('backfills eligible preclaim signup facts for both the sharer and participant
             'type' => 'points',
             'variants' => [
                 [
-                    'outcomes' => [DawahShareOutcomeType::Signup->value],
+                    'outcomes' => [ShareOutcomeType::Signup->value],
                     'roles' => [RewardBeneficiaryRole::Participant->value],
                     'min_verification' => RewardVerificationLevel::Accepted->value,
                     'first_only' => true,
@@ -619,7 +619,7 @@ it('backfills eligible preclaim signup facts for both the sharer and participant
                     'unit' => 'pts',
                 ],
                 [
-                    'outcomes' => [DawahShareOutcomeType::Signup->value],
+                    'outcomes' => [ShareOutcomeType::Signup->value],
                     'roles' => [RewardBeneficiaryRole::Sharer->value],
                     'min_verification' => RewardVerificationLevel::Accepted->value,
                     'first_only' => true,
@@ -648,7 +648,7 @@ it('backfills eligible preclaim signup facts for both the sharer and participant
         ->where('member_id', (string) $member->getKey())
         ->firstOrFail();
     $participantKey = ActivityRewardBusinessKey::for(
-        DawahShareOutcomeType::Signup,
+        ShareOutcomeType::Signup,
         'user:'.(string) $member->getKey(),
     );
     $sharerKey = ShareOutcomeBusinessKey::signup((string) $visitor->getKey());
@@ -695,7 +695,7 @@ it('excludes preclaim facts outside the lookback and applies the daily cap acros
     $sharer = User::factory()->create();
     [$program, $version] = seedActivityRewardProgramWithRules('preclaim-lookback-cap', [
         'eligibility' => [
-            'outcomes' => [DawahShareOutcomeType::EventRegistration->value],
+            'outcomes' => [ShareOutcomeType::EventRegistration->value],
             'min_verification' => RewardVerificationLevel::Accepted->value,
             'first_only' => false,
             'exclude_self_credit' => true,
@@ -710,7 +710,7 @@ it('excludes preclaim facts outside the lookback and applies the daily cap acros
         'components' => [[
             'type' => 'points',
             'variants' => [[
-                'outcomes' => [DawahShareOutcomeType::EventRegistration->value],
+                'outcomes' => [ShareOutcomeType::EventRegistration->value],
                 'roles' => [RewardBeneficiaryRole::Sharer->value],
                 'min_verification' => RewardVerificationLevel::Accepted->value,
                 'first_only' => false,
@@ -741,7 +741,7 @@ it('excludes preclaim facts outside the lookback and applies the daily cap acros
         $inWindowKeys[] = $shareKey;
 
         $tracking->recordOutcome(
-            DawahShareOutcomeType::EventRegistration,
+            ShareOutcomeType::EventRegistration,
             $shareKey,
             actor: $actor,
             request: $share['request'],
@@ -758,7 +758,7 @@ it('excludes preclaim facts outside the lookback and applies the daily cap acros
     ]);
     $oldKey = ShareOutcomeBusinessKey::eventRegistration((string) $oldRegistration->getKey());
     $tracking->recordOutcome(
-        DawahShareOutcomeType::EventRegistration,
+        ShareOutcomeType::EventRegistration,
         $oldKey,
         actor: $oldActor,
         request: $share['request'],
@@ -803,13 +803,13 @@ it('excludes preclaim facts outside the lookback and applies the daily cap acros
 it('keeps enroll-first share rewards and source claims idempotent after reacceptance', function (): void {
     config(['rewards.outcomes' => array_values(array_unique([
         ...config('rewards.outcomes', []),
-        DawahShareOutcomeType::Signup->value,
+        ShareOutcomeType::Signup->value,
     ]))]);
 
     $sharer = User::factory()->create();
     [$program, $version] = seedActivityRewardProgramWithRules('preclaim-reaccept', [
         'eligibility' => [
-            'outcomes' => [DawahShareOutcomeType::Signup->value],
+            'outcomes' => [ShareOutcomeType::Signup->value],
             'min_verification' => RewardVerificationLevel::Accepted->value,
             'first_only' => false,
             'exclude_self_credit' => true,
@@ -820,7 +820,7 @@ it('keeps enroll-first share rewards and source claims idempotent after reaccept
         'components' => [[
             'type' => 'points',
             'variants' => [[
-                'outcomes' => [DawahShareOutcomeType::Signup->value],
+                'outcomes' => [ShareOutcomeType::Signup->value],
                 'roles' => [RewardBeneficiaryRole::Sharer->value],
                 'min_verification' => RewardVerificationLevel::Accepted->value,
                 'first_only' => true,

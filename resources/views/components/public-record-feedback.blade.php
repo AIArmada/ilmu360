@@ -16,7 +16,7 @@
 @endphp
 
 <section id="{{ $sharePanelId }}" class="scroll-reveal reveal-right revealed">
-    <x-dawah-share-panel
+    <x-share-panel
         :share-data="$shareData"
         :share-links="$shareLinks"
     />

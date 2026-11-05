@@ -54,7 +54,7 @@ From “I go where I always go” to “I move intentionally for relevant ilmu.�
 Productized discovery + sharing can normalize inviting others to majlis as repeat behavior.
 
 ### Repository evidence that supports plausibility
-- Sharing routes and analytics tracking (`DawahShareController`, share routes)
+- Sharing routes and analytics tracking (`ShareController`, share routes)
 - Saved searches and notifications that prompt attendance
 - Public event detail pages that support link-based propagation
 - `/tentang-kami` repeatedly emphasizes invitation and awareness gaps (“kalau aku tahu awal...”) as cultural behavior targets
