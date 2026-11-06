@@ -24,8 +24,8 @@ return new class extends Migration
             $table->string('reason_code')->nullable();
             $table->text('proposer_note')->nullable();
             $table->text('reviewer_note')->nullable();
-            $table->json('proposed_data')->nullable();
-            $table->json('original_data')->nullable();
+            $table->jsonb('proposed_data')->nullable();
+            $table->jsonb('original_data')->nullable();
             $table->timestampTz('reviewed_at')->nullable();
             $table->timestampTz('approved_at')->nullable();
             $table->timestampTz('rejected_at')->nullable();

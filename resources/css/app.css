@@ -181,13 +181,12 @@ body.is-loaded .mi-bg-settled {
         --living-veil-border: rgba(255, 255, 255, 0.72);
         --living-rule: rgba(0, 55, 28, 0.12);
         --living-halo: rgba(6, 78, 59, 0.30);
+    }
 
-        background-color: var(--living-paper);
-        background-image:
-            radial-gradient(circle at 18% 20%, rgba(0, 122, 66, 0.08), transparent 34rem),
-            radial-gradient(circle at 84% 14%, rgba(217, 165, 20, 0.06), transparent 28rem),
-            linear-gradient(180deg, var(--living-paper) 0%, var(--living-sand) 100%);
-        background-size: auto, auto, auto;
+    .living-majlis-field,
+    .saved-searches-field {
+        background-color: #fafaf7;
+        background-image: linear-gradient(180deg, #fafaf7 0%, #f4f1e8 100%);
     }
 
     .living-majlis-veil {
@@ -975,6 +974,11 @@ html.light [data-flux-button][data-variant="primary"]:hover {
 .dark .notification-settings select[data-flux-select-native] option {
     background-color: var(--color-white);
     color: var(--color-zinc-700);
+}
+
+/* The notification inbox is always a light surface, so keep the Flux select chevron dark even in dark mode. */
+.notification-inbox select[data-flux-select-native] {
+    background-image: url("data:image/svg+xml,%3csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M8 9L12 5L16 9' stroke='%2327272a' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3cpath d='M16 15L12 19L8 15' stroke='%2327272a' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e");
 }
 
 /* Filament select chevron aligned to the Flux select style */

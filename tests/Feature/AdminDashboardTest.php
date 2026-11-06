@@ -59,7 +59,7 @@ it('renders the admin dashboard with moderation actions before event overview in
             'Event Overview',
             'Upcoming Events',
             'Past Events',
-            'Featured Events',
+            'Featured Occurrences',
         ])
         ->assertSee(ModerationQueue::getUrl(panel: 'admin').'?tab=pending', false)
         ->assertSee(PersonResource::getUrl('index', panel: 'admin').'?tableFilters[status][value]=pending', false)
@@ -180,22 +180,20 @@ it('computes approval and event overview dashboard stats from the intended datas
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
         'starts_at' => Carbon::now()->addDay(),
-        'is_featured' => false,
     ]);
 
     Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
         'starts_at' => Carbon::now()->subDay(),
-        'is_featured' => false,
     ]);
 
-    Event::factory()->create([
+    $featuredEvent = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
         'starts_at' => Carbon::now()->addDays(2),
-        'is_featured' => true,
     ]);
+    $featuredEvent->occurrences()->update(['is_featured' => true]);
 
     $approvalStats = getDashboardStats(StatsOverview::class);
     $overviewStats = getDashboardStats(EventInventoryOverview::class);
@@ -245,7 +243,7 @@ it('computes approval and event overview dashboard stats from the intended datas
             'value' => 1,
         ],
         [
-            'label' => 'Featured Events',
+            'label' => 'Featured Occurrences',
             'value' => 1,
         ],
     ]);

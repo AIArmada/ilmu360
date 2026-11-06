@@ -1,7 +1,7 @@
 # Share, Rewards and Future Commerce — Gaps and Closure Plan
 
 > Status: current (2026-10-15; G2 and G7 landed — see dated status
-> blocks). Scope: the dawah-share attribution system
+> blocks). Scope: the share-tracking attribution system
 > (`app/Services/ShareTracking`, `app/Support/Share*`), its rewards
 > integration (`app/Support/Rewards`, member portal, rewards API), and the
 > planned ticket/merchandise monetisation of banked share provenance.

@@ -1,8 +1,8 @@
 # Analytics Plan
 
-## Current Dawah Share Analytics Baseline
+## Current Share Analytics Baseline
 
-- Dawah Share now tracks provider outbound clicks in `dawah_share_share_events` with `event_type=outbound_click`.
+- Share tracking now tracks provider outbound clicks as `affiliate_touchpoints` rows with `touchpoint_type=outbound_share`.
 - Recipient landings store the originating share provider in the canonical attribution `channel` field.
 - Dashboard provider breakdowns should use both sources together:
   - outbound clicks answer which provider button a sharer used
@@ -24,7 +24,7 @@
 
 ## Legacy Cleanup Note
 
-- The old local `dawah_share_*` tables and `App\Services\DawahShare\*` services have been removed.
+- The old local share tables and legacy share services have been removed.
 - ilmu360° share attribution now runs through the affiliate-backed `ShareTrackingService` and `ShareTrackingAnalyticsService` only.
 
 ## High-Value Next Analytics Events
@@ -37,14 +37,14 @@
 - AI extraction lifecycle analytics.
 - Profile completion and onboarding progression.
 - Donation intent analytics.
-- Outbound share activity by provider across non-Dawah Share surfaces.
+- Outbound share activity by provider across surfaces outside share tracking.
 
 ## Architecture Direction
 
-- Keep Dawah Share attribution analytics separate from the future general product analytics module.
-- Dawah Share attribution should answer: "Who influenced this action?"
+- Keep share attribution analytics separate from the future general product analytics module.
+- Share attribution should answer: "Who influenced this action?"
 - Product analytics should answer: "What are users doing across the product overall?"
-- Do not force all product events into Dawah Share outcomes, because attribution and product telemetry answer different questions.
+- Do not force all product events into share outcomes, because attribution and product telemetry answer different questions.
 
 ## Channel Caveat
 

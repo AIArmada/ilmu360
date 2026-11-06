@@ -27,8 +27,8 @@ return new class extends Migration
             $table->string('local_day', 10);
             $table->string('plan_key', 191)->unique();
             $table->string('status', 16)->index();
-            $table->json('categories');
-            $table->json('payload');
+            $table->jsonb('categories');
+            $table->jsonb('payload');
             $table->string('timezone', 64);
             $table->timestampTz('due_at');
             $table->timestampTz('sent_at')->nullable();
@@ -44,7 +44,7 @@ return new class extends Migration
             $table->string('release_key', 191)->unique();
             $table->string('period_start', 10);
             $table->string('period_end', 10);
-            $table->json('cells');
+            $table->jsonb('cells');
             $table->unsignedBigInteger('sharer_count');
             $table->unsignedBigInteger('participant_count');
             $table->string('published_by_type', 32);

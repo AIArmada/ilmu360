@@ -2,10 +2,12 @@
 
 namespace App\Support\Notifications;
 
+use AIArmada\Communications\Enums\NotificationFamily as PackageNotificationFamily;
 use App\Enums\NotificationCadence;
 use App\Enums\NotificationChannel;
 use App\Enums\NotificationFamily;
 use App\Enums\NotificationTrigger;
+use App\Support\Communications\EnumMapper;
 
 class NotificationCatalog
 {
@@ -247,6 +249,59 @@ class NotificationCatalog
             static fn (NotificationChannel $channel): string => $channel->value,
             NotificationChannel::supported(),
         );
+    }
+
+    /**
+     * Value stored on inbox rows for an app-level notification family key.
+     */
+    public static function inboxFamilyValue(string $family): ?string
+    {
+        $appFamily = NotificationFamily::tryFrom($family);
+
+        return $appFamily !== null ? EnumMapper::toPkgFamily($appFamily)->value : null;
+    }
+
+    /**
+     * Icon used to represent an inbox notification family.
+     */
+    public static function familyIcon(PackageNotificationFamily $family): string
+    {
+        return match ($family) {
+            PackageNotificationFamily::FollowUp,
+            PackageNotificationFamily::MembershipUpdate => 'heroicon-o-user-group',
+            PackageNotificationFamily::Recommendation => 'heroicon-o-magnifying-glass',
+            PackageNotificationFamily::EventUpdate,
+            PackageNotificationFamily::EventRescheduled,
+            PackageNotificationFamily::EventPromotion => 'heroicon-o-calendar-days',
+            PackageNotificationFamily::EventReminder => 'heroicon-o-clock',
+            PackageNotificationFamily::EventCancellation => 'heroicon-o-x-circle',
+            PackageNotificationFamily::RegistrationConfirmation,
+            PackageNotificationFamily::RegistrationReminder,
+            PackageNotificationFamily::RegistrationChanged,
+            PackageNotificationFamily::RegistrationCancelled,
+            PackageNotificationFamily::CheckInAvailable,
+            PackageNotificationFamily::TicketIssued => 'heroicon-o-ticket',
+            PackageNotificationFamily::PaymentReceived,
+            PackageNotificationFamily::PaymentFailed,
+            PackageNotificationFamily::RefundProcessed => 'heroicon-o-banknotes',
+            PackageNotificationFamily::SpeakerInvitation,
+            PackageNotificationFamily::SpeakerConfirmation,
+            PackageNotificationFamily::SpeakerChange => 'heroicon-o-microphone',
+            PackageNotificationFamily::InstitutionInvitation,
+            PackageNotificationFamily::InstitutionClaim => 'heroicon-o-building-office',
+            PackageNotificationFamily::SecurityAlert,
+            PackageNotificationFamily::PasswordChanged,
+            PackageNotificationFamily::NewDeviceLogin,
+            PackageNotificationFamily::TwoFactorDisabled => 'heroicon-o-shield-check',
+            PackageNotificationFamily::AchievementUnlocked,
+            PackageNotificationFamily::MilestoneReached => 'heroicon-o-trophy',
+            PackageNotificationFamily::SystemAnnouncement,
+            PackageNotificationFamily::MaintenanceNotice,
+            PackageNotificationFamily::PolicyUpdate => 'heroicon-o-megaphone',
+            PackageNotificationFamily::DigestDaily,
+            PackageNotificationFamily::DigestWeekly => 'heroicon-o-inbox',
+            default => 'heroicon-o-bell',
+        };
     }
 
     /**

@@ -114,19 +114,12 @@
 </head>
 
 <body
-    class="min-h-screen bg-background text-text-main font-sans antialiased selection:bg-emerald-500/30 selection:text-emerald-900">
+    class="saved-searches-field min-h-screen text-text-main font-sans antialiased selection:bg-emerald-500/30 selection:text-emerald-900">
     <div class="relative min-h-screen overflow-clip">
-        <!-- Background Gradients -->
+        <!-- Background Texture -->
         <div class="pointer-events-none absolute inset-0 z-0">
             <div class="absolute inset-0 opacity-[0.03]"
                 style="background-image: url('{{ asset('images/pattern-bg.jpg') }}'); background-size: 400px;">
-            </div>
-            <div
-                class="absolute -top-40 left-[10%] h-[35rem] w-[35rem] rounded-full bg-emerald-500/10 blur-[100px] animate-pulse">
-            </div>
-            <div class="absolute top-20 right-[5%] h-[30rem] w-[30rem] rounded-full bg-teal-500/10 blur-[100px]"></div>
-            <div
-                class="absolute bottom-[-10rem] left-[20%] h-[40rem] w-[40rem] rounded-full bg-emerald-600/5 blur-[120px] mi-bg-settled">
             </div>
         </div>
 
@@ -148,31 +141,32 @@
                 $homeMenuHeading = __('Home');
                 $workspaceMenuHeading = __('Workspaces');
                 $accountMenuHeading = __('Account');
-                $contributionsMenuLabel = __('My Contributions');
+                $contributionsMenuLabel = __('Sumbangan');
                 $settingsMenuLabel = __('Settings');
                 $institutionDashboardMenuLabel = __('Manage Institution');
-                $organizationDashboardMenuLabel = __('Manage Organizations');
+                $organizationDashboardMenuLabel = __('Organizations');
                 $eventsNavActive = request()->routeIs('events.*');
                 $institutionsNavActive = request()->routeIs('institutions.*');
                 $personsNavActive = request()->routeIs('persons.*');
                 $useHomeHeader = request()->routeIs('home');
-                $useFloatingHeader = request()->routeIs('events.index', 'events.show', 'events.occurrence', 'events.session', 'persons.index', 'persons.show', 'institutions.index', 'institutions.show', 'references.index', 'references.show', 'submit-event.create');
-                $useDashboardFloatingHeader = request()->routeIs('dashboard', 'dashboard.*');
-                $useOverlayHeader = $useHomeHeader || $useFloatingHeader;
+                $useDashboardHeader = request()->routeIs('dashboard');
+                $useHeroOverlayHeader = request()->routeIs('events.index', 'events.show', 'events.occurrence', 'events.session', 'persons.index', 'persons.show', 'institutions.index', 'institutions.show', 'references.index', 'references.show', 'submit-event.create', 'about', 'privacy', 'terms', 'contact');
+                $showHeaderOrnaments = ! $useHomeHeader;
+                $useOverlayHeader = $useHomeHeader || $useHeroOverlayHeader;
                 $currentLocaleLabel = str_starts_with($currentLocale, 'ms')
                     ? 'BM'
                     : ($publicMenuLocales[$currentLocale] ?? $supportedLocales[$currentLocale] ?? strtoupper($currentLocale));
                 $headerClass = $useOverlayHeader
                     ? 'absolute inset-x-0 top-0 z-50 w-full transition-all'
-                    : ($useDashboardFloatingHeader
-                    ? 'sticky top-0 z-50 w-full bg-transparent transition-all'
-                    : 'sticky top-0 z-50 w-full border-b border-[#e5dccb] bg-[#f6f1e8]/95 backdrop-blur-md transition-all');
+                    : 'sticky top-0 z-50 w-full '.($useDashboardHeader ? 'bg-[#f7f3ea]' : 'bg-transparent').' transition-all';
+                $headerMenuBackgroundClass = $useDashboardHeader ? 'bg-[#f7f3ea]' : 'bg-[#fffdf8]/90';
+                $mobileMenuBackgroundClass = $useDashboardHeader ? 'bg-[#f7f3ea]' : 'bg-[#fffdf8]/95';
                 $navClass = $useHomeHeader
                     ? 'relative mx-auto flex h-20 w-full max-w-[120rem] items-center gap-3 px-5 sm:px-8 lg:gap-5 lg:px-14 xl:px-16'
-                    : (($useFloatingHeader || $useDashboardFloatingHeader)
-                    ? 'relative mx-auto mt-4 flex h-20 w-[calc(100%_-_1rem)] max-w-[120rem] items-center gap-3 rounded-[2rem] border border-[#eadfca]/90 bg-[#fffdf8]/90 px-5 shadow-[0_24px_55px_-30px_rgba(63,71,47,0.48)] backdrop-blur-xl sm:mt-6 sm:w-[calc(100%_-_3rem)] sm:px-8 lg:mt-8 lg:w-[94%] lg:gap-4 lg:px-8 xl:gap-6 xl:px-24'
-                    : 'container mx-auto flex h-20 items-center justify-between px-6 lg:px-12');
-                $logoClass = $useHomeHeader ? 'h-12 w-auto drop-shadow-[0_2px_10px_rgba(0,0,0,0.35)]' : 'h-12 w-auto';
+                    : 'relative mx-auto mt-4 flex h-20 w-[calc(100%_-_1rem)] max-w-[120rem] items-center gap-3 rounded-[2rem] border border-[#eadfca]/90 '.$headerMenuBackgroundClass.' px-5 shadow-[0_24px_55px_-30px_rgba(63,71,47,0.48)] backdrop-blur-xl sm:mt-6 sm:w-[calc(100%_-_3rem)] sm:px-8 lg:mt-8 lg:w-[94%] lg:gap-4 lg:px-8 xl:gap-6 xl:px-24';
+                $logoClass = $useHomeHeader
+                    ? 'h-12 w-auto drop-shadow-[0_2px_10px_rgba(0,0,0,0.35)]'
+                    : 'h-12 w-auto';
                 $desktopMenuClass = $useHomeHeader
                     ? 'hidden flex-1 items-center justify-center gap-6 text-sm font-medium text-white lg:flex lg:gap-10'
                     : 'hidden flex-1 items-center justify-center gap-7 text-sm font-medium lg:flex lg:gap-10';
@@ -195,9 +189,7 @@
                     : 'living-majlis-header-button living-majlis-header-button--emerald inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full px-5 py-2 text-sm font-semibold';
                 $mobileMenuClass = $useHomeHeader
                     ? 'mt-2 mx-4 rounded-3xl border border-white/15 bg-[linear-gradient(340deg,#0d3f82_0%,#0a3a63_38%,#075044_72%,#053b2f_100%)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_24px_60px_-24px_rgba(2,12,35,0.75)] backdrop-blur-md lg:hidden'
-                    : (($useFloatingHeader || $useDashboardFloatingHeader)
-                    ? 'mt-2 mx-4 rounded-3xl border border-[#eadfca] bg-[#fffdf8]/95 text-[#2d4b4c] shadow-[0_24px_60px_-30px_rgba(63,71,47,0.45)] backdrop-blur-md lg:hidden'
-                    : 'border-t border-[#e5dccb] bg-[#f6f1e8] text-[#2d4b4c] lg:hidden');
+                    : 'mt-2 mx-4 rounded-3xl border border-[#eadfca] '.$mobileMenuBackgroundClass.' text-[#2d4b4c] shadow-[0_24px_60px_-30px_rgba(63,71,47,0.45)] backdrop-blur-md lg:hidden';
                 $mobileMenuToggleClass = $useHomeHeader
                     ? 'border-white/25 bg-white/10 text-white hover:border-white/40 hover:bg-white/20'
                     : 'border-[#dbe1dc] bg-white/70 text-[#2d4b4c] hover:border-[#006044] hover:text-[#006044]';
@@ -231,7 +223,7 @@
                 x-data="{ mobileMenuOpen: false }"
                 x-on:notification-bell-opened.window="mobileMenuOpen = false">
                 <nav class="{{ $navClass }}">
-                    @if($useFloatingHeader)
+                    @if($showHeaderOrnaments)
                         <span aria-hidden="true" class="pointer-events-none absolute left-0 top-1/2 hidden -translate-y-1/2 opacity-70 lg:block">
                         <svg class="h-10 w-10 text-[#cda54a]" viewBox="0 0 56 56" fill="none">
                             <g stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
@@ -355,6 +347,10 @@
                                             class="block rounded-lg px-3 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50">
                                             {{ $dashboardMenuLabel }}
                                         </a>
+                                        <a href="{{ route('dakwah') }}" wire:navigate
+                                            class="block rounded-lg px-3 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50">
+                                            {{ __('Dakwah') }}
+                                        </a>
                                     </div>
                                     <div class="border-b border-slate-50 py-1">
                                         <p class="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{{ $workspaceMenuHeading }}</p>
@@ -383,13 +379,13 @@
                                     </div>
                                     <div class="pt-1">
                                         <p class="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{{ $accountMenuHeading }}</p>
-                                        <a href="{{ route('app-feedback.index', ['dari' => request()->path()]) }}" wire:navigate
-                                            class="block rounded-lg px-3 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50">
-                                            {{ __('app-feedback.title') }}
-                                        </a>
                                         <a href="{{ route('account-settings') }}" wire:navigate
                                             class="block rounded-lg px-3 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50">
                                             {{ $settingsMenuLabel }}
+                                        </a>
+                                        <a href="{{ route('app-feedback.index', ['dari' => request()->path()]) }}" wire:navigate
+                                            class="block rounded-lg px-3 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50">
+                                            {{ __('app-feedback.title') }}
                                         </a>
                                         <form method="POST" action="{{ route('logout') }}">
                                             @csrf
@@ -518,6 +514,10 @@
                                         class="flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold transition-colors {{ $mobileMenuRowClass }}">
                                         {{ $dashboardMenuLabel }}
                                     </a>
+                                    <a href="{{ route('dakwah') }}" wire:navigate
+                                        class="flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold transition-colors {{ $mobileMenuRowClass }}">
+                                        {{ __('Dakwah') }}
+                                    </a>
                                 </div>
                                 <div class="space-y-1 border-t pt-3 {{ $mobileMenuDividerClass }}">
                                     <p class="px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.18em] {{ $mobileMenuSectionLabelClass }}">{{ $workspaceMenuHeading }}</p>
@@ -546,13 +546,13 @@
                                 </div>
                                 <div class="space-y-1 border-t pt-3 {{ $mobileMenuDividerClass }}">
                                     <p class="px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.18em] {{ $mobileMenuSectionLabelClass }}">{{ $accountMenuHeading }}</p>
-                                    <a href="{{ route('app-feedback.index', ['dari' => request()->path()]) }}" wire:navigate
-                                        class="flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold transition-colors {{ $mobileMenuRowClass }}">
-                                        {{ __('app-feedback.title') }}
-                                    </a>
                                     <a href="{{ route('account-settings') }}" wire:navigate
                                         class="flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold transition-colors {{ $mobileMenuRowClass }}">
                                         {{ $settingsMenuLabel }}
+                                    </a>
+                                    <a href="{{ route('app-feedback.index', ['dari' => request()->path()]) }}" wire:navigate
+                                        class="flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold transition-colors {{ $mobileMenuRowClass }}">
+                                        {{ __('app-feedback.title') }}
                                     </a>
                                     <form method="POST" action="{{ route('logout') }}">
                                         @csrf

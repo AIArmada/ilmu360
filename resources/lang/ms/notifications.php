@@ -464,9 +464,17 @@ return [
         'channels_attempted' => 'Saluran',
         'mark_read' => 'Tandakan sebagai dibaca',
         'open_link' => 'Buka',
+        'pagination' => [
+            'label' => 'Halaman notifikasi',
+            'summary' => 'Memaparkan :from–:to daripada :total notifikasi',
+            'previous' => 'Sebelumnya',
+            'next' => 'Seterusnya',
+        ],
         'empty' => [
             'heading' => 'Belum ada apa-apa untuk disemak',
             'description' => 'Makluman baharu akan muncul di sini apabila sesuatu yang anda ikuti atau jejak memerlukan perhatian anda.',
+            'cta' => 'Lihat majlis',
+            'view_all' => 'Lihat semua notifikasi',
         ],
     ],
     'bell' => [

@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\Events\Actions\CreateEventOccurrenceAction;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
@@ -9,10 +10,19 @@ use App\Services\PublicScheduleDiscoveryService;
 
 function homepageMajlis(array $attributes = []): Event
 {
-    return Event::factory()->create(array_merge([
+    $featured = (bool) ($attributes['is_featured'] ?? false);
+    unset($attributes['is_featured']);
+
+    $event = Event::factory()->create(array_merge([
         'status' => 'approved', 'visibility' => 'public', 'published_at' => now()->subDay(),
         'starts_at' => now()->addDays(2), 'ends_at' => now()->addDays(2)->addHour(),
     ], $attributes));
+
+    if ($featured) {
+        $event->occurrences()->update(['is_featured' => true]);
+    }
+
+    return $event;
 }
 
 it('shows only admin featured upcoming public schedules to guests', function () {
@@ -21,11 +31,47 @@ it('shows only admin featured upcoming public schedules to guests', function () 
     homepageMajlis(['is_featured' => true, 'visibility' => 'private']);
     homepageMajlis(['is_featured' => true, 'status' => 'pending']);
     homepageMajlis(['is_featured' => true, 'starts_at' => now()->subDays(2), 'ends_at' => now()->subDay()]);
-    homepageMajlis(['is_featured' => true, 'starts_at' => now()->addDays(20), 'ends_at' => now()->addDays(21)]);
 
     $selection = app(PublicScheduleDiscoveryService::class)->homepageSelection(null);
     expect($selection->map(fn ($leaf) => $leaf->event->id)->all())->toBe([$featured->id]);
     $this->get('/')->assertSee($featured->title);
+});
+
+it('shows featured occurrences beyond the 14-day recommendation window', function () {
+    $featured = homepageMajlis([
+        'is_featured' => true,
+        'starts_at' => now()->addDays(21),
+        'ends_at' => now()->addDays(21)->addHour(),
+    ]);
+
+    $selection = app(PublicScheduleDiscoveryService::class)->homepageSelection(null);
+
+    expect($selection->map(fn ($leaf) => $leaf->id())->all())
+        ->toBe([$featured->occurrences()->firstOrFail()->id]);
+});
+
+it('does not promote non-featured occurrences of a featured event to guests', function () {
+    $event = homepageMajlis();
+    $featuredOccurrence = $event->occurrences()->firstOrFail();
+    $featuredOccurrence->update(['title' => 'Featured Night', 'is_featured' => true]);
+
+    $otherOccurrence = app(CreateEventOccurrenceAction::class)->handle($event, [
+        'title' => 'Other Night',
+        'slug' => 'other-night',
+        'starts_at' => now()->addDays(3),
+        'ends_at' => now()->addDays(3)->addHour(),
+        'status' => 'published',
+        'visibility' => 'public',
+    ]);
+
+    $selection = app(PublicScheduleDiscoveryService::class)->homepageSelection(null);
+
+    expect($selection->map(fn ($leaf) => $leaf->id())->all())->toBe([$featuredOccurrence->id]);
+    $this->get('/')
+        ->assertSee('Featured Night')
+        ->assertDontSee('Other Night');
+
+    expect($otherOccurrence->fresh()?->is_featured)->toBeFalse();
 });
 
 it('includes upcoming majlis related to each type of active follow', function (string $type) {
@@ -60,11 +106,32 @@ it('prioritizes featured cards and fills remaining slots without duplicates', fu
 
     $selection = app(PublicScheduleDiscoveryService::class)->homepageSelection($user);
     expect($selection)->toHaveCount(9)
-        ->and($selection->first()->event->id)->toBe($featured->id)
+        ->and($selection->first()->id())->toBe($featured->occurrences()->firstOrFail()->id)
         ->and($selection->map(fn ($leaf) => $leaf->id())->unique())->toHaveCount(9);
     foreach ($selection->skip(1) as $leaf) {
         expect($related->pluck('id')->all())->toContain($leaf->event->id);
     }
+});
+
+it('keeps followed-event filler inside the 14-day recommendation window', function () {
+    $user = User::factory()->create();
+    $institution = Institution::factory()->create();
+    $user->follow($institution);
+
+    $inside = homepageMajlis([
+        'institution_id' => $institution->id,
+        'starts_at' => now()->addDays(3),
+        'ends_at' => now()->addDays(3)->addHour(),
+    ]);
+    homepageMajlis([
+        'institution_id' => $institution->id,
+        'starts_at' => now()->addDays(20),
+        'ends_at' => now()->addDays(20)->addHour(),
+    ]);
+
+    $selection = app(PublicScheduleDiscoveryService::class)->homepageSelection($user);
+
+    expect($selection->map(fn ($leaf) => $leaf->event->id)->all())->toBe([$inside->id]);
 });
 
 it('does not fall back to unrelated schedules for users with no follows', function () {
@@ -77,6 +144,9 @@ it('caps admin featured schedules at nine cards in upcoming order', function () 
         'is_featured' => true, 'starts_at' => now()->addDays($day),
         'ends_at' => now()->addDays($day)->addHour(),
     ]));
+
     $selection = app(PublicScheduleDiscoveryService::class)->homepageSelection(null);
-    expect($selection->map(fn ($leaf) => $leaf->event->id)->all())->toBe($events->take(9)->pluck('id')->all());
+
+    expect($selection->map(fn ($leaf) => $leaf->id())->all())
+        ->toBe($events->take(9)->map(fn (Event $event): string => $event->occurrences()->firstOrFail()->id)->all());
 });

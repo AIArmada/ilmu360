@@ -464,9 +464,17 @@ return [
         'channels_attempted' => 'Channels',
         'mark_read' => 'Mark as read',
         'open_link' => 'Open',
+        'pagination' => [
+            'label' => 'Notification pages',
+            'summary' => 'Showing :from–:to of :total notifications',
+            'previous' => 'Previous',
+            'next' => 'Next',
+        ],
         'empty' => [
             'heading' => 'Nothing to review yet',
             'description' => 'New alerts will appear here once something you follow or track needs your attention.',
+            'cta' => 'Browse events',
+            'view_all' => 'View all notifications',
         ],
     ],
     'bell' => [

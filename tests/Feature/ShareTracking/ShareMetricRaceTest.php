@@ -325,10 +325,10 @@ function smrCohortBoundaryRaceCase(TestCase $testCase): void
 }
 
 $label = 'isolated PostgreSQL';
-    it("keeps raced ingestion exact for the metric reader on {$label}", function (): void {
-        smrIngestionRaceCase($this);
-    });
+it("keeps raced ingestion exact for the metric reader on {$label}", function (): void {
+    smrIngestionRaceCase($this);
+});
 
-    it("holds the 30-day cohort boundary under raced ingestion on {$label}", function (): void {
-        smrCohortBoundaryRaceCase($this);
-    });
+it("holds the 30-day cohort boundary under raced ingestion on {$label}", function (): void {
+    smrCohortBoundaryRaceCase($this);
+});

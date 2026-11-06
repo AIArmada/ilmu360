@@ -826,7 +826,7 @@ Modify:
 - AffiliateSignalsBridge
 - ShareTracking data objects/controllers
 - deletion/retention jobs
-- DawahShareImpactTest and focused analytics tests
+- ShareTrackingTest and focused analytics tests
 
 Tasks:
 
@@ -1013,7 +1013,7 @@ rg -n "productMetadataValue|MetadataBackedAttributes|MetadataBackedColumns" app/
 rg -n "metadata.*(institution_id|schedule_kind|schedule_state|timing_mode|starts_at|ends_at|views_count|registrations_count|saves_count|going_count)" app database tests
 rg -n "metadata.*(role_code|sort_order|display_name|checkin_token|primary_participant|contact)" app database tests
 rg -n "metadata.*(platform|app_version|device_label|locale|timezone|last_seen_at)" app tests
-rg -n "metadata.*(link_id|visitor_key|share_provider|share_origin|event_type|tracking_mode|visited_url|subject_id|subject_key|actor_user_id|sharer_user_id|outcome_key)" app/Services/ShareTracking app/Services/Signals tests/Feature/DawahShareImpactTest.php
+rg -n "metadata.*(link_id|visitor_key|share_provider|share_origin|event_type|tracking_mode|visited_url|subject_id|subject_key|actor_user_id|sharer_user_id|outcome_key)" app/Services/ShareTracking app/Services/Signals tests/Feature/ShareTrackingTest.php
 ~~~
 
 Interpretation:

@@ -168,7 +168,7 @@ it('renders the reference-inspired user dashboard with a real saved search panel
         ->assertSee('Account')
         ->assertSee('My Dashboard')
         ->assertDontSee('Inbox')
-        ->assertSee('My Contributions')
+        ->assertSee('Contributions')
         ->assertDontSee('Planner menu')
         ->assertDontSee('Overview Calendar')
         ->assertDontSee('Upcoming Agenda')
@@ -182,17 +182,15 @@ it('renders the reference-inspired user dashboard with a real saved search panel
         ->assertSee('Kuliah KL Daily')
         ->assertDontSee('Reminder majlis akan datang')
         ->assertDontSee('Find nearby events')
-        ->assertSee('My Contribution')
+        ->assertDontSee('My Contribution')
         ->assertDontSee('Checked In Dashboard Event')
         ->assertDontSee('My Saved Searches')
         ->assertDontSee('Notification Preferences');
 
     $html = (string) $response->getContent();
 
-    $document = new DOMDocument;
-    @$document->loadHTML($html);
-    $inviteLink = (new DOMXPath($document))->query('//a[contains(., "'.__('Jemput Sekarang').'")]')->item(0);
-    expect($inviteLink?->attributes?->getNamedItem('href')?->nodeValue)->toBe(route('dashboard.referrals'));
+    $response->assertDontSee(__('Sebarkan ilmu, luaskan manfaat.'))
+        ->assertDontSee(__('Jemput Sekarang'));
 
     $response->assertDontSee('id="majlis-saya"', false);
 
@@ -392,7 +390,7 @@ it('renders the redesigned dashboard in Malay with reference-inspired sections',
         ->assertDontSee('Majlis Saya')
         ->assertDontSee('Notifikasi Terkini')
         ->assertDontSee('Tindakan Pantas')
-        ->assertSee('Sumbangan Saya')
+        ->assertDontSee('Sumbangan Saya')
         ->assertDontSee('Perancang Kehadiran')
         ->assertSee('Dashboard')
         ->assertSee('Urus Institusi')

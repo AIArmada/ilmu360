@@ -604,7 +604,7 @@ Verified evidence (final code, this session):
   `EventActionsTest`, `SyncEventClassificationsActionTest`,
   `EventOrganizerInvolvementSyncTest`, `ModerationServiceTest`,
   `ManagedWorkspacesTest`, `PersonSlugGenerationTest`, `UniqueSlugIgnoreKeyTest`,
-  `DawahShareImpactTest`, `MediaConversionsTest`, `FrontendApiParityTest`,
+  `ShareTrackingTest`, `MediaConversionsTest`, `FrontendApiParityTest`,
   `FormContractApiTest`, `InstitutionWorkspaceMemberApiTest`,
   `ShareAnalyticsApiTest`, `EventSubmissionReferencesApiTest`,
   `FilamentEventResourceTest`, `EventLocationCascadeTest`,
@@ -625,7 +625,7 @@ Verified evidence (final code, this session):
   passed.
 
 ```bash
-vendor/bin/pest --parallel --processes=4 --compact tests/Feature --filter='SubmitEvent|EventActionsTest|SyncEventClassificationsActionTest|EventOrganizerInvolvementSyncTest|ModerationServiceTest|ManagedWorkspacesTest|PersonSlugGenerationTest|UniqueSlugIgnoreKeyTest|DawahShareImpactTest|MediaConversionsTest|FrontendApiParityTest|FormContractApiTest|InstitutionWorkspaceMemberApiTest|ShareAnalyticsApiTest|EventSubmissionReferencesApiTest|FilamentEventResourceTest|EventLocationCascadeTest|ContributionLocationCascadeTest|EventTermDomainMappingTest|PublicPagesTest'
+vendor/bin/pest --parallel --processes=4 --compact tests/Feature --filter='SubmitEvent|EventActionsTest|SyncEventClassificationsActionTest|EventOrganizerInvolvementSyncTest|ModerationServiceTest|ManagedWorkspacesTest|PersonSlugGenerationTest|UniqueSlugIgnoreKeyTest|ShareTrackingTest|MediaConversionsTest|FrontendApiParityTest|FormContractApiTest|InstitutionWorkspaceMemberApiTest|ShareAnalyticsApiTest|EventSubmissionReferencesApiTest|FilamentEventResourceTest|EventLocationCascadeTest|ContributionLocationCascadeTest|EventTermDomainMappingTest|PublicPagesTest'
 vendor/bin/phpstan analyse --ansi --memory-limit=2G
 ```
 

@@ -137,6 +137,18 @@ it('uses the floating menu header on the submit-event form like the speaker dire
         ->assertSee('pt-48', false);
 });
 
+it('uses the floating menu header on front pages but not the homepage', function () {
+    $floatingHeader = 'shadow-[0_24px_55px_-30px_rgba(63,71,47,0.48)]';
+
+    $this->get(route('venues.index'))
+        ->assertSuccessful()
+        ->assertSee($floatingHeader, false);
+
+    $this->get(route('home'))
+        ->assertSuccessful()
+        ->assertDontSee($floatingHeader, false);
+});
+
 it('renders accessible labels on the public submit-event form', function () {
     $this->get(route('submit-event.create'))
         ->assertSuccessful()

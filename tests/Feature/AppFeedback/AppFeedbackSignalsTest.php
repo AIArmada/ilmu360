@@ -21,7 +21,6 @@ it('records a safe signal when app feedback is submitted', function () {
         'title' => 'Tajuk isu yang tidak boleh masuk signal',
         'description' => 'Butiran isu yang tidak boleh masuk signal telemetri.',
         'page_url' => 'https://ilmu360.test/majlis/contoh',
-        'include_diagnostics' => false,
     ];
 
     app(SubmitAppFeedbackAction::class)->handle($user, $data, request());
@@ -51,7 +50,6 @@ it('does not emit a signal when a submission is replayed', function () {
         'category' => AppFeedbackCategory::Other->value,
         'title' => 'Ujian isyarat ulangan',
         'description' => 'Ini ialah ujian isyarat untuk penghantaran semula.',
-        'include_diagnostics' => false,
     ];
 
     app(SubmitAppFeedbackAction::class)->handle($user, $data, request());
@@ -74,7 +72,6 @@ it('keeps the feedback when signal ingestion fails', function () {
         'category' => AppFeedbackCategory::Bug->value,
         'title' => 'Ujian kegagalan isyarat',
         'description' => 'Maklum balas mesti kekal walaupun isyarat gagal.',
-        'include_diagnostics' => false,
     ];
 
     $feedback = app(SubmitAppFeedbackAction::class)->handle($user, $data, request());

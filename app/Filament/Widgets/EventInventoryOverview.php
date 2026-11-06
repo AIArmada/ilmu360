@@ -5,6 +5,7 @@ namespace App\Filament\Widgets;
 use App\Models\Event;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Illuminate\Database\Eloquent\Builder;
 
 class EventInventoryOverview extends StatsOverviewWidget
 {
@@ -31,10 +32,13 @@ class EventInventoryOverview extends StatsOverviewWidget
             ->where('starts_at', '<', now())
             ->count();
 
-        $featuredEvents = Event::query()
+        $featuredOccurrences = Event::query()
             ->active()
-            ->featured()
-            ->count();
+            ->withCount([
+                'occurrences as featured_occurrences_count' => fn (Builder $query): Builder => $query->where('is_featured', true),
+            ])
+            ->get()
+            ->sum(fn (Event $event): int => (int) $event->getAttribute('featured_occurrences_count'));
 
         return [
             Stat::make('Upcoming Events', $upcomingEvents)
@@ -45,8 +49,8 @@ class EventInventoryOverview extends StatsOverviewWidget
                 ->description('Active public events completed')
                 ->descriptionIcon('heroicon-m-clock')
                 ->color('gray'),
-            Stat::make('Featured Events', $featuredEvents)
-                ->description('Active public events highlighted')
+            Stat::make('Featured Occurrences', $featuredOccurrences)
+                ->description('Active public occurrence dates highlighted')
                 ->descriptionIcon('heroicon-m-star')
                 ->color('success'),
         ];

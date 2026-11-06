@@ -142,7 +142,7 @@ final readonly class AdminShareAnalyticsService
 
         // Marker scope: share analytics reads only marked share profiles.
         // Commercial profiles and their facts never enter this report.
-        $affiliates = Affiliate::query()->withoutGlobalScope(OwnerScope::class)->get()
+        $affiliates = Affiliate::query()->withoutGlobalScope(OwnerScope::class)->with('owner')->get()
             ->filter(fn (Affiliate $affiliate): bool => ShareTrackingProfile::isMarked($affiliate))
             ->values();
         $affiliateIds = $affiliates->map(fn (Affiliate $affiliate): string => (string) $affiliate->id)->all();

@@ -41,7 +41,7 @@ Do these steps in order. Do not guess.
    Run these tests after any owner-scope switch:
    - `tests/Feature/Api/AuthApiTest.php`
    - `tests/Feature/UserRestoreTest.php`
-   - `tests/Feature/DawahShareImpactTest.php`
+   - `tests/Feature/ShareTrackingTest.php`
    - `tests/Feature/ShareTracking/AffiliateRuntimeDataPurgerTest.php`
 
 6. **Verify the two critical behaviors after the toggle.**

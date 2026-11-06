@@ -99,7 +99,7 @@ The domain is Islamic education and community event discovery in Malaysia. A **m
 | Status | Lifecycle state such as draft, pending, approved, rejected, or needs changes |
 | Saved search | Persisted search filters owned by an authenticated user |
 | Follow | User subscription to updates for supported subjects |
-| Dawah share | Tracked sharing of catalogue content through social/share providers |
+| Share tracking | Tracked sharing of catalogue content through social/share providers |
 | MCP | Model Context Protocol surface used by AI agents to access member/admin capabilities |
 | Filament | Administrative UI framework used for resources and panels |
 | Livewire | Server-driven UI framework used for public and dashboard screens |

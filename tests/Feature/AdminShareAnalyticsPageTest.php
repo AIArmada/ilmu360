@@ -247,3 +247,30 @@ it('resolves a single global tracked property for all surfaces', function () {
     expect($default?->getKey())->toBe($property->getKey());
     expect($default?->slug)->toBe('ilmu360');
 });
+
+it('keeps cached product signal timestamps in the viewer timezone', function () {
+    $administrator = User::factory()->create(['timezone' => 'UTC']);
+    $administrator->assignRole('super_admin');
+    $trackedProperty = TrackedProperty::query()->firstOrFail();
+
+    SignalEvent::query()->create([
+        'tracked_property_id' => $trackedProperty->id,
+        'occurred_at' => now()->startOfDay()->addHours(10),
+        'event_name' => 'search.executed',
+        'event_category' => 'search',
+        'path' => '/cache-timezone-check',
+        'properties' => ['client_origin' => 'web'],
+    ]);
+
+    $this->actingAs($administrator)
+        ->get(ProductSignals::getUrl(panel: 'admin'))
+        ->assertSuccessful()
+        ->assertSee('10:00 AM');
+
+    $administrator->update(['timezone' => 'Asia/Tokyo']);
+
+    $this->actingAs($administrator)
+        ->get(ProductSignals::getUrl(panel: 'admin'))
+        ->assertSuccessful()
+        ->assertSee('7:00 PM');
+});

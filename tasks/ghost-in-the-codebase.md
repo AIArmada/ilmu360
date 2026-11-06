@@ -60,13 +60,13 @@ classes and key families. No missed invalidation was demonstrated.
 **Decision:** remove only the redundant `rememberPayload()` delegate; retain
 primitive-payload and model-rehydration helpers.
 
-### 7. `is_featured` is an EAV-backed product flag
+### 7. `is_featured` is an occurrence-level product flag
 
-The flag is stored in `event_attributes` and synchronized through the event
-model. The lifecycle rule against boolean state does not automatically apply
-to this curation flag.
+The flag is stored on `event_occurrences.is_featured`; homepage curation is
+per occurrence because the public cards are occurrences. The lifecycle rule
+against boolean state does not apply to this curation flag.
 
-**Decision:** add a reusable `featured()` query scope; do not change storage.
+**Decision:** keep the reusable `EventOccurrence::featured()` query scope.
 
 ### 8. Scout commands are thin wrappers
 
@@ -82,7 +82,7 @@ four public command names.
    `SafeModelCache::rememberPayload()`.
 2. Add event observer, cache, slug, search, and `EventPayloadData` contract
    coverage.
-3. Add the `Event::featured()` scope and use it in the inventory widget.
+3. Use the `EventOccurrence::featured()` scope in the inventory widget.
 4. Consolidate Scout wrapper internals without changing command contracts.
 5. Upgrade `laravel/mcp` from `^0.8` to `^0.9` and run the full MCP suite.
 

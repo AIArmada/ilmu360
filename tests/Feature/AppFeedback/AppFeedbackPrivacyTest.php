@@ -56,32 +56,21 @@ it('rejects external, credential-bearing, and tokenized page urls', function () 
         ->and(AppFeedbackInput::sanitizePageUrl('/maklum-balas'))->toBeNull();
 });
 
-it('stores diagnostics only when the reporter opts in', function () {
+it('always stores sanitized technical diagnostics', function () {
     Notification::fake();
 
     $user = User::factory()->create();
 
-    $data = [
+    $feedback = app(SubmitAppFeedbackAction::class)->handle($user, [
         'submission_key' => (string) Str::uuid(),
         'category' => AppFeedbackCategory::Bug->value,
         'title' => 'Ujian diagnostik',
         'description' => 'Ini ialah ujian diagnostik maklum balas.',
-        'include_diagnostics' => true,
-    ];
-
-    $feedback = app(SubmitAppFeedbackAction::class)->handle($user, $data, request());
+    ], request());
 
     expect($feedback->diagnostics)->toBeArray()
         ->and($feedback->diagnostics)->toHaveKey('user_agent')
         ->and($feedback->diagnostics)->not->toHaveKey('ip_address');
-
-    $withoutDiagnostics = app(SubmitAppFeedbackAction::class)->handle($user, [
-        ...$data,
-        'submission_key' => (string) Str::uuid(),
-        'include_diagnostics' => false,
-    ], request());
-
-    expect($withoutDiagnostics->diagnostics)->toBeNull();
 });
 
 it('does not expose internal notes or diagnostics on the member page', function () {

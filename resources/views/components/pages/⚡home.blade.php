@@ -536,11 +536,11 @@ new
     </section>
 
     {{-- Community CTA --}}
-    <section class="relative isolate min-h-[28rem] overflow-hidden bg-[#071b27] text-white sm:min-h-[24rem] lg:min-h-[19rem]">
+    <section class="relative isolate min-h-[40rem] overflow-hidden bg-[#071b27] text-white sm:min-h-[36rem] lg:min-h-[32rem]">
         <picture class="absolute inset-0">
-            <source media="(max-width: 639px)" srcset="{{ asset('images/home/community-lake-cta-mobile-v1.webp') }}" type="image/webp">
+            <source media="(max-width: 639px)" srcset="{{ asset('images/home/community-lake-cta-mobile-v3.webp') }}" type="image/webp">
             <img
-                src="{{ asset('images/home/community-lake-cta-v2.png') }}"
+                src="{{ asset('images/home/community-lake-cta-v3.webp') }}"
                 alt=""
                 loading="lazy"
                 class="absolute inset-0 h-full w-full object-cover object-center sm:object-[73%_center] md:object-center"
@@ -548,10 +548,11 @@ new
         </picture>
         <div class="absolute inset-0 bg-[linear-gradient(90deg,rgba(3,16,29,0.4)_0%,rgba(3,16,29,0.22)_38%,rgba(3,16,29,0.04)_72%,rgba(3,16,29,0.08)_100%)]"></div>
         <div class="absolute inset-0 bg-[linear-gradient(0deg,rgba(2,13,24,0.24)_0%,rgba(2,13,24,0)_74%)]"></div>
+        <div class="absolute inset-x-0 bottom-0 h-16 bg-[linear-gradient(to_bottom,transparent_0%,#f4f1e8_100%)] sm:h-20"></div>
 
-        <div class="relative mx-auto grid min-h-[28rem] max-w-[120rem] gap-9 px-5 py-9 sm:min-h-[24rem] sm:px-8 sm:py-10 md:grid-cols-[minmax(0,1.15fr)_minmax(19rem,0.85fr)] md:items-stretch lg:min-h-[19rem] lg:px-14 lg:py-8 xl:px-16">
-            <div class="flex max-w-2xl flex-col justify-end">
-                <h2 class="font-serif text-[2.7rem] font-normal italic leading-[0.98] tracking-[-0.025em] text-[#f4dfa0] sm:text-5xl">
+        <div class="relative z-10 mx-auto grid min-h-[40rem] max-w-[120rem] gap-12 px-5 pt-12 pb-24 sm:min-h-[36rem] sm:px-8 sm:pt-12 md:grid-cols-[minmax(0,1.15fr)_minmax(19rem,0.85fr)] md:items-stretch lg:min-h-[32rem] lg:px-14 lg:pt-10 lg:pb-32 xl:px-16">
+            <div class="flex max-w-2xl flex-col justify-end md:justify-center">
+                <h2 class="font-serif text-[clamp(2rem,9.2vw,2.7rem)] font-normal italic leading-[0.98] tracking-[-0.025em] text-[#f4dfa0] sm:text-5xl">
                     {{ __('Ilmu Menghubungkan Kita') }}
                 </h2>
                 <p class="mt-3 max-w-xl text-sm leading-6 text-white/90 sm:text-base">
@@ -576,7 +577,7 @@ new
                     {{ __('Ilmu diamalkan, ummah diperkasakan.') }}
                 </p>
 
-                <div class="grid grid-cols-2 gap-x-3 gap-y-5 text-center sm:grid-cols-4 sm:gap-x-5 lg:gap-x-6">
+                <div class="grid grid-cols-2 gap-x-3 gap-y-7 text-center sm:grid-cols-4 sm:gap-x-5 lg:gap-x-6">
                     @foreach([
                         ['icon' => 'mosque', 'label' => __('Lebih Dekat dengan Masjid')],
                         ['icon' => 'book', 'label' => __('Lebih Dekat dengan Ulama')],

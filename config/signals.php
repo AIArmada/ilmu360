@@ -94,7 +94,7 @@ $tablePrefix = 'signal_';
 return [
     'database' => [
         'table_prefix' => $tablePrefix,
-        'json_column_type' => env('SIGNALS_JSON_COLUMN_TYPE', env('COMMERCE_JSON_COLUMN_TYPE', 'json')),
+        'json_column_type' => env('SIGNALS_JSON_COLUMN_TYPE', 'jsonb'),
         'tables' => [
             'tracked_properties' => $tablePrefix.'tracked_properties',
             'identities' => $tablePrefix.'identities',

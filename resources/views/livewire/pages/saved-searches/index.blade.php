@@ -1,6 +1,6 @@
 @section('title', __('Saved Searches') . ' - ' . config('app.name'))
 
-<div class="bg-slate-50 min-h-screen py-12 pb-32">
+<div class="saved-searches-field min-h-screen py-12 pb-32">
     <div class="container mx-auto px-6 lg:px-12">
         <div class="max-w-5xl mx-auto space-y-8">
             <div class="text-center">

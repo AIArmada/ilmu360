@@ -125,7 +125,6 @@ class EventPayloadData extends Data
             'event_url' => $occurrenceLinks->firstWhere('link_type', 'external')->url ?? $event->event_url,
             'live_url' => $occurrenceLinks->firstWhere('link_type', 'streaming')->url ?? $event->live_url,
             'recording_url' => $event->recording_url,
-            'is_featured' => $event->is_featured,
             'published_at' => self::utcDateTimeString($event->published_at),
             'is_muslim_only' => $occurrenceScopedContent && $displayOccurrence instanceof EventOccurrence
                 ? $occurrenceAudiences->contains(fn ($audience): bool => $audience->audience_type === 'religion' && $audience->value === 'muslim_only')
@@ -280,6 +279,7 @@ class EventPayloadData extends Data
                 'status' => (string) $displayOccurrence->status,
                 'visibility' => (string) $displayOccurrence->visibility,
                 'delivery_mode' => (string) $displayOccurrence->delivery_mode,
+                'is_featured' => (bool) $displayOccurrence->is_featured,
                 'description' => self::occurrenceDescription($displayOccurrence),
                 'gender' => $occurrenceAudiences->firstWhere('audience_type', 'gender')?->value,
                 'age_group' => $occurrenceAudiences->where('audience_type', 'age_group')->pluck('value')->values()->all(),

@@ -22,8 +22,8 @@ return new class extends Migration
             $table->string('title', 180);
             $table->text('description');
             $table->string('page_url', 2048)->nullable();
-            $table->json('diagnostics')->nullable();
-            $table->json('details')->nullable();
+            $table->jsonb('diagnostics')->nullable();
+            $table->jsonb('details')->nullable();
 
             $table->string('status', 24)->default('new');
             $table->foreignUuid('handled_by')->nullable();

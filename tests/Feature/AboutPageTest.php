@@ -1,14 +1,9 @@
 <?php
 
-use App\Enums\InstitutionStatus;
-use App\Models\Institution;
-use App\Models\Person;
-use Illuminate\Support\Facades\Cache;
-
 use function Pest\Laravel\get;
 
 it('loads the about page through the canonical route', function (): void {
-    $expected = data_get(trans('about'), 'hero.title');
+    $expected = data_get(trans('about'), 'reference.hero.title');
 
     get(route('about'))
         ->assertOk()
@@ -19,40 +14,46 @@ it('loads the about page through the canonical route', function (): void {
         ->assertSee((string) $expected);
 });
 
+it('renders the about hero behind the floating header', function (): void {
+    get(route('about'))
+        ->assertOk()
+        ->assertSee('jp-shell-header absolute inset-x-0 top-0 z-50 w-full transition-all', false);
+});
+
 it('renders the about page in each supported locale', function (string $locale, string $expected): void {
     $this->withSession(['locale' => $locale])
         ->get(route('about'))
         ->assertOk()
         ->assertSee($expected);
 })->with([
-    ['en', 'The masjid is here. The majlis is here.'],
-    ['ms', 'Masjidnya ada. Majlisnya ada.'],
-    ['ar', 'المسجد موجود. المجلس موجود.'],
-    ['zh', 'Masjid 在这里。Majlis 也在这里。'],
-    ['ta', 'Masjid உள்ளது. Majlis உள்ளது.'],
-    ['jv', 'Masjide wis ana. Majlise wis ana.'],
+    ['en', 'Knowledge is closer than you think.'],
+    ['ms', 'Ilmu di Sekeliling Kita.'],
+    ['ar', 'العلم أقرب مما تظن.'],
+    ['zh', '知识，其实就在身边。'],
+    ['ta', 'அறிவு அருகில்தான் இருக்கிறது.'],
+    ['jv', 'Ngèlmu tansah cedhak.'],
 ]);
 
-it('tells the whole story the page is built around', function (): void {
+it('tells the about story through the reference layout', function (): void {
     $this->withSession(['locale' => 'ms'])
         ->get(route('about'))
         ->assertOk()
-        ->assertSee('Cuma khabarnya belum sampai.')
-        ->assertSee('Anak-anak sudah tidur')
-        ->assertSee('Hassan')
-        ->assertSee('Sarah')
-        ->assertSee('Amir')
-        ->assertSee('Rantaian yang selalu putus')
-        ->assertSee('Apa yang ilmu360° buat.')
-        ->assertSee('menyelamatkan malam Selasa Hassan')
-        ->assertSee('Jalan yang tenang.')
-        ->assertSee('Cari yang dekat')
-        ->assertSee('Ajak seorang lagi')
-        ->assertSee('Siapa yang kami bina untuk ini.')
-        ->assertSee('Nabi Muhammad')
-        ->assertSee('Dengar. Faham. Amal.')
-        ->assertSee('dalam perjalanan pulang yang sunyi')
-        ->assertSee('Sertai komuniti');
+        ->assertSee('Bukan Mewujudkan, Tetapi Menyerlahkan.')
+        ->assertSee('Peluangnya Sangat Besar.')
+        ->assertSee('Realiti Hari Ini.')
+        ->assertSee('Dengan ilmu360°.')
+        ->assertSee('Apa Itu ilmu360°?')
+        ->assertSee('360° dalam Kehidupan Kita.')
+        ->assertSee('Untuk Siapa?')
+        ->assertSee('Membuka Jalan Kepada Generasi Baharu.')
+        ->assertSee('Nilai yang')
+        ->assertSee('Amanah Kami.')
+        ->assertSee('Jom Terokai 360° Peluang Ilmu.')
+        ->assertSee('Terokai Majlis Sekarang')
+        ->assertSee('Hantar Majlis Anda')
+        ->assertDontSee('Hassan')
+        ->assertDontSee('Sarah')
+        ->assertDontSee('Amir');
 });
 
 it('exposes canonical SEO and structured data for the about page', function (): void {
@@ -80,24 +81,19 @@ it('links to the about page from the public layout', function (): void {
         ->assertSee(__('About Us'));
 });
 
-it('hides the living proof band when the database is empty', function (): void {
-    Cache::forget('about.stats');
-
+it('does not render the retired living proof band', function (): void {
     $this->withSession(['locale' => 'ms'])
         ->get(route('about'))
         ->assertOk()
-        ->assertDontSee('Yang sudah berjalan.');
+        ->assertDontSee('Majlis dan komuniti yang tersenarai di ilmu360°.');
 });
 
-it('shows living proof with real counts once the ummah is inside', function (): void {
-    Institution::factory()->create(['status' => InstitutionStatus::Verified]);
-    Person::factory()->create(['status' => 'verified']);
-    Cache::forget('about.stats');
-
+it('renders the reference scale and trust markers', function (): void {
     $this->withSession(['locale' => 'ms'])
         ->get(route('about'))
         ->assertOk()
-        ->assertSee('Yang sudah berjalan.')
-        ->assertSee('Masjid &amp; Surau', false)
-        ->assertSee('Asatizah');
+        ->assertSee('25,000+')
+        ->assertSee('300,000+')
+        ->assertSee('25,000 masjid × 1 majlis sebulan × 12 bulan = 300,000+ peluang ilmu setahun')
+        ->assertSee('Amanah Kami.');
 });

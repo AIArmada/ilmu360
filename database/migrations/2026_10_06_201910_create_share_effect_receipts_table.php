@@ -15,7 +15,7 @@ return new class extends Migration
             $table->string('source_id', 191)->index();
             $table->string('effect_type', 64)->index();
             $table->string('status', 16)->default('pending')->index();
-            $table->json('payload')->nullable();
+            $table->jsonb('payload')->nullable();
             $table->unsignedInteger('attempts')->default(0);
             $table->uuid('lease_token')->nullable()->index();
             $table->string('leased_by', 64)->nullable();

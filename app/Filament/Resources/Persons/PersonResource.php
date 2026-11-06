@@ -28,6 +28,10 @@ class PersonResource extends PackagePersonResource
 
     protected static ?string $slug = 'persons';
 
+    protected static ?string $navigationLabel = 'Persons';
+
+    protected static ?string $pluralModelLabel = 'Persons';
+
     #[\Override]
     public static function form(Schema $schema): Schema
     {

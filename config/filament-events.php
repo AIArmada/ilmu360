@@ -5,6 +5,7 @@ declare(strict_types=1);
 use AIArmada\FilamentEvents\Extensions\DefaultEventMediaExtension;
 use AIArmada\FilamentSeating\RelationManagers\SeatMapsRelationManager;
 use AIArmada\FilamentTicketing\RelationManagers\TicketTypesRelationManager;
+use App\Filament\Resources\EventOccurrences\EventOccurrenceFeaturedFormExtension;
 use App\Filament\Resources\Events\EventAdminContextFormExtension;
 use App\Filament\Resources\Events\RelationManagers\ReferencesRelationManager;
 use App\Filament\Resources\EventTerms\TermDomainMappingExtension;
@@ -29,6 +30,9 @@ return [
         'event_form_extensions' => [
             EventAdminContextFormExtension::class,
             DefaultEventMediaExtension::class,
+        ],
+        'occurrence_form_extensions' => [
+            EventOccurrenceFeaturedFormExtension::class,
         ],
         'term_form_extensions' => [
             TermDomainMappingExtension::class,

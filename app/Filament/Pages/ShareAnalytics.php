@@ -10,6 +10,7 @@ use App\Support\ShareTracking\ShareTrackingMeasurement;
 use BackedEnum;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Facades\Cache;
 use UnitEnum;
 
 /**
@@ -56,7 +57,12 @@ final class ShareAnalytics extends Page
 
     public function mount(AdminShareAnalyticsService $analytics): void
     {
-        $this->report = $analytics->dashboard();
+        $this->report = Cache::remember(
+            'filament.share-analytics.dashboard:'.app()->getLocale().':'.(ShareTrackingMeasurement::reportingStart() ?? 'unconfigured').':'.ShareTrackingMeasurement::definitionVersion(),
+            now()->addMinute(),
+            fn (): array => $analytics->dashboard(),
+        );
+
         $this->measurementStatus = ShareTrackingMeasurement::status();
         $this->reportingStart = ShareTrackingMeasurement::reportingStart();
         $this->signalsReportUrl = class_exists(PageViewsReport::class)

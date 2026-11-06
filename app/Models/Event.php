@@ -13,7 +13,6 @@ use AIArmada\Engagement\Traits\HasResponses;
 use AIArmada\Events\Enums\RegistrationMode as PackageRegistrationMode;
 use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventAccessPolicy;
-use AIArmada\Events\Models\EventAttribute;
 use AIArmada\Events\Models\EventAudience;
 use AIArmada\Events\Models\EventAudienceProfile;
 use AIArmada\Events\Models\EventClassification;
@@ -113,7 +112,6 @@ use Spatie\ModelStates\HasStates;
  * @property string|null $recording_url
  * @property Carbon|null $published_at
  * @property array<string, mixed>|null $metadata
- * @property bool|null $is_featured
  * @property bool|null $is_muslim_only
  * @property-read Institution|null $institution
  * @property-read Institution|Person|null $organizer
@@ -236,11 +234,6 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
      */
     private array $pendingAudienceProfileWrites = [];
 
-    /**
-     * @var array<string, mixed>
-     */
-    private array $pendingAttributeWrites = [];
-
     /** @var list<string> */
     private array $pendingCategoryIds = [];
 
@@ -259,7 +252,6 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
         static::saved(function (Event $event): void {
             $event->syncUrlLinks();
             $event->syncAudiences();
-            $event->syncAttributes();
         });
 
         static::deleting(function (Event $event) {
@@ -332,7 +324,6 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
         'registration_mode',
         'issue_passes_for_free',
         'metadata',
-        'is_featured',
         'is_muslim_only',
     ];
 
@@ -886,56 +877,6 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
         $this->pendingAudienceProfileWrites = [];
     }
 
-    // ─── EventAttribute (is_featured) ──────────────────────────────────────
-
-    public function getIsFeaturedAttribute(mixed $value): ?bool
-    {
-        if (array_key_exists('is_featured', $this->pendingAttributeWrites)) {
-            return $this->pendingAttributeWrites['is_featured'];
-        }
-
-        $attr = $this->relationLoaded('attributes')
-            ? $this->getRelation('attributes')->firstWhere('attribute_key', 'is_featured')
-            : EventAttribute::where('event_id', $this->id)->where('attribute_key', 'is_featured')->value('attribute_value');
-
-        return $attr === null ? null : $attr !== '0';
-    }
-
-    public function setIsFeaturedAttribute(mixed $value): void
-    {
-        // Single source: EventAttribute rows (synced on save).
-        $this->pendingAttributeWrites['is_featured'] = $value === null ? null : (bool) $value;
-    }
-
-    /**
-     * @param  array<string, mixed>  $data
-     */
-    public function syncAttributes(array $data = []): void
-    {
-        $writes = $data !== [] ? $data : $this->pendingAttributeWrites;
-
-        if ($writes === []) {
-            return;
-        }
-
-        foreach ($writes as $key => $value) {
-            match ($key) {
-                'is_featured' => $value === null
-                    ? EventAttribute::query()
-                        ->where('event_id', $this->id)
-                        ->where('attribute_key', $key)
-                        ->delete()
-                    : EventAttribute::updateOrCreate(
-                        ['event_id' => $this->id, 'attribute_key' => $key],
-                        ['attribute_value' => $value ? '1' : '0'],
-                    ),
-                default => null,
-            };
-        }
-
-        $this->pendingAttributeWrites = [];
-    }
-
     // ─── EventLocation (primary venue space) ───────────────────────────────
 
     #[\Override]
@@ -1290,27 +1231,6 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
             ->where("{$table}.visibility", EventVisibility::Public)
             ->whereNotNull("{$table}.published_at")
             ->whereHas('occurrences');
-    }
-
-    /**
-     * Scope a query to events highlighted by the product team.
-     *
-     * @param  Builder<self>  $query
-     */
-    #[Scope]
-    protected function featured(Builder $query): void
-    {
-        $eventTable = $query->getModel()->getTable();
-        $attributeTable = (new EventAttribute)->getTable();
-
-        $query->whereExists(function (QueryBuilder $subquery) use ($attributeTable, $eventTable): void {
-            $subquery
-                ->selectRaw('1')
-                ->from($attributeTable)
-                ->whereColumn("{$attributeTable}.event_id", "{$eventTable}.id")
-                ->where("{$attributeTable}.attribute_key", 'is_featured')
-                ->where("{$attributeTable}.attribute_value", '1');
-        });
     }
 
     /**

@@ -10,6 +10,7 @@ use App\Notifications\AppFeedbackReceivedNotification;
 use App\Notifications\AppFeedbackSubmittedNotification;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
+use Filament\Forms\Components\Select;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Notification;
@@ -52,6 +53,55 @@ it('stores structured bug details without concatenation', function () {
     expect(AppFeedback::sole()->details['expected'])->toBe('Rekod tersimpan');
 });
 
+it('switches the optional questions to match the selected category', function (AppFeedbackCategory $category, bool $hasProblem, bool $hasSuggestion) {
+    $this->actingAs(User::factory()->create());
+
+    $component = Livewire::test(Index::class)
+        ->assertFormFieldExists('category', fn (Select $field): bool => $field->isLive())
+        ->assertFormFieldVisible('details.steps')
+        ->set('data.category', $category->value)
+        ->assertFormFieldHidden('details.steps')
+        ->assertFormFieldHidden('details.expected')
+        ->assertFormFieldHidden('details.actual');
+
+    if ($hasProblem) {
+        $component->assertFormFieldVisible('details.problem');
+    } else {
+        $component->assertFormFieldHidden('details.problem');
+    }
+
+    if ($hasSuggestion) {
+        $component->assertFormFieldVisible('details.suggestion');
+    } else {
+        $component->assertFormFieldHidden('details.suggestion');
+    }
+
+    $component->set('data.category', AppFeedbackCategory::Bug->value)
+        ->assertFormFieldVisible('details.steps')
+        ->assertFormFieldVisible('details.expected')
+        ->assertFormFieldVisible('details.actual')
+        ->assertFormFieldHidden('details.problem')
+        ->assertFormFieldHidden('details.suggestion');
+})->with([
+    'feature request' => [AppFeedbackCategory::FeatureRequest, true, true],
+    'experience' => [AppFeedbackCategory::UiUx, true, true],
+    'performance' => [AppFeedbackCategory::Performance, true, false],
+    'other' => [AppFeedbackCategory::Other, false, false],
+]);
+
+it('renders translated feedback guidance', function (string $locale) {
+    $this->actingAs(User::factory()->create())
+        ->get('/maklum-balas?lang='.$locale)
+        ->assertSuccessful()
+        ->assertDontSee('app-feedback.form.')
+        ->assertSee(__('app-feedback.form.additional_details'))
+        ->assertSee(__('app-feedback.form.supporting_context'));
+
+    expect(__('app-feedback.form.details_steps_placeholder'))
+        ->toContain("\n")
+        ->not->toContain('\\n');
+})->with(['ms', 'en']);
+
 it('submits app feedback with the reporter and initial status', function () {
     Notification::fake();
 
@@ -64,10 +114,10 @@ it('submits app feedback with the reporter and initial status', function () {
             'category' => AppFeedbackCategory::Bug->value,
             'title' => 'Butang simpan tidak berfungsi',
             'description' => 'Butang simpan pada halaman majlis tidak memberi respons.',
-            'include_diagnostics' => false,
         ])
         ->call('submit')
         ->assertHasNoFormErrors()
+        ->assertDispatched('app-feedback-submitted')
         ->assertSet('successMessage', __('app-feedback.flash.submitted'));
 
     $feedback = AppFeedback::sole();
@@ -131,7 +181,8 @@ it('validates required feedback fields', function () {
             'description' => '',
         ])
         ->call('submit')
-        ->assertHasFormErrors(['title', 'description']);
+        ->assertHasFormErrors(['title', 'description'])
+        ->assertNotDispatched('app-feedback-submitted');
 });
 
 it('rejects whitespace-only feedback content', function () {
@@ -164,7 +215,6 @@ it('rejects submissions from blocked users', function () {
         'category' => AppFeedbackCategory::Bug->value,
         'title' => 'Ujian sekatan',
         'description' => 'Pengguna yang disekat tidak boleh menghantar maklum balas.',
-        'include_diagnostics' => false,
     ];
 
     expect(fn () => app(SubmitAppFeedbackAction::class)->handle($user, $data, request()))
@@ -206,7 +256,6 @@ it('limits each user to three new submissions per hour', function () {
         'category' => AppFeedbackCategory::Bug->value,
         'title' => 'Ujian had',
         'description' => 'Ini ialah ujian had penghantaran maklum balas.',
-        'include_diagnostics' => false,
     ];
 
     expect(fn () => app(SubmitAppFeedbackAction::class)->handle($user, $data, request()))
@@ -242,7 +291,6 @@ it('returns the same record when evidence order differs on retry', function () {
         'category' => AppFeedbackCategory::Bug->value,
         'title' => 'Ujian susunan lampiran',
         'description' => 'Susunan lampiran yang berbeza tidak boleh dianggap kandungan berbeza.',
-        'include_diagnostics' => false,
     ];
 
     [$a1, $b1] = $makeFiles();
@@ -264,7 +312,6 @@ it('returns the same record when the same submission is retried', function () {
         'category' => AppFeedbackCategory::Other->value,
         'title' => 'Ujian ulangan',
         'description' => 'Ini ialah ujian penghantaran semula yang sama.',
-        'include_diagnostics' => false,
     ];
 
     $first = app(SubmitAppFeedbackAction::class)->handle($user, $data, request());
@@ -284,7 +331,6 @@ it('rejects a reused submission key with different content', function () {
         'category' => AppFeedbackCategory::Bug->value,
         'title' => 'Ujian kunci',
         'description' => 'Ini ialah kandungan pertama untuk ujian kunci.',
-        'include_diagnostics' => false,
     ];
 
     app(SubmitAppFeedbackAction::class)->handle($user, $data, request());
@@ -328,6 +374,23 @@ it('stores evidence on the private app feedback disk', function () {
         ]))
         ->assertDownload($media->file_name);
 });
+
+it('rejects evidence files with dangerous extensions', function (string $fileName) {
+    Notification::fake();
+
+    $user = User::factory()->create();
+
+    $data = [
+        'submission_key' => (string) Str::uuid(),
+        'category' => AppFeedbackCategory::Bug->value,
+        'title' => 'Ujian fail berbahaya',
+        'description' => 'Fail dengan sambungan berbahaya mesti ditolak.',
+        'evidence' => [UploadedFile::fake()->image($fileName)->mimeType('image/jpeg')],
+    ];
+
+    expect(fn () => app(SubmitAppFeedbackAction::class)->handle($user, $data, request()))
+        ->toThrow(ValidationException::class);
+})->with(['malware.php', 'archive.zip', 'setup.exe']);
 
 it('serves image evidence inline for preview', function () {
     Notification::fake();

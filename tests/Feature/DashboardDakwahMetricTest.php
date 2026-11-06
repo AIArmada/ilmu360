@@ -31,18 +31,16 @@ test('dashboard presents an attributed follow as a recorded response rather than
     $response = $this->actingAs($user)->get(route('dashboard'))
         ->assertSuccessful()
         ->assertSee(__('Recorded Responses'))
-        ->assertSee(__('Visits'))
-        ->assertSee(__('Signups'))
-        ->assertSee(__('Distinct Browsers'))
+        ->assertDontSee(__('Sumbangan Saya'))
         ->assertDontSee(__('Sesi Ilmu Disokong'))
         ->assertDontSee(__('Jumlah Jangkauan'));
 
     $document = new DOMDocument;
     @$document->loadHTML('<?xml encoding="UTF-8">'.$response->getContent());
     $xpath = new DOMXPath($document);
-    $responseLabel = $xpath->query('//p[normalize-space(.)="'.__('Recorded Responses').'"]/preceding-sibling::p[1]')->item(0);
+    $responseLabel = $xpath->query('//span[normalize-space(.)="'.__('Recorded Responses').'"]/preceding-sibling::span[1]')->item(0);
 
-    expect($responseLabel?->textContent)->toBe('1');
+    expect(trim((string) $responseLabel?->textContent))->toBe('1');
 });
 
 test('dashboard withholds dakwah measurements instead of showing zero success claims before reporting is configured', function (): void {
@@ -52,16 +50,15 @@ test('dashboard withholds dakwah measurements instead of showing zero success cl
     $response = $this->actingAs($user)->get(route('dashboard'))
         ->assertSuccessful()
         ->assertSee(__('Measurements withheld'))
-        ->assertSee(__('Reporting is not configured yet. Measurements appear after the operator declares a reporting start.'))
+        ->assertDontSee(__('Sumbangan Saya'))
+        ->assertDontSee(__('How we count'))
         ->assertDontSee(__('Anda telah membantu membuka jalan kepada ilmu sebanyak :count kali.', ['count' => '0']));
 
     $document = new DOMDocument;
     @$document->loadHTML('<?xml encoding="UTF-8">'.$response->getContent());
     $xpath = new DOMXPath($document);
-    $section = $xpath->query('//h2[normalize-space(.)="'.__('Sumbangan Saya').'"]/ancestor::section[1]')->item(0);
+    $recordedResponsesValue = $xpath->query('//span[normalize-space(.)="'.__('Recorded Responses').'"]/preceding-sibling::span[1]')->item(0);
 
-    expect($section)->not->toBeNull();
-    expect($section?->textContent)->not->toMatch('/\b0\b/u');
-    expect($section?->textContent)->not->toContain(__('Aktif'));
-    expect($section?->textContent)->toContain(__('How we count'));
+    expect($recordedResponsesValue?->textContent)->toContain('—')
+        ->and($recordedResponsesValue?->textContent)->not->toContain('0');
 });

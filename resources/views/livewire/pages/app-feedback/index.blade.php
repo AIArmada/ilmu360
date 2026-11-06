@@ -40,8 +40,58 @@
         @endif
 
         @if ($canSubmit)
-            <section class="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7 lg:p-8">
-                <form wire:submit="submit" class="space-y-6" x-data="appFeedbackDraft" x-init="init()" @submit="clear()">
+            <section class="mt-8 sm:mt-10">
+                <form
+                    wire:submit="submit"
+                    class="space-y-6"
+                    x-data="{
+                        init() {
+                            try {
+                                const saved = sessionStorage.getItem('app-feedback-draft');
+                                if (saved && ! this.$wire.get('data.title')) {
+                                    const draft = JSON.parse(saved);
+                                    if (draft && typeof draft === 'object') {
+                                        for (const key of ['title', 'description']) {
+                                            if (typeof draft[key] === 'string') {
+                                                this.$wire.set(`data.${key}`, draft[key], false);
+                                            }
+                                        }
+                                        if (draft.details && typeof draft.details === 'object') {
+                                            for (const key of ['steps', 'expected', 'actual', 'problem', 'suggestion']) {
+                                                if (typeof draft.details[key] === 'string') {
+                                                    this.$wire.set(`data.details.${key}`, draft.details[key], false);
+                                                }
+                                            }
+                                        }
+                                        if (typeof draft.category === 'string') {
+                                            this.$wire.set('data.category', draft.category);
+                                        }
+                                    }
+                                }
+                            } catch (error) { /* Draft storage may be unavailable or corrupt. */ }
+                            this.$watch('$wire.data', () => this.save());
+                        },
+                        save() {
+                            try {
+                                const draft = {
+                                    category: this.$wire.get('data.category'),
+                                    title: this.$wire.get('data.title') ?? '',
+                                    description: this.$wire.get('data.description') ?? '',
+                                    details: this.$wire.get('data.details') ?? {},
+                                };
+                                if (! draft.title && ! draft.description && ! Object.values(draft.details).some(Boolean)) {
+                                    this.clear();
+                                    return;
+                                }
+                                sessionStorage.setItem('app-feedback-draft', JSON.stringify(draft));
+                            } catch (error) { /* Draft storage may be unavailable. */ }
+                        },
+                        clear() {
+                            try { sessionStorage.removeItem('app-feedback-draft'); } catch (error) { /* Storage unavailable. */ }
+                        },
+                    }"
+                    @app-feedback-submitted.window="clear()"
+                >
                     {{ $this->form }}
 
                     @if (filled($formError))
@@ -50,8 +100,7 @@
                         </div>
                     @endif
 
-                    <div class="flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
-                        <p class="text-xs leading-5 text-slate-500">{{ __('app-feedback.form.evidence_help') }}</p>
+                    <div class="flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-end">
                         <button
                             type="submit"
                             class="inline-flex w-full items-center justify-center rounded-xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-wait disabled:opacity-60 sm:w-auto"
@@ -64,40 +113,6 @@
                     </div>
                 </form>
             </section>
-            <script>
-                document.addEventListener('alpine:init', () => {
-                    Alpine.data('appFeedbackDraft', () => ({
-                        init() {
-                            try {
-                                const saved = sessionStorage.getItem('app-feedback-draft');
-                                if (saved && ! this.$wire.get('data.title')) {
-                                    const draft = JSON.parse(saved);
-                                    if (draft && typeof draft === 'object') {
-                                        Object.entries(draft).forEach(([key, value]) => {
-                                            if (typeof value === 'string' && value !== '') {
-                                                this.$wire.set(`data.${key}`, value);
-                                            }
-                                        });
-                                    }
-                                }
-                            } catch (e) { /* ignore corrupt drafts */ }
-                            this.$watch('$wire.data.title', () => this.save());
-                            this.$watch('$wire.data.description', () => this.save());
-                        },
-                        save() {
-                            try {
-                                sessionStorage.setItem('app-feedback-draft', JSON.stringify({
-                                    title: this.$wire.get('data.title') ?? '',
-                                    description: this.$wire.get('data.description') ?? '',
-                                }));
-                            } catch (e) { /* storage unavailable */ }
-                        },
-                        clear() {
-                            try { sessionStorage.removeItem('app-feedback-draft'); } catch (e) { /* ignore */ }
-                        },
-                    }));
-                });
-            </script>
         @else
             <section class="mt-6 rounded-3xl border border-amber-200 bg-amber-50 p-6 text-sm leading-6 text-amber-900">
                 <p class="font-semibold">{{ __('app-feedback.flash.blocked') }}</p>
@@ -106,7 +121,7 @@
             </section>
         @endif
 
-        <section id="maklum-balas-saya" class="mt-10 scroll-mt-24">
+        <section id="maklum-balas-saya" class="mt-14 scroll-mt-24 border-t border-slate-200 pt-8 sm:mt-16 sm:pt-10">
             <div class="flex flex-wrap items-end justify-between gap-3">
                 <div>
                     <p class="text-xs font-bold uppercase tracking-[0.22em] text-emerald-700">{{ __('app-feedback.history.heading') }}</p>

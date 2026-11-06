@@ -5,7 +5,6 @@ use App\Enums\MemberSubjectType;
 use App\Http\Controllers\Api\RegistrationExportController;
 use App\Http\Controllers\AppFeedbackEvidenceController;
 use App\Http\Controllers\Auth\SocialiteController;
-use App\Http\Controllers\ShareController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\NetworkDiagnosticsController;
 use App\Http\Controllers\Public\EventCheckoutResultController;
@@ -13,6 +12,7 @@ use App\Http\Controllers\Public\EventPassController;
 use App\Http\Controllers\Public\ReferralInviteLandingController;
 use App\Http\Controllers\ShareCardController;
 use App\Http\Controllers\ShareClaimController;
+use App\Http\Controllers\ShareController;
 use App\Http\Controllers\ShareRedirectController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Middleware\ResolvePublicSlugRedirect;
@@ -179,10 +179,10 @@ Route::middleware('auth')->group(function () {
     Route::livewire('/majlis/{event:slug}/pendaftaran/{registration}/refund', EventRefund::class)
         ->middleware('verified')
         ->name('events.registration.refund');
-    Route::livewire('/dashboard/organisasi', OrganizationsIndex::class)->name('dashboard.organizations.index');
-    Route::livewire('/dashboard/organisasi/cipta', CreateOrganization::class)->name('dashboard.organizations.create');
-    Route::livewire('/dashboard/organisasi/{organization}', OrganizationWorkspace::class)->name('dashboard.organizations.show');
-    Route::livewire('/dashboard/organisasi/{organization}/majlis/cipta', CreateOrganizationEvent::class)->name('dashboard.organizations.events.create');
+    Route::livewire('/organisasi', OrganizationsIndex::class)->name('dashboard.organizations.index');
+    Route::livewire('/organisasi/cipta', CreateOrganization::class)->name('dashboard.organizations.create');
+    Route::livewire('/organisasi/{organization}', OrganizationWorkspace::class)->name('dashboard.organizations.show');
+    Route::livewire('/organisasi/{organization}/majlis/cipta', CreateOrganizationEvent::class)->name('dashboard.organizations.events.create');
     Route::get('/checkout/result/{session}', [EventCheckoutResultController::class, 'show'])
         ->middleware('verified')
         ->name('checkout.result');

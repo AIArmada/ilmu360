@@ -131,7 +131,7 @@ The package ships its own `NotificationFamily`, `NotificationPriority`, `Notific
 **Goal**: Create a mapping layer between app enums and package enums.
 
 **Local enums** (`App\Enums\`):
-- `NotificationFamily` — 6 values (EventUpdates, DirectoryUpdates, System, Engagement, Dawah, Account)
+- `NotificationFamily` — 6 values (EventUpdates, DirectoryUpdates, System, Engagement, Sharing, Account)
 - `NotificationTrigger` — 22 values
 - `NotificationPriority` — 4 values
 - `NotificationChannel` — 4 values (InApp, Email, Push, Whatsapp)

@@ -52,21 +52,11 @@
         ],
     ];
 
-    $impactMetrics = [
-        ['label' => __('Recorded Responses'), 'value' => $dakwahSummary['total_outcomes']],
-        ['label' => __('Visits'), 'value' => $dakwahSummary['visits']],
-        ['label' => __('Signups'), 'value' => $dakwahSummary['signups']],
-        ['label' => __('Distinct Browsers'), 'value' => $dakwahSummary['distinct_browsers']],
-    ];
-
 @endphp
 
-<div class="min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-[#f7f3ea] pb-0">
-    <section class="relative max-w-[100vw] overflow-hidden border-b border-[#eadfca] bg-[#fbf8f1]">
-        <div class="pointer-events-none absolute inset-0 opacity-[0.16]"
-            style="background-image: url('{{ asset('images/pattern-bg.jpg') }}'); background-position: center; background-size: 420px;"></div>
-        <div class="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#fbf8f1] via-[#fbf8f1]/96 to-[#f6efe0]/90"></div>
-        <div class="container relative mx-auto px-6 py-6 lg:px-12 lg:py-8">
+<div class="w-full max-w-[100vw] overflow-x-hidden bg-[#f7f3ea]">
+    <section class="relative max-w-[100vw] overflow-hidden">
+        <div class="container relative mx-auto px-6 pt-16 pb-6 lg:px-12 lg:pt-24 lg:pb-8">
             <div class="relative z-10 rounded-lg border border-[#eadfca] bg-white/95 p-4 shadow-xl shadow-amber-950/10 backdrop-blur">
                 <div class="grid grid-cols-3 gap-2 md:grid-cols-3 xl:grid-cols-6">
                     @foreach($dashboardStats as $stat)
@@ -121,7 +111,7 @@
             </section>
         @endif
         @include('share.claim-prompt')
-        <div class="grid gap-7 xl:grid-cols-[minmax(0,1fr)_380px]">
+        <div class="min-w-0">
             <div class="min-w-0 space-y-7">
                 <section id="carian-saya" class="rounded-lg border border-[#eadfca] bg-white p-5 shadow-sm">
                     <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -168,76 +158,7 @@
                     </div>
                 </section>
 
-                <section class="rounded-lg border border-[#eadfca] bg-white p-5 shadow-sm">
-                    <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                        <div class="flex items-start gap-3">
-                            <span class="flex size-10 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
-                                <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 21s-7-4.4-7-10a4 4 0 017-2.6A4 4 0 0119 11c0 5.6-7 10-7 10z" />
-                                </svg>
-                            </span>
-                            <div>
-                                <h2 class="font-heading text-2xl font-bold text-[#0b2a42]">{{ __('Sumbangan Saya') }}</h2>
-                                @if($dakwahMeasurementsAvailable)
-                                    <p class="mt-2 max-w-xl text-sm leading-6 text-slate-600">{{ __('Currently valid follow-up actions. Counts actions, not people.') }}</p>
-                                @else
-                                    <p role="status" class="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">{{ __('Reporting is not configured yet. Measurements appear after the operator declares a reporting start.') }}</p>
-                                @endif
-                            </div>
-                        </div>
-                        <a href="{{ route('dakwah') }}" wire:navigate class="text-sm font-semibold text-emerald-800 transition hover:text-emerald-950">{{ __('Lihat laporan penuh') }}</a>
-                    </div>
-
-                    @if($dakwahMeasurementsAvailable)
-                        <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                            @foreach($impactMetrics as $metric)
-                                <div class="rounded-lg border border-[#eadfca] bg-[#fbf8f1] px-4 py-3 text-center">
-                                    <p class="font-heading text-2xl font-bold text-[#0b2a42]">{{ number_format($metric['value']) }}</p>
-                                    <p class="mt-1 text-xs font-medium text-slate-600">{{ $metric['label'] }}</p>
-                                </div>
-                            @endforeach
-                        </div>
-
-                    @endif
-
-                    <div class="mt-5 rounded-lg border border-[#eadfca]">
-                        <h3 class="border-b border-[#eadfca] px-4 py-3 text-sm font-semibold text-emerald-800">{{ __('How we count') }}</h3>
-                        <dl class="divide-y divide-[#eadfca]">
-                            @foreach([
-                                [__('Visits'), __('Visits attributed to your sharing.')],
-                                [__('Signups'), __('New accounts created after a share touch.')],
-                                [__('Recorded Responses'), __('Currently valid follow-up actions. Counts actions, not people.')],
-                            ] as [$label, $description])
-                                <div class="px-4 py-3 text-sm">
-                                    <dt class="font-semibold text-slate-700">{{ $label }}</dt>
-                                    <dd class="mt-1 text-slate-600">{{ $description }}</dd>
-                                </div>
-                            @endforeach
-                        </dl>
-                        <p class="border-t border-[#eadfca] px-4 py-3 text-sm text-slate-600">{{ __('Responses count recorded actions, not your current saved items or followed pages.') }}</p>
-                    </div>
-                </section>
             </div>
-
-            <aside class="min-w-0 space-y-7">
-                <section class="relative overflow-hidden rounded-lg border border-emerald-900 bg-emerald-900 p-6 text-white shadow-sm">
-                    <div class="pointer-events-none absolute inset-0 bg-repeat opacity-15"
-                        style="background-image: url('{{ asset('images/pattern-bg.jpg') }}'); background-size: 260px;"></div>
-                    <div class="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/0 via-white/0 to-black/10"></div>
-                    <div class="relative">
-                    <h2 class="font-heading text-2xl font-bold">{{ __('Sebarkan ilmu, luaskan manfaat.') }}</h2>
-                    <p class="mt-3 text-sm leading-6 text-emerald-50">{{ __('Jemput rakan dan keluarga untuk sertai Ilmu360 dan temui majlis ilmu yang bermanfaat.') }}</p>
-                    <a href="{{ route('dashboard.referrals') }}" wire:navigate class="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-200/50 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10">
-                        <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 7a3 3 0 11-6 0 3 3 0 016 0zM4 21a8 8 0 0116 0" />
-                        </svg>
-                        {{ __('Jemput Sekarang') }}
-                    </a>
-                    </div>
-                </section>
-
-                </section>
-            </aside>
         </div>
     </main>
 

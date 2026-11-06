@@ -97,7 +97,7 @@ function pgspConversion(Affiliate $affiliate, AffiliateLink $link): AffiliateCon
 function pgspMemberAffiliate(User $user): Affiliate
 {
     $affiliate = new Affiliate([
-        'code' => 'MI'.strtoupper(substr(hash('sha256', 'prune-guest-member'), 0, 12)),
+        'code' => 'I360'.strtoupper(substr(hash('sha256', 'prune-guest-member'), 0, 12)),
         'name' => $user->name,
         'status' => Active::class,
         'commission_type' => CommissionType::Percentage,

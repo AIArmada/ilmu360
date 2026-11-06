@@ -957,7 +957,7 @@ it('survives a canonical member code collision inside a caller transaction', fun
     $otherUser = User::factory()->create(['email' => 'wp1-collision-squatter@example.test']);
 
     // Canonical deterministic identity (see AffiliatesShareTrackingService::memberAffiliateCode).
-    $code = 'MI'.strtoupper(substr(hash('sha256', 'share-member-v1|'.$victim->getMorphClass().'|'.$victim->getKey()), 0, 12));
+    $code = 'I360'.strtoupper(substr(hash('sha256', 'share-member-v1|'.$victim->getMorphClass().'|'.$victim->getKey()), 0, 12));
 
     $squatter = new Affiliate([
         'code' => $code,

@@ -328,7 +328,7 @@ InstitutionSeeder, VenueSeeder, LanguageSeeder, FacilityTypeSeeder, DistrictSeed
 | Scope | Status | Edge Cases |
 |-------|--------|------------|
 | `Event::active()` | **COVERED** | Approved/pending/cancelled included; draft/private/deactivated excluded |
-| `Event::featured()` | **COVERED** | `is_featured` true/false/unset |
+| `EventOccurrence::featured()` | **COVERED** | `is_featured` true/false/unset |
 | `Event::discoverable()` | Covered indirectly | Through `publicSearchable()` |
 | `Speaker::active()` | **COVERED** | Verified/inactive |
 | `Institution::active()` | **COVERED** | Verified/inactive |

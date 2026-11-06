@@ -21,7 +21,14 @@ use App\Support\Api\Member\MemberResourceRegistry;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 
-it('hides organization creation entry points from the frontend workspace', function (): void {
+it('serves organization workspaces from top-level organisasi routes', function (): void {
+    expect(route('dashboard.organizations.index', absolute: false))->toBe('/organisasi')
+        ->and(route('dashboard.organizations.create', absolute: false))->toBe('/organisasi/cipta')
+        ->and(route('dashboard.organizations.show', 'org-id', absolute: false))->toBe('/organisasi/org-id')
+        ->and(route('dashboard.organizations.events.create', 'org-id', absolute: false))->toBe('/organisasi/org-id/majlis/cipta');
+});
+
+it('shows organization creation entry only from the workspaces page', function (): void {
     $user = User::factory()->create();
 
     $this->actingAs($user)
@@ -32,8 +39,8 @@ it('hides organization creation entry points from the frontend workspace', funct
     $this->actingAs($user)
         ->get(route('dashboard.organizations.index'))
         ->assertOk()
-        ->assertDontSee(route('dashboard.organizations.create'), false)
-        ->assertDontSee('Create organization');
+        ->assertSee(route('dashboard.organizations.create'), false)
+        ->assertSee(__('Create organization'));
 });
 
 it('lets a signed-in person create an organization from the frontend', function (): void {

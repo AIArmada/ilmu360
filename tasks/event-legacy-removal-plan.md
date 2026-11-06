@@ -59,7 +59,8 @@ Remove the magic layer first, then fix all resulting errors. This ensures no hid
 
 P9-G closed at dual-write removal:
 - starts_at/ends_at: occurrence only (pending buffer → sync, no metadata mirror)
-- is_featured/is_priority/escalated_at: EventAttribute only
+- is_priority/escalated_at: EventAttribute only
+- is_featured: occurrence column only (`event_occurrences.is_featured`; event-level EAV removed 2026-11-04)
 - EscalatePendingEvents: EventAttribute queries only
 - primaryOccurrence() HasOne added
 - productMetadataValue() for intentional product metadata keys

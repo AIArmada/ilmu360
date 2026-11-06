@@ -464,7 +464,6 @@ it('allows admin api event create payload to control initial workflow status', f
         'institution_id' => (string) $institution->getKey(),
         'registration_required' => false,
         'registration_mode' => RegistrationScope::Event->value,
-        'is_featured' => false,
         'status' => 'draft',
     ];
 

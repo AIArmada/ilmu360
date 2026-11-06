@@ -41,7 +41,6 @@ $mode = (string) ($options['mode'] ?? '');
 $readyDir = (string) ($options['ready-dir'] ?? '');
 $slot = (int) ($options['slot'] ?? 0);
 
-
 if (preg_match('/^share_rewards_test_[a-z0-9_]{1,43}$/', $database) !== 1) {
     $fail('Refusing a database outside the isolated worker namespace.');
 }
@@ -78,7 +77,6 @@ $app = require $basePath.'/bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
 
 $workerConfig = RealDriverFixture::connectionConfig($database);
-
 
 config(['database.connections.wp3_race_worker' => $workerConfig]);
 config(['database.default' => 'wp3_race_worker']);

@@ -117,7 +117,6 @@ final readonly class AdminEventInputPreparer
             'recording_url' => $this->normalizeOptionalString($state['recording_url'] ?? $event->recording_url),
             'institution_id' => $input['institution_id'],
             'default_venue_id' => $input['venue_id'],
-            'is_featured' => array_key_exists('is_featured', $state) ? (bool) $state['is_featured'] : (bool) $event->is_featured,
             'status' => $creating ? 'draft' : (string) $event->status,
             'published_at' => $creating ? null : $event->published_at,
         ];

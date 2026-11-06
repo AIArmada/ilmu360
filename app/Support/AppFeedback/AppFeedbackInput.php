@@ -20,7 +20,6 @@ final readonly class AppFeedbackInput
         public string $title,
         public string $description,
         public ?string $pageUrl,
-        public bool $includeDiagnostics,
         public string $submissionKey,
         public array $evidence,
         public ?string $userAgent,
@@ -39,7 +38,6 @@ final readonly class AppFeedbackInput
             'title' => ['required', 'string', 'min:3', 'max:180'],
             'description' => ['required', 'string', 'min:10', 'max:5000'],
             'page_url' => ['nullable', 'string', 'max:2048'],
-            'include_diagnostics' => ['sometimes', 'boolean'],
             'details' => ['nullable', 'array'],
             'details.steps' => ['nullable', 'string', 'max:2000'],
             'details.expected' => ['nullable', 'string', 'max:2000'],
@@ -48,7 +46,7 @@ final readonly class AppFeedbackInput
             'details.suggestion' => ['nullable', 'string', 'max:2000'],
             'details.frequency' => ['nullable', 'string', 'max:50'],
             'evidence' => ['nullable', 'array', 'max:8'],
-            'evidence.*' => ['file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:'.$maxUploadSizeKb],
+            'evidence.*' => ['file', 'mimes:jpg,jpeg,png,webp,pdf', 'extensions:jpg,jpeg,png,webp,pdf', 'max:'.$maxUploadSizeKb],
         ];
     }
 
@@ -62,8 +60,6 @@ final readonly class AppFeedbackInput
             is_array($validated['evidence'] ?? null) ? $validated['evidence'] : [],
             static fn (mixed $file): bool => $file instanceof UploadedFile,
         ));
-
-        $includeDiagnostics = (bool) ($validated['include_diagnostics'] ?? false);
 
         $details = [];
 
@@ -90,11 +86,10 @@ final readonly class AppFeedbackInput
             title: trim((string) $validated['title']),
             description: trim((string) $validated['description']),
             pageUrl: self::sanitizePageUrl($validated['page_url'] ?? null, $request),
-            includeDiagnostics: $includeDiagnostics,
             submissionKey: (string) $validated['submission_key'],
             evidence: $evidence,
-            userAgent: $includeDiagnostics ? self::sanitizeUserAgent($request->userAgent()) : null,
-            appVersion: $includeDiagnostics ? self::sanitizeAppVersion(config('app.version')) : null,
+            userAgent: self::sanitizeUserAgent($request->userAgent()),
+            appVersion: self::sanitizeAppVersion(config('app.version')),
             details: $details,
         );
     }
@@ -104,10 +99,6 @@ final readonly class AppFeedbackInput
      */
     public function diagnostics(): ?array
     {
-        if (! $this->includeDiagnostics) {
-            return null;
-        }
-
         $diagnostics = [];
 
         if (is_string($this->userAgent) && $this->userAgent !== '') {

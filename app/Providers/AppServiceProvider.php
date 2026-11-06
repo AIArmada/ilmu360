@@ -130,6 +130,7 @@ use App\Observers\AddressObserver;
 use App\Observers\CommittedShareTouchpointObserver;
 use App\Observers\EventKeyPersonObserver;
 use App\Observers\EventObserver;
+use App\Observers\EventOccurrenceFeaturedObserver;
 use App\Observers\EventOccurrenceObserver;
 use App\Observers\EventTaxonomyObserver;
 use App\Observers\EventTermObserver;
@@ -175,6 +176,7 @@ use App\Support\Communications\AppQuietHoursResolver;
 use App\Support\Communications\AppSuppressionResolver;
 use App\Support\Communications\ListSafePayloadRedactor;
 use App\Support\Communications\ProbeSafeDestinationResolver;
+use App\Support\Filament\ContentVersionedJs;
 use App\Support\Media\MediaFileNamer;
 use App\Support\Membership\AppMembershipApplicationNotifier;
 use App\Support\Membership\AppMembershipHook;
@@ -237,6 +239,8 @@ class AppServiceProvider extends ServiceProvider
     #[\Override]
     public function register(): void
     {
+        $this->app->bind(Js::class, ContentVersionedJs::class);
+
         $this->app->singleton(EventCategoryCatalog::class, DefaultEventCategoryCatalog::class);
         $this->app->singleton(EventCategoryPolicyResolver::class, EventCategoryPolicy::class);
         $this->app->singleton(SpaceEligibilityResolver::class, DefaultSpaceEligibilityResolver::class);
@@ -623,6 +627,7 @@ class AppServiceProvider extends ServiceProvider
         State::observe(AddressCatalogObserver::class);
         EventKeyPerson::observe(EventKeyPersonObserver::class);
         EventOccurrence::observe(EventOccurrenceObserver::class);
+        EventOccurrence::observe(EventOccurrenceFeaturedObserver::class);
         EventTimeExpression::observe(EventTimeExpressionObserver::class);
         EventTaxonomy::observe(EventTaxonomyObserver::class);
         Institution::observe(InstitutionObserver::class);

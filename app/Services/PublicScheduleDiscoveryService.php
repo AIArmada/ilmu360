@@ -12,6 +12,7 @@ use AIArmada\Persons\Enums\AssignmentStatus;
 use App\Data\EventDiscoveryCriteriaFactory;
 use App\Data\PublicScheduleLeaf;
 use App\Enums\EventPrayerTime;
+use App\Models\Builders\EventBuilder;
 use App\Models\Event;
 use App\Models\Person;
 use App\Models\Reference;
@@ -142,45 +143,105 @@ final class PublicScheduleDiscoveryService
         $personIds = $user?->followingPersons()->pluck('persons.id')->all() ?? [];
         $institutionIds = $user?->followingInstitutions()->pluck('institutions.id')->all() ?? [];
         $referenceIds = $user?->followingReferences()->pluck('references.id')->all() ?? [];
+        $hasFollows = $personIds !== [] || $institutionIds !== [] || $referenceIds !== [];
 
-        $events = $this->eventDiscovery->publicEventQuery(null, ['time_scope' => 'all'])
-            ->where('events.status', 'approved')
-            ->where(function (Builder $query) use ($personIds, $institutionIds, $referenceIds): void {
-                $query->featured();
-
-                if ($personIds !== []) {
-                    $query->orWhereHas('persons', fn (Builder $query): Builder => $query->whereIn('persons.id', $personIds));
-                }
-                if ($institutionIds !== []) {
-                    $query->orWhereIn('events.institution_id', $institutionIds);
-                }
-                if ($referenceIds !== []) {
-                    $query->orWhereHas('references', function (Builder $query) use ($referenceIds): void {
-                        Reference::applyPublicVisibility($query)->whereIn('references.id', $referenceIds);
-                    });
-                }
-            })
+        $events = $this->homepageEventQuery($personIds, $institutionIds, $referenceIds)
             ->with($this->searchRelations())
             ->get();
 
-        $featuredIds = Event::query()->featured()->whereKey($events->modelKeys())->pluck('events.id')->flip();
+        $followedEventIds = $hasFollows
+            ? $this->homepageFollowedEventQuery($personIds, $institutionIds, $referenceIds)
+                ->pluck('events.id')
+                ->flip()
+            : collect();
+
         $this->hydrateApplicationVenues($events);
         $filters = [
             'time_scope' => 'upcoming',
             'starts_before' => UserDateTimeFormatter::userNow()->addDays(14)->toDateString(),
         ];
+        $featuredFilters = ['time_scope' => 'upcoming'];
         $leaves = $this->flatten($events)
-            ->filter(fn (PublicScheduleLeaf $leaf): bool => $this->matchesFilters($leaf, $filters))
             ->unique(fn (PublicScheduleLeaf $leaf): string => $leaf->id());
 
-        $featured = $leaves->filter(fn (PublicScheduleLeaf $leaf): bool => $featuredIds->has($leaf->event->id))
+        $featured = $leaves
+            ->filter(fn (PublicScheduleLeaf $leaf): bool => $this->matchesFilters($leaf, $featuredFilters))
+            ->filter(fn (PublicScheduleLeaf $leaf): bool => (bool) $leaf->occurrence->is_featured)
             ->sort(fn (PublicScheduleLeaf $left, PublicScheduleLeaf $right): int => $this->compareByTime($left, $right))
             ->take(9);
 
         return $featured->concat(
-            $leaves->reject(fn (PublicScheduleLeaf $leaf): bool => $featuredIds->has($leaf->event->id))
-                ->shuffle()->take(9 - $featured->count()),
+            $leaves
+                ->filter(fn (PublicScheduleLeaf $leaf): bool => $this->matchesFilters($leaf, $filters))
+                ->reject(fn (PublicScheduleLeaf $leaf): bool => (bool) $leaf->occurrence->is_featured)
+                ->filter(fn (PublicScheduleLeaf $leaf): bool => $followedEventIds->has($leaf->event->id))
+                ->shuffle()
+                ->take(9 - $featured->count()),
         )->values();
+    }
+
+    /**
+     * @param  list<string>  $personIds
+     * @param  list<string>  $institutionIds
+     * @param  list<string>  $referenceIds
+     */
+    private function homepageEventQuery(array $personIds, array $institutionIds, array $referenceIds): EventBuilder
+    {
+        $occurrenceTable = (new EventOccurrence)->getTable();
+
+        return $this->eventDiscovery->publicEventQuery(null, ['time_scope' => 'all'])
+            ->where('events.status', 'approved')
+            ->where(function (Builder $query) use ($personIds, $institutionIds, $referenceIds, $occurrenceTable): void {
+                $query->whereHas(
+                    'occurrences',
+                    fn (Builder $occurrenceQuery): Builder => $occurrenceQuery
+                        ->where("{$occurrenceTable}.is_featured", true)
+                        ->whereIn("{$occurrenceTable}.status", Event::PUBLIC_SCHEDULE_STATUSES)
+                        ->whereIn("{$occurrenceTable}.visibility", Event::PUBLIC_SCHEDULE_VISIBILITIES),
+                );
+
+                $this->applyHomepageFollowConditions($query, $personIds, $institutionIds, $referenceIds);
+            });
+    }
+
+    /**
+     * @param  list<string>  $personIds
+     * @param  list<string>  $institutionIds
+     * @param  list<string>  $referenceIds
+     */
+    private function homepageFollowedEventQuery(array $personIds, array $institutionIds, array $referenceIds): EventBuilder
+    {
+        $query = $this->eventDiscovery->publicEventQuery(null, ['time_scope' => 'all'])
+            ->where('events.status', 'approved');
+
+        $query->where(function (Builder $query) use ($personIds, $institutionIds, $referenceIds): void {
+            $this->applyHomepageFollowConditions($query, $personIds, $institutionIds, $referenceIds);
+        });
+
+        return $query;
+    }
+
+    /**
+     * @param  Builder<Event>  $query
+     * @param  list<string>  $personIds
+     * @param  list<string>  $institutionIds
+     * @param  list<string>  $referenceIds
+     */
+    private function applyHomepageFollowConditions(Builder $query, array $personIds, array $institutionIds, array $referenceIds): void
+    {
+        if ($personIds !== []) {
+            $query->orWhereHas('persons', fn (Builder $query): Builder => $query->whereIn('persons.id', $personIds));
+        }
+
+        if ($institutionIds !== []) {
+            $query->orWhereIn('events.institution_id', $institutionIds);
+        }
+
+        if ($referenceIds !== []) {
+            $query->orWhereHas('references', function (Builder $query) use ($referenceIds): void {
+                Reference::applyPublicVisibility($query)->whereIn('references.id', $referenceIds);
+            });
+        }
     }
 
     /**

@@ -25,7 +25,6 @@ test('schema no longer contains removed columns and tables', function (): void {
     $this->assertFalse(Schema::hasTable('notification_preferences'));
     $this->assertFalse(Schema::hasTable('notification_endpoints'));
     $this->assertFalse(Schema::hasTable('event_interests'));
-    $this->assertFalse(Schema::hasTable('dawah_share_links'));
     $this->assertFalse(Schema::hasTable('notifications'));
 });
 

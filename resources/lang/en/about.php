@@ -3,140 +3,71 @@
 return [
     'meta' => [
         'title' => 'About ilmu360°',
-        'description' => 'ilmu360° gathers Islamic study gatherings at masjid and surau across Malaysia, so more people make it in time.',
+        'description' => 'Discover ilmu360°: making it easier for communities to find, share and attend Islamic learning gatherings across Malaysia.',
     ],
     'hero' => [
-        'title' => 'The masjid is here. The majlis is here.',
-        'emphasis' => 'It is the news that never arrives.',
-        'intro' => 'Tuesday night. The children are asleep, the house is finally quiet, but his heart is still loud with unfinished work. Ten minutes from home, at the surau down the lane, a Maghrib kuliah is speaking to exactly that restlessness — and Hassan never knew. What goes missing is not the gathering — it is the announcement.',
-        'primary' => 'Find a majlis nearby',
-        'secondary' => 'Join the community',
-        'image_alt' => 'A village surau window standing open in the late afternoon, light falling across a breeze-block wall.',
+        'eyebrow' => 'A shared home for majlis ilmu',
+        'title' => 'Knowledge is closer than you think.',
+        'emphasis' => 'Let’s make it easier to find.',
+        'intro' => 'Across Malaysia, masjids and suraus host classes, talks and study circles—from a Maghrib lesson in your own neighbourhood to the weekend class you have been meaning to attend. ilmu360° brings those details together, so they are easier to discover, check and share.',
+        'primary' => 'Explore majlis ilmu',
+        'secondary' => 'Share a gathering',
+        'image_alt' => 'A community listens to an evening lesson in a welcoming Malaysian surau.',
+        'caption' => 'Every gathering begins with an invitation that arrives.',
     ],
-    'gap' => [
-        'label' => 'Why we exist',
-        'title' => 'What is close should not be missed.',
+    'story' => [
+        'eyebrow' => 'Why ilmu360° exists',
+        'title' => 'The gatherings are already here. The news needs to travel.',
         'paragraphs' => [
-            'Masjid and surau already stand across Malaysia, and the programmes inside them never really stop. Maghrib kuliah, Subuh tazkirah, weekend tafsir classes — all of it running, night after night, for people like Hassan.',
-            'That Tuesday, Hassan came home late. The poster existed — buried in the neighbourhood WhatsApp group, drowned under greetings and delivery receipts. When he saw it again, the speaker had gone home. The majlis was yesterday.',
-            'ilmu360° exists for nights like that. It does not invent new gatherings — it makes sure the ones that already exist reach the people looking for them, before they begin. So no one else stands before a surau door already locked.',
+            'One schedule lives on a poster. Another announcement disappears in a neighbourhood chat. When a time or venue changes, the update may reach only part of the community. Organisers repeat the same details; people looking for a nearby gathering struggle to find what is happening.',
+            'ilmu360° is a community-built directory for Islamic learning gatherings. We bring event, venue and organiser information into one place that people can explore by area, date and topic.',
         ],
-        'chain' => [
-            'title' => 'The chain that always breaks',
-            'items' => [
-                'The organiser has prepared the majlis.',
-                'The news stays inside the same group.',
-                'The kariah only hears about it afterwards.',
-            ],
+        'pull_quote' => 'We do not replace local gatherings. We help more people find them.',
+    ],
+    'discovery' => [
+        'eyebrow' => 'Search for the way you live',
+        'title' => 'Start with what matters to you.',
+        'intro' => 'Search by area, date, topic or speaker. Choose in-person, online or hybrid gatherings too, so the options fit your day.',
+        'filters_title' => 'Explore by',
+        'filters' => ['Area', 'Date', 'Topic', 'Speaker'],
+        'formats_title' => 'Choose how to attend',
+        'formats' => ['In person', 'Online', 'Hybrid'],
+        'prayer_title' => 'Timing that fits local life',
+        'prayer_body' => 'Some gatherings are scheduled around prayer times, not just by the clock.',
+        'prayer_examples' => ['After Subuh', 'After Maghrib'],
+    ],
+    'steps' => [
+        'eyebrow' => 'From hearing about it to being there',
+        'title' => 'One place. Three simple steps.',
+        'items' => [
+            ['title' => 'Find what fits', 'body' => 'Choose an area, date, topic, speaker or format to find gatherings that work with your interests and schedule.'],
+            ['title' => 'Know before you go', 'body' => 'Check the organiser, status, time, venue and updates together. If something looks out of date, send it for review.'],
+            ['title' => 'Keep what matters close', 'body' => 'Save a gathering or a search. Get reminders for saved events and, if you choose, digests when new gatherings match.'],
         ],
     ],
-    'cost' => [
-        'title' => 'What is lost is more than one missed majlis.',
-        'intro' => 'When a gathering never reaches the person who needed it, the loss is not just one evening. It is a future postponed.',
-        'image_alt' => 'An empty surau prayer hall in the afternoon, prayer mats stacked and windows open.',
+    'community' => [
+        'eyebrow' => 'Built with the community',
+        'title' => 'For the people who seek, teach and organise.',
+        'intro' => 'Knowledge travels when people make a path for one another. ilmu360° connects three parts of the same journey.',
         'items' => [
-            [
-                'title' => 'A household',
-                'body' => 'Hassan, 34, is looking for a way to steady his home after a quarrel with his wife. One tazkirah on patience at the surau down the lane could change their week — but he only hears of it the following Friday, from a neighbour.',
-            ],
-            [
-                'title' => 'A new Muslim',
-                'body' => 'Sarah embraced Islam three months ago. She longs to ask without shame, step by step, in a kariah that knows her name. The introductory class exists every Saturday — but no one told her.',
-            ],
-            [
-                'title' => 'A friend under strain',
-                'body' => 'Amir has not slept well since losing his job. He needs no grand ceramah — just one quiet tazkirah, a seat in the back saf, a heart settled without judgment. The surau next door held it. He never knew.',
-            ],
-            [
-                'title' => 'A neighbourhood',
-                'body' => 'That empty surau hall was once a wedding feast, a place where children ran. Without news that arrives, neighbours stop meeting — and a cool neighbourhood slowly turns strange.',
-            ],
-        ],
-    ],
-    'work' => [
-        'title' => 'What ilmu360° actually does.',
-        'intro' => 'Five things that saved Hassan\'s Tuesday night. One purpose: that you know earlier, and make it in time.',
-        'items' => [
-            [
-                'title' => 'Search by area',
-                'body' => 'Hassan types his housing estate — and the kuliah ten minutes from his home appears, not one in another state.',
-            ],
-            [
-                'title' => 'Verified organisers',
-                'body' => 'The news comes from the surau committee itself, its name shown after review. Not a rumour.',
-            ],
-            [
-                'title' => 'Status that stays current',
-                'body' => 'Hall moved to the porch over a burst pipe? The change is written on the page before he leaves.',
-            ],
-            [
-                'title' => 'A reminder before it starts',
-                'body' => 'He presses save at Zohor. At 6.45 in the evening, his phone reminds him gently.',
-            ],
-            [
-                'title' => 'Directions to the door',
-                'body' => 'He opens the location in his maps app and walks straight to the surau door — in time for wuduk before azan.',
-            ],
-        ],
-        'note' => 'If something on a page is wrong, report it from the majlis page. Every report is reviewed.',
-    ],
-    'audience' => [
-        'title' => 'Who this is built for.',
-        'items' => [
-            [
-                'title' => 'The kariah',
-                'body' => 'You, who want to know what is happening at your own surau this week — so your Tuesday night does not end in regret.',
-            ],
-            [
-                'title' => 'Masjid and surau committees',
-                'body' => 'You, who have laboured over a programme till late at night, and need one announcement channel that arrives without begging across ten groups.',
-            ],
-            [
-                'title' => 'Asatizah',
-                'body' => 'You, who drive from one surau to another, and want a saf filled with people truly thirsty for your class.',
-            ],
-        ],
-    ],
-    'path' => [
-        'title' => 'A calm path.',
-        'intro' => 'Four steps, one purpose: knowledge arrives, hearts attend, then it is passed on.',
-        'items' => [
-            [
-                'title' => 'Find what is near',
-                'body' => 'Filter by distance, state, or topic — start from your own surau.',
-            ],
-            [
-                'title' => 'Check what is sound',
-                'body' => 'Read from verified organisers; the current status is written on the page.',
-            ],
-            [
-                'title' => 'Attend in calm',
-                'body' => 'Save the majlis, receive a reminder, and walk to the door.',
-            ],
-            [
-                'title' => 'Invite one more',
-                'body' => 'Share with neighbours and family, so they do not learn of it yesterday.',
-            ],
+            ['title' => 'Learners', 'body' => 'Find gatherings by topic, time and format. Save an event or search to make it easier to return to.'],
+            ['title' => 'Masjids, suraus & organisers', 'body' => 'Share gathering details and keep information up to date, so people know what is coming up.'],
+            ['title' => 'Teachers & speakers', 'body' => 'Speaker profiles introduce teachers and help people discover the gatherings connected to them.'],
         ],
     ],
     'stats' => [
-        'title' => 'Already running.',
-        'intro' => 'Numbers below come from the database, not decoration. Empty stays hidden.',
-        'events' => 'Majlis',
-        'institutions' => 'Masjids & Suraus',
-        'speakers' => 'Asatizah',
+        'eyebrow' => 'Growing with the community',
+        'title' => 'Majlis and communities listed on ilmu360°.',
+        'intro' => 'These figures are drawn from current platform records.',
+        'events' => 'Majlis ilmu',
+        'institutions' => 'Masjids & suraus',
+        'speakers' => 'Teachers',
     ],
-    'hadith' => [
-        'title' => 'The basis of this work',
-        'quote' => 'Seeking knowledge is an obligation upon every Muslim.',
-        'attribution' => 'The Prophet Muhammad (peace be upon him) · Sunan Ibn Majah',
-    ],
-    'cta' => [
-        'title' => '“If only I had known earlier.”',
-        'body' => 'That sentence always arrives after the majlis has passed — at the dinner table, in the WhatsApp group, on the quiet drive home. Find this week\'s majlis. Attend. Then invite one more, so the sentence never needs repeating.',
-        'primary' => 'Join the community',
-        'secondary' => 'Browse the majlis directory',
-        'tertiary' => 'Upload a majlis poster',
-        'image_alt' => 'A congregation seated in rows in a surau hall, seen from behind in the late afternoon.',
+    'closing' => [
+        'title' => 'Your next gathering may be closer than you think.',
+        'body' => 'See what is coming up around you. If you organise a gathering, share the details here—so the invitation has a chance to travel further.',
+        'primary' => 'Find a majlis nearby',
+        'secondary' => 'Share a gathering',
+        'image_alt' => 'Evening light falling through an open window in a surau.',
     ],
 ];

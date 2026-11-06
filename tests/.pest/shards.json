@@ -62,7 +62,7 @@
         "Tests\\Feature\\ContributionWorkflowActionsTest": 10.8945,
         "Tests\\Feature\\ContributionWorkflowServiceTest": 5.4289,
         "Tests\\Feature\\DashboardPagesTest": 77.0093,
-        "Tests\\Feature\\DawahShareImpactTest": 51.7616,
+        "Tests\\Feature\\ShareTrackingTest": 51.7616,
         "Tests\\Feature\\DocumentationAdminManifestAccessTest": 0.6099,
         "Tests\\Feature\\DocumentationApiTest": 1.2543,
         "Tests\\Feature\\DocumentationMcpSurfaceAccessTest": 3.465,

@@ -67,7 +67,7 @@
         "laravel/framework": "^13.20",
         "laravel/horizon": "^5.47",
         "laravel/mcp": "^1.0",
-        "laravel/octane": "^2.17",
+        "laravel/octane": "2.17.4",
         "laravel/passport": "^13.7",
         "laravel/sanctum": "^4.3",
         "laravel/scout": "^11.3",

@@ -293,7 +293,7 @@ it('excludes commercial, invalid, fraudulent, and unproven evidence consistently
         ]);
     }
 
-    // Non-dawah kinds are not participation evidence.
+    // Non-share kinds are not participation evidence.
     foreach (['purchase', 'order_paid'] as $type) {
         communityConversion($affiliate, [
             'sharer_user_id' => (string) User::factory()->create()->getKey(),

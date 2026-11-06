@@ -97,8 +97,6 @@ final class EventAdminContextFormExtension implements EventFormExtension
                         ->label('Children welcome'),
                     Toggle::make('is_muslim_only')
                         ->label('Muslim-only audience'),
-                    Toggle::make('is_featured')
-                        ->label('Feature this event'),
                 ])
                 ->columns(2),
         ];

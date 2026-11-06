@@ -25,7 +25,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use InvalidArgumentException;
 
-#[Group('Share', 'Authenticated share analytics endpoints that mirror the private Dawah impact dashboard for mobile clients.')]
+#[Group('Share', 'Authenticated share analytics endpoints that mirror the private Dakwah dashboard for mobile clients.')]
 class ShareAnalyticsController extends FrontendController
 {
     public function __construct(
@@ -35,7 +35,7 @@ class ShareAnalyticsController extends FrontendController
 
     #[Endpoint(
         title: 'Get share analytics dashboard',
-        description: 'Returns the authenticated share dashboard data used by the web Dawah impact view, including summary metrics, channel breakdowns, top shared subjects, top links, recent responses, and a paginated link library for iOS and Android clients.',
+        description: 'Returns the authenticated share dashboard data used by the web Dakwah view, including summary metrics, channel breakdowns, top shared subjects, top links, recent responses, and a paginated link library for iOS and Android clients.',
     )]
     #[QueryParameter('type', 'Optional shared subject filter. Supported values match the web dashboard: all, event, institution, person, series, reference, search, page.', required: false, type: 'string', infer: false, default: 'all', example: 'event')]
     #[QueryParameter('sort', 'Optional link sort mode. Supported values: recent, visits, signups, registrations, checkins, submissions.', required: false, type: 'string', infer: false, default: 'recent', example: 'visits')]

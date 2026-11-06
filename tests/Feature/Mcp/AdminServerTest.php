@@ -2351,7 +2351,6 @@ it('emulates production yasin create flow with validate-only then actual create'
         'institution_key' => (string) $institution->slug,
         'registration_required' => false,
         'status' => 'pending',
-        'is_featured' => false,
     ];
 
     AdminServer::actingAs($admin)
@@ -2441,7 +2440,6 @@ it('creates a tazkirah event with person_keys via admin-create-event', function 
             'languages' => [languageId('ms')],
             'registration_required' => false,
             'status' => 'pending',
-            'is_featured' => false,
             'validate_only' => false,
             'apply_defaults' => false,
         ])
@@ -2483,7 +2481,6 @@ it('allows admin event create payload to control workflow-ready status', functio
         'primary_organizer_id' => (string) $institution->getKey(),
         'institution_id' => (string) $institution->getKey(),
         'registration_required' => false,
-        'is_featured' => false,
         'status' => 'draft',
     ];
 

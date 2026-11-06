@@ -107,7 +107,7 @@ it('toggles event going from the events index cards', function () {
 
 it('toggles event going from the featured homepage cards', function () {
     $user = User::factory()->create();
-    $event = Event::factory()->create([
+    $event = Event::factory()->featured()->create([
         'status' => 'approved',
         'visibility' => 'public',
         'published_at' => now(),

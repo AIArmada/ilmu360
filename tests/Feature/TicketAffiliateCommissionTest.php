@@ -276,7 +276,7 @@ it('blocks commission for affiliate-owner self purchases and free registrations'
         ->and(AffiliateConversion::query()->count())->toBe(0);
 });
 
-it('does not pay commercial commission for a Dawah-purpose affiliate', function (): void {
+it('does not pay commercial commission for a share-purpose affiliate', function (): void {
     $fixture = seedTicketAffiliateCommissionCheckout(affiliatePurpose: 'share_member');
     $registrationIds = array_map(static fn (Registration $registration): string => (string) $registration->getKey(), $fixture['registrations']);
 
@@ -285,15 +285,15 @@ it('does not pay commercial commission for a Dawah-purpose affiliate', function 
 });
 
 it('requires frozen commercial purpose and active program membership', function (): void {
-    $dawah = seedTicketAffiliateCommissionCheckout(affiliatePurpose: 'share_member');
-    $dawah['affiliate']->forceFill(['purpose' => null])->save();
-    $dawahRegistrationIds = array_map(
+    $share = seedTicketAffiliateCommissionCheckout(affiliatePurpose: 'share_member');
+    $share['affiliate']->forceFill(['purpose' => null])->save();
+    $shareRegistrationIds = array_map(
         static fn (Registration $registration): string => (string) $registration->getKey(),
-        $dawah['registrations'],
+        $share['registrations'],
     );
 
     expect(app(RecordTicketAffiliateCommissionsAction::class)
-        ->handle($dawah['session'], $dawahRegistrationIds))->toBe([])
+        ->handle($share['session'], $shareRegistrationIds))->toBe([])
         ->and(AffiliateConversion::query()->count())->toBe(0);
 
     $inactiveProgram = seedTicketAffiliateCommissionCheckout();
@@ -444,7 +444,7 @@ it('finishes a registration refund and retries a payout-reserved commission reve
         ->and($receipt->fresh()->status)->toBe(ShareEffectStatus::Succeeded);
 });
 
-it('ships with the Dawah cash door and affiliate bonus programs disabled', function (): void {
+it('ships with the share cash door and affiliate bonus programs disabled', function (): void {
     expect(config('affiliates.payouts.reward_award_settlement.enabled'))->toBeFalse()
         ->and(config('referrals.fulfillment.drivers.affiliate_cash.enabled'))->toBeFalse()
         ->and(config('referrals.owner.enabled'))->toBeFalse()

@@ -31,13 +31,13 @@ use Lorisleiva\Actions\Concerns\AsAction;
  *
  * Exactly one canonical qualified/proven participant set feeds every
  * published number: marked share-profile conversions (commercial facts
- * never enter) in the month with a valid status, a dawah participation
+ * never enter) in the month with a valid status, a share participation
  * kind, a proven user sharer, a proven non-staff non-purchaser user
  * actor with the participant role per the source authority, no
  * confirmed fraud on the conversion, no fraud taint on the sharer or
  * actor, and no paid-registration purchaser linkage. Counts, totals,
  * and every cell derive from this same set; invalid, reversed,
- * unknown-status, non-dawah, unproven-sharer, unattributed, corrupt,
+ * unknown-status, non-share, unproven-sharer, unattributed, corrupt,
  * ghost-actor, staff-acted, purchaser, fraudulent, and commercial rows
  * are invisible everywhere, so complements cannot leak them back.
  * Totals and cuts are explicitly proven-evidence-only with no broader
@@ -182,7 +182,7 @@ final readonly class PublishCommunityReleaseAction
     /**
      * The single canonical qualified/proven participant set: marked
      * share-profile conversions (commercial excluded), in-month, valid
-     * status, dawah kinds only, proven user sharer, proven non-staff
+     * status, share kinds only, proven user sharer, proven non-staff
      * non-purchaser user actor, no confirmed fraud on the conversion,
      * and no fraud taint on sharer or actor. Unattributed, corrupt,
      * ghost, staff, and purchaser rows are excluded here — counts,
@@ -326,7 +326,7 @@ final readonly class PublishCommunityReleaseAction
      * Exclude purchaser-role event registrations per the source
      * authority: a paid source registration carries the purchaser role
      * (see ShareAttributionRewardSourceFactReader), never participant.
-     * Other dawah kinds are never purchasers. Linkage is the frozen
+     * Other share kinds are never purchasers. Linkage is the frozen
      * conversion metadata registration_id written at record time.
      */
     private static function whereNonPurchaser(Builder $query): void

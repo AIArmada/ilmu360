@@ -3,7 +3,6 @@
 namespace App\Livewire\Components;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Communications\Enums\NotificationFamily;
 use AIArmada\Communications\Models\NotificationInbox;
 use App\Actions\Notifications\MarkAllNotificationMessagesReadAction;
 use App\Actions\Notifications\MarkNotificationMessageReadAction;
@@ -210,7 +209,7 @@ class NotificationBell extends Component
                     'family_label' => $appFamily !== null
                         ? NotificationCatalog::familyDefinition($appFamily)['label']
                         : $message->family->label(),
-                    'icon' => $this->familyIcon($message->family),
+                    'icon' => NotificationCatalog::familyIcon($message->family),
                     'action_url' => data_get($message->data, 'action_url'),
                     'read' => $message->read_at !== null,
                     'relative_time' => $localCreatedAt->locale(app()->getLocale())->shortRelativeDiffForHumans(),
@@ -221,44 +220,5 @@ class NotificationBell extends Component
             })
             ->values()
             ->all();
-    }
-
-    private function familyIcon(NotificationFamily $family): string
-    {
-        return match ($family) {
-            NotificationFamily::FollowUp, NotificationFamily::MembershipUpdate => 'heroicon-o-user-group',
-            NotificationFamily::Recommendation => 'heroicon-o-magnifying-glass',
-            NotificationFamily::EventUpdate,
-            NotificationFamily::EventRescheduled,
-            NotificationFamily::EventPromotion => 'heroicon-o-calendar-days',
-            NotificationFamily::EventReminder => 'heroicon-o-clock',
-            NotificationFamily::EventCancellation => 'heroicon-o-x-circle',
-            NotificationFamily::RegistrationConfirmation,
-            NotificationFamily::RegistrationReminder,
-            NotificationFamily::RegistrationChanged,
-            NotificationFamily::RegistrationCancelled,
-            NotificationFamily::CheckInAvailable,
-            NotificationFamily::TicketIssued => 'heroicon-o-ticket',
-            NotificationFamily::PaymentReceived,
-            NotificationFamily::PaymentFailed,
-            NotificationFamily::RefundProcessed => 'heroicon-o-banknotes',
-            NotificationFamily::SpeakerInvitation,
-            NotificationFamily::SpeakerConfirmation,
-            NotificationFamily::SpeakerChange => 'heroicon-o-microphone',
-            NotificationFamily::InstitutionInvitation,
-            NotificationFamily::InstitutionClaim => 'heroicon-o-building-office',
-            NotificationFamily::SecurityAlert,
-            NotificationFamily::PasswordChanged,
-            NotificationFamily::NewDeviceLogin,
-            NotificationFamily::TwoFactorDisabled => 'heroicon-o-shield-check',
-            NotificationFamily::AchievementUnlocked,
-            NotificationFamily::MilestoneReached => 'heroicon-o-trophy',
-            NotificationFamily::SystemAnnouncement,
-            NotificationFamily::MaintenanceNotice,
-            NotificationFamily::PolicyUpdate => 'heroicon-o-megaphone',
-            NotificationFamily::DigestDaily,
-            NotificationFamily::DigestWeekly => 'heroicon-o-inbox',
-            default => 'heroicon-o-bell',
-        };
     }
 }

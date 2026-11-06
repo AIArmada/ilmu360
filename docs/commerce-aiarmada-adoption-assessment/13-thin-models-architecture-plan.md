@@ -181,13 +181,13 @@ properly.
 | App metadata field | Recommendation |
 |--------------------|---------------|
 | `is_active` | Real column on events table (used in too many queries for JSON) |
-| `is_featured` | `EventAttribute` (key='is_featured') or real column |
+| `is_featured` | Real column on `event_occurrences` (curation is per occurrence) |
 | `is_priority` | `EventAttribute` (key='is_priority') or real column |
 | `escalated_at` | `EventAttribute` (key='escalated_at') or real column |
 | `schedule_kind` | `EventOccurrence` lifecycle (already partially mapped) |
 | `schedule_state` | `EventOccurrence.status` state machine |
 
-For `is_active`, `is_featured`, `is_priority`, `escalated_at`: these are simple
+For `is_active`, `is_priority`, `escalated_at`: these are simple
 scalar flags used in admin filters. They could stay as `EventAttribute` rows (synced
 to metadata by the package) OR become real columns if query performance matters.
 **Recommendation**: Start with `EventAttribute`, promote to real columns only if

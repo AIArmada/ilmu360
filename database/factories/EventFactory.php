@@ -308,6 +308,17 @@ class EventFactory extends PackageEventFactory
         });
     }
 
+    public function featured(): static
+    {
+        return $this->afterCreating(function ($event): void {
+            if (! $event instanceof Event) {
+                return;
+            }
+
+            $event->occurrences()->update(['is_featured' => true]);
+        });
+    }
+
     /**
      * Indicate that the event is prayer-relative.
      */

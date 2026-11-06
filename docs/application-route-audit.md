@@ -234,9 +234,9 @@ Passport              → OAuth routes for token issuance
 | GET | `/bahasa/{locale}` | `locale.switch` | LocaleController | web | Guest+ |
 | GET | `/oauth/{provider}/redirect` | `socialite.redirect` | SocialiteController@redirect | web | Guest |
 | GET | `/oauth/{provider}/callback` | `socialite.callback` | SocialiteController@callback | web | Guest |
-| GET | `/kongsi/payload` | `share-tracking.payload` | ShareController@payload | throttle:share-tracking | Guest+ |
-| POST | `/kongsi/track` | `share-tracking.track` | ShareController@track | throttle:30,1 | Guest+ |
-| GET | `/kongsi/{provider}` | `share-tracking.redirect` | ShareController@redirect | throttle:share-tracking | Guest+ |
+| GET | `/kongsi/payload` | `share.payload` | ShareController@payload | throttle:share-tracking | Guest+ |
+| POST | `/kongsi/track` | `share.track` | ShareController@track | throttle:30,1 | Guest+ |
+| GET | `/kongsi/{provider}` | `share.redirect` | ShareController@redirect | throttle:share-tracking | Guest+ |
 | GET/LW | `/carian` | `search.index` | Search\Index | web, throttle:search | Guest+ |
 | GET/LW | `/majlis` | `events.index` | Events\Index | web, throttle:search | Guest+ |
 | GET/LW | `/majlis/{event:slug}` | `events.show` | Events\Show | ResolvePublicSlugRedirect | Guest+ |
@@ -549,7 +549,7 @@ Passport              → OAuth routes for token issuance
 | Route type | UI |
 | Audit status | [x] Complete |
 
-**Purpose**: Main landing page showing featured events, upcoming events, prayer-time events, and search functionality.
+**Purpose**: Main landing page showing featured occurrences, upcoming events, prayer-time events, and search functionality.
 
 **Entry conditions**: None — fully public.
 

@@ -540,7 +540,7 @@ Notes:
 | `POST` | `/mobile/telemetry/events` | Record batched UI telemetry from real iOS, iPadOS, or Android app sessions |
 | `POST` | `/submit-event` | Submit the public/authenticated event form, including cover/poster/gallery uploads |
 | `POST` | `/share/track` | Record a guest or authenticated outbound share action for analytics |
-| `GET` | `/share/analytics` | Fetch the authenticated Dawah impact dashboard for mobile clients |
+| `GET` | `/share/analytics` | Fetch the authenticated Dakwah dashboard for mobile clients |
 | `GET` | `/share/analytics/links/{link}` | Fetch detailed performance for one tracked share link |
 | `GET` | `/account-settings` | Return current profile settings |
 | `PUT` | `/account-settings` | Update current profile settings |

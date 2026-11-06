@@ -101,9 +101,9 @@
 | 3 | GET | `/bahasa/{locale}` | `LocaleController` | `locale.switch` | Language switch |
 | 4 | GET | `/oauth/{provider}/redirect` | `SocialiteController@redirect` | `socialite.redirect` | OAuth social login |
 | 5 | GET | `/oauth/{provider}/callback` | `SocialiteController@callback` | `socialite.callback` | OAuth callback |
-| 6 | GET | `/kongsi/payload` | `DawahShareController@payload` | `dawah-share.payload` | Share tracking payload |
-| 7 | POST | `/kongsi/track` | `DawahShareController@track` | `dawah-share.track` | Share tracking record |
-| 8 | GET | `/kongsi/{provider}` | `DawahShareController@redirect` | `dawah-share.redirect` | Social share redirect |
+| 6 | GET | `/kongsi/payload` | `ShareController@payload` | `share.payload` | Share tracking payload |
+| 7 | POST | `/kongsi/track` | `ShareController@track` | `share.track` | Share tracking record |
+| 8 | GET | `/kongsi/{provider}` | `ShareController@redirect` | `share.redirect` | Social share redirect |
 | 9 | GET | `/carian` | `SearchIndex` (Livewire) | `search.index` | Global search |
 | 10 | GET | `/majlis` | `pages.events.index` (Livewire) | `events.index` | Event listing |
 | 11 | GET | `/majlis/{event:slug}` | `pages.events.show` (Livewire) | `events.show` | Event detail |
@@ -133,9 +133,9 @@
 | # | Method | URI | Handler | Name | Purpose |
 |-------|--------|-----|---------|------|---------|
 | 32 | GET | `/dashboard` | `UserDashboard` (Livewire) | `dashboard` | User dashboard |
-| 33 | GET | `/dashboard/dawah-impact` | `DawahImpactIndex` (Livewire) | `dashboard.dawah-impact` | Share analytics |
-| 34 | GET | `/dashboard/dawah-impact/links` | `DawahImpactIndex` (Livewire) | `dashboard.dawah-impact.links` | Share links |
-| 35 | GET | `/dashboard/dawah-impact/links/{link}` | `DawahImpactLinkShow` (Livewire) | `dashboard.dawah-impact.links.show` | Link detail |
+| 33 | GET | `/dakwah` | `DakwahIndex` (Livewire) | `dakwah` | Share analytics |
+| 34 | GET | `/dakwah/links` | `DakwahIndex` (Livewire) | `dakwah.links` | Share links |
+| 35 | GET | `/dakwah/links/{link}` | `DakwahLinkShow` (Livewire) | `dakwah.links.show` | Link detail |
 | 36 | GET | `/notifications` | `NotificationsIndex` (Livewire) | `notifications` | Notifications |
 | 37 | GET | `/tetapan` | `AccountSettings` (Livewire) | `account-settings` | Account settings |
 | 38 | GET | `/dashboard/institusi` | `InstitutionDashboard` (Livewire) | `dashboard.institutions` | Institution dashboard |
@@ -190,8 +190,8 @@ All under prefix `/api/v1`. Routes grouped by auth middleware as defined in `rou
 | 26 | GET | `/v1/catalogs/prayer-institutions` | `CatalogController@prayerInstitutions` | List prayer institutions |
 | 27 | GET | `/v1/catalogs/membership-application-subjects/{subjectType}` | `CatalogController@membershipClaimSubjects` | List claimable subjects |
 | 28 | GET | `/v1/search` | `SearchController@search` | Global search |
-| 29 | GET | `/v1/share/payload` | `DawahShareController@payload` | Share tracking payload |
-| 30 | POST | `/v1/share/track` | `DawahShareController@track` | Share tracking record |
+| 29 | GET | `/v1/share/payload` | `ShareController@payload` | Share tracking payload |
+| 30 | POST | `/v1/share/track` | `ShareController@track` | Share tracking record |
 | 31 | POST | `/v1/mobile/telemetry/events` | `MobileTelemetryController@store` | Mobile telemetry |
 | 32 | GET | `/v1/institutions` | `SearchController@institutions` | Institution listing |
 | 33 | GET | `/v1/institutions/near` | `SearchController@institutionsNear` | Nearby institutions |
@@ -428,7 +428,7 @@ ACTIONS
 
 AUTH USER MENU (when logged in)
   ├── Dashboard (/dashboard)
-  ├── Dawah Impact (/dashboard/dawah-impact)
+  ├── Dakwah (/dakwah)
   ├── Notifications (/notifications)
   ├── Account Settings (/tetapan)
   ├── My Contributions (/sumbangan)

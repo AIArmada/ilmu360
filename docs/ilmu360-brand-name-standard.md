@@ -128,7 +128,7 @@ Use **ilmu360** in:
 
 ```text
 ilmu360.com
-hello@ilmu360.com
+admin@ilmu360.com
 @ilmu360
 #ilmu360
 ilmu360-mobile

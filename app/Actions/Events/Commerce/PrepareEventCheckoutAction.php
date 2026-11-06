@@ -162,7 +162,7 @@ final class PrepareEventCheckoutAction
         }
 
         // Freeze the commercial affiliate decision with the same server-created
-        // checkout intent as Dawah provenance. The order listener sees the
+        // checkout intent as share provenance. The order listener sees the
         // registration_lines marker and leaves ticket commissions to the
         // registration-aware checkout step below.
         $affiliateAttribution = $this->recordAffiliateConversion->resolveAttributionFor($cart);

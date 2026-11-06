@@ -15,7 +15,6 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Schemas\Components\Section;
@@ -83,63 +82,82 @@ class Index extends Component implements HasForms
                         Select::make('category')
                             ->label(__('app-feedback.form.category'))
                             ->options(AppFeedbackCategory::options())
+                            ->placeholder(__('app-feedback.form.category_placeholder'))
+                            ->live()
                             ->required(),
                         TextInput::make('title')
                             ->label(__('app-feedback.form.title'))
+                            ->placeholder(__('app-feedback.form.title_placeholder'))
                             ->required()
                             ->minLength(3)
                             ->maxLength(180),
                         Textarea::make('description')
                             ->label(__('app-feedback.form.description_field'))
+                            ->placeholder(__('app-feedback.form.description_placeholder'))
                             ->required()
                             ->minLength(10)
                             ->maxLength(5000)
-                            ->rows(6)
+                            ->rows(4)
                             ->helperText(__('app-feedback.form.description_help'))
                             ->columnSpanFull(),
+                    ])
+                    ->columns(2),
+                Section::make(__('app-feedback.form.additional_details'))
+                    ->description(__('app-feedback.form.additional_details_help'))
+                    ->collapsed()
+                    ->visible(fn (Get $get): bool => ! self::isCategory($get('category'), AppFeedbackCategory::Other))
+                    ->schema([
                         Textarea::make('details.steps')
                             ->label(__('app-feedback.form.details_steps'))
+                            ->placeholder(__('app-feedback.form.details_steps_placeholder'))
                             ->maxLength(2000)
                             ->rows(4)
                             ->visible(fn (Get $get): bool => self::isCategory($get('category'), AppFeedbackCategory::Bug))
                             ->columnSpanFull(),
                         Textarea::make('details.expected')
                             ->label(__('app-feedback.form.details_expected'))
+                            ->placeholder(__('app-feedback.form.details_expected_placeholder'))
                             ->maxLength(2000)
                             ->rows(3)
-                            ->visible(fn (Get $get): bool => self::isCategory($get('category'), AppFeedbackCategory::Bug))
-                            ->columnSpanFull(),
+                            ->visible(fn (Get $get): bool => self::isCategory($get('category'), AppFeedbackCategory::Bug)),
                         Textarea::make('details.actual')
                             ->label(__('app-feedback.form.details_actual'))
+                            ->placeholder(__('app-feedback.form.details_actual_placeholder'))
                             ->maxLength(2000)
                             ->rows(3)
-                            ->visible(fn (Get $get): bool => self::isCategory($get('category'), AppFeedbackCategory::Bug))
-                            ->columnSpanFull(),
+                            ->visible(fn (Get $get): bool => self::isCategory($get('category'), AppFeedbackCategory::Bug)),
                         Textarea::make('details.problem')
                             ->label(__('app-feedback.form.details_problem'))
+                            ->placeholder(__('app-feedback.form.details_problem_placeholder'))
                             ->maxLength(2000)
                             ->rows(4)
                             ->visible(fn (Get $get): bool => self::isAnyCategory($get('category'), [AppFeedbackCategory::FeatureRequest, AppFeedbackCategory::UiUx, AppFeedbackCategory::Performance]))
                             ->columnSpanFull(),
                         Textarea::make('details.suggestion')
                             ->label(__('app-feedback.form.details_suggestion'))
+                            ->placeholder(__('app-feedback.form.details_suggestion_placeholder'))
                             ->maxLength(2000)
                             ->rows(4)
                             ->visible(fn (Get $get): bool => self::isAnyCategory($get('category'), [AppFeedbackCategory::FeatureRequest, AppFeedbackCategory::UiUx]))
                             ->columnSpanFull(),
+                    ])
+                    ->columns(2),
+                Section::make(__('app-feedback.form.supporting_context'))
+                    ->schema([
                         TextInput::make('page_url')
                             ->label(__('app-feedback.form.page_url'))
                             ->maxLength(2048)
                             ->readOnly()
                             ->dehydrated()
-                            ->helperText(__('app-feedback.form.page_url_help'))
+                            ->helperText(fn (): string => filled($this->data['page_url'] ?? null)
+                                ? __('app-feedback.form.page_url_captured')
+                                : __('app-feedback.form.page_url_unavailable'))
                             ->columnSpanFull(),
-                        Toggle::make('include_diagnostics')
-                            ->label(__('app-feedback.form.diagnostics'))
-                            ->helperText(__('app-feedback.form.diagnostics_help')),
                         SpatieMediaLibraryFileUpload::make('evidence')
                             ->label(__('app-feedback.form.evidence'))
-                            ->helperText(__('app-feedback.form.evidence_help'))
+                            ->helperText(__('app-feedback.form.evidence_help', [
+                                'size' => (int) ceil(((int) config('media-library.max_file_size', 10 * 1024 * 1024)) / 1024 / 1024),
+                            ]))
                             ->collection('evidence')
                             ->disk('app_feedback_private')
                             ->visibility('private')
@@ -147,6 +165,7 @@ class Index extends Component implements HasForms
                             ->maxFiles(8)
                             ->maxSize((int) ceil(((int) config('media-library.max_file_size', 10 * 1024 * 1024)) / 1024))
                             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
+                            ->rule('extensions:jpg,jpeg,png,webp,pdf')
                             ->customHeaders(['CacheControl' => 'private, no-store'])
                             ->storeFiles(false)
                             ->dehydrated()
@@ -192,6 +211,7 @@ class Index extends Component implements HasForms
         $this->appFeedbackForm()->fill($this->defaultFormState(request()));
         unset($this->quotaRemaining);
         $this->resetPage('feedback_page');
+        $this->dispatch('app-feedback-submitted');
     }
 
     public function postReply(string $feedbackId, PostAppFeedbackMessageAction $postReply): void
@@ -285,7 +305,6 @@ class Index extends Component implements HasForms
             'description' => '',
             'page_url' => AppFeedbackInput::sanitizePageUrl($dari, $request)
                 ?? AppFeedbackInput::sanitizePageUrl($request->headers->get('referer'), $request),
-            'include_diagnostics' => false,
             'details' => [],
             'evidence' => [],
         ];

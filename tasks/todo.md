@@ -200,6 +200,116 @@ Review: the package `EventResource` now exposes `EditAction` in the table and `V
 - [x] Verification: `AuthzGlobalRoleCacheTest` 3 passed (10 assertions), `FilamentPanelAccessTest` 9 passed, `MediaConversionsTest` 46 passed, `SubmitEventMediaTest` 3 passed, `FilamentMediaAssetTest` 3 passed; app/package Pint and PHPStan level 6 clean.
 - Review: warm admin TTFB after deploy is ~0.51–0.60 s for dashboard/events/persons; dashboard LCP 1,754 ms; dashboard now fires three initial lazy-widget requests and no 5 s refresh loop; SPA navigation stays on one document and prefetches on hover. Remaining infrastructure win (requires nginx write access): enable `http2 on` and long-lived `Cache-Control` for `/build/assets` and `/js/filament`.
 
+
+## Admin performance recovery and full-menu review (2026-11-04)
+
+- [x] Recover earlier Clockwork measurements and confirm login availability.
+- [x] Complete safe performance fixes, preserve report coverage and cache isolation.
+- [x] Verify authorization freshness, report behavior, static analysis, and full-menu HTTP sweep.
+
+Scope: retain existing access rules, report populations, filters and navigation. Check every registered list/report route under both saved admin sessions; do not apply additional database changes or replace the server driver.
+
+Review: completed GET sweeps for all 128 registered list/report routes: admin 93 successful /35 permission denials; super-admin 126 successful /2 permission denials; no server errors in either final full sweep. Median successful TTFB: admin 686ms, super-admin 773ms (historical baseline 3527ms; historical page set differs by fixed errors). Current responses omit Clockwork IDs, so query metrics are explicitly unavailable rather than inferred from older records.
+
+Finished request authorization caching with connection/team isolation, mutation/rollback invalidation and worker/job resets; report summary/details reuse one computation and invalidate on changed filters. Restored original report population limits and cities sorting. Analytics caches preserve viewer timezone/locale and reporting definition. Share affiliate owners eager-load. Navigation components search on demand with explicit whitelist validation and per-page option memo; final warmed navigation GET was 2681ms with ~6.15MB HTML (static-options intermediate was ~10.61MB). Navigation remains a heavy form; retention remains ~2.1s. Fixed invalid event postponement icons from earlier work.
+
+Verification: app analytics/access 22 tests/62 assertions; authz 6 cache tests/26 assertions plus 16 existing freshness tests passed; Signals 11 tests/73 assertions; report pages 6 tests/14 assertions; navigation initial 30 passes plus both repaired regressions and final 5 async/whitelist tests passed. App and changed package PHPStan level 6 clean; Pint/diff checks clean. Initial test discovery and analysis memory/tool invocation failures were corrected before final successful runs.
+
+Runtime: staging config cache refreshed and FrankenPHP workers restarted successfully through the documented worker-restart endpoint (HTTP200); Octane configuration PATCH disconnected and supervisor recovered before final verification. Live login and final hotspot GETs are healthy. Chrome MCP fallback renders Events, People and Retention; reused-session asynchronous419 means interactive save/filter browser verification remains incomplete. No new schema changes applied during this continuation; pre-existing untracked migrations/backups preserved. UI tracking review: selector search is presentation of existing settings workflow; existing save/audit behavior retained, no additional product event required.
+
+Evidence: `storage/verify/admin-performance/` contains sanitized route TSVs, summary JSON and browser measurements. Test/analysis logs are in `/tmp/admin-*-tests*.log`, `/tmp/admin-*-phpstan.log` and `/tmp/admin-resumed-app-tests.log`.
+
+## Featured occurrences — occurrence-only curation (2026-11-04)
+
+- [x] Move the featured flag from `events` (EventAttribute `is_featured`) to `event_occurrences.is_featured`; edit the package migration in place.
+- [x] Remove every event-level featured path: Event accessor/scope/fillable/EAV sync, admin event toggle, dashboard stat, event API payload, admin API/MCP fields, docs.
+- [x] Add an occurrence form extension seam to `filament-events`; expose a global-admin-only “Feature this occurrence” toggle and read-only table column/filter.
+- [x] Enforce global-admin-only writes through a dedicated occurrence observer; keep factories/seeders/console writes working.
+- [x] Redefine homepage selection: featured occurrences lead, followed-event occurrences fill the remaining slots, guests see only featured occurrences.
+- [x] Update factories and tests; add regression coverage for occurrence-only curation, admin authorization, and homepage selection.
+- [x] Run Pint, PHPStan level 6, focused Pest; verify no event-level `is_featured` references remain.
+
+Review: featured curation is now occurrence-only. `event_occurrences.is_featured` is the single storage location; the event-level `EventAttribute` accessor, `Event::featured()` scope, event admin toggle, event API/MCP/API-schema fields, dashboard label, and stale docs are gone. The homepage selection reads featured occurrences directly, constrains the featured branch to public schedule status/visibility, and only lets followed-event occurrences fill remaining slots (guests therefore see featured occurrences only). The occurrence admin form receives a `filament-events` extension seam; the app registers a global-admin-only toggle, and a dedicated observer rejects occurrence-featured writes from non-admin users. Table support: featured icon column + ternary filter. Local dev schema was synchronized with a one-off `ALTER TABLE` matching the edited package migration; tests migrate from the edited migration. Verification: final consolidated 55 tests/386 assertions, 4 MCP event write tests/85 assertions, 15 commerce package tests/448 assertions; PHPStan 0 errors app + commerce. Full AdminApiTest had 3 pre-existing `RewardAppealPolicy::create()` signature failures; full MCP run had 2 pre-existing failures (viewer manifest, prayer offset). Two unrelated `DashboardPagesTest`/`EventShowPageTest` copy/venue failures surfaced in the broader run and are outside this change.
+
+## Repeated Livewire 419 after browser reset (2026-11-04)
+
+- [x] Capture exact exception safely and reproduce the failed request.
+- [x] Fix the confirmed cause; verify session and Livewire behavior.
+- [x] Remove temporary diagnostics and record evidence.
+
+Review: clean Chrome reproduced automatic notification calls returning empty 419 on both admin login and public homepage. Temporary exception diagnostics confirmed `Livewire\Exceptions\MethodNotFoundException` for `pullNotifications`. Published Filament notification JS was stale relative to installed filament/notifications v5.11.0 PHP (`pullNotificationsFromSession`). Ran `php artisan filament:assets --no-interaction` to synchronize all published Filament assets; added the same command to `scripts/deploy.sh`. Removed temporary bootstrap diagnostics completely (no net bootstrap change). Final real-Chrome checks: admin/public notification calls 200, login authenticate validation 200, public filter refresh 200, authenticated admin dashboard GET and automatic Livewire call 200; no expired dialogs or page errors. Published notification asset matches vendor byte-for-byte; shell syntax and scoped diff whitespace checks pass. No PHP source changes or new dependencies. UI tracking: asset repair restores existing workflows; no new product transitions. Earlier cookie/snapshot diagnoses were unproven; worker restart alone does not invalidate unchanged release tokens.
+
+## Cached notification script recovery (2026-11-04)
+
+- [x] Confirm repeated homepage GETs/419s without fresh notification asset requests.
+- [x] Version Filament scripts by content and cover changed bytes under the same package version.
+- [x] Reload workers and verify recovery with a browser holding the old script.
+
+Review: repeated user homepage requests after asset republishing made no new notification script request; the script URL still used only `?v=5.11.0.0`. Added `ContentVersionedJs`, bound through Filament's container-backed `Js::make`, to append a hash of local source bytes to package versions. Remote URLs remain unchanged; no request/host state is retained in workers. Reloaded FrankenPHP. Controlled Chrome reproduction served the old script at the old version URL: 419 and expiry dialog. Same browser session, normal reload using the new content-versioned URL: notification call 200 and no dialog. Focused Pest tests cover stable/changed bytes under the same package version, actual notification registration, and unchanged remote URLs. PHPStan level 6 passes. This is an asset-cache fix, not a session-domain change. UI tracking: no new user workflow or event.
+
+## Featured occurrence not on homepage — staging diagnosis (2026-11-04)
+
+- [x] Verify the staging occurrence row: `01a18ea4-d677-73c4-8f46-583b951d5cd4` has `is_featured = true`.
+- [x] Confirm the first exclusion reason: occurrence runs 2026-01-05 (past); past occurrences are never shown.
+- [x] Confirm the second exclusion reason: occurrence runs 2026-11-25, outside the 14-day recommendation window.
+- [x] Split selection rules: featured occurrences are filtered by “upcoming” only; the 14-day window now applies only to followed-event filler.
+- [x] Prove with `homepageSelection()` and the live homepage that `01a196f5-027a-72b5-b61b-45d3dae8cebb` now appears.
+- [x] Add admin helper text: past occurrences warn that they will not appear; future occurrences state that featured upcoming occurrences appear. Tested via `EventOccurrenceFeaturedAdminTest` (5 passed / 11 assertions).
+- [x] Add regression coverage for featured occurrences beyond 14 days and filler inside the window. Final focused suite: 58 passed / 391 assertions.
+
+## Website legal pages rewrite (2026-11-05)
+
+- [x] Review the legal page renderer, existing Malay/English copy, platform data and tracking practices.
+- [x] Check current Malaysian PDPA notice guidance and amendment commencement dates.
+- [x] Rewrite the Terms and Privacy Notice in Malay and English, matching platform registration, payments, user content, cookies, retention and user choices.
+- [x] Check PHP syntax and scoped diff whitespace; no behavior tests added for this copy-only change.
+
+Review: after a full editorial pass, the privacy copy focuses on the data collected, purposes, sharing, cookies/location, retention and user choices. The Terms focus on platform and organiser roles, registrations/payments, content permissions, acceptable use and consumer rights. The legal operator’s registered name and postal address are not in the project; per user direction, the pages identify the ilmu360° brand and admin@ilmu360.com only. Add the registered operator identity and address before treating the notice as fully compliant or legally approved.
+
+
+## Simplify Dakwah dashboard route (2026-11-05)
+
+- [x] Rename the route family paths and names to `/dakwah` and `dakwah*`.
+- [x] Update application links and existing route references in tests and route inventory docs.
+- [x] Review scoped diff and confirm no old route paths/names remain in application code.
+
+Review: the route was simplified from the dashboard-prefixed variant to the final `/dakwah` route family. All three authenticated routes use `/dakwah`, `/dakwah/links`, and `/dakwah/links/{link}` with `dakwah*` names; application links, route-based tests, and route inventory references are updated. `php artisan route:list --path=dakwah` shows all three routes, Pint passes, and `git diff --check` passes. Component and view filenames remain unchanged. Test runs: `Wp1TrustBoundaryTest` 29/29 passed and `ShareTrackingTest` 47/47 passed; `DashboardPagesTest` has one pre-existing failure at `renders the account settings notifications tab` (asserts copy that exists nowhere in the current views or lang files), unrelated to the route rename.
+
+## Rename the Dakwah feature (2026-11-05)
+
+- [x] Rename Livewire classes to `DakwahIndex` and `DakwahLinkShow`, with matching view files and view keys.
+- [x] Rename `dakwahImpactSummary()` to `dakwahSummary()` and update dashboard bindings.
+- [x] Rename the feature test to `ShareTrackingTest` and the operations runbook to `dakwah-operations.md`.
+- [x] Replace the old display copy, translation keys/values, and live documentation references.
+- [x] Verify routes, class loading, Pint, and affected tests.
+
+Review: the feature is now simply "Dakwah" throughout the live application. Classes are `DakwahIndex`/`DakwahLinkShow`, views are `dakwah-index`/`dakwah-link-show`, the dashboard summary method is `dakwahSummary()`, the feature test is `ShareTrackingTest`, and the runbook is `dakwah-operations.md`. UI label and translations are `Dakwah`/`Dakwah`/`الدعوة`. Route URLs and names remain `dakwah*`. Historical task logs, `tasks/lessons.md`, `docs/superpowers` specs, and `docs/trash` archives may retain the old name.
+
+## Remove the legacy share layer, keep Dakwah as the analytics page (2026-11-05)
+
+- [x] Rename the legacy share classes/middleware to `Share*` and the share panel component to `share-panel`.
+- [x] Consolidate the legacy share config into `config/share-tracking.php` and update config keys.
+- [x] Rename the web share route names to `share.payload`/`share.track`/`share.redirect`; keep `/kongsi/*` URLs unchanged.
+- [x] Rename the feature test to `ShareTrackingTest` and update live documentation references.
+- [x] Preserve cookies, headers, env vars, DB enum values, and the share-member hash salt.
+- [x] Verify routes, autoload, Pint, and affected tests.
+
+Review: `Dakwah` is now only the analytics page (`DakwahIndex`/`DakwahLinkShow`). The share machinery uses `ShareController`, `ShareOutcomeType`, `ShareSubjectType`, `TrackShareAttribution`, the `share-tracking` config, `share.*` route names, `ShareTrackingTest`, and the `share-panel` Blade component. Kept: `/kongsi/*` URLs and enum backing values. Cookies, headers, env vars, member salt, and the signal event name were later rebranded to `i360_*`/`SHARE_*`/`share.*`; see the i360 contract section below. `route:list` resolves the renamed routes; `composer dump-autoload` was run; Pint and `git diff --check` pass. Focused tests: `ShareTrackingTest` 47/47, `AdminShareAnalyticsPageTest` 10/10, `SignupAttributionTest` 12/12, `SignupAttributionSourceResolverTest` 31/31, `SubmitEventCompletionAtomicityTest` 13/13. Pre-existing failures remain unrelated: `ShareAnalyticsApiTest` and `SignalsIntegrationTest` still treat the `/k/{slug}` short link as a 200 landing instead of following its 302; `ShareCards` tests expect 200 from card routes that redirect to placeholders; one `ShareTracking` race test needs the PostgreSQL 17 binary. Historical `docs/superpowers` plans/specs, `docs/trash`, and `tasks/lessons.md` may retain the old name.
+
+## Rebrand share contracts to i360 (2026-11-05)
+
+- [x] Rename cookies to `i360_share`, `i360_guest`, and `i360_guest_claim`.
+- [x] Rename headers to `X-Guest-Credential` and `X-Claim-Capability`.
+- [x] Rename env vars to `SHARE_SIGNING_KEY` and `SHARE_REPORTING_START`.
+- [x] Rename the member hash salt to `share-member-v1` and the member code prefix to `I360`.
+- [x] Rename the committed-share signal event to `share.committed_share`.
+- [x] Move the local examples to `app:share:activate-local-examples`, `share-points-v1`, and `ilmu360-share-community`.
+- [x] Remove legacy table guards and stale legacy references from live docs and tests.
+- [x] Audit remaining `Dakwah` references and confirm they are page-only; remove all legacy share aliases.
+- [x] Re-run share tracking, guest claim, short-link, analytics, and config tests.
+
+Review: all live share contracts now use i360/share naming with no compatibility aliases. `.env` and `.env.example` use `SHARE_REPORTING_START`; the share-member hash salt is `share-member-v1` with an `I360` code prefix; the committed-share signal is `share.committed_share`; local examples use `app:share:activate-local-examples`, `share-points-v1`, and `ilmu360-share-community`. Live code and docs retain `Dakwah` only for the analytics page (`/dakwah`, `DakwahIndex`, `DakwahLinkShow`, `dakwahSummary`, page labels, and page docs). Historical `tasks/lessons.md`, `docs/superpowers`, and `docs/trash` still contain old names as archives. Verification: `ShareTrackingTest` 46/46 (legacy table guard removed), `ActivateLocalShareExamplesTest` 4/4, `RefactorTest` 3/3, `TicketAffiliateCommissionTest` 10/10, `ShareTracking` 139 passed with 46 PostgreSQL-binary errors and 1 related failure, `SignupAttributionTest` 12/12, `SignupAttributionSourceResolverTest` 31/31, `RewardEventWiringTest` 6/6, `RewardActivityFactsTest` 11/11, `ReferralInviteLandingTest` 4/4. Pre-existing unrelated failures: `ShareAnalyticsApiTest` short-link 302 assertion; `RewardDeliveryTest` date-sensitive cohort and digest-trigger expectations.
+
 ## Fix Dakwah member experience (2026-11-05)
 
 - [x] Confirm Dakwah remains the sharing analytics page, with separate invitation/reward workflows.
@@ -232,3 +342,130 @@ Verified metric map:
 - Referral acceptance/qualification and reward ledgers are independent; recorded share responses are not invitation totals or balances. Existing signup/referral/reward integration tests cover their interaction and reversal/idempotency paths.
 
 Proof: 168 distinct relevant tests verified (159 passed in initial integration run; nine failures were corrected and affected suites re-run: 74/74 passed). New reconciliation fixtures assert 3 outbound shares, 5 visits, 3 global browsers, 12 valid responses across all 11 action types, excluded statuses, exact boundaries, ownership, guest claim/revocation, deactivated history, orphan history and 25-hour DST buckets. Seven initial failures came from a relation-callback type error caught/fixed by static analysis and runtime tests; two test expectations were corrected for claim-created recipient profiles and retained unknown-channel browser evidence. PHPStan level 6 zero errors, Pint, production build and git diff --check pass. Validation uses isolated records plus real-ingestion integration tests, not a production database export.
+
+## Rename the page to the Malay spelling (2026-11-05)
+
+- [x] Rename the page routes to `/dakwah*` with matching `dakwah*` route names.
+- [x] Rename the page classes, views, and summary method to the `Dakwah` spelling.
+- [x] Update UI labels, translation keys, internal links, tests, and live docs.
+- [x] Rename the operations runbook to `dakwah-operations.md`.
+- [x] Audit for remaining English-spelling references and verify routes, autoload, Pint, and page tests.
+
+Review: the page now uses the Malay spelling throughout. Routes are `/dakwah`, `/dakwah/links`, and `/dakwah/links/{link}` with `dakwah`/`dakwah.links`/`dakwah.links.show` names; classes are `DakwahIndex`/`DakwahLinkShow`; views are `dakwah-index`/`dakwah-link-show`; the summary method is `dakwahSummary()`; the runbook is `dakwah-operations.md`. The UI/translation key is `Dakwah` (English value `Dakwah`, Malay/Indonesian `Dakwah`, Arabic `الدعوة`). Six page test files were renamed to the `Dakwah` spelling. `route:list`, Composer autoload, Pint, and `git diff --check` pass; page tests pass except the known pre-existing `DashboardPagesTest` account-settings copy failure. Live code, filenames, and docs have no remaining English-spelling references; only `docs/trash`, `docs/superpowers`, and `tasks/lessons.md` retain historical spelling.
+
+## Match the About 360° collage to the supplied reference (2026-11-05)
+
+- [x] Crop the photo-and-compass portion of the supplied reference and generate a matching six-ribbon photo collage.
+- [x] Rebuild the section proportions, photo overlay labels, and central compass to follow the reference.
+- [x] Build frontend assets and attempt a desktop/mobile page preview.
+
+Review: the page section follows the supplied crop with a narrow editorial copy column, three paired photo ribbons, six localized HTML labels, and a compass with “360°” baked into the collage image. `npm run build` and scoped `git diff --check` pass. Desktop and mobile captures from the user-provided URL were inspected with local Playwright; the shared preview browser is blocked by the host's AppArmor policy.
+
+## Blend the About closing cover into adjacent page colors (2026-11-06)
+
+- [x] Generate an ultra-wide closing cover with soft top and bottom edges that match the surrounding ivory and sage-ivory backgrounds.
+- [x] Update the closing banner to use the new cover without a visible crop seam.
+- [x] Build and inspect the banner at desktop and mobile widths.
+
+Review: added `closing-continuous.webp`, a 3:1 sunrise panorama based on the screenshot and prior cover. Its upper edge fades to the page's warm ivory, while the lower landscape fades to the footer's pale sage-ivory. The closing section now uses matching top/bottom gradient colors so the transition stays smooth after the responsive crop. `npm run build` and scoped `git diff --check` pass; desktop and mobile captures were inspected from the supplied page URL.
+
+## Fade the homepage community CTA into the footer (2026-11-06)
+
+- [x] Inspect the homepage CTA, footer gap, and separate desktop/mobile covers.
+- [x] Generate desktop and mobile CTA background variants with a lower ivory fade.
+- [x] Add a matching page-color fade below the CTA content and verify desktop/mobile rendering.
+
+Review: the homepage now uses new desktop and mobile lake covers with lower-edge fades into `#f8f7f1`. A final CSS fade finishes at the same color as the homepage surface, below the CTA content, so both crops transition into the footer gap without washing out the benefit labels. `npm run build` and scoped `git diff --check` pass; desktop and mobile captures were inspected.
+
+## Give the homepage community CTA more vertical room (2026-11-06)
+
+- [x] Increase the responsive section minimum heights and loosen spacing between the CTA copy and benefit items.
+- [x] Rebuild and inspect the taller desktop and mobile layouts, including the bottom fade.
+
+Review: increased the CTA to 32rem at desktop, 36rem at tablet, and 40rem on mobile; centered the desktop copy and added lower padding so the benefits clear the fade. `npm run build` passes. Playwright inspection confirms a 512px desktop section with 52px between benefits and fade, and a 640px mobile section with 49px clearance. CTA actions and benefits remain uncrowded on mobile.
+
+## Feedback form usability fixes (2026-11-06)
+
+- [x] Make category questions reactive and group optional details separately from the required summary.
+- [x] Preserve drafts on failure and clear them only after confirmed submission; complete Malay/English guidance.
+- [x] Verify category visibility, submission outcomes, localization, draft behavior, formatting, and static analysis.
+
+Review: category changes now refresh the matching questions. The required summary is followed by a collapsed optional details section and a separate page/attachments section. Malay and English guidance match, and steps placeholders use real line breaks. Drafts restore category and written details, survive failed submissions, and clear only after confirmed success. All 72 feedback tests pass (383 assertions), full PHPStan analysis and scoped Pint pass, and scoped diff checks pass. Isolated authenticated desktop/mobile renders were inspected with no horizontal overflow and working detail expansion. Real Alpine draft save, failed-request retention, and success cleanup were checked in the isolated browser; live authenticated submission was not exercised because the available browser session requires Google login. Existing server-confirmed feedback Signals remain the outcome tracking seam.
+
+## Match the About page journey to the reference (2026-11-06)
+
+- [x] Inspect the About page journey strip against the supplied reference at desktop and mobile widths.
+- [x] Refine the journey strip to match the five connected pills, gold icons, and centered caption.
+- [x] Build and inspect responsive layouts and translated copy.
+
+Review: the About journey is now a centered five-step strip with taller cream pills, gold line icons and chevrons, and the original centered caption framed by gold flourishes. The existing Malay copy remains in its About translation data. `npm run build` passes; Playwright inspection at 1440px, 390px, and 320px confirms all five labels and no horizontal overflow. The homepage CTA was restored after the user clarified the target page.
+
+## Improve About page mobile usability (2026-11-06)
+
+- [x] Inspect the full About page at phone and tablet widths; identify cramped layouts, image crops, and overflow.
+- [x] Adjust responsive layouts and add a mobile-specific image where the desktop crop loses useful context.
+- [x] Build and inspect at narrow phone, standard phone, tablet, and desktop sizes.
+
+Review: the About hero and closing CTA now switch to portrait mobile artwork below 640px; the hero has enough height for its copy and keeps the family and mosque visible. Removed the About collage's 12px mobile bleed. `npm run build` passes, and Playwright inspection at 320px, 390px, 768px, and 1440px confirms the correct image variants load with no horizontal overflow.
+
+## Refine the homepage community CTA mobile background (2026-11-06)
+
+- [x] Generate a portrait CTA background composed around the mobile copy and benefits, with a clean fade into the footer color.
+- [x] Wire the new image into the homepage CTA's mobile source.
+- [x] Build and inspect the CTA at phone and desktop widths.
+
+Review: added `community-lake-cta-mobile-v3.webp`, a 1122×1402 portrait scene with quiet lake space behind the mobile copy and a warm ivory fade into the footer. The CTA loads it below 640px and keeps the existing landscape art on desktop. Reduced the heading size on narrow phones to avoid a 4px overflow at 320px. `npm run build` and scoped `git diff --check` pass; Playwright inspection confirms the mobile asset at 320px and 390px, the desktop asset at 1440px, and no horizontal overflow.
+
+## Center the final About feature card on mobile (2026-11-06)
+
+- [x] Check the feature grid breakpoints and handle odd item counts.
+- [x] Center the orphan card in the two-column mobile layout.
+- [x] Create and use a portrait version of the 360° illustration on mobile.
+- [x] Build and inspect the phone and desktop layouts.
+
+Review: the last card now spans the two-column phone row at half width and stays centered; the class resets at wider breakpoints. Added a 3:4 mobile 360° collage with the compass integrated into the image and retained localized HTML labels. The illustration uses the portrait source below 640px and the original wide source at larger sizes. `npm run build` and scoped `git diff --check` pass. Playwright inspection at 320px and 390px confirms the final card center delta is 0 and there is no horizontal overflow; at 768px and 1440px the wide illustration remains selected.
+
+## Keep mobile collage labels off the illustration (2026-11-06)
+
+- [x] Show mobile labels beneath the 360° illustration instead of over the photos.
+- [x] Preserve the desktop overlay labels and verify both responsive layouts.
+
+Review: the six Malay captions now render in a two-column grid below the portrait illustration on phones, leaving all people and scenes unobstructed. The wide layout keeps its overlay pills. Playwright checks at 320px and 390px confirm all six captions sit below the image and there is no horizontal overflow; at 1440px the original overlay layout remains intact. `npm run build` and scoped `git diff --check` pass.
+
+## Keep the About mobile portrait subject fully in frame (2026-11-06)
+
+- [x] Give the mobile photo a taller crop and align it to preserve the man's head.
+- [x] Keep the existing desktop image treatment and verify phone rendering.
+
+Review: the mobile image now uses a 4:3 frame aligned to the top, preserving the full head and phone interaction at narrow widths. Desktop keeps its centered, auto-height crop. `npm run build` and scoped `git diff --check` pass; Playwright screenshots at 320px and 390px show the full subject.
+
+## Align About hero copy across desktop and mobile (2026-11-06)
+
+- [x] Right-align the About hero title, description, and quote on desktop.
+- [x] Move the mobile hero copy lower without colliding with the photo subject.
+- [x] Build and inspect the hero at phone and desktop widths.
+
+Review: the hero title, description, and quote align right at desktop widths, including the quote border on the right. On phones the copy starts lower; the hero is taller to keep the quote clear of the family at 320px. `npm run build` and scoped `git diff --check` pass. Playwright inspection at 320px and 390px confirms the mobile image, and at 1440px confirms right alignment with the desktop image.
+
+## Refine About hero alignment and mobile offset (2026-11-06)
+
+- [x] Move the desktop hero copy container to the right edge, not only right-align its text.
+- [x] Lower the phone copy slightly more while keeping it clear of the photo subject.
+- [x] Build and inspect at narrow phone, standard phone, and desktop sizes.
+
+Review: the desktop wrapper now sits flush with the hero's inner right edge and all copy stays right-aligned. Mobile copy moves down 16px; the 576px phone hero keeps a clear gap from the family at 320px. `npm run build` and scoped `git diff --check` pass. Playwright checks at 320px, 390px, and 1440px confirm the offsets, alignments, and no horizontal overflow.
+
+## Give the About mobile hero a clear text-safe background (2026-11-06)
+
+- [x] Generate a mobile portrait hero image with open sky behind the current copy position.
+- [x] Switch only the mobile hero preload and image source to the new artwork.
+- [x] Build and inspect phone and desktop hero rendering.
+
+Review: added `page-hero-mobile-v2.webp`, with open sky behind the headline, body, and quote while keeping the family and mosque low in the scene. The existing mobile text placement is unchanged; the new image is used only below 640px, while desktop keeps its original background. `npm run build` and scoped `git diff --check` pass. Playwright inspection at 320px, 390px, and 1440px confirms the mobile variant loads and the desktop image is unchanged.
+
+## Fix the About journey book icon (2026-11-06)
+
+- [x] Keep the open-book SVG path inside its viewBox.
+- [x] Build and inspect the journey icon on phone and desktop.
+
+Review: the open-book icon now uses a symmetric path bounded by the 24×24 viewBox; the right page is no longer clipped. `npm run build` and scoped `git diff --check` pass. Playwright renders at 390px and 1440px show the complete icon, and the path bounds stay within the viewBox.

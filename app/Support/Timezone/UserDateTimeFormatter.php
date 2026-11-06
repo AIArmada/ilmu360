@@ -36,7 +36,10 @@ class UserDateTimeFormatter
             return '';
         }
 
-        return $dateTime->copy()->timezone($timezone ?? self::resolveTimezone($request))->translatedFormat($format);
+        return $dateTime->copy()
+            ->timezone($timezone ?? self::resolveTimezone($request))
+            ->locale(app()->getLocale())
+            ->translatedFormat($format);
     }
 
     public static function userNow(?Request $request = null): CarbonInterface
