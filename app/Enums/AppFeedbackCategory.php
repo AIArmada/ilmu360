@@ -38,6 +38,9 @@ enum AppFeedbackCategory: string implements HasColor, HasLabel
     }
 
     /**
+     * Selectable categories for new feedback. UiUx is retained for existing
+     * records but merged into FeatureRequest in the public form.
+     *
      * @return array<string, string>
      */
     public static function options(): array
@@ -45,6 +48,10 @@ enum AppFeedbackCategory: string implements HasColor, HasLabel
         $options = [];
 
         foreach (self::cases() as $category) {
+            if ($category === self::UiUx) {
+                continue;
+            }
+
             $options[$category->value] = $category->getLabel();
         }
 

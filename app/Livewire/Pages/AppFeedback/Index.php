@@ -147,7 +147,6 @@ class Index extends Component implements HasForms
                         TextInput::make('page_url')
                             ->label(__('app-feedback.form.page_url'))
                             ->maxLength(2048)
-                            ->readOnly()
                             ->dehydrated()
                             ->helperText(fn (): string => filled($this->data['page_url'] ?? null)
                                 ? __('app-feedback.form.page_url_captured')

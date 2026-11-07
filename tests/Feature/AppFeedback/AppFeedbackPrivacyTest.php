@@ -25,6 +25,17 @@ it('preserves private dashboard path without query or fragment', function () {
         ->toBe('https://ilmu360.test/dashboard/majlis/pendaftaran');
 });
 
+it('accepts relative related page paths', function () {
+    config()->set('app.url', 'https://ilmu360.test');
+
+    expect(AppFeedbackInput::sanitizePageUrl('tambah-majlis'))
+        ->toBe('https://ilmu360.test/tambah-majlis')
+        ->and(AppFeedbackInput::sanitizePageUrl('majlis/contoh?tab=about'))
+        ->toBe('https://ilmu360.test/majlis/contoh')
+        ->and(AppFeedbackInput::sanitizePageUrl('javascript:alert(1)'))
+        ->toBeNull();
+});
+
 it('blocks invitation token routes but allows plain pages', function () {
     config()->set('app.url', 'https://ilmu360.test');
 

@@ -165,6 +165,11 @@ final readonly class AppFeedbackInput
         $appUrl = (string) config('app.url');
         $appHost = parse_url($appUrl, PHP_URL_HOST);
         $host = $parts['host'] ?? null;
+        $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+
+        if ($scheme !== '' && ! in_array($scheme, ['http', 'https'], true)) {
+            return null;
+        }
 
         if (is_string($host)) {
             $requestHost = $request?->getHost();
@@ -173,10 +178,6 @@ final readonly class AppFeedbackInput
             $matchesRequest = is_string($requestHost) && $requestHost !== '' && strcasecmp($host, $requestHost) === 0;
 
             if (! $matchesApp && ! $matchesRequest) {
-                return null;
-            }
-
-            if (! in_array(strtolower((string) ($parts['scheme'] ?? '')), ['http', 'https'], true)) {
                 return null;
             }
 
@@ -189,6 +190,10 @@ final readonly class AppFeedbackInput
 
         if ($path === '') {
             $path = '/';
+        }
+
+        if ($host === null && $scheme === '' && ! str_starts_with($path, '/')) {
+            $path = '/'.$path;
         }
 
         if (! str_starts_with($path, '/')) {

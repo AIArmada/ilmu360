@@ -11,6 +11,7 @@ use App\Notifications\AppFeedbackSubmittedNotification;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Notification;
@@ -31,6 +32,46 @@ it('renders the app feedback page for members', function () {
         ->get('/maklum-balas')
         ->assertSuccessful()
         ->assertSee(__('app-feedback.title'));
+});
+
+it('lets members edit the related page link', function () {
+    Notification::fake();
+
+    $this->actingAs(User::factory()->create());
+
+    Livewire::test(Index::class)
+        ->assertFormFieldExists('page_url', fn (TextInput $field): bool => ! $field->isReadOnly())
+        ->fillForm([
+            'category' => AppFeedbackCategory::Bug->value,
+            'title' => 'Pautan halaman boleh diubah',
+            'description' => 'Pengguna boleh mengubah pautan halaman berkaitan.',
+            'page_url' => 'https://ilmu360.test/majlis/contoh',
+        ])
+        ->call('submit')
+        ->assertHasNoFormErrors();
+
+    expect(AppFeedback::sole()->page_url)->toBe('https://ilmu360.test/majlis/contoh');
+});
+
+it('prefills the related page from the dari path', function () {
+    $this->actingAs(User::factory()->create());
+
+    Livewire::withQueryParams(['dari' => 'tambah-majlis'])
+        ->test(Index::class)
+        ->assertSet('data.page_url', 'https://ilmu360.test/tambah-majlis');
+});
+
+it('offers merged and simplified feedback categories', function () {
+    app()->setLocale('ms');
+
+    expect(AppFeedbackCategory::options())->toBe([
+        'bug' => 'Ralat',
+        'feature_request' => 'Cadangan',
+        'performance' => 'Prestasi',
+        'other' => 'Lain-lain',
+    ])
+        ->and(AppFeedbackCategory::UiUx->getLabel())->toBe('Cadangan')
+        ->and(__('app-feedback.form.description'))->not->toContain('Jangan sertakan');
 });
 
 it('stores structured bug details without concatenation', function () {

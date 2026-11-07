@@ -12,26 +12,66 @@
 @endphp
 
 @section('title', __('app-feedback.title').' - '.config('app.name'))
+@section('og_image', asset('images/app-feedback/hero-desktop-v2.png'))
+@section('og_image_alt', __('app-feedback.title'))
+@section('og_image_width', '1672')
+@section('og_image_height', '941')
 
 @include('partials.filament-assets', [
     'scripts' => ['filament/support', 'filament/schemas', 'filament/forms'],
 ])
 
-<div class="min-h-screen bg-slate-50 pb-20">
-    <div class="mx-auto w-full max-w-5xl px-3 py-6 sm:px-4 sm:py-8 lg:px-6 lg:py-10">
-        <header class="rounded-3xl border border-emerald-900/10 bg-gradient-to-br from-emerald-900 via-emerald-800 to-emerald-950 px-6 py-8 text-white shadow-sm sm:px-8 sm:py-10">
-            <p class="text-xs font-bold uppercase tracking-[0.24em] text-amber-300">{{ __('app-feedback.title') }}</p>
-            <h1 class="mt-3 font-heading text-3xl font-bold tracking-tight sm:text-4xl">{{ __('app-feedback.title') }}</h1>
-            <p class="mt-3 max-w-2xl text-sm leading-7 text-emerald-50/90 sm:text-base">{{ __('app-feedback.intro') }}</p>
-            <div class="mt-5 flex flex-wrap gap-3 text-xs font-semibold">
-                <a href="#maklum-balas-saya" class="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-4 py-2 text-white transition hover:bg-white/15">
-                    {{ __('app-feedback.history.heading') }}
-                </a>
-                <a href="{{ route('contact') }}" wire:navigate class="inline-flex items-center rounded-full border border-white/20 px-4 py-2 text-white/90 transition hover:bg-white/10">
-                    {{ __('Contact Us') }}
-                </a>
+<div data-art-direction="living-majlis" class="living-majlis-field relative min-h-screen overflow-x-clip text-slate-800">
+    <div class="relative isolate overflow-hidden border-b border-emerald-900/[0.06]">
+        <div data-material="hero-field" class="absolute inset-0 overflow-hidden bg-[#f7f3e8]">
+            <picture class="absolute inset-0">
+                <source media="(max-width: 639px)" srcset="{{ asset('images/app-feedback/hero-mobile-v3.webp') }}" type="image/webp">
+                <img
+                    srcset="{{ asset('images/app-feedback/hero-desktop-v2.webp') }}"
+                    src="{{ asset('images/app-feedback/hero-desktop-v2.png') }}"
+                    alt=""
+                    aria-hidden="true"
+                    class="absolute inset-0 h-full w-full object-cover object-center sm:object-[42%_center] lg:object-center"
+                    width="1672"
+                    height="941"
+                    loading="eager"
+                    fetchpriority="high"
+                    decoding="async"
+                >
+            </picture>
+            <div class="absolute inset-0 bg-gradient-to-r from-[#fffdf8]/78 via-[#fffdf8]/24 to-transparent"></div>
+            <div class="absolute inset-0 sm:hidden" style="background: linear-gradient(90deg, rgba(255,253,248,.97) 0%, rgba(255,253,248,.92) 50%, rgba(255,253,248,.65) 78%, rgba(255,253,248,.28) 94%, rgba(255,253,248,.12) 100%);"></div>
+        </div>
+
+        <div class="relative mx-auto max-w-7xl px-5 pt-48 pb-14 sm:px-6 sm:pt-52 sm:pb-20 lg:px-8 lg:pt-52 lg:pb-16">
+            <div class="relative z-10 max-w-2xl">
+                <h1 class="max-w-2xl font-heading text-4xl font-bold leading-[1.06] tracking-[-0.035em] text-emerald-950 text-balance sm:text-5xl lg:text-6xl">
+                    {{ __('app-feedback.title') }}
+                </h1>
+                <p class="mt-6 max-w-xl text-base leading-7 text-slate-800 text-balance sm:mt-7 sm:text-lg sm:text-slate-600">
+                    {{ __('app-feedback.intro') }}
+                </p>
+                <div class="mt-9 flex flex-wrap items-center gap-3">
+                    @if ($canSubmit)
+                        <a href="#hantar-maklum-balas" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-800 px-5 text-sm font-bold text-white shadow-[0_14px_28px_-18px_rgba(6,78,59,0.70)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-emerald-700 hover:shadow-[0_20px_36px_-18px_rgba(6,78,59,0.75)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/15">
+                            {{ __('app-feedback.form.heading') }}
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-5-5 5 5-5 5" />
+                            </svg>
+                        </a>
+                    @endif
+                    <a href="#maklum-balas-saya" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-white/80 px-5 text-sm font-bold text-emerald-700 shadow-sm backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/10">
+                        {{ __('app-feedback.history.heading') }}
+                    </a>
+                    <a href="{{ route('contact') }}" wire:navigate class="inline-flex min-h-11 items-center px-2 text-sm font-semibold text-emerald-700 underline decoration-emerald-300 decoration-2 underline-offset-4 transition hover:text-emerald-900">
+                        {{ __('Contact Us') }}
+                    </a>
+                </div>
             </div>
-        </header>
+        </div>
+    </div>
+
+    <div class="mx-auto w-full max-w-5xl px-3 pb-20 pt-8 sm:px-4 sm:pt-10 lg:px-6 lg:pt-12">
 
         @if (filled($successMessage))
             <div class="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-900" role="status">
@@ -40,7 +80,7 @@
         @endif
 
         @if ($canSubmit)
-            <section class="mt-8 sm:mt-10">
+            <section id="hantar-maklum-balas" class="mt-8 scroll-mt-24 sm:mt-10">
                 <form
                     wire:submit="submit"
                     class="space-y-6"

@@ -1,3 +1,24 @@
+# Todo — Maklum Balas Page Polish (2026-11-07)
+
+- [x] Make “Halaman berkaitan” editable (and fix `?dari=` relative path auto-fill).
+- [x] Remove the password/payment/personal-data warning sentence.
+- [x] Merge the two “Cadangan” categories into one “Cadangan” option.
+- [x] Rename “Ralat Aplikasi” → “Ralat” and “Prestasi Aplikasi” → “Prestasi”.
+- [x] Generate desktop + mobile hero images with codex imagegen and replace the green header.
+- [x] Match the full-bleed, high-key `/penceramah` and `/institusi` hero treatment.
+- [x] Add regression tests, run Pest, Pint, PHPStan, and update graphify.
+
+## Review — Maklum Balas page polish
+
+- `page_url` is no longer read-only; `?dari=tambah-majlis` now normalizes to `/tambah-majlis` and pre-fills the field. Helper copy explains it is editable.
+- Removed the password/payment/personal-data warning from both MS and EN descriptions.
+- `AppFeedbackCategory::options()` excludes the historical `ui_ux` case; `feature_request` and `ui_ux` both render as “Cadangan” for old records. Labels now “Ralat” and “Prestasi”.
+- Hero images generated with codex `imagegen` (built-in), matching the `/penceramah` and `/institusi` warm, high-key courtyard style: `public/images/app-feedback/hero-desktop-v2.png` (1672×941) and `hero-mobile-v3.png` (1024×1536), with WebP variants (166 KB / 168 KB).
+- The hero is now full-bleed with the shared `living-majlis-field` surface, cream left-to-right wash, dark emerald display heading, and directory-style CTAs; the form/history sit below in the existing `max-w-5xl` reading column.
+- Responsive `<picture>` serves the recomposed portrait mobile art below 640px and the wide desktop art otherwise; the mobile art reserves the left 60% for copy.
+- Verification: 76 AppFeedback tests passed (397 assertions); Pint passed; PHPStan level 6 0 errors; browser probe passed with no JS errors and screenshots at desktop + 390×844. Evidence in `storage/verify/app-feedback/`.
+- `graphify` is not installed in this checkout, so `graphify update` could not run.
+
 # Todo — Cloudflare Turnstile Existing Widget (2026-11-07)
 
 Existing widget sitekey: `0x4AAAAAAF3NID96p30IuFuG`. Follow the Turnstile
