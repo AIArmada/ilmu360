@@ -14,24 +14,63 @@
         ['key' => 'terms', 'route' => 'terms', 'label' => __('Terms')],
         ['key' => 'contact', 'route' => 'contact', 'label' => __('Contact Us')],
     ];
+    $heroArt = match ($pageKey) {
+        'terms' => [
+            'desktopPng' => 'images/legal/terms-hero-desktop-v1.png',
+            'desktopWebp' => 'images/legal/terms-hero-desktop-v1.webp',
+            'mobileWebp' => 'images/legal/terms-hero-mobile-v1.webp',
+            'width' => '1672',
+            'height' => '941',
+        ],
+        'contact' => [
+            'desktopPng' => 'images/legal/contact-hero-desktop-v1.png',
+            'desktopWebp' => 'images/legal/contact-hero-desktop-v1.webp',
+            'mobileWebp' => 'images/legal/contact-hero-mobile-v1.webp',
+            'width' => '1672',
+            'height' => '941',
+        ],
+        default => [
+            'desktopPng' => 'images/legal/privacy-hero-desktop-v1.png',
+            'desktopWebp' => 'images/legal/privacy-hero-desktop-v1.webp',
+            'mobileWebp' => 'images/legal/privacy-hero-mobile-v1.webp',
+            'width' => '1672',
+            'height' => '941',
+        ],
+    };
 @endphp
 
 @section('title', $pageTitle . ' - ' . config('app.name'))
 @section('meta_description', (string) data_get($pageContent, 'meta.description', $pageIntro))
 @section('og_url', route($pageKey))
-@section('og_image', asset('images/default-mosque-hero.png'))
+@section('og_image', asset($heroArt['desktopPng']))
 @section('og_image_alt', $pageTitle)
+@section('og_image_width', $heroArt['width'])
+@section('og_image_height', $heroArt['height'])
 
 @section('content')
-    <div class="relative isolate overflow-hidden bg-[#f8f7f1] text-[#12372d]">
-        <div class="pointer-events-none absolute inset-0 -z-10">
-            <div class="absolute -left-32 -top-48 h-[34rem] w-[34rem] rounded-full bg-emerald-700/[0.07] blur-[90px]"></div>
-            <div class="absolute -right-40 top-10 h-[30rem] w-[30rem] rounded-full bg-amber-400/[0.08] blur-[80px]"></div>
-            <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-900/10 to-transparent"></div>
-        </div>
+    <div data-art-direction="living-majlis" class="living-majlis-field relative isolate overflow-x-clip text-[#12372d]">
+        <section class="relative isolate overflow-hidden border-b border-emerald-900/[0.06]">
+            <div data-material="hero-field" class="absolute inset-0 overflow-hidden bg-[#f7f3e8]">
+                <picture class="absolute inset-0">
+                    <source media="(max-width: 639px)" srcset="{{ asset($heroArt['mobileWebp']) }}" type="image/webp">
+                    <img
+                        srcset="{{ asset($heroArt['desktopWebp']) }}"
+                        src="{{ asset($heroArt['desktopPng']) }}"
+                        alt=""
+                        aria-hidden="true"
+                        class="absolute inset-0 h-full w-full object-cover object-center sm:object-[42%_center] lg:object-center"
+                        width="{{ $heroArt['width'] }}"
+                        height="{{ $heroArt['height'] }}"
+                        loading="eager"
+                        fetchpriority="high"
+                        decoding="async"
+                    >
+                </picture>
+                <div class="absolute inset-0 bg-gradient-to-r from-[#fffdf8]/78 via-[#fffdf8]/24 to-transparent"></div>
+                <div class="absolute inset-0 sm:hidden" style="background: linear-gradient(90deg, rgba(255,253,248,.97) 0%, rgba(255,253,248,.92) 50%, rgba(255,253,248,.65) 78%, rgba(255,253,248,.28) 94%, rgba(255,253,248,.12) 100%);"></div>
+            </div>
 
-        <section class="relative border-b border-emerald-900/[0.06]">
-            <div class="mx-auto max-w-6xl px-5 pb-10 pt-48 sm:px-8 sm:pb-12 sm:pt-52 lg:px-10 lg:pt-52">
+            <div class="relative mx-auto max-w-6xl px-5 pb-10 pt-48 sm:px-8 sm:pb-12 sm:pt-52 lg:px-10 lg:pt-52">
                 <div class="max-w-3xl">
                     <h1 class="text-balance font-heading text-4xl font-semibold leading-[1.04] tracking-[-0.035em] text-[#0b3b2e] sm:text-5xl lg:text-6xl">
                         {{ $pageTitle }}
