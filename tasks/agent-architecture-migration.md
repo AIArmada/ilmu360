@@ -5,8 +5,8 @@
 - Scope: the **whole ilmu360° application**, converted in verified, committable parts.
 - Authorization: user invoked `laravel-agent-convert`, requested commits per part, and a checklist another agent can continue.
 - Branch: `refactor`. Initial working tree was clean on 2026-11-07.
-- Current part: **4b — provider-backed Prayer engine** (committed as `741a9755`); Part 4a is committed as `6216b088`.
-- Next action: **Part 5 — Saved Searches**. Refresh the graph, trace the account lifecycle/reward/notification consumers listed below, capture fresh registrations and convert a complete owning slice. Prayer provider conversion is complete; event/location adapters remain for their own later migration.
+- Current part: **5a — Saved Searches mutation paths** verified; checkpoint subject `refactor(saved-searches): consolidate deletion and restoration writes`.
+- Next action: **Part 5b — Saved Searches public readers and ownership cutover**. Refresh the graph, follow the consumer map below, then migrate the model and remaining callers together. Preserve existing API attribution reversal versus plain page/account deletion behavior. Saved Searches is not yet an adopted feature.
 - Before continuing, read `AGENTS.md`, `.ai/rules/index.md`, `tasks/lessons.md`, and `/Users/Saiffil/.codex/skills/laravel-agent-convert/SKILL.md` with its architecture/migration/tooling references.
 - Update this checklist and `tasks/todo.md` in each part. Record commit subject, checks, limitations, and the next concrete action. A completed part does not mean full-app adoption.
 
@@ -66,7 +66,7 @@ Current owner: `app/Features/GitHubIssues/` (`Api`, `Actions`, `Persistence`, `S
 Ordering remains provisional until each ownership trace is complete. Split large parts into coherent commits and keep every remaining item visible.
 
 - [x] Provider-backed Prayer: providers, preview, cache/store writes, jobs and commands converted in Part 4b. Event-specific expression/location adapters remain Events-owned; their stored resolver identity is preserved for later Events migration.
-- [ ] Saved searches: page/API/model/policy/actions/filter normalization; immutable reads, account cleanup/restoration and reward source facts.
+- [ ] Saved searches: page/API/model/policy/actions/filter normalization; immutable reads, account cleanup/restoration and reward source facts. Part 5a write consolidation is complete; Part 5b ownership and consumer cutover remain open.
 - [ ] Feedback/reports: conversations, report lifecycle, review and notification adapters.
 - [ ] Inspirations: app-owned table, Save action, Filament persistence and frontend/API readers.
 - [ ] Identity/accounts: User/social accounts, auth/OAuth/Fortify, account lifecycle/restoration and public identity contracts.
@@ -96,7 +96,7 @@ Ordering remains provisional until each ownership trace is complete. Split large
 - `AppMembershipHook` and `User::updated()` call `PublicSubmissionLockService`, which writes directory flags/cache. Directory owns these writes; Membership/Identity call a public eligibility-sync operation.
 - `TransferPersonOwnershipAction` locks records, updates two pivots and scoped roles, then invokes hooks. Preserve one-owner invariants and atomic role synchronization.
 - `config/events.php`, `config/persons.php`, `AppServiceProvider` register models, policies, observers, slugs and morph identities. Stored fully qualified class strings exist; import replacement alone is insufficient.
-- SavedSearch inherits configurable `getTable()`; literal `$table` alone does not override it. Writes occur in three existing actions, API destroy, Livewire delete and `HasUserRestoration`. API delete reverses share outcomes while Livewire delete currently does not: preserve the distinction during conversion.
+- SavedSearch inherits configurable `getTable()`; literal `$table` alone does not override it. After Part 5a, runtime mutations are centralized in `app/Actions/SavedSearches`; API destroy, Livewire delete and account deletion/restoration invoke those actions. API delete reverses share outcomes while Livewire/account deletion do not: preserve the distinction during conversion.
 - Saved-search readers include dashboard/admin user views, notification matching and reward fact readers; replace mutable `User::savedSearches()` exposure with read values and account lifecycle operations. Execute depends on EventSearchService and currently returns event models; Events needs a real query boundary when migrated.
 - `AffiliatesShareTrackingService` (~2,900 lines) contains many package writes and guest/receipt orchestration. Extract named use cases; a renamed facade is insufficient. Current guest state lives in the affiliates package, despite stale graph-only app classes.
 
@@ -222,3 +222,30 @@ Verification on final code:
 Deployment is separate: queued prayer job class identities changed. Before eventual cutover, finish/drain existing prayer jobs using the old release and reload workers under the new release; do not add compatibility aliases or silently rewrite live queues. No deployment or queue mutation was performed here.
 
 Next: Saved Searches (Part 5). Whole-app migration and final full-suite acceptance remain open. Refresh graph before discovery; the graph predates these moved Prayer paths.
+
+## Part 5a — Saved Searches write consolidation (2026-11-08)
+
+- [x] Trace the API/page/account lifecycle mutations and the external notification/reward/dashboard consumers before moving the model.
+- [x] Centralize single-record deletion, owner deletion, attributed API deletion and quiet snapshot restoration in named Saved Searches actions.
+- [x] Redirect API/page/account lifecycle callers; preserve authorization, transactions, model deletion events and the API-only attribution reversal.
+- [x] Verify owner-type plus owner-ID isolation and restoration of original attributes/timestamp instants without replaying creation events.
+- [x] Compare routes, run affected tests, Pint, level-6 analysis with the owned-write rule, boundary checks and scoped Rector; checkpoint subject `refactor(saved-searches): consolidate deletion and restoration writes`.
+- [ ] Part 5b: migrate the public readers/integrations, model, policy, registrations and remaining callers into one owning feature. No Saved Searches manifest or full feature-adoption claim in Part 5a.
+
+Changed: `DeleteSavedSearchAction`, `DeleteOwnerSavedSearchesAction`, `DeleteSavedSearchWithAttributionReversalAction` and `RestoreSavedSearchesAction` under the existing `app/Actions/SavedSearches` path. The API retains its transaction and share-outcome reversal; page and account cleanup retain plain per-model deletion. Restoration retains `timestamps = false`, `forceFill` and `saveQuietly` from the original generic child-restoration path. Existing create/update/execute actions remain in place. No schema, route, policy or model identity change; existing Signals and attribution behavior are preserved.
+
+Verification: 85 affected tests covered across the initial 84 passing checks and the corrected lifecycle-file rerun (2 passed, 7 assertions). The initial new restoration assertion compared SQLite timestamp text instead of timestamp values; the corrected assertion verifies unchanged instants and unchanged other raw attributes. All existing API, page, account-restoration and WP2 attribution checks passed in the initial run. Logs: `/tmp/ilmu360-part5a-pest.log` and `/tmp/ilmu360-part5a-lifecycle-pest.log`. Pint, level-6 PHPStan plus owned-write rule (zero errors), boundary check (zero violations, two adopted features), scoped Rector and route comparison pass. Route snapshots: `/tmp/ilmu360-part5a-{before,after}-routes.json`; checker logs: `/tmp/ilmu360-part5a-{pint,phpstan,boundaries,final-rector}.log`.
+
+### Part 5b consumer map and preservation requirements
+
+- `User::savedSearches()` exposes a mutable `MorphMany`. Migrate every consumer before removing it; owner reads/writes must match both `user_type` and `user_id`.
+- `HasUserRestoration` still reads full attribute snapshots through that relation; replace the read with a public snapshot operation. Its writes now use the Part 5a actions.
+- `UserDashboard::recentSavedSearches` needs the latest three readonly summaries. Admin `ViewUser::reloadUserRecord` currently eager-loads searches: replace that model exposure with summaries containing name, query, filters, notify and creation time plus count.
+- Notification matching streams non-off searches with their user relation. Expose readonly candidates (owner identity, query/filters, latitude/longitude/radius and cadence), resolve User outside the feature, and preserve nearby-versus-text matching, first-50 result behavior, grouping, first-three names, metadata IDs and `saved-search-match:{eventId}:{userId}` fingerprint. Preserve instant/daily/weekly/off cadence and unknown-to-daily fallback.
+- `ActivityRewardSourceFactReader` needs a source snapshot (owner identity and creation time) plus `hasEarlierForOwner` constrained by both owner columns, strict earlier creation time and excluding the current ID. Keep User resolution and RewardSourceFact construction outside Saved Searches. `ShareAttributionRewardSourceFactReader` only needs an existence check for the saved-search source.
+- Read values must preserve mixed `query` (`string|array|null`), optional filters/notification settings and nullable geo fields. The package casts query to array although existing callers store text; do not silently change that contract during relocation.
+- `FilterNormalizer` imports event classifications; `ExecuteSavedSearchAction` invokes EventSearchService, returns Event models and records product Signals. Introduce a deliberate Events query/integration boundary; do not exempt these imports from architecture enforcement.
+- Preserve configurable package `getTable()` (a literal model `$table` cannot override that inherited method), factory discovery, policy registration, route-model binding, Livewire identity, middleware/order and configured/stored model/morph identities. Model creation currently defaults the owner type using User: replace with an identity seam when moving it.
+- The Livewire page also composes directory options. Keep directory composition in an external adapter using the Saved Searches public API rather than pulling unrelated models into the feature.
+
+Next agent: refresh `Users-Saiffil-Herd-ilmu360`, inspect this checkpoint, capture fresh registrations/routes, and implement Part 5b in further verified commits if needed. The full-app checklist above stays open.

@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Actions\SavedSearches\CreateSavedSearchAction;
+use App\Actions\SavedSearches\DeleteSavedSearchWithAttributionReversalAction;
 use App\Actions\SavedSearches\ExecuteSavedSearchAction;
 use App\Actions\SavedSearches\UpdateSavedSearchAction;
-use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
@@ -18,7 +18,6 @@ use App\Models\SavedSearch;
 use App\Models\User;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Support\Api\ApiPagination;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
@@ -26,7 +25,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 #[Group('Saved Search', 'Authenticated saved-search CRUD and execution endpoints for event discovery workflows.')]
@@ -156,23 +154,11 @@ class SavedSearchController extends Controller
         title: 'Delete a saved search',
         description: 'Deletes one saved search definition owned by the current authenticated user.',
     )]
-    public function destroy(SavedSearch $savedSearch): Response
+    public function destroy(SavedSearch $savedSearch, DeleteSavedSearchWithAttributionReversalAction $delete): Response
     {
         $this->authorize('delete', $savedSearch);
 
-        DB::transaction(function () use ($savedSearch): void {
-            $businessKey = ShareOutcomeBusinessKey::savedSearch((string) $savedSearch->getKey());
-            $owner = request()->user();
-
-            $savedSearch->delete();
-
-            app(ReverseShareOutcomeAction::class)->handle(
-                $businessKey,
-                'saved_search_deleted',
-                $owner instanceof User ? $owner : null,
-                request(),
-            );
-        });
+        $delete->handle($savedSearch, request());
 
         return response()->noContent();
     }

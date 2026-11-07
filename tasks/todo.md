@@ -542,4 +542,7 @@ Review: the open-book icon now uses a symmetric path bounded by the 24×24 viewB
 - [x] Part 4b: provider engine and four persistence concerns converted; 584 checks pass.
 
 - [x] Part 4b: Prayer provider feature, public boundaries, four owned stores, HTTP/queue/CLI/config/schedules converted; 584 checks pass, analysis/boundaries clean, routes/commands/schedules unchanged.
-- [ ] Part 5: Saved Searches ownership and consumer cutover, using the migration checklist.
+- [x] Part 5a: consolidate Saved Searches deletion/restoration writes and redirect API/page/account lifecycle callers; checkpoint subject `refactor(saved-searches): consolidate deletion and restoration writes`.
+- [ ] Part 5b: Saved Searches public readers, integrations, model ownership and consumer cutover, using the detailed migration checklist. Full Saved Searches adoption remains open.
+
+Part 5a review: API attribution reversal and transaction, plain page/account deletion, and quiet snapshot restoration remain unchanged. Owner-isolation and restoration regressions pass. All 85 affected tests pass across the initial run and corrected lifecycle-file rerun; Pint, PHPStan level 6 plus owned-write rule, boundaries, scoped Rector and unchanged-route comparison pass. The migration checklist records the next consumer map and exact verification logs.

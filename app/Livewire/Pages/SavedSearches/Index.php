@@ -8,6 +8,7 @@ use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
 use AIArmada\Events\Models\EventTerm;
 use App\Actions\SavedSearches\CreateSavedSearchAction;
+use App\Actions\SavedSearches\DeleteSavedSearchAction;
 use App\Actions\SavedSearches\UpdateSavedSearchAction;
 use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventAgeGroup;
@@ -178,7 +179,7 @@ class Index extends Component
         }
 
         $savedSearch = $user->savedSearches()->where('id', $savedSearchId)->firstOrFail();
-        $savedSearch->delete();
+        DeleteSavedSearchAction::run($savedSearch);
 
         $this->successToast(__('Saved search deleted.'));
     }
