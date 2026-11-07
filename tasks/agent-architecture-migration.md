@@ -5,8 +5,8 @@
 - Scope: the **whole ilmu360° application**, converted in verified, committable parts.
 - Authorization: user invoked `laravel-agent-convert`, requested commits per part, and a checklist another agent can continue.
 - Branch: `refactor`. Initial working tree was clean on 2026-11-07.
-- Current part: **5b — Saved Searches read boundaries** verified; checkpoint subject `refactor(saved-searches): replace external model reads with snapshots`. Part 5a committed as `e22d6e99`.
-- Next action: fix the separately identified baseline account-settings copy assertions, then **Part 5c** moves the Saved Searches model/actions/remaining integrations and registrations together. Preserve existing API attribution reversal versus plain page/account deletion behavior. Saved Searches is not yet an adopted feature.
+- Current part: **5b — Saved Searches read boundaries** committed as `036ca6e7`. Part 5a committed as `e22d6e99`. Baseline account-settings assertions are corrected and verified in the follow-up checkpoint below.
+- Next action: **Part 5c** moves the Saved Searches model/actions/remaining integrations and registrations together. Preserve existing API attribution reversal versus plain page/account deletion behavior. Saved Searches is not yet an adopted feature.
 - Before continuing, read `AGENTS.md`, `.ai/rules/index.md`, `tasks/lessons.md`, and `/Users/Saiffil/.codex/skills/laravel-agent-convert/SKILL.md` with its architecture/migration/tooling references.
 - Update this checklist and `tasks/todo.md` in each part. Record commit subject, checks, limitations, and the next concrete action. A completed part does not mean full-app adoption.
 
@@ -256,9 +256,18 @@ Verification: 85 affected tests covered across the initial 84 passing checks and
 - [x] Migrate dashboard/admin summaries, account snapshot capture, notification matching and both reward adapters. Remove their SavedSearch model imports/queries and relation exposure.
 - [x] Cover detached mixed-query values, immutable timestamps, owner isolation, latest/limit reads, restoration attributes, source deletion, notification matching/grouping/cadence/geo fallback and first-time reward boundaries.
 - [x] Verify affected behavior, unchanged routes, Pint, level-6 PHPStan plus owned-write rule, boundary check, scoped Rector and independent review; commit subject `refactor(saved-searches): replace external model reads with snapshots`.
-- [ ] Separately correct the baseline account-settings test's outdated English description/save-button assertions; no product copy change needed.
+- [x] Separately correct the baseline account-settings test's outdated English description/save-button assertions; no product copy change needed. Follow-up checkpoint below.
 - [ ] Part 5c: complete feature ownership, public Api relocation, remaining entrypoint/integration/model/policy/factory/route registration cutover and cached behavior checks.
 
 Verification: **234 of 235 parallel Pest checks passed, 1,469 assertions**, including all 21 new Saved Searches reader/reward/notification cases and existing API/page/account/admin/dashboard/notification/reward/WP2 tests. The sole failure is `DashboardPagesTest`'s existing account-settings copy assertion. Baseline `e22d6e99` contains both stale assertions and the current translations; route, component, settings view, translations and that test were unchanged in Part 5b. Resolve in a separate test-only commit. Log: `/tmp/ilmu360-part5b-pest.log`. Pint, level-6 PHPStan plus owned-write rule (zero errors), boundaries (zero violations, two adopted features), scoped Rector (zero changes) and whitespace checks pass. All 750 routes in this stage's snapshots are unchanged in `/tmp/ilmu360-part5b-{before,after}-routes.json`; checker logs use `/tmp/ilmu360-part5b-{pint,phpstan,boundaries,rector}.log`. Independent review found no material defect. No schema, stored class/morph identity, URL, Signals or attribution workflow changes.
 
 Next agent: refresh the graph (the index predates the new reader), move the reader/snapshot to the Saved Searches public `Api` and its database implementation with the owning model. Remaining mutable `User::savedSearches()` runtime callers are CreateSavedSearchAction and the Saved Searches page; the API also reads its model directly. Remove the User relation after those migrate. The current API index scopes only `user_id`: add a same-ID/different-owner-type regression and constrain both owner columns during cutover. Resolve EventSearchService/Event paginator, filter enums, identity default and share-attribution operations through deliberate boundaries rather than exemptions. Preserve package-configured table behavior and factory/policy/morph/binding/Livewire registrations; then run cached/uncached checks. The full-app checklist remains open.
+
+### Part 5b follow-up — baseline account-settings test (2026-11-08)
+
+- [x] Confirm baseline `e22d6e99` has the same current translations and two outdated test expectations; none of the route/component/settings view/translations/test had changed in Part 5b.
+- [x] Update only the test to the existing English description and `Save changes` label; additionally assert the notification-preferences form is rendered, retaining HTTP success and inbox checks.
+- [x] Verify the corrected case: **1 passed, 6 assertions**, `/tmp/ilmu360-part5b-baseline-pest.log`. Together with the 234 unchanged passing cases in the saved Part 5b run, all 235 covered cases now pass. No repeated broad run after this test-only correction.
+- [x] Pint and whitespace checks pass. Scoped Rector was reviewed: its suggestions are confined to unchanged, unrelated tests in the same file, so they were not applied. Part 5b runtime analysis/boundary checks remain valid because this follow-up changes only the test. Checkpoint subject: `test(dashboard): align notification settings copy assertions`.
+
+No product copy, layout, tracking, settings behavior or runtime code changed. Resume Part 5c as described above; no baseline failure from the Part 5b run remains open.

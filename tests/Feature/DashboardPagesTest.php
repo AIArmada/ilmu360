@@ -456,9 +456,10 @@ it('renders the account settings notifications tab', function () {
 
     $followedResponse->assertOk()
         ->assertSee('Account Settings')
-        ->assertSee('Manage your account and notifications from one place.')
+        ->assertSee('Choose what you want to hear about. We will handle how it reaches you.')
         ->assertSee('Open inbox')
-        ->assertSee('Save Notification Settings');
+        ->assertSee('Save changes')
+        ->assertSee('wire:submit="saveNotificationPreferences"', false);
 });
 
 it('hides institution dashboard access for users without institution membership', function () {
