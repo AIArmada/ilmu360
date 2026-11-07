@@ -1,10 +1,20 @@
-@section('title', __('notifications.pages.settings.heading') . ' - ' . config('app.name'))
+@section('title', __('Account Settings') . ' - ' . config('app.name'))
+@section('og_image', asset('images/settings/account-settings-hero-desktop-v1.png'))
+@section('og_image_width', '1672')
+@section('og_image_height', '941')
 
 @include('partials.filament-assets', [
     'scripts' => ['filament/support', 'filament/schemas', 'filament/forms'],
 ])
 
 @php
+    $isNotificationsTab = $tab === 'notifications';
+    $headerTitle = $isNotificationsTab
+        ? __('notifications.pages.settings.heading')
+        : __('Profile Details');
+    $headerDescription = $isNotificationsTab
+        ? __('notifications.pages.settings.description')
+        : __('These details identify you across your account and public interactions.');
     $cadenceOptions = $this->notificationOptions['cadences'] ?? [];
     $email = $this->notificationDestinations['email'] ?? [];
     $pushDevices = $this->notificationDestinations['push'] ?? [];
@@ -14,40 +24,52 @@
     $myEventsEnabled = (bool) ($this->notificationGroupsState['my_events']['enabled'] ?? true);
 @endphp
 
-<div class="min-h-screen bg-slate-50 py-12 pb-32">
-    <div class="container mx-auto px-6 lg:px-12">
-        <div class="mx-auto max-w-6xl space-y-8">
-            <section class="overflow-hidden rounded-3xl border border-slate-200/70 bg-white shadow-sm">
-                <div class="border-b border-slate-100 bg-gradient-to-r from-emerald-50 via-white to-white px-6 py-8 md:px-8">
-                    <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-                        <div class="max-w-2xl">
-                            <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600">{{ __('Account Settings') }}</p>
-                            <h1 class="mt-3 font-heading text-3xl font-bold text-slate-900">{{ __('notifications.pages.settings.heading') }}</h1>
-                            <p class="mt-3 text-sm leading-6 text-slate-600">
-                                {{ __('notifications.pages.settings.description') }}
-                            </p>
-                        </div>
+<div data-art-direction="living-majlis" class="living-majlis-field relative min-h-screen overflow-x-clip pb-32 text-slate-800">
+    <section class="relative isolate overflow-hidden border-b border-emerald-900/[0.06]">
+        <div data-material="hero-field" class="absolute inset-0 overflow-hidden bg-[#f7f3e8]">
+            <picture class="absolute inset-0">
+                <source media="(max-width: 639px)" srcset="{{ asset('images/settings/account-settings-hero-mobile-v1.webp') }}" type="image/webp">
+                <img
+                    srcset="{{ asset('images/settings/account-settings-hero-desktop-v1.webp') }}"
+                    src="{{ asset('images/settings/account-settings-hero-desktop-v1.png') }}"
+                    alt=""
+                    aria-hidden="true"
+                    class="absolute inset-0 h-full w-full object-cover object-center sm:object-[42%_center] lg:object-center"
+                    width="1672"
+                    height="941"
+                    loading="eager"
+                    fetchpriority="high"
+                    decoding="async"
+                >
+            </picture>
+            <div class="absolute inset-0 bg-gradient-to-r from-[#fffdf8]/78 via-[#fffdf8]/24 to-transparent"></div>
+            <div class="absolute inset-0 sm:hidden" style="background: linear-gradient(90deg, rgba(255,253,248,.97) 0%, rgba(255,253,248,.92) 50%, rgba(255,253,248,.65) 78%, rgba(255,253,248,.28) 94%, rgba(255,253,248,.12) 100%);"></div>
+        </div>
 
-                        <a href="{{ route('notifications') }}" wire:navigate
-                            class="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-emerald-200 hover:text-emerald-700">
-                            {{ __('notifications.pages.inbox.cta') }}
-                        </a>
-                    </div>
+        <div class="relative mx-auto max-w-6xl px-5 pb-10 pt-48 sm:px-8 sm:pb-12 sm:pt-52 lg:px-10 lg:pt-52">
+            <div class="max-w-2xl">
+                <h1 class="font-heading text-4xl font-semibold leading-[1.04] tracking-[-0.035em] text-emerald-950 sm:text-5xl" data-testid="account-settings-heading">{{ $headerTitle }}</h1>
+                <p class="mt-5 max-w-xl text-base leading-8 text-slate-700 sm:text-lg">
+                    {{ $headerDescription }}
+                </p>
+            </div>
 
-                    <div class="mt-8 inline-flex rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">
-                        <button type="button" wire:click="switchTab('profile')"
-                            class="rounded-2xl px-4 py-2 text-sm font-semibold transition {{ $tab === 'profile' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900' }}">
-                            {{ __('Profile Details') }}
-                        </button>
-                        <button type="button" wire:click="switchTab('notifications')"
-                            class="rounded-2xl px-4 py-2 text-sm font-semibold transition {{ $tab === 'notifications' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900' }}">
-                            {{ __('notifications.pages.settings.tab') }}
-                        </button>
-                    </div>
-                </div>
+            <div class="mt-8 inline-flex rounded-2xl border border-[#dde4d7] bg-white/70 p-1.5 shadow-sm backdrop-blur-sm">
+                <button type="button" wire:click="switchTab('profile')"
+                    class="rounded-xl px-4 py-2 text-sm font-semibold transition {{ $tab === 'profile' ? 'bg-[#0e5b43] text-white shadow-sm' : 'text-[#3e5f54] hover:bg-white hover:text-[#0b3b2e]' }}">
+                    {{ __('Profile Details') }}
+                </button>
+                <button type="button" wire:click="switchTab('notifications')"
+                    class="rounded-xl px-4 py-2 text-sm font-semibold transition {{ $tab === 'notifications' ? 'bg-[#0e5b43] text-white shadow-sm' : 'text-[#3e5f54] hover:bg-white hover:text-[#0b3b2e]' }}">
+                    {{ __('notifications.pages.settings.tab') }}
+                </button>
+            </div>
+        </div>
+    </section>
 
-                @if ($tab === 'profile')
-                    <div class="space-y-8 px-6 py-8 md:px-8">
+    <div class="mx-auto max-w-6xl space-y-8 px-5 pb-16 pt-10 sm:px-8 lg:px-10 lg:pt-12">
+        @if ($tab === 'profile')
+            <div class="space-y-8">
                         <form wire:submit="saveAccountSettings" class="space-y-8">
                             {{ $this->form }}
 
@@ -65,7 +87,14 @@
                         </form>
                     </div>
                 @else
-                    <div class="notification-settings space-y-6 px-6 py-8 [--color-accent:var(--color-emerald-600)] md:px-8 dark:[--color-accent:var(--color-emerald-500)]">
+                    <div class="notification-settings space-y-6 [--color-accent:var(--color-emerald-600)] dark:[--color-accent:var(--color-emerald-500)]">
+                        <div class="flex justify-end">
+                            <a href="{{ route('notifications') }}" wire:navigate
+                                class="inline-flex min-h-11 items-center justify-center rounded-full border border-emerald-200 bg-white px-5 text-sm font-semibold text-emerald-700 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50">
+                                {{ __('notifications.pages.inbox.cta') }}
+                            </a>
+                        </div>
+
                         <div class="rounded-3xl border border-amber-200 bg-amber-50 p-5">
                             <div class="flex gap-3">
                                 <span class="mt-0.5 flex h-8 w-8 flex-none items-center justify-center rounded-full bg-amber-100 text-amber-800">
@@ -292,7 +321,5 @@
                         </form>
                     </div>
                 @endif
-            </section>
-        </div>
     </div>
 </div>

@@ -45,7 +45,38 @@ it('renders the account settings page with profile and notifications tabs', func
         ->assertSee('Save Account Settings')
         ->assertDontSee('Digest Preferences')
         ->assertDontSee('Save Preferences')
+        ->assertSee('images/settings/account-settings-hero-desktop-v1.png', false)
+        ->assertSee('images/settings/account-settings-hero-mobile-v1.webp', false)
         ->assertSee('fi-fo-phone-input', false);
+});
+
+it('uses the account settings title on the profile tab and hides the inbox link', function () {
+    $user = User::factory()->create();
+
+    $response = $this->withSession(['locale' => 'en'])
+        ->actingAs($user)
+        ->get(route('account-settings'));
+
+    $response->assertOk()
+        ->assertSee('<title>'.__('Account Settings').' - '.config('app.name').'</title>', false)
+        ->assertSee('data-testid="account-settings-heading">'.__('Profile Details').'</h1>', false)
+        ->assertSee(__('These details identify you across your account and public interactions.'))
+        ->assertDontSee(__('notifications.pages.settings.description'))
+        ->assertDontSee(__('notifications.pages.inbox.cta'));
+});
+
+it('shows the notifications heading and inbox link on the notifications tab', function () {
+    $user = User::factory()->create();
+
+    $response = $this->withSession(['locale' => 'en'])
+        ->actingAs($user)
+        ->get(route('account-settings', ['tab' => 'notifications']));
+
+    $response->assertOk()
+        ->assertSee('<title>'.__('Account Settings').' - '.config('app.name').'</title>', false)
+        ->assertSee('data-testid="account-settings-heading">'.__('notifications.pages.settings.heading').'</h1>', false)
+        ->assertSee(__('notifications.pages.settings.description'))
+        ->assertSee(__('notifications.pages.inbox.cta'));
 });
 
 it('places the password fields side by side on desktop', function () {
