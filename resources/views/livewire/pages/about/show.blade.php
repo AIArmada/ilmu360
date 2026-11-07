@@ -114,7 +114,7 @@
             <source media="(max-width: 639px)" srcset="{{ asset('images/about/reference/page-hero-mobile-v2.webp') }}" type="image/webp">
             <img src="{{ asset('images/about/reference/page-hero.webp') }}" alt="" width="1902" height="827" fetchpriority="high" class="absolute inset-0 h-full w-full object-cover object-center">
         </picture>
-        <div class="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(250,248,242,0.04)_0%,rgba(250,248,242,0.12)_34%,rgba(250,248,242,0.62)_58%,rgba(250,248,242,0.9)_100%)]"></div>
+        <div class="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(250,248,242,0.04)_0%,rgba(250,248,242,0.12)_34%,rgba(250,248,242,0.62)_58%,rgba(250,248,242,0.9)_100%)] max-sm:hidden"></div>
         <div class="mx-auto flex min-h-[36rem] max-w-[1240px] items-start px-5 pt-40 pb-12 sm:min-h-[460px] sm:items-center sm:px-8 sm:pt-36 lg:min-h-[520px] lg:px-10">
             <div class="mx-auto w-full max-w-[430px] text-center lg:ms-auto lg:me-0 lg:w-[58%] lg:text-right">
                 <h1 id="about-hero" class="font-heading text-[clamp(2.1rem,4.6vw,3.6rem)] font-medium leading-[1.05] tracking-[-0.03em] text-[#173b2d] text-balance">{{ data_get($hero, 'title', data_get($content, 'hero.title', __('About Us'))) }}</h1>
@@ -342,13 +342,13 @@
         </div>
     </section>
 
-    <section aria-labelledby="about-closing" class="relative isolate overflow-hidden bg-[#f2f3e8]">
+    <section aria-labelledby="about-closing" class="relative isolate grid place-items-center overflow-hidden bg-[#f2f3e8] max-sm:min-h-[32rem] sm:min-h-[33.333vw]">
         <picture class="absolute inset-0 -z-20">
             <source media="(max-width: 639px)" srcset="{{ asset('images/about/reference/closing-mobile-v1.webp') }}" type="image/webp">
             <img src="{{ asset('images/about/reference/closing-continuous.webp') }}" alt="" width="2172" height="724" loading="lazy" class="absolute inset-0 h-full w-full object-cover object-center">
         </picture>
         <div class="absolute inset-0 -z-10 bg-[linear-gradient(to_bottom,#fafaf4_0%,rgba(250,250,244,0.6)_10%,transparent_28%,transparent_68%,rgba(242,243,232,0.6)_88%,#f2f3e8_100%)]"></div>
-        <div class="mx-auto max-w-[1240px] px-5 py-16 text-center sm:px-8 sm:py-20 lg:px-10 lg:py-24">
+        <div class="mx-auto w-full max-w-[1240px] px-5 py-16 text-center sm:px-8 sm:py-20 lg:px-10 lg:py-24">
             <h2 id="about-closing" class="mx-auto max-w-[18ch] font-heading text-[clamp(2rem,4vw,3.1rem)] font-medium leading-[1.05] tracking-[-0.03em] text-[#173b2d] text-balance">{{ data_get($closing, 'title', 'Let’s Explore 360° of Learning Opportunities.') }}</h2>
             <p class="mx-auto mt-4 max-w-[64ch] text-sm leading-relaxed text-[#49574e] sm:text-[15px] lg:text-base text-pretty">{{ data_get($closing, 'body', data_get($content, 'meta.description')) }}</p>
             <div class="mt-7 flex flex-wrap justify-center gap-3">

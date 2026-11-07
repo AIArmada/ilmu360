@@ -316,10 +316,12 @@
                         <span class="hidden h-8 w-px bg-[#dfd7c7] sm:block" aria-hidden="true"></span>
 
                         @auth
-                            <livewire:components.notification-bell :variant="$useHomeHeader ? 'glass' : 'light'" />
+                            <div class="order-2 lg:order-none">
+                                <livewire:components.notification-bell :variant="$useHomeHeader ? 'glass' : 'light'" />
+                            </div>
 
                             <!-- User Menu -->
-                            <div class="relative group z-50 hidden sm:block">
+                            <div class="relative group z-50 order-1 hidden sm:block lg:order-none">
                                 <button
                                     type="button"
                                     aria-label="{{ $authenticatedUser->name }}"
@@ -422,7 +424,7 @@
                             :aria-expanded="mobileMenuOpen"
                             aria-controls="mobile-menu"
                             aria-label="{{ __('Menu') }}"
-                            class="flex h-11 w-11 items-center justify-center rounded-full border transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e3b537] lg:hidden {{ $mobileMenuToggleClass }}">
+                            class="order-3 flex h-11 w-11 items-center justify-center rounded-full border transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e3b537] lg:hidden {{ $mobileMenuToggleClass }}">
                             <span class="relative block h-5 w-5" aria-hidden="true">
                                 <svg x-show="!mobileMenuOpen" x-transition.opacity.duration.150ms
                                     class="absolute inset-0 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -612,7 +614,8 @@
                 <div class="living-majlis-footer-content relative z-10 mx-auto flex flex-col">
                     <div class="living-majlis-footer-grid grid">
                         <div>
-                            <div class="flex items-start">
+                            <a href="{{ route('home') }}" wire:navigate aria-label="{{ config('app.name') }}"
+                                class="inline-flex items-start rounded-sm transition-opacity duration-200 hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">
                                 <img
                                     src="{{ asset('images/logo-ilmu360-footer.png') }}"
                                     alt="{{ config('app.name') }}"
@@ -621,7 +624,7 @@
                                     class="living-majlis-footer-logo w-auto drop-shadow-sm"
                                 >
                                 <span class="mt-0.5 text-sm font-semibold text-gold-300" aria-hidden="true">™</span>
-                            </div>
+                            </a>
                             <div class="living-majlis-footer-socials flex items-center">
                                 <a href="https://x.com/ilmu360" target="_blank" rel="noopener noreferrer" aria-label="X"
                                     class="living-majlis-footer-social flex items-center justify-center rounded-full border transition-colors duration-200 hover:border-gold-300 hover:text-gold-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">

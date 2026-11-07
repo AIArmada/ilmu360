@@ -543,12 +543,11 @@ new
                 src="{{ asset('images/home/community-lake-cta-v3.webp') }}"
                 alt=""
                 loading="lazy"
-                class="absolute inset-0 h-full w-full object-cover object-center sm:object-[73%_center] md:object-center"
+                class="absolute inset-0 h-full w-full object-cover object-bottom sm:object-[73%_bottom] md:object-bottom"
             >
         </picture>
-        <div class="absolute inset-0 bg-[linear-gradient(90deg,rgba(3,16,29,0.4)_0%,rgba(3,16,29,0.22)_38%,rgba(3,16,29,0.04)_72%,rgba(3,16,29,0.08)_100%)]"></div>
-        <div class="absolute inset-0 bg-[linear-gradient(0deg,rgba(2,13,24,0.24)_0%,rgba(2,13,24,0)_74%)]"></div>
-        <div class="absolute inset-x-0 bottom-0 h-16 bg-[linear-gradient(to_bottom,transparent_0%,#f4f1e8_100%)] sm:h-20"></div>
+        <div class="home-cta-horizontal-shade absolute inset-0"></div>
+        <div class="home-cta-footer-fade absolute inset-x-0 bottom-0 h-24 sm:h-28"></div>
 
         <div class="relative z-10 mx-auto grid min-h-[40rem] max-w-[120rem] gap-12 px-5 pt-12 pb-24 sm:min-h-[36rem] sm:px-8 sm:pt-12 md:grid-cols-[minmax(0,1.15fr)_minmax(19rem,0.85fr)] md:items-stretch lg:min-h-[32rem] lg:px-14 lg:pt-10 lg:pb-32 xl:px-16">
             <div class="flex max-w-2xl flex-col justify-end md:justify-center">
@@ -605,7 +604,7 @@ new
                                     </svg>
                                 @endif
                             </span>
-                            <span>{{ $benefit['label'] }}</span>
+                            <span class="drop-shadow-[0_1px_2px_rgba(2,13,24,0.55)]">{{ $benefit['label'] }}</span>
                         </div>
                     @endforeach
                 </div>
