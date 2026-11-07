@@ -1,6 +1,6 @@
 <?php
 
-use App\Data\Prayer\PrayerTimesDTO;
+use App\Features\Prayer\Api\PrayerTimesDTO;
 use Carbon\CarbonImmutable;
 
 function prayerDtoTimes(): array

@@ -1,8 +1,8 @@
 <?php
 
-use App\Data\Prayer\PrayerQuery;
-use App\Services\Prayer\ProviderUnavailable;
-use App\Services\Prayer\UmmahPrayerProvider;
+use App\Features\Prayer\Api\PrayerQuery;
+use App\Features\Prayer\Services\UmmahPrayerProvider;
+use App\Shared\Integrations\ProviderUnavailable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;

@@ -1,6 +1,6 @@
 <?php
 
-use App\Support\Prayer\PrayerClock;
+use App\Features\Prayer\Api\PrayerClock;
 use Illuminate\Support\Carbon;
 use Tests\TestCase;
 

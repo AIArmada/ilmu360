@@ -4,8 +4,8 @@ namespace App\Support\Events;
 
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Events\Enums\ScheduleKind;
-use App\Actions\Prayer\ResolvePrayerStartClockAction;
 use App\Enums\EventFormat;
+use App\Features\Prayer\Api\ResolvePrayerStartClockAction;
 use App\Models\Event;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Support\Prayer\PrayerLocation;

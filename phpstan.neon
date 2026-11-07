@@ -5,6 +5,9 @@ includes:
 
 parameters:
     level: 6
+    configDirectories:
+        - config
+        - app/Features/Prayer/Config
     stubFiles:
         - phpstan-events.stub
     paths:

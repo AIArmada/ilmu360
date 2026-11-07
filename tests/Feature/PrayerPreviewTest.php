@@ -1,8 +1,8 @@
 <?php
 
-use App\Services\Prayer\HardcodedPrayerFallback;
-use App\Services\Prayer\JakimZoneResolver;
-use App\Services\Prayer\PrayerTimesCache;
+use App\Features\Prayer\Api\HardcodedPrayerFallback;
+use App\Features\Prayer\Persistence\PrayerTimesCache;
+use App\Features\Prayer\Services\JakimZoneResolver;
 use Illuminate\Support\Facades\Http;
 
 it('previews exact start clocks from warm cache', function () {

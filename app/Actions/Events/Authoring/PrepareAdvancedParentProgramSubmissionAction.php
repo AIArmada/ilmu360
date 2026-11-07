@@ -2,10 +2,10 @@
 
 namespace App\Actions\Events\Authoring;
 
+use App\Features\Prayer\Api\HardcodedPrayerFallback;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
-use App\Services\Prayer\HardcodedPrayerFallback;
 use App\Shared\Prayer\EventPrayerTime;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;

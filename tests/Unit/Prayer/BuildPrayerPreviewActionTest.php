@@ -1,11 +1,11 @@
 <?php
 
-use App\Actions\Prayer\BuildPrayerPreviewAction;
-use App\Actions\Prayer\ResolvePrayerAnchorAction;
-use App\Data\Prayer\PrayerQuery;
-use App\Services\Prayer\JakimZoneResolver;
-use App\Services\Prayer\PrayerProviderRegistry;
-use App\Services\Prayer\PrayerTimesCache;
+use App\Features\Prayer\Actions\BuildPrayerPreviewAction;
+use App\Features\Prayer\Actions\ResolvePrayerAnchorAction;
+use App\Features\Prayer\Api\PrayerQuery;
+use App\Features\Prayer\Persistence\PrayerTimesCache;
+use App\Features\Prayer\Services\JakimZoneResolver;
+use App\Features\Prayer\Services\PrayerProviderRegistry;
 use App\Shared\Prayer\PrayerReference;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;

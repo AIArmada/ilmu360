@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Support\Prayer;
 
-use App\Contracts\PrayerTimesProvider;
-use App\Data\Prayer\PrayerQuery;
-use App\Data\Prayer\PrayerTimesDTO;
-use App\Services\Prayer\ProviderUnavailable;
+use App\Features\Prayer\Api\PrayerQuery;
+use App\Features\Prayer\Api\PrayerTimesDTO;
+use App\Features\Prayer\Api\PrayerTimesProvider;
+use App\Shared\Integrations\ProviderUnavailable;
 
 class StubPrayerProviderBeta implements PrayerTimesProvider
 {

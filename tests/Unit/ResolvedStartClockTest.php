@@ -1,9 +1,9 @@
 <?php
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Jobs\RefreshPrayerTimes;
+use App\Features\Prayer\EntryPoints\Jobs\RefreshPrayerTimes;
+use App\Features\Prayer\Persistence\PrayerTimesCache;
 use App\Models\Institution;
-use App\Services\Prayer\PrayerTimesCache;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Support\Events\AdminEventTimeMapper;
 use App\Support\Submission\SubmissionTimingPolicy;

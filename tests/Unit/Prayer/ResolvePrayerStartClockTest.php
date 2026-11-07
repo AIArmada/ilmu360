@@ -1,9 +1,9 @@
 <?php
 
-use App\Actions\Prayer\BuildPrayerPreviewAction;
-use App\Actions\Prayer\ResolvePrayerStartClockAction;
-use App\Data\Prayer\PrayerTimesDTO;
-use App\Services\Prayer\PrayerTimesCache;
+use App\Features\Prayer\Actions\BuildPrayerPreviewAction;
+use App\Features\Prayer\Actions\ResolvePrayerStartClockAction;
+use App\Features\Prayer\Api\PrayerTimesDTO;
+use App\Features\Prayer\Persistence\PrayerTimesCache;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Support\Events\AdminEventTimeMapper;
 use App\Support\Submission\SubmissionTimingPolicy;

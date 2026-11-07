@@ -540,3 +540,6 @@ Review: the open-book icon now uses a symmetric path bounded by the 24×24 viewB
 
 - [x] Part 4a: moved shared prayer enums and 107 caller files; 577 tests pass, analysis and boundaries pass, routes unchanged.
 - [ ] Part 4b: convert provider-backed Prayer engine and four persistence concerns using the migration map.
+
+- [x] Part 4b: Prayer provider feature, public boundaries, four owned stores, HTTP/queue/CLI/config/schedules converted; 584 checks pass, analysis/boundaries clean, routes/commands/schedules unchanged.
+- [ ] Part 5: Saved Searches ownership and consumer cutover, using the migration checklist.

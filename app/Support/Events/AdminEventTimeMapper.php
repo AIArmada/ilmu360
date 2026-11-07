@@ -3,7 +3,7 @@
 namespace App\Support\Events;
 
 use App\Enums\TimingMode;
-use App\Services\Prayer\HardcodedPrayerFallback;
+use App\Features\Prayer\Api\HardcodedPrayerFallback;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerOffset;
 use App\Shared\Prayer\PrayerReference;

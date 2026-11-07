@@ -1,7 +1,7 @@
 <?php
 
-use App\Jobs\ResolveGpsZone;
-use App\Services\Prayer\JakimZoneResolver;
+use App\Features\Prayer\EntryPoints\Jobs\ResolveGpsZone;
+use App\Features\Prayer\Services\JakimZoneResolver;
 use Illuminate\Support\Facades\Bus;
 use Tests\TestCase;
 

@@ -1,8 +1,8 @@
 <?php
 
-use App\Jobs\RefreshPrayerTimes;
-use App\Services\Prayer\JakimZoneResolver;
-use App\Services\Prayer\PrayerTimesCache;
+use App\Features\Prayer\EntryPoints\Jobs\RefreshPrayerTimes;
+use App\Features\Prayer\Persistence\PrayerTimesCache;
+use App\Features\Prayer\Services\JakimZoneResolver;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 

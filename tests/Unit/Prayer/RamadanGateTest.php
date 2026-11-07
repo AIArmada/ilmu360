@@ -1,6 +1,6 @@
 <?php
 
-use App\Services\Prayer\RamadanGate;
+use App\Features\Prayer\Services\RamadanGate;
 use Illuminate\Support\Carbon;
 use Tests\TestCase;
 

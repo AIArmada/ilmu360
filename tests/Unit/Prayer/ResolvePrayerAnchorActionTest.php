@@ -1,12 +1,12 @@
 <?php
 
-use App\Actions\Prayer\ResolvePrayerAnchorAction;
-use App\Data\Prayer\PrayerQuery;
-use App\Data\Prayer\PrayerTimesDTO;
-use App\Jobs\RefreshPrayerTimes;
-use App\Services\Prayer\AladhanPrayerProvider;
-use App\Services\Prayer\PrayerTimesCache;
-use App\Services\Prayer\UmmahPrayerProvider;
+use App\Features\Prayer\Actions\ResolvePrayerAnchorAction;
+use App\Features\Prayer\Api\PrayerQuery;
+use App\Features\Prayer\Api\PrayerTimesDTO;
+use App\Features\Prayer\EntryPoints\Jobs\RefreshPrayerTimes;
+use App\Features\Prayer\Persistence\PrayerTimesCache;
+use App\Features\Prayer\Services\AladhanPrayerProvider;
+use App\Features\Prayer\Services\UmmahPrayerProvider;
 use App\Shared\Prayer\PrayerReference;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Bus;

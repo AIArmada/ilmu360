@@ -1,8 +1,8 @@
 <?php
 
-use App\Data\Prayer\PrayerQuery;
-use App\Services\Prayer\AladhanPrayerProvider;
-use App\Services\Prayer\ProviderUnavailable;
+use App\Features\Prayer\Api\PrayerQuery;
+use App\Features\Prayer\Services\AladhanPrayerProvider;
+use App\Shared\Integrations\ProviderUnavailable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;

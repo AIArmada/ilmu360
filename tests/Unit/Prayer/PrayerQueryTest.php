@@ -1,6 +1,6 @@
 <?php
 
-use App\Data\Prayer\PrayerQuery;
+use App\Features\Prayer\Api\PrayerQuery;
 
 it('normalizes the country code', function () {
     $query = new PrayerQuery('my', '2026-10-15', 'Asia/Kuala_Lumpur');

@@ -1,13 +1,13 @@
 <?php
 
-use App\Actions\Prayer\ResolvePrayerAnchorAction;
-use App\Data\Prayer\PrayerQuery;
-use App\Jobs\RefreshPrayerTimes;
-use App\Jobs\ResolveGpsZone;
-use App\Services\Prayer\AladhanPrayerProvider;
-use App\Services\Prayer\JakimZoneResolver;
-use App\Services\Prayer\PrayerProviderRegistry;
-use App\Services\Prayer\PrayerTimesCache;
+use App\Features\Prayer\Actions\ResolvePrayerAnchorAction;
+use App\Features\Prayer\Api\PrayerQuery;
+use App\Features\Prayer\EntryPoints\Jobs\RefreshPrayerTimes;
+use App\Features\Prayer\EntryPoints\Jobs\ResolveGpsZone;
+use App\Features\Prayer\Persistence\PrayerTimesCache;
+use App\Features\Prayer\Services\AladhanPrayerProvider;
+use App\Features\Prayer\Services\JakimZoneResolver;
+use App\Features\Prayer\Services\PrayerProviderRegistry;
 use App\Shared\Prayer\PrayerReference;
 use Illuminate\Cache\Repository;
 use Illuminate\Http\Client\Factory;

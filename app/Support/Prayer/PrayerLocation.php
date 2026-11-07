@@ -7,9 +7,9 @@ namespace App\Support\Prayer;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use App\Features\Prayer\Api\PrayerAreaTypes;
 use App\Models\Institution;
 use App\Models\Venue;
-use App\Services\Prayer\DistrictZoneMatcher;
 
 /**
  * Extracts prayer-resolution inputs from a package address.
@@ -228,7 +228,7 @@ final class PrayerLocation
                 return null;
             }
 
-            if (in_array($parent->type, DistrictZoneMatcher::DISTRICT_TYPES, true)) {
+            if (in_array($parent->type, PrayerAreaTypes::DISTRICT_TYPES, true)) {
                 $name = trim((string) $parent->name);
 
                 return $name !== '' ? $name : null;

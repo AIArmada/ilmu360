@@ -5,8 +5,8 @@
 - Scope: the **whole ilmu360° application**, converted in verified, committable parts.
 - Authorization: user invoked `laravel-agent-convert`, requested commits per part, and a checklist another agent can continue.
 - Branch: `refactor`. Initial working tree was clean on 2026-11-07.
-- Current part: **4a — shared prayer scheduling values** (verified checkpoint); Part 3c is committed as `e31ac2cf`.
-- Next action: **4b — provider-backed Prayer engine**: move provider contracts/values/config, extract the four store writers, expose the public query boundaries and migrate consumers using the Part 4 map below. Shared scheduling enums are already migrated; do not repeat that step.
+- Current part: **4b — provider-backed Prayer engine** (verified checkpoint); Part 4a is committed as `6216b088`.
+- Next action: **Part 5 — Saved Searches**. Refresh the graph, trace the account lifecycle/reward/notification consumers listed below, capture fresh registrations and convert a complete owning slice. Prayer provider conversion is complete; event/location adapters remain for their own later migration.
 - Before continuing, read `AGENTS.md`, `.ai/rules/index.md`, `tasks/lessons.md`, and `/Users/Saiffil/.codex/skills/laravel-agent-convert/SKILL.md` with its architecture/migration/tooling references.
 - Update this checklist and `tasks/todo.md` in each part. Record commit subject, checks, limitations, and the next concrete action. A completed part does not mean full-app adoption.
 
@@ -65,7 +65,7 @@ Current owner: `app/Features/GitHubIssues/` (`Api`, `Actions`, `Persistence`, `S
 
 Ordering remains provisional until each ownership trace is complete. Split large parts into coherent commits and keep every remaining item visible.
 
-- [ ] Prayer/time expressions: providers, preview, cache/store writes, resolver registration and persisted `resolver_class`.
+- [x] Provider-backed Prayer: providers, preview, cache/store writes, jobs and commands converted in Part 4b. Event-specific expression/location adapters remain Events-owned; their stored resolver identity is preserved for later Events migration.
 - [ ] Saved searches: page/API/model/policy/actions/filter normalization; immutable reads, account cleanup/restoration and reward source facts.
 - [ ] Feedback/reports: conversations, report lifecycle, review and notification adapters.
 - [ ] Inspirations: app-owned table, Save action, Filament persistence and frontend/API readers.
@@ -196,3 +196,29 @@ Persistence preflight: event data uses backing strings/signed minutes, not enum 
 Verification: **577 selected parallel Pest checks passed, 3,536 assertions**, excluding real-driver tests. Filter: `Prayer|AdminEventTimeMapperTest|AdminServerTest|PublicSubmissionOccurrenceGroupingTest|EventApiContractTest|HomePageTest|SubmissionTimingPolicyTest|ResolvedStartClockTest|HardcodedPrayerFallbackTest`. Integrated level-6 PHPStan/owned-write analysis passes with no baseline change; structural boundary check passes; uncached routes are identical. Pint and whitespace checks pass. Logs/snapshots: `/tmp/ilmu360-part4a-{pest,phpstan}.log` and `/tmp/ilmu360-part4a-{before,after}-routes.json`.
 
 Only the shared-values prerequisite is complete: Prayer providers/stores/entrypoints have not yet moved, so the manifest count remains one (GitHubIssues). Continue the core provider conversion rather than treating Prayer as adopted.
+
+### Part 4b — provider-backed Prayer feature
+
+Checkpoint subject: `refactor(prayer): consolidate provider engine and owned cache writes`.
+
+Converted `app/Features/Prayer`: public provider/query/preview/start-clock/anchor contracts and readonly values; internal providers, registry, Ramadan rules and district matcher; native provider; HTTP preview; queue jobs; prefetch/stats commands; private configuration under unchanged `prayer` key. The root preview route and schedule registrations were removed in the same slice. Commands register once through the feature provider. Old Prayer action/service/contract/data/job/command/controller/request paths were removed without aliases or old delegating classes.
+
+Storage ownership: `PrayerTimesCache`, `PrayerCircuitBreaker`, extracted `PrayerMappingMetrics` and `PrayerZoneMemo` each live in Persistence and are the actual mutation classes declared for their four stores. Mapping metrics and zone memo mutations no longer hide in registry/resolver code. Prefixes, key precision, TTLs, locks, stale/negative behavior, upstream fallback and swallowed store failures are preserved. Cache rows serialize plain arrays, not DTO class identities.
+
+Outside callers now use public interfaces. The registry API exposes only zone resolver, calculation methods and country timezone; provider enumeration/cache currency operations stay internal. Ramadan API exposes only the calendar decision. Existing fallback estimates and clock parsing are public immutable support values. `PrayerAreaTypes` owns the district-type catalog used by the location adapter, replacing its import of the private matcher. ProviderUnavailable is a Shared integration failure contract.
+
+Events-owned `Services/PrayerTimeExpressionResolver`, `Support/Prayer/PrayerLocation` and `PrayerTargetSelector` remain canonical adapters, with public Prayer dependencies. No persisted resolver_class identity changed. No package source, database schema, live records, dependencies or product tracking behavior changed.
+
+Configuration uses Laravel mergeConfigFrom and skips loading defaults when cached. Larastan now recognizes the exact feature Config directory alongside root config via configDirectories; no ignore/baseline was added. Reviewed scoped Rector transformations, preserved provider exception code 0 explicitly, and adopted installed Laravel 13 Signature/Description command attributes with identical parsed definitions.
+
+Verification on final code:
+
+- **584 parallel Pest checks passed, 3,612 assertions**, excluding real-driver checks; Prayer providers/cache/breakers/GPS/refresh jobs, preview, submission timing and zero-inline-HTTP, persisted expression resolution, event payloads, admin MCP, public occurrence grouping and homepage rendering. Log `/tmp/ilmu360-part4b-final-pest.log`.
+- Isolated cached config/route preview + stats run: **11 passed, 49 assertions**. Focused zero-inline-HTTP run after updating the old namespace trace assertion: **9 passed, 85 assertions**. Logs `/tmp/ilmu360-part4b-{cached,zero-http}-pest.log`. Temporary caches cleared.
+- Integrated level-6 PHPStan plus owned-write rule: **zero errors**, no baseline changes. Structural gate: **zero findings, two features**. Scoped Rector over the whole Prayer feature: zero changes/errors; Pint and whitespace checks pass. Logs `/tmp/ilmu360-part4b-final-{phpstan,rector,pint}.log`.
+- **749 routes unchanged**; complete prayer command definitions identical; all schedule definitions (expression/command/name/timezone/options) identical after ignoring next-due presentation and registration order. Original 03:30 Malaysia prefetch and hourly UTC alert preserved. `/tmp/ilmu360-part4b-{before,after}-*.json`.
+- Direct and escaped obsolete source class references audited: none. Existing event resolver class references are intentional and unchanged.
+
+Deployment is separate: queued prayer job class identities changed. Before eventual cutover, finish/drain existing prayer jobs using the old release and reload workers under the new release; do not add compatibility aliases or silently rewrite live queues. No deployment or queue mutation was performed here.
+
+Next: Saved Searches (Part 5). Whole-app migration and final full-suite acceptance remain open. Refresh graph before discovery; the graph predates these moved Prayer paths.

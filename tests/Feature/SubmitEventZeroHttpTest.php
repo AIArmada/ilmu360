@@ -1,11 +1,11 @@
 <?php
 
 use AIArmada\Events\Models\EventTimeExpression;
-use App\Data\Prayer\PrayerTimesDTO;
-use App\Jobs\RefreshPrayerTimes;
+use App\Features\Prayer\Api\HardcodedPrayerFallback;
+use App\Features\Prayer\Api\PrayerTimesDTO;
+use App\Features\Prayer\EntryPoints\Jobs\RefreshPrayerTimes;
+use App\Features\Prayer\Persistence\PrayerTimesCache;
 use App\Livewire\Pages\SubmitEvent\Create;
-use App\Services\Prayer\HardcodedPrayerFallback;
-use App\Services\Prayer\PrayerTimesCache;
 use App\Shared\Prayer\EventPrayerTime;
 use Carbon\CarbonImmutable;
 use Database\Seeders\AIArmada\EventRoleSeeder;
@@ -211,7 +211,7 @@ it('submits with a real sync queue and performs no inline HTTP work', function (
     foreach ($origins as $origin) {
         $frames = implode("\n", $origin['frames']);
 
-        expect($frames)->toContain('App\\Jobs\\')
+        expect($frames)->toContain('App\\Features\\Prayer\\EntryPoints\\Jobs\\')
             ->and($frames)->not->toContain('App\\Actions\\')
             ->and($frames)->not->toContain('App\\Livewire\\')
             ->and($frames)->not->toContain('App\\Http\\');

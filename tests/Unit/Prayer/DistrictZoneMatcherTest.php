@@ -1,6 +1,6 @@
 <?php
 
-use App\Services\Prayer\DistrictZoneMatcher;
+use App\Features\Prayer\Services\DistrictZoneMatcher;
 use Tests\TestCase;
 
 uses(TestCase::class);

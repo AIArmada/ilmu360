@@ -1,9 +1,9 @@
 <?php
 
-use App\Contracts\NullPrayerTimesProvider;
-use App\Data\Prayer\PrayerQuery;
-use App\Services\Prayer\PrayerProviderRegistry;
-use App\Services\Prayer\ProviderUnavailable;
+use App\Features\Prayer\Api\PrayerQuery;
+use App\Features\Prayer\Services\NullPrayerTimesProvider;
+use App\Features\Prayer\Services\PrayerProviderRegistry;
+use App\Shared\Integrations\ProviderUnavailable;
 use Illuminate\Support\Facades\Cache;
 use Tests\Support\Prayer\StubPrayerProviderAlpha;
 use Tests\Support\Prayer\StubPrayerProviderBeta;

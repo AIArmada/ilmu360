@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Events;
 
-use App\Actions\Prayer\ResolvePrayerStartClockAction;
+use App\Features\Prayer\Api\ResolvePrayerStartClockAction;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;

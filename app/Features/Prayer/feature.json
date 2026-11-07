@@ -1,0 +1,18 @@
+{
+  "schema": 2,
+  "name": "Prayer",
+  "owns": {
+    "store:prayer-times": [
+      "App\\Features\\Prayer\\Persistence\\PrayerTimesCache"
+    ],
+    "store:prayer-breaker": [
+      "App\\Features\\Prayer\\Persistence\\PrayerCircuitBreaker"
+    ],
+    "store:prayer-mapping-metrics": [
+      "App\\Features\\Prayer\\Persistence\\PrayerMappingMetrics"
+    ],
+    "store:prayer-zone-memo": [
+      "App\\Features\\Prayer\\Persistence\\PrayerZoneMemo"
+    ]
+  }
+}

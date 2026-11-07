@@ -2,14 +2,14 @@
 
 use AIArmada\Events\Models\EventTimeExpression;
 use App\Actions\Events\Authoring\SaveAdminEventAction;
-use App\Data\Prayer\PrayerTimesDTO;
 use App\Enums\EventFormat;
+use App\Features\Prayer\Api\PrayerTimesDTO;
+use App\Features\Prayer\Persistence\PrayerTimesCache;
+use App\Features\Prayer\Services\JakimZoneResolver;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
-use App\Services\Prayer\JakimZoneResolver;
-use App\Services\Prayer\PrayerTimesCache;
 use App\Services\PrayerTimeExpressionResolver;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerOffset;
