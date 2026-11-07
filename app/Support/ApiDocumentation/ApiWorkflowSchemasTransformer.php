@@ -251,6 +251,7 @@ final class ApiWorkflowSchemasTransformer implements DocumentTransformer
             (new ObjectType)
                 ->addProperty('data', $this->standardFormContractType($components, [
                     'captcha_required_when_turnstile_enabled' => new BooleanType,
+                    'captcha_action' => new StringType,
                 ]))
                 ->addProperty('meta', $this->requestMetaType())
                 ->setRequired(['data', 'meta']),

@@ -337,6 +337,7 @@ class FrontendFormContractService
             'endpoint' => route('api.client.submit-event.store'),
             'auth_required' => false,
             'captcha_required_when_turnstile_enabled' => true,
+            'captcha_action' => config('services.turnstile.expected_action'),
             'defaults' => [
                 'event_id' => null,
                 'scoped_institution_id' => null,

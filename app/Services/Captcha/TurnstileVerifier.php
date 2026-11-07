@@ -6,6 +6,7 @@ namespace App\Services\Captcha;
 
 use App\Contracts\CaptchaVerifier;
 use Illuminate\Support\Facades\Http;
+use Throwable;
 
 class TurnstileVerifier implements CaptchaVerifier
 {
@@ -22,22 +23,39 @@ class TurnstileVerifier implements CaptchaVerifier
             return true;
         }
 
-        if (blank($token)) {
+        if (! is_string($token) || $token === '' || strlen($token) > 2048) {
             return false;
         }
 
-        $response = Http::asForm()
-            ->timeout(5)
-            ->post((string) config('services.turnstile.verify_url'), [
-                'secret' => config('services.turnstile.secret_key'),
-                'response' => $token,
-                'remoteip' => $remoteIp,
-            ]);
+        $expectedAction = config('services.turnstile.expected_action');
+        $expectedHostnames = config('services.turnstile.hostnames', []);
 
-        if (! $response->ok()) {
+        if (! is_string($expectedAction) || $expectedAction === '' || ! is_array($expectedHostnames) || $expectedHostnames === []) {
             return false;
         }
 
-        return (bool) $response->json('success', false);
+        try {
+            $response = Http::asForm()
+                ->timeout(10)
+                ->post((string) config('services.turnstile.verify_url'), [
+                    'secret' => config('services.turnstile.secret_key'),
+                    'response' => $token,
+                    'remoteip' => $remoteIp,
+                ]);
+        } catch (Throwable) {
+            return false;
+        }
+
+        if (! $response->ok() || $response->json('success') !== true) {
+            return false;
+        }
+
+        $action = $response->json('action');
+        $hostname = $response->json('hostname');
+
+        return is_string($action)
+            && $action === $expectedAction
+            && is_string($hostname)
+            && in_array($hostname, $expectedHostnames, true);
     }
 }

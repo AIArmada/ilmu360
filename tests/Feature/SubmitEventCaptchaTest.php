@@ -72,6 +72,8 @@ it('rejects submission when turnstile verification fails', function () {
         'services.turnstile.enabled' => true,
         'services.turnstile.site_key' => 'test-site-key',
         'services.turnstile.secret_key' => 'test-secret-key',
+        'services.turnstile.expected_action' => 'submit_event',
+        'services.turnstile.hostnames' => ['ilmu360.test'],
     ]);
 
     Http::fake([
@@ -99,6 +101,7 @@ it('rejects submission when turnstile verification fails', function () {
     $component
         ->set('data.captcha_token', 'invalid-token')
         ->call('submit')
+        ->assertDispatched('turnstile-reset')
         ->assertHasErrors(['data.captcha_token']);
 
     expect(Event::where('title', 'Event Captcha Failed')->exists())->toBeFalse();
@@ -109,6 +112,8 @@ it('accepts submission when turnstile verification succeeds', function () {
         'services.turnstile.enabled' => true,
         'services.turnstile.site_key' => 'test-site-key',
         'services.turnstile.secret_key' => 'test-secret-key',
+        'services.turnstile.expected_action' => 'submit_event',
+        'services.turnstile.hostnames' => ['ilmu360.test'],
     ]);
 
     Http::fake([
@@ -125,7 +130,11 @@ it('accepts submission when turnstile verification succeeds', function () {
                 ],
             ],
         ], 200),
-        'challenges.cloudflare.com/*' => Http::response(['success' => true], 200),
+        'challenges.cloudflare.com/*' => Http::response([
+            'success' => true,
+            'action' => 'submit_event',
+            'hostname' => 'ilmu360.test',
+        ], 200),
     ]);
 
     $fixtures = submitEventCaptchaFixtures();

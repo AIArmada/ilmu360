@@ -142,6 +142,8 @@ pest()->extend(TestCase::class)
         config()->set('services.turnstile.enabled', false);
         config()->set('services.turnstile.site_key');
         config()->set('services.turnstile.secret_key');
+        config()->set('services.turnstile.expected_action', 'submit_event');
+        config()->set('services.turnstile.hostnames', ['ilmu360.test']);
 
         // Clear tag option caches to prevent stale data in tests
         foreach (['domain', 'discipline', 'source', 'issue'] as $type) {

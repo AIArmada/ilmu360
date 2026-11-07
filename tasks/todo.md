@@ -1,3 +1,29 @@
+# Todo — Cloudflare Turnstile Existing Widget (2026-11-07)
+
+Existing widget sitekey: `0x4AAAAAAF3NID96p30IuFuG`. Follow the Turnstile
+existing-widget flow: no widget creation, guarded secret handling, canonical
+siteverify, destination validation.
+
+- [x] Wire the existing sitekey through env/config; keep the secret in the ignored `.env` only.
+- [x] Enforce canonical siteverify: `success`, expected action, approved hostnames, token bounds, 10s timeout, fail closed.
+- [x] Add explicit-render `action` and reset lifecycle for rejected/expired tokens.
+- [x] Update captcha tests for action/hostname; add verifier regression coverage.
+- [x] Run affected Pest once, Pint, PHPStan.
+- [x] Store the widget secret (private secret card) and validate it with a dummy siteverify token.
+- [ ] Validate one real protected submission and replay rejection (headless browser is blocked by Cloudflare; needs a human-solved token).
+
+## Review — Turnstile existing widget
+
+- Sitekey `0x4AAAAAAF3NID96p30IuFuG` is wired in the ignored `.env` with `TURNSTILE_ENABLED=true`, `TURNSTILE_EXPECTED_ACTION=submit_event`, and hostnames `ilmu360.masyuk.com,ilmu360.test,localhost,127.0.0.1,dev.ilmu360.com`; `.env.example` documents the same keys with safe blanks.
+- The existing widget secret arrived through the private secret card, was validated against siteverify with `XXXX.DUMMY.TOKEN.XXXX` (`invalid-input-response`, not `invalid-input-secret`), and was written to `.env` without being printed by the write path.
+- `TurnstileVerifier` now requires `success === true`, the expected action, an approved hostname, a non-empty token of at most 2048 bytes, a 10s timeout, and fails closed when config is incomplete. Exceptions return `false`.
+- Explicit render now sends `action: 'submit_event'`, retains the widget ID, resets on expiry and on server-side captcha rejection (`turnstile-reset` dispatched by `Create::submit()`), and re-renders if Livewire replaces the container.
+- The public API form contract exposes `captcha_action` so clients can request the same action.
+- Verification: `TurnstileVerifierTest` 7 passed / 13 assertions; `SubmitEventCaptchaTest` 2/10; adjacent submit-event regressions 118 tests passed; `FrontendApiParityTest` 105/749; `ApiDocumentationSchemaSerializationTest` 2/11; Pint passed; full PHPStan level 6 reported 0 errors.
+- Live `https://ilmu360.masyuk.com/tambah-majlis` renders the Cloudflare iframe and “Verify you are human” checkbox after `php artisan octane:reload`. The headless browser cannot complete the challenge, so a real-token protected submission and replay rejection remain pending.
+- Pre-existing package mismatch (missing `EventOccurrenceFormExtension` / `is_featured` support) was resolved by the user merging `audit/filament-performance-20261104` into commerce `main` (`eb520363b`); full PHPStan is now clean.
+- **Security note:** `php artisan config:show services.turnstile` printed the widget secret into this session transcript. The old secret should be rotated in Cloudflare if this transcript is retained or shared, then the new value stored in `.env` and Octane reloaded.
+
 # Todo — Production Reference + Author Seeder
 
 ## Notification bell (2026-11-02)

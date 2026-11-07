@@ -496,12 +496,13 @@
     </script>
 @endpush
 
-@if(config('services.turnstile.enabled') && filled(config('services.turnstile.site_key')))
+@if(config('services.turnstile.enabled') && filled(config('services.turnstile.site_key')) && filled(config('services.turnstile.secret_key')))
     @push('scripts')
         <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
         <script>
             (() => {
-                let isRendered = false;
+                let container = null;
+                let widgetId = null;
 
                 const setToken = (token) => {
                     const tokenInput = document.getElementById('submit-event-captcha-token');
@@ -516,21 +517,33 @@
                     }));
                 };
 
-                const renderTurnstile = () => {
-                    const container = document.getElementById('submit-event-turnstile');
+                const resetTurnstile = () => {
+                    setToken('');
 
-                    if (!container || isRendered || typeof window.turnstile === 'undefined') {
+                    if (widgetId !== null && typeof window.turnstile !== 'undefined') {
+                        window.turnstile.reset(widgetId);
+                    }
+                };
+
+                const renderTurnstile = () => {
+                    const nextContainer = document.getElementById('submit-event-turnstile');
+
+                    if (!nextContainer || typeof window.turnstile === 'undefined') {
                         return;
                     }
 
-                    window.turnstile.render(container, {
+                    if (widgetId !== null && container === nextContainer) {
+                        return;
+                    }
+
+                    container = nextContainer;
+                    widgetId = window.turnstile.render(nextContainer, {
                         sitekey: '{{ config('services.turnstile.site_key') }}',
+                        action: '{{ config('services.turnstile.expected_action') }}',
                         callback: (token) => setToken(token),
-                        'expired-callback': () => setToken(''),
+                        'expired-callback': () => resetTurnstile(),
                         'error-callback': () => setToken(''),
                     });
-
-                    isRendered = true;
                 };
 
                 const boot = () => {
@@ -540,6 +553,7 @@
                     window.setTimeout(renderTurnstile, 1200);
                 };
 
+                document.addEventListener('turnstile-reset', resetTurnstile);
                 document.addEventListener('DOMContentLoaded', boot);
                 document.addEventListener('livewire:navigated', boot);
             })();

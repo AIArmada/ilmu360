@@ -57,6 +57,11 @@ return [
         'site_key' => env('TURNSTILE_SITE_KEY'),
         'secret_key' => env('TURNSTILE_SECRET_KEY'),
         'verify_url' => env('TURNSTILE_VERIFY_URL', 'https://challenges.cloudflare.com/turnstile/v0/siteverify'),
+        'expected_action' => env('TURNSTILE_EXPECTED_ACTION', 'submit_event'),
+        'hostnames' => array_values(array_filter(array_map(
+            static fn (string $hostname): string => trim($hostname),
+            explode(',', (string) env('TURNSTILE_HOSTNAMES', '')),
+        ))),
     ],
 
     'ummah' => [

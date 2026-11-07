@@ -823,31 +823,40 @@ class Create extends Component implements HasActions, HasForms
         $state['captcha_token'] = $this->data['captcha_token'] ?? null;
 
         $eventContainer = $this->selectedEventContainer();
-        $result = app(SubmitFrontendEventAction::class)->handle(
-            state: $state,
-            request: request(),
-            submitter: $this->submitterUser(),
-            eventContainer: $eventContainer,
-            scopedInstitution: $this->scopedInstitution(),
-            persistRelationships: function (HasMedia $model): void {
-                if (! $model instanceof Model) {
-                    throw new RuntimeException('Submit-event media persistence requires an Eloquent model, '.get_class($model).' given.');
-                }
 
-                // References are owned once in the persist action for both
-                // events and sessions; only media uploads persist here.
-                $schema = $this->eventForm()->model($model);
-
-                foreach (['cover', 'poster', 'gallery'] as $field) {
-                    $component = $schema->getComponent($field, withHidden: true);
-
-                    if ($component instanceof SpatieMediaLibraryFileUpload) {
-                        $component->saveRelationships();
+        try {
+            $result = app(SubmitFrontendEventAction::class)->handle(
+                state: $state,
+                request: request(),
+                submitter: $this->submitterUser(),
+                eventContainer: $eventContainer,
+                scopedInstitution: $this->scopedInstitution(),
+                persistRelationships: function (HasMedia $model): void {
+                    if (! $model instanceof Model) {
+                        throw new RuntimeException('Submit-event media persistence requires an Eloquent model, '.get_class($model).' given.');
                     }
-                }
-            },
-            validationKeyPrefix: 'data.',
-        );
+
+                    // References are owned once in the persist action for both
+                    // events and sessions; only media uploads persist here.
+                    $schema = $this->eventForm()->model($model);
+
+                    foreach (['cover', 'poster', 'gallery'] as $field) {
+                        $component = $schema->getComponent($field, withHidden: true);
+
+                        if ($component instanceof SpatieMediaLibraryFileUpload) {
+                            $component->saveRelationships();
+                        }
+                    }
+                },
+                validationKeyPrefix: 'data.',
+            );
+        } catch (ValidationException $exception) {
+            if (array_key_exists('data.captcha_token', $exception->errors())) {
+                $this->dispatch('turnstile-reset');
+            }
+
+            throw $exception;
+        }
 
         $event = $result['event'];
 

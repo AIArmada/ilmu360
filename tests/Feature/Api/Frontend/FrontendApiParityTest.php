@@ -103,6 +103,7 @@ it('exposes corrected frontend contract metadata', function () {
     $submitEventConditionalRules = collect($submitEvent['conditional_rules'] ?? []);
 
     expect($submitEvent['captcha_required_when_turnstile_enabled'])->toBeTrue()
+        ->and($submitEvent['captcha_action'])->toBe('submit_event')
         ->and($manifest['version'] ?? null)->toBe('2026-04-22')
         ->and($manifest['docs']['ui'] ?? null)->toBe('https://api.ilmu360.test/docs')
         ->and($manifest['docs']['openapi'] ?? null)->toBe('https://api.ilmu360.test/docs.json')
