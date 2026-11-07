@@ -5,8 +5,8 @@
 - Scope: the **whole ilmu360° application**, converted in verified, committable parts.
 - Authorization: user invoked `laravel-agent-convert`, requested commits per part, and a checklist another agent can continue.
 - Branch: `refactor`. Initial working tree was clean on 2026-11-07.
-- Current part: **3a — MCP viewer catalog authorization** (verified checkpoint); Parts 1/2 are committed as `9a9eadee` / `c83a68cf`.
-- Next action: **Part 3b — fix prayer-offset serialization in admin event metadata**, then continue the Prayer feature conversion. Capture a fresh baseline before each part.
+- Current part: **3b — MCP prayer payload contract** (verified checkpoint); Part 3a is committed as `9296fed0`.
+- Next action: resolve the occurrence test role fixture noted below, then begin **Part 4 — Prayer feature conversion**. Capture a fresh baseline before each part.
 - Before continuing, read `AGENTS.md`, `.ai/rules/index.md`, `tasks/lessons.md`, and `/Users/Saiffil/.codex/skills/laravel-agent-convert/SKILL.md` with its architecture/migration/tooling references.
 - Update this checklist and `tasks/todo.md` in each part. Record commit subject, checks, limitations, and the next concrete action. A completed part does not mean full-app adoption.
 
@@ -57,7 +57,7 @@ Current owner: `app/Features/GitHubIssues/` (`Api`, `Actions`, `Persistence`, `S
 ### 3. Baseline MCP corrections, then Prayer
 
 - [x] Reproduce and diagnose `AdminServerTest` viewer-role read failure (`tests/Feature/Mcp/AdminServerTest.php:123`): tool returns `Unexpected server error.` Read recent server logs to find the original exception.
-- [ ] Diagnose prayer metadata contract failure (`tests/Feature/Mcp/AdminServerTest.php:1026`): expected `prayer_offset = 'immediately'`, actual `5`. Reconcile the current canonical event timing contract and all relevant consumers; do not merely change an expectation to silence the failure.
+- [x] Diagnose prayer metadata contract failure (`tests/Feature/Mcp/AdminServerTest.php:1026`): expected `prayer_offset = 'immediately'`, actual `5`. Reconcile the current canonical event timing contract and all relevant consumers; do not merely change an expectation to silence the failure.
 - [ ] Resolve each root cause in a separate coherent verified commit if needed; these failures reproduce on the pre-Part-2 baseline containing `9a9eadee` and were not introduced by Part 2.
 - [ ] Refresh graph and ownership trace, then convert Prayer with special attention to persisted `resolver_class` and cache/circuit-breaker ownership.
 
@@ -155,3 +155,13 @@ Root cause: AdminResourceRegistry asks Gate for the class-level create capabilit
 Validation: parallel Pest filter `RewardAppealPolicyTest|RewardPolicyTest|AdminServerTest`: **93 tests, 92 passed, 1 existing prayer serialization failure**, 1,589 assertions. Viewer catalog and all reward policy checks now pass. Integrated PHPStan level 6 plus owned-write analysis passes; Pint passes. Logs: `/tmp/ilmu360-part3a-{pest,phpstan}.log`. No routes or UI workflow changed.
 
 Part 3b evidence: PrayerOffset::Immediately->minutes() intentionally returns **5** for prayer completion. The Event accessor maps stored signed minutes back to the string enum value, while generic admin attributes use `$record->toArray()`. Trace this serialization/projection path before editing; do not change the offset duration or simply weaken the existing MCP assertion.
+
+### Part 3b — canonical MCP prayer payload assertion
+
+Checkpoint subject: `test(mcp): align prayer offset with canonical event payload`.
+
+The runtime serializer is correct. AdminResourceRegistry::serializeRecord and serializeRecordDetail use EventPayloadData, whose signedPrayerOffset returns signed integer minutes. Existing PublicSubmissionOccurrenceGroupingTest assertions already require 5 and -15. PrayerOffset::Immediately maps to five minutes intentionally. The MCP assertion still expected the input/form enum string; it now expects the canonical numeric output. No production code, durations, routes, or payloads changed. Ordinary events do not expose the grouped-submission display_occurrence section; no assertion for that section was retained.
+
+Final admin MCP suite: **87 passed, 1,561 assertions**, including both originally recorded failures. Integrated level-6 PHPStan/owned-write analysis and structural checks pass; Pint and diff whitespace checks pass. Logs: `/tmp/ilmu360-part3b-admin-pest.log`, `/tmp/ilmu360-part3b-phpstan.log`.
+
+The broader run also exercised PublicSubmissionOccurrenceGroupingTest and found an unrelated fixture issue in `filters public occurrence speakers, references and prayer slots while excluding draft occurrence data`: missing role `moderator` for guard `web`, at its reference-page response assertion around line 644. Production behavior was untouched in this checkpoint. Investigate role fixture setup before proceeding; do not claim the whole suite passes. Broader diagnostic output is `/tmp/ilmu360-part3b-pest.log` (large HTML failure body).

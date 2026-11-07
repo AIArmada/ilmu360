@@ -1023,7 +1023,7 @@ it('lists admin event records with prayer-relative metadata through the MCP serv
             ->where('data.0.title', 'Admin MCP Prayer Relative Event')
             ->where('data.0.attributes.age_group.0', EventAgeGroup::AllAges->value)
             ->where('data.0.attributes.prayer_reference', PrayerReference::Maghrib->value)
-            ->where('data.0.attributes.prayer_offset', PrayerOffset::Immediately->value)
+            ->where('data.0.attributes.prayer_offset', 5)
             ->where('data.0.attributes.starts_on_local_date', '2026-04-23')
             ->where('data.0.attributes.timing_display', EventPrayerTime::SelepasMaghrib->getLabel())
             ->where('meta.resource.key', 'events')

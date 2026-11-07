@@ -531,3 +531,6 @@ Review: the open-book icon now uses a symmetric path bounded by the 24×24 viewB
 
 - [x] Part 3a: fixed viewer catalog crash by denying appeal creation without award context; policy and viewer regressions pass.
 - [ ] Part 3b: resolve remaining prayer-offset serialization failure, then resume Prayer conversion.
+
+- [x] Part 3b: aligned MCP assertion with canonical signed-minute event payload; all 87 admin MCP tests pass.
+- [ ] Resolve occurrence-grouping test missing moderator role fixture, then start Prayer feature conversion.
