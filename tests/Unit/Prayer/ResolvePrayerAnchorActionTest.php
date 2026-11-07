@@ -3,11 +3,11 @@
 use App\Actions\Prayer\ResolvePrayerAnchorAction;
 use App\Data\Prayer\PrayerQuery;
 use App\Data\Prayer\PrayerTimesDTO;
-use App\Enums\PrayerReference;
 use App\Jobs\RefreshPrayerTimes;
 use App\Services\Prayer\AladhanPrayerProvider;
 use App\Services\Prayer\PrayerTimesCache;
 use App\Services\Prayer\UmmahPrayerProvider;
+use App\Shared\Prayer\PrayerReference;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;

@@ -1,14 +1,14 @@
 <?php
 
 use App\Data\EventDiscoveryCriteriaFactory;
-use App\Enums\EventPrayerTime;
-use App\Enums\PrayerOffset;
-use App\Enums\PrayerReference;
 use App\Enums\TimingMode;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Services\PostgresEventDiscovery;
 use App\Services\PublicScheduleDiscoveryService;
+use App\Shared\Prayer\EventPrayerTime;
+use App\Shared\Prayer\PrayerOffset;
+use App\Shared\Prayer\PrayerReference;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);

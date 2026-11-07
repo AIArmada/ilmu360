@@ -95,7 +95,7 @@
     $subdivisionLabel = filled($subdivisionAreaId) ? $this->areaOptionLabel((string) $subdivisionAreaId) : null;
     $prayerTimeLabels = collect((array) $prayerTime)
         ->filter(static fn (mixed $value): bool => is_string($value) && $value !== '')
-        ->map(static fn (string $value): string => \App\Enums\EventPrayerTime::tryFrom($value)?->getLabel() ?? $value)
+        ->map(static fn (string $value): string => \App\Shared\Prayer\EventPrayerTime::tryFrom($value)?->getLabel() ?? $value)
         ->all();
     $timingModeLabel = \App\Enums\TimingMode::tryFrom((string) $timingMode)?->label();
     $activeFilterCount = $this->activeFilterCount();

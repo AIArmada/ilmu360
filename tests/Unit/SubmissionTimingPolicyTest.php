@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\EventPrayerTime;
+use App\Shared\Prayer\EventPrayerTime;
 use App\Support\Submission\SubmissionTimingPolicy;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;

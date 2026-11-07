@@ -1,7 +1,7 @@
 <?php
 
-use App\Enums\EventPrayerTime;
 use App\Services\Prayer\HardcodedPrayerFallback;
+use App\Shared\Prayer\EventPrayerTime;
 
 it('covers every non-custom prayer timing with a valid clock', function () {
     $expected = collect(EventPrayerTime::cases())

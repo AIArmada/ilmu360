@@ -9,13 +9,13 @@ use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
-use App\Enums\EventPrayerTime;
 use App\Enums\EventTaxonomyCode;
 use App\Enums\EventVisibility;
 use App\Enums\RegistrationScope;
 use App\Enums\TaxonomyTerm\DomainTermCode;
 use App\Models\Language;
 use App\Models\User;
+use App\Shared\Prayer\EventPrayerTime;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class ResolveAdvancedBuilderContextAction

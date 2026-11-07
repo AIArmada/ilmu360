@@ -3,7 +3,6 @@
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
-use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
 use App\Enums\InstitutionNameType;
 use App\Enums\TimingMode;
@@ -15,6 +14,7 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
 use App\Models\Venue;
+use App\Shared\Prayer\EventPrayerTime;
 use App\Support\Submission\SubmitEventOptionsProvider;
 use App\Support\Submission\SubmitEventPrefill;
 use Database\Seeders\AIArmada\EventRoleSeeder;

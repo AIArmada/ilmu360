@@ -3,7 +3,7 @@
     use App\Enums\EventFormat;
     use App\Enums\EventGenderRestriction;
     use App\Enums\EventKeyPersonRole;
-    use App\Enums\EventPrayerTime;
+    use App\Shared\Prayer\EventPrayerTime;
     use App\Enums\EventVisibility;
     use App\Models\Institution;
     use App\Models\Reference;

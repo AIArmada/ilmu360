@@ -3,12 +3,12 @@
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
-use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Services\Ai\EventMediaExtractionService;
+use App\Shared\Prayer\EventPrayerTime;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;

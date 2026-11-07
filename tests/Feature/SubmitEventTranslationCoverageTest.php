@@ -3,9 +3,9 @@
 use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Events\Models\EventTerm;
 use App\Enums\EventFormat;
-use App\Enums\EventPrayerTime;
 use App\Enums\EventTaxonomyCode;
 use App\Enums\ReferenceType;
+use App\Shared\Prayer\EventPrayerTime;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\AIArmada\EventTaxonomySeeder;
 use Illuminate\Support\Facades\App;

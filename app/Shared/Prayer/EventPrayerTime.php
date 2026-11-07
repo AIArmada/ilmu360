@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Enums;
+namespace App\Shared\Prayer;
 
 use Filament\Support\Contracts\HasLabel;
 

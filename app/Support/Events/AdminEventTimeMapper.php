@@ -2,11 +2,11 @@
 
 namespace App\Support\Events;
 
-use App\Enums\EventPrayerTime;
-use App\Enums\PrayerOffset;
-use App\Enums\PrayerReference;
 use App\Enums\TimingMode;
 use App\Services\Prayer\HardcodedPrayerFallback;
+use App\Shared\Prayer\EventPrayerTime;
+use App\Shared\Prayer\PrayerOffset;
+use App\Shared\Prayer\PrayerReference;
 use Carbon\Carbon;
 use DateTimeZone;
 use Illuminate\Support\Str;

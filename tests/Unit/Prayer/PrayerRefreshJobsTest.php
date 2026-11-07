@@ -2,13 +2,13 @@
 
 use App\Actions\Prayer\ResolvePrayerAnchorAction;
 use App\Data\Prayer\PrayerQuery;
-use App\Enums\PrayerReference;
 use App\Jobs\RefreshPrayerTimes;
 use App\Jobs\ResolveGpsZone;
 use App\Services\Prayer\AladhanPrayerProvider;
 use App\Services\Prayer\JakimZoneResolver;
 use App\Services\Prayer\PrayerProviderRegistry;
 use App\Services\Prayer\PrayerTimesCache;
+use App\Shared\Prayer\PrayerReference;
 use Illuminate\Cache\Repository;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Queue\Connectors\ConnectorInterface;

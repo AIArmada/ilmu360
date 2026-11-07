@@ -3,11 +3,11 @@
 namespace App\Actions\Events\Authoring;
 
 use App\Actions\Events\Scheduling\SyncEventScheduleAction;
-use App\Enums\PrayerOffset;
 use App\Enums\TimingMode;
 use App\Models\Event;
 use App\Models\User;
 use App\Services\ModerationService;
+use App\Shared\Prayer\PrayerOffset;
 use App\Support\Events\AdminEventInputPreparer;
 use App\Support\Events\AdminEventRelationsSynchronizer;
 use App\Support\Events\AdminEventScheduleResolver;

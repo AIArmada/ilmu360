@@ -537,3 +537,6 @@ Review: the open-book icon now uses a symmetric path bounded by the 24×24 viewB
 
 - [x] Part 3c: canonical role fixture and occurrence-title visibility regression fixed; 15 occurrence tests pass; analysis and architecture checks pass.
 - [ ] Part 4: provider-backed Prayer conversion; detailed ownership/caller/write map in migration checklist.
+
+- [x] Part 4a: moved shared prayer enums and 107 caller files; 577 tests pass, analysis and boundaries pass, routes unchanged.
+- [ ] Part 4b: convert provider-backed Prayer engine and four persistence concerns using the migration map.

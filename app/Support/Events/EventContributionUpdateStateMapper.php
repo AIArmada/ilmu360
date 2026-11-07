@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Support\Events;
 
 use App\Actions\Prayer\ResolvePrayerStartClockAction;
-use App\Enums\EventPrayerTime;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
+use App\Shared\Prayer\EventPrayerTime;
 use App\Support\Prayer\PrayerLocation;
 use App\Support\Prayer\PrayerTargetSelector;
 use App\Support\Submission\SubmissionTimingPolicy;

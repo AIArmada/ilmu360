@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Actions\Prayer;
 
 use App\Data\Prayer\PrayerQuery;
-use App\Enums\EventPrayerTime;
-use App\Enums\PrayerReference;
 use App\Services\Prayer\PrayerProviderRegistry;
+use App\Shared\Prayer\EventPrayerTime;
+use App\Shared\Prayer\PrayerReference;
 use Carbon\CarbonImmutable;
 
 /**

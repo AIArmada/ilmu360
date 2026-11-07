@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Prayer;
 
-use App\Enums\EventPrayerTime;
+use App\Shared\Prayer\EventPrayerTime;
 
 /**
  * Last-resort prayer clocks when no provider data is available.

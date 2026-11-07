@@ -8,10 +8,10 @@ use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTimeExpression;
 use App\Contracts\EventCategoryCatalog;
 use App\Data\Events\ValidatedEventSubmission;
-use App\Enums\EventPrayerTime;
-use App\Enums\PrayerReference;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Shared\Prayer\EventPrayerTime;
+use App\Shared\Prayer\PrayerReference;
 use Illuminate\Support\Str;
 
 final readonly class ResolveInstitutionalPrayerSlotGroupAction

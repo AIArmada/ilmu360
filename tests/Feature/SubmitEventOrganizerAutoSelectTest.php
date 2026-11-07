@@ -2,11 +2,11 @@
 
 use App\Enums\EventAgeGroup;
 use App\Enums\EventGenderRestriction;
-use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Person;
 use App\Models\Venue;
+use App\Shared\Prayer\EventPrayerTime;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;

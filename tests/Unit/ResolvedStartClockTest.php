@@ -1,10 +1,10 @@
 <?php
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Enums\EventPrayerTime;
 use App\Jobs\RefreshPrayerTimes;
 use App\Models\Institution;
 use App\Services\Prayer\PrayerTimesCache;
+use App\Shared\Prayer\EventPrayerTime;
 use App\Support\Events\AdminEventTimeMapper;
 use App\Support\Submission\SubmissionTimingPolicy;
 use Illuminate\Foundation\Testing\RefreshDatabase;

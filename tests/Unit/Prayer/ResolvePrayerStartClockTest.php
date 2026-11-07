@@ -3,8 +3,8 @@
 use App\Actions\Prayer\BuildPrayerPreviewAction;
 use App\Actions\Prayer\ResolvePrayerStartClockAction;
 use App\Data\Prayer\PrayerTimesDTO;
-use App\Enums\EventPrayerTime;
 use App\Services\Prayer\PrayerTimesCache;
+use App\Shared\Prayer\EventPrayerTime;
 use App\Support\Events\AdminEventTimeMapper;
 use App\Support\Submission\SubmissionTimingPolicy;
 use Carbon\CarbonImmutable;

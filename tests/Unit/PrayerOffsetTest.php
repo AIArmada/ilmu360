@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\PrayerOffset;
+use App\Shared\Prayer\PrayerOffset;
 
 it('maps exact signed minutes to their offset case', function (int $minutes, PrayerOffset $expected) {
     expect(PrayerOffset::fromMinutes($minutes))->toBe($expected);

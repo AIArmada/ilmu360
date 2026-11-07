@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\PrayerReference;
+use App\Shared\Prayer\PrayerReference;
 use App\Models\Event;
 use App\Support\Timezone\UserDateTimeFormatter;
 use Illuminate\Database\Eloquent\Collection;

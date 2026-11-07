@@ -5,8 +5,8 @@
 - Scope: the **whole ilmu360° application**, converted in verified, committable parts.
 - Authorization: user invoked `laravel-agent-convert`, requested commits per part, and a checklist another agent can continue.
 - Branch: `refactor`. Initial working tree was clean on 2026-11-07.
-- Current part: **3c — occurrence regression fixtures** (verified checkpoint); Part 3b is committed as `24072eae`.
-- Next action: begin **Part 4 — provider-backed Prayer feature conversion**, following the ownership map below. Capture fresh routes, command signatures and schedules first.
+- Current part: **4a — shared prayer scheduling values** (verified checkpoint); Part 3c is committed as `e31ac2cf`.
+- Next action: **4b — provider-backed Prayer engine**: move provider contracts/values/config, extract the four store writers, expose the public query boundaries and migrate consumers using the Part 4 map below. Shared scheduling enums are already migrated; do not repeat that step.
 - Before continuing, read `AGENTS.md`, `.ai/rules/index.md`, `tasks/lessons.md`, and `/Users/Saiffil/.codex/skills/laravel-agent-convert/SKILL.md` with its architecture/migration/tooling references.
 - Update this checklist and `tasks/todo.md` in each part. Record commit subject, checks, limitations, and the next concrete action. A completed part does not mean full-app adoption.
 
@@ -186,3 +186,13 @@ Own provider-backed prayer resolution, not event/location persistence. No implem
 8. Move entrypoints: PrefetchPrayerTimes, PrayerStatsCommand, RefreshPrayerTimes, ResolveGpsZone, preview controller/request. Register commands once in feature provider. Preserve job retry/backoff and after-response work; ResolveGpsZone deliberately self-redispatches instead of release().
 9. Move GET `/api/v1/catalogs/prayer-preview`, route name `api.client.catalogs.prayer-preview`, middleware `api` then `throttle:60,1`; remove old registration. Institution prayer catalog stays with Institutions. Preserve prefetch daily 03:30 Asia/Kuala_Lumpur and stats hourly UTC schedules, names and overlap semantics.
 10. Verify all Unit/Prayer tests, preview/stats/expression tests, submit zero-HTTP and preview behaviors, admin/contribution prayer tests, cache modes, snapshots, both architecture gates and normal level-6 analysis. No sibling package or live data changes. Commit only a coherent verified slice; update remaining scope if splitting core and adapters across checkpoints.
+
+### Part 4a — shared scheduling values
+
+Checkpoint subject: `refactor(prayer): move shared scheduling enums to canonical boundary`. Moved EventPrayerTime, PrayerReference and PrayerOffset from App\Enums to App\Shared\Prayer, updating 107 caller files across application code, factories/seeders, tests (including Pest.php) and three Blade views. The three enum bodies are byte-for-byte identical after normalizing the namespace. No cases, backing values, labels, offsets, payload shape or timing behavior changed. No old classes or aliases remain; source audit found no old direct/escaped references or grouped imports needing repair.
+
+Persistence preflight: event data uses backing strings/signed minutes, not enum FQCNs; PrayerTimeExpressionResolver identity was untouched. No data migration or live-data changes. Compiled views were cleared so freshly loaded forms/views use the canonical classes. At eventual deployment, normal fresh-page/worker reload requirements still apply to enum-bearing Livewire state; no compatibility aliases were introduced.
+
+Verification: **577 selected parallel Pest checks passed, 3,536 assertions**, excluding real-driver tests. Filter: `Prayer|AdminEventTimeMapperTest|AdminServerTest|PublicSubmissionOccurrenceGroupingTest|EventApiContractTest|HomePageTest|SubmissionTimingPolicyTest|ResolvedStartClockTest|HardcodedPrayerFallbackTest`. Integrated level-6 PHPStan/owned-write analysis passes with no baseline change; structural boundary check passes; uncached routes are identical. Pint and whitespace checks pass. Logs/snapshots: `/tmp/ilmu360-part4a-{pest,phpstan}.log` and `/tmp/ilmu360-part4a-{before,after}-routes.json`.
+
+Only the shared-values prerequisite is complete: Prayer providers/stores/entrypoints have not yet moved, so the manifest count remains one (GitHubIssues). Continue the core provider conversion rather than treating Prayer as adopted.
