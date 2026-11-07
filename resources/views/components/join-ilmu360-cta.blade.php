@@ -30,10 +30,10 @@
                 </li>
             </ul>
             <div class="mt-5 space-y-2">
-                <a href="{{ \App\Support\Auth\IntendedRedirect::registerUrl(request()->fullUrl()) }}" class="block w-full rounded-xl bg-emerald-600 py-2.5 text-center text-sm font-bold text-white transition hover:bg-emerald-700">
+                <a href="{{ \App\Support\Auth\IntendedRedirect::registerUrl(request()->fullUrl()) }}" wire:navigate class="block w-full rounded-xl bg-emerald-600 py-2.5 text-center text-sm font-bold text-white transition hover:bg-emerald-700">
                     {{ __('Daftar Percuma') }}
                 </a>
-                <a href="{{ \App\Support\Auth\IntendedRedirect::loginUrl(request()->fullUrl()) }}" class="block w-full rounded-xl border border-slate-200 py-2.5 text-center text-sm font-semibold text-slate-600 transition hover:border-emerald-300 hover:text-emerald-700">
+                <a href="{{ \App\Support\Auth\IntendedRedirect::loginUrl(request()->fullUrl()) }}" wire:navigate class="block w-full rounded-xl border border-slate-200 py-2.5 text-center text-sm font-semibold text-slate-600 transition hover:border-emerald-300 hover:text-emerald-700">
                     {{ __('Ada Akaun? Daftar Masuk') }}
                 </a>
             </div>

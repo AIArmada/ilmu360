@@ -11,11 +11,11 @@
             </p>
 
             <div class="mt-8 flex flex-col gap-3 sm:flex-row">
-                <a href="{{ route('dashboard') }}" class="inline-flex flex-1 items-center justify-center rounded-xl bg-[#173c34] px-5 py-3.5 font-bold text-white transition hover:bg-[#21594c]">{{ __('Open dashboard') }}</a>
-                <a href="{{ route('events.show', ['event' => $event->slug]) }}" class="inline-flex flex-1 items-center justify-center rounded-xl border border-slate-200 px-5 py-3.5 font-bold text-slate-700 transition hover:bg-slate-50">{{ __('Back to event') }}</a>
+                <a href="{{ route('dashboard') }}" wire:navigate class="inline-flex flex-1 items-center justify-center rounded-xl bg-[#173c34] px-5 py-3.5 font-bold text-white transition hover:bg-[#21594c]">{{ __('Open dashboard') }}</a>
+                <a href="{{ route('events.show', ['event' => $event->slug]) }}" wire:navigate class="inline-flex flex-1 items-center justify-center rounded-xl border border-slate-200 px-5 py-3.5 font-bold text-slate-700 transition hover:bg-slate-50">{{ __('Back to event') }}</a>
             </div>
         @else
-            <a href="{{ route('events.show', ['event' => $event->slug]) }}" class="text-sm font-bold text-[#173c34] underline decoration-[#b27b1b] underline-offset-4">← {{ __('Back to event') }}</a>
+            <a href="{{ route('events.show', ['event' => $event->slug]) }}" wire:navigate class="text-sm font-bold text-[#173c34] underline decoration-[#b27b1b] underline-offset-4">← {{ __('Back to event') }}</a>
             <p class="mt-8 text-xs font-bold uppercase tracking-[0.2em] text-[#b27b1b]">{{ __('Refund request') }}</p>
             <h1 class="mt-2 font-heading text-3xl font-semibold tracking-tight text-[#173c34] sm:text-4xl">{{ __('Request a refund') }}</h1>
             <p class="mt-3 leading-7 text-slate-600">{{ __('Review the admission carefully. This action refunds this admission only; other admissions in the same order are not affected.') }}</p>

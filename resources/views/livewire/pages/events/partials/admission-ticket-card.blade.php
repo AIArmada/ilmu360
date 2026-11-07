@@ -45,6 +45,7 @@
     @endphp
     @if($ticketCanCheckout)
         <a href="{{ route('events.checkout', ['event' => $event, 'ticket' => $ticket->getKey()]) }}"
+            wire:navigate
             data-signal-event="commerce.event_checkout_started"
             data-signal-category="commerce"
             data-signal-component="event_detail_ticket"
