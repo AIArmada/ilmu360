@@ -32,9 +32,10 @@ class RewardAppealPolicy
         return $this->isInvolved($user, $appeal);
     }
 
-    public function create(User $user, RewardAward $award): bool
+    public function create(User $user, ?RewardAward $award = null): bool
     {
-        return (string) $award->recipient_type === 'user'
+        return $award instanceof RewardAward
+            && (string) $award->recipient_type === 'user'
             && (string) $award->recipient_id === (string) $user->getKey();
     }
 

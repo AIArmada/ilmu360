@@ -5,8 +5,8 @@
 - Scope: the **whole ilmu360° application**, converted in verified, committable parts.
 - Authorization: user invoked `laravel-agent-convert`, requested commits per part, and a checklist another agent can continue.
 - Branch: `refactor`. Initial working tree was clean on 2026-11-07.
-- Current part: **2 — GitHub issue reporting** (committed as `c83a68cf`); Part 1 is committed as `9a9eadee`.
-- Next action: **Part 3 — resolve the two baseline MCP event-read failures below**, then continue the Prayer feature conversion. Capture a fresh baseline before each part.
+- Current part: **3a — MCP viewer catalog authorization** (verified checkpoint); Parts 1/2 are committed as `9a9eadee` / `c83a68cf`.
+- Next action: **Part 3b — fix prayer-offset serialization in admin event metadata**, then continue the Prayer feature conversion. Capture a fresh baseline before each part.
 - Before continuing, read `AGENTS.md`, `.ai/rules/index.md`, `tasks/lessons.md`, and `/Users/Saiffil/.codex/skills/laravel-agent-convert/SKILL.md` with its architecture/migration/tooling references.
 - Update this checklist and `tasks/todo.md` in each part. Record commit subject, checks, limitations, and the next concrete action. A completed part does not mean full-app adoption.
 
@@ -56,7 +56,7 @@ Current owner: `app/Features/GitHubIssues/` (`Api`, `Actions`, `Persistence`, `S
 
 ### 3. Baseline MCP corrections, then Prayer
 
-- [ ] Reproduce and diagnose `AdminServerTest` viewer-role read failure (`tests/Feature/Mcp/AdminServerTest.php:123`): tool returns `Unexpected server error.` Read recent server logs to find the original exception.
+- [x] Reproduce and diagnose `AdminServerTest` viewer-role read failure (`tests/Feature/Mcp/AdminServerTest.php:123`): tool returns `Unexpected server error.` Read recent server logs to find the original exception.
 - [ ] Diagnose prayer metadata contract failure (`tests/Feature/Mcp/AdminServerTest.php:1026`): expected `prayer_offset = 'immediately'`, actual `5`. Reconcile the current canonical event timing contract and all relevant consumers; do not merely change an expectation to silence the failure.
 - [ ] Resolve each root cause in a separate coherent verified commit if needed; these failures reproduce on the pre-Part-2 baseline containing `9a9eadee` and were not introduced by Part 2.
 - [ ] Refresh graph and ownership trace, then convert Prayer with special attention to persisted `resolver_class` and cache/circuit-breaker ownership.
@@ -145,3 +145,13 @@ Evidence:
 - Scoped Rector final dry run: zero changes/errors; Pint and `git diff --check` pass. Obsolete class references audited in source/config/routes/bootstrap/tests (including escaped class strings): none.
 
 Logs: `/tmp/ilmu360-architecture-part2-{pest,mcp-baseline,phpstan,cached-api-pest,final-rector}.log`; these may expire, so the results and failure identities are recorded here. Do not claim the whole application or full suite is converted/passing. Continue with Part 3 above.
+
+### Part 3a — safe appeal policy discovery
+
+Checkpoint subject: `fix(auth): deny appeal creation without award context`.
+
+Root cause: AdminResourceRegistry asks Gate for the class-level create capability while listing resources. RewardAppealPolicy required an award argument, causing ArgumentCountError and breaking the entire viewer catalog. The policy now accepts absent context and denies it; actual award-recipient authorization remains unchanged. Added a Gate-level regression and retained the existing reward policy tests.
+
+Validation: parallel Pest filter `RewardAppealPolicyTest|RewardPolicyTest|AdminServerTest`: **93 tests, 92 passed, 1 existing prayer serialization failure**, 1,589 assertions. Viewer catalog and all reward policy checks now pass. Integrated PHPStan level 6 plus owned-write analysis passes; Pint passes. Logs: `/tmp/ilmu360-part3a-{pest,phpstan}.log`. No routes or UI workflow changed.
+
+Part 3b evidence: PrayerOffset::Immediately->minutes() intentionally returns **5** for prayer completion. The Event accessor maps stored signed minutes back to the string enum value, while generic admin attributes use `$record->toArray()`. Trace this serialization/projection path before editing; do not change the offset duration or simply weaken the existing MCP assertion.

@@ -528,3 +528,6 @@ Review: added `page-hero-mobile-v2.webp`, with open sky behind the headline, bod
 - [x] Build and inspect the journey icon on phone and desktop.
 
 Review: the open-book icon now uses a symmetric path bounded by the 24×24 viewBox; the right page is no longer clipped. `npm run build` and scoped `git diff --check` pass. Playwright renders at 390px and 1440px show the complete icon, and the path bounds stay within the viewBox.
+
+- [x] Part 3a: fixed viewer catalog crash by denying appeal creation without award context; policy and viewer regressions pass.
+- [ ] Part 3b: resolve remaining prayer-offset serialization failure, then resume Prayer conversion.
