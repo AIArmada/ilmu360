@@ -1379,7 +1379,18 @@ final class EventSubmissionFormSchema
                         ? __('Majlis institusi ini akan diterbitkan terus selepas dihantar dan tidak melalui giliran semakan moderator.')
                         : __('Majlis anda akan disemak oleh moderator kami dalam tempoh 24-48 jam. Anda akan dimaklumkan melalui e-mel setelah majlis diluluskan.'))
                     ->info(),
+
+                ...($this->turnstileConfigured() ? [
+                    SchemaView::make('components.pages.submit-event.partials.turnstile'),
+                ] : []),
             ]);
+    }
+
+    private function turnstileConfigured(): bool
+    {
+        return (bool) config('services.turnstile.enabled')
+            && filled(config('services.turnstile.site_key'))
+            && filled(config('services.turnstile.secret_key'));
     }
 
     private function applyOccurrenceScheduleDefaults(?string $occurrenceId, Set $set, Get $get): void

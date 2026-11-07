@@ -397,21 +397,6 @@
                 data-signal-component="submit_event_form"
                 data-signal-control="submit">
                 {{ $this->form }}
-
-                @if(config('services.turnstile.enabled') && filled(config('services.turnstile.site_key')) && filled(config('services.turnstile.secret_key')))
-                    <div class="mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-                        <p class="mb-3 text-sm font-semibold text-slate-700">{{ __('Pengesahan Keselamatan') }}</p>
-                        <p class="mb-3 text-xs text-slate-500">
-                            {{ __('Sila sahkan anda bukan robot sebelum menghantar majlis.') }}
-                        </p>
-                        <input id="submit-event-captcha-token" type="hidden" wire:model="data.captcha_token">
-                        <div id="submit-event-turnstile" wire:ignore></div>
-
-                        @error('data.captcha_token')
-                            <p class="mt-2 text-sm text-danger-600">{{ $message }}</p>
-                        @enderror
-                    </div>
-                @endif
             </form>
             </div>
 
@@ -525,10 +510,12 @@
                     }
                 };
 
+                const isVisible = (element) => element.offsetParent !== null;
+
                 const renderTurnstile = () => {
                     const nextContainer = document.getElementById('submit-event-turnstile');
 
-                    if (!nextContainer || typeof window.turnstile === 'undefined') {
+                    if (!nextContainer || typeof window.turnstile === 'undefined' || ! isVisible(nextContainer)) {
                         return;
                     }
 
@@ -549,9 +536,21 @@
                 const boot = () => {
                     renderTurnstile();
 
+                    if (typeof window.turnstile !== 'undefined' && typeof window.turnstile.ready === 'function') {
+                        window.turnstile.ready(renderTurnstile);
+                    }
+
                     window.setTimeout(renderTurnstile, 400);
                     window.setTimeout(renderTurnstile, 1200);
                 };
+
+                const observer = new MutationObserver(() => window.requestAnimationFrame(renderTurnstile));
+                observer.observe(document.body, {
+                    attributes: true,
+                    attributeFilter: ['class', 'style'],
+                    childList: true,
+                    subtree: true,
+                });
 
                 document.addEventListener('turnstile-reset', resetTurnstile);
                 document.addEventListener('DOMContentLoaded', boot);
