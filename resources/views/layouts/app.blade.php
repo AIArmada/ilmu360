@@ -150,7 +150,7 @@
                 $personsNavActive = request()->routeIs('persons.*');
                 $useHomeHeader = request()->routeIs('home');
                 $useDashboardHeader = request()->routeIs('dashboard');
-                $useHeroOverlayHeader = request()->routeIs('events.index', 'events.show', 'events.occurrence', 'events.session', 'persons.index', 'persons.show', 'institutions.index', 'institutions.show', 'references.index', 'references.show', 'submit-event.create', 'about', 'privacy', 'terms', 'contact');
+                $useHeroOverlayHeader = request()->routeIs('events.index', 'events.show', 'events.occurrence', 'events.session', 'persons.index', 'persons.show', 'institutions.index', 'institutions.show', 'references.index', 'references.show', 'submit-event.create', 'about', 'privacy', 'terms', 'contact', 'app-feedback.*', 'account-settings');
                 $showHeaderOrnaments = ! $useHomeHeader;
                 $useOverlayHeader = $useHomeHeader || $useHeroOverlayHeader;
                 $currentLocaleLabel = str_starts_with($currentLocale, 'ms')
