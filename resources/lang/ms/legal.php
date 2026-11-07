@@ -159,7 +159,7 @@ return [
         ],
         'eyebrow' => 'Perlukan bantuan?',
         'title' => 'Hubungi Kami',
-        'intro' => 'Pilih untuk memaparkan alamat e-mel kami atau ikuti kami di media sosial.',
+        'intro' => 'E-mel kami atau berhubung dengan kami di media sosial.',
         'reveal_email' => 'Dedahkan alamat email',
         'sections' => [
             [
