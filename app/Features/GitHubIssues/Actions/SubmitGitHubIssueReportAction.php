@@ -2,15 +2,16 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\GitHub;
+namespace App\Features\GitHubIssues\Actions;
 
-use App\Contracts\GitHubIssueReporterContract;
-use App\Data\GitHub\GitHubIssueSubmissionData;
-use App\Models\User;
-use App\Support\GitHub\GitHubIssueReportContract;
+use App\Features\GitHubIssues\Api\GitHubIssueReportContract;
+use App\Features\GitHubIssues\Api\GitHubIssueReporterContract;
+use App\Features\GitHubIssues\Api\GitHubIssueSubmissionData;
+use App\Features\GitHubIssues\Api\SubmitGitHubIssueReport;
+use App\Shared\Auth\IntegrationFeedbackIdentity;
 use Lorisleiva\Actions\Concerns\AsAction;
 
-class SubmitGitHubIssueReportAction
+class SubmitGitHubIssueReportAction implements SubmitGitHubIssueReport
 {
     use AsAction;
 
@@ -21,19 +22,19 @@ class SubmitGitHubIssueReportAction
     /**
      * @return array<string, mixed>
      */
-    public function handle(User $actor, GitHubIssueSubmissionData $submission, string $transport, ?string $requestId = null): array
+    public function handle(IntegrationFeedbackIdentity $actor, GitHubIssueSubmissionData $submission, string $transport, ?string $requestId = null): array
     {
         $title = '['.GitHubIssueReportContract::categoryLabel($submission->category).'] '.$submission->title;
         $body = $this->issueBody($actor, $submission, $transport, $requestId);
 
-        if ($actor->hasApplicationAdminAccess()) {
+        if ($actor->isAdmin) {
             return $this->gitHubIssueReporter->createAdminIssue($title, $body);
         }
 
         return $this->gitHubIssueReporter->createPlainIssue($title, $body);
     }
 
-    private function issueBody(User $actor, GitHubIssueSubmissionData $submission, string $transport, ?string $requestId): string
+    private function issueBody(IntegrationFeedbackIdentity $actor, GitHubIssueSubmissionData $submission, string $transport, ?string $requestId): string
     {
         $sections = [
             '# ilmu360° Issue Report',
@@ -49,10 +50,10 @@ class SubmitGitHubIssueReportAction
             '- Client version: '.($submission->client_version ?? 'Not provided'),
             '',
             '## Reporter',
-            '- User ID: '.$actor->getKey(),
+            '- User ID: '.$actor->id,
             '- Name: '.$actor->name,
-            '- Has application admin access: '.($actor->hasApplicationAdminAccess() ? 'Yes' : 'No'),
-            '- Has member MCP access: '.($actor->hasMemberMcpAccess() ? 'Yes' : 'No'),
+            '- Has application admin access: '.($actor->isAdmin ? 'Yes' : 'No'),
+            '- Has member MCP access: '.($actor->hasMemberMcpAccess ? 'Yes' : 'No'),
             '',
             '## Runtime context',
             '- Request ID: '.($requestId ?? 'Not provided'),

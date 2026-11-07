@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use AIArmada\Affiliates\AffiliatesServiceProvider;
 use AIArmada\CommerceSupport\SupportServiceProvider;
+use App\Features\GitHubIssues\FeatureServiceProvider as GitHubIssuesServiceProvider;
 use App\Providers\ApiDocumentationServiceProvider;
 use App\Providers\AppServiceProvider;
 use App\Providers\BlazeServiceProvider;
@@ -21,6 +22,7 @@ return [
     AffiliatesServiceProvider::class,
     ApiDocumentationServiceProvider::class,
     AppServiceProvider::class,
+    GitHubIssuesServiceProvider::class,
     BlazeServiceProvider::class,
     FilamentPhoneInputServiceProvider::class,
     AhliPanelProvider::class,

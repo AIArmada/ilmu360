@@ -27,7 +27,6 @@ use App\Http\Controllers\Api\Frontend\CatalogController;
 use App\Http\Controllers\Api\Frontend\ContributionController;
 use App\Http\Controllers\Api\Frontend\EventSubmissionController;
 use App\Http\Controllers\Api\Frontend\FollowController;
-use App\Http\Controllers\Api\Frontend\GitHubIssueController;
 use App\Http\Controllers\Api\Frontend\InstitutionWorkspaceController;
 use App\Http\Controllers\Api\Frontend\ManifestController;
 use App\Http\Controllers\Api\Frontend\MembershipApplicationController;
@@ -227,9 +226,6 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::get('/account-settings/mcp-tokens', [AccountSettingsMcpTokenController::class, 'index'])->name('account-settings.mcp-tokens.index');
         Route::post('/account-settings/mcp-tokens', [AccountSettingsMcpTokenController::class, 'store'])->name('account-settings.mcp-tokens.store');
         Route::delete('/account-settings/mcp-tokens/{tokenId}', [AccountSettingsMcpTokenController::class, 'destroy'])->name('account-settings.mcp-tokens.destroy');
-        Route::post('/github-issues', [GitHubIssueController::class, 'store'])
-            ->middleware('throttle:github-issues')
-            ->name('github-issues.store');
 
         Route::get('/contributions', [ContributionController::class, 'index'])->name('contributions.index');
         Route::post('/contributions/institutions', [ContributionController::class, 'storeInstitution'])->name('contributions.institutions.store');

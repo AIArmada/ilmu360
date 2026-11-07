@@ -86,9 +86,7 @@ use App\Checkout\ShareCheckoutStepContributor;
 use App\Contracts\CaptchaVerifier;
 use App\Contracts\EventCategoryCatalog;
 use App\Contracts\EventCategoryPolicyResolver;
-use App\Contracts\GitHubIssueReporterContract;
 use App\Contracts\NullCaptchaVerifier;
-use App\Contracts\NullGitHubIssueReporter;
 use App\Contracts\NullSignupAttributionSourceResolver;
 use App\Contracts\ShareTrackingContract;
 use App\Contracts\SignupAttributionSourceResolver;
@@ -166,7 +164,6 @@ use App\Policies\RewardRecoveryPolicy;
 use App\Services\Captcha\TurnstileVerifier;
 use App\Services\EventCategoryCatalog as DefaultEventCategoryCatalog;
 use App\Services\EventCategoryPolicy;
-use App\Services\GitHub\GitHubIssueReporter;
 use App\Services\ShareTrackingService;
 use App\Services\Spaces\DefaultSpaceEligibilityResolver;
 use App\Support\Auth\AffiliateSignupAttributionSourceResolver;
@@ -296,16 +293,6 @@ class AppServiceProvider extends ServiceProvider
                 return $verifier->isEnabled()
                     ? $verifier
                     : $app->make(NullCaptchaVerifier::class);
-            },
-        );
-
-        $this->app->singleton(
-            function ($app): GitHubIssueReporterContract {
-                $reporter = $app->make(GitHubIssueReporter::class);
-
-                return $reporter->isConfigured()
-                    ? $reporter
-                    : $app->make(NullGitHubIssueReporter::class);
             },
         );
 

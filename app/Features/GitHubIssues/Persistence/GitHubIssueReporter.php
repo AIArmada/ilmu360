@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Services\GitHub;
+namespace App\Features\GitHubIssues\Persistence;
 
-use App\Contracts\GitHubIssueReporterContract;
-use App\Exceptions\GitHubIssueReportingException;
+use App\Features\GitHubIssues\Api\GitHubIssueReporterContract;
+use App\Shared\Integrations\GitHubIssueReportingException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;

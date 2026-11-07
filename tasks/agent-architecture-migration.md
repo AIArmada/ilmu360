@@ -5,8 +5,8 @@
 - Scope: the **whole ilmu360° application**, converted in verified, committable parts.
 - Authorization: user invoked `laravel-agent-convert`, requested commits per part, and a checklist another agent can continue.
 - Branch: `refactor`. Initial working tree was clean on 2026-11-07.
-- Current part: **1 — foundation and enforcement** (verified; checkpoint commit subject below).
-- Next action: start **2 — GitHub issue reporting**, refresh the graph, trace current callers, capture fresh uncached routes, then implement its complete boundary using the ownership notes below.
+- Current part: **2 — GitHub issue reporting** (verified; checkpoint subject below); Part 1 is committed as `9a9eadee`.
+- Next action: **Part 3 — resolve the two baseline MCP event-read failures below**, then continue the Prayer feature conversion. Capture a fresh baseline before each part.
 - Before continuing, read `AGENTS.md`, `.ai/rules/index.md`, `tasks/lessons.md`, and `/Users/Saiffil/.codex/skills/laravel-agent-convert/SKILL.md` with its architecture/migration/tooling references.
 - Update this checklist and `tasks/todo.md` in each part. Record commit subject, checks, limitations, and the next concrete action. A completed part does not mean full-app adoption.
 
@@ -17,6 +17,7 @@
 - Locked tooling already available: PHP-Parser `v5.9.0`, PHPStan `2.3.5`, Larastan `v3.14.0`; no new dependency needed to run the foundation.
 - Initial inventory: 52 model files, 69 controllers, 13 jobs, 34 listeners, 30 policies, 27 console files, 44 migrations, 498 test files, no feature manifests.
 - Existing graph is indexed but materially stale: nested action paths changed, graph-only ShareGuest classes disappeared, AppFeedback/SignupAttribution are missing. Refresh before domain implementation; verify current files/configuration strings before moves.
+- Refreshed index for Part 2 uses project ID `Users-Saiffil-Herd-ilmu360`; the older `ilmu360` graph is stale. Index excluded generated/tool folders and skipped one generated PHPStan cache file.
 - Part 1 corrects CI from PHP 8.4 to PHP 8.5 and wires both architecture checks into the required PHPStan job.
 - Do not modify live data, deploy, or edit sibling `commerce` package source. Use isolated test settings. Persisted class strings/morph identities require a deliberate data-preservation strategy before model moves.
 
@@ -46,12 +47,19 @@
 
 ### 2. GitHub issue reporting
 
-- [ ] Move owning action/reporter/request/controller/data/exception and reporter boundary together.
-- [ ] Migrate feedback escalation/admin view, frontend form catalog and two MCP tool consumers to its public boundary.
-- [ ] Move provider binding and `/api/v1/github-issues` route; preserve auth/client middleware and `throttle:github-issues` order.
-- [ ] Verify HTTP success/failure, null reporter, API/feedback/MCP/catalog regressions and caches; commit.
+- [x] Move owning action/reporter/request/controller/data/exception and reporter boundary together.
+- [x] Migrate feedback escalation/admin view, frontend form catalog and two MCP tool consumers to its public boundary.
+- [x] Move provider binding and `/api/v1/github-issues` route; preserve auth/client middleware and `throttle:github-issues` order.
+- [x] Verify HTTP success/failure, null reporter, API/feedback/MCP/catalog regressions and caches; checkpoint subject: `refactor(github): migrate issue reporting into its owning feature`.
 
-Existing files: `app/Actions/GitHub/SubmitGitHubIssueReportAction.php`, `app/Services/GitHub/GitHubIssueReporter.php`, `app/Contracts/GitHubIssueReporterContract.php`, `app/Data/GitHub/GitHubIssueSubmissionData.php`, `app/Support/GitHub/GitHubIssueReportContract.php`, `app/Exceptions/GitHubIssueReportingException.php`, frontend HTTP controller/request and admin/member MCP tools. No owned DB table. Binding currently in `AppServiceProvider`. Public API must avoid mutable `User` and Spatie Data types; use actor ID and readonly submission values/arrays. Tests: `GitHubIssueReportApiTest`, `AppFeedbackGitHubTest`, `LifecycleHardCutTest`, `AdminServerTest`, `MemberServerTest`, frontend contract parity.
+Current owner: `app/Features/GitHubIssues/` (`Api`, `Actions`, `Persistence`, `Services`, `EntryPoints/Http`, `Routes`, native provider and manifest). No owned DB table; external `store:github-issues` belongs to `Persistence/GitHubIssueReporter`. Old classes and AppServiceProvider binding are removed. Tests: `GitHubIssueReportApiTest`, `AppFeedbackGitHubTest`, `LifecycleHardCutTest`, `AdminServerTest`, `MemberServerTest`.
+
+### 3. Baseline MCP corrections, then Prayer
+
+- [ ] Reproduce and diagnose `AdminServerTest` viewer-role read failure (`tests/Feature/Mcp/AdminServerTest.php:123`): tool returns `Unexpected server error.` Read recent server logs to find the original exception.
+- [ ] Diagnose prayer metadata contract failure (`tests/Feature/Mcp/AdminServerTest.php:1026`): expected `prayer_offset = 'immediately'`, actual `5`. Reconcile the current canonical event timing contract and all relevant consumers; do not merely change an expectation to silence the failure.
+- [ ] Resolve each root cause in a separate coherent verified commit if needed; these failures exist on `9a9eadee` and were not introduced by Part 2.
+- [ ] Refresh graph and ownership trace, then convert Prayer with special attention to persisted `resolver_class` and cache/circuit-breaker ownership.
 
 ### Remaining application parts
 
@@ -114,3 +122,26 @@ Temporary logs/snapshots are `/tmp/ilmu360-architecture-*`; they are supplementa
 Limits: no domain feature has been converted yet (production manifests count is zero); foundation tests use isolated sample features. Unmigrated resources are intentionally outside feature ownership enforcement until claimed. The whole-app suite, remote GitHub CI and deployment were not run. Keep the full capability checklist open.
 
 Next concrete work: Part 2 GitHub issue reporting; use its caller list and tests above. No new dependency or live-data change was introduced in Part 1.
+
+### Part 2 — GitHub issue reporting
+
+Checkpoint subject: `refactor(github): migrate issue reporting into its owning feature`.
+
+Changes and boundary decisions:
+
+- Native feature provider owns its binding and route; one external issue store, one actual HTTP mutation implementation. Removed the old action, services, contracts, data, request/controller and schema helper paths with no aliases/wrappers.
+- Public `Api/SubmitGitHubIssueReport` and reporter interface are used by MCP, feedback escalation, admin availability and frontend catalog consumers. MCP transport classes remain composition adapters and reference only the feature's public API.
+- Submission/catalog values are final readonly and contain no Laravel runtime objects. Validation uses the equivalent string `in:` rule instead of exporting a framework Rule object through the catalog.
+- `Shared/Auth/IntegrationFeedbackUser` and its readonly identity value form the real authenticated-user boundary. `User` implements that contract; GitHub code receives IDs/display/role facts without importing the mutable app model.
+- `Shared/Integrations/GitHubIssueReportingException` is the failure contract shared by HTTP/MCP/reporting consumers; keeping it outside feature internals preserves existing status/code/details handling. It has no feature dependency.
+- Preserved request authorization, payload normalization, issue body identity/context, Copilot model fallback, null reporter behavior, request IDs and existing product tracking. No UI workflow change, package source edit, dependency addition or real GitHub issue creation.
+
+Evidence:
+
+- Structural architecture check: **zero violations, one feature**. Integrated level-6 PHPStan plus owned-write rule: **zero errors**.
+- Before/after uncached route snapshots: **749 routes, identical**. Event registration inventory also identical.
+- API/feedback/lifecycle/admin/member MCP run: **152 tests, 150 passed, 2 failed, 2,283 assertions**. All changed GitHub flows passed. The two failures above were independently reproduced on clean Part 1 commit `9a9eadee`: baseline admin MCP file **87 tests, 85 passed, the same 2 failures**. Part 2 was preserved with Git stash and restored successfully; no stash remains from this check.
+- Cached route + config API run: **8 passed, 56 assertions**, including guest 401, invalid category 422, plain/admin submissions, Copilot fallbacks and GitHub rejection status/details. Used isolated `/tmp/ilmu360-architecture-part2-*` caches and cleared them afterward.
+- Scoped Rector final dry run: zero changes/errors; Pint and `git diff --check` pass. Obsolete class references audited in source/config/routes/bootstrap/tests (including escaped class strings): none.
+
+Logs: `/tmp/ilmu360-architecture-part2-{pest,mcp-baseline,phpstan,cached-api-pest,final-rector}.log`; these may expire, so the results and failure identities are recorded here. Do not claim the whole application or full suite is converted/passing. Continue with Part 3 above.

@@ -13,14 +13,14 @@ use App\Enums\EventVisibility;
 use App\Enums\InstitutionType;
 use App\Enums\MemberSubjectType;
 use App\Enums\RegistrationScope;
+use App\Features\GitHubIssues\Api\GitHubIssueReportContract;
+use App\Features\GitHubIssues\Api\GitHubIssueReporterContract;
 use App\Models\Language;
 use App\Models\User;
-use App\Services\GitHub\GitHubIssueReporter;
 use App\Services\ShareTrackingService;
 use App\Support\Api\SurfaceSyncPolicy;
 use App\Support\ApiDocumentation\ApiDocumentationUrlResolver;
 use App\Support\Documentation\DocumentationLibrary;
-use App\Support\GitHub\GitHubIssueReportContract;
 use App\Support\Mcp\McpTokenManager;
 use App\Support\Submission\SubmissionTimingPolicy;
 
@@ -31,7 +31,7 @@ class FrontendFormContractService
         private readonly ApiDocumentationUrlResolver $urlResolver,
         private readonly DocumentationLibrary $documentationLibrary,
         private readonly McpTokenManager $mcpTokenManager,
-        private readonly GitHubIssueReporter $gitHubIssueReporter,
+        private readonly GitHubIssueReporterContract $gitHubIssueReporter,
         private readonly ShareTrackingService $shareTrackingService,
     ) {}
 

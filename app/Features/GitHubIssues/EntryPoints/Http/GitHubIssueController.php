@@ -2,17 +2,19 @@
 
 declare(strict_types=1);
 
-namespace App\Http\Controllers\Api\Frontend;
+namespace App\Features\GitHubIssues\EntryPoints\Http;
 
-use App\Actions\GitHub\SubmitGitHubIssueReportAction;
-use App\Exceptions\GitHubIssueReportingException;
-use App\Http\Requests\Api\StoreGitHubIssueReportRequest;
+use App\Features\GitHubIssues\Actions\SubmitGitHubIssueReportAction;
+use App\Shared\Integrations\GitHubIssueReportingException;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
+use Illuminate\Support\Str;
 
 #[Group('GitHub Issue Reporting', 'Authenticated feedback endpoints that create GitHub issues in the ilmu360 repository for maintainers to triage. Use the paired form-contract endpoint first.')]
-class GitHubIssueController extends FrontendController
+class GitHubIssueController extends Controller
 {
     #[Endpoint(
         title: 'Create a GitHub issue report',
@@ -49,5 +51,10 @@ class GitHubIssueController extends FrontendController
                 'request_id' => $this->requestId($request),
             ],
         ], 201);
+    }
+
+    private function requestId(Request $request): string
+    {
+        return $request->header('X-Request-ID', (string) Str::uuid());
     }
 }

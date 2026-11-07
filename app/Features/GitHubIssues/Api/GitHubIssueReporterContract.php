@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Contracts;
+namespace App\Features\GitHubIssues\Api;
 
 /**
  * @phpstan-type GitHubIssueResponse array{

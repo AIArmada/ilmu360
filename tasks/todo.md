@@ -7,7 +7,8 @@ Full scope, part checklist, ownership findings and continuation instructions: [a
 - [x] Assess baseline and map main ownership seams.
 - [x] Part 1: foundation, architecture enforcement and CI integration verified (18 tests, 97 assertions; PHPStan and architecture checks pass; 749 routes unchanged).
 - [x] Commit Part 1 checkpoint with its continuation checklist.
-- [ ] Part 2: complete GitHub issue reporting feature and verified commit.
+- [x] Part 2: GitHub issue reporting feature migrated; architecture/PHPStan pass, 749 routes unchanged, cached API checks pass. Two broader MCP failures reproduced on Part 1 and recorded in the checklist.
+- [ ] Part 3: resolve the recorded baseline MCP event-read failures, then continue Prayer conversion.
 - [ ] Continue remaining capability parts from the migration checklist; full-app conversion remains open.
 
 

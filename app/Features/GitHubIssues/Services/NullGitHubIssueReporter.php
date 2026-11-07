@@ -2,9 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Contracts;
+namespace App\Features\GitHubIssues\Services;
 
-use App\Exceptions\GitHubIssueReportingException;
+use App\Features\GitHubIssues\Api\GitHubIssueReporterContract;
+use App\Shared\Integrations\GitHubIssueReportingException;
 
 /**
  * Null-object GitHub issue reporter when the integration is disabled.

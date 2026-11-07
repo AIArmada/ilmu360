@@ -2,11 +2,8 @@
 
 use AIArmada\Authz\Models\Role;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\Sanctum;
-
-uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
     configureGitHubIssueReporting();
@@ -65,12 +62,15 @@ it('creates a plain github issue for non-admin api reporters', function () {
         ->and($response->json('meta.request_id'))->toBeString();
 
     Http::assertSentCount(1);
-    Http::assertSent(function ($request): bool {
+    Http::assertSent(function ($request) use ($user): bool {
         $payload = $request->data();
 
         return $request->method() === 'POST'
             && (string) $request->url() === 'https://api.github.com/repos/AIArmada/ilmu360/issues'
             && data_get($payload, 'title') === '[Bug] Fix MCP connector issue creation'
+            && str_contains((string) data_get($payload, 'body'), '- User ID: '.$user->getKey())
+            && str_contains((string) data_get($payload, 'body'), '- Name: API Reporter')
+            && str_contains((string) data_get($payload, 'body'), '- Has application admin access: No')
             && data_get($payload, 'assignees') === null
             && data_get($payload, 'agent_assignment') === null;
     });
@@ -139,6 +139,41 @@ it('creates a plain github issue for admin api reporters when copilot assignment
             && data_get($payload, 'assignees') === null
             && data_get($payload, 'agent_assignment') === null;
     });
+});
+
+it('returns 401 for unauthenticated issue reports without contacting github', function () {
+    $this->postJson(route('api.client.github-issues.store'), githubIssuePayload())
+        ->assertUnauthorized();
+
+    Http::assertNothingSent();
+});
+
+it('returns 422 for an unsupported category without contacting github', function () {
+    Sanctum::actingAs(User::factory()->create());
+
+    $this->postJson(route('api.client.github-issues.store'), [
+        ...githubIssuePayload(),
+        'category' => 'unsupported',
+    ])->assertUnprocessable()->assertJsonValidationErrors('category');
+
+    Http::assertNothingSent();
+});
+
+it('preserves the github rejection status and error contract', function () {
+    Sanctum::actingAs(User::factory()->create());
+    Http::fake([
+        'https://api.github.com/repos/AIArmada/ilmu360/issues' => Http::response([
+            'message' => 'Issue creation was rejected.',
+        ], 422),
+    ]);
+
+    $this->postJson(route('api.client.github-issues.store'), githubIssuePayload())
+        ->assertUnprocessable()
+        ->assertJsonPath('error.code', 'github_issue_request_failed')
+        ->assertJsonPath('error.message', 'Issue creation was rejected.')
+        ->assertJsonPath('error.details.status', 422);
+
+    Http::assertSentCount(1);
 });
 
 function configureGitHubIssueReporting(array $overrides = []): void

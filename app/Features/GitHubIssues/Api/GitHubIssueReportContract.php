@@ -2,11 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Support\GitHub;
+namespace App\Features\GitHubIssues\Api;
 
-use Illuminate\Validation\Rule;
-
-final class GitHubIssueReportContract
+final readonly class GitHubIssueReportContract
 {
     public const string DEFAULT_CATEGORY = 'bug';
 
@@ -55,7 +53,7 @@ final class GitHubIssueReportContract
     public static function rules(): array
     {
         return [
-            'category' => ['required', 'string', Rule::in(self::categories())],
+            'category' => ['required', 'string', 'in:'.implode(',', self::categories())],
             'title' => ['required', 'string', 'min:3', 'max:255'],
             'summary' => ['required', 'string', 'min:10', 'max:1000'],
             'description' => ['nullable', 'string', 'max:4000'],

@@ -1,0 +1,9 @@
+{
+  "schema": 2,
+  "name": "GitHubIssues",
+  "owns": {
+    "store:github-issues": [
+      "App\\Features\\GitHubIssues\\Persistence\\GitHubIssueReporter"
+    ]
+  }
+}

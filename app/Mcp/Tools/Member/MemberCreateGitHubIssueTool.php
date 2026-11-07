@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tools\Member;
 
-use App\Actions\GitHub\SubmitGitHubIssueReportAction;
-use App\Contracts\GitHubIssueReporterContract;
-use App\Data\GitHub\GitHubIssueSubmissionData;
-use App\Exceptions\GitHubIssueReportingException;
-use App\Support\GitHub\GitHubIssueReportContract;
+use App\Features\GitHubIssues\Api\GitHubIssueReportContract;
+use App\Features\GitHubIssues\Api\GitHubIssueReporterContract;
+use App\Features\GitHubIssues\Api\GitHubIssueSubmissionData;
+use App\Features\GitHubIssues\Api\SubmitGitHubIssueReport;
+use App\Shared\Integrations\GitHubIssueReportingException;
 use App\Support\Mcp\McpAuthenticatedUserResolver;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
@@ -26,12 +26,14 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsOpenWorld(true)]
 class MemberCreateGitHubIssueTool extends AbstractMemberTool
 {
+    #[\Override]
     protected string $name = 'member-create-github-issue';
 
+    #[\Override]
     protected string $description = 'Use this when the authenticated Ahli/member wants to report a bug, request a feature, or submit feedback by creating a GitHub issue in the ilmu360 repository.';
 
     public function __construct(
-        private readonly SubmitGitHubIssueReportAction $submitGitHubIssueReportAction,
+        private readonly SubmitGitHubIssueReport $submitGitHubIssueReportAction,
         private readonly GitHubIssueReporterContract $gitHubIssueReporter,
     ) {
         $this->setMeta([
@@ -49,7 +51,7 @@ class MemberCreateGitHubIssueTool extends AbstractMemberTool
             try {
                 return Response::structured([
                     'data' => $this->submitGitHubIssueReportAction->handle(
-                        actor: $actor,
+                        actor: $actor->integrationFeedbackIdentity(),
                         submission: GitHubIssueSubmissionData::fromValidated($validated),
                         transport: 'mcp',
                     ),

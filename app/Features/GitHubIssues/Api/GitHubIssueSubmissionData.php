@@ -2,11 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Data\GitHub;
+namespace App\Features\GitHubIssues\Api;
 
-use Spatie\LaravelData\Data;
-
-class GitHubIssueSubmissionData extends Data
+final readonly class GitHubIssueSubmissionData
 {
     public function __construct(
         public string $category,

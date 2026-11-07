@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Actions\AppFeedback;
 
-use App\Contracts\GitHubIssueReporterContract;
 use App\Enums\AppFeedbackGitHubStatus;
+use App\Features\GitHubIssues\Api\GitHubIssueReporterContract;
 use App\Models\AppFeedback;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;

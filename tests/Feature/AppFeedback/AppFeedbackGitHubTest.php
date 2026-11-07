@@ -2,8 +2,8 @@
 
 use App\Actions\AppFeedback\EscalateAppFeedbackToGitHubAction;
 use App\Actions\AppFeedback\LinkAppFeedbackGitHubIssueAction;
-use App\Contracts\GitHubIssueReporterContract;
 use App\Enums\AppFeedbackGitHubStatus;
+use App\Features\GitHubIssues\Api\GitHubIssueReporterContract;
 use App\Models\AppFeedback;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;

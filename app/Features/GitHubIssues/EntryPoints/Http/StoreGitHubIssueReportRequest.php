@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
-namespace App\Http\Requests\Api;
+namespace App\Features\GitHubIssues\EntryPoints\Http;
 
-use App\Data\GitHub\GitHubIssueSubmissionData;
-use App\Models\User;
-use App\Support\GitHub\GitHubIssueReportContract;
+use App\Features\GitHubIssues\Api\GitHubIssueReportContract;
+use App\Features\GitHubIssues\Api\GitHubIssueSubmissionData;
+use App\Shared\Auth\IntegrationFeedbackIdentity;
+use App\Shared\Auth\IntegrationFeedbackUser;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -17,7 +18,7 @@ class StoreGitHubIssueReportRequest extends FormRequest
     {
         $user = $this->user('sanctum');
 
-        return $user instanceof User && $user->canSubmitIntegrationFeedback();
+        return $user instanceof IntegrationFeedbackUser && $user->canSubmitIntegrationFeedback();
     }
 
     /**
@@ -36,7 +37,7 @@ class StoreGitHubIssueReportRequest extends FormRequest
         $user = $this->user('sanctum');
 
         throw new AuthorizationException(
-            $user instanceof User ? $user->integrationFeedbackBanMessage() : 'This action is unauthorized.',
+            $user instanceof IntegrationFeedbackUser ? $user->integrationFeedbackBanMessage() : 'This action is unauthorized.',
         );
     }
 
@@ -48,14 +49,14 @@ class StoreGitHubIssueReportRequest extends FormRequest
         return GitHubIssueSubmissionData::fromValidated($validated);
     }
 
-    public function actor(): User
+    public function actor(): IntegrationFeedbackIdentity
     {
         $user = $this->user('sanctum');
 
-        if (! $user instanceof User) {
+        if (! $user instanceof IntegrationFeedbackUser) {
             throw new AuthorizationException('This action is unauthorized.');
         }
 
-        return $user;
+        return $user->integrationFeedbackIdentity();
     }
 }

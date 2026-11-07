@@ -25,6 +25,8 @@ use App\Notifications\Auth\ResetPasswordNotification;
 use App\Notifications\Auth\VerifyEmailNotification;
 use App\Notifications\Channels\DigestMailChannel;
 use App\Notifications\Channels\InboxChannel;
+use App\Shared\Auth\IntegrationFeedbackIdentity;
+use App\Shared\Auth\IntegrationFeedbackUser;
 use App\Support\Submission\PublicSubmissionLockService;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
@@ -55,7 +57,7 @@ use Spatie\DeletedModels\Models\Concerns\KeepsDeletedModels;
 use Spatie\Permission\PermissionRegistrar;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable implements AuditableContract, CanInteract, FilamentUser, HasLocalePreference, MustVerifyEmailContract
+class User extends Authenticatable implements AuditableContract, CanInteract, FilamentUser, HasLocalePreference, IntegrationFeedbackUser, MustVerifyEmailContract
 {
     /** @use HasFactory<UserFactory> */
     use AuditsModelChanges, CanBookmark, CanRespond, HasApiTokens, HasFactory, HasRoles, HasUserRestoration, HasUuids, KeepsDeletedModels, MustVerifyEmail, TwoFactorAuthenticatable {
@@ -166,6 +168,16 @@ class User extends Authenticatable implements AuditableContract, CanInteract, Fi
     public function canSubmitAppFeedback(): bool
     {
         return ! $this->isDirectoryFeedbackBlocked();
+    }
+
+    public function integrationFeedbackIdentity(): IntegrationFeedbackIdentity
+    {
+        return new IntegrationFeedbackIdentity(
+            id: (string) $this->getKey(),
+            name: (string) $this->name,
+            isAdmin: $this->hasApplicationAdminAccess(),
+            hasMemberMcpAccess: $this->hasMemberMcpAccess(),
+        );
     }
 
     public function canSubmitIntegrationFeedback(): bool
