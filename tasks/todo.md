@@ -534,3 +534,6 @@ Review: the open-book icon now uses a symmetric path bounded by the 24×24 viewB
 
 - [x] Part 3b: aligned MCP assertion with canonical signed-minute event payload; all 87 admin MCP tests pass.
 - [ ] Resolve occurrence-grouping test missing moderator role fixture, then start Prayer feature conversion.
+
+- [x] Part 3c: canonical role fixture and occurrence-title visibility regression fixed; 15 occurrence tests pass; analysis and architecture checks pass.
+- [ ] Part 4: provider-backed Prayer conversion; detailed ownership/caller/write map in migration checklist.

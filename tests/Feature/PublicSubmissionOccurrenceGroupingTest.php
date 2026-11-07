@@ -30,6 +30,7 @@ use App\Models\User;
 use App\Services\PublicScheduleDiscoveryService;
 use App\Support\Events\PublicScheduleSlug;
 use Database\Seeders\AIArmada\EventRoleSeeder;
+use Database\Seeders\RoleSeeder;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -595,6 +596,7 @@ it('renders the selected occurrence submission content on its public detail page
 });
 
 it('filters public occurrence speakers, references and prayer slots while excluding draft occurrence data', function (): void {
+    $this->seed(RoleSeeder::class);
     $institution = publicOccurrenceGroupingInstitution();
     $publicSpeaker = Person::factory()->create(['status' => 'verified', 'allow_public_event_submission' => true]);
     $draftSpeaker = Person::factory()->create(['status' => 'verified', 'allow_public_event_submission' => true]);
@@ -641,7 +643,8 @@ it('filters public occurrence speakers, references and prayer slots while exclud
 
     $this->get(route('references.show', $publicReference))
         ->assertOk()
-        ->assertSee($public['event']->title);
+        ->assertSee('Public Prayer Slot Submission')
+        ->assertDontSee('Draft Prayer Slot Submission');
 
     DB::table('event_occurrences')->where('id', $public['occurrence']->getKey())->update([
         'status' => EventOccurrence::DRAFT,
