@@ -1,0 +1,17 @@
+includes:
+    - ../phpstan.neon
+
+parameters:
+    # Add ownership enforcement to the existing level, stubs, paths and baseline.
+    excludePaths:
+        analyse:
+            - ../app/Features/*/Database/Migrations/*
+    tmpDir: ../storage/framework/cache/architecture-phpstan
+
+services:
+    -
+        class: LaravelAgentArchitecture\OwnedWriteRule
+        arguments:
+            projectRoot: %currentWorkingDirectory%
+        tags:
+            - phpstan.rules.rule

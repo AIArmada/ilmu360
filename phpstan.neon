@@ -13,6 +13,7 @@ parameters:
         - config
         - database
         - routes
+        - tools
         - vendor/aiarmada/affiliates/src
 
     tmpDir: storage/phpstan

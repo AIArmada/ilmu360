@@ -1,5 +1,16 @@
 # Todo — Maklum Balas Page Polish (2026-11-07)
 
+## Agent-friendly architecture migration (2026-11-07)
+
+Full scope, part checklist, ownership findings and continuation instructions: [agent-architecture-migration.md](agent-architecture-migration.md).
+
+- [x] Assess baseline and map main ownership seams.
+- [x] Part 1: foundation, architecture enforcement and CI integration verified (18 tests, 97 assertions; PHPStan and architecture checks pass; 749 routes unchanged).
+- [x] Commit Part 1 checkpoint with its continuation checklist.
+- [ ] Part 2: complete GitHub issue reporting feature and verified commit.
+- [ ] Continue remaining capability parts from the migration checklist; full-app conversion remains open.
+
+
 - [x] Make “Halaman berkaitan” editable (and fix `?dari=` relative path auto-fill).
 - [x] Remove the password/payment/personal-data warning sentence.
 - [x] Merge the two “Cadangan” categories into one “Cadangan” option.

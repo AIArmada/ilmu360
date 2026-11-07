@@ -1,5 +1,7 @@
 # Lessons
 
+- User direction (2026-11-07, app-wide architecture conversion): divide large migrations into verified, committable parts. Maintain an explicit repository checklist with scope, completed parts, evidence, remaining ownership work and the next concrete action so another agent can resume without relying on chat context.
+
 - For form usability work, resolve the reported interaction and information hierarchy issues before calling the change complete. Verify category reactivity, locale parity, and failed-submit draft recovery; state explicitly when authenticated visual checks are unavailable.
 
 - Contact pages should keep locales aligned, use the user's exact wording for localized labels, avoid unnecessary cards and numbering, use the app's social brand icons, and reveal public email only on demand without emitting plain address text or mailto URLs in page source.
