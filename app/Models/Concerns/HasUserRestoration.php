@@ -14,6 +14,7 @@ use AIArmada\Engagement\Models\Follow;
 use AIArmada\Engagement\Models\Response;
 use App\Actions\SavedSearches\DeleteOwnerSavedSearchesAction;
 use App\Actions\SavedSearches\RestoreSavedSearchesAction;
+use App\Contracts\SavedSearchReader;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
@@ -267,7 +268,7 @@ trait HasUserRestoration
             'social_accounts' => $this->socialAccounts()->get()->map->attributesToArray()->all(),
             'registrations' => $this->registrations()->get()->map->attributesToArray()->all(),
             'event_checkins' => $this->eventCheckins()->get()->map->attributesToArray()->all(),
-            'saved_searches' => $this->savedSearches()->get()->map->attributesToArray()->all(),
+            'saved_searches' => app(SavedSearchReader::class)->restorationSnapshotForOwner($this->getMorphClass(), (string) $this->getKey()),
             'ai_usage_logs' => $this->aiUsageLogs()->get()->map->attributesToArray()->all(),
             'notification_setting' => $this->notificationSetting?->attributesToArray(),
             'notification_destinations' => $this->notificationDestinations()->get()->map->attributesToArray()->all(),

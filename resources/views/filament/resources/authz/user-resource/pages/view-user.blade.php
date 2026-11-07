@@ -1,6 +1,7 @@
 <x-filament-panels::page>
     @php($user = $this->getRecord())
     @php($apiTokens = $this->apiTokens())
+    @php($savedSearches = $this->savedSearches)
 
     <div class="space-y-6">
         <x-filament::section heading="Account">
@@ -160,7 +161,7 @@
                 </div>
                 <div>
                     <div class="text-sm text-gray-500">Saved Searches</div>
-                    <div class="text-2xl font-semibold text-gray-950 dark:text-white">{{ $user->savedSearches->count() }}</div>
+                    <div class="text-2xl font-semibold text-gray-950 dark:text-white">{{ count($savedSearches) }}</div>
                 </div>
             </div>
         </x-filament::section>
@@ -409,7 +410,7 @@
 
         <x-filament::section heading="Saved Searches">
             <div class="space-y-4">
-                @forelse ($user->savedSearches as $savedSearch)
+                @forelse ($savedSearches as $savedSearch)
                     <div class="rounded-xl border border-gray-200 p-4 dark:border-white/10">
                         <div class="flex items-start justify-between gap-3">
                             <div class="font-medium text-gray-950 dark:text-white">{{ $savedSearch->name }}</div>
@@ -422,7 +423,7 @@
                             Filters: {{ $this->formatSavedSearchFilters(is_array($savedSearch->filters) ? $savedSearch->filters : null) }}
                         </div>
                         <div class="text-sm text-gray-500">
-                            Created At: {{ \App\Support\Timezone\UserDateTimeFormatter::format($savedSearch->created_at, 'd M Y H:i') ?: '-' }}
+                            Created At: {{ \App\Support\Timezone\UserDateTimeFormatter::format($savedSearch->createdAt, 'd M Y H:i') ?: '-' }}
                         </div>
                     </div>
                 @empty

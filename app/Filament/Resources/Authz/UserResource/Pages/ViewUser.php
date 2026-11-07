@@ -8,6 +8,8 @@ use AIArmada\Authz\Facades\Authz;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Models\Response;
 use AIArmada\FilamentEvents\Resources\EventResource;
+use App\Contracts\SavedSearchReader;
+use App\Data\SavedSearchSnapshot;
 use App\Filament\Resources\Authz\UserResource;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Filament\Resources\Persons\PersonResource;
@@ -27,6 +29,7 @@ use Filament\Resources\Pages\ViewRecord;
 use Filament\Support\Enums\Width;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\PersonalAccessToken;
+use Livewire\Attributes\Computed;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class ViewUser extends ViewRecord
@@ -150,7 +153,6 @@ class ViewUser extends ViewRecord
                     ->with(['institution:id,name', 'venue:id,name'])
                     ->orderByDesc('created_at'),
                 'references' => fn ($query) => $query->with('parentReference.parentReference')->orderBy('title'),
-                'savedSearches' => fn ($query) => $query->latest(),
             ]);
         });
 
@@ -178,6 +180,15 @@ class ViewUser extends ViewRecord
         );
 
         return $roles;
+    }
+
+    /** @return list<SavedSearchSnapshot> */
+    #[Computed]
+    public function savedSearches(): array
+    {
+        $user = $this->userRecord();
+
+        return app(SavedSearchReader::class)->forOwner($user->getMorphClass(), (string) $user->getKey());
     }
 
     public function eventUrl(?Event $event): ?string

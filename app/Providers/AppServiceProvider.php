@@ -88,6 +88,7 @@ use App\Contracts\EventCategoryCatalog;
 use App\Contracts\EventCategoryPolicyResolver;
 use App\Contracts\NullCaptchaVerifier;
 use App\Contracts\NullSignupAttributionSourceResolver;
+use App\Contracts\SavedSearchReader;
 use App\Contracts\ShareTrackingContract;
 use App\Contracts\SignupAttributionSourceResolver;
 use App\Contracts\SpaceEligibilityResolver;
@@ -162,6 +163,7 @@ use App\Policies\RewardPayoutRequestPolicy;
 use App\Policies\RewardProgramPolicy;
 use App\Policies\RewardRecoveryPolicy;
 use App\Services\Captcha\TurnstileVerifier;
+use App\Services\DatabaseSavedSearchReader;
 use App\Services\EventCategoryCatalog as DefaultEventCategoryCatalog;
 use App\Services\EventCategoryPolicy;
 use App\Services\ShareTrackingService;
@@ -236,6 +238,7 @@ class AppServiceProvider extends ServiceProvider
     #[\Override]
     public function register(): void
     {
+        $this->app->bind(SavedSearchReader::class, DatabaseSavedSearchReader::class);
         $this->app->bind(Js::class, ContentVersionedJs::class);
 
         $this->app->singleton(EventCategoryCatalog::class, DefaultEventCategoryCatalog::class);

@@ -13,11 +13,11 @@ use AIArmada\Rewards\Enums\RewardSourceCorrectionStatus;
 use AIArmada\Rewards\Enums\RewardSourceFraudStatus;
 use AIArmada\Rewards\Enums\RewardVerificationLevel;
 use AIArmada\Rewards\Support\RewardSourceFact;
+use App\Contracts\SavedSearchReader;
 use App\Enums\ShareOutcomeType;
 use App\Models\EventCheckin;
 use App\Models\EventSubmission;
 use App\Models\Registration;
-use App\Models\SavedSearch;
 use App\Models\User;
 use App\Support\ShareTracking\ActivityRewardBusinessKey;
 use Carbon\CarbonImmutable;
@@ -49,6 +49,10 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
             return null;
         }
 
+        if ($outcome === ShareOutcomeType::SavedSearchCreated) {
+            return $this->savedSearchFact($sourceBusinessKey, $parsed['source_transition_id']);
+        }
+
         $source = $this->resolveSourceRecord($parsed['source_transition_id']);
 
         if (! $source instanceof Model) {
@@ -77,7 +81,7 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
             category: null,
             occurredAt: $occurredAt,
             verification: $this->verificationFor($outcome, $source),
-            isFirstTime: $this->isFirstTime($outcome, $source, $actor, $occurredAt),
+            isFirstTime: $this->isFirstTime($outcome, (string) $source->getKey(), $actor, $occurredAt),
             actorId: (string) $actor->getKey(),
             sharerId: null,
             actorRole: $this->actorRoleFor($outcome, $source, $actor),
@@ -93,6 +97,44 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
         );
     }
 
+    private function savedSearchFact(string $sourceBusinessKey, string $sourceTransitionId): ?RewardSourceFact
+    {
+        $source = app(SavedSearchReader::class)->find(substr($sourceTransitionId, strlen('saved_search:')));
+
+        if ($source === null || $source->createdAt === null) {
+            return null;
+        }
+
+        $actor = $this->userForMorph($source->userType, $source->userId);
+
+        if (! $actor instanceof User) {
+            return null;
+        }
+
+        $occurredAt = $source->createdAt->setTimezone('UTC');
+
+        return new RewardSourceFact(
+            sourceBusinessKey: $sourceBusinessKey,
+            outcome: ShareOutcomeType::SavedSearchCreated->value,
+            category: null,
+            occurredAt: $occurredAt,
+            verification: RewardVerificationLevel::Accepted,
+            isFirstTime: $this->isFirstTime(ShareOutcomeType::SavedSearchCreated, $source->id, $actor, $occurredAt),
+            actorId: (string) $actor->getKey(),
+            sharerId: null,
+            actorRole: RewardBeneficiaryRole::Participant,
+            isClaimedIdentity: true,
+            isAttributed: false,
+            isAmbiguousDevice: false,
+            isBot: false,
+            isCancelled: false,
+            isValid: true,
+            fraudStatus: RewardSourceFraudStatus::Clear,
+            correctionStatus: RewardSourceCorrectionStatus::Current,
+            correctionId: null,
+        );
+    }
+
     private function resolveSourceRecord(string $sourceTransitionId): ?Model
     {
         $sources = [
@@ -103,7 +145,6 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
             'bookmark:' => Bookmark::class,
             'response:' => Response::class,
             'follow:' => Follow::class,
-            'saved_search:' => SavedSearch::class,
         ];
 
         foreach ($sources as $prefix => $modelClass) {
@@ -294,12 +335,21 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
 
     private function isFirstTime(
         ShareOutcomeType $outcome,
-        Model $source,
+        string $sourceId,
         User $actor,
         CarbonImmutable $occurredAt,
     ): bool {
         if ($outcome === ShareOutcomeType::Signup) {
             return true;
+        }
+
+        if ($outcome === ShareOutcomeType::SavedSearchCreated) {
+            return ! app(SavedSearchReader::class)->hasEarlierForOwner(
+                $actor->getMorphClass(),
+                (string) $actor->getKey(),
+                $sourceId,
+                $occurredAt,
+            );
         }
 
         [$modelClass, $actorColumns, $occurredColumn] = match ($outcome) {
@@ -312,7 +362,6 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
             ShareOutcomeType::PersonFollow,
             ShareOutcomeType::SeriesFollow,
             ShareOutcomeType::ReferenceFollow => [Follow::class, ['follower_type', 'follower_id'], 'followed_at'],
-            ShareOutcomeType::SavedSearchCreated => [SavedSearch::class, ['user_type', 'user_id'], 'created_at'],
         };
 
         $query = $modelClass::query()
@@ -327,7 +376,7 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
                 }
             })
             ->where($occurredColumn, '<', $occurredAt->setTimezone(config('app.timezone', 'UTC')))
-            ->whereKeyNot((string) $source->getKey());
+            ->whereKeyNot($sourceId);
 
         return ! $query->exists();
     }

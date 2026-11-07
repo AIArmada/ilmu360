@@ -4,6 +4,8 @@ namespace App\Services\Notifications;
 
 use AIArmada\Communications\Contracts\CommunicationManager;
 use AIArmada\Events\Models\EventSubmission;
+use App\Contracts\SavedSearchReader;
+use App\Data\SavedSearchSnapshot;
 use App\Enums\EventChangeSeverity;
 use App\Enums\EventChangeType;
 use App\Enums\EventVisibility;
@@ -16,7 +18,6 @@ use App\Models\EventCheckin;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Registration;
-use App\Models\SavedSearch;
 use App\Models\User;
 use App\Notifications\InAppNotification;
 use App\Services\EventSearchService;
@@ -24,6 +25,7 @@ use App\Support\Authz\MemberPermissionGate;
 use App\Support\Notifications\NotificationCatalog;
 use App\Support\Notifications\NotificationDispatchData;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -34,6 +36,7 @@ class EventNotificationService
         protected EventSearchService $eventSearchService,
         protected MemberPermissionGate $memberPermissionGate,
         protected NotificationMessageRenderer $messageRenderer,
+        protected SavedSearchReader $savedSearchReader,
     ) {}
 
     public function notifySubmissionReceived(Event $event): void
@@ -594,31 +597,33 @@ class EventNotificationService
     {
         $matchesByUser = [];
 
-        SavedSearch::query()
-            ->where('notify', '!=', NotificationCadence::Off->value)
-            ->with('user')
-            ->cursor()
-            ->each(function (SavedSearch $savedSearch) use ($event, &$matchesByUser): void {
-                $user = $savedSearch->user;
+        foreach ($this->savedSearchReader->notificationCandidates() as $savedSearch) {
+            $userClass = Relation::getMorphedModel($savedSearch->userType) ?? $savedSearch->userType;
 
-                if (! $user instanceof User) {
-                    return;
-                }
+            if (! is_a($userClass, User::class, true)) {
+                continue;
+            }
 
-                if (! $this->savedSearchMatchesEvent($savedSearch, $event)) {
-                    return;
-                }
+            $user = $userClass::query()->find($savedSearch->userId);
 
-                $matchesByUser[$user->id] ??= [
-                    'user' => $user,
-                    'searches' => [],
-                ];
-                $matchesByUser[$user->id]['searches'][] = $savedSearch;
-            });
+            if (! $user instanceof User) {
+                continue;
+            }
+
+            if (! $this->savedSearchMatchesEvent($savedSearch, $event)) {
+                continue;
+            }
+
+            $matchesByUser[$user->id] ??= [
+                'user' => $user,
+                'searches' => [],
+            ];
+            $matchesByUser[$user->id]['searches'][] = $savedSearch;
+        }
 
         foreach ($matchesByUser as $matchData) {
             $user = $matchData['user'];
-            /** @var array<int, SavedSearch> $searches */
+            /** @var array<int, SavedSearchSnapshot> $searches */
             $searches = $matchData['searches'];
             $searchNames = collect($searches)->pluck('name')->values()->all();
 
@@ -702,15 +707,15 @@ class EventNotificationService
         }
     }
 
-    protected function savedSearchMatchesEvent(SavedSearch $savedSearch, Event $event): bool
+    protected function savedSearchMatchesEvent(SavedSearchSnapshot $savedSearch, Event $event): bool
     {
         $filters = is_array($savedSearch->filters) ? $savedSearch->filters : [];
 
-        if ($savedSearch->lat !== null && $savedSearch->lng !== null && $savedSearch->radius_km !== null) {
+        if ($savedSearch->lat !== null && $savedSearch->lng !== null && $savedSearch->radiusKm !== null) {
             $results = $this->eventSearchService->searchNearby(
                 lat: $savedSearch->lat,
                 lng: $savedSearch->lng,
-                radiusKm: $savedSearch->radius_km,
+                radiusKm: $savedSearch->radiusKm,
                 filters: $filters,
                 perPage: 50,
             );
@@ -728,12 +733,12 @@ class EventNotificationService
     }
 
     /**
-     * @param  array<int, SavedSearch>  $savedSearches
+     * @param  array<int, SavedSearchSnapshot>  $savedSearches
      */
     protected function fastestSavedSearchCadence(array $savedSearches): NotificationCadence
     {
         $cadences = collect($savedSearches)
-            ->map(fn (SavedSearch $savedSearch): NotificationCadence => NotificationCadence::tryFrom((string) $savedSearch->notify) ?? NotificationCadence::Daily)
+            ->map(fn (SavedSearchSnapshot $savedSearch): NotificationCadence => NotificationCadence::tryFrom((string) $savedSearch->notify) ?? NotificationCadence::Daily)
             ->values();
 
         if ($cadences->contains(NotificationCadence::Instant)) {

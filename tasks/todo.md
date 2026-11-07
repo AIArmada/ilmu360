@@ -543,6 +543,10 @@ Review: the open-book icon now uses a symmetric path bounded by the 24×24 viewB
 
 - [x] Part 4b: Prayer provider feature, public boundaries, four owned stores, HTTP/queue/CLI/config/schedules converted; 584 checks pass, analysis/boundaries clean, routes/commands/schedules unchanged.
 - [x] Part 5a: consolidate Saved Searches deletion/restoration writes and redirect API/page/account lifecycle callers; checkpoint subject `refactor(saved-searches): consolidate deletion and restoration writes`.
-- [ ] Part 5b: Saved Searches public readers, integrations, model ownership and consumer cutover, using the detailed migration checklist. Full Saved Searches adoption remains open.
+- [x] Part 5b: introduce a read-only Saved Searches contract and snapshots; migrate notifications, rewards, dashboard/admin summaries and account snapshots; checkpoint subject `refactor(saved-searches): replace external model reads with snapshots`.
+- [ ] Correct baseline DashboardPagesTest account-settings copy assertions in a separate verified commit.
+- [ ] Part 5c: Saved Searches model, actions, remaining integrations and entrypoint ownership cutover. Full Saved Searches adoption remains open.
 
 Part 5a review: API attribution reversal and transaction, plain page/account deletion, and quiet snapshot restoration remain unchanged. Owner-isolation and restoration regressions pass. All 85 affected tests pass across the initial run and corrected lifecycle-file rerun; Pint, PHPStan level 6 plus owned-write rule, boundaries, scoped Rector and unchanged-route comparison pass. The migration checklist records the next consumer map and exact verification logs.
+
+Part 5b review: 234/235 parallel checks passed, including all 21 new reader/reward/notification cases. The remaining failure is the pre-existing account-settings test expecting two outdated English strings, proven present on baseline `e22d6e99`; fix separately. PHPStan plus ownership rule, boundaries, Pint, scoped Rector, unchanged 750 routes and independent review pass. Saved Searches is not yet an adopted feature; the detailed checklist records the model/integration cutover and remaining API owner-type isolation fix.

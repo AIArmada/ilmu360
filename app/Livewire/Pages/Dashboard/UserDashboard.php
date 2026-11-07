@@ -8,6 +8,8 @@ use AIArmada\Rewards\Enums\RewardProgramStatus;
 use AIArmada\Rewards\Models\RewardEnrollment;
 use AIArmada\Rewards\Models\RewardProgram;
 use App\Actions\Rewards\EnrollRewardProgramMemberAction;
+use App\Contracts\SavedSearchReader;
+use App\Data\SavedSearchSnapshot;
 use App\Models\Event;
 use App\Models\EventCheckin;
 use App\Models\EventSubmission;
@@ -15,7 +17,6 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Registration;
-use App\Models\SavedSearch;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
 use App\Services\ShareTrackingAnalyticsService;
@@ -217,19 +218,14 @@ class UserDashboard extends Component
     }
 
     /**
-     * @return Collection<int, SavedSearch>
+     * @return Collection<int, SavedSearchSnapshot>
      */
     #[Computed]
     public function recentSavedSearches(): Collection
     {
-        /** @var Collection<int, SavedSearch> $savedSearches */
-        $savedSearches = $this->user()
-            ->savedSearches()
-            ->latest()
-            ->limit(3)
-            ->get();
+        $user = $this->user();
 
-        return $savedSearches;
+        return collect(app(SavedSearchReader::class)->forOwner($user->getMorphClass(), (string) $user->getKey(), 3));
     }
 
     /**

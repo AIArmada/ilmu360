@@ -18,10 +18,10 @@ use AIArmada\Rewards\Enums\RewardSourceCorrectionStatus;
 use AIArmada\Rewards\Enums\RewardSourceFraudStatus;
 use AIArmada\Rewards\Enums\RewardVerificationLevel;
 use AIArmada\Rewards\Support\RewardSourceFact;
+use App\Contracts\SavedSearchReader;
 use App\Models\EventCheckin;
 use App\Models\EventSubmission;
 use App\Models\Registration;
-use App\Models\SavedSearch;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
@@ -107,10 +107,17 @@ final class ShareAttributionRewardSourceFactReader implements RewardSourceFactRe
             $isValid = false;
         }
 
-        $source = $this->resolveSourceRecord($transitionId);
+        $source = null;
 
-        $verification = $this->verificationFor($outcome, $source);
-        $sourceInvalidates = $this->sourceInvalidates($outcome, $source);
+        if ($outcome === 'saved_search_created') {
+            $exists = app(SavedSearchReader::class)->exists(substr($transitionId, strlen('saved_search:')));
+            $verification = $exists ? RewardVerificationLevel::Accepted : RewardVerificationLevel::Unverified;
+            $sourceInvalidates = ['cancelled' => ! $exists, 'invalid' => ! $exists];
+        } else {
+            $source = $this->resolveSourceRecord($transitionId);
+            $verification = $this->verificationFor($outcome, $source);
+            $sourceInvalidates = $this->sourceInvalidates($outcome, $source);
+        }
 
         if ($sourceInvalidates['cancelled']) {
             $isCancelled = true;
@@ -205,7 +212,6 @@ final class ShareAttributionRewardSourceFactReader implements RewardSourceFactRe
             'bookmark:' => Bookmark::class,
             'response:' => Response::class,
             'follow:' => Follow::class,
-            'saved_search:' => SavedSearch::class,
         ];
 
         foreach ($map as $prefix => $model) {
