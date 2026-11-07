@@ -65,6 +65,7 @@
 
             <div class="border-t border-slate-100 bg-slate-50/50 px-8 py-4 text-center">
                 <a href="{{ route('events.show', $event) }}"
+                   wire:navigate
                    class="text-sm font-bold text-emerald-600 transition hover:text-emerald-700">
                     {{ __('Back to Event') }}
                 </a>

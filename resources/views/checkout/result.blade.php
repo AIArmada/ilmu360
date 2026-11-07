@@ -71,7 +71,7 @@
                             <p class="text-xs font-bold uppercase tracking-[0.16em] text-[#b27b1b]">{{ __('Your access') }}</p>
                             <h2 id="admissions-heading" class="mt-1 text-2xl font-bold text-[#173c34]">{{ __('Admissions') }}</h2>
                         </div>
-                        <a href="{{ route('dashboard') }}" class="text-sm font-bold text-[#173c34] underline decoration-[#b27b1b] underline-offset-4">{{ __('Open dashboard') }}</a>
+                        <a href="{{ route('dashboard') }}" wire:navigate class="text-sm font-bold text-[#173c34] underline decoration-[#b27b1b] underline-offset-4">{{ __('Open dashboard') }}</a>
                     </div>
 
                     <div class="mt-5 space-y-4">
@@ -104,6 +104,7 @@
                                     <div class="mt-4 flex flex-wrap gap-2">
                                         @foreach ($registration->passes as $pass)
                                             <a href="{{ route('events.pass', ['event' => $registration->event, 'pass' => $pass->getKey()]) }}"
+                                                wire:navigate
                                                 data-signal-event="commerce.admission_opened"
                                                 data-signal-category="commerce"
                                                 data-signal-component="checkout_result"
@@ -119,6 +120,7 @@
 
                                 @if ($paid && $registration->event instanceof \App\Models\Event && auth()->user() instanceof \App\Models\User && app(\App\Support\Events\EventCommercePolicy::class)->canSelfServiceRefund(auth()->user(), $registration->event, $registration))
                                     <a href="{{ route('events.registration.refund', ['event' => $registration->event, 'registration' => $registration]) }}"
+                                        wire:navigate
                                         data-signal-event="commerce.event_refund_started"
                                         data-signal-category="commerce"
                                         data-signal-component="checkout_result"
@@ -136,8 +138,8 @@
             @endif
 
             <div class="mt-8 flex flex-col gap-3 border-t border-slate-100 pt-6 sm:flex-row">
-                <a href="{{ route('dashboard') }}" class="inline-flex flex-1 items-center justify-center rounded-xl border border-slate-200 px-5 py-3 font-bold text-slate-700 transition hover:bg-slate-50">{{ __('Go to dashboard') }}</a>
-                <a href="{{ route('events.index') }}" class="inline-flex flex-1 items-center justify-center rounded-xl bg-[#f6f8f5] px-5 py-3 font-bold text-[#173c34] transition hover:bg-emerald-50">{{ __('Browse more events') }}</a>
+                <a href="{{ route('dashboard') }}" wire:navigate class="inline-flex flex-1 items-center justify-center rounded-xl border border-slate-200 px-5 py-3 font-bold text-slate-700 transition hover:bg-slate-50">{{ __('Go to dashboard') }}</a>
+                <a href="{{ route('events.index') }}" wire:navigate class="inline-flex flex-1 items-center justify-center rounded-xl bg-[#f6f8f5] px-5 py-3 font-bold text-[#173c34] transition hover:bg-emerald-50">{{ __('Browse more events') }}</a>
             </div>
         </div>
     </div>

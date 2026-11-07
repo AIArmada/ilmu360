@@ -33,6 +33,7 @@
                         <div class="mt-4 flex flex-wrap gap-2">
                             @foreach ($registration->passes as $pass)
                                 <a href="{{ route('events.pass', ['event' => $registration->event, 'pass' => $pass->getKey()]) }}"
+                                    wire:navigate
                                     data-signal-event="commerce.admission_opened"
                                     data-signal-category="commerce"
                                     data-signal-component="free_checkout_result"
@@ -50,8 +51,8 @@
         </div>
 
         <div class="mt-8 flex flex-col gap-3 border-t border-slate-100 pt-6 sm:flex-row">
-            <a href="{{ route('dashboard') }}" class="inline-flex flex-1 items-center justify-center rounded-xl bg-[#173c34] px-5 py-3 font-bold text-white transition hover:bg-[#21594c]">{{ __('Go to dashboard') }}</a>
-            <a href="{{ route('events.index') }}" class="inline-flex flex-1 items-center justify-center rounded-xl bg-[#f6f8f5] px-5 py-3 font-bold text-[#173c34] transition hover:bg-emerald-50">{{ __('Browse more events') }}</a>
+            <a href="{{ route('dashboard') }}" wire:navigate class="inline-flex flex-1 items-center justify-center rounded-xl bg-[#173c34] px-5 py-3 font-bold text-white transition hover:bg-[#21594c]">{{ __('Go to dashboard') }}</a>
+            <a href="{{ route('events.index') }}" wire:navigate class="inline-flex flex-1 items-center justify-center rounded-xl bg-[#f6f8f5] px-5 py-3 font-bold text-[#173c34] transition hover:bg-emerald-50">{{ __('Browse more events') }}</a>
         </div>
     </div>
 </main>

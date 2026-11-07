@@ -559,7 +559,7 @@ new
                 </p>
                 <div class="mt-5 flex flex-wrap gap-3">
                     @guest
-                        <a href="{{ route('register') }}" class="inline-flex min-h-11 items-center gap-3 rounded-full bg-[#f1cb64] px-5 py-3 text-xs font-bold text-[#15372d] shadow-lg shadow-black/20 transition hover:bg-[#ffe39b] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#f4dfa0]">
+                        <a href="{{ route('register') }}" wire:navigate class="inline-flex min-h-11 items-center gap-3 rounded-full bg-[#f1cb64] px-5 py-3 text-xs font-bold text-[#15372d] shadow-lg shadow-black/20 transition hover:bg-[#ffe39b] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#f4dfa0]">
                             {{ __('Daftar Sekarang') }}
                             <span aria-hidden="true">→</span>
                         </a>
