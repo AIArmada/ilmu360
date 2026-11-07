@@ -1,3 +1,34 @@
+# Todo — Tetapan Hero (2026-11-07)
+
+- [x] Generate desktop + mobile account-settings hero art with codex imagegen.
+- [x] Give `/tetapan` the full-bleed courtyard hero and floating overlay header.
+- [x] Pin the hero asset paths in the settings test, then run tests, Pint, PHPStan and browser probes.
+
+## Review — Tetapan hero
+
+- Art: `public/images/settings/account-settings-hero-{desktop,mobile}-v1.{png,webp}` — desktop 1672×941 (157 KB WebP), mobile 1024×1536 (152 KB WebP); subject is a brass clock, key on an emerald tray, and an emerald notebook (time, security, personal details).
+- `/tetapan` now shares the `hero-field` picture/wash structure and `living-majlis-field` surface; the profile/notifications tabs sit in the hero, and the existing form cards remain unchanged below.
+- Added `account-settings` to `$useHeroOverlayHeader` so the hero runs behind the floating menu pill.
+- Verification: AccountSettingsPageTest 25/244 green (including new hero asset assertions); browser probes for profile, notifications and 390×844 mobile PASS with no JS errors; Pint green; PHPStan 0 errors. Evidence in `storage/verify/settings/`.
+- Moved “Buka peti notifikasi” out of the hero into the top of the notifications content card, right-aligned above the mandatory notice; re-verified on desktop and 390×844 with the link present below the hero and no JS errors.
+- Removed the redundant outer white content card and duplicate inner `max-w-6xl` wrapper; the profile Filament section and notification cards now sit directly on the `living-majlis-field` surface, aligned with the hero. Re-verified desktop, notifications, and mobile: 25 tests / 244 assertions green, no JS errors.
+- Note: unrelated working-tree changes in `tests/Feature/AccountSettingsPageTest.php` (pre-existing extra tests) and `resources/lang/ms/legal.php` were left untouched and uncommitted.
+
+# Todo — Legal Heroes (2026-11-07)
+
+- [x] Generate separate desktop + mobile heroes for privasi, terma, hubungi kami with codex imagegen.
+- [x] Wire per-page art into shared `pages/legal.blade.php` with per-page OG images.
+- [x] Verify all three pages desktop + mobile, run LegalPagesTest, Pint, PHPStan, fresh-reviewer review.
+
+## Review — Legal heroes
+
+- Art (codex imagegen, built-in): `public/images/legal/{privacy,terms,contact}-hero-{desktop,mobile}-v1.{png,webp}` — desktops 1672×941, mobiles 1024×1536, WebP 148–192 KB.
+- Subjects: privasi = carved screen + brass lockbox, terma = open book + seal + emerald volumes, contact = doorway + lantern + sealed envelopes; left ~60% empty cream for copy on all six.
+- Template reuses the directory `hero-field` picture/wash pattern; unknown `pageKey` falls back to privacy art; tabs, contact email-reveal, and social buttons unchanged.
+- Verification: browser probes PASS no JS errors on all three pages (desktop + 390×844 mobile each); LegalPagesTest 4/33 green; Pint green; PHPStan 0 errors; fresh-reviewer verdict “With fixes”, both Important items closed (mobile evidence captured, forced-colors recorded as inherited systemic limitation).
+- Full-suite TIA run: 67 failures, all pre-existing environment issues (missing PostgreSQL 17 binary, Pango system libs, owner-context admin tests) — zero touch legal/privacy/terms/contact/feedback/hero paths.
+- Evidence in `storage/verify/legal/`.
+
 # Todo — Maklum Balas Page Polish (2026-11-07)
 
 ## Agent-friendly architecture migration (2026-11-07)
@@ -19,6 +50,7 @@ Full scope, part checklist, ownership findings and continuation instructions: [a
 - [x] Generate desktop + mobile hero images with codex imagegen and replace the green header.
 - [x] Match the full-bleed, high-key `/penceramah` and `/institusi` hero treatment.
 - [x] Add regression tests, run Pest, Pint, PHPStan, and update graphify.
+- [x] Extend the hero image behind the header menu.
 
 ## Review — Maklum Balas page polish
 
@@ -29,6 +61,7 @@ Full scope, part checklist, ownership findings and continuation instructions: [a
 - The hero is now full-bleed with the shared `living-majlis-field` surface, cream left-to-right wash, dark emerald display heading, and directory-style CTAs; the form/history sit below in the existing `max-w-5xl` reading column.
 - Responsive `<picture>` serves the recomposed portrait mobile art below 640px and the wide desktop art otherwise; the mobile art reserves the left 60% for copy.
 - Verification: 76 AppFeedback tests passed (397 assertions); Pint passed; PHPStan level 6 0 errors; browser probe passed with no JS errors and screenshots at desktop + 390×844. Evidence in `storage/verify/app-feedback/`.
+- Hero-behind-header: added `app-feedback.*` to `$useHeroOverlayHeader` in `resources/views/layouts/app.blade.php:153`, switching the feedback page from sticky to the absolute overlay header used by `/penceramah` and `/institusi`; hero art now runs edge-to-edge behind the floating menu pill. Re-verified with 76 AppFeedback tests passed plus a styled browser probe (no JS errors) at desktop and 390×844.
 - `graphify` is not installed in this checkout, so `graphify update` could not run.
 
 # Todo — Cloudflare Turnstile Existing Widget (2026-11-07)
