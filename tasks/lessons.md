@@ -1,5 +1,7 @@
 # Lessons
 
+- User correction (2026-11-08, migration checklist): when a later stage completes earlier acceptance items, reconcile those original checkboxes and duplicate task entries. Appending completion evidence alone leaves a misleading handoff. Record checkpoint IDs and keep only genuinely unfinished scope unchecked.
+
 - User direction (2026-11-07, app-wide architecture conversion): divide large migrations into verified, committable parts. Maintain an explicit repository checklist with scope, completed parts, evidence, remaining ownership work and the next concrete action so another agent can resume without relying on chat context.
 
 - For form usability work, resolve the reported interaction and information hierarchy issues before calling the change complete. Verify category reactivity, locale parity, and failed-submit draft recovery; state explicitly when authenticated visual checks are unavailable.

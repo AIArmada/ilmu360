@@ -5,7 +5,7 @@
 - Scope: the **whole ilmu360° application**, converted in verified, committable parts.
 - Authorization: user invoked `laravel-agent-convert`, requested commits per part, and a checklist another agent can continue.
 - Branch: `refactor`. Initial working tree was clean on 2026-11-07.
-- Current part: **4b — provider-backed Prayer engine** (verified checkpoint); Part 4a is committed as `6216b088`.
+- Current part: **4b — provider-backed Prayer engine** (committed as `741a9755`); Part 4a is committed as `6216b088`.
 - Next action: **Part 5 — Saved Searches**. Refresh the graph, trace the account lifecycle/reward/notification consumers listed below, capture fresh registrations and convert a complete owning slice. Prayer provider conversion is complete; event/location adapters remain for their own later migration.
 - Before continuing, read `AGENTS.md`, `.ai/rules/index.md`, `tasks/lessons.md`, and `/Users/Saiffil/.codex/skills/laravel-agent-convert/SKILL.md` with its architecture/migration/tooling references.
 - Update this checklist and `tasks/todo.md` in each part. Record commit subject, checks, limitations, and the next concrete action. A completed part does not mean full-app adoption.
@@ -58,8 +58,8 @@ Current owner: `app/Features/GitHubIssues/` (`Api`, `Actions`, `Persistence`, `S
 
 - [x] Reproduce and diagnose `AdminServerTest` viewer-role read failure (`tests/Feature/Mcp/AdminServerTest.php:123`): tool returns `Unexpected server error.` Read recent server logs to find the original exception.
 - [x] Diagnose prayer metadata contract failure (`tests/Feature/Mcp/AdminServerTest.php:1026`): expected `prayer_offset = 'immediately'`, actual `5`. Reconcile the current canonical event timing contract and all relevant consumers; do not merely change an expectation to silence the failure.
-- [ ] Resolve each root cause in a separate coherent verified commit if needed; these failures reproduce on the pre-Part-2 baseline containing `9a9eadee` and were not introduced by Part 2.
-- [ ] Refresh graph and ownership trace, then convert Prayer with special attention to persisted `resolver_class` and cache/circuit-breaker ownership.
+- [x] Resolve both baseline failures: safe appeal-policy discovery in `9296fed0`, canonical prayer payload assertion in `24072eae`; all 87 admin MCP tests pass. These failures predated Part 2.
+- [x] Convert Prayer in `741a9755` with four declared persistence owners and unchanged Events resolver identity. Graph refreshed after conversion (`Users-Saiffil-Herd-ilmu360`); ownership/caller/config audit and 584 passing checks recorded in Part 4b. Graph call traces remain sparse, so verified source references supplement them.
 
 ### Remaining application parts
 

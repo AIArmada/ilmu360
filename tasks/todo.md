@@ -8,7 +8,7 @@ Full scope, part checklist, ownership findings and continuation instructions: [a
 - [x] Part 1: foundation, architecture enforcement and CI integration verified (18 tests, 97 assertions; PHPStan and architecture checks pass; 749 routes unchanged).
 - [x] Commit Part 1 checkpoint with its continuation checklist.
 - [x] Part 2: GitHub issue reporting feature migrated; architecture/PHPStan pass, 749 routes unchanged, cached API checks pass. Two broader MCP failures reproduced on Part 1 and recorded in the checklist.
-- [ ] Part 3: resolve the recorded baseline MCP event-read failures, then continue Prayer conversion.
+- [x] Part 3: baseline MCP failures resolved; Prayer conversion completed in Part 4b.
 - [ ] Continue remaining capability parts from the migration checklist; full-app conversion remains open.
 
 
@@ -530,16 +530,16 @@ Review: added `page-hero-mobile-v2.webp`, with open sky behind the headline, bod
 Review: the open-book icon now uses a symmetric path bounded by the 24×24 viewBox; the right page is no longer clipped. `npm run build` and scoped `git diff --check` pass. Playwright renders at 390px and 1440px show the complete icon, and the path bounds stay within the viewBox.
 
 - [x] Part 3a: fixed viewer catalog crash by denying appeal creation without award context; policy and viewer regressions pass.
-- [ ] Part 3b: resolve remaining prayer-offset serialization failure, then resume Prayer conversion.
+- [x] Part 3b: canonical prayer-offset assertion corrected in `24072eae`.
 
 - [x] Part 3b: aligned MCP assertion with canonical signed-minute event payload; all 87 admin MCP tests pass.
-- [ ] Resolve occurrence-grouping test missing moderator role fixture, then start Prayer feature conversion.
+- [x] Occurrence grouping role fixture and title assertions corrected in `e31ac2cf`.
 
 - [x] Part 3c: canonical role fixture and occurrence-title visibility regression fixed; 15 occurrence tests pass; analysis and architecture checks pass.
-- [ ] Part 4: provider-backed Prayer conversion; detailed ownership/caller/write map in migration checklist.
+- [x] Part 4: provider-backed Prayer converted in `741a9755`.
 
 - [x] Part 4a: moved shared prayer enums and 107 caller files; 577 tests pass, analysis and boundaries pass, routes unchanged.
-- [ ] Part 4b: convert provider-backed Prayer engine and four persistence concerns using the migration map.
+- [x] Part 4b: provider engine and four persistence concerns converted; 584 checks pass.
 
 - [x] Part 4b: Prayer provider feature, public boundaries, four owned stores, HTTP/queue/CLI/config/schedules converted; 584 checks pass, analysis/boundaries clean, routes/commands/schedules unchanged.
 - [ ] Part 5: Saved Searches ownership and consumer cutover, using the migration checklist.
