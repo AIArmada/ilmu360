@@ -33,10 +33,9 @@ return [
         'page_url_captured' => 'Pautan halaman semasa diisi secara automatik untuk membantu kami menyiasat.',
         'page_url_unavailable' => 'Pautan halaman tidak tersedia untuk hantaran ini.',
         'evidence' => 'Lampiran (pilihan)',
-        'evidence_help' => 'Tangkap layar sangat membantu. Format: JPG, PNG, WebP atau PDF; sehingga 8 fail, maksimum :size MB setiap fail. Anda juga boleh tampal imej dari papan klip.',
-        'submit' => 'Hantar maklum balas',
+        'evidence_help' => 'Tangkap layar sangat membantu. Format: JPG, PNG, WebP atau PDF; sehingga 8 fail, maksimum :size MB setiap fail.',
+        'submit' => 'Hantar',
         'submitting' => 'Menghantar...',
-        'quota_left' => 'baki sejam ini',
     ],
     'history' => [
         'heading' => 'Maklum balas saya',

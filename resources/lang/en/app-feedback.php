@@ -33,10 +33,9 @@ return [
         'page_url_captured' => 'This page link was filled in automatically to help us investigate.',
         'page_url_unavailable' => 'A page link is not available for this submission.',
         'evidence' => 'Attachments (optional)',
-        'evidence_help' => 'Screenshots help. JPG, PNG, WebP or PDF; up to 8 files, maximum :size MB per file. You can also paste images from the clipboard.',
-        'submit' => 'Send feedback',
+        'evidence_help' => 'Screenshots help. JPG, PNG, WebP or PDF; up to 8 files, maximum :size MB per file.',
+        'submit' => 'Send',
         'submitting' => 'Sending...',
-        'quota_left' => 'left this hour',
     ],
     'history' => [
         'heading' => 'My feedback',

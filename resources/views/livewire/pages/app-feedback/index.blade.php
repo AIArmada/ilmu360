@@ -107,7 +107,7 @@
                             wire:loading.attr="disabled"
                             wire:target="submit"
                         >
-                            <span wire:loading.remove wire:target="submit">{{ __('app-feedback.form.submit') }} ({{ $this->quotaRemaining }} {{ __('app-feedback.form.quota_left') }})</span>
+                            <span wire:loading.remove wire:target="submit">{{ __('app-feedback.form.submit') }}</span>
                             <span wire:loading wire:target="submit">{{ __('app-feedback.form.submitting') }}</span>
                         </button>
                     </div>

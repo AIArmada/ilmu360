@@ -172,7 +172,6 @@ class Index extends Component implements HasForms
                             ->saveRelationshipsUsing(null)
                             ->loadStateFromRelationshipsUsing(null)
                             ->previewable()
-                            ->pasteable()
                             ->reorderable()
                             ->imageEditor()
                             ->openable(false)
@@ -209,7 +208,6 @@ class Index extends Component implements HasForms
         $this->selectedFeedbackId = (string) $feedback->getKey();
         $this->submissionKey = (string) Str::uuid();
         $this->appFeedbackForm()->fill($this->defaultFormState(request()));
-        unset($this->quotaRemaining);
         $this->resetPage('feedback_page');
         $this->dispatch('app-feedback-submitted');
     }
@@ -308,21 +306,6 @@ class Index extends Component implements HasForms
             'details' => [],
             'evidence' => [],
         ];
-    }
-
-    #[Computed]
-    public function quotaRemaining(): int
-    {
-        $user = auth()->user();
-
-        abort_unless($user instanceof User, 403);
-
-        $recentCount = AppFeedback::query()
-            ->where('reporter_id', $user->getKey())
-            ->where('created_at', '>=', now()->subHour())
-            ->count();
-
-        return max(0, 3 - $recentCount);
     }
 
     private static function isCategory(mixed $state, AppFeedbackCategory $category): bool
