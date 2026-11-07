@@ -5,7 +5,7 @@
 - Scope: the **whole ilmu360° application**, converted in verified, committable parts.
 - Authorization: user invoked `laravel-agent-convert`, requested commits per part, and a checklist another agent can continue.
 - Branch: `refactor`. Initial working tree was clean on 2026-11-07.
-- Current part: **5b — Saved Searches read boundaries** committed as `036ca6e7`. Part 5a committed as `e22d6e99`. Baseline account-settings assertions are corrected and verified in the follow-up checkpoint below.
+- Current part: **5c.1 — Saved Searches owner-type isolation** verified; checkpoint subject `fix(saved-searches): enforce polymorphic API ownership`. Previous read checkpoint `036ca6e7`, baseline assertion correction `814c4203`.
 - Next action: **Part 5c** moves the Saved Searches model/actions/remaining integrations and registrations together. Preserve existing API attribution reversal versus plain page/account deletion behavior. Saved Searches is not yet an adopted feature.
 - Before continuing, read `AGENTS.md`, `.ai/rules/index.md`, `tasks/lessons.md`, and `/Users/Saiffil/.codex/skills/laravel-agent-convert/SKILL.md` with its architecture/migration/tooling references.
 - Update this checklist and `tasks/todo.md` in each part. Record commit subject, checks, limitations, and the next concrete action. A completed part does not mean full-app adoption.
@@ -271,3 +271,12 @@ Next agent: refresh the graph (the index predates the new reader), move the read
 - [x] Pint and whitespace checks pass. Scoped Rector was reviewed: its suggestions are confined to unchanged, unrelated tests in the same file, so they were not applied. Part 5b runtime analysis/boundary checks remain valid because this follow-up changes only the test. Checkpoint subject: `test(dashboard): align notification settings copy assertions`.
 
 No product copy, layout, tracking, settings behavior or runtime code changed. Resume Part 5c as described above; no baseline failure from the Part 5b run remains open.
+
+### Part 5c.1 — polymorphic API ownership (2026-11-08)
+
+- [x] Correct the API index and view/update/delete policy checks to match both canonical owner type and UUID. Execute reuses the view policy.
+- [x] Add five regressions for same-ID/different-type listing and forbidden show/update/delete/execute; assert the protected row and attribution corrections remain unchanged.
+- [x] Verify existing API/page/WP2 attribution behavior: **83 parallel tests passed, 445 assertions**, `/tmp/ilmu360-part5c-isolation-pest.log`. Initial multi-path parallel invocation was rejected before running tests; corrected to the supported filter invocation.
+- [x] Pint, scoped Rector, whitespace, architecture boundaries and level-6 analysis with the owned-write rule pass (zero errors); logs `/tmp/ilmu360-part5c-isolation-{pint,rector,boundaries,phpstan}.log`.
+
+This fixes a pre-existing isolation defect before relocating the model. Preserve the new 403 behavior for foreign typed owners and existing 404 behavior for missing records during cutover. No routes, response payloads for authorized owners, or schema changed.

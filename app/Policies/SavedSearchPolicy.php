@@ -22,7 +22,8 @@ class SavedSearchPolicy
      */
     public function view(User $user, SavedSearch $savedSearch): bool
     {
-        return $user->id === $savedSearch->user_id;
+        return $user->getMorphClass() === $savedSearch->user_type
+            && $user->id === $savedSearch->user_id;
     }
 
     /**
@@ -38,7 +39,8 @@ class SavedSearchPolicy
      */
     public function update(User $user, SavedSearch $savedSearch): bool
     {
-        return $user->id === $savedSearch->user_id;
+        return $user->getMorphClass() === $savedSearch->user_type
+            && $user->id === $savedSearch->user_id;
     }
 
     /**
@@ -46,7 +48,8 @@ class SavedSearchPolicy
      */
     public function delete(User $user, SavedSearch $savedSearch): bool
     {
-        return $user->id === $savedSearch->user_id;
+        return $user->getMorphClass() === $savedSearch->user_type
+            && $user->id === $savedSearch->user_id;
     }
 
     public function deleteAny(User $user): bool

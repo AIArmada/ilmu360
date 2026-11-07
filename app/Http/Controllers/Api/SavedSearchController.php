@@ -39,7 +39,14 @@ class SavedSearchController extends Controller
     )]
     public function index(): JsonResponse
     {
-        $savedSearches = SavedSearch::where('user_id', Auth::id())
+        $user = Auth::user();
+
+        if (! $user instanceof User) {
+            abort(401);
+        }
+
+        $savedSearches = SavedSearch::where('user_type', $user->getMorphClass())
+            ->where('user_id', $user->id)
             ->orderBy('created_at', 'desc')
             ->get();
 
