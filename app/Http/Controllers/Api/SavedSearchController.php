@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
+use AIArmada\Events\Models\EventTaxonomy;
+use AIArmada\Events\Models\EventTerm;
 use App\Actions\Events\Search\ExecuteSavedSearchAction;
 use App\Actions\SavedSearches\CreateSavedSearchAction;
 use App\Actions\SavedSearches\DeleteSavedSearchWithAttributionReversalAction;
@@ -10,6 +12,7 @@ use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
+use App\Enums\EventTaxonomyCode;
 use App\Enums\TimingMode;
 use App\Features\SavedSearches\Api\SavedSearchCommands;
 use App\Features\SavedSearches\Api\SavedSearchReader;
@@ -23,11 +26,13 @@ use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\PathParameter;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Exists;
 
 #[Group('Saved Search', 'Authenticated saved-search CRUD and execution endpoints for event discovery workflows.')]
 class SavedSearchController extends Controller
@@ -249,13 +254,13 @@ class SavedSearchController extends Controller
             'filters.bilal_ids' => 'nullable|array',
             'filters.bilal_ids.*' => 'uuid|exists:persons,id',
             'filters.discipline_tag_ids' => 'nullable|array',
-            'filters.discipline_tag_ids.*' => 'uuid|exists:tags,id',
+            'filters.discipline_tag_ids.*' => ['uuid', $this->taxonomyTermExistsRule(EventTaxonomyCode::Discipline)],
             'filters.domain_tag_ids' => 'nullable|array',
-            'filters.domain_tag_ids.*' => 'uuid|exists:tags,id',
+            'filters.domain_tag_ids.*' => ['uuid', $this->taxonomyTermExistsRule(EventTaxonomyCode::Domain)],
             'filters.source_tag_ids' => 'nullable|array',
-            'filters.source_tag_ids.*' => 'uuid|exists:tags,id',
+            'filters.source_tag_ids.*' => ['uuid', $this->taxonomyTermExistsRule(EventTaxonomyCode::Source)],
             'filters.issue_tag_ids' => 'nullable|array',
-            'filters.issue_tag_ids.*' => 'uuid|exists:tags,id',
+            'filters.issue_tag_ids.*' => ['uuid', $this->taxonomyTermExistsRule(EventTaxonomyCode::Issue)],
             'filters.reference_ids' => 'nullable|array',
             'filters.reference_ids.*' => 'uuid|exists:references,id',
             'radius_km' => 'nullable|integer|min:1|max:1000',
@@ -265,6 +270,17 @@ class SavedSearchController extends Controller
                 ? ['sometimes', 'required', Rule::in(['off', 'instant', 'daily', 'weekly'])]
                 : ['required', Rule::in(['off', 'instant', 'daily', 'weekly'])],
         ];
+    }
+
+    private function taxonomyTermExistsRule(EventTaxonomyCode $taxonomy): Exists
+    {
+        return Rule::exists(EventTerm::class, 'id')
+            ->where(static function (Builder $query) use ($taxonomy): void {
+                $query->whereIn(
+                    (new EventTerm)->qualifyColumn('event_taxonomy_id'),
+                    EventTaxonomy::query()->select('id')->where('code', $taxonomy->value),
+                );
+            });
     }
 
     private function validTimeFilterRule(): \Closure
