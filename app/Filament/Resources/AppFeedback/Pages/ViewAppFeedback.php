@@ -6,6 +6,7 @@ namespace App\Filament\Resources\AppFeedback\Pages;
 
 use App\Actions\AppFeedback\EscalateAppFeedbackToGitHubAction;
 use App\Actions\AppFeedback\LinkAppFeedbackGitHubIssueAction;
+use App\Actions\AppFeedback\PostAppFeedbackMessageAction;
 use App\Actions\AppFeedback\TransitionAppFeedbackAction;
 use App\Enums\AppFeedbackGitHubStatus;
 use App\Enums\AppFeedbackStatus;
@@ -30,6 +31,7 @@ class ViewAppFeedback extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            $this->replyAction(),
             $this->triageAction(),
             $this->resolveFeedbackAction(),
             $this->declineAction(),
@@ -37,6 +39,38 @@ class ViewAppFeedback extends ViewRecord
             $this->githubEscalateAction(),
             $this->githubLinkAction(),
         ];
+    }
+
+    private function replyAction(): Action
+    {
+        return Action::make('reply')
+            ->label(__('app-feedback.admin.reply'))
+            ->icon(Heroicon::OutlinedChatBubbleLeftRight)
+            ->color('primary')
+            ->visible(fn (): bool => in_array($this->feedback()->status, [AppFeedbackStatus::New, AppFeedbackStatus::Triaged], true)
+                && auth()->user()?->can('reply', $this->feedback()) === true)
+            ->schema([
+                Textarea::make('body')
+                    ->label(__('app-feedback.admin.reply_body'))
+                    ->helperText(__('app-feedback.admin.reply_help'))
+                    ->required()
+                    ->minLength(3)
+                    ->maxLength(2000)
+                    ->rows(4),
+            ])
+            ->action(function (array $data, PostAppFeedbackMessageAction $postAppFeedbackMessageAction): void {
+                $user = auth()->user();
+                abort_unless($user instanceof User, 403);
+
+                $postAppFeedbackMessageAction->handle($user, $this->feedback(), (string) $data['body']);
+
+                $this->refreshFeedback();
+
+                Notification::make()
+                    ->title(__('app-feedback.admin.reply'))
+                    ->success()
+                    ->send();
+            });
     }
 
     private function triageAction(): Action

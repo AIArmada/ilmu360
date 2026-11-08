@@ -612,19 +612,34 @@ new
             <div
                 id="person-results"
                 class="min-h-[32rem]"
-                wire:loading.class="opacity-60"
-                wire:loading.attr="aria-busy"
-                wire:target="{{ $personLoadingTarget }}"
                 role="region"
                 aria-label="{{ __('Speaker list') }}"
+                data-search-query="{{ is_string($search) ? trim($search) : '' }}"
+                data-search-total="{{ $personTotal }}"
             >
-                <!-- Loading Skeleton -->
-                <div wire:loading.delay.short wire:target="{{ $personLoadingTarget }}" class="w-full" role="status" aria-live="polite">
-                    <span class="sr-only">{{ __('Loading speaker list…') }}</span>
-                    <x-ui.skeleton.person-card-grid />
+                {{-- Searching indicator lives outside the dimmed content
+                    region so the status itself is never dimmed. --}}
+                <div
+                    wire:loading.delay.short
+                    wire:target="search"
+                    role="status"
+                    aria-live="polite"
+                >
+                    <div class="mb-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-800">
+                        <svg class="size-4 animate-spin motion-reduce:animate-none" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4z" />
+                        </svg>
+                        <span>{{ __('Searching…') }}</span>
+                    </div>
                 </div>
 
-                <div wire:loading.remove wire:target="{{ $personLoadingTarget }}">
+                <div
+                    class="transition-opacity"
+                    wire:loading.class="opacity-60"
+                    wire:loading.attr="aria-busy"
+                    wire:target="{{ $personLoadingTarget }}"
+                >
             <!-- Empty State -->
             @if($persons->isEmpty())
                 <div class="flex min-h-[26rem] items-center justify-center">

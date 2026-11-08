@@ -265,7 +265,8 @@ it('keeps the followed speaker filter active across search', function () {
         ->set('followed_only', true)
         ->set('search', 'Speaker')
         ->assertSee('Followed Search Speaker')
-        ->assertDontSee('Other Search Speaker');
+        ->assertDontSee('Other Search Speaker')
+        ->assertSee('data-search-query="Speaker"', false);
 });
 
 it('ignores the followed speaker filter for guests', function () {
@@ -547,12 +548,16 @@ it('exposes directory status semantics and aligned loading skeleton markup', fun
         ->assertSee('id="person-results"', false)
         ->assertSee('aria-live="polite"', false)
         ->assertSee('aria-busy', false)
+        ->assertSee('data-search-query=""', false)
+        ->assertSee('wire:loading.delay.short', false)
+        ->assertSee('wire:target="search"', false)
+        ->assertSee(__('Searching…'))
         ->assertSee('aria-pressed="true"', false)
         ->assertSee(__('Verified'))
         ->assertSee('0 '.__('Upcoming Events'))
         ->assertDontSee(__('View profile & majlis'))
         ->assertDontSee('mt-4 flex items-center gap-2.5 text-xs text-slate-500', false)
-        ->assertSee('motion-safe:animate-pulse', false)
+        ->assertSee('motion-reduce:animate-none', false)
         ->assertSee('sm:aspect-[3/4]', false);
 });
 

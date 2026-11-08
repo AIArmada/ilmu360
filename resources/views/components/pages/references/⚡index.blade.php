@@ -471,18 +471,44 @@ new
             <div
                 id="reference-results"
                 class="min-h-[32rem]"
-                wire:loading.class="opacity-60"
-                wire:loading.attr="aria-busy"
-                wire:target="{{ $referenceLoadingTarget }}"
                 role="region"
                 aria-label="{{ __('Reference list') }}"
+                data-search-query="{{ is_string($search) ? trim($search) : '' }}"
+                data-search-total="{{ $references->total() }}"
             >
-                <div wire:loading.delay.short wire:target="{{ $referenceLoadingTarget }}" class="w-full" role="status" aria-live="polite">
-                    <span class="sr-only">{{ __('Loading reference list…') }}</span>
-                    <x-ui.skeleton.institution-card-grid :items="12" columns="sm:grid-cols-2 lg:grid-cols-4" />
+                {{-- Searching indicator lives outside the dimmed content
+                    region so the status itself is never dimmed. --}}
+                <div
+                    wire:loading.delay.short
+                    wire:target="search"
+                    role="status"
+                    aria-live="polite"
+                >
+                    <div class="mb-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-800">
+                        <svg class="size-4 animate-spin motion-reduce:animate-none" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4z" />
+                        </svg>
+                        <span>{{ __('Searching…') }}</span>
+                    </div>
                 </div>
 
-                <div wire:loading.remove wire:target="{{ $referenceLoadingTarget }}">
+                <div class="mb-6">
+                    <h2 class="font-heading text-2xl font-bold tracking-tight text-emerald-950 sm:text-3xl">
+                        @if(filled($search))
+                            {{ __('Search results for “:search”', ['search' => $search]) }}
+                        @else
+                            {{ __('Reference directory') }}
+                        @endif
+                    </h2>
+                </div>
+
+                <div
+                    class="transition-opacity"
+                    wire:loading.class="opacity-60"
+                    wire:loading.attr="aria-busy"
+                    wire:target="{{ $referenceLoadingTarget }}"
+                >
             @if($references->isEmpty())
                 <div class="rounded-3xl border border-dashed border-slate-200 bg-slate-50/50 py-24 text-center">
                     <div class="mb-6 inline-flex h-20 w-20 items-center justify-center rounded-full bg-white text-slate-300 shadow-sm">

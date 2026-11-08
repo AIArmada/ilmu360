@@ -6,6 +6,7 @@ use App\Models\AppFeedback;
 use App\Models\AppFeedbackMessage;
 use App\Models\User;
 use App\Notifications\AppFeedbackClosedNotification;
+use App\Notifications\AppFeedbackRepliedNotification;
 use App\Support\Api\Admin\AdminResourceRegistry;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -172,4 +173,26 @@ it('keeps app feedback out of the generic admin api resource registry', function
     $resources = app(AdminResourceRegistry::class)->resources();
 
     expect($resources)->not->toContain(AppFeedbackResource::class);
+});
+
+it('replies to feedback from the admin view action', function () {
+    Notification::fake();
+
+    $admin = User::factory()->create();
+    $admin->assignRole('super_admin');
+    $reporter = User::factory()->create();
+    $feedback = AppFeedback::factory()->create(['reporter_id' => $reporter->getKey()]);
+
+    $this->actingAs($admin);
+
+    Livewire::test(ViewAppFeedback::class, ['record' => $feedback->getRouteKey()])
+        ->callAction('reply', ['body' => 'Kami sedang menyiasat isu ini.'])
+        ->assertHasNoActionErrors();
+
+    $message = $feedback->messages()->sole();
+
+    expect($message->author_role)->toBe('maintainer')
+        ->and($message->body)->toBe('Kami sedang menyiasat isu ini.');
+
+    Notification::assertSentTo($reporter, AppFeedbackRepliedNotification::class);
 });

@@ -207,21 +207,64 @@ new
 @php
     $venues = $this->venues;
     $venueTotal = $venues->total();
-    // Event listeners travel as __dispatch calls; wire:target matches the call method, not syncFilters.
-    $venueLoadingTarget = 'syncFilters,__dispatch,gotoPage,nextPage,previousPage';
+    // Listener updates travel as __dispatch calls; wire:target matches the call method, not syncFilters.
+    $venueLoadingTarget = '__dispatch,gotoPage,nextPage,previousPage';
     $formatVenueLocation = static function ($addressModel): string {
         $parts = \App\Support\Location\AddressHierarchyFormatter::parts($addressModel);
 
         return $parts === [] ? '-' : implode(', ', $parts);
     };
+    $activeSearch = is_string($this->search) ? trim($this->search) : '';
 @endphp
 
-<div class="container mx-auto mt-12 px-6 lg:px-12">
-    <div wire:loading.delay.short wire:target="{{ $venueLoadingTarget }}" class="w-full">
-        <x-ui.skeleton.institution-card-grid />
+<div
+    id="venue-results"
+    class="container mx-auto mt-12 px-6 lg:px-12"
+    role="region"
+    aria-label="{{ __('Venue list') }}"
+    data-search-query="{{ $activeSearch }}"
+    data-search-total="{{ $venueTotal }}"
+>
+    {{-- Searching indicator lives outside the dimmed content region so the
+        status itself is never dimmed, and the inner flex block is used
+        because wire:loading sets inline display:inline-block on the
+        directive element, which would override flex layout. --}}
+    <div
+        wire:loading.delay.short
+        wire:target="__dispatch"
+        role="status"
+        aria-live="polite"
+    >
+        <div class="mb-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-800">
+            <svg class="size-4 animate-spin motion-reduce:animate-none" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4z" />
+            </svg>
+            <span>{{ __('Searching…') }}</span>
+        </div>
     </div>
 
-    <div wire:loading.remove wire:target="{{ $venueLoadingTarget }}">
+    <div class="mb-6">
+        <h2 class="font-heading text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+            @if($activeSearch !== '')
+                {{ __('Search results for “:search”', ['search' => $activeSearch]) }}
+            @else
+                {{ __('Venue directory') }}
+            @endif
+        </h2>
+        <p class="mt-2 text-sm font-semibold text-slate-600" aria-live="polite">
+            {{ trans_choice(':count venue found|:count venues found', $venueTotal, ['count' => number_format($venueTotal)]) }}
+        </p>
+    </div>
+
+    {{-- Old results stay visible and dimmed while the new snapshot
+        resolves; only the latest snapshot morphs thanks to the guard. --}}
+    <div
+        class="transition-opacity"
+        wire:loading.class="opacity-60"
+        wire:loading.attr="aria-busy"
+        wire:target="{{ $venueLoadingTarget }}"
+    >
         @if($venues->isEmpty())
             <div class="rounded-3xl border border-dashed border-slate-200 bg-slate-50/50 py-24 text-center">
                 <div class="mb-6 inline-flex h-20 w-20 items-center justify-center rounded-full bg-white text-slate-300 shadow-sm">
@@ -306,4 +349,3 @@ new
         @endif
     </div>
 </div>
-

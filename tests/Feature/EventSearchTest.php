@@ -686,7 +686,15 @@ describe('Event Search Filters', function () {
         Livewire::test(Index::class)
             ->assertSee('aria-controls="event-results"', false)
             ->assertSee('id="event-results"', false)
+            ->assertSee('data-search-query=""', false)
             ->assertSee('name=event-results', false);
+    });
+
+    it('attributes event results to the active search query', function (): void {
+        Livewire::test(Index::class)
+            ->set('filterData.search', 'fiqh')
+            ->assertSee('data-search-query="fiqh"', false)
+            ->assertSee(__('Searching…'));
     });
 
     it('clears all event filters from the empty-state event', function (): void {
