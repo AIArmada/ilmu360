@@ -3475,7 +3475,7 @@ describe('Event Detail Page', function () {
             ->assertSee('Ustaz Person Two');
     });
 
-    it('displays image gallery slider when gallery media exists', function () {
+    it('displays the gallery and uploaded images when gallery media exists', function () {
         Storage::fake('public');
         config()->set('media-library.disk_name', 'public');
 
@@ -3486,15 +3486,18 @@ describe('Event Detail Page', function () {
             'published_at' => now(),
         ]);
 
-        $event->addMedia(UploadedFile::fake()->image('gallery-1.jpg', 1200, 800))
+        $firstImage = $event->addMedia(UploadedFile::fake()->image('gallery-1.jpg', 1200, 800))
             ->toMediaCollection('gallery');
-        $event->addMedia(UploadedFile::fake()->image('gallery-2.jpg', 1200, 800))
+        $secondImage = $event->addMedia(UploadedFile::fake()->image('gallery-2.jpg', 1200, 800))
             ->toMediaCollection('gallery');
 
         $response = $this->get(eventShowUrl($event));
 
         $response->assertOk()
-            ->assertSee('Event Gallery');
+            ->assertSee('id="shared-event-gallery-title"', false)
+            ->assertSeeText('Gallery')
+            ->assertSee('src="'.$firstImage->refresh()->getAvailableUrl(['thumb']).'"', false)
+            ->assertSee('src="'.$secondImage->refresh()->getAvailableUrl(['thumb']).'"', false);
     });
 
     it('displays related events section', function () {
@@ -3545,7 +3548,7 @@ describe('Event Detail Page', function () {
             ->assertDontSee('Private Hidden Event');
     });
 
-    it('renders share preview modal content', function () {
+    it('renders the event share dialog and copy-link action', function () {
         $event = Event::factory()->create([
             'title' => 'Shareable Event',
             'status' => 'approved',
@@ -3556,8 +3559,10 @@ describe('Event Detail Page', function () {
         $response = $this->get(eventShowUrl($event));
 
         $response->assertOk()
-            ->assertSee('Share Preview')
-            ->assertSee('Copy Link');
+            ->assertSee('role="dialog"', false)
+            ->assertSee('aria-label="Kongsi majlis"', false)
+            ->assertSee('Copy Link')
+            ->assertSee('@click="copyLink()"', false);
     });
 });
 
