@@ -407,7 +407,7 @@
                                 <p class="mt-4 text-sm leading-7 text-[#4c5b56]">{{ $policy->notes }}</p>
                             @endif
                             @if($eventRegistration && $ticketEntries->isEmpty() && ! $paymentRequired && $registrationOpen)
-                                <a href="{{ route('events.checkout', ['event' => $event]) }}" wire:navigate data-signal-event="commerce.event_checkout_started" data-signal-category="commerce" data-signal-component="event_detail_registration" data-signal-control="register_open" data-signal-entity-type="event" data-signal-entity-id="{{ $event->id }}" class="mt-5 inline-flex rounded-full bg-[#14342e] px-5 py-3 text-sm font-semibold text-white">{{ __('Daftar sekarang') }}</a>
+                                <a href="{{ route('events.checkout', ['event' => $event]) }}" wire:navigate data-signal-event="commerce.event_checkout_started" data-signal-category="commerce" data-signal-component="event_detail_registration" data-signal-control="register_open" data-signal-entity-type="event" data-signal-entity-id="{{ $event->id }}" class="mt-5 inline-flex rounded-full bg-[#14342e] px-5 py-3 text-sm font-semibold text-white">{{ __('Register Now') }}</a>
                             @elseif($eventRegistration && ! $registrationOpen)
                                 <p class="mt-4 text-sm text-[#6b645e]">{{ __('Pendaftaran dalam talian ditutup buat masa ini.') }}</p>
                             @endif

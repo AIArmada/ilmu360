@@ -433,7 +433,7 @@
                     <div class="mt-9 flex flex-wrap items-center gap-3">
                         @if($heroPrimary === 'register')
                             <a href="#penyertaan" class="inline-flex items-center gap-2 rounded-full bg-[#f2c867] px-6 py-3 text-sm font-semibold text-[#0e2e27] transition duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-[#f7d98d] active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f2c867]">
-                                {{ __('Daftar sekarang') }}
+                                {{ __('Register Now') }}
                                 <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M13 6l6 6-6 6" /></svg>
                             </a>
                         @elseif($heroPrimary === 'schedule')
@@ -645,7 +645,7 @@
                                     data-signal-props='@json(['registration_mode' => $this->registrationMode()->value])'
                                     class="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#14342e] px-5 py-3 text-sm font-semibold text-[#fdfaf2] transition duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-[#1d4a41] active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14342e]"
                                 >
-                                    {{ __('Daftar sekarang') }}
+                                    {{ __('Register Now') }}
                                     <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m0 0-6-6m6 6-6 6" /></svg>
                                 </a>
                             @endif

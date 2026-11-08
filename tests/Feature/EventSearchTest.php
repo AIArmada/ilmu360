@@ -3566,7 +3566,9 @@ describe('Event Registration', function () {
         app()->setLocale('en');
     });
 
-    it('shows registration button for events requiring registration', function () {
+    it('shows registration button for events requiring registration', function (string $locale, string $label) {
+        app()->setLocale($locale);
+
         $event = Event::factory()
             ->has(EventAccessPolicy::factory()->state(['registration_required' => true]), 'accessPolicy')
             ->create([
@@ -3579,8 +3581,10 @@ describe('Event Registration', function () {
         $response = $this->get(eventShowUrl($event));
 
         $response->assertOk()
-            ->assertSee('Register');
-    });
+            ->assertSeeText($label)
+            ->assertSee('href="'.route('events.checkout', ['event' => $event]).'"', false)
+            ->assertSee('data-signal-event="commerce.event_checkout_started"', false);
+    })->with(['English' => ['en', 'Register Now'], 'Malay' => ['ms', 'Daftar Sekarang']]);
 
     it('shows no registration message for open events', function () {
         $event = Event::factory()
