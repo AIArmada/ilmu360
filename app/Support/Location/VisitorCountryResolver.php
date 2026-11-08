@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support\Location;
 
 use AIArmada\Addressing\Support\AddressCountryResolver;
+use App\Shared\Location\VisitorCountryResolving;
 use App\Support\Cache\SelectionCatalogCache;
 use Illuminate\Http\Request;
 
@@ -19,7 +20,7 @@ use Illuminate\Http\Request;
  * default several times (component mount, the Filament schema, the view's
  * active-filter accounting).
  */
-final class VisitorCountryResolver
+final class VisitorCountryResolver implements VisitorCountryResolving
 {
     private static ?string $cacheScope = null;
 

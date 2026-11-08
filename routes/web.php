@@ -50,7 +50,6 @@ use App\Livewire\Pages\Membership\ShowInvitation as ShowMemberInvitation;
 use App\Livewire\Pages\MembershipApplications\Create as CreateMembershipApplicationPage;
 use App\Livewire\Pages\MembershipApplications\Index as MembershipApplicationsIndex;
 use App\Livewire\Pages\Reports\Create as CreateReportPage;
-use App\Livewire\Pages\SavedSearches\Index;
 use App\Livewire\Pages\SubmitEvent\Create;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Session\Middleware\StartSession;
@@ -192,7 +191,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/checkout/free/{registration}', [EventCheckoutResultController::class, 'free'])
         ->middleware('verified')
         ->name('checkout.free');
-    Route::livewire('/carian-tersimpan', Index::class)->name('saved-searches.index');
     Route::livewire('/jemputan-ahli/{token}', ShowMemberInvitation::class)->name('member-invitations.show');
     Route::livewire('/sumbangan', ContributionsIndex::class)->name('contributions.index');
     Route::livewire('/sumbangan/institusi/baru', SubmitInstitution::class)->name('contributions.submit-institution');

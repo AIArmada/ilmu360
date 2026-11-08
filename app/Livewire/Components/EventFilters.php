@@ -6,8 +6,8 @@ use App\Enums\EventAgeGroup;
 use App\Enums\EventGenderRestriction;
 use App\Enums\TimingMode;
 use App\Livewire\Pages\Events\Index as EventsIndex;
+use App\Shared\Location\VisitorCountryResolving;
 use App\Shared\Prayer\EventPrayerTime;
-use App\Support\Location\VisitorCountryResolver;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\On;
 use Livewire\Features\SupportAttributes\AttributeCollection;
@@ -104,7 +104,7 @@ class EventFilters extends EventsIndex
      */
     private function defaultHomepageLanguageCodes(): array
     {
-        if (app(VisitorCountryResolver::class)->resolveCode() !== 'MY') {
+        if (app(VisitorCountryResolving::class)->resolveCode() !== 'MY') {
             return [];
         }
 

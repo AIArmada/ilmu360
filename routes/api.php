@@ -48,7 +48,6 @@ use App\Http\Controllers\Api\NotificationMessageController;
 use App\Http\Controllers\Api\NotificationSettingsController;
 use App\Http\Controllers\Api\RegistrationExportController;
 use App\Http\Controllers\Api\ReportController;
-use App\Http\Controllers\Api\SavedSearchController;
 use App\Http\Controllers\Api\UserRegistrationController;
 use App\Http\Controllers\ShareClaimController;
 use App\Http\Controllers\ShareController;
@@ -280,13 +279,6 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         ->name('api.events.going.update');
     Route::delete('/events/{event}/going', [EventGoingController::class, 'destroy'])
         ->name('api.events.going.destroy');
-
-    // Saved Searches (per documentation B5a)
-    Route::apiResource('saved-searches', SavedSearchController::class)
-        ->parameters(['saved-searches' => 'savedSearch'])
-        ->names('api.saved-searches');
-    Route::post('/saved-searches/{savedSearch}/execute', [SavedSearchController::class, 'execute'])
-        ->name('api.saved-searches.execute');
 
     // Event Saves / Bookmarks (per documentation B5)
     Route::put('/events/{event}/saved', [EventSaveController::class, 'store'])->name('api.events.saved.update');

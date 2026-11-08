@@ -30,15 +30,16 @@ use App\Models\Language;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
+use App\Platform\Location\LocationLevelLabels;
 use App\Services\EventSearchService;
 use App\Services\PublicScheduleDiscoveryService;
 use App\Services\ShareTrackingService;
+use App\Shared\Location\VisitorCountryResolving;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Support\Auth\IntendedRedirect;
 use App\Support\Language\MalaysiaLanguageCatalog;
 use App\Support\Location\LocationSlugResolver;
 use App\Support\Location\PublicGeolocationPermission;
-use App\Support\Location\VisitorCountryResolver;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use App\Support\Timezone\UserDateTimeFormatter;
 use Carbon\CarbonInterface;
@@ -374,7 +375,7 @@ class Index extends Component implements HasForms
             return;
         }
 
-        $this->country_id = app(VisitorCountryResolver::class)->resolve();
+        $this->country_id = app(VisitorCountryResolving::class)->resolve();
     }
 
     /**
@@ -385,7 +386,7 @@ class Index extends Component implements HasForms
      */
     public function defaultCountryId(): ?string
     {
-        return app(VisitorCountryResolver::class)->resolve();
+        return app(VisitorCountryResolving::class)->resolve();
     }
 
     /**
@@ -1175,7 +1176,7 @@ class Index extends Component implements HasForms
 
     public function stateLabel(): string
     {
-        return SharedFormSchema::locationLevelLabel($this->normalizeNullableString($this->country_id), 'state_id', __('State / Province'));
+        return LocationLevelLabels::label($this->normalizeNullableString($this->country_id), 'state_id', __('State / Province'));
     }
 
     public function districtLabel(): string
@@ -1185,7 +1186,7 @@ class Index extends Component implements HasForms
 
         return $role === null
             ? __('District')
-            : SharedFormSchema::locationLevelLabel($countryId, $role, __('District'), $this->normalizeNullableString($this->state_id));
+            : LocationLevelLabels::label($countryId, $role, __('District'), $this->normalizeNullableString($this->state_id));
     }
 
     public function subdistrictLabel(): string
@@ -1195,12 +1196,12 @@ class Index extends Component implements HasForms
 
         return $role === null
             ? __('Subdivision')
-            : SharedFormSchema::locationLevelLabel($countryId, $role, __('Subdivision'), $this->normalizeNullableString($this->state_id), $this->normalizeAreaAssignments($this->area_assignments));
+            : LocationLevelLabels::label($countryId, $role, __('Subdivision'), $this->normalizeNullableString($this->state_id), $this->normalizeAreaAssignments($this->area_assignments));
     }
 
     public function divisionLabel(): string
     {
-        return SharedFormSchema::locationLevelLabel(
+        return LocationLevelLabels::label(
             $this->normalizeNullableString($this->country_id),
             'administrative_division',
             __('Division / Bahagian'),
@@ -1211,7 +1212,7 @@ class Index extends Component implements HasForms
 
     public function localityLabel(): string
     {
-        return SharedFormSchema::locationLevelLabel(
+        return LocationLevelLabels::label(
             $this->normalizeNullableString($this->country_id),
             'postal_locality',
             __('Locality'),

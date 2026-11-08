@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\SavedSearches\Actions;
 
+use App\Features\SavedSearches\Exceptions\SavedSearchLimitReachedException;
 use App\Features\SavedSearches\Models\SavedSearch;
 use App\Shared\Discovery\SearchFilterNormalizer;
-use App\Shared\Integrations\SavedSearchLimitReachedException;
 use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
 

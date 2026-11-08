@@ -1,6 +1,6 @@
 <?php
 
-use App\Forms\SharedFormSchema;
+use App\Platform\Location\LocationLevelLabels;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -11,7 +11,7 @@ it('resolves location labels from the country provider when one exists', functio
 
     $countryId = (string) ensureTestMalaysiaCountry()->getKey();
 
-    expect(SharedFormSchema::locationLevelLabel($countryId, $role, 'FALLBACK'))->toBe($expected);
+    expect(LocationLevelLabels::label($countryId, $role, 'FALLBACK'))->toBe($expected);
 })->with([
     'state follows the provider region level' => ['state_id', 'State / Federal Territory'],
     'district follows the provider district level' => ['administrative_district', 'District / Jajahan / Jajahan Kecil / Daerah Kecil'],
@@ -21,7 +21,7 @@ it('resolves location labels from the country provider when one exists', functio
 it('falls back to the generic label for countries without a provider', function (string $role): void {
     $countryId = (string) ensureTestAddressCountry('SG', 'Singapore')->getKey();
 
-    expect(SharedFormSchema::locationLevelLabel($countryId, $role, 'FALLBACK'))->toBe('FALLBACK');
+    expect(LocationLevelLabels::label($countryId, $role, 'FALLBACK'))->toBe('FALLBACK');
 })->with([
     'state' => ['state_id'],
     'district' => ['administrative_district'],
@@ -39,7 +39,7 @@ it('translates the individual types in scoped compound labels', function (string
         createTestAddressArea('Test '.$type, $level, parent: $parent, country: $geography['country'], type: $type);
     }
 
-    expect(SharedFormSchema::locationLevelLabel(
+    expect(LocationLevelLabels::label(
         (string) $geography['country']->getKey(),
         $role,
         'FALLBACK',
@@ -61,7 +61,7 @@ it('translates the individual types in scoped compound labels', function (string
 it('preserves the existing full-phrase translation for an unscoped label', function (string $locale): void {
     app()->setLocale($locale);
 
-    expect(SharedFormSchema::locationLevelLabel(
+    expect(LocationLevelLabels::label(
         (string) ensureTestMalaysiaCountry()->getKey(),
         'administrative_subdivision',
         'FALLBACK',
@@ -75,7 +75,7 @@ it('preserves state-specific district terminology in translated mixed labels', f
     $geography['state']->forceFill(['code' => $stateCode])->save();
     createTestAddressArea('Test Minor District', 2, parent: $geography['area_tree_root'], country: $geography['country'], type: 'minor_district');
 
-    expect(SharedFormSchema::locationLevelLabel(
+    expect(LocationLevelLabels::label(
         (string) $geography['country']->getKey(),
         'administrative_district',
         'FALLBACK',
@@ -97,10 +97,10 @@ it('translates cached scope types using the current locale', function (): void {
     $areaIds = ['administrative_district' => (string) $geography['district']->getKey()];
 
     app()->setLocale('en');
-    expect(SharedFormSchema::locationLevelLabel($countryId, 'administrative_subdivision', 'FALLBACK', $stateId, $areaIds))->toBe('Subdistrict');
+    expect(LocationLevelLabels::label($countryId, 'administrative_subdivision', 'FALLBACK', $stateId, $areaIds))->toBe('Subdistrict');
 
     app()->setLocale('ms');
-    expect(SharedFormSchema::locationLevelLabel($countryId, 'administrative_subdivision', 'FALLBACK', $stateId, $areaIds))->toBe('Daerah Kecil');
+    expect(LocationLevelLabels::label($countryId, 'administrative_subdivision', 'FALLBACK', $stateId, $areaIds))->toBe('Daerah Kecil');
 });
 
 it('preserves the proper term for a minor-district-only Pahang scope', function (string $locale): void {
@@ -111,7 +111,7 @@ it('preserves the proper term for a minor-district-only Pahang scope', function 
     $geography['district']->forceFill(['is_active' => false])->save();
     createTestAddressArea('Genting', 2, parent: $geography['area_tree_root'], country: $geography['country'], type: 'minor_district');
 
-    expect(SharedFormSchema::locationLevelLabel(
+    expect(LocationLevelLabels::label(
         (string) $geography['country']->getKey(),
         'administrative_district',
         'FALLBACK',

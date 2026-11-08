@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Integrations;
+namespace App\Features\SavedSearches\Exceptions;
 
 use RuntimeException;
 

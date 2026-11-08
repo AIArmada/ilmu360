@@ -5,9 +5,10 @@ use App\Actions\ToggleDirectoryFollowAction;
 use App\Forms\SharedFormSchema;
 use App\Models\Institution;
 use App\Models\User;
+use App\Platform\Location\LocationLevelLabels;
+use App\Shared\Location\VisitorCountryResolving;
 use App\Support\Auth\IntendedRedirect;
 use App\Support\Location\LocationSlugResolver;
-use App\Support\Location\VisitorCountryResolver;
 use App\Support\Search\InstitutionDirectoryQuery;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
 use Livewire\Attributes\Computed;
@@ -257,7 +258,7 @@ class extends Component
 
             $filters[] = [
                 'role' => $role,
-                'label' => SharedFormSchema::locationLevelLabel($countryId, $role, __('Administrative area'), $ids['state_id'], $ids['area_ids']),
+                'label' => LocationLevelLabels::label($countryId, $role, __('Administrative area'), $ids['state_id'], $ids['area_ids']),
                 'value' => $this->areas[$role] ?? null,
                 'options' => $options,
             ];
@@ -292,7 +293,7 @@ class extends Component
 
     public function stateLabel(): string
     {
-        return SharedFormSchema::locationLevelLabel($this->locationIds()['country_id'], 'state_id', __('State / Province'));
+        return LocationLevelLabels::label($this->locationIds()['country_id'], 'state_id', __('State / Province'));
     }
 
     public function districtLabel(): string
@@ -302,7 +303,7 @@ class extends Component
 
         return $role === null
             ? __('District')
-            : SharedFormSchema::locationLevelLabel($ids['country_id'], $role, __('District'), $ids['state_id'], $ids['area_ids']);
+            : LocationLevelLabels::label($ids['country_id'], $role, __('District'), $ids['state_id'], $ids['area_ids']);
     }
 
     public function subdistrictLabel(): string
@@ -312,14 +313,14 @@ class extends Component
 
         return $role === null
             ? __('Subdivision')
-            : SharedFormSchema::locationLevelLabel($ids['country_id'], $role, __('Subdivision'), $ids['state_id'], $ids['area_ids']);
+            : LocationLevelLabels::label($ids['country_id'], $role, __('Subdivision'), $ids['state_id'], $ids['area_ids']);
     }
 
     public function localityLabel(): string
     {
         $ids = $this->locationIds();
 
-        return SharedFormSchema::locationLevelLabel($ids['country_id'], 'postal_locality', __('Locality / Precinct / Kampung'), $ids['state_id'], $ids['area_ids']);
+        return LocationLevelLabels::label($ids['country_id'], 'postal_locality', __('Locality / Precinct / Kampung'), $ids['state_id'], $ids['area_ids']);
     }
 
     public function isParentlessAreaProfileSelection(): bool
@@ -805,7 +806,7 @@ class extends Component
 
         // Shared with the /majlis directory: the edge geo header (Cloudflare
         // CF-IPCountry) is the cheapest GeoIP, no mmdb/api needed when behind CF.
-        $countryId = app(VisitorCountryResolver::class)->resolve();
+        $countryId = app(VisitorCountryResolving::class)->resolve();
 
         if ($countryId === null) {
             return $this->resolvedDefaultCountrySlug = null;

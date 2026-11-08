@@ -1,6 +1,6 @@
 <?php
 
-use App\Livewire\Pages\SavedSearches\Index as SavedSearchesIndex;
+use App\Features\SavedSearches\EntryPoints\Livewire\Pages\SavedSearches\Index as SavedSearchesIndex;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;

@@ -4,9 +4,9 @@ namespace App\Livewire\Pages\MembershipApplications;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Actions\CancelMembershipApplicationAction;
-use App\Livewire\Concerns\InteractsWithToasts;
 use App\Models\MembershipApplication;
 use App\Models\User;
+use App\Platform\Ui\InteractsWithToasts;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;

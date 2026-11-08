@@ -1,6 +1,6 @@
 <?php
 
-use App\Forms\SharedFormSchema;
+use App\Platform\Location\LocationLevelLabels;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -19,11 +19,11 @@ it('resolves a country address profile once while building repeated location lab
         }
     });
 
-    SharedFormSchema::locationLevelLabel($countryId, 'administrative_district', 'District');
+    LocationLevelLabels::label($countryId, 'administrative_district', 'District');
     $queriesAfterFirstLabel = $countryQueries;
 
-    SharedFormSchema::locationLevelLabel($countryId, 'administrative_subdivision', 'Subdistrict');
-    SharedFormSchema::locationLevelLabel($countryId, 'postal_locality', 'Locality');
+    LocationLevelLabels::label($countryId, 'administrative_subdivision', 'Subdistrict');
+    LocationLevelLabels::label($countryId, 'postal_locality', 'Locality');
 
     expect($queriesAfterFirstLabel)->toBeGreaterThan(0)
         ->and($countryQueries)->toBe($queriesAfterFirstLabel);
@@ -45,7 +45,7 @@ it('queries scoped types once while building repeated location labels', function
     });
 
     for ($render = 0; $render < 3; $render++) {
-        expect(SharedFormSchema::locationLevelLabel($countryId, 'administrative_subdivision', 'FALLBACK', $stateId, $areaIds))->toBe('Subdistrict');
+        expect(LocationLevelLabels::label($countryId, 'administrative_subdivision', 'FALLBACK', $stateId, $areaIds))->toBe('Subdistrict');
     }
 
     expect($typeQueries)->toBe(1);

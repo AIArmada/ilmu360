@@ -1,20 +1,20 @@
 <?php
 
-namespace App\Livewire\Pages\SavedSearches;
+namespace App\Features\SavedSearches\EntryPoints\Livewire\Pages\SavedSearches;
 
-use App\Enums\NotificationFrequency;
 use App\Features\SavedSearches\Api\CreateSavedSearchWithAttribution;
 use App\Features\SavedSearches\Api\SavedSearchCommands;
 use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Features\SavedSearches\Api\SavedSearchSnapshot;
-use App\Forms\SharedFormSchema;
-use App\Livewire\Concerns\InteractsWithToasts;
+use App\Features\SavedSearches\Enums\NotificationFrequency;
+use App\Features\SavedSearches\Exceptions\SavedSearchLimitReachedException;
+use App\Platform\Location\LocationLevelLabels;
+use App\Platform\Ui\InteractsWithToasts;
 use App\Shared\Auth\ResourceOwner;
 use App\Shared\Discovery\SearchFilterCatalog;
 use App\Shared\Discovery\SearchFilterLabels;
-use App\Shared\Integrations\SavedSearchLimitReachedException;
-use App\Support\Location\VisitorCountryResolver;
-use App\Support\Timezone\UserDateTimeFormatter;
+use App\Shared\Location\VisitorCountryResolving;
+use App\Shared\Time\UserDateTimeFormatting;
 use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
@@ -529,7 +529,7 @@ class Index extends Component
         }
 
         $countryId = $this->filters['country_id'] ?? null;
-        $countryName = filled($countryId) && (string) $countryId !== (string) app(VisitorCountryResolver::class)->resolve()
+        $countryName = filled($countryId) && (string) $countryId !== (string) app(VisitorCountryResolving::class)->resolve()
             ? app(SearchFilterLabels::class)->label('country_id', (string) $countryId)
             : null;
 
@@ -571,7 +571,7 @@ class Index extends Component
     private function capturedFilterLabel(string $filterKey): string
     {
         if ($filterKey === 'state_id') {
-            return SharedFormSchema::locationLevelLabel($this->filters['country_id'] ?? null, 'state_id', __('State / Province'));
+            return LocationLevelLabels::label($this->filters['country_id'] ?? null, 'state_id', __('State / Province'));
         }
 
         return match ($filterKey) {
@@ -625,7 +625,7 @@ class Index extends Component
                     continue;
                 }
 
-                $label = SharedFormSchema::locationLevelLabel(
+                $label = LocationLevelLabels::label(
                     $this->filters['country_id'] ?? null,
                     $role,
                     Str::headline($role),
@@ -718,7 +718,7 @@ class Index extends Component
     private function dateLabel(string $value): ?string
     {
         try {
-            return Carbon::parse($value, UserDateTimeFormatter::resolveTimezone())->translatedFormat('j M Y');
+            return Carbon::parse($value, app(UserDateTimeFormatting::class)->resolveTimezone())->translatedFormat('j M Y');
         } catch (\Throwable) {
             return null;
         }
@@ -731,7 +731,7 @@ class Index extends Component
                 return Carbon::createFromFormat(
                     $format,
                     $value,
-                    UserDateTimeFormatter::resolveTimezone()
+                    app(UserDateTimeFormatting::class)->resolveTimezone()
                 )->format('g:i A');
             } catch (\Throwable) {
                 continue;

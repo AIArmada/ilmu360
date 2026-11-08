@@ -7,7 +7,7 @@ namespace App\Support\Location;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Support\AddressFormatRenderer;
-use App\Forms\SharedFormSchema;
+use App\Platform\Location\LocationLevelLabels;
 use InvalidArgumentException;
 
 final class AddressHierarchyFormatter
@@ -187,7 +187,7 @@ final class AddressHierarchyFormatter
             return $fallback;
         }
 
-        return SharedFormSchema::locationLevelLabel(
+        return LocationLevelLabels::label(
             $address->getAttribute('country_id') ?? $address->getAttribute('country_code'),
             $role,
             $fallback,

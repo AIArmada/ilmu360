@@ -23,6 +23,7 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Venue;
+use App\Platform\Location\LocationLevelLabels;
 use App\Support\Cache\SelectionCatalogCache;
 use App\Support\Location\AddressAssignments;
 use App\Support\Location\LocationSlugResolver;
@@ -39,7 +40,6 @@ use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
@@ -1802,31 +1802,13 @@ class SharedFormSchema
         mixed $stateId = null,
         array $areaIds = [],
     ): string {
-        $countryId = self::normalizeLocationId($countryId);
-
-        if ($countryId === null) {
-            return $fallback;
-        }
-
-        $label = app(CountryAddressProfileResolver::class)->levelLabel(
-            $countryId,
+        return LocationLevelLabels::label(
+            self::normalizeLocationId($countryId),
             $role,
+            $fallback,
             self::normalizeLocationId($stateId),
             $areaIds,
         );
-
-        if ($label === null) {
-            return $fallback;
-        }
-
-        if (Lang::hasForLocale($label)) {
-            return __($label);
-        }
-
-        return implode(' / ', array_map(
-            static fn (string $typeLabel): string => __($typeLabel),
-            explode(' / ', $label),
-        ));
     }
 
     /**
@@ -1842,19 +1824,6 @@ class SharedFormSchema
         }
 
         return $translated;
-    }
-
-    /**
-     * @param  array<string, ?string>  $areaIds
-     */
-    public static function locationLevelLabel(
-        int|string|null $countryId,
-        string $storageColumn,
-        string $fallback,
-        int|string|null $stateId = null,
-        array $areaIds = [],
-    ): string {
-        return self::levelLabel($countryId, $storageColumn, $fallback, $stateId, $areaIds);
     }
 
     private static function countryCascadeResetScript(): string

@@ -1,6 +1,7 @@
 <?php
 
 use App\Forms\SharedFormSchema;
+use App\Platform\Location\LocationLevelLabels;
 use App\Support\Location\LocationSlugResolver;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
@@ -82,7 +83,7 @@ new
 
         public function stateLabel(): string
         {
-            return SharedFormSchema::locationLevelLabel($this->normalizedLocationId($this->country_id), 'state_id', __('State / Province'));
+            return LocationLevelLabels::label($this->normalizedLocationId($this->country_id), 'state_id', __('State / Province'));
         }
 
         public function districtLabel(): string
@@ -92,7 +93,7 @@ new
 
             return $role === null
                 ? __('District')
-                : SharedFormSchema::locationLevelLabel($countryId, $role, __('District'), $this->normalizedLocationId($this->state_id));
+                : LocationLevelLabels::label($countryId, $role, __('District'), $this->normalizedLocationId($this->state_id));
         }
 
         public function subdistrictLabel(): string
@@ -109,7 +110,7 @@ new
                 ? []
                 : [$districtRole => $this->normalizedLocationId($this->district_id)];
 
-            return SharedFormSchema::locationLevelLabel($countryId, $role, __('Subdivision'), $this->normalizedLocationId($this->state_id), $areaIds);
+            return LocationLevelLabels::label($countryId, $role, __('Subdivision'), $this->normalizedLocationId($this->state_id), $areaIds);
         }
 
         public function updatedSearch(): void

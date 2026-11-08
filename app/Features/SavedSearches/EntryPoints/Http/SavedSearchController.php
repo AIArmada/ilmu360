@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Features\SavedSearches\EntryPoints\Http;
 
 use App\Features\SavedSearches\Api\CreateSavedSearchWithAttribution;
 use App\Features\SavedSearches\Api\DeleteSavedSearchWithAttributionReversal;
@@ -8,23 +8,27 @@ use App\Features\SavedSearches\Api\SavedSearchCommands;
 use App\Features\SavedSearches\Api\SavedSearchExecutor;
 use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Features\SavedSearches\Api\SavedSearchSnapshot;
-use App\Http\Controllers\Controller;
+use App\Features\SavedSearches\Enums\NotificationFrequency;
+use App\Features\SavedSearches\Exceptions\SavedSearchLimitReachedException;
 use App\Shared\Auth\ResourceOwner;
 use App\Shared\Discovery\SearchFilterRules;
-use App\Shared\Integrations\SavedSearchLimitReachedException;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\PathParameter;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 
 #[Group('Saved Search', 'Authenticated saved-search CRUD and execution endpoints for event discovery workflows.')]
 class SavedSearchController extends Controller
 {
+    use AuthorizesRequests;
+
     /**
      * List all saved searches for the authenticated user.
      */
@@ -199,6 +203,11 @@ class SavedSearchController extends Controller
         mixed $filters,
         bool $partial = false,
     ): array {
+        $notifyOptions = array_map(
+            static fn (NotificationFrequency $frequency): string => $frequency->value,
+            NotificationFrequency::cases(),
+        );
+
         return [
             'name' => $partial ? 'sometimes|required|string|max:100' : 'required|string|max:100',
             'query' => 'nullable|string|max:255',
@@ -207,8 +216,8 @@ class SavedSearchController extends Controller
             'lat' => $partial ? 'nullable|numeric|between:-90,90' : 'nullable|required_with:radius_km|numeric|between:-90,90',
             'lng' => $partial ? 'nullable|numeric|between:-180,180' : 'nullable|required_with:radius_km|numeric|between:-180,180',
             'notify' => $partial
-                ? ['sometimes', 'required', Rule::in(['off', 'instant', 'daily', 'weekly'])]
-                : ['required', Rule::in(['off', 'instant', 'daily', 'weekly'])],
+                ? ['sometimes', 'required', Rule::in($notifyOptions)]
+                : ['required', Rule::in($notifyOptions)],
         ];
     }
 }
