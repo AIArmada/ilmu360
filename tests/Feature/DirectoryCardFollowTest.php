@@ -52,12 +52,13 @@ it('refreshes authoritative parent IDs after isolated clicks and updates followe
         'returnUrl' => '/', 'refreshListing' => true,
     ])->call('toggleFollow', (string) $subject->id);
 
-    $parent->call('$refresh')->assertSet($idsProperty, [(string) $subject->id]);
     if ($type === 'institution') {
-        $parent->dispatch('institution-filters-updated', filters: ['followed_only' => true]);
+        $parent->dispatch('directory-follow-updated.institution')->assertSet($idsProperty, [(string) $subject->id]);
     } else {
-        $parent->set('followed_only', true);
+        $parent->call('$refresh')->assertSet($idsProperty, [(string) $subject->id]);
     }
+
+    $parent->set('followed_only', true);
 
     $parent->assertSee('data-follow-state="following"', false);
     $card->call('toggleFollow', (string) $subject->id)
@@ -66,7 +67,7 @@ it('refreshes authoritative parent IDs after isolated clicks and updates followe
         ->assertSet($idsProperty, [])
         ->assertDontSee('data-follow-icon=', false);
 })->with([
-    ['institution', 'pages.institutions.results', 'followingInstitutionIds'],
+    ['institution', 'pages.institutions.index', 'followingInstitutionIds'],
     ['person', 'pages.persons.index', 'followingPersonIds'],
     ['reference', 'pages.references.index', 'followingReferenceIds'],
 ]);
@@ -97,3 +98,21 @@ it('retains directory eligibility checks', function (string $type) {
     ])->call('toggleFollow', (string) $subject->id)->assertSet('isFollowing', false);
     expect($user->isFollowing($subject))->toBeFalse();
 })->with(['institution', 'person', 'reference']);
+
+it('refreshes institution follow ids on the directory follow event, not on every request', function () {
+    $user = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified']);
+    $user->follow($institution);
+
+    $component = Livewire::actingAs($user)
+        ->test('pages.institutions.index')
+        ->assertSet('followingInstitutionIds', [(string) $institution->id]);
+
+    $user->unfollow($institution);
+
+    $component->call('$refresh')
+        ->assertSet('followingInstitutionIds', [(string) $institution->id]);
+
+    $component->dispatch('directory-follow-updated.institution')
+        ->assertSet('followingInstitutionIds', []);
+});
