@@ -1,5 +1,7 @@
 # Lessons
 
+- User correction (2026-11-09, portable handoffs): reference skills by name and discover them through the current harness or environment; resolve their references from the discovered skill location instead of hardcoding a user's installation path.
+
 - User correction (2026-11-09, migration handoff): keep the active migration plan bounded and authoritative; archive completed evidence, commit IDs and logs in a linked history file, read history selectively only for a specific stage or decision, and never duplicate the migration ledger in `tasks/todo.md`.
 
 - User direction (2026-11-08, execution ownership): Codex is the orchestrator for planning and independent review. Delegate implementation, verification and repair work to DeepSeek V4.1 Flash at max effort through the installed OpenCode CLI; verify the exact model/variant, do not substitute models, and retain staged commits plus a durable continuation checklist.
