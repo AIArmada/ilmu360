@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Symfony\Component\Process\Process;
 use Tests\Fixtures\Architecture\FixtureProject;
 
-it('permits named owning mutations and rejects unregistered and foreign storage writes', function (): void {
+it('permits owning and canonical non-runtime mutations while rejecting unregistered and foreign application writes', function (): void {
     $project = new FixtureProject;
     $root = dirname(__DIR__, 3);
 
@@ -81,11 +81,37 @@ class Charge
     public function handle(Order $order): void { $order->save(); }
 }
 PHP);
+
+        foreach ([
+            'database/seeders/RootSeeder.php' => 'Database\\Seeders',
+            'database/factories/RootFactory.php' => 'Database\\Factories',
+            'database/migrations/RootMigration.php' => 'Database\\Migrations',
+            'tests/Feature/FixtureTest.php' => 'Tests\\Feature',
+            'app/Features/Billing/Database/Seeders/FeatureSeeder.php' => 'App\\Features\\Billing\\Database\\Seeders',
+            'app/Features/Billing/Database/Factories/FeatureFactory.php' => 'App\\Features\\Billing\\Database\\Factories',
+            'app/Features/Billing/Database/Migrations/FeatureMigration.php' => 'App\\Features\\Billing\\Database\\Migrations',
+            'app/Services/SeederNamedWriter.php' => 'App\\Services',
+            'app/Support/Database/Migrations/ProductionMigrationNamedWriter.php' => 'App\\Support\\Database\\Migrations',
+        ] as $path => $namespace) {
+            $name = pathinfo($path, PATHINFO_FILENAME);
+            $project->write($path, <<<PHP
+<?php
+namespace {$namespace};
+use App\Features\Orders\Models\Order;
+class {$name}
+{
+    public function handle(Order \$order): void { \$order->save(); }
+}
+PHP);
+        }
+
         $project->write('phpstan.neon', <<<NEON
 parameters:
     customRulesetUsed: true
     paths:
         - {$project->path}/app
+        - {$project->path}/database
+        - {$project->path}/tests
     tmpDir: {$project->path}/cache
     bootstrapFiles:
         - {$root}/vendor/autoload.php
@@ -115,7 +141,7 @@ NEON);
         expect($process->getExitCode())->toBe(1, $process->getErrorOutput().$process->getOutput());
         $output = $process->getOutput();
         $report = json_decode(substr($output, strpos($output, '{')), true, 512, JSON_THROW_ON_ERROR);
-        expect($report['totals'])->toBe(['errors' => 0, 'file_errors' => 4]);
+        expect($report['totals'])->toBe(['errors' => 0, 'file_errors' => 6]);
         $violations = [];
         foreach ($report['files'] as $path => $result) {
             $violations[basename($path)] = array_column($result['messages'], 'identifier');
@@ -124,7 +150,9 @@ NEON);
         expect($violations)->toBe([
             'CacheAdapter.php' => ['architecture.writeLocation'],
             'Charge.php' => ['architecture.foreignWrite'],
+            'ProductionMigrationNamedWriter.php' => ['architecture.foreignWrite'],
             'QueryAdapter.php' => ['architecture.writeLocation'],
+            'SeederNamedWriter.php' => ['architecture.foreignWrite'],
             'Unregistered.php' => ['architecture.writeLocation'],
         ]);
     } finally {

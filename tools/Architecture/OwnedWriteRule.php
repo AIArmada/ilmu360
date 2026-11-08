@@ -85,10 +85,10 @@ final class OwnedWriteRule implements Rule
             return [];
         }
 
-        $file = str_replace('\\', '/', $scope->getFile());
-        $relative = ltrim(substr($file, strlen(str_replace('\\', '/', $this->projectRoot))), '/');
-        // Schema migrations are not runtime write paths; tests/factories are not analysed by the bundled config.
-        if (str_contains($relative, '/Database/Migrations/')) {
+        $file = str_replace('\\', '/', realpath($scope->getFile()) ?: $scope->getFile());
+        $root = rtrim(str_replace('\\', '/', realpath($this->projectRoot) ?: $this->projectRoot), '/');
+        $relative = str_starts_with($file, $root.'/') ? substr($file, strlen($root) + 1) : $file;
+        if ($this->isNonRuntimePath($relative)) {
             return [];
         }
         $feature = preg_match('~^app/Features/([^/]+)/~', $relative, $match) ? $match[1] : null;
@@ -130,6 +130,14 @@ final class OwnedWriteRule implements Rule
         }
 
         return [];
+    }
+
+    private function isNonRuntimePath(string $relative): bool
+    {
+        return preg_match(
+            '~^(?:tests/|database/(?:seeders|factories|migrations)/|app/Features/[A-Z][A-Za-z0-9]*/Database/(?:Seeders|Factories|Migrations)/)~',
+            $relative,
+        ) === 1;
     }
 
     /** @param list<class-string> $bases */
