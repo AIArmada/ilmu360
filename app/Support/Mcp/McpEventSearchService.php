@@ -10,6 +10,7 @@ use App\Models\Event;
 use App\Services\EventSearchService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\JsonSchema\Types\Type;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Arr;
@@ -136,8 +137,11 @@ class McpEventSearchService
             );
         });
 
+        $eventItems = new Collection($results->items());
+        $eventItems->loadMissing('displayOccurrence.media');
+
         return [
-            'data' => collect($results->items())
+            'data' => $eventItems
                 ->map(function ($event): array {
                     $item = EventListData::fromModel($event)->toArray();
                     $distanceKm = $event->getAttributes()['distance_km'] ?? null;

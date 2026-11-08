@@ -177,6 +177,9 @@ class SearchController extends FrontendController
                 sort: $search !== null ? 'relevance' : 'time',
             );
 
+        $eventItems = new Collection($eventPaginator->items());
+        $eventItems->loadMissing('displayOccurrence.media');
+
         $personIds = $search !== null ? $this->personSearchService->resolvedPublicSearchIds($search) : [];
         $personQuery = $search !== null
             ? $this->basePersonQuery($user)->whereIn('persons.id', $personIds)
@@ -197,7 +200,7 @@ class SearchController extends FrontendController
         return response()->json([
             'data' => [
                 'events' => [
-                    'items' => collect($eventPaginator->items())->map(fn (Event $event): array => $this->eventListData($event))->all(),
+                    'items' => $eventItems->map(fn (Event $event): array => $this->eventListData($event))->all(),
                     'total' => $eventPaginator->total(),
                 ],
                 'persons' => [
@@ -990,7 +993,7 @@ class SearchController extends FrontendController
             }, '__ordered_starts_at')
             ->with([
                 'event' => /** @param Relation<Event, EventKeyPerson, mixed> $query */ fn ($query) => $query->with([
-                    'primaryOccurrence', 'classifications.term', 'timeExpressions',
+                    'primaryOccurrence', 'displayOccurrence.media', 'classifications.term', 'timeExpressions',
                     'institution.media', 'institution.addresses.country', 'venue.addresses.country',
                     'persons.media', 'media',
                     'references' => /** @param BelongsToMany<Reference, Event, EventReferencePivot, 'pivot'> $references */ function (BelongsToMany $references): void {

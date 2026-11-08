@@ -548,6 +548,7 @@ it('reuses eager-loaded primary places without per-item queries', function (): v
 
     expect(DB::getQueryLog())->toHaveCount(0);
 
+    $events->loadMissing('displayOccurrence.media');
     DB::flushQueryLog();
 
     $locations = [];

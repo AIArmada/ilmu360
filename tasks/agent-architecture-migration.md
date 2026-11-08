@@ -5,8 +5,8 @@
 - Scope: the **whole ilmu360° application**, converted in verified, committable parts.
 - Authorization: user invoked `laravel-agent-convert`, requested commits per part, and a checklist another agent can continue.
 - Branch: `refactor`. Initial working tree was clean on 2026-11-07.
-- Current part: **5d.1h — gallery/share contract assertions** verified; checkpoint subject `test(events): verify current gallery and share contracts`. All eleven original baseline cases are resolved. Registration `f5b0667e`; notices `f236686a`; discovery visibility `5aac464a`. All five original documentation failures are resolved (`7923efd1`, `1240a7b8`, `44c2a1fd`, `134b8e78`); persistence `7d09ab0c`.
-- Next action: **5d.1i**: resolve the separately reproduced location-query budget failure through DTO-specific batch preloading (detailed handoff below), then continue **5d.2** transport localization. Keep root causes in separate verified commits. Persistence ownership is complete; the full transport slice and whole application remain open.
+- Current part: **5d.1i — DTO batch loading** verified; checkpoint subject `fix(search): batch event list occurrence media loading`. All eleven original baseline cases and the separately discovered query-budget follow-up are resolved. Gallery/share `ccefb819`; registration `f5b0667e`; notices `f236686a`; discovery visibility `5aac464a`. All five original documentation failures are resolved (`7923efd1`, `1240a7b8`, `44c2a1fd`, `134b8e78`); persistence `7d09ab0c`.
+- Next action: **5d.2a**: extract the Saved Searches page’s nine record-label lookups behind a scalar/array-only Shared discovery boundary, then continue workflow/presentation boundaries and atomic transport/route localization. Keep root causes in separate verified commits. Persistence ownership is complete; the full transport slice and whole application remain open.
 - Before continuing, read `AGENTS.md`, `.ai/rules/index.md`, `tasks/lessons.md`, and `/Users/Saiffil/.codex/skills/laravel-agent-convert/SKILL.md` with its architecture/migration/tooling references.
 - Update this checklist and `tasks/todo.md` in each part. Record commit subject, checks, limitations, and the next concrete action. A completed part does not mean full-app adoption.
 
@@ -312,7 +312,7 @@ Final verification and corrections:
 
 ### Part 5d.1 — reproduced baseline failures, before further transport localization
 
-All eleven below also fail on committed baseline **`721a8a39`** (same runtime Saved Searches implementation as `5145c2e8`, before the Part 5c.2 feature cutover). A focused baseline run selected exactly eleven tests: eleven failures, no errors, same test names as the unrelated failures in the broad cutover run. Log `/tmp/ilmu360-part5c-baseline-pest.log`; exact names `/tmp/ilmu360-part5c-baseline-failure-names.txt`. All eleven original cases are now resolved in Parts 5d.1a–h. The separately reproduced location-query budget case remains open below. Do not label the full suite green or assume each is a product bug without tracing the canonical current behavior.
+All eleven below also fail on committed baseline **`721a8a39`** (same runtime Saved Searches implementation as `5145c2e8`, before the Part 5c.2 feature cutover). A focused baseline run selected exactly eleven tests: eleven failures, no errors, same test names as the unrelated failures in the broad cutover run. Log `/tmp/ilmu360-part5c-baseline-pest.log`; exact names `/tmp/ilmu360-part5c-baseline-failure-names.txt`. All eleven original cases are now resolved in Parts 5d.1a–h. The separately reproduced location-query budget case is also resolved in Part 5d.1i below. Do not label the full suite green or assume each is a product bug without tracing the canonical current behavior.
 
 - [x] Scramble generated-spec version assertions: align focused/full generated specifications with installed Scramble's `3.1.2`; preserve the separate lightweight index catalog's existing `3.1.0` contract. Verified in Part 5d.1a below.
 - [x] Native mobile telemetry example restored by native MediaType serialization in Part 5d.1b; existing assertion passes unchanged.
@@ -326,7 +326,7 @@ All eleven below also fail on committed baseline **`721a8a39`** (same runtime Sa
 - [x] Share assertion checks the current dialog, Copy Link text and copy action; obsolete Share Preview wording removed (Part 5d.1h).
 - [x] Registration CTA now uses existing Register Now translation on date/overview layouts; English/Malay label, checkout destination and Signals verified (Part 5d.1g).
 
-The eleven original root causes are corrected in verified commits. Resolve the separately discovered DTO query-budget issue below, then finish Saved Searches transport localization. The conventional HTTP controller still composes validation/catalog enums, generic API response/pagination helpers, identity and attribution/event-result workflows; the Livewire adapter also composes directory labels/options and shared form/toast helpers. Replace those real cross-capability dependencies with their public boundaries before moving entrypoints/routes, preserving current route and Livewire aliases. Do not export Eloquent models or broaden architecture exceptions to move folders prematurely.
+The eleven original root causes are corrected in verified commits. The separately discovered DTO query-budget issue is also resolved. Finish Saved Searches transport localization. The conventional HTTP controller still composes validation/catalog enums, generic API response/pagination helpers, identity and attribution/event-result workflows; the Livewire adapter also composes directory labels/options and shared form/toast helpers. Replace those real cross-capability dependencies with their public boundaries before moving entrypoints/routes, preserving current route and Livewire aliases. Do not export Eloquent models or broaden architecture exceptions to move folders prematurely.
 
 ### Part 5d.1a — generated OpenAPI patch version (2026-11-08)
 
@@ -352,7 +352,7 @@ Both discovery adapters reused the broader detail-page statuses (approved/pendin
 
 Focused run: **29/30 tests passed**, `/tmp/ilmu360-part5d-visibility-pest.log`. The sole failure is an unrelated pre-existing EventListData location-query budget (11 queries, expected fewer than 5), reproduced identically on clean committed baseline `7923efd1`: `/tmp/ilmu360-part5d-location-baseline-pest.log`. Current changes were protected/restored with a task-specific stash; no pending stash remains. After correcting the text-search test parameter from unused `q` to actual `search`, both browse/text cases pass: **2 tests/12 assertions**, `/tmp/ilmu360-part5d-visibility-search-pest.log`. Typesense hydration coverage uses the database Scout engine plus separate DSL assertions, not a live Typesense server. Integrated PHPStan/ownership: zero errors; boundaries: zero findings, three features; Pint/whitespace pass. Scoped Rector proposes only an unrelated explicit-nullable check in prayer filtering; reviewed and left unchanged. Logs use `/tmp/ilmu360-part5d-visibility-*`. Refreshed graph now indexes PHP successfully (87894 nodes/188197 edges), restoring graph caller traces.
 
-- [ ] Resolve separately reproduced `EventLocationFilterParityTest::reuses eager-loaded primary places without per-item queries`: EventListData construction performs 11 queries for five eagerly loaded events. The missing DTO-specific display-occurrence/media batch loading is traced in the Part 5d.1i handoff below; retain substantive query-budget coverage and verify separately.
+- [x] Resolve separately reproduced `EventLocationFilterParityTest::reuses eager-loaded primary places without per-item queries`: DTO projections are prepared in batches and the original query-budget assertion passes; production aggregate/MCP/person query regressions pass (Part 5d.1i).
 
 ### Part 5d.1f — public detail status notices (2026-11-08)
 
@@ -370,14 +370,26 @@ Current gallery is a linked image grid labelled Gallery, not the obsolete Event 
 
 Full EventSearch run: **123/124 passed, 452 assertions**, `/tmp/ilmu360-part5d-event-search-pest.log`. The sole failure was the new test using a stale media timestamp; after fixture refresh, that case passes **1 test/5 assertions**, `/tmp/ilmu360-part5d-gallery-final-pest.log`. All **124 covered cases pass across the saved full run and focused correction**, including all six original event failures. Do not misreport this as a fresh all-suite run. Final PHPStan/ownership reports zero errors (`/tmp/ilmu360-part5d-event-copy-final-phpstan.log`); Pint/whitespace pass. Together with the earlier 22-test documentation run, all eleven original baseline cases are resolved. Checkpoint subject `test(events): verify current gallery and share contracts`.
 
-### Part 5d.1i — next: DTO batch loading (read-only diagnosis, not implemented)
+### Part 5d.1i — DTO batch loading (2026-11-08)
 
 The location resolver portion of the failing test already makes zero queries. `app/Data/Api/Frontend/Search/EventListData.php::fromModel()` calls `loadMissing('displayOccurrence.media')` per item, producing ten queries for five events, plus one shared category-catalog query. Do not weaken/remove the query budget. Do not add this globally to EventCardRelationshipProvider: browser cards currently use primaryOccurrence in some ordinary-parent paths; preloading displayOccurrence can change image selection, including null/past fallbacks.
 
 Use the actual DTO serialization boundaries. Existing correct precedent: `SearchController::limitedEventPayloadWithTotal()` preloads displayOccurrence.media on its collection; EventController index/show already eager-load it. Missing batch points found by read-only audit:
 
 - `app/Http/Controllers/Api/Frontend/SearchController.php::search()` before mapping the event paginator collection.
-- `app/Services/McpEventSearchService.php::search()` before mapping its result collection.
+- `app/Support/Mcp/McpEventSearchService.php::search()` before mapping its result collection.
 - `SearchController::personParticipationPayload()` nested event eager-load list before mapping involvements through eventListData.
 
-Confirm these callers with current graph/source before editing. Keep fromModel’s single-item safety fallback and the shared browser provider unchanged. Prepare the DTO-specific collection relation outside the measured per-item section in the location regression, retaining its less-than-item-count assertion; add focused actual batch endpoint/MCP query coverage so the fix is proved at production entrypoints rather than only changing test setup. Verify payload/media parity, query budget, existing grouped upcoming-occurrence behavior, PHPStan/ownership and both architecture checks; commit separately, then resume Part 5d.2. No code for this follow-up has been changed.
+Confirmed the three callers and added DTO-specific batch preparation there. Aggregate/MCP now create Eloquent collections from paginator items and load displayOccurrence.media once; the nested person-role event query eager-loads the same relation. The original location test prepares this DTO projection before measuring per-item serialization; its zero-query location check and less-than-item-count serialization assertion remain intact. The DTO single-item fallback and shared browser provider are unchanged. No route, payload, authorization, write, lifecycle, dependency or schema change. This read-only optimization needs no new product event; existing Signals remain unchanged.
+
+Verification/evidence for Part 5d.1i:
+
+| Five-event response | Baseline occurrence-media SELECTs | After |
+| --- | ---: | ---: |
+| Aggregate HTTP search | 5 | 1 |
+| MCP search service | 5 | 1 |
+| Person event/other-role lists | 6 | 2 (one per returned list) |
+
+The three new regressions were run against unchanged production code first, reproducing 5/5/6 queries: `/tmp/ilmu360-part5d-batch-baseline-pest.log`. The initial affected run passed **31/32 tests, 259 assertions**, including all 29 existing location/grouping cases; the new person test initially expected one query despite the existing two-list response. After asserting the actual two batches and both list contents, the final three regressions plus dedicated member MCP adapter pass: **4 tests/24 assertions**, `/tmp/ilmu360-part5d-batch-final-pest.log`. Existing rich person-detail parity passes **1 test/40 assertions**, `/tmp/ilmu360-part5d-batch-person-parity-pest.log`. All **34 distinct covered cases pass across saved runs and the corrected focused run**. No HTTP latency claim is made from local suite timing. Media fixture/IDs and cancellation/grouped upcoming-date payloads are preserved.
+
+Final integrated PHPStan level 6 plus ownership rule: zero errors (`/tmp/ilmu360-part5d-batch-final-phpstan.log`). Boundaries: zero findings, three features; scoped Rector: zero proposed changes; Pint and whitespace pass (`/tmp/ilmu360-part5d-batch-{boundaries,rector,pint}.log`). Graph caller trace for the static DTO method had no inbound edges; focused source confirmed its real consumers. A later graph refresh was interrupted by a tool-server refresh; refresh graph before the next implementation. Checkpoint subject `fix(search): batch event list occurrence media loading`.
