@@ -27,6 +27,7 @@ use App\Notifications\Channels\DigestMailChannel;
 use App\Notifications\Channels\InboxChannel;
 use App\Shared\Auth\IntegrationFeedbackIdentity;
 use App\Shared\Auth\IntegrationFeedbackUser;
+use App\Shared\Auth\ResourceOwner;
 use App\Support\Submission\PublicSubmissionLockService;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
@@ -57,8 +58,18 @@ use Spatie\DeletedModels\Models\Concerns\KeepsDeletedModels;
 use Spatie\Permission\PermissionRegistrar;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable implements AuditableContract, CanInteract, FilamentUser, HasLocalePreference, IntegrationFeedbackUser, MustVerifyEmailContract
+class User extends Authenticatable implements AuditableContract, CanInteract, FilamentUser, HasLocalePreference, IntegrationFeedbackUser, MustVerifyEmailContract, ResourceOwner
 {
+    public function resourceOwnerType(): string
+    {
+        return $this->getMorphClass();
+    }
+
+    public function resourceOwnerId(): string
+    {
+        return (string) $this->getKey();
+    }
+
     /** @use HasFactory<UserFactory> */
     use AuditsModelChanges, CanBookmark, CanRespond, HasApiTokens, HasFactory, HasRoles, HasUserRestoration, HasUuids, KeepsDeletedModels, MustVerifyEmail, TwoFactorAuthenticatable {
         HasUserRestoration::attributesToKeep insteadof KeepsDeletedModels;
@@ -427,14 +438,6 @@ class User extends Authenticatable implements AuditableContract, CanInteract, Fi
             ->value('avatar_url');
 
         return is_string($avatarUrl) && $avatarUrl !== '' ? $avatarUrl : null;
-    }
-
-    /**
-     * @return MorphMany<SavedSearch, $this>
-     */
-    public function savedSearches(): MorphMany
-    {
-        return $this->morphMany(SavedSearch::class, 'user');
     }
 
     /**

@@ -6,6 +6,7 @@ use AIArmada\Affiliates\AffiliatesServiceProvider;
 use AIArmada\CommerceSupport\SupportServiceProvider;
 use App\Features\GitHubIssues\FeatureServiceProvider as GitHubIssuesServiceProvider;
 use App\Features\Prayer\FeatureServiceProvider;
+use App\Features\SavedSearches\FeatureServiceProvider as SavedSearchesServiceProvider;
 use App\Providers\ApiDocumentationServiceProvider;
 use App\Providers\AppServiceProvider;
 use App\Providers\BlazeServiceProvider;
@@ -25,6 +26,7 @@ return [
     AppServiceProvider::class,
     GitHubIssuesServiceProvider::class,
     FeatureServiceProvider::class,
+    SavedSearchesServiceProvider::class,
     BlazeServiceProvider::class,
     FilamentPhoneInputServiceProvider::class,
     AhliPanelProvider::class,

@@ -1,19 +1,20 @@
 <?php
 
-namespace App\Support\SavedSearches;
+namespace App\Support\Discovery;
 
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\TimingMode;
+use App\Shared\Discovery\SearchFilterNormalizer;
 use App\Shared\Prayer\EventPrayerTime;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 
-final class SavedSearchFilterNormalizer
+final class EventSearchFilterNormalizer implements SearchFilterNormalizer
 {
     /**
      * @return array<string, mixed>|null

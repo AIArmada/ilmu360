@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Data;
+namespace App\Features\SavedSearches\Api;
 
 use Carbon\CarbonImmutable;
 
@@ -11,6 +11,7 @@ final readonly class SavedSearchSnapshot
     /**
      * @param  string|array<string, mixed>|null  $query
      * @param  array<string, mixed>|null  $filters
+     * @param  array<string, mixed>  $payload
      */
     public function __construct(
         public string $id,
@@ -24,5 +25,7 @@ final readonly class SavedSearchSnapshot
         public ?float $lng,
         public ?int $radiusKm,
         public ?CarbonImmutable $createdAt,
+        public array $payload = [],
+        public ?CarbonImmutable $updatedAt = null,
     ) {}
 }

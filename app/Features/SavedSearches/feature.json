@@ -1,0 +1,13 @@
+{
+  "schema": 2,
+  "name": "SavedSearches",
+  "owns": {
+    "table:saved_searches": [
+      "App\\Features\\SavedSearches\\Actions\\CreateSavedSearchAction",
+      "App\\Features\\SavedSearches\\Actions\\UpdateSavedSearchAction",
+      "App\\Features\\SavedSearches\\Actions\\DeleteSavedSearchAction",
+      "App\\Features\\SavedSearches\\Actions\\DeleteOwnerSavedSearchesAction",
+      "App\\Features\\SavedSearches\\Actions\\RestoreSavedSearchesAction"
+    ]
+  }
+}

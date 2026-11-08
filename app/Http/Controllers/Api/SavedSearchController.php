@@ -2,25 +2,27 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Actions\Events\Search\ExecuteSavedSearchAction;
 use App\Actions\SavedSearches\CreateSavedSearchAction;
 use App\Actions\SavedSearches\DeleteSavedSearchWithAttributionReversalAction;
-use App\Actions\SavedSearches\ExecuteSavedSearchAction;
-use App\Actions\SavedSearches\UpdateSavedSearchAction;
 use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\TimingMode;
-use App\Exceptions\SavedSearchLimitReachedException;
+use App\Features\SavedSearches\Api\SavedSearchCommands;
+use App\Features\SavedSearches\Api\SavedSearchReader;
+use App\Features\SavedSearches\Api\SavedSearchSnapshot;
 use App\Http\Controllers\Controller;
-use App\Models\SavedSearch;
 use App\Models\User;
+use App\Shared\Integrations\SavedSearchLimitReachedException;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Support\Api\ApiPagination;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
+use Dedoc\Scramble\Attributes\PathParameter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -45,13 +47,10 @@ class SavedSearchController extends Controller
             abort(401);
         }
 
-        $savedSearches = SavedSearch::where('user_type', $user->getMorphClass())
-            ->where('user_id', $user->id)
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $savedSearches = app(SavedSearchReader::class)->forOwner($user->getMorphClass(), (string) $user->getKey());
 
         return response()->json([
-            'data' => $savedSearches,
+            'data' => array_map(static fn (SavedSearchSnapshot $savedSearch): array => $savedSearch->payload, $savedSearches),
         ]);
     }
 
@@ -98,7 +97,7 @@ class SavedSearchController extends Controller
 
         return response()->json([
             'message' => 'Saved search created.',
-            'data' => $savedSearch,
+            'data' => $savedSearch->payload,
         ], 201);
     }
 
@@ -109,12 +108,13 @@ class SavedSearchController extends Controller
         title: 'Get a saved search',
         description: 'Returns one saved search definition owned by the current authenticated user.',
     )]
-    public function show(SavedSearch $savedSearch): JsonResponse
+    #[PathParameter('savedSearch', 'The saved search ID', type: 'string', format: 'uuid', infer: false)]
+    public function show(SavedSearchSnapshot $savedSearch): JsonResponse
     {
         $this->authorize('view', $savedSearch);
 
         return response()->json([
-            'data' => $savedSearch,
+            'data' => $savedSearch->payload,
         ]);
     }
 
@@ -137,20 +137,21 @@ class SavedSearchController extends Controller
         title: 'Update a saved search',
         description: 'Updates one saved search definition owned by the current authenticated user.',
     )]
+    #[PathParameter('savedSearch', 'The saved search ID', type: 'string', format: 'uuid', infer: false)]
     public function update(
         Request $request,
-        SavedSearch $savedSearch,
-        UpdateSavedSearchAction $updateSavedSearchAction,
+        SavedSearchSnapshot $savedSearch,
+        SavedSearchCommands $savedSearchCommands,
     ): JsonResponse {
         $this->authorize('update', $savedSearch);
 
         $validated = $request->validate($this->savedSearchValidationRules(partial: true));
 
-        $savedSearch = $updateSavedSearchAction->handle($savedSearch, $validated);
+        $savedSearch = $savedSearchCommands->update($savedSearch->userType, $savedSearch->userId, $savedSearch->id, $validated);
 
         return response()->json([
             'message' => 'Saved search updated.',
-            'data' => $savedSearch,
+            'data' => $savedSearch->payload,
         ]);
     }
 
@@ -161,7 +162,8 @@ class SavedSearchController extends Controller
         title: 'Delete a saved search',
         description: 'Deletes one saved search definition owned by the current authenticated user.',
     )]
-    public function destroy(SavedSearch $savedSearch, DeleteSavedSearchWithAttributionReversalAction $delete): Response
+    #[PathParameter('savedSearch', 'The saved search ID', type: 'string', format: 'uuid', infer: false)]
+    public function destroy(SavedSearchSnapshot $savedSearch, DeleteSavedSearchWithAttributionReversalAction $delete): Response
     {
         $this->authorize('delete', $savedSearch);
 
@@ -177,7 +179,8 @@ class SavedSearchController extends Controller
         title: 'Execute a saved search',
         description: 'Executes a stored saved-search definition and returns the current matching event results.',
     )]
-    public function execute(SavedSearch $savedSearch, ExecuteSavedSearchAction $executeSavedSearchAction): JsonResponse
+    #[PathParameter('savedSearch', 'The saved search ID', type: 'string', format: 'uuid', infer: false)]
+    public function execute(SavedSearchSnapshot $savedSearch, ExecuteSavedSearchAction $executeSavedSearchAction): JsonResponse
     {
         $this->authorize('view', $savedSearch);
 

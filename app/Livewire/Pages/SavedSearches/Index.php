@@ -8,8 +8,6 @@ use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
 use AIArmada\Events\Models\EventTerm;
 use App\Actions\SavedSearches\CreateSavedSearchAction;
-use App\Actions\SavedSearches\DeleteSavedSearchAction;
-use App\Actions\SavedSearches\UpdateSavedSearchAction;
 use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
@@ -17,15 +15,17 @@ use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\NotificationFrequency;
 use App\Enums\TimingMode;
-use App\Exceptions\SavedSearchLimitReachedException;
+use App\Features\SavedSearches\Api\SavedSearchCommands;
+use App\Features\SavedSearches\Api\SavedSearchReader;
+use App\Features\SavedSearches\Api\SavedSearchSnapshot;
 use App\Forms\SharedFormSchema;
 use App\Livewire\Concerns\InteractsWithToasts;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
-use App\Models\SavedSearch;
 use App\Models\User;
 use App\Models\Venue;
+use App\Shared\Integrations\SavedSearchLimitReachedException;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Support\Location\VisitorCountryResolver;
 use App\Support\Timezone\UserDateTimeFormatter;
@@ -120,14 +120,16 @@ class Index extends Component
     }
 
     /**
-     * @return Collection<int, SavedSearch>
+     * @return Collection<int, SavedSearchSnapshot>
      */
     #[Computed]
     public function savedSearches(): Collection
     {
         $user = auth()->user();
 
-        return $user ? $user->savedSearches()->latest()->get() : collect();
+        return $user instanceof User
+            ? collect(app(SavedSearchReader::class)->forOwner($user->getMorphClass(), (string) $user->getKey()))
+            : collect();
     }
 
     public function save(): void
@@ -178,8 +180,7 @@ class Index extends Component
             abort(403);
         }
 
-        $savedSearch = $user->savedSearches()->where('id', $savedSearchId)->firstOrFail();
-        DeleteSavedSearchAction::run($savedSearch);
+        app(SavedSearchCommands::class)->delete($user->getMorphClass(), (string) $user->getKey(), $savedSearchId);
 
         $this->successToast(__('Saved search deleted.'));
     }
@@ -192,11 +193,12 @@ class Index extends Component
             abort(403);
         }
 
-        $savedSearch = $user->savedSearches()->where('id', $savedSearchId)->firstOrFail();
+        $savedSearch = app(SavedSearchReader::class)->findForOwner($user->getMorphClass(), (string) $user->getKey(), $savedSearchId);
+        abort_if($savedSearch === null, 404);
 
         $this->editingId = $savedSearch->id;
         $this->editName = $savedSearch->name;
-        $this->editNotify = $savedSearch->notify;
+        $this->editNotify = (string) $savedSearch->notify;
     }
 
     public function cancelEdit(): void
@@ -219,8 +221,7 @@ class Index extends Component
             'editNotify' => ['required', Rule::in(array_keys($this->notifyOptions()))],
         ]);
 
-        $savedSearch = $user->savedSearches()->where('id', $savedSearchId)->firstOrFail();
-        app(UpdateSavedSearchAction::class)->handle($savedSearch, [
+        app(SavedSearchCommands::class)->update($user->getMorphClass(), (string) $user->getKey(), $savedSearchId, [
             'name' => $validated['editName'],
             'notify' => $validated['editNotify'],
         ]);
@@ -233,7 +234,7 @@ class Index extends Component
     /**
      * @return array<string, mixed>
      */
-    public function toEventQueryParams(SavedSearch $savedSearch): array
+    public function toEventQueryParams(SavedSearchSnapshot $savedSearch): array
     {
         $params = array_merge(
             ['search' => $savedSearch->query],
@@ -248,7 +249,7 @@ class Index extends Component
             $params = array_merge($params, [
                 'lat' => $savedSearch->lat,
                 'lng' => $savedSearch->lng,
-                'radius_km' => $savedSearch->radius_km,
+                'radius_km' => $savedSearch->radiusKm,
                 'sort' => 'distance',
             ]);
         }

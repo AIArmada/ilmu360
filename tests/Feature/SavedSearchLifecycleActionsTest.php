@@ -2,9 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Actions\SavedSearches\DeleteOwnerSavedSearchesAction;
-use App\Actions\SavedSearches\RestoreSavedSearchesAction;
-use App\Models\SavedSearch;
+use App\Features\SavedSearches\Api\SavedSearchCommands;
+use App\Features\SavedSearches\Models\SavedSearch;
 use App\Models\User;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Event;
@@ -18,7 +17,7 @@ it('deletes only searches matching both owner type and owner identity', function
         'user_id' => $owner->getKey(),
     ]);
 
-    DeleteOwnerSavedSearchesAction::run($owner->getMorphClass(), (string) $owner->getKey());
+    app(SavedSearchCommands::class)->deleteOwner($owner->getMorphClass(), (string) $owner->getKey());
 
     $this->assertModelMissing($owned);
     $this->assertModelExists($otherOwner);
@@ -38,7 +37,7 @@ it('restores the original attributes and timestamps without replaying creation e
     $eventName = 'eloquent.creating: '.SavedSearch::class;
     Event::fake([$eventName]);
 
-    RestoreSavedSearchesAction::run([$snapshot]);
+    app(SavedSearchCommands::class)->restore([$snapshot]);
 
     $restored = SavedSearch::query()->findOrFail($savedSearch->getKey());
     expect(Arr::except($restored->getRawOriginal(), ['created_at', 'updated_at']))

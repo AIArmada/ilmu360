@@ -5,8 +5,8 @@
 - Scope: the **whole ilmu360° application**, converted in verified, committable parts.
 - Authorization: user invoked `laravel-agent-convert`, requested commits per part, and a checklist another agent can continue.
 - Branch: `refactor`. Initial working tree was clean on 2026-11-07.
-- Current part: **5c.1 — Saved Searches owner-type isolation** verified; checkpoint subject `fix(saved-searches): enforce polymorphic API ownership`. Previous read checkpoint `036ca6e7`, baseline assertion correction `814c4203`.
-- Next action: **Part 5c** moves the Saved Searches model/actions/remaining integrations and registrations together. Preserve existing API attribution reversal versus plain page/account deletion behavior. Saved Searches is not yet an adopted feature.
+- Current part: **5c.2 — Saved Searches persistence ownership** verified; checkpoint subject `refactor(saved-searches): own persistence behind public APIs`. Owner isolation is `5145c2e8`; precise non-runtime write-rule correction is `721a8a39`.
+- Next action: **Part 5d.1 — diagnose the eleven baseline search/docs failures** listed below, fixing each root cause in its own verified commit. Then localize the remaining Saved Searches transport composition through real discovery/directory/attribution boundaries. Persistence ownership is complete; the full transport slice and whole application remain open.
 - Before continuing, read `AGENTS.md`, `.ai/rules/index.md`, `tasks/lessons.md`, and `/Users/Saiffil/.codex/skills/laravel-agent-convert/SKILL.md` with its architecture/migration/tooling references.
 - Update this checklist and `tasks/todo.md` in each part. Record commit subject, checks, limitations, and the next concrete action. A completed part does not mean full-app adoption.
 
@@ -66,7 +66,7 @@ Current owner: `app/Features/GitHubIssues/` (`Api`, `Actions`, `Persistence`, `S
 Ordering remains provisional until each ownership trace is complete. Split large parts into coherent commits and keep every remaining item visible.
 
 - [x] Provider-backed Prayer: providers, preview, cache/store writes, jobs and commands converted in Part 4b. Event-specific expression/location adapters remain Events-owned; their stored resolver identity is preserved for later Events migration.
-- [ ] Saved searches: page/API/model/policy/actions/filter normalization; immutable reads, account cleanup/restoration and reward source facts. Part 5a write consolidation and Part 5b external read boundaries are complete; Part 5c ownership cutover remains open.
+- [ ] Saved searches: persistence/model/actions/public reads/policy/binding/factory and all consumer cutovers are complete through Part 5c.2. Conventional page/API composition and root route localization through discovery/directory/attribution boundaries remain for Part 5d; do not duplicate persistence or reintroduce the User relation.
 - [ ] Feedback/reports: conversations, report lifecycle, review and notification adapters.
 - [ ] Inspirations: app-owned table, Save action, Filament persistence and frontend/API readers.
 - [ ] Identity/accounts: User/social accounts, auth/OAuth/Fortify, account lifecycle/restoration and public identity contracts.
@@ -239,7 +239,7 @@ Verification: 85 affected tests covered across the initial 84 passing checks and
 
 ### Part 5b audit map and preservation requirements
 
-- `User::savedSearches()` exposes a mutable `MorphMany`. Migrate every consumer before removing it; owner reads/writes must match both `user_type` and `user_id`.
+- `User::savedSearches()` was removed in Part 5c.2 after all runtime consumers migrated. Owner reads/writes match both `user_type` and `user_id` through the public Saved Searches boundary.
 - `HasUserRestoration` now reads full attributes through `restorationSnapshotForOwner`; writes use the Part 5a actions.
 - `UserDashboard::recentSavedSearches` now uses the latest three readonly summaries. Admin `ViewUser` uses request-computed summaries and count, without eager-loading mutable searches.
 - Notification matching now streams readonly candidates (owner identity, query/filters, latitude/longitude/radius and cadence) and resolves User outside Saved Searches. Preserve nearby-versus-text matching, first-50 result behavior, grouping, first-three names, metadata IDs and `saved-search-match:{eventId}:{userId}` fingerprint. Instant/daily/weekly/off cadence and unknown-to-daily fallback are covered by the checkpoint tests.
@@ -257,7 +257,8 @@ Verification: 85 affected tests covered across the initial 84 passing checks and
 - [x] Cover detached mixed-query values, immutable timestamps, owner isolation, latest/limit reads, restoration attributes, source deletion, notification matching/grouping/cadence/geo fallback and first-time reward boundaries.
 - [x] Verify affected behavior, unchanged routes, Pint, level-6 PHPStan plus owned-write rule, boundary check, scoped Rector and independent review; commit subject `refactor(saved-searches): replace external model reads with snapshots`.
 - [x] Separately correct the baseline account-settings test's outdated English description/save-button assertions; no product copy change needed. Follow-up checkpoint below.
-- [ ] Part 5c: complete feature ownership, public Api relocation, remaining entrypoint/integration/model/policy/factory/route registration cutover and cached behavior checks.
+- [x] Part 5c: complete persistence ownership, public Api relocation, model/policy/factory/binding registration and cached behavior checks.
+- [ ] Part 5d: localize the remaining composition entrypoints/routes through their actual discovery/directory/attribution boundaries; first resolve the separately reproduced baseline failures below.
 
 Verification: **234 of 235 parallel Pest checks passed, 1,469 assertions**, including all 21 new Saved Searches reader/reward/notification cases and existing API/page/account/admin/dashboard/notification/reward/WP2 tests. The sole failure is `DashboardPagesTest`'s existing account-settings copy assertion. Baseline `e22d6e99` contains both stale assertions and the current translations; route, component, settings view, translations and that test were unchanged in Part 5b. Resolve in a separate test-only commit. Log: `/tmp/ilmu360-part5b-pest.log`. Pint, level-6 PHPStan plus owned-write rule (zero errors), boundaries (zero violations, two adopted features), scoped Rector (zero changes) and whitespace checks pass. All 750 routes in this stage's snapshots are unchanged in `/tmp/ilmu360-part5b-{before,after}-routes.json`; checker logs use `/tmp/ilmu360-part5b-{pint,phpstan,boundaries,rector}.log`. Independent review found no material defect. No schema, stored class/morph identity, URL, Signals or attribution workflow changes.
 
@@ -280,3 +281,49 @@ No product copy, layout, tracking, settings behavior or runtime code changed. Re
 - [x] Pint, scoped Rector, whitespace, architecture boundaries and level-6 analysis with the owned-write rule pass (zero errors); logs `/tmp/ilmu360-part5c-isolation-{pint,rector,boundaries,phpstan}.log`.
 
 This fixes a pre-existing isolation defect before relocating the model. Preserve the new 403 behavior for foreign typed owners and existing 404 behavior for missing records during cutover. No routes, response payloads for authorized owners, or schema changed.
+
+### Part 5c.2 — persistence ownership and public operations (2026-11-08)
+
+- [x] Move model, five concrete write actions, database reads, snapshot and policy into `app/Features/SavedSearches`; declare `table:saved_searches` and actual named write paths in its manifest.
+- [x] Expose pure public `Api/SavedSearchReader`, `SavedSearchCommands` and final readonly `SavedSearchSnapshot`. Keep mutable models/builders private; the snapshot includes a detached original serialized payload for HTTP parity.
+- [x] Bind through the native feature provider, explicitly register model/snapshot policies and snapshot route binding. Preserve configured package `getTable()` and explicit factory discovery/model mapping.
+- [x] Remove mutable `User::savedSearches()` and redirect page/API/account/notification/reward/dashboard/admin consumers. Feature commands constrain owner type and UUID even when invoked outside HTTP.
+- [x] Preserve creation and API deletion attribution workflows as external transactional composition using public commands. Move event-result execution into `app/Actions/Events/Search` consuming only a snapshot; it still returns Event results and records the existing Signals in its actual discovery integration.
+- [x] Move the filter implementation to `app/Support/Discovery/EventSearchFilterNormalizer` behind the genuinely shared discovery-filter contract. Introduce shared resource-owner and default-user-morph contracts; User and its integration adapter implement them. Expected saved-search limit failure lives alongside existing Shared integration failures. Remove superseded implementations without aliases.
+- [x] Add regression coverage for complete API serialization, creation-only response keys, public owner isolation and outer attribution-failure rollback. Update existing tests/factories/seeders to canonical relocated types.
+- [x] Compare uncached route snapshots: identical. Boundary check: zero violations, three declared features. Independent review: no material issue.
+- [x] Finish saved parallel behavior and level-6 ownership/type analysis; review scoped Rector output. Final checks below.
+- [x] Clear temporary config/routes caches, reconcile this checklist and `tasks/todo.md`, and review the final diff. Checkpoint subject `refactor(saved-searches): own persistence behind public APIs`.
+
+API/page adapters remain in conventional application locations because they compose event discovery, directory/form catalogs, identity and attribution. They now use only Saved Searches public boundaries. Their routes remain registered once in the existing root route files, with unchanged names, middleware, parameters and payloads. Transport localization and the remaining directory/discovery/attribution boundaries are still explicit remaining work; this checkpoint does not claim that the complete Saved Searches transport slice or full application has moved.
+
+Temporary cache isolation used `APP_CONFIG_CACHE=/tmp/ilmu360-part5c-config.php`, `APP_ROUTES_CACHE=/tmp/ilmu360-part5c-routes.php`, `APP_EVENTS_CACHE=/tmp/ilmu360-part5c-events.php`, compiled views `/tmp/ilmu360-part5c-views`; testing env used SQLite `:memory:`, array cache/mail/session, sync queue, Blaze/Pulse/Telescope/Nightwatch disabled. Config/route generation passed and both temporary cache files were cleared and verified absent. Normal application caches were not changed.
+
+Scoped Rector proposes a route-binding arrow closure and Laravel 13 Fillable/Table attributes. These are style suggestions, not behavior defects. Keep the model's literal `$table` declaration for ownership enforcement while inheriting the package's configured `getTable()`; do not blindly remove it for the attribute transformation.
+
+Final verification and corrections:
+
+- **113 focused parallel checks passed, 550 assertions, in each cache mode**: `/tmp/ilmu360-part5c-cached-fixed-pest.log` and `/tmp/ilmu360-part5c-uncached-fixed-pest.log`. These include API/page/core contracts, ownership, immutable readers/reward facts, notification matching, account child lifecycle, WP2 reversals and attributed page creation. All new feature-boundary cases pass.
+- A final fresh, route-scoped OpenAPI generation check passed (**1 test, 12 assertions**, `/tmp/ilmu360-part5c-doc-parameter-pest.log`). Snapshot binding retains a scalar string but cannot supply Scramble's model-derived UUID format, so all four bound HTTP actions now declare the UUID path parameter explicitly. No model internals are exposed through the path schema. Final PHPStan was rerun after this annotation change and remains clean.
+- The initial broad run covered **452 checks**, with 427 passes, fourteen cutover/test-setup failures subsequently corrected, and eleven unrelated failures subsequently reproduced on the pre-cutover baseline. Saved log `/tmp/ilmu360-part5c-pest.log`. The cutover fixes preserve the API envelope's request ID, inject attribution failure through the existing ShareTrackingContract, and expose the page's previously missed updated timestamp as immutable `updatedAt`. No compatibility aliases were added.
+- Initial analysis identified a seed-only bulk insert as a runtime write. Tooling fix **`721a8a39`** recognizes only canonical test/seeder/factory/migration paths, while production lookalikes still fail. **13 architecture tests passed, 52 assertions** (`/tmp/ilmu360-part5c-tooling-pest.log`); final integrated level-6 PHPStan plus owned-write rule reports **zero errors** (`/tmp/ilmu360-part5c-final-phpstan.log`). No baseline or suppressions added.
+- Structural boundaries: zero findings, three declared features. All **750 routes unchanged**; before/after `/tmp/ilmu360-part5c-{before,after}-routes.json`. Pint and whitespace checks pass. Independent review found no material issue. Scoped Rector suggestions were reviewed and left as documented above.
+- Current feature changes were temporarily protected in a task-specific Git stash for baseline verification and restored successfully afterward. No task stash remains pending. No deployment, live database change, dependency change or schema change was performed. Saved-search business-key and User owner-morph identities remain unchanged; no persisted old SavedSearch model identity was found in the ownership audit.
+
+### Part 5d.1 — reproduced baseline failures, before further transport localization
+
+All eleven below also fail on committed baseline **`721a8a39`** (same runtime Saved Searches implementation as `5145c2e8`, before the Part 5c.2 feature cutover). A focused baseline run selected exactly eleven tests: eleven failures, no errors, same test names as the unrelated failures in the broad cutover run. Log `/tmp/ilmu360-part5c-baseline-pest.log`; exact names `/tmp/ilmu360-part5c-baseline-failure-names.txt`. They remain open; do not label the full suite green or assume each is a product bug without tracing the canonical current behavior.
+
+- [ ] Scramble docs OpenAPI version assertion: expects `3.1.0`, generated `3.1.2`.
+- [ ] Native mobile telemetry schema/example assertion: expected `screen.viewed`, actual null.
+- [ ] Live route/OpenAPI operation alignment: community release and 25 reward operations are missing from the generated operation set.
+- [ ] Institution workflow description assertion: expects canonical Google Maps URL wording, current contract requires a verified Places selection.
+- [ ] Agentic write request example assertion: expected login email example, actual null.
+- [ ] Public event listing expects a pending approval label; reconcile with approved-only public listing rules.
+- [ ] Pending event detail warning label assertion.
+- [ ] Cancelled event detail banner label assertion.
+- [ ] Event gallery label assertion.
+- [ ] Event share-preview modal label assertion.
+- [ ] Event registration button label assertion.
+
+After those root causes are diagnosed and corrected in coherent verified commits, finish Saved Searches transport localization. The conventional HTTP controller still composes validation/catalog enums, generic API response/pagination helpers, identity and attribution/event-result workflows; the Livewire adapter also composes directory labels/options and shared form/toast helpers. Replace those real cross-capability dependencies with their public boundaries before moving entrypoints/routes, preserving current route and Livewire aliases. Do not export Eloquent models or broaden architecture exceptions to move folders prematurely.

@@ -12,9 +12,8 @@ use AIArmada\CommerceSupport\Support\OwnerScope;
 use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Engagement\Models\Follow;
 use AIArmada\Engagement\Models\Response;
-use App\Actions\SavedSearches\DeleteOwnerSavedSearchesAction;
-use App\Actions\SavedSearches\RestoreSavedSearchesAction;
-use App\Contracts\SavedSearchReader;
+use App\Features\SavedSearches\Api\SavedSearchCommands;
+use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
@@ -91,7 +90,7 @@ trait HasUserRestoration
                 $user->verifiedVenues()->update(['verified_by' => null]);
                 $user->registrations()->each(fn ($reg) => $reg->delete());
                 $user->eventCheckins()->each(fn ($checkin) => $checkin->delete());
-                DeleteOwnerSavedSearchesAction::run($user->getMorphClass(), (string) $user->getKey());
+                app(SavedSearchCommands::class)->deleteOwner($user->getMorphClass(), (string) $user->getKey());
                 $user->aiUsageLogs()->each(fn ($log) => $log->delete());
                 // Share cleanup revokes this claimant's guest-claim associations
                 // (rows preserved as revoked) and detaches their published
@@ -519,7 +518,7 @@ trait HasUserRestoration
         $this->restoreChildModels('socialAccounts', $this->snapshotRows($snapshot, 'social_accounts'));
         $this->restoreChildModels('registrations', $this->snapshotRows($snapshot, 'registrations'));
         $this->restoreChildModels('eventCheckins', $this->snapshotRows($snapshot, 'event_checkins'));
-        RestoreSavedSearchesAction::run($this->snapshotRows($snapshot, 'saved_searches'));
+        app(SavedSearchCommands::class)->restore($this->snapshotRows($snapshot, 'saved_searches'));
         $this->restoreChildModels('aiUsageLogs', $this->snapshotRows($snapshot, 'ai_usage_logs'));
         $this->restoreSingleChildModel('notificationSetting', $snapshot['notification_setting'] ?? null);
         $this->restoreChildModels('notificationDestinations', $this->snapshotRows($snapshot, 'notification_destinations'));

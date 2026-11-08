@@ -1,8 +1,8 @@
 <?php
 
+use App\Features\SavedSearches\Models\SavedSearch;
 use App\Models\Reference;
 use App\Models\Report;
-use App\Models\SavedSearch;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 

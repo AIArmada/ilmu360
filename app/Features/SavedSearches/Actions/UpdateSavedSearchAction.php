@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Actions\SavedSearches;
+namespace App\Features\SavedSearches\Actions;
 
-use App\Models\SavedSearch;
-use App\Support\SavedSearches\SavedSearchFilterNormalizer;
+use App\Features\SavedSearches\Models\SavedSearch;
+use App\Shared\Discovery\SearchFilterNormalizer;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 final readonly class UpdateSavedSearchAction
@@ -11,7 +11,7 @@ final readonly class UpdateSavedSearchAction
     use AsAction;
 
     public function __construct(
-        private SavedSearchFilterNormalizer $filterNormalizer,
+        private SearchFilterNormalizer $filterNormalizer,
     ) {}
 
     /**

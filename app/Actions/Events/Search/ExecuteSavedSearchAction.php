@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Actions\SavedSearches;
+namespace App\Actions\Events\Search;
 
+use App\Features\SavedSearches\Api\SavedSearchSnapshot;
 use App\Models\Event;
-use App\Models\SavedSearch;
 use App\Models\User;
 use App\Services\EventSearchService;
 use App\Services\Signals\ProductSignalsService;
@@ -24,15 +24,15 @@ final readonly class ExecuteSavedSearchAction
     /**
      * @return LengthAwarePaginator<int, Event>
      */
-    public function handle(SavedSearch $savedSearch, ?Request $request = null): LengthAwarePaginator
+    public function handle(SavedSearchSnapshot $savedSearch, ?Request $request = null): LengthAwarePaginator
     {
         $filters = $this->normalizeFilters($savedSearch->filters);
 
-        $events = ($savedSearch->lat !== null && $savedSearch->lng !== null && $savedSearch->radius_km !== null)
+        $events = ($savedSearch->lat !== null && $savedSearch->lng !== null && $savedSearch->radiusKm !== null)
             ? $this->searchService->searchNearby(
                 lat: $savedSearch->lat,
                 lng: $savedSearch->lng,
-                radiusKm: $savedSearch->radius_km,
+                radiusKm: $savedSearch->radiusKm,
                 filters: $filters,
                 perPage: 20,
             )
@@ -53,10 +53,10 @@ final readonly class ExecuteSavedSearchAction
             filters: array_merge($filters, array_filter([
                 'lat' => $savedSearch->lat,
                 'lng' => $savedSearch->lng,
-                'radius_km' => $savedSearch->radius_km,
+                'radius_km' => $savedSearch->radiusKm,
             ], static fn (mixed $value): bool => $value !== null)),
             resultCount: $events->total(),
-            savedSearchId: (string) $savedSearch->getKey(),
+            savedSearchId: $savedSearch->id,
         );
 
         return $events;

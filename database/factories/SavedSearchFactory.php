@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Database\Factories;
 
 use App\Contracts\EventCategoryCatalog;
-use App\Models\SavedSearch;
+use App\Features\SavedSearches\Models\SavedSearch;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -14,6 +14,8 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class SavedSearchFactory extends Factory
 {
+    protected $model = SavedSearch::class;
+
     /**
      * Define the model's default state.
      *

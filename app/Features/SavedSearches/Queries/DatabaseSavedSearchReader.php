@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Services;
+namespace App\Features\SavedSearches\Queries;
 
-use App\Contracts\SavedSearchReader;
-use App\Data\SavedSearchSnapshot;
-use App\Models\SavedSearch;
+use App\Features\SavedSearches\Api\SavedSearchReader;
+use App\Features\SavedSearches\Api\SavedSearchSnapshot;
+use App\Features\SavedSearches\Models\SavedSearch;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -42,6 +42,13 @@ final class DatabaseSavedSearchReader implements SavedSearchReader
         return SavedSearch::query()->whereKey($id)->exists();
     }
 
+    public function findForOwner(string $ownerType, string $ownerId, string $searchId): ?SavedSearchSnapshot
+    {
+        $savedSearch = $this->ownerQuery($ownerType, $ownerId)->find($searchId);
+
+        return $savedSearch instanceof SavedSearch ? $this->snapshot($savedSearch) : null;
+    }
+
     public function hasEarlierForOwner(string $ownerType, string $ownerId, string $excludingId, CarbonImmutable $before): bool
     {
         return $this->ownerQuery($ownerType, $ownerId)
@@ -61,7 +68,7 @@ final class DatabaseSavedSearchReader implements SavedSearchReader
         return SavedSearch::query()->where('user_type', $ownerType)->where('user_id', $ownerId);
     }
 
-    private function snapshot(SavedSearch $savedSearch): SavedSearchSnapshot
+    public function snapshot(SavedSearch $savedSearch): SavedSearchSnapshot
     {
         return new SavedSearchSnapshot(
             id: (string) $savedSearch->getKey(),
@@ -75,6 +82,8 @@ final class DatabaseSavedSearchReader implements SavedSearchReader
             lng: $savedSearch->lng,
             radiusKm: $savedSearch->radius_km,
             createdAt: $savedSearch->created_at !== null ? CarbonImmutable::instance($savedSearch->created_at) : null,
+            payload: $savedSearch->toArray(),
+            updatedAt: $savedSearch->updated_at !== null ? CarbonImmutable::instance($savedSearch->updated_at) : null,
         );
     }
 }

@@ -578,12 +578,19 @@ Review: the open-book icon now uses a symmetric path bounded by the 24×24 viewB
 - [x] Part 5a: consolidate Saved Searches deletion/restoration writes and redirect API/page/account lifecycle callers; checkpoint subject `refactor(saved-searches): consolidate deletion and restoration writes`.
 - [x] Part 5b: read-only Saved Searches contract/snapshots and external consumers committed as `036ca6e7`.
 - [x] Correct baseline DashboardPagesTest account-settings copy assertions in a separate verified commit; checkpoint subject `test(dashboard): align notification settings copy assertions`.
-- [ ] Part 5c: Saved Searches model, actions, remaining integrations and entrypoint ownership cutover. Full Saved Searches adoption remains open.
+- [x] Part 5c: Saved Searches persistence/model/actions/public API and registration cutover verified; transport composition remains Part 5d. Full-app adoption remains open.
 
 Part 5c plan: first fix and verify API owner-type isolation in its own commit; then move model, core mutations and immutable reads into the owning feature, redirect composition workflows through public contracts, remove the User relation and verify registrations/payload parity/cache modes. Keep event execution and attribution orchestration in their actual integration owners.
 
 - [x] Part 5c.1: enforce both owner type and ID for API listing/policies. Five isolation regressions plus API/page/attribution coverage pass (83 tests, 445 assertions); Pint, PHPStan plus ownership rule, boundaries and scoped Rector pass. Checkpoint subject `fix(saved-searches): enforce polymorphic API ownership`.
-- [ ] Part 5c.2: complete the owning model/actions/read API cutover with preserved transport payloads and registrations.
+- [x] Part 5c.2: owning model/actions/read API cutover verified; 113 focused tests/550 assertions pass in each cached and uncached mode, PHPStan plus ownership rule reports zero errors, boundaries pass for three features, all 750 routes unchanged, Pint/review pass. Checkpoint subject `refactor(saved-searches): own persistence behind public APIs`.
+- [x] Tooling correction `721a8a39`: canonical fixture/seeder/migration roles are excluded from runtime ownership enforcement; production lookalikes remain rejected. All 13 architecture checks pass (52 assertions).
+- [ ] Part 5d.1: resolve the eleven independently reproduced baseline search/docs failures, one coherent verified commit per root cause; exact checklist/evidence in `tasks/agent-architecture-migration.md`.
+- [ ] Part 5d.2: localize remaining Saved Searches HTTP/page composition and route registration through real discovery/directory/attribution boundaries; preserve public aliases and response semantics.
+
+Part 5c review: owner-type isolation committed as `5145c2e8` (83 tests/445 assertions). Core persistence now has one owning feature and five declared write actions; external readers/writers use immutable public contracts, User's mutable relation is removed, explicit factory/policy/snapshot binding and configured table behavior are preserved. Initial broad run had 427/452 passing cases; fourteen migration/test-setup failures were corrected and verified by the final focused cached/uncached runs. The other eleven search/docs failures reproduce exactly on pre-cutover baseline `721a8a39` and remain explicitly open. Temporary test config/routes caches were cleared, pending work was restored after the protected baseline probe, and no deployment/live-data/dependency/schema change occurred.
+
+Final transport contract check: explicitly retained UUID path-parameter documentation after snapshot binding; fresh focused OpenAPI generation passed (1 test, 12 assertions), with final PHPStan still reporting zero errors.
 
 Part 5a review: API attribution reversal and transaction, plain page/account deletion, and quiet snapshot restoration remain unchanged. Owner-isolation and restoration regressions pass. All 85 affected tests pass across the initial run and corrected lifecycle-file rerun; Pint, PHPStan level 6 plus owned-write rule, boundaries, scoped Rector and unchanged-route comparison pass. The migration checklist records the next consumer map and exact verification logs.
 

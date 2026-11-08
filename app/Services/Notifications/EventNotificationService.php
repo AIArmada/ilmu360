@@ -4,14 +4,14 @@ namespace App\Services\Notifications;
 
 use AIArmada\Communications\Contracts\CommunicationManager;
 use AIArmada\Events\Models\EventSubmission;
-use App\Contracts\SavedSearchReader;
-use App\Data\SavedSearchSnapshot;
 use App\Enums\EventChangeSeverity;
 use App\Enums\EventChangeType;
 use App\Enums\EventVisibility;
 use App\Enums\NotificationCadence;
 use App\Enums\NotificationPriority;
 use App\Enums\NotificationTrigger;
+use App\Features\SavedSearches\Api\SavedSearchReader;
+use App\Features\SavedSearches\Api\SavedSearchSnapshot;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\EventCheckin;

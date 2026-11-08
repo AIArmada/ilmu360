@@ -88,7 +88,6 @@ use App\Contracts\EventCategoryCatalog;
 use App\Contracts\EventCategoryPolicyResolver;
 use App\Contracts\NullCaptchaVerifier;
 use App\Contracts\NullSignupAttributionSourceResolver;
-use App\Contracts\SavedSearchReader;
 use App\Contracts\ShareTrackingContract;
 use App\Contracts\SignupAttributionSourceResolver;
 use App\Contracts\SpaceEligibilityResolver;
@@ -163,18 +162,21 @@ use App\Policies\RewardPayoutRequestPolicy;
 use App\Policies\RewardProgramPolicy;
 use App\Policies\RewardRecoveryPolicy;
 use App\Services\Captcha\TurnstileVerifier;
-use App\Services\DatabaseSavedSearchReader;
 use App\Services\EventCategoryCatalog as DefaultEventCategoryCatalog;
 use App\Services\EventCategoryPolicy;
 use App\Services\ShareTrackingService;
 use App\Services\Spaces\DefaultSpaceEligibilityResolver;
+use App\Shared\Auth\UserMorphType;
+use App\Shared\Discovery\SearchFilterNormalizer;
 use App\Support\Auth\AffiliateSignupAttributionSourceResolver;
+use App\Support\Auth\EloquentUserMorphType;
 use App\Support\Communications\AppConsentResolver;
 use App\Support\Communications\AppPreferenceResolver;
 use App\Support\Communications\AppQuietHoursResolver;
 use App\Support\Communications\AppSuppressionResolver;
 use App\Support\Communications\ListSafePayloadRedactor;
 use App\Support\Communications\ProbeSafeDestinationResolver;
+use App\Support\Discovery\EventSearchFilterNormalizer;
 use App\Support\Filament\ContentVersionedJs;
 use App\Support\Media\MediaFileNamer;
 use App\Support\Membership\AppMembershipApplicationNotifier;
@@ -238,7 +240,8 @@ class AppServiceProvider extends ServiceProvider
     #[\Override]
     public function register(): void
     {
-        $this->app->bind(SavedSearchReader::class, DatabaseSavedSearchReader::class);
+        $this->app->bind(UserMorphType::class, EloquentUserMorphType::class);
+        $this->app->bind(SearchFilterNormalizer::class, EventSearchFilterNormalizer::class);
         $this->app->bind(Js::class, ContentVersionedJs::class);
 
         $this->app->singleton(EventCategoryCatalog::class, DefaultEventCategoryCatalog::class);

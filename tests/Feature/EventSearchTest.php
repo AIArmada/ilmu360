@@ -32,9 +32,9 @@ use App\Services\PublicScheduleDiscoveryService;
 use App\Services\TypesenseEventDiscovery;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerReference;
+use App\Support\Discovery\EventSearchFilterNormalizer;
 use App\Support\Location\PublicGeolocationPermission;
 use App\Support\Location\VisitorCountryResolver;
-use App\Support\SavedSearches\SavedSearchFilterNormalizer;
 use Database\Seeders\AIArmada\EventTopicSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -1129,7 +1129,7 @@ describe('Event Search Filters', function () {
     });
 
     it('supports saving a search that only uses the person name filter', function () {
-        expect(app(SavedSearchFilterNormalizer::class)->normalizeForStorage([
+        expect(app(EventSearchFilterNormalizer::class)->normalizeForStorage([
             'person_name_search' => '  Samad  ',
             'unknown_key' => 'ignored',
         ]))->toBe(['person_name_search' => 'Samad']);

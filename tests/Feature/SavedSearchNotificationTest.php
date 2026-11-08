@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 use App\Enums\NotificationCadence;
 use App\Enums\NotificationTrigger;
+use App\Features\SavedSearches\Models\SavedSearch;
 use App\Models\Event;
 use App\Models\Institution;
-use App\Models\SavedSearch;
 use App\Models\User;
 use App\Services\Notifications\EventNotificationService;
 use App\Support\Notifications\NotificationDispatchData;

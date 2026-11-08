@@ -2,9 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Models;
+namespace App\Features\SavedSearches\Models;
 
 use AIArmada\CommerceSupport\Models\SavedSearch as BaseSavedSearch;
+use App\Shared\Auth\UserMorphType;
 use Database\Factories\SavedSearchFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -13,6 +14,8 @@ class SavedSearch extends BaseSavedSearch
 {
     /** @use HasFactory<SavedSearchFactory> */
     use HasFactory, HasUuids;
+
+    protected $table = 'saved_searches';
 
     protected $fillable = [
         'user_id', 'user_type', 'name', 'query', 'filters', 'meta',
@@ -33,7 +36,12 @@ class SavedSearch extends BaseSavedSearch
     protected static function booted(): void
     {
         static::creating(function (self $savedSearch) {
-            $savedSearch->user_type ??= (new User)->getMorphClass();
+            $savedSearch->user_type ??= app(UserMorphType::class)->morphClass();
         });
+    }
+
+    protected static function newFactory(): SavedSearchFactory
+    {
+        return SavedSearchFactory::new();
     }
 }

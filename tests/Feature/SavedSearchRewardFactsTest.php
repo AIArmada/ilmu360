@@ -7,7 +7,7 @@ use AIArmada\Rewards\Enums\RewardSourceCorrectionStatus;
 use AIArmada\Rewards\Enums\RewardSourceFraudStatus;
 use AIArmada\Rewards\Enums\RewardVerificationLevel;
 use App\Enums\ShareOutcomeType;
-use App\Models\SavedSearch;
+use App\Features\SavedSearches\Models\SavedSearch;
 use App\Models\User;
 use App\Support\Rewards\ActivityRewardSourceFactReader;
 use App\Support\Rewards\ShareAttributionRewardSourceFactReader;

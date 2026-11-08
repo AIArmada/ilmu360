@@ -155,7 +155,7 @@
                                         <div>
                                             <h3 class="font-heading text-lg font-bold text-slate-900">{{ $savedSearch->name }}</h3>
                                             <p class="mt-1 text-xs text-slate-500">
-                                                {{ __('Updated :time', ['time' => $savedSearch->updated_at?->diffForHumans()]) }}
+                                                {{ __('Updated :time', ['time' => $savedSearch->updatedAt?->diffForHumans()]) }}
                                             </p>
                                         </div>
                                         <span
@@ -173,7 +173,7 @@
 
                                     @if(is_array($savedSearch->filters) && $savedSearch->filters !== [])
                                         <div class="mt-3 flex flex-wrap gap-2">
-                                            @foreach($this->formatCapturedFilters($savedSearch->filters, $savedSearch->radius_km, $savedSearch->lat, $savedSearch->lng) as $capturedFilter)
+                                            @foreach($this->formatCapturedFilters($savedSearch->filters, $savedSearch->radiusKm, $savedSearch->lat, $savedSearch->lng) as $capturedFilter)
                                                 <span
                                                     class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700">
                                                     {{ $capturedFilter['label'] }}: {{ $capturedFilter['value'] }}

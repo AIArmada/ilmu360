@@ -2,9 +2,8 @@
 
 declare(strict_types=1);
 
-namespace App\Contracts;
+namespace App\Features\SavedSearches\Api;
 
-use App\Data\SavedSearchSnapshot;
 use Carbon\CarbonImmutable;
 
 interface SavedSearchReader
@@ -16,6 +15,8 @@ interface SavedSearchReader
     public function notificationCandidates(): iterable;
 
     public function find(string $id): ?SavedSearchSnapshot;
+
+    public function findForOwner(string $ownerType, string $ownerId, string $searchId): ?SavedSearchSnapshot;
 
     public function exists(string $id): bool;
 

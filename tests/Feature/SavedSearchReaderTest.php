@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use App\Contracts\SavedSearchReader;
-use App\Data\SavedSearchSnapshot;
-use App\Models\SavedSearch;
+use App\Features\SavedSearches\Api\SavedSearchReader;
+use App\Features\SavedSearches\Api\SavedSearchSnapshot;
+use App\Features\SavedSearches\Models\SavedSearch;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 
@@ -35,8 +35,10 @@ it('returns detached search content and immutable timestamp values', function (s
         'lng' => 101.7654321,
         'radius_km' => 12,
         'created_at' => '2025-02-03 04:05:06',
+        'updated_at' => '2025-02-03 04:05:07',
     ]);
     $reader = app(SavedSearchReader::class);
+    $originalPayload = $savedSearch->refresh()->toArray();
 
     $snapshot = $reader->find($savedSearch->id);
     $savedSearch->update(['name' => 'Changed name', 'query' => 'changed', 'filters' => []]);
@@ -53,6 +55,8 @@ it('returns detached search content and immutable timestamp values', function (s
         lng: 101.7654321,
         radiusKm: 12,
         createdAt: CarbonImmutable::parse('2025-02-03 04:05:06', 'UTC'),
+        payload: $originalPayload,
+        updatedAt: CarbonImmutable::parse('2025-02-03 04:05:07', 'UTC'),
     ));
 })->with([
     'text query' => ['kuliah'],

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\SavedSearches;
+namespace App\Features\SavedSearches\Actions;
 
-use App\Models\SavedSearch;
+use App\Features\SavedSearches\Models\SavedSearch;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 final readonly class DeleteOwnerSavedSearchesAction

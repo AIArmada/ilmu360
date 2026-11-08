@@ -18,7 +18,7 @@ use AIArmada\Rewards\Enums\RewardSourceCorrectionStatus;
 use AIArmada\Rewards\Enums\RewardSourceFraudStatus;
 use AIArmada\Rewards\Enums\RewardVerificationLevel;
 use AIArmada\Rewards\Support\RewardSourceFact;
-use App\Contracts\SavedSearchReader;
+use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Models\EventCheckin;
 use App\Models\EventSubmission;
 use App\Models\Registration;

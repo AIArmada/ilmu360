@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Models\SavedSearch;
+use App\Features\SavedSearches\Models\SavedSearch;
 use App\Models\User;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Laravel\Sanctum\Sanctum;
