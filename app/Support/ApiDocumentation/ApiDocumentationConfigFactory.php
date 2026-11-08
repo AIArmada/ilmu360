@@ -30,6 +30,7 @@ class ApiDocumentationConfigFactory
                 ApiSecurityRequirementExtension::class,
                 ApiRequestBodyExamplesExtension::class,
                 SignalsDocsExtension::class,
+                SavedSearchExecutionDocsExtension::class,
             ])
             ->withDocumentTransformers([
                 PublicDirectorySchemasTransformer::class,

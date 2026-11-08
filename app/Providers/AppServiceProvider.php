@@ -91,6 +91,7 @@ use App\Contracts\NullSignupAttributionSourceResolver;
 use App\Contracts\ShareTrackingContract;
 use App\Contracts\SignupAttributionSourceResolver;
 use App\Contracts\SpaceEligibilityResolver;
+use App\Features\SavedSearches\Api\SavedSearchExecutor;
 use App\Http\Controllers\Mcp\OAuthRegisterController;
 use App\Listeners\ShareTracking\ReverseRegistrationShareOutcome;
 use App\Listeners\ShareTracking\ReverseScheduleCancellationShareOutcome;
@@ -180,6 +181,7 @@ use App\Support\Communications\AppSuppressionResolver;
 use App\Support\Communications\ListSafePayloadRedactor;
 use App\Support\Communications\ProbeSafeDestinationResolver;
 use App\Support\Discovery\DatabaseSearchFilterLabels;
+use App\Support\Discovery\EventSavedSearchExecutor;
 use App\Support\Discovery\EventSearchFilterCatalog;
 use App\Support\Discovery\EventSearchFilterNormalizer;
 use App\Support\Discovery\EventSearchFilterRules;
@@ -250,6 +252,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(SearchFilterNormalizer::class, EventSearchFilterNormalizer::class);
         $this->app->bind(SearchFilterCatalog::class, EventSearchFilterCatalog::class);
         $this->app->bind(SearchFilterRules::class, EventSearchFilterRules::class);
+        $this->app->bind(SavedSearchExecutor::class, EventSavedSearchExecutor::class);
         $this->app->scoped(SearchFilterLabels::class, DatabaseSearchFilterLabels::class);
         $this->app->bind(Js::class, ContentVersionedJs::class);
 

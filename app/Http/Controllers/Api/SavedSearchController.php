@@ -2,17 +2,16 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Actions\Events\Search\ExecuteSavedSearchAction;
 use App\Actions\SavedSearches\CreateSavedSearchAction;
 use App\Actions\SavedSearches\DeleteSavedSearchWithAttributionReversalAction;
 use App\Features\SavedSearches\Api\SavedSearchCommands;
+use App\Features\SavedSearches\Api\SavedSearchExecutor;
 use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Features\SavedSearches\Api\SavedSearchSnapshot;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Shared\Discovery\SearchFilterRules;
 use App\Shared\Integrations\SavedSearchLimitReachedException;
-use App\Support\Api\ApiPagination;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
@@ -178,16 +177,16 @@ class SavedSearchController extends Controller
         description: 'Executes a stored saved-search definition and returns the current matching event results.',
     )]
     #[PathParameter('savedSearch', 'The saved search ID', type: 'string', format: 'uuid', infer: false)]
-    public function execute(SavedSearchSnapshot $savedSearch, ExecuteSavedSearchAction $executeSavedSearchAction): JsonResponse
+    public function execute(SavedSearchSnapshot $savedSearch, SavedSearchExecutor $executor): JsonResponse
     {
         $this->authorize('view', $savedSearch);
 
-        $events = $executeSavedSearchAction->handle($savedSearch, request());
+        $result = $executor->execute($savedSearch);
 
         return response()->json([
-            'data' => $events->items(),
+            'data' => $result->items,
             'meta' => [
-                'pagination' => ApiPagination::paginationMeta($events),
+                'pagination' => $result->pagination(),
             ],
         ]);
     }

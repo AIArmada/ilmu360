@@ -320,6 +320,45 @@ it('records signals events for api and saved search executions', function () {
     expect($event->title)->toBe('Signals Search Event');
 });
 
+it('records one normalized saved-search execution signal including zero-value location', function () {
+    $user = User::factory()->create();
+    $savedSearch = SavedSearch::factory()->create([
+        'user_id' => $user->id,
+        'query' => 'Signals Zero Location',
+        'filters' => [
+            'language_codes' => [' ms ', ''],
+            'not_a_filter' => 'ignored',
+        ],
+        'lat' => 0.0,
+        'lng' => 0.0,
+        'radius_km' => null,
+    ]);
+
+    Sanctum::actingAs($user);
+
+    $this->postJson("/api/v1/saved-searches/{$savedSearch->id}/execute")
+        ->assertOk();
+
+    $signals = SignalEvent::query()
+        ->where('event_name', 'search.executed')
+        ->get();
+
+    expect($signals)->toHaveCount(1);
+
+    $signal = $signals->sole();
+
+    expect(data_get($signal->properties, 'surface'))->toBe('saved_search.execute')
+        ->and(data_get($signal->properties, 'query'))->toBe('Signals Zero Location')
+        ->and(data_get($signal->properties, 'saved_search_id'))->toBe($savedSearch->id)
+        ->and(data_get($signal->properties, 'result_count'))->toBe(0)
+        ->and(data_get($signal->properties, 'filters.language_codes'))->toBe(['ms'])
+        ->and(data_get($signal->properties, 'filters'))->not->toHaveKey('not_a_filter')
+        ->and(data_get($signal->properties, 'filters.lat'))->toBe(0)
+        ->and(data_get($signal->properties, 'filters.lng'))->toBe(0)
+        ->and(data_get($signal->properties, 'filter_keys'))->toContain('lat', 'lng', 'language_codes')
+        ->and($signal->identity?->external_id)->toBe($user->id);
+});
+
 it('records normalized client context for api and mobile search telemetry', function () {
     Event::factory()->create([
         'title' => 'Signals Client Context Event',

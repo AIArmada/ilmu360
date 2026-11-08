@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\Events\Contracts\EventSearchRelationProvider;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
@@ -7,6 +8,7 @@ use App\Enums\EventKeyPersonRole;
 use App\Enums\TimingMode;
 use App\Features\SavedSearches\Models\SavedSearch;
 use App\Models\Event;
+use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
 use App\Shared\Prayer\EventPrayerTime;
@@ -514,6 +516,142 @@ describe('Saved Search API Endpoints', function () {
                 expect(collect($response->json('data'))->pluck('title')->all())
                     ->toContain('Saved Search Local Date Match')
                     ->not->toContain('Saved Search Local Date Non Match');
+            });
+
+            it('returns the complete native event payload unchanged', function () {
+                config()->set('scout.driver', 'database');
+
+                $institution = Institution::factory()->create();
+                $event = Event::factory()->for($institution)->create([
+                    'title' => 'Saved Search Rich Payload Match',
+                    'status' => 'approved',
+                    'visibility' => 'public',
+                    'published_at' => now(),
+                    'starts_at' => now()->addDays(2),
+                ])->refresh();
+
+                $search = SavedSearch::factory()->create([
+                    'user_id' => $this->user->id,
+                    'query' => 'Saved Search Rich Payload Match',
+                    'filters' => null,
+                    'radius_km' => null,
+                    'lat' => null,
+                    'lng' => null,
+                ]);
+
+                $response = $this->postJson("/api/v1/saved-searches/{$search->id}/execute");
+
+                $response->assertOk();
+
+                $expected = Event::query()
+                    ->with(app(EventSearchRelationProvider::class)->relations())
+                    ->findOrFail($event->id)
+                    ->toArray();
+
+                expect($response->json('data'))->toEqual([$expected])
+                    ->and($response->json('data.0.primary_occurrence'))->not->toBeNull()
+                    ->and($response->json('data.0.classifications'))->toBeArray()
+                    ->and($response->json('data.0.language_records'))->toBeArray();
+            });
+
+            it('preserves first, last and empty execution pagination metadata', function () {
+                config()->set('scout.driver', 'database');
+
+                Event::factory()->count(21)->create([
+                    'status' => 'approved',
+                    'visibility' => 'public',
+                    'published_at' => now(),
+                    'starts_at' => now()->addDays(2),
+                ]);
+
+                $search = SavedSearch::factory()->create([
+                    'user_id' => $this->user->id,
+                    'query' => null,
+                    'filters' => null,
+                    'radius_km' => null,
+                    'lat' => null,
+                    'lng' => null,
+                ]);
+
+                $first = $this->postJson("/api/v1/saved-searches/{$search->id}/execute");
+
+                $first->assertOk()
+                    ->assertJsonCount(20, 'data')
+                    ->assertJsonPath('meta.pagination.page', 1)
+                    ->assertJsonPath('meta.pagination.per_page', 20)
+                    ->assertJsonPath('meta.pagination.total', 21)
+                    ->assertJsonPath('meta.pagination.has_more', true)
+                    ->assertJsonPath('meta.pagination.next_page', 2);
+
+                $last = $this->postJson("/api/v1/saved-searches/{$search->id}/execute?page=2");
+
+                $last->assertOk()
+                    ->assertJsonCount(1, 'data')
+                    ->assertJsonPath('meta.pagination.page', 2)
+                    ->assertJsonPath('meta.pagination.per_page', 20)
+                    ->assertJsonPath('meta.pagination.total', 21)
+                    ->assertJsonPath('meta.pagination.has_more', false)
+                    ->assertJsonPath('meta.pagination.next_page', null);
+
+                $emptySearch = SavedSearch::factory()->create([
+                    'user_id' => $this->user->id,
+                    'query' => 'Saved Search Without Any Match',
+                    'filters' => null,
+                    'radius_km' => null,
+                    'lat' => null,
+                    'lng' => null,
+                ]);
+
+                $empty = $this->postJson("/api/v1/saved-searches/{$emptySearch->id}/execute");
+
+                $empty->assertOk()
+                    ->assertJsonCount(0, 'data')
+                    ->assertJsonPath('meta.pagination.page', 1)
+                    ->assertJsonPath('meta.pagination.per_page', 20)
+                    ->assertJsonPath('meta.pagination.total', 0)
+                    ->assertJsonPath('meta.pagination.has_more', false)
+                    ->assertJsonPath('meta.pagination.next_page', null);
+            });
+
+            it('executes the nearby branch when coordinates and radius are complete', function () {
+                config()->set('scout.driver', 'database');
+
+                $institution = Institution::factory()->create();
+                syncPrimaryAddressForTest($institution, [
+                    'lat' => 3.1390,
+                    'lng' => 101.6869,
+                ]);
+
+                Event::factory()->for($institution)->create([
+                    'title' => 'Saved Search Nearby Match',
+                    'status' => 'approved',
+                    'visibility' => 'public',
+                    'published_at' => now(),
+                    'starts_at' => now()->addDays(2),
+                ]);
+
+                $search = SavedSearch::factory()->create([
+                    'user_id' => $this->user->id,
+                    'query' => 'free text is ignored by the nearby branch',
+                    'filters' => null,
+                    'radius_km' => 12,
+                    'lat' => 3.1390,
+                    'lng' => 101.6869,
+                ]);
+
+                $response = $this->postJson("/api/v1/saved-searches/{$search->id}/execute");
+
+                $response->assertOk();
+
+                expect(collect($response->json('data'))->pluck('title')->all())
+                    ->toContain('Saved Search Nearby Match');
+            });
+
+            it('prevents executing other users saved searches', function () {
+                $otherSearch = SavedSearch::factory()->create();
+
+                $this->postJson("/api/v1/saved-searches/{$otherSearch->id}/execute")
+                    ->assertForbidden();
             });
         });
     });

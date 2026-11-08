@@ -1,7 +1,11 @@
 <?php
 
-namespace App\Actions\Events\Search;
+declare(strict_types=1);
 
+namespace App\Support\Discovery;
+
+use App\Features\SavedSearches\Api\SavedSearchExecutionResult;
+use App\Features\SavedSearches\Api\SavedSearchExecutor;
 use App\Features\SavedSearches\Api\SavedSearchSnapshot;
 use App\Models\Event;
 use App\Models\User;
@@ -11,21 +15,16 @@ use App\Shared\Discovery\SearchFilterKeys;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
-use Lorisleiva\Actions\Concerns\AsAction;
 
-final readonly class ExecuteSavedSearchAction
+final readonly class EventSavedSearchExecutor implements SavedSearchExecutor
 {
-    use AsAction;
-
     public function __construct(
         private EventSearchService $searchService,
         private ProductSignalsService $productSignalsService,
+        private Request $request,
     ) {}
 
-    /**
-     * @return LengthAwarePaginator<int, Event>
-     */
-    public function handle(SavedSearchSnapshot $savedSearch, ?Request $request = null): LengthAwarePaginator
+    public function execute(SavedSearchSnapshot $savedSearch): SavedSearchExecutionResult
     {
         $filters = $this->normalizeFilters($savedSearch->filters);
 
@@ -43,12 +42,11 @@ final readonly class ExecuteSavedSearchAction
                 perPage: 20,
             );
 
-        $resolvedRequest = $request ?? request();
-        $user = $resolvedRequest->user();
+        $user = $this->request->user();
 
         $this->productSignalsService->recordSearchExecuted(
             user: $user instanceof User ? $user : null,
-            request: $resolvedRequest,
+            request: $this->request,
             surface: 'saved_search.execute',
             query: is_string($savedSearch->query) ? $savedSearch->query : null,
             filters: array_merge($filters, array_filter([
@@ -60,7 +58,27 @@ final readonly class ExecuteSavedSearchAction
             savedSearchId: $savedSearch->id,
         );
 
-        return $events;
+        return $this->result($events);
+    }
+
+    /**
+     * @param  LengthAwarePaginator<int, Event>  $events
+     */
+    private function result(LengthAwarePaginator $events): SavedSearchExecutionResult
+    {
+        $hasMore = $events->hasMorePages();
+
+        return new SavedSearchExecutionResult(
+            items: array_values(array_map(
+                static fn (Event $event): array => $event->toArray(),
+                $events->items(),
+            )),
+            page: $events->currentPage(),
+            perPage: $events->perPage(),
+            total: $events->total(),
+            hasMore: $hasMore,
+            nextPage: $hasMore ? $events->currentPage() + 1 : null,
+        );
     }
 
     /**
