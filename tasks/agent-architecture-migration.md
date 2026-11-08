@@ -5,15 +5,15 @@
 ## Resume here
 
 - Current checkpoint: the whole **ilmu360°** application conversion remains incomplete. Branch `refactor`.
-- Latest accepted implementation checkpoint `80f1d408` — saved-search attribution orchestration behind public Api (attribution actions + Shared port, roots deleted, ResourceOwner preserved). Previous accepted `0d82b947` — Phase-1 identity. Before that `782c8747` — execution result boundary.
+- Latest accepted implementation checkpoint `69244285` — saved-search atomic transport cutover + Phase 2/3 boundaries (EntryPoints, feature Routes, explicit Livewire alias, roots deleted, values/helpers homed). Previous accepted `80f1d408` — attribution orchestration. Full 5d.2c.3b evidence in history.
 - Done: GitHubIssues; Prayer; Saved Searches persistence, core and query/execution boundaries. Remaining Saved Searches work is transport and page composition.
 - Do not reintroduce `User::savedSearches()`, a mutable Event paginator across the execution boundary, duplicate key lists, or obsolete taxonomy/addressing aliases.
 - Latest passing evidence (tests/assertions): 5d.2c.3a affected SavedSearch|SearchFilter **165/606**, Signals **17/95**, docs alignment **1/9**, execute schema **1/20**; PHPStan level 6/ownership, boundaries, scoped Rector and Pint pass. Detailed logs are in history.
 
-## Next action — 5d.2c.3b (Phase 1 done, Phases 2–5 open)
+## Next action — Feedback/reports (5d.2c.3b complete)
 
-- Phase 1 done (`0d82b947`) + attribution move done (`80f1d408`, DeepSeek-implemented + orchestrator-verified, mutual agreement): public Api orchestration with Shared port, roots deleted, `ResourceOwner` preserved.
-- Next: rebase held Slice 2 (additive transport prep) onto `80f1d408`, then Phase 2 feature-local values, Phase 3 Platform/Shared helpers, Phase 5 atomic route cutover.
+- Saved Searches 5d.2c.3b is done and committed (`69244285`, DeepSeek-implemented + orchestrator-verified, mutual agreement at every commit). Remaining verification: scoped Rector on touched scopes (deferred — run before leaving the area).
+- Next: trace Feedback/reports (conversations, report lifecycle, review and notification adapters) with a fresh bounded DeepSeek research task, then convert in verified slices per stage gates.
 
 - Map the actual existing root `CreateSavedSearchAction` and `DeleteSavedSearchWithAttributionReversalAction` callers, then move their orchestration to the correct owning boundary. Preserve owner/actor/request provenance, outer transactions and rollback, and the API-versus-page/account-deletion distinction. Move real implementation; no pass-through wrappers.
 - Then resolve identity and generic HTTP/UI helpers through public boundaries. Only after those dependencies are complete, cut over HTTP/page entrypoints and routes atomically across the six API actions.
@@ -40,12 +40,12 @@
 
 ## Remaining application parts
 
-- [ ] Saved Searches: transport/page composition, attribution orchestration, identity/generic helpers, atomic route cutover (current next stage).
+- [x] Saved Searches: persistence, core, query/execution boundaries, attribution orchestration, identity/generic helpers, atomic transport/page cutover (done `69244285`; evidence in history).
 - [ ] Feedback/reports: conversations, report lifecycle, review and notification adapters.
 - [ ] Inspirations: app-owned table, Save action, Filament persistence and frontend/API readers.
 - [ ] Identity/accounts: User/social accounts, auth/OAuth/Fortify, account lifecycle/restoration and public identity contracts.
 - [ ] Platform/shared seams: media, geography/addressing, timezone, generic API responses, search and auditing integration; no concrete feature imports in Platform/Shared.
-- [ ] Directory: institutions/names/import exclusions, persons/names/titles/affiliations, references/contributors, venues/spaces, institution bridges, donation channels and languages.
+- [ ] Directory: institutions/names/import exclusions, persons/names/titles/affiliations, references/contributors, venues/spaces, institution bridges, donation channels and languages. **D0 ownership map done** (DeepSeek research, orchestrator-accepted): one `App\Features\Directory` capability; hard prerequisites before any move are (a) minimal Identity/Membership seam (User reverse relations + `HasUserRestoration` Directory writes routed through public APIs, `event_involvements` FQCN→morph-alias migration) and (b) Platform/Shared D1 (media, auditing, geography/addressing split, cache, telemetry/auth/routing/search seams). Rulings: literal `$table` on feature models (drop unused env overrides); `MediaLink` → Events, not Directory; `person_search_terms`/`searchable_name` → Directory projection; `ContributionEntityMutationService` stays out; Series stays Events.
 - [ ] Organizations: current-owner context, workspace, readiness/access contracts; package remains canonical persistence owner.
 - [ ] Membership: applications/invitations and institution/person/reference/event membership pivots, roles and atomic ownership transfer.
 - [ ] Events authoring/submission/scheduling: events, occurrences/sessions, series/items, classifications, involvements, references, lifecycle and slugs.
