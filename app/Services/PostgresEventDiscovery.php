@@ -138,7 +138,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
         $endsAtColumn = PrimaryOccurrenceSql::column('ends_at', $table);
 
         $queryBuilder
-            ->whereIn("{$table}.status", Event::PUBLIC_STATUSES)
+            ->where("{$table}.status", 'approved')
             ->where("{$table}.visibility", EventVisibility::Public->value)
             ->whereNotNull("{$table}.published_at")
             ->whereHas('occurrences');

@@ -28,6 +28,7 @@ use App\Models\Space;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\EventSearchService;
+use App\Services\PostgresEventDiscovery;
 use App\Services\PublicScheduleDiscoveryService;
 use App\Services\TypesenseEventDiscovery;
 use App\Shared\Prayer\EventPrayerTime;
@@ -2638,7 +2639,7 @@ describe('Event Search Filters', function () {
             ->assertDontSee('Bulugh Session');
     });
 
-    it('shows approved, pending, and cancelled public events', function () {
+    it('lists only approved public events', function (?string $query) {
         createVisibleEventForSearch([
             'title' => 'Approved Event',
             'status' => 'approved',
@@ -2676,17 +2677,42 @@ describe('Event Search Filters', function () {
             'starts_at' => now()->addDays(4),
         ]);
 
-        $response = $this->get(eventsIndexUrl());
+        $response = $this->get(eventsIndexUrl(['search' => $query]));
 
         $response->assertOk()
             ->assertSee('Approved Event')
-            ->assertSee('Pending Event')
-            ->assertSee('Cancelled Event')
-            ->assertSee('Pending Approval')
-            ->assertSee('Dibatalkan')
+            ->assertDontSee('Pending Event')
+            ->assertDontSee('Cancelled Event')
             ->assertDontSee('Draft Event')
             ->assertDontSee('Private Event');
-    });
+    })->with(['browse' => null, 'text search' => 'Event']);
+
+    it('excludes unapproved events from each discovery adapter', function (string $adapter) {
+        config()->set('scout.driver', 'database');
+
+        $approved = createVisibleEventForSearch([
+            'title' => 'Approved Visibility Event',
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now(),
+            'starts_at' => now()->addDay(),
+        ]);
+
+        foreach (['pending', 'cancelled', 'draft'] as $status) {
+            createVisibleEventForSearch([
+                'title' => ucfirst($status).' Visibility Event',
+                'status' => $status,
+                'visibility' => 'public',
+                'published_at' => now(),
+                'starts_at' => now()->addDay(),
+            ]);
+        }
+
+        $criteria = app(EventDiscoveryCriteriaFactory::class)->fromSearch(null, [], 20, 'time');
+        $results = app($adapter)->search($criteria);
+
+        expect(collect($results->items())->pluck('id')->all())->toBe([$approved->id]);
+    })->with([PostgresEventDiscovery::class, TypesenseEventDiscovery::class]);
 
     it('paginates results', function () {
         foreach (range(1, 13) as $index) {

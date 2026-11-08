@@ -64,12 +64,12 @@ test('discovery criteria are normalized deterministically before search executio
         ->and($first->filters)->not->toHaveKey('empty');
 });
 
-test('typesense filters include active event constraint', function () {
+test('typesense filters restrict discovery to approved events', function () {
     $discovery = exposedTypesenseDiscovery();
 
     $filters = $discovery->exposedBuildTypesenseFilterParts([]);
 
-    expect($filters)->toContain('status:[approved, pending, cancelled]');
+    expect($filters)->toContain('status:=approved');
 });
 
 test('typesense filters include subdistrict constraint when provided', function () {

@@ -62,6 +62,7 @@ class TypesenseEventDiscovery implements EventDiscoveryAdapter
     ): LengthAwarePaginator {
         $search = Event::search($query ?? '')
             ->query(fn (Builder $builder) => $builder
+                ->where('events.status', 'approved')
                 ->whereHas('occurrences')
                 ->with($this->relationProvider->relations()));
 
@@ -92,6 +93,7 @@ class TypesenseEventDiscovery implements EventDiscoveryAdapter
         $search = Event::search('');
 
         $search->query(fn (Builder $builder) => $builder
+            ->where('events.status', 'approved')
             ->whereHas('occurrences')
             ->with($this->relationProvider->relations()));
         $search->options([
@@ -119,6 +121,7 @@ class TypesenseEventDiscovery implements EventDiscoveryAdapter
     ): LengthAwarePaginator {
         $search = Event::search($query)
             ->query(fn (Builder $builder) => $builder
+                ->where('events.status', 'approved')
                 ->whereHas('occurrences')
                 ->with($this->relationProvider->relations()));
 
@@ -145,7 +148,7 @@ class TypesenseEventDiscovery implements EventDiscoveryAdapter
         $timeScope = $this->normalizeTimeScope($filters['time_scope'] ?? null);
 
         $filterParts = [
-            'status:['.implode(', ', Event::PUBLIC_STATUSES).']',
+            'status:=approved',
             'visibility:public',
         ];
 
