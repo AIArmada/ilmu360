@@ -5,8 +5,8 @@
 - Scope: the **whole ilmu360° application**, converted in verified, committable parts.
 - Authorization: user invoked `laravel-agent-convert`, requested commits per part, and a checklist another agent can continue.
 - Branch: `refactor`. Initial working tree was clean on 2026-11-07.
-- Current part: **5d.1c — reward/community operation summaries** verified; checkpoint subject `docs(api): describe reward and community operations`. Request examples are committed as `44c2a1fd`; version assertions `134b8e78`; persistence `7d09ab0c`.
-- Next action: reconcile the institution description assertion and six event baseline cases. Keep root causes in separate verified commits. Persistence ownership is complete; the full transport slice and whole application remain open.
+- Current part: **5d.1d — institution Places contract assertions** verified; checkpoint subject `test(docs): verify the current institution Places contract`. All five original documentation failures are resolved. Summaries `1240a7b8`; request examples `44c2a1fd`; version assertions `134b8e78`; persistence `7d09ab0c`.
+- Next action: trace and resolve the six event baseline cases, starting with public listing visibility versus approved-only rules. Keep root causes in separate verified commits. Persistence ownership is complete; the full transport slice and whole application remain open.
 - Before continuing, read `AGENTS.md`, `.ai/rules/index.md`, `tasks/lessons.md`, and `/Users/Saiffil/.codex/skills/laravel-agent-convert/SKILL.md` with its architecture/migration/tooling references.
 - Update this checklist and `tasks/todo.md` in each part. Record commit subject, checks, limitations, and the next concrete action. A completed part does not mean full-app adoption.
 
@@ -312,12 +312,12 @@ Final verification and corrections:
 
 ### Part 5d.1 — reproduced baseline failures, before further transport localization
 
-All eleven below also fail on committed baseline **`721a8a39`** (same runtime Saved Searches implementation as `5145c2e8`, before the Part 5c.2 feature cutover). A focused baseline run selected exactly eleven tests: eleven failures, no errors, same test names as the unrelated failures in the broad cutover run. Log `/tmp/ilmu360-part5c-baseline-pest.log`; exact names `/tmp/ilmu360-part5c-baseline-failure-names.txt`. They remain open; do not label the full suite green or assume each is a product bug without tracing the canonical current behavior.
+All eleven below also fail on committed baseline **`721a8a39`** (same runtime Saved Searches implementation as `5145c2e8`, before the Part 5c.2 feature cutover). A focused baseline run selected exactly eleven tests: eleven failures, no errors, same test names as the unrelated failures in the broad cutover run. Log `/tmp/ilmu360-part5c-baseline-pest.log`; exact names `/tmp/ilmu360-part5c-baseline-failure-names.txt`. The five documentation cases are now resolved; six event cases remain open. Do not label the full suite green or assume each is a product bug without tracing the canonical current behavior.
 
 - [x] Scramble generated-spec version assertions: align focused/full generated specifications with installed Scramble's `3.1.2`; preserve the separate lightweight index catalog's existing `3.1.0` contract. Verified in Part 5d.1a below.
 - [x] Native mobile telemetry example restored by native MediaType serialization in Part 5d.1b; existing assertion passes unchanged.
 - [x] Live route/OpenAPI operation alignment: explicit summaries added for community release and 25 reward operations. Routes, security, summaries and successful responses now all satisfy the unchanged alignment regression (Part 5d.1c).
-- [ ] Institution workflow description assertion: expects canonical Google Maps URL wording, current contract requires a verified Places selection.
+- [x] Institution workflow description assertions now verify the current Places selection and server verification contract (Part 5d.1d).
 - [x] Agentic write request examples restored by native MediaType serialization in Part 5d.1b; existing assertions pass unchanged.
 - [ ] Public event listing expects a pending approval label; reconcile with approved-only public listing rules.
 - [ ] Pending event detail warning label assertion.
@@ -341,3 +341,7 @@ Both previously failing public docs regressions pass unchanged (telemetry and ag
 ### Part 5d.1c — reward/community summaries (2026-11-08)
 
 The inventory failure was at `summaryGaps`, not missing routes: community release and 25 reward operations were present but lacked meaningful summaries. Added explicit Endpoint titles to their nine controllers, including the administrator restriction on cohort metrics and verification step for payee registration. No routes, generic fallback labels, authorization, response payloads or persistence behavior changed. The unchanged full API-inventory regression now passes all checks for route coverage, security, summary presence and successful responses: **1 test, 9 assertions**, `/tmp/ilmu360-part5d-summaries-pest.log`. Pint, integrated level-6 analysis with ownership enforcement (zero errors) and whitespace pass. Checkpoint subject `docs(api): describe reward and community operations`. Seven original baseline cases remain open.
+
+### Part 5d.1d — institution Places contract (2026-11-08)
+
+The existing manifest, endpoint description and validation require `address.google_place_id`, verify the selected place server-side, and prohibit caller-supplied map URLs/provider identifiers as substitutes. Updated stale description assertions to verify this current contract; person country-ID assertions and the negative obsolete-country-key assertion remain intact. No production code changed. The complete documentation suite plus native request-example regression cases passes: **22 tests, 432 assertions**, `/tmp/ilmu360-part5d-docs-pest.log`. Pint and whitespace checks pass; the preceding integrated PHPStan/ownership run was clean and subsequent edits only change test literals. Checkpoint subject `test(docs): verify the current institution Places contract`. All five original documentation cases are resolved; six event cases remain open.
