@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support\ApiDocumentation;
 
 use Dedoc\Scramble\Extensions\OperationExtension;
+use Dedoc\Scramble\Support\Generator\MediaType;
 use Dedoc\Scramble\Support\Generator\Operation;
 use Dedoc\Scramble\Support\Generator\Reference;
 use Dedoc\Scramble\Support\Generator\RequestBodyObject;
@@ -179,19 +180,26 @@ final class ApiRequestBodyExamplesExtension extends OperationExtension
             return;
         }
 
-        $requestBodyObject = ExampleRequestBodyObject::fromRequestBodyObject($operation->requestBodyObject);
+        $requestBodyObject = $operation->requestBodyObject;
 
-        foreach ($requestBodyObject->content as $mediaType => $schema) {
-            $requestBodyObject->setContentExample((string) $mediaType, $example);
+        foreach (array_keys($requestBodyObject->content) as $mediaType) {
+            $content = $requestBodyObject->getContent($mediaType);
+            $content = $content instanceof Reference ? $content->resolve() : $content;
 
-            $resolvedSchema = $schema instanceof Reference ? $schema->resolve() : $schema;
+            if (! $content instanceof MediaType) {
+                continue;
+            }
+
+            $content = clone $content;
+            $content->setExample($example);
+            $requestBodyObject->addContent($mediaType, $content);
+
+            $resolvedSchema = $content->schema instanceof Reference ? $content->schema->resolve() : $content->schema;
 
             if ($resolvedSchema instanceof Schema) {
                 $resolvedSchema->type->example($example);
             }
         }
-
-        $operation->addRequestBodyObject($requestBodyObject);
     }
 
     /**

@@ -5,8 +5,8 @@
 - Scope: the **whole ilmu360° application**, converted in verified, committable parts.
 - Authorization: user invoked `laravel-agent-convert`, requested commits per part, and a checklist another agent can continue.
 - Branch: `refactor`. Initial working tree was clean on 2026-11-07.
-- Current part: **5d.1a — generated OpenAPI version assertions** verified; checkpoint subject `test(docs): align generated specification version assertions`. Persistence checkpoint is `7d09ab0c`; owner isolation `5145c2e8`; precise write-rule correction `721a8a39`.
-- Next action: fix request examples lost by the installed Scramble serializers, then diagnose the remaining route inventory, institution description and event baseline failures below, one coherent verified commit per root cause. Persistence ownership is complete; the full transport slice and whole application remain open.
+- Current part: **5d.1b — native request-example serialization** verified; checkpoint subject `fix(docs): preserve request examples through native media serialization`. Version assertions are committed as `134b8e78`; persistence checkpoint `7d09ab0c`.
+- Next action: document the 26 reward/community operation summaries (the routes are present), then reconcile the institution description and six event baseline cases. Keep root causes in separate verified commits. Persistence ownership is complete; the full transport slice and whole application remain open.
 - Before continuing, read `AGENTS.md`, `.ai/rules/index.md`, `tasks/lessons.md`, and `/Users/Saiffil/.codex/skills/laravel-agent-convert/SKILL.md` with its architecture/migration/tooling references.
 - Update this checklist and `tasks/todo.md` in each part. Record commit subject, checks, limitations, and the next concrete action. A completed part does not mean full-app adoption.
 
@@ -315,10 +315,10 @@ Final verification and corrections:
 All eleven below also fail on committed baseline **`721a8a39`** (same runtime Saved Searches implementation as `5145c2e8`, before the Part 5c.2 feature cutover). A focused baseline run selected exactly eleven tests: eleven failures, no errors, same test names as the unrelated failures in the broad cutover run. Log `/tmp/ilmu360-part5c-baseline-pest.log`; exact names `/tmp/ilmu360-part5c-baseline-failure-names.txt`. They remain open; do not label the full suite green or assume each is a product bug without tracing the canonical current behavior.
 
 - [x] Scramble generated-spec version assertions: align focused/full generated specifications with installed Scramble's `3.1.2`; preserve the separate lightweight index catalog's existing `3.1.0` contract. Verified in Part 5d.1a below.
-- [ ] Native mobile telemetry schema/example assertion: expected `screen.viewed`, actual null.
-- [ ] Live route/OpenAPI operation alignment: community release and 25 reward operations are missing from the generated operation set.
+- [x] Native mobile telemetry example restored by native MediaType serialization in Part 5d.1b; existing assertion passes unchanged.
+- [ ] Live route/OpenAPI operation alignment: routes and security already align; the failed assertion is **summaryGaps**, for community release and 25 reward operations. Add accurate operation summaries, not duplicate routes or a generic fallback.
 - [ ] Institution workflow description assertion: expects canonical Google Maps URL wording, current contract requires a verified Places selection.
-- [ ] Agentic write request example assertion: expected login email example, actual null.
+- [x] Agentic write request examples restored by native MediaType serialization in Part 5d.1b; existing assertions pass unchanged.
 - [ ] Public event listing expects a pending approval label; reconcile with approved-only public listing rules.
 - [ ] Pending event detail warning label assertion.
 - [ ] Cancelled event detail banner label assertion.
@@ -331,3 +331,9 @@ After those root causes are diagnosed and corrected in coherent verified commits
 ### Part 5d.1a — generated OpenAPI patch version (2026-11-08)
 
 The installed Scramble serializer emits `3.1.2` for OpenAPI 3.1 documents. Two assertions incorrectly required `3.1.0` for generated focused/full specs. Updated those two expectations; retained the lightweight discovery index's separately defined `3.1.0` catalog value and synthetic cache-fixture versions. No runtime, route or schema behavior changed. The complete docs-surface regression passes: **1 test, 27 assertions**, `/tmp/ilmu360-part5d-version-pest.log`; Pint and whitespace checks pass. Checkpoint subject `test(docs): align generated specification version assertions`. Ten original baseline cases remain open; the next two share a production request-example serialization defect, not stale expectations.
+
+### Part 5d.1b — native request examples (2026-11-08)
+
+Scramble v0.13.53 serializes request bodies through `serializeAs31`/`serializeAs32`, bypassing the custom ExampleRequestBodyObject's `toArray` override. The extension now updates native MediaType objects and retains the original request body, preserving description/required flags, extensions, schemas and upstream named examples. Media objects are cloned before setting an operation-local example. Removed the obsolete custom request-body serializer rather than adding compatibility overrides.
+
+Both previously failing public docs regressions pass unchanged (telemetry and agentic examples). Five focused cases cover JSON/multipart under both native serializers plus unrelated-operation preservation: **7 tests passed, 72 assertions**, `/tmp/ilmu360-part5d-examples-pest.log`. Initial new test expected deprecated schema `example`; corrected to native OpenAPI `examples[0]`, with no production workaround. Pint, scoped Rector (zero changes), level-6 PHPStan plus ownership rule (zero errors), boundaries (zero findings, three features) and whitespace pass. Logs `/tmp/ilmu360-part5d-examples-{pint,rector,phpstan,boundaries}.log`. No application endpoint, request-validation or persistence behavior changed. Eight original baseline cases remain open.
