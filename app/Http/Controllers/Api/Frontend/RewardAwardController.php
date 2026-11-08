@@ -11,6 +11,7 @@ use AIArmada\Rewards\Models\RewardAwardEntry;
 use AIArmada\Rewards\Models\RewardProgram;
 use App\Support\Api\ApiPagination;
 use App\Support\Rewards\RewardMemberPresenter;
+use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,6 +20,7 @@ use Illuminate\Validation\Rule;
 #[Group('Rewards', 'Member reward program catalog, enrollment, awards, balances, and appeals.')]
 class RewardAwardController extends FrontendController
 {
+    #[Endpoint(title: 'List your reward awards')]
     public function index(Request $request): JsonResponse
     {
         $user = $this->requireUser($request);
@@ -64,6 +66,7 @@ class RewardAwardController extends FrontendController
         ]);
     }
 
+    #[Endpoint(title: 'Get a reward award')]
     public function show(Request $request, string $award): JsonResponse
     {
         $user = $this->requireUser($request);

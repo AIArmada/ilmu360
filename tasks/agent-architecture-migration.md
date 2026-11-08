@@ -5,8 +5,8 @@
 - Scope: the **whole ilmu360° application**, converted in verified, committable parts.
 - Authorization: user invoked `laravel-agent-convert`, requested commits per part, and a checklist another agent can continue.
 - Branch: `refactor`. Initial working tree was clean on 2026-11-07.
-- Current part: **5d.1b — native request-example serialization** verified; checkpoint subject `fix(docs): preserve request examples through native media serialization`. Version assertions are committed as `134b8e78`; persistence checkpoint `7d09ab0c`.
-- Next action: document the 26 reward/community operation summaries (the routes are present), then reconcile the institution description and six event baseline cases. Keep root causes in separate verified commits. Persistence ownership is complete; the full transport slice and whole application remain open.
+- Current part: **5d.1c — reward/community operation summaries** verified; checkpoint subject `docs(api): describe reward and community operations`. Request examples are committed as `44c2a1fd`; version assertions `134b8e78`; persistence `7d09ab0c`.
+- Next action: reconcile the institution description assertion and six event baseline cases. Keep root causes in separate verified commits. Persistence ownership is complete; the full transport slice and whole application remain open.
 - Before continuing, read `AGENTS.md`, `.ai/rules/index.md`, `tasks/lessons.md`, and `/Users/Saiffil/.codex/skills/laravel-agent-convert/SKILL.md` with its architecture/migration/tooling references.
 - Update this checklist and `tasks/todo.md` in each part. Record commit subject, checks, limitations, and the next concrete action. A completed part does not mean full-app adoption.
 
@@ -316,7 +316,7 @@ All eleven below also fail on committed baseline **`721a8a39`** (same runtime Sa
 
 - [x] Scramble generated-spec version assertions: align focused/full generated specifications with installed Scramble's `3.1.2`; preserve the separate lightweight index catalog's existing `3.1.0` contract. Verified in Part 5d.1a below.
 - [x] Native mobile telemetry example restored by native MediaType serialization in Part 5d.1b; existing assertion passes unchanged.
-- [ ] Live route/OpenAPI operation alignment: routes and security already align; the failed assertion is **summaryGaps**, for community release and 25 reward operations. Add accurate operation summaries, not duplicate routes or a generic fallback.
+- [x] Live route/OpenAPI operation alignment: explicit summaries added for community release and 25 reward operations. Routes, security, summaries and successful responses now all satisfy the unchanged alignment regression (Part 5d.1c).
 - [ ] Institution workflow description assertion: expects canonical Google Maps URL wording, current contract requires a verified Places selection.
 - [x] Agentic write request examples restored by native MediaType serialization in Part 5d.1b; existing assertions pass unchanged.
 - [ ] Public event listing expects a pending approval label; reconcile with approved-only public listing rules.
@@ -337,3 +337,7 @@ The installed Scramble serializer emits `3.1.2` for OpenAPI 3.1 documents. Two a
 Scramble v0.13.53 serializes request bodies through `serializeAs31`/`serializeAs32`, bypassing the custom ExampleRequestBodyObject's `toArray` override. The extension now updates native MediaType objects and retains the original request body, preserving description/required flags, extensions, schemas and upstream named examples. Media objects are cloned before setting an operation-local example. Removed the obsolete custom request-body serializer rather than adding compatibility overrides.
 
 Both previously failing public docs regressions pass unchanged (telemetry and agentic examples). Five focused cases cover JSON/multipart under both native serializers plus unrelated-operation preservation: **7 tests passed, 72 assertions**, `/tmp/ilmu360-part5d-examples-pest.log`. Initial new test expected deprecated schema `example`; corrected to native OpenAPI `examples[0]`, with no production workaround. Pint, scoped Rector (zero changes), level-6 PHPStan plus ownership rule (zero errors), boundaries (zero findings, three features) and whitespace pass. Logs `/tmp/ilmu360-part5d-examples-{pint,rector,phpstan,boundaries}.log`. No application endpoint, request-validation or persistence behavior changed. Eight original baseline cases remain open.
+
+### Part 5d.1c — reward/community summaries (2026-11-08)
+
+The inventory failure was at `summaryGaps`, not missing routes: community release and 25 reward operations were present but lacked meaningful summaries. Added explicit Endpoint titles to their nine controllers, including the administrator restriction on cohort metrics and verification step for payee registration. No routes, generic fallback labels, authorization, response payloads or persistence behavior changed. The unchanged full API-inventory regression now passes all checks for route coverage, security, summary presence and successful responses: **1 test, 9 assertions**, `/tmp/ilmu360-part5d-summaries-pest.log`. Pint, integrated level-6 analysis with ownership enforcement (zero errors) and whitespace pass. Checkpoint subject `docs(api): describe reward and community operations`. Seven original baseline cases remain open.

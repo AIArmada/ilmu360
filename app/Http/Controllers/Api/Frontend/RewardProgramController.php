@@ -13,6 +13,7 @@ use AIArmada\Rewards\Support\RewardVersionResolver;
 use App\Support\Api\ApiPagination;
 use App\Support\Rewards\RewardMemberPresenter;
 use Carbon\CarbonImmutable;
+use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,6 +21,7 @@ use Illuminate\Http\Request;
 #[Group('Rewards', 'Member reward program catalog, enrollment, awards, balances, and appeals.')]
 class RewardProgramController extends FrontendController
 {
+    #[Endpoint(title: 'List active reward programs')]
     public function index(Request $request): JsonResponse
     {
         $user = $this->requireUser($request);
@@ -55,6 +57,7 @@ class RewardProgramController extends FrontendController
         ]);
     }
 
+    #[Endpoint(title: 'Get a reward program')]
     public function show(Request $request, string $program): JsonResponse
     {
         $user = $this->requireUser($request);

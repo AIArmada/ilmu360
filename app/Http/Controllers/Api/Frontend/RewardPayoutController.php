@@ -8,6 +8,7 @@ use AIArmada\Rewards\Models\RewardAward;
 use AIArmada\Rewards\Models\RewardPayoutRequest;
 use App\Support\Api\ApiPagination;
 use App\Support\Rewards\RewardMemberPresenter;
+use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,6 +16,7 @@ use Illuminate\Http\Request;
 #[Group('Rewards', 'Member payout status for own cash awards. Payee data is minimized to the masked display value.')]
 class RewardPayoutController extends FrontendController
 {
+    #[Endpoint(title: 'List your reward payout requests')]
     public function index(Request $request): JsonResponse
     {
         $user = $this->requireUser($request);
@@ -45,6 +47,7 @@ class RewardPayoutController extends FrontendController
         ]);
     }
 
+    #[Endpoint(title: 'Get payout details for a reward award')]
     public function show(Request $request, string $award): JsonResponse
     {
         $user = $this->requireUser($request);

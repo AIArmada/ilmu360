@@ -11,6 +11,7 @@ use AIArmada\Rewards\Models\RewardEnrollment;
 use AIArmada\Rewards\Models\RewardProgram;
 use AIArmada\Rewards\Models\RewardProgramVersion;
 use App\Actions\Rewards\EvaluatePreclaimShareOutcomesAction;
+use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,6 +20,7 @@ use InvalidArgumentException;
 #[Group('Rewards', 'Member reward program catalog, enrollment, awards, balances, and appeals.')]
 class RewardEnrollmentController extends FrontendController
 {
+    #[Endpoint(title: 'Enroll in a reward program')]
     public function store(Request $request, string $program): JsonResponse
     {
         $user = $this->requireUser($request);
@@ -61,6 +63,7 @@ class RewardEnrollmentController extends FrontendController
         ], 201);
     }
 
+    #[Endpoint(title: 'Withdraw from a reward program')]
     public function destroy(Request $request, string $program): JsonResponse
     {
         $user = $this->requireUser($request);
@@ -94,6 +97,7 @@ class RewardEnrollmentController extends FrontendController
         ]);
     }
 
+    #[Endpoint(title: 'Accept an updated reward program version')]
     public function reaccept(Request $request, string $program): JsonResponse
     {
         $user = $this->requireUser($request);

@@ -13,6 +13,7 @@ use AIArmada\Rewards\Models\RewardBenefitGrant;
 use AIArmada\Rewards\Models\RewardBenefitItem;
 use AIArmada\Rewards\Support\RewardBenefitStockLedger;
 use App\Support\Api\ApiPagination;
+use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,6 +23,7 @@ use InvalidArgumentException;
 #[Group('Rewards', 'Member benefit catalog, redemption, grants, and consumption.')]
 class RewardBenefitController extends FrontendController
 {
+    #[Endpoint(title: 'List available reward benefits')]
     public function catalog(Request $request): JsonResponse
     {
         $user = $this->requireUser($request);
@@ -62,6 +64,7 @@ class RewardBenefitController extends FrontendController
         ]);
     }
 
+    #[Endpoint(title: 'Redeem a reward benefit')]
     public function redeem(Request $request): JsonResponse
     {
         $user = $this->requireUser($request);
@@ -92,6 +95,7 @@ class RewardBenefitController extends FrontendController
         return response()->json(['data' => self::grantSummary($grant)], 201);
     }
 
+    #[Endpoint(title: 'List your reward benefit grants')]
     public function grants(Request $request): JsonResponse
     {
         $user = $this->requireUser($request);
@@ -122,6 +126,7 @@ class RewardBenefitController extends FrontendController
         ]);
     }
 
+    #[Endpoint(title: 'Get a reward benefit grant')]
     public function show(Request $request, string $grant): JsonResponse
     {
         $user = $this->requireUser($request);
@@ -136,6 +141,7 @@ class RewardBenefitController extends FrontendController
         return response()->json(['data' => self::grantSummary($record)]);
     }
 
+    #[Endpoint(title: 'Consume a reward benefit grant')]
     public function consume(Request $request, string $grant): JsonResponse
     {
         $user = $this->requireUser($request);
@@ -163,6 +169,7 @@ class RewardBenefitController extends FrontendController
         return response()->json(['data' => self::grantSummary($consumed)]);
     }
 
+    #[Endpoint(title: 'Cancel a reward benefit grant')]
     public function cancel(Request $request, string $grant): JsonResponse
     {
         $user = $this->requireUser($request);

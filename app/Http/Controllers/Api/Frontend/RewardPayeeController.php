@@ -9,6 +9,7 @@ use AIArmada\Rewards\Models\RewardPayee;
 use App\Support\Api\ApiPagination;
 use App\Support\Rewards\RewardMemberPresenter;
 use App\Support\Rewards\RewardPayoutMethods;
+use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,6 +18,7 @@ use InvalidArgumentException;
 #[Group('Rewards', 'Member payout destinations. Registration lands pending for independent staff verification; reads are masked.')]
 class RewardPayeeController extends FrontendController
 {
+    #[Endpoint(title: 'List supported reward payout methods')]
     public function methods(): JsonResponse
     {
         $options = [];
@@ -28,6 +30,7 @@ class RewardPayeeController extends FrontendController
         return response()->json(['data' => $options]);
     }
 
+    #[Endpoint(title: 'List your reward payees')]
     public function index(Request $request): JsonResponse
     {
         $user = $this->requireUser($request);
@@ -55,6 +58,7 @@ class RewardPayeeController extends FrontendController
         ]);
     }
 
+    #[Endpoint(title: 'Register a reward payee for verification')]
     public function store(Request $request): JsonResponse
     {
         $user = $this->requireUser($request);

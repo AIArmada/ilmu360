@@ -8,6 +8,7 @@ use App\Support\Share\CommunityReleaseReader;
 use App\Support\Share\ShareCohortAuthority;
 use App\Support\Share\ShareMetricReader;
 use Carbon\CarbonImmutable;
+use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,6 +17,7 @@ use InvalidArgumentException;
 #[Group('Rewards', 'Private impact metrics, cohort authority, and public community releases.')]
 class RewardInsightController extends FrontendController
 {
+    #[Endpoint(title: 'Get your reward impact summary')]
     public function impact(Request $request, ShareMetricReader $reader): JsonResponse
     {
         $user = $this->requireUser($request);
@@ -39,6 +41,7 @@ class RewardInsightController extends FrontendController
         return response()->json(['data' => $summary]);
     }
 
+    #[Endpoint(title: 'Get reward cohort metrics for administrators')]
     public function cohort(Request $request, ShareCohortAuthority $authority): JsonResponse
     {
         $user = $this->requireUser($request);
@@ -62,6 +65,7 @@ class RewardInsightController extends FrontendController
         return response()->json(['data' => $summary]);
     }
 
+    #[Endpoint(title: 'Get the latest public community release')]
     public function community(CommunityReleaseReader $reader): JsonResponse
     {
         return response()->json(['data' => $reader->latest()]);

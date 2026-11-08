@@ -10,6 +10,7 @@ use AIArmada\Rewards\Models\RewardPointLot;
 use AIArmada\Rewards\Support\RewardPointLedger;
 use App\Support\Rewards\RewardMemberPresenter;
 use Carbon\CarbonImmutable;
+use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,6 +18,7 @@ use Illuminate\Http\Request;
 #[Group('Rewards', 'Member reward program catalog, enrollment, awards, balances, and appeals.')]
 class RewardBalanceController extends FrontendController
 {
+    #[Endpoint(title: 'Get your reward balances')]
     public function balances(Request $request): JsonResponse
     {
         $user = $this->requireUser($request);
@@ -53,6 +55,7 @@ class RewardBalanceController extends FrontendController
         return response()->json(['data' => $data]);
     }
 
+    #[Endpoint(title: 'List your reward badges')]
     public function badges(Request $request): JsonResponse
     {
         $user = $this->requireUser($request);
