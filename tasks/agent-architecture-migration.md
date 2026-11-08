@@ -1,73 +1,43 @@
 # Agent-friendly architecture conversion
 
+> **Authoritative active plan.** Read this file first to resume. History lives in [agent-architecture-migration-history.md](agent-architecture-migration-history.md); consult it only for a specific completed stage, decision, limitation or log. Never load the history or the full `tasks/todo.md` routinely just to resume.
+
 ## Resume here
 
-- Scope: the **whole ilmu360° application**, converted in verified, committable parts.
-- Authorization: user invoked `laravel-agent-convert`, requested commits per part, and a checklist another agent can continue.
-- Branch: `refactor`. Initial working tree was clean on 2026-11-07.
-- Current part: **5d.2c.3a — saved-search execution result boundary** implemented, verified and independently accepted by Codex from clean HEAD `44e54d62`; checkpoint subject `refactor(saved-searches): isolate execution result boundary`. Previous accepted checkpoint `a2bdd9ec` public discovery filter validation; geography acceptance `fix(saved-searches): resolve geography validation through addressing tables`. Taxonomy correction `7c6b7f47`; record-label boundary `6555a4e0`; DTO batch loading `9675accd`. All eleven original baseline cases and the separately discovered query-budget follow-up are resolved. Gallery/share `ccefb819`; registration `f5b0667e`; notices `f236686a`; discovery visibility `5aac464a`. All five original documentation failures are resolved (`7923efd1`, `1240a7b8`, `44c2a1fd`, `134b8e78`); persistence `7d09ab0c`.
-- Next action: **5d.2c.3b** — trace and isolate actual attribution create/delete orchestration behind its owning boundary, preserving actor/request provenance, outer transactions, rollback and the API-versus-page/account deletion distinction. Existing root actions must be moved as real orchestration, not hidden behind pass-through wrappers. Then finish identity and generic presentation/HTTP helpers; only then move HTTP/page entrypoints and routes atomically. Saved-search persistence and execution are complete; full transport and whole-app conversion remain open.
-- Execution ownership: Codex plans, reviews and commits accepted checkpoints; OpenCode implements, verifies and repairs using exact `opencode-go/deepseek-v4.1-flash#max`, agent ID `build`. Start a fresh bounded session for the next part; session `ses_e44093df1ffeTWYSA0iXeK6zbO` completed execution and its docs repair, with a large context. Never substitute another model.
-- Before continuing, read `AGENTS.md`, `.ai/rules/index.md`, `tasks/lessons.md`, and `/Users/Saiffil/.codex/skills/laravel-agent-convert/SKILL.md` with its architecture/migration/tooling references.
-- Update this checklist and `tasks/todo.md` in each part. Record commit subject, checks, limitations, and the next concrete action. A completed part does not mean full-app adoption.
+- Current checkpoint: the whole **ilmu360°** application conversion remains incomplete. Branch `refactor`.
+- Latest accepted implementation checkpoint `782c8747` — saved-search execution result boundary. Previous accepted `44e54d62` — canonical geography validation.
+- Done: GitHubIssues; Prayer; Saved Searches persistence, core and query/execution boundaries. Remaining Saved Searches work is transport and page composition.
+- Do not reintroduce `User::savedSearches()`, a mutable Event paginator across the execution boundary, duplicate key lists, or obsolete taxonomy/addressing aliases.
+- Latest passing evidence (tests/assertions): 5d.2c.3a affected SavedSearch|SearchFilter **165/606**, Signals **17/95**, docs alignment **1/9**, execute schema **1/20**; PHPStan level 6/ownership, boundaries, scoped Rector and Pint pass. Detailed logs are in history.
 
-## Baseline
+## Next action — 5d.2c.3b
 
-- PHP `^8.5`; Laravel locked `v13.40.0`; Livewire `v4.4.8`; Filament `v5.11.1`.
-- Preserve normal PHPStan level 6, Larastan, Pest extension, existing baseline and test flow. Never baseline architecture violations.
-- Locked tooling already available: PHP-Parser `v5.9.0`, PHPStan `2.3.5`, Larastan `v3.14.0`; no new dependency needed to run the foundation.
-- Initial inventory: 52 model files, 69 controllers, 13 jobs, 34 listeners, 30 policies, 27 console files, 44 migrations, 498 test files, no feature manifests.
-- Existing graph is indexed but materially stale: nested action paths changed, graph-only ShareGuest classes disappeared, AppFeedback/SignupAttribution are missing. Refresh before domain implementation; verify current files/configuration strings before moves.
-- Refreshed index for Part 2 uses project ID `Users-Saiffil-Herd-ilmu360`; the older `ilmu360` graph is stale. Index excluded generated/tool folders and skipped one generated PHPStan cache file.
-- Part 1 corrects CI from PHP 8.4 to PHP 8.5 and wires both architecture checks into the required PHPStan job.
-- Do not modify live data, deploy, or edit sibling `commerce` package source. Use isolated test settings. Persisted class strings/morph identities require a deliberate data-preservation strategy before model moves.
+- Map the actual existing root `CreateSavedSearchAction` and `DeleteSavedSearchWithAttributionReversalAction` callers, then move their orchestration to the correct owning boundary. Preserve owner/actor/request provenance, outer transactions and rollback, and the API-versus-page/account-deletion distinction. Move real implementation; no pass-through wrappers.
+- Then resolve identity and generic HTTP/UI helpers through public boundaries. Only after those dependencies are complete, cut over HTTP/page entrypoints and routes atomically across the six API actions.
+- Preserve `/carian-tersimpan`, the explicit `pages.saved-searches.index` alias (used by ShareTrackingTest), snapshot binding/policy/auth, payloads/Signals, and cached/uncached behavior. Prove unique registration with same-environment uncached route snapshots.
+- Full transport and whole-app conversion remain open; this stage is not completion.
 
-## Acceptance checklist for each feature
+## Execution ownership and required reading
 
-- [ ] Trace callers, routes, Eloquent/query/raw SQL writes, model hooks, UI persistence, jobs, external stores and package writers.
-- [ ] One feature owns each resource in `feature.json`; list the actual named Actions/Persistence classes containing mutations.
-- [ ] Move the entire slice and all current callers; remove superseded implementations, aliases and delegating wrappers.
-- [ ] Expose public `Api` interfaces/immutable values for real cross-feature boundaries; never export mutable models/builders.
-- [ ] Preserve URLs/names, middleware order, payloads/status, actor/tenant rules, transactions and queue/retry/after-commit semantics.
-- [ ] Move routes and remove old registration atomically; use native providers and no example status endpoint.
-- [ ] Verify policy/factory/binding/observer/listener/command/schedule/Livewire/Filament registrations and duplicate invocation counts.
-- [ ] Preserve existing product signals; evaluate tracking if UI behavior changes.
-- [ ] Compare uncached route snapshots in the same environment; verify relevant config/route cache behavior.
-- [ ] Run affected parallel Pest tests once per meaningful revision; save expensive output. Run Pint and normal level-6 PHPStan.
-- [ ] Pass both architecture checks with no blanket exceptions or new baseline; review the diff and commit the part.
+- Codex plans, reviews and commits accepted checkpoints. OpenCode implements, verifies and repairs using exact `opencode-go/deepseek-v4.1-flash#max` (agent ID `build`). Start a fresh bounded session for the next stage; never substitute another model. Leave no active worker at handoff.
+- Before continuing, read `AGENTS.md`, `.ai/rules/index.md`, relevant sections of `tasks/lessons.md`, and `/Users/Saiffil/.codex/skills/laravel-agent-convert/SKILL.md` with its architecture/migration/tooling references.
+- Current graph project: `Users-Saiffil-Herd-ilmu360`. Graph call edges remain sparse: verify current source/configuration strings before moves; do not rely on graph traces alone.
+- Do not load archived inventories, counts, versions or commit lists to resume; verify installed versions when needed under `AGENTS.md`. Use this checkpoint and load only the evidence needed for the task. Old per-attempt/provider histories belong only in the archive.
 
-## Parts
+## Stage gates
 
-### 1. Foundation and enforcement
+- Trace callers, routes, Eloquent/query/raw-SQL writes, model hooks, UI persistence, jobs, external stores and package writers before moving a slice.
+- One feature owns each resource and lists its named mutation classes. Move the entire slice and all current callers; remove superseded implementations, aliases and delegating wrappers.
+- Cross-feature boundaries expose public `Api` interfaces and immutable values; never export mutable models/builders.
+- Preserve URLs/names, middleware order, payloads/status, actor/tenant rules, transactions, queue/retry/after-commit semantics and stored class/morph identities.
+- Move routes and remove old registration atomically. Verify policy/factory/binding/observer/listener/command/schedule/Livewire/Filament registrations and duplicate invocation counts.
+- Preserve existing Signals; evaluate tracking for real UI behavior changes.
+- Compare uncached route snapshots in the same environment; verify route/config cache behavior separately. Run affected parallel Pest once per meaningful revision and save output; run Pint, normal level-6 PHPStan (including the ownership rule) and scoped Rector for touched scopes; pass both architecture checks with no new baseline or blanket exceptions.
+- No live data, deployment, sibling `commerce` source, dependency, or broad baseline/exception changes. Use isolated test settings.
 
-- [x] Inspect instructions, versions, clean tree and existing verification flow; read all conversion references.
-- [x] Preview bundled foundation with native provider registration.
-- [x] Apply foundation; integrate Composer commands, CI gates and regression checks.
-- [x] Capture registrations/routes and verify checks; record evidence below.
-- [x] Checkpoint commit: `feat(architecture): add feature ownership foundation and migration checklist`.
+## Remaining application parts
 
-### 2. GitHub issue reporting
-
-- [x] Move owning action/reporter/request/controller/data/exception and reporter boundary together.
-- [x] Migrate feedback escalation/admin view, frontend form catalog and two MCP tool consumers to its public boundary.
-- [x] Move provider binding and `/api/v1/github-issues` route; preserve auth/client middleware and `throttle:github-issues` order.
-- [x] Verify HTTP success/failure, null reporter, API/feedback/MCP/catalog regressions and caches; checkpoint subject: `refactor(github): migrate issue reporting into its owning feature`.
-
-Current owner: `app/Features/GitHubIssues/` (`Api`, `Actions`, `Persistence`, `Services`, `EntryPoints/Http`, `Routes`, native provider and manifest). No owned DB table; external `store:github-issues` belongs to `Persistence/GitHubIssueReporter`. Old classes and AppServiceProvider binding are removed. Tests: `GitHubIssueReportApiTest`, `AppFeedbackGitHubTest`, `LifecycleHardCutTest`, `AdminServerTest`, `MemberServerTest`.
-
-### 3. Baseline MCP corrections, then Prayer
-
-- [x] Reproduce and diagnose `AdminServerTest` viewer-role read failure (`tests/Feature/Mcp/AdminServerTest.php:123`): tool returns `Unexpected server error.` Read recent server logs to find the original exception.
-- [x] Diagnose prayer metadata contract failure (`tests/Feature/Mcp/AdminServerTest.php:1026`): expected `prayer_offset = 'immediately'`, actual `5`. Reconcile the current canonical event timing contract and all relevant consumers; do not merely change an expectation to silence the failure.
-- [x] Resolve both baseline failures: safe appeal-policy discovery in `9296fed0`, canonical prayer payload assertion in `24072eae`; all 87 admin MCP tests pass. These failures predated Part 2.
-- [x] Convert Prayer in `741a9755` with four declared persistence owners and unchanged Events resolver identity. Graph refreshed after conversion (`Users-Saiffil-Herd-ilmu360`); ownership/caller/config audit and 584 passing checks recorded in Part 4b. Graph call traces remain sparse, so verified source references supplement them.
-
-### Remaining application parts
-
-Ordering remains provisional until each ownership trace is complete. Split large parts into coherent commits and keep every remaining item visible.
-
-- [x] Provider-backed Prayer: providers, preview, cache/store writes, jobs and commands converted in Part 4b. Event-specific expression/location adapters remain Events-owned; their stored resolver identity is preserved for later Events migration.
-- [ ] Saved searches: persistence/model/actions/public reads/policy/binding/factory and all consumer cutovers are complete through Part 5c.2. Conventional page/API composition and root route localization through discovery/directory/attribution boundaries remain for Part 5d; do not duplicate persistence or reintroduce the User relation.
+- [ ] Saved Searches: transport/page composition, attribution orchestration, identity/generic helpers, atomic route cutover (current next stage).
 - [ ] Feedback/reports: conversations, report lifecycle, review and notification adapters.
 - [ ] Inspirations: app-owned table, Save action, Filament persistence and frontend/API readers.
 - [ ] Identity/accounts: User/social accounts, auth/OAuth/Fortify, account lifecycle/restoration and public identity contracts.
@@ -87,385 +57,21 @@ Ordering remains provisional until each ownership trace is complete. Split large
 - [ ] Documentation/MCP/admin composition: schemas/docs/resource registry and remaining adapters, each using the actual owner's public API.
 - [ ] Final app-wide audit: every runtime resource has an owner and named write paths; old code removed, unique registration, CI active, behavior/type/cache tests pass.
 
-## Ownership decisions and hazards
+## Ownership decisions and enduring hazards
 
-- Directory is a defensible combined capability for tightly related institution/person/reference/venue records. Series belongs with Events (`event_series` and `event_series_items`). `ModerationReview` wraps package `ModerationAction`; do not invent a `moderation_reviews` table.
-- `ContributionEntityMutationService` (~2,100 lines) writes nearly all directory/event resources, names, affiliations, addresses and contacts. `SaveInstitutionAction`/`SavePersonAction`/`SaveReferenceAction`/`SaveVenueAction` call it. Extract actual owned mutations; do not move the generic writer into Contributions and grant it foreign resources.
-- Contribution approval directly creates/verifies entities, assigns ownership, applies media and updates request state in a transaction. Keep atomic behavior and post-transaction notifications while delegating owned mutations.
-- `User` exposes mutable reverse relations across most capabilities and invokes attribution/submission-lock logic. Migrate consumers and account lifecycle workflows before moving related models; ordinary auth scaffolding can remain conventional where appropriate.
-- `Event` hooks save URL/audience projections and delete membership/engagement/registration/submission/moderation/announcement/media data before package cascade cleanup. Move these side effects into explicit lifecycle orchestration without losing behavior.
-- `AppMembershipHook` and `User::updated()` call `PublicSubmissionLockService`, which writes directory flags/cache. Directory owns these writes; Membership/Identity call a public eligibility-sync operation.
+- Directory is one combined capability for tightly related institution/person/reference/venue records; **Series belongs to Events** (`event_series`, `event_series_items`). `ModerationReview` wraps package `ModerationAction`; do not invent a moderation table.
+- `ContributionEntityMutationService` (~2,100 lines) is a foreign-resource writer, not a Contributions-owned seam. Extract actual owned mutations; do not move the generic writer into Contributions or grant it foreign resources. Keep contribution approval's atomic create/verify/ownership/media/request-state behavior and post-transaction notifications.
+- `User` still carries mutable reverse relations and attribution/submission-lock hooks. Migrate consumers and account lifecycle workflows before moving related models; ordinary auth scaffolding may stay conventional.
+- `Event` lifecycle hooks save URL/audience projections and delete membership/engagement/registration/submission/moderation/announcement/media data before package cascade cleanup. Move these to explicit lifecycle orchestration without behavior loss.
+- `AppMembershipHook` and `User::updated()` call `PublicSubmissionLockService`, which writes directory flags/cache. Directory owns those writes; Membership/Identity call a public eligibility-sync operation.
 - `TransferPersonOwnershipAction` locks records, updates two pivots and scoped roles, then invokes hooks. Preserve one-owner invariants and atomic role synchronization.
-- `config/events.php`, `config/persons.php`, `AppServiceProvider` register models, policies, observers, slugs and morph identities. Stored fully qualified class strings exist; import replacement alone is insufficient.
-- SavedSearch inherits configurable `getTable()`; literal `$table` alone does not override it. After Part 5a, runtime mutations are centralized in `app/Actions/SavedSearches`; API destroy, Livewire delete and account deletion/restoration invoke those actions. API delete reverses share outcomes while Livewire/account deletion do not: preserve the distinction during conversion.
-- Saved-search readers include dashboard/admin user views, notification matching and reward fact readers; replace mutable `User::savedSearches()` exposure with read values and account lifecycle operations. Execute depends on EventSearchService and currently returns event models; Events needs a real query boundary when migrated.
-- `AffiliatesShareTrackingService` (~2,900 lines) contains many package writes and guest/receipt orchestration. Extract named use cases; a renamed facade is insufficient. Current guest state lives in the affiliates package, despite stale graph-only app classes.
-
-## Completed parts and evidence
-
-### Part 1 — foundation and enforcement (2026-11-08)
-
-Checkpoint subject: `feat(architecture): add feature ownership foundation and migration checklist`.
-
-Changes: native `FeatureModule` loader and `FeatureCatalog`; AST boundary checker; PHPStan owned-write rule; Composer `architecture:boundaries`, `architecture:types`, `architecture:test`; PHP 8.5 CI and filters for manifests/tooling. `tools/architecture.neon` **includes the existing root `phpstan.neon`**, preserving level 6, application stubs, Larastan, Pest extension, paths and baseline; it adds the ownership rule without suppressing unrelated analysis. Root analysis also covers `tools/`.
-
-Verification on the final code:
-
-- `APP_ENV=testing DB_CONNECTION=sqlite DB_DATABASE=:memory: CACHE_STORE=array SESSION_DRIVER=array QUEUE_CONNECTION=sync composer architecture:test` — pass: zero structural violations; normal level-6 analysis plus ownership rule, zero errors.
-- `vendor/bin/pest --parallel --processes=4 --compact --filter='FeatureCatalogTest|ArchitectureBoundaryTest|OwnedWriteRuleTest|GitHubIssueReportApiTest'` — **18 passed, 97 assertions**. Real temporary fixtures cover duplicate ownership, multiple allowed actions, missing/foreign writers, private dependency forms, public API/provider wiring, API leaks, stale exceptions, Eloquent/query/cache writes and harmless collections.
-- `vendor/bin/rector process --dry-run --debug app/Platform tools tests/Unit/Platform tests/Fixtures/Architecture` — zero changes/errors. Scoped proposed transformations were reviewed/applied before this final run.
-- `vendor/bin/pint --dirty --format agent`, `composer validate --no-check-publish`, workflow YAML parsing and `git diff --check` — pass (Composer retains its pre-existing Octane exact-version advisory).
-- Before/after uncached route snapshots: **749 routes, identical** method/domain/URI/name/middleware/order/multiplicity. Route/config caching succeeded using isolated `/tmp` cache paths; cached GitHub route retained POST, `api.client.github-issues.store`, `api`, `auth:sanctum`, and `throttle:github-issues`. Temporary caches were cleared.
-- Captured command and event inventories before the change. No domain registration or application behavior changed in Part 1.
-
-Temporary logs/snapshots are `/tmp/ilmu360-architecture-*`; they are supplementary and may expire. Regenerate fresh snapshots at the start of each part. Test runner/analyzer worker ports require normal local process access; where restricted, PHPStan/Rector `--debug` disables their worker socket. The fixture PHPStan subprocess sets `PAO_DISABLE=1` to get stable native JSON output rather than agent-dependent formatting.
-
-Limits: no domain feature has been converted yet (production manifests count is zero); foundation tests use isolated sample features. Unmigrated resources are intentionally outside feature ownership enforcement until claimed. The whole-app suite, remote GitHub CI and deployment were not run. Keep the full capability checklist open.
-
-Next concrete work: Part 2 GitHub issue reporting; use its caller list and tests above. No new dependency or live-data change was introduced in Part 1.
-
-### Part 2 — GitHub issue reporting
-
-Checkpoint subject: `refactor(github): migrate issue reporting into its owning feature`.
-
-Changes and boundary decisions:
-
-- Native feature provider owns its binding and route; one external issue store, one actual HTTP mutation implementation. Removed the old action, services, contracts, data, request/controller and schema helper paths with no aliases/wrappers.
-- Public `Api/SubmitGitHubIssueReport` and reporter interface are used by MCP, feedback escalation, admin availability and frontend catalog consumers. MCP transport classes remain composition adapters and reference only the feature's public API.
-- Submission/catalog values are final readonly and contain no Laravel runtime objects. Validation uses the equivalent string `in:` rule instead of exporting a framework Rule object through the catalog.
-- `Shared/Auth/IntegrationFeedbackUser` and its readonly identity value form the real authenticated-user boundary. `User` implements that contract; GitHub code receives IDs/display/role facts without importing the mutable app model.
-- `Shared/Integrations/GitHubIssueReportingException` is the failure contract shared by HTTP/MCP/reporting consumers; keeping it outside feature internals preserves existing status/code/details handling. It has no feature dependency.
-- Preserved request authorization, payload normalization, issue body identity/context, Copilot model fallback, null reporter behavior, request IDs and existing product tracking. No UI workflow change, package source edit, dependency addition or real GitHub issue creation.
-
-Evidence:
-
-- Structural architecture check: **zero violations, one feature**. Integrated level-6 PHPStan plus owned-write rule: **zero errors**.
-- Before/after uncached route snapshots: **749 routes, identical**. Event registration inventory also identical.
-- API/feedback/lifecycle/admin/member MCP run: **152 tests, 150 passed, 2 failed, 2,283 assertions**. All changed GitHub flows passed. The two failures above were independently reproduced with Part 2 stashed: baseline admin MCP file **87 tests, 85 passed, the same 2 failures**. The pre-Part-2 branch includes Part 1 `9a9eadee` and concurrent merge `3a87682a`; their tree difference is seven view files (checkout/pass/refund/home navigation), with no PHP event/MCP logic changes. These concurrent changes were preserved. The stash was restored successfully and no stash remains from this check.
-- Cached route + config API run: **8 passed, 56 assertions**, including guest 401, invalid category 422, plain/admin submissions, Copilot fallbacks and GitHub rejection status/details. Used isolated `/tmp/ilmu360-architecture-part2-*` caches and cleared them afterward.
-- Scoped Rector final dry run: zero changes/errors; Pint and `git diff --check` pass. Obsolete class references audited in source/config/routes/bootstrap/tests (including escaped class strings): none.
-
-Logs: `/tmp/ilmu360-architecture-part2-{pest,mcp-baseline,phpstan,cached-api-pest,final-rector}.log`; these may expire, so the results and failure identities are recorded here. Do not claim the whole application or full suite is converted/passing. Continue with Part 3 above.
-
-### Part 3a — safe appeal policy discovery
-
-Checkpoint subject: `fix(auth): deny appeal creation without award context`.
-
-Root cause: AdminResourceRegistry asks Gate for the class-level create capability while listing resources. RewardAppealPolicy required an award argument, causing ArgumentCountError and breaking the entire viewer catalog. The policy now accepts absent context and denies it; actual award-recipient authorization remains unchanged. Added a Gate-level regression and retained the existing reward policy tests.
-
-Validation: parallel Pest filter `RewardAppealPolicyTest|RewardPolicyTest|AdminServerTest`: **93 tests, 92 passed, 1 existing prayer serialization failure**, 1,589 assertions. Viewer catalog and all reward policy checks now pass. Integrated PHPStan level 6 plus owned-write analysis passes; Pint passes. Logs: `/tmp/ilmu360-part3a-{pest,phpstan}.log`. No routes or UI workflow changed.
-
-Part 3b evidence: PrayerOffset::Immediately->minutes() intentionally returns **5** for prayer completion. The Event accessor maps stored signed minutes back to the string enum value, while generic admin attributes use `$record->toArray()`. Trace this serialization/projection path before editing; do not change the offset duration or simply weaken the existing MCP assertion.
-
-### Part 3b — canonical MCP prayer payload assertion
-
-Checkpoint subject: `test(mcp): align prayer offset with canonical event payload`.
-
-The runtime serializer is correct. AdminResourceRegistry::serializeRecord and serializeRecordDetail use EventPayloadData, whose signedPrayerOffset returns signed integer minutes. Existing PublicSubmissionOccurrenceGroupingTest assertions already require 5 and -15. PrayerOffset::Immediately maps to five minutes intentionally. The MCP assertion still expected the input/form enum string; it now expects the canonical numeric output. No production code, durations, routes, or payloads changed. Ordinary events do not expose the grouped-submission display_occurrence section; no assertion for that section was retained.
-
-Final admin MCP suite: **87 passed, 1,561 assertions**, including both originally recorded failures. Integrated level-6 PHPStan/owned-write analysis and structural checks pass; Pint and diff whitespace checks pass. Logs: `/tmp/ilmu360-part3b-admin-pest.log`, `/tmp/ilmu360-part3b-phpstan.log`.
-
-The broader run also exercised PublicSubmissionOccurrenceGroupingTest and found an unrelated fixture issue in `filters public occurrence speakers, references and prayer slots while excluding draft occurrence data`: missing role `moderator` for guard `web`, at its reference-page response assertion around line 644. Production behavior was untouched in this checkpoint. Investigate role fixture setup before proceeding; do not claim the whole suite passes. Broader diagnostic output is `/tmp/ilmu360-part3b-pest.log` (large HTML failure body).
-
-### Part 3c — self-contained occurrence regression
-
-Checkpoint subject: `test(events): complete occurrence visibility fixtures`. The reference-page scenario seeded event participation roles but not application authorization roles. It now explicitly seeds canonical RoleSeeder within that scenario. Once the page rendered, its old parent-title assertion was also exposed: reference listings use PublicScheduleLeaf::title(), which prefers the occurrence title. The test now requires Public Prayer Slot Submission and rejects Draft Prayer Slot Submission. Production code and assertions protecting draft filtering remain unchanged.
-
-Final occurrence file: **15 passed, 177 assertions** (`/tmp/ilmu360-part3c-occurrence-pest.log`). Prior combined run: **102/103 passed**, with all admin MCP and appeal policy checks passing; its sole failure was the parent-title assertion corrected afterward. Integrated level-6 PHPStan plus owned-write rule, structural check, Pint and whitespace checks pass. Static log: `/tmp/ilmu360-part3c-phpstan.log`. The recorded baseline blockers are resolved for these affected tests; full-app adoption remains open.
-
-### Part 4 implementation map — provider-backed Prayer
-
-Own provider-backed prayer resolution, not event/location persistence. No implementation moved yet.
-
-1. Capture routes, command signatures, schedules and relevant tests. Move the existing three `app/Actions/Prayer` actions, provider/zone services under `app/Services/Prayer`, provider contracts under `app/Contracts`, readonly `app/Data/Prayer` values, and parsing helper `app/Support/Prayer/PrayerClock.php` into `Features/Prayer`.
-2. Public API: preview/start-clock/anchor interfaces implemented by those actions; existing readonly PrayerQuery/PrayerTimesDTO values; provider and monthly/zone integration contracts. Add a narrow registry interface for `zoneResolverFor`, `methodsFor`, `timezoneFor`, and a Ramadan calendar interface. External callers must not import private concrete registries/providers. Expose HardcodedPrayerFallback as a canonical final readonly public estimates value with unchanged constants/map.
-3. Move genuinely shared scheduling values EventPrayerTime, PrayerReference and PrayerOffset to `Shared/Prayer`, updating every current import; ordinary App\Enums dependencies fail feature boundaries. Public provider failure ProviderUnavailable belongs in Shared as an integration failure contract. Remove superseded paths, not aliases.
-4. Four actual store writers: PrayerTimesCache -> Persistence (monthly/daily/fresh/stale/negative/locks); PrayerCircuitBreaker -> Persistence (failure/deadline/locks); extract registry `countMissingMapping` to Persistence/PrayerMappingMetrics (`prayer:v3:metric:missing-mapping:*`); extract JakimZoneResolver `rememberZone`, `forgetMemo` and invalidation to Persistence/PrayerZoneMemo (`prayer:v3:gps-memo:%.7F:%.7F`). Manifest resources: store:prayer-times, store:prayer-breaker, store:prayer-zone-memo, store:prayer-mapping-metrics. Preserve key formats, configured prefix/store, locks, stale degradation and error handling.
-5. Move config/prayer.php to feature configuration and merge under unchanged `prayer` key; private class strings cannot stay in root config. Keep immutable config/prayer_zones.php key. Preserve provider mappings and native provider registration.
-6. Adapt external consumers: Services/PrayerTimeExpressionResolver; Actions/Events/Submission/SubmitFrontendEventAction; Support/Events/{AdminEventScheduleResolver,EventContributionUpdateStateMapper,AdminEventTimeMapper}; Support/Submission/SubmissionTimingPolicy; Forms/EventContributionFormSchema; Livewire/Pages/Dashboard/Events/CreateAdvanced; Actions/Events/Authoring/PrepareAdvancedParentProgramSubmissionAction. Also audit all fallback constant consumers and scheduling writers.
-7. **Keep Services/PrayerTimeExpressionResolver with Events and its current canonical class identity during this slice.** It queries Event/EventSession/EventLocation/Address; it is not provider-core. Use Prayer APIs internally. Its persisted resolver_class writers are PersistOccurrenceSubmissionAction, PersistSessionSubmissionAction, SyncEventScheduleAction and AdvancedEventSeeder. Later Events conversion must deliberately migrate that identity. PrayerLocation and PrayerTargetSelector likewise remain Event/Locations adapters; do not pull mutable Institution/Venue/Person models into Prayer.
-8. Move entrypoints: PrefetchPrayerTimes, PrayerStatsCommand, RefreshPrayerTimes, ResolveGpsZone, preview controller/request. Register commands once in feature provider. Preserve job retry/backoff and after-response work; ResolveGpsZone deliberately self-redispatches instead of release().
-9. Move GET `/api/v1/catalogs/prayer-preview`, route name `api.client.catalogs.prayer-preview`, middleware `api` then `throttle:60,1`; remove old registration. Institution prayer catalog stays with Institutions. Preserve prefetch daily 03:30 Asia/Kuala_Lumpur and stats hourly UTC schedules, names and overlap semantics.
-10. Verify all Unit/Prayer tests, preview/stats/expression tests, submit zero-HTTP and preview behaviors, admin/contribution prayer tests, cache modes, snapshots, both architecture gates and normal level-6 analysis. No sibling package or live data changes. Commit only a coherent verified slice; update remaining scope if splitting core and adapters across checkpoints.
-
-### Part 4a — shared scheduling values
-
-Checkpoint subject: `refactor(prayer): move shared scheduling enums to canonical boundary`. Moved EventPrayerTime, PrayerReference and PrayerOffset from App\Enums to App\Shared\Prayer, updating 107 caller files across application code, factories/seeders, tests (including Pest.php) and three Blade views. The three enum bodies are byte-for-byte identical after normalizing the namespace. No cases, backing values, labels, offsets, payload shape or timing behavior changed. No old classes or aliases remain; source audit found no old direct/escaped references or grouped imports needing repair.
-
-Persistence preflight: event data uses backing strings/signed minutes, not enum FQCNs; PrayerTimeExpressionResolver identity was untouched. No data migration or live-data changes. Compiled views were cleared so freshly loaded forms/views use the canonical classes. At eventual deployment, normal fresh-page/worker reload requirements still apply to enum-bearing Livewire state; no compatibility aliases were introduced.
-
-Verification: **577 selected parallel Pest checks passed, 3,536 assertions**, excluding real-driver tests. Filter: `Prayer|AdminEventTimeMapperTest|AdminServerTest|PublicSubmissionOccurrenceGroupingTest|EventApiContractTest|HomePageTest|SubmissionTimingPolicyTest|ResolvedStartClockTest|HardcodedPrayerFallbackTest`. Integrated level-6 PHPStan/owned-write analysis passes with no baseline change; structural boundary check passes; uncached routes are identical. Pint and whitespace checks pass. Logs/snapshots: `/tmp/ilmu360-part4a-{pest,phpstan}.log` and `/tmp/ilmu360-part4a-{before,after}-routes.json`.
-
-Only the shared-values prerequisite is complete: Prayer providers/stores/entrypoints have not yet moved, so the manifest count remains one (GitHubIssues). Continue the core provider conversion rather than treating Prayer as adopted.
-
-### Part 4b — provider-backed Prayer feature
-
-Checkpoint subject: `refactor(prayer): consolidate provider engine and owned cache writes`.
-
-Converted `app/Features/Prayer`: public provider/query/preview/start-clock/anchor contracts and readonly values; internal providers, registry, Ramadan rules and district matcher; native provider; HTTP preview; queue jobs; prefetch/stats commands; private configuration under unchanged `prayer` key. The root preview route and schedule registrations were removed in the same slice. Commands register once through the feature provider. Old Prayer action/service/contract/data/job/command/controller/request paths were removed without aliases or old delegating classes.
-
-Storage ownership: `PrayerTimesCache`, `PrayerCircuitBreaker`, extracted `PrayerMappingMetrics` and `PrayerZoneMemo` each live in Persistence and are the actual mutation classes declared for their four stores. Mapping metrics and zone memo mutations no longer hide in registry/resolver code. Prefixes, key precision, TTLs, locks, stale/negative behavior, upstream fallback and swallowed store failures are preserved. Cache rows serialize plain arrays, not DTO class identities.
-
-Outside callers now use public interfaces. The registry API exposes only zone resolver, calculation methods and country timezone; provider enumeration/cache currency operations stay internal. Ramadan API exposes only the calendar decision. Existing fallback estimates and clock parsing are public immutable support values. `PrayerAreaTypes` owns the district-type catalog used by the location adapter, replacing its import of the private matcher. ProviderUnavailable is a Shared integration failure contract.
-
-Events-owned `Services/PrayerTimeExpressionResolver`, `Support/Prayer/PrayerLocation` and `PrayerTargetSelector` remain canonical adapters, with public Prayer dependencies. No persisted resolver_class identity changed. No package source, database schema, live records, dependencies or product tracking behavior changed.
-
-Configuration uses Laravel mergeConfigFrom and skips loading defaults when cached. Larastan now recognizes the exact feature Config directory alongside root config via configDirectories; no ignore/baseline was added. Reviewed scoped Rector transformations, preserved provider exception code 0 explicitly, and adopted installed Laravel 13 Signature/Description command attributes with identical parsed definitions.
-
-Verification on final code:
-
-- **584 parallel Pest checks passed, 3,612 assertions**, excluding real-driver checks; Prayer providers/cache/breakers/GPS/refresh jobs, preview, submission timing and zero-inline-HTTP, persisted expression resolution, event payloads, admin MCP, public occurrence grouping and homepage rendering. Log `/tmp/ilmu360-part4b-final-pest.log`.
-- Isolated cached config/route preview + stats run: **11 passed, 49 assertions**. Focused zero-inline-HTTP run after updating the old namespace trace assertion: **9 passed, 85 assertions**. Logs `/tmp/ilmu360-part4b-{cached,zero-http}-pest.log`. Temporary caches cleared.
-- Integrated level-6 PHPStan plus owned-write rule: **zero errors**, no baseline changes. Structural gate: **zero findings, two features**. Scoped Rector over the whole Prayer feature: zero changes/errors; Pint and whitespace checks pass. Logs `/tmp/ilmu360-part4b-final-{phpstan,rector,pint}.log`.
-- **749 routes unchanged**; complete prayer command definitions identical; all schedule definitions (expression/command/name/timezone/options) identical after ignoring next-due presentation and registration order. Original 03:30 Malaysia prefetch and hourly UTC alert preserved. `/tmp/ilmu360-part4b-{before,after}-*.json`.
-- Direct and escaped obsolete source class references audited: none. Existing event resolver class references are intentional and unchanged.
-
-Deployment is separate: queued prayer job class identities changed. Before eventual cutover, finish/drain existing prayer jobs using the old release and reload workers under the new release; do not add compatibility aliases or silently rewrite live queues. No deployment or queue mutation was performed here.
-
-Next: Saved Searches (Part 5). Whole-app migration and final full-suite acceptance remain open. Refresh graph before discovery; the graph predates these moved Prayer paths.
-
-## Part 5a — Saved Searches write consolidation (2026-11-08)
-
-- [x] Trace the API/page/account lifecycle mutations and the external notification/reward/dashboard consumers before moving the model.
-- [x] Centralize single-record deletion, owner deletion, attributed API deletion and quiet snapshot restoration in named Saved Searches actions.
-- [x] Redirect API/page/account lifecycle callers; preserve authorization, transactions, model deletion events and the API-only attribution reversal.
-- [x] Verify owner-type plus owner-ID isolation and restoration of original attributes/timestamp instants without replaying creation events.
-- [x] Compare routes, run affected tests, Pint, level-6 analysis with the owned-write rule, boundary checks and scoped Rector; checkpoint subject `refactor(saved-searches): consolidate deletion and restoration writes`.
-- [x] Part 5b: migrate external reads to immutable values and a read contract; evidence below.
-- [ ] Part 5c: migrate the model, policy, actions, integrations, registrations and remaining callers into one owning feature. No full feature-adoption claim before the ownership cutover.
-
-Changed: `DeleteSavedSearchAction`, `DeleteOwnerSavedSearchesAction`, `DeleteSavedSearchWithAttributionReversalAction` and `RestoreSavedSearchesAction` under the existing `app/Actions/SavedSearches` path. The API retains its transaction and share-outcome reversal; page and account cleanup retain plain per-model deletion. Restoration retains `timestamps = false`, `forceFill` and `saveQuietly` from the original generic child-restoration path. Existing create/update/execute actions remain in place. No schema, route, policy or model identity change; existing Signals and attribution behavior are preserved.
-
-Verification: 85 affected tests covered across the initial 84 passing checks and the corrected lifecycle-file rerun (2 passed, 7 assertions). The initial new restoration assertion compared SQLite timestamp text instead of timestamp values; the corrected assertion verifies unchanged instants and unchanged other raw attributes. All existing API, page, account-restoration and WP2 attribution checks passed in the initial run. Logs: `/tmp/ilmu360-part5a-pest.log` and `/tmp/ilmu360-part5a-lifecycle-pest.log`. Pint, level-6 PHPStan plus owned-write rule (zero errors), boundary check (zero violations, two adopted features), scoped Rector and route comparison pass. Route snapshots: `/tmp/ilmu360-part5a-{before,after}-routes.json`; checker logs: `/tmp/ilmu360-part5a-{pint,phpstan,boundaries,final-rector}.log`.
-
-### Part 5b audit map and preservation requirements
-
-- `User::savedSearches()` was removed in Part 5c.2 after all runtime consumers migrated. Owner reads/writes match both `user_type` and `user_id` through the public Saved Searches boundary.
-- `HasUserRestoration` now reads full attributes through `restorationSnapshotForOwner`; writes use the Part 5a actions.
-- `UserDashboard::recentSavedSearches` now uses the latest three readonly summaries. Admin `ViewUser` uses request-computed summaries and count, without eager-loading mutable searches.
-- Notification matching now streams readonly candidates (owner identity, query/filters, latitude/longitude/radius and cadence) and resolves User outside Saved Searches. Preserve nearby-versus-text matching, first-50 result behavior, grouping, first-three names, metadata IDs and `saved-search-match:{eventId}:{userId}` fingerprint. Instant/daily/weekly/off cadence and unknown-to-daily fallback are covered by the checkpoint tests.
-- `ActivityRewardSourceFactReader` now reads a snapshot plus `hasEarlierForOwner` constrained by both owner columns, strict earlier creation time and excluding the current ID. User resolution and RewardSourceFact construction stay in the reward adapter. `ShareAttributionRewardSourceFactReader` uses an existence check and retains a cancelled/invalid fact after source deletion.
-- Read values must preserve mixed `query` (`string|array|null`), optional filters/notification settings and nullable geo fields. The package casts query to array although existing callers store text; do not silently change that contract during relocation.
-- `FilterNormalizer` imports event classifications; `ExecuteSavedSearchAction` invokes EventSearchService, returns Event models and records product Signals. Introduce a deliberate Events query/integration boundary; do not exempt these imports from architecture enforcement.
-- Preserve configurable package `getTable()` (a literal model `$table` cannot override that inherited method), factory discovery, policy registration, route-model binding, Livewire identity, middleware/order and configured/stored model/morph identities. Model creation currently defaults the owner type using User: replace with an identity seam when moving it.
-- The Livewire page also composes directory options. Keep directory composition in an external adapter using the Saved Searches public API rather than pulling unrelated models into the feature.
-
-## Part 5b — Saved Searches external read boundaries (2026-11-08)
-
-- [x] Refresh `Users-Saiffil-Herd-ilmu360` and confirm callers against source where graph edges are sparse.
-- [x] Add `SavedSearchReader`, final readonly `SavedSearchSnapshot`, and `DatabaseSavedSearchReader`; bind the stateless reader transiently. Use existing conventional paths until the complete owning-feature move in Part 5c.
-- [x] Migrate dashboard/admin summaries, account snapshot capture, notification matching and both reward adapters. Remove their SavedSearch model imports/queries and relation exposure.
-- [x] Cover detached mixed-query values, immutable timestamps, owner isolation, latest/limit reads, restoration attributes, source deletion, notification matching/grouping/cadence/geo fallback and first-time reward boundaries.
-- [x] Verify affected behavior, unchanged routes, Pint, level-6 PHPStan plus owned-write rule, boundary check, scoped Rector and independent review; commit subject `refactor(saved-searches): replace external model reads with snapshots`.
-- [x] Separately correct the baseline account-settings test's outdated English description/save-button assertions; no product copy change needed. Follow-up checkpoint below.
-- [x] Part 5c: complete persistence ownership, public Api relocation, model/policy/factory/binding registration and cached behavior checks.
-- [ ] Part 5d: localize the remaining composition entrypoints/routes through their actual discovery/directory/attribution boundaries; first resolve the separately reproduced baseline failures below.
-
-Verification: **234 of 235 parallel Pest checks passed, 1,469 assertions**, including all 21 new Saved Searches reader/reward/notification cases and existing API/page/account/admin/dashboard/notification/reward/WP2 tests. The sole failure is `DashboardPagesTest`'s existing account-settings copy assertion. Baseline `e22d6e99` contains both stale assertions and the current translations; route, component, settings view, translations and that test were unchanged in Part 5b. Resolve in a separate test-only commit. Log: `/tmp/ilmu360-part5b-pest.log`. Pint, level-6 PHPStan plus owned-write rule (zero errors), boundaries (zero violations, two adopted features), scoped Rector (zero changes) and whitespace checks pass. All 750 routes in this stage's snapshots are unchanged in `/tmp/ilmu360-part5b-{before,after}-routes.json`; checker logs use `/tmp/ilmu360-part5b-{pint,phpstan,boundaries,rector}.log`. Independent review found no material defect. No schema, stored class/morph identity, URL, Signals or attribution workflow changes.
-
-Next agent: refresh the graph (the index predates the new reader), move the reader/snapshot to the Saved Searches public `Api` and its database implementation with the owning model. Remaining mutable `User::savedSearches()` runtime callers are CreateSavedSearchAction and the Saved Searches page; the API also reads its model directly. Remove the User relation after those migrate. The current API index scopes only `user_id`: add a same-ID/different-owner-type regression and constrain both owner columns during cutover. Resolve EventSearchService/Event paginator, filter enums, identity default and share-attribution operations through deliberate boundaries rather than exemptions. Preserve package-configured table behavior and factory/policy/morph/binding/Livewire registrations; then run cached/uncached checks. The full-app checklist remains open.
-
-### Part 5b follow-up — baseline account-settings test (2026-11-08)
-
-- [x] Confirm baseline `e22d6e99` has the same current translations and two outdated test expectations; none of the route/component/settings view/translations/test had changed in Part 5b.
-- [x] Update only the test to the existing English description and `Save changes` label; additionally assert the notification-preferences form is rendered, retaining HTTP success and inbox checks.
-- [x] Verify the corrected case: **1 passed, 6 assertions**, `/tmp/ilmu360-part5b-baseline-pest.log`. Together with the 234 unchanged passing cases in the saved Part 5b run, all 235 covered cases now pass. No repeated broad run after this test-only correction.
-- [x] Pint and whitespace checks pass. Scoped Rector was reviewed: its suggestions are confined to unchanged, unrelated tests in the same file, so they were not applied. Part 5b runtime analysis/boundary checks remain valid because this follow-up changes only the test. Checkpoint subject: `test(dashboard): align notification settings copy assertions`.
-
-No product copy, layout, tracking, settings behavior or runtime code changed. Resume Part 5c as described above; no baseline failure from the Part 5b run remains open.
-
-### Part 5c.1 — polymorphic API ownership (2026-11-08)
-
-- [x] Correct the API index and view/update/delete policy checks to match both canonical owner type and UUID. Execute reuses the view policy.
-- [x] Add five regressions for same-ID/different-type listing and forbidden show/update/delete/execute; assert the protected row and attribution corrections remain unchanged.
-- [x] Verify existing API/page/WP2 attribution behavior: **83 parallel tests passed, 445 assertions**, `/tmp/ilmu360-part5c-isolation-pest.log`. Initial multi-path parallel invocation was rejected before running tests; corrected to the supported filter invocation.
-- [x] Pint, scoped Rector, whitespace, architecture boundaries and level-6 analysis with the owned-write rule pass (zero errors); logs `/tmp/ilmu360-part5c-isolation-{pint,rector,boundaries,phpstan}.log`.
-
-This fixes a pre-existing isolation defect before relocating the model. Preserve the new 403 behavior for foreign typed owners and existing 404 behavior for missing records during cutover. No routes, response payloads for authorized owners, or schema changed.
-
-### Part 5c.2 — persistence ownership and public operations (2026-11-08)
-
-- [x] Move model, five concrete write actions, database reads, snapshot and policy into `app/Features/SavedSearches`; declare `table:saved_searches` and actual named write paths in its manifest.
-- [x] Expose pure public `Api/SavedSearchReader`, `SavedSearchCommands` and final readonly `SavedSearchSnapshot`. Keep mutable models/builders private; the snapshot includes a detached original serialized payload for HTTP parity.
-- [x] Bind through the native feature provider, explicitly register model/snapshot policies and snapshot route binding. Preserve configured package `getTable()` and explicit factory discovery/model mapping.
-- [x] Remove mutable `User::savedSearches()` and redirect page/API/account/notification/reward/dashboard/admin consumers. Feature commands constrain owner type and UUID even when invoked outside HTTP.
-- [x] Preserve creation and API deletion attribution workflows as external transactional composition using public commands. Move event-result execution into `app/Actions/Events/Search` consuming only a snapshot; it still returns Event results and records the existing Signals in its actual discovery integration.
-- [x] Move the filter implementation to `app/Support/Discovery/EventSearchFilterNormalizer` behind the genuinely shared discovery-filter contract. Introduce shared resource-owner and default-user-morph contracts; User and its integration adapter implement them. Expected saved-search limit failure lives alongside existing Shared integration failures. Remove superseded implementations without aliases.
-- [x] Add regression coverage for complete API serialization, creation-only response keys, public owner isolation and outer attribution-failure rollback. Update existing tests/factories/seeders to canonical relocated types.
-- [x] Compare uncached route snapshots: identical. Boundary check: zero violations, three declared features. Independent review: no material issue.
-- [x] Finish saved parallel behavior and level-6 ownership/type analysis; review scoped Rector output. Final checks below.
-- [x] Clear temporary config/routes caches, reconcile this checklist and `tasks/todo.md`, and review the final diff. Checkpoint subject `refactor(saved-searches): own persistence behind public APIs`.
-
-API/page adapters remain in conventional application locations because they compose event discovery, directory/form catalogs, identity and attribution. They now use only Saved Searches public boundaries. Their routes remain registered once in the existing root route files, with unchanged names, middleware, parameters and payloads. Transport localization and the remaining directory/discovery/attribution boundaries are still explicit remaining work; this checkpoint does not claim that the complete Saved Searches transport slice or full application has moved.
-
-Temporary cache isolation used `APP_CONFIG_CACHE=/tmp/ilmu360-part5c-config.php`, `APP_ROUTES_CACHE=/tmp/ilmu360-part5c-routes.php`, `APP_EVENTS_CACHE=/tmp/ilmu360-part5c-events.php`, compiled views `/tmp/ilmu360-part5c-views`; testing env used SQLite `:memory:`, array cache/mail/session, sync queue, Blaze/Pulse/Telescope/Nightwatch disabled. Config/route generation passed and both temporary cache files were cleared and verified absent. Normal application caches were not changed.
-
-Scoped Rector proposes a route-binding arrow closure and Laravel 13 Fillable/Table attributes. These are style suggestions, not behavior defects. Keep the model's literal `$table` declaration for ownership enforcement while inheriting the package's configured `getTable()`; do not blindly remove it for the attribute transformation.
-
-Final verification and corrections:
-
-- **113 focused parallel checks passed, 550 assertions, in each cache mode**: `/tmp/ilmu360-part5c-cached-fixed-pest.log` and `/tmp/ilmu360-part5c-uncached-fixed-pest.log`. These include API/page/core contracts, ownership, immutable readers/reward facts, notification matching, account child lifecycle, WP2 reversals and attributed page creation. All new feature-boundary cases pass.
-- A final fresh, route-scoped OpenAPI generation check passed (**1 test, 12 assertions**, `/tmp/ilmu360-part5c-doc-parameter-pest.log`). Snapshot binding retains a scalar string but cannot supply Scramble's model-derived UUID format, so all four bound HTTP actions now declare the UUID path parameter explicitly. No model internals are exposed through the path schema. Final PHPStan was rerun after this annotation change and remains clean.
-- The initial broad run covered **452 checks**, with 427 passes, fourteen cutover/test-setup failures subsequently corrected, and eleven unrelated failures subsequently reproduced on the pre-cutover baseline. Saved log `/tmp/ilmu360-part5c-pest.log`. The cutover fixes preserve the API envelope's request ID, inject attribution failure through the existing ShareTrackingContract, and expose the page's previously missed updated timestamp as immutable `updatedAt`. No compatibility aliases were added.
-- Initial analysis identified a seed-only bulk insert as a runtime write. Tooling fix **`721a8a39`** recognizes only canonical test/seeder/factory/migration paths, while production lookalikes still fail. **13 architecture tests passed, 52 assertions** (`/tmp/ilmu360-part5c-tooling-pest.log`); final integrated level-6 PHPStan plus owned-write rule reports **zero errors** (`/tmp/ilmu360-part5c-final-phpstan.log`). No baseline or suppressions added.
-- Structural boundaries: zero findings, three declared features. All **750 routes unchanged**; before/after `/tmp/ilmu360-part5c-{before,after}-routes.json`. Pint and whitespace checks pass. Independent review found no material issue. Scoped Rector suggestions were reviewed and left as documented above.
-- Current feature changes were temporarily protected in a task-specific Git stash for baseline verification and restored successfully afterward. No task stash remains pending. No deployment, live database change, dependency change or schema change was performed. Saved-search business-key and User owner-morph identities remain unchanged; no persisted old SavedSearch model identity was found in the ownership audit.
-
-### Part 5d.1 — reproduced baseline failures, before further transport localization
-
-All eleven below also fail on committed baseline **`721a8a39`** (same runtime Saved Searches implementation as `5145c2e8`, before the Part 5c.2 feature cutover). A focused baseline run selected exactly eleven tests: eleven failures, no errors, same test names as the unrelated failures in the broad cutover run. Log `/tmp/ilmu360-part5c-baseline-pest.log`; exact names `/tmp/ilmu360-part5c-baseline-failure-names.txt`. All eleven original cases are now resolved in Parts 5d.1a–h. The separately reproduced location-query budget case is also resolved in Part 5d.1i below. Do not label the full suite green or assume each is a product bug without tracing the canonical current behavior.
-
-- [x] Scramble generated-spec version assertions: align focused/full generated specifications with installed Scramble's `3.1.2`; preserve the separate lightweight index catalog's existing `3.1.0` contract. Verified in Part 5d.1a below.
-- [x] Native mobile telemetry example restored by native MediaType serialization in Part 5d.1b; existing assertion passes unchanged.
-- [x] Live route/OpenAPI operation alignment: explicit summaries added for community release and 25 reward operations. Routes, security, summaries and successful responses now all satisfy the unchanged alignment regression (Part 5d.1c).
-- [x] Institution workflow description assertions now verify the current Places selection and server verification contract (Part 5d.1d).
-- [x] Agentic write request examples restored by native MediaType serialization in Part 5d.1b; existing assertions pass unchanged.
-- [x] Public event discovery now explicitly restricts PostgreSQL/Typesense to approved parents; browse/text and both adapter regressions pass (Part 5d.1e). Direct-detail reachability remains separate.
-- [x] Pending event notices restored on single-date and overview layouts, verified in English/Malay (Part 5d.1f).
-- [x] Cancelled event notices restored with current localized status label; cancellation JSON-LD retained (Part 5d.1f).
-- [x] Gallery assertion checks the current accessible section, Gallery heading and both canonical uploaded-image URLs (Part 5d.1h).
-- [x] Share assertion checks the current dialog, Copy Link text and copy action; obsolete Share Preview wording removed (Part 5d.1h).
-- [x] Registration CTA now uses existing Register Now translation on date/overview layouts; English/Malay label, checkout destination and Signals verified (Part 5d.1g).
-
-The eleven original root causes are corrected in verified commits. The separately discovered DTO query-budget issue is also resolved. Finish Saved Searches transport localization. The conventional HTTP controller still composes validation/catalog enums, generic API response/pagination helpers, identity and attribution/event-result workflows; the Livewire adapter also composes directory labels/options and shared form/toast helpers. Replace those real cross-capability dependencies with their public boundaries before moving entrypoints/routes, preserving current route and Livewire aliases. Do not export Eloquent models or broaden architecture exceptions to move folders prematurely.
-
-### Part 5d.1a — generated OpenAPI patch version (2026-11-08)
-
-The installed Scramble serializer emits `3.1.2` for OpenAPI 3.1 documents. Two assertions incorrectly required `3.1.0` for generated focused/full specs. Updated those two expectations; retained the lightweight discovery index's separately defined `3.1.0` catalog value and synthetic cache-fixture versions. No runtime, route or schema behavior changed. The complete docs-surface regression passes: **1 test, 27 assertions**, `/tmp/ilmu360-part5d-version-pest.log`; Pint and whitespace checks pass. Checkpoint subject `test(docs): align generated specification version assertions`. Ten original baseline cases remain open; the next two share a production request-example serialization defect, not stale expectations.
-
-### Part 5d.1b — native request examples (2026-11-08)
-
-Scramble v0.13.53 serializes request bodies through `serializeAs31`/`serializeAs32`, bypassing the custom ExampleRequestBodyObject's `toArray` override. The extension now updates native MediaType objects and retains the original request body, preserving description/required flags, extensions, schemas and upstream named examples. Media objects are cloned before setting an operation-local example. Removed the obsolete custom request-body serializer rather than adding compatibility overrides.
-
-Both previously failing public docs regressions pass unchanged (telemetry and agentic examples). Five focused cases cover JSON/multipart under both native serializers plus unrelated-operation preservation: **7 tests passed, 72 assertions**, `/tmp/ilmu360-part5d-examples-pest.log`. Initial new test expected deprecated schema `example`; corrected to native OpenAPI `examples[0]`, with no production workaround. Pint, scoped Rector (zero changes), level-6 PHPStan plus ownership rule (zero errors), boundaries (zero findings, three features) and whitespace pass. Logs `/tmp/ilmu360-part5d-examples-{pint,rector,phpstan,boundaries}.log`. No application endpoint, request-validation or persistence behavior changed. Eight original baseline cases remain open.
-
-### Part 5d.1c — reward/community summaries (2026-11-08)
-
-The inventory failure was at `summaryGaps`, not missing routes: community release and 25 reward operations were present but lacked meaningful summaries. Added explicit Endpoint titles to their nine controllers, including the administrator restriction on cohort metrics and verification step for payee registration. No routes, generic fallback labels, authorization, response payloads or persistence behavior changed. The unchanged full API-inventory regression now passes all checks for route coverage, security, summary presence and successful responses: **1 test, 9 assertions**, `/tmp/ilmu360-part5d-summaries-pest.log`. Pint, integrated level-6 analysis with ownership enforcement (zero errors) and whitespace pass. Checkpoint subject `docs(api): describe reward and community operations`. Seven original baseline cases remain open.
-
-### Part 5d.1d — institution Places contract (2026-11-08)
-
-The existing manifest, endpoint description and validation require `address.google_place_id`, verify the selected place server-side, and prohibit caller-supplied map URLs/provider identifiers as substitutes. Updated stale description assertions to verify this current contract; person country-ID assertions and the negative obsolete-country-key assertion remain intact. No production code changed. The complete documentation suite plus native request-example regression cases passes: **22 tests, 432 assertions**, `/tmp/ilmu360-part5d-docs-pest.log`. Pint and whitespace checks pass; the preceding integrated PHPStan/ownership run was clean and subsequent edits only change test literals. Checkpoint subject `test(docs): verify the current institution Places contract`. All five original documentation cases are resolved; six event cases remain open.
-
-### Part 5d.1e — approved-only discovery (2026-11-08)
-
-Both discovery adapters reused the broader detail-page statuses (approved/pending/cancelled), violating the explicit approved-only listing rule. PostgreSQL now constrains the qualified parent status to approved; Typesense uses the exact approved filter and also checks current status during model hydration for all three search paths. Broader direct-detail reachability and occurrence statuses remain unchanged. Existing visibility regression now asserts exclusion of pending/cancelled/draft/private events for browse and text search; adapter results exclude unapproved parents, and the Typesense query-filter regression requires approved-only. This changes result eligibility, not entrypoints or user intent/outcome tracking; existing Signals remain intact.
-
-Focused run: **29/30 tests passed**, `/tmp/ilmu360-part5d-visibility-pest.log`. The sole failure is an unrelated pre-existing EventListData location-query budget (11 queries, expected fewer than 5), reproduced identically on clean committed baseline `7923efd1`: `/tmp/ilmu360-part5d-location-baseline-pest.log`. Current changes were protected/restored with a task-specific stash; no pending stash remains. After correcting the text-search test parameter from unused `q` to actual `search`, both browse/text cases pass: **2 tests/12 assertions**, `/tmp/ilmu360-part5d-visibility-search-pest.log`. Typesense hydration coverage uses the database Scout engine plus separate DSL assertions, not a live Typesense server. Integrated PHPStan/ownership: zero errors; boundaries: zero findings, three features; Pint/whitespace pass. Scoped Rector proposes only an unrelated explicit-nullable check in prayer filtering; reviewed and left unchanged. Logs use `/tmp/ilmu360-part5d-visibility-*`. Refreshed graph now indexes PHP successfully (87894 nodes/188197 edges), restoring graph caller traces.
-
-- [x] Resolve separately reproduced `EventLocationFilterParityTest::reuses eager-loaded primary places without per-item queries`: DTO projections are prepared in batches and the original query-budget assertion passes; production aggregate/MCP/person query regressions pass (Part 5d.1i).
-
-### Part 5d.1f — public detail status notices (2026-11-08)
-
-The redesigned headers omitted parent pending/cancelled notices. Added one shared status partial beside the title in both overview and date templates. Show renders the date template for exactly one public occurrence, so testing only the overview would miss the real default path. Existing direct-detail access, occurrence-specific status badges and action-disable policy remain unchanged. Uses existing localized keys (including lowercase `cancelled`) and the existing hero palette; passive display needs no new intent/outcome signal. Clarified the broader detail-status constant comment.
-
-**7 parallel tests pass, 31 assertions**, `/tmp/ilmu360-part5d-notices-final-pest.log`: English/Malay single dates, both overview statuses, approved notice absence and cancelled JSON-LD. Initial new coverage exposed the alternate template; the completed fixture also supplies the occurrence action’s required title. Integrated level-6 PHPStan/ownership: zero errors; Pint/whitespace pass. Logs `/tmp/ilmu360-part5d-notices-{final-phpstan,pint}.log`. Three original event cases and the separately proven location-query budget remain. Checkpoint subject `fix(events): restore public detail status notices`.
-
-### Part 5d.1g — registration localization (2026-11-08)
-
-The date and overview CTAs used an untranslated `Daftar sekarang` key. Switched all three instances to existing `Register Now`, yielding English Register Now and Malay Daftar Sekarang. No route, eligibility, interaction or Signals attribute changed. **4 tests pass/16 assertions**, `/tmp/ilmu360-part5d-registration-pest.log`: English/Malay labels, actual checkout URL and checkout-started attribute, existing policy-free ticketless registration, and open-event behavior. Integrated PHPStan/ownership reports zero errors; Pint/whitespace and frontend build pass (`/tmp/ilmu360-part5d-{registration-phpstan,registration-pint,ui-build}.log`). Checkpoint subject `fix(events): localize public registration actions`. Two original cases remain (gallery/share wording).
-
-### Part 5d.1h — gallery and share contract assertions (2026-11-08)
-
-Current gallery is a linked image grid labelled Gallery, not the obsolete Event Gallery slider. Its test now asserts the accessible section, heading and both image sources. Media fixture instances are refreshed when deriving expected versioned URLs because synchronous conversions may update the stored media timestamp after the upload object was returned. Current share dialog is labelled Kongsi majlis and retains Copy Link; the test checks that dialog and actual copy action rather than obsolete Share Preview text. No production code changed.
-
-Full EventSearch run: **123/124 passed, 452 assertions**, `/tmp/ilmu360-part5d-event-search-pest.log`. The sole failure was the new test using a stale media timestamp; after fixture refresh, that case passes **1 test/5 assertions**, `/tmp/ilmu360-part5d-gallery-final-pest.log`. All **124 covered cases pass across the saved full run and focused correction**, including all six original event failures. Do not misreport this as a fresh all-suite run. Final PHPStan/ownership reports zero errors (`/tmp/ilmu360-part5d-event-copy-final-phpstan.log`); Pint/whitespace pass. Together with the earlier 22-test documentation run, all eleven original baseline cases are resolved. Checkpoint subject `test(events): verify current gallery and share contracts`.
-
-### Part 5d.1i — DTO batch loading (2026-11-08)
-
-The location resolver portion of the failing test already makes zero queries. `app/Data/Api/Frontend/Search/EventListData.php::fromModel()` calls `loadMissing('displayOccurrence.media')` per item, producing ten queries for five events, plus one shared category-catalog query. Do not weaken/remove the query budget. Do not add this globally to EventCardRelationshipProvider: browser cards currently use primaryOccurrence in some ordinary-parent paths; preloading displayOccurrence can change image selection, including null/past fallbacks.
-
-Use the actual DTO serialization boundaries. Existing correct precedent: `SearchController::limitedEventPayloadWithTotal()` preloads displayOccurrence.media on its collection; EventController index/show already eager-load it. Missing batch points found by read-only audit:
-
-- `app/Http/Controllers/Api/Frontend/SearchController.php::search()` before mapping the event paginator collection.
-- `app/Support/Mcp/McpEventSearchService.php::search()` before mapping its result collection.
-- `SearchController::personParticipationPayload()` nested event eager-load list before mapping involvements through eventListData.
-
-Confirmed the three callers and added DTO-specific batch preparation there. Aggregate/MCP now create Eloquent collections from paginator items and load displayOccurrence.media once; the nested person-role event query eager-loads the same relation. The original location test prepares this DTO projection before measuring per-item serialization; its zero-query location check and less-than-item-count serialization assertion remain intact. The DTO single-item fallback and shared browser provider are unchanged. No route, payload, authorization, write, lifecycle, dependency or schema change. This read-only optimization needs no new product event; existing Signals remain unchanged.
-
-Verification/evidence for Part 5d.1i:
-
-| Five-event response | Baseline occurrence-media SELECTs | After |
-| --- | ---: | ---: |
-| Aggregate HTTP search | 5 | 1 |
-| MCP search service | 5 | 1 |
-| Person event/other-role lists | 6 | 2 (one per returned list) |
-
-The three new regressions were run against unchanged production code first, reproducing 5/5/6 queries: `/tmp/ilmu360-part5d-batch-baseline-pest.log`. The initial affected run passed **31/32 tests, 259 assertions**, including all 29 existing location/grouping cases; the new person test initially expected one query despite the existing two-list response. After asserting the actual two batches and both list contents, the final three regressions plus dedicated member MCP adapter pass: **4 tests/24 assertions**, `/tmp/ilmu360-part5d-batch-final-pest.log`. Existing rich person-detail parity passes **1 test/40 assertions**, `/tmp/ilmu360-part5d-batch-person-parity-pest.log`. All **34 distinct covered cases pass across saved runs and the corrected focused run**. No HTTP latency claim is made from local suite timing. Media fixture/IDs and cancellation/grouped upcoming-date payloads are preserved.
-
-Final integrated PHPStan level 6 plus ownership rule: zero errors (`/tmp/ilmu360-part5d-batch-final-phpstan.log`). Boundaries: zero findings, three features; scoped Rector: zero proposed changes; Pint and whitespace pass (`/tmp/ilmu360-part5d-batch-{boundaries,rector,pint}.log`). Graph caller trace for the static DTO method had no inbound edges; focused source confirmed its real consumers. A later graph refresh was interrupted by a tool-server refresh; refresh graph before the next implementation. Checkpoint subject `fix(search): batch event list occurrence media loading`.
-
-### Part 5d.2a — record labels through Shared discovery (2026-11-08)
-
-Added scalar-only `Shared/Discovery/SearchFilterLabels::label(string $filterKey, string $id): ?string`, with the actual nine database lookups and caches in `Support/Discovery/DatabaseSearchFilterLabels`. The Saved Searches page calls that contract directly; removed its nine record-model imports, nine cache properties and nine old lookup methods, with no forwarding wrappers. The page keeps presentation, raw-ID fallbacks, geography-role labels and suggested-name composition. The concrete resolver preserves all original UUID guards, unguarded taxonomy/reference query behavior, EventTerm usage and institution display_name access. Equivalent person-role and taxonomy filter keys share their existing respective caches.
-
-AppServiceProvider binds the resolver scoped, preserving positive/negative lookup caching within a request/job and clearing it at lifecycle boundaries under Octane. No static cache or singleton state introduced. The interface exports no models/builders. New tests exercise all nine record kinds, invalid/unknown no-query handling, shared role/term lookup counts, missing results and both positive/negative cache reset through the container lifecycle flush. UI flow and existing Signals are unchanged; no new tracking needed. Root routes, component alias and templates are unchanged. This is a prerequisite boundary extraction, not completed transport localization.
-
-Initial affected run: **38/40 passed, 132 assertions**, `/tmp/ilmu360-part5d-labels-pest.log`; all 27 existing SavedSearchPageTest cases passed. Two new term fixtures lacked their required taxonomy; after supplying it, both pass (**2 tests/6 assertions**, `/tmp/ilmu360-part5d-labels-fixed-pest.log`). All **40 distinct covered cases pass across the saved run and focused fixture correction**. Final integrated PHPStan/ownership: zero errors; boundaries: zero findings/three features; scoped Rector: zero changes; Pint/whitespace pass. Logs `/tmp/ilmu360-part5d-labels-{final-phpstan,boundaries,rector,pint}.log`. Independent source/diff review found no material issue. Refreshed graph before extraction: 97917 nodes/208343 edges; refresh again for the new boundary before the next implementation. Laravel 13 scoped binding docs were checked via Context7. Checkpoint subject `refactor(saved-searches): resolve record labels through shared discovery`.
-
-Remaining Part 5d.2 checklist:
-
-- [x] Move record-label reads behind scalar Shared discovery contract; preserve page label/name behavior and request cache isolation (Part 5d.2a).
-- [x] Prove/fix the four `filters.{domain,discipline,source,issue}_tag_ids.*` rules against configured EventTerm storage and the matching EventTaxonomy vocabulary. POST/PATCH accept/reject, no-write failures, configured tables and lazy validation verified in Part 5d.2b; obsolete tags-store rules removed.
-- [x] Public primitive discovery choice/category catalog consumed by API and page, preserving values, localized/historical labels and category validity (Part 5d.2c.1).
-- [x] Complete the remaining discovery validation/metadata boundary (allowed filter keys, configured entity existence, taxonomy, time/boolean rules); keep Saved Searches name/cadence/owner policy in its owner. Do not export mutable models/builders or couple to admin-only orchestration (Part 5d.2c.2).
-- [x] Fix the separately identified pre-existing geography validation configuration mismatch using canonical addressing package table resolution, without aliases; prove configured-table POST/PATCH and invalid-ID no-write behavior (Part 5d.2c.2a).
-- [x] Isolate saved-search execution results through a public Saved Searches execution contract returning immutable primitive payload/pagination; remove the root action and transport paginator-helper dependency while preserving native Event JSON, page/empty/last-page/nearby behavior and one Signals event (Part 5d.2c.3a).
-- [ ] Isolate attribution create/delete orchestration, identity and generic HTTP/UI helpers through correct owning boundaries. Existing root actions remain genuine transactional composition; do not replace them with pass-through wrappers.
-- [ ] Move HTTP/page entrypoints and routes atomically only after those dependencies are resolved. Preserve six CRUD/execute API actions, middleware order, `/carian-tersimpan`, explicit `pages.saved-searches.index` alias (used by ShareTrackingTest), snapshot binding/policy, payloads/Signals and cached/uncached behavior. Compare same-environment uncached route snapshots and prove unique registration.
-
-### Part 5d.2b — canonical taxonomy vocabulary validation (2026-11-08)
-
-The four valid-vocabulary POST regressions all failed with **422** on unchanged production code (`/tmp/ilmu360-part5d-taxonomy-baseline-pest.log`): saved-search validation still queried the obsolete tags store while the application uses EventTerm. Replaced those four rules with UUID + deferred `Rule::exists(EventTerm::class, id)` constrained by a configured EventTaxonomy subquery for the matching code. This matches existing admin term-validation and discovery-execution semantics: cross-vocabulary IDs are rejected; no new active-only restriction is imposed. Both configured model tables are respected. No compatibility aliases, dependencies, schema changes, routes, authorization or unrelated filter semantics changed.
-
-The native Exists callback builds no query for absent vocabulary filters. Existing event-category catalog reads are separate: the initial broad test captured that pre-existing category query, so its predicate was corrected to observe term/taxonomy queries for domain/discipline/source/issue only. No production workaround or catalog change was made. Product Signals and persistence workflows remain unchanged; validation now admits the canonical IDs instead of rejecting them against the removed store.
-
-New HTTP coverage exercises all four vocabularies on POST/PATCH, missing and cross-vocabulary rejections, unchanged records on failed PATCH, configured term+taxonomy tables, inactive-term acceptance and lazy vocabulary checks. Main affected run: **82/83 passed, 322 assertions**, `/tmp/ilmu360-part5d-taxonomy-pest.log`; after the query-observation correction, the remaining case passes **1 test/2 assertions**, `/tmp/ilmu360-part5d-taxonomy-lazy-pest.log`. All **83 distinct covered cases pass across the saved runs**, including existing API, page and feature-boundary regressions.
-
-Final integrated PHPStan level 6/ownership: zero errors; boundaries: zero findings/three features; scoped Rector: zero changes; Pint/whitespace pass. Logs `/tmp/ilmu360-part5d-taxonomy-{final-phpstan,boundaries,rector,pint}.log`. Independent review found no production-code issue; current Laravel 13 model-based Exists/deferred-query docs and installed events dev-main model table resolution were checked. Checkpoint subject `fix(saved-searches): validate filters against taxonomy vocabularies`. Full transport and whole-app conversion remain open.
-
-### Part 5d.2c.1 — public discovery filter choices (2026-11-08)
-
-Added pure `Shared/Discovery/SearchFilterCatalog` exposing only allowed string values, scalar labels and valid category-ID arrays. `Support/Discovery/EventSearchFilterCatalog` implements the choice knowledge using current enums and the existing category catalog internally. The existing EventCategoryCatalog also exposes mutable EventTerm models through terms(), so it cannot simply be moved/exported as the Shared contract; the new boundary deliberately excludes that method. No duplicate category hierarchy/validation implementation was introduced.
-
-Both SavedSearchController and the page now consume the Shared boundary, removing their direct category catalog and six enum dependencies. Backing values/order remain unchanged; key-person role acceptance remains non-speaker-only while label resolution still recognizes historical speaker values. Unknown choices remain null at the boundary and the page retains raw-value fallbacks. Category suggested names/chips and validTermIds behavior are preserved. The implementation is stateless/transient, so labels reflect locale changes on each call. No route, alias, template, Signals, persistence or lifecycle change. Native filter validation/helpers and remaining orchestration dependencies still need extraction; this subpart does not complete transport localization.
-
-Fresh affected run: **102 tests passed, 349 assertions**, `/tmp/ilmu360-part5d-catalog-pest.log`, including all taxonomy correction cases, existing API/page/feature-boundary regressions and 19 new catalog cases. New checks cover exact accepted values, historical speaker labels versus permitted inputs, live English/Malay locale changes, unknown labels and scalar category validity without mutable term exports. Integrated PHPStan level 6 plus ownership: zero errors; boundaries: zero findings/three features; scoped Rector: zero changes; Pint/whitespace pass. Logs `/tmp/ilmu360-part5d-catalog-{phpstan,boundaries,rector,pint}.log`. Source/diff reviewed; the optional agent audit supplied the role-label/mutable-category hazards before reaching its usage limit; implementation and final review were completed by the main agent. Checkpoint subject `refactor(saved-searches): use public discovery filter catalog`.
-
-### Part 5d.2c.2 — public discovery filter validation (2026-11-08)
-
-Added pure `Shared/Discovery/SearchFilterRules` with `rules(mixed $filters): array` plus `Shared/Discovery/SearchFilterKeys` as the single filter-key vocabulary. `Support/Discovery/EventSearchFilterRules` builds the Laravel-native filter rules using the existing public `SearchFilterCatalog`, configured entity tables, the deferred EventTerm/EventTaxonomy vocabulary rule and the existing time/boolean closures. The rules accept the raw primitive filters payload, so category validity derives from the caller's input instead of the HTTP request global. SavedSearchController now retains only name/query/notify/radius/lat/lng and partial-update policy and spreads the discovery filter rules; no filter key list, entity existence rule, taxonomy rule or custom closure remains there. EventSearchFilterNormalizer and ExecuteSavedSearchAction now share the same key vocabulary instead of keeping three private copies. No mutable model or builder escapes the boundary; returned values are Laravel validation rule objects and closures.
-
-Behavior preserved: root allowlist and rule order, configured country table, hard-coded entity tables, enum values/order, non-speaker role acceptance, category catalog validity, lazy taxonomy vocabulary checks, null/blank behavior, error keys/messages/status, API envelopes, partial updates and persistence. No route, auth, Signals, docs attributes, dependency or schema change. The pre-existing `addressing.tables.countries` key is retained exactly; the package's separate `addressing.database.tables.countries` key remains a pre-existing inconsistency outside this slice.
-
-New coverage: non-array filters rejection without creation; blank time/boolean filters normalized away; configured country table; PATCH filters-only preservation of name/query/radius/coordinates/cadence; PATCH unsupported/malformed filter rejection without mutation; direct contract category validation from the supplied primitive input. Existing enum/label/time/boolean/taxonomy/geography and docs/binding regressions remain.
-
-Fresh parallel run: **150 tests passed, 517 assertions**, exit 0, `/tmp/ilmu360-opencode-part5d2c2-final2-pest.log`, covering the required five-file baseline plus the new `SearchFilterRulesTest` and all SavedSearch/SearchFilter suites. Integrated PHPStan level 6/ownership: zero errors, exit 0; boundaries zero findings/three features, exit 0; scoped Rector zero changes, exit 0; Pint and whitespace pass, exit 0. Logs `/tmp/ilmu360-opencode-part5d2c2-final-{phpstan,boundaries,rector}.log` and `...-pint.log`. A whole-file Rector dry-run flags only the pre-existing untouched `uses(RefreshDatabase::class)` in SavedSearchApiTest; reviewed and not applied as an unrelated rewrite. Relevant OpenAPI request-example regression also passes **1 test/23 assertions**, `/tmp/ilmu360-opencode-part5d2c2-docs-pest.log`. Codex independently inspected source, tests and saved evidence and accepted the extraction; all three original 38-key lists have identical membership. OpenCode session `ses_e4439182bffeMnW2vpMbHN4q8w` used verified `opencode-go/deepseek-v4.1-flash#max` and is complete. Checkpoint subject `refactor(saved-searches): move discovery filter rules behind public boundary`. No live database, routes, deployment or dependencies changed. Next: separate canonical geography configuration correction (5d.2c.2a), then workflow/identity/generic presentation boundaries and atomic HTTP/page/route cutover. Full transport and whole-app conversion remain open.
-
-### Part 5d.2c.2a — canonical geography validation tables (2026-11-09)
-
-The four discovery geography existence rules now resolve canonical installed-addressing models through `ModelResolver` (`countryClass`, `stateClass`, `cityClass`, `areaClass`) and Laravel-native model-aware `Rule::exists(..., 'id')`. This replaces the obsolete `addressing.tables.countries` key and hardcoded `states`/`cities`/`address_areas` tables. `AddressingTableResolver` and model `getTable()` therefore honor `addressing.database.tables.*` and host model overrides without aliases, fallback key reads, duplicate hierarchy or caller-side remapping. UUID, root allowlist, optional/null behavior, category/enum, taxonomy, time/boolean, partial-update and response contracts are unchanged. No hierarchy membership validation was added.
-
-Baseline proof on unchanged production code: the new canonical regression file failed **11/11 cases**, exit 1, `/tmp/ilmu360-opencode-part5d2c2a-baseline-pest.log`. Configured-table POST/PATCH and missing-ID cases received **500** `no such table: countries/states/cities/address_areas`; the obsolete-default-table case received **201**, proving the old lookup could accept a false match from the wrong table.
-
-New coverage: canonical configured-table POST acceptance for all four filters with response and persisted payload; canonical configured-table PATCH acceptance preserving name/cadence; datasets over all four filters for missing-ID POST (no create) and PATCH (no mutation) with exact validation keys; an id present only in a recreated obsolete default country table is rejected. The prior obsolete-key test was removed rather than retained as false assurance.
-
-Final evidence: affected suite **73 tests passed, 302 assertions**, exit 0, `/tmp/ilmu360-opencode-part5d2c2a-affected-final-pest.log`; broader SavedSearch/SearchFilter suite **160 tests passed, 566 assertions**, exit 0, `/tmp/ilmu360-opencode-part5d2c2a-final-pest.log`. Integrated PHPStan level 6/ownership zero errors; boundaries zero findings/three features; scoped Rector zero changes; Pint and whitespace exit 0. Logs `/tmp/ilmu360-opencode-part5d2c2a-final-{phpstan,boundaries}.log`, `...-rector.log`, `...-pint.log`. `SavedSearchFeatureBoundaryTest` remains green; no OpenAPI field/shape changed, so no docs rerun was required.
-
-Remaining unrelated obsolete `addressing.tables.*` consumers are separate owner-stage follow-ups, not fixed by this slice: `app/Livewire/Concerns/JoinsHierarchyAreaName.php`, `app/Support/Api/Admin/AdminResourceMutationService.php`, `app/Http/Controllers/Api/Frontend/SearchController.php`, `app/Http/Controllers/Api/Frontend/ContributionController.php`, `app/Services/ContributionEntityMutationService.php`, `tests/Feature/EventLocationPrecedenceTest.php`, and `tests/Pest.php`. No route/page/workflow/identity move, UI change, schema/dependency change or broad addressing rewrite. Next: **5d.2c.3** workflow/identity/presentation boundaries, then atomic HTTP/page/route cutover. Full transport and whole-app conversion remain open.
-
-Independent acceptance (Codex, 2026-11-09): reviewed the production diff, replacement HTTP coverage, installed package model/table resolvers, native validation table/connection handling and saved baseline/final evidence. The new rules preserve default behavior while honoring canonical configured geography models/tables; no material source regression or mutable boundary leak found. Metadata independently confirms `opencode-go/deepseek-v4.1-flash#max`; worker session `ses_e4439182bffeMnW2vpMbHN4q8w` completed with exit 0 and READY FOR REVIEW handoff. Accepted for checkpoint `fix(saved-searches): resolve geography validation through addressing tables`.
-
-### Part 5d.2c.3a — saved-search execution result boundary (2026-11-09)
-
-Added the public `SavedSearchExecutor` interface and final readonly `SavedSearchExecutionResult` under `Features/SavedSearches/Api`. The result carries a list of native Event JSON arrays plus scalar pagination fields (`page`, `per_page`, `total`, `has_more`, `next_page`); no Event model, relation collection, builder, paginator or Laravel runtime type crosses the public boundary. `Support/Discovery/EventSavedSearchExecutor` now owns the previous orchestration and projection: exact filter whitelist plus language trimming, text-versus-nearby selection, 20 per page, and one `saved_search.execute` Signals call with the existing request/actor, total, saved-search ID and normalized filters including non-null zero coordinates. `SavedSearchController::execute` consumes the public port and no longer imports `ExecuteSavedSearchAction` or `ApiPagination`; the old root action is deleted and the implementation is transiently bound in the existing discovery composition root. The request is an explicit constructor dependency, so page resolution, actor resolution and telemetry remain request-scoped under Octane.
-
-Payload projection uses native Eloquent `toArray()` (what `jsonSerialize()`/`JsonResponse` already uses), not DTO/card resources or gratuitous encode/decode. A rich fixture parity test compares the HTTP `data` to a freshly loaded Event with the same relation provider, with a recursive primitive-leaf assertion; page/empty/last-page, nearby branch, owner isolation and zero-value Signals coverage were added. Characterization tests passed on the original code before extraction: `SavedSearchApiTest` **35 tests/156 assertions** and the new Signals case **1 test/14 assertions**. Final broad SavedSearch|SearchFilter suite **165 tests/606 assertions**, exit 0; `ProductSignalsTelemetryTest` **17 tests/95 assertions**, exit 0; generated-docs alignment **1 test/9 assertions**, exit 0. Logs `/tmp/ilmu360-opencode-part5d2c3a-{final-pest,signals-whole-pest,docs-pest,baseline-api-pest,baseline-signals-pest}.log`. PHPStan level 6/owned-write zero errors; boundaries zero findings/three features; production scoped Rector zero changes (whole test files still show only pre-existing Pest style suggestions); Pint and whitespace pass. Logs `/tmp/ilmu360-opencode-part5d2c3a-{phpstan,boundaries,rector,pint}.log`.
-
-Generated response-schema repair for POST `/saved-searches/{savedSearch}/execute`: the baseline `44e54d62` inference documented `data` as an object/`additionalProperties` Event map, while the primitive boundary initially produced an opaque array. Added `Support/ApiDocumentation/SavedSearchExecutionDocsExtension`, an existing-style Scramble operation extension following the project's real docs integration seam and registered in `ApiDocumentationConfigFactory`; it uses the native type transformer to reuse the generated `Event` schema and documents the execute 200 response as an array of `#/components/schemas/Event` with the existing pagination shape. The repaired operation retains the required UUID path parameter, 200/401/403 responses, sanctum security and the 30-property Event component. The public `SavedSearchExecutor`/`SavedSearchExecutionResult` and controller contain no Event/Eloquent imports, PHPDoc or attribute model strings, and runtime behavior is unchanged. Regression `documents saved-search execution as an event array with pagination and preserved contracts` **1 test/20 assertions**, exit 0; affected docs alignment **1 test/9 assertions**, exit 0. PHPStan level 6/owned-write zero errors, boundaries zero findings/three features, Pint and scoped Rector zero changes, whitespace pass. Evidence `/tmp/ilmu360-opencode-part5d2c3a-doc-repair-*`; earlier comparison artifacts `/tmp/ilmu360-opencode-part5d2c3a-doc-response-*`. The earlier optional probe targeted the nonexistent POST `/saved-searches/{savedSearch}` key and is not docs evidence.
-
-No route, page, artifact, permission, schema or dependency change; all six API actions and the response envelope are preserved. Attribution create/delete, identity/generic presentation and the atomic HTTP/page/route cutover remain open. Full transport and whole-app conversion remain open.
-
-Independent acceptance (Codex, 2026-11-09): reviewed runtime port/result/implementation, transient request binding, old-action removal, native payload parity, normalization/branch/pagination/Signals behavior, and saved check evidence. Requested a targeted generated-schema comparison; rejected the lost Event reference and reviewed the repaired native docs extension and its 20-assertion regression. The array container now matches runtime JSON and retains the existing detailed Event schema, pagination, security, UUID parameter and error contracts. No material issue remains in this slice. Final metadata confirms exact `opencode-go/deepseek-v4.1-flash#max`; worker completed exit 0. Accepted checkpoint subject `refactor(saved-searches): isolate execution result boundary`.
-
-MCP graph refreshed by Codex with fast index of `Users-Saiffil-Herd-ilmu360`: 109,265 nodes/231,136 edges; new executor/result/docs-extension symbols confirmed. One generated PHPStan result cache skipped on parse timeout; source caller edges remain sparse, so focused source references supplement graph traces. No persisted graph artifact was added. Next stage must trace current creation/reversal callers and ownership before edits.
+- `config/events.php`, `config/persons.php` and `AppServiceProvider` register models, policies, observers, slugs and morph identities. Stored fully qualified class strings exist, including Prayer `resolver_class`; import replacement alone is insufficient.
+- SavedSearch uses configurable `getTable()` (a literal `$table` alone is insufficient); runtime mutations are centralized, and API deletion reverses share outcomes while page/account deletion does not. Preserve that distinction, the established immutable/public-result boundary, and the public read paths used by dashboard/admin user views, notification matching and reward fact readers. Do not reintroduce the removed mutable `User` relation.
+- `AffiliatesShareTrackingService` (~2,900 lines) contains many package writes and guest/receipt orchestration; current guest state lives in the affiliates package. Extract named use cases; a renamed facade is insufficient.
+- Canonical geography follow-ups still include seven unrelated obsolete `addressing.tables.*` consumers: `app/Livewire/Concerns/JoinsHierarchyAreaName.php`, `app/Support/Api/Admin/AdminResourceMutationService.php`, `app/Http/Controllers/Api/Frontend/SearchController.php`, `app/Http/Controllers/Api/Frontend/ContributionController.php`, `app/Services/ContributionEntityMutationService.php`, `tests/Feature/EventLocationPrecedenceTest.php`, `tests/Pest.php`.
+
+## Maintenance
+
+- After each accepted stage, replace the current checkpoint and next action, and check off or remove completed active work.
+- Append detailed evidence, commit IDs, limitations and logs only to the [history archive](agent-architecture-migration-history.md).
+- `tasks/todo.md` is an entry pointer, not another migration ledger. Do not let the active file grow into a history again.
