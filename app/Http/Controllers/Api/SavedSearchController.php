@@ -9,7 +9,7 @@ use App\Features\SavedSearches\Api\SavedSearchExecutor;
 use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Features\SavedSearches\Api\SavedSearchSnapshot;
 use App\Http\Controllers\Controller;
-use App\Models\User;
+use App\Shared\Auth\ResourceOwner;
 use App\Shared\Discovery\SearchFilterRules;
 use App\Shared\Integrations\SavedSearchLimitReachedException;
 use Dedoc\Scramble\Attributes\BodyParameter;
@@ -36,11 +36,11 @@ class SavedSearchController extends Controller
     {
         $user = Auth::user();
 
-        if (! $user instanceof User) {
+        if (! $user instanceof ResourceOwner) {
             abort(401);
         }
 
-        $savedSearches = app(SavedSearchReader::class)->forOwner($user->getMorphClass(), (string) $user->getKey());
+        $savedSearches = app(SavedSearchReader::class)->forOwner($user->resourceOwnerType(), $user->resourceOwnerId());
 
         return response()->json([
             'data' => array_map(static fn (SavedSearchSnapshot $savedSearch): array => $savedSearch->payload, $savedSearches),
@@ -75,7 +75,7 @@ class SavedSearchController extends Controller
 
         $user = $request->user();
 
-        if (! $user instanceof User) {
+        if (! $user instanceof ResourceOwner) {
             abort(401);
         }
 

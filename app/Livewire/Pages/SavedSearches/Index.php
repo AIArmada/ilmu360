@@ -9,7 +9,7 @@ use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Features\SavedSearches\Api\SavedSearchSnapshot;
 use App\Forms\SharedFormSchema;
 use App\Livewire\Concerns\InteractsWithToasts;
-use App\Models\User;
+use App\Shared\Auth\ResourceOwner;
 use App\Shared\Discovery\SearchFilterCatalog;
 use App\Shared\Discovery\SearchFilterLabels;
 use App\Shared\Integrations\SavedSearchLimitReachedException;
@@ -68,8 +68,8 @@ class Index extends Component
     {
         $user = auth()->user();
 
-        return $user instanceof User
-            ? collect(app(SavedSearchReader::class)->forOwner($user->getMorphClass(), (string) $user->getKey()))
+        return $user instanceof ResourceOwner
+            ? collect(app(SavedSearchReader::class)->forOwner($user->resourceOwnerType(), $user->resourceOwnerId()))
             : collect();
     }
 
@@ -77,7 +77,7 @@ class Index extends Component
     {
         $user = auth()->user();
 
-        if (! $user instanceof User) {
+        if (! $user instanceof ResourceOwner) {
             abort(403);
         }
 
@@ -117,11 +117,11 @@ class Index extends Component
     {
         $user = auth()->user();
 
-        if (! $user instanceof User) {
+        if (! $user instanceof ResourceOwner) {
             abort(403);
         }
 
-        app(SavedSearchCommands::class)->delete($user->getMorphClass(), (string) $user->getKey(), $savedSearchId);
+        app(SavedSearchCommands::class)->delete($user->resourceOwnerType(), $user->resourceOwnerId(), $savedSearchId);
 
         $this->successToast(__('Saved search deleted.'));
     }
@@ -130,11 +130,11 @@ class Index extends Component
     {
         $user = auth()->user();
 
-        if (! $user instanceof User) {
+        if (! $user instanceof ResourceOwner) {
             abort(403);
         }
 
-        $savedSearch = app(SavedSearchReader::class)->findForOwner($user->getMorphClass(), (string) $user->getKey(), $savedSearchId);
+        $savedSearch = app(SavedSearchReader::class)->findForOwner($user->resourceOwnerType(), $user->resourceOwnerId(), $savedSearchId);
         abort_if($savedSearch === null, 404);
 
         $this->editingId = $savedSearch->id;
@@ -153,7 +153,7 @@ class Index extends Component
     {
         $user = auth()->user();
 
-        if (! $user instanceof User) {
+        if (! $user instanceof ResourceOwner) {
             abort(403);
         }
 
@@ -162,7 +162,7 @@ class Index extends Component
             'editNotify' => ['required', Rule::in(array_keys($this->notifyOptions()))],
         ]);
 
-        app(SavedSearchCommands::class)->update($user->getMorphClass(), (string) $user->getKey(), $savedSearchId, [
+        app(SavedSearchCommands::class)->update($user->resourceOwnerType(), $user->resourceOwnerId(), $savedSearchId, [
             'name' => $validated['editName'],
             'notify' => $validated['editNotify'],
         ]);
