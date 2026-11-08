@@ -5,8 +5,8 @@
 - Scope: the **whole ilmu360° application**, converted in verified, committable parts.
 - Authorization: user invoked `laravel-agent-convert`, requested commits per part, and a checklist another agent can continue.
 - Branch: `refactor`. Initial working tree was clean on 2026-11-07.
-- Current part: **5d.1e — approved-only event discovery** verified; checkpoint subject `fix(events): restrict public discovery to approved events`. All five original documentation failures are resolved (`7923efd1`, `1240a7b8`, `44c2a1fd`, `134b8e78`); persistence `7d09ab0c`.
-- Next action: restore pending/cancelled status notices in the current event header; then fix the registration translation and stale gallery/share assertions. Five original event cases plus a separately reproduced location-query budget failure remain. Keep root causes in separate verified commits. Persistence ownership is complete; the full transport slice and whole application remain open.
+- Current part: **5d.1f — event status notices** verified; checkpoint subject `fix(events): restore public detail status notices`. Discovery visibility committed as `5aac464a`. All five original documentation failures are resolved (`7923efd1`, `1240a7b8`, `44c2a1fd`, `134b8e78`); persistence `7d09ab0c`.
+- Next action: fix the registration translation and stale gallery/share assertions. Three original event cases plus a separately reproduced location-query budget failure remain. Keep root causes in separate verified commits. Persistence ownership is complete; the full transport slice and whole application remain open.
 - Before continuing, read `AGENTS.md`, `.ai/rules/index.md`, `tasks/lessons.md`, and `/Users/Saiffil/.codex/skills/laravel-agent-convert/SKILL.md` with its architecture/migration/tooling references.
 - Update this checklist and `tasks/todo.md` in each part. Record commit subject, checks, limitations, and the next concrete action. A completed part does not mean full-app adoption.
 
@@ -312,7 +312,7 @@ Final verification and corrections:
 
 ### Part 5d.1 — reproduced baseline failures, before further transport localization
 
-All eleven below also fail on committed baseline **`721a8a39`** (same runtime Saved Searches implementation as `5145c2e8`, before the Part 5c.2 feature cutover). A focused baseline run selected exactly eleven tests: eleven failures, no errors, same test names as the unrelated failures in the broad cutover run. Log `/tmp/ilmu360-part5c-baseline-pest.log`; exact names `/tmp/ilmu360-part5c-baseline-failure-names.txt`. The five documentation cases and listing visibility case are now resolved; five original event cases remain open. Do not label the full suite green or assume each is a product bug without tracing the canonical current behavior.
+All eleven below also fail on committed baseline **`721a8a39`** (same runtime Saved Searches implementation as `5145c2e8`, before the Part 5c.2 feature cutover). A focused baseline run selected exactly eleven tests: eleven failures, no errors, same test names as the unrelated failures in the broad cutover run. Log `/tmp/ilmu360-part5c-baseline-pest.log`; exact names `/tmp/ilmu360-part5c-baseline-failure-names.txt`. The five documentation cases and listing visibility case are now resolved; three original event cases remain open. Do not label the full suite green or assume each is a product bug without tracing the canonical current behavior.
 
 - [x] Scramble generated-spec version assertions: align focused/full generated specifications with installed Scramble's `3.1.2`; preserve the separate lightweight index catalog's existing `3.1.0` contract. Verified in Part 5d.1a below.
 - [x] Native mobile telemetry example restored by native MediaType serialization in Part 5d.1b; existing assertion passes unchanged.
@@ -320,8 +320,8 @@ All eleven below also fail on committed baseline **`721a8a39`** (same runtime Sa
 - [x] Institution workflow description assertions now verify the current Places selection and server verification contract (Part 5d.1d).
 - [x] Agentic write request examples restored by native MediaType serialization in Part 5d.1b; existing assertions pass unchanged.
 - [x] Public event discovery now explicitly restricts PostgreSQL/Typesense to approved parents; browse/text and both adapter regressions pass (Part 5d.1e). Direct-detail reachability remains separate.
-- [ ] Pending event detail warning label assertion.
-- [ ] Cancelled event detail banner label assertion.
+- [x] Pending event notices restored on single-date and overview layouts, verified in English/Malay (Part 5d.1f).
+- [x] Cancelled event notices restored with current localized status label; cancellation JSON-LD retained (Part 5d.1f).
 - [ ] Event gallery label assertion.
 - [ ] Event share-preview modal label assertion.
 - [ ] Event registration button label assertion.
@@ -353,3 +353,9 @@ Both discovery adapters reused the broader detail-page statuses (approved/pendin
 Focused run: **29/30 tests passed**, `/tmp/ilmu360-part5d-visibility-pest.log`. The sole failure is an unrelated pre-existing EventListData location-query budget (11 queries, expected fewer than 5), reproduced identically on clean committed baseline `7923efd1`: `/tmp/ilmu360-part5d-location-baseline-pest.log`. Current changes were protected/restored with a task-specific stash; no pending stash remains. After correcting the text-search test parameter from unused `q` to actual `search`, both browse/text cases pass: **2 tests/12 assertions**, `/tmp/ilmu360-part5d-visibility-search-pest.log`. Typesense hydration coverage uses the database Scout engine plus separate DSL assertions, not a live Typesense server. Integrated PHPStan/ownership: zero errors; boundaries: zero findings, three features; Pint/whitespace pass. Scoped Rector proposes only an unrelated explicit-nullable check in prayer filtering; reviewed and left unchanged. Logs use `/tmp/ilmu360-part5d-visibility-*`. Refreshed graph now indexes PHP successfully (87894 nodes/188197 edges), restoring graph caller traces.
 
 - [ ] Resolve separately reproduced `EventLocationFilterParityTest::reuses eager-loaded primary places without per-item queries`: EventListData construction performs 11 queries for five eagerly loaded events. Trace DTO presentation dependencies, fix the actual missing eager-load/repeated lookup, retain query-budget assertion, verify separately.
+
+### Part 5d.1f — public detail status notices (2026-11-08)
+
+The redesigned headers omitted parent pending/cancelled notices. Added one shared status partial beside the title in both overview and date templates. Show renders the date template for exactly one public occurrence, so testing only the overview would miss the real default path. Existing direct-detail access, occurrence-specific status badges and action-disable policy remain unchanged. Uses existing localized keys (including lowercase `cancelled`) and the existing hero palette; passive display needs no new intent/outcome signal. Clarified the broader detail-status constant comment.
+
+**7 parallel tests pass, 31 assertions**, `/tmp/ilmu360-part5d-notices-final-pest.log`: English/Malay single dates, both overview statuses, approved notice absence and cancelled JSON-LD. Initial new coverage exposed the alternate template; the completed fixture also supplies the occurrence action’s required title. Integrated level-6 PHPStan/ownership: zero errors; Pint/whitespace pass. Logs `/tmp/ilmu360-part5d-notices-{final-phpstan,pint}.log`. Three original event cases and the separately proven location-query budget remain. Checkpoint subject `fix(events): restore public detail status notices`.

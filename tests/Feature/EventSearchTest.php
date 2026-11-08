@@ -3337,37 +3337,62 @@ describe('Event Detail Page', function () {
 
         $response->assertOk()
             ->assertSee('My Amazing Event')
-            ->assertSee('This is the description');
+            ->assertSee('This is the description')
+            ->assertDontSee('data-testid="event-status-notice"', false);
     });
 
-    it('shows pending events on detail page with warning banner', function () {
+    it('shows pending events on detail page with warning banner', function (string $locale, string $label, bool $multipleDates) {
+        app()->setLocale($locale);
+
         $event = Event::factory()->create([
             'title' => 'Pending Detail Event',
             'status' => 'pending',
             'visibility' => 'public',
         ]);
 
+        if ($multipleDates) {
+            app(CreateEventOccurrenceAction::class)->handle($event, [
+                'title' => 'Second public date',
+                'starts_at' => now()->addDays(2),
+                'status' => 'scheduled',
+                'visibility' => 'public',
+            ]);
+        }
+
         $response = $this->get(eventShowUrl($event));
 
         $response->assertOk()
             ->assertSee('Pending Detail Event')
-            ->assertSee('Pending Approval');
-    });
+            ->assertSee('data-testid="event-status-notice"', false)
+            ->assertSeeText($label);
+    })->with(['single English' => ['en', 'Pending Approval', false], 'single Malay' => ['ms', 'Menunggu Kelulusan', false], 'overview English' => ['en', 'Pending Approval', true]]);
 
-    it('shows cancelled events on detail page with cancellation banner', function () {
+    it('shows cancelled events on detail page with cancellation banner', function (string $locale, string $label, bool $multipleDates) {
+        app()->setLocale($locale);
+
         $event = Event::factory()->create([
             'title' => 'Cancelled Detail Event',
             'status' => 'cancelled',
             'visibility' => 'public',
         ]);
 
+        if ($multipleDates) {
+            app(CreateEventOccurrenceAction::class)->handle($event, [
+                'title' => 'Second public date',
+                'starts_at' => now()->addDays(2),
+                'status' => 'scheduled',
+                'visibility' => 'public',
+            ]);
+        }
+
         $response = $this->get(eventShowUrl($event));
 
         $response->assertOk()
             ->assertSee('Cancelled Detail Event')
-            ->assertSee('Majlis Dibatalkan')
+            ->assertSee('data-testid="event-status-notice"', false)
+            ->assertSeeText($label)
             ->assertSee('https://schema.org/EventCancelled');
-    });
+    })->with(['single English' => ['en', 'Cancelled', false], 'single Malay' => ['ms', 'Dibatalkan', false], 'overview English' => ['en', 'Cancelled', true]]);
 
     it('shows 404 for draft events', function () {
         $event = Event::factory()->create([

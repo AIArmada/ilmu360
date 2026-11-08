@@ -140,7 +140,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
     protected static bool $ownerScopeEnabledByDefault = false;
 
     /**
-     * Statuses visible on public listings and detail pages.
+     * Statuses reachable on public detail pages; discovery requires approved.
      *
      * @var list<string>
      */

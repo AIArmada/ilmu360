@@ -272,6 +272,8 @@
                         {{ $event->title }}
                     </h1>
 
+                    @include('livewire.pages.events.partials.event-status-notice')
+
                     @if(trim((string) $event->summary) !== '')
                         <p class="mt-6 max-w-[42ch] text-[15px] leading-7 text-[#f7f3e8]/80">{{ $event->summary }}</p>
                     @endif

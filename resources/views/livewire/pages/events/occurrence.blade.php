@@ -402,6 +402,8 @@
                         {{ $occurrenceDisplayTitle }}
                     </h1>
 
+                    @include('livewire.pages.events.partials.event-status-notice')
+
                     @if($occurrenceDisplayTitle !== $event->title && $eventHasMultipleDates)
                         <a href="{{ route('events.show', $event) }}" wire:navigate class="group mt-4 inline-flex items-center gap-2 text-sm font-medium text-[#f2c867] transition-colors duration-300 hover:text-[#fdfaf2]">
                             {{ $event->title }}
