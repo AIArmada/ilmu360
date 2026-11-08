@@ -8,10 +8,14 @@ use App\Enums\AppFeedbackStatus;
 use App\Models\AppFeedback;
 use App\Models\AppFeedbackMessage;
 use App\Models\User;
+use App\Notifications\AppFeedbackRepliedNotification;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Throwable;
 
 class PostAppFeedbackMessageAction
 {
@@ -46,6 +50,30 @@ class PostAppFeedbackMessageAction
         ]);
         $message->save();
 
+        $this->notifyReporterOfReply($feedback, $message, $author);
+
         return $message;
+    }
+
+    private function notifyReporterOfReply(AppFeedback $feedback, AppFeedbackMessage $message, User $author): void
+    {
+        if ($message->author_role !== 'maintainer' || $message->visibility !== 'reporter') {
+            return;
+        }
+
+        $reporter = $feedback->reporter;
+
+        if (! $reporter instanceof User || $reporter->getKey() === $author->getKey()) {
+            return;
+        }
+
+        try {
+            Notification::send($reporter, new AppFeedbackRepliedNotification($feedback, $message));
+        } catch (Throwable $exception) {
+            Log::warning('Unable to send app feedback reply notification.', [
+                'feedback_id' => (string) $feedback->getKey(),
+                'error' => $exception->getMessage(),
+            ]);
+        }
     }
 }
