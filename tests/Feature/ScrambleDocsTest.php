@@ -81,7 +81,7 @@ it('publishes the docs surface on the api host', function () {
 
     $focusedPaths = $focusedResponse->json('paths');
 
-    expect($focusedResponse->json('openapi'))->toBe('3.1.0')
+    expect($focusedResponse->json('openapi'))->toBe('3.1.2')
         ->and($focusedResponse->json('x-ilmu360-section'))->toBe('events')
         ->and($focusedResponse->json('x-ilmu360-complete-spec'))->toBe('https://api.ilmu360.test/docs.json')
         ->and($focusedPaths)->not->toBeEmpty()
@@ -92,7 +92,7 @@ it('publishes the docs surface on the api host', function () {
         'Host' => 'api.ilmu360.test',
     ])
         ->assertOk()
-        ->assertJsonPath('openapi', '3.1.0')
+        ->assertJsonPath('openapi', '3.1.2')
         ->assertJsonPath('servers.0.url', 'https://api.ilmu360.test/api/v1');
 
     expect((string) $response->headers->get('Cache-Control'))

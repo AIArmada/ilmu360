@@ -5,8 +5,8 @@
 - Scope: the **whole ilmu360° application**, converted in verified, committable parts.
 - Authorization: user invoked `laravel-agent-convert`, requested commits per part, and a checklist another agent can continue.
 - Branch: `refactor`. Initial working tree was clean on 2026-11-07.
-- Current part: **5c.2 — Saved Searches persistence ownership** verified; checkpoint subject `refactor(saved-searches): own persistence behind public APIs`. Owner isolation is `5145c2e8`; precise non-runtime write-rule correction is `721a8a39`.
-- Next action: **Part 5d.1 — diagnose the eleven baseline search/docs failures** listed below, fixing each root cause in its own verified commit. Then localize the remaining Saved Searches transport composition through real discovery/directory/attribution boundaries. Persistence ownership is complete; the full transport slice and whole application remain open.
+- Current part: **5d.1a — generated OpenAPI version assertions** verified; checkpoint subject `test(docs): align generated specification version assertions`. Persistence checkpoint is `7d09ab0c`; owner isolation `5145c2e8`; precise write-rule correction `721a8a39`.
+- Next action: fix request examples lost by the installed Scramble serializers, then diagnose the remaining route inventory, institution description and event baseline failures below, one coherent verified commit per root cause. Persistence ownership is complete; the full transport slice and whole application remain open.
 - Before continuing, read `AGENTS.md`, `.ai/rules/index.md`, `tasks/lessons.md`, and `/Users/Saiffil/.codex/skills/laravel-agent-convert/SKILL.md` with its architecture/migration/tooling references.
 - Update this checklist and `tasks/todo.md` in each part. Record commit subject, checks, limitations, and the next concrete action. A completed part does not mean full-app adoption.
 
@@ -314,7 +314,7 @@ Final verification and corrections:
 
 All eleven below also fail on committed baseline **`721a8a39`** (same runtime Saved Searches implementation as `5145c2e8`, before the Part 5c.2 feature cutover). A focused baseline run selected exactly eleven tests: eleven failures, no errors, same test names as the unrelated failures in the broad cutover run. Log `/tmp/ilmu360-part5c-baseline-pest.log`; exact names `/tmp/ilmu360-part5c-baseline-failure-names.txt`. They remain open; do not label the full suite green or assume each is a product bug without tracing the canonical current behavior.
 
-- [ ] Scramble docs OpenAPI version assertion: expects `3.1.0`, generated `3.1.2`.
+- [x] Scramble generated-spec version assertions: align focused/full generated specifications with installed Scramble's `3.1.2`; preserve the separate lightweight index catalog's existing `3.1.0` contract. Verified in Part 5d.1a below.
 - [ ] Native mobile telemetry schema/example assertion: expected `screen.viewed`, actual null.
 - [ ] Live route/OpenAPI operation alignment: community release and 25 reward operations are missing from the generated operation set.
 - [ ] Institution workflow description assertion: expects canonical Google Maps URL wording, current contract requires a verified Places selection.
@@ -327,3 +327,7 @@ All eleven below also fail on committed baseline **`721a8a39`** (same runtime Sa
 - [ ] Event registration button label assertion.
 
 After those root causes are diagnosed and corrected in coherent verified commits, finish Saved Searches transport localization. The conventional HTTP controller still composes validation/catalog enums, generic API response/pagination helpers, identity and attribution/event-result workflows; the Livewire adapter also composes directory labels/options and shared form/toast helpers. Replace those real cross-capability dependencies with their public boundaries before moving entrypoints/routes, preserving current route and Livewire aliases. Do not export Eloquent models or broaden architecture exceptions to move folders prematurely.
+
+### Part 5d.1a — generated OpenAPI patch version (2026-11-08)
+
+The installed Scramble serializer emits `3.1.2` for OpenAPI 3.1 documents. Two assertions incorrectly required `3.1.0` for generated focused/full specs. Updated those two expectations; retained the lightweight discovery index's separately defined `3.1.0` catalog value and synthetic cache-fixture versions. No runtime, route or schema behavior changed. The complete docs-surface regression passes: **1 test, 27 assertions**, `/tmp/ilmu360-part5d-version-pest.log`; Pint and whitespace checks pass. Checkpoint subject `test(docs): align generated specification version assertions`. Ten original baseline cases remain open; the next two share a production request-example serialization defect, not stale expectations.
