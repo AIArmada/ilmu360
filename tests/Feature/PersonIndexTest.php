@@ -1066,3 +1066,24 @@ it('shows a trust badge only on verified penceramah cards', function () {
 
     expect(substr_count($response->getContent(), 'data-testid="verified-badge"'))->toBe(1);
 });
+
+it('scopes the speaker search and results to the person-results island', function () {
+    get('/penceramah')
+        ->assertSuccessful()
+        ->assertSee('aria-controls="person-results"', false)
+        ->assertSee('id="person-results"', false)
+        ->assertSee('name=person-results', false);
+});
+
+it('scrolls person pagination to the results region', function () {
+    foreach (range(1, 13) as $index) {
+        Person::factory()->create([
+            'name' => sprintf('Penceramah Skrol %02d', $index),
+            'status' => 'verified',
+        ]);
+    }
+
+    get('/penceramah')
+        ->assertSuccessful()
+        ->assertSee('const targetSelector = &#039;#person-results&#039;;', false);
+});

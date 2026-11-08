@@ -1,18 +1,28 @@
 <?php
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
+use App\Actions\ToggleDirectoryFollowAction;
 use App\Forms\SharedFormSchema;
+use App\Models\Institution;
 use App\Models\User;
+use App\Support\Auth\IntendedRedirect;
 use App\Support\Location\LocationSlugResolver;
 use App\Support\Location\VisitorCountryResolver;
+use App\Support\Search\InstitutionDirectoryQuery;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 new
 #[Title('Institutions - ilmu360°')]
 class extends Component
 {
+    use WithPagination;
+
     private bool $defaultCountrySlugResolved = false;
 
     private ?string $resolvedDefaultCountrySlug = null;
@@ -24,9 +34,13 @@ class extends Component
 
     public function mount(): void
     {
-        if (! auth()->user() instanceof User) {
+        $user = auth()->user();
+
+        if (! $user instanceof User) {
             $this->followed_only = null;
         }
+
+        $this->refreshFollowingIds();
 
         if ($this->country === null) {
             $this->country = $this->defaultCountrySlug();
@@ -72,10 +86,28 @@ class extends Component
     #[Url]
     public array $areas = [];
 
+    /**
+     * @var list<string>
+     */
+    public array $followingInstitutionIds = [];
+
     #[Computed]
     public function countries(): array
     {
         return $this->locationSlugResolver()->countryMaps()['options'];
+    }
+
+    #[Computed]
+    public function institutions(): LengthAwarePaginatorContract
+    {
+        return app(InstitutionDirectoryQuery::class)->paginate(
+            search: $this->normalizedSearch(),
+            locationIds: $this->locationIds(),
+            followedOnly: $this->followed_only === true,
+            followingInstitutionIds: $this->followingInstitutionIds,
+            page: max(1, (int) $this->getPage()),
+            paginationMeta: $this->paginationMeta(),
+        );
     }
 
     #[Computed]
@@ -431,7 +463,7 @@ class extends Component
 
     public function updatedSearch(): void
     {
-        $this->syncResults();
+        $this->resetPage();
     }
 
     public function updatedCountry(): void
@@ -443,7 +475,7 @@ class extends Component
         $this->subdivision = null;
         $this->areas = [];
         $this->memoizedLocationIds = null;
-        $this->syncResults();
+        $this->resetPage();
     }
 
     public function updatedState(): void
@@ -455,7 +487,7 @@ class extends Component
         $this->areas = [];
         $this->memoizedLocationIds = null;
         $this->autoSelectSingleLocationChildren();
-        $this->syncResults();
+        $this->resetPage();
     }
 
     public function updatedDistrict(): void
@@ -471,14 +503,14 @@ class extends Component
         $this->subdivision = null;
         $this->memoizedLocationIds = null;
         $this->autoSelectSingleLocationChildren();
-        $this->syncResults();
+        $this->resetPage();
     }
 
     public function updatedSubdivision(): void
     {
         $this->syncLegacyAreaPropertiesToAreas();
         $this->memoizedLocationIds = null;
-        $this->syncResults();
+        $this->resetPage();
     }
 
     public function updatedAreas(mixed $value, ?string $key = null): void
@@ -490,19 +522,19 @@ class extends Component
         $this->syncLegacyAreaProperties();
         $this->memoizedLocationIds = null;
         $this->autoSelectSingleLocationChildren();
-        $this->syncResults();
+        $this->resetPage();
     }
 
     public function updatedCity(): void
     {
         $this->memoizedLocationIds = null;
-        $this->syncResults();
+        $this->resetPage();
     }
 
     public function updatedLocality(): void
     {
         $this->memoizedLocationIds = null;
-        $this->syncResults();
+        $this->resetPage();
     }
 
     public function selectGroupedSubdivisionLocality(?string $value): void
@@ -525,7 +557,7 @@ class extends Component
             $this->locality = $slug;
             $this->syncLegacyAreaProperties();
             $this->memoizedLocationIds = null;
-            $this->syncResults();
+            $this->resetPage();
 
             return;
         }
@@ -544,21 +576,22 @@ class extends Component
         $this->locality = null;
         $this->syncLegacyAreaProperties();
         $this->memoizedLocationIds = null;
-        $this->syncResults();
+        $this->resetPage();
     }
 
     public function clearSearch(): void
     {
         $this->search = null;
-        $this->syncResults();
+        $this->resetPage();
     }
 
     public function toggleFollowedOnly(): void
     {
         $this->followed_only = $this->followed_only === true ? null : true;
-        $this->syncResults();
+        $this->resetPage();
     }
 
+    #[On('institution-clear-filters')]
     public function clearFilters(): void
     {
         $this->search = null;
@@ -571,7 +604,7 @@ class extends Component
         $this->areas = [];
         $this->followed_only = null;
         $this->memoizedLocationIds = null;
-        $this->syncResults();
+        $this->resetPage();
     }
 
     /**
@@ -583,41 +616,74 @@ class extends Component
             return $this->memoizedLocationIds;
         }
 
-        return $this->memoizedLocationIds = $this->locationSlugResolver()->idsForSlugs($this->filterPayload());
-    }
-
-    /**
-     * The filter snapshot shared with the results child: same shape for the
-     * initial mount params and every later sync dispatch.
-     *
-     * @return array{search: ?string, country: ?string, state: ?string, city: ?string, locality: ?string, district: ?string, subdivision: ?string, areas?: array<string, ?string>, followed_only?: bool}
-     */
-    public function filterPayload(): array
-    {
-        $payload = [
-            'search' => $this->search,
+        return $this->memoizedLocationIds = $this->locationSlugResolver()->idsForSlugs([
             'country' => $this->country,
             'state' => $this->state,
             'city' => $this->city,
             'locality' => $this->locality,
             'district' => $this->district,
             'subdivision' => $this->subdivision,
-        ];
-
-        if ($this->areas !== []) {
-            $payload['areas'] = $this->areas;
-        }
-
-        if ($this->followed_only === true) {
-            $payload['followed_only'] = true;
-        }
-
-        return $payload;
+            'areas' => $this->areas,
+        ]);
     }
 
-    private function syncResults(): void
+    private function normalizedSearch(): ?string
     {
-        $this->dispatch('institution-filters-updated', filters: $this->filterPayload());
+        if (! is_string($this->search)) {
+            return null;
+        }
+
+        $search = trim($this->search);
+
+        return $search === '' ? null : $search;
+    }
+
+    /**
+     * @return array{path: string, query: array<string, mixed>}
+     */
+    private function paginationMeta(): array
+    {
+        return [
+            'path' => request()->url(),
+            'query' => request()->except('page'),
+        ];
+    }
+
+    public function toggleFollow(string $institutionId): void
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof User) {
+            $this->redirect(IntendedRedirect::loginUrl(route('institutions.index', absolute: false)), navigate: true);
+
+            return;
+        }
+
+        $state = app(ToggleDirectoryFollowAction::class)->handle('institution', $institutionId, $user);
+
+        if ($state === null) {
+            return;
+        }
+
+        $this->refreshFollowingIds();
+    }
+
+    public function refreshFollowingIds(): void
+    {
+        $user = auth()->user();
+        $this->followingInstitutionIds = $user instanceof User
+            ? OwnerContext::withOwner(null, fn (): array => $user->followingInstitutions()->pluck((new Institution)->qualifyColumn('id'))->map(static fn (mixed $id): string => (string) $id)->values()->all())
+            : [];
+    }
+
+    #[On('directory-follow-updated.institution')]
+    public function refreshFollowedListing(): void
+    {
+        $this->refreshFollowingIds();
+
+        if (! $this->followed_only) {
+            $this->skipRender();
+        }
     }
 
     /**
@@ -815,6 +881,7 @@ class extends Component
                 </p>
                 
                  <!-- Search and filter controls -->
+                 @island(name: 'institution-directory', always: true)
                  <div class="mt-9 max-w-3xl">
                     <x-ui.search-bar
                         input-id="institution-search"
@@ -823,9 +890,11 @@ class extends Component
                         :placeholder="__('Search institutions...')"
                         :label="__('Search institutions')"
                         :hint="__('Search by institution name or location.')"
+                        aria-controls="institution-results"
                         width="max-w-xl"
                     />
                 </div>
+                @endisland
             </div>
         </div>
 
@@ -982,7 +1051,9 @@ class extends Component
         </div>
 
 	        <div class="mx-auto max-w-7xl px-5 pt-10 pb-16 sm:px-6 lg:px-8 lg:pt-12 lg:pb-20">
-            <livewire:pages.institutions.results :filters="$this->filterPayload()" />
+            @island(name: 'institution-directory', always: true)
+                @include('components.pages.institutions.partials.results')
+            @endisland
 
 
                     <section class="mt-16 sm:mt-20">

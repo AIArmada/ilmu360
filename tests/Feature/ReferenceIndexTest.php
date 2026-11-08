@@ -362,3 +362,24 @@ it('shows a trust badge only on verified reference cards', function () {
 
     expect(substr_count($response->getContent(), 'data-testid="reference-verified-badge"'))->toBe(1);
 });
+
+it('scopes the reference search and results to the reference-results island', function () {
+    get('/rujukan')
+        ->assertSuccessful()
+        ->assertSee('aria-controls="reference-results"', false)
+        ->assertSee('id="reference-results"', false)
+        ->assertSee('name=reference-results', false);
+});
+
+it('scrolls reference pagination to the results region', function () {
+    foreach (range(1, 13) as $index) {
+        Reference::factory()->create([
+            'title' => sprintf('Rujukan Skrol %02d', $index),
+            'status' => 'verified',
+        ]);
+    }
+
+    get('/rujukan')
+        ->assertSuccessful()
+        ->assertSee('const targetSelector = &#039;#reference-results&#039;;', false);
+});

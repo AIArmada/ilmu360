@@ -10,6 +10,7 @@ use App\Models\Reference;
 use App\Support\Search\InstitutionSearchService;
 use App\Support\Search\PersonSearchService;
 use App\Support\Search\ReferenceSearchService;
+use App\Support\Search\TypesenseHealthCheckService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
@@ -656,4 +657,94 @@ it('keeps split-token reference search when the database driver is configured', 
     $service = app(ReferenceSearchService::class);
 
     expect($service->publicSearchIds('Bulugh Maram'))->toContain((string) $reference->id);
+});
+
+it('applies the public institution search strategy to a scoped query', function () {
+    config()->set('scout.driver', 'collection');
+
+    $institution = Institution::factory()->create([
+        'name' => 'Masjid Biru',
+        'status' => 'verified',
+    ]);
+
+    $hiddenInstitution = Institution::factory()->create([
+        'name' => 'Masjid Biru Hidden',
+        'status' => 'rejected',
+    ]);
+
+    $ids = app(InstitutionSearchService::class)
+        ->applyPublicSearch(Institution::query()->where('status', 'verified'), 'Masjid Biru')
+        ->pluck('institutions.id')
+        ->map(static fn (mixed $id): string => (string) $id)
+        ->all();
+
+    expect($ids)->toContain((string) $institution->id)
+        ->not->toContain((string) $hiddenInstitution->id);
+});
+
+it('falls back to database institution search when public query typesense fails', function () {
+    $institution = Institution::factory()->create([
+        'name' => 'Masjid Biru',
+        'status' => 'verified',
+    ]);
+
+    $service = new class extends InstitutionSearchService
+    {
+        protected function shouldUseTypesenseSearch(): bool
+        {
+            return true;
+        }
+
+        protected function searchIdsWithScout(string $search, array $options = []): array
+        {
+            throw new RuntimeException('Typesense unavailable');
+        }
+
+        protected function logScoutFallback(string $message, Throwable $exception, string $search): void {}
+    };
+
+    $ids = $service->applyPublicSearch(Institution::query(), 'Masjid Biru')
+        ->pluck('institutions.id')
+        ->map(static fn (mixed $id): string => (string) $id)
+        ->all();
+
+    expect($ids)->toContain((string) $institution->id);
+});
+
+it('passes the public status filter to typesense institution search', function () {
+    config()->set('scout.driver', 'typesense');
+
+    $this->app->bind(TypesenseHealthCheckService::class, fn () => new class extends TypesenseHealthCheckService
+    {
+        public function isAvailable(): bool
+        {
+            return true;
+        }
+    });
+
+    $service = new class extends InstitutionSearchService
+    {
+        public array $capturedOptions = [];
+
+        protected function shouldUseTypesenseSearch(): bool
+        {
+            return true;
+        }
+
+        protected function searchIdsWithScout(string $search, array $options = []): array
+        {
+            $this->capturedOptions = $options;
+
+            return [];
+        }
+
+        protected function logScoutFallback(string $message, Throwable $exception, string $search): void {}
+    };
+
+    $service->applyPublicSearch(Institution::query(), 'Masjid Biru');
+
+    expect($service->capturedOptions)->toMatchArray([
+        'num_typos' => 0,
+        'filter_by' => 'status:=[verified,pending]',
+    ]);
 });

@@ -355,17 +355,16 @@ it('paginates direct institution search results without a second count query', f
         static fn (string $query): bool => str_contains($query, 'count(*) as "aggregate"'),
     ))->toBeEmpty();
 
-    $institutionIdQueries = $queries->filter(
-        static fn (string $query): bool => str_contains($query, 'select "institutions"."id"'),
+    $paginatedQueries = $queries->filter(
+        static fn (string $query): bool => str_contains($query, 'count(*) over ()'),
     );
 
-    expect($institutionIdQueries)->not->toBeEmpty()
-        ->and($institutionIdQueries)->toHaveCount(1)
-        ->and($institutionIdQueries->every(
-            static fn (string $query): bool => str_contains($query, 'status') && str_contains($query, 'in'),
-        ))->toBeTrue()
-        ->and($institutionIdQueries->every(
-            static fn (string $query): bool => ! str_contains($query, 'from "events"'),
+    expect($paginatedQueries)->toHaveCount(1)
+        ->and($queries->filter(
+            static fn (string $query): bool => str_contains($query, 'select "institutions"."id"'),
+        ))->toBeEmpty()
+        ->and($paginatedQueries->every(
+            static fn (string $query): bool => str_contains($query, 'like'),
         ))->toBeTrue();
 });
 
@@ -482,14 +481,27 @@ it('filters the institution directory to followed institutions', function () {
         ->assertSee('data-followed-filter', false);
 });
 
-it('dispatches the followed institution filter to the results component', function () {
+it('filters the directory to followed institutions', function () {
     $user = User::factory()->create();
+
+    $followedInstitution = Institution::factory()->create([
+        'name' => 'Institusi Diikuti Toggle',
+        'status' => 'verified',
+    ]);
+
+    Institution::factory()->create([
+        'name' => 'Institusi Lain Toggle',
+        'status' => 'verified',
+    ]);
+
+    $user->follow($followedInstitution);
 
     Livewire::actingAs($user)
         ->test('pages.institutions.index')
         ->call('toggleFollowedOnly')
         ->assertSet('followed_only', true)
-        ->assertDispatched('institution-filters-updated');
+        ->assertSee('Institusi Diikuti Toggle')
+        ->assertDontSee('Institusi Lain Toggle');
 });
 
 it('does not infer the institution country from an unencrypted browser timezone cookie', function () {
@@ -785,15 +797,8 @@ it('uses postal locality children for federal territory directory filters', func
     ])
         ->set('locality', 'presint-1')
         ->assertSet('locality', 'presint-1')
-        ->assertDispatched('institution-filters-updated', filters: [
-            'search' => null,
-            'country' => 'malaysia',
-            'state' => Str::slug($stateName),
-            'city' => null,
-            'locality' => 'presint-1',
-            'district' => null,
-            'subdivision' => null,
-        ]);
+        ->assertSee('Masjid Al Hidayah Presint 1')
+        ->assertDontSee('Masjid Al Hidayah Presint 2');
 });
 
 it('auto-selects a single postal locality child', function () {
@@ -914,18 +919,18 @@ it('issues single like predicates for single-word institution search', function 
         ->assertSuccessful()
         ->assertSee('Masjid Shah Alam Ujian');
 
-    $idQueries = collect(DB::getQueryLog())->pluck('query')->filter(
-        static fn (string $query): bool => str_contains($query, 'select "institutions"."id"'),
+    $searchQueries = collect(DB::getQueryLog())->pluck('query')->filter(
+        static fn (string $query): bool => str_contains($query, 'count(*) over ()'),
     );
 
-    expect($idQueries)->toHaveCount(1);
+    expect($searchQueries)->toHaveCount(1);
 
     // A single word produces identical phrase and wildcard patterns, so the
     // scope must not repeat the predicate (A OR A is just A).
-    $idSql = (string) $idQueries->first();
+    $searchSql = (string) $searchQueries->first();
 
-    expect(substr_count($idSql, '"institutions"."name"'))->toBe(1)
-        ->and(substr_count($idSql, '"full_name"'))->toBe(1);
+    expect(substr_count($searchSql, '"institutions"."name"'))->toBe(1)
+        ->and(substr_count($searchSql, '"full_name"'))->toBe(1);
 });
 
 it('ignores unknown location slugs instead of failing', function () {
@@ -943,32 +948,30 @@ it('ignores unknown location slugs instead of failing', function () {
         ->assertDontSee(__('Clear Location Scope'));
 });
 
-it('dispatches the filter snapshot to results when the country changes', function () {
+it('filters the directory when the country changes', function () {
     Livewire::test('pages.institutions.index')
         ->set('country', 'singapore')
-        ->assertDispatched('institution-filters-updated', filters: [
-            'search' => null,
-            'country' => 'singapore',
-            'state' => null,
-            'city' => null,
-            'locality' => null,
-            'district' => null,
-            'subdivision' => null,
-        ]);
+        ->assertSet('country', 'singapore')
+        ->assertSet('state', null)
+        ->assertSet('city', null)
+        ->assertSet('locality', null)
+        ->assertSet('district', null)
+        ->assertSet('subdivision', null)
+        ->assertSet('areas', []);
 });
 
-it('dispatches cleared filters to results when filters are cleared', function () {
-    Livewire::test('pages.institutions.index', ['country' => 'malaysia'])
+it('clears all directory filters', function () {
+    Livewire::test('pages.institutions.index', ['country' => 'malaysia', 'search' => 'Masjid'])
         ->call('clearFilters')
-        ->assertDispatched('institution-filters-updated', filters: [
-            'search' => null,
-            'country' => null,
-            'state' => null,
-            'city' => null,
-            'locality' => null,
-            'district' => null,
-            'subdivision' => null,
-        ]);
+        ->assertSet('search', null)
+        ->assertSet('country', null)
+        ->assertSet('state', null)
+        ->assertSet('city', null)
+        ->assertSet('locality', null)
+        ->assertSet('district', null)
+        ->assertSet('subdivision', null)
+        ->assertSet('areas', [])
+        ->assertSet('followed_only', null);
 });
 
 it('shows a trust badge only on verified institusi cards', function () {
@@ -978,4 +981,82 @@ it('shows a trust badge only on verified institusi cards', function () {
     $response = get('/institusi')->assertSuccessful()->assertSee('Profil Sah')->assertSee('Profil Semakan');
 
     expect(substr_count($response->getContent(), 'data-testid="verified-badge"'))->toBe(1);
+});
+
+it('does not duplicate the page query in institution pagination links', function () {
+    foreach (range(1, 13) as $index) {
+        Institution::factory()->create([
+            'name' => sprintf('Masjid Halaman %02d', $index),
+            'status' => 'verified',
+        ]);
+    }
+
+    $component = Livewire::withQueryParams(['page' => 1])
+        ->test('pages.institutions.index');
+
+    $paginator = $component->instance()->institutions;
+
+    expect($paginator->url(2))
+        ->toContain('page=2')
+        ->not->toContain('page=1');
+});
+
+it('scopes the search and results to named islands', function () {
+    Livewire::test('pages.institutions.index')
+        ->assertSee('aria-controls="institution-results"', false)
+        ->assertSee('id="institution-results"', false)
+        ->assertSee('name=institution-directory', false);
+});
+
+it('scrolls institution pagination to the results region', function () {
+    foreach (range(1, 13) as $index) {
+        Institution::factory()->create([
+            'name' => sprintf('Masjid Skrol %02d', $index),
+            'status' => 'verified',
+        ]);
+    }
+
+    Livewire::test('pages.institutions.index')
+        ->assertSee('const targetSelector = &#039;#institution-results&#039;;', false);
+});
+
+it('updates search results without removing the hero', function () {
+    Institution::factory()->create([
+        'name' => 'Masjid Island Result',
+        'status' => 'verified',
+    ]);
+
+    Livewire::test('pages.institutions.index')
+        ->assertSee('data-material="hero-field"', false)
+        ->set('search', 'Masjid Island Result')
+        ->assertSee('Masjid Island Result')
+        ->assertSee('data-material="hero-field"', false);
+});
+
+it('restores search and page state from the query string', function () {
+    $component = Livewire::withQueryParams([
+        'search' => 'Masjid',
+        'page' => 2,
+    ])->test('pages.institutions.index');
+
+    expect($component->instance()->institutions->currentPage())->toBe(2)
+        ->and($component->get('search'))->toBe('Masjid');
+});
+
+it('clears search and filters from the empty-state action', function () {
+    Livewire::test('pages.institutions.index', [
+        'search' => 'tiada-hasil',
+        'country' => 'malaysia',
+    ])
+        ->dispatch('institution-clear-filters')
+        ->assertSet('search', null)
+        ->assertSet('country', null)
+        ->assertSet('state', null)
+        ->assertSet('city', null)
+        ->assertSet('locality', null)
+        ->assertSet('district', null)
+        ->assertSet('subdivision', null)
+        ->assertSet('areas', [])
+        ->assertSet('followed_only', null)
+        ->assertSee('selected="selected"', false);
 });

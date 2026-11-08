@@ -41,6 +41,34 @@ class InstitutionSearchService implements PublicDiscoveryAdapter
     }
 
     /**
+     * Apply the same public search strategy as {@see publicSearchIds()}
+     * directly to a scoped query.
+     *
+     * @param  Builder<Institution>  $query
+     * @return Builder<Institution>
+     */
+    public function applyPublicSearch(Builder $query, string $search): Builder
+    {
+        $normalizedSearch = $this->normalizedSearch($search);
+
+        if ($normalizedSearch === null) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        if ($this->shouldUseTypesenseSearch() && app(TypesenseHealthCheckService::class)->isAvailable()) {
+            try {
+                return $this->applyScoutSearch($query, $normalizedSearch, [
+                    'filter_by' => 'status:=[verified,pending]',
+                ]);
+            } catch (\Throwable $exception) {
+                $this->logScoutFallback('Institution Typesense public search failed, falling back to database search', $exception, $normalizedSearch);
+            }
+        }
+
+        return $this->applyDatabaseSearch($query, $normalizedSearch);
+    }
+
+    /**
      * @param  Builder<Institution>  $query
      * @return list<string>
      */
@@ -453,12 +481,14 @@ class InstitutionSearchService implements PublicDiscoveryAdapter
 
     /**
      * @param  Builder<Institution>  $query
+     * @param  array<string, mixed>  $options
      * @return Builder<Institution>
      */
-    protected function applyScoutSearch(Builder $query, string $search): Builder
+    protected function applyScoutSearch(Builder $query, string $search, array $options = []): Builder
     {
         $ids = $this->searchIdsWithScout($search, [
             'num_typos' => 0,
+            ...$options,
         ]);
 
         if ($ids === []) {

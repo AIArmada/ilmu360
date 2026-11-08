@@ -17,7 +17,7 @@ it('allows authenticated users to follow and unfollow an institution from the di
     ]);
 
     $component = Livewire::actingAs($user)
-        ->test('pages.institutions.results')
+        ->test('pages.institutions.index')
         ->assertSee('<article', false)
         ->assertSee('data-follow-icon="institution"', false)
         ->assertSee('data-follow-state="not-following"', false)
@@ -50,7 +50,7 @@ it('hydrates an existing institution follow in the directory card', function () 
     $user->follow($institution);
 
     Livewire::actingAs($user)
-        ->test('pages.institutions.results')
+        ->test('pages.institutions.index')
         ->assertSet('followingInstitutionIds', [(string) $institution->id])
         ->assertSee('data-follow-state="following"', false)
         ->assertSee('aria-pressed="true"', false)
@@ -62,7 +62,7 @@ it('redirects guests to login when trying to follow from an institution director
         'status' => 'verified',
     ]);
 
-    Livewire::test('pages.institutions.results')
+    Livewire::test('pages.institutions.index')
         ->call('toggleFollow', (string) $institution->id)
         ->assertRedirect(route('login', ['redirect' => route('institutions.index', absolute: false)]));
 });
@@ -81,7 +81,7 @@ it('uses a stable random institution order instead of alphabetical sorting', fun
         'status' => 'verified',
     ]);
 
-    $component = Livewire::test('pages.institutions.results');
+    $component = Livewire::test('pages.institutions.index');
 
     $orderedIds = collect($component->instance()->institutions->items())
         ->pluck('id')
@@ -109,8 +109,8 @@ it('syncs institution results when filters update', function () {
         'status' => 'verified',
     ]);
 
-    Livewire::test('pages.institutions.results')
-        ->call('syncFilters', ['search' => 'Hidayh'])
+    Livewire::test('pages.institutions.index')
+        ->set('search', 'Hidayh')
         ->assertSee('Masjid Al Hidayah')
         ->assertDontSee('Pusat Pengajian An-Nur');
 });
@@ -144,8 +144,8 @@ it('refreshes cached institution search results after institution updates', func
         ->and($searchService->publicSearchIds('hijau'))
         ->toContain((string) $institution->id);
 
-    $updatedSearchResults = Livewire::test('pages.institutions.results')
-        ->call('syncFilters', ['search' => 'hijau'])
+    $updatedSearchResults = Livewire::test('pages.institutions.index')
+        ->set('search', 'hijau')
         ->instance()
         ->institutions;
 
@@ -176,8 +176,8 @@ it('shows the nearest upcoming public majlis on institution cards', function () 
         'published_at' => now(),
     ]);
 
-    $component = Livewire::test('pages.institutions.results', [
-        'filters' => ['search' => 'Institusi Majlis Terdekat'],
+    $component = Livewire::test('pages.institutions.index', [
+        'search' => 'Institusi Majlis Terdekat',
     ]);
 
     $listedInstitution = collect($component->instance()->institutions->items())
@@ -200,12 +200,4 @@ it('shows the nearest upcoming public majlis on institution cards', function () 
         ->and($listedInstitution?->next_event_slug)->toBe($nearestEvent->slug)
         ->and($listedInstitution?->next_event_title)->toBe('Majlis Institusi Terdekat')
         ->and($listedInstitution?->next_event_starts_at)->not->toBeNull();
-});
-
-it('ignores non-string filter values instead of failing', function () {
-    Livewire::test('pages.institutions.results')
-        ->call('syncFilters', ['search' => ['nested'], 'country' => ['nested'], 'state' => 123])
-        ->assertSet('search', null)
-        ->assertSet('country', null)
-        ->assertSet('state', null);
 });

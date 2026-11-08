@@ -1,3 +1,129 @@
+# Todo — Institution search: one request + direct paginated search (2026-11-08)
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Remove the double Livewire request on `/institusi` search and replace the “resolve every matching ID then `whereIn`” pagination with a direct paginated search.
+
+**Architecture:** Merge `pages.institutions.results` into `pages.institutions.index`; extract the results Blade into a partial; add `InstitutionSearchService::applyPublicSearch()`; paginate the scoped base query with `count(*) over ()`; keep the fuzzy ordered-ID fallback. No `@island` in Stage 1.
+
+**Spec:** Chat design approved 2026-11-08 (Stage 1), plus Muse Spark 1.3 Contributor review (approve with changes: merge yes, island no).
+
+## Global Constraints
+
+- Livewire 4 SFC; follow existing component conventions.
+- No new dependencies.
+- Keep `?search=` URL, location filters, followed-only, pagination, clear/Escape, follow cards, and next-event badges.
+- No islands in Stage 1.
+- Do not delete tests; migrate them.
+- Run targeted Pest once, Pint, PHPStan level 6.
+- Do not commit without user approval (AGENTS git safety).
+
+## Review Focus
+
+- Location-filtered direct search must not lose matches (the current `publicSearchIds` is unscoped and capped before location filtering).
+- Multi-word/token and nickname semantics must match `searchNameOrNickname`.
+- Fuzzy fallback must still return score-ordered IDs.
+- Filter dropdowns must update after a filter change even though the results query now runs in the same request.
+- Back/forward `?search=&page=` must restore the input, results, and page.
+
+---
+
+### Task 1: Add `InstitutionSearchService::applyPublicSearch()`
+
+**Files:**
+- Modify: `app/Support/Search/InstitutionSearchService.php`
+- Test: `tests/Unit/SearchServiceFallbackTest.php`
+
+**Interfaces:**
+- Produces: `public function applyPublicSearch(Builder $query, string $search): Builder`
+
+- [x] **Step 1: Write the failing tests** in `tests/Unit/SearchServiceFallbackTest.php`:
+  - `it('applies the public institution search strategy to a scoped query')`: config `scout.driver=collection`; create verified `Masjid Biru` and rejected `Masjid Biru Hidden`; call `applyPublicSearch(Institution::query()->where('status', 'verified'), 'Masjid Biru')`; assert the verified ID is returned and the rejected ID is not.
+  - `it('falls back to database institution search when public query typesense fails')`: anonymous subclass with `shouldUseTypesenseSearch(): true` and `searchIdsWithScout()` throwing; call `applyPublicSearch(Institution::query(), 'Masjid Biru')`; assert the institution ID is returned.
+- [x] **Step 2: Run the tests to verify they fail**:
+  `vendor/bin/pest tests/Unit/SearchServiceFallbackTest.php --filter="public institution search strategy|public query typesense"`
+- [x] **Step 3: Implement `applyPublicSearch()`** mirroring `publicSearchIds()`: normalize, use Typesense when `shouldUseTypesenseSearch()` and healthy (catch + log fallback), otherwise `applyDatabaseSearch()`; return `whereRaw('1 = 0')` for an empty normalized query.
+- [x] **Step 4: Run the tests to verify they pass.**
+
+### Task 2: Add `InstitutionDirectoryQuery`
+
+**Files:**
+- Create: `app/Support/Search/InstitutionDirectoryQuery.php`
+- Test: `tests/Feature/InstitutionDirectoryQueryTest.php`
+
+**Interfaces:**
+- Consumes: `InstitutionSearchService::applyPublicSearch()`, `publicFuzzySearchIds()`.
+- Produces: `public function paginate(?string $search, array $locationIds, bool $followedOnly, array $followingInstitutionIds, int $page, array $paginationMeta, int $perPage = 12): LengthAwarePaginator`
+
+- [x] **Step 1: Write the failing tests** in `tests/Feature/InstitutionDirectoryQueryTest.php`:
+  - `it('paginates direct institution search without resolving every matching id')`: create 15 verified `Masjid Ujian NN` institutions; enable query log; call `paginate('Masjid Ujian', [], false, [], 1, ['path' => '/institusi', 'query' => []])`; assert total 15, 12 items, no `select "institutions"."id"` query, one `count(*) over ()` query, no `count(*) as "aggregate"`.
+  - `it('falls back to fuzzy search when direct search has no matches')`: create `Masjid Al Hidayah`; call `paginate('Hidayh', ...)`; assert total 1 and the item name.
+  - `it('applies location scope to direct search')`: create two institutions in different states with the same searchable name; pass the matching state ID in `locationIds`; assert only the matching institution.
+  - `it('preserves multi-word token matching')`: create `Masjid Besi Putrajaya`, `Masjid Al Hidayah`, `Pusat Komuniti Besi`; call `paginate('masjid besi', ...)`; assert only `Masjid Besi Putrajaya`.
+- [x] **Step 2: Run the tests to verify they fail** (class missing).
+- [x] **Step 3: Implement `InstitutionDirectoryQuery`** by moving the results component's query methods (`baseInstitutionsQuery`, `scopedInstitutionsQuery`, `applyFollowedOnlyFilter`, `applyLocationScope`, `upcomingOccurrenceCountSubquery`, `nextPublicEventQuery`, `attachNextPublicEvents`, `nextPublicEventDetails`, `filterSearchIdsToCurrentScope`, `orderedIdPaginator`, `hydrateOrderedIds`, `emptyPaginator`). Replace `directSearch`/`paginateDirectMatches` with `paginateDirectSearch` using `applyPublicSearch()` + `count(*) over ()` + `forPage()`. Keep `fuzzySearch()` using `publicFuzzySearchIds()` and score-ordered IDs. Use the passed `paginationMeta` instead of `request()`.
+- [x] **Step 4: Run the tests to verify they pass.**
+
+### Task 3: Merge the results into the index component
+
+**Files:**
+- Modify: `resources/views/components/pages/institutions/⚡index.blade.php`
+- Create: `resources/views/components/pages/institutions/partials/results.blade.php`
+- Delete: `resources/views/components/pages/institutions/⚡results.blade.php`
+- Test: `tests/Feature/InstitutionIndexTest.php`, `tests/Feature/InstitutionResultsTest.php`, `tests/Feature/DirectoryCardFollowTest.php`
+
+- [x] **Step 1: Update the tests first** (behaviour-preserving migration):
+  - `InstitutionResultsTest.php`: target `pages.institutions.index`; replace `call('syncFilters', [...])` with `set(...)`; replace `Livewire::test('pages.institutions.results', ['filters' => ...])` with `Livewire::test('pages.institutions.index', ['search' => ...])`; drop the `syncFilters` non-string test (no `syncFilters` remains).
+  - `InstitutionIndexTest.php`: replace the three `assertDispatched('institution-filters-updated')` tests with state/result assertions (`toggleFollowedOnly` shows the followed institution; country change filters the results; `clearFilters` restores the unfiltered list).
+  - `DirectoryCardFollowTest.php`: institution dataset becomes `['institution', 'pages.institutions.index', 'followingInstitutionIds']`; replace the institution branch's `dispatch('institution-filters-updated', ...)` with `set('followed_only', true)` for all types.
+- [x] **Step 2: Run the three test files** to establish the pre-merge baseline.
+- [x] **Step 3: Merge the PHP logic** into `⚡index.blade.php`: add `WithPagination`, `followingInstitutionIds`, `institutions()` computed via `InstitutionDirectoryQuery`, `normalizedSearch()`, `toggleFollow()`, `hydrate()`, `refreshFollowedListing()`, `paginationMeta()`. Replace every `syncResults()` with `resetPage()`. Remove `filterPayload()` and `syncResults()`. Keep `locationIds()` building the slug array directly.
+- [x] **Step 4: Extract the Blade** from `⚡results.blade.php` (the part after `?>`) into `partials/results.blade.php`; include it from the index; change `$parent.clearFilters()` to `clearFilters`; set `$institutionLoadingTarget` to `'search,country,state,city,locality,district,subdivision,areas,followed_only,toggleFollowedOnly,clearSearch,clearFilters,gotoPage,setPage,nextPage,previousPage'`; keep `wire:transition="institution-results"`. Delete `⚡results.blade.php`.
+- [x] **Step 5: Run the three test files; fix failures.**
+- [x] **Step 6: Run Pint** (`vendor/bin/pint --dirty --format agent`).
+
+### Task 4: Verification
+
+- [x] **Step 1: Run targeted Pest once**:
+  `vendor/bin/pest --parallel tests/Feature/InstitutionIndexTest.php tests/Feature/InstitutionResultsTest.php tests/Feature/DirectoryCardFollowTest.php tests/Feature/InstitutionDirectoryQueryTest.php tests/Unit/SearchServiceFallbackTest.php --compact`
+- [x] **Step 2: Run PHPStan level 6**: `vendor/bin/phpstan analyse --ansi`.
+- [x] **Step 3: Review the diff** (`git diff --stat`, `git diff` on the touched files) and confirm no unrelated changes.
+- [x] **Step 4: Ask the user before committing** (AGENTS git safety). Record the verification output in this section.
+
+---
+
+## Review — Institution search
+
+- Merged `pages.institutions.results` into `pages.institutions.index`; the index now owns search, filters, results, pagination, follow state, and next-event hydration. The results Blade lives in `partials/results.blade.php`; the old child component is removed.
+- Added `InstitutionSearchService::applyPublicSearch()` (Typesense when available, DB LIKE otherwise) and `InstitutionDirectoryQuery`; direct search now paginates the scoped query with `count(*) over ()` instead of resolving every matching ID and sending a huge `whereIn`. Fuzzy fallback still uses `publicFuzzySearchIds()` and score-ordered IDs.
+- Search now produces one Livewire request per pause instead of a parent `$commit` plus a child `__dispatch`.
+- Final review (Muse Spark 1.3 Contributor xhigh): Approve with changes; all Critical/Important findings fixed — the `hydrate()` lifecycle collision became `refreshFollowingIds()`, Typesense public search now passes the status filter (location cap documented), page-beyond-end coverage added for direct/fuzzy search, pagination metadata excludes `page`, mount uses the global owner context, and the district/subdivision alias invariant is documented.
+- Verification: combined targeted Pest run 94 tests / 363 assertions passed. Pint passed on the changed PHP files. PHPStan on the changed files reported 0 errors; the full PHPStan run is blocked by the environment's 512M memory limit (parallel worker OOM), not by this change.
+- Deferred minors: add search+followed_only combined regression; add `?search=&page=` back/forward restore test; add clearSearch/Escape regression test; link the <3-char fuzzy gate to `resolvedPublicSearchIds()` behavior with a comment.
+- Note: the old `syncFilters` non-string test was dropped because the method no longer exists; the merged index's typed public properties replace that boundary. `InstitutionResultsTest.php` is retained and migrated to `pages.institutions.index`.
+- Unrelated working-tree changes from the user were left untouched.
+
+### Island optimization (2026-11-08)
+
+- The search bar and results are two linked `@island(name: 'institution-directory', always: true)` regions. Both render together on search, clear/Escape, pagination, and empty-state actions; the hero, filters, and CTA are skipped.
+- The empty-state “Clear Filters” action uses Alpine `$dispatch('institution-clear-filters')` handled by `#[On]`, so it forces a full render and resets the filter dropdowns. Direct filter changes still full-render the component.
+- Key detail: a single island action skips the main component render, so `always: true` alone did not render the results island. Giving both islands the same name links them and renders both. Verified in Chrome MCP.
+- Chrome MCP (staging, modified working tree): search “Masjid” → 1 request, 299ms, 2 island fragments, 112,985 bytes decoded / 9,414 transfer, no hero/filters; “Masjid Jamek” → 1 request, 270ms, 2 cards, 25,349 decoded / 4,356 transfer; pagination page 2 → 1 request, 333ms, 2 fragments, 31,444 decoded / 6,266 transfer; filter change → full render 65,170 decoded / 9,926 transfer (expected). Clear button, Escape, and empty-state clear filters all reset the input/URL/results. Console: no JS errors.
+- Pagination links now pass `scrollTo => '#institution-results'`, so a page change scrolls to the first result row instead of the hero. Chrome: results top 736, scrollY 880 after page 2 (not 0).
+- Tests: 97 passed / 370 assertions; new coverage for island markup, hero stability, query-string restore, pagination scroll target, and the empty-state clear-filters event. Pint passed; PHPStan changed files 0 errors.
+- Final island review (Muse Spark 1.3 Contributor xhigh): Approve with changes; Important findings fixed — added a rendered assertion for the empty-state dropdown reset, added `selectGroupedSubdivisionLocality,__dispatch` to the loading targets, added island behaviour/URL regression tests, removed the per-morph `wire:transition`, and verified focus stays on the search input. Ruling: the empty-state `#[On]` listener already forces a full render, so no second Alpine window listener was added (it would double-fire).
+
+### Directory island rollout (2026-11-08)
+
+- `/penceramah`: search bar and results share the `person-results` island; the results root no longer uses `wire:transition`. Pagination already scrolled to `#person-results`. Tests: 52 passed / 208 assertions.
+- `/rujukan`: search bar and results share the `reference-results` island; pagination now passes `scrollTo => '#reference-results'`; the results root no longer uses `wire:transition`. Tests: 19 passed / 82 assertions.
+- `/majlis`: search form and results share the `event-results` island; the results root has `id="event-results"` and no `wire:transition`; pagination passes `scrollTo => '#event-results'`; the empty-state “View all events” button dispatches `events-clear-all-filters`, handled by `#[On]` on `clearAllFilters()` so the filter panel resets. Tests: 118 total, 112 passed, 6 pre-existing failures (Pending Approval badge text + event detail/gallery/share/registration), unchanged from before this rollout.
+- Homepage: its hero search is an Alpine GET form that navigates to the directory pages; there is no Livewire search/result island to optimize there. The destination pages now carry the optimization.
+- Chrome MCP (staging): `/penceramah` search “Ahmad” → 1 request, 713ms, 2 island fragments, 6 speakers, no hero; `/rujukan` search “Riyad” → 1 request, 1137ms, 2 fragments, 2 references, no hero; `/majlis` search “fiqh” → 1 request, 835ms, 2 fragments, 12 cards, no hero/filter panel; `/majlis` empty-state clear → search and URL reset, 18 cards restored. Focus stays in the search input; no JS errors.
+- Pint passed; PHPStan on the changed events component reported 0 errors.
+
+---
+
 # Todo — Tetapan Hero (2026-11-07)
 
 - [x] Generate desktop + mobile account-settings hero art with codex imagegen.

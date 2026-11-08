@@ -682,6 +682,21 @@ describe('Event Search Filters', function () {
             ->assertSet('filterData.search', null);
     });
 
+    it('scopes the event search and results to the event-results island', function (): void {
+        Livewire::test(Index::class)
+            ->assertSee('aria-controls="event-results"', false)
+            ->assertSee('id="event-results"', false)
+            ->assertSee('name=event-results', false);
+    });
+
+    it('clears all event filters from the empty-state event', function (): void {
+        Livewire::test(Index::class)
+            ->set('filterData.search', 'fiqh')
+            ->dispatch('events-clear-all-filters')
+            ->assertSet('filterData.search', null)
+            ->assertSet('search', null);
+    });
+
     it('preserves the active search when using a date shortcut', function () {
         $userTimezone = 'Asia/Kuala_Lumpur';
         Carbon::setTestNow(Carbon::create(2026, 4, 16, 10, 0, 0, 'UTC'));
@@ -2732,7 +2747,8 @@ describe('Event Search Filters', function () {
 
         $response->assertOk()
             ->assertSee('Event 12')
-            ->assertDontSee('Event 13');
+            ->assertDontSee('Event 13')
+            ->assertSee('const targetSelector = &#039;#event-results&#039;;', false);
     });
 
     it('eager loads event card relationships', function () {

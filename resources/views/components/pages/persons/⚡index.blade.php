@@ -574,6 +574,7 @@ new
                     </p>
 
                     <!-- Search box -->
+                    @island(name: 'person-results', always: true)
                     <div class="mt-9 max-w-xl">
                         <x-ui.search-bar
                             input-id="person-search"
@@ -586,6 +587,7 @@ new
                             aria-controls="person-results"
                         />
                     </div>
+                    @endisland
 
                 </div>
 
@@ -610,7 +612,6 @@ new
             <div
                 id="person-results"
                 class="min-h-[32rem]"
-                wire:transition="person-results"
                 wire:loading.class="opacity-60"
                 wire:loading.attr="aria-busy"
                 wire:target="{{ $personLoadingTarget }}"
