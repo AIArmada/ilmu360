@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Actions\SavedSearches\CreateSavedSearchAction;
 use App\Contracts\ShareTrackingContract;
+use App\Features\SavedSearches\Api\CreateSavedSearchWithAttribution;
 use App\Features\SavedSearches\Api\SavedSearchCommands;
 use App\Features\SavedSearches\Api\SavedSearchExecutionResult;
 use App\Features\SavedSearches\Api\SavedSearchExecutor;
@@ -188,7 +188,7 @@ it('rolls back the owned create when attribution fails in the outer workflow', f
     $this->mock(ShareTrackingContract::class)
         ->shouldReceive('recordOutcome')->once()->andThrow(new RuntimeException('Attribution failed'));
 
-    expect(fn () => app(CreateSavedSearchAction::class)->handle($owner, [
+    expect(fn () => app(CreateSavedSearchWithAttribution::class)->handle($owner, [
         'name' => 'Rolled back search', 'query' => null, 'notify' => 'daily',
     ]))->toThrow(RuntimeException::class, 'Attribution failed');
 

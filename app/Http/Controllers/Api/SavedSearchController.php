@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Actions\SavedSearches\CreateSavedSearchAction;
-use App\Actions\SavedSearches\DeleteSavedSearchWithAttributionReversalAction;
+use App\Features\SavedSearches\Api\CreateSavedSearchWithAttribution;
+use App\Features\SavedSearches\Api\DeleteSavedSearchWithAttributionReversal;
 use App\Features\SavedSearches\Api\SavedSearchCommands;
 use App\Features\SavedSearches\Api\SavedSearchExecutor;
 use App\Features\SavedSearches\Api\SavedSearchReader;
@@ -68,7 +68,7 @@ class SavedSearchController extends Controller
     )]
     public function store(
         Request $request,
-        CreateSavedSearchAction $createSavedSearchAction,
+        CreateSavedSearchWithAttribution $createSavedSearchAction,
         SearchFilterRules $searchFilterRules,
     ): JsonResponse {
         $validated = $request->validate($this->savedSearchValidationRules($searchFilterRules, $request->input('filters')));
@@ -80,7 +80,7 @@ class SavedSearchController extends Controller
         }
 
         try {
-            $savedSearch = $createSavedSearchAction->handle($user, $validated, $request);
+            $savedSearch = $createSavedSearchAction->handle($user, $validated);
         } catch (SavedSearchLimitReachedException $exception) {
             return response()->json([
                 'message' => 'Maximum saved searches limit reached ('.$exception->maximum.').',
@@ -160,11 +160,11 @@ class SavedSearchController extends Controller
         description: 'Deletes one saved search definition owned by the current authenticated user.',
     )]
     #[PathParameter('savedSearch', 'The saved search ID', type: 'string', format: 'uuid', infer: false)]
-    public function destroy(SavedSearchSnapshot $savedSearch, DeleteSavedSearchWithAttributionReversalAction $delete): Response
+    public function destroy(SavedSearchSnapshot $savedSearch, DeleteSavedSearchWithAttributionReversal $delete): Response
     {
         $this->authorize('delete', $savedSearch);
 
-        $delete->handle($savedSearch, request());
+        $delete->handle($savedSearch);
 
         return response()->noContent();
     }

@@ -172,6 +172,7 @@ use App\Shared\Discovery\SearchFilterCatalog;
 use App\Shared\Discovery\SearchFilterLabels;
 use App\Shared\Discovery\SearchFilterNormalizer;
 use App\Shared\Discovery\SearchFilterRules;
+use App\Shared\ShareTracking\SavedSearchShareOutcomes;
 use App\Support\Auth\AffiliateSignupAttributionSourceResolver;
 use App\Support\Auth\EloquentUserMorphType;
 use App\Support\Communications\AppConsentResolver;
@@ -194,6 +195,7 @@ use App\Support\Rewards\CompositeRewardSourceFactReader;
 use App\Support\Rewards\DigestRewardGratitudePlanner;
 use App\Support\Rewards\ShareCorrectionKeySource;
 use App\Support\Rewards\VouchersRewardBenefitCouponFulfillment;
+use App\Support\ShareTracking\SavedSearchOutcomeRecorder;
 use BezhanSalleh\LanguageSwitch\LanguageSwitch;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
@@ -253,6 +255,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(SearchFilterCatalog::class, EventSearchFilterCatalog::class);
         $this->app->bind(SearchFilterRules::class, EventSearchFilterRules::class);
         $this->app->bind(SavedSearchExecutor::class, EventSavedSearchExecutor::class);
+        $this->app->bind(SavedSearchShareOutcomes::class, SavedSearchOutcomeRecorder::class);
         $this->app->scoped(SearchFilterLabels::class, DatabaseSearchFilterLabels::class);
         $this->app->bind(Js::class, ContentVersionedJs::class);
 

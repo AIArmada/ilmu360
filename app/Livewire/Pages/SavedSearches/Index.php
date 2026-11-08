@@ -2,8 +2,8 @@
 
 namespace App\Livewire\Pages\SavedSearches;
 
-use App\Actions\SavedSearches\CreateSavedSearchAction;
 use App\Enums\NotificationFrequency;
+use App\Features\SavedSearches\Api\CreateSavedSearchWithAttribution;
 use App\Features\SavedSearches\Api\SavedSearchCommands;
 use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Features\SavedSearches\Api\SavedSearchSnapshot;
@@ -91,7 +91,7 @@ class Index extends Component
         ]);
 
         try {
-            app(CreateSavedSearchAction::class)->handle($user, [
+            app(CreateSavedSearchWithAttribution::class)->handle($user, [
                 'name' => $validated['name'],
                 'query' => $validated['query'] ?? null,
                 'filters' => $this->filters,
@@ -99,7 +99,7 @@ class Index extends Component
                 'lat' => $validated['lat'] ?? null,
                 'lng' => $validated['lng'] ?? null,
                 'notify' => $validated['notify'],
-            ], request());
+            ]);
         } catch (SavedSearchLimitReachedException) {
             $this->addError('name', __('You can only keep up to 10 saved searches.'));
 

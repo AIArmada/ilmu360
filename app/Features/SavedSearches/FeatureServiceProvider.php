@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\SavedSearches;
 
+use App\Features\SavedSearches\Actions\CreateSavedSearchWithAttributionAction;
+use App\Features\SavedSearches\Actions\DeleteSavedSearchWithAttributionReversalAction;
+use App\Features\SavedSearches\Api\CreateSavedSearchWithAttribution;
+use App\Features\SavedSearches\Api\DeleteSavedSearchWithAttributionReversal;
 use App\Features\SavedSearches\Api\SavedSearchCommands as SavedSearchCommandsContract;
 use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Features\SavedSearches\Api\SavedSearchSnapshot;
@@ -22,6 +26,8 @@ class FeatureServiceProvider extends FeatureModule
     {
         $this->app->bind(SavedSearchReader::class, DatabaseSavedSearchReader::class);
         $this->app->bind(SavedSearchCommandsContract::class, SavedSearchCommands::class);
+        $this->app->bind(CreateSavedSearchWithAttribution::class, CreateSavedSearchWithAttributionAction::class);
+        $this->app->bind(DeleteSavedSearchWithAttributionReversal::class, DeleteSavedSearchWithAttributionReversalAction::class);
     }
 
     public function boot(): void
