@@ -167,6 +167,7 @@ use App\Services\EventCategoryPolicy;
 use App\Services\ShareTrackingService;
 use App\Services\Spaces\DefaultSpaceEligibilityResolver;
 use App\Shared\Auth\UserMorphType;
+use App\Shared\Discovery\SearchFilterLabels;
 use App\Shared\Discovery\SearchFilterNormalizer;
 use App\Support\Auth\AffiliateSignupAttributionSourceResolver;
 use App\Support\Auth\EloquentUserMorphType;
@@ -176,6 +177,7 @@ use App\Support\Communications\AppQuietHoursResolver;
 use App\Support\Communications\AppSuppressionResolver;
 use App\Support\Communications\ListSafePayloadRedactor;
 use App\Support\Communications\ProbeSafeDestinationResolver;
+use App\Support\Discovery\DatabaseSearchFilterLabels;
 use App\Support\Discovery\EventSearchFilterNormalizer;
 use App\Support\Filament\ContentVersionedJs;
 use App\Support\Media\MediaFileNamer;
@@ -242,6 +244,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->bind(UserMorphType::class, EloquentUserMorphType::class);
         $this->app->bind(SearchFilterNormalizer::class, EventSearchFilterNormalizer::class);
+        $this->app->scoped(SearchFilterLabels::class, DatabaseSearchFilterLabels::class);
         $this->app->bind(Js::class, ContentVersionedJs::class);
 
         $this->app->singleton(EventCategoryCatalog::class, DefaultEventCategoryCatalog::class);

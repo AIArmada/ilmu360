@@ -2,11 +2,6 @@
 
 namespace App\Livewire\Pages\SavedSearches;
 
-use AIArmada\Addressing\Models\AddressArea;
-use AIArmada\Addressing\Models\AddressCountry;
-use AIArmada\Addressing\Models\City;
-use AIArmada\Addressing\Models\State;
-use AIArmada\Events\Models\EventTerm;
 use App\Actions\SavedSearches\CreateSavedSearchAction;
 use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventAgeGroup;
@@ -20,11 +15,8 @@ use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Features\SavedSearches\Api\SavedSearchSnapshot;
 use App\Forms\SharedFormSchema;
 use App\Livewire\Concerns\InteractsWithToasts;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\Reference;
 use App\Models\User;
-use App\Models\Venue;
+use App\Shared\Discovery\SearchFilterLabels;
 use App\Shared\Integrations\SavedSearchLimitReachedException;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Support\Location\VisitorCountryResolver;
@@ -65,51 +57,6 @@ class Index extends Component
     public string $editName = '';
 
     public string $editNotify = 'daily';
-
-    /**
-     * @var array<string, string|null>
-     */
-    private array $countryNames = [];
-
-    /**
-     * @var array<string, string|null>
-     */
-    private array $stateNames = [];
-
-    /**
-     * @var array<string, string|null>
-     */
-    private array $cityNames = [];
-
-    /**
-     * @var array<string, string|null>
-     */
-    private array $adminAreaNames = [];
-
-    /**
-     * @var array<string, string|null>
-     */
-    private array $institutionNames = [];
-
-    /**
-     * @var array<string, string|null>
-     */
-    private array $venueNames = [];
-
-    /**
-     * @var array<string, string|null>
-     */
-    private array $tagNames = [];
-
-    /**
-     * @var array<string, string|null>
-     */
-    private array $referenceTitles = [];
-
-    /**
-     * @var array<string, string|null>
-     */
-    private array $personNames = [];
 
     public bool $hasFilters = false;
 
@@ -503,7 +450,7 @@ class Index extends Component
     {
         $personNames = $this->resolvedSuggestedLabels(
             $this->filters['person_ids'] ?? [],
-            fn (string $id): ?string => $this->personName($id),
+            fn (string $id): ?string => app(SearchFilterLabels::class)->label('person_ids', $id),
         );
 
         if ($personNames !== []) {
@@ -515,7 +462,7 @@ class Index extends Component
 
         $referenceTitles = $this->resolvedSuggestedLabels(
             $this->filters['reference_ids'] ?? [],
-            fn (string $id): ?string => $this->referenceTitle($id),
+            fn (string $id): ?string => app(SearchFilterLabels::class)->label('reference_ids', $id),
         );
 
         if ($referenceTitles !== []) {
@@ -526,7 +473,7 @@ class Index extends Component
         }
 
         $institutionId = $this->filters['institution_id'] ?? null;
-        $institutionName = filled($institutionId) ? $this->institutionName((string) $institutionId) : null;
+        $institutionName = filled($institutionId) ? app(SearchFilterLabels::class)->label('institution_id', (string) $institutionId) : null;
 
         if (filled($institutionName)) {
             return [
@@ -536,7 +483,7 @@ class Index extends Component
         }
 
         $venueId = $this->filters['venue_id'] ?? null;
-        $venueName = filled($venueId) ? $this->venueName((string) $venueId) : null;
+        $venueName = filled($venueId) ? app(SearchFilterLabels::class)->label('venue_id', (string) $venueId) : null;
 
         if (filled($venueName)) {
             return [
@@ -566,7 +513,7 @@ class Index extends Component
 
         foreach (['administrative_subdivision', 'administrative_district', 'postal_locality', 'administrative_division'] as $role) {
             $areaId = $areaAssignments[$role] ?? null;
-            $areaName = filled($areaId) ? $this->adminAreaName((string) $areaId) : null;
+            $areaName = filled($areaId) ? app(SearchFilterLabels::class)->label('area_assignments', (string) $areaId) : null;
 
             if (filled($areaName)) {
                 return __('di :place', ['place' => $areaName]);
@@ -574,14 +521,14 @@ class Index extends Component
         }
 
         $cityId = $this->filters['city_id'] ?? null;
-        $cityName = filled($cityId) ? $this->cityName((string) $cityId) : null;
+        $cityName = filled($cityId) ? app(SearchFilterLabels::class)->label('city_id', (string) $cityId) : null;
 
         if (filled($cityName)) {
             return __('di :place', ['place' => $cityName]);
         }
 
         $stateId = $this->filters['state_id'] ?? null;
-        $stateName = filled($stateId) ? $this->stateName((string) $stateId) : null;
+        $stateName = filled($stateId) ? app(SearchFilterLabels::class)->label('state_id', (string) $stateId) : null;
 
         if (filled($stateName)) {
             return __('di :place', ['place' => $stateName]);
@@ -589,7 +536,7 @@ class Index extends Component
 
         $countryId = $this->filters['country_id'] ?? null;
         $countryName = filled($countryId) && (string) $countryId !== (string) app(VisitorCountryResolver::class)->resolve()
-            ? $this->countryName((string) $countryId)
+            ? app(SearchFilterLabels::class)->label('country_id', (string) $countryId)
             : null;
 
         return filled($countryName) ? __('di :place', ['place' => $countryName]) : null;
@@ -691,7 +638,7 @@ class Index extends Component
                     $this->filters['state_id'] ?? null,
                     $filterValue,
                 );
-                $values[] = $label.': '.($this->adminAreaName((string) $areaId) ?? (string) $areaId);
+                $values[] = $label.': '.(app(SearchFilterLabels::class)->label('area_assignments', (string) $areaId) ?? (string) $areaId);
             }
 
             return $values === [] ? null : implode(', ', $values);
@@ -713,16 +660,16 @@ class Index extends Component
         }
 
         return match ($filterKey) {
-            'country_id' => $this->countryName($value) ?? $value,
-            'state_id' => $this->stateName($value) ?? $value,
-            'city_id' => $this->cityName($value) ?? $value,
-            'institution_id' => $this->institutionName($value) ?? $value,
-            'venue_id' => $this->venueName($value) ?? $value,
-            'person_ids' => $this->personName($value) ?? $value,
+            'country_id' => app(SearchFilterLabels::class)->label('country_id', $value) ?? $value,
+            'state_id' => app(SearchFilterLabels::class)->label('state_id', $value) ?? $value,
+            'city_id' => app(SearchFilterLabels::class)->label('city_id', $value) ?? $value,
+            'institution_id' => app(SearchFilterLabels::class)->label('institution_id', $value) ?? $value,
+            'venue_id' => app(SearchFilterLabels::class)->label('venue_id', $value) ?? $value,
+            'person_ids' => app(SearchFilterLabels::class)->label('person_ids', $value) ?? $value,
             'key_person_roles' => EventKeyPersonRole::tryFrom($value)?->getLabel() ?? $value,
-            'person_in_charge_ids', 'moderator_ids', 'imam_ids', 'khatib_ids', 'bilal_ids' => $this->personName($value) ?? $value,
-            'domain_tag_ids', 'discipline_tag_ids', 'source_tag_ids', 'issue_tag_ids' => $this->tagName($value) ?? $value,
-            'reference_ids' => $this->referenceTitle($value) ?? $value,
+            'person_in_charge_ids', 'moderator_ids', 'imam_ids', 'khatib_ids', 'bilal_ids' => app(SearchFilterLabels::class)->label('person_ids', $value) ?? $value,
+            'domain_tag_ids', 'discipline_tag_ids', 'source_tag_ids', 'issue_tag_ids' => app(SearchFilterLabels::class)->label($filterKey, $value) ?? $value,
+            'reference_ids' => app(SearchFilterLabels::class)->label('reference_ids', $value) ?? $value,
             'language_codes' => $this->languageLabel($value) ?? $value,
             'event_category_ids' => app(EventCategoryCatalog::class)->options()[$value] ?? $value,
             'event_format' => EventFormat::tryFrom($value)?->getLabel() ?? $value,
@@ -741,120 +688,6 @@ class Index extends Component
             'children_allowed', 'is_muslim_only', 'has_event_url', 'has_live_url', 'has_end_time' => $this->booleanLabel($value) ?? $value,
             default => $value,
         };
-    }
-
-    private function countryName(string $id): ?string
-    {
-        if (! Str::isUuid($id)) {
-            return null;
-        }
-
-        if (! array_key_exists($id, $this->countryNames)) {
-            $this->countryNames[$id] = AddressCountry::query()->whereKey($id)->value('name');
-        }
-
-        return $this->countryNames[$id];
-    }
-
-    private function stateName(string $id): ?string
-    {
-        if (! Str::isUuid($id)) {
-            return null;
-        }
-
-        if (! array_key_exists($id, $this->stateNames)) {
-            $this->stateNames[$id] = State::query()->whereKey($id)->value('name');
-        }
-
-        return $this->stateNames[$id];
-    }
-
-    private function cityName(string $id): ?string
-    {
-        if (! Str::isUuid($id)) {
-            return null;
-        }
-
-        if (! array_key_exists($id, $this->cityNames)) {
-            $this->cityNames[$id] = City::query()->whereKey($id)->value('name');
-        }
-
-        return $this->cityNames[$id];
-    }
-
-    private function adminAreaName(string $id): ?string
-    {
-        if (! Str::isUuid($id)) {
-            return null;
-        }
-
-        if (! array_key_exists($id, $this->adminAreaNames)) {
-            $this->adminAreaNames[$id] = AddressArea::query()->whereKey($id)->value('name');
-        }
-
-        return $this->adminAreaNames[$id];
-    }
-
-    private function institutionName(string $id): ?string
-    {
-        if (! Str::isUuid($id)) {
-            return null;
-        }
-
-        if (! array_key_exists($id, $this->institutionNames)) {
-            $this->institutionNames[$id] = Institution::query()
-                ->whereKey($id)
-                ->with('names')->first(['id', 'name'])
-                ?->display_name;
-        }
-
-        return $this->institutionNames[$id];
-    }
-
-    private function venueName(string $id): ?string
-    {
-        if (! Str::isUuid($id)) {
-            return null;
-        }
-
-        if (! array_key_exists($id, $this->venueNames)) {
-            $this->venueNames[$id] = Venue::query()->whereKey($id)->value('name');
-        }
-
-        return $this->venueNames[$id];
-    }
-
-    private function personName(string $id): ?string
-    {
-        if (! Str::isUuid($id)) {
-            return null;
-        }
-
-        if (! array_key_exists($id, $this->personNames)) {
-            $this->personNames[$id] = Person::query()->whereKey($id)->value('name');
-        }
-
-        return $this->personNames[$id];
-    }
-
-    private function tagName(string $id): ?string
-    {
-        if (! array_key_exists($id, $this->tagNames)) {
-            $term = EventTerm::query()->whereKey($id)->first(['id', 'name']);
-
-            $this->tagNames[$id] = $term instanceof EventTerm ? (string) $term->name : null;
-        }
-
-        return $this->tagNames[$id];
-    }
-
-    private function referenceTitle(string $id): ?string
-    {
-        if (! array_key_exists($id, $this->referenceTitles)) {
-            $this->referenceTitles[$id] = Reference::query()->whereKey($id)->value('title');
-        }
-
-        return $this->referenceTitles[$id];
     }
 
     private function languageLabel(string $code): ?string
