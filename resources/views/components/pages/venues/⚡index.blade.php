@@ -251,6 +251,9 @@ new
                         wire:model.live.debounce.300ms="search"
                         wire:keydown.escape="clearSearch"
                         placeholder="{{ __('Search venues...') }}"
+                        autocomplete="off"
+                        data-directory-search-input
+                        aria-controls="venue-results"
                         class="h-14 w-full rounded-2xl border-2 border-slate-200 bg-white py-0 pl-12 pr-4 font-medium text-slate-900 shadow-lg shadow-slate-200/60 transition-all placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-500/10"
                     >
                     <svg class="absolute left-4 top-1/2 h-6 w-6 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">

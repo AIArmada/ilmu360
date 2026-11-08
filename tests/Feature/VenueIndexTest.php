@@ -104,7 +104,10 @@ it('searches public verified venues by name', function () {
     get('/tempat?search='.urlencode('riyadhus'))
         ->assertSuccessful()
         ->assertSee('Dewan Riyadhus Solihin')
-        ->assertDontSee('Auditorium Hikmah');
+        ->assertDontSee('Auditorium Hikmah')
+        ->assertSee('data-search-query="riyadhus"', false)
+        ->assertSee(__('Searching…'))
+        ->assertSee('wire:target="__dispatch"', false);
 });
 
 it('only lists active verified venues on the public index', function () {

@@ -201,3 +201,22 @@ it('shows the nearest upcoming public majlis on institution cards', function () 
         ->and($listedInstitution?->next_event_title)->toBe('Majlis Institusi Terdekat')
         ->and($listedInstitution?->next_event_starts_at)->not->toBeNull();
 });
+
+it('attributes institution results to the active query and keeps old results visible while searching', function () {
+    Institution::factory()->create([
+        'name' => 'Masjid Tengku Ampuan',
+        'status' => 'verified',
+    ]);
+
+    Livewire::test('pages.institutions.index')
+        ->set('search', 'Masjid Tengku')
+        ->assertSee('data-search-query="Masjid Tengku"', false)
+        ->assertSee('data-search-total="1"', false)
+        ->assertSee('wire:loading.class="opacity-60"', false)
+        ->assertSee('wire:target="search,country,state', false)
+        ->assertSee(',selectGroupedSubdivisionLocality,__dispatch"', false)
+        ->assertSee(__('Searching…'))
+        ->assertSee('Masjid Tengku Ampuan');
+
+    expect(file_exists(resource_path('js/directory-search-stale-guard.js')))->toBeTrue();
+});

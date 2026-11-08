@@ -41,7 +41,11 @@ it('searches published verified and pending references by title', function () {
     get('/rujukan?search='.urlencode('riyadhus'))
         ->assertSuccessful()
         ->assertSee('Riyadhus Solihin Terjemahan')
-        ->assertDontSee('Bulughul Maram');
+        ->assertDontSee('Bulughul Maram')
+        ->assertSee('data-search-query="riyadhus"', false)
+        ->assertSee('wire:loading.delay.short', false)
+        ->assertSee('wire:target="search"', false)
+        ->assertSee(__('Searching…'));
 });
 
 it('filters the reference directory to followed references', function () {
@@ -133,7 +137,8 @@ it('lists pending references in the directory and includes them in search', func
         ->assertSee('Rujukan Belum Disahkan');
 
     Livewire::test('pages.references.index', ['search' => 'Rujukan Pending Belum Terbit'])
-        ->assertDontSee('Rujukan Pending Belum Terbit');
+        ->assertSee('data-search-total="0"', false)
+        ->assertSee(__('No references found')); // unpublished pending: echoed in the header only, never as a result card
 });
 
 it('shows the reference empty state and clear icon button', function () {

@@ -892,6 +892,7 @@ class extends Component
                         :hint="__('Search by institution name or location.')"
                         aria-controls="institution-results"
                         width="max-w-xl"
+                        :debounce="500"
                     />
                 </div>
                 @endisland

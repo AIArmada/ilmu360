@@ -653,40 +653,23 @@
                         $eventLoadingTarget = 'filterData,setLocation,clearLocation,clearAllFilters,toggleSavedOnly,toggleGoingOnly,gotoPage,setPage';
                     @endphp
 
-                <div id="event-results" class="mt-5 min-h-[42rem]">
-                    <div wire:loading.delay.short wire:target="{{ $eventLoadingTarget }}" data-testid="events-loading-skeleton" class="w-full">
-                        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                            @foreach(range(1, 6) as $index)
-                                <article class="animate-pulse overflow-hidden rounded-2xl border border-emerald-200 bg-white shadow-[0_12px_30px_-18px_rgba(24,53,43,0.35)]">
-                                    <div class="aspect-video w-full bg-slate-200"></div>
-                                    <div class="px-4 pt-4 pb-4">
-                                        <div class="flex items-center gap-3">
-                                            <div class="h-14 w-12 shrink-0 rounded-xl bg-slate-100"></div>
-                                            <div class="h-5 w-4/5 rounded-full bg-slate-200"></div>
-                                        </div>
-                                        <div class="mt-3 flex gap-1.5">
-                                            <div class="h-4 w-20 rounded-full bg-slate-100"></div>
-                                            <div class="h-4 w-16 rounded-full bg-slate-100"></div>
-                                        </div>
-                                        <div class="mt-4 space-y-2">
-                                            <div class="h-4 w-4/5 rounded-full bg-slate-100"></div>
-                                            <div class="h-4 w-3/5 rounded-full bg-slate-100"></div>
-                                            <div class="h-4 w-1/2 rounded-full bg-slate-100"></div>
-                                        </div>
-                                    </div>
-                                    <div class="mt-auto flex items-center justify-between gap-3 border-t border-slate-100 px-4 pb-4 pt-4">
-                                        <div class="h-4 w-24 rounded-full bg-slate-100"></div>
-                                        <div class="flex gap-2">
-                                            <div class="size-9 rounded-xl bg-slate-100"></div>
-                                            <div class="size-9 rounded-xl bg-slate-100"></div>
-                                        </div>
-                                    </div>
-                                </article>
-                            @endforeach
+                <div id="event-results" class="mt-5 min-h-[42rem]" data-search-query="{{ is_string($search) ? trim($search) : '' }}">
+                    <div wire:loading.delay.short wire:target="{{ $eventLoadingTarget }}" data-testid="events-loading-skeleton" class="w-full" role="status" aria-live="polite">
+                        <div class="mb-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-800">
+                            <svg class="size-4 animate-spin motion-reduce:animate-none" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4z" />
+                            </svg>
+                            <span>{{ __('Searching…') }}</span>
                         </div>
                     </div>
 
-                    <div wire:loading.remove wire:target="{{ $eventLoadingTarget }}">
+                    <div
+                        class="transition-opacity"
+                        wire:loading.class="opacity-60"
+                        wire:loading.attr="aria-busy"
+                        wire:target="{{ $eventLoadingTarget }}"
+                    >
                         @if($events->isEmpty())
                             <div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
                                 <div class="mx-auto flex size-20 items-center justify-center rounded-full bg-slate-50">

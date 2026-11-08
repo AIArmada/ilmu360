@@ -67,6 +67,7 @@
             wire:keydown.escape="{{ $clearMethod }}"
             placeholder="{{ $placeholder }}"
             autocomplete="off"
+            data-directory-search-input
             @if($ariaControls) aria-controls="{{ $ariaControls }}" @endif
             @if($hintElementId) aria-describedby="{{ $hintElementId }}" @endif
             {{
