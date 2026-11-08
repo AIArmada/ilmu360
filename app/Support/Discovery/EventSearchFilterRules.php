@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Discovery;
 
+use AIArmada\Addressing\Support\ModelResolver;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use App\Enums\EventTaxonomyCode;
@@ -24,11 +25,11 @@ final readonly class EventSearchFilterRules implements SearchFilterRules
 
         return [
             'filters' => 'nullable|array:'.implode(',', SearchFilterKeys::all()),
-            'filters.country_id' => 'nullable|uuid|exists:'.config('addressing.tables.countries', 'countries').',id',
-            'filters.state_id' => 'nullable|uuid|exists:states,id',
-            'filters.city_id' => 'nullable|uuid|exists:cities,id',
+            'filters.country_id' => ['nullable', 'uuid', Rule::exists(ModelResolver::countryClass(), 'id')],
+            'filters.state_id' => ['nullable', 'uuid', Rule::exists(ModelResolver::stateClass(), 'id')],
+            'filters.city_id' => ['nullable', 'uuid', Rule::exists(ModelResolver::cityClass(), 'id')],
             'filters.area_assignments' => 'nullable|array',
-            'filters.area_assignments.*' => 'nullable|uuid|exists:address_areas,id',
+            'filters.area_assignments.*' => ['nullable', 'uuid', Rule::exists(ModelResolver::areaClass(), 'id')],
             'filters.institution_id' => 'nullable|uuid|exists:institutions,id',
             'filters.venue_id' => 'nullable|uuid|exists:venues,id',
             'filters.language_codes' => 'nullable|array',

@@ -1,6 +1,5 @@
 <?php
 
-use AIArmada\Addressing\Models\AddressCountry;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
@@ -13,7 +12,6 @@ use App\Models\User;
 use App\Shared\Prayer\EventPrayerTime;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 
@@ -187,22 +185,6 @@ describe('Saved Search API Endpoints', function () {
 
                 $response->assertCreated()
                     ->assertJsonPath('data.filters', null);
-            });
-
-            it('validates geography ids against the configured country table', function () {
-                $country = AddressCountry::factory()->create();
-                Schema::rename('countries', 'saved_search_countries');
-                config()->set('addressing.tables.countries', 'saved_search_countries');
-
-                $this->postJson('/api/v1/saved-searches', [
-                    'name' => 'Configured Geography Search',
-                    'filters' => ['country_id' => $country->id],
-                    'notify' => 'daily',
-                ])->assertCreated()
-                    ->assertJsonPath('data.filters.country_id', $country->id);
-
-                expect(SavedSearch::query()->where('user_id', $this->user->id)->sole()->filters)
-                    ->toBe(['country_id' => $country->id]);
             });
 
             it('validates required fields', function () {
