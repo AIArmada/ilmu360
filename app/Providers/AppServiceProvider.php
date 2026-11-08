@@ -170,6 +170,7 @@ use App\Shared\Auth\UserMorphType;
 use App\Shared\Discovery\SearchFilterCatalog;
 use App\Shared\Discovery\SearchFilterLabels;
 use App\Shared\Discovery\SearchFilterNormalizer;
+use App\Shared\Discovery\SearchFilterRules;
 use App\Support\Auth\AffiliateSignupAttributionSourceResolver;
 use App\Support\Auth\EloquentUserMorphType;
 use App\Support\Communications\AppConsentResolver;
@@ -181,6 +182,7 @@ use App\Support\Communications\ProbeSafeDestinationResolver;
 use App\Support\Discovery\DatabaseSearchFilterLabels;
 use App\Support\Discovery\EventSearchFilterCatalog;
 use App\Support\Discovery\EventSearchFilterNormalizer;
+use App\Support\Discovery\EventSearchFilterRules;
 use App\Support\Filament\ContentVersionedJs;
 use App\Support\Media\MediaFileNamer;
 use App\Support\Membership\AppMembershipApplicationNotifier;
@@ -247,6 +249,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(UserMorphType::class, EloquentUserMorphType::class);
         $this->app->bind(SearchFilterNormalizer::class, EventSearchFilterNormalizer::class);
         $this->app->bind(SearchFilterCatalog::class, EventSearchFilterCatalog::class);
+        $this->app->bind(SearchFilterRules::class, EventSearchFilterRules::class);
         $this->app->scoped(SearchFilterLabels::class, DatabaseSearchFilterLabels::class);
         $this->app->bind(Js::class, ContentVersionedJs::class);
 

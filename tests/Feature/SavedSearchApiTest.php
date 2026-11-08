@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\Addressing\Models\AddressCountry;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
@@ -12,6 +13,7 @@ use App\Models\User;
 use App\Shared\Prayer\EventPrayerTime;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 
@@ -156,6 +158,51 @@ describe('Saved Search API Endpoints', function () {
 
                 $response->assertUnprocessable()
                     ->assertJsonValidationErrors(['filters']);
+            });
+
+            it('rejects a non-array filters payload without coercing it', function () {
+                $response = $this->postJson('/api/v1/saved-searches', [
+                    'name' => 'Malformed Filter Search',
+                    'filters' => 'language_codes=ms',
+                    'notify' => 'daily',
+                ]);
+
+                $response->assertUnprocessable()
+                    ->assertJsonValidationErrors(['filters']);
+
+                expect(SavedSearch::query()->where('user_id', $this->user->id)->count())->toBe(0);
+            });
+
+            it('accepts blank optional time and boolean filters as absent', function () {
+                $response = $this->postJson('/api/v1/saved-searches', [
+                    'name' => 'Blank Filter Search',
+                    'filters' => [
+                        'starts_time_from' => '',
+                        'starts_time_until' => '   ',
+                        'children_allowed' => '',
+                        'has_live_url' => null,
+                    ],
+                    'notify' => 'daily',
+                ]);
+
+                $response->assertCreated()
+                    ->assertJsonPath('data.filters', null);
+            });
+
+            it('validates geography ids against the configured country table', function () {
+                $country = AddressCountry::factory()->create();
+                Schema::rename('countries', 'saved_search_countries');
+                config()->set('addressing.tables.countries', 'saved_search_countries');
+
+                $this->postJson('/api/v1/saved-searches', [
+                    'name' => 'Configured Geography Search',
+                    'filters' => ['country_id' => $country->id],
+                    'notify' => 'daily',
+                ])->assertCreated()
+                    ->assertJsonPath('data.filters.country_id', $country->id);
+
+                expect(SavedSearch::query()->where('user_id', $this->user->id)->sole()->filters)
+                    ->toBe(['country_id' => $country->id]);
             });
 
             it('validates required fields', function () {
@@ -347,6 +394,56 @@ describe('Saved Search API Endpoints', function () {
                 $response->assertOk()
                     ->assertJsonPath('data.name', 'New Name');
             });
+
+            it('updates only supplied filters and preserves the rest of the saved search', function () {
+                $search = SavedSearch::factory()->create([
+                    'user_id' => $this->user->id,
+                    'name' => 'Preserved Name',
+                    'query' => 'preserved query',
+                    'filters' => ['language_codes' => ['ms']],
+                    'radius_km' => 25,
+                    'lat' => 3.139,
+                    'lng' => 101.6869,
+                    'notify' => 'weekly',
+                ]);
+
+                $this->patchJson("/api/v1/saved-searches/{$search->id}", [
+                    'filters' => ['age_group' => [EventAgeGroup::Youth->value]],
+                ])->assertOk()
+                    ->assertJsonPath('data.filters.age_group.0', EventAgeGroup::Youth->value);
+
+                $fresh = $search->fresh();
+
+                expect($fresh->name)->toBe('Preserved Name')
+                    ->and($fresh->query)->toBe('preserved query')
+                    ->and($fresh->filters)->toBe(['age_group' => [EventAgeGroup::Youth->value]])
+                    ->and($fresh->radius_km)->toBe(25)
+                    ->and($fresh->lat)->toBe(3.139)
+                    ->and($fresh->lng)->toBe(101.6869)
+                    ->and($fresh->notify)->toBe('weekly');
+            });
+
+            it('rejects unsupported or malformed filters on partial updates without changing the saved search', function (mixed $filters) {
+                $search = SavedSearch::factory()->create([
+                    'user_id' => $this->user->id,
+                    'name' => 'Guarded Name',
+                    'filters' => ['language_codes' => ['ms']],
+                ]);
+
+                $this->patchJson("/api/v1/saved-searches/{$search->id}", [
+                    'name' => 'Must Not Persist',
+                    'filters' => $filters,
+                ])->assertUnprocessable()
+                    ->assertJsonValidationErrors(['filters']);
+
+                $fresh = $search->fresh();
+
+                expect($fresh->name)->toBe('Guarded Name')
+                    ->and($fresh->filters)->toBe(['language_codes' => ['ms']]);
+            })->with([
+                'unknown key' => [['not_a_filter' => 'malay']],
+                'scalar payload' => ['language_codes=ms'],
+            ]);
 
             it('prevents updating other users searches', function () {
                 $otherSearch = SavedSearch::factory()->create();

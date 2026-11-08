@@ -1,5 +1,7 @@
 # Lessons
 
+- User direction (2026-11-08, execution ownership): Codex is the orchestrator for planning and independent review. Delegate implementation, verification and repair work to DeepSeek V4.1 Flash at max effort through the installed OpenCode CLI; verify the exact model/variant, do not substitute models, and retain staged commits plus a durable continuation checklist.
+
 - User correction (2026-11-08, migration checklist): when a later stage completes earlier acceptance items, reconcile those original checkboxes and duplicate task entries. Appending completion evidence alone leaves a misleading handoff. Record checkpoint IDs and keep only genuinely unfinished scope unchecked.
 
 - User direction (2026-11-07, app-wide architecture conversion): divide large migrations into verified, committable parts. Maintain an explicit repository checklist with scope, completed parts, evidence, remaining ownership work and the next concrete action so another agent can resume without relying on chat context.
@@ -1289,3 +1291,4 @@ Do not turn organizer identity selection into speaker/institution membership onb
 - User correction (2026-11-06, About hero placement): right-aligning text inside a centered desktop wrapper does not move the block right; align the wrapper itself and verify its rendered edge. Confirm mobile vertical placement against the image subject at narrow widths.
 - User correction (2026-11-06, About mobile hero backdrop): preserve the approved copy placement, but keep branches and other high-detail foliage out of its full mobile text area; reserve clear sky behind the heading, body, and quote.
 - User correction (2026-11-06, About journey book icon): keep SVG path coordinates inside the declared viewBox; inspect the rendered icon for clipping rather than assuming the path is symmetric from its markup.
+- Validation extraction lesson (2026-11-08): pass the raw primitive payload into the discovery rules contract instead of reaching for `request()` inside rule builders, and keep one shared filter-key vocabulary for validation, normalization and execution. Three private key lists had already drifted in order and would drift in membership; one metadata owner removes the class of bug without exporting Eloquent models.

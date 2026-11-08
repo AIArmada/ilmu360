@@ -7,6 +7,7 @@ use App\Models\Event;
 use App\Models\User;
 use App\Services\EventSearchService;
 use App\Services\Signals\ProductSignalsService;
+use App\Shared\Discovery\SearchFilterKeys;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -71,7 +72,7 @@ final readonly class ExecuteSavedSearchAction
             return [];
         }
 
-        $normalizedFilters = Arr::only($filters, $this->allowedFilterKeys());
+        $normalizedFilters = Arr::only($filters, SearchFilterKeys::all());
 
         if (array_key_exists('language_codes', $normalizedFilters)) {
             $normalizedFilters['language_codes'] = array_values(array_filter(
@@ -90,52 +91,5 @@ final readonly class ExecuteSavedSearchAction
 
         /** @var array<string, mixed> $normalizedFilters */
         return $normalizedFilters;
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function allowedFilterKeys(): array
-    {
-        return [
-            'country_id',
-            'state_id',
-            'city_id',
-            'area_assignments',
-            'institution_id',
-            'venue_id',
-            'person_ids',
-            'key_person_roles',
-            'person_in_charge_ids',
-            'person_in_charge_search',
-            'person_name_search',
-            'moderator_ids',
-            'imam_ids',
-            'khatib_ids',
-            'bilal_ids',
-            'domain_tag_ids',
-            'discipline_tag_ids',
-            'source_tag_ids',
-            'issue_tag_ids',
-            'reference_ids',
-            'language_codes',
-            'event_category_ids',
-            'event_format',
-            'gender',
-            'starts_after',
-            'starts_before',
-            'starts_on_local_date',
-            'time_scope',
-            'prayer_time',
-            'timing_mode',
-            'starts_time_from',
-            'starts_time_until',
-            'children_allowed',
-            'is_muslim_only',
-            'has_event_url',
-            'has_live_url',
-            'has_end_time',
-            'age_group',
-        ];
     }
 }

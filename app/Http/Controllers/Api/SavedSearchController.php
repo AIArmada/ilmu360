@@ -2,31 +2,26 @@
 
 namespace App\Http\Controllers\Api;
 
-use AIArmada\Events\Models\EventTaxonomy;
-use AIArmada\Events\Models\EventTerm;
 use App\Actions\Events\Search\ExecuteSavedSearchAction;
 use App\Actions\SavedSearches\CreateSavedSearchAction;
 use App\Actions\SavedSearches\DeleteSavedSearchWithAttributionReversalAction;
-use App\Enums\EventTaxonomyCode;
 use App\Features\SavedSearches\Api\SavedSearchCommands;
 use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Features\SavedSearches\Api\SavedSearchSnapshot;
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Shared\Discovery\SearchFilterCatalog;
+use App\Shared\Discovery\SearchFilterRules;
 use App\Shared\Integrations\SavedSearchLimitReachedException;
 use App\Support\Api\ApiPagination;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\PathParameter;
-use Illuminate\Database\Query\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Exists;
 
 #[Group('Saved Search', 'Authenticated saved-search CRUD and execution endpoints for event discovery workflows.')]
 class SavedSearchController extends Controller
@@ -72,9 +67,12 @@ class SavedSearchController extends Controller
         title: 'Create a saved search',
         description: 'Creates a new saved search definition from the supplied event-query payload.',
     )]
-    public function store(Request $request, CreateSavedSearchAction $createSavedSearchAction): JsonResponse
-    {
-        $validated = $request->validate($this->savedSearchValidationRules());
+    public function store(
+        Request $request,
+        CreateSavedSearchAction $createSavedSearchAction,
+        SearchFilterRules $searchFilterRules,
+    ): JsonResponse {
+        $validated = $request->validate($this->savedSearchValidationRules($searchFilterRules, $request->input('filters')));
 
         $user = $request->user();
 
@@ -141,10 +139,11 @@ class SavedSearchController extends Controller
         Request $request,
         SavedSearchSnapshot $savedSearch,
         SavedSearchCommands $savedSearchCommands,
+        SearchFilterRules $searchFilterRules,
     ): JsonResponse {
         $this->authorize('update', $savedSearch);
 
-        $validated = $request->validate($this->savedSearchValidationRules(partial: true));
+        $validated = $request->validate($this->savedSearchValidationRules($searchFilterRules, $request->input('filters'), partial: true));
 
         $savedSearch = $savedSearchCommands->update($savedSearch->userType, $savedSearch->userId, $savedSearch->id, $validated);
 
@@ -196,161 +195,21 @@ class SavedSearchController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function savedSearchValidationRules(bool $partial = false): array
-    {
+    private function savedSearchValidationRules(
+        SearchFilterRules $searchFilterRules,
+        mixed $filters,
+        bool $partial = false,
+    ): array {
         return [
             'name' => $partial ? 'sometimes|required|string|max:100' : 'required|string|max:100',
             'query' => 'nullable|string|max:255',
-            'filters' => 'nullable|array:'.implode(',', $this->allowedFilterKeys()),
-            'filters.country_id' => 'nullable|uuid|exists:'.config('addressing.tables.countries', 'countries').',id',
-            'filters.state_id' => 'nullable|uuid|exists:states,id',
-            'filters.city_id' => 'nullable|uuid|exists:cities,id',
-            'filters.area_assignments' => 'nullable|array',
-            'filters.area_assignments.*' => 'nullable|uuid|exists:address_areas,id',
-            'filters.institution_id' => 'nullable|uuid|exists:institutions,id',
-            'filters.venue_id' => 'nullable|uuid|exists:venues,id',
-            'filters.language_codes' => 'nullable|array',
-            'filters.language_codes.*' => 'string|max:12',
-            'filters.event_category_ids' => 'nullable|array',
-            'filters.event_category_ids.*' => ['uuid', Rule::in(app(SearchFilterCatalog::class)->validCategoryIds((array) request()->input('filters.event_category_ids', [])))],
-            'filters.event_format' => 'nullable|array',
-            'filters.event_format.*' => ['string', Rule::in(app(SearchFilterCatalog::class)->allowedValues('event_format'))],
-            'filters.gender' => ['nullable', 'string', Rule::in(app(SearchFilterCatalog::class)->allowedValues('gender'))],
-            'filters.age_group' => 'nullable|array',
-            'filters.age_group.*' => ['string', Rule::in(app(SearchFilterCatalog::class)->allowedValues('age_group'))],
-            'filters.starts_after' => 'nullable|date_format:Y-m-d',
-            'filters.starts_before' => 'nullable|date_format:Y-m-d',
-            'filters.starts_on_local_date' => 'nullable|date_format:Y-m-d',
-            'filters.time_scope' => ['nullable', 'string', Rule::in(app(SearchFilterCatalog::class)->allowedValues('time_scope'))],
-            'filters.prayer_time' => ['nullable', 'string', Rule::in(app(SearchFilterCatalog::class)->allowedValues('prayer_time'))],
-            'filters.timing_mode' => ['nullable', 'string', Rule::in(app(SearchFilterCatalog::class)->allowedValues('timing_mode'))],
-            'filters.starts_time_from' => ['nullable', 'string', 'max:32', $this->validTimeFilterRule()],
-            'filters.starts_time_until' => ['nullable', 'string', 'max:32', $this->validTimeFilterRule()],
-            'filters.children_allowed' => ['nullable', $this->validBooleanFilterRule()],
-            'filters.is_muslim_only' => ['nullable', $this->validBooleanFilterRule()],
-            'filters.has_event_url' => ['nullable', $this->validBooleanFilterRule()],
-            'filters.has_live_url' => ['nullable', $this->validBooleanFilterRule()],
-            'filters.has_end_time' => ['nullable', $this->validBooleanFilterRule()],
-            'filters.person_ids' => 'nullable|array',
-            'filters.person_ids.*' => 'uuid|exists:persons,id',
-            'filters.key_person_roles' => 'nullable|array',
-            'filters.key_person_roles.*' => ['string', Rule::in(app(SearchFilterCatalog::class)->allowedValues('key_person_roles'))],
-            'filters.person_in_charge_ids' => 'nullable|array',
-            'filters.person_in_charge_ids.*' => 'uuid|exists:persons,id',
-            'filters.person_in_charge_search' => 'nullable|string|max:255',
-            'filters.person_name_search' => 'nullable|string|max:255',
-            'filters.moderator_ids' => 'nullable|array',
-            'filters.moderator_ids.*' => 'uuid|exists:persons,id',
-            'filters.imam_ids' => 'nullable|array',
-            'filters.imam_ids.*' => 'uuid|exists:persons,id',
-            'filters.khatib_ids' => 'nullable|array',
-            'filters.khatib_ids.*' => 'uuid|exists:persons,id',
-            'filters.bilal_ids' => 'nullable|array',
-            'filters.bilal_ids.*' => 'uuid|exists:persons,id',
-            'filters.discipline_tag_ids' => 'nullable|array',
-            'filters.discipline_tag_ids.*' => ['uuid', $this->taxonomyTermExistsRule(EventTaxonomyCode::Discipline)],
-            'filters.domain_tag_ids' => 'nullable|array',
-            'filters.domain_tag_ids.*' => ['uuid', $this->taxonomyTermExistsRule(EventTaxonomyCode::Domain)],
-            'filters.source_tag_ids' => 'nullable|array',
-            'filters.source_tag_ids.*' => ['uuid', $this->taxonomyTermExistsRule(EventTaxonomyCode::Source)],
-            'filters.issue_tag_ids' => 'nullable|array',
-            'filters.issue_tag_ids.*' => ['uuid', $this->taxonomyTermExistsRule(EventTaxonomyCode::Issue)],
-            'filters.reference_ids' => 'nullable|array',
-            'filters.reference_ids.*' => 'uuid|exists:references,id',
+            ...$searchFilterRules->rules($filters),
             'radius_km' => 'nullable|integer|min:1|max:1000',
             'lat' => $partial ? 'nullable|numeric|between:-90,90' : 'nullable|required_with:radius_km|numeric|between:-90,90',
             'lng' => $partial ? 'nullable|numeric|between:-180,180' : 'nullable|required_with:radius_km|numeric|between:-180,180',
             'notify' => $partial
                 ? ['sometimes', 'required', Rule::in(['off', 'instant', 'daily', 'weekly'])]
                 : ['required', Rule::in(['off', 'instant', 'daily', 'weekly'])],
-        ];
-    }
-
-    private function taxonomyTermExistsRule(EventTaxonomyCode $taxonomy): Exists
-    {
-        return Rule::exists(EventTerm::class, 'id')
-            ->where(static function (Builder $query) use ($taxonomy): void {
-                $query->whereIn(
-                    (new EventTerm)->qualifyColumn('event_taxonomy_id'),
-                    EventTaxonomy::query()->select('id')->where('code', $taxonomy->value),
-                );
-            });
-    }
-
-    private function validTimeFilterRule(): \Closure
-    {
-        return static function (string $attribute, mixed $value, \Closure $fail): void {
-            if (! is_string($value) || trim($value) === '') {
-                return;
-            }
-
-            try {
-                now()->setTimeFromTimeString(trim($value));
-            } catch (\Throwable) {
-                $fail('The '.$attribute.' must be a valid time.');
-            }
-        };
-    }
-
-    private function validBooleanFilterRule(): \Closure
-    {
-        return static function (string $attribute, mixed $value, \Closure $fail): void {
-            if ($value === null || $value === '') {
-                return;
-            }
-
-            if (is_bool($value) || in_array($value, [1, '1', 'true', 'on', 'yes', 0, '0', 'false', 'off', 'no'], true)) {
-                return;
-            }
-
-            $fail('The '.$attribute.' field must be boolean-like.');
-        };
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function allowedFilterKeys(): array
-    {
-        return [
-            'country_id',
-            'state_id',
-            'city_id',
-            'area_assignments',
-            'institution_id',
-            'venue_id',
-            'person_ids',
-            'key_person_roles',
-            'person_in_charge_ids',
-            'person_in_charge_search',
-            'person_name_search',
-            'moderator_ids',
-            'imam_ids',
-            'khatib_ids',
-            'bilal_ids',
-            'domain_tag_ids',
-            'discipline_tag_ids',
-            'source_tag_ids',
-            'issue_tag_ids',
-            'reference_ids',
-            'starts_on_local_date',
-            'language_codes',
-            'event_category_ids',
-            'event_format',
-            'gender',
-            'starts_after',
-            'starts_before',
-            'time_scope',
-            'prayer_time',
-            'timing_mode',
-            'starts_time_from',
-            'starts_time_until',
-            'children_allowed',
-            'is_muslim_only',
-            'has_event_url',
-            'has_live_url',
-            'has_end_time',
-            'age_group',
         ];
     }
 }
