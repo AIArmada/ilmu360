@@ -113,6 +113,15 @@
 - Tests: 97 passed / 370 assertions; new coverage for island markup, hero stability, query-string restore, pagination scroll target, and the empty-state clear-filters event. Pint passed; PHPStan changed files 0 errors.
 - Final island review (Muse Spark 1.3 Contributor xhigh): Approve with changes; Important findings fixed — added a rendered assertion for the empty-state dropdown reset, added `selectGroupedSubdivisionLocality,__dispatch` to the loading targets, added island behaviour/URL regression tests, removed the per-morph `wire:transition`, and verified focus stays on the search input. Ruling: the empty-state `#[On]` listener already forces a full render, so no second Alpine window listener was added (it would double-fire).
 
+### Directory island rollout (2026-11-08)
+
+- `/penceramah`: search bar and results share the `person-results` island; the results root no longer uses `wire:transition`. Pagination already scrolled to `#person-results`. Tests: 52 passed / 208 assertions.
+- `/rujukan`: search bar and results share the `reference-results` island; pagination now passes `scrollTo => '#reference-results'`; the results root no longer uses `wire:transition`. Tests: 19 passed / 82 assertions.
+- `/majlis`: search form and results share the `event-results` island; the results root has `id="event-results"` and no `wire:transition`; pagination passes `scrollTo => '#event-results'`; the empty-state “View all events” button dispatches `events-clear-all-filters`, handled by `#[On]` on `clearAllFilters()` so the filter panel resets. Tests: 118 total, 112 passed, 6 pre-existing failures (Pending Approval badge text + event detail/gallery/share/registration), unchanged from before this rollout.
+- Homepage: its hero search is an Alpine GET form that navigates to the directory pages; there is no Livewire search/result island to optimize there. The destination pages now carry the optimization.
+- Chrome MCP (staging): `/penceramah` search “Ahmad” → 1 request, 713ms, 2 island fragments, 6 speakers, no hero; `/rujukan` search “Riyad” → 1 request, 1137ms, 2 fragments, 2 references, no hero; `/majlis` search “fiqh” → 1 request, 835ms, 2 fragments, 12 cards, no hero/filter panel; `/majlis` empty-state clear → search and URL reset, 18 cards restored. Focus stays in the search input; no JS errors.
+- Pint passed; PHPStan on the changed events component reported 0 errors.
+
 ---
 
 # Todo — Tetapan Hero (2026-11-07)

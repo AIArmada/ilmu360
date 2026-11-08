@@ -401,6 +401,7 @@
                     {{ __('Cari ikut lokasi, masa, topik, penceramah atau institusi.') }}
                 </p>
 
+                @island(name: 'event-results', always: true)
                 <form wire:submit.prevent
                     data-signal-change-event="filter.changed"
                     data-signal-category="filter"
@@ -416,6 +417,7 @@
                         maxlength="255"
                         :label="__('Carian')"
                         :hint="__('Cari mengikut tajuk majlis.')"
+                        aria-controls="event-results"
                         :clear-attributes="[
                             'data-signal-event' => 'search.cleared',
                             'data-signal-category' => 'search',
@@ -426,6 +428,7 @@
                         data-signal-include-value="true"
                     />
                 </form>
+                @endisland
             </div>
         </div>
     </section>
@@ -650,7 +653,7 @@
                         $eventLoadingTarget = 'filterData,setLocation,clearLocation,clearAllFilters,toggleSavedOnly,toggleGoingOnly,gotoPage,setPage';
                     @endphp
 
-                <div class="mt-5 min-h-[42rem]" wire:transition="event-results">
+                <div id="event-results" class="mt-5 min-h-[42rem]">
                     <div wire:loading.delay.short wire:target="{{ $eventLoadingTarget }}" data-testid="events-loading-skeleton" class="w-full">
                         <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                             @foreach(range(1, 6) as $index)
@@ -693,7 +696,7 @@
                                 </div>
                                 <h3 class="mt-5 font-heading text-2xl font-bold text-slate-900">{{ $goingOnly ? __('No attending majlis found') : ($savedOnly ? __('No saved majlis found') : __('No events found')) }}</h3>
                                 <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-600">{{ $goingOnly ? __('Mark a majlis as Hadir to see it here.') : ($savedOnly ? __('Save a majlis to see it here.') : __('Try adjusting your search terms or filters to find what you\'re looking for.')) }}</p>
-                                <button type="button" wire:click="clearAllFilters"
+                                <button type="button" x-on:click="$dispatch('events-clear-all-filters')"
                                     data-signal-event="filter.cleared"
                                     data-signal-category="filter"
                                     data-signal-component="events_index_empty_state"
@@ -781,7 +784,7 @@
                             </div>
 
                             <div class="mt-6">
-                                {{ $events->withQueryString()->links('vendor.livewire.directory-pagination') }}
+                                {{ $events->withQueryString()->links('vendor.livewire.directory-pagination', data: ['scrollTo' => '#event-results']) }}
                             </div>
                         @endif
                     </div>

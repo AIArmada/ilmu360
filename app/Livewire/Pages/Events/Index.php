@@ -902,6 +902,7 @@ class Index extends Component implements HasForms
         $this->resetPage();
     }
 
+    #[On('events-clear-all-filters')]
     public function clearAllFilters(): void
     {
         $defaults = $this->defaultFilterData();

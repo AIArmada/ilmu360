@@ -444,6 +444,7 @@ new
                 {{ __('Terokai kitab, buku, artikel dan bahan rujukan pilihan untuk menyokong perjalanan ilmu anda.') }}
             </p>
 
+            @island(name: 'reference-results', always: true)
             <div class="mt-9 max-w-xl">
                 <x-ui.search-bar
                     input-id="reference-search"
@@ -455,6 +456,7 @@ new
                     aria-controls="reference-results"
                 />
             </div>
+            @endisland
         </div>
     </div>
 
@@ -469,7 +471,6 @@ new
             <div
                 id="reference-results"
                 class="min-h-[32rem]"
-                wire:transition="reference-results"
                 wire:loading.class="opacity-60"
                 wire:loading.attr="aria-busy"
                 wire:target="{{ $referenceLoadingTarget }}"
@@ -634,7 +635,7 @@ new
                 </div>
 
                 <div class="mt-16">
-                    {{ $references->links('vendor.livewire.directory-pagination') }}
+                    {{ $references->links('vendor.livewire.directory-pagination', data: ['scrollTo' => '#reference-results']) }}
                 </div>
 
             @endif
