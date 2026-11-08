@@ -444,6 +444,14 @@ return [
             'action' => 'Lihat maklum balas',
             'footer' => 'Terima kasih kerana membantu kami menambah baik :app.',
         ],
+        'replied' => [
+            'subject' => 'Balasan baharu untuk maklum balas anda: :title',
+            'intro' => 'Pasukan kami telah membalas maklum balas anda.',
+            'reply_label' => 'Balasan:',
+            'status' => 'Status semasa: :status',
+            'action' => 'Lihat balasan',
+            'footer' => 'Terima kasih kerana membantu kami menambah baik :app.',
+        ],
     ],
     'inbox' => [
         'page_title' => 'Notifikasi',

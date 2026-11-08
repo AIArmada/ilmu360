@@ -444,6 +444,14 @@ return [
             'action' => 'View feedback',
             'footer' => 'Thank you for helping us improve :app.',
         ],
+        'replied' => [
+            'subject' => 'New reply on your feedback: :title',
+            'intro' => 'Our team has replied to your feedback.',
+            'reply_label' => 'Reply:',
+            'status' => 'Current status: :status',
+            'action' => 'View reply',
+            'footer' => 'Thank you for helping us improve :app.',
+        ],
     ],
     'inbox' => [
         'page_title' => 'Notifications',
