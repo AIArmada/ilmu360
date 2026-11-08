@@ -7,20 +7,14 @@ use AIArmada\Events\Models\EventTerm;
 use App\Actions\Events\Search\ExecuteSavedSearchAction;
 use App\Actions\SavedSearches\CreateSavedSearchAction;
 use App\Actions\SavedSearches\DeleteSavedSearchWithAttributionReversalAction;
-use App\Contracts\EventCategoryCatalog;
-use App\Enums\EventAgeGroup;
-use App\Enums\EventFormat;
-use App\Enums\EventGenderRestriction;
-use App\Enums\EventKeyPersonRole;
 use App\Enums\EventTaxonomyCode;
-use App\Enums\TimingMode;
 use App\Features\SavedSearches\Api\SavedSearchCommands;
 use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Features\SavedSearches\Api\SavedSearchSnapshot;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Shared\Discovery\SearchFilterCatalog;
 use App\Shared\Integrations\SavedSearchLimitReachedException;
-use App\Shared\Prayer\EventPrayerTime;
 use App\Support\Api\ApiPagination;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
@@ -218,18 +212,18 @@ class SavedSearchController extends Controller
             'filters.language_codes' => 'nullable|array',
             'filters.language_codes.*' => 'string|max:12',
             'filters.event_category_ids' => 'nullable|array',
-            'filters.event_category_ids.*' => ['uuid', Rule::in(app(EventCategoryCatalog::class)->validTermIds((array) request()->input('filters.event_category_ids', [])))],
+            'filters.event_category_ids.*' => ['uuid', Rule::in(app(SearchFilterCatalog::class)->validCategoryIds((array) request()->input('filters.event_category_ids', [])))],
             'filters.event_format' => 'nullable|array',
-            'filters.event_format.*' => ['string', Rule::in(array_column(EventFormat::cases(), 'value'))],
-            'filters.gender' => ['nullable', 'string', Rule::in(array_column(EventGenderRestriction::cases(), 'value'))],
+            'filters.event_format.*' => ['string', Rule::in(app(SearchFilterCatalog::class)->allowedValues('event_format'))],
+            'filters.gender' => ['nullable', 'string', Rule::in(app(SearchFilterCatalog::class)->allowedValues('gender'))],
             'filters.age_group' => 'nullable|array',
-            'filters.age_group.*' => ['string', Rule::in(array_column(EventAgeGroup::cases(), 'value'))],
+            'filters.age_group.*' => ['string', Rule::in(app(SearchFilterCatalog::class)->allowedValues('age_group'))],
             'filters.starts_after' => 'nullable|date_format:Y-m-d',
             'filters.starts_before' => 'nullable|date_format:Y-m-d',
             'filters.starts_on_local_date' => 'nullable|date_format:Y-m-d',
-            'filters.time_scope' => ['nullable', 'string', Rule::in(['upcoming', 'past', 'all'])],
-            'filters.prayer_time' => ['nullable', 'string', Rule::in(array_column(EventPrayerTime::cases(), 'value'))],
-            'filters.timing_mode' => ['nullable', 'string', Rule::in(array_column(TimingMode::cases(), 'value'))],
+            'filters.time_scope' => ['nullable', 'string', Rule::in(app(SearchFilterCatalog::class)->allowedValues('time_scope'))],
+            'filters.prayer_time' => ['nullable', 'string', Rule::in(app(SearchFilterCatalog::class)->allowedValues('prayer_time'))],
+            'filters.timing_mode' => ['nullable', 'string', Rule::in(app(SearchFilterCatalog::class)->allowedValues('timing_mode'))],
             'filters.starts_time_from' => ['nullable', 'string', 'max:32', $this->validTimeFilterRule()],
             'filters.starts_time_until' => ['nullable', 'string', 'max:32', $this->validTimeFilterRule()],
             'filters.children_allowed' => ['nullable', $this->validBooleanFilterRule()],
@@ -240,7 +234,7 @@ class SavedSearchController extends Controller
             'filters.person_ids' => 'nullable|array',
             'filters.person_ids.*' => 'uuid|exists:persons,id',
             'filters.key_person_roles' => 'nullable|array',
-            'filters.key_person_roles.*' => ['string', Rule::in(array_keys(EventKeyPersonRole::nonSpeakerOptions()))],
+            'filters.key_person_roles.*' => ['string', Rule::in(app(SearchFilterCatalog::class)->allowedValues('key_person_roles'))],
             'filters.person_in_charge_ids' => 'nullable|array',
             'filters.person_in_charge_ids.*' => 'uuid|exists:persons,id',
             'filters.person_in_charge_search' => 'nullable|string|max:255',

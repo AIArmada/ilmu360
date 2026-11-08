@@ -3,22 +3,16 @@
 namespace App\Livewire\Pages\SavedSearches;
 
 use App\Actions\SavedSearches\CreateSavedSearchAction;
-use App\Contracts\EventCategoryCatalog;
-use App\Enums\EventAgeGroup;
-use App\Enums\EventFormat;
-use App\Enums\EventGenderRestriction;
-use App\Enums\EventKeyPersonRole;
 use App\Enums\NotificationFrequency;
-use App\Enums\TimingMode;
 use App\Features\SavedSearches\Api\SavedSearchCommands;
 use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Features\SavedSearches\Api\SavedSearchSnapshot;
 use App\Forms\SharedFormSchema;
 use App\Livewire\Concerns\InteractsWithToasts;
 use App\Models\User;
+use App\Shared\Discovery\SearchFilterCatalog;
 use App\Shared\Discovery\SearchFilterLabels;
 use App\Shared\Integrations\SavedSearchLimitReachedException;
-use App\Shared\Prayer\EventPrayerTime;
 use App\Support\Location\VisitorCountryResolver;
 use App\Support\Timezone\UserDateTimeFormatter;
 use Carbon\Carbon;
@@ -496,7 +490,7 @@ class Index extends Component
 
         if ($categoryIds !== []) {
             $categoryId = (string) $categoryIds[0];
-            $categoryLabel = app(EventCategoryCatalog::class)->options()[$categoryId] ?? $categoryId;
+            $categoryLabel = app(SearchFilterCatalog::class)->label('event_category_ids', $categoryId) ?? $categoryId;
 
             return [
                 'phrase' => ': '.$categoryLabel,
@@ -666,24 +660,19 @@ class Index extends Component
             'institution_id' => app(SearchFilterLabels::class)->label('institution_id', $value) ?? $value,
             'venue_id' => app(SearchFilterLabels::class)->label('venue_id', $value) ?? $value,
             'person_ids' => app(SearchFilterLabels::class)->label('person_ids', $value) ?? $value,
-            'key_person_roles' => EventKeyPersonRole::tryFrom($value)?->getLabel() ?? $value,
+            'key_person_roles' => app(SearchFilterCatalog::class)->label('key_person_roles', $value) ?? $value,
             'person_in_charge_ids', 'moderator_ids', 'imam_ids', 'khatib_ids', 'bilal_ids' => app(SearchFilterLabels::class)->label('person_ids', $value) ?? $value,
             'domain_tag_ids', 'discipline_tag_ids', 'source_tag_ids', 'issue_tag_ids' => app(SearchFilterLabels::class)->label($filterKey, $value) ?? $value,
             'reference_ids' => app(SearchFilterLabels::class)->label('reference_ids', $value) ?? $value,
             'language_codes' => $this->languageLabel($value) ?? $value,
-            'event_category_ids' => app(EventCategoryCatalog::class)->options()[$value] ?? $value,
-            'event_format' => EventFormat::tryFrom($value)?->getLabel() ?? $value,
-            'gender' => EventGenderRestriction::tryFrom($value)?->getLabel() ?? $value,
-            'age_group' => EventAgeGroup::tryFrom($value)?->getLabel() ?? $value,
+            'event_category_ids' => app(SearchFilterCatalog::class)->label('event_category_ids', $value) ?? $value,
+            'event_format' => app(SearchFilterCatalog::class)->label('event_format', $value) ?? $value,
+            'gender' => app(SearchFilterCatalog::class)->label('gender', $value) ?? $value,
+            'age_group' => app(SearchFilterCatalog::class)->label('age_group', $value) ?? $value,
             'starts_after', 'starts_before' => $this->dateLabel($value) ?? $value,
-            'time_scope' => match ($value) {
-                'upcoming' => __('Upcoming'),
-                'past' => __('Past'),
-                'all' => __('All Time'),
-                default => $value,
-            },
-            'prayer_time' => EventPrayerTime::tryFrom($value)?->getLabel() ?? $value,
-            'timing_mode' => TimingMode::tryFrom($value)?->label() ?? $value,
+            'time_scope' => app(SearchFilterCatalog::class)->label('time_scope', $value) ?? $value,
+            'prayer_time' => app(SearchFilterCatalog::class)->label('prayer_time', $value) ?? $value,
+            'timing_mode' => app(SearchFilterCatalog::class)->label('timing_mode', $value) ?? $value,
             'starts_time_from', 'starts_time_until' => $this->timeLabel($value) ?? $value,
             'children_allowed', 'is_muslim_only', 'has_event_url', 'has_live_url', 'has_end_time' => $this->booleanLabel($value) ?? $value,
             default => $value,
