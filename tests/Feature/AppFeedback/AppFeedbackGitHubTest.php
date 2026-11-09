@@ -1,10 +1,10 @@
 <?php
 
-use App\Actions\AppFeedback\EscalateAppFeedbackToGitHubAction;
-use App\Actions\AppFeedback\LinkAppFeedbackGitHubIssueAction;
-use App\Enums\AppFeedbackGitHubStatus;
+use App\Features\Feedback\Actions\EscalateAppFeedbackToGitHubAction;
+use App\Features\Feedback\Actions\LinkAppFeedbackGitHubIssueAction;
+use App\Features\Feedback\Enums\AppFeedbackGitHubStatus;
+use App\Features\Feedback\Models\AppFeedback;
 use App\Features\GitHubIssues\Api\GitHubIssueReporterContract;
-use App\Models\AppFeedback;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;

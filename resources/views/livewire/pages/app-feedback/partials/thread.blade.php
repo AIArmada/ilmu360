@@ -13,7 +13,7 @@
     </div>
 @endif
 
-@if (in_array($feedback->status, [\App\Enums\AppFeedbackStatus::New, \App\Enums\AppFeedbackStatus::Triaged], true))
+@if (in_array($feedback->status, [\App\Features\Feedback\Enums\AppFeedbackStatus::New, \App\Features\Feedback\Enums\AppFeedbackStatus::Triaged], true))
     <form wire:submit="postReply('{{ $feedback->id }}')" class="mt-4 space-y-2 border-t border-slate-100 pt-4">
         <label for="reply-{{ $feedback->id }}" class="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">{{ __('app-feedback.history.add_info') }}</label>
         <textarea

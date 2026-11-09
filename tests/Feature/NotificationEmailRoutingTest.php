@@ -1,11 +1,11 @@
 <?php
 
-use App\Models\AppFeedback;
-use App\Models\AppFeedbackMessage;
+use App\Features\Feedback\Models\AppFeedback;
+use App\Features\Feedback\Models\AppFeedbackMessage;
+use App\Features\Feedback\Notifications\AppFeedbackRepliedNotification;
 use App\Models\Event;
 use App\Models\Report;
 use App\Models\User;
-use App\Notifications\AppFeedbackRepliedNotification;
 use App\Notifications\Auth\ResetPasswordNotification;
 use App\Notifications\Auth\VerifyEmailNotification;
 use App\Notifications\Auth\WelcomeNotification;

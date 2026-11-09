@@ -1,10 +1,10 @@
 <?php
 
-use App\Actions\AppFeedback\SubmitAppFeedbackAction;
-use App\Enums\AppFeedbackCategory;
-use App\Models\AppFeedback;
+use App\Features\Feedback\Actions\SubmitAppFeedbackAction;
+use App\Features\Feedback\Enums\AppFeedbackCategory;
+use App\Features\Feedback\Models\AppFeedback;
+use App\Features\Feedback\Support\AppFeedbackInput;
 use App\Models\User;
-use App\Support\AppFeedback\AppFeedbackInput;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;

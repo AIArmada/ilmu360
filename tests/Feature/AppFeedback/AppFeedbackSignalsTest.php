@@ -2,9 +2,9 @@
 
 use AIArmada\Signals\Contracts\SignalEventIngestor;
 use AIArmada\Signals\Models\SignalEvent;
-use App\Actions\AppFeedback\SubmitAppFeedbackAction;
-use App\Enums\AppFeedbackCategory;
-use App\Models\AppFeedback;
+use App\Features\Feedback\Actions\SubmitAppFeedbackAction;
+use App\Features\Feedback\Enums\AppFeedbackCategory;
+use App\Features\Feedback\Models\AppFeedback;
 use App\Models\User;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;

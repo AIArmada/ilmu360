@@ -1,9 +1,9 @@
 <?php
 
-use App\Models\AppFeedback;
-use App\Models\AppFeedbackMessage;
+use App\Features\Feedback\Models\AppFeedback;
+use App\Features\Feedback\Models\AppFeedbackMessage;
+use App\Features\Feedback\Notifications\AppFeedbackRepliedNotification;
 use App\Models\User;
-use App\Notifications\AppFeedbackRepliedNotification;
 
 it('builds the reply email with the message and thread link', function () {
     $reporter = User::factory()->create(['name' => 'Aminah']);

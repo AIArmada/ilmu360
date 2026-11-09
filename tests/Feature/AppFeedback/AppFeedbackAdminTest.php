@@ -1,16 +1,20 @@
 <?php
 
-use App\Filament\Resources\AppFeedback\AppFeedbackResource;
-use App\Filament\Resources\AppFeedback\Pages\ViewAppFeedback;
-use App\Models\AppFeedback;
-use App\Models\AppFeedbackMessage;
+use App\Features\Feedback\Actions\UpdateAppFeedbackInternalNotesAction;
+use App\Features\Feedback\EntryPoints\Filament\Resources\AppFeedback\AppFeedbackResource;
+use App\Features\Feedback\EntryPoints\Filament\Resources\AppFeedback\Pages\ViewAppFeedback;
+use App\Features\Feedback\Models\AppFeedback;
+use App\Features\Feedback\Models\AppFeedbackMessage;
+use App\Features\Feedback\Notifications\AppFeedbackClosedNotification;
+use App\Features\Feedback\Notifications\AppFeedbackRepliedNotification;
 use App\Models\User;
-use App\Notifications\AppFeedbackClosedNotification;
-use App\Notifications\AppFeedbackRepliedNotification;
 use App\Platform\Admin\ExcludedFromAdminApi;
+use App\Platform\Admin\FilamentResourceRegistry;
 use App\Support\Api\Admin\AdminResourceRegistry;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
+use Filament\Facades\Filament;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 
@@ -175,6 +179,28 @@ it('keeps app feedback out of the generic admin api resource registry', function
 
     expect(AppFeedbackResource::class)->toImplement(ExcludedFromAdminApi::class)
         ->and($resources)->not->toContain(AppFeedbackResource::class);
+});
+
+it('registers the app feedback resource once through the feature registry', function () {
+    $panelResources = Filament::getPanel('admin')->getResources();
+
+    expect(app(FilamentResourceRegistry::class)->all())->toContain(AppFeedbackResource::class)
+        ->and(array_count_values($panelResources)[AppFeedbackResource::class] ?? 0)->toBe(1);
+});
+
+it('guards internal note updates through the action', function () {
+    $moderator = User::factory()->create();
+    $moderator->assignRole('moderator');
+
+    $feedback = AppFeedback::factory()->create();
+
+    expect(fn () => app(UpdateAppFeedbackInternalNotesAction::class)->handle(
+        $moderator,
+        $feedback,
+        'Nota dalaman.',
+    ))->toThrow(AuthorizationException::class);
+
+    expect($feedback->fresh()->internal_notes)->toBeNull();
 });
 
 it('replies to feedback from the admin view action', function () {

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use AIArmada\Affiliates\AffiliatesServiceProvider;
 use AIArmada\CommerceSupport\SupportServiceProvider;
+use App\Features\Feedback\FeatureServiceProvider as FeedbackServiceProvider;
 use App\Features\GitHubIssues\FeatureServiceProvider as GitHubIssuesServiceProvider;
 use App\Features\Prayer\FeatureServiceProvider;
 use App\Features\SavedSearches\FeatureServiceProvider as SavedSearchesServiceProvider;
@@ -26,6 +27,7 @@ return [
     AdminRegistryServiceProvider::class,
     ApiDocumentationServiceProvider::class,
     AppServiceProvider::class,
+    FeedbackServiceProvider::class,
     GitHubIssuesServiceProvider::class,
     FeatureServiceProvider::class,
     SavedSearchesServiceProvider::class,

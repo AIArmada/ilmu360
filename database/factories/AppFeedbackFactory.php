@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\AppFeedbackCategory;
-use App\Enums\AppFeedbackGitHubStatus;
-use App\Enums\AppFeedbackStatus;
-use App\Models\AppFeedback;
+use App\Features\Feedback\Enums\AppFeedbackCategory;
+use App\Features\Feedback\Enums\AppFeedbackGitHubStatus;
+use App\Features\Feedback\Enums\AppFeedbackStatus;
+use App\Features\Feedback\Models\AppFeedback;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;

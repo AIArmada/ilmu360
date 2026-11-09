@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Models\AppFeedback;
-use App\Models\AppFeedbackMessage;
+use App\Features\Feedback\Models\AppFeedback;
+use App\Features\Feedback\Models\AppFeedbackMessage;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 

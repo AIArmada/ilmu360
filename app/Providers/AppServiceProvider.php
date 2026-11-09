@@ -96,7 +96,6 @@ use App\Http\Controllers\Mcp\OAuthRegisterController;
 use App\Listeners\ShareTracking\ReverseRegistrationShareOutcome;
 use App\Listeners\ShareTracking\ReverseScheduleCancellationShareOutcome;
 use App\Models\AiModelPricing;
-use App\Models\AppFeedback;
 use App\Models\Audit as FilamentAudit;
 use App\Models\ContributionRequest;
 use App\Models\DonationChannel;
@@ -151,7 +150,6 @@ use App\Platform\Media\EloquentMediaCollectionSync;
 use App\Platform\Media\MediaCollectionSync;
 use App\Policies\AddressAreaPolicy;
 use App\Policies\AddressCountryPolicy;
-use App\Policies\AppFeedbackPolicy;
 use App\Policies\EventPolicy;
 use App\Policies\FilamentAuditPolicy;
 use App\Policies\RegistrationPolicy;
@@ -485,7 +483,6 @@ class AppServiceProvider extends ServiceProvider
             'address' => Address::class,
 
             'ai_model_pricing' => AiModelPricing::class,
-            'app_feedback' => AppFeedback::class,
             'contact' => ContactMethod::class,
             'customer' => Customer::class,
             'user' => User::class,
@@ -531,7 +528,6 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(FilamentAudit::class, FilamentAuditPolicy::class);
         Gate::policy(AddressArea::class, AddressAreaPolicy::class);
         Gate::policy(AddressCountry::class, AddressCountryPolicy::class);
-        Gate::policy(AppFeedback::class, AppFeedbackPolicy::class);
         Gate::policy(Event::class, EventPolicy::class);
         Gate::policy(Registration::class, RegistrationPolicy::class);
         Gate::policy(TrackedProperty::class, TrackedPropertyPolicy::class);

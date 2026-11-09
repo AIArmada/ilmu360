@@ -1,12 +1,12 @@
 <?php
 
-use App\Actions\AppFeedback\TransitionAppFeedbackAction;
-use App\Enums\AppFeedbackStatus;
-use App\Models\AppFeedback;
+use App\Features\Feedback\Actions\TransitionAppFeedbackAction;
+use App\Features\Feedback\Enums\AppFeedbackStatus;
+use App\Features\Feedback\Models\AppFeedback;
+use App\Features\Feedback\Notifications\AppFeedbackClosedNotification;
+use App\Features\Feedback\Notifications\AppFeedbackReceivedNotification;
+use App\Features\Feedback\Notifications\AppFeedbackTriagedNotification;
 use App\Models\User;
-use App\Notifications\AppFeedbackClosedNotification;
-use App\Notifications\AppFeedbackReceivedNotification;
-use App\Notifications\AppFeedbackTriagedNotification;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Auth\Access\AuthorizationException;

@@ -1,13 +1,13 @@
 <?php
 
-use App\Actions\AppFeedback\SubmitAppFeedbackAction;
-use App\Enums\AppFeedbackCategory;
-use App\Enums\AppFeedbackStatus;
-use App\Livewire\Pages\AppFeedback\Index;
-use App\Models\AppFeedback;
+use App\Features\Feedback\Actions\SubmitAppFeedbackAction;
+use App\Features\Feedback\EntryPoints\Livewire\Pages\AppFeedback\Index;
+use App\Features\Feedback\Enums\AppFeedbackCategory;
+use App\Features\Feedback\Enums\AppFeedbackStatus;
+use App\Features\Feedback\Models\AppFeedback;
+use App\Features\Feedback\Notifications\AppFeedbackReceivedNotification;
+use App\Features\Feedback\Notifications\AppFeedbackSubmittedNotification;
 use App\Models\User;
-use App\Notifications\AppFeedbackReceivedNotification;
-use App\Notifications\AppFeedbackSubmittedNotification;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Filament\Forms\Components\Select;

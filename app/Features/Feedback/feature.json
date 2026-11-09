@@ -1,0 +1,16 @@
+{
+  "schema": 2,
+  "name": "Feedback",
+  "owns": {
+    "table:app_feedback": [
+      "App\\Features\\Feedback\\Actions\\EscalateAppFeedbackToGitHubAction",
+      "App\\Features\\Feedback\\Actions\\LinkAppFeedbackGitHubIssueAction",
+      "App\\Features\\Feedback\\Actions\\SubmitAppFeedbackAction",
+      "App\\Features\\Feedback\\Actions\\TransitionAppFeedbackAction",
+      "App\\Features\\Feedback\\Actions\\UpdateAppFeedbackInternalNotesAction"
+    ],
+    "table:app_feedback_messages": [
+      "App\\Features\\Feedback\\Actions\\PostAppFeedbackMessageAction"
+    ]
+  }
+}

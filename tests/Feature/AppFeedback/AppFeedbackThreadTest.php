@@ -1,9 +1,9 @@
 <?php
 
-use App\Actions\AppFeedback\PostAppFeedbackMessageAction;
-use App\Models\AppFeedback;
+use App\Features\Feedback\Actions\PostAppFeedbackMessageAction;
+use App\Features\Feedback\Models\AppFeedback;
+use App\Features\Feedback\Notifications\AppFeedbackRepliedNotification;
 use App\Models\User;
-use App\Notifications\AppFeedbackRepliedNotification;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Log;
