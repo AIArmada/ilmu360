@@ -14,6 +14,10 @@
         'dismissed' => 'bg-slate-200 text-slate-700',
         'needs_changes' => 'bg-amber-100 text-amber-700',
         'draft' => 'bg-slate-100 text-slate-700',
+        'scheduled' => 'bg-sky-100 text-sky-700',
+        'published', 'live', 'completed' => 'bg-emerald-100 text-emerald-700',
+        'postponed', 'rescheduled', 'delayed' => 'bg-amber-100 text-amber-700',
+        'archived' => 'bg-slate-200 text-slate-700',
         default => 'bg-amber-100 text-amber-700',
     };
     $statusLabel = static fn (string $status): string => str($status)->headline()->toString();
@@ -48,19 +52,25 @@
                 </div>
                 <div class="flex flex-wrap gap-2">
                     <a href="{{ route('submit-event.create') }}" wire:navigate
-                        class="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700">
-                        <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                        class="living-majlis-header-button living-majlis-header-button--gold inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold">
+                        <svg class="relative z-10 h-4 w-4 rounded-full bg-[#087f4f] p-0.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-width="2.5" d="M12 6v12M6 12h12" />
                         </svg>
-                        {{ __('Submit Event') }}
+                        <span class="relative z-10">{{ __('Event') }}</span>
                     </a>
                     <a href="{{ route('contributions.submit-institution') }}" wire:navigate
-                        class="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50">
-                        {{ __('Submit Institution') }}
+                        class="living-majlis-header-button living-majlis-header-button--cream inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold">
+                        <svg class="relative z-10 h-4 w-4 rounded-full bg-[#087f4f] p-0.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-width="2.5" d="M12 6v12M6 12h12" />
+                        </svg>
+                        <span class="relative z-10">{{ __('Institution') }}</span>
                     </a>
                     <a href="{{ route('contributions.submit-person') }}" wire:navigate
-                        class="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50">
-                        {{ __('Submit Speaker') }}
+                        class="living-majlis-header-button living-majlis-header-button--cream inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold">
+                        <svg class="relative z-10 h-4 w-4 rounded-full bg-[#087f4f] p-0.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-width="2.5" d="M12 6v12M6 12h12" />
+                        </svg>
+                        <span class="relative z-10">{{ __('Speaker') }}</span>
                     </a>
                 </div>
             </div>
@@ -236,7 +246,7 @@
                     <div class="mb-5 flex items-start justify-between gap-3">
                         <div>
                             <h2 class="font-heading text-xl font-bold text-slate-900">{{ __('Event Submissions') }}</h2>
-                            <p class="mt-1 text-sm text-slate-500">{{ __('When you submit events, they will appear here with status and related details.') }}</p>
+                            <p class="mt-1 text-sm text-slate-500">{{ __('Dates you submit for a majlis will appear here with status and related details.') }}</p>
                         </div>
                         <span class="mt-1 shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{{ $submittedEvents->total() }}</span>
                     </div>
@@ -244,27 +254,42 @@
                     <div class="space-y-3">
                         @forelse($submittedEvents as $submission)
                             @php
-                                $event = $submission->event;
-                                $eventStatus = str(class_basename($event->status))->snake()->toString();
+                                $presentation = $this->eventSubmissionPresentation($submission);
                                 $eventDetails = $this->eventSubmissionDetails($submission);
-                                $eventUrl = route('events.show', $event);
+                                $cardTag = $presentation['url'] !== null ? 'a' : 'div';
                             @endphp
 
-                            <a href="{{ $eventUrl }}" wire:navigate
-                                class="block rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50/40 hover:shadow-md">
+                            <{{ $cardTag }}
+                                @if($presentation['url'] !== null)
+                                    href="{{ $presentation['url'] }}"
+                                    wire:navigate
+                                @endif
+                                class="block rounded-2xl border border-slate-200 bg-white p-5 shadow-sm {{ $presentation['url'] !== null ? 'transition hover:border-emerald-300 hover:bg-emerald-50/40 hover:shadow-md' : '' }}">
                                 <article>
                                     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                                         <div class="space-y-2">
                                             <div class="flex flex-wrap items-center gap-2">
                                                 <span class="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                                                    {{ __('Event') }}
+                                                    {{ $submission->occurrence ? __('Occurrence') : __('Event') }}
                                                 </span>
-                                                <span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $statusClass($eventStatus) }}">
-                                                    {{ $eventStatusLabel($event->status) }}
-                                                </span>
+                                                @if($presentation['status_label'] !== null)
+                                                    <span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $statusClass($presentation['status_value'] ?? '') }}">
+                                                        {{ $presentation['status_label'] }}
+                                                    </span>
+                                                @endif
                                             </div>
 
-                                            <p class="text-base font-semibold text-slate-900">{{ $event->title }}</p>
+                                            <p class="text-base font-semibold text-slate-900">{{ $presentation['title'] }}</p>
+
+                                            @if($presentation['parent_title'] !== null)
+                                                <p class="text-sm font-medium text-slate-600">{{ __('Majlis: :title', ['title' => $presentation['parent_title']]) }}</p>
+                                            @endif
+
+                                            @if($presentation['date_label'] !== null)
+                                                <p class="text-sm font-semibold text-slate-700">
+                                                    {{ $presentation['date_label'] }}@if($presentation['time_label'] !== null) · {{ $presentation['time_label'] }}@endif
+                                                </p>
+                                            @endif
 
                                             <p class="text-xs text-slate-500">{{ __('Submitted :date', ['date' => $submission->created_at?->diffForHumans()]) }}</p>
 
@@ -276,12 +301,14 @@
                                                 </div>
                                             @endif
                                         </div>
-                                        <svg class="size-4 shrink-0 text-slate-400 sm:mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-                                        </svg>
+                                        @if($presentation['url'] !== null)
+                                            <svg class="size-4 shrink-0 text-slate-400 sm:mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                                            </svg>
+                                        @endif
                                     </div>
                                 </article>
-                            </a>
+                            </{{ $cardTag }}>
                         @empty
                             <div class="rounded-2xl border border-dashed border-slate-200 bg-white px-5 py-16 text-center shadow-sm">
                                 <div class="mx-auto flex size-12 items-center justify-center rounded-full bg-emerald-100">
@@ -289,11 +316,14 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25" />
                                     </svg>
                                 </div>
-                                <p class="mt-4 text-base font-semibold text-slate-700">{{ __('No event submissions yet.') }}</p>
-                                <p class="mt-1 text-sm text-slate-500">{{ __('Submit your first event to get started.') }}</p>
+                                <p class="mt-4 text-base font-semibold text-slate-700">{{ __('No occurrence submissions yet.') }}</p>
+                                <p class="mt-1 text-sm text-slate-500">{{ __('Submit your first majlis date to get started.') }}</p>
                                 <a href="{{ route('submit-event.create') }}" wire:navigate
-                                    class="mt-5 inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700">
-                                    {{ __('Submit Event') }}
+                                    class="living-majlis-header-button living-majlis-header-button--gold mt-5 inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold">
+                                    <svg class="relative z-10 h-4 w-4 rounded-full bg-[#087f4f] p-0.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-width="2.5" d="M12 6v12M6 12h12" />
+                                    </svg>
+                                    <span class="relative z-10">{{ __('Event') }}</span>
                                 </a>
                             </div>
                         @endforelse
@@ -316,14 +346,18 @@
 
                     <div class="mb-5 flex flex-wrap gap-2">
                         <a href="{{ route('contributions.submit-institution') }}" wire:navigate
-                            class="inline-flex items-center gap-1.5 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-semibold text-sky-700 transition hover:bg-sky-100">
-                            <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-                            {{ __('Submit Institution') }}
+                            class="living-majlis-header-button living-majlis-header-button--cream inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-semibold">
+                            <svg class="relative z-10 h-4 w-4 rounded-full bg-[#087f4f] p-0.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-width="2.5" d="M12 6v12M6 12h12" />
+                            </svg>
+                            <span class="relative z-10">{{ __('Institution') }}</span>
                         </a>
                         <a href="{{ route('contributions.submit-person') }}" wire:navigate
-                            class="inline-flex items-center gap-1.5 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-semibold text-sky-700 transition hover:bg-sky-100">
-                            <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-                            {{ __('Submit Speaker') }}
+                            class="living-majlis-header-button living-majlis-header-button--cream inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-semibold">
+                            <svg class="relative z-10 h-4 w-4 rounded-full bg-[#087f4f] p-0.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-width="2.5" d="M12 6v12M6 12h12" />
+                            </svg>
+                            <span class="relative z-10">{{ __('Speaker') }}</span>
                         </a>
                     </div>
 

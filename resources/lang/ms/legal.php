@@ -11,7 +11,7 @@ return [
         ],
         'eyebrow' => 'Privasi & kepercayaan',
         'title' => 'Notis Privasi',
-        'intro' => 'Notis ini menerangkan data yang kami kumpul apabila anda menggunakan ilmu360°, sebab kami menggunakannya dan cara anda boleh membuat permintaan privasi.',
+        'intro' => 'Notis ini menerangkan perihal data apabila anda menggunakan ilmu360°.',
         'summary' => [
             'Kami menggunakan data untuk mengendalikan akaun, majlis dan pendaftaran.',
             'Penganjur menerima maklumat yang diperlukan untuk mengurus penyertaan anda.',

@@ -1,3 +1,12 @@
+# Ramadan closing majlis mobile hero rotation (2026-11-08)
+
+- [x] Scope the dedicated mobile hero to the requested event and occurrence slug.
+- [x] Generate three portrait Ramadan visuals and save optimized WebP assets.
+- [x] Add a repeating mobile-only crossfade; keep desktop art unchanged and honor reduced-motion preferences.
+- [x] Review scoped diff and generated asset sizes.
+
+Review: the three dedicated mobile hero images are 105 KB, 61 KB, and 75 KB. The rotation is limited to the requested closing-night occurrence; desktop and other event pages retain their existing backdrop. CSS disables rotation for reduced-motion users. `git diff --check` and the frontend production build pass.
+
 # Todo — Institution search: one request + direct paginated search (2026-11-08)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans. Steps use checkbox (`- [ ]`) syntax for tracking.

@@ -270,7 +270,7 @@ function wp3VendorSchemaCase(): void
     }
 }
 
-$label = 'PostgreSQL 17';
+$label = 'PostgreSQL 18';
 it("keeps the required vendor indexes and uniqueness on {$label}", function (): void {
     wp3VendorSchemaCase();
 });

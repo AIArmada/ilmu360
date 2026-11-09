@@ -2,6 +2,7 @@
 
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
+use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Persons\Enums\AssignmentStatus;
 use AIArmada\Persons\Enums\PersonNameType;
@@ -1985,7 +1986,20 @@ it('renders contribution requests and event submissions without approval control
     $event->persons()->syncWithoutDetaching([$person->id]);
     $event->references()->syncWithoutDetaching([$reference->id]);
 
+    $occurrence = withGlobalOwnerContext(fn (): EventOccurrence => EventOccurrence::query()->create([
+        'event_id' => $event->getKey(),
+        'title' => 'Siri 1: Majlis Ilmu Tracker',
+        'slug' => 'siri-1-majlis-ilmu-tracker',
+        'starts_at' => now()->addWeek()->setTime(20, 0),
+        'ends_at' => now()->addWeek()->setTime(22, 0),
+        'timezone' => 'Asia/Kuala_Lumpur',
+        'status' => 'published',
+        'visibility' => 'public',
+        'delivery_mode' => 'physical',
+    ]));
+
     EventSubmission::factory()->for($event)->for($user, 'submitter')->create([
+        'event_occurrence_id' => $occurrence->getKey(),
     ]);
     EventSubmission::factory()->for($ownedEvent)->for($user, 'submitter')->create([
     ]);
@@ -2009,9 +2023,11 @@ it('renders contribution requests and event submissions without approval control
     $this->actingAs($user);
 
     Livewire::test(ContributionsIndex::class)
-        ->assertSee(__('Submit Event'))
-        ->assertSee(__('Submit Institution'))
-        ->assertSee(__('Submit Speaker'))
+        ->assertSee(__('Event'))
+        ->assertSee(__('Institution'))
+        ->assertSee(__('Speaker'))
+        ->assertSee('living-majlis-header-button--gold', false)
+        ->assertSee('living-majlis-header-button--cream', false)
         ->assertDontSee('xl:grid-cols-[1.15fr_0.85fr]', false)
         ->assertSee(__('Event Submissions'))
         ->assertSee(__('New Submissions'))
@@ -2025,9 +2041,13 @@ it('renders contribution requests and event submissions without approval control
         ->assertSee($createRequest->proposed_data['name'])
         ->assertSee($updateRequest->entity->name)
         ->assertSee(__('Event Submission'))
-        ->assertSee($event->title)
+        ->assertSee(__('Occurrence'))
+        ->assertSee($occurrence->title)
+        ->assertSeeInOrder([$occurrence->title, $event->title])
+        ->assertSee('Published')
+        ->assertSee(route('events.occurrence', [$event, $occurrence->slug]), false)
+        ->assertDontSee('href="'.route('events.show', $event).'"', false)
         ->assertDontSee($ownedEvent->title)
-        ->assertSee(route('events.show', $event), false)
         ->assertDontSee(route('events.show', $ownedEvent), false)
         ->assertSee(__('Institution: :name', ['name' => $eventInstitution->display_name]))
         ->assertSee(__('Speakers: :names', ['names' => $person->formatted_name]))
@@ -2037,6 +2057,29 @@ it('renders contribution requests and event submissions without approval control
         ->assertDontSee(__('Pending Approvals'))
         ->assertDontSee(__('Approve'))
         ->assertDontSee(__('Reject'));
+});
+
+it('falls back to the parent event when a submission has no occurrence', function () {
+    app()->setLocale('ms');
+
+    $user = User::factory()->create();
+    $institution = Institution::factory()->create([
+        'status' => 'verified',
+    ]);
+    $event = Event::factory()->for($institution)->create([
+        'title' => 'Majlis Tanpa Tarikh',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now(),
+    ]);
+
+    EventSubmission::factory()->for($event)->for($user, 'submitter')->create();
+
+    $this->actingAs($user);
+
+    Livewire::test(ContributionsIndex::class)
+        ->assertSee('Majlis Tanpa Tarikh')
+        ->assertSee(route('events.show', $event), false);
 });
 
 it('restores the active contributions section from the query string', function () {

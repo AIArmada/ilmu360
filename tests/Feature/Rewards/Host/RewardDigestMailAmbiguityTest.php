@@ -143,7 +143,7 @@ function mailAmbiguityDrain(RewardDigestSlot $slot): void
     Notification::sendNow($user, $notification, array_keys($byChannel));
 }
 
-$mailLabel = 'PostgreSQL 17';
+$mailLabel = 'PostgreSQL 18';
 it("never resends mail after acceptance plus recording crash on {$mailLabel}", function (): void {
     [$database, $previous] = RewardFinanceWorkerDb::setUp('mailamb');
 

@@ -4,7 +4,9 @@
     <div class="mx-auto max-w-7xl">
         <div class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
             <div><span class="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-emerald-800">{{ __('Workspaces') }}</span><h1 class="mt-4 font-heading text-4xl font-bold tracking-tight text-[#0b2a42]">{{ __('Your workspaces') }}</h1><p class="mt-2 max-w-2xl text-sm leading-7 text-slate-600">{{ __('Manage the organizations, institutions, and speakers you are a member of.') }}</p></div>
-            <a href="{{ route('dashboard.organizations.create') }}" wire:navigate class="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700">+ {{ __('Create organization') }}</a>
+            @if ($organizations->isEmpty())
+                <a href="{{ route('dashboard.organizations.create') }}" wire:navigate class="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700">+ {{ __('Create organization') }}</a>
+            @endif
         </div>
 
         <div class="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">

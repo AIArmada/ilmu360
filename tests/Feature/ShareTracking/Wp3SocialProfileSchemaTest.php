@@ -158,7 +158,7 @@ function wp3SocialSchemaCase(): void
     }
 }
 
-$label = 'PostgreSQL 17';
-    it("keeps the canonical social-profile indexes and primary uniqueness on {$label}", function (): void {
-        wp3SocialSchemaCase();
-    });
+$label = 'PostgreSQL 18';
+it("keeps the canonical social-profile indexes and primary uniqueness on {$label}", function (): void {
+    wp3SocialSchemaCase();
+});

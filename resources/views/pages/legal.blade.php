@@ -197,7 +197,9 @@
                                         <div class="mt-5 flex flex-wrap gap-2">
                                             @foreach ([
                                                 ['label' => 'X', 'icon' => 'x.svg', 'url' => 'https://x.com/ilmu360'],
+                                                ['label' => 'Facebook', 'icon' => 'facebook.svg', 'url' => 'https://www.facebook.com/ilmu360'],
                                                 ['label' => 'Instagram', 'icon' => 'instagram.svg', 'url' => 'https://www.instagram.com/ilmu.360'],
+                                                ['label' => 'Threads', 'icon' => 'threads.svg', 'url' => 'https://www.threads.com/@ilmu.360'],
                                                 ['label' => 'TikTok', 'icon' => 'tiktok.svg', 'url' => 'https://www.tiktok.com/@ilmu.360'],
                                             ] as $social)
                                                 <a href="{{ $social['url'] }}" target="_blank" rel="noopener noreferrer" title="{{ $social['label'] }}" aria-label="{{ $social['label'] }}" class="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#dfe6da] bg-white px-4 text-sm font-semibold text-[#2d5447] transition hover:border-emerald-700/30 hover:text-emerald-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-800">

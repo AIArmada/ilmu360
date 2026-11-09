@@ -21,18 +21,29 @@ final class CreateOrganization extends Component
 
     public function mount(): void
     {
-        abort_unless(auth()->user() instanceof User, 403);
+        $user = auth()->user();
+        abort_unless($user instanceof User, 403);
+
+        if ($user->organizations()->exists()) {
+            $this->redirectRoute('dashboard.organizations.index');
+
+            return;
+        }
     }
 
     public function submit(CreateOrganizationAction $createOrganization): mixed
     {
+        $user = auth()->user();
+        abort_unless($user instanceof User, 403);
+
+        if ($user->organizations()->exists()) {
+            return redirect()->route('dashboard.organizations.index');
+        }
+
         $validated = $this->validate([
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:5000'],
         ]);
-
-        $user = auth()->user();
-        abort_unless($user instanceof User, 403);
 
         $organization = $createOrganization->handle($user, $validated);
 

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-// Late-arrival real-driver proof: on the isolated PostgreSQL 17, an
+// Late-arrival real-driver proof: on the isolated PostgreSQL 18, an
 // older source delayed by a Signals outage is recovered from an
 // INDEPENDENT OS process through the real producer API. Normal
 // draining (here raced by two concurrent drain workers) must project
@@ -27,7 +27,6 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Symfony\Component\Process\Process;
 use Tests\Feature\ShareTracking\ShareMetricRaceHarness;
-use Tests\Support\RealDriverFixture;
 use Tests\TestCase;
 
 function cslaFailingOnceIngestor(SignalEventIngestor $real): SignalEventIngestor
@@ -285,6 +284,6 @@ function cslaLateArrivalCase(TestCase $testCase): void
 }
 
 $label = 'isolated PostgreSQL';
-    it("recovers a late older signal from an independent process on {$label}", function (): void {
-        cslaLateArrivalCase($this);
-    });
+it("recovers a late older signal from an independent process on {$label}", function (): void {
+    cslaLateArrivalCase($this);
+});

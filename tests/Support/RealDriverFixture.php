@@ -13,7 +13,7 @@ use Symfony\Component\Process\Process;
 use Throwable;
 
 /**
- * Self-provisioned PostgreSQL 17 fixture for real-database tests.
+ * Self-provisioned PostgreSQL 18 fixture for real-database tests.
  */
 final class RealDriverFixture
 {
@@ -188,7 +188,7 @@ final class RealDriverFixture
     public static function assertServerIdentity(Connection $connection): void
     {
         $version = (string) $connection->selectOne('select version() as version')->version;
-        Assert::assertStringStartsWith('PostgreSQL 17.', $version, 'Expected the isolated PostgreSQL 17 fixture.');
+        Assert::assertStringStartsWith('PostgreSQL 18.', $version, 'Expected the isolated PostgreSQL 18 fixture.');
     }
 
     public static function createWorkerDatabase(
@@ -380,8 +380,8 @@ final class RealDriverFixture
     }
 
     /**
-     * @param array<string, mixed> $state
-     * @param array<string, string> $binaries
+     * @param  array<string, mixed>  $state
+     * @param  array<string, string>  $binaries
      */
     private static function reapPreviousServer(array $state, array $binaries): void
     {
@@ -415,8 +415,8 @@ final class RealDriverFixture
     }
 
     /**
-     * @param array<string, mixed> $state
-     * @param array<string, string> $binaries
+     * @param  array<string, mixed>  $state
+     * @param  array<string, string>  $binaries
      */
     private static function stopOwnedServer(array $state, array $binaries): void
     {
@@ -589,7 +589,7 @@ final class RealDriverFixture
     }
 
     /**
-     * @param array<array-key, mixed> $leases
+     * @param  array<array-key, mixed>  $leases
      * @return array<int, array{pid: int, command: string}>
      */
     private static function liveLeases(array $leases): array
@@ -729,31 +729,33 @@ final class RealDriverFixture
         }
 
         $directories = [
-            '/Users/Shared/DBngin/postgresql/17.0/bin',
-            '/opt/homebrew/opt/postgresql@17/bin',
-            '/usr/local/opt/postgresql@17/bin',
+            '/usr/lib/postgresql/18/bin',
+            '/Users/Shared/DBngin/postgresql/18.0/bin',
+            '/opt/homebrew/opt/postgresql@18/bin',
+            '/usr/local/opt/postgresql@18/bin',
             '/opt/homebrew/opt/postgresql/bin',
             '/usr/local/opt/postgresql/bin',
         ];
-        $binaryDirectory = getenv('ILMU360_PG17_BIN_DIR');
+        $binaryDirectory = getenv('ILMU360_PG18_BIN_DIR');
         $resolve = static function (string $name) use ($directories, $binaryDirectory): string {
             $searchDirectories = [];
             if (is_string($binaryDirectory) && $binaryDirectory !== '') {
                 $searchDirectories[] = rtrim($binaryDirectory, DIRECTORY_SEPARATOR);
             }
+            $pathDirectories = [];
             foreach (explode(PATH_SEPARATOR, (string) getenv('PATH')) as $pathDirectory) {
                 if ($pathDirectory !== '') {
-                    $searchDirectories[] = $pathDirectory;
+                    $pathDirectories[] = $pathDirectory;
                 }
             }
-            foreach (array_values(array_unique([...$searchDirectories, ...$directories])) as $directory) {
+            foreach (array_values(array_unique([...$searchDirectories, ...$directories, ...$pathDirectories])) as $directory) {
                 $candidate = $directory.'/'.$name;
                 if (is_file($candidate) && is_executable($candidate)) {
                     return realpath($candidate) ?: $candidate;
                 }
             }
 
-            throw new RuntimeException("Required PostgreSQL 17 binary [{$name}] was not found. Set ILMU360_PG17_BIN_DIR to its bin directory.");
+            throw new RuntimeException("Required PostgreSQL 18 binary [{$name}] was not found. Set ILMU360_PG18_BIN_DIR to its bin directory.");
         };
         self::$binaries = [
             'server' => $resolve('postgres'),
@@ -766,8 +768,8 @@ final class RealDriverFixture
         foreach (['server', 'pg_ctl', 'initdb'] as $name) {
             $process = self::runProcess([self::$binaries[$name], '--version']);
             $version = trim($process->getOutput().$process->getErrorOutput());
-            if (preg_match('/PostgreSQL\) 17\./', $version) !== 1) {
-                throw new RuntimeException("Expected PostgreSQL 17 {$name}; [".self::$binaries[$name]."] reported [{$version}].");
+            if (preg_match('/PostgreSQL\) 18\./', $version) !== 1) {
+                throw new RuntimeException("Expected PostgreSQL 18 {$name}; [".self::$binaries[$name]."] reported [{$version}].");
             }
         }
 

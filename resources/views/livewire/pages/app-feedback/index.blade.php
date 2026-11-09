@@ -43,15 +43,15 @@
             <div class="absolute inset-0 sm:hidden" style="background: linear-gradient(90deg, rgba(255,253,248,.97) 0%, rgba(255,253,248,.92) 50%, rgba(255,253,248,.65) 78%, rgba(255,253,248,.28) 94%, rgba(255,253,248,.12) 100%);"></div>
         </div>
 
-        <div class="relative mx-auto max-w-7xl px-5 pt-48 pb-14 sm:px-6 sm:pt-52 sm:pb-20 lg:px-8 lg:pt-52 lg:pb-16">
+        <div class="relative mx-auto max-w-6xl px-5 pb-10 pt-48 sm:px-8 sm:pb-12 sm:pt-52 lg:px-10 lg:pt-52">
             <div class="relative z-10 max-w-2xl">
-                <h1 class="max-w-2xl font-heading text-4xl font-bold leading-[1.06] tracking-[-0.035em] text-emerald-950 text-balance sm:text-5xl lg:text-6xl">
+                <h1 class="font-heading text-4xl font-semibold leading-[1.04] tracking-[-0.035em] text-emerald-950 sm:text-5xl">
                     {{ __('app-feedback.title') }}
                 </h1>
-                <p class="mt-6 max-w-xl text-base leading-7 text-slate-800 text-balance sm:mt-7 sm:text-lg sm:text-slate-600">
+                <p class="mt-5 max-w-xl text-base leading-8 text-slate-700 sm:text-lg">
                     {{ __('app-feedback.intro') }}
                 </p>
-                <div class="mt-9 flex flex-wrap items-center gap-3">
+                <div class="mt-8 flex flex-wrap items-center gap-3">
                     @if ($canSubmit)
                         <a href="#hantar-maklum-balas" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-800 px-5 text-sm font-bold text-white shadow-[0_14px_28px_-18px_rgba(6,78,59,0.70)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-emerald-700 hover:shadow-[0_20px_36px_-18px_rgba(6,78,59,0.75)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/15">
                             {{ __('app-feedback.form.heading') }}
@@ -62,9 +62,6 @@
                     @endif
                     <a href="#maklum-balas-saya" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-white/80 px-5 text-sm font-bold text-emerald-700 shadow-sm backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/10">
                         {{ __('app-feedback.history.heading') }}
-                    </a>
-                    <a href="{{ route('contact') }}" wire:navigate class="inline-flex min-h-11 items-center px-2 text-sm font-semibold text-emerald-700 underline decoration-emerald-300 decoration-2 underline-offset-4 transition hover:text-emerald-900">
-                        {{ __('Contact Us') }}
                     </a>
                 </div>
             </div>

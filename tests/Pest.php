@@ -206,7 +206,7 @@ pest()->extend(TestCase::class)
 | Real-Driver Proofs
 |--------------------------------------------------------------------------
 |
-| These proofs start an isolated PostgreSQL 17 fixture, build a fresh worker
+| These proofs start an isolated PostgreSQL 18 fixture, build a fresh worker
 | database from every migration, and race independent OS processes. Setup is
 | inherent, not accidental: one worker database costs about five seconds.
 | They stay in CI (sharded) but are excluded from the default local run:

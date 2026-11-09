@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 // R2 real-driver proof: two independent drain workers race the same
-// committed-share signal log on the isolated PostgreSQL 17 and
+// committed-share signal log on the isolated PostgreSQL 18 and
 // apply every signal exactly once with no stale overwrite: a stale
 // worker can neither double-apply nor drag the cursor backwards.
 // Timing is never asserted.
@@ -77,6 +77,6 @@ function cssDrainRaceCase(TestCase $testCase): void
 }
 
 $label = 'isolated PostgreSQL';
-    it("fences concurrent committed-share drains to exactly-once projections on {$label}", function (): void {
-        cssDrainRaceCase($this);
-    });
+it("fences concurrent committed-share drains to exactly-once projections on {$label}", function (): void {
+    cssDrainRaceCase($this);
+});

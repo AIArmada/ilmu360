@@ -9,7 +9,7 @@ use PHPUnit\Framework\Assert;
 use Symfony\Component\Process\Process;
 use Tests\Support\RealDriverFixture;
 
-/** Guarded PostgreSQL 17 harness for share-tracking workflow proof. */
+/** Guarded PostgreSQL 18 harness for share-tracking workflow proof. */
 final class Wp1RealDriverHarness
 {
     public const string WORKER_CONNECTION = 'wp1_worker';
@@ -24,7 +24,7 @@ final class Wp1RealDriverHarness
     }
 
     /**
-     * @param array{database: string, user_id: string, url: string, title: string, app_url: string} $job
+     * @param  array{database: string, user_id: string, url: string, title: string, app_url: string}  $job
      * @return array{0: array<string, mixed>, 1: array<string, mixed>}
      */
     public static function runLinkCreationRace(array $job): array

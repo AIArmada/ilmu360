@@ -43,6 +43,43 @@ it('shows organization creation entry only from the workspaces page', function (
         ->assertSee(__('Create organization'));
 });
 
+it('hides the organization creation entry once the person has an organization', function (): void {
+    $user = User::factory()->create();
+    $organization = CreateOrganizationAction::make()->handle($user, ['name' => 'Only Workspace']);
+
+    $this->actingAs($user)
+        ->get(route('dashboard.organizations.index'))
+        ->assertOk()
+        ->assertSee($organization->name)
+        ->assertDontSee(route('dashboard.organizations.create'), false)
+        ->assertDontSee(__('Create organization'));
+});
+
+it('redirects away from the organization creation page once the person has an organization', function (): void {
+    $user = User::factory()->create();
+    CreateOrganizationAction::make()->handle($user, ['name' => 'Existing Workspace']);
+
+    $this->actingAs($user)
+        ->get(route('dashboard.organizations.create'))
+        ->assertRedirect(route('dashboard.organizations.index'));
+});
+
+it('rejects a second organization from a stale creation page', function (): void {
+    $user = User::factory()->create();
+
+    $component = Livewire::actingAs($user)->test(CreateOrganization::class);
+
+    CreateOrganizationAction::make()->handle($user, ['name' => 'First Workspace']);
+
+    $component
+        ->set('name', 'Second Workspace')
+        ->call('submit')
+        ->assertRedirect(route('dashboard.organizations.index'));
+
+    expect(Organization::query()->where('name', 'Second Workspace')->exists())->toBeFalse()
+        ->and(Organization::query()->where('created_by', $user->getKey())->count())->toBe(1);
+});
+
 it('lets a signed-in person create an organization from the frontend', function (): void {
     $owner = User::factory()->create();
 

@@ -228,6 +228,8 @@
     // Permanent ambient art: a rotating backdrop from the site's own set,
     // never the event cover. The cover itself lives in the body.
     $heroBackdropUrl = \App\Support\Events\HeroBackdrop::randomUrl();
+    $hasRamadanClosingMobileHero = $event->slug === 'program-ramadan-tadabbur-qiyam-engku-ahmad-fadzil-my-10-11-26'
+        && \App\Support\Events\PublicScheduleSlug::occurrence($occurrence) === 'malam-penutup-tadabbur-qiyam';
     $occurrenceHasParticipation = $occurrenceCapacity !== null || $occurrencePolicy !== null || $tickets->isNotEmpty() || $detail->hasRegistration();
     // Two ways to take part: pick a ticket, or — when the majlis sells none —
     // go straight to checkout. Ticket sales gate the first; the second is gated
@@ -366,13 +368,28 @@
         {{-- Ambient art: the room behind the majlis. A photograph carries
              warmth into the panel; the emerald wash keeps the type legible. --}}
         <div class="pointer-events-none absolute inset-0" aria-hidden="true">
-            <img
-                src="{{ $heroBackdropUrl }}"
-                alt=""
-                class="absolute inset-0 h-full w-full object-cover object-right"
-                loading="eager"
-                fetchpriority="low"
-            >
+            @if($hasRamadanClosingMobileHero)
+                <div class="event-mobile-hero-rotation absolute inset-0 sm:hidden">
+                    <img src="{{ asset('images/events/ramadan-closing-mobile-hero-v1.webp') }}" alt="" class="absolute inset-0 h-full w-full object-cover object-center" fetchpriority="high">
+                    <img src="{{ asset('images/events/ramadan-closing-mobile-hero-v2.webp') }}" alt="" class="absolute inset-0 h-full w-full object-cover object-center" loading="lazy">
+                    <img src="{{ asset('images/events/ramadan-closing-mobile-hero-v3.webp') }}" alt="" class="absolute inset-0 h-full w-full object-cover object-center" loading="lazy">
+                </div>
+                <img
+                    src="{{ $heroBackdropUrl }}"
+                    alt=""
+                    class="absolute inset-0 hidden h-full w-full object-cover object-right sm:block"
+                    loading="eager"
+                    fetchpriority="low"
+                >
+            @else
+                <img
+                    src="{{ $heroBackdropUrl }}"
+                    alt=""
+                    class="absolute inset-0 h-full w-full object-cover object-right"
+                    loading="eager"
+                    fetchpriority="low"
+                >
+            @endif
             <div class="absolute inset-0 bg-[radial-gradient(95%_110%_at_8%_0%,rgba(242,200,103,0.18),transparent_58%)]"></div>
             {{-- Mobile keeps the photo full-bleed under the copy, so it needs
                  its own scrim; wider layouts rely on the dark right of frame. --}}

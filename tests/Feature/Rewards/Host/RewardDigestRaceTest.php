@@ -230,7 +230,7 @@ function digestRaceAssertDispatchCancelCoherent(string $memberId): void
         ->and(NotificationInbox::query()->where('recipient_id', $memberId)->count())->toBe(1);
 }
 
-$digestLabel = 'PostgreSQL 17';
+$digestLabel = 'PostgreSQL 18';
 it("sends a due digest exactly once under a raced double dispatch on {$digestLabel}", function (): void {
     [$database, $previous] = RewardFinanceWorkerDb::setUp('dgclaim');
 

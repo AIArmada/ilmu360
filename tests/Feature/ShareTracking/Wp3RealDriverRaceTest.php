@@ -956,7 +956,7 @@ function wp3CreationBeforeClaimRaceCase(TestCase $testCase): void
     }
 }
 
-$label = 'PostgreSQL 17';
+$label = 'PostgreSQL 18';
 it("claims exactly one winner for a competing-claimant race on {$label}", function (): void {
     wp3ClaimRaceCase($this);
 });
