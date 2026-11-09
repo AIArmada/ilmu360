@@ -7,8 +7,10 @@ use App\Filament\Ahli\Resources\References\Pages\ListReferences;
 use App\Filament\Resources\References\ReferenceResource as AdminReferenceResource;
 use App\Filament\Resources\References\RelationManagers\MemberInvitationsRelationManager;
 use App\Models\Reference;
-use App\Models\User;
 use App\Platform\Auditing\AuditsRelationManager;
+use App\Shared\Auth\AccountActor;
+use App\Shared\Membership\MembershipDirectory;
+use App\Shared\Membership\MembershipSubjectType;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
@@ -38,14 +40,16 @@ class ReferenceResource extends AdminReferenceResource
         $query = parent::getEloquentQuery();
         $user = auth()->user();
 
-        if (! $user instanceof User) {
+        if (! $user instanceof AccountActor) {
             return $query->whereRaw('1 = 0');
         }
 
-        return $query->whereIn(
-            'references.id',
-            $user->references()->select('references.id')
+        $subjectIds = app(MembershipDirectory::class)->subjectIdsFor(
+            $user->actorId(),
+            MembershipSubjectType::Reference,
         );
+
+        return $query->whereIn('references.id', $subjectIds);
     }
 
     #[\Override]

@@ -4,19 +4,25 @@
     use App\Filament\Resources\Institutions\InstitutionResource;
     use App\Filament\Resources\References\ReferenceResource;
     use App\Filament\Resources\Persons\PersonResource;
-    use App\Models\User;
+    use App\Shared\Auth\AccountActor;
+    use App\Support\Authz\MemberDirectorySummary;
     use App\Support\Authz\MemberRoleCatalog;
 
-    /** @var User|null $user */
-    $user = $record instanceof User ? $record : null;
+    /** @var AccountActor|null $user */
+    $user = $record instanceof AccountActor ? $record : null;
     $memberRoleCatalog = app(MemberRoleCatalog::class);
-    $institutionRoles = $user instanceof User ? implode(', ', $memberRoleCatalog->roleNamesFor($user, MemberSubjectType::Institution)) : '';
-    $personRoles = $user instanceof User ? implode(', ', $memberRoleCatalog->roleNamesFor($user, MemberSubjectType::Person)) : '';
-    $eventRoles = $user instanceof User ? implode(', ', $memberRoleCatalog->roleNamesFor($user, MemberSubjectType::Event)) : '';
-    $referenceRoles = $user instanceof User ? implode(', ', $memberRoleCatalog->roleNamesFor($user, MemberSubjectType::Reference)) : '';
+    $memberDirectory = app(MemberDirectorySummary::class);
+    $institutions = $user instanceof AccountActor ? $memberDirectory->institutions($user) : collect();
+    $persons = $user instanceof AccountActor ? $memberDirectory->persons($user) : collect();
+    $events = $user instanceof AccountActor ? $memberDirectory->events($user) : collect();
+    $references = $user instanceof AccountActor ? $memberDirectory->references($user) : collect();
+    $institutionRoles = $user instanceof AccountActor ? implode(', ', $memberRoleCatalog->roleNamesFor($user, MemberSubjectType::Institution)) : '';
+    $personRoles = $user instanceof AccountActor ? implode(', ', $memberRoleCatalog->roleNamesFor($user, MemberSubjectType::Person)) : '';
+    $eventRoles = $user instanceof AccountActor ? implode(', ', $memberRoleCatalog->roleNamesFor($user, MemberSubjectType::Event)) : '';
+    $referenceRoles = $user instanceof AccountActor ? implode(', ', $memberRoleCatalog->roleNamesFor($user, MemberSubjectType::Reference)) : '';
 @endphp
 
-@if (! $user instanceof User)
+@if (! $user instanceof AccountActor)
     <p class="text-sm text-gray-500">Save the user first to review memberships.</p>
 @else
     <div class="space-y-6">
@@ -27,7 +33,7 @@
         <div class="grid gap-6 xl:grid-cols-2">
             <div class="space-y-3">
                 <h3 class="text-sm font-medium text-gray-950 dark:text-white">Institutions</h3>
-                @forelse ($user->institutions as $institution)
+                @forelse ($institutions as $institution)
                     <div class="rounded-xl border border-gray-200 px-4 py-3 text-sm dark:border-white/10">
                         <div class="flex items-start justify-between gap-3">
                             <a class="font-medium text-primary-600 hover:underline" href="{{ InstitutionResource::getUrl('edit', ['record' => $institution], panel: 'admin') }}">
@@ -45,7 +51,7 @@
 
             <div class="space-y-3">
                 <h3 class="text-sm font-medium text-gray-950 dark:text-white">Persons</h3>
-                @forelse ($user->persons as $person)
+                @forelse ($persons as $person)
                     <div class="rounded-xl border border-gray-200 px-4 py-3 text-sm dark:border-white/10">
                         <div class="flex items-start justify-between gap-3">
                             <a class="font-medium text-primary-600 hover:underline" href="{{ PersonResource::getUrl('edit', ['record' => $person], panel: 'admin') }}">
@@ -63,7 +69,7 @@
 
             <div class="space-y-3">
                 <h3 class="text-sm font-medium text-gray-950 dark:text-white">Events</h3>
-                @forelse ($user->memberEvents as $event)
+                @forelse ($events as $event)
                     <div class="rounded-xl border border-gray-200 px-4 py-3 text-sm dark:border-white/10">
                         <div class="flex items-start justify-between gap-3">
                             <a class="font-medium text-primary-600 hover:underline" href="{{ EventResource::getUrl('edit', ['record' => $event], panel: 'admin') }}">
@@ -81,7 +87,7 @@
 
             <div class="space-y-3">
                 <h3 class="text-sm font-medium text-gray-950 dark:text-white">References</h3>
-                @forelse ($user->references as $reference)
+                @forelse ($references as $reference)
                     <div class="rounded-xl border border-gray-200 px-4 py-3 text-sm dark:border-white/10">
                         <div class="flex items-start justify-between gap-3">
                             <a class="font-medium text-primary-600 hover:underline" href="{{ ReferenceResource::getUrl('edit', ['record' => $reference], panel: 'admin') }}">

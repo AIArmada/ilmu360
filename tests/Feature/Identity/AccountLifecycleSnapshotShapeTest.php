@@ -42,7 +42,7 @@ it('stores migrated lifecycle state under contributor keys', function (): void {
     $snapshot = $values['deleted_relations_snapshot'];
 
     expect($values)->not->toHaveKey('deleted_affiliate_tracking_snapshot')
-        ->and($snapshot)->toHaveKeys(['identity', 'reports', 'saved_searches', 'legacy', 'share_tracking'])
+        ->and($snapshot)->toHaveKeys(['identity', 'reports', 'saved_searches', 'membership', 'directory', 'legacy', 'share_tracking'])
         ->and($snapshot)->not->toHaveKeys(['report_ids', 'handled_report_ids', 'social_accounts'])
         ->and($snapshot['identity']['social_accounts'])->toHaveCount(1)
         ->and($snapshot['identity']['social_accounts'][0]['id'])->toBe($socialAccount->id)
@@ -62,5 +62,5 @@ it('orders tagged contributors by priority and key', function (): void {
     $user = User::factory()->create();
 
     expect(array_keys(app(AccountLifecycle::class)->snapshot((string) $user->id)))
-        ->toBe(['identity', 'reports', 'saved_searches']);
+        ->toBe(['identity', 'reports', 'saved_searches', 'membership', 'directory']);
 });

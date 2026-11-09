@@ -45,6 +45,7 @@ use App\Models\Builders\EventBuilder;
 use App\Models\Concerns\HasDonationChannels;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Platform\Reporting\ReportModelClass;
+use App\Shared\Auth\AccountActor;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerOffset;
 use App\Shared\Prayer\PrayerReference;
@@ -2722,7 +2723,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
      * Check if a user can manage this event.
      * Uses Authz scoped roles via event membership, organizer, institution, or organization scope.
      */
-    public function userCanManage(User $user): bool
+    public function userCanManage(AccountActor $user): bool
     {
         return $this->userHasScopedEventPermission($user, 'event.update');
     }
@@ -2731,7 +2732,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
      * Check if a user can delete this event.
      * More restrictive than manage: requires event.delete permission in scope.
      */
-    public function userCanDelete(User $user): bool
+    public function userCanDelete(AccountActor $user): bool
     {
         return $this->userHasScopedEventPermission($user, 'event.delete');
     }
@@ -2739,7 +2740,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
     /**
      * Check if a user can view this event (private events).
      */
-    public function userCanView(User $user): bool
+    public function userCanView(AccountActor $user): bool
     {
         return $this->userHasScopedEventPermission($user, 'event.view');
     }
@@ -2747,7 +2748,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
     /**
      * Check if a user can approve a pending public submission tied to their responsible scope.
      */
-    public function userCanApprovePublicSubmission(User $user): bool
+    public function userCanApprovePublicSubmission(AccountActor $user): bool
     {
         if (! $this->status instanceof Pending) {
             return false;
@@ -2764,7 +2765,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
         return $this->userHasScopedEventPermission($user, 'event.approve', includeEventScope: false);
     }
 
-    public function userHasScopedEventPermission(User $user, string $permission, bool $includeEventScope = true): bool
+    public function userHasScopedEventPermission(AccountActor $user, string $permission, bool $includeEventScope = true): bool
     {
         $memberPermissions = app(MemberPermissionGate::class);
 

@@ -167,6 +167,7 @@ use App\Services\ShareTrackingService;
 use App\Services\Signals\ProductSignalsService;
 use App\Services\Spaces\DefaultSpaceEligibilityResolver;
 use App\Shared\Auth\AccountDirectory;
+use App\Shared\Auth\AccountLifecycleContributor;
 use App\Shared\Auth\UserMorphType;
 use App\Shared\Directory\DirectoryCatalog;
 use App\Shared\Directory\SubmissionEligibilitySync;
@@ -193,6 +194,7 @@ use App\Support\Communications\AppQuietHoursResolver;
 use App\Support\Communications\AppSuppressionResolver;
 use App\Support\Communications\ListSafePayloadRedactor;
 use App\Support\Communications\ProbeSafeDestinationResolver;
+use App\Support\Directory\DirectoryAccountLifecycleContributor;
 use App\Support\Directory\EloquentDirectoryCatalog;
 use App\Support\Discovery\DatabaseSearchFilterLabels;
 use App\Support\Discovery\EventSavedSearchExecutor;
@@ -204,6 +206,7 @@ use App\Support\Location\VisitorCountryResolver;
 use App\Support\Media\MediaFileNamer;
 use App\Support\Membership\AppMembershipApplicationNotifier;
 use App\Support\Membership\AppMembershipHook;
+use App\Support\Membership\MembershipAccountLifecycleContributor;
 use App\Support\Passport\PassportKeyProvisioner;
 use App\Support\Reports\GlobalReportEscalation;
 use App\Support\Reports\GlobalReportSubjectResolver;
@@ -274,6 +277,11 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(MembershipAuthorization::class, InterimMembershipAuthorization::class);
         $this->app->bind(DirectoryCatalog::class, EloquentDirectoryCatalog::class);
         $this->app->bind(SubmissionEligibilitySync::class, PublicSubmissionEligibilitySync::class);
+        $this->app->tag([
+            MembershipAccountLifecycleContributor::class,
+            DirectoryAccountLifecycleContributor::class,
+        ], AccountLifecycleContributor::TAG);
+
         $this->app->bind(ReportEscalation::class, GlobalReportEscalation::class);
         $this->app->bind(ReportSubjectResolver::class, GlobalReportSubjectResolver::class);
         $this->app->bind(SearchFilterNormalizer::class, EventSearchFilterNormalizer::class);

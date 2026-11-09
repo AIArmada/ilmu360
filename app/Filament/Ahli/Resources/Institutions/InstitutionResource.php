@@ -7,8 +7,10 @@ use App\Filament\Resources\Institutions\RelationManagers\DonationChannelsRelatio
 use App\Filament\Resources\Institutions\RelationManagers\MemberInvitationsRelationManager;
 use App\Filament\Resources\Institutions\Schemas\InstitutionForm;
 use App\Models\Institution;
-use App\Models\User;
 use App\Platform\Auditing\AuditsRelationManager;
+use App\Shared\Auth\AccountActor;
+use App\Shared\Membership\MembershipDirectory;
+use App\Shared\Membership\MembershipSubjectType;
 use BackedEnum;
 use Filament\Facades\Filament;
 use Filament\Resources\Resource;
@@ -49,14 +51,16 @@ class InstitutionResource extends Resource
         $query = parent::getEloquentQuery();
         $user = auth()->user();
 
-        if (! $user instanceof User) {
+        if (! $user instanceof AccountActor) {
             return $query->whereRaw('1 = 0');
         }
 
-        return $query->whereIn(
-            'institutions.id',
-            $user->institutions()->select('institutions.id')
+        $subjectIds = app(MembershipDirectory::class)->subjectIdsFor(
+            $user->actorId(),
+            MembershipSubjectType::Institution,
         );
+
+        return $query->whereIn('institutions.id', $subjectIds);
     }
 
     #[\Override]

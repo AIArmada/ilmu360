@@ -15,6 +15,9 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
+use App\Shared\Auth\AccountActor;
+use App\Shared\Membership\MembershipDirectory;
+use App\Shared\Membership\MembershipSubjectType;
 use App\Support\Location\AddressAssignments;
 use Filament\Resources\Resource;
 use Illuminate\Contracts\Support\Htmlable;
@@ -116,17 +119,22 @@ class MemberResourceRegistry
     {
         $user = auth()->user();
 
-        if (! $user instanceof User) {
+        if (! $user instanceof AccountActor) {
             return false;
         }
 
+        $memberships = app(MembershipDirectory::class);
+        $accountId = $user->actorId();
+        $hasInstitution = $memberships->subjectIdsFor($accountId, MembershipSubjectType::Institution) !== [];
+        $hasPerson = $memberships->subjectIdsFor($accountId, MembershipSubjectType::Person) !== [];
+        $hasReference = $memberships->subjectIdsFor($accountId, MembershipSubjectType::Reference) !== [];
+        $hasEvent = $memberships->subjectIdsFor($accountId, MembershipSubjectType::Event) !== [];
+
         return match ($resourceClass) {
-            AhliInstitutionResource::class => $user->institutions()->exists(),
-            AhliPersonResource::class => $user->persons()->exists(),
-            AhliReferenceResource::class => $user->references()->exists(),
-            AhliEventResource::class => $user->institutions()->exists()
-                || $user->persons()->exists()
-                || $user->memberEvents()->exists(),
+            AhliInstitutionResource::class => $hasInstitution,
+            AhliPersonResource::class => $hasPerson,
+            AhliReferenceResource::class => $hasReference,
+            AhliEventResource::class => $hasInstitution || $hasPerson || $hasEvent,
             default => false,
         };
     }
@@ -397,42 +405,49 @@ class MemberResourceRegistry
     {
         $user = auth()->user();
 
-        if (! $user instanceof User) {
+        if (! $user instanceof AccountActor) {
             $query->whereRaw('1 = 0');
 
             return;
         }
 
+        $memberships = app(MembershipDirectory::class);
+        $accountId = $user->actorId();
+        $institutionIds = $memberships->subjectIdsFor($accountId, MembershipSubjectType::Institution);
+        $personIds = $memberships->subjectIdsFor($accountId, MembershipSubjectType::Person);
+        $eventIds = $memberships->subjectIdsFor($accountId, MembershipSubjectType::Event);
+        $organizationIds = $memberships->subjectIdsFor($accountId, MembershipSubjectType::Organization);
+
         // Membership is the workspace boundary, so private and draft events
         // remain readable to members even when guests cannot open their public
         // routes.
-        $query->where(function (Builder $eventQuery) use ($user): void {
+        $query->where(function (Builder $eventQuery) use ($institutionIds, $personIds, $eventIds, $organizationIds): void {
             $eventQuery
-                ->whereIn('institution_id', $user->institutions()->select('institutions.id'))
-                ->orWhereIn('events.id', $user->memberEvents()->select('events.id'))
-                ->orWhere(function (Builder $organizationEventQuery) use ($user): void {
+                ->whereIn('institution_id', $institutionIds)
+                ->orWhereIn('events.id', $eventIds)
+                ->orWhere(function (Builder $organizationEventQuery) use ($organizationIds): void {
                     $organizationEventQuery
                         ->where('events.owner_type', (new Organization)->getMorphClass())
-                        ->whereIn('events.owner_id', $user->organizations()->select('organizations.id'));
+                        ->whereIn('events.owner_id', $organizationIds);
                 })
-                ->orWhereHas('persons', function (Builder $personQuery) use ($user): void {
-                    $personQuery->whereIn('persons.id', $user->persons()->select('persons.id'));
+                ->orWhereHas('persons', function (Builder $personQuery) use ($personIds): void {
+                    $personQuery->whereIn('persons.id', $personIds);
                 })
-                ->orWhereHas('involvements', function (Builder $involvementQuery) use ($user): void {
+                ->orWhereHas('involvements', function (Builder $involvementQuery) use ($institutionIds, $personIds): void {
                     $involvementQuery
                         ->where('role_code', 'organizer')
                         ->where('is_primary', true)
-                        ->where(function (Builder $organizerQuery) use ($user): void {
+                        ->where(function (Builder $organizerQuery) use ($institutionIds, $personIds): void {
                             $organizerQuery
-                                ->where(function (Builder $institutionQuery) use ($user): void {
+                                ->where(function (Builder $institutionQuery) use ($institutionIds): void {
                                     $institutionQuery
                                         ->whereIn('involveable_type', [Institution::class, 'institution'])
-                                        ->whereIn('involveable_id', $user->institutions()->select('institutions.id'));
+                                        ->whereIn('involveable_id', $institutionIds);
                                 })
-                                ->orWhere(function (Builder $personQuery) use ($user): void {
+                                ->orWhere(function (Builder $personQuery) use ($personIds): void {
                                     $personQuery
                                         ->whereIn('involveable_type', [Person::class, 'person'])
-                                        ->whereIn('involveable_id', $user->persons()->select('persons.id'));
+                                        ->whereIn('involveable_id', $personIds);
                                 });
                         });
                 });

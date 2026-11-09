@@ -8,8 +8,10 @@ use App\Filament\Ahli\Resources\Persons\Pages\ViewPerson;
 use App\Filament\Resources\Persons\PersonResource as AdminPersonResource;
 use App\Filament\Resources\Persons\RelationManagers\MemberInvitationsRelationManager;
 use App\Models\Person;
-use App\Models\User;
 use App\Platform\Auditing\AuditsRelationManager;
+use App\Shared\Auth\AccountActor;
+use App\Shared\Membership\MembershipDirectory;
+use App\Shared\Membership\MembershipSubjectType;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
@@ -39,14 +41,16 @@ class PersonResource extends AdminPersonResource
         $query = parent::getEloquentQuery();
         $user = auth()->user();
 
-        if (! $user instanceof User) {
+        if (! $user instanceof AccountActor) {
             return $query->whereRaw('1 = 0');
         }
 
-        return $query->whereIn(
-            'persons.id',
-            $user->persons()->select('persons.id')
+        $subjectIds = app(MembershipDirectory::class)->subjectIdsFor(
+            $user->actorId(),
+            MembershipSubjectType::Person,
         );
+
+        return $query->whereIn('persons.id', $subjectIds);
     }
 
     #[\Override]

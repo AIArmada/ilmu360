@@ -8,11 +8,10 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\Pivot;
-use Illuminate\Support\Collection;
+use App\Shared\Auth\AccountActor;
+use App\Shared\Membership\MembershipDirectory;
+use App\Shared\Membership\MembershipSubjectType;
+use Illuminate\Database\Eloquent\Collection;
 
 final readonly class MemberPermissionGate
 {
@@ -42,76 +41,94 @@ final readonly class MemberPermissionGate
         'delete' => 80,
     ];
 
-    public function canInstitution(User $user, string $permission, Institution $institution): bool
+    public function __construct(
+        private MembershipDirectory $memberships,
+    ) {}
+
+    public function canInstitution(AccountActor $user, string $permission, Institution $institution): bool
     {
-        return $this->memberCan($institution, $user, $permission);
+        return $this->memberCan(MembershipSubjectType::Institution, (string) $institution->getKey(), $user, $permission);
     }
 
-    public function canPerson(User $user, string $permission, Person $person): bool
+    public function canPerson(AccountActor $user, string $permission, Person $person): bool
     {
-        return $this->memberCan($person, $user, $permission, $this->eligiblePersonScopeRoles($permission));
-    }
-
-    public function canOrganization(User $user, string $permission, Organization $organization): bool
-    {
-        return $this->memberCan($organization, $user, $permission);
-    }
-
-    public function canEvent(User $user, string $permission, Event $event): bool
-    {
-        return $this->memberCan($event, $user, $permission);
-    }
-
-    public function canEventThroughPerson(User $user, string $permission, Event $event): bool
-    {
-        $roles = $this->eligiblePersonScopeRoles($permission);
-        $membershipTable = (new Person)->membersTable();
-
-        if ($roles === []) {
-            return false;
-        }
-
-        return $event->persons()
-            ->whereHas('members', function (Builder $memberQuery) use ($membershipTable, $roles, $user): void {
-                $memberQuery
-                    ->whereKey($user->getKey())
-                    ->whereIn("{$membershipTable}.role", $roles);
-            })
-            ->exists();
-    }
-
-    public function canReference(User $user, string $permission, Reference $reference): bool
-    {
-        return $this->memberCan($reference, $user, $permission);
-    }
-
-    public function hasAnyInstitutionPermission(User $user, string $permission): bool
-    {
-        return $this->hasAnyMembershipWithPermission($user->institutions(), $permission);
-    }
-
-    public function hasAnyEventPermission(User $user, string $permission): bool
-    {
-        return $this->hasAnyMembershipWithPermission($user->memberEvents(), $permission);
-    }
-
-    public function hasAnyPersonPermission(User $user, string $permission): bool
-    {
-        return $this->hasAnyMembershipWithPermission(
-            $user->persons(),
+        return $this->memberCan(
+            MembershipSubjectType::Person,
+            (string) $person->getKey(),
+            $user,
             $permission,
             $this->eligiblePersonScopeRoles($permission),
         );
     }
 
-    public function hasAnyOrganizationPermission(User $user, string $permission): bool
+    public function canOrganization(AccountActor $user, string $permission, Organization $organization): bool
     {
-        return $this->hasAnyMembershipWithPermission($user->organizations(), $permission);
+        return $this->memberCan(MembershipSubjectType::Organization, (string) $organization->getKey(), $user, $permission);
     }
 
-    public function hasAnyReferencePermission(User $user, string $permission): bool
+    public function canEvent(AccountActor $user, string $permission, Event $event): bool
     {
-        return $this->hasAnyMembershipWithPermission($user->references(), $permission);
+        return $this->memberCan(MembershipSubjectType::Event, (string) $event->getKey(), $user, $permission);
+    }
+
+    public function canEventThroughPerson(AccountActor $user, string $permission, Event $event): bool
+    {
+        $roles = $this->eligiblePersonScopeRoles($permission);
+
+        if ($roles === []) {
+            return false;
+        }
+
+        $personIds = $event->persons()
+            ->pluck((new Person)->getQualifiedKeyName())
+            ->map(static fn (mixed $id): string => (string) $id)
+            ->values()
+            ->all();
+
+        if ($personIds === []) {
+            return false;
+        }
+
+        return array_any(
+            $this->memberships->membershipsFor($user->actorId(), MembershipSubjectType::Person),
+            static fn ($membership): bool => in_array($membership->subjectId, $personIds, true)
+                && in_array($membership->role, $roles, true),
+        );
+    }
+
+    public function canReference(AccountActor $user, string $permission, Reference $reference): bool
+    {
+        return $this->memberCan(MembershipSubjectType::Reference, (string) $reference->getKey(), $user, $permission);
+    }
+
+    public function hasAnyInstitutionPermission(AccountActor $user, string $permission): bool
+    {
+        return $this->hasAnyMembershipWithPermission($user, MembershipSubjectType::Institution, $permission);
+    }
+
+    public function hasAnyEventPermission(AccountActor $user, string $permission): bool
+    {
+        return $this->hasAnyMembershipWithPermission($user, MembershipSubjectType::Event, $permission);
+    }
+
+    public function hasAnyPersonPermission(AccountActor $user, string $permission): bool
+    {
+        return $this->hasAnyMembershipWithPermission(
+            $user,
+            MembershipSubjectType::Person,
+            $permission,
+            $this->eligiblePersonScopeRoles($permission),
+        );
+    }
+
+    public function hasAnyOrganizationPermission(AccountActor $user, string $permission): bool
+    {
+        return $this->hasAnyMembershipWithPermission($user, MembershipSubjectType::Organization, $permission);
+    }
+
+    public function hasAnyReferencePermission(AccountActor $user, string $permission): bool
+    {
+        return $this->hasAnyMembershipWithPermission($user, MembershipSubjectType::Reference, $permission);
     }
 
     /**
@@ -119,7 +136,7 @@ final readonly class MemberPermissionGate
      */
     public function institutionMembersWithPermission(Institution $institution, string $permission): Collection
     {
-        return $this->membersWithPermission($institution, $permission);
+        return $this->membersWithPermission(MembershipSubjectType::Institution, (string) $institution->getKey(), $permission);
     }
 
     /**
@@ -127,7 +144,12 @@ final readonly class MemberPermissionGate
      */
     public function personMembersWithPermission(Person $person, string $permission): Collection
     {
-        return $this->membersWithPermission($person, $permission, $this->eligiblePersonScopeRoles($permission));
+        return $this->membersWithPermission(
+            MembershipSubjectType::Person,
+            (string) $person->getKey(),
+            $permission,
+            $this->eligiblePersonScopeRoles($permission),
+        );
     }
 
     /**
@@ -135,61 +157,73 @@ final readonly class MemberPermissionGate
      */
     public function eventMembersWithPermission(Event $event, string $permission): Collection
     {
-        return $this->membersWithPermission($event, $permission);
+        return $this->membersWithPermission(MembershipSubjectType::Event, (string) $event->getKey(), $permission);
     }
 
     /**
      * @param  list<string>|null  $roles
      */
-    private function memberCan(Model $subject, User $user, string $permission, ?array $roles = null): bool
-    {
-        if (! method_exists($subject, 'members')) {
-            return false;
-        }
-
+    private function memberCan(
+        MembershipSubjectType $subjectType,
+        string $subjectId,
+        AccountActor $user,
+        string $permission,
+        ?array $roles = null,
+    ): bool {
         $roles ??= $this->eligibleRoles($permission);
 
         return $roles !== []
-            && $subject->members()->whereKey($user->getKey())->wherePivotIn('role', $roles)->exists();
+            && $subjectId !== ''
+            && $this->memberships->hasAnyRole($user->actorId(), $subjectType, $subjectId, $roles);
     }
 
-    /**
-     * @return Collection<int, User>
-     */
     /**
      * @param  list<string>|null  $roles
      * @return Collection<int, User>
      */
-    private function membersWithPermission(Model $subject, string $permission, ?array $roles = null): Collection
-    {
-        if (! method_exists($subject, 'members')) {
-            return collect();
-        }
-
+    private function membersWithPermission(
+        MembershipSubjectType $subjectType,
+        string $subjectId,
+        string $permission,
+        ?array $roles = null,
+    ): Collection {
         $roles ??= $this->eligibleRoles($permission);
 
-        if ($roles === []) {
-            return collect();
+        if ($roles === [] || $subjectId === '') {
+            return new Collection;
+        }
+
+        $accountIds = [];
+
+        foreach ($this->memberships->members($subjectType, $subjectId) as $membership) {
+            if (in_array($membership->role, $roles, true)) {
+                $accountIds[] = $membership->accountId;
+            }
+        }
+
+        if ($accountIds === []) {
+            return new Collection;
         }
 
         /** @var Collection<int, User> $members */
-        $members = $subject->members()->wherePivotIn('role', $roles)->get();
+        $members = User::query()->whereKey($accountIds)->get();
 
         return $members;
     }
 
     /**
-     * @template TRelatedModel of Model
-     * @template TPivot of Pivot
-     *
-     * @param  BelongsToMany<TRelatedModel, User, TPivot, 'pivot'>  $memberships
      * @param  list<string>|null  $roles
      */
-    private function hasAnyMembershipWithPermission(BelongsToMany $memberships, string $permission, ?array $roles = null): bool
-    {
+    private function hasAnyMembershipWithPermission(
+        AccountActor $user,
+        MembershipSubjectType $subjectType,
+        string $permission,
+        ?array $roles = null,
+    ): bool {
         $roles ??= $this->eligibleRoles($permission);
 
-        return $roles !== [] && $memberships->wherePivotIn('role', $roles)->exists();
+        return $roles !== []
+            && $this->memberships->hasAnyMembershipRole($user->actorId(), $subjectType, $roles);
     }
 
     /**

@@ -86,15 +86,9 @@ final readonly class InterimMembershipDirectory implements MembershipDirectory
 
     public function members(MembershipSubjectType $subjectType, string $subjectId): array
     {
-        $subject = $this->subject($subjectType, $subjectId);
-
-        if (! $subject instanceof Model) {
-            return [];
-        }
-
         $records = [];
 
-        foreach ($subject->members()->get() as $member) {
+        foreach ($this->subjectMembersQuery($subjectType, $subjectId)->get() as $member) {
             $role = $this->pivotRole($member);
 
             if ($role === null) {
@@ -127,23 +121,32 @@ final readonly class InterimMembershipDirectory implements MembershipDirectory
         string $subjectId,
         array $roles,
     ): bool {
-        $subject = $this->subject($subjectType, $subjectId);
-
-        if (! $subject instanceof Model) {
-            return false;
-        }
-
-        $roles = array_values(array_filter(
-            $roles,
-            static fn (mixed $role): bool => is_string($role) && $role !== '',
-        ));
+        $members = $this->subjectMembersQuery($subjectType, $subjectId);
+        $roles = $this->normalizeRoles($roles);
 
         if ($roles === []) {
             return false;
         }
 
-        return $subject->members()
+        return $members
             ->whereKey($accountId)
+            ->wherePivotIn('role', $roles)
+            ->exists();
+    }
+
+    public function hasAnyMembershipRole(
+        string $accountId,
+        MembershipSubjectType $subjectType,
+        array $roles,
+    ): bool {
+        $memberships = $this->membershipsQuery($accountId, $subjectType);
+        $roles = $this->normalizeRoles($roles);
+
+        if (! $memberships instanceof BelongsToMany || $roles === []) {
+            return false;
+        }
+
+        return $memberships
             ->wherePivotIn('role', $roles)
             ->exists();
     }
@@ -153,13 +156,9 @@ final readonly class InterimMembershipDirectory implements MembershipDirectory
      */
     private function membershipsQuery(string $accountId, MembershipSubjectType $subjectType): ?BelongsToMany
     {
-        $account = User::query()->find($accountId);
-
-        if (! $account instanceof User) {
-            return null;
-        }
-
         $relation = $this->relationFor($subjectType);
+        $account = new User;
+        $account->setAttribute($account->getKeyName(), $accountId);
 
         if (! method_exists($account, $relation)) {
             return null;
@@ -171,17 +170,39 @@ final readonly class InterimMembershipDirectory implements MembershipDirectory
         return $memberships;
     }
 
-    private function subject(
+    /**
+     * @return BelongsToMany<Model, User, Pivot, 'pivot'>
+     */
+    private function subjectMembersQuery(
         MembershipSubjectType $subjectType,
         string $subjectId,
-    ): Institution|Person|Event|Reference|Organization|null {
-        return match ($subjectType) {
-            MembershipSubjectType::Institution => Institution::query()->find($subjectId),
-            MembershipSubjectType::Person => Person::query()->find($subjectId),
-            MembershipSubjectType::Event => Event::query()->find($subjectId),
-            MembershipSubjectType::Reference => Reference::query()->find($subjectId),
-            MembershipSubjectType::Organization => Organization::query()->find($subjectId),
+    ): BelongsToMany {
+        $subject = match ($subjectType) {
+            MembershipSubjectType::Institution => new Institution,
+            MembershipSubjectType::Person => new Person,
+            MembershipSubjectType::Event => new Event,
+            MembershipSubjectType::Reference => new Reference,
+            MembershipSubjectType::Organization => new Organization,
         };
+
+        $subject->setAttribute($subject->getKeyName(), $subjectId);
+
+        /** @var BelongsToMany<Model, User, Pivot, 'pivot'> $members */
+        $members = $subject->members();
+
+        return $members;
+    }
+
+    /**
+     * @param  array<int, mixed>  $roles
+     * @return list<string>
+     */
+    private function normalizeRoles(array $roles): array
+    {
+        return array_values(array_filter(
+            $roles,
+            static fn (mixed $role): bool => is_string($role) && $role !== '',
+        ));
     }
 
     private function relationFor(MembershipSubjectType $subjectType): string

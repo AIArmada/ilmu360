@@ -14,9 +14,6 @@ use AIArmada\Engagement\Models\Follow;
 use AIArmada\Engagement\Models\Response;
 use App\Features\Identity\Api\AccountLifecycle;
 use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\Reference;
 use App\Models\User;
 use App\Services\ShareTrackingService;
 use App\Support\ShareTracking\ShareTrackingFinance;
@@ -24,7 +21,6 @@ use App\Support\ShareTracking\ShareTrackingProfile;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Support\Facades\DB;
 use Spatie\DeletedModels\Models\DeletedModel;
 use Spatie\Permission\PermissionRegistrar;
@@ -45,15 +41,13 @@ trait HasUserRestoration
                 }
 
                 // Contributors are ordered by priority. They currently cover
-                // social accounts (300), reports (200), and saved searches
-                // (100), which reproduces this hook's historical step order.
+                // social accounts (300), reports (200), saved searches (100),
+                // membership pivots and scoped roles (90), and Directory
+                // verifier links (80), reproducing this hook's historical
+                // step order for the migrated writes.
                 app(AccountLifecycle::class)->detach((string) $user->getKey());
                 $user->deleteAuthenticationState();
-                $user->institutions()->detach();
-                $user->persons()->detach();
-                $user->references()->detach();
                 $user->venues()->each(fn (Follow $f): ?bool => $f->delete());
-                $user->memberEvents()->detach();
                 $user->eventBookmarks()->delete();
                 $user->responses()->where('response_type', 'going')->get()->each->delete();
 
@@ -61,17 +55,10 @@ trait HasUserRestoration
                 $user->eventSubmissions()->update(['submitter_id' => null]);
                 $user->contributionRequests()->update(['proposer_id' => null]);
                 $user->reviewedContributionRequests()->update(['reviewer_id' => null]);
-                $user->membershipApplications()->update(['applicant_id' => null]);
-                $user->reviewedMembershipApplications()->update(['reviewer_id' => null]);
                 $user->moderationReviews()->update([
                     'actioned_by_id' => null,
                 ]);
-                $user->verifiedDonationChannels()->update(['verified_by' => null]);
                 $user->verifiedEventCheckins()->update(['verified_by_user_id' => null]);
-                $user->verifiedPersons()->update(['verified_by' => null]);
-                $user->verifiedInstitutions()->update(['verified_by' => null]);
-                $user->verifiedReferences()->update(['verified_by' => null]);
-                $user->verifiedVenues()->update(['verified_by' => null]);
                 $user->registrations()->each(fn ($reg) => $reg->delete());
                 $user->eventCheckins()->each(fn ($checkin) => $checkin->delete());
                 $user->aiUsageLogs()->each(fn ($log) => $log->delete());
@@ -182,27 +169,6 @@ trait HasUserRestoration
     protected function captureDeletedRelationsSnapshot(): void
     {
         $legacy = [
-            'institution_members' => $this->institutions()->get()->map(fn (Institution $institution): array => [
-                'institution_id' => $institution->getKey(),
-                'user_id' => $this->getKey(),
-                'joined_at' => $this->pivotTimestamp($institution, 'joined_at'),
-                'created_at' => $this->pivotTimestamp($institution, 'created_at'),
-                'updated_at' => $this->pivotTimestamp($institution, 'updated_at'),
-            ])->all(),
-            'person_members' => $this->persons()->get()->map(fn (Person $person): array => [
-                'person_id' => $person->getKey(),
-                'user_id' => $this->getKey(),
-                'joined_at' => $this->pivotTimestamp($person, 'joined_at'),
-                'created_at' => $this->pivotTimestamp($person, 'created_at'),
-                'updated_at' => $this->pivotTimestamp($person, 'updated_at'),
-            ])->all(),
-            'reference_members' => $this->references()->get()->map(fn (Reference $reference): array => [
-                'reference_id' => $reference->getKey(),
-                'user_id' => $this->getKey(),
-                'joined_at' => $this->pivotTimestamp($reference, 'joined_at'),
-                'created_at' => $this->pivotTimestamp($reference, 'created_at'),
-                'updated_at' => $this->pivotTimestamp($reference, 'updated_at'),
-            ])->all(),
             'user_venue' => $this->venues()->get()->map(fn (Follow $f): array => [
                 'follower_type' => $f->follower_type,
                 'follower_id' => $f->follower_id,
@@ -227,13 +193,6 @@ trait HasUserRestoration
                 'created_at' => $response->created_at?->toIso8601String(),
                 'updated_at' => $response->updated_at?->toIso8601String(),
             ])->all(),
-            'event_members' => $this->memberEvents()->get()->map(fn (Event $event): array => [
-                'event_id' => $event->getKey(),
-                'user_id' => $this->getKey(),
-                'joined_at' => $this->pivotTimestamp($event, 'joined_at'),
-                'created_at' => $this->pivotTimestamp($event, 'created_at'),
-                'updated_at' => $this->pivotTimestamp($event, 'updated_at'),
-            ])->all(),
             'model_has_roles' => $this->permissionRows('model_has_roles'),
             'model_has_permissions' => $this->permissionRows('model_has_permissions'),
             'owned_event_ids' => $this->ownedEvents()->pluck('id')->all(),
@@ -241,15 +200,8 @@ trait HasUserRestoration
             'event_submission_ids' => $this->eventSubmissions()->pluck('id')->all(),
             'contribution_request_proposer_ids' => $this->contributionRequests()->pluck('id')->all(),
             'contribution_request_reviewer_ids' => $this->reviewedContributionRequests()->pluck('id')->all(),
-            'membership_claim_ids' => $this->membershipApplications()->pluck('id')->all(),
-            'membership_application_reviewer_ids' => $this->reviewedMembershipApplications()->pluck('id')->all(),
             'moderation_review_ids' => $this->moderationReviews()->pluck('id')->all(),
-            'verified_donation_channel_ids' => $this->verifiedDonationChannels()->pluck('id')->all(),
             'verified_event_checkin_ids' => $this->verifiedEventCheckins()->pluck('id')->all(),
-            'verified_person_ids' => $this->verifiedPersons()->pluck('id')->all(),
-            'verified_institution_ids' => $this->verifiedInstitutions()->pluck('id')->all(),
-            'verified_reference_ids' => $this->verifiedReferences()->pluck('id')->all(),
-            'verified_venue_ids' => $this->verifiedVenues()->pluck('id')->all(),
             'registrations' => $this->registrations()->get()->map->attributesToArray()->all(),
             'event_checkins' => $this->eventCheckins()->get()->map->attributesToArray()->all(),
             'ai_usage_logs' => $this->aiUsageLogs()->get()->map->attributesToArray()->all(),
@@ -351,9 +303,6 @@ trait HasUserRestoration
             ->all();
         $this->snapshotEventIds($snapshot, 'event_attendees');
 
-        DB::table('institution_members')->insertOrIgnore($this->snapshotRows($snapshot, 'institution_members'));
-        DB::table('person_members')->insertOrIgnore($this->snapshotRows($snapshot, 'person_members'));
-        DB::table('reference_members')->insertOrIgnore($this->snapshotRows($snapshot, 'reference_members'));
         foreach ($snapshot['user_venue'] ?? [] as $venueFollowData) {
             if (filled($venueFollowData['followable_id'] ?? null)) {
                 OwnerContext::withOwner(null, function () use ($venueFollowData): void {
@@ -396,7 +345,6 @@ trait HasUserRestoration
                 }
             });
         }
-        DB::table('event_members')->insertOrIgnore($this->snapshotRows($snapshot, 'event_members'));
         DB::table($this->permissionTable('model_has_roles'))->insertOrIgnore($this->snapshotRows($snapshot, 'model_has_roles'));
         DB::table($this->permissionTable('model_has_permissions'))->insertOrIgnore($this->snapshotRows($snapshot, 'model_has_permissions'));
         if (($snapshot['followings'] ?? []) !== []) {
@@ -451,15 +399,8 @@ trait HasUserRestoration
         $this->restoreForeignKeyRelation('eventSubmissions', 'submitter_id', $this->snapshotIds($snapshot, 'event_submission_ids'));
         $this->restoreForeignKeyRelation('contributionRequests', 'proposer_id', $this->snapshotIds($snapshot, 'contribution_request_proposer_ids'));
         $this->restoreForeignKeyRelation('reviewedContributionRequests', 'reviewer_id', $this->snapshotIds($snapshot, 'contribution_request_reviewer_ids'));
-        $this->restoreForeignKeyRelation('membershipApplications', 'applicant_id', $this->snapshotIds($snapshot, 'membership_application_ids'));
-        $this->restoreForeignKeyRelation('reviewedMembershipApplications', 'reviewer_id', $this->snapshotIds($snapshot, 'membership_application_reviewer_ids'));
         $this->restoreForeignKeyRelation('moderationReviews', 'actioned_by_id', $this->snapshotIds($snapshot, 'moderation_review_ids'));
-        $this->restoreForeignKeyRelation('verifiedDonationChannels', 'verified_by', $this->snapshotIds($snapshot, 'verified_donation_channel_ids'));
         $this->restoreForeignKeyRelation('verifiedEventCheckins', 'verified_by_user_id', $this->snapshotIds($snapshot, 'verified_event_checkin_ids'));
-        $this->restoreForeignKeyRelation('verifiedPersons', 'verified_by', $this->snapshotIds($snapshot, 'verified_person_ids'));
-        $this->restoreForeignKeyRelation('verifiedInstitutions', 'verified_by', $this->snapshotIds($snapshot, 'verified_institution_ids'));
-        $this->restoreForeignKeyRelation('verifiedReferences', 'verified_by', $this->snapshotIds($snapshot, 'verified_reference_ids'));
-        $this->restoreForeignKeyRelation('verifiedVenues', 'verified_by', $this->snapshotIds($snapshot, 'verified_venue_ids'));
     }
 
     protected function restoreDeletedAffiliateTrackingSnapshot(mixed $record): void
@@ -603,23 +544,6 @@ trait HasUserRestoration
         });
     }
 
-    private function pivotTimestamp(Model $model, string $attribute): ?string
-    {
-        $pivot = $model->getRelationValue('pivot');
-
-        if (! $pivot instanceof Pivot) {
-            return null;
-        }
-
-        $value = $pivot->getAttribute($attribute);
-
-        if ($value instanceof CarbonInterface) {
-            return $value->toDateTimeString();
-        }
-
-        return is_string($value) && $value !== '' ? $value : null;
-    }
-
     /**
      * @param  array<string, mixed>  $snapshot
      * @return list<array<string, mixed>>
@@ -657,6 +581,12 @@ trait HasUserRestoration
     }
 
     /**
+     * Global (team-null) authorization rows only.
+     *
+     * Team-scoped role and permission rows are restored by the Membership
+     * account lifecycle contributor; the conventional Authz path keeps the
+     * application-wide rows.
+     *
      * @return list<array<string, mixed>>
      */
     private function permissionRows(string $tableKey): array
@@ -664,6 +594,7 @@ trait HasUserRestoration
         return DB::table($this->permissionTable($tableKey))
             ->where($this->permissionModelKeyName(), $this->getKey())
             ->where('model_type', $this->getMorphClass())
+            ->whereNull($this->permissionTeamKey())
             ->get()
             ->map(fn (object $row): array => (array) $row)
             ->all();
@@ -681,6 +612,13 @@ trait HasUserRestoration
         $key = config('permission.column_names.model_morph_key');
 
         return is_string($key) && $key !== '' ? $key : 'model_id';
+    }
+
+    private function permissionTeamKey(): string
+    {
+        $key = config('permission.column_names.team_foreign_key');
+
+        return is_string($key) && $key !== '' ? $key : 'team_id';
     }
 
     /**

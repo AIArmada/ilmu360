@@ -20,6 +20,7 @@ use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
 use App\Support\ApiDocumentation\ApiDocumentationUrlResolver;
+use App\Support\Authz\MemberDirectorySummary;
 use App\Support\Timezone\UserDateTimeFormatter;
 use BackedEnum;
 use Carbon\CarbonInterface;
@@ -27,6 +28,7 @@ use Filament\Actions\EditAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Support\Enums\Width;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\PersonalAccessToken;
 use Livewire\Attributes\Computed;
@@ -147,12 +149,6 @@ class ViewUser extends ViewRecord
                 'eventSubmissions' => fn ($query) => $query
                     ->with('event')
                     ->latest(),
-                'institutions' => fn ($query) => $query->orderBy('name'),
-                'persons' => fn ($query) => $query->orderBy('name'),
-                'memberEvents' => fn ($query) => $query
-                    ->with(['institution:id,name', 'venue:id,name'])
-                    ->orderByDesc('created_at'),
-                'references' => fn ($query) => $query->with('parentReference.parentReference')->orderBy('title'),
             ]);
         });
 
@@ -189,6 +185,42 @@ class ViewUser extends ViewRecord
         $user = $this->userRecord();
 
         return app(SavedSearchReader::class)->forOwner($user->getMorphClass(), (string) $user->getKey());
+    }
+
+    /**
+     * @return Collection<int, Institution>
+     */
+    #[Computed]
+    public function memberInstitutions(): Collection
+    {
+        return app(MemberDirectorySummary::class)->institutions($this->userRecord());
+    }
+
+    /**
+     * @return Collection<int, Person>
+     */
+    #[Computed]
+    public function memberPersons(): Collection
+    {
+        return app(MemberDirectorySummary::class)->persons($this->userRecord());
+    }
+
+    /**
+     * @return Collection<int, Event>
+     */
+    #[Computed]
+    public function memberEvents(): Collection
+    {
+        return app(MemberDirectorySummary::class)->events($this->userRecord());
+    }
+
+    /**
+     * @return Collection<int, Reference>
+     */
+    #[Computed]
+    public function memberReferences(): Collection
+    {
+        return app(MemberDirectorySummary::class)->references($this->userRecord());
     }
 
     public function eventUrl(?Event $event): ?string

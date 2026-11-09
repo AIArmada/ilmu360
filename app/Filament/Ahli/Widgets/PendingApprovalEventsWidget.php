@@ -8,7 +8,9 @@ use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\Institution;
 use App\Models\Person;
-use App\Models\User;
+use App\Shared\Auth\AccountActor;
+use App\Shared\Membership\MembershipDirectory;
+use App\Shared\Membership\MembershipSubjectType;
 use App\Support\Events\SubmitterContactPresenter;
 use App\Support\Timezone\UserDateTimeFormatter;
 use Carbon\Carbon;
@@ -93,35 +95,35 @@ class PendingApprovalEventsWidget extends TableWidget
             ->where('status', 'pending')
             ->whereHas('submissions');
 
-        if (! $user instanceof User) {
+        if (! $user instanceof AccountActor) {
             return $query->whereRaw('1 = 0');
         }
 
-        return $query->where(function (Builder $eventQuery) use ($user): void {
-            $eventQuery->orWhere(function (Builder $involvementOrganizerQuery) use ($user): void {
-                $involvementOrganizerQuery->whereHas('involvements', function (Builder $involvementQuery) use ($user): void {
+        $memberships = app(MembershipDirectory::class);
+        $institutionIds = $memberships->subjectIdsFor($user->actorId(), MembershipSubjectType::Institution);
+        $personIds = $memberships->subjectIdsFor($user->actorId(), MembershipSubjectType::Person);
+
+        return $query->where(function (Builder $eventQuery) use ($institutionIds, $personIds): void {
+            $eventQuery->orWhere(function (Builder $involvementOrganizerQuery) use ($institutionIds, $personIds): void {
+                $involvementOrganizerQuery->whereHas('involvements', function (Builder $involvementQuery) use ($institutionIds, $personIds): void {
                     $involvementQuery
                         ->where('role_code', 'organizer')
                         ->where('is_primary', true)
-                        ->where(function (Builder $q) use ($user): void {
-                            $q->where(function (Builder $instQuery) use ($user): void {
+                        ->where(function (Builder $q) use ($institutionIds, $personIds): void {
+                            $q->where(function (Builder $instQuery) use ($institutionIds): void {
                                 $instQuery->whereIn('involveable_type', [Institution::class, 'institution'])
-                                    ->whereIn('involveable_id', $user->institutions()->select('institutions.id'));
-                            })->orWhere(function (Builder $spkQuery) use ($user): void {
+                                    ->whereIn('involveable_id', $institutionIds);
+                            })->orWhere(function (Builder $spkQuery) use ($personIds): void {
                                 $spkQuery->whereIn('involveable_type', [Person::class, 'person'])
-                                    ->whereIn('involveable_id', $user->persons()->select('persons.id'));
+                                    ->whereIn('involveable_id', $personIds);
                             });
                         });
                 });
             });
 
-            $eventQuery->orWhere(function (Builder $institutionLinkedQuery) use ($user): void {
+            $eventQuery->orWhere(function (Builder $institutionLinkedQuery) use ($institutionIds): void {
                 // Event location institution is stored on the events table.
-                $institutionLinkedQuery
-                    ->whereIn(
-                        'institution_id',
-                        $user->institutions()->select('institutions.id')
-                    );
+                $institutionLinkedQuery->whereIn('institution_id', $institutionIds);
             });
         });
     }

@@ -7,17 +7,17 @@ namespace App\Support\Authz;
 use AIArmada\Authz\Facades\Authz;
 use AIArmada\Authz\Models\Role;
 use App\Enums\MemberSubjectType;
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\Reference;
 use App\Models\User;
+use App\Shared\Auth\AccountActor;
+use App\Shared\Membership\MembershipDirectory;
+use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Database\Eloquent\Collection;
 
 final readonly class MemberRoleCatalog
 {
     public function __construct(
         private MemberRoleScopes $scopes,
+        private MembershipDirectory $memberships,
     ) {}
 
     /**
@@ -43,22 +43,21 @@ final readonly class MemberRoleCatalog
     /**
      * @return list<string>
      */
-    public function roleNamesFor(User $user, MemberSubjectType $type): array
+    public function roleNamesFor(AccountActor $user, MemberSubjectType $type): array
     {
-        $modelClass = $type->modelClass();
-        $subject = $this->subjectForUser($user, $modelClass);
+        $subjectId = $this->subjectIdFor($user, $type);
 
-        if ($subject === null) {
+        if ($subjectId === null) {
             return [];
         }
 
         $previousTeamId = getPermissionsTeamId();
 
         try {
-            setPermissionsTeamId($subject->getKey());
+            setPermissionsTeamId($subjectId);
 
             /** @var Collection<int, Role> $roles */
-            $roles = $user->roles;
+            $roles = $user instanceof User ? $user->roles : new Collection;
 
             return $roles
                 ->map(fn (Role $role): string => $role->name)
@@ -69,21 +68,11 @@ final readonly class MemberRoleCatalog
         }
     }
 
-    private function subjectForUser(User $user, string $modelClass): mixed
+    private function subjectIdFor(AccountActor $user, MemberSubjectType $type): ?string
     {
-        $relation = match ($modelClass) {
-            Institution::class => 'institutions',
-            Person::class => 'persons',
-            Event::class => 'memberEvents',
-            Reference::class => 'references',
-            default => null,
-        };
+        $subjectType = MembershipSubjectType::from($type->value);
 
-        if ($relation === null || ! method_exists($user, $relation)) {
-            return null;
-        }
-
-        return $user->{$relation}()->first();
+        return $this->memberships->subjectIdsFor($user->actorId(), $subjectType)[0] ?? null;
     }
 
     private function scopeForType(MemberSubjectType $type): mixed

@@ -50,4 +50,16 @@ interface MembershipDirectory
         string $subjectId,
         array $roles,
     ): bool;
+
+    /**
+     * Whether the account holds any membership of this subject type with one
+     * of the supplied roles, without naming a subject.
+     *
+     * @param  list<string>  $roles
+     */
+    public function hasAnyMembershipRole(
+        string $accountId,
+        MembershipSubjectType $subjectType,
+        array $roles,
+    ): bool;
 }

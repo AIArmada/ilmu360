@@ -38,6 +38,7 @@ use App\Models\Reference;
 use App\Models\Registration;
 use App\Models\User;
 use App\Models\Venue;
+use App\Support\Authz\ScopedMemberRoleSeeder;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -678,6 +679,90 @@ it('restores a deleted user together with key relationships and child records', 
         'id' => $commercialLink->id,
         'affiliate_id' => $commercialAffiliate->id,
     ]);
+});
+
+it('restores global and membership-scoped authorization rows from their owners', function (): void {
+    $user = User::factory()->create();
+    $institution = Institution::factory()->create();
+
+    app(ScopedMemberRoleSeeder::class)->ensureForInstitution();
+
+    Authz::withScope(null, function () use ($user): void {
+        Role::findOrCreate('restore-global-role', 'web');
+        $user->assignRole('restore-global-role');
+    }, $user);
+
+    $user->institutions()->attach($institution->id, ['role' => 'admin']);
+
+    Authz::withScope($institution, function () use ($user, $institution): void {
+        setPermissionsTeamId($institution->getKey());
+        $user->assignRole('admin');
+    }, $user);
+
+    $teamKey = (string) config('permission.column_names.team_foreign_key');
+    $modelKey = (string) config('permission.column_names.model_morph_key');
+    $rolesTable = (string) config('permission.table_names.model_has_roles');
+
+    expect(DB::table($rolesTable)
+        ->where($modelKey, $user->id)
+        ->where($teamKey, $institution->getKey())
+        ->count())->toBe(1);
+
+    $user->delete();
+
+    expect(DB::table($rolesTable)->where($modelKey, $user->id)->count())->toBe(0);
+
+    User::restoreDeletedUser($user->id);
+
+    expect(DB::table($rolesTable)
+        ->where($modelKey, $user->id)
+        ->whereNull($teamKey)
+        ->count())->toBe(1)
+        ->and(DB::table($rolesTable)
+            ->where($modelKey, $user->id)
+            ->where($teamKey, $institution->getKey())
+            ->count())->toBe(1)
+        ->and(DB::table($rolesTable)->where($modelKey, $user->id)->count())->toBe(2);
+});
+
+it('restores directory verifier links only while they are still unassigned', function (): void {
+    $user = User::factory()->create();
+    $person = Person::factory()->create(['verified_by' => $user->id]);
+    $institution = Institution::factory()->create(['verified_by' => $user->id]);
+    $reference = Reference::factory()->create(['verified_by' => $user->id]);
+    $venue = Venue::factory()->create(['verified_by' => $user->id]);
+    $reassignedPerson = Person::factory()->create(['verified_by' => $user->id]);
+
+    $user->delete();
+
+    expect($person->fresh()->verified_by)->toBeNull()
+        ->and($institution->fresh()->verified_by)->toBeNull()
+        ->and($reference->fresh()->verified_by)->toBeNull()
+        ->and($venue->fresh()->verified_by)->toBeNull();
+
+    $replacement = User::factory()->create();
+    Person::query()->whereKey($reassignedPerson->id)->update(['verified_by' => $replacement->id]);
+
+    User::restoreDeletedUser($user->id);
+
+    expect($person->fresh()->verified_by)->toBe($user->id)
+        ->and($institution->fresh()->verified_by)->toBe($user->id)
+        ->and($reference->fresh()->verified_by)->toBe($user->id)
+        ->and($venue->fresh()->verified_by)->toBe($user->id)
+        ->and($reassignedPerson->fresh()->verified_by)->toBe($replacement->id);
+});
+
+it('re-syncs submission eligibility after restoring memberships', function (): void {
+    $user = User::factory()->create(['phone_verified_at' => null]);
+    $institution = Institution::factory()->create(['allow_public_event_submission' => false]);
+
+    $user->institutions()->attach($institution->id, ['role' => 'owner']);
+
+    $user->delete();
+    User::restoreDeletedUser($user->id);
+
+    expect($institution->fresh()->allow_public_event_submission)->toBeTrue()
+        ->and($institution->fresh()->members()->whereKey($user->id)->exists())->toBeTrue();
 });
 
 it('does not let non super admins access the deleted users restore page', function (): void {

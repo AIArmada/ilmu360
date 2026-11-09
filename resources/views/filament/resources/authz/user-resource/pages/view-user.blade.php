@@ -157,7 +157,7 @@
                 </div>
                 <div>
                     <div class="text-sm text-gray-500">Memberships</div>
-                    <div class="text-2xl font-semibold text-gray-950 dark:text-white">{{ $user->institutions->count() + $user->persons->count() + $user->memberEvents->count() + $user->references->count() }}</div>
+                    <div class="text-2xl font-semibold text-gray-950 dark:text-white">{{ $this->memberInstitutions->count() + $this->memberPersons->count() + $this->memberEvents->count() + $this->memberReferences->count() }}</div>
                 </div>
                 <div>
                     <div class="text-sm text-gray-500">Saved Searches</div>
@@ -349,7 +349,7 @@
         <div class="grid gap-6 xl:grid-cols-3">
             <x-filament::section heading="Institution Memberships">
                 <div class="space-y-4">
-                    @forelse ($user->institutions as $institution)
+                    @forelse ($this->memberInstitutions as $institution)
                         <div class="rounded-xl border border-gray-200 p-4 dark:border-white/10">
                             <div class="flex items-start justify-between gap-3">
                                 <a href="{{ $this->institutionUrl($institution) }}" class="font-medium text-primary-600 hover:underline">
@@ -366,7 +366,7 @@
 
             <x-filament::section heading="Person Memberships">
                 <div class="space-y-4">
-                    @forelse ($user->persons as $person)
+                    @forelse ($this->memberPersons as $person)
                         <div class="rounded-xl border border-gray-200 p-4 dark:border-white/10">
                             <div class="flex items-start justify-between gap-3">
                                 <a href="{{ $this->personUrl($person) }}" class="font-medium text-primary-600 hover:underline">
@@ -383,7 +383,7 @@
 
             <x-filament::section heading="Event Memberships">
                 <div class="space-y-4">
-                    @forelse ($user->memberEvents as $event)
+                    @forelse ($this->memberEvents as $event)
                         <div class="rounded-xl border border-gray-200 p-4 dark:border-white/10">
                             <div class="flex items-start justify-between gap-3">
                                 <a href="{{ $this->eventUrl($event) }}" class="font-medium text-primary-600 hover:underline">
