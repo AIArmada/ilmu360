@@ -2,32 +2,19 @@
 
 declare(strict_types=1);
 
-namespace App\Platform\Auth;
+namespace App\Features\Identity\Actions;
 
-use App\Models\SocialAccount;
-use App\Shared\Auth\AccountLifecycleContributor;
+use App\Features\Identity\Models\SocialAccount;
 
 /**
- * Account-level identity state owned by the login layer.
- *
- * Social accounts are deleted with the account and recreated from the
- * snapshot on restore. Prayer institution preferences (`user_prayer_institutions`)
- * are intentionally not touched: they are preserved by non-deletion and
- * become live again when the user row is restored, matching the previous
- * account-deletion semantics.
+ * Snapshot, remove, and recreate an account's social login links around
+ * account deletion and restoration.
  */
-final class IdentityAccountLifecycleContributor implements AccountLifecycleContributor
+final class SocialAccountLifecycleAction
 {
-    public function key(): string
-    {
-        return 'identity';
-    }
-
-    public function priority(): int
-    {
-        return 300;
-    }
-
+    /**
+     * @return array{social_accounts: list<array<string, mixed>>}
+     */
     public function snapshot(string $accountId): array
     {
         return [
@@ -46,6 +33,9 @@ final class IdentityAccountLifecycleContributor implements AccountLifecycleContr
             ->delete();
     }
 
+    /**
+     * @param  array<string, mixed>  $snapshot
+     */
     public function restore(string $accountId, array $snapshot): void
     {
         $records = $snapshot['social_accounts'] ?? [];
@@ -73,6 +63,4 @@ final class IdentityAccountLifecycleContributor implements AccountLifecycleContr
             $socialAccount->saveQuietly();
         }
     }
-
-    public function afterRestore(string $accountId): void {}
 }

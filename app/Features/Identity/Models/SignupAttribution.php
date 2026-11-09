@@ -2,23 +2,31 @@
 
 declare(strict_types=1);
 
-namespace App\Models;
+namespace App\Features\Identity\Models;
 
-use App\Enums\SignupAttributionSourceType;
-use App\Enums\SignupAttributionStatus;
+use App\Features\Identity\Api\SignupAttributionSourceType;
+use App\Features\Identity\Api\SignupAttributionStatus;
 use Database\Factories\SignupAttributionFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use LogicException;
 
+/**
+ * Immutable acquisition source for an account.
+ *
+ * The account association stays the conventional `user_id` column. Identity
+ * intentionally does not declare User relationships so account facts cross
+ * its boundary through AccountDirectory and the Identity API.
+ */
 class SignupAttribution extends Model
 {
     /** @use HasFactory<SignupAttributionFactory> */
     use HasFactory;
 
     use HasUuids;
+
+    protected $table = 'signup_attributions';
 
     protected $fillable = [
         'user_id', 'referrer_user_id', 'source_type', 'status',
@@ -27,6 +35,11 @@ class SignupAttribution extends Model
     ];
 
     protected $hidden = ['invitee_contact_hash'];
+
+    protected static function newFactory(): SignupAttributionFactory
+    {
+        return SignupAttributionFactory::new();
+    }
 
     protected static function booted(): void
     {
@@ -43,17 +56,5 @@ class SignupAttribution extends Model
             'signed_up_at' => 'immutable_datetime',
             'confirmed_at' => 'immutable_datetime',
         ];
-    }
-
-    /** @return BelongsTo<User, $this> */
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
-
-    /** @return BelongsTo<User, $this> */
-    public function referrer(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'referrer_user_id');
     }
 }

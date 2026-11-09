@@ -14,12 +14,13 @@ use AIArmada\CommerceSupport\Support\OwnerScope;
 use App\Actions\Auth\RecordSignupAttributionAction;
 use App\Actions\ShareTracking\ClaimGuestShareProfileAction;
 use App\Enums\ShareGuestClaimResult;
-use App\Enums\SignupAttributionSourceType;
+use App\Features\Identity\Api\SignupAttributionSource;
+use App\Features\Identity\Api\SignupAttributionSourceType;
+use App\Features\Identity\Models\SignupAttribution;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingAnalyticsService;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Services\ShareTrackingService;
-use App\Support\Auth\SignupAttributionSource;
 use App\Support\Share\ShareProfileScope;
 use App\Support\ShareTracking\ShareTrackingProfile;
 use Illuminate\Database\Eloquent\Model;
@@ -94,7 +95,7 @@ it('claims reads and revokes guest history with ownership enabled', function (bo
         ))->toArray(),
     ];
     $beforeAttribution = RecordSignupAttributionAction::run($signupBefore, context: $context);
-    expect($beforeAttribution->referrer_user_id)->toBeNull();
+    expect($beforeAttribution->referrerAccountId)->toBeNull();
 
     OwnerContext::withOwner($unrelated, function () use ($claimant, $payload, $identityService, $request, $link, $unrelated): void {
         expect($identityService->claimPageState($claimant, $request)['state'])->toBe('available');
@@ -110,10 +111,10 @@ it('claims reads and revokes guest history with ownership enabled', function (bo
             ->and((string) OwnerContext::resolve()?->getKey())->toBe((string) $unrelated->getKey());
     });
 
-    expect((string) $beforeAttribution->fresh()->referrer_user_id)->toBe((string) $claimant->getKey());
+    expect((string) SignupAttribution::query()->findOrFail($beforeAttribution->id)->referrer_user_id)->toBe((string) $claimant->getKey());
     $signupAfter = User::factory()->create();
     $afterAttribution = OwnerContext::withOwner($unrelated, fn () => RecordSignupAttributionAction::run($signupAfter, context: $context));
-    expect((string) $afterAttribution->referrer_user_id)->toBe((string) $claimant->getKey());
+    expect((string) $afterAttribution->referrerAccountId)->toBe((string) $claimant->getKey());
 
     $claim = ShareProfileScope::guestClaims()->where('affiliate_id', $link->affiliate_id)->firstOrFail();
     $credential = AffiliateCredential::query()->withoutGlobalScope(OwnerScope::class)->where('affiliate_id', $link->affiliate_id)->firstOrFail();

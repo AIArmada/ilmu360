@@ -14,6 +14,7 @@ use App\Enums\MemberSubjectType;
 use App\Enums\RegistrationScope;
 use App\Features\GitHubIssues\Api\GitHubIssueReportContract;
 use App\Features\GitHubIssues\Api\GitHubIssueReporterContract;
+use App\Features\Identity\Api\AccountPreferences;
 use App\Models\Language;
 use App\Models\User;
 use App\Services\ShareTrackingService;
@@ -667,6 +668,7 @@ class FrontendFormContractService
     public function accountSettings(User $user): array
     {
         $mcpServers = $this->mcpTokenManager->availableServers($user);
+        $preferences = app(AccountPreferences::class)->read((string) $user->getKey());
 
         return [
             'flow' => 'account_settings',
@@ -679,8 +681,8 @@ class FrontendFormContractService
                 'email' => (string) ($user->email ?? ''),
                 'phone' => (string) ($user->phone ?? ''),
                 'timezone' => (string) ($user->timezone ?? ''),
-                'daily_prayer_institution_ids' => $user->dailyPrayerInstitutions->pluck('id')->values()->all(),
-                'friday_prayer_institution_ids' => $user->fridayPrayerInstitutions->pluck('id')->values()->all(),
+                'daily_prayer_institution_ids' => $preferences->dailyPrayerInstitutionIds,
+                'friday_prayer_institution_ids' => $preferences->fridayPrayerInstitutionIds,
             ],
             'fields' => [
                 $this->field('name', 'string', required: true, maxLength: 255),

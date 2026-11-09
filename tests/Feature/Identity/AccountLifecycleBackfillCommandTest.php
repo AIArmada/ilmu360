@@ -1,8 +1,8 @@
 <?php
 
+use App\Features\Identity\Models\SocialAccount;
 use App\Features\Reports\Models\Report;
 use App\Features\SavedSearches\Models\SavedSearch;
-use App\Models\SocialAccount;
 use App\Models\User;
 use Spatie\DeletedModels\Models\DeletedModel;
 

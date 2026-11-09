@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Contracts;
 
-use App\Support\Auth\SignupAttributionSource;
+use App\Features\Identity\Api\SignupAttributionSource;
 use Illuminate\Http\Request;
 
 interface SignupAttributionSourceResolver

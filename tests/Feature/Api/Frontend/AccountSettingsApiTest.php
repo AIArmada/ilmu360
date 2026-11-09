@@ -1,6 +1,8 @@
 <?php
 
 use AIArmada\Authz\Models\Role;
+use App\Features\Identity\Api\AccountPreferences;
+use App\Features\Identity\Api\PrayerType;
 use App\Models\Institution;
 use App\Models\User;
 use App\Support\Mcp\McpTokenManager;
@@ -57,8 +59,8 @@ it('shows the authenticated account settings profile contract', function () {
         'phone_verified_at' => now()->subMinutes(20)->startOfSecond(),
     ]);
 
-    $user->dailyPrayerInstitutions()->syncWithPivotValues([$dailyInstitution->id], ['prayer_type' => 'daily']);
-    $user->fridayPrayerInstitutions()->syncWithPivotValues([$fridayInstitution->id], ['prayer_type' => 'friday']);
+    app(AccountPreferences::class)->syncPrayerInstitutions((string) $user->getKey(), PrayerType::Daily, [$dailyInstitution->id]);
+    app(AccountPreferences::class)->syncPrayerInstitutions((string) $user->getKey(), PrayerType::Friday, [$fridayInstitution->id]);
 
     Sanctum::actingAs($user);
 
@@ -132,11 +134,11 @@ it('returns the updated account settings profile payload after saving', function
 
     expect($user->name)->toBe('Updated API User')
         ->and($user->timezone)->toBe('Asia/Kuala_Lumpur')
-        ->and($user->dailyPrayerInstitutions()->pluck('institutions.id')->all())
+        ->and(app(AccountPreferences::class)->read((string) $user->getKey())->dailyPrayerInstitutionIds)
         ->toContain($dailyInstitution->id)
         ->toContain($secondDailyInstitution->id)
         ->toHaveCount(2)
-        ->and($user->fridayPrayerInstitutions()->pluck('institutions.id')->all())->toBe([$fridayInstitution->id]);
+        ->and(app(AccountPreferences::class)->read((string) $user->getKey())->fridayPrayerInstitutionIds)->toBe([$fridayInstitution->id]);
 });
 
 it('preserves omitted account settings fields during sparse updates', function () {
@@ -158,8 +160,8 @@ it('preserves omitted account settings fields during sparse updates', function (
         'phone_verified_at' => now()->subHours(12)->startOfSecond(),
     ]);
 
-    $user->dailyPrayerInstitutions()->syncWithPivotValues([$dailyInstitution->id], ['prayer_type' => 'daily']);
-    $user->fridayPrayerInstitutions()->syncWithPivotValues([$fridayInstitution->id], ['prayer_type' => 'friday']);
+    app(AccountPreferences::class)->syncPrayerInstitutions((string) $user->getKey(), PrayerType::Daily, [$dailyInstitution->id]);
+    app(AccountPreferences::class)->syncPrayerInstitutions((string) $user->getKey(), PrayerType::Friday, [$fridayInstitution->id]);
 
     Sanctum::actingAs($user);
 
@@ -177,8 +179,8 @@ it('preserves omitted account settings fields during sparse updates', function (
         ->and($user->email)->toBe('sparse@example.test')
         ->and($user->phone)->toBe('+60123334444')
         ->and($user->timezone)->toBe('Asia/Kuala_Lumpur')
-        ->and($user->dailyPrayerInstitutions()->pluck('institutions.id')->all())->toBe([$dailyInstitution->id])
-        ->and($user->fridayPrayerInstitutions()->pluck('institutions.id')->all())->toBe([$fridayInstitution->id])
+        ->and(app(AccountPreferences::class)->read((string) $user->getKey())->dailyPrayerInstitutionIds)->toBe([$dailyInstitution->id])
+        ->and(app(AccountPreferences::class)->read((string) $user->getKey())->fridayPrayerInstitutionIds)->toBe([$fridayInstitution->id])
         ->and($user->email_verified_at)->not->toBeNull()
         ->and($user->phone_verified_at)->not->toBeNull();
 });
@@ -193,8 +195,8 @@ it('clears prayer institution preferences with empty arrays', function () {
         'phone' => '+60124445555',
     ]);
 
-    $user->dailyPrayerInstitutions()->syncWithPivotValues([$dailyInstitution->id], ['prayer_type' => 'daily']);
-    $user->fridayPrayerInstitutions()->syncWithPivotValues([$fridayInstitution->id], ['prayer_type' => 'friday']);
+    app(AccountPreferences::class)->syncPrayerInstitutions((string) $user->getKey(), PrayerType::Daily, [$dailyInstitution->id]);
+    app(AccountPreferences::class)->syncPrayerInstitutions((string) $user->getKey(), PrayerType::Friday, [$fridayInstitution->id]);
 
     Sanctum::actingAs($user);
 
@@ -210,8 +212,8 @@ it('clears prayer institution preferences with empty arrays', function () {
 
     expect($response->json('data.profile.daily_prayer_institution_ids'))->toBe([])
         ->and($response->json('data.profile.friday_prayer_institution_ids'))->toBe([])
-        ->and($user->dailyPrayerInstitutions()->count())->toBe(0)
-        ->and($user->fridayPrayerInstitutions()->count())->toBe(0);
+        ->and(count(app(AccountPreferences::class)->read((string) $user->getKey())->dailyPrayerInstitutionIds))->toBe(0)
+        ->and(count(app(AccountPreferences::class)->read((string) $user->getKey())->fridayPrayerInstitutionIds))->toBe(0);
 });
 
 it('rejects inactive or unknown prayer institution ids', function () {

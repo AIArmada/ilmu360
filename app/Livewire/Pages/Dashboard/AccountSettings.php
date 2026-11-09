@@ -5,6 +5,8 @@ namespace App\Livewire\Pages\Dashboard;
 use AIArmada\Events\Models\EventSubmission;
 use AIArmada\Persons\Enums\Gender;
 use App\Enums\NotificationChannel;
+use App\Features\Identity\Api\AccountPreferences;
+use App\Features\Identity\Api\PrayerType;
 use App\Models\Institution;
 use App\Models\User;
 use App\Platform\Ui\InteractsWithToasts;
@@ -296,8 +298,9 @@ class AccountSettings extends Component implements HasForms
         $emailChanged = $normalizedEmail !== $user->email;
         $phoneChanged = $normalizedPhone !== $user->phone;
 
-        $currentDailyPrayerInstitutionIds = $user->dailyPrayerInstitutions()->pluck('institutions.id')->all();
-        $currentFridayPrayerInstitutionIds = $user->fridayPrayerInstitutions()->pluck('institutions.id')->all();
+        $preferences = $this->accountPreferences()->read((string) $user->getKey());
+        $currentDailyPrayerInstitutionIds = $preferences->dailyPrayerInstitutionIds;
+        $currentFridayPrayerInstitutionIds = $preferences->fridayPrayerInstitutionIds;
 
         $this->assertPrayerInstitutionSelectionsAllowed(
             $dailyPrayerInstitutionIds,
@@ -328,8 +331,8 @@ class AccountSettings extends Component implements HasForms
         try {
             DB::transaction(function () use ($user, $forceFill, $dailyPrayerInstitutionIds, $fridayPrayerInstitutionIds): void {
                 $user->forceFill($forceFill)->save();
-                $user->dailyPrayerInstitutions()->syncWithPivotValues($dailyPrayerInstitutionIds, ['prayer_type' => 'daily']);
-                $user->fridayPrayerInstitutions()->syncWithPivotValues($fridayPrayerInstitutionIds, ['prayer_type' => 'friday']);
+                $this->accountPreferences()->syncPrayerInstitutions((string) $user->getKey(), PrayerType::Daily, $dailyPrayerInstitutionIds);
+                $this->accountPreferences()->syncPrayerInstitutions((string) $user->getKey(), PrayerType::Friday, $fridayPrayerInstitutionIds);
             });
 
             $freshUser = $user->fresh() ?? $user;
@@ -525,6 +528,8 @@ class AccountSettings extends Component implements HasForms
      */
     protected function initialFormData(User $user): array
     {
+        $preferences = $this->accountPreferences()->read((string) $user->getKey());
+
         return [
             'name' => $user->name,
             'email' => (string) ($user->email ?? ''),
@@ -536,8 +541,8 @@ class AccountSettings extends Component implements HasForms
                 : '',
             'password' => '',
             'password_confirmation' => '',
-            'daily_prayer_institution_ids' => $user->dailyPrayerInstitutions->pluck('id')->values()->all(),
-            'friday_prayer_institution_ids' => $user->fridayPrayerInstitutions->pluck('id')->values()->all(),
+            'daily_prayer_institution_ids' => $preferences->dailyPrayerInstitutionIds,
+            'friday_prayer_institution_ids' => $preferences->fridayPrayerInstitutionIds,
         ];
     }
 
@@ -736,6 +741,11 @@ class AccountSettings extends Component implements HasForms
     protected function settingsManager(): NotificationSettingsManager
     {
         return app(NotificationSettingsManager::class);
+    }
+
+    protected function accountPreferences(): AccountPreferences
+    {
+        return app(AccountPreferences::class);
     }
 
     protected function accountSettingsForm(): Schema

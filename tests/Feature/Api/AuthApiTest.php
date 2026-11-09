@@ -3,6 +3,8 @@
 use AIArmada\Authz\Models\Role;
 use AIArmada\Engagement\Contracts\EngagementCounterService;
 use AIArmada\Engagement\Contracts\EngagementManager;
+use App\Features\Identity\Api\AccountPreferences;
+use App\Features\Identity\Api\PrayerType;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\User;
@@ -118,8 +120,8 @@ it('preserves the authenticated user endpoint payload contract', function () {
             'phone_verified_at' => now()->subMinutes(30)->startOfSecond(),
         ]);
 
-        $user->dailyPrayerInstitutions()->syncWithPivotValues([$dailyPrayerInstitution->id], ['prayer_type' => 'daily']);
-        $user->fridayPrayerInstitutions()->syncWithPivotValues([$fridayPrayerInstitution->id], ['prayer_type' => 'friday']);
+        app(AccountPreferences::class)->syncPrayerInstitutions((string) $user->getKey(), PrayerType::Daily, [$dailyPrayerInstitution->id]);
+        app(AccountPreferences::class)->syncPrayerInstitutions((string) $user->getKey(), PrayerType::Friday, [$fridayPrayerInstitution->id]);
 
         $user->assignRole('viewer');
         app(PermissionRegistrar::class)->forgetCachedPermissions();

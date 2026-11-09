@@ -12,11 +12,13 @@ use AIArmada\Referrals\Enums\ReferralInviteStatus;
 use AIArmada\Referrals\Enums\ReferralProgramStatus;
 use AIArmada\Referrals\Models\ReferralInvite;
 use AIArmada\Referrals\Support\ReferralContactNormalizer;
-use App\Enums\SignupAttributionSourceType;
-use App\Enums\SignupAttributionStatus;
-use App\Models\SignupAttribution;
+use App\Features\Identity\Api\RecordSignupAttributionInput;
+use App\Features\Identity\Api\SignupAttributions;
+use App\Features\Identity\Api\SignupAttributionSnapshot;
+use App\Features\Identity\Api\SignupAttributionSource;
+use App\Features\Identity\Api\SignupAttributionSourceType;
+use App\Features\Identity\Api\SignupAttributionStatus;
 use App\Models\User;
-use App\Support\Auth\SignupAttributionSource;
 use App\Support\Share\ShareProfileScope;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -31,16 +33,17 @@ final readonly class RecordSignupAttributionAction
         private CaptureSignupAttributionContextAction $captureContext,
         private ConfirmSignupAttributionAction $confirmAttribution,
         private ReferralContactNormalizer $contactNormalizer,
+        private SignupAttributions $signupAttributions,
     ) {}
 
     /** @param array{referral_invite_id: ?string, affiliate_source: array<string, mixed>|null}|null $context */
-    public function handle(User $user, ?Request $request = null, ?array $context = null): ?SignupAttribution
+    public function handle(User $user, ?Request $request = null, ?array $context = null): ?SignupAttributionSnapshot
     {
-        return DB::transaction(function () use ($user, $request, $context): ?SignupAttribution {
+        return DB::transaction(function () use ($user, $request, $context): ?SignupAttributionSnapshot {
             User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
-            $existing = $user->signupAttribution()->first();
+            $existing = $this->signupAttributions->findForAccount((string) $user->getKey());
 
-            if ($existing instanceof SignupAttribution || ! $user->wasRecentlyCreated) {
+            if ($existing instanceof SignupAttributionSnapshot || ! $user->wasRecentlyCreated) {
                 return $existing;
             }
 
@@ -55,19 +58,18 @@ final readonly class RecordSignupAttributionAction
                 $source = new SignupAttributionSource(SignupAttributionSourceType::Direct);
             }
 
-            $attribution = SignupAttribution::query()->create([
-                'user_id' => $user->getKey(),
-                'referrer_user_id' => $invite !== null ? $invite->referrer_id : $source->referrerUserId,
-                'source_type' => $invite !== null ? SignupAttributionSourceType::ReferralInvite : $source->type,
-                'status' => $invite !== null ? SignupAttributionStatus::Pending : SignupAttributionStatus::Confirmed,
-                'affiliate_id' => $invite !== null ? null : $source->affiliateId,
-                'affiliate_link_id' => $invite !== null ? null : $source->affiliateLinkId,
-                'affiliate_attribution_id' => $invite !== null ? null : $source->affiliateAttributionId,
-                'referral_invite_id' => $invite?->getKey(),
-                'invitee_contact_hash' => $invite?->invitee_hash,
-                'signed_up_at' => $user->created_at,
-                'confirmed_at' => $invite !== null ? null : now(),
-            ]);
+            $attribution = $this->signupAttributions->record(new RecordSignupAttributionInput(
+                accountId: (string) $user->getKey(),
+                sourceType: $invite !== null ? SignupAttributionSourceType::ReferralInvite : $source->type,
+                status: $invite !== null ? SignupAttributionStatus::Pending : SignupAttributionStatus::Confirmed,
+                referrerAccountId: $invite !== null ? $invite->referrer_id : $source->referrerUserId,
+                affiliateId: $invite !== null ? null : $source->affiliateId,
+                affiliateLinkId: $invite !== null ? null : $source->affiliateLinkId,
+                affiliateAttributionId: $invite !== null ? null : $source->affiliateAttributionId,
+                referralInviteId: $invite?->getKey(),
+                inviteeContactHash: $invite?->invitee_hash,
+                signedUpAt: $user->created_at?->toImmutable(),
+            ));
 
             if ($invite !== null) {
                 return $this->confirmAttribution->handle($user) ?? $attribution;

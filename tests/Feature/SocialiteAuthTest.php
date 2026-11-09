@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\SocialAccount;
+use App\Features\Identity\Models\SocialAccount;
 use App\Models\User;
 use App\Support\Auth\OAuthTransactionStore;
 use Illuminate\Foundation\Testing\RefreshDatabase;

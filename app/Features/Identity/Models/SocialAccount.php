@@ -1,13 +1,19 @@
 <?php
 
-namespace App\Models;
+namespace App\Features\Identity\Models;
 
 use Database\Factories\SocialAccountFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * Social login link for an application account.
+ *
+ * The account association stays the conventional `user_id` column. Identity
+ * intentionally does not declare a User relationship: conventional account
+ * facts cross this boundary through AccountDirectory and the Identity API.
+ */
 class SocialAccount extends Model
 {
     /** @use HasFactory<SocialAccountFactory> */
@@ -19,6 +25,11 @@ class SocialAccount extends Model
 
     protected $table = 'socialite';
 
+    protected static function newFactory(): SocialAccountFactory
+    {
+        return SocialAccountFactory::new();
+    }
+
     /**
      * @var list<string>
      */
@@ -28,12 +39,4 @@ class SocialAccount extends Model
         'provider_id',
         'avatar_url',
     ];
-
-    /**
-     * @return BelongsTo<User, $this>
-     */
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
 }

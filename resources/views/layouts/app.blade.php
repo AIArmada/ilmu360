@@ -136,7 +136,9 @@
                 $hasPersonDashboardAccess = $authenticatedUser?->persons()->exists() ?? false;
                 $hasOrganizationDashboardAccess = $authenticatedUser?->organizations()->exists() ?? false;
                 $hasManagedWorkspaceAccess = $hasInstitutionDashboardAccess || $hasPersonDashboardAccess || $hasOrganizationDashboardAccess;
-                $authenticatedUserAvatarUrl = $authenticatedUser?->profile_avatar_url;
+                $authenticatedUserAvatarUrl = $authenticatedUser !== null
+                    ? app(\App\Features\Identity\Api\SocialAccounts::class)->avatarUrl((string) $authenticatedUser->getKey())
+                    : null;
                 $dashboardMenuLabel = __('My Dashboard');
                 $homeMenuHeading = __('Home');
                 $workspaceMenuHeading = __('Workspaces');

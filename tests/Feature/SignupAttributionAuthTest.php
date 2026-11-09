@@ -9,12 +9,12 @@ use AIArmada\Referrals\Enums\ReferralProgramStatus;
 use AIArmada\Referrals\Models\ReferralInvite;
 use App\Actions\Fortify\CreateNewUser;
 use App\Contracts\SignupAttributionSourceResolver;
-use App\Enums\SignupAttributionSourceType;
-use App\Enums\SignupAttributionStatus;
-use App\Models\SignupAttribution;
+use App\Features\Identity\Api\SignupAttributionSource;
+use App\Features\Identity\Api\SignupAttributionSourceType;
+use App\Features\Identity\Api\SignupAttributionStatus;
+use App\Features\Identity\Models\SignupAttribution;
 use App\Models\User;
 use App\Support\Auth\OAuthTransactionStore;
-use App\Support\Auth\SignupAttributionSource;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -74,7 +74,7 @@ it('captures the invitation held through web password signup', function (): void
 
     $user = User::query()->where('email', 'web-signup@example.test')->firstOrFail();
     $this->assertAuthenticatedAs($user);
-    $attribution = $user->signupAttribution()->firstOrFail();
+    $attribution = SignupAttribution::query()->where('user_id', $user->getKey())->firstOrFail();
 
     expect($attribution->source_type)->toBe(SignupAttributionSourceType::ReferralInvite);
     expect($attribution->status)->toBe(SignupAttributionStatus::Pending);
@@ -96,7 +96,7 @@ it('captures an invitation supplied to api password signup without a browser ses
     ])->assertCreated()->assertJsonPath('data.user.email', 'api-signup@example.test');
 
     $user = User::query()->where('email', 'api-signup@example.test')->firstOrFail();
-    $attribution = $user->signupAttribution()->firstOrFail();
+    $attribution = SignupAttribution::query()->where('user_id', $user->getKey())->firstOrFail();
 
     expect($attribution->source_type)->toBe(SignupAttributionSourceType::ReferralInvite);
     expect($attribution->status)->toBe(SignupAttributionStatus::Pending);
@@ -120,7 +120,7 @@ it('confirms the captured invitation when google creates a verified web account'
 
     $user = User::query()->where('email', 'google-web-signup@example.test')->firstOrFail();
     $this->assertAuthenticatedAs($user);
-    $attribution = $user->signupAttribution()->firstOrFail();
+    $attribution = SignupAttribution::query()->where('user_id', $user->getKey())->firstOrFail();
 
     expect($attribution->source_type)->toBe(SignupAttributionSourceType::ReferralInvite);
     expect($attribution->status)->toBe(SignupAttributionStatus::Confirmed);
@@ -164,7 +164,7 @@ it('confirms the invitation when google token exchange creates a verified api ac
     ])->assertOk()->assertJsonPath('data.user.email', 'google-api-signup@example.test');
 
     $user = User::query()->where('email', 'google-api-signup@example.test')->firstOrFail();
-    $attribution = $user->signupAttribution()->firstOrFail();
+    $attribution = SignupAttribution::query()->where('user_id', $user->getKey())->firstOrFail();
 
     expect($attribution->source_type)->toBe(SignupAttributionSourceType::ReferralInvite);
     expect($attribution->status)->toBe(SignupAttributionStatus::Confirmed);
@@ -215,7 +215,7 @@ it('retains the origin invitation through an oauth bridge despite a different ca
         ->toStartWith('https://ilmu360.test/oauth/google/complete?token=');
     $this->assertGuest();
     $user = User::query()->where('email', 'google-bridge-signup@example.test')->firstOrFail();
-    $attribution = $user->signupAttribution()->firstOrFail();
+    $attribution = SignupAttribution::query()->where('user_id', $user->getKey())->firstOrFail();
 
     expect($attribution->source_type)->toBe(SignupAttributionSourceType::ReferralInvite);
     expect($attribution->status)->toBe(SignupAttributionStatus::Confirmed);
@@ -245,7 +245,7 @@ it('keeps a direct oauth origin direct when an invitation appears only at callba
     expect((string) $response->headers->get('Location'))
         ->toStartWith('https://ilmu360.test/oauth/google/complete?token=');
     $user = User::query()->where('email', 'google-bridge-direct@example.test')->firstOrFail();
-    $attribution = $user->signupAttribution()->firstOrFail();
+    $attribution = SignupAttribution::query()->where('user_id', $user->getKey())->firstOrFail();
 
     expect($attribution->source_type)->toBe(SignupAttributionSourceType::Direct);
     expect($attribution->status)->toBe(SignupAttributionStatus::Confirmed);

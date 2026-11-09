@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\SignupAttributionSourceType;
-use App\Enums\SignupAttributionStatus;
-use App\Models\SignupAttribution;
+use App\Features\Identity\Api\SignupAttributionSourceType;
+use App\Features\Identity\Api\SignupAttributionStatus;
+use App\Features\Identity\Models\SignupAttribution;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 

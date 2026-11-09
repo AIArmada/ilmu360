@@ -2,15 +2,17 @@
 
 namespace App\Actions\Auth;
 
-use App\Models\SocialAccount;
+use App\Features\Identity\Api\SocialAccounts;
 use App\Models\User;
 use Laravel\Socialite\AbstractUser;
 use Laravel\Socialite\Contracts\User as SocialiteUser;
 use Lorisleiva\Actions\Concerns\AsAction;
 
-final class ResolveSocialiteUserAction
+final readonly class ResolveSocialiteUserAction
 {
     use AsAction;
+
+    public function __construct(private SocialAccounts $socialAccounts) {}
 
     /**
      * @return array{user: User, created_account: bool}
@@ -19,17 +21,17 @@ final class ResolveSocialiteUserAction
     {
         $providerEmailIsVerified = $this->providerEmailIsVerified($socialUser);
 
-        $account = SocialAccount::query()
-            ->where('provider', $provider)
-            ->where('provider_id', $socialUser->getId())
-            ->first();
+        $account = $this->socialAccounts->findByProvider($provider, (string) $socialUser->getId());
 
-        if ($account) {
-            $account->update([
-                'avatar_url' => $socialUser->getAvatar(),
-            ]);
+        if ($account !== null) {
+            $this->socialAccounts->link(
+                $account->accountId,
+                $provider,
+                (string) $socialUser->getId(),
+                $socialUser->getAvatar(),
+            );
 
-            $user = $account->user;
+            $user = User::query()->findOrFail($account->accountId);
             $createdAccount = false;
         } else {
             $user = $providerEmailIsVerified && filled($socialUser->getEmail())
@@ -45,13 +47,12 @@ final class ResolveSocialiteUserAction
                 $createdAccount = true;
             }
 
-            SocialAccount::query()->updateOrCreate([
-                'user_id' => $user->id,
-                'provider' => $provider,
-            ], [
-                'provider_id' => $socialUser->getId(),
-                'avatar_url' => $socialUser->getAvatar(),
-            ]);
+            $this->socialAccounts->link(
+                (string) $user->getKey(),
+                $provider,
+                (string) $socialUser->getId(),
+                $socialUser->getAvatar(),
+            );
         }
 
         if ($providerEmailIsVerified && ! $user->hasVerifiedEmail() && filled($user->email)) {

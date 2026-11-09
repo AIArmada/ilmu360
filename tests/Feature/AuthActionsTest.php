@@ -2,7 +2,7 @@
 
 use App\Actions\Auth\AuthenticateApiUserAction;
 use App\Actions\Auth\ResolveSocialiteUserAction;
-use App\Models\SocialAccount;
+use App\Features\Identity\Models\SocialAccount;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Auth;
 
+use App\Features\Identity\Api\SignupAttributionSource;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use InvalidArgumentException;

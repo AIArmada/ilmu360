@@ -2,9 +2,8 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Auth;
+namespace App\Features\Identity\Api;
 
-use App\Enums\SignupAttributionSourceType;
 use InvalidArgumentException;
 
 final readonly class SignupAttributionSource

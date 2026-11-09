@@ -1,6 +1,8 @@
 <?php
 
 use AIArmada\Communications\Models\CommunicationDestination;
+use App\Features\Identity\Api\AccountPreferences;
+use App\Features\Identity\Api\PrayerType;
 use App\Livewire\Pages\Dashboard\AccountSettings;
 use App\Models\Institution;
 use App\Models\User;
@@ -498,11 +500,11 @@ it('saves multiple prayer institution preferences and preserves contact verifica
 
     $user->refresh();
 
-    expect($user->dailyPrayerInstitutions()->pluck('institutions.id')->all())
+    expect(app(AccountPreferences::class)->read((string) $user->getKey())->dailyPrayerInstitutionIds)
         ->toContain($dailyInstitution->id)
         ->toContain($secondDailyInstitution->id)
         ->toHaveCount(2)
-        ->and($user->fridayPrayerInstitutions()->count())->toBe(0)
+        ->and(count(app(AccountPreferences::class)->read((string) $user->getKey())->fridayPrayerInstitutionIds))->toBe(0)
         ->and($user->email_verified_at)->not->toBeNull()
         ->and($user->phone_verified_at)->not->toBeNull();
 
@@ -514,8 +516,8 @@ it('saves multiple prayer institution preferences and preserves contact verifica
 
     $user->refresh();
 
-    expect($user->dailyPrayerInstitutions()->count())->toBe(0)
-        ->and($user->fridayPrayerInstitutions()->pluck('institutions.id')->all())->toBe([$fridayInstitution->id]);
+    expect(count(app(AccountPreferences::class)->read((string) $user->getKey())->dailyPrayerInstitutionIds))->toBe(0)
+        ->and(app(AccountPreferences::class)->read((string) $user->getKey())->fridayPrayerInstitutionIds)->toBe([$fridayInstitution->id]);
 
     $component
         ->set('formData.daily_prayer_institution_ids', [$dailyInstitution->id])
@@ -525,8 +527,8 @@ it('saves multiple prayer institution preferences and preserves contact verifica
 
     $user->refresh();
 
-    expect($user->dailyPrayerInstitutions()->pluck('institutions.id')->all())->toBe([$dailyInstitution->id])
-        ->and($user->fridayPrayerInstitutions()->pluck('institutions.id')->all())->toBe([$dailyInstitution->id]);
+    expect(app(AccountPreferences::class)->read((string) $user->getKey())->dailyPrayerInstitutionIds)->toBe([$dailyInstitution->id])
+        ->and(app(AccountPreferences::class)->read((string) $user->getKey())->fridayPrayerInstitutionIds)->toBe([$dailyInstitution->id]);
 
     $component
         ->set('formData.daily_prayer_institution_ids', [$dailyInstitution->id, $secondDailyInstitution->id])
@@ -536,11 +538,11 @@ it('saves multiple prayer institution preferences and preserves contact verifica
 
     $user->refresh();
 
-    expect($user->dailyPrayerInstitutions()->pluck('institutions.id')->all())
+    expect(app(AccountPreferences::class)->read((string) $user->getKey())->dailyPrayerInstitutionIds)
         ->toContain($dailyInstitution->id)
         ->toContain($secondDailyInstitution->id)
         ->toHaveCount(2)
-        ->and($user->fridayPrayerInstitutions()->pluck('institutions.id')->all())->toBe([$fridayInstitution->id]);
+        ->and(app(AccountPreferences::class)->read((string) $user->getKey())->fridayPrayerInstitutionIds)->toBe([$fridayInstitution->id]);
 
     $component
         ->set('formData.daily_prayer_institution_ids', [])
@@ -550,8 +552,8 @@ it('saves multiple prayer institution preferences and preserves contact verifica
 
     $user->refresh();
 
-    expect($user->dailyPrayerInstitutions()->count())->toBe(0)
-        ->and($user->fridayPrayerInstitutions()->count())->toBe(0)
+    expect(count(app(AccountPreferences::class)->read((string) $user->getKey())->dailyPrayerInstitutionIds))->toBe(0)
+        ->and(count(app(AccountPreferences::class)->read((string) $user->getKey())->fridayPrayerInstitutionIds))->toBe(0)
         ->and($user->email_verified_at)->not->toBeNull()
         ->and($user->phone_verified_at)->not->toBeNull();
 });
@@ -607,8 +609,8 @@ it('allows stale saved prayer institution preferences to remain while saving unr
         'phone' => '+60113334444',
     ]);
 
-    $user->dailyPrayerInstitutions()->syncWithPivotValues([$institution->id], ['prayer_type' => 'daily']);
-    $user->fridayPrayerInstitutions()->syncWithPivotValues([$institution->id], ['prayer_type' => 'friday']);
+    app(AccountPreferences::class)->syncPrayerInstitutions((string) $user->getKey(), PrayerType::Daily, [$institution->id]);
+    app(AccountPreferences::class)->syncPrayerInstitutions((string) $user->getKey(), PrayerType::Friday, [$institution->id]);
 
     $institution->update([
         'status' => 'inactive',
@@ -625,8 +627,8 @@ it('allows stale saved prayer institution preferences to remain while saving unr
     $user->refresh();
 
     expect($user->name)->toBe('Updated Name')
-        ->and($user->dailyPrayerInstitutions()->pluck('institutions.id')->all())->toBe([$institution->id])
-        ->and($user->fridayPrayerInstitutions()->pluck('institutions.id')->all())->toBe([$institution->id]);
+        ->and(app(AccountPreferences::class)->read((string) $user->getKey())->dailyPrayerInstitutionIds)->toBe([$institution->id])
+        ->and(app(AccountPreferences::class)->read((string) $user->getKey())->fridayPrayerInstitutionIds)->toBe([$institution->id]);
 });
 
 it('renders gender and date of birth fields in Malay', function () {

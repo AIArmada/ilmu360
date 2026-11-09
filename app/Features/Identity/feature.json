@@ -1,5 +1,18 @@
 {
   "schema": 2,
   "name": "Identity",
-  "owns": {}
+  "owns": {
+    "table:socialite": [
+      "App\\Features\\Identity\\Actions\\LinkSocialAccountAction",
+      "App\\Features\\Identity\\Actions\\SocialAccountLifecycleAction"
+    ],
+    "table:signup_attributions": [
+      "App\\Features\\Identity\\Actions\\ConfirmSignupAttributionAction",
+      "App\\Features\\Identity\\Actions\\LinkGuestSignupAttributionsAction",
+      "App\\Features\\Identity\\Actions\\RecordSignupAttributionAction"
+    ],
+    "table:user_prayer_institutions": [
+      "App\\Features\\Identity\\Actions\\SyncPrayerInstitutionsAction"
+    ]
+  }
 }

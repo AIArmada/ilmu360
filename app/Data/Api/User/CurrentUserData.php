@@ -3,6 +3,7 @@
 namespace App\Data\Api\User;
 
 use AIArmada\Authz\Facades\Authz;
+use App\Features\Identity\Api\AccountPreferences;
 use App\Models\User;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Support\Transformation\TransformationContext;
@@ -28,8 +29,9 @@ class CurrentUserData extends Data
             'gender' => null,
             'date_of_birth' => null,
         ];
-        $payload['daily_prayer_institution_ids'] = $user->dailyPrayerInstitutions->pluck('id')->values()->all();
-        $payload['friday_prayer_institution_ids'] = $user->fridayPrayerInstitutions->pluck('id')->values()->all();
+        $preferences = app(AccountPreferences::class)->read((string) $user->getKey());
+        $payload['daily_prayer_institution_ids'] = $preferences->dailyPrayerInstitutionIds;
+        $payload['friday_prayer_institution_ids'] = $preferences->fridayPrayerInstitutionIds;
         $payload['roles'] = Authz::withScope(
             null,
             fn (): array => $user->getRoleNames()->sort()->values()->all(),

@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\Frontend;
 
 use App\Data\Api\Frontend\AccountSettings\AccountProfileData;
 use App\Enums\InstitutionStatus;
+use App\Features\Identity\Api\AccountPreferences;
+use App\Features\Identity\Api\PrayerType;
 use App\Models\Institution;
 use App\Models\User;
 use App\Services\Notifications\NotificationSettingsManager;
@@ -23,6 +25,7 @@ class AccountSettingsController extends FrontendController
 {
     public function __construct(
         private readonly NotificationSettingsManager $notificationSettingsManager,
+        private readonly AccountPreferences $accountPreferences,
     ) {}
 
     #[Endpoint(
@@ -83,8 +86,9 @@ class AccountSettingsController extends FrontendController
         $normalizedTimezone = $timezoneProvided
             ? $this->normalizeOptionalString($validated['timezone'] ?? null)
             : $user->timezone;
-        $currentDailyPrayerInstitutionIds = $user->dailyPrayerInstitutions()->pluck('institutions.id')->all();
-        $currentFridayPrayerInstitutionIds = $user->fridayPrayerInstitutions()->pluck('institutions.id')->all();
+        $preferences = $this->accountPreferences->read((string) $user->getKey());
+        $currentDailyPrayerInstitutionIds = $preferences->dailyPrayerInstitutionIds;
+        $currentFridayPrayerInstitutionIds = $preferences->fridayPrayerInstitutionIds;
         $dailyPrayerInstitutionIds = $dailyPrayerInstitutionsProvided
             ? $this->normalizeOptionalStringArray($validated['daily_prayer_institution_ids'] ?? [])
             : $currentDailyPrayerInstitutionIds;
@@ -123,8 +127,8 @@ class AccountSettingsController extends FrontendController
                 'phone_verified_at' => $phoneChanged ? null : $user->phone_verified_at,
             ])->save();
 
-            $user->dailyPrayerInstitutions()->syncWithPivotValues($dailyPrayerInstitutionIds, ['prayer_type' => 'daily']);
-            $user->fridayPrayerInstitutions()->syncWithPivotValues($fridayPrayerInstitutionIds, ['prayer_type' => 'friday']);
+            $this->accountPreferences->syncPrayerInstitutions((string) $user->getKey(), PrayerType::Daily, $dailyPrayerInstitutionIds);
+            $this->accountPreferences->syncPrayerInstitutions((string) $user->getKey(), PrayerType::Friday, $fridayPrayerInstitutionIds);
         });
 
         $freshUser = $user->fresh() ?? $user;

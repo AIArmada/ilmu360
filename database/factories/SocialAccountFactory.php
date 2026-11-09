@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Models\SocialAccount;
+use App\Features\Identity\Models\SocialAccount;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class SocialAccountFactory extends Factory
 {
+    protected $model = SocialAccount::class;
+
     /**
      * Define the model's default state.
      *

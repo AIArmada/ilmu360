@@ -1,10 +1,12 @@
 <?php
 
 use App\Features\Identity\Api\AccountLifecycle;
+use App\Features\Identity\Api\AccountPreferences;
+use App\Features\Identity\Api\PrayerType;
+use App\Features\Identity\Models\SocialAccount;
 use App\Features\Reports\Models\Report;
 use App\Features\SavedSearches\Models\SavedSearch;
 use App\Models\Institution;
-use App\Models\SocialAccount;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Spatie\DeletedModels\Models\DeletedModel;
@@ -12,7 +14,7 @@ use Spatie\DeletedModels\Models\DeletedModel;
 it('stores migrated lifecycle state under contributor keys', function (): void {
     $user = User::factory()->create();
     $institution = Institution::factory()->create();
-    $user->dailyPrayerInstitutions()->syncWithPivotValues([$institution->id], ['prayer_type' => 'daily']);
+    app(AccountPreferences::class)->syncPrayerInstitutions((string) $user->getKey(), PrayerType::Daily, [$institution->id]);
 
     $socialAccount = SocialAccount::factory()->create([
         'user_id' => $user->id,

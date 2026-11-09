@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace App\Actions\Auth;
 
 use AIArmada\Referrals\Support\ReferralContactNormalizer;
-use App\Enums\SignupAttributionSourceType;
-use App\Enums\SignupAttributionStatus;
-use App\Models\SignupAttribution;
+use App\Features\Identity\Api\SignupAttributions;
+use App\Features\Identity\Api\SignupAttributionSnapshot;
+use App\Features\Identity\Api\SignupAttributionSourceType;
+use App\Features\Identity\Api\SignupAttributionStatus;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -17,21 +18,24 @@ final readonly class ConfirmSignupAttributionAction
 {
     use AsAction;
 
-    public function __construct(private ReferralContactNormalizer $contactNormalizer) {}
+    public function __construct(
+        private ReferralContactNormalizer $contactNormalizer,
+        private SignupAttributions $signupAttributions,
+    ) {}
 
-    public function handle(User $user): ?SignupAttribution
+    public function handle(User $user): ?SignupAttributionSnapshot
     {
-        return DB::transaction(function () use ($user): ?SignupAttribution {
+        return DB::transaction(function () use ($user): ?SignupAttributionSnapshot {
             $currentUser = User::query()->whereKey($user->getKey())->lockForUpdate()->first();
 
             if (! $currentUser instanceof User) {
                 return null;
             }
 
-            $attribution = $currentUser->signupAttribution()->lockForUpdate()->first();
+            $attribution = $this->signupAttributions->lockForAccount((string) $currentUser->getKey());
 
-            if (! $attribution instanceof SignupAttribution
-                || $attribution->source_type !== SignupAttributionSourceType::ReferralInvite
+            if (! $attribution instanceof SignupAttributionSnapshot
+                || $attribution->sourceType !== SignupAttributionSourceType::ReferralInvite
                 || $attribution->status !== SignupAttributionStatus::Pending) {
                 return $attribution;
             }
@@ -44,22 +48,14 @@ final readonly class ConfirmSignupAttributionAction
                 }
 
                 try {
-                    $matches = is_string($attribution->invitee_contact_hash)
-                        && hash_equals($attribution->invitee_contact_hash, $this->contactNormalizer->hash($contact));
+                    $matches = is_string($attribution->inviteeContactHash)
+                        && hash_equals($attribution->inviteeContactHash, $this->contactNormalizer->hash($contact));
                 } catch (InvalidArgumentException) {
                     continue;
                 }
 
                 if ($matches) {
-                    SignupAttribution::query()->whereKey($attribution->getKey())
-                        ->where('status', SignupAttributionStatus::Pending->value)
-                        ->update([
-                            'status' => SignupAttributionStatus::Confirmed->value,
-                            'confirmed_at' => now(),
-                            'updated_at' => now(),
-                        ]);
-
-                    return $attribution->refresh();
+                    return $this->signupAttributions->confirm($attribution->id) ?? $attribution;
                 }
             }
 
