@@ -30,6 +30,7 @@ use App\Shared\Auth\AccountActor;
 use App\Shared\Auth\IntegrationFeedbackIdentity;
 use App\Shared\Auth\IntegrationFeedbackUser;
 use App\Shared\Auth\ResourceOwner;
+use App\Shared\Feedback\FeedbackActor;
 use App\Support\Submission\PublicSubmissionLockService;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
@@ -61,7 +62,7 @@ use Spatie\DeletedModels\Models\Concerns\KeepsDeletedModels;
 use Spatie\Permission\PermissionRegistrar;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable implements AccountActor, AuditableContract, CanInteract, FilamentUser, HasLocalePreference, IntegrationFeedbackUser, MustVerifyEmailContract, ResourceOwner
+class User extends Authenticatable implements AccountActor, AuditableContract, CanInteract, FeedbackActor, FilamentUser, HasLocalePreference, IntegrationFeedbackUser, MustVerifyEmailContract, ResourceOwner
 {
     public function actorId(): string
     {

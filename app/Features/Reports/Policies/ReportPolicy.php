@@ -6,6 +6,7 @@ namespace App\Features\Reports\Policies;
 
 use App\Features\Reports\Models\Report;
 use App\Shared\Auth\AccountActor;
+use App\Shared\Feedback\FeedbackActor;
 
 class ReportPolicy
 {
@@ -32,7 +33,7 @@ class ReportPolicy
     /**
      * Determine whether the user can create models.
      */
-    public function create(?AccountActor $user): bool
+    public function create(?FeedbackActor $user): bool
     {
         return $user !== null
             && ($user->hasAnyRole(['super_admin', 'admin', 'moderator']) || $user->canSubmitDirectoryFeedback());

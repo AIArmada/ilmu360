@@ -6,7 +6,7 @@ use AIArmada\CommerceSupport\Support\RequestFingerprint;
 use App\Features\Reports\Actions\ResolveReportFormContextAction;
 use App\Features\Reports\Actions\SubmitReportAction;
 use App\Platform\Ui\InteractsWithToasts;
-use App\Shared\Auth\AccountActor;
+use App\Shared\Feedback\FeedbackActor;
 use App\Shared\Reports\ReportSubject;
 use App\Shared\Reports\ReportSubjectResolver;
 use App\Shared\Reports\ReportSubjectType;
@@ -66,7 +66,7 @@ class Create extends Component implements HasForms
 
         $user = auth()->user();
 
-        abort_unless($user instanceof AccountActor, 403);
+        abort_unless($user instanceof FeedbackActor, 403);
 
         if (! $user->canSubmitDirectoryFeedback()) {
             abort(403, $user->directoryFeedbackBanMessage());
@@ -114,7 +114,7 @@ class Create extends Component implements HasForms
     ): void {
         $user = auth()->user();
 
-        abort_unless($user instanceof AccountActor, 403);
+        abort_unless($user instanceof FeedbackActor, 403);
 
         if (! $user->canSubmitDirectoryFeedback()) {
             abort(403, $user->directoryFeedbackBanMessage());

@@ -30,6 +30,17 @@ interface AccountDirectory
     public function exists(string $accountId): bool;
 
     /**
+     * Read the immutable identity profile for the given account.
+     */
+    public function profile(string $accountId): ?AccountProfile;
+
+    /**
+     * Stable account type used for snapshots and audit attribution, or null
+     * when the account does not exist.
+     */
+    public function accountType(string $accountId): ?string;
+
+    /**
      * Acquire the account row lock that serialises actor-scoped mutations.
      */
     public function lockForUpdate(string $accountId): void;

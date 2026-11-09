@@ -13,14 +13,10 @@ interface AccountActor
 
     public function hasGlobalAdminAccess(): bool;
 
+    public function hasRole(string $role): bool;
+
     /**
      * @param  array<int, string>|string  ...$roles
      */
     public function hasAnyRole(array|string ...$roles): bool;
-
-    public function canSubmitAppFeedback(): bool;
-
-    public function canSubmitDirectoryFeedback(): bool;
-
-    public function directoryFeedbackBanMessage(): string;
 }

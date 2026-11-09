@@ -6,6 +6,7 @@ namespace App\Features\Feedback\Policies;
 
 use App\Features\Feedback\Models\AppFeedback;
 use App\Shared\Auth\AccountActor;
+use App\Shared\Feedback\FeedbackActor;
 
 class AppFeedbackPolicy
 {
@@ -24,7 +25,7 @@ class AppFeedbackPolicy
         return $feedback->reporter_id === $user->actorId();
     }
 
-    public function create(?AccountActor $user): bool
+    public function create(?FeedbackActor $user): bool
     {
         return $user !== null && $user->canSubmitAppFeedback();
     }
