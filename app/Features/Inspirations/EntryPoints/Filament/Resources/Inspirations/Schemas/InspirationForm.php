@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Resources\Inspirations\Schemas;
+namespace App\Features\Inspirations\EntryPoints\Filament\Resources\Inspirations\Schemas;
 
-use App\Enums\InspirationCategory;
+use App\Features\Inspirations\Enums\InspirationCategory;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;

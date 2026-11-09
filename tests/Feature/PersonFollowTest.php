@@ -2,7 +2,7 @@
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Models\Follow;
-use App\Models\Inspiration;
+use App\Features\Inspirations\Models\Inspiration;
 use App\Models\Person;
 use App\Models\User;
 use Livewire\Livewire;

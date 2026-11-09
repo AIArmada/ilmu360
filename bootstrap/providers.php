@@ -6,6 +6,7 @@ use AIArmada\Affiliates\AffiliatesServiceProvider;
 use AIArmada\CommerceSupport\SupportServiceProvider;
 use App\Features\Feedback\FeatureServiceProvider as FeedbackServiceProvider;
 use App\Features\GitHubIssues\FeatureServiceProvider as GitHubIssuesServiceProvider;
+use App\Features\Inspirations\FeatureServiceProvider as InspirationsServiceProvider;
 use App\Features\Prayer\FeatureServiceProvider;
 use App\Features\Reports\FeatureServiceProvider as ReportsServiceProvider;
 use App\Features\SavedSearches\FeatureServiceProvider as SavedSearchesServiceProvider;
@@ -30,6 +31,7 @@ return [
     AppServiceProvider::class,
     FeedbackServiceProvider::class,
     GitHubIssuesServiceProvider::class,
+    InspirationsServiceProvider::class,
     FeatureServiceProvider::class,
     ReportsServiceProvider::class,
     SavedSearchesServiceProvider::class,

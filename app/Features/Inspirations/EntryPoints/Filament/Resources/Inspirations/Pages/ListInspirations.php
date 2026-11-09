@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Filament\Resources\Inspirations\Pages;
+namespace App\Features\Inspirations\EntryPoints\Filament\Resources\Inspirations\Pages;
 
-use App\Filament\Resources\Inspirations\InspirationResource;
+use App\Features\Inspirations\EntryPoints\Filament\Resources\Inspirations\InspirationResource;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 

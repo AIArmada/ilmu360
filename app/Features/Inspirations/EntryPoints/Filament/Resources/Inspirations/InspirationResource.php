@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace App\Filament\Resources\Inspirations;
+namespace App\Features\Inspirations\EntryPoints\Filament\Resources\Inspirations;
 
-use App\Filament\Resources\Inspirations\Pages\CreateInspiration;
-use App\Filament\Resources\Inspirations\Pages\EditInspiration;
-use App\Filament\Resources\Inspirations\Pages\ListInspirations;
-use App\Filament\Resources\Inspirations\Schemas\InspirationForm;
-use App\Filament\Resources\Inspirations\Tables\InspirationsTable;
-use App\Models\Inspiration;
+use App\Features\Inspirations\EntryPoints\Filament\Resources\Inspirations\Pages\CreateInspiration;
+use App\Features\Inspirations\EntryPoints\Filament\Resources\Inspirations\Pages\EditInspiration;
+use App\Features\Inspirations\EntryPoints\Filament\Resources\Inspirations\Pages\ListInspirations;
+use App\Features\Inspirations\EntryPoints\Filament\Resources\Inspirations\Schemas\InspirationForm;
+use App\Features\Inspirations\EntryPoints\Filament\Resources\Inspirations\Tables\InspirationsTable;
+use App\Features\Inspirations\Models\Inspiration;
 use App\Platform\Auditing\AuditsRelationManager;
 use BackedEnum;
 use Filament\Resources\Resource;

@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Models;
+namespace App\Features\Inspirations\Models;
 
-use App\Enums\InspirationCategory;
+use App\Features\Inspirations\Enums\InspirationCategory;
 use App\Platform\Auditing\AuditsModelChanges;
 use Database\Factories\InspirationFactory;
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
@@ -28,6 +28,8 @@ class Inspiration extends Model implements AuditableContract, HasMedia
     public $incrementing = false;
 
     protected $keyType = 'string';
+
+    protected $table = 'inspirations';
 
     /**
      * @var list<string>
@@ -149,6 +151,11 @@ class Inspiration extends Model implements AuditableContract, HasMedia
     protected function forLocale(Builder $query, ?string $locale = null): void
     {
         $query->where('locale', $locale ?? app()->getLocale());
+    }
+
+    protected static function newFactory(): InspirationFactory
+    {
+        return InspirationFactory::new();
     }
 
     public function registerMediaCollections(): void

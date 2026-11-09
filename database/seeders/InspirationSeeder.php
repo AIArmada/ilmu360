@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use App\Enums\InspirationCategory;
-use App\Models\Inspiration;
+use App\Features\Inspirations\Enums\InspirationCategory;
+use App\Features\Inspirations\Models\Inspiration;
 use Illuminate\Database\Seeder;
 
 class InspirationSeeder extends Seeder

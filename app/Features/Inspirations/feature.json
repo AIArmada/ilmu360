@@ -1,0 +1,12 @@
+{
+  "schema": 2,
+  "name": "Inspirations",
+  "owns": {
+    "table:inspirations": [
+      "App\\Features\\Inspirations\\Actions\\DeleteInspirationAction",
+      "App\\Features\\Inspirations\\Actions\\DeleteInspirationsAction",
+      "App\\Features\\Inspirations\\Actions\\SaveInspirationAction",
+      "App\\Features\\Inspirations\\Actions\\ToggleInspirationStatusAction"
+    ]
+  }
+}

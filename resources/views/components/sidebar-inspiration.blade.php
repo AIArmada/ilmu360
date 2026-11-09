@@ -3,19 +3,17 @@
      Shared component for event, person, and institution sidebars
      ════════════════════════════════════════════════════════════════ --}}
 @php
-    $inspiration = \App\Models\Inspiration::query()->with('media')->active()->forLocale()->inRandomOrder()->first();
+    $inspiration = app(\App\Features\Inspirations\Api\InspirationReader::class)->random();
 @endphp
 
 @if($inspiration)
     @php
-        $category = $inspiration->category;
-        $isComic = $category === \App\Enums\InspirationCategory::IslamicComic;
-        $inspirationMedia = $inspiration->getFirstMedia('main');
-        $mediaThumbUrl = $inspirationMedia?->getAvailableUrl(['thumb']) ?? '';
-        $mediaFullUrl = $inspirationMedia?->getUrl() ?? '';
-        $hasMedia = filled($mediaThumbUrl);
-        $contentHtml = $inspiration->renderContentHtml();
-        $contentPreview = $inspiration->contentPreviewText(160);
+        $isComic = $inspiration->isComic;
+        $mediaThumbUrl = $inspiration->mediaThumbUrl ?? '';
+        $mediaFullUrl = $inspiration->mediaFullUrl ?? '';
+        $hasMedia = $inspiration->hasMedia();
+        $contentHtml = $inspiration->contentHtml;
+        $contentPreview = $inspiration->previewText;
 
         $colorMap = [
             'emerald' => ['bg' => 'bg-emerald-50', 'border' => 'border-emerald-100', 'ring' => 'ring-emerald-100/60', 'icon_bg' => 'bg-emerald-100', 'icon_text' => 'text-emerald-600', 'badge_bg' => 'bg-emerald-100', 'badge_text' => 'text-emerald-700', 'source' => 'text-emerald-600/80'],
@@ -25,7 +23,7 @@
             'rose'    => ['bg' => 'bg-rose-50', 'border' => 'border-rose-100', 'ring' => 'ring-rose-100/60', 'icon_bg' => 'bg-rose-100', 'icon_text' => 'text-rose-600', 'badge_bg' => 'bg-rose-100', 'badge_text' => 'text-rose-700', 'source' => 'text-rose-600/80'],
             'indigo'  => ['bg' => 'bg-indigo-50', 'border' => 'border-indigo-100', 'ring' => 'ring-indigo-100/60', 'icon_bg' => 'bg-indigo-100', 'icon_text' => 'text-indigo-600', 'badge_bg' => 'bg-indigo-100', 'badge_text' => 'text-indigo-700', 'source' => 'text-indigo-600/80'],
         ];
-        $colors = $colorMap[$category->color()] ?? $colorMap['emerald'];
+        $colors = $colorMap[$inspiration->categoryColor] ?? $colorMap['emerald'];
     @endphp
 
     <div class="scroll-reveal reveal-right revealed" x-data="{ showComicModal: false, showMediaModal: false }" x-intersect.once="$el.classList.add('revealed')" style="--reveal-d: 120ms">
@@ -34,10 +32,10 @@
             {{-- Category badge --}}
             <div class="flex items-center gap-2.5">
                 <div class="rounded-xl {{ $colors['icon_bg'] }} p-2">
-                    <x-dynamic-component :component="$category->icon()" class="size-4.5 {{ $colors['icon_text'] }}" />
+                    <x-dynamic-component :component="$inspiration->categoryIcon" class="size-4.5 {{ $colors['icon_text'] }}" />
                 </div>
                 <span class="rounded-full {{ $colors['badge_bg'] }} px-2.5 py-0.5 text-[11px] font-bold {{ $colors['badge_text'] }} tracking-wide uppercase">
-                    {{ $category->label() }}
+                    {{ $inspiration->categoryLabel }}
                 </span>
             </div>
 
@@ -140,7 +138,7 @@
                         <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
                             <div class="flex items-center gap-2.5">
                                 <div class="rounded-xl {{ $colors['icon_bg'] }} p-2">
-                                    <x-dynamic-component :component="$category->icon()" class="size-4 {{ $colors['icon_text'] }}" />
+                                    <x-dynamic-component :component="$inspiration->categoryIcon" class="size-4 {{ $colors['icon_text'] }}" />
                                 </div>
                                 <h3 class="text-base font-bold text-slate-900">{{ $inspiration->title }}</h3>
                             </div>

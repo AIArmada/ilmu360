@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Inspirations;
+namespace App\Features\Inspirations\Actions;
 
-use App\Enums\InspirationCategory;
-use App\Models\Inspiration;
-use App\Support\Media\ModelMediaSyncService;
+use App\Features\Inspirations\Enums\InspirationCategory;
+use App\Features\Inspirations\Models\Inspiration;
+use App\Platform\Media\MediaCollectionSync;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -17,7 +17,7 @@ final readonly class SaveInspirationAction
     use AsAction;
 
     public function __construct(
-        private ModelMediaSyncService $mediaSyncService,
+        private MediaCollectionSync $mediaCollectionSync,
     ) {}
 
     /**
@@ -50,12 +50,12 @@ final readonly class SaveInspirationAction
         $inspiration->save();
 
         if (($data['clear_main'] ?? false) === true) {
-            $this->mediaSyncService->clearCollection($inspiration, 'main');
+            $this->mediaCollectionSync->clearCollection($inspiration, 'main');
         }
 
         $main = $data['main'] ?? null;
 
-        $this->mediaSyncService->syncSingle(
+        $this->mediaCollectionSync->syncSingle(
             $inspiration,
             $main instanceof UploadedFile ? $main : null,
             'main',

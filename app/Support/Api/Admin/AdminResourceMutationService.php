@@ -18,7 +18,6 @@ use AIArmada\References\Enums\ReferenceRecordKind;
 use AIArmada\References\Rules\Isbn;
 use App\Actions\DonationChannels\SaveDonationChannelAction;
 use App\Actions\Events\Authoring\SaveAdminEventAction;
-use App\Actions\Inspirations\SaveInspirationAction;
 use App\Actions\Institutions\SaveInstitutionAction;
 use App\Actions\Persons\SavePersonAction;
 use App\Actions\References\SaveReferenceAction;
@@ -33,16 +32,15 @@ use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventTaxonomyCode;
 use App\Enums\EventVisibility;
-use App\Enums\InspirationCategory;
 use App\Enums\InstitutionStatus;
 use App\Enums\InstitutionType;
 use App\Enums\ReferencePartType;
 use App\Enums\ReferenceType;
 use App\Enums\RegistrationScope;
 use App\Enums\VenueType;
+use App\Features\Inspirations\Api\InspirationAdminContract;
 use App\Features\Reports\Api\ReportAdminContract;
 use App\Filament\Resources\DonationChannels\DonationChannelResource;
-use App\Filament\Resources\Inspirations\InspirationResource;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Filament\Resources\Persons\PersonResource;
 use App\Filament\Resources\References\ReferenceResource;
@@ -52,7 +50,6 @@ use App\Filament\Resources\Venues\VenueResource;
 use App\Forms\SharedFormSchema;
 use App\Models\DonationChannel;
 use App\Models\Event;
-use App\Models\Inspiration;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
@@ -81,12 +78,12 @@ class AdminResourceMutationService
 
     public function __construct(
         private readonly ContributionEntityMutationService $contributionEntityMutationService,
+        private readonly InspirationAdminContract $inspirationAdmin,
         private readonly ReportAdminContract $reportAdmin,
         private readonly SaveAddressAreaAction $saveAddressAreaAction,
         private readonly SaveDonationChannelAction $saveDonationChannelAction,
         private readonly SaveAdminEventAction $saveAdminEventAction,
         private readonly AdminEventFormStateBuilder $adminEventFormStateBuilder,
-        private readonly SaveInspirationAction $saveInspirationAction,
         private readonly SaveInstitutionAction $saveInstitutionAction,
         private readonly SaveReferenceAction $saveReferenceAction,
         private readonly SaveSeriesAction $saveSeriesAction,
@@ -100,18 +97,19 @@ class AdminResourceMutationService
      */
     public function supports(string $resourceClass): bool
     {
-        return $this->isReportResource($resourceClass) || in_array($resourceClass, [
-            AddressAreaResource::class,
-            DonationChannelResource::class,
-            EventResource::class,
-            InspirationResource::class,
-            InstitutionResource::class,
-            ReferenceResource::class,
-            SeriesResource::class,
-            PersonResource::class,
-            SpaceResource::class,
-            VenueResource::class,
-        ], true);
+        return $this->isReportResource($resourceClass)
+            || $this->isInspirationResource($resourceClass)
+            || in_array($resourceClass, [
+                AddressAreaResource::class,
+                DonationChannelResource::class,
+                EventResource::class,
+                InstitutionResource::class,
+                ReferenceResource::class,
+                SeriesResource::class,
+                PersonResource::class,
+                SpaceResource::class,
+                VenueResource::class,
+            ], true);
     }
 
     /**
@@ -143,6 +141,10 @@ class AdminResourceMutationService
                     ['field' => 'description', 'required_when' => ['category' => ['other']]],
                 ],
             ];
+        }
+
+        if ($this->isInspirationResource($resourceClass)) {
+            return $this->inspirationSchema($resourceKey, $operation, $record, $defaults);
         }
 
         return match ($resourceClass) {
@@ -201,21 +203,6 @@ class AdminResourceMutationService
                 'conditional_rules' => [
                     ['field' => 'custom_time', 'required_when' => ['prayer_time' => [EventPrayerTime::LainWaktu->value]]],
                 ],
-            ],
-            InspirationResource::class => [
-                'resource_key' => $resourceKey,
-                'operation' => $operation,
-                'method' => $updating ? 'PUT' : 'POST',
-                'endpoint' => $updating && $record instanceof Model
-                    ? route('api.admin.resources.update', ['resourceKey' => $resourceKey, 'recordKey' => $this->recordKey($record)], false)
-                    : route('api.admin.resources.store', ['resourceKey' => $resourceKey], false),
-                'content_type' => 'multipart/form-data',
-                'slug_behavior' => 'not_applicable',
-                'defaults' => $defaults,
-                'current_media' => $record instanceof Inspiration ? $this->mediaState($record, ['main']) : null,
-                'fields' => $this->inspirationFields(),
-                'catalogs' => [],
-                'conditional_rules' => [],
             ],
             InstitutionResource::class => [
                 'resource_key' => $resourceKey,
@@ -320,11 +307,14 @@ class AdminResourceMutationService
             return $this->reportAdmin->rules($updating);
         }
 
+        if ($this->isInspirationResource($resourceClass)) {
+            return $this->inspirationAdmin->rules($updating);
+        }
+
         return match ($resourceClass) {
             AddressAreaResource::class => $this->addressAreaRules($updating),
             DonationChannelResource::class => $this->donationChannelRules($updating),
             EventResource::class => $this->eventRules($updating),
-            InspirationResource::class => $this->inspirationRules($updating),
             InstitutionResource::class => $this->institutionRules($updating),
             ReferenceResource::class => $this->referenceRules($updating),
             SeriesResource::class => $this->seriesRules($updating),
@@ -348,6 +338,13 @@ class AdminResourceMutationService
 
         if ($this->isReportResource($resourceClass)) {
             return $this->reportAdmin->normalize(
+                $validated,
+                $record instanceof Model ? (string) $record->getKey() : null,
+            );
+        }
+
+        if ($this->isInspirationResource($resourceClass)) {
+            return $this->inspirationAdmin->normalize(
                 $validated,
                 $record instanceof Model ? (string) $record->getKey() : null,
             );
@@ -399,11 +396,14 @@ class AdminResourceMutationService
             return $this->saveReport($validated);
         }
 
+        if ($this->isInspirationResource($resourceClass)) {
+            return $this->saveInspiration($resourceClass, $validated);
+        }
+
         return match ($resourceClass) {
             AddressAreaResource::class => $this->saveAddressAreaAction->handle($validated),
             DonationChannelResource::class => $this->saveDonationChannelAction->handle($validated),
             EventResource::class => $this->saveAdminEventAction->handle($validated, $actor),
-            InspirationResource::class => $this->saveInspirationAction->handle($validated),
             InstitutionResource::class => $this->saveInstitutionAction->handle($validated, $actor),
             ReferenceResource::class => $this->saveReferenceAction->handle($validated),
             SeriesResource::class => $this->saveSeriesAction->handle($validated),
@@ -424,6 +424,14 @@ class AdminResourceMutationService
             return $this->saveReport($validated, (string) $record->getKey());
         }
 
+        if ($this->isInspirationResource($resourceClass)) {
+            if (! $this->isInspirationModel($record)) {
+                throw new \RuntimeException('Expected inspiration record.');
+            }
+
+            return $this->saveInspiration($resourceClass, $validated, (string) $record->getKey());
+        }
+
         return match ($resourceClass) {
             AddressAreaResource::class => $record instanceof AddressArea
                 ? $this->saveAddressAreaAction->handle($validated, $record)
@@ -434,9 +442,6 @@ class AdminResourceMutationService
             EventResource::class => $record instanceof Event
                 ? $this->saveAdminEventAction->handle($validated, $actor, $record)
                 : throw new \RuntimeException('Expected event record.'),
-            InspirationResource::class => $record instanceof Inspiration
-                ? $this->saveInspirationAction->handle($validated, $record)
-                : throw new \RuntimeException('Expected inspiration record.'),
             InstitutionResource::class => $record instanceof Institution
                 ? $this->saveInstitutionAction->handle($validated, $actor, $record)
                 : throw new \RuntimeException('Expected institution record.'),
@@ -491,6 +496,10 @@ class AdminResourceMutationService
             return $this->reportAdmin->createDefaults();
         }
 
+        if ($this->isInspirationResource($resourceClass)) {
+            return $this->inspirationAdmin->createDefaults();
+        }
+
         return match ($resourceClass) {
             AddressAreaResource::class => [
                 'country_id' => null,
@@ -526,15 +535,6 @@ class AdminResourceMutationService
                 'clear_qr' => false,
             ],
             EventResource::class => $this->adminEventFormStateBuilder->defaultsForCreate(),
-            InspirationResource::class => [
-                'category' => InspirationCategory::QuranQuote->value,
-                'locale' => $this->defaultSupportedLocale(),
-                'title' => '',
-                'content' => Inspiration::plainTextToRichContent(''),
-                'source' => null,
-                'status' => 'active',
-                'clear_main' => false,
-            ],
             InstitutionResource::class => [
                 'type' => InstitutionType::Masjid->value,
                 'status' => InstitutionStatus::Pending->value,
@@ -602,7 +602,7 @@ class AdminResourceMutationService
      */
     private function defaultsForRecord(Model $record): array
     {
-        $defaults = $record instanceof AddressArea || $record instanceof DonationChannel || $record instanceof Inspiration || $this->isReportModel($record) || $record instanceof Series || $record instanceof Space
+        $defaults = $record instanceof AddressArea || $record instanceof DonationChannel || $this->isInspirationModel($record) || $this->isReportModel($record) || $record instanceof Series || $record instanceof Space
             ? []
             : $this->contributionEntityMutationService->stateFor($record);
 
@@ -623,20 +623,8 @@ class AdminResourceMutationService
             ];
         }
 
-        if ($record instanceof Inspiration) {
-            $category = $record->category;
-
-            $defaults = [
-                'category' => $category instanceof InspirationCategory
-                    ? $category->value
-                    : (is_string($category) && $category !== '' ? $category : InspirationCategory::QuranQuote->value),
-                'locale' => (string) $record->locale,
-                'title' => $record->title,
-                'content' => $record->content,
-                'source' => $record->source,
-                'status' => (string) $record->status,
-                'clear_main' => false,
-            ];
+        if ($this->isInspirationModel($record)) {
+            $defaults = $this->inspirationAdmin->defaultsFor((string) $record->getKey());
         }
 
         if ($record instanceof DonationChannel) {
@@ -797,6 +785,57 @@ class AdminResourceMutationService
     private function isReportModel(Model $record): bool
     {
         return $record::class === ReportModelClass::resolve();
+    }
+
+    /**
+     * @param  array<string, mixed>  $defaults
+     * @return array<string, mixed>
+     */
+    private function inspirationSchema(string $resourceKey, string $operation, ?Model $record, array $defaults): array
+    {
+        $updating = $operation === 'update';
+
+        return [
+            'resource_key' => $resourceKey,
+            'operation' => $operation,
+            'method' => $updating ? 'PUT' : 'POST',
+            'endpoint' => $updating && $record instanceof Model
+                ? route('api.admin.resources.update', ['resourceKey' => $resourceKey, 'recordKey' => $this->recordKey($record)], false)
+                : route('api.admin.resources.store', ['resourceKey' => $resourceKey], false),
+            'content_type' => 'multipart/form-data',
+            'slug_behavior' => 'not_applicable',
+            'defaults' => $defaults,
+            'current_media' => $record instanceof Model && $record instanceof HasMedia
+                ? $this->mediaState($record, $this->inspirationAdmin->mediaCollections())
+                : null,
+            'fields' => $this->inspirationAdmin->fields(),
+            'catalogs' => [],
+            'conditional_rules' => [],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    private function saveInspiration(string $resourceClass, array $validated, ?string $inspirationId = null): Model
+    {
+        $snapshot = $this->inspirationAdmin->save($validated, $inspirationId);
+        $modelClass = $resourceClass::getModel();
+
+        return $modelClass::query()->with(['media'])->findOrFail($snapshot->id);
+    }
+
+    /**
+     * @param  class-string  $resourceClass
+     */
+    private function isInspirationResource(string $resourceClass): bool
+    {
+        return $resourceClass::getModel() === $this->inspirationAdmin->modelClass();
+    }
+
+    private function isInspirationModel(Model $record): bool
+    {
+        return $record::class === $this->inspirationAdmin->modelClass();
     }
 
     /**
@@ -1367,28 +1406,6 @@ class AdminResourceMutationService
             $this->field('gallery', 'array<file>', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
             $this->field('clear_cover', 'boolean', required: false, default: false),
             $this->field('clear_gallery', 'boolean', required: false, default: false),
-        ];
-    }
-
-    /**
-     * @return array<int, array<string, mixed>>
-     */
-    private function inspirationFields(): array
-    {
-        return [
-            $this->field('category', 'string', required: true, default: InspirationCategory::QuranQuote->value, allowedValues: $this->enumValues(InspirationCategory::class)),
-            $this->field('locale', 'string', required: true, default: $this->defaultSupportedLocale(), allowedValues: $this->supportedLocaleValues()),
-            $this->field('title', 'string', required: true, maxLength: 255),
-            $this->field('content', 'rich_text', required: true, meta: [
-                'input_normalization' => [
-                    'kind' => 'rich_text_document',
-                    'accepts_plain_string' => true,
-                ],
-            ]),
-            $this->field('source', 'string', required: false, maxLength: 255, meta: $this->trimmedStringMutationMeta()),
-            $this->field('status', 'string', required: false, default: 'active', allowedValues: ['active', 'inactive']),
-            $this->field('main', 'file', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb(), meta: $this->singleMediaFieldMutationMeta('clear_main')),
-            $this->field('clear_main', 'boolean', required: false, default: false),
         ];
     }
 
@@ -2156,26 +2173,6 @@ class AdminResourceMutationService
     /**
      * @return array<string, mixed>
      */
-    private function inspirationRules(bool $updating): array
-    {
-        $required = $updating ? 'required' : 'required';
-        $maxUploadSize = 'max:'.$this->maxUploadSizeKb();
-
-        return [
-            'category' => [$required, Rule::enum(InspirationCategory::class)],
-            'locale' => [$required, 'string', Rule::in($this->supportedLocaleValues())],
-            'title' => [$required, 'string', 'max:255'],
-            'content' => [$required],
-            'source' => ['nullable', 'string', 'max:255'],
-            'status' => ['sometimes', Rule::in(['active', 'inactive'])],
-            'main' => ['nullable', 'file', 'mimetypes:image/jpeg,image/png,image/webp', $maxUploadSize],
-            'clear_main' => ['sometimes', 'boolean'],
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
     private function personRules(bool $updating): array
     {
         $addressRule = $updating ? ['sometimes', 'array'] : ['present', 'array'];
@@ -2378,35 +2375,5 @@ class AdminResourceMutationService
             'women_section',
             'ablution_area',
         ];
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function supportedLocaleValues(): array
-    {
-        $locales = config('app.supported_locales', []);
-
-        if (! is_array($locales) || $locales === []) {
-            return [app()->getLocale() ?: 'ms'];
-        }
-
-        if (array_is_list($locales)) {
-            return array_values(array_filter($locales, static fn (mixed $locale): bool => is_string($locale) && $locale !== ''));
-        }
-
-        return array_values(array_filter(array_keys($locales), static fn (mixed $locale): bool => is_string($locale) && $locale !== ''));
-    }
-
-    private function defaultSupportedLocale(): string
-    {
-        $supportedLocales = $this->supportedLocaleValues();
-        $appLocale = app()->getLocale();
-
-        if (is_string($appLocale) && in_array($appLocale, $supportedLocales, true)) {
-            return $appLocale;
-        }
-
-        return $supportedLocales[0] ?? 'ms';
     }
 }

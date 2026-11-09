@@ -20,13 +20,11 @@ use App\Data\Api\Frontend\Search\VenueDetailData;
 use App\Enums\DonationChannelStatus;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventVisibility;
-use App\Enums\InspirationCategory;
 use App\Enums\InstitutionStatus;
 use App\Enums\InstitutionType;
 use App\Models\DonationChannel;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
-use App\Models\Inspiration;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
@@ -438,29 +436,6 @@ class SearchController extends FrontendController
                     'total' => $followingTotal,
                 ],
                 'cache' => $personDirectoryCache,
-            ],
-        ]);
-    }
-
-    #[Group('Inspiration', 'Public inspiration discovery endpoints for random featured inspiration content.')]
-    #[Endpoint(
-        title: 'Get a random inspiration',
-        description: 'Returns one random active inspiration record, localized when a `locale` query value is provided.',
-    )]
-    public function randomInspiration(Request $request): JsonResponse
-    {
-        $locale = $this->searchRequestNormalizer->normalizedString($request->query('locale'));
-        $record = Inspiration::query()
-            ->with('media')
-            ->active()
-            ->forLocale($locale)
-            ->inRandomOrder()
-            ->first();
-
-        return response()->json([
-            'data' => $record ? $this->inspirationData($record) : null,
-            'meta' => [
-                'locale' => $locale ?? app()->getLocale(),
             ],
         ]);
     }
@@ -1596,42 +1571,6 @@ class SearchController extends FrontendController
     /**
      * @return array<string, mixed>
      */
-    private function inspirationData(Inspiration $inspiration): array
-    {
-        $category = $inspiration->category;
-
-        if (! $category instanceof InspirationCategory) {
-            $category = InspirationCategory::from((string) $category);
-        }
-
-        $contentHtml = $inspiration->renderContentHtml();
-        $contentText = trim(strip_tags($contentHtml));
-        $thumbUrl = $inspiration->getFirstMediaUrl('main', 'thumb') ?: null;
-        $fullUrl = $inspiration->getFirstMediaUrl('main') ?: null;
-
-        return [
-            'id' => $inspiration->id,
-            'locale' => $inspiration->locale,
-            'title' => $inspiration->title,
-            'content' => $contentText,
-            'content_html' => $contentHtml,
-            'preview_text' => $inspiration->contentPreviewText(160),
-            'source' => $inspiration->source,
-            'category' => [
-                'value' => $category->value,
-                'label' => $category->label(),
-                'icon' => $category->icon(),
-                'color' => $category->color(),
-                'is_comic' => $category === InspirationCategory::IslamicComic,
-            ],
-            'media' => [
-                'thumb_url' => $thumbUrl,
-                'full_url' => $fullUrl,
-                'has_media' => $thumbUrl !== null,
-            ],
-        ];
-    }
-
     /** @return array{id: string, name: string, display_name: string, slug: string, position: ?string, is_primary: bool, public_image_url: string, logo_url: string, cover_url: ?string} */
     private function personInstitutionData(Institution $institution): array
     {

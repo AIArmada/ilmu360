@@ -1,9 +1,11 @@
 <?php
 
-namespace App\Filament\Resources\Inspirations\Tables;
+namespace App\Features\Inspirations\EntryPoints\Filament\Resources\Inspirations\Tables;
 
-use App\Enums\InspirationCategory;
-use App\Models\Inspiration;
+use App\Features\Inspirations\Actions\DeleteInspirationsAction;
+use App\Features\Inspirations\Actions\ToggleInspirationStatusAction;
+use App\Features\Inspirations\Enums\InspirationCategory;
+use App\Features\Inspirations\Models\Inspiration;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -93,14 +95,15 @@ class InspirationsTable
                                     return;
                                 }
 
-                                $record->update([
-                                    'status' => (string) $record->status === 'active' ? 'inactive' : 'active',
-                                ]);
+                                app(ToggleInspirationStatusAction::class)->handle($record);
                             });
                         })
                         ->deselectRecordsAfterCompletion(),
                     DeleteBulkAction::make()
-                        ->authorizeIndividualRecords('delete'),
+                        ->authorizeIndividualRecords('delete')
+                        ->using(function (Collection $records): void {
+                            app(DeleteInspirationsAction::class)->handle($records->pluck('id')->all());
+                        }),
                 ]),
             ]);
     }

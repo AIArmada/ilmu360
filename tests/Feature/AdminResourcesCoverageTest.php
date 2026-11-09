@@ -7,12 +7,12 @@ use AIArmada\FilamentEvents\RelationManagers\EventsRelationManager as SeriesEven
 use AIArmada\FilamentEvents\Resources\EventResource;
 use AIArmada\FilamentEvents\Resources\EventTemplateResource;
 use AIArmada\FilamentEvents\Resources\EventTemplateResource\Pages\CreateEventTemplate;
+use App\Features\Inspirations\EntryPoints\Filament\Resources\Inspirations\InspirationResource;
 use App\Features\Reports\EntryPoints\Filament\Resources\Reports\ReportResource;
 use App\Filament\Resources\AiModelPricings\AiModelPricingResource;
 use App\Filament\Resources\AiUsageLogs\AiUsageLogResource;
 use App\Filament\Resources\ContributionRequests\ContributionRequestResource;
 use App\Filament\Resources\DonationChannels\DonationChannelResource;
-use App\Filament\Resources\Inspirations\InspirationResource;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Filament\Resources\Institutions\RelationManagers\DonationChannelsRelationManager as InstitutionDonationChannelsRelationManager;
 use App\Filament\Resources\Institutions\RelationManagers\MemberInvitationsRelationManager as InstitutionMemberInvitationsRelationManager;

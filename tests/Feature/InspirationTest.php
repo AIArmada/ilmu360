@@ -1,9 +1,13 @@
 <?php
 
-use App\Enums\InspirationCategory;
-use App\Filament\Resources\Inspirations\InspirationResource;
+use App\Features\Inspirations\Actions\SaveInspirationAction;
+use App\Features\Inspirations\EntryPoints\Filament\Resources\Inspirations\InspirationResource;
+use App\Features\Inspirations\EntryPoints\Filament\Resources\Inspirations\Pages\CreateInspiration;
+use App\Features\Inspirations\EntryPoints\Filament\Resources\Inspirations\Pages\EditInspiration;
+use App\Features\Inspirations\EntryPoints\Filament\Resources\Inspirations\Pages\ListInspirations;
+use App\Features\Inspirations\Enums\InspirationCategory;
+use App\Features\Inspirations\Models\Inspiration;
 use App\Models\Event;
-use App\Models\Inspiration;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
@@ -12,6 +16,9 @@ use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Livewire\Livewire;
 
 beforeEach(function () {
     Storage::fake('public');
@@ -204,4 +211,178 @@ it('allows super admin to access inspiration admin index', function () {
     $this->actingAs($admin)
         ->get(InspirationResource::getUrl('index'))
         ->assertSuccessful();
+});
+
+it('creates inspirations through the Filament resource action with trimmed values and media', function () {
+    $this->seed(PermissionSeeder::class);
+    $this->seed(RoleSeeder::class);
+
+    $admin = User::factory()->create();
+    $admin->assignRole('super_admin');
+
+    Livewire::actingAs($admin)
+        ->test(CreateInspiration::class)
+        ->fillForm([
+            'category' => InspirationCategory::QuranQuote->value,
+            'locale' => 'ms',
+            'title' => '  Trimmed Filament Inspiration  ',
+            'content' => ['type' => 'doc', 'content' => [[
+                'type' => 'paragraph',
+                'content' => [['type' => 'text', 'text' => 'Filament content body.']],
+            ]]],
+            'source' => '  Filament Source  ',
+            'status' => 'active',
+        ])
+        ->set('data.main', [TemporaryUploadedFile::fake()->image('filament-inspiration.jpg', 1200, 900)])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    $inspiration = Inspiration::query()->where('title', 'Trimmed Filament Inspiration')->firstOrFail();
+
+    expect($inspiration->source)->toBe('Filament Source')
+        ->and($inspiration->content['content'][0]['content'][0]['text'] ?? null)->toBe('Filament content body.')
+        ->and($inspiration->getMedia('main'))->toHaveCount(1);
+});
+
+it('updates inspirations through the Filament resource action and replaces the main media', function () {
+    $this->seed(PermissionSeeder::class);
+    $this->seed(RoleSeeder::class);
+
+    $admin = User::factory()->create();
+    $admin->assignRole('super_admin');
+
+    $inspiration = Inspiration::factory()->create([
+        'title' => 'Original Filament Inspiration',
+        'source' => 'Original Source',
+    ]);
+    $inspiration->addMedia(UploadedFile::fake()->image('original-inspiration.jpg', 1200, 900))
+        ->toMediaCollection('main');
+    $originalMediaId = $inspiration->getFirstMedia('main')?->getKey();
+
+    Livewire::actingAs($admin)
+        ->test(EditInspiration::class, ['record' => $inspiration->getRouteKey()])
+        ->fillForm([
+            'title' => '  Updated Filament Inspiration  ',
+            'source' => '   ',
+            'content' => ['type' => 'doc', 'content' => [[
+                'type' => 'paragraph',
+                'content' => [['type' => 'text', 'text' => 'Updated Filament content.']],
+            ]]],
+        ])
+        ->set('data.main', [TemporaryUploadedFile::fake()->image('replacement-inspiration.jpg', 1200, 900)])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    $inspiration->refresh();
+
+    expect($inspiration->title)->toBe('Updated Filament Inspiration')
+        ->and($inspiration->source)->toBeNull()
+        ->and($inspiration->content['content'][0]['content'][0]['text'] ?? null)->toBe('Updated Filament content.')
+        ->and($inspiration->getMedia('main'))->toHaveCount(1)
+        ->and($inspiration->getFirstMedia('main')?->getKey())->not->toBe($originalMediaId);
+});
+
+it('deletes a single inspiration from the Filament edit header action', function () {
+    $this->seed(PermissionSeeder::class);
+    $this->seed(RoleSeeder::class);
+
+    $admin = User::factory()->create();
+    $admin->assignRole('super_admin');
+
+    $selected = Inspiration::factory()->create();
+    $survivor = Inspiration::factory()->create();
+
+    Livewire::actingAs($admin)
+        ->test(EditInspiration::class, ['record' => $selected->getRouteKey()])
+        ->callAction('delete');
+
+    $this->assertModelMissing($selected);
+    $this->assertModelExists($survivor);
+});
+
+it('toggles every selected inspiration from the Filament table bulk action', function () {
+    $this->seed(PermissionSeeder::class);
+    $this->seed(RoleSeeder::class);
+
+    $admin = User::factory()->create();
+    $admin->assignRole('super_admin');
+
+    $active = Inspiration::factory()->create(['status' => 'active']);
+    $inactive = Inspiration::factory()->inactive()->create();
+
+    Livewire::actingAs($admin)
+        ->test(ListInspirations::class)
+        ->callTableBulkAction('toggleStatus', [$active, $inactive])
+        ->assertHasNoTableBulkActionErrors();
+
+    expect((string) $active->fresh()->status)->toBe('inactive')
+        ->and((string) $inactive->fresh()->status)->toBe('active');
+});
+
+it('deletes only the selected inspirations from the Filament table bulk action', function () {
+    $this->seed(PermissionSeeder::class);
+    $this->seed(RoleSeeder::class);
+
+    $admin = User::factory()->create();
+    $admin->assignRole('super_admin');
+
+    $first = Inspiration::factory()->create();
+    $second = Inspiration::factory()->create();
+    $survivor = Inspiration::factory()->create();
+
+    Livewire::actingAs($admin)
+        ->test(ListInspirations::class)
+        ->callTableBulkAction('delete', [$first, $second])
+        ->assertHasNoTableBulkActionErrors();
+
+    $this->assertModelMissing($first);
+    $this->assertModelMissing($second);
+    $this->assertModelExists($survivor);
+});
+
+it('normalizes and revalidates inspiration input through the save action', function () {
+    $action = app(SaveInspirationAction::class);
+
+    $inspiration = $action->handle([
+        'category' => InspirationCategory::HadithQuote,
+        'locale' => 'ms',
+        'title' => '  Direct Save Title  ',
+        'content' => 'Direct save content.',
+        'source' => '   ',
+        'status' => 'active',
+    ]);
+
+    expect($inspiration->title)->toBe('Direct Save Title')
+        ->and($inspiration->source)->toBeNull();
+
+    expect(fn () => $action->handle([
+        'category' => 'invalid_category',
+        'locale' => 'ms',
+        'title' => 'Invalid category',
+        'content' => 'Content.',
+    ]))->toThrow(ValidationException::class);
+
+    expect(fn () => $action->handle([
+        'category' => InspirationCategory::QuranQuote->value,
+        'locale' => 'invalid_locale',
+        'title' => 'Invalid locale',
+        'content' => 'Content.',
+    ]))->toThrow(ValidationException::class);
+});
+
+it('denies bulk inspiration deletion to moderators and preserves the records', function () {
+    $this->seed(PermissionSeeder::class);
+    $this->seed(RoleSeeder::class);
+
+    $moderator = User::factory()->create();
+    $moderator->assignRole('moderator');
+
+    $inspiration = Inspiration::factory()->create();
+
+    Livewire::actingAs($moderator)
+        ->test(ListInspirations::class)
+        ->assertCanSeeTableRecords([$inspiration])
+        ->assertTableBulkActionHidden('delete');
+
+    $this->assertModelExists($inspiration);
 });

@@ -102,7 +102,6 @@ use App\Models\DonationChannel;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\EventSubmission;
-use App\Models\Inspiration;
 use App\Models\Institution;
 use App\Models\Language;
 use App\Models\MediaLink;
@@ -520,7 +519,6 @@ class AppServiceProvider extends ServiceProvider
             'venue' => Venue::class,
             'donation_channel' => DonationChannel::class,
             'reference' => Reference::class,
-            'inspiration' => Inspiration::class,
             'organization' => Organization::class,
             'inventory_location' => InventoryLocation::class,
             'inventory_level' => InventoryLevel::class,
