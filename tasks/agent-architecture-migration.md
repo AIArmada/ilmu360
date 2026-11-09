@@ -5,7 +5,7 @@
 ## Resume here
 
 - Current checkpoint: the whole **ilmu360°** application conversion remains incomplete. Branch `refactor`.
-- Latest accepted implementation checkpoint `0bf48dde` — Identity I1 lifecycle cutover (mutually agreed). Previous `8818749d` — I0 seams.
+- Latest accepted implementation checkpoint `2cc98c38` — Identity I2 foundation (mutually agreed). Previous `0bf48dde` — I1.
 - Done: GitHubIssues; Prayer; Saved Searches persistence, core, query/execution boundaries, attribution orchestration, identity/helpers, atomic transport/page cutover.
 - Do not reintroduce `User::savedSearches()`, a mutable Event paginator across the execution boundary, duplicate key lists, or obsolete taxonomy/addressing aliases.
 - Latest passing evidence (5d.2c.3b): Boundary 9/64 + Api 35/156 + Page 27/99 + Ownership 5/19 + Wp2Lifecycle 25/225 + UiFeedback 4/13 + string-alias 1/4 green; architecture-check 0 violations; PHPStan level 6 0 errors; Pint clean; 7/7 routes unique uncached + cached with preserved middleware order; route cache cleared. Detailed logs in history.
@@ -13,7 +13,7 @@
 ## Next action — Identity/accounts (Inspirations complete)
 
 - Saved Searches 5d.2c.3b is done and committed (`69244285`, DeepSeek-implemented + orchestrator-verified, mutual agreement at every commit). Remaining verification: scoped Rector on touched scopes (deferred — run before leaving the area).
-- Next: I2 Identity feature foundation (SocialAccount/signup-attribution/prayer-preference moves + Identity Api) with fresh bounded DeepSeek tasks. Stage gates per slice as before.
+- Next: I3 Directory + Membership restoration cutover (verifier links, pivots, scoped roles, MemberPermissionGate migration) with fresh bounded DeepSeek tasks. Stage gates per slice as before.
 - Full whole-app conversion remains open; 5d.2c.3b is complete.
 
 ## Execution ownership and required reading
