@@ -1,8 +1,11 @@
 <?php
 
+use App\Models\AppFeedback;
+use App\Models\AppFeedbackMessage;
 use App\Models\Event;
 use App\Models\Report;
 use App\Models\User;
+use App\Notifications\AppFeedbackRepliedNotification;
 use App\Notifications\Auth\ResetPasswordNotification;
 use App\Notifications\Auth\VerifyEmailNotification;
 use App\Notifications\Auth\WelcomeNotification;
@@ -41,13 +44,21 @@ it('keeps the mail-capable notifications on the notifications-mail queue', funct
         'status' => 'resolved',
     ]);
 
+    $feedback = AppFeedback::factory()->create();
+    $message = AppFeedbackMessage::factory()->create([
+        'feedback_id' => $feedback->getKey(),
+        'author_role' => 'maintainer',
+        'visibility' => 'reporter',
+    ]);
+
     expect((new WelcomeNotification)->viaQueues()['mail'])->toBe('notifications-mail')
         ->and((new VerifyEmailNotification)->viaQueues()['mail'])->toBe('notifications-mail')
         ->and(new ResetPasswordNotification('token')->viaQueues()['mail'])->toBe('notifications-mail')
         ->and(new MemberInvitationNotification('Aisyah', 'Institution', 'Masjid Al-Falah', 'Admin', 'invitee@example.test', 'https://example.test/invite')->viaQueues()['mail'])->toBe('notifications-mail')
         ->and(new EventSubmittedNotification($event)->viaQueues()['mail'])->toBe('notifications-mail')
         ->and(new EventEscalationNotification($event, 'priority')->viaQueues()['mail'])->toBe('notifications-mail')
-        ->and(new ReportResolvedNotification($report)->viaQueues()['mail'])->toBe('notifications-mail');
+        ->and(new ReportResolvedNotification($report)->viaQueues()['mail'])->toBe('notifications-mail')
+        ->and(new AppFeedbackRepliedNotification($feedback, $message)->viaQueues()['mail'])->toBe('notifications-mail');
 });
 
 it('renders report resolved emails with localized copy and an action url', function () {

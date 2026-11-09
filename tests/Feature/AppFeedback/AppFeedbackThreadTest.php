@@ -26,16 +26,16 @@ it('lets the reporter reply to their own feedback', function () {
         ->and($message->body)->toBe('Maklumat tambahan: berlaku di Chrome.');
 });
 
-it('rejects replies to closed feedback', function () {
+it('rejects replies to closed feedback', function (string $state) {
     $owner = User::factory()->create();
 
-    $feedback = AppFeedback::factory()->resolved()->create([
+    $feedback = AppFeedback::factory()->{$state}()->create([
         'reporter_id' => $owner->getKey(),
     ]);
 
     expect(fn () => app(PostAppFeedbackMessageAction::class)->handle($owner, $feedback, 'Maklumat tambahan.'))
         ->toThrow(ValidationException::class);
-});
+})->with(['resolved', 'declined']);
 
 it('prevents other members from replying to someone else feedback', function () {
     $owner = User::factory()->create();
@@ -89,7 +89,7 @@ it('does not email a maintainer about their own reply', function () {
     Notification::assertNothingSent();
 });
 
-it('still saves the message when the reply email fails', function () {
+it('still saves the message when the reply email dispatch fails', function () {
     Notification::shouldReceive('send')->once()->andThrow(new RuntimeException('mail transport down'));
     Log::shouldReceive('warning')->once();
 
@@ -101,4 +101,19 @@ it('still saves the message when the reply email fails', function () {
 
     expect($message->exists)->toBeTrue()
         ->and($feedback->messages()->count())->toBe(1);
+});
+
+it('rejects a reply when the feedback was closed after it was loaded', function () {
+    $owner = User::factory()->create();
+
+    $stale = AppFeedback::factory()->create([
+        'reporter_id' => $owner->getKey(),
+    ]);
+
+    AppFeedback::query()->whereKey($stale->getKey())->update(['status' => 'declined']);
+
+    expect(fn () => app(PostAppFeedbackMessageAction::class)->handle($owner, $stale, 'Balasan lewat.'))
+        ->toThrow(ValidationException::class);
+
+    expect($stale->messages()->count())->toBe(0);
 });

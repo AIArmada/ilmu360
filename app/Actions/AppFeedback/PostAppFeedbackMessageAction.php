@@ -9,6 +9,7 @@ use App\Models\AppFeedback;
 use App\Models\AppFeedbackMessage;
 use App\Models\User;
 use App\Notifications\AppFeedbackRepliedNotification;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
@@ -38,19 +39,36 @@ class PostAppFeedbackMessageAction
             'body' => ['required', 'string', 'min:3', 'max:2000'],
         ])->validate();
 
-        $message = new AppFeedbackMessage;
-        $message->fill([
-            'author_role' => $author->hasGlobalAdminAccess() ? 'maintainer' : 'reporter',
-            'visibility' => 'reporter',
-            'body' => $validated['body'],
-        ]);
-        $message->forceFill([
-            'feedback_id' => $feedback->getKey(),
-            'author_id' => $author->getKey(),
-        ]);
-        $message->save();
+        /** @var array{0: AppFeedbackMessage, 1: AppFeedback} $result */
+        $result = DB::transaction(function () use ($author, $feedback, $validated): array {
+            $lockedFeedback = AppFeedback::query()
+                ->lockForUpdate()
+                ->findOrFail($feedback->getKey());
 
-        $this->notifyReporterOfReply($feedback, $message, $author);
+            if (! in_array($lockedFeedback->status, [AppFeedbackStatus::New, AppFeedbackStatus::Triaged], true)) {
+                throw ValidationException::withMessages([
+                    'body' => __('app-feedback.validation.invalid_transition'),
+                ]);
+            }
+
+            $message = new AppFeedbackMessage;
+            $message->fill([
+                'author_role' => $author->hasGlobalAdminAccess() ? 'maintainer' : 'reporter',
+                'visibility' => 'reporter',
+                'body' => $validated['body'],
+            ]);
+            $message->forceFill([
+                'feedback_id' => $lockedFeedback->getKey(),
+                'author_id' => $author->getKey(),
+            ]);
+            $message->save();
+
+            return [$message, $lockedFeedback];
+        });
+
+        [$message, $lockedFeedback] = $result;
+
+        $this->notifyReporterOfReply($lockedFeedback, $message, $author);
 
         return $message;
     }
