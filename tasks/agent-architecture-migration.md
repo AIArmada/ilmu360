@@ -10,10 +10,10 @@
 - Do not reintroduce `User::savedSearches()`, a mutable Event paginator across the execution boundary, duplicate key lists, or obsolete taxonomy/addressing aliases.
 - Latest passing evidence (5d.2c.3b): Boundary 9/64 + Api 35/156 + Page 27/99 + Ownership 5/19 + Wp2Lifecycle 25/225 + UiFeedback 4/13 + string-alias 1/4 green; architecture-check 0 violations; PHPStan level 6 0 errors; Pint clean; 7/7 routes unique uncached + cached with preserved middleware order; route cache cleared. Detailed logs in history.
 
-## Next action — Feedback/reports (5d.2c.3b complete)
+## Next action — Inspirations (feedback/reports complete)
 
 - Saved Searches 5d.2c.3b is done and committed (`69244285`, DeepSeek-implemented + orchestrator-verified, mutual agreement at every commit). Remaining verification: scoped Rector on touched scopes (deferred — run before leaving the area).
-- Next: Reports Slice 3 cleanup (old dirs/aliases/imports/config duplicates, stale tests) + final verification, then Inspirations (Save action + Filament persistence + frontend/API readers). Stage gates per slice as before.
+- Next: Inspirations (app-owned table, Save action, Filament persistence, frontend/API readers) — trace then convert per stage gates.
 - Full whole-app conversion remains open; 5d.2c.3b is complete.
 
 ## Execution ownership and required reading
@@ -37,7 +37,7 @@
 ## Remaining application parts
 
 - [x] Saved Searches: persistence, core, query/execution boundaries, attribution orchestration, identity/generic helpers, atomic transport/page cutover (done `69244285`; evidence in history).
-- [ ] Feedback/reports: conversations, report lifecycle, review and notification adapters. **E0 ownership map done** (DeepSeek research, orchestrator-accepted): two features — `Feedback` (`app_feedback` + `app_feedback_messages`) and `Reports` (`reports`); `ModerationReview` stays with Events/package (no new moderation table). Hard prerequisites first (Slice 0 seams): identity actor/directory seam, media collection-sync contract, generic signals recorder, admin exclusion marker + Filament registry (unblock Feedback); report subject resolver + escalation contract, Platform auditing, Reports admin/MCP Api (unblock Reports). Temporary global adapters where Directory/Events APIs are pending — not feature exceptions.
+- [x] Feedback/reports: Slice 0 seams, Slice 1 Feedback feature, Slice 2a Reports move + composition, Slice 3 cleanup verified (arch 0/5, PHPStan 0, routes 738/736, AppFeedback 88/429 + report/lifecycle/admin suites green). `ModerationReview` stays with Events/package. Interim seams: GlobalReportSubjectResolver/GlobalReportEscalation until Directory/Events APIs exist.
 - [ ] Inspirations: app-owned table, Save action, Filament persistence and frontend/API readers.
 - [ ] Identity/accounts: User/social accounts, auth/OAuth/Fortify, account lifecycle/restoration and public identity contracts.
 - [ ] Platform/shared seams: media, geography/addressing, timezone, generic API responses, search and auditing integration; no concrete feature imports in Platform/Shared.
