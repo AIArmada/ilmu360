@@ -5,7 +5,7 @@
 ## Resume here
 
 - Current checkpoint: the whole **ilmu360°** application conversion remains incomplete. Branch `refactor`.
-- Latest accepted implementation checkpoint `d44f918b` — Feedback feature move (Slice 1, mutually agreed). Previous `49a2e424` — Slice 0 seams.
+- Latest accepted implementation checkpoint `9ad6b05b` — Reports seams + auditing + admin/MCP Api (0e/0f reconciled, mutually agreed). Previous `d44f918b` — Feedback feature.
 - Done: GitHubIssues; Prayer; Saved Searches persistence, core, query/execution boundaries, attribution orchestration, identity/helpers, atomic transport/page cutover.
 - Do not reintroduce `User::savedSearches()`, a mutable Event paginator across the execution boundary, duplicate key lists, or obsolete taxonomy/addressing aliases.
 - Latest passing evidence (5d.2c.3b): Boundary 9/64 + Api 35/156 + Page 27/99 + Ownership 5/19 + Wp2Lifecycle 25/225 + UiFeedback 4/13 + string-alias 1/4 green; architecture-check 0 violations; PHPStan level 6 0 errors; Pint clean; 7/7 routes unique uncached + cached with preserved middleware order; route cache cleared. Detailed logs in history.
@@ -13,7 +13,7 @@
 ## Next action — Feedback/reports (5d.2c.3b complete)
 
 - Saved Searches 5d.2c.3b is done and committed (`69244285`, DeepSeek-implemented + orchestrator-verified, mutual agreement at every commit). Remaining verification: scoped Rector on touched scopes (deferred — run before leaving the area).
-- Next: Reports Slice 2 (2a persistence + entry points, 2b admin/MCP composition, 2c resolver cutover) once Slice 0e/0f land; then final cleanup. Stage gates per slice as before.
+- Next: Reports Slice 2 (2a persistence + entry points — lifecycle done, models/actions/policies/notifications/Livewire/API controller/Filament still to move; 2b composition already cut over; 2c resolver cutover when Directory/Events APIs exist) then Slice 3 cleanup. Then Inspirations. Stage gates per slice as before.
 - Full whole-app conversion remains open; 5d.2c.3b is complete.
 
 ## Execution ownership and required reading
