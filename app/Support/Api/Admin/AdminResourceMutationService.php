@@ -22,9 +22,6 @@ use App\Actions\Inspirations\SaveInspirationAction;
 use App\Actions\Institutions\SaveInstitutionAction;
 use App\Actions\Persons\SavePersonAction;
 use App\Actions\References\SaveReferenceAction;
-use App\Actions\Reports\ResolveReportCategoryOptionsAction;
-use App\Actions\Reports\ResolveReportEntityMetadataAction;
-use App\Actions\Reports\SaveReportAction;
 use App\Actions\Series\SaveSeriesAction;
 use App\Actions\Spaces\SaveSpaceAction;
 use App\Actions\Venues\SaveVenueAction;
@@ -43,6 +40,7 @@ use App\Enums\ReferencePartType;
 use App\Enums\ReferenceType;
 use App\Enums\RegistrationScope;
 use App\Enums\VenueType;
+use App\Features\Reports\Api\ReportAdminContract;
 use App\Filament\Resources\DonationChannels\DonationChannelResource;
 use App\Filament\Resources\Inspirations\InspirationResource;
 use App\Filament\Resources\Institutions\InstitutionResource;
@@ -66,6 +64,7 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Services\ContributionEntityMutationService;
 use App\Shared\Prayer\EventPrayerTime;
+use App\Support\Api\Admin\Concerns\BuildsAdminFieldMetadata;
 use App\Support\Events\AdminEventFormStateBuilder;
 use App\Support\Institutions\InstitutionFacilities;
 use BackedEnum;
@@ -79,17 +78,17 @@ use Spatie\MediaLibrary\HasMedia;
 
 class AdminResourceMutationService
 {
+    use BuildsAdminFieldMetadata;
+
     public function __construct(
         private readonly ContributionEntityMutationService $contributionEntityMutationService,
-        private readonly ResolveReportCategoryOptionsAction $resolveReportCategoryOptionsAction,
-        private readonly ResolveReportEntityMetadataAction $resolveReportEntityMetadataAction,
+        private readonly ReportAdminContract $reportAdmin,
         private readonly SaveAddressAreaAction $saveAddressAreaAction,
         private readonly SaveDonationChannelAction $saveDonationChannelAction,
         private readonly SaveAdminEventAction $saveAdminEventAction,
         private readonly AdminEventFormStateBuilder $adminEventFormStateBuilder,
         private readonly SaveInspirationAction $saveInspirationAction,
         private readonly SaveInstitutionAction $saveInstitutionAction,
-        private readonly SaveReportAction $saveReportAction,
         private readonly SaveReferenceAction $saveReferenceAction,
         private readonly SaveSeriesAction $saveSeriesAction,
         private readonly SavePersonAction $savePersonAction,
@@ -241,7 +240,7 @@ class AdminResourceMutationService
                 'slug_behavior' => 'not_applicable',
                 'defaults' => $defaults,
                 'current_media' => $record instanceof Report ? $this->mediaState($record, ['evidence']) : null,
-                'fields' => $this->reportFields(),
+                'fields' => $this->reportAdmin->fields(),
                 'catalogs' => [],
                 'conditional_rules' => [
                     ['field' => 'description', 'required_when' => ['category' => ['other']]],
@@ -323,7 +322,7 @@ class AdminResourceMutationService
             InspirationResource::class => $this->inspirationRules($updating),
             InstitutionResource::class => $this->institutionRules($updating),
             ReferenceResource::class => $this->referenceRules($updating),
-            ReportResource::class => $this->reportRules($updating),
+            ReportResource::class => $this->reportAdmin->rules($updating),
             SeriesResource::class => $this->seriesRules($updating),
             PersonResource::class => $this->personRules($updating),
             SpaceResource::class => $this->spaceRules($updating),
@@ -344,7 +343,10 @@ class AdminResourceMutationService
         }
 
         if ($resourceClass === ReportResource::class) {
-            return $this->normalizeReportPayload($validated);
+            return $this->reportAdmin->normalize(
+                $validated,
+                $record instanceof Report ? (string) $record->getKey() : null,
+            );
         }
 
         if (! in_array($resourceClass, [InstitutionResource::class, PersonResource::class], true)) {
@@ -396,7 +398,7 @@ class AdminResourceMutationService
             InspirationResource::class => $this->saveInspirationAction->handle($validated),
             InstitutionResource::class => $this->saveInstitutionAction->handle($validated, $actor),
             ReferenceResource::class => $this->saveReferenceAction->handle($validated),
-            ReportResource::class => $this->saveReportAction->handle($validated),
+            ReportResource::class => $this->saveReport($validated),
             SeriesResource::class => $this->saveSeriesAction->handle($validated),
             PersonResource::class => $this->savePersonAction->handle($validated, $actor),
             SpaceResource::class => $this->saveSpaceAction->handle($validated),
@@ -431,7 +433,7 @@ class AdminResourceMutationService
                 ? $this->saveReferenceAction->handle($validated, $record)
                 : throw new \RuntimeException('Expected reference record.'),
             ReportResource::class => $record instanceof Report
-                ? $this->saveReportAction->handle($validated, $record)
+                ? $this->saveReport($validated, (string) $record->getKey())
                 : throw new \RuntimeException('Expected report record.'),
             SeriesResource::class => $record instanceof Series
                 ? $this->saveSeriesAction->handle($validated, $record)
@@ -538,17 +540,7 @@ class AdminResourceMutationService
                 'clear_back_cover' => false,
                 'clear_gallery' => false,
             ],
-            ReportResource::class => [
-                'entity_type' => 'event',
-                'entity_id' => null,
-                'category' => 'wrong_info',
-                'description' => null,
-                'status' => 'open',
-                'reporter_id' => null,
-                'handled_by' => null,
-                'resolution_note' => null,
-                'clear_evidence' => false,
-            ],
+            ReportResource::class => $this->reportAdmin->createDefaults(),
             SeriesResource::class => [
                 'title' => '',
                 'slug' => '',
@@ -659,17 +651,7 @@ class AdminResourceMutationService
         }
 
         if ($record instanceof Report) {
-            $defaults = [
-                'entity_type' => (string) $record->entity_type,
-                'entity_id' => (string) $record->entity_id,
-                'category' => (string) $record->category,
-                'description' => $record->description,
-                'status' => (string) $record->getAttribute('status'),
-                'reporter_id' => $record->reporter_id !== null ? (string) $record->reporter_id : null,
-                'handled_by' => $record->handled_by !== null ? (string) $record->handled_by : null,
-                'resolution_note' => $record->resolution_note,
-                'clear_evidence' => false,
-            ];
+            $defaults = $this->reportAdmin->defaultsFor((string) $record->getKey());
         }
 
         if ($record instanceof Institution) {
@@ -779,6 +761,18 @@ class AdminResourceMutationService
     private function recordKey(Model $record): string
     {
         return (string) $record->getRouteKey();
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    private function saveReport(array $validated, ?string $reportId = null): Report
+    {
+        $snapshot = $this->reportAdmin->save($validated, $reportId);
+
+        return Report::query()
+            ->with(['entity', 'reporter', 'handler', 'media'])
+            ->findOrFail($snapshot->id);
     }
 
     /**
@@ -916,89 +910,11 @@ class AdminResourceMutationService
     }
 
     /**
-     * @param  array<string, mixed>  $validated
-     * @return array<string, mixed>
-     */
-    private function normalizeReportPayload(array $validated): array
-    {
-        $entityType = is_string($validated['entity_type'] ?? null)
-            ? trim($validated['entity_type'])
-            : '';
-
-        if (! in_array($entityType, $this->resolveReportEntityMetadataAction->validKeys(), true)) {
-            throw ValidationException::withMessages([
-                'entity_type' => __('The selected report entity type is invalid.'),
-            ]);
-        }
-
-        $entityMetadata = $this->resolveReportEntityMetadataAction->handle($entityType);
-        $entityModelClass = $entityMetadata['model_class'];
-        $entityId = is_scalar($validated['entity_id'] ?? null)
-            ? trim((string) $validated['entity_id'])
-            : '';
-
-        if ($entityId === '' || ! $entityModelClass::query()->whereKey($entityId)->exists()) {
-            throw ValidationException::withMessages([
-                'entity_id' => __('The selected report entity is invalid.'),
-            ]);
-        }
-
-        $category = is_string($validated['category'] ?? null)
-            ? trim($validated['category'])
-            : '';
-
-        if (! in_array($category, $this->resolveReportCategoryOptionsAction->validKeys($entityType), true)) {
-            throw ValidationException::withMessages([
-                'category' => __('The selected report category is invalid for this entity type.'),
-            ]);
-        }
-
-        $validated['entity_type'] = $entityType;
-        $validated['entity_id'] = $entityId;
-        $validated['category'] = $category;
-
-        foreach (['reporter_id', 'handled_by'] as $field) {
-            if (! array_key_exists($field, $validated)) {
-                continue;
-            }
-
-            $validated[$field] = $this->normalizeOptionalUserKey($validated[$field], $field);
-        }
-
-        return $validated;
-    }
-
-    private function normalizeOptionalUserKey(mixed $value, string $field): ?string
-    {
-        if ($value === null || $value === '') {
-            return null;
-        }
-
-        $normalized = is_scalar($value) ? trim((string) $value) : '';
-
-        if ($normalized === '' || ! User::query()->whereKey($normalized)->exists()) {
-            throw ValidationException::withMessages([
-                $field => __('The selected user is invalid.'),
-            ]);
-        }
-
-        return $normalized;
-    }
-
-    /**
      * @return list<string>
      */
     private function imageMimeTypes(): array
     {
         return ['image/jpeg', 'image/png', 'image/webp'];
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function evidenceMimeTypes(): array
-    {
-        return ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
     }
 
     /**
@@ -1101,11 +1017,6 @@ class AdminResourceMutationService
     private function logoMimeTypes(): array
     {
         return ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'];
-    }
-
-    private function maxUploadSizeKb(): int
-    {
-        return (int) ceil(((int) config('media-library.max_file_size', 10 * 1024 * 1024)) / 1024);
     }
 
     /**
@@ -1286,35 +1197,6 @@ class AdminResourceMutationService
             $this->field('is_default', 'boolean', required: false, default: false),
             $this->field('qr', 'file', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
             $this->field('clear_qr', 'boolean', required: false, default: false),
-        ];
-    }
-
-    /**
-     * @return array<int, array<string, mixed>>
-     */
-    private function reportFields(): array
-    {
-        return [
-            $this->field('entity_type', 'string', required: true, default: 'event', allowedValues: $this->resolveReportEntityMetadataAction->validKeys(), meta: [
-                'mutation_semantics' => 'replace_scalar',
-                'paired_with' => 'entity_id',
-            ]),
-            $this->field('entity_id', 'string', required: true, meta: [
-                'mutation_semantics' => 'replace_scalar',
-                'paired_with' => 'entity_type',
-                'relation_lookup' => 'resolved_from_entity_type',
-            ]),
-            $this->field('category', 'string', required: true, default: 'wrong_info', allowedValues: $this->resolveReportCategoryOptionsAction->validKeys(), meta: [
-                'mutation_semantics' => 'replace_scalar',
-                'allowed_values_resolved_from' => 'entity_type',
-            ]),
-            $this->field('description', 'string', required: false, maxLength: 2000, meta: $this->trimmedStringMutationMeta()),
-            $this->field('status', 'string', required: true, default: 'open', allowedValues: ['open', 'triaged', 'resolved', 'dismissed']),
-            $this->field('reporter_id', 'string', required: false, meta: $this->nullableRelationScalarMeta('users')),
-            $this->field('handled_by', 'string', required: false, meta: $this->nullableRelationScalarMeta('users')),
-            $this->field('resolution_note', 'string', required: false, maxLength: 2000, meta: $this->trimmedStringMutationMeta()),
-            $this->field('evidence', 'array<file>', required: false, acceptedMimeTypes: $this->evidenceMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb(), maxFiles: 8, meta: $this->multipleMediaFieldMutationMeta('clear_evidence', explicitNull: 'preserve_existing_collection')),
-            $this->field('clear_evidence', 'boolean', required: false, default: false),
         ];
     }
 
@@ -1776,40 +1658,6 @@ class AdminResourceMutationService
     }
 
     /**
-     * @param  list<string|int>|null  $allowedValues
-     * @param  list<string>|null  $acceptedMimeTypes
-     * @param  array<string, mixed>  $meta
-     * @return array<string, mixed>
-     */
-    private function field(
-        string $name,
-        string $type,
-        bool $required = false,
-        mixed $default = null,
-        ?int $maxLength = null,
-        ?array $allowedValues = null,
-        ?array $acceptedMimeTypes = null,
-        ?int $maxFileSizeKb = null,
-        ?int $maxFiles = null,
-        array $meta = [],
-    ): array {
-        return array_merge(
-            array_filter([
-                'name' => $name,
-                'type' => $type,
-                'required' => $required,
-                'default' => $default,
-                'max_length' => $maxLength,
-                'allowed_values' => $allowedValues,
-                'accepted_mime_types' => $acceptedMimeTypes,
-                'max_file_size_kb' => $maxFileSizeKb,
-                'max_files' => $maxFiles,
-            ], static fn (mixed $value): bool => $value !== null),
-            array_filter($meta, static fn (mixed $value): bool => $value !== null),
-        );
-    }
-
-    /**
      * @return array<string, mixed>
      */
     private function contactItemSchema(): array
@@ -1912,21 +1760,6 @@ class AdminResourceMutationService
     /**
      * @return array<string, mixed>
      */
-    private function nullableRelationScalarMeta(string $relation): array
-    {
-        return [
-            'relation' => $relation,
-            'mutation_semantics' => 'replace_scalar',
-            'clear_semantics' => [
-                'omitted' => 'preserve_existing',
-                'explicit_null' => 'clear_to_null',
-            ],
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
     private function singleMediaFieldMutationMeta(string $rawHttpClearFlag): array
     {
         return [
@@ -1935,30 +1768,6 @@ class AdminResourceMutationService
                 'omitted' => 'preserve_existing_collection',
                 'explicit_null' => 'preserve_existing_collection',
                 'submitted_file' => 'replace_collection',
-            ],
-            'raw_http_clear_flag' => $rawHttpClearFlag,
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function multipleMediaFieldMutationMeta(
-        string $rawHttpClearFlag,
-        string $omitted = 'preserve_existing_collection',
-        string $explicitNull = 'preserve_existing_collection',
-        string $emptyArray = 'clear_collection',
-        string $submittedArray = 'replace_collection',
-    ): array {
-        return [
-            'collection_semantics' => [
-                'omitted' => $omitted,
-                'explicit_null' => $explicitNull,
-                'empty_array' => $emptyArray,
-                'submitted_array' => $submittedArray,
-                'item_ids_preserved' => false,
-                'ordering' => 'payload_order_sets_media_order',
-                'safe_client_strategy' => 'send_full_media_array_when_replacing',
             ],
             'raw_http_clear_flag' => $rawHttpClearFlag,
         ];
@@ -1991,27 +1800,6 @@ class AdminResourceMutationService
                 $this->field('visibility', 'string', required: false, default: 'public', allowedValues: ['public', 'private']),
                 $this->field('notes', 'string', required: false, maxLength: 500),
             ],
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function trimmedStringMutationMeta(
-        string $omitted = 'preserve_existing',
-        string $explicitNull = 'clear_to_null',
-        ?string $emptyStringAtMutationLayer = 'null',
-    ): array {
-        return [
-            'mutation_semantics' => 'replace_scalar',
-            'clear_semantics' => [
-                'omitted' => $omitted,
-                'explicit_null' => $explicitNull,
-            ],
-            'normalization' => array_filter([
-                'trim' => true,
-                'empty_string_at_mutation_layer' => $emptyStringAtMutationLayer,
-            ], static fn (mixed $value): bool => $value !== null),
         ];
     }
 
@@ -2140,29 +1928,6 @@ class AdminResourceMutationService
             'is_default' => ['sometimes', 'boolean'],
             'qr' => ['nullable', 'file', 'mimetypes:image/jpeg,image/png,image/webp', $maxUploadSize],
             'clear_qr' => ['sometimes', 'boolean'],
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function reportRules(bool $updating): array
-    {
-        $required = $updating ? 'required' : 'required';
-        $maxUploadSize = 'max:'.$this->maxUploadSizeKb();
-
-        return [
-            'entity_type' => [$required, 'string', Rule::in($this->resolveReportEntityMetadataAction->validKeys())],
-            'entity_id' => [$required, 'uuid'],
-            'category' => [$required, 'string', Rule::in($this->resolveReportCategoryOptionsAction->validKeys())],
-            'description' => ['nullable', 'string', 'max:2000', 'required_if:category,other'],
-            'status' => [$required, Rule::in(['open', 'triaged', 'resolved', 'dismissed'])],
-            'reporter_id' => ['nullable', 'uuid', 'exists:users,id'],
-            'handled_by' => ['nullable', 'uuid', 'exists:users,id'],
-            'resolution_note' => ['nullable', 'string', 'max:2000'],
-            'evidence' => ['nullable', 'array', 'max:8'],
-            'evidence.*' => ['file', 'mimetypes:image/jpeg,image/png,image/webp,application/pdf', $maxUploadSize],
-            'clear_evidence' => ['sometimes', 'boolean'],
         ];
     }
 

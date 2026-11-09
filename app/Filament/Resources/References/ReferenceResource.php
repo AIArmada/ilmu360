@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Filament\Resources\References;
 
 use AIArmada\FilamentEvents\RelationManagers\EventsRelationManager;
-use App\Filament\RelationManagers\AuditsRelationManager;
 use App\Filament\Resources\References\Pages\CreateReference;
 use App\Filament\Resources\References\Pages\EditReference;
 use App\Filament\Resources\References\Pages\ListReferences;
@@ -14,6 +13,7 @@ use App\Filament\Resources\References\RelationManagers\MembersRelationManager;
 use App\Filament\Resources\References\Schemas\ReferenceForm;
 use App\Filament\Resources\References\Tables\ReferencesTable;
 use App\Models\Reference;
+use App\Platform\Auditing\AuditsRelationManager;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;

@@ -7,6 +7,7 @@ use AIArmada\Events\Enums\EventEscalationType;
 use AIArmada\FilamentEvents\Resources\EventResource;
 use App\Actions\Events\Submission\ModerateEventOccurrenceSubmissionAction;
 use App\Enums\InstitutionStatus;
+use App\Features\Reports\Api\ReportReader;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\User;
@@ -118,7 +119,7 @@ class ModerationQueue extends Page implements HasTable
             'reports' => [
                 'label' => 'Reports',
                 'icon' => 'heroicon-o-flag',
-                'count' => Event::whereHas('reports', fn (Builder $query) => $query->where('status', 'open'))->count(),
+                'count' => count($this->openReportEntityIds()),
                 'badgeColor' => 'danger',
             ],
             'recently_rejected' => [
@@ -534,7 +535,7 @@ class ModerationQueue extends Page implements HasTable
         $query = match ($this->activeTab) {
             'pending' => $query->whereState('status', Pending::class),
             'needs_changes' => $query->whereState('status', NeedsChanges::class),
-            'reports' => $query->whereHas('reports', fn (Builder $reportQuery) => $reportQuery->where('status', 'open')),
+            'reports' => $query->whereIn('events.id', $this->openReportEntityIds()),
             'recently_rejected' => $query->whereState('status', Rejected::class)->where('updated_at', '>=', now()->subDays(7)),
             default => $query->whereState('status', Pending::class),
         };
@@ -546,6 +547,14 @@ class ModerationQueue extends Page implements HasTable
             )
             ->orderBy('starts_at')
             ->orderByDesc('events.created_at');
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function openReportEntityIds(): array
+    {
+        return app(ReportReader::class)->openEntityIds('event');
     }
 
     protected function normalizeActiveTab(string $tab): string

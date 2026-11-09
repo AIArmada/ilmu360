@@ -6,6 +6,7 @@ use App\Actions\Reports\ResolveReportFormContextAction;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
+use App\Shared\Reports\ReportSubjectResolver;
 
 it('resolves shared report category options for public and admin report surfaces', function () {
     $categoryOptionsAction = app(ResolveReportCategoryOptionsAction::class);
@@ -34,9 +35,17 @@ it('resolves report form context for public subjects through the action layer', 
         'name' => 'Amina binti Rashid',
     ]);
 
-    $institutionContext = app(ResolveReportFormContextAction::class)->handle('institution', $institution);
-    $eventContext = app(ResolveReportFormContextAction::class)->handle('event', $event);
-    $personContext = app(ResolveReportFormContextAction::class)->handle('person', $person);
+    $reportSubjects = app(ReportSubjectResolver::class);
+
+    $institutionContext = app(ResolveReportFormContextAction::class)->handle(
+        $reportSubjects->find('institution', (string) $institution->getKey()),
+    );
+    $eventContext = app(ResolveReportFormContextAction::class)->handle(
+        $reportSubjects->find('event', (string) $event->getKey()),
+    );
+    $personContext = app(ResolveReportFormContextAction::class)->handle(
+        $reportSubjects->find('person', (string) $person->getKey()),
+    );
 
     expect($institutionContext['subject_label'])->toBe(__('Institution'))
         ->and($institutionContext['subject_title'])->toBe($institution->name)
@@ -46,4 +55,18 @@ it('resolves report form context for public subjects through the action layer', 
         ->and($eventContext['default_category'])->toBe('wrong_info')
         ->and($eventContext['subject_title'])->toBe($event->title)
         ->and($eventContext['redirect_url'])->toBe(route('events.show', $event));
+});
+
+it('resolves report subjects through the shared contract', function () {
+    $event = Event::factory()->create([
+        'title' => 'Majlis Ilmu Perdana',
+    ]);
+
+    $subject = app(ReportSubjectResolver::class)->find('event', (string) $event->getKey());
+
+    expect($subject)->not->toBeNull()
+        ->and($subject?->title)->toBe($event->title)
+        ->and($subject?->publicUrl)->toBe(route('events.show', $event))
+        ->and($subject?->slug)->toBe($event->slug)
+        ->and(app(ReportSubjectResolver::class)->exists('event', (string) $event->getKey()))->toBeTrue();
 });

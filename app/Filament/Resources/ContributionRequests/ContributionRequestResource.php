@@ -2,13 +2,13 @@
 
 namespace App\Filament\Resources\ContributionRequests;
 
-use App\Filament\RelationManagers\AuditsRelationManager;
 use App\Filament\Resources\ContributionRequests\Pages\ListContributionRequests;
 use App\Filament\Resources\ContributionRequests\Pages\ViewContributionRequest;
 use App\Filament\Resources\ContributionRequests\Schemas\ContributionRequestInfolist;
 use App\Filament\Resources\ContributionRequests\Support\ContributionRequestPresenter;
 use App\Filament\Resources\ContributionRequests\Tables\ContributionRequestsTable;
 use App\Models\ContributionRequest;
+use App\Platform\Auditing\AuditsRelationManager;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;

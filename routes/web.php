@@ -49,6 +49,7 @@ use App\Livewire\Pages\MembershipApplications\Create as CreateMembershipApplicat
 use App\Livewire\Pages\MembershipApplications\Index as MembershipApplicationsIndex;
 use App\Livewire\Pages\Reports\Create as CreateReportPage;
 use App\Livewire\Pages\SubmitEvent\Create;
+use App\Shared\Reports\ReportSubjectType;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
@@ -207,7 +208,7 @@ Route::middleware('auth')->group(function () {
         ->name('contributions.suggest-update');
 
     Route::livewire('/lapor/{subjectType}/{subjectId}', CreateReportPage::class)
-        ->whereIn('subjectType', ContributionSubjectType::publicRouteSegments())
+        ->whereIn('subjectType', ReportSubjectType::publicRouteSegments())
         ->name('reports.create');
 });
 

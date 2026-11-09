@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Series;
 
 use AIArmada\FilamentEvents\RelationManagers\EventsRelationManager;
-use App\Filament\RelationManagers\AuditsRelationManager;
 use App\Filament\Resources\Series\Pages\CreateSeries;
 use App\Filament\Resources\Series\Pages\EditSeries;
 use App\Filament\Resources\Series\Pages\ListSeries;
 use App\Filament\Resources\Series\Schemas\SeriesForm;
 use App\Filament\Resources\Series\Tables\SeriesTable;
 use App\Models\Series;
+use App\Platform\Auditing\AuditsRelationManager;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;

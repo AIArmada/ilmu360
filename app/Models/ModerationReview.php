@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use AIArmada\Moderation\Models\ModerationAction;
-use App\Models\Concerns\AuditsModelChanges;
+use App\Platform\Auditing\AuditsModelChanges;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

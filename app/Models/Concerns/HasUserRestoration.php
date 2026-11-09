@@ -12,6 +12,8 @@ use AIArmada\CommerceSupport\Support\OwnerScope;
 use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Engagement\Models\Follow;
 use AIArmada\Engagement\Models\Response;
+use App\Features\Reports\Api\ReportCommands;
+use App\Features\Reports\Api\ReportReader;
 use App\Features\SavedSearches\Api\SavedSearchCommands;
 use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Models\Event;
@@ -80,8 +82,8 @@ trait HasUserRestoration
                 $user->moderationReviews()->update([
                     'actioned_by_id' => null,
                 ]);
-                $user->reports()->update(['reporter_id' => null]);
-                $user->handledReports()->update(['handled_by' => null]);
+                app(ReportCommands::class)->detachReporter((string) $user->getKey());
+                app(ReportCommands::class)->detachHandler((string) $user->getKey());
                 $user->verifiedDonationChannels()->update(['verified_by' => null]);
                 $user->verifiedEventCheckins()->update(['verified_by_user_id' => null]);
                 $user->verifiedPersons()->update(['verified_by' => null]);
@@ -256,8 +258,8 @@ trait HasUserRestoration
             'membership_claim_ids' => $this->membershipApplications()->pluck('id')->all(),
             'membership_application_reviewer_ids' => $this->reviewedMembershipApplications()->pluck('id')->all(),
             'moderation_review_ids' => $this->moderationReviews()->pluck('id')->all(),
-            'report_ids' => $this->reports()->pluck('id')->all(),
-            'handled_report_ids' => $this->handledReports()->pluck('id')->all(),
+            'report_ids' => app(ReportReader::class)->reporterReportIds((string) $this->getKey()),
+            'handled_report_ids' => app(ReportReader::class)->handlerReportIds((string) $this->getKey()),
             'verified_donation_channel_ids' => $this->verifiedDonationChannels()->pluck('id')->all(),
             'verified_event_checkin_ids' => $this->verifiedEventCheckins()->pluck('id')->all(),
             'verified_person_ids' => $this->verifiedPersons()->pluck('id')->all(),
@@ -466,8 +468,14 @@ trait HasUserRestoration
         $this->restoreForeignKeyRelation('membershipApplications', 'applicant_id', $this->snapshotIds($snapshot, 'membership_application_ids'));
         $this->restoreForeignKeyRelation('reviewedMembershipApplications', 'reviewer_id', $this->snapshotIds($snapshot, 'membership_application_reviewer_ids'));
         $this->restoreForeignKeyRelation('moderationReviews', 'actioned_by_id', $this->snapshotIds($snapshot, 'moderation_review_ids'));
-        $this->restoreForeignKeyRelation('reports', 'reporter_id', $this->snapshotIds($snapshot, 'report_ids'));
-        $this->restoreForeignKeyRelation('handledReports', 'handled_by', $this->snapshotIds($snapshot, 'handled_report_ids'));
+        app(ReportCommands::class)->restoreReporterLinks(
+            (string) $this->getKey(),
+            array_map(static fn (int|string $id): string => (string) $id, $this->snapshotIds($snapshot, 'report_ids')),
+        );
+        app(ReportCommands::class)->restoreHandlerLinks(
+            (string) $this->getKey(),
+            array_map(static fn (int|string $id): string => (string) $id, $this->snapshotIds($snapshot, 'handled_report_ids')),
+        );
         $this->restoreForeignKeyRelation('verifiedDonationChannels', 'verified_by', $this->snapshotIds($snapshot, 'verified_donation_channel_ids'));
         $this->restoreForeignKeyRelation('verifiedEventCheckins', 'verified_by_user_id', $this->snapshotIds($snapshot, 'verified_event_checkin_ids'));
         $this->restoreForeignKeyRelation('verifiedPersons', 'verified_by', $this->snapshotIds($snapshot, 'verified_person_ids'));

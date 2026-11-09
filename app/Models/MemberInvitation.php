@@ -5,7 +5,7 @@ namespace App\Models;
 use AIArmada\Membership\Enums\InvitationStatus;
 use AIArmada\Membership\Models\MembershipInvitation as PackageMembershipInvitation;
 use App\Enums\MemberSubjectType;
-use App\Models\Concerns\AuditsModelChanges;
+use App\Platform\Auditing\AuditsModelChanges;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use OwenIt\Auditing\Contracts\Auditable;

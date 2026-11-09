@@ -6,7 +6,6 @@ namespace App\Filament\Resources\Spaces;
 
 use AIArmada\FilamentEvents\RelationManagers\EventsRelationManager;
 use AIArmada\FilamentEvents\Resources\VenueSpaceResource;
-use App\Filament\RelationManagers\AuditsRelationManager;
 use App\Filament\Resources\Spaces\Pages\CreateSpace;
 use App\Filament\Resources\Spaces\Pages\EditSpace;
 use App\Filament\Resources\Spaces\Pages\ListSpaces;
@@ -16,6 +15,7 @@ use App\Filament\Resources\Spaces\Schemas\SpaceForm;
 use App\Filament\Resources\Spaces\Schemas\SpaceInfolist;
 use App\Filament\Resources\Spaces\Tables\SpacesTable;
 use App\Models\Space;
+use App\Platform\Auditing\AuditsRelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;

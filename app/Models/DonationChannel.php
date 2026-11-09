@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Enums\DonationChannelStatus;
-use App\Models\Concerns\AuditsModelChanges;
+use App\Platform\Auditing\AuditsModelChanges;
 use Carbon\CarbonImmutable;
 use Database\Factories\DonationChannelFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;

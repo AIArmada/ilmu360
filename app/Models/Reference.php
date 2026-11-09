@@ -14,7 +14,7 @@ use App\Actions\References\GenerateReferenceSlugAction;
 use App\Enums\MemberSubjectType;
 use App\Enums\ReferencePartType;
 use App\Enums\ReferenceType;
-use App\Models\Concerns\AuditsModelChanges;
+use App\Platform\Auditing\AuditsModelChanges;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Database\Factories\ReferenceFactory;

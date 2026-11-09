@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Support\Auditing;
+namespace App\Platform\Auditing;
 
 use App\Models\Audit;
 use Illuminate\Contracts\View\View;

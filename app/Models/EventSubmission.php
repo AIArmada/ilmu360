@@ -4,7 +4,7 @@ namespace App\Models;
 
 use AIArmada\Contacting\Concerns\HasContactMethods;
 use AIArmada\Events\Models\EventSubmission as PackageEventSubmission;
-use App\Models\Concerns\AuditsModelChanges;
+use App\Platform\Auditing\AuditsModelChanges;
 use Database\Factories\EventSubmissionFactory;
 use OwenIt\Auditing\Contracts\Auditable;
 

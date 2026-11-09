@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Reports\Tables;
 
+use App\Actions\Reports\DeleteReportsAction;
 use App\Actions\Reports\ResolveReportCategoryOptionsAction;
 use App\Actions\Reports\ResolveReportEntityMetadataAction;
 use App\Filament\Resources\Reports\Support\ReportPresenter;
@@ -9,11 +10,13 @@ use App\Models\Report;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Notifications\Notification;
 use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 
 class ReportsTable
 {
@@ -72,7 +75,15 @@ class ReportsTable
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
-                        ->authorizeIndividualRecords('delete'),
+                        ->authorizeIndividualRecords('delete')
+                        ->using(function (Collection $records): void {
+                            app(DeleteReportsAction::class)->handle($records->pluck('id')->all());
+
+                            Notification::make()
+                                ->success()
+                                ->title(__('Reports deleted'))
+                                ->send();
+                        }),
                 ]),
             ]);
     }

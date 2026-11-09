@@ -2,13 +2,13 @@
 
 namespace App\Filament\Resources\Reports;
 
-use App\Filament\RelationManagers\AuditsRelationManager;
 use App\Filament\Resources\Reports\Pages\CreateReport;
 use App\Filament\Resources\Reports\Pages\EditReport;
 use App\Filament\Resources\Reports\Pages\ListReports;
 use App\Filament\Resources\Reports\Schemas\ReportForm;
 use App\Filament\Resources\Reports\Tables\ReportsTable;
 use App\Models\Report;
+use App\Platform\Auditing\AuditsRelationManager;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;

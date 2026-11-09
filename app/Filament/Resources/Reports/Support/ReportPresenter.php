@@ -2,48 +2,39 @@
 
 namespace App\Filament\Resources\Reports\Support;
 
-use AIArmada\FilamentEvents\Resources\EventResource;
-use App\Filament\Resources\DonationChannels\DonationChannelResource;
-use App\Filament\Resources\Institutions\InstitutionResource;
-use App\Filament\Resources\Persons\PersonResource;
-use App\Filament\Resources\References\ReferenceResource;
-use App\Models\DonationChannel;
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\Reference;
 use App\Models\Report;
+use App\Shared\Reports\ReportSubject;
+use App\Shared\Reports\ReportSubjectResolver;
+use WeakMap;
 
 class ReportPresenter
 {
+    /** @var WeakMap<Report, ReportSubject|null>|null */
+    private static ?WeakMap $resolvedSubjects = null;
+
     public static function entityTitle(Report $report): string
     {
-        $entity = $report->entity;
-        $fallbackTitle = (string) $report->entity_id;
+        $subject = self::resolve($report);
 
-        return match (true) {
-            $entity instanceof Event => filled($entity->title) ? $entity->title : $fallbackTitle,
-            $entity instanceof Institution => filled($entity->name) ? $entity->name : $fallbackTitle,
-            $entity instanceof Person => filled($entity->formatted_name) ? $entity->formatted_name : $fallbackTitle,
-            $entity instanceof Reference => filled($entity->title) ? $entity->title : $fallbackTitle,
-            $entity instanceof DonationChannel => filled($entity->label)
-                ? $entity->label
-                : (filled($entity->account_name) ? $entity->account_name : $fallbackTitle),
-            default => $fallbackTitle,
-        };
+        return $subject->title ?? (string) $report->entity_id;
     }
 
     public static function entityAdminUrl(Report $report): ?string
     {
-        $entity = $report->entity;
+        return self::resolve($report)?->adminUrl;
+    }
 
-        return match (true) {
-            $entity instanceof Event => EventResource::getUrl('view', ['record' => $entity], panel: 'admin'),
-            $entity instanceof Institution => InstitutionResource::getUrl('edit', ['record' => $entity], panel: 'admin'),
-            $entity instanceof Person => PersonResource::getUrl('edit', ['record' => $entity], panel: 'admin'),
-            $entity instanceof Reference => ReferenceResource::getUrl('edit', ['record' => $entity], panel: 'admin'),
-            $entity instanceof DonationChannel => DonationChannelResource::getUrl('edit', ['record' => $entity], panel: 'admin'),
-            default => null,
-        };
+    private static function resolve(Report $report): ?ReportSubject
+    {
+        self::$resolvedSubjects ??= new WeakMap;
+
+        if (self::$resolvedSubjects->offsetExists($report)) {
+            return self::$resolvedSubjects[$report];
+        }
+
+        return self::$resolvedSubjects[$report] = app(ReportSubjectResolver::class)->find(
+            (string) $report->entity_type,
+            (string) $report->entity_id,
+        );
     }
 }

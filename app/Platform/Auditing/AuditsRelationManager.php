@@ -1,10 +1,8 @@
 <?php
 
-namespace App\Filament\RelationManagers;
+namespace App\Platform\Auditing;
 
-use App\Filament\Resources\Audits\Schemas\AuditInfolist;
 use App\Models\Audit;
-use App\Support\Auditing\AuditValuePresenter;
 use Filament\Actions\ViewAction;
 use Filament\Facades\Filament;
 use Filament\Resources\RelationManagers\RelationManager;

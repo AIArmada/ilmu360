@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Reports\Pages;
 
+use App\Actions\Reports\DeleteReportAction;
 use App\Actions\Reports\SaveReportAction;
 use App\Filament\Resources\Reports\ReportResource;
 use App\Models\Report;
@@ -29,7 +30,12 @@ class EditReport extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            DeleteAction::make(),
+            DeleteAction::make()
+                ->using(function (Report $record): bool {
+                    app(DeleteReportAction::class)->handle($record);
+
+                    return true;
+                }),
         ];
     }
 }

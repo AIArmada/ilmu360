@@ -2,48 +2,51 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Moderation;
+namespace App\Support\Api\Reports;
 
-use App\Models\Report;
+use App\Features\Reports\Api\ReportTriageContract;
+use App\Shared\Auth\AccountActor;
 
-final class ReportTriageWorkflow
+final class ReportTriage implements ReportTriageContract
 {
-    /**
-     * @return array<string, array{label: string, description: string, requires_resolution_note: bool}>
-     */
-    public static function availableActions(Report $report): array
+    public function canTriage(?AccountActor $actor): bool
     {
-        return match ($report->status) {
+        return $actor?->hasAnyRole(['super_admin', 'admin', 'moderator']) ?? false;
+    }
+
+    public function availableActions(string $status): array
+    {
+        return match ($status) {
             'open' => [
-                'triage' => self::definition(
+                'triage' => $this->definition(
                     label: 'Mark Triaged',
                     description: 'Assign the report to a moderator and move it into triage for follow-up.',
                 ),
-                'resolve' => self::definition(
+                'resolve' => $this->definition(
                     label: 'Resolve',
                     description: 'Mark the report as resolved and notify the original reporter.',
                 ),
-                'dismiss' => self::definition(
+                'dismiss' => $this->definition(
                     label: 'Dismiss',
                     description: 'Dismiss the report and notify the original reporter.',
                 ),
             ],
             'triaged' => [
-                'resolve' => self::definition(
+                'resolve' => $this->definition(
                     label: 'Resolve',
                     description: 'Mark the triaged report as resolved and notify the original reporter.',
                 ),
-                'dismiss' => self::definition(
+                'dismiss' => $this->definition(
                     label: 'Dismiss',
                     description: 'Dismiss the triaged report and notify the original reporter.',
                 ),
-                'reopen' => self::definition(
+                'reopen' => $this->definition(
                     label: 'Reopen',
                     description: 'Return the triaged report to the open queue.',
                 ),
             ],
             'resolved', 'dismissed' => [
-                'reopen' => self::definition(
+                'reopen' => $this->definition(
                     label: 'Reopen',
                     description: 'Return this closed report to the open queue for another review pass.',
                 ),
@@ -55,7 +58,7 @@ final class ReportTriageWorkflow
     /**
      * @return array{label: string, description: string, requires_resolution_note: bool}
      */
-    private static function definition(string $label, string $description, bool $requiresResolutionNote = false): array
+    private function definition(string $label, string $description, bool $requiresResolutionNote = false): array
     {
         return [
             'label' => $label,

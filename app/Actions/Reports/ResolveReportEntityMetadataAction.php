@@ -1,47 +1,28 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Actions\Reports;
 
-use App\Models\DonationChannel;
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\Reference;
-use InvalidArgumentException;
+use App\Shared\Reports\ReportSubjectResolver;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class ResolveReportEntityMetadataAction
 {
     use AsAction;
 
+    public function __construct(
+        private readonly ReportSubjectResolver $reportSubjects,
+    ) {}
+
     /**
-     * @return array{label: string, model_class: class-string}
+     * @return array{label: string}
      */
     public function handle(string $entityType): array
     {
-        return match ($entityType) {
-            'event' => [
-                'label' => __('Event'),
-                'model_class' => Event::class,
-            ],
-            'institution' => [
-                'label' => __('Institution'),
-                'model_class' => Institution::class,
-            ],
-            'person' => [
-                'label' => __('Speaker'),
-                'model_class' => Person::class,
-            ],
-            'reference' => [
-                'label' => __('Reference'),
-                'model_class' => Reference::class,
-            ],
-            'donation_channel' => [
-                'label' => __('Donation Channel'),
-                'model_class' => DonationChannel::class,
-            ],
-            default => throw new InvalidArgumentException("Unsupported entity type [{$entityType}]"),
-        };
+        return [
+            'label' => $this->reportSubjects->label($entityType),
+        ];
     }
 
     /**
@@ -63,6 +44,6 @@ class ResolveReportEntityMetadataAction
      */
     public function validKeys(): array
     {
-        return ['event', 'institution', 'person', 'reference', 'donation_channel'];
+        return $this->reportSubjects->validKeys();
     }
 }

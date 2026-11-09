@@ -7,7 +7,9 @@ namespace App\Actions\Reports;
 use App\Models\Report;
 use App\Platform\Media\MediaCollectionSync;
 use App\Platform\Media\MediaEvidence;
+use App\Platform\Reporting\ReportLifecycle;
 use App\Shared\Auth\AccountDirectory;
+use App\Shared\Reports\ReportSubjectResolver;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -17,9 +19,10 @@ final readonly class SaveReportAction
 
     public function __construct(
         private ResolveReportCategoryOptionsAction $resolveReportCategoryOptionsAction,
-        private ResolveReportEntityMetadataAction $resolveReportEntityMetadataAction,
+        private ReportSubjectResolver $reportSubjects,
         private MediaCollectionSync $mediaCollectionSync,
         private AccountDirectory $accounts,
+        private ReportLifecycle $lifecycle,
     ) {}
 
     /**
@@ -30,31 +33,13 @@ final readonly class SaveReportAction
         $creating = ! $report instanceof Report;
         $report ??= new Report;
 
-        $entityType = $this->normalizeEntityType($data['entity_type'] ?? $report->entity_type ?? null);
-        $entityId = $this->normalizeEntityId($entityType, $data['entity_id'] ?? $report->entity_id ?? null);
-
         $previousStatus = $creating ? null : $this->normalizeOptionalString($report->status);
-        $status = array_key_exists('status', $data)
-            ? $this->normalizeStatus($data['status'])
-            : $this->normalizeStatus($report->status ?? ($creating ? 'open' : null));
+        $normalized = $this->normalize($data, $creating ? null : $report);
+        $status = (string) $normalized['status'];
+        $fillable = $normalized;
+        unset($fillable['status']);
 
-        $report->fill([
-            'entity_type' => $entityType,
-            'entity_id' => $entityId,
-            'category' => $this->normalizeCategory($entityType, $data['category'] ?? $report->category ?? null),
-            'description' => array_key_exists('description', $data)
-                ? $this->normalizeOptionalString($data['description'])
-                : $report->description,
-            'reporter_id' => array_key_exists('reporter_id', $data)
-                ? $this->normalizeOptionalUserKey($data['reporter_id'], 'reporter_id')
-                : ($creating ? null : $report->reporter_id),
-            'handled_by' => array_key_exists('handled_by', $data)
-                ? $this->normalizeOptionalUserKey($data['handled_by'], 'handled_by')
-                : ($creating ? null : $report->handled_by),
-            'resolution_note' => array_key_exists('resolution_note', $data)
-                ? $this->normalizeOptionalString($data['resolution_note'])
-                : $report->resolution_note,
-        ]);
+        $report->fill($fillable);
 
         if ($creating) {
             if ($status !== Report::STATUS_OPEN) {
@@ -64,11 +49,11 @@ final readonly class SaveReportAction
             }
 
             $report->initializeStatus($status);
-            $report->save();
+            $this->lifecycle->persist($report);
         } elseif ($previousStatus !== $status) {
             $report->transitionStatus($status);
         } else {
-            $report->save();
+            $this->lifecycle->persist($report);
         }
 
         if (($data['clear_evidence'] ?? false) === true) {
@@ -85,11 +70,45 @@ final readonly class SaveReportAction
         return $report->fresh(['entity', 'reporter', 'handler', 'media']) ?? $report;
     }
 
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public function normalize(array $data, ?Report $report = null): array
+    {
+        $creating = ! $report instanceof Report;
+        $source = $report instanceof Report ? $report : new Report;
+
+        $entityType = $this->normalizeEntityType($data['entity_type'] ?? $source->entity_type ?? null);
+        $entityId = $this->normalizeEntityId($entityType, $data['entity_id'] ?? $source->entity_id ?? null);
+
+        return [
+            'entity_type' => $entityType,
+            'entity_id' => $entityId,
+            'category' => $this->normalizeCategory($entityType, $data['category'] ?? $source->category ?? null),
+            'description' => array_key_exists('description', $data)
+                ? $this->normalizeOptionalString($data['description'])
+                : $source->description,
+            'reporter_id' => array_key_exists('reporter_id', $data)
+                ? $this->normalizeOptionalUserKey($data['reporter_id'], 'reporter_id')
+                : ($creating ? null : $source->reporter_id),
+            'handled_by' => array_key_exists('handled_by', $data)
+                ? $this->normalizeOptionalUserKey($data['handled_by'], 'handled_by')
+                : ($creating ? null : $source->handled_by),
+            'resolution_note' => array_key_exists('resolution_note', $data)
+                ? $this->normalizeOptionalString($data['resolution_note'])
+                : $source->resolution_note,
+            'status' => array_key_exists('status', $data)
+                ? $this->normalizeStatus($data['status'])
+                : $this->normalizeStatus($source->status ?? ($creating ? 'open' : null)),
+        ];
+    }
+
     private function normalizeEntityType(mixed $value): string
     {
         $entityType = $this->normalizeRequiredString($value, 'entity_type');
 
-        if (! in_array($entityType, $this->resolveReportEntityMetadataAction->validKeys(), true)) {
+        if (! in_array($entityType, $this->reportSubjects->validKeys(), true)) {
             throw ValidationException::withMessages([
                 'entity_type' => __('The selected report entity type is invalid.'),
             ]);
@@ -101,10 +120,8 @@ final readonly class SaveReportAction
     private function normalizeEntityId(string $entityType, mixed $value): string
     {
         $entityId = $this->normalizeRequiredString($value, 'entity_id');
-        $entityMetadata = $this->resolveReportEntityMetadataAction->handle($entityType);
-        $modelClass = $entityMetadata['model_class'];
 
-        if (! $modelClass::query()->whereKey($entityId)->exists()) {
+        if (! $this->reportSubjects->exists($entityType, $entityId)) {
             throw ValidationException::withMessages([
                 'entity_id' => __('The selected report entity is invalid.'),
             ]);

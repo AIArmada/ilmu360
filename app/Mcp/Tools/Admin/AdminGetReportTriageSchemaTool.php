@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tools\Admin;
 
+use App\Features\Reports\Api\ReportTriageContract;
 use App\Support\Api\Admin\AdminReportTriageService;
 use App\Support\Mcp\McpAuthenticatedUserResolver;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -24,6 +25,7 @@ class AdminGetReportTriageSchemaTool extends AbstractAdminTool
 
     public function __construct(
         private readonly AdminReportTriageService $triageService,
+        private readonly ReportTriageContract $triageContract,
     ) {}
 
     public function handle(Request $request): ResponseFactory|Response
@@ -57,6 +59,6 @@ class AdminGetReportTriageSchemaTool extends AbstractAdminTool
     {
         $user = app(McpAuthenticatedUserResolver::class)->resolve($request->user());
 
-        return $this->triageService->canTriage($user);
+        return $this->triageContract->canTriage($user);
     }
 }

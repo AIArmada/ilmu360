@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\Audits\Tables;
 
 use App\Models\Audit;
-use App\Support\Auditing\AuditValuePresenter;
+use App\Platform\Auditing\AuditValuePresenter;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\Column;
 use Filament\Tables\Columns\TextColumn;

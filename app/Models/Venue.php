@@ -9,7 +9,7 @@ use AIArmada\Events\Models\Venue as PackageVenue;
 use AIArmada\Events\Models\VenueFacility;
 use App\Enums\InstitutionVenueRole;
 use App\Enums\VenueType;
-use App\Models\Concerns\AuditsModelChanges;
+use App\Platform\Auditing\AuditsModelChanges;
 use Carbon\CarbonImmutable;
 use Database\Factories\VenueFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;

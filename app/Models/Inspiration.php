@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Enums\InspirationCategory;
-use App\Models\Concerns\AuditsModelChanges;
+use App\Platform\Auditing\AuditsModelChanges;
 use Database\Factories\InspirationFactory;
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
 use Illuminate\Database\Eloquent\Attributes\Scope;

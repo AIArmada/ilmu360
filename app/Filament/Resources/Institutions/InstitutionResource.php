@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Institutions;
 
-use App\Filament\RelationManagers\AuditsRelationManager;
 use App\Filament\Resources\Institutions\Pages\CreateInstitution;
 use App\Filament\Resources\Institutions\Pages\EditInstitution;
 use App\Filament\Resources\Institutions\Pages\ListInstitutions;
@@ -17,6 +16,7 @@ use App\Filament\Resources\Institutions\Schemas\InstitutionForm;
 use App\Filament\Resources\Institutions\Schemas\InstitutionInfolist;
 use App\Filament\Resources\Institutions\Tables\InstitutionsTable;
 use App\Models\Institution;
+use App\Platform\Auditing\AuditsRelationManager;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;

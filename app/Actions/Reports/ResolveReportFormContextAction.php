@@ -4,11 +4,8 @@ declare(strict_types=1);
 
 namespace App\Actions\Reports;
 
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\Reference;
-use App\Support\Submission\ContributionSubjectPresenter;
+use App\Shared\Reports\ReportSubject;
+use App\Shared\Reports\ReportSubjectResolver;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class ResolveReportFormContextAction
@@ -17,7 +14,7 @@ class ResolveReportFormContextAction
 
     public function __construct(
         protected ResolveReportCategoryOptionsAction $resolveReportCategoryOptionsAction,
-        protected ContributionSubjectPresenter $contributionSubjectPresenter,
+        protected ReportSubjectResolver $reportSubjects,
     ) {}
 
     /**
@@ -30,20 +27,18 @@ class ResolveReportFormContextAction
      *     profile_image_url: string|null
      * }
      */
-    public function handle(string $subjectType, Event|Institution|Reference|Person $entity): array
+    public function handle(ReportSubject $subject): array
     {
-        $presentation = $this->contributionSubjectPresenter->present($entity);
-        $categoryOptions = $this->resolveReportCategoryOptionsAction->handle($subjectType);
+        $presentation = $this->reportSubjects->presentation($subject);
+        $categoryOptions = $this->resolveReportCategoryOptionsAction->handle($subject->type->value);
 
         return [
-            'subject_label' => $presentation['subject_label'],
-            'subject_title' => $presentation['subject_title'],
+            'subject_label' => $presentation->subjectLabel,
+            'subject_title' => $presentation->subjectTitle,
             'category_options' => $categoryOptions,
-            'redirect_url' => $presentation['redirect_url'],
+            'redirect_url' => $presentation->redirectUrl,
             'default_category' => (string) array_key_first($categoryOptions),
-            'profile_image_url' => $entity instanceof Person
-                ? $entity->public_main_url
-                : null,
+            'profile_image_url' => $presentation->profileImageUrl,
         ];
     }
 }

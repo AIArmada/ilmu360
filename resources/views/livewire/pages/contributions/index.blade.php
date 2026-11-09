@@ -494,9 +494,9 @@
                     <div class="space-y-3">
                         @forelse($myReports as $report)
                             @php
-                                $reportEntityLabel = $reportEntityMetadata->handle($report->entity_type)['label'];
-                                $reportCategoryLabel = $reportCategoryOptions->handle($report->entity_type)[$report->category] ?? str($report->category)->headline()->toString();
-                                $reportTitle = \App\Filament\Resources\Reports\Support\ReportPresenter::entityTitle($report);
+                                $reportEntityLabel = $reportEntityMetadata->handle($report->entityType)['label'];
+                                $reportCategoryLabel = $reportCategoryOptions->handle($report->entityType)[$report->category] ?? str($report->category)->headline()->toString();
+                                $reportTitle = $report->entityTitle;
                             @endphp
 
                             <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -511,7 +511,7 @@
 
                                     <p class="text-base font-semibold text-slate-900">{{ $reportTitle }}</p>
 
-                                    <p class="text-xs text-slate-500">{{ __('Submitted :date', ['date' => $report->created_at?->diffForHumans()]) }}</p>
+                                    <p class="text-xs text-slate-500">{{ __('Submitted :date', ['date' => $report->createdAt?->diffForHumans()]) }}</p>
 
                                     <p class="text-sm leading-6 text-slate-700">{{ $reportCategoryLabel }}</p>
 
@@ -519,8 +519,8 @@
                                         <p class="text-sm leading-6 text-slate-600">{{ $report->description }}</p>
                                     @endif
 
-                                    @if(filled($report->resolution_note))
-                                        <p class="rounded-xl bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-700">{{ $report->resolution_note }}</p>
+                                    @if(filled($report->resolutionNote))
+                                        <p class="rounded-xl bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-700">{{ $report->resolutionNote }}</p>
                                     @endif
                                 </div>
                             </article>

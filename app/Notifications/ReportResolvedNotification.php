@@ -2,11 +2,8 @@
 
 namespace App\Notifications;
 
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\Reference;
 use App\Models\Report;
+use App\Shared\Reports\ReportSubjectResolver;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -120,14 +117,9 @@ class ReportResolvedNotification extends Notification implements ShouldQueue
 
     protected function actionUrl(): ?string
     {
-        $entity = $this->report->entity;
-
-        return match (true) {
-            $entity instanceof Event => route('events.show', $entity),
-            $entity instanceof Institution => route('institutions.show', $entity),
-            $entity instanceof Person => route('persons.show', $entity),
-            $entity instanceof Reference => route('references.show', $entity),
-            default => null,
-        };
+        return app(ReportSubjectResolver::class)->find(
+            (string) $this->report->entity_type,
+            (string) $this->report->entity_id,
+        )?->publicUrl;
     }
 }

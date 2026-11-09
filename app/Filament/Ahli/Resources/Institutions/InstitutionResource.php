@@ -3,12 +3,12 @@
 namespace App\Filament\Ahli\Resources\Institutions;
 
 use App\Filament\Ahli\Resources\Institutions\Pages\EditInstitution;
-use App\Filament\RelationManagers\AuditsRelationManager;
 use App\Filament\Resources\Institutions\RelationManagers\DonationChannelsRelationManager;
 use App\Filament\Resources\Institutions\RelationManagers\MemberInvitationsRelationManager;
 use App\Filament\Resources\Institutions\Schemas\InstitutionForm;
 use App\Models\Institution;
 use App\Models\User;
+use App\Platform\Auditing\AuditsRelationManager;
 use BackedEnum;
 use Filament\Facades\Filament;
 use Filament\Resources\Resource;

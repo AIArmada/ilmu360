@@ -12,13 +12,15 @@ use App\Enums\ContributionRequestType;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\InstitutionStatus;
 use App\Enums\MemberSubjectType;
+use App\Features\Reports\Api\ReportPage;
+use App\Features\Reports\Api\ReportReader;
+use App\Features\Reports\Api\ReportSnapshot;
 use App\Models\ContributionRequest;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Report;
 use App\Models\User;
 use App\Platform\Ui\InteractsWithToasts;
 use App\Support\Events\PublicSchedulePolicy;
@@ -34,10 +36,11 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Contracts\HasLabel;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\Paginator;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -155,18 +158,35 @@ class Index extends Component implements HasForms
     }
 
     /**
-     * @return LengthAwarePaginator<int, Report>
+     * @return LengthAwarePaginator<int, ReportSnapshot>
      */
     #[Computed]
     public function myReports(): LengthAwarePaginator
     {
         /** @var User $user */
         $user = auth()->user();
+        $page = max((int) request()->query('my_reports_page', 1), 1);
 
-        return OwnerContext::withOwner(null, fn (): LengthAwarePaginator => $user->reports()
-            ->with(['entity', 'handler'])
-            ->latest('created_at')
-            ->paginate(perPage: 5, pageName: 'my_reports_page'));
+        $reportPage = OwnerContext::withOwner(
+            null,
+            fn (): ReportPage => app(ReportReader::class)->pageForReporter(
+                (string) $user->getKey(),
+                5,
+                $page,
+            ),
+        );
+
+        return new LengthAwarePaginator(
+            $reportPage->items,
+            $reportPage->total,
+            $reportPage->perPage,
+            $reportPage->currentPage,
+            [
+                'pageName' => 'my_reports_page',
+                'path' => Paginator::resolveCurrentPath(),
+                'query' => request()->query(),
+            ],
+        );
     }
 
     /**

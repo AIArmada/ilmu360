@@ -7,6 +7,7 @@ use AIArmada\CommerceSupport\SupportServiceProvider;
 use App\Features\Feedback\FeatureServiceProvider as FeedbackServiceProvider;
 use App\Features\GitHubIssues\FeatureServiceProvider as GitHubIssuesServiceProvider;
 use App\Features\Prayer\FeatureServiceProvider;
+use App\Features\Reports\FeatureServiceProvider as ReportsServiceProvider;
 use App\Features\SavedSearches\FeatureServiceProvider as SavedSearchesServiceProvider;
 use App\Providers\AdminRegistryServiceProvider;
 use App\Providers\ApiDocumentationServiceProvider;
@@ -30,6 +31,7 @@ return [
     FeedbackServiceProvider::class,
     GitHubIssuesServiceProvider::class,
     FeatureServiceProvider::class,
+    ReportsServiceProvider::class,
     SavedSearchesServiceProvider::class,
     BlazeServiceProvider::class,
     FilamentPhoneInputServiceProvider::class,

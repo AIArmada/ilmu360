@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Inspirations;
 
-use App\Filament\RelationManagers\AuditsRelationManager;
 use App\Filament\Resources\Inspirations\Pages\CreateInspiration;
 use App\Filament\Resources\Inspirations\Pages\EditInspiration;
 use App\Filament\Resources\Inspirations\Pages\ListInspirations;
 use App\Filament\Resources\Inspirations\Schemas\InspirationForm;
 use App\Filament\Resources\Inspirations\Tables\InspirationsTable;
 use App\Models\Inspiration;
+use App\Platform\Auditing\AuditsRelationManager;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;

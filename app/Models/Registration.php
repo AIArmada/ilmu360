@@ -5,7 +5,7 @@ namespace App\Models;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventRegistration as PackageEventRegistration;
 use AIArmada\Events\Models\EventRegistrationParticipant;
-use App\Models\Concerns\AuditsModelChanges;
+use App\Platform\Auditing\AuditsModelChanges;
 use Database\Factories\RegistrationFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;

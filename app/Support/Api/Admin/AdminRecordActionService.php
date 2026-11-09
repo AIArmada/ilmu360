@@ -6,6 +6,7 @@ namespace App\Support\Api\Admin;
 
 use AIArmada\FilamentEvents\Resources\EventResource;
 use AIArmada\Membership\Enums\ApplicationStatus;
+use App\Features\Reports\Api\ReportTriageContract;
 use App\Filament\Resources\ContributionRequests\ContributionRequestResource;
 use App\Filament\Resources\MembershipApplications\MembershipApplicationResource;
 use App\Filament\Resources\Reports\ReportResource;
@@ -29,6 +30,7 @@ final readonly class AdminRecordActionService
         private AdminEventModerationService $eventModerationService,
         private AdminReportTriageService $reportTriageService,
         private AdminContributionRequestReviewService $contributionRequestReviewService,
+        private ReportTriageContract $reportTriageContract,
     ) {}
 
     /**
@@ -257,7 +259,7 @@ final readonly class AdminRecordActionService
      */
     private function reportWorkflowActions(string $recordKey, ?User $actor = null): array
     {
-        if (! $this->reportTriageService->canTriage($actor)) {
+        if (! $this->reportTriageContract->canTriage($actor)) {
             return [];
         }
 

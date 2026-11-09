@@ -4,7 +4,7 @@ namespace App\Models;
 
 use AIArmada\Membership\Models\MembershipApplication as BaseMembershipApplication;
 use App\Enums\MemberSubjectType;
-use App\Models\Concerns\AuditsModelChanges;
+use App\Platform\Auditing\AuditsModelChanges;
 use Database\Factories\MembershipApplicationFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;

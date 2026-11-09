@@ -2,12 +2,12 @@
 
 namespace App\Filament\Resources\MembershipApplications;
 
-use App\Filament\RelationManagers\AuditsRelationManager;
 use App\Filament\Resources\MembershipApplications\Pages\ListMembershipApplications;
 use App\Filament\Resources\MembershipApplications\Pages\ViewMembershipApplication;
 use App\Filament\Resources\MembershipApplications\Schemas\MembershipApplicationInfolist;
 use App\Filament\Resources\MembershipApplications\Tables\MembershipApplicationsTable;
 use App\Models\MembershipApplication;
+use App\Platform\Auditing\AuditsRelationManager;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;

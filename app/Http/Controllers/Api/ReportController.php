@@ -4,13 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use AIArmada\CommerceSupport\Support\RequestFingerprint;
 use App\Actions\Reports\ResolveReportCategoryOptionsAction;
-use App\Actions\Reports\ResolveReportEntityMetadataAction;
 use App\Actions\Reports\SubmitReportAction;
 use App\Data\Api\Report\ReportSubmissionData;
 use App\Http\Controllers\Controller;
 use App\Models\Report;
 use App\Models\User;
 use App\Platform\Media\MediaEvidence;
+use App\Shared\Reports\ReportSubjectResolver;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
@@ -32,7 +32,7 @@ class ReportController extends Controller
     public function store(
         Request $request,
         ResolveReportCategoryOptionsAction $resolveReportCategoryOptionsAction,
-        ResolveReportEntityMetadataAction $resolveReportEntityMetadataAction,
+        ReportSubjectResolver $reportSubjects,
         SubmitReportAction $submitReportAction,
     ): JsonResponse {
         $this->authorize('create', Report::class);
@@ -40,7 +40,7 @@ class ReportController extends Controller
         $reporterFingerprint = RequestFingerprint::resolve($request);
 
         $validated = $request->validate([
-            'entity_type' => ['required', Rule::in($resolveReportEntityMetadataAction->validKeys())],
+            'entity_type' => ['required', Rule::in($reportSubjects->validKeys())],
             'entity_id' => ['required', 'uuid'],
             'category' => [
                 'required',
@@ -51,11 +51,9 @@ class ReportController extends Controller
             'evidence.*' => ['file', MediaEvidence::mimeRule(), 'max:'.MediaEvidence::maxFileSizeKb()],
         ]);
 
-        // Verify entity exists
-        $entityClass = $resolveReportEntityMetadataAction->handle($validated['entity_type'])['model_class'];
-        $entity = $entityClass::query()->find($validated['entity_id']);
+        $subject = $reportSubjects->find($validated['entity_type'], $validated['entity_id']);
 
-        if (! $entity) {
+        if ($subject === null) {
             return response()->json([
                 'error' => [
                     'code' => 'not_found',
@@ -69,8 +67,7 @@ class ReportController extends Controller
             $user = $request->user();
 
             $report = $submitReportAction->handle(
-                $entity,
-                $validated['entity_type'],
+                $subject,
                 $user,
                 $reporterFingerprint,
                 $validated['category'],

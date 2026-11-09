@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\DonationChannels;
 
-use App\Filament\RelationManagers\AuditsRelationManager;
 use App\Filament\Resources\DonationChannels\Pages\CreateDonationChannel;
 use App\Filament\Resources\DonationChannels\Pages\EditDonationChannel;
 use App\Filament\Resources\DonationChannels\Pages\ListDonationChannels;
 use App\Filament\Resources\DonationChannels\Schemas\DonationChannelForm;
 use App\Filament\Resources\DonationChannels\Tables\DonationChannelsTable;
 use App\Models\DonationChannel;
+use App\Platform\Auditing\AuditsRelationManager;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;

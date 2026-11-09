@@ -6,9 +6,9 @@ namespace App\Filament\Resources\Audits;
 
 use App\Filament\Resources\Audits\Pages\ListAudits;
 use App\Filament\Resources\Audits\Pages\ViewAudit;
-use App\Filament\Resources\Audits\Schemas\AuditInfolist;
 use App\Filament\Resources\Audits\Tables\AuditsTable;
 use App\Models\Audit;
+use App\Platform\Auditing\AuditInfolist;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;

@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tools\Admin;
 
-use App\Models\Report;
+use App\Features\Reports\Api\ReportTriageContract;
 use App\Support\Api\Admin\AdminReportTriageService;
 use App\Support\Mcp\McpAuthenticatedUserResolver;
-use App\Support\Moderation\ReportTriageWorkflow;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
 use Laravel\Mcp\Request;
@@ -30,6 +29,7 @@ class AdminTriageReportTool extends AbstractAdminTool
 
     public function __construct(
         private readonly AdminReportTriageService $triageService,
+        private readonly ReportTriageContract $triageContract,
     ) {}
 
     public function handle(Request $request): ResponseFactory|Response
@@ -59,7 +59,7 @@ class AdminTriageReportTool extends AbstractAdminTool
     {
         return [
             'record_key' => $schema->string()->required()->min(1),
-            'action' => $schema->string()->required()->enum(array_keys(ReportTriageWorkflow::availableActions(Report::makeOpen()))),
+            'action' => $schema->string()->required()->enum(array_keys($this->triageContract->availableActions('open'))),
             'resolution_note' => $schema->string()->nullable(),
         ];
     }
@@ -68,6 +68,6 @@ class AdminTriageReportTool extends AbstractAdminTool
     {
         $user = app(McpAuthenticatedUserResolver::class)->resolve($request->user());
 
-        return $this->triageService->canTriage($user);
+        return $this->triageContract->canTriage($user);
     }
 }

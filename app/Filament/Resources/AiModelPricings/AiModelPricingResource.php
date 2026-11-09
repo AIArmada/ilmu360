@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\AiModelPricings;
 
-use App\Filament\RelationManagers\AuditsRelationManager;
 use App\Filament\Resources\AiModelPricings\Pages\CreateAiModelPricing;
 use App\Filament\Resources\AiModelPricings\Pages\EditAiModelPricing;
 use App\Filament\Resources\AiModelPricings\Pages\ListAiModelPricings;
 use App\Filament\Resources\AiModelPricings\Schemas\AiModelPricingForm;
 use App\Filament\Resources\AiModelPricings\Tables\AiModelPricingsTable;
 use App\Models\AiModelPricing;
+use App\Platform\Auditing\AuditsRelationManager;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;

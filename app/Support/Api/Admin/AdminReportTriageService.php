@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace App\Support\Api\Admin;
 
+use App\Features\Reports\Api\ReportCommands;
+use App\Features\Reports\Api\ReportReader;
+use App\Features\Reports\Api\ReportSnapshot;
+use App\Features\Reports\Api\ReportTriageContract;
+use App\Features\Reports\Api\TriageReportInput;
 use App\Filament\Resources\Reports\ReportResource;
 use App\Models\Report;
 use App\Models\User;
-use App\Notifications\ReportResolvedNotification;
 use App\Support\Api\Admin\Concerns\ProvidesWorkflowResponse;
-use App\Support\Moderation\ReportTriageWorkflow;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
@@ -20,11 +22,14 @@ final readonly class AdminReportTriageService
 
     public function __construct(
         private AdminResourceRegistry $registry,
+        private ReportReader $reader,
+        private ReportTriageContract $triage,
+        private ReportCommands $commands,
     ) {}
 
     public function canTriage(?User $actor = null): bool
     {
-        return $actor instanceof User && $actor->hasAnyRole(['super_admin', 'admin', 'moderator']);
+        return $this->triage->canTriage($actor);
     }
 
     /**
@@ -35,7 +40,7 @@ final readonly class AdminReportTriageService
         abort_unless($this->canTriage($actor), 403);
 
         $report = $this->resolveReport($recordKey);
-        $availableActions = ReportTriageWorkflow::availableActions($report);
+        $availableActions = $this->availableActionsFor($report);
         $defaultAction = array_key_first($availableActions);
 
         return [
@@ -86,43 +91,37 @@ final readonly class AdminReportTriageService
         abort_unless($actor instanceof User, 403);
 
         $report = $this->resolveReport($recordKey);
-        $availableActions = ReportTriageWorkflow::availableActions($report);
+        $availableActions = $this->availableActionsFor($report);
 
         $validated = Validator::make($payload, [
             'action' => ['required', 'string', Rule::in(array_keys($availableActions))],
             'resolution_note' => ['nullable', 'string', 'max:2000'],
         ])->validate();
 
-        $report = DB::transaction(function () use ($report, $actor, $validated): Report {
-            $action = (string) $validated['action'];
-            $resolutionNote = is_string($validated['resolution_note'] ?? null) && trim($validated['resolution_note']) !== ''
-                ? trim($validated['resolution_note'])
-                : null;
+        $resolutionNote = is_string($validated['resolution_note'] ?? null) && trim($validated['resolution_note']) !== ''
+            ? trim($validated['resolution_note'])
+            : null;
 
-            $targetStatus = match ($action) {
-                'triage' => Report::STATUS_TRIAGED,
-                'resolve' => Report::STATUS_RESOLVED,
-                'dismiss' => Report::STATUS_DISMISSED,
-                'reopen' => Report::STATUS_OPEN,
-                default => throw new \InvalidArgumentException('Unsupported report triage action.'),
-            };
+        $this->commands->triage(new TriageReportInput(
+            reportId: (string) $report->getKey(),
+            action: (string) $validated['action'],
+            resolutionNote: $resolutionNote,
+            actor: $actor,
+        ));
 
-            $report->fill([
-                'handled_by' => $action === 'reopen' ? null : $actor->getKey(),
-                'resolution_note' => $action === 'reopen' ? null : $resolutionNote,
-            ]);
-            $report->transitionStatus($targetStatus);
+        return $this->workflowResponse(ReportResource::class, $this->resolveReport($recordKey));
+    }
 
-            $report->loadMissing(['reporter', 'entity']);
+    /**
+     * @return array<string, array{label: string, description: string, requires_resolution_note: bool}>
+     */
+    private function availableActionsFor(Report $report): array
+    {
+        $snapshot = $this->reader->find((string) $report->getKey());
 
-            if (in_array($action, ['resolve', 'dismiss'], true) && $report->reporter instanceof User) {
-                $report->reporter->notify(new ReportResolvedNotification($report));
-            }
-
-            return $report->fresh(['entity', 'reporter', 'handler']) ?? $report;
-        });
-
-        return $this->workflowResponse(ReportResource::class, $report);
+        return $this->triage->availableActions(
+            $snapshot instanceof ReportSnapshot ? $snapshot->status : (string) $report->getAttribute('status'),
+        );
     }
 
     private function resolveReport(string $recordKey): Report

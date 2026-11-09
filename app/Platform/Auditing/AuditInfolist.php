@@ -1,9 +1,8 @@
 <?php
 
-namespace App\Filament\Resources\Audits\Schemas;
+namespace App\Platform\Auditing;
 
 use App\Models\Audit;
-use App\Support\Auditing\AuditValuePresenter;
 use Filament\Infolists\Components\KeyValueEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Tabs;

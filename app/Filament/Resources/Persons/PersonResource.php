@@ -7,7 +7,6 @@ namespace App\Filament\Resources\Persons;
 use AIArmada\FilamentEvents\RelationManagers\EventsRelationManager;
 use AIArmada\FilamentPersons\Resources\PersonResource as PackagePersonResource;
 use AIArmada\FilamentPersons\Resources\PersonResource\RelationManagers\AffiliationsRelationManager as PackageAffiliationsRelationManager;
-use App\Filament\RelationManagers\AuditsRelationManager;
 use App\Filament\Resources\Persons\Pages\CreatePerson;
 use App\Filament\Resources\Persons\Pages\EditPerson;
 use App\Filament\Resources\Persons\Pages\ListPersons;
@@ -19,6 +18,7 @@ use App\Filament\Resources\Persons\Schemas\PersonForm;
 use App\Filament\Resources\Persons\Schemas\PersonInfolist;
 use App\Filament\Resources\Persons\Tables\PersonsTable;
 use App\Models\Person;
+use App\Platform\Auditing\AuditsRelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
 

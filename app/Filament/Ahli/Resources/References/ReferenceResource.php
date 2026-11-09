@@ -4,11 +4,11 @@ namespace App\Filament\Ahli\Resources\References;
 
 use App\Filament\Ahli\Resources\References\Pages\EditReference;
 use App\Filament\Ahli\Resources\References\Pages\ListReferences;
-use App\Filament\RelationManagers\AuditsRelationManager;
 use App\Filament\Resources\References\ReferenceResource as AdminReferenceResource;
 use App\Filament\Resources\References\RelationManagers\MemberInvitationsRelationManager;
 use App\Models\Reference;
 use App\Models\User;
+use App\Platform\Auditing\AuditsRelationManager;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
