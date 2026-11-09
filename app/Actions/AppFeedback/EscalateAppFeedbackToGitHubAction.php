@@ -7,7 +7,7 @@ namespace App\Actions\AppFeedback;
 use App\Enums\AppFeedbackGitHubStatus;
 use App\Features\GitHubIssues\Api\GitHubIssueReporterContract;
 use App\Models\AppFeedback;
-use App\Models\User;
+use App\Shared\Auth\AccountActor;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
@@ -24,7 +24,7 @@ class EscalateAppFeedbackToGitHubAction
         private readonly GitHubIssueReporterContract $gitHubIssueReporter,
     ) {}
 
-    public function handle(User $actor, AppFeedback $feedback, string $title, string $summary): AppFeedback
+    public function handle(AccountActor $actor, AppFeedback $feedback, string $title, string $summary): AppFeedback
     {
         Gate::forUser($actor)->authorize('escalateToGitHub', $feedback);
 

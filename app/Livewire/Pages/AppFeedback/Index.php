@@ -8,8 +8,9 @@ use App\Actions\AppFeedback\PostAppFeedbackMessageAction;
 use App\Actions\AppFeedback\SubmitAppFeedbackAction;
 use App\Enums\AppFeedbackCategory;
 use App\Models\AppFeedback;
-use App\Models\User;
+use App\Platform\Media\MediaEvidence;
 use App\Platform\Ui\InteractsWithToasts;
+use App\Shared\Auth\AccountActor;
 use App\Support\AppFeedback\AppFeedbackInput;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
@@ -65,7 +66,7 @@ class Index extends Component implements HasForms
     {
         $user = auth()->user();
 
-        abort_unless($user instanceof User, 403);
+        abort_unless($user instanceof AccountActor, 403);
 
         $this->submissionKey = (string) Str::uuid();
         $this->appFeedbackForm()->fill($this->defaultFormState($request));
@@ -152,26 +153,23 @@ class Index extends Component implements HasForms
                                 ? __('app-feedback.form.page_url_captured')
                                 : __('app-feedback.form.page_url_unavailable'))
                             ->columnSpanFull(),
-                        SpatieMediaLibraryFileUpload::make('evidence')
-                            ->label(__('app-feedback.form.evidence'))
-                            ->helperText(__('app-feedback.form.evidence_help', [
-                                'size' => (int) ceil(((int) config('media-library.max_file_size', 10 * 1024 * 1024)) / 1024 / 1024),
-                            ]))
-                            ->collection('evidence')
-                            ->disk('app_feedback_private')
-                            ->visibility('private')
-                            ->multiple()
-                            ->maxFiles(8)
-                            ->maxSize((int) ceil(((int) config('media-library.max_file_size', 10 * 1024 * 1024)) / 1024))
-                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
-                            ->rule('extensions:jpg,jpeg,png,webp,pdf')
+                        MediaEvidence::configureUpload(
+                            SpatieMediaLibraryFileUpload::make(MediaEvidence::COLLECTION)
+                                ->label(__('app-feedback.form.evidence'))
+                                ->helperText(__('app-feedback.form.evidence_help', [
+                                    'size' => (int) ceil(((int) config('media-library.max_file_size', 10 * 1024 * 1024)) / 1024 / 1024),
+                                ])),
+                            disk: MediaEvidence::PRIVATE_DISK,
+                            visibility: 'private',
+                            withConversion: false,
+                        )
+                            ->rule(MediaEvidence::extensionRule())
                             ->customHeaders(['CacheControl' => 'private, no-store'])
                             ->storeFiles(false)
                             ->dehydrated()
                             ->saveRelationshipsUsing(null)
                             ->loadStateFromRelationshipsUsing(null)
                             ->previewable()
-                            ->reorderable()
                             ->imageEditor()
                             ->openable(false)
                             ->downloadable(false)
@@ -185,7 +183,7 @@ class Index extends Component implements HasForms
     {
         $user = auth()->user();
 
-        abort_unless($user instanceof User, 403);
+        abort_unless($user instanceof AccountActor, 403);
 
         $state = $this->appFeedbackForm()->getState();
         $state['submission_key'] = $this->submissionKey;
@@ -215,14 +213,14 @@ class Index extends Component implements HasForms
     {
         $user = auth()->user();
 
-        abort_unless($user instanceof User, 403);
+        abort_unless($user instanceof AccountActor, 403);
 
         if (! Str::isUuid($feedbackId)) {
             abort(404);
         }
 
         $feedback = AppFeedback::query()
-            ->where('reporter_id', $user->getKey())
+            ->where('reporter_id', $user->actorId())
             ->findOrFail($feedbackId);
 
         $body = trim((string) ($this->replyBodies[$feedbackId] ?? ''));
@@ -252,10 +250,10 @@ class Index extends Component implements HasForms
     {
         $user = auth()->user();
 
-        abort_unless($user instanceof User, 403);
+        abort_unless($user instanceof AccountActor, 403);
 
         return AppFeedback::query()
-            ->where('reporter_id', $user->getKey())
+            ->where('reporter_id', $user->actorId())
             ->with(['media', 'visibleMessages'])
             ->latest('created_at')
             ->paginate(perPage: 5, pageName: 'feedback_page');
@@ -274,10 +272,10 @@ class Index extends Component implements HasForms
 
         $user = auth()->user();
 
-        abort_unless($user instanceof User, 403);
+        abort_unless($user instanceof AccountActor, 403);
 
         return AppFeedback::query()
-            ->where('reporter_id', $user->getKey())
+            ->where('reporter_id', $user->actorId())
             ->with(['media', 'visibleMessages'])
             ->findOrFail($this->selectedFeedbackId);
     }

@@ -5,10 +5,14 @@ namespace App\Actions\Reports;
 use App\Models\Event;
 use App\Models\Report;
 use App\Models\User;
+use App\Platform\Media\MediaCollectionSync;
+use App\Platform\Media\MediaEvidence;
 use App\Services\ModerationService;
-use App\Services\Signals\ProductSignalsService;
+use App\Shared\Auth\AccountActor;
+use App\Shared\Signals\SignalRecorder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Lorisleiva\Actions\Concerns\AsAction;
 use RuntimeException;
 
@@ -18,17 +22,22 @@ class SubmitReportAction
 
     public function __construct(
         private readonly ModerationService $moderationService,
-        private readonly ProductSignalsService $productSignalsService,
+        private readonly SignalRecorder $signals,
+        private readonly MediaCollectionSync $mediaCollectionSync,
     ) {}
 
+    /**
+     * @param  array<int, UploadedFile>|null  $evidence
+     */
     public function handle(
         Model $entity,
         string $entityType,
-        ?User $reporter,
+        ?AccountActor $reporter,
         string $reporterFingerprint,
         string $category,
         ?string $description = null,
         ?Request $request = null,
+        ?array $evidence = null,
     ): Report {
         $existingReport = Report::query()
             ->where('entity_type', $entityType)
@@ -46,17 +55,35 @@ class SubmitReportAction
             'entity_id' => (string) $entity->getKey(),
             'category' => $category,
             'description' => $description,
-            'reporter_id' => $reporter?->getKey(),
+            'reporter_id' => $reporter?->actorId(),
             'reporter_fingerprint' => $reporterFingerprint,
         ]);
 
-        $this->productSignalsService->recordReportSubmitted($report, $request ?? request());
+        $signalRequest = $request ?? request();
+        $signalUser = $signalRequest->user();
+
+        $this->signals->record(
+            eventName: 'report.submitted',
+            eventCategory: 'moderation',
+            actorId: $signalUser instanceof User ? $signalUser->getKey() : null,
+            properties: [
+                'report_id' => (string) $report->getKey(),
+                'entity_type' => (string) $report->entity_type,
+                'entity_id' => (string) $report->entity_id,
+                'category' => (string) $report->category,
+                'status' => (string) $report->getAttribute('status'),
+            ],
+            request: $signalRequest,
+            anonymousId: (string) $report->reporter_fingerprint,
+        );
 
         if (in_array($category, ['donation_scam', 'fake_person', 'fake_institution', 'fake_reference'], true)) {
             $this->handleHighRiskReport($entity, $report);
         }
 
         $this->checkEscalationThreshold($entityType, (string) $entity->getKey());
+
+        $this->mediaCollectionSync->syncMultiple($report, $evidence, MediaEvidence::COLLECTION);
 
         return $report;
     }

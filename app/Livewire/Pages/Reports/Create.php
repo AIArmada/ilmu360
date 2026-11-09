@@ -11,8 +11,8 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
-use App\Models\User;
 use App\Platform\Ui\InteractsWithToasts;
+use App\Shared\Auth\AccountActor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -62,7 +62,7 @@ class Create extends Component implements HasForms
 
         $user = auth()->user();
 
-        abort_unless($user instanceof User, 403);
+        abort_unless($user instanceof AccountActor, 403);
 
         if (! $user->canSubmitDirectoryFeedback()) {
             abort(403, $user->directoryFeedbackBanMessage());
@@ -109,7 +109,7 @@ class Create extends Component implements HasForms
     ): void {
         $user = auth()->user();
 
-        abort_unless($user instanceof User, 403);
+        abort_unless($user instanceof AccountActor, 403);
 
         if (! $user->canSubmitDirectoryFeedback()) {
             abort(403, $user->directoryFeedbackBanMessage());

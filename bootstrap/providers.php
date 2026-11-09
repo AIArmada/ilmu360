@@ -7,6 +7,7 @@ use AIArmada\CommerceSupport\SupportServiceProvider;
 use App\Features\GitHubIssues\FeatureServiceProvider as GitHubIssuesServiceProvider;
 use App\Features\Prayer\FeatureServiceProvider;
 use App\Features\SavedSearches\FeatureServiceProvider as SavedSearchesServiceProvider;
+use App\Providers\AdminRegistryServiceProvider;
 use App\Providers\ApiDocumentationServiceProvider;
 use App\Providers\AppServiceProvider;
 use App\Providers\BlazeServiceProvider;
@@ -22,6 +23,7 @@ use Ysfkaya\FilamentPhoneInput\FilamentPhoneInputServiceProvider;
 return [
     SupportServiceProvider::class,
     AffiliatesServiceProvider::class,
+    AdminRegistryServiceProvider::class,
     ApiDocumentationServiceProvider::class,
     AppServiceProvider::class,
     GitHubIssuesServiceProvider::class,

@@ -147,6 +147,8 @@ use App\Observers\ShareSourceAttributionReceiptObserver;
 use App\Observers\TitleCategoryObserver;
 use App\Observers\VenueObserver;
 use App\Organizations\CurrentOrganizationResolver as AppCurrentOrganizationResolver;
+use App\Platform\Media\EloquentMediaCollectionSync;
+use App\Platform\Media\MediaCollectionSync;
 use App\Policies\AddressAreaPolicy;
 use App\Policies\AddressCountryPolicy;
 use App\Policies\AppFeedbackPolicy;
@@ -166,7 +168,9 @@ use App\Services\Captcha\TurnstileVerifier;
 use App\Services\EventCategoryCatalog as DefaultEventCategoryCatalog;
 use App\Services\EventCategoryPolicy;
 use App\Services\ShareTrackingService;
+use App\Services\Signals\ProductSignalsService;
 use App\Services\Spaces\DefaultSpaceEligibilityResolver;
+use App\Shared\Auth\AccountDirectory;
 use App\Shared\Auth\UserMorphType;
 use App\Shared\Discovery\SearchFilterCatalog;
 use App\Shared\Discovery\SearchFilterLabels;
@@ -174,8 +178,10 @@ use App\Shared\Discovery\SearchFilterNormalizer;
 use App\Shared\Discovery\SearchFilterRules;
 use App\Shared\Location\VisitorCountryResolving;
 use App\Shared\ShareTracking\SavedSearchShareOutcomes;
+use App\Shared\Signals\SignalRecorder;
 use App\Shared\Time\UserDateTimeFormatting;
 use App\Support\Auth\AffiliateSignupAttributionSourceResolver;
+use App\Support\Auth\EloquentAccountDirectory;
 use App\Support\Auth\EloquentUserMorphType;
 use App\Support\Communications\AppConsentResolver;
 use App\Support\Communications\AppPreferenceResolver;
@@ -254,14 +260,17 @@ class AppServiceProvider extends ServiceProvider
     #[\Override]
     public function register(): void
     {
+        $this->app->bind(AccountDirectory::class, EloquentAccountDirectory::class);
         $this->app->bind(UserMorphType::class, EloquentUserMorphType::class);
         $this->app->bind(SearchFilterNormalizer::class, EventSearchFilterNormalizer::class);
         $this->app->bind(SearchFilterCatalog::class, EventSearchFilterCatalog::class);
         $this->app->bind(SearchFilterRules::class, EventSearchFilterRules::class);
         $this->app->bind(SavedSearchExecutor::class, EventSavedSearchExecutor::class);
         $this->app->bind(SavedSearchShareOutcomes::class, SavedSearchOutcomeRecorder::class);
+        $this->app->bind(SignalRecorder::class, ProductSignalsService::class);
         $this->app->bind(VisitorCountryResolving::class, VisitorCountryResolver::class);
         $this->app->bind(UserDateTimeFormatting::class, DefaultUserDateTimeFormatter::class);
+        $this->app->bind(MediaCollectionSync::class, EloquentMediaCollectionSync::class);
         $this->app->scoped(SearchFilterLabels::class, DatabaseSearchFilterLabels::class);
         $this->app->bind(Js::class, ContentVersionedJs::class);
 

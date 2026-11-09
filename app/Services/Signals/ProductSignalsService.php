@@ -13,18 +13,17 @@ use AIArmada\Rewards\Models\RewardProgram;
 use AIArmada\Signals\Contracts\SignalEventIngestor;
 use AIArmada\Signals\Models\SignalEvent;
 use AIArmada\Signals\Models\TrackedProperty;
-use App\Models\AppFeedback;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Report;
 use App\Models\User;
+use App\Shared\Signals\SignalRecorder;
 use App\Support\Signals\ProductSignalsClientContext;
 use Illuminate\Http\Request;
 use Throwable;
 
-final readonly class ProductSignalsService
+final readonly class ProductSignalsService implements SignalRecorder
 {
     public function __construct(
         private SignalEventIngestor $ingestSignalEvent,
@@ -35,48 +34,48 @@ final readonly class ProductSignalsService
     public function recordLogin(User $user, Request $request, string $method, bool $createdAccount = false): ?SignalEvent
     {
         return $this->record(
-            request: $request,
             eventName: 'auth.login',
             eventCategory: 'auth',
-            user: $user,
+            actorId: $user->getKey(),
             properties: [
                 'method' => $method,
                 'created_account' => $createdAccount,
             ],
+            request: $request,
         );
     }
 
     public function recordSignup(User $user, ?Request $request = null): ?SignalEvent
     {
         return $this->record(
-            request: $request,
             eventName: 'auth.signup.completed',
             eventCategory: 'auth',
-            user: $user,
+            actorId: $user->getKey(),
             properties: [
                 'has_email' => filled($user->email),
                 'has_phone' => filled($user->phone),
             ],
+            request: $request,
         );
     }
 
     public function recordPasswordResetCompleted(User $user, ?Request $request = null): ?SignalEvent
     {
         return $this->record(
-            request: $request,
             eventName: 'auth.password_reset.completed',
             eventCategory: 'auth',
-            user: $user,
+            actorId: $user->getKey(),
+            request: $request,
         );
     }
 
     public function recordEmailVerified(User $user, ?Request $request = null): ?SignalEvent
     {
         return $this->record(
-            request: $request,
             eventName: 'auth.email_verified',
             eventCategory: 'auth',
-            user: $user,
+            actorId: $user->getKey(),
+            request: $request,
         );
     }
 
@@ -87,14 +86,14 @@ final readonly class ProductSignalsService
         ?Request $request = null,
     ): ?SignalEvent {
         return $this->record(
-            request: $request,
             eventName: 'contribution.institution_maps_place_selected',
             eventCategory: 'contribution',
-            user: $user,
+            actorId: $user->getKey(),
             properties: [
                 'has_website' => $hasWebsite,
                 'social_profile_count' => $socialProfileCount,
             ],
+            request: $request,
         );
     }
 
@@ -106,16 +105,16 @@ final readonly class ProductSignalsService
         string $surface = 'member-portal',
     ): ?SignalEvent {
         return $this->record(
-            request: $request,
             eventName: 'rewards.program_enrolled',
             eventCategory: 'engagement',
-            user: $user,
+            actorId: $user->getKey(),
             properties: [
                 'program_id' => (string) $program->getKey(),
                 'program_family' => $program->family_key,
                 'enrollment_id' => (string) $enrollment->getKey(),
                 'surface' => $surface,
             ],
+            request: $request,
         );
     }
 
@@ -126,15 +125,15 @@ final readonly class ProductSignalsService
         string $surface = 'member-portal',
     ): ?SignalEvent {
         return $this->record(
-            request: $request,
             eventName: 'referrals.invite_created',
             eventCategory: 'engagement',
-            user: $user,
+            actorId: $user->getKey(),
             properties: [
                 'program_id' => (string) $invite->program_id,
                 'invite_id' => (string) $invite->getKey(),
                 'surface' => $surface,
             ],
+            request: $request,
         );
     }
 
@@ -145,15 +144,15 @@ final readonly class ProductSignalsService
         string $surface = 'invite-landing',
     ): ?SignalEvent {
         return $this->record(
-            request: $request,
             eventName: 'referrals.invite_accepted',
             eventCategory: 'engagement',
-            user: $user,
+            actorId: $user->getKey(),
             properties: [
                 'program_id' => (string) $invite->program_id,
                 'invite_id' => (string) $invite->getKey(),
                 'surface' => $surface,
             ],
+            request: $request,
         );
     }
 
@@ -167,10 +166,9 @@ final readonly class ProductSignalsService
         ?Request $request = null,
     ): ?SignalEvent {
         return $this->record(
-            request: $request,
             eventName: 'moderation.event.'.$action,
             eventCategory: 'moderation',
-            user: $moderator,
+            actorId: $moderator?->getKey(),
             properties: [
                 'event_id' => (string) $event->getKey(),
                 'moderation_action' => $action,
@@ -180,6 +178,7 @@ final readonly class ProductSignalsService
                 'reason_code' => $reasonCode,
                 'has_note' => filled($note),
             ],
+            request: $request,
         );
     }
 
@@ -196,10 +195,9 @@ final readonly class ProductSignalsService
         ?string $note = null,
     ): ?SignalEvent {
         return $this->record(
-            request: $request,
             eventName: 'moderation.event.occurrence_'.$action,
             eventCategory: 'moderation',
-            user: $moderator,
+            actorId: $moderator->getKey(),
             properties: [
                 'event_id' => (string) $event->getKey(),
                 'event_occurrence_id' => (string) $occurrence->getKey(),
@@ -211,6 +209,7 @@ final readonly class ProductSignalsService
                 'reason_code' => $reasonCode,
                 'has_note' => filled($note),
             ],
+            request: $request,
         );
     }
 
@@ -224,15 +223,15 @@ final readonly class ProductSignalsService
         array $properties = [],
     ): ?SignalEvent {
         return $this->record(
-            request: $request,
             eventName: 'admin.event_cover.generated',
             eventCategory: 'admin',
-            user: $user,
+            actorId: $user?->getKey(),
             properties: [
                 'event_id' => (string) $event->getKey(),
                 'event_status' => (string) $event->status,
                 ...$properties,
             ],
+            request: $request,
         );
     }
 
@@ -271,10 +270,9 @@ final readonly class ProductSignalsService
         $enabledCount = count(array_filter($current));
 
         return $this->record(
-            request: $request,
             eventName: 'admin.institution_facilities.updated',
             eventCategory: 'admin',
-            user: $actor,
+            actorId: $actor?->getKey(),
             properties: [
                 'institution_id' => (string) $institution->getKey(),
                 'changed_codes' => $changed,
@@ -282,6 +280,7 @@ final readonly class ProductSignalsService
                 'disabled_count' => count($current) - $enabledCount,
                 'cleared' => $currentFacilities === null,
             ],
+            request: $request,
         );
     }
 
@@ -290,10 +289,9 @@ final readonly class ProductSignalsService
         $user = $request?->user();
 
         return $this->record(
-            request: $request,
             eventName: 'reference.quick_created',
             eventCategory: 'contribution',
-            user: $user instanceof User ? $user : null,
+            actorId: $user instanceof User ? $user->getKey() : null,
             properties: [
                 'reference_id' => (string) $reference->getKey(),
                 'record_kind' => $reference->recordKindValue(),
@@ -301,6 +299,7 @@ final readonly class ProductSignalsService
                 'status' => (string) $reference->status,
                 'source' => 'event_reference_picker',
             ],
+            request: $request,
         );
     }
 
@@ -309,68 +308,31 @@ final readonly class ProductSignalsService
         $user = $request?->user();
 
         return $this->record(
-            request: $request,
             eventName: 'author.quick_created',
             eventCategory: 'contribution',
-            user: $user instanceof User ? $user : null,
+            actorId: $user instanceof User ? $user->getKey() : null,
             properties: [
                 'person_id' => (string) $person->getKey(),
                 'status' => (string) $person->status,
                 'source' => 'reference_author_picker',
             ],
-        );
-    }
-
-    public function recordReportSubmitted(Report $report, ?Request $request = null): ?SignalEvent
-    {
-        $user = $request?->user();
-
-        return $this->record(
             request: $request,
-            eventName: 'report.submitted',
-            eventCategory: 'moderation',
-            user: $user instanceof User ? $user : null,
-            properties: [
-                'report_id' => (string) $report->getKey(),
-                'entity_type' => (string) $report->entity_type,
-                'entity_id' => (string) $report->entity_id,
-                'category' => (string) $report->category,
-                'status' => (string) $report->getAttribute('status'),
-            ],
-            anonymousId: (string) $report->reporter_fingerprint,
-        );
-    }
-
-    public function recordAppFeedbackSubmitted(AppFeedback $feedback): ?SignalEvent
-    {
-        return $this->record(
-            request: null,
-            eventName: 'app_feedback.submitted',
-            eventCategory: 'feedback',
-            user: $feedback->reporter instanceof User ? $feedback->reporter : null,
-            properties: [
-                'category' => $feedback->category->value,
-                'status' => $feedback->status->value,
-                'has_evidence' => $feedback->getMedia('evidence')->isNotEmpty(),
-                'details_keys' => is_array($feedback->details) ? array_keys($feedback->details) : [],
-                'has_page_url' => is_string($feedback->page_url) && $feedback->page_url !== '',
-            ],
         );
     }
 
     public function recordNotificationRead(NotificationInbox $message, User $user, ?Request $request = null): ?SignalEvent
     {
         return $this->record(
-            request: $request,
             eventName: 'notification.read',
             eventCategory: 'notification',
-            user: $user,
+            actorId: $user->getKey(),
             properties: [
                 'notification_id' => (string) $message->getKey(),
                 'family' => $this->enumValue($message->family),
                 'trigger' => $this->enumValue($message->trigger),
                 'action_url' => $message->data['action_url'] ?? null,
             ],
+            request: $request,
         );
     }
 
@@ -381,13 +343,13 @@ final readonly class ProductSignalsService
         }
 
         return $this->record(
-            request: $request,
             eventName: 'notification.read_all',
             eventCategory: 'notification',
-            user: $user,
+            actorId: $user->getKey(),
             properties: [
                 'updated_count' => $updatedCount,
             ],
+            request: $request,
         );
     }
 
@@ -423,10 +385,9 @@ final readonly class ProductSignalsService
         $hasQuery = $normalizedQuery !== null && $normalizedQuery !== '';
 
         return $this->record(
-            request: $request,
             eventName: $hasQuery ? 'search.executed' : 'listing.filtered',
             eventCategory: $hasQuery ? 'search' : 'discovery',
-            user: $user,
+            actorId: $user?->getKey(),
             properties: [
                 'interaction_type' => $hasQuery ? 'search' : 'filter',
                 'surface' => $surface,
@@ -436,18 +397,19 @@ final readonly class ProductSignalsService
                 'result_count' => $resultCount,
                 'saved_search_id' => $savedSearchId,
             ],
+            request: $request,
         );
     }
 
     /**
      * @param  array<string, mixed>  $properties
      */
-    private function record(
-        ?Request $request,
+    public function record(
         string $eventName,
         string $eventCategory,
-        ?User $user = null,
+        ?string $actorId = null,
         array $properties = [],
+        ?Request $request = null,
         ?string $anonymousId = null,
     ): ?SignalEvent {
         try {
@@ -465,7 +427,7 @@ final readonly class ProductSignalsService
             $payload = [
                 'event_name' => $eventName,
                 'event_category' => $eventCategory,
-                'external_id' => $user?->getKey(),
+                'external_id' => $actorId,
                 'anonymous_id' => $anonymousId ?? $this->resolveAnonymousId($request),
                 'session_identifier' => $this->resolveSessionIdentifier($request),
                 'path' => $this->resolvePath($request),
@@ -486,7 +448,7 @@ final readonly class ProductSignalsService
                 'event_name' => $eventName,
                 'event_category' => $eventCategory,
                 'route_name' => $request?->route()?->getName(),
-                'user_id' => $user?->getKey(),
+                'user_id' => $actorId,
             ]);
 
             return null;

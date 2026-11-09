@@ -6,7 +6,7 @@ namespace App\Actions\AppFeedback;
 
 use App\Enums\AppFeedbackGitHubStatus;
 use App\Models\AppFeedback;
-use App\Models\User;
+use App\Shared\Auth\AccountActor;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
@@ -17,7 +17,7 @@ class LinkAppFeedbackGitHubIssueAction
 {
     use AsAction;
 
-    public function handle(User $actor, AppFeedback $feedback, string $issueUrl): AppFeedback
+    public function handle(AccountActor $actor, AppFeedback $feedback, string $issueUrl): AppFeedback
     {
         Gate::forUser($actor)->authorize('linkGitHubIssue', $feedback);
 

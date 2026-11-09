@@ -6,9 +6,10 @@ namespace App\Actions\AppFeedback;
 
 use App\Enums\AppFeedbackStatus;
 use App\Models\AppFeedback;
-use App\Models\User;
 use App\Notifications\AppFeedbackClosedNotification;
 use App\Notifications\AppFeedbackTriagedNotification;
+use App\Shared\Auth\AccountActor;
+use App\Shared\Auth\AccountDirectory;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
@@ -21,8 +22,12 @@ class TransitionAppFeedbackAction
 {
     use AsAction;
 
+    public function __construct(
+        private readonly AccountDirectory $accounts,
+    ) {}
+
     public function handle(
-        User $actor,
+        AccountActor $actor,
         AppFeedback $feedback,
         AppFeedbackStatus $target,
         ?string $resolutionNote = null,
@@ -74,7 +79,7 @@ class TransitionAppFeedbackAction
                 'status' => $target,
                 $timestampColumn => now(),
                 'last_state_change_at' => now(),
-                'handled_by' => $actor->getKey(),
+                'handled_by' => $actor->actorId(),
                 'resolution_note' => $target->isTerminal() ? $resolutionNote : null,
             ]);
             $feedback->save();
@@ -95,9 +100,9 @@ class TransitionAppFeedbackAction
 
     private function notifyTriaged(AppFeedback $feedback): void
     {
-        $reporter = $feedback->reporter;
+        $reporter = $this->accounts->resolveNotifiable((string) $feedback->reporter_id);
 
-        if (! $reporter instanceof User) {
+        if ($reporter === null) {
             return;
         }
 
@@ -113,9 +118,9 @@ class TransitionAppFeedbackAction
 
     private function notifyReporter(AppFeedback $feedback): void
     {
-        $reporter = $feedback->reporter;
+        $reporter = $this->accounts->resolveNotifiable((string) $feedback->reporter_id);
 
-        if (! $reporter instanceof User) {
+        if ($reporter === null) {
             return;
         }
 

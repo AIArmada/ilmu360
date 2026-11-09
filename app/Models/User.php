@@ -25,6 +25,7 @@ use App\Notifications\Auth\ResetPasswordNotification;
 use App\Notifications\Auth\VerifyEmailNotification;
 use App\Notifications\Channels\DigestMailChannel;
 use App\Notifications\Channels\InboxChannel;
+use App\Shared\Auth\AccountActor;
 use App\Shared\Auth\IntegrationFeedbackIdentity;
 use App\Shared\Auth\IntegrationFeedbackUser;
 use App\Shared\Auth\ResourceOwner;
@@ -58,8 +59,13 @@ use Spatie\DeletedModels\Models\Concerns\KeepsDeletedModels;
 use Spatie\Permission\PermissionRegistrar;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable implements AuditableContract, CanInteract, FilamentUser, HasLocalePreference, IntegrationFeedbackUser, MustVerifyEmailContract, ResourceOwner
+class User extends Authenticatable implements AccountActor, AuditableContract, CanInteract, FilamentUser, HasLocalePreference, IntegrationFeedbackUser, MustVerifyEmailContract, ResourceOwner
 {
+    public function actorId(): string
+    {
+        return (string) $this->getKey();
+    }
+
     public function resourceOwnerType(): string
     {
         return $this->getMorphClass();
@@ -380,14 +386,6 @@ class User extends Authenticatable implements AuditableContract, CanInteract, Fi
     public function reports(): HasMany
     {
         return $this->hasMany(Report::class, 'reporter_id');
-    }
-
-    /**
-     * @return HasMany<AppFeedback, $this>
-     */
-    public function appFeedback(): HasMany
-    {
-        return $this->hasMany(AppFeedback::class, 'reporter_id');
     }
 
     /**

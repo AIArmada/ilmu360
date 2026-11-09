@@ -7,13 +7,14 @@ namespace App\Actions\AppFeedback;
 use App\Enums\AppFeedbackCategory;
 use App\Enums\AppFeedbackStatus;
 use App\Models\AppFeedback;
-use App\Models\User;
 use App\Notifications\AppFeedbackReceivedNotification;
 use App\Notifications\AppFeedbackSubmittedNotification;
-use App\Services\Signals\ProductSignalsService;
+use App\Platform\Media\MediaCollectionSync;
+use App\Platform\Media\MediaEvidence;
+use App\Shared\Auth\AccountActor;
+use App\Shared\Auth\AccountDirectory;
+use App\Shared\Signals\SignalRecorder;
 use App\Support\AppFeedback\AppFeedbackInput;
-use App\Support\Media\ModelMediaSyncService;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -29,14 +30,15 @@ class SubmitAppFeedbackAction
     use AsAction;
 
     public function __construct(
-        private readonly ModelMediaSyncService $mediaSyncService,
-        private readonly ProductSignalsService $productSignalsService,
+        private readonly MediaCollectionSync $mediaCollectionSync,
+        private readonly SignalRecorder $signals,
+        private readonly AccountDirectory $accounts,
     ) {}
 
     /**
      * @param  array<string, mixed>  $data
      */
-    public function handle(User $user, array $data, Request $request): AppFeedback
+    public function handle(AccountActor $user, array $data, Request $request): AppFeedback
     {
         Gate::forUser($user)->authorize('create', AppFeedback::class);
 
@@ -54,10 +56,10 @@ class SubmitAppFeedbackAction
         $payloadHash = $input->payloadHash();
 
         [$feedback, $created] = DB::transaction(function () use ($user, $input, $payloadHash): array {
-            User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
+            $this->accounts->lockForUpdate($user->actorId());
 
             $existing = AppFeedback::query()
-                ->where('reporter_id', $user->getKey())
+                ->where('reporter_id', $user->actorId())
                 ->where('submission_key', $input->submissionKey)
                 ->first();
 
@@ -72,7 +74,7 @@ class SubmitAppFeedbackAction
             }
 
             $recentCount = AppFeedback::query()
-                ->where('reporter_id', $user->getKey())
+                ->where('reporter_id', $user->actorId())
                 ->where('created_at', '>=', now()->subHour())
                 ->count();
 
@@ -92,7 +94,7 @@ class SubmitAppFeedbackAction
                 'details' => $input->details === [] ? null : $input->details,
             ]);
             $feedback->forceFill([
-                'reporter_id' => $user->getKey(),
+                'reporter_id' => $user->actorId(),
                 'submission_key' => $input->submissionKey,
                 'payload_hash' => $payloadHash,
                 'status' => AppFeedbackStatus::New,
@@ -101,9 +103,9 @@ class SubmitAppFeedbackAction
             $feedback->save();
 
             try {
-                $this->mediaSyncService->syncMultiple($feedback, $input->evidence, 'evidence');
+                $this->mediaCollectionSync->syncMultiple($feedback, $input->evidence, MediaEvidence::COLLECTION);
             } catch (Throwable $exception) {
-                $feedback->clearMediaCollection('evidence');
+                $this->mediaCollectionSync->clearCollection($feedback, MediaEvidence::COLLECTION);
 
                 throw $exception;
             }
@@ -152,18 +154,18 @@ class SubmitAppFeedbackAction
         }
     }
 
-    private function notify(AppFeedback $feedback, User $reporter): void
+    private function notify(AppFeedback $feedback, AccountActor $reporter): void
     {
         try {
-            Notification::send($reporter, new AppFeedbackReceivedNotification($feedback));
+            $recipient = $this->accounts->resolveNotifiable($reporter->actorId());
 
-            $maintainers = User::query()
-                ->whereHas('globalRoles', static function (Builder $query): void {
-                    $query->whereIn('name', ['super_admin', 'admin']);
-                })
-                ->get();
+            if ($recipient !== null) {
+                Notification::send($recipient, new AppFeedbackReceivedNotification($feedback));
+            }
 
-            if ($maintainers->isNotEmpty()) {
+            $maintainers = $this->accounts->maintainers();
+
+            if ($maintainers !== []) {
                 Notification::send($maintainers, new AppFeedbackSubmittedNotification($feedback));
             }
         } catch (Throwable $exception) {
@@ -177,7 +179,18 @@ class SubmitAppFeedbackAction
     private function recordSignal(AppFeedback $feedback): void
     {
         try {
-            $this->productSignalsService->recordAppFeedbackSubmitted($feedback);
+            $this->signals->record(
+                eventName: 'app_feedback.submitted',
+                eventCategory: 'feedback',
+                actorId: (string) $feedback->reporter_id,
+                properties: [
+                    'category' => $feedback->category->value,
+                    'status' => $feedback->status->value,
+                    'has_evidence' => $feedback->getMedia('evidence')->isNotEmpty(),
+                    'details_keys' => is_array($feedback->details) ? array_keys($feedback->details) : [],
+                    'has_page_url' => is_string($feedback->page_url) && $feedback->page_url !== '',
+                ],
+            );
         } catch (Throwable $exception) {
             Log::warning('Unable to record app feedback signal.', [
                 'feedback_id' => (string) $feedback->getKey(),

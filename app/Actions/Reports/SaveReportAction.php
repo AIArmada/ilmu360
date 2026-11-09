@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace App\Actions\Reports;
 
 use App\Models\Report;
-use App\Models\User;
-use App\Support\Media\ModelMediaSyncService;
+use App\Platform\Media\MediaCollectionSync;
+use App\Platform\Media\MediaEvidence;
+use App\Shared\Auth\AccountDirectory;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -17,7 +18,8 @@ final readonly class SaveReportAction
     public function __construct(
         private ResolveReportCategoryOptionsAction $resolveReportCategoryOptionsAction,
         private ResolveReportEntityMetadataAction $resolveReportEntityMetadataAction,
-        private ModelMediaSyncService $mediaSyncService,
+        private MediaCollectionSync $mediaCollectionSync,
+        private AccountDirectory $accounts,
     ) {}
 
     /**
@@ -70,13 +72,13 @@ final readonly class SaveReportAction
         }
 
         if (($data['clear_evidence'] ?? false) === true) {
-            $this->mediaSyncService->clearCollection($report, 'evidence');
+            $this->mediaCollectionSync->clearCollection($report, MediaEvidence::COLLECTION);
         }
 
-        $this->mediaSyncService->syncMultiple(
+        $this->mediaCollectionSync->syncMultiple(
             $report,
             is_array($data['evidence'] ?? null) ? $data['evidence'] : null,
-            'evidence',
+            MediaEvidence::COLLECTION,
             replace: is_array($data['evidence'] ?? null),
         );
 
@@ -150,7 +152,7 @@ final readonly class SaveReportAction
             return null;
         }
 
-        if (! User::query()->whereKey($userKey)->exists()) {
+        if (! $this->accounts->exists($userKey)) {
             throw ValidationException::withMessages([
                 $field => __('The selected user is invalid.'),
             ]);

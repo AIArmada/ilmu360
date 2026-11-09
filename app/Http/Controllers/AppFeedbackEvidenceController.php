@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AppFeedback;
 use App\Models\User;
+use App\Platform\Media\MediaEvidence;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
@@ -29,21 +30,21 @@ class AppFeedbackEvidenceController extends Controller
 
         $media = $feedback->media()
             ->whereKey($mediaId)
-            ->where('collection_name', 'evidence')
+            ->where('collection_name', MediaEvidence::COLLECTION)
             ->firstOrFail();
 
-        abort_unless($media->disk === 'app_feedback_private', 404);
+        abort_unless($media->disk === MediaEvidence::PRIVATE_DISK, 404);
 
         if ($request->query('preview') && str_starts_with((string) $media->mime_type, 'image/')) {
-            $path = $media->hasGeneratedConversion('thumb')
-                ? $media->getPath('thumb')
+            $path = $media->hasGeneratedConversion(MediaEvidence::THUMB_CONVERSION)
+                ? $media->getPath(MediaEvidence::THUMB_CONVERSION)
                 : $media->getPath();
 
             abort_unless(is_string($path) && $path !== '' && is_file($path), 404);
 
-            return Storage::disk('app_feedback_private')->response(
-                $media->hasGeneratedConversion('thumb')
-                    ? $media->getPathRelativeToRoot('thumb')
+            return Storage::disk(MediaEvidence::PRIVATE_DISK)->response(
+                $media->hasGeneratedConversion(MediaEvidence::THUMB_CONVERSION)
+                    ? $media->getPathRelativeToRoot(MediaEvidence::THUMB_CONVERSION)
                     : $media->getPathRelativeToRoot(),
                 $media->file_name,
                 [
@@ -53,7 +54,7 @@ class AppFeedbackEvidenceController extends Controller
             );
         }
 
-        return Storage::disk('app_feedback_private')->download(
+        return Storage::disk(MediaEvidence::PRIVATE_DISK)->download(
             $media->getPathRelativeToRoot(),
             $media->file_name,
             [

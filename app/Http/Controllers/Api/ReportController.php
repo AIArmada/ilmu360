@@ -10,7 +10,7 @@ use App\Data\Api\Report\ReportSubmissionData;
 use App\Http\Controllers\Controller;
 use App\Models\Report;
 use App\Models\User;
-use App\Support\Api\Frontend\FrontendMediaSyncService;
+use App\Platform\Media\MediaEvidence;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
@@ -34,12 +34,10 @@ class ReportController extends Controller
         ResolveReportCategoryOptionsAction $resolveReportCategoryOptionsAction,
         ResolveReportEntityMetadataAction $resolveReportEntityMetadataAction,
         SubmitReportAction $submitReportAction,
-        FrontendMediaSyncService $frontendMediaSyncService,
     ): JsonResponse {
         $this->authorize('create', Report::class);
 
         $reporterFingerprint = RequestFingerprint::resolve($request);
-        $maxUploadSizeKb = (int) ceil(((int) config('media-library.max_file_size', 10 * 1024 * 1024)) / 1024);
 
         $validated = $request->validate([
             'entity_type' => ['required', Rule::in($resolveReportEntityMetadataAction->validKeys())],
@@ -49,8 +47,8 @@ class ReportController extends Controller
                 Rule::in($resolveReportCategoryOptionsAction->validKeys()),
             ],
             'description' => ['required_if:category,other', 'nullable', 'string', 'max:2000'],
-            'evidence' => ['nullable', 'array', 'max:8'],
-            'evidence.*' => ['file', 'mimes:jpg,jpeg,png,webp,pdf', "max:{$maxUploadSizeKb}"],
+            'evidence' => ['nullable', 'array', 'max:'.MediaEvidence::MAX_FILES],
+            'evidence.*' => ['file', MediaEvidence::mimeRule(), 'max:'.MediaEvidence::maxFileSizeKb()],
         ]);
 
         // Verify entity exists
@@ -78,12 +76,7 @@ class ReportController extends Controller
                 $validated['category'],
                 $validated['description'] ?? null,
                 $request,
-            );
-
-            $frontendMediaSyncService->syncMultiple(
-                $report,
                 is_array($request->file('evidence')) ? $request->file('evidence') : null,
-                'evidence',
             );
         } catch (\RuntimeException $exception) {
             if ($exception->getMessage() !== 'duplicate_report') {

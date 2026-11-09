@@ -9,6 +9,7 @@ use App\Filament\Resources\AppFeedback\Pages\ViewAppFeedback;
 use App\Filament\Resources\AppFeedback\Schemas\AppFeedbackInfolist;
 use App\Filament\Resources\AppFeedback\Tables\AppFeedbackTable;
 use App\Models\AppFeedback;
+use App\Platform\Admin\ExcludedFromAdminApi;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -17,7 +18,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 use UnitEnum;
 
-class AppFeedbackResource extends Resource
+class AppFeedbackResource extends Resource implements ExcludedFromAdminApi
 {
     protected static ?string $model = AppFeedback::class;
 

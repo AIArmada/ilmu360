@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Enums\AppFeedbackCategory;
 use App\Enums\AppFeedbackGitHubStatus;
 use App\Enums\AppFeedbackStatus;
+use App\Platform\Media\MediaEvidence;
 use Carbon\CarbonImmutable;
 use Database\Factories\AppFeedbackFactory;
 use Illuminate\Database\Eloquent\Collection;
@@ -146,20 +147,15 @@ class AppFeedback extends Model implements HasMedia
 
     public function registerMediaCollections(): void
     {
-        $this->addMediaCollection('evidence')
-            ->useDisk('app_feedback_private')
-            ->acceptsMimeTypes([
-                'image/jpeg',
-                'image/png',
-                'image/webp',
-                'application/pdf',
-            ]);
+        $this->addMediaCollection(MediaEvidence::COLLECTION)
+            ->useDisk(MediaEvidence::PRIVATE_DISK)
+            ->acceptsMimeTypes(MediaEvidence::mimeTypes());
     }
 
     public function registerMediaConversions(?Media $media = null): void
     {
-        $this->addMediaConversion('thumb')
-            ->performOnCollections('evidence')
+        $this->addMediaConversion(MediaEvidence::THUMB_CONVERSION)
+            ->performOnCollections(MediaEvidence::COLLECTION)
             ->fit(Fit::Max, 1080, 1080)
             ->sharpen(10)
             ->format('webp');

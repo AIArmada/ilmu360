@@ -7,6 +7,7 @@ use App\Models\AppFeedbackMessage;
 use App\Models\User;
 use App\Notifications\AppFeedbackClosedNotification;
 use App\Notifications\AppFeedbackRepliedNotification;
+use App\Platform\Admin\ExcludedFromAdminApi;
 use App\Support\Api\Admin\AdminResourceRegistry;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -172,7 +173,8 @@ it('declines feedback from the admin view action', function () {
 it('keeps app feedback out of the generic admin api resource registry', function () {
     $resources = app(AdminResourceRegistry::class)->resources();
 
-    expect($resources)->not->toContain(AppFeedbackResource::class);
+    expect(AppFeedbackResource::class)->toImplement(ExcludedFromAdminApi::class)
+        ->and($resources)->not->toContain(AppFeedbackResource::class);
 });
 
 it('replies to feedback from the admin view action', function () {

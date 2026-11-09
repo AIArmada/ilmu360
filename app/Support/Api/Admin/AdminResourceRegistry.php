@@ -13,7 +13,6 @@ use App\Data\Api\Event\EventPayloadData;
 use App\Enums\EventFormat;
 use App\Enums\EventVisibility;
 use App\Enums\TimingMode;
-use App\Filament\Resources\AppFeedback\AppFeedbackResource;
 use App\Filament\Resources\Persons\PersonResource;
 use App\Filament\Resources\Venues\VenueResource;
 use App\Models\Event;
@@ -22,6 +21,7 @@ use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
 use App\Models\Venue;
+use App\Platform\Admin\ExcludedFromAdminApi;
 use App\Shared\Prayer\PrayerReference;
 use App\Support\Cache\SelectionCatalogCache;
 use App\Support\Location\AddressAssignments;
@@ -95,7 +95,7 @@ class AdminResourceRegistry
                 ...array_values($resources),
                 ...$this->fallbackPluginResources(),
             ]),
-            static fn (string $resource): bool => $resource !== AppFeedbackResource::class,
+            static fn (string $resource): bool => ! is_subclass_of($resource, ExcludedFromAdminApi::class),
         ));
     }
 

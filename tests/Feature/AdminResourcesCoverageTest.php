@@ -28,9 +28,12 @@ use App\Filament\Resources\Series\SeriesResource;
 use App\Filament\Resources\Spaces\SpaceResource;
 use App\Filament\Resources\Venues\VenueResource;
 use App\Models\User;
+use App\Platform\Admin\FilamentResourceRegistry;
+use App\Providers\Filament\AdminPanelProvider;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Filament\Facades\Filament;
+use Filament\Panel;
 use Livewire\Livewire;
 
 it('allows super admin to access all core admin resource index pages', function () {
@@ -63,6 +66,15 @@ it('allows super admin to access all core admin resource index pages', function 
             ->get($resource::getUrl('index'))
             ->assertSuccessful();
     }
+});
+
+it('merges feature-registered resources into the admin panel without duplicating discovered resources', function () {
+    app(FilamentResourceRegistry::class)->register(PersonResource::class);
+
+    $resources = new AdminPanelProvider(app())->panel(new Panel)->getResources();
+
+    expect($resources)->toContain(PersonResource::class)
+        ->and(array_count_values($resources)[PersonResource::class])->toBe(1);
 });
 
 it('registers and can create commerce event templates in both panels', function () {

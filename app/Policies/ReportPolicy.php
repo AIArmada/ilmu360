@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace App\Policies;
 
 use App\Models\Report;
-use App\Models\User;
+use App\Shared\Auth\AccountActor;
 
 class ReportPolicy
 {
     /**
      * Determine whether the user can view any models.
      */
-    public function viewAny(User $user): bool
+    public function viewAny(AccountActor $user): bool
     {
         return $user->hasAnyRole(['super_admin', 'admin', 'moderator']);
     }
@@ -20,28 +20,28 @@ class ReportPolicy
     /**
      * Determine whether the user can view the model.
      */
-    public function view(User $user, Report $report): bool
+    public function view(AccountActor $user, Report $report): bool
     {
         if ($user->hasAnyRole(['super_admin', 'admin', 'moderator'])) {
             return true;
         }
 
-        return $report->reporter_id === $user->id;
+        return $report->reporter_id === $user->actorId();
     }
 
     /**
      * Determine whether the user can create models.
      */
-    public function create(?User $user): bool
+    public function create(?AccountActor $user): bool
     {
-        return $user instanceof User
+        return $user !== null
             && ($user->hasAnyRole(['super_admin', 'admin', 'moderator']) || $user->canSubmitDirectoryFeedback());
     }
 
     /**
      * Determine whether the user can update the model.
      */
-    public function update(User $user, Report $report): bool
+    public function update(AccountActor $user, Report $report): bool
     {
         return $user->hasAnyRole(['super_admin', 'admin', 'moderator']);
     }
@@ -49,7 +49,7 @@ class ReportPolicy
     /**
      * Determine whether the user can resolve/dismiss the report.
      */
-    public function resolve(User $user, Report $report): bool
+    public function resolve(AccountActor $user, Report $report): bool
     {
         return $user->hasAnyRole(['super_admin', 'admin', 'moderator']);
     }
@@ -57,13 +57,13 @@ class ReportPolicy
     /**
      * Determine whether the user can delete the model.
      */
-    public function delete(User $user, Report $report): bool
+    public function delete(AccountActor $user, Report $report): bool
     {
-        return $user->hasRole('super_admin');
+        return $user->hasAnyRole(['super_admin']);
     }
 
-    public function deleteAny(User $user): bool
+    public function deleteAny(AccountActor $user): bool
     {
-        return $user->hasRole('super_admin');
+        return $user->hasAnyRole(['super_admin']);
     }
 }

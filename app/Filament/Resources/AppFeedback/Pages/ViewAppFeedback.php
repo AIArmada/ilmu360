@@ -13,7 +13,7 @@ use App\Enums\AppFeedbackStatus;
 use App\Features\GitHubIssues\Api\GitHubIssueReporterContract;
 use App\Filament\Resources\AppFeedback\AppFeedbackResource;
 use App\Models\AppFeedback;
-use App\Models\User;
+use App\Shared\Auth\AccountActor;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -60,7 +60,7 @@ class ViewAppFeedback extends ViewRecord
             ])
             ->action(function (array $data, PostAppFeedbackMessageAction $postAppFeedbackMessageAction): void {
                 $user = auth()->user();
-                abort_unless($user instanceof User, 403);
+                abort_unless($user instanceof AccountActor, 403);
 
                 $postAppFeedbackMessageAction->handle($user, $this->feedback(), (string) $data['body']);
 
@@ -84,7 +84,7 @@ class ViewAppFeedback extends ViewRecord
                 && auth()->user()?->can('transition', $this->feedback()) === true)
             ->action(function (TransitionAppFeedbackAction $transitionAppFeedbackAction): void {
                 $user = auth()->user();
-                abort_unless($user instanceof User, 403);
+                abort_unless($user instanceof AccountActor, 403);
 
                 $transitionAppFeedbackAction->handle($user, $this->feedback(), AppFeedbackStatus::Triaged);
 
@@ -114,7 +114,7 @@ class ViewAppFeedback extends ViewRecord
             ])
             ->action(function (array $data, TransitionAppFeedbackAction $transitionAppFeedbackAction): void {
                 $user = auth()->user();
-                abort_unless($user instanceof User, 403);
+                abort_unless($user instanceof AccountActor, 403);
 
                 $transitionAppFeedbackAction->handle(
                     $user,
@@ -149,7 +149,7 @@ class ViewAppFeedback extends ViewRecord
             ])
             ->action(function (array $data, TransitionAppFeedbackAction $transitionAppFeedbackAction): void {
                 $user = auth()->user();
-                abort_unless($user instanceof User, 403);
+                abort_unless($user instanceof AccountActor, 403);
 
                 $transitionAppFeedbackAction->handle(
                     $user,
@@ -185,7 +185,7 @@ class ViewAppFeedback extends ViewRecord
             ])
             ->action(function (array $data): void {
                 $user = auth()->user();
-                abort_unless($user instanceof User, 403);
+                abort_unless($user instanceof AccountActor, 403);
 
                 $feedback = $this->feedback();
 
@@ -232,7 +232,7 @@ class ViewAppFeedback extends ViewRecord
             ])
             ->action(function (array $data, EscalateAppFeedbackToGitHubAction $escalateAppFeedbackToGitHubAction): void {
                 $user = auth()->user();
-                abort_unless($user instanceof User, 403);
+                abort_unless($user instanceof AccountActor, 403);
 
                 try {
                     $escalateAppFeedbackToGitHubAction->handle(
@@ -280,7 +280,7 @@ class ViewAppFeedback extends ViewRecord
             ])
             ->action(function (array $data, LinkAppFeedbackGitHubIssueAction $linkAppFeedbackGitHubIssueAction): void {
                 $user = auth()->user();
-                abort_unless($user instanceof User, 403);
+                abort_unless($user instanceof AccountActor, 403);
 
                 try {
                     $linkAppFeedbackGitHubIssueAction->handle(

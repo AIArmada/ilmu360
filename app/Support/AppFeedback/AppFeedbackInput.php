@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support\AppFeedback;
 
 use App\Enums\AppFeedbackCategory;
+use App\Platform\Media\MediaEvidence;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\Rule;
@@ -45,8 +46,8 @@ final readonly class AppFeedbackInput
             'details.problem' => ['nullable', 'string', 'max:2000'],
             'details.suggestion' => ['nullable', 'string', 'max:2000'],
             'details.frequency' => ['nullable', 'string', 'max:50'],
-            'evidence' => ['nullable', 'array', 'max:8'],
-            'evidence.*' => ['file', 'mimes:jpg,jpeg,png,webp,pdf', 'extensions:jpg,jpeg,png,webp,pdf', 'max:'.$maxUploadSizeKb],
+            'evidence' => ['nullable', 'array', 'max:'.MediaEvidence::MAX_FILES],
+            'evidence.*' => ['file', MediaEvidence::mimeRule(), MediaEvidence::extensionRule(), 'max:'.$maxUploadSizeKb],
         ];
     }
 

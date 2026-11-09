@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Reports\Schemas;
 
 use App\Actions\Reports\ResolveReportCategoryOptionsAction;
 use App\Actions\Reports\ResolveReportEntityMetadataAction;
+use App\Platform\Media\MediaEvidence;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;
@@ -31,17 +32,13 @@ class ReportForm
                         Textarea::make('description')
                             ->columnSpanFull()
                             ->maxLength(2000),
-                        SpatieMediaLibraryFileUpload::make('evidence')
-                            ->label('Evidence Files')
-                            ->collection('evidence')
-                            ->multiple()
-                            ->reorderable()
-                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
-                            ->maxFiles(8)
-                            ->conversion('thumb')
-                            ->openable()
-                            ->downloadable()
-                            ->helperText('Upload screenshots, photos, or PDFs to support this report.')
+                        MediaEvidence::configureUpload(
+                            SpatieMediaLibraryFileUpload::make(MediaEvidence::COLLECTION)
+                                ->label('Evidence Files')
+                                ->openable()
+                                ->downloadable()
+                                ->helperText('Upload screenshots, photos, or PDFs to support this report.'),
+                        )
                             ->columnSpanFull(),
                     ])
                     ->columns(2),

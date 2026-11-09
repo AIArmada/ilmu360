@@ -4,6 +4,7 @@ namespace App\Models;
 
 use AIArmada\CommerceSupport\Models\Report as BaseReport;
 use App\Models\Concerns\AuditsModelChanges;
+use App\Platform\Media\MediaEvidence;
 use Carbon\CarbonImmutable;
 use Database\Factories\ReportFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -199,15 +200,15 @@ class Report extends BaseReport implements AuditableContract, HasMedia
 
     public function registerMediaCollections(): void
     {
-        $this->addMediaCollection('evidence')
-            ->useDisk(config('media-library.disk_name'))
-            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']);
+        $this->addMediaCollection(MediaEvidence::COLLECTION)
+            ->useDisk(MediaEvidence::publicDisk())
+            ->acceptsMimeTypes(MediaEvidence::mimeTypes());
     }
 
     public function registerMediaConversions(?Media $media = null): void
     {
-        $this->addMediaConversion('thumb')
-            ->performOnCollections('evidence')
+        $this->addMediaConversion(MediaEvidence::THUMB_CONVERSION)
+            ->performOnCollections(MediaEvidence::COLLECTION)
             ->fit(Fit::Max, 1080, 1080)
             ->format('webp');
     }

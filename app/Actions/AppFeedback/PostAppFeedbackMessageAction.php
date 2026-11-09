@@ -7,8 +7,9 @@ namespace App\Actions\AppFeedback;
 use App\Enums\AppFeedbackStatus;
 use App\Models\AppFeedback;
 use App\Models\AppFeedbackMessage;
-use App\Models\User;
 use App\Notifications\AppFeedbackRepliedNotification;
+use App\Shared\Auth\AccountActor;
+use App\Shared\Auth\AccountDirectory;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
@@ -22,7 +23,11 @@ class PostAppFeedbackMessageAction
 {
     use AsAction;
 
-    public function handle(User $author, AppFeedback $feedback, string $body): AppFeedbackMessage
+    public function __construct(
+        private readonly AccountDirectory $accounts,
+    ) {}
+
+    public function handle(AccountActor $author, AppFeedback $feedback, string $body): AppFeedbackMessage
     {
         Gate::forUser($author)->authorize('reply', $feedback);
 
@@ -59,7 +64,7 @@ class PostAppFeedbackMessageAction
             ]);
             $message->forceFill([
                 'feedback_id' => $lockedFeedback->getKey(),
-                'author_id' => $author->getKey(),
+                'author_id' => $author->actorId(),
             ]);
             $message->save();
 
@@ -73,15 +78,15 @@ class PostAppFeedbackMessageAction
         return $message;
     }
 
-    private function notifyReporterOfReply(AppFeedback $feedback, AppFeedbackMessage $message, User $author): void
+    private function notifyReporterOfReply(AppFeedback $feedback, AppFeedbackMessage $message, AccountActor $author): void
     {
         if ($message->author_role !== 'maintainer' || $message->visibility !== 'reporter') {
             return;
         }
 
-        $reporter = $feedback->reporter;
+        $reporter = $this->accounts->resolveNotifiable((string) $feedback->reporter_id);
 
-        if (! $reporter instanceof User || $reporter->getKey() === $author->getKey()) {
+        if ($reporter === null || (string) $reporter->getAuthIdentifier() === $author->actorId()) {
             return;
         }
 
