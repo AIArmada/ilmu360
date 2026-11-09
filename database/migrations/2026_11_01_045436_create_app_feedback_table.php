@@ -8,10 +8,6 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (Schema::hasTable('app_feedback')) {
-            return;
-        }
-
         Schema::create('app_feedback', function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->foreignUuid('reporter_id');
@@ -49,10 +45,6 @@ return new class extends Migration
             $table->index(['reporter_id', 'created_at']);
             $table->index(['status', 'created_at']);
         });
-
-        if (Schema::hasTable('app_feedback_messages')) {
-            return;
-        }
 
         Schema::create('app_feedback_messages', function (Blueprint $table): void {
             $table->uuid('id')->primary();
