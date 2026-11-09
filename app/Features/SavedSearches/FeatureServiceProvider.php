@@ -39,10 +39,8 @@ class FeatureServiceProvider extends FeatureModule
         Gate::policy(SavedSearch::class, SavedSearchPolicy::class);
         Gate::policy(SavedSearchSnapshot::class, SavedSearchPolicy::class);
 
-        Route::bind('savedSearch', static function (string $id): SavedSearchSnapshot {
-            return app(SavedSearchReader::class)->find($id)
-                ?? throw (new ModelNotFoundException)->setModel(SavedSearch::class, [$id]);
-        });
+        Route::bind('savedSearch', static fn (string $id): SavedSearchSnapshot => app(SavedSearchReader::class)->find($id)
+            ?? throw (new ModelNotFoundException)->setModel(SavedSearch::class, [$id]));
 
         Livewire::component('pages.saved-searches.index', Index::class);
     }
