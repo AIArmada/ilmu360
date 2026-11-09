@@ -12,15 +12,11 @@ use AIArmada\CommerceSupport\Support\OwnerScope;
 use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Engagement\Models\Follow;
 use AIArmada\Engagement\Models\Response;
-use App\Features\Reports\Api\ReportCommands;
-use App\Features\Reports\Api\ReportReader;
-use App\Features\SavedSearches\Api\SavedSearchCommands;
-use App\Features\SavedSearches\Api\SavedSearchReader;
+use App\Features\Identity\Api\AccountLifecycle;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
-use App\Models\SocialAccount;
 use App\Models\User;
 use App\Services\ShareTrackingService;
 use App\Support\ShareTracking\ShareTrackingFinance;
@@ -36,14 +32,9 @@ use Spatie\Permission\PermissionRegistrar;
 trait HasUserRestoration
 {
     /**
-     * @var array<string, mixed>
+     * @var array<string, array<string, mixed>>
      */
     protected array $deletedRelationsSnapshot = [];
-
-    /**
-     * @var array<string, mixed>
-     */
-    protected array $deletedAffiliateTrackingSnapshot = [];
 
     public static function bootHasUserRestoration(): void
     {
@@ -53,17 +44,10 @@ trait HasUserRestoration
                     $user->captureDeletedRelationsSnapshot();
                 }
 
-                $savedEventIds = collect((array) ($user->deletedRelationsSnapshot['event_saves'] ?? []))
-                    ->pluck('bookmarkable_id')
-                    ->filter(fn (mixed $id): bool => is_string($id) || is_int($id))
-                    ->map(static fn (mixed $id): string => (string) $id)
-                    ->values()
-                    ->all();
-                $goingEventIds = $user->snapshotEventIds($user->deletedRelationsSnapshot, 'event_attendees');
-
-                DB::table((new SocialAccount)->getTable())
-                    ->where('user_id', $user->getKey())
-                    ->delete();
+                // Contributors are ordered by priority. They currently cover
+                // social accounts (300), reports (200), and saved searches
+                // (100), which reproduces this hook's historical step order.
+                app(AccountLifecycle::class)->detach((string) $user->getKey());
                 $user->deleteAuthenticationState();
                 $user->institutions()->detach();
                 $user->persons()->detach();
@@ -82,8 +66,6 @@ trait HasUserRestoration
                 $user->moderationReviews()->update([
                     'actioned_by_id' => null,
                 ]);
-                app(ReportCommands::class)->detachReporter((string) $user->getKey());
-                app(ReportCommands::class)->detachHandler((string) $user->getKey());
                 $user->verifiedDonationChannels()->update(['verified_by' => null]);
                 $user->verifiedEventCheckins()->update(['verified_by_user_id' => null]);
                 $user->verifiedPersons()->update(['verified_by' => null]);
@@ -92,7 +74,6 @@ trait HasUserRestoration
                 $user->verifiedVenues()->update(['verified_by' => null]);
                 $user->registrations()->each(fn ($reg) => $reg->delete());
                 $user->eventCheckins()->each(fn ($checkin) => $checkin->delete());
-                app(SavedSearchCommands::class)->deleteOwner($user->getMorphClass(), (string) $user->getKey());
                 $user->aiUsageLogs()->each(fn ($log) => $log->delete());
                 // Share cleanup revokes this claimant's guest-claim associations
                 // (rows preserved as revoked) and detaches their published
@@ -145,7 +126,6 @@ trait HasUserRestoration
 
         return array_merge($attributes, [
             'deleted_relations_snapshot' => $this->deletedRelationsSnapshot,
-            'deleted_affiliate_tracking_snapshot' => $this->deletedAffiliateTrackingSnapshot,
         ]);
     }
 
@@ -157,7 +137,6 @@ trait HasUserRestoration
                 unset($deletedModel);
 
                 unset($restoredModel->deleted_relations_snapshot);
-                unset($restoredModel->deleted_affiliate_tracking_snapshot);
             });
 
             self::deletedModels()->where('key', $key)->delete();
@@ -185,17 +164,24 @@ trait HasUserRestoration
             return;
         }
 
-        OwnerContext::withOwner(null, function () use ($restoredModel, $snapshot, $deletedModel): void {
-            $restoredModel->restoreManyToManyRelations($snapshot);
-            $restoredModel->restoreReassignedRelations($snapshot);
-            $restoredModel->restoreDeletedAffiliateTrackingSnapshot($deletedModel->value('deleted_affiliate_tracking_snapshot'));
-            $restoredModel->restoreDeletedChildModels($snapshot);
+        $legacy = $snapshot['legacy'] ?? [];
+        $legacy = is_array($legacy) ? $legacy : [];
+        $contributorSnapshot = array_filter($snapshot, is_array(...));
+        $accountId = (string) $restoredModel->getKey();
+
+        OwnerContext::withOwner(null, function () use ($restoredModel, $snapshot, $contributorSnapshot, $legacy, $accountId): void {
+            $restoredModel->restoreManyToManyRelations($legacy);
+            $restoredModel->restoreReassignedRelations($legacy);
+            app(AccountLifecycle::class)->restore($accountId, $contributorSnapshot);
+            $restoredModel->restoreDeletedAffiliateTrackingSnapshot($snapshot['share_tracking'] ?? null);
+            $restoredModel->restoreDeletedChildModels($legacy);
+            app(AccountLifecycle::class)->afterRestore($accountId);
         });
     }
 
     protected function captureDeletedRelationsSnapshot(): void
     {
-        $this->deletedRelationsSnapshot = [
+        $legacy = [
             'institution_members' => $this->institutions()->get()->map(fn (Institution $institution): array => [
                 'institution_id' => $institution->getKey(),
                 'user_id' => $this->getKey(),
@@ -258,18 +244,14 @@ trait HasUserRestoration
             'membership_claim_ids' => $this->membershipApplications()->pluck('id')->all(),
             'membership_application_reviewer_ids' => $this->reviewedMembershipApplications()->pluck('id')->all(),
             'moderation_review_ids' => $this->moderationReviews()->pluck('id')->all(),
-            'report_ids' => app(ReportReader::class)->reporterReportIds((string) $this->getKey()),
-            'handled_report_ids' => app(ReportReader::class)->handlerReportIds((string) $this->getKey()),
             'verified_donation_channel_ids' => $this->verifiedDonationChannels()->pluck('id')->all(),
             'verified_event_checkin_ids' => $this->verifiedEventCheckins()->pluck('id')->all(),
             'verified_person_ids' => $this->verifiedPersons()->pluck('id')->all(),
             'verified_institution_ids' => $this->verifiedInstitutions()->pluck('id')->all(),
             'verified_reference_ids' => $this->verifiedReferences()->pluck('id')->all(),
             'verified_venue_ids' => $this->verifiedVenues()->pluck('id')->all(),
-            'social_accounts' => $this->socialAccounts()->get()->map->attributesToArray()->all(),
             'registrations' => $this->registrations()->get()->map->attributesToArray()->all(),
             'event_checkins' => $this->eventCheckins()->get()->map->attributesToArray()->all(),
-            'saved_searches' => app(SavedSearchReader::class)->restorationSnapshotForOwner($this->getMorphClass(), (string) $this->getKey()),
             'ai_usage_logs' => $this->aiUsageLogs()->get()->map->attributesToArray()->all(),
             'notification_setting' => $this->notificationSetting?->attributesToArray(),
             'notification_destinations' => $this->notificationDestinations()->get()->map->attributesToArray()->all(),
@@ -294,7 +276,10 @@ trait HasUserRestoration
                 ->all(),
         ];
 
-        $this->captureDeletedAffiliateTrackingSnapshot();
+        $this->deletedRelationsSnapshot = app(AccountLifecycle::class)->snapshot((string) $this->getKey()) + [
+            'legacy' => $legacy,
+            'share_tracking' => $this->captureDeletedAffiliateTrackingSnapshot(),
+        ];
     }
 
     protected function deleteAuthenticationState(): void
@@ -320,9 +305,12 @@ trait HasUserRestoration
         DB::table('oauth_access_tokens')->where('user_id', $this->id)->delete();
     }
 
-    protected function captureDeletedAffiliateTrackingSnapshot(): void
+    /**
+     * @return array<string, mixed>
+     */
+    protected function captureDeletedAffiliateTrackingSnapshot(): array
     {
-        OwnerContext::withOwner($this, function (): void {
+        return OwnerContext::withOwner($this, function (): array {
             // Canonical owned share records only. An unmarked commercial
             // profile is never snapshotted, and financial rows are preserved
             // by non-deletion rather than snapshot replay.
@@ -333,12 +321,10 @@ trait HasUserRestoration
                 ->first(fn (Affiliate $candidate): bool => ShareTrackingProfile::isMarkedMemberFor($candidate, $this));
 
             if (! $affiliate instanceof Affiliate) {
-                $this->deletedAffiliateTrackingSnapshot = [];
-
-                return;
+                return [];
             }
 
-            $this->deletedAffiliateTrackingSnapshot = [
+            return [
                 'affiliate' => $affiliate->getAttributes(),
                 'links' => $affiliate->links()->get()->map(fn (AffiliateLink $link): array => $link->getAttributes())->all(),
                 'attributions' => $affiliate->attributions()->get()->map(fn (AffiliateAttribution $attribution): array => $attribution->getAttributes())->all(),
@@ -468,14 +454,6 @@ trait HasUserRestoration
         $this->restoreForeignKeyRelation('membershipApplications', 'applicant_id', $this->snapshotIds($snapshot, 'membership_application_ids'));
         $this->restoreForeignKeyRelation('reviewedMembershipApplications', 'reviewer_id', $this->snapshotIds($snapshot, 'membership_application_reviewer_ids'));
         $this->restoreForeignKeyRelation('moderationReviews', 'actioned_by_id', $this->snapshotIds($snapshot, 'moderation_review_ids'));
-        app(ReportCommands::class)->restoreReporterLinks(
-            (string) $this->getKey(),
-            array_map(static fn (int|string $id): string => (string) $id, $this->snapshotIds($snapshot, 'report_ids')),
-        );
-        app(ReportCommands::class)->restoreHandlerLinks(
-            (string) $this->getKey(),
-            array_map(static fn (int|string $id): string => (string) $id, $this->snapshotIds($snapshot, 'handled_report_ids')),
-        );
         $this->restoreForeignKeyRelation('verifiedDonationChannels', 'verified_by', $this->snapshotIds($snapshot, 'verified_donation_channel_ids'));
         $this->restoreForeignKeyRelation('verifiedEventCheckins', 'verified_by_user_id', $this->snapshotIds($snapshot, 'verified_event_checkin_ids'));
         $this->restoreForeignKeyRelation('verifiedPersons', 'verified_by', $this->snapshotIds($snapshot, 'verified_person_ids'));
@@ -523,10 +501,8 @@ trait HasUserRestoration
      */
     protected function restoreDeletedChildModels(array $snapshot): void
     {
-        $this->restoreChildModels('socialAccounts', $this->snapshotRows($snapshot, 'social_accounts'));
         $this->restoreChildModels('registrations', $this->snapshotRows($snapshot, 'registrations'));
         $this->restoreChildModels('eventCheckins', $this->snapshotRows($snapshot, 'event_checkins'));
-        app(SavedSearchCommands::class)->restore($this->snapshotRows($snapshot, 'saved_searches'));
         $this->restoreChildModels('aiUsageLogs', $this->snapshotRows($snapshot, 'ai_usage_logs'));
         $this->restoreSingleChildModel('notificationSetting', $snapshot['notification_setting'] ?? null);
         $this->restoreChildModels('notificationDestinations', $this->snapshotRows($snapshot, 'notification_destinations'));
@@ -553,16 +529,6 @@ trait HasUserRestoration
             $model = new $modelClass;
             $model->timestamps = false;
             $model->forceFill($attributes);
-
-            if ($model instanceof SocialAccount) {
-                $existing = SocialAccount::query()->find($model->getKey());
-
-                if ($existing instanceof SocialAccount
-                    && ($existing->user_id === null || (string) $existing->user_id === (string) $this->getKey())) {
-                    $existing->delete();
-                }
-            }
-
             $model->saveQuietly();
         }
     }

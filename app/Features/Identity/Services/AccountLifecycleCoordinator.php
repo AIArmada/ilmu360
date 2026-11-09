@@ -13,8 +13,9 @@ use LogicException;
  * Deterministic coordinator for tagged account lifecycle contributors.
  *
  * Contributors run by descending priority, then by key, in every phase. The
- * coordinator is intentionally not wired into HasUserRestoration yet; it is the
- * stable seam that the extraction slice will call.
+ * conventional User restoration trait delegates its migrated lifecycle steps
+ * to this contract; contributors that have not moved yet remain under the
+ * trait's `legacy` snapshot key.
  */
 final class AccountLifecycleCoordinator implements AccountLifecycle
 {

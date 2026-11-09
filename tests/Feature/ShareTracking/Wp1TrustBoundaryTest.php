@@ -1280,8 +1280,8 @@ it('rejects forged child snapshot ids that point at foreign rows', function (): 
         ->firstOrFail();
 
     $values = $deleted->values;
-    $values['deleted_affiliate_tracking_snapshot']['links'][0]['id'] = $foreignLink->id;
-    $values['deleted_affiliate_tracking_snapshot']['conversions'] = [[
+    $values['deleted_relations_snapshot']['share_tracking']['links'][0]['id'] = $foreignLink->id;
+    $values['deleted_relations_snapshot']['share_tracking']['conversions'] = [[
         'id' => $foreignConversion->id,
         'affiliate_id' => $affiliate->id,
         'affiliate_code' => $affiliate->code,

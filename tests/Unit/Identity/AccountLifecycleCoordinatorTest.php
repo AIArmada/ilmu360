@@ -3,9 +3,10 @@
 use App\Features\Identity\Api\AccountLifecycle;
 use App\Features\Identity\Services\AccountLifecycleCoordinator;
 use App\Shared\Auth\AccountLifecycleContributor;
+use Illuminate\Container\Container;
 use Tests\TestCase;
 
-uses(TestCase::class);
+pest()->extend(TestCase::class);
 
 it('binds the identity account lifecycle seam to the coordinator', function (): void {
     expect(app(AccountLifecycle::class))->toBeInstanceOf(AccountLifecycleCoordinator::class);
@@ -51,14 +52,15 @@ it('delegates to tagged contributors', function (): void {
     $high = new RecordingAccountLifecycleContributor('high', 100);
     $low = new RecordingAccountLifecycleContributor('low', 10);
 
-    app()->instance('test.identity.lifecycle.high', $high);
-    app()->instance('test.identity.lifecycle.low', $low);
-    app()->tag(
+    $container = new Container;
+    $container->instance('test.identity.lifecycle.high', $high);
+    $container->instance('test.identity.lifecycle.low', $low);
+    $container->tag(
         ['test.identity.lifecycle.high', 'test.identity.lifecycle.low'],
         AccountLifecycleContributor::TAG,
     );
 
-    $lifecycle = app(AccountLifecycle::class);
+    $lifecycle = new AccountLifecycleCoordinator($container->tagged(AccountLifecycleContributor::TAG));
 
     expect(array_keys($lifecycle->snapshot('account')))->toBe(['high', 'low']);
 });
