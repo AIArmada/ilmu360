@@ -27,6 +27,10 @@ class NormalizeContributionSubmissionAction
             $state['contactMethods'] = SharedFormSchema::normalizeContactRowsForComparison($state['contactMethods']);
         }
 
+        if (is_array($state['donation_channels'] ?? null)) {
+            $state['donation_channels'] = SharedFormSchema::normalizeDonationChannelRowsForComparison($state['donation_channels']);
+        }
+
         return [
             'state' => $state,
             'proposer_note' => $note !== '' ? $note : null,

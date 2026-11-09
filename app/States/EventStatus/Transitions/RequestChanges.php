@@ -45,7 +45,7 @@ class RequestChanges extends Transition implements HasColor, HasIcon, HasLabel
             $review = OwnerContext::withOwner(null, fn () => ModerationReview::create([
                 'actionable_type' => Event::class,
                 'actionable_id' => $this->event->id,
-                'actioned_by_type' => User::class,
+                'actioned_by_type' => (new User)->getMorphClass(),
                 'actioned_by_id' => $moderator->id,
                 'type' => 'changes_requested',
                 'reason' => $reasonCode,

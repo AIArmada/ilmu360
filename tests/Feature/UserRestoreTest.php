@@ -111,9 +111,12 @@ it('restores a deleted user together with key relationships and child records', 
         ]);
     $ownCheckin = EventCheckin::factory()->create([
         'event_id' => $sharedEvent->id,
+        'attendee_type' => $user->getMorphClass(),
+        'attendee_id' => $user->id,
     ]);
     $verifiedCheckin = EventCheckin::factory()->create([
         'event_id' => $sharedEvent->id,
+        'verified_by_user_id' => $user->id,
     ]);
     $savedSearch = SavedSearch::factory()->create([
         'user_id' => $user->id,
@@ -195,7 +198,7 @@ it('restores a deleted user together with key relationships and child records', 
     $moderationReview = OwnerContext::withOwner(null, fn () => ModerationReview::factory()->create([
         'actionable_type' => Event::class,
         'actionable_id' => $sharedEvent->id,
-        'actioned_by_type' => User::class,
+        'actioned_by_type' => (new User)->getMorphClass(),
         'actioned_by_id' => $user->id,
     ]));
     $report = Report::factory()->create([
@@ -405,6 +408,12 @@ it('restores a deleted user together with key relationships and child records', 
         ->not->toHaveKey('password')
         ->not->toHaveKey('remember_token');
 
+    $eventsSnapshot = $deletedModel->values['deleted_relations_snapshot']['events'];
+
+    expect($eventsSnapshot['owned_event_ids'])
+        ->toEqualCanonicalizing([(string) $ownedEvent->id, (string) $submittedEvent->id])
+        ->and($eventsSnapshot['registration_ids'])->toContain((string) $registration->id);
+
     assertDatabaseHas('institutions', ['id' => $institution->id]);
     assertDatabaseHas('persons', ['id' => $person->id]);
     assertDatabaseHas('references', ['id' => $reference->id]);
@@ -436,8 +445,21 @@ it('restores a deleted user together with key relationships and child records', 
         'followable_id' => $venue->id,
         'follower_id' => $user->id,
     ]);
-    expect(Registration::query()->whereKey($registration->id)->exists())->toBeFalse();
-    assertDatabaseHas((new EventCheckin)->getTable(), ['id' => $ownCheckin->id]);
+    assertDatabaseHas('event_registrations', [
+        'id' => $registration->id,
+        'registrant_type' => null,
+        'registrant_id' => null,
+        'status' => 'confirmed',
+    ]);
+    assertDatabaseHas('event_registration_participants', [
+        'event_registration_id' => $registration->id,
+        'is_primary' => true,
+    ]);
+    assertDatabaseHas((new EventCheckin)->getTable(), [
+        'id' => $ownCheckin->id,
+        'attendee_type' => null,
+        'attendee_id' => null,
+    ]);
     assertDatabaseMissing('saved_searches', ['id' => $savedSearch->id]);
     assertDatabaseHas('communication_preferences', ['id' => $scopedPreference->id]);
     assertDatabaseMissing('communication_destinations', ['id' => $notificationDestination->id]);
@@ -604,6 +626,13 @@ it('restores a deleted user together with key relationships and child records', 
         ->and($restoredRegistration?->isForUser($user))->toBeTrue();
     assertDatabaseHas((new EventCheckin)->getTable(), [
         'id' => $ownCheckin->id,
+        'attendee_type' => $user->getMorphClass(),
+        'attendee_id' => $user->id,
+        'verified_by_user_id' => null,
+    ]);
+    assertDatabaseHas((new EventCheckin)->getTable(), [
+        'id' => $verifiedCheckin->id,
+        'verified_by_user_id' => $user->id,
     ]);
     assertDatabaseHas('saved_searches', [
         'id' => $savedSearch->id,
@@ -850,9 +879,12 @@ it('restores an api self-deleted user from the deleted users admin page', functi
         ]);
     $ownCheckin = EventCheckin::factory()->create([
         'event_id' => $sharedEvent->id,
+        'attendee_type' => $user->getMorphClass(),
+        'attendee_id' => $user->id,
     ]);
     $verifiedCheckin = EventCheckin::factory()->create([
         'event_id' => $sharedEvent->id,
+        'verified_by_user_id' => $user->id,
     ]);
     $savedSearch = SavedSearch::factory()->create([
         'user_id' => $user->id,
@@ -895,8 +927,16 @@ it('restores an api self-deleted user from the deleted users admin page', functi
     ]);
     expect($ownedEvent->fresh()->owner_id)->toBeNull()
         ->and($submittedEvent->fresh()->owner_id)->toBeNull();
-    expect(Registration::query()->whereKey($registration->id)->exists())->toBeFalse();
-    assertDatabaseHas((new EventCheckin)->getTable(), ['id' => $ownCheckin->id]);
+    assertDatabaseHas('event_registrations', [
+        'id' => $registration->id,
+        'registrant_type' => null,
+        'registrant_id' => null,
+    ]);
+    assertDatabaseHas((new EventCheckin)->getTable(), [
+        'id' => $ownCheckin->id,
+        'attendee_type' => null,
+        'attendee_id' => null,
+    ]);
     assertDatabaseMissing('saved_searches', ['id' => $savedSearch->id]);
     assertDatabaseHas('communication_preferences', ['id' => $apiScopedPreference->id]);
     assertDatabaseMissing($modelHasRolesTable, [
@@ -970,9 +1010,12 @@ it('restores an api self-deleted user from the deleted users admin page', functi
         ->and($restoredRegistration?->isForUser($user))->toBeTrue();
     assertDatabaseHas((new EventCheckin)->getTable(), [
         'id' => $ownCheckin->id,
+        'attendee_type' => $user->getMorphClass(),
+        'attendee_id' => $user->id,
     ]);
     assertDatabaseHas((new EventCheckin)->getTable(), [
         'id' => $verifiedCheckin->id,
+        'verified_by_user_id' => $user->id,
     ]);
     assertDatabaseHas('saved_searches', [
         'id' => $savedSearch->id,

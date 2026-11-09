@@ -140,6 +140,13 @@ class ApproveContributionRequestAction
 
         foreach ($staged as $media) {
             $field = (string) $media->getCustomProperty('contribution_field', 'cover');
+
+            if ($field === 'donation_qr') {
+                $this->entityMutationService->attachStagedDonationQr($entity, $media);
+
+                continue;
+            }
+
             $isSingle = (bool) $media->getCustomProperty('is_single', true);
 
             if ($isSingle) {

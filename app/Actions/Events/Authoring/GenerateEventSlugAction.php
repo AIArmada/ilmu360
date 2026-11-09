@@ -60,7 +60,7 @@ class GenerateEventSlugAction
                     $personQuery->where('persons.name', $normalizedPersonName);
                 })->orWhereHas('involvements', function ($involvementQuery) use ($personIds): void {
                     $involvementQuery
-                        ->where('involveable_type', Person::class)
+                        ->where('involveable_type', (new Person)->getMorphClass())
                         ->whereIn('involveable_id', $personIds)
                         ->where('role_code', 'organizer')
                         ->where('is_primary', true);
@@ -88,7 +88,7 @@ class GenerateEventSlugAction
                         ->where('role_code', EventKeyPersonRole::Speaker->value);
                 })->orWhereHas('involvements', function ($involvementQuery) use ($normalizedPersonId): void {
                     $involvementQuery
-                        ->where('involveable_type', Person::class)
+                        ->where('involveable_type', (new Person)->getMorphClass())
                         ->where('involveable_id', $normalizedPersonId)
                         ->where('role_code', 'organizer')
                         ->where('is_primary', true);

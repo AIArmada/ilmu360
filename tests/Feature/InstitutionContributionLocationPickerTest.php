@@ -6,16 +6,23 @@ use AIArmada\Addressing\Models\AddressAreaStateLink;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
+use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Signals\Models\SignalEvent;
+use App\Actions\Contributions\Review\ApproveContributionRequestAction;
+use App\Enums\ContributionSubjectType;
+use App\Enums\DonationChannelStatus;
 use App\Forms\SharedFormSchema;
 use App\Livewire\Pages\Contributions\SubmitInstitution;
 use App\Livewire\Pages\Contributions\SubmitPerson;
+use App\Livewire\Pages\Contributions\SuggestUpdate;
 use App\Models\ContributionRequest;
 use App\Models\Institution;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Testing\File;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
@@ -121,6 +128,20 @@ function fakeVerifiedInstitutionPlace(array $place, bool $withHomepage = false):
     Http::fake($responses);
 }
 
+function giveInstitutionStoredMapsPlace(Institution $institution, string $placeId = 'place_stored_existing'): void
+{
+    $address = $institution->primaryAddress();
+
+    if ($address === null) {
+        return;
+    }
+
+    $address->forceFill([
+        'google_place_id' => $placeId,
+        'google_maps_url' => 'https://www.google.com/maps/search/?api=1&query_place_id='.$placeId,
+    ])->save();
+}
+
 it('renders the institution location picker when google places is enabled', function () {
     config()->set('services.google.maps_api_key', 'test-maps-key');
     config()->set('services.google.places_enabled', true);
@@ -140,6 +161,7 @@ it('renders the institution location picker when google places is enabled', func
         ->assertSee(__('Search for an institution or address'))
         ->assertDontSee('<label class="text-sm font-medium text-slate-900" for="institution-location-search">', false)
         ->assertSee('element.placeholder =', false)
+        ->assertSee(__('Loading place details from Google Maps…'))
         ->assertSee('mi-institution-location-picker-search', false)
         ->assertSee('rounded-xl border border-slate-200 bg-white shadow-sm', false)
         ->assertDontSee('pointer-events-none absolute inset-y-0 left-0', false)
@@ -612,4 +634,677 @@ it('persists the resolved city id when the city field is hidden', function () {
     expect($institution)->not->toBeNull()
         ->and($institution?->primaryAddress()?->city_id)->toBe((string) $city->getKey())
         ->and($institution?->primaryAddress()?->state_id)->toBe((string) $state['package']->getKey());
+});
+
+it('renders the optional location reselect section on the institution update page', function () {
+    config()->set('services.google.maps_api_key', 'test-maps-key');
+    config()->set('services.google.places_enabled', true);
+
+    $user = User::factory()->create();
+    $institution = Institution::factory()->create([
+        'status' => 'verified',
+    ]);
+
+    $this->actingAs($user);
+
+    $this->get(route('contributions.suggest-update', [
+        'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+        'subjectId' => $institution->slug,
+    ]))
+        ->assertOk()
+        ->assertSeeInOrder([
+            __('Update the location on Google Maps'),
+            __('Institution Profile'),
+            __('Address'),
+            __('Media'),
+            __('Donation Channels'),
+        ])
+        ->assertDontSee(__('Find the institution on Google Maps'))
+        ->assertDontSee(__('Google Maps URL'))
+        ->assertSee(__('Loading place details from Google Maps…'));
+});
+
+it('keeps Media after Address on the institution update page when places is disabled', function () {
+    config()->set('services.google.maps_api_key');
+    config()->set('services.google.places_enabled', false);
+
+    $user = User::factory()->create();
+    $institution = Institution::factory()->create([
+        'status' => 'verified',
+    ]);
+
+    $this->actingAs($user);
+
+    $this->get(route('contributions.suggest-update', [
+        'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+        'subjectId' => $institution->slug,
+    ]))
+        ->assertOk()
+        ->assertSeeInOrder([
+            __('Institution Profile'),
+            __('Address'),
+            __('Media'),
+            __('Donation Channels'),
+        ])
+        ->assertDontSee(__('Update the location on Google Maps'))
+        ->assertDontSee(__('Search for an institution or address'))
+        ->assertDontSee(__('Google Maps URL'));
+});
+
+it('submits an institution name update without Maps re-verification', function () {
+    $owner = User::factory()->create();
+    $institution = Institution::factory()->create([
+        'status' => 'verified',
+        'name' => 'Masjid Lama',
+    ]);
+    giveInstitutionStoredMapsPlace($institution);
+    withGlobalOwnerContext(fn (): null => addTestMember($institution, $owner, MemberRole::Owner));
+
+    Livewire::actingAs($owner)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->slug,
+        ])
+        ->set('data.name', 'Masjid Baharu')
+        ->call('submit')
+        ->assertHasNoErrors();
+
+    expect($institution->fresh()->name)->toBe('Masjid Baharu');
+});
+
+it('rejects an unverified Google place change on the institution update page', function () {
+    config()->set('services.google.maps_api_key', 'test-maps-key');
+    config()->set('services.google.places_enabled', true);
+
+    $owner = User::factory()->create();
+    $institution = Institution::factory()->create([
+        'status' => 'verified',
+    ]);
+    withGlobalOwnerContext(fn (): null => addTestMember($institution, $owner, MemberRole::Owner));
+
+    Livewire::actingAs($owner)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->slug,
+        ])
+        ->set('data.address.google_place_id', 'unverified-place')
+        ->call('submit')
+        ->assertHasErrors(['data.address.google_place_id'])
+        ->assertSee(__('Select and verify the new location on Google Maps before submitting.'));
+});
+
+it('verifies a Maps reselect and persists provider identifiers on the institution update page', function () {
+    ensureCountryForLocationPicker('MY', 'Malaysia');
+    ensureMalaysiaStateForLocationPicker();
+    configureVerifiedGoogleMaps();
+    fakeVerifiedInstitutionPlace(verifiedInstitutionPlace('place_reselect_abc', [
+        'websiteUri' => null,
+    ]));
+
+    $owner = User::factory()->create();
+    $institution = Institution::factory()->create([
+        'status' => 'verified',
+        'name' => 'Masjid Reselect',
+    ]);
+    withGlobalOwnerContext(fn (): null => addTestMember($institution, $owner, MemberRole::Owner));
+
+    Livewire::actingAs($owner)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->slug,
+        ])
+        ->call('applyPlaceSelection', 'data.address', ['placeId' => 'place_reselect_abc'])
+        ->assertHasNoErrors()
+        ->assertSet('data.address.google_place_id', 'place_reselect_abc')
+        ->assertSet('data.name', 'Masjid Jamik Ungku Ahmad')
+        ->call('submit')
+        ->assertHasNoErrors();
+
+    $address = $institution->fresh()->primaryAddress();
+
+    expect($address?->google_place_id)->toBe('place_reselect_abc')
+        ->and($address?->google_cid)->toBe('11885663895765773631')
+        ->and($institution->fresh()->contactMethods()->where('type', 'phone')->pluck('value')->all())->toContain('+60312345678')
+        ->and(SignalEvent::query()->where('event_name', 'contribution.institution_maps_place_selected')->count())->toBe(1);
+});
+
+it('creates an update request with a verified Maps reselect for visitors', function () {
+    ensureCountryForLocationPicker('MY', 'Malaysia');
+    ensureMalaysiaStateForLocationPicker();
+    configureVerifiedGoogleMaps();
+    fakeVerifiedInstitutionPlace(verifiedInstitutionPlace('place_visitor_reselect', [
+        'websiteUri' => null,
+    ]));
+
+    $visitor = User::factory()->create();
+    $institution = Institution::factory()->create([
+        'status' => 'verified',
+    ]);
+
+    Livewire::actingAs($visitor)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->slug,
+        ])
+        ->call('applyPlaceSelection', 'data.address', ['placeId' => 'place_visitor_reselect'])
+        ->assertHasNoErrors()
+        ->call('submit')
+        ->assertHasNoErrors()
+        ->assertRedirect(route('contributions.index'));
+
+    $request = ContributionRequest::query()
+        ->where('entity_id', $institution->getKey())
+        ->latest('id')
+        ->firstOrFail();
+
+    expect(data_get($request->proposed_data, 'address.google_place_id'))->toBe('place_visitor_reselect');
+});
+
+it('blocks moving an institution onto another institution’s Google Maps place', function () {
+    $geography = createTestPackageGeography('Selangor', 'Petaling', 'Shah Alam');
+    $claimed = Institution::factory()->create(['status' => 'verified']);
+    SharedFormSchema::createAddressFromData($claimed, [
+        'country_id' => (string) $geography['country']->getKey(),
+        'google_place_id' => 'place_taken_abc',
+        'google_cid' => '11885663895765773631',
+        'google_maps_url' => 'https://maps.google.com/?cid=11885663895765773631',
+    ], allowCountryOnly: true);
+
+    configureVerifiedGoogleMaps();
+    fakeVerifiedInstitutionPlace(verifiedInstitutionPlace('place_taken_abc', [
+        'websiteUri' => null,
+    ]));
+
+    $owner = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified']);
+    withGlobalOwnerContext(fn (): null => addTestMember($institution, $owner, MemberRole::Owner));
+
+    Livewire::actingAs($owner)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->slug,
+        ])
+        ->call('applyPlaceSelection', 'data.address', ['placeId' => 'place_taken_abc'])
+        ->assertHasNoErrors()
+        ->call('submit')
+        ->assertHasErrors(['data.address.google_place_id'])
+        ->assertSee(__('Another institution already uses this Google Maps place.'));
+
+    expect($institution->fresh()->primaryAddress()?->google_place_id)->not->toBe('place_taken_abc');
+});
+
+it('shows the donation channels section on both institution contribution pages', function () {
+    $user = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified']);
+
+    $this->actingAs($user);
+
+    $this->get(route('contributions.submit-institution'))
+        ->assertOk()
+        ->assertSee(__('Donation Channels'))
+        ->assertSee(__('Share official donation accounts for this institution.'))
+        ->assertSee(__('Add donation channel'));
+
+    $this->get(route('contributions.suggest-update', [
+        'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+        'subjectId' => $institution->slug,
+    ]))
+        ->assertOk()
+        ->assertSee(__('Donation Channels'))
+        ->assertSee(__('Share official donation accounts for this institution.'))
+        ->assertSee(__('Add donation channel'));
+});
+
+it('stores donation channels when submitting a new institution', function () {
+    ensureCountryForLocationPicker('MY', 'Malaysia');
+    ensureMalaysiaStateForLocationPicker();
+    configureVerifiedGoogleMaps();
+    fakeVerifiedInstitutionPlace(verifiedInstitutionPlace('place_donation_create', [
+        'websiteUri' => null,
+    ]));
+
+    Livewire::actingAs(User::factory()->create())
+        ->test(SubmitInstitution::class)
+        ->call('applyPlaceSelection', 'data.address', ['placeId' => 'place_donation_create'])
+        ->assertHasNoErrors()
+        ->set('data.type', 'masjid')
+        ->set('data.donation_channels', [[
+            'label' => 'Tabung Masjid',
+            'recipient' => 'Masjid Jamik Ungku Ahmad',
+            'method' => 'bank_account',
+            'bank_name' => 'Maybank',
+            'bank_code' => 'MBB',
+            'account_number' => '1234567890',
+            'reference_note' => 'Dana am',
+            'is_default' => true,
+        ]])
+        ->call('submit')
+        ->assertHasNoErrors();
+
+    $institution = Institution::query()->where('name', 'Masjid Jamik Ungku Ahmad')->firstOrFail();
+    $channel = $institution->donationChannels()->firstOrFail();
+
+    expect($institution->donationChannels()->count())->toBe(1)
+        ->and($channel->method)->toBe('bank_account')
+        ->and($channel->account_number)->toBe('1234567890')
+        ->and($channel->status)->toBe(DonationChannelStatus::Pending)
+        ->and($channel->is_default)->toBeTrue();
+});
+
+it('applies donation channel additions on direct institution edits', function () {
+    $owner = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified']);
+    giveInstitutionStoredMapsPlace($institution);
+    withGlobalOwnerContext(fn (): null => addTestMember($institution, $owner, MemberRole::Owner));
+
+    Livewire::actingAs($owner)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->slug,
+        ])
+        ->set('data.donation_channels', [[
+            'label' => 'Dana Pembangunan',
+            'recipient' => 'Jawatankuasa Masjid',
+            'method' => 'duitnow',
+            'duitnow_type' => 'business',
+            'duitnow_value' => '12345678',
+            'is_default' => true,
+        ]])
+        ->call('submit')
+        ->assertHasNoErrors();
+
+    $channel = $institution->fresh()->donationChannels()->firstOrFail();
+
+    expect($channel->method)->toBe('duitnow')
+        ->and($channel->duitnow_value)->toBe('12345678')
+        ->and($channel->status)->toBe(DonationChannelStatus::Pending);
+});
+
+it('preserves verified donation channels on unrelated institution edits', function () {
+    $owner = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified', 'name' => 'Masjid Kekal']);
+    giveInstitutionStoredMapsPlace($institution);
+    withGlobalOwnerContext(fn (): null => addTestMember($institution, $owner, MemberRole::Owner));
+
+    $channel = $institution->donationChannels()->create([
+        'label' => 'Tabung Masjid',
+        'recipient' => 'Masjid Kekal',
+        'method' => 'bank_account',
+        'bank_name' => 'Maybank',
+        'account_number' => '0987654321',
+        'is_default' => true,
+    ]);
+    $channel->verify($owner);
+
+    Livewire::actingAs($owner)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->slug,
+        ])
+        ->set('data.name', 'Masjid Kekal Baharu')
+        ->call('submit')
+        ->assertHasNoErrors();
+
+    expect($institution->fresh()->name)->toBe('Masjid Kekal Baharu')
+        ->and($institution->donationChannels()->count())->toBe(1);
+
+    $fresh = $institution->donationChannels()->firstOrFail();
+
+    expect($fresh->getKey())->toBe($channel->getKey())
+        ->and($fresh->status)->toBe(DonationChannelStatus::Verified)
+        ->and($fresh->verified_by)->toBe($owner->getKey());
+});
+
+it('stages donation channel proposals on visitor update requests', function () {
+    $visitor = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified']);
+    giveInstitutionStoredMapsPlace($institution);
+
+    Livewire::actingAs($visitor)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->slug,
+        ])
+        ->set('data.donation_channels', [[
+            'recipient' => 'Jawatankuasa Surau',
+            'method' => 'ewallet',
+            'ewallet_provider' => 'tng',
+            'ewallet_handle' => '0912345678',
+        ]])
+        ->call('submit')
+        ->assertHasNoErrors()
+        ->assertRedirect(route('contributions.index'));
+
+    $request = ContributionRequest::query()
+        ->where('entity_id', $institution->getKey())
+        ->latest('id')
+        ->firstOrFail();
+
+    expect(data_get($request->proposed_data, 'donation_channels.0.method'))->toBe('ewallet')
+        ->and(data_get($request->proposed_data, 'donation_channels.0.ewallet_handle'))->toBe('0912345678')
+        ->and($institution->fresh()->donationChannels()->count())->toBe(0);
+});
+
+it('fills untouched name and type when reselecting a Maps place on update', function () {
+    ensureCountryForLocationPicker('MY', 'Malaysia');
+    ensureMalaysiaStateForLocationPicker();
+    configureVerifiedGoogleMaps();
+    fakeVerifiedInstitutionPlace(verifiedInstitutionPlace('place_autofill_update', [
+        'websiteUri' => null,
+    ]));
+
+    $owner = User::factory()->create();
+    $institution = Institution::factory()->create([
+        'status' => 'verified',
+        'type' => 'surau',
+        'name' => 'Surau Lama',
+    ]);
+    withGlobalOwnerContext(fn (): null => addTestMember($institution, $owner, MemberRole::Owner));
+
+    Livewire::actingAs($owner)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->slug,
+        ])
+        ->call('applyPlaceSelection', 'data.address', ['placeId' => 'place_autofill_update'])
+        ->assertHasNoErrors()
+        ->assertSet('data.name', 'Masjid Jamik Ungku Ahmad')
+        ->assertSet('data.type', 'masjid');
+});
+
+it('preserves user-edited name and type when reselecting a Maps place on update', function () {
+    ensureCountryForLocationPicker('MY', 'Malaysia');
+    ensureMalaysiaStateForLocationPicker();
+    configureVerifiedGoogleMaps();
+    fakeVerifiedInstitutionPlace(verifiedInstitutionPlace('place_autofill_edited', [
+        'websiteUri' => null,
+    ]));
+
+    $owner = User::factory()->create();
+    $institution = Institution::factory()->create([
+        'status' => 'verified',
+        'type' => 'surau',
+        'name' => 'Surau Lama',
+    ]);
+    withGlobalOwnerContext(fn (): null => addTestMember($institution, $owner, MemberRole::Owner));
+
+    Livewire::actingAs($owner)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->slug,
+        ])
+        ->set('data.name', 'Nama Pilihan Sendiri')
+        ->set('data.type', 'pondok')
+        ->call('applyPlaceSelection', 'data.address', ['placeId' => 'place_autofill_edited'])
+        ->assertHasNoErrors()
+        ->assertSet('data.name', 'Nama Pilihan Sendiri')
+        ->assertSet('data.type', 'pondok');
+});
+
+it('loads attributed photo previews after a verified reselect on update', function () {
+    ensureCountryForLocationPicker('MY', 'Malaysia');
+    ensureMalaysiaStateForLocationPicker();
+    configureVerifiedGoogleMaps();
+    $place = verifiedInstitutionPlace('place_reselect_photo', [
+        'websiteUri' => null,
+        'photos' => [[
+            'name' => 'places/place_reselect_photo/photos/photo-one',
+            'widthPx' => 800,
+            'heightPx' => 600,
+            'googleMapsUri' => 'https://maps.google.com/?cid=123',
+            'authorAttributions' => [['displayName' => 'Photo contributor']],
+        ]],
+    ]);
+    Http::fake([
+        'https://places.googleapis.com/v1/places/place_reselect_photo/photos/*/media*' => Http::response([
+            'photoUri' => 'https://lh3.googleusercontent.com/photo-one=s800',
+        ], 200),
+        'https://places.googleapis.com/v1/places/*' => Http::response($place, 200),
+    ]);
+
+    $owner = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified']);
+    withGlobalOwnerContext(fn (): null => addTestMember($institution, $owner, MemberRole::Owner));
+
+    $component = Livewire::actingAs($owner)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->slug,
+        ])
+        ->call('applyPlaceSelection', 'data.address', ['placeId' => 'place_reselect_photo'])
+        ->assertHasNoErrors();
+
+    $component->call('loadPlacePhotoPreviews', 'another_place')
+        ->assertReturned([]);
+
+    $component->call('loadPlacePhotoPreviews', 'place_reselect_photo')
+        ->assertReturned([[
+            'preview_url' => 'https://lh3.googleusercontent.com/photo-one=s800',
+            'width' => 800,
+            'height' => 600,
+            'attributions' => [['display_name' => 'Photo contributor', 'uri' => null]],
+            'google_maps_uri' => 'https://maps.google.com/?cid=123',
+        ]]);
+});
+
+it('keeps the stored type when the reselected place has no inferable type', function () {
+    ensureCountryForLocationPicker('MY', 'Malaysia');
+    ensureMalaysiaStateForLocationPicker();
+    configureVerifiedGoogleMaps();
+    fakeVerifiedInstitutionPlace(verifiedInstitutionPlace('place_unclassified_update', [
+        'displayName' => ['text' => 'Community Hall'],
+        'primaryType' => 'community_center',
+        'types' => ['point_of_interest', 'establishment'],
+        'websiteUri' => null,
+    ]));
+
+    $owner = User::factory()->create();
+    $institution = Institution::factory()->create([
+        'status' => 'verified',
+        'type' => 'surau',
+        'name' => 'Surau Lama',
+    ]);
+    withGlobalOwnerContext(fn (): null => addTestMember($institution, $owner, MemberRole::Owner));
+
+    Livewire::actingAs($owner)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->slug,
+        ])
+        ->call('applyPlaceSelection', 'data.address', ['placeId' => 'place_unclassified_update'])
+        ->assertHasNoErrors()
+        ->assertSet('data.name', 'Community Hall')
+        ->assertSet('data.type', 'surau');
+});
+
+it('requires a Maps place when updating an institution without one', function () {
+    config()->set('services.google.maps_api_key', 'test-maps-key');
+    config()->set('services.google.places_enabled', true);
+
+    $owner = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified']);
+    withGlobalOwnerContext(fn (): null => addTestMember($institution, $owner, MemberRole::Owner));
+
+    Livewire::actingAs($owner)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->slug,
+        ])
+        ->set('data.name', 'Masjid Tanpa Pin')
+        ->call('submit')
+        ->assertHasErrors(['data.address.google_place_id'])
+        ->assertSee(__('Select and verify the institution on Google Maps before submitting.'));
+});
+
+it('skips autofilled contacts that already exist when reselecting', function () {
+    ensureCountryForLocationPicker('MY', 'Malaysia');
+    ensureMalaysiaStateForLocationPicker();
+    configureVerifiedGoogleMaps();
+    fakeVerifiedInstitutionPlace(verifiedInstitutionPlace('place_dedupe_contact', [
+        'websiteUri' => 'https://93.184.216.34/',
+    ]));
+
+    $owner = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified']);
+    withGlobalOwnerContext(fn (): null => addTestMember($institution, $owner, MemberRole::Owner));
+
+    Livewire::actingAs($owner)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->slug,
+        ])
+        ->set('data.contactMethods', [[
+            'type' => 'website',
+            'value' => 'https://93.184.216.34/',
+            'purpose' => 'general',
+            'is_primary' => false,
+            'is_public' => true,
+        ]])
+        ->call('applyPlaceSelection', 'data.address', ['placeId' => 'place_dedupe_contact'])
+        ->assertHasNoErrors()
+        ->assertSet('data.contactMethods', fn (mixed $rows): bool => is_array($rows)
+            && count($rows) === 2
+            && collect($rows)->where('type', 'website')->count() === 1
+            && collect($rows)->where('type', 'phone')->count() === 1);
+});
+
+it('skips autofilled social profiles that already exist when reselecting', function () {
+    ensureCountryForLocationPicker('MY', 'Malaysia');
+    ensureMalaysiaStateForLocationPicker();
+    configureVerifiedGoogleMaps();
+    fakeVerifiedInstitutionPlace(verifiedInstitutionPlace('place_dedupe_social'), withHomepage: true);
+
+    $owner = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified']);
+    withGlobalOwnerContext(fn (): null => addTestMember($institution, $owner, MemberRole::Owner));
+
+    Livewire::actingAs($owner)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->slug,
+        ])
+        ->set('data.social_media', [[
+            'platform' => 'facebook',
+            'handle' => 'ilmu360',
+            'url' => null,
+            'is_primary' => false,
+            'is_public' => true,
+        ]])
+        ->call('applyPlaceSelection', 'data.address', ['placeId' => 'place_dedupe_social'])
+        ->assertHasNoErrors()
+        ->assertSet('data.social_media', fn (mixed $rows): bool => is_array($rows)
+            && count($rows) === 2
+            && collect($rows)->where('platform', 'facebook')->count() === 1
+            && collect($rows)->where('platform', 'instagram')->count() === 1);
+});
+
+it('stores donation QR uploads when submitting a new institution', function () {
+    Storage::fake('public');
+    config()->set('media-library.disk_name', 'public');
+
+    ensureCountryForLocationPicker('MY', 'Malaysia');
+    ensureMalaysiaStateForLocationPicker();
+    configureVerifiedGoogleMaps();
+    fakeVerifiedInstitutionPlace(verifiedInstitutionPlace('place_qr_create', [
+        'websiteUri' => null,
+    ]));
+
+    Livewire::actingAs(User::factory()->create())
+        ->test(SubmitInstitution::class)
+        ->call('applyPlaceSelection', 'data.address', ['placeId' => 'place_qr_create'])
+        ->assertHasNoErrors()
+        ->set('data.type', 'masjid')
+        ->set('data.donation_channels', [[
+            'label' => 'Tabung Masjid',
+            'recipient' => 'Masjid Jamik Ungku Ahmad',
+            'method' => 'bank_account',
+            'bank_name' => 'Maybank',
+            'account_number' => '1234567890',
+        ]])
+        ->upload('data.donation_channels.0.qr_upload', [File::fake()->image('donation-qr.png', 600, 600)], true)
+        ->call('submit')
+        ->assertHasNoErrors();
+
+    $institution = Institution::query()->where('name', 'Masjid Jamik Ungku Ahmad')->firstOrFail();
+    $channel = $institution->donationChannels()->firstOrFail();
+
+    expect($channel->getFirstMedia('qr'))->not->toBeNull()
+        ->and($channel->getFirstMedia('qr')->file_name)->toBe('donation-qr.png');
+});
+
+it('attaches donation QR uploads on direct institution edits', function () {
+    Storage::fake('public');
+    config()->set('media-library.disk_name', 'public');
+
+    $owner = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified']);
+    giveInstitutionStoredMapsPlace($institution);
+    withGlobalOwnerContext(fn (): null => addTestMember($institution, $owner, MemberRole::Owner));
+
+    Livewire::actingAs($owner)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->slug,
+        ])
+        ->set('data.donation_channels', [[
+            'recipient' => 'Jawatankuasa Masjid',
+            'method' => 'duitnow',
+            'duitnow_type' => 'business',
+            'duitnow_value' => '12345678',
+        ]])
+        ->upload('data.donation_channels.0.qr_upload', [File::fake()->image('duitnow-qr.png', 600, 600)], true)
+        ->call('submit')
+        ->assertHasNoErrors();
+
+    $channel = $institution->fresh()->donationChannels()->firstOrFail();
+
+    expect($channel->getFirstMedia('qr'))->not->toBeNull()
+        ->and($channel->getFirstMedia('qr')->file_name)->toBe('duitnow-qr.png');
+});
+
+it('stages visitor donation QR uploads and attaches them on approval', function () {
+    Storage::fake('public');
+    config()->set('media-library.disk_name', 'public');
+
+    $visitor = User::factory()->create();
+    $reviewer = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified']);
+    giveInstitutionStoredMapsPlace($institution);
+
+    Livewire::actingAs($visitor)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->slug,
+        ])
+        ->set('data.donation_channels', [[
+            'recipient' => 'Jawatankuasa Surau',
+            'method' => 'ewallet',
+            'ewallet_provider' => 'tng',
+            'ewallet_handle' => '0912345678',
+        ]])
+        ->upload('data.donation_channels.0.qr_upload', [File::fake()->image('visitor-qr.png', 600, 600)], true)
+        ->call('submit')
+        ->assertHasNoErrors()
+        ->assertRedirect(route('contributions.index'));
+
+    $request = ContributionRequest::query()
+        ->where('entity_id', $institution->getKey())
+        ->latest('id')
+        ->firstOrFail();
+
+    expect($institution->fresh()->donationChannels()->count())->toBe(0);
+
+    $staged = $request->getMedia('pending_media');
+
+    expect($staged)->toHaveCount(1)
+        ->and($staged->first()->getCustomProperty('contribution_field'))->toBe('donation_qr')
+        ->and($staged->first()->getCustomProperty('donation_fingerprint'))->toBe('ewallet|tng|0912345678|');
+
+    app(ApproveContributionRequestAction::class)->handle($request->fresh(), $reviewer);
+
+    $channel = $institution->fresh()->donationChannels()->firstOrFail();
+
+    expect($channel->getFirstMedia('qr'))->not->toBeNull()
+        ->and($channel->getFirstMedia('qr')->file_name)->toBe('visitor-qr.png')
+        ->and($request->fresh()->getMedia('pending_media'))->toHaveCount(0);
 });

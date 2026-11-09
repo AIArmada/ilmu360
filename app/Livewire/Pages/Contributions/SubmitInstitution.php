@@ -10,9 +10,11 @@ use App\Actions\Location\FetchGooglePlaceDetailsAction;
 use App\Actions\Location\FetchGooglePlacePhotoPreviewsAction;
 use App\Enums\ContributionSubjectType;
 use App\Forms\InstitutionContributionFormSchema;
+use App\Forms\SharedFormSchema;
 use App\Livewire\Concerns\InteractsWithLocationPickerSelection;
 use App\Models\Institution;
 use App\Models\User;
+use App\Services\ContributionEntityMutationService;
 use App\Services\Signals\ProductSignalsService;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
@@ -220,6 +222,9 @@ class SubmitInstitution extends Component implements HasActions, HasForms
 
             $submittedName = data_get($this->data, 'name');
             $state = $this->contributionForm()->getState();
+            $donationQrUploads = SharedFormSchema::collectDonationQrUploads($state['donation_channels'] ?? null);
+            $state = SharedFormSchema::withoutDonationQrUploads($state);
+            $submittedDonationRows = is_array($state['donation_channels'] ?? null) ? $state['donation_channels'] : [];
             $formAddress = is_array($state['address'] ?? null) ? $state['address'] : [];
             $verifiedAddress = is_array($verifiedSelection['address'] ?? null)
                 ? $verifiedSelection['address']
@@ -247,8 +252,16 @@ class SubmitInstitution extends Component implements HasActions, HasForms
                 ContributionSubjectType::Institution,
                 $state,
                 $user,
-                function (Institution $institution): void {
+                function (Institution $institution) use ($submittedDonationRows, $donationQrUploads): void {
                     $this->contributionForm()->model($institution)->saveRelationships();
+
+                    if ($donationQrUploads !== []) {
+                        app(ContributionEntityMutationService::class)->attachDonationQrUploads(
+                            $institution,
+                            $submittedDonationRows,
+                            $donationQrUploads,
+                        );
+                    }
                 },
                 'data',
             );

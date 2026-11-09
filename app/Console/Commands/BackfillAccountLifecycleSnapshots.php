@@ -17,22 +17,55 @@ use Spatie\DeletedModels\Models\DeletedModel;
 class BackfillAccountLifecycleSnapshots extends Command
 {
     /**
+     * Feature-owned keys that are moved out of the conventional legacy map.
+     *
      * @var array<int, string>
      */
-    private const array LEGACY_TOP_LEVEL_KEYS = [
-        'report_ids',
-        'handled_report_ids',
-        'social_accounts',
+    private const array FEATURE_SNAPSHOT_KEYS = [
+        'identity',
+        'reports',
         'saved_searches',
+        'membership',
+        'directory',
+        'events',
+        'moderation',
+        'contributions',
+        'share_tracking',
+        'legacy',
     ];
 
     /**
+     * Flat legacy keys consumed by one of the feature snapshots.
+     *
      * @var array<int, string>
      */
-    private const array LEGACY_DETECTION_KEYS = [
+    private const array LEGACY_SOURCE_KEYS = [
+        'social_accounts',
         'report_ids',
         'handled_report_ids',
-        'social_accounts',
+        'saved_searches',
+        'institution_members',
+        'person_members',
+        'reference_members',
+        'event_members',
+        'membership_claim_ids',
+        'membership_application_reviewer_ids',
+        'scoped_roles',
+        'scoped_permissions',
+        'verified_donation_channel_ids',
+        'verified_person_ids',
+        'verified_institution_ids',
+        'verified_reference_ids',
+        'verified_venue_ids',
+        'owned_event_ids',
+        'submitted_event_ids',
+        'event_submission_ids',
+        'verified_event_checkin_ids',
+        'registrations',
+        'event_checkins',
+        'contribution_request_proposer_ids',
+        'contribution_request_reviewer_ids',
+        'moderation_review_ids',
     ];
 
     public function handle(): int
@@ -111,21 +144,14 @@ class BackfillAccountLifecycleSnapshots extends Command
     private function migrate(array $values): ?array
     {
         $affiliateKey = 'deleted_affiliate_tracking_snapshot';
-        $hasAffiliateSnapshot = array_key_exists($affiliateKey, $values);
         $snapshot = $values['deleted_relations_snapshot'] ?? null;
         $snapshot = is_array($snapshot) ? $snapshot : [];
-        $hasLegacyKeys = array_intersect(array_keys($snapshot), self::LEGACY_DETECTION_KEYS) !== [];
-        $hasLegacySavedSearches = array_key_exists('saved_searches', $snapshot)
-            && is_array($snapshot['saved_searches'])
-            && ! array_key_exists('records', $snapshot['saved_searches']);
 
-        if (! $hasLegacyKeys && ! $hasLegacySavedSearches && ! $hasAffiliateSnapshot) {
-            return null;
-        }
+        $source = is_array($snapshot['legacy'] ?? null) ? $snapshot['legacy'] : $snapshot;
 
-        $legacy = is_array($snapshot['legacy'] ?? null) ? $snapshot['legacy'] : $snapshot;
+        $legacy = $source;
 
-        foreach ([...self::LEGACY_TOP_LEVEL_KEYS, 'reports', 'identity', 'saved_searches', 'legacy', 'share_tracking'] as $key) {
+        foreach ([...self::LEGACY_SOURCE_KEYS, ...self::FEATURE_SNAPSHOT_KEYS] as $key) {
             unset($legacy[$key]);
         }
 
@@ -134,30 +160,187 @@ class BackfillAccountLifecycleSnapshots extends Command
             ? $snapshot['share_tracking']
             : (is_array($affiliateSnapshot) ? $affiliateSnapshot : []);
 
-        $identity = $snapshot['identity'] ?? null;
-        $reports = $snapshot['reports'] ?? null;
-        $savedSearches = $snapshot['saved_searches'] ?? null;
-
-        $values['deleted_relations_snapshot'] = [
-            'identity' => is_array($identity) && array_key_exists('social_accounts', $identity)
-                ? $identity
-                : ['social_accounts' => $this->rows($snapshot['social_accounts'] ?? [])],
-            'reports' => is_array($reports) && (array_key_exists('report_ids', $reports) || array_key_exists('handled_report_ids', $reports))
-                ? $reports
-                : [
-                    'report_ids' => $this->stringIds($snapshot['report_ids'] ?? []),
-                    'handled_report_ids' => $this->stringIds($snapshot['handled_report_ids'] ?? []),
-                ],
-            'saved_searches' => is_array($savedSearches) && array_key_exists('records', $savedSearches)
-                ? $savedSearches
-                : ['records' => $this->rows($snapshot['saved_searches'] ?? [])],
+        $migrated = $values;
+        $migrated['deleted_relations_snapshot'] = [
+            'identity' => $this->identitySnapshot($snapshot, $source),
+            'reports' => $this->reportsSnapshot($snapshot, $source),
+            'saved_searches' => $this->savedSearchesSnapshot($snapshot, $source),
+            'membership' => $this->membershipSnapshot($snapshot, $source),
+            'directory' => $this->directorySnapshot($snapshot, $source),
+            'events' => $this->eventsSnapshot($snapshot, $source),
+            'moderation' => $this->moderationSnapshot($snapshot, $source),
+            'contributions' => $this->contributionsSnapshot($snapshot, $source),
             'legacy' => $legacy,
             'share_tracking' => $shareTracking,
         ];
 
-        unset($values[$affiliateKey]);
+        unset($migrated[$affiliateKey]);
 
-        return $values;
+        if ($migrated == $values) {
+            return null;
+        }
+
+        return $migrated;
+    }
+
+    /**
+     * @param  array<string, mixed>  $snapshot
+     * @param  array<string, mixed>  $source
+     * @return array<string, mixed>
+     */
+    private function identitySnapshot(array $snapshot, array $source): array
+    {
+        $identity = is_array($snapshot['identity'] ?? null) ? $snapshot['identity'] : [];
+
+        $identity['social_accounts'] ??= $this->rows($source['social_accounts'] ?? []);
+
+        return $identity;
+    }
+
+    /**
+     * @param  array<string, mixed>  $snapshot
+     * @param  array<string, mixed>  $source
+     * @return array<string, mixed>
+     */
+    private function reportsSnapshot(array $snapshot, array $source): array
+    {
+        $reports = is_array($snapshot['reports'] ?? null) ? $snapshot['reports'] : [];
+
+        $reports['report_ids'] ??= $this->stringIds($source['report_ids'] ?? []);
+        $reports['handled_report_ids'] ??= $this->stringIds($source['handled_report_ids'] ?? []);
+
+        return $reports;
+    }
+
+    /**
+     * @param  array<string, mixed>  $snapshot
+     * @param  array<string, mixed>  $source
+     * @return array<string, mixed>
+     */
+    private function savedSearchesSnapshot(array $snapshot, array $source): array
+    {
+        $savedSearches = is_array($snapshot['saved_searches'] ?? null) ? $snapshot['saved_searches'] : [];
+        $legacyRecords = is_array($source['saved_searches'] ?? null) ? $source['saved_searches'] : [];
+
+        // A flat list is the legacy shape; the contributor shape wraps it in
+        // a `records` key.
+        if (! array_key_exists('records', $savedSearches) && array_is_list($legacyRecords)) {
+            $savedSearches = ['records' => $this->rows($legacyRecords)];
+        }
+
+        $savedSearches['records'] ??= [];
+
+        return $savedSearches;
+    }
+
+    /**
+     * @param  array<string, mixed>  $snapshot
+     * @param  array<string, mixed>  $source
+     * @return array<string, mixed>
+     */
+    private function membershipSnapshot(array $snapshot, array $source): array
+    {
+        $membership = is_array($snapshot['membership'] ?? null) ? $snapshot['membership'] : [];
+
+        foreach (['institution_members', 'person_members', 'reference_members', 'event_members'] as $key) {
+            $membership[$key] ??= $this->rows($source[$key] ?? []);
+        }
+
+        $membership['membership_claim_ids'] ??= $this->stringIds($source['membership_claim_ids'] ?? []);
+        $membership['membership_application_reviewer_ids'] ??= $this->stringIds($source['membership_application_reviewer_ids'] ?? []);
+        $membership['scoped_roles'] ??= $this->rows($source['scoped_roles'] ?? []);
+        $membership['scoped_permissions'] ??= $this->rows($source['scoped_permissions'] ?? []);
+
+        return $membership;
+    }
+
+    /**
+     * @param  array<string, mixed>  $snapshot
+     * @param  array<string, mixed>  $source
+     * @return array<string, mixed>
+     */
+    private function directorySnapshot(array $snapshot, array $source): array
+    {
+        $directory = is_array($snapshot['directory'] ?? null) ? $snapshot['directory'] : [];
+
+        foreach ([
+            'verified_donation_channel_ids',
+            'verified_person_ids',
+            'verified_institution_ids',
+            'verified_reference_ids',
+            'verified_venue_ids',
+        ] as $key) {
+            $directory[$key] ??= $this->stringIds($source[$key] ?? []);
+        }
+
+        return $directory;
+    }
+
+    /**
+     * @param  array<string, mixed>  $snapshot
+     * @param  array<string, mixed>  $source
+     * @return array<string, mixed>
+     */
+    private function eventsSnapshot(array $snapshot, array $source): array
+    {
+        $events = is_array($snapshot['events'] ?? null) ? $snapshot['events'] : [];
+
+        foreach (['owned_event_ids', 'submitted_event_ids', 'event_submission_ids', 'verified_event_checkin_ids'] as $key) {
+            $events[$key] ??= $this->stringIds($source[$key] ?? []);
+        }
+
+        $registrations = $this->rows($source['registrations'] ?? []);
+        $eventCheckins = $this->rows($source['event_checkins'] ?? []);
+
+        $events['registrations'] ??= $registrations;
+        $events['event_checkins'] ??= $eventCheckins;
+        $events['registration_ids'] ??= $this->rowIds($registrations);
+        $events['event_checkin_ids'] ??= $this->rowIds($eventCheckins);
+
+        return $events;
+    }
+
+    /**
+     * @param  array<string, mixed>  $snapshot
+     * @param  array<string, mixed>  $source
+     * @return array<string, mixed>
+     */
+    private function moderationSnapshot(array $snapshot, array $source): array
+    {
+        $moderation = is_array($snapshot['moderation'] ?? null) ? $snapshot['moderation'] : [];
+
+        $moderation['moderation_review_ids'] ??= $this->stringIds($source['moderation_review_ids'] ?? []);
+
+        return $moderation;
+    }
+
+    /**
+     * @param  array<string, mixed>  $snapshot
+     * @param  array<string, mixed>  $source
+     * @return array<string, mixed>
+     */
+    private function contributionsSnapshot(array $snapshot, array $source): array
+    {
+        $contributions = is_array($snapshot['contributions'] ?? null) ? $snapshot['contributions'] : [];
+
+        $contributions['proposer_ids'] ??= $this->stringIds($source['contribution_request_proposer_ids'] ?? []);
+        $contributions['reviewer_ids'] ??= $this->stringIds($source['contribution_request_reviewer_ids'] ?? []);
+
+        return $contributions;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     * @return list<string>
+     */
+    private function rowIds(array $rows): array
+    {
+        return collect($rows)
+            ->pluck('id')
+            ->filter(static fn (mixed $id): bool => is_string($id) || is_int($id))
+            ->map(static fn (mixed $id): string => (string) $id)
+            ->values()
+            ->all();
     }
 
     /**

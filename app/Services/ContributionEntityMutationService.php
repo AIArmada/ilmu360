@@ -49,6 +49,7 @@ use App\Enums\ReferenceType;
 use App\Enums\TimingMode;
 use App\Forms\SharedFormSchema;
 use App\Models\Affiliation;
+use App\Models\DonationChannel;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\InstitutionName;
@@ -60,6 +61,7 @@ use App\Models\Venue;
 use App\Rules\ValidAreaAssignmentRoles;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerOffset;
+use App\Shared\Support\MorphAlias;
 use App\Support\Events\AdminEventTimeMapper;
 use App\Support\Location\AddressAssignments;
 use BackedEnum;
@@ -70,7 +72,9 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use RuntimeException;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class ContributionEntityMutationService
 {
@@ -118,9 +122,10 @@ class ContributionEntityMutationService
                     $this->field('address.country_id', 'uuid', catalog: route('api.client.catalogs.countries')),
                     $this->field('contactMethods', 'array<object>'),
                     $this->field('social_media', 'array<object>'),
+                    $this->field('donation_channels', 'array<object>'),
                 ],
                 'conditional_rules' => [],
-                'direct_edit_media_fields' => ['cover', 'gallery'],
+                'direct_edit_media_fields' => ['logo', 'cover', 'gallery'],
             ],
             $entity instanceof Person => [
                 'accepts_partial_updates' => true,
@@ -253,6 +258,20 @@ class ContributionEntityMutationService
                 'social_media.*.platform' => ['required_with:social_media.*.handle,social_media.*.url', Rule::in($this->enumValues(SocialPlatform::class))],
                 'social_media.*.handle' => ['nullable', 'string', 'max:255', 'required_without:social_media.*.url'],
                 'social_media.*.url' => ['nullable', 'url', 'max:255', 'required_without:social_media.*.handle'],
+                'donation_channels' => ['sometimes', 'array'],
+                'donation_channels.*.label' => ['nullable', 'string', 'max:255'],
+                'donation_channels.*.recipient' => ['required_with:donation_channels.*.method', 'string', 'max:255'],
+                'donation_channels.*.method' => ['required_with:donation_channels.*.recipient', Rule::in(['bank_account', 'duitnow', 'ewallet'])],
+                'donation_channels.*.bank_name' => ['nullable', 'string', 'max:255'],
+                'donation_channels.*.bank_code' => ['nullable', 'string', 'max:255'],
+                'donation_channels.*.account_number' => ['nullable', 'string', 'max:2000'],
+                'donation_channels.*.duitnow_type' => ['nullable', 'string', 'max:255'],
+                'donation_channels.*.duitnow_value' => ['nullable', 'string', 'max:2000'],
+                'donation_channels.*.ewallet_provider' => ['nullable', 'string', 'max:255'],
+                'donation_channels.*.ewallet_handle' => ['nullable', 'string', 'max:255'],
+                'donation_channels.*.ewallet_qr_payload' => ['nullable', 'string', 'max:2000'],
+                'donation_channels.*.reference_note' => ['nullable', 'string', 'max:255'],
+                'donation_channels.*.is_default' => ['nullable', 'boolean'],
             ],
             $entity instanceof Person => [
                 'name' => ['sometimes', 'string', 'max:255'],
@@ -813,7 +832,7 @@ class ContributionEntityMutationService
      */
     private function institutionState(Institution $institution): array
     {
-        $institution->loadMissing(['addresses', 'contactMethods', 'socialProfiles', 'names']);
+        $institution->loadMissing(['addresses', 'contactMethods', 'socialProfiles', 'names', 'donationChannels']);
 
         return [
             'name' => $institution->name,
@@ -828,6 +847,7 @@ class ContributionEntityMutationService
             'address' => $this->addressState($institution->primaryAddress()),
             'contactMethods' => $this->contactMethodsState($institution->contactMethods),
             'social_media' => $this->socialMediaState($institution->socialProfiles),
+            'donation_channels' => $this->donationChannelsState($institution->donationChannels),
         ];
     }
 
@@ -1069,6 +1089,10 @@ class ContributionEntityMutationService
 
         if (array_key_exists('social_media', $payload)) {
             $this->syncSocialMedia($institution, $payload['social_media']);
+        }
+
+        if (array_key_exists('donation_channels', $payload)) {
+            $this->syncDonationChannels($institution, $payload['donation_channels']);
         }
     }
 
@@ -2006,6 +2030,234 @@ class ContributionEntityMutationService
         $entries->each(fn (array $entry): SocialProfile => $model->socialProfiles()->create($entry));
     }
 
+    private function syncDonationChannels(Model $model, mixed $donationChannelsPayload): void
+    {
+        if (! method_exists($model, 'donationChannels')) {
+            return;
+        }
+
+        $rows = collect(is_array($donationChannelsPayload) ? $donationChannelsPayload : [])
+            ->values()
+            ->map(fn (mixed $row): ?array => is_array($row) ? $this->normalizeDonationChannelRow($row) : null)
+            ->filter()
+            ->values();
+
+        $existing = $model->donationChannels()->get();
+        $matchedIds = [];
+
+        foreach ($rows as $row) {
+            $match = $existing->first(fn (DonationChannel $channel): bool => ! in_array($channel->getKey(), $matchedIds, true)
+                && $this->sameDonationChannelIdentity($channel, $row));
+
+            if (! $match instanceof DonationChannel) {
+                $matchedIds[] = $model->donationChannels()->create($row)->getKey();
+
+                continue;
+            }
+
+            $match->fill($row)->save();
+            $matchedIds[] = $match->getKey();
+        }
+
+        if ($matchedIds === []) {
+            $model->donationChannels()->delete();
+
+            return;
+        }
+
+        $model->donationChannels()->whereKeyNot($matchedIds)->delete();
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     * @return array<string, mixed>|null
+     */
+    private function normalizeDonationChannelRow(array $row): ?array
+    {
+        $method = is_string($row['method'] ?? null) ? trim($row['method']) : null;
+        $recipient = is_string($row['recipient'] ?? null) ? trim($row['recipient']) : null;
+
+        if (! in_array($method, ['bank_account', 'duitnow', 'ewallet'], true) || $recipient === null || $recipient === '') {
+            return null;
+        }
+
+        $accountPresent = match ($method) {
+            'bank_account' => $this->normalizedNullableString($row['account_number'] ?? null) !== null,
+            'duitnow' => $this->normalizedNullableString($row['duitnow_value'] ?? null) !== null,
+            default => $this->normalizedNullableString($row['ewallet_provider'] ?? null) !== null
+                && ($this->normalizedNullableString($row['ewallet_handle'] ?? null) !== null
+                    || $this->normalizedNullableString($row['ewallet_qr_payload'] ?? null) !== null),
+        };
+
+        if (! $accountPresent) {
+            return null;
+        }
+
+        return [
+            'label' => $this->normalizedNullableString($row['label'] ?? null),
+            'recipient' => $recipient,
+            'method' => $method,
+            'bank_code' => $this->normalizedNullableString($row['bank_code'] ?? null),
+            'bank_name' => $this->normalizedNullableString($row['bank_name'] ?? null),
+            'account_number' => $this->normalizedNullableString($row['account_number'] ?? null),
+            'duitnow_type' => $this->normalizedNullableString($row['duitnow_type'] ?? null),
+            'duitnow_value' => $this->normalizedNullableString($row['duitnow_value'] ?? null),
+            'ewallet_provider' => $this->normalizedNullableString($row['ewallet_provider'] ?? null),
+            'ewallet_handle' => $this->normalizedNullableString($row['ewallet_handle'] ?? null),
+            'ewallet_qr_payload' => $this->normalizedNullableString($row['ewallet_qr_payload'] ?? null),
+            'reference_note' => $this->normalizedNullableString($row['reference_note'] ?? null),
+            'is_default' => (bool) ($row['is_default'] ?? false),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function sameDonationChannelIdentity(DonationChannel $channel, array $row): bool
+    {
+        if ($channel->method !== ($row['method'] ?? null)) {
+            return false;
+        }
+
+        return match ($channel->method) {
+            'bank_account' => $this->sameDonationIdentityPart($channel->bank_code, $row['bank_code'] ?? null)
+                && $this->sameDonationIdentityPart($channel->bank_name, $row['bank_name'] ?? null)
+                && $this->sameDonationIdentityPart($channel->account_number, $row['account_number'] ?? null),
+            'duitnow' => $this->sameDonationIdentityPart($channel->duitnow_type, $row['duitnow_type'] ?? null)
+                && $this->sameDonationIdentityPart($channel->duitnow_value, $row['duitnow_value'] ?? null),
+            'ewallet' => $this->sameDonationIdentityPart($channel->ewallet_provider, $row['ewallet_provider'] ?? null)
+                && $this->sameDonationIdentityPart($channel->ewallet_handle, $row['ewallet_handle'] ?? null)
+                && $this->sameDonationIdentityPart($channel->ewallet_qr_payload, $row['ewallet_qr_payload'] ?? null),
+            default => false,
+        };
+    }
+
+    private function sameDonationIdentityPart(mixed $left, mixed $right): bool
+    {
+        $normalize = static fn (mixed $value): ?string => is_string($value) && trim($value) !== ''
+            ? mb_strtolower(trim($value))
+            : null;
+
+        return $normalize($left) === $normalize($right);
+    }
+
+    private function normalizedNullableString(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $value = trim($value);
+
+        return $value === '' ? null : $value;
+    }
+
+    /**
+     * Stable identity for matching a submitted donation row to its persisted
+     * channel, mirroring {@see sameDonationChannelIdentity()}.
+     *
+     * @param  array<string, mixed>  $row
+     */
+    public static function donationChannelFingerprint(array $row): ?string
+    {
+        $method = is_string($row['method'] ?? null) ? trim($row['method']) : null;
+
+        if (! in_array($method, ['bank_account', 'duitnow', 'ewallet'], true)) {
+            return null;
+        }
+
+        $parts = match ($method) {
+            'bank_account' => [$row['bank_code'] ?? null, $row['bank_name'] ?? null, $row['account_number'] ?? null],
+            'duitnow' => [$row['duitnow_type'] ?? null, $row['duitnow_value'] ?? null],
+            default => [$row['ewallet_provider'] ?? null, $row['ewallet_handle'] ?? null, $row['ewallet_qr_payload'] ?? null],
+        };
+
+        $normalized = array_map(
+            static fn (mixed $value): string => is_string($value) && trim($value) !== '' ? mb_strtolower(trim($value)) : '',
+            $parts,
+        );
+
+        if (array_filter($normalized) === []) {
+            return null;
+        }
+
+        return $method.'|'.implode('|', $normalized);
+    }
+
+    /**
+     * Attach freshly uploaded donation QR images to their channels. Uploads
+     * are keyed by submitted row so each file follows its row's identity,
+     * even when invalid sibling rows were dropped during sync.
+     *
+     * @param  array<int|string, array<string, mixed>>  $submittedRows
+     * @param  array<int|string, TemporaryUploadedFile>  $uploads
+     */
+    public function attachDonationQrUploads(Model $model, array $submittedRows, array $uploads): void
+    {
+        if (! method_exists($model, 'donationChannels') || $uploads === []) {
+            return;
+        }
+
+        $failed = [];
+
+        foreach ($uploads as $index => $file) {
+            $row = $submittedRows[$index] ?? null;
+            $fingerprint = is_array($row) ? self::donationChannelFingerprint($row) : null;
+            $channel = $fingerprint === null ? null : $this->findDonationChannelByFingerprint($model, $fingerprint);
+
+            try {
+                $contents = $file->exists() ? $file->get() : null;
+            } catch (\Throwable) {
+                $contents = null;
+            }
+
+            if (! is_string($contents) || $contents === '' || ! $channel instanceof DonationChannel) {
+                $failed["data.donation_channels.{$index}.qr_upload"] = __('The QR upload expired or is invalid. Please upload the QR image again.');
+
+                continue;
+            }
+
+            $channel->addMediaFromString($contents)
+                ->usingFileName($file->getClientOriginalName() !== '' ? $file->getClientOriginalName() : 'qr.png')
+                ->toMediaCollection('qr');
+        }
+
+        if ($failed !== []) {
+            throw ValidationException::withMessages($failed);
+        }
+    }
+
+    /**
+     * Move a staged visitor QR onto its approved channel. The staged copy is
+     * always discarded so approvals never leak pending media.
+     */
+    public function attachStagedDonationQr(Model $entity, Media $staged): void
+    {
+        $fingerprint = $staged->getCustomProperty('donation_fingerprint');
+        $channel = is_string($fingerprint) && $fingerprint !== '' && method_exists($entity, 'donationChannels')
+            ? $this->findDonationChannelByFingerprint($entity, $fingerprint)
+            : null;
+
+        if ($channel instanceof DonationChannel) {
+            $channel->addMediaFromDisk($staged->getPathRelativeToRoot(), $staged->disk)
+                ->usingFileName($staged->file_name)
+                ->toMediaCollection('qr');
+        }
+
+        $staged->delete();
+    }
+
+    private function findDonationChannelByFingerprint(Model $model, string $fingerprint): ?DonationChannel
+    {
+        if (! method_exists($model, 'donationChannels')) {
+            return null;
+        }
+
+        return $model->donationChannels()->get()->first(
+            fn (DonationChannel $channel): bool => self::donationChannelFingerprint($this->donationChannelRow($channel)) === $fingerprint
+        );
+    }
+
     /**
      * @param  iterable<int, mixed>  $values
      * @return list<string>
@@ -2058,7 +2310,9 @@ class ContributionEntityMutationService
                 }
 
                 $role = is_string($entry['role_code'] ?? null) ? trim($entry['role_code']) : null;
-                $involveableType = is_string($entry['involveable_type'] ?? null) && $entry['involveable_type'] !== '' ? $entry['involveable_type'] : null;
+                $involveableType = is_string($entry['involveable_type'] ?? null) && $entry['involveable_type'] !== ''
+                    ? MorphAlias::of($entry['involveable_type'])
+                    : null;
                 $involveableId = is_string($entry['involveable_id'] ?? null) && $entry['involveable_id'] !== '' ? $entry['involveable_id'] : null;
                 $name = is_string($entry['display_name'] ?? null) ? trim($entry['display_name']) : null;
                 $notes = is_string($entry['notes'] ?? null) ? trim($entry['notes']) : null;
@@ -2161,5 +2415,40 @@ class ContributionEntityMutationService
             ])
             ->values()
             ->all();
+    }
+
+    /**
+     * @param  Collection<int, DonationChannel>  $channels
+     * @return list<array<string, mixed>>
+     */
+    private function donationChannelsState(Collection $channels): array
+    {
+        return $channels
+            ->sortBy('created_at')
+            ->map(fn (DonationChannel $channel): array => $this->donationChannelRow($channel))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function donationChannelRow(DonationChannel $channel): array
+    {
+        return [
+            'label' => $channel->label,
+            'recipient' => $channel->recipient,
+            'method' => $channel->method,
+            'bank_code' => $channel->bank_code,
+            'bank_name' => $channel->bank_name,
+            'account_number' => $channel->account_number,
+            'duitnow_type' => $channel->duitnow_type,
+            'duitnow_value' => $channel->duitnow_value,
+            'ewallet_provider' => $channel->ewallet_provider,
+            'ewallet_handle' => $channel->ewallet_handle,
+            'ewallet_qr_payload' => $channel->ewallet_qr_payload,
+            'reference_note' => $channel->reference_note,
+            'is_default' => (bool) $channel->is_default,
+        ];
     }
 }

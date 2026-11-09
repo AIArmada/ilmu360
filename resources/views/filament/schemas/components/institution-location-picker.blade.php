@@ -8,6 +8,8 @@
     $pickerApplyMethod = $applyMethod ?? 'applyLocationPickerSelection';
     $pickerPhotoPreviewsMethod = $photoPreviewsMethod ?? 'loadPlacePhotoPreviews';
     $pickerRequiresSelection = (bool) ($requiredSelection ?? false);
+    $pickerShowErrors = (bool) ($showErrors ?? $pickerRequiresSelection);
+    $pickerShowPhotos = (bool) ($showPhotos ?? $pickerRequiresSelection);
     $pickerTargetStatePath = $targetStatePath ?? $getStatePath();
     $pickerOwnerStatePath = $ownerStatePath ?? null;
 @endphp
@@ -41,10 +43,12 @@
         applyMethod: @js($pickerApplyMethod),
         photoPreviewsMethod: @js($pickerPhotoPreviewsMethod),
         requiredSelection: @js($pickerRequiresSelection),
+        showPhotos: @js($pickerShowPhotos),
         targetStatePath: @js($pickerTargetStatePath),
         ownerStatePath: @js($pickerOwnerStatePath),
         enabled: true,
         loading: true,
+        resolving: false,
         errorMessage: null,
         selectedName: null,
         selectedAddress: null,
@@ -134,6 +138,10 @@
             this.autocompleteElement = element;
         },
         async handleSelection(event) {
+            if (this.resolving) {
+                return;
+            }
+
             try {
                 const placePrediction = event.placePrediction ?? event.detail?.placePrediction ?? null;
 
@@ -157,6 +165,7 @@
                     selectionPayload.nonce = this.selectionNonce;
                 }
 
+                this.resolving = true;
                 const selection = await this.$wire.call(this.applyMethod, this.targetStatePath, selectionPayload);
                 const normalizedLocation = this.normalizeLocation({
                     lat: selection?.latitude,
@@ -171,9 +180,10 @@
                 this.selectedName = selection.google_display_name ?? null;
                 this.selectedAddress = selection.formatted_address ?? null;
                 this.selectedPlaceId = selection.google_place_id ?? null;
+                this.resolving = false;
                 this.renderMap(normalizedLocation, null);
 
-                if (this.requiredSelection && this.selectedPlaceId) {
+                if ((this.requiredSelection || this.showPhotos) && this.selectedPlaceId) {
                     this.loadPhotos(this.selectedPlaceId);
                 }
             } catch (error) {
@@ -182,6 +192,7 @@
                 this.selectedName = null;
                 this.selectedAddress = null;
                 this.selectedPlaceId = null;
+                this.resolving = false;
                 this.disablePicker(@js($pickerFailureMessage));
             }
         },
@@ -294,6 +305,14 @@
             <p x-show="loading" x-cloak class="text-xs text-slate-500">
                 {{ __('Loading Google location search...') }}
             </p>
+
+            <p x-show="resolving" x-cloak role="status" class="flex items-center gap-2 text-xs text-slate-500">
+                <svg class="h-4 w-4 motion-safe:animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                </svg>
+                {{ __('Loading place details from Google Maps…') }}
+            </p>
         </div>
 
         <div
@@ -377,7 +396,7 @@
         </button>
     </div>
 
-    @if ($pickerRequiresSelection)
+    @if ($pickerShowErrors)
         @error($pickerTargetStatePath . '.google_place_id')
             <p role="alert" class="text-sm text-red-600">{{ $message }}</p>
         @enderror

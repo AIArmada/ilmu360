@@ -441,12 +441,12 @@ class MemberResourceRegistry
                             $organizerQuery
                                 ->where(function (Builder $institutionQuery) use ($institutionIds): void {
                                     $institutionQuery
-                                        ->whereIn('involveable_type', [Institution::class, 'institution'])
+                                        ->where('involveable_type', (new Institution)->getMorphClass())
                                         ->whereIn('involveable_id', $institutionIds);
                                 })
                                 ->orWhere(function (Builder $personQuery) use ($personIds): void {
                                     $personQuery
-                                        ->whereIn('involveable_type', [Person::class, 'person'])
+                                        ->where('involveable_type', (new Person)->getMorphClass())
                                         ->whereIn('involveable_id', $personIds);
                                 });
                         });

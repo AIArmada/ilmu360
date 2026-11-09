@@ -5,14 +5,17 @@ namespace App\Forms;
 use App\Enums\InstitutionNameType;
 use App\Enums\InstitutionType;
 use App\Support\Location\GooglePlacesConfiguration;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\View;
 
 class InstitutionContributionFormSchema
@@ -27,10 +30,18 @@ class InstitutionContributionFormSchema
         bool $includeLocationPicker = false,
         bool $mapsSelectionRequired = false,
         bool $includeWazeUrlField = true,
+        bool $includeMapsReselection = false,
+        bool $hideGoogleMapsUrlField = false,
+        bool $mapsReselectionRequired = false,
     ): array {
         $shouldRenderLocationPicker = self::shouldRenderLocationPicker(
             $includeLocationPicker,
             $addressStatePath,
+            $mapsSelectionRequired,
+        );
+        $shouldRenderReselection = self::shouldRenderMapsReselection(
+            $addressStatePath,
+            $includeMapsReselection,
             $mapsSelectionRequired,
         );
         $mapsSearchSection = $mapsSelectionRequired
@@ -50,9 +61,28 @@ class InstitutionContributionFormSchema
                     ]),
             ]
             : [];
+        $mapsReselectSection = $shouldRenderReselection
+            ? [
+                Section::make(__('Update the location on Google Maps'))
+                    ->description(__('Only search again if the institution moved or the pinned location is wrong. Leave this untouched to keep the current address.'))
+                    ->schema([
+                        View::make('filament.schemas.components.institution-location-picker')
+                            ->statePath($addressStatePath)
+                            ->columnSpanFull()
+                            ->viewData([
+                                'mapsApiKey' => GooglePlacesConfiguration::apiKey(),
+                                'applyMethod' => 'applyPlaceSelection',
+                                'requiredSelection' => $mapsReselectionRequired,
+                                'showErrors' => true,
+                                'showPhotos' => true,
+                            ]),
+                    ]),
+            ]
+            : [];
 
         $components = [
             ...$mapsSearchSection,
+            ...$mapsReselectSection,
             Section::make(__('Institution Profile'))
                 ->schema([
                     Select::make('type')
@@ -101,7 +131,7 @@ class InstitutionContributionFormSchema
             Section::make(__('Address'))
                 ->description(__('Choose the country and region where this institution is based.'))
                 ->schema([
-                    ...($shouldRenderLocationPicker && ! $mapsSelectionRequired
+                    ...($shouldRenderLocationPicker && ! $mapsSelectionRequired && ! $shouldRenderReselection
                         ? [
                             View::make('filament.schemas.components.institution-location-picker')
                                 ->statePath($addressStatePath)
@@ -114,9 +144,9 @@ class InstitutionContributionFormSchema
                     ...($addressStatePath === null
                         ? SharedFormSchema::addressFields(
                             requireGoogleMaps: $requireGoogleMaps && ! $mapsSelectionRequired,
-                            showGoogleMapsUrlField: ! $mapsSelectionRequired,
+                            showGoogleMapsUrlField: ! $mapsSelectionRequired && ! $hideGoogleMapsUrlField,
                             enableGoogleMapsNormalization: true,
-                            enableGoogleMapsRemoteLookup: $shouldRenderLocationPicker && ! $mapsSelectionRequired,
+                            enableGoogleMapsRemoteLookup: $shouldRenderLocationPicker && ! $mapsSelectionRequired && ! $shouldRenderReselection,
                             includeCountryField: true,
                             showCountryField: false,
                             requireCountryField: true,
@@ -125,9 +155,9 @@ class InstitutionContributionFormSchema
                         : [SharedFormSchema::addressGroup(
                             requireGoogleMaps: $requireGoogleMaps && ! $mapsSelectionRequired,
                             statePath: $addressStatePath,
-                            showGoogleMapsUrlField: ! $mapsSelectionRequired,
+                            showGoogleMapsUrlField: ! $mapsSelectionRequired && ! $hideGoogleMapsUrlField,
                             enableGoogleMapsNormalization: true,
-                            enableGoogleMapsRemoteLookup: $shouldRenderLocationPicker && ! $mapsSelectionRequired,
+                            enableGoogleMapsRemoteLookup: $shouldRenderLocationPicker && ! $mapsSelectionRequired && ! $shouldRenderReselection,
                             includeCountryField: true,
                             showCountryField: false,
                             requireCountryField: true,
@@ -143,10 +173,92 @@ class InstitutionContributionFormSchema
                 ->schema([
                     SharedFormSchema::socialMediaRepeater(__('Add social media links for this institution')),
                 ]),
+            Section::make(__('Donation Channels'))
+                ->description(__('Share official donation accounts for this institution.'))
+                ->schema([
+                    Repeater::make('donation_channels')
+                        ->label(__('Donation Channels'))
+                        ->schema([
+                            TextInput::make('label')
+                                ->label(__('Label'))
+                                ->placeholder(__('e.g. Tabung Masjid, Dana Pembangunan'))
+                                ->maxLength(255),
+                            TextInput::make('recipient')
+                                ->label(__('Recipient'))
+                                ->placeholder(__('Full name on account'))
+                                ->required()
+                                ->maxLength(255),
+                            Select::make('method')
+                                ->label(__('Method'))
+                                ->options([
+                                    'bank_account' => __('Bank Account'),
+                                    'duitnow' => 'DuitNow',
+                                    'ewallet' => __('E-Wallet'),
+                                ])
+                                ->required()
+                                ->live(),
+                            TextInput::make('bank_name')
+                                ->label(__('Bank Name'))
+                                ->maxLength(255)
+                                ->visible(fn (Get $get): bool => $get('method') === 'bank_account')
+                                ->required(fn (Get $get): bool => $get('method') === 'bank_account'),
+                            TextInput::make('bank_code')
+                                ->label(__('Bank Code'))
+                                ->maxLength(255)
+                                ->visible(fn (Get $get): bool => $get('method') === 'bank_account'),
+                            TextInput::make('account_number')
+                                ->label(__('Account Number'))
+                                ->visible(fn (Get $get): bool => $get('method') === 'bank_account')
+                                ->required(fn (Get $get): bool => $get('method') === 'bank_account'),
+                            TextInput::make('duitnow_type')
+                                ->label(__('DuitNow Type'))
+                                ->maxLength(255)
+                                ->visible(fn (Get $get): bool => $get('method') === 'duitnow')
+                                ->required(fn (Get $get): bool => $get('method') === 'duitnow'),
+                            TextInput::make('duitnow_value')
+                                ->label(__('DuitNow Value'))
+                                ->visible(fn (Get $get): bool => $get('method') === 'duitnow')
+                                ->required(fn (Get $get): bool => $get('method') === 'duitnow'),
+                            TextInput::make('ewallet_provider')
+                                ->label(__('E-Wallet Provider'))
+                                ->maxLength(255)
+                                ->visible(fn (Get $get): bool => $get('method') === 'ewallet')
+                                ->required(fn (Get $get): bool => $get('method') === 'ewallet'),
+                            TextInput::make('ewallet_handle')
+                                ->label(__('E-Wallet Handle'))
+                                ->maxLength(255)
+                                ->visible(fn (Get $get): bool => $get('method') === 'ewallet'),
+                            Textarea::make('ewallet_qr_payload')
+                                ->label(__('E-Wallet QR Payload'))
+                                ->visible(fn (Get $get): bool => $get('method') === 'ewallet')
+                                ->columnSpanFull(),
+                            Textarea::make('reference_note')
+                                ->label(__('Reference Note'))
+                                ->maxLength(255)
+                                ->columnSpanFull(),
+                            FileUpload::make('qr_upload')
+                                ->label(__('QR Image'))
+                                ->helperText(__('Upload an official payment QR image.'))
+                                ->image()
+                                ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                                ->maxSize(10240)
+                                ->storeFiles(false)
+                                ->columnSpanFull(),
+                            Toggle::make('is_default')
+                                ->label(__('Default'))
+                                ->helperText(__('Mark this as the primary donation channel.'))
+                                ->default(false)
+                                ->fixIndistinctState(),
+                        ])
+                        ->columns(2)
+                        ->columnSpanFull()
+                        ->defaultItems(0)
+                        ->addActionLabel(__('Add donation channel')),
+                ]),
         ];
 
         if ($includeMedia) {
-            array_splice($components, $mapsSelectionRequired ? 3 : 2, 0, [
+            array_splice($components, ($mapsSelectionRequired || $shouldRenderReselection) ? 3 : 2, 0, [
                 Section::make(__('Media'))
                     ->schema([
                         SpatieMediaLibraryFileUpload::make('logo')
@@ -197,16 +309,28 @@ class InstitutionContributionFormSchema
         bool $includeLocationPicker = false,
         array $mediaFields = [],
         bool $includeWazeUrlField = true,
+        bool $includeMapsReselection = false,
+        bool $hideGoogleMapsUrlField = true,
+        bool $mapsReselectionRequired = false,
     ): array {
         $components = self::components(
             includeMedia: false,
             addressStatePath: $addressStatePath,
             includeLocationPicker: $includeLocationPicker,
             includeWazeUrlField: $includeWazeUrlField,
+            includeMapsReselection: $includeMapsReselection,
+            hideGoogleMapsUrlField: $hideGoogleMapsUrlField,
+            mapsReselectionRequired: $mapsReselectionRequired,
         );
 
         if ($mediaFields !== []) {
-            array_splice($components, 1, 0, [self::directEditMediaSection($mediaFields)]);
+            $reselectRendered = self::shouldRenderMapsReselection(
+                $addressStatePath,
+                $includeMapsReselection,
+                false,
+            );
+
+            array_splice($components, $reselectRendered ? 3 : 2, 0, [self::directEditMediaSection($mediaFields)]);
         }
 
         return $components;
@@ -274,6 +398,17 @@ class InstitutionContributionFormSchema
         return $includeLocationPicker
             && $addressStatePath !== null
             && ($mapsSelectionRequired || GooglePlacesConfiguration::isEnabled());
+    }
+
+    private static function shouldRenderMapsReselection(
+        ?string $addressStatePath,
+        bool $includeMapsReselection,
+        bool $mapsSelectionRequired,
+    ): bool {
+        return $includeMapsReselection
+            && $addressStatePath !== null
+            && ! $mapsSelectionRequired
+            && GooglePlacesConfiguration::isEnabled();
     }
 
     /**

@@ -56,7 +56,7 @@ class ModerationReviewSeeder extends Seeder
                         ModerationReview::factory()->make([
                             'actionable_type' => Event::class,
                             'actionable_id' => $event->id,
-                            'actioned_by_type' => User::class,
+                            'actioned_by_type' => (new User)->getMorphClass(),
                             'actioned_by_id' => $moderatorIds[array_rand($moderatorIds)],
                             'type' => $type,
                             'reason' => $type,

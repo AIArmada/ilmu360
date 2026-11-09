@@ -2,7 +2,7 @@
 
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
-use App\Actions\Auth\ClaimGuestSubmissionsAction;
+use App\Features\Events\Api\GuestSubmissionClaims;
 use App\Models\EventSubmission;
 use App\Models\User;
 use Illuminate\Auth\Events\Verified;
@@ -36,7 +36,7 @@ it('claims guest submissions matching the verified email', function () {
     $first = createGuestEventSubmissionForClaim('claimer@example.com');
     $second = createGuestEventSubmissionForClaim('claimer@example.com');
 
-    $claimed = ClaimGuestSubmissionsAction::run($user);
+    $claimed = app(GuestSubmissionClaims::class)->claimForAccount((string) $user->getKey());
 
     expect($claimed)->toBe(2);
 
@@ -53,7 +53,7 @@ it('ignores submissions with a different email', function () {
     $user = User::factory()->create(['email' => 'claimer@example.com']);
     $submission = createGuestEventSubmissionForClaim('someone-else@example.com');
 
-    expect(ClaimGuestSubmissionsAction::run($user))->toBe(0);
+    expect(app(GuestSubmissionClaims::class)->claimForAccount((string) $user->getKey()))->toBe(0);
     expect($submission->fresh()->submitter_id)->toBeNull();
 });
 
@@ -69,7 +69,7 @@ it('ignores already-linked submissions', function () {
     ]);
     $originalSubmitterId = $linked->submitter_id;
 
-    expect(ClaimGuestSubmissionsAction::run($user))->toBe(0);
+    expect(app(GuestSubmissionClaims::class)->claimForAccount((string) $user->getKey()))->toBe(0);
     expect((string) $linked->fresh()->submitter_id)->toBe((string) $originalSubmitterId);
 });
 
@@ -77,7 +77,7 @@ it('does nothing for unverified users', function () {
     $user = User::factory()->unverified()->create(['email' => 'claimer@example.com']);
     $submission = createGuestEventSubmissionForClaim('claimer@example.com');
 
-    expect(ClaimGuestSubmissionsAction::run($user))->toBe(0);
+    expect(app(GuestSubmissionClaims::class)->claimForAccount((string) $user->getKey()))->toBe(0);
     expect($submission->fresh()->submitter_id)->toBeNull();
 });
 
@@ -85,7 +85,7 @@ it('matches the submitter email case-insensitively', function () {
     $user = User::factory()->create(['email' => 'claimer@example.com']);
     $submission = createGuestEventSubmissionForClaim('CLAIMER@EXAMPLE.COM');
 
-    expect(ClaimGuestSubmissionsAction::run($user))->toBe(1);
+    expect(app(GuestSubmissionClaims::class)->claimForAccount((string) $user->getKey()))->toBe(1);
     expect((string) $submission->fresh()->submitter_id)->toBe((string) $user->getKey());
 });
 
@@ -98,7 +98,7 @@ it('preserves an existing event creator when claiming', function () {
         'created_by_id' => $creator->getKey(),
     ])->save();
 
-    expect(ClaimGuestSubmissionsAction::run($user))->toBe(1);
+    expect(app(GuestSubmissionClaims::class)->claimForAccount((string) $user->getKey()))->toBe(1);
 
     $fresh = $submission->fresh();
 

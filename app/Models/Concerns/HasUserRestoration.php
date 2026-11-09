@@ -42,25 +42,17 @@ trait HasUserRestoration
 
                 // Contributors are ordered by priority. They currently cover
                 // social accounts (300), reports (200), saved searches (100),
-                // membership pivots and scoped roles (90), and Directory
-                // verifier links (80), reproducing this hook's historical
-                // step order for the migrated writes.
+                // membership pivots and scoped roles (90), Directory verifier
+                // links (80), event ownership/submission/attendance links (70),
+                // contribution attribution (60), and moderation attribution
+                // (50), reproducing this hook's historical step order for the
+                // migrated writes. Event facts are retained; only personal
+                // links are detached.
                 app(AccountLifecycle::class)->detach((string) $user->getKey());
                 $user->deleteAuthenticationState();
                 $user->venues()->each(fn (Follow $f): ?bool => $f->delete());
                 $user->eventBookmarks()->delete();
                 $user->responses()->where('response_type', 'going')->get()->each->delete();
-
-                $user->clearEventOwnership();
-                $user->eventSubmissions()->update(['submitter_id' => null]);
-                $user->contributionRequests()->update(['proposer_id' => null]);
-                $user->reviewedContributionRequests()->update(['reviewer_id' => null]);
-                $user->moderationReviews()->update([
-                    'actioned_by_id' => null,
-                ]);
-                $user->verifiedEventCheckins()->update(['verified_by_user_id' => null]);
-                $user->registrations()->each(fn ($reg) => $reg->delete());
-                $user->eventCheckins()->each(fn ($checkin) => $checkin->delete());
                 $user->aiUsageLogs()->each(fn ($log) => $log->delete());
                 // Share cleanup revokes this claimant's guest-claim associations
                 // (rows preserved as revoked) and detaches their published
@@ -158,7 +150,6 @@ trait HasUserRestoration
 
         OwnerContext::withOwner(null, function () use ($restoredModel, $snapshot, $contributorSnapshot, $legacy, $accountId): void {
             $restoredModel->restoreManyToManyRelations($legacy);
-            $restoredModel->restoreReassignedRelations($legacy);
             app(AccountLifecycle::class)->restore($accountId, $contributorSnapshot);
             $restoredModel->restoreDeletedAffiliateTrackingSnapshot($snapshot['share_tracking'] ?? null);
             $restoredModel->restoreDeletedChildModels($legacy);
@@ -195,15 +186,6 @@ trait HasUserRestoration
             ])->all(),
             'model_has_roles' => $this->permissionRows('model_has_roles'),
             'model_has_permissions' => $this->permissionRows('model_has_permissions'),
-            'owned_event_ids' => $this->ownedEvents()->pluck('id')->all(),
-            'submitted_event_ids' => $this->submittedEvents()->pluck('id')->all(),
-            'event_submission_ids' => $this->eventSubmissions()->pluck('id')->all(),
-            'contribution_request_proposer_ids' => $this->contributionRequests()->pluck('id')->all(),
-            'contribution_request_reviewer_ids' => $this->reviewedContributionRequests()->pluck('id')->all(),
-            'moderation_review_ids' => $this->moderationReviews()->pluck('id')->all(),
-            'verified_event_checkin_ids' => $this->verifiedEventCheckins()->pluck('id')->all(),
-            'registrations' => $this->registrations()->get()->map->attributesToArray()->all(),
-            'event_checkins' => $this->eventCheckins()->get()->map->attributesToArray()->all(),
             'ai_usage_logs' => $this->aiUsageLogs()->get()->map->attributesToArray()->all(),
             'notification_setting' => $this->notificationSetting?->attributesToArray(),
             'notification_destinations' => $this->notificationDestinations()->get()->map->attributesToArray()->all(),
@@ -390,19 +372,6 @@ trait HasUserRestoration
             ->all();
     }
 
-    /**
-     * @param  array<string, mixed>  $snapshot
-     */
-    protected function restoreReassignedRelations(array $snapshot): void
-    {
-        $this->restoreEventOwnership($this->snapshotIds($snapshot, 'owned_event_ids'));
-        $this->restoreForeignKeyRelation('eventSubmissions', 'submitter_id', $this->snapshotIds($snapshot, 'event_submission_ids'));
-        $this->restoreForeignKeyRelation('contributionRequests', 'proposer_id', $this->snapshotIds($snapshot, 'contribution_request_proposer_ids'));
-        $this->restoreForeignKeyRelation('reviewedContributionRequests', 'reviewer_id', $this->snapshotIds($snapshot, 'contribution_request_reviewer_ids'));
-        $this->restoreForeignKeyRelation('moderationReviews', 'actioned_by_id', $this->snapshotIds($snapshot, 'moderation_review_ids'));
-        $this->restoreForeignKeyRelation('verifiedEventCheckins', 'verified_by_user_id', $this->snapshotIds($snapshot, 'verified_event_checkin_ids'));
-    }
-
     protected function restoreDeletedAffiliateTrackingSnapshot(mixed $record): void
     {
         if (! is_array($record)) {
@@ -442,8 +411,6 @@ trait HasUserRestoration
      */
     protected function restoreDeletedChildModels(array $snapshot): void
     {
-        $this->restoreChildModels('registrations', $this->snapshotRows($snapshot, 'registrations'));
-        $this->restoreChildModels('eventCheckins', $this->snapshotRows($snapshot, 'event_checkins'));
         $this->restoreChildModels('aiUsageLogs', $this->snapshotRows($snapshot, 'ai_usage_logs'));
         $this->restoreSingleChildModel('notificationSetting', $snapshot['notification_setting'] ?? null);
         $this->restoreChildModels('notificationDestinations', $this->snapshotRows($snapshot, 'notification_destinations'));
@@ -490,61 +457,6 @@ trait HasUserRestoration
     }
 
     /**
-     * @param  list<int|string>  $ids
-     */
-    protected function restoreForeignKeyRelation(string $relationName, string $foreignKey, array $ids): void
-    {
-        if ($ids === []) {
-            return;
-        }
-
-        $modelClass = $this->{$relationName}()->getRelated()::class;
-
-        $modelClass::query()
-            ->whereKey($ids)
-            ->whereNull($foreignKey)
-            ->update([$foreignKey => $this->id]);
-    }
-
-    private function clearEventOwnership(): void
-    {
-        OwnerContext::withOwner($this, function (): void {
-            Event::query()
-                ->where('owner_type', $this->getMorphClass())
-                ->where('owner_id', $this->id)
-                ->get()
-                ->each(function (Event $event): void {
-                    $event->owner_type = null;
-                    $event->owner_id = null;
-                    $event->saveQuietly();
-                });
-        });
-    }
-
-    /** @param array<int, string> $ids */
-    private function restoreEventOwnership(array $ids): void
-    {
-        if ($ids === []) {
-            return;
-        }
-
-        OwnerContext::withOwner($this, function () use ($ids): void {
-            Event::query()
-                ->whereKey($ids)
-                ->get()
-                ->each(function (Event $event): void {
-                    if ($event->owner_id !== null) {
-                        return;
-                    }
-
-                    $event->owner_type = $this->getMorphClass();
-                    $event->owner_id = $this->id;
-                    $event->saveQuietly();
-                });
-        });
-    }
-
-    /**
      * @param  array<string, mixed>  $snapshot
      * @return list<array<string, mixed>>
      */
@@ -558,24 +470,6 @@ trait HasUserRestoration
 
         return collect($rows)
             ->filter(fn (mixed $row): bool => is_array($row))
-            ->values()
-            ->all();
-    }
-
-    /**
-     * @param  array<string, mixed>  $snapshot
-     * @return list<int|string>
-     */
-    private function snapshotIds(array $snapshot, string $key): array
-    {
-        $ids = $snapshot[$key] ?? [];
-
-        if (! is_array($ids)) {
-            return [];
-        }
-
-        return collect($ids)
-            ->filter(fn (mixed $id): bool => is_int($id) || is_string($id))
             ->values()
             ->all();
     }

@@ -17,6 +17,7 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
 use App\Shared\Prayer\EventPrayerTime;
+use App\Shared\Support\MorphAlias;
 use App\Support\Events\AdminEventTimeMapper;
 use BackedEnum;
 use Carbon\CarbonInterface;
@@ -405,14 +406,16 @@ final class SubmitEventPrefill
         $organizerId = $organizer !== null ? $organizer->involveable_id : null;
         $institutionId = is_string($duplicateEvent->institution_id) ? $duplicateEvent->institution_id : null;
 
-        if ($organizer?->involveable_type === Institution::class && $organizerId !== null && $access->canUseInstitution($submitter, $organizerId)) {
+        $organizerType = MorphAlias::of($organizer?->involveable_type);
+
+        if ($organizerType === (new Institution)->getMorphClass() && $organizerId !== null && $access->canUseInstitution($submitter, $organizerId)) {
             $defaults['primary_organizer_kind'] = 'institution';
             $defaults['primary_organizer_id'] = $organizerId;
             $defaults['primary_organizer_institution_id'] = $organizerId;
             $defaults['primary_organizer_person_id'] = null;
         }
 
-        if ($organizer?->involveable_type === Person::class && $organizerId !== null && $access->canUsePerson($submitter, $organizerId)) {
+        if ($organizerType === (new Person)->getMorphClass() && $organizerId !== null && $access->canUsePerson($submitter, $organizerId)) {
             $defaults['primary_organizer_kind'] = 'person';
             $defaults['primary_organizer_id'] = $organizerId;
             $defaults['primary_organizer_institution_id'] = null;

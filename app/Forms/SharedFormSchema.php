@@ -42,6 +42,7 @@ use Filament\Schemas\Components\Utilities\Set;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
 use Ysfkaya\FilamentPhoneInput\PhoneInputNumberType;
 
@@ -523,6 +524,96 @@ class SharedFormSchema
         }
 
         return self::normalizeContactRowForComparison($data);
+    }
+
+    /**
+     * Project submitted donation rows onto the canonical persisted shape so
+     * unchanged channel lists compare equal against the stored state.
+     *
+     * @param  list<array<string, mixed>>  $rows
+     * @return list<array<string, mixed>>
+     */
+    public static function normalizeDonationChannelRowsForComparison(array $rows): array
+    {
+        return array_values(array_map(static fn (mixed $row): array => [
+            'label' => self::normalizedNullableString($row['label'] ?? null),
+            'recipient' => self::normalizedNullableString($row['recipient'] ?? null),
+            'method' => self::normalizedNullableString($row['method'] ?? null),
+            'bank_code' => self::normalizedNullableString($row['bank_code'] ?? null),
+            'bank_name' => self::normalizedNullableString($row['bank_name'] ?? null),
+            'account_number' => self::normalizedNullableString($row['account_number'] ?? null),
+            'duitnow_type' => self::normalizedNullableString($row['duitnow_type'] ?? null),
+            'duitnow_value' => self::normalizedNullableString($row['duitnow_value'] ?? null),
+            'ewallet_provider' => self::normalizedNullableString($row['ewallet_provider'] ?? null),
+            'ewallet_handle' => self::normalizedNullableString($row['ewallet_handle'] ?? null),
+            'ewallet_qr_payload' => self::normalizedNullableString($row['ewallet_qr_payload'] ?? null),
+            'reference_note' => self::normalizedNullableString($row['reference_note'] ?? null),
+            'is_default' => (bool) (is_array($row) ? ($row['is_default'] ?? false) : false),
+        ], array_values(array_filter($rows, is_array(...)))));
+    }
+
+    private static function normalizedNullableString(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $value = trim($value);
+
+        return $value === '' ? null : $value;
+    }
+
+    /**
+     * Collect donation QR uploads from submitted form state. The field uses
+     * `storeFiles(false)`, so submitted values are temporary upload objects
+     * — only those are accepted, and string paths are never trusted.
+     *
+     * @return array<int|string, TemporaryUploadedFile>
+     */
+    public static function collectDonationQrUploads(mixed $donationRows): array
+    {
+        $uploads = [];
+
+        if (! is_array($donationRows)) {
+            return $uploads;
+        }
+
+        foreach ($donationRows as $index => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $file = $row['qr_upload'] ?? null;
+            $file = is_array($file) ? ($file[0] ?? null) : $file;
+
+            if ($file instanceof TemporaryUploadedFile) {
+                $uploads[$index] = $file;
+            }
+        }
+
+        return $uploads;
+    }
+
+    /**
+     * Strip QR upload values from dehydrated state so comparisons and stored
+     * payloads only see channel data — files travel separately.
+     *
+     * @param  array<string, mixed>  $state
+     * @return array<string, mixed>
+     */
+    public static function withoutDonationQrUploads(array $state): array
+    {
+        if (! is_array($state['donation_channels'] ?? null)) {
+            return $state;
+        }
+
+        foreach ($state['donation_channels'] as $index => $row) {
+            if (is_array($row)) {
+                unset($state['donation_channels'][$index]['qr_upload']);
+            }
+        }
+
+        return $state;
     }
 
     /**

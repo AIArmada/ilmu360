@@ -1,3 +1,63 @@
+# Institution QR uploads, autofill dedupe, required Maps (2026-11-09)
+
+- [x] Add per-channel QR upload to the donation repeater on both forms (`storeFiles(false)`, read at submit).
+- [x] Persist QR on create/direct-edit, stage on visitor requests by channel identity, attach on approval.
+- [x] Dedupe Maps-autofilled contacts/social against existing rows (phone-aware + handle/URL matching).
+- [x] Require a Maps place on institution updates (stored identity OK; missing place forces reselect).
+- [x] Add 7 tests + fix 10 existing submit tests; run affected suites, Pint, PHPStan.
+
+## Review — QR uploads, dedupe, required Maps
+
+- QR key lesson: Filament auto-saves `FileUpload` to disk during `getState()` and deletes the Livewire tmp original — per the Filament 5 file-upload docs, `storeFiles(false)` is the documented path for read-at-submit flows, returning the temp object instead. Nested repeater uploads must be asserted via `upload()` with `File::fake()` arrays, not `set()`.
+- Visitor QRs are staged on the request with a channel-identity fingerprint and attached to the matched channel at approval; staged copies are always discarded.
+- Autofill now skips Google contacts/social already present (phone digits normalized, handles case-folded); reselecting the same place twice no longer duplicates rows.
+- Updates require `google_place_id`: unchanged stored places pass untouched, empty places fail with the create-flow message, and the picker renders in required mode only for placeless institutions.
+- Verification: `InstitutionContributionLocationPickerTest` 39/230, `ContributionPagesTest` 85/598, `FrontendApiParityTest` 105/749 — all green. Pint passed, PHPStan 0 errors, `git diff --check` clean.
+
+# Institution reselect autofill + picker loading state (2026-11-09)
+
+- [x] Fix untouched name/type not filling on update reselect (seed tracking with stored values; guard null type inference in shared merge).
+- [x] Add resolving indicator + double-select guard to the shared Maps picker (both forms).
+- [x] Enable Google photo previews on the optional reselect section (closes last drift gap).
+- [x] Audit remaining drift: none functional left; add 4 tests; run affected suites, Pint, PHPStan.
+
+## Review — reselect autofill + loading state
+
+- Root cause: the shared merge only fills blanks, but update fields hold entity values — so name/type never updated on reselect while address/contacts did. Untouched fields now fill from the selected place; user-edited values are still preserved; uninferable types no longer clear the stored type.
+- Picker shows "Loading place details from Google Maps…" with a spinner (static under reduced motion) during the server round-trip, on both forms; repeat selections while resolving are ignored.
+- Verification: `InstitutionContributionLocationPickerTest` 33/205, `ContributionPagesTest` 85/598, `EventInstitutionQuickAddMapsTest` 6/81 — all green. Pint passed, PHPStan 0 errors, `git diff --check` clean.
+
+# Institution contribution follow-up: URL parity, duplicate guard, donation channels (2026-11-09)
+
+- [x] Hide the Google Maps URL field on the update form (was visible; create form hides it).
+- [x] Block moving an institution onto another institution's Google Maps place (excluding-self reuse of the create duplicate check).
+- [x] Add Donation Channels to both institution forms (shared schema) with state/contract/rules/persistence + ms/en translations.
+- [x] Add 6 tests (URL removal, duplicate guard, donation render/create/edit/preserve/stage); run affected files, Pint, PHPStan.
+
+## Review — contribution follow-up
+
+- Update form no longer shows the Maps URL field on either Places state; existing URLs are preserved via hidden fill, matching create behavior.
+- Place changes now run the same Maps-identity duplicate query as creates, excluding the edited institution; moving onto a claimed place fails with "Another institution already uses this Google Maps place."
+- Donation repeater mirrors the admin channel fields (bank/DuitNow/e-wallet + default flag, no QR upload yet); creates store Pending channels, updates match rows by account identity so verified statuses survive unrelated edits, visitors stage proposals into `proposed_data`.
+- Verification: `InstitutionContributionLocationPickerTest` 29/191, `ContributionPagesTest` 85/598, `FrontendApiParityTest` 105/749 — all green. Pint passed, PHPStan 0 errors, `git diff --check` clean.
+
+# Sync institution kemas-kini with baru structure (2026-11-09)
+
+- [x] Add optional Maps reselect section to the institution update schema (same picker + `applyPlaceSelection` wiring as the create flow, optional copy).
+- [x] Add server-verified Maps selection to `SuggestUpdate` for institutions: unchanged places submit without verification, changed places require a verified reselect and merge verified identifiers.
+- [x] Add `logo` to institution update media (`cover`/`gallery` → `logo`/`cover`/`gallery`) and move Media after Address to match the create order.
+- [x] Sync `suggest-update` blade scripts (`filament/actions`), API docs, and en/ms/ms_MY copy.
+- [x] Update + add Pest coverage (6 new tests); run affected files, Pint, PHPStan.
+
+## Review — institution kemas-kini sync
+
+- `/sumbangan/institusi/{slug}/kemas-kini` now shares the create flow's Maps identity guarantees: optional "Update the location on Google Maps" section, `ResolveInstitutionMapsPlaceSelectionAction` + `MergeInstitutionMapsSelectionIntoFormAction`, 30-min verified-token cache, verified-field merge on place change, and the existing `contribution.institution_maps_place_selected` signal (no new tracking needed).
+- Name-only and manual address edits submit without re-verification; only a changed non-empty `google_place_id` requires verification. Existing names/types are preserved on reselect (autofill only fills blanks); contacts/social append like the create flow.
+- Logo is editable on updates (web + API contract + approval staging, which was already field-generic). Media order is now Profile → Address → Media → Contact → Social on both flows.
+- Kept the compact update shell intentionally: `submit-person` also uses it and existing tests assert it for update pages — shell difference is design, not drift.
+- Verification: `InstitutionContributionLocationPickerTest` 23/152, `ContributionPagesTest` 85/597, `FrontendApiParityTest` 105/749 — all green. Pint passed, PHPStan level 6 reports 0 errors, `git diff --check` clean.
+- Photo previews on the optional reselect section were enabled in the follow-up round (shared `showPhotos` flag, same verified gating as create).
+
 # Ramadan closing majlis mobile hero rotation (2026-11-08)
 
 - [x] Scope the dedicated mobile hero to the requested event and occurrence slug.

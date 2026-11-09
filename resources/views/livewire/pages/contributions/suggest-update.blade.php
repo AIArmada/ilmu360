@@ -6,7 +6,7 @@
 @section('title', ($canDirectEdit ? __('Update Record') : __('Suggest Update')) . ' - ' . config('app.name'))
 
 @include('partials.filament-assets', [
-    'scripts' => ['filament/support', 'filament/schemas', 'filament/forms'],
+    'scripts' => ['filament/support', 'filament/schemas', 'filament/forms', 'filament/actions'],
 ])
 
 <div class="bg-white pb-0">

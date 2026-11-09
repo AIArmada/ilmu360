@@ -3,9 +3,10 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Actions\Auth\CaptureSignupAttributionContextAction;
-use App\Actions\Auth\ClaimGuestSubmissionsAction;
+use App\Actions\Auth\ClaimGuestSubmissionsNotice;
 use App\Actions\Auth\RecordSignupAttributionAction;
 use App\Actions\Auth\ResolveSocialiteUserAction;
+use App\Features\Events\Api\GuestSubmissionClaims;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\ShareTrackingService;
@@ -282,8 +283,8 @@ class SocialiteController extends Controller
         Auth::login($user, remember: true);
         app(ProductSignalsService::class)->recordLogin($user, request(), $provider, $createdAccount);
 
-        ClaimGuestSubmissionsAction::flashNotice(
-            ClaimGuestSubmissionsAction::run($user)
+        ClaimGuestSubmissionsNotice::flash(
+            app(GuestSubmissionClaims::class)->claimForAccount((string) $user->getKey())
         );
 
         Log::info('Socialite sign-in completed', [

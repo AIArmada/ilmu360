@@ -54,7 +54,7 @@ class PruneOrphanedEntities extends Command
                     $involvementsTable = config('events.database.tables.event_involvements', 'event_involvements');
                     $query->select('involveable_id')
                         ->from($involvementsTable)
-                        ->where('involveable_type', Institution::class)
+                        ->where('involveable_type', (new Institution)->getMorphClass())
                         ->where('role_code', 'organizer')
                         ->where('is_primary', true);
                 }),

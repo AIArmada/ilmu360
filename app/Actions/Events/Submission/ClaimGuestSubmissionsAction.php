@@ -2,18 +2,32 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Auth;
+namespace App\Actions\Events\Submission;
 
 use AIArmada\Contacting\Enums\ContactMethodType;
+use App\Features\Events\Api\GuestSubmissionClaims;
 use App\Models\EventSubmission;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
 
-final class ClaimGuestSubmissionsAction
+/**
+ * Events-owned claim of unowned guest submissions by verified email.
+ *
+ * Authentication code calls the GuestSubmissionClaims boundary instead of
+ * writing event-submission or event attribution state itself.
+ */
+final class ClaimGuestSubmissionsAction implements GuestSubmissionClaims
 {
     use AsAction;
+
+    public function claimForAccount(string $accountId): int
+    {
+        $user = User::query()->find($accountId);
+
+        return $user instanceof User ? $this->handle($user) : 0;
+    }
 
     /**
      * Link guest event submissions to the user once their email is verified.
@@ -64,23 +78,5 @@ final class ClaimGuestSubmissionsAction
         });
 
         return $submissions->count();
-    }
-
-    /**
-     * Flash the claimed-submissions notice when running in a web request.
-     */
-    public static function flashNotice(int $claimed): void
-    {
-        if ($claimed <= 0 || ! request()->hasSession()) {
-            return;
-        }
-
-        session()->flash('toast', [
-            'type' => 'success',
-            'message' => trans_choice(
-                'We linked :count past submission to your account.|We linked :count past submissions to your account.',
-                $claimed
-            ),
-        ]);
     }
 }

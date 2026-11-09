@@ -80,6 +80,7 @@ use AIArmada\Rewards\Support\PointLedgerRewardReservationResolver;
 use AIArmada\Rewards\Support\RewardBenefitCatalogService;
 use AIArmada\Signals\Models\TrackedProperty;
 use AIArmada\Ticketing\Models\TicketType;
+use App\Actions\Events\Submission\ClaimGuestSubmissionsAction;
 use App\Actions\Slugs\ResolvePublicSlugAction;
 use App\Ai\Listeners\RecordAiUsage;
 use App\Checkout\ShareCheckoutStepContributor;
@@ -91,6 +92,7 @@ use App\Contracts\NullSignupAttributionSourceResolver;
 use App\Contracts\ShareTrackingContract;
 use App\Contracts\SignupAttributionSourceResolver;
 use App\Contracts\SpaceEligibilityResolver;
+use App\Features\Events\Api\GuestSubmissionClaims;
 use App\Features\SavedSearches\Api\SavedSearchExecutor;
 use App\Http\Controllers\Mcp\OAuthRegisterController;
 use App\Listeners\ShareTracking\ReverseRegistrationShareOutcome;
@@ -194,6 +196,7 @@ use App\Support\Communications\AppQuietHoursResolver;
 use App\Support\Communications\AppSuppressionResolver;
 use App\Support\Communications\ListSafePayloadRedactor;
 use App\Support\Communications\ProbeSafeDestinationResolver;
+use App\Support\Contributions\ContributionsAccountLifecycleContributor;
 use App\Support\Directory\DirectoryAccountLifecycleContributor;
 use App\Support\Directory\EloquentDirectoryCatalog;
 use App\Support\Discovery\DatabaseSearchFilterLabels;
@@ -201,12 +204,14 @@ use App\Support\Discovery\EventSavedSearchExecutor;
 use App\Support\Discovery\EventSearchFilterCatalog;
 use App\Support\Discovery\EventSearchFilterNormalizer;
 use App\Support\Discovery\EventSearchFilterRules;
+use App\Support\Events\EventsAccountLifecycleContributor;
 use App\Support\Filament\ContentVersionedJs;
 use App\Support\Location\VisitorCountryResolver;
 use App\Support\Media\MediaFileNamer;
 use App\Support\Membership\AppMembershipApplicationNotifier;
 use App\Support\Membership\AppMembershipHook;
 use App\Support\Membership\MembershipAccountLifecycleContributor;
+use App\Support\Moderation\ModerationAccountLifecycleContributor;
 use App\Support\Passport\PassportKeyProvisioner;
 use App\Support\Reports\GlobalReportEscalation;
 use App\Support\Reports\GlobalReportSubjectResolver;
@@ -277,9 +282,13 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(MembershipAuthorization::class, InterimMembershipAuthorization::class);
         $this->app->bind(DirectoryCatalog::class, EloquentDirectoryCatalog::class);
         $this->app->bind(SubmissionEligibilitySync::class, PublicSubmissionEligibilitySync::class);
+        $this->app->bind(GuestSubmissionClaims::class, ClaimGuestSubmissionsAction::class);
         $this->app->tag([
             MembershipAccountLifecycleContributor::class,
             DirectoryAccountLifecycleContributor::class,
+            EventsAccountLifecycleContributor::class,
+            ContributionsAccountLifecycleContributor::class,
+            ModerationAccountLifecycleContributor::class,
         ], AccountLifecycleContributor::TAG);
 
         $this->app->bind(ReportEscalation::class, GlobalReportEscalation::class);
@@ -498,11 +507,10 @@ class AppServiceProvider extends ServiceProvider
             }
         }
 
-        // Merged map, not enforced: organizer involvements pin fully-qualified
-        // class names (see EventOrganizerInvolvementSyncTest), and several
-        // legacy columns store them too. Newer framework versions enforce
-        // aliases on read, which fatals on those rows; the map still
-        // canonicalizes every write through getMorphClass().
+        // Merged map, not enforced: legacy organizer-involvement rows may still
+        // store fully-qualified class names (normalized to aliases by migration
+        // + MorphAlias-tolerant resolvers; see EventOrganizerInvolvementSyncTest).
+        // Writes canonicalize through getMorphClass().
         Relation::morphMap([
             'address' => Address::class,
 

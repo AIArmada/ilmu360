@@ -7,6 +7,7 @@ namespace App\Support\Events;
 use AIArmada\Events\Models\EventInvolvement;
 use App\Models\Institution;
 use App\Models\Person;
+use App\Shared\Support\MorphAlias;
 
 final class OrganizerResolver
 {
@@ -21,9 +22,8 @@ final class OrganizerResolver
     }
 
     /**
-     * Organizer rows are written by Event::setPrimaryOrganizer with the
-     * organizer's class name; that storage form is pinned by
-     * EventOrganizerInvolvementSyncTest, so comparisons match it exactly.
+     * Organizer rows store the configured morph alias. Legacy rows may still
+     * hold the fully qualified class name, so normalize before comparing.
      */
     public static function involvementMatchesInstitution(?EventInvolvement $involvement, Institution|string $institution): bool
     {
@@ -34,6 +34,6 @@ final class OrganizerResolver
         $institutionId = $institution instanceof Institution ? (string) $institution->getKey() : $institution;
 
         return (string) $involvement->involveable_id === $institutionId
-            && (string) $involvement->involveable_type === Institution::class;
+            && MorphAlias::of($involvement->involveable_type) === (new Institution)->getMorphClass();
     }
 }

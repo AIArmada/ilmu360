@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use AIArmada\Affiliates\AffiliatesServiceProvider;
 use AIArmada\CommerceSupport\SupportServiceProvider;
+use App\Features\Events\FeatureServiceProvider as EventsServiceProvider;
 use App\Features\Feedback\FeatureServiceProvider as FeedbackServiceProvider;
 use App\Features\GitHubIssues\FeatureServiceProvider as GitHubIssuesServiceProvider;
 use App\Features\Identity\FeatureServiceProvider as IdentityServiceProvider;
@@ -30,6 +31,7 @@ return [
     AdminRegistryServiceProvider::class,
     ApiDocumentationServiceProvider::class,
     AppServiceProvider::class,
+    EventsServiceProvider::class,
     FeedbackServiceProvider::class,
     GitHubIssuesServiceProvider::class,
     IdentityServiceProvider::class,

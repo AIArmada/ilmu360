@@ -396,7 +396,7 @@ it('exposes authenticated contribution update contracts and permission-gated dir
     expect($visitorResponse->json('data.can_direct_edit'))->toBeFalse()
         ->and($visitorResponse->json('data.direct_edit_media_fields'))->toBe([])
         ->and($ownerResponse->json('data.can_direct_edit'))->toBeTrue()
-        ->and($ownerResponse->json('data.direct_edit_media_fields'))->toBe(['cover', 'gallery'])
+        ->and($ownerResponse->json('data.direct_edit_media_fields'))->toBe(['logo', 'cover', 'gallery'])
         ->and($ownerResponse->json('data.current_media.cover.0.url'))->not->toBeNull()
         ->and($ownerResponse->json('data.current_media.gallery.0.url'))->not->toBeNull()
         ->and($fields->pluck('name')->all())->toContain('description', 'social_media')
@@ -441,7 +441,7 @@ it('allows institution direct edit access over bearer tokens without token abili
         ]))->assertOk();
 
     expect($response->json('data.can_direct_edit'))->toBeTrue()
-        ->and($response->json('data.direct_edit_media_fields'))->toBe(['cover', 'gallery'])
+        ->and($response->json('data.direct_edit_media_fields'))->toBe(['logo', 'cover', 'gallery'])
         ->and($response->json('data.initial_state.description'))->toBe('Community institution');
 });
 

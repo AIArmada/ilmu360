@@ -116,7 +116,16 @@ final readonly class EnsureUniqueContributionCreateAction
             ->contains(fn (Institution $institution): bool => $this->normalizeComparableString($institution->name) === $name);
     }
 
-    private function institutionMapsDuplicateExists(?string $cid, ?string $placeId): bool
+    /**
+     * Check whether another institution already claims a Google Maps identity,
+     * so updates cannot move an institution onto an existing place.
+     */
+    public function institutionMapsIdentityTakenByOther(?string $cid, ?string $placeId, string $excludeInstitutionId): bool
+    {
+        return $this->institutionMapsDuplicateExists($cid, $placeId, $excludeInstitutionId);
+    }
+
+    private function institutionMapsDuplicateExists(?string $cid, ?string $placeId, ?string $excludeInstitutionId = null): bool
     {
         if ($cid === null && $placeId === null) {
             return false;
@@ -126,6 +135,7 @@ final readonly class EnsureUniqueContributionCreateAction
 
         $candidateInstitutions = Institution::query()
             ->whereIn('status', InstitutionStatus::publiclyVisibleValues())
+            ->when($excludeInstitutionId !== null, fn (Builder $query) => $query->whereKeyNot($excludeInstitutionId))
             ->whereHas('addresses', function (Builder $query) use ($cid, $placeId, $featureCid): void {
                 $query->where(function (Builder $identityQuery) use ($cid, $placeId, $featureCid): void {
                     if ($cid !== null) {

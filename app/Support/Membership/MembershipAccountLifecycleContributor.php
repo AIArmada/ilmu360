@@ -19,10 +19,9 @@ use Spatie\Permission\PermissionRegistrar;
  * (team-null) role and permission rows remain in the conventional Authz
  * restoration path in HasUserRestoration.
  *
- * The applicant restoration key mismatch (`membership_claim_ids` captured but
- * `membership_application_ids` read) is intentionally preserved here because
- * fixing it is scheduled for I4 with its own regression test. Only reviewer
- * attribution is restored.
+ * Applicant and reviewer attribution are both detached on account deletion and
+ * restored only while the column is still null, so a claim reviewed or
+ * reassigned by someone else in the meantime is never overwritten.
  *
  * Member pivot snapshots keep their existing column set (subject id, user id
  * and timestamps; no role column), so the pre-existing restoration shape and
@@ -112,7 +111,15 @@ final readonly class MembershipAccountLifecycleContributor implements AccountLif
             }
         }
 
-        // Applicant ids remain unrestored until the I4 key-mismatch fix.
+        $applicantIds = $this->stringIds($snapshot['membership_claim_ids'] ?? []);
+
+        if ($applicantIds !== []) {
+            MembershipApplication::query()
+                ->whereKey($applicantIds)
+                ->whereNull('applicant_id')
+                ->update(['applicant_id' => $accountId]);
+        }
+
         $reviewerIds = $this->stringIds($snapshot['membership_application_reviewer_ids'] ?? []);
 
         if ($reviewerIds !== []) {

@@ -7,9 +7,14 @@ use App\Actions\Contributions\Queries\FindEntityPendingContributionRequestAction
 use App\Actions\Contributions\Queries\ResolveContributionUpdateContextAction;
 use App\Actions\Contributions\Submission\ApplyDirectContributionUpdateAction;
 use App\Actions\Contributions\Submission\EnsureNoPendingContributionRequestAction;
+use App\Actions\Contributions\Submission\EnsureUniqueContributionCreateAction;
 use App\Actions\Contributions\Submission\NormalizeContributionSubmissionAction;
 use App\Actions\Contributions\Submission\ResolveContributionChangedPayloadAction;
 use App\Actions\Contributions\Submission\SubmitContributionUpdateRequestAction;
+use App\Actions\Institutions\MergeInstitutionMapsSelectionIntoFormAction;
+use App\Actions\Institutions\ResolveInstitutionMapsPlaceSelectionAction;
+use App\Actions\Location\FetchGooglePlaceDetailsAction;
+use App\Actions\Location\FetchGooglePlacePhotoPreviewsAction;
 use App\Enums\ContributionSubjectType;
 use App\Forms\EventContributionFormSchema;
 use App\Forms\InstitutionContributionFormSchema;
@@ -24,7 +29,10 @@ use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
 use App\Platform\Ui\InteractsWithToasts;
+use App\Services\ContributionEntityMutationService;
+use App\Services\Signals\ProductSignalsService;
 use App\Support\Events\EventContributionUpdateStateMapper;
+use App\Support\Location\GooglePlaceIdentity;
 use App\Support\Submission\ContributionSubjectPresenter;
 use Closure;
 use Filament\Actions\Concerns\InteractsWithActions;
@@ -39,6 +47,10 @@ use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use League\Flysystem\UnableToCheckFileExistence;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -94,6 +106,9 @@ class SuggestUpdate extends Component implements HasActions, HasForms
         'subject_label' => '',
         'redirect_url' => '',
     ];
+
+    #[Locked]
+    public ?string $verifiedMapsSelectionToken = null;
 
     public function mount(
         string $subjectType,
@@ -184,6 +199,118 @@ class SuggestUpdate extends Component implements HasActions, HasForms
         return app(FindEntityPendingContributionRequestAction::class)->handle($this->entity);
     }
 
+    /**
+     * @param  array<string, mixed>  $selection
+     * @return array<string, mixed>
+     */
+    public function applyPlaceSelection(
+        string $statePath,
+        array $selection,
+        ResolveInstitutionMapsPlaceSelectionAction $resolveInstitutionMapsPlaceSelectionAction,
+        MergeInstitutionMapsSelectionIntoFormAction $mergeInstitutionMapsSelectionIntoFormAction,
+    ): array {
+        if (! $this->entity instanceof Institution || $statePath !== 'data.address') {
+            throw ValidationException::withMessages([
+                'data.address.google_place_id' => __('Select an institution from the Google Maps search.'),
+            ]);
+        }
+
+        $placeId = $selection['placeId'] ?? null;
+
+        if (! is_string($placeId) || trim($placeId) === '') {
+            throw ValidationException::withMessages([
+                'data.address.google_place_id' => __('Select an institution from the Google Maps search.'),
+            ]);
+        }
+
+        // Seed untouched tracking with the stored values so a reselect fills
+        // name/type the contributor has not modified, mirroring blank-fill
+        // on the create form. User-edited values are preserved instead.
+        $previousSelection = $this->verifiedMapsSelection() ?? [
+            'autofilled_name' => data_get($this->originalData, 'name'),
+            'autofilled_type' => data_get($this->originalData, 'type'),
+        ];
+        $selectionData = $resolveInstitutionMapsPlaceSelectionAction->handle($placeId, $statePath.'.google_place_id');
+        $merged = $mergeInstitutionMapsSelectionIntoFormAction->handle(
+            is_array($this->data) ? $this->data : [],
+            $selectionData,
+            $previousSelection,
+        );
+        $this->data = $merged['state'];
+        $this->resetValidation('data.address.google_place_id');
+
+        $token = Str::random(48);
+        $previousToken = $this->verifiedMapsSelectionToken;
+        $this->verifiedMapsSelectionToken = $token;
+        Cache::put($this->verifiedMapsSelectionCacheKey($token), [
+            ...$selectionData,
+            'address' => Arr::except($selectionData['address'], ['cascade_reset_guard']),
+            'autofilled_contacts' => $merged['autofilled_contacts'],
+            'autofilled_social_profiles' => $merged['autofilled_social_profiles'],
+            'autofilled_name' => $merged['autofilled_name'],
+            'autofilled_type' => $merged['autofilled_type'],
+        ], now()->addMinutes(30));
+
+        if (is_string($previousToken) && $previousToken !== '') {
+            Cache::forget($this->verifiedMapsSelectionCacheKey($previousToken));
+        }
+
+        $user = auth()->user();
+
+        if ($user instanceof User) {
+            app(ProductSignalsService::class)->recordInstitutionMapsPlaceSelected(
+                $user,
+                $selectionData['website_url'] !== null,
+                count($selectionData['autofilled_social_profiles']),
+                request(),
+            );
+        }
+
+        return [
+            ...Arr::only($selectionData['address'], [
+                'google_place_id',
+                'google_display_name',
+                'formatted_address',
+                'latitude',
+                'longitude',
+            ]),
+        ];
+    }
+
+    /**
+     * @return list<array{
+     *     preview_url: string,
+     *     width: int|null,
+     *     height: int|null,
+     *     attributions: list<array{display_name: string|null, uri: string|null}>,
+     *     google_maps_uri: string|null
+     * }>
+     */
+    public function loadPlacePhotoPreviews(
+        string $placeId,
+        FetchGooglePlaceDetailsAction $fetchGooglePlaceDetailsAction,
+        FetchGooglePlacePhotoPreviewsAction $fetchGooglePlacePhotoPreviewsAction,
+    ): array {
+        $verifiedSelection = $this->verifiedMapsSelection();
+
+        if (! is_array($verifiedSelection)
+            || ! is_string($verifiedSelection['place_id'] ?? null)
+            || ! hash_equals($verifiedSelection['place_id'], $placeId)) {
+            return [];
+        }
+
+        try {
+            $place = $fetchGooglePlaceDetailsAction->handle($placeId, 'data.address.google_place_id');
+
+            return $fetchGooglePlacePhotoPreviewsAction->handle(
+                $placeId,
+                is_array($place['photos'] ?? null) ? $place['photos'] : [],
+            );
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
     public function form(Schema $schema): Schema
     {
         return OwnerContext::withOwner(null, fn (): Schema => $schema
@@ -224,7 +351,12 @@ class SuggestUpdate extends Component implements HasActions, HasForms
 
             $ensureNoPendingContributionRequestAction->handle($this->entity);
 
-            $submissionState = $normalizeContributionSubmissionAction->handle($this->contributionForm()->getState());
+            $formState = $this->contributionForm()->getState();
+            $donationQrUploads = SharedFormSchema::collectDonationQrUploads($formState['donation_channels'] ?? null);
+            $rawState = SharedFormSchema::withoutDonationQrUploads($formState);
+            $submittedDonationRows = is_array($rawState['donation_channels'] ?? null) ? $rawState['donation_channels'] : [];
+            $formState = $this->mergeVerifiedInstitutionMapsSelection($rawState);
+            $submissionState = $normalizeContributionSubmissionAction->handle($formState);
             $state = $this->normalizeSubmissionState($submissionState['state']);
             $changes = $resolveContributionChangedPayloadAction->handle(
                 $state,
@@ -233,7 +365,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             $hasDirectEditMediaChange = $this->hasDirectEditMediaChange();
             $hasNewMedia = $this->hasNewMedia();
 
-            if ($changes === [] && ! $hasNewMedia && ! $hasDirectEditMediaChange) {
+            if ($changes === [] && ! $hasNewMedia && ! $hasDirectEditMediaChange && $donationQrUploads === []) {
                 $this->addError('data', __('Make at least one change before continuing.'));
 
                 return;
@@ -248,6 +380,15 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                     $this->saveDirectEditMediaChanges();
                 }
 
+                if ($donationQrUploads !== []) {
+                    app(ContributionEntityMutationService::class)->attachDonationQrUploads(
+                        $this->entity,
+                        $submittedDonationRows,
+                        $donationQrUploads,
+                    );
+                }
+
+                $this->clearVerifiedMapsSelection();
                 $this->redirect($this->subjectPresentation['redirect_url'], navigate: true);
 
                 return;
@@ -267,6 +408,11 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 $this->stageDirectEditMediaChanges($request);
             }
 
+            if ($donationQrUploads !== []) {
+                $this->stageDonationQrUploads($request, $submittedDonationRows, $donationQrUploads);
+            }
+
+            $this->clearVerifiedMapsSelection();
             $this->redirect(route('contributions.index'), navigate: true);
         });
     }
@@ -455,11 +601,15 @@ class SuggestUpdate extends Component implements HasActions, HasForms
      */
     private function institutionSubjectSchema(): array
     {
+        $storedPlaceId = data_get($this->originalData, 'address.google_place_id');
+
         return InstitutionContributionFormSchema::directEditComponents(
             addressStatePath: 'address',
             includeLocationPicker: true,
             mediaFields: $this->directEditMediaFields,
             includeWazeUrlField: false,
+            includeMapsReselection: true,
+            mapsReselectionRequired: ! is_string($storedPlaceId) || trim($storedPlaceId) === '',
         );
     }
 
@@ -840,6 +990,50 @@ class SuggestUpdate extends Component implements HasActions, HasForms
     }
 
     /**
+     * Persist visitor donation QR uploads onto the pending request keyed by
+     * channel identity, so approval can attach each QR to its channel.
+     * Temporary uploads would not survive until review, so contents are read
+     * immediately while the files still exist.
+     *
+     * @param  array<int|string, array<string, mixed>>  $submittedRows
+     * @param  array<int|string, TemporaryUploadedFile>  $uploads
+     */
+    private function stageDonationQrUploads(ContributionRequest $request, array $submittedRows, array $uploads): void
+    {
+        $failed = [];
+
+        foreach ($uploads as $index => $file) {
+            $row = $submittedRows[$index] ?? null;
+            $fingerprint = is_array($row) ? ContributionEntityMutationService::donationChannelFingerprint($row) : null;
+
+            try {
+                $contents = $file->exists() ? $file->get() : null;
+            } catch (\Throwable) {
+                $contents = null;
+            }
+
+            if (! is_string($contents) || $contents === '' || $fingerprint === null) {
+                $failed["data.donation_channels.{$index}.qr_upload"] = __('The QR upload expired or is invalid. Please upload the QR image again.');
+
+                continue;
+            }
+
+            $request->addMediaFromString($contents)
+                ->usingFileName($file->getClientOriginalName() !== '' ? $file->getClientOriginalName() : 'qr.png')
+                ->withCustomProperties([
+                    'contribution_field' => 'donation_qr',
+                    'donation_fingerprint' => $fingerprint,
+                    'is_single' => true,
+                ])
+                ->toMediaCollection('pending_media');
+        }
+
+        if ($failed !== []) {
+            throw ValidationException::withMessages($failed);
+        }
+    }
+
+    /**
      * Visitor (non-direct-edit) uploads must never mutate the real entity's
      * existing media. The default saver deletes "abandoned" files and a single-file
      * collection replaces the previous media, either of which would destroy a
@@ -923,5 +1117,112 @@ class SuggestUpdate extends Component implements HasActions, HasForms
     private function eventComparableState(array $state): array
     {
         return EventContributionUpdateStateMapper::toHelperState($state);
+    }
+
+    /**
+     * @param  array<string, mixed>  $formState
+     * @return array<string, mixed>
+     */
+    private function mergeVerifiedInstitutionMapsSelection(array $formState): array
+    {
+        if (! $this->entity instanceof Institution) {
+            return $formState;
+        }
+
+        $submittedPlaceId = data_get($formState, 'address.google_place_id');
+        $originalPlaceId = data_get($this->originalData, 'address.google_place_id');
+
+        if (! is_string($submittedPlaceId) || trim($submittedPlaceId) === '') {
+            throw ValidationException::withMessages([
+                'data.address.google_place_id' => __('Select and verify the institution on Google Maps before submitting.'),
+            ]);
+        }
+
+        if ($submittedPlaceId === $originalPlaceId) {
+            return $formState;
+        }
+
+        $verifiedSelection = $this->verifiedMapsSelection();
+
+        if (! is_array($verifiedSelection)
+            || ! is_string($verifiedSelection['place_id'] ?? null)
+            || ! hash_equals($verifiedSelection['place_id'], $submittedPlaceId)
+        ) {
+            throw ValidationException::withMessages([
+                'data.address.google_place_id' => __('Select and verify the new location on Google Maps before submitting.'),
+            ]);
+        }
+
+        $formAddress = is_array($formState['address'] ?? null) ? $formState['address'] : [];
+        $verifiedAddress = is_array($verifiedSelection['address'] ?? null)
+            ? $verifiedSelection['address']
+            : [];
+        $formState['address'] = array_merge($formAddress, Arr::only($verifiedAddress, [
+            'google_maps_url',
+            'google_place_id',
+            'google_feature_id',
+            'google_cid',
+            'google_entity_id',
+            'google_display_name',
+            'latitude',
+            'longitude',
+            'google_resolution_source',
+            'google_resolution_status',
+            'google_resolution_fingerprint',
+            'google_resolution_message',
+            'formatted_address',
+            'components',
+            'metadata',
+            'navigation_links',
+        ]));
+
+        $persistedAddress = SharedFormSchema::prepareAddressPersistenceData($formState['address']);
+        $cid = GooglePlaceIdentity::canonicalCid($persistedAddress['google_cid'] ?? null)
+            ?? GooglePlaceIdentity::cidFromFeatureId($persistedAddress['google_feature_id'] ?? null);
+        $canonicalPlaceId = is_string($persistedAddress['google_place_id'] ?? null)
+            ? trim($persistedAddress['google_place_id'])
+            : null;
+
+        if (($cid !== null || ($canonicalPlaceId !== null && $canonicalPlaceId !== ''))
+            && app(EnsureUniqueContributionCreateAction::class)->institutionMapsIdentityTakenByOther(
+                $cid,
+                $canonicalPlaceId !== '' ? $canonicalPlaceId : null,
+                (string) $this->entity->getKey(),
+            )
+        ) {
+            throw ValidationException::withMessages([
+                'data.address.google_place_id' => __('Another institution already uses this Google Maps place.'),
+            ]);
+        }
+
+        return $formState;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function verifiedMapsSelection(): ?array
+    {
+        if (! is_string($this->verifiedMapsSelectionToken) || $this->verifiedMapsSelectionToken === '') {
+            return null;
+        }
+
+        $selection = Cache::get($this->verifiedMapsSelectionCacheKey($this->verifiedMapsSelectionToken));
+
+        return is_array($selection) ? $selection : null;
+    }
+
+    private function verifiedMapsSelectionCacheKey(?string $token): string
+    {
+        return 'institution-contribution-update:verified-maps:'.hash('sha256', session()->getId().'|'.$this->getId().'|'.($token ?? ''));
+    }
+
+    private function clearVerifiedMapsSelection(): void
+    {
+        if (is_string($this->verifiedMapsSelectionToken) && $this->verifiedMapsSelectionToken !== '') {
+            Cache::forget($this->verifiedMapsSelectionCacheKey($this->verifiedMapsSelectionToken));
+        }
+
+        $this->verifiedMapsSelectionToken = null;
     }
 }

@@ -29,7 +29,7 @@ class RevertToDraft extends Transition implements HasColor, HasIcon, HasLabel
             OwnerContext::withOwner(null, fn () => ModerationReview::create([
                 'actionable_type' => Event::class,
                 'actionable_id' => $this->event->id,
-                'actioned_by_type' => User::class,
+                'actioned_by_type' => (new User)->getMorphClass(),
                 'actioned_by_id' => $this->moderator?->id,
                 'type' => 'reverted_to_draft',
                 'reason' => 'reverted_to_draft',

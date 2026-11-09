@@ -10,6 +10,7 @@ use AIArmada\Events\Models\EventSession;
 use App\Models\Event;
 use App\Models\Language;
 use App\Models\Reference;
+use App\Shared\Support\MorphAlias;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -63,7 +64,7 @@ final class SubmissionRelationSync
 
         return collect($rows)->filter(fn (mixed $row): bool => is_array($row))->map(static fn (array $row): array => [
             'role_code' => $row['role_code'] ?? null,
-            'involveable_type' => $row['involveable_type'] ?? null,
+            'involveable_type' => MorphAlias::of(is_string($row['involveable_type'] ?? null) ? $row['involveable_type'] : null),
             'involveable_id' => $row['involveable_id'] ?? null,
             'display_name' => $row['display_name'] ?? null,
             'visibility' => $row['visibility'] ?? 'public',

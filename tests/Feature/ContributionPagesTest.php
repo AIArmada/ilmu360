@@ -65,6 +65,20 @@ function assignPersonOwner(User $user, Person $person): void
     withGlobalOwnerContext(fn (): null => addTestMember($person, $user, MemberRole::Owner));
 }
 
+function giveContributionPagesInstitutionMapsPlace(Institution $institution, string $placeId = 'place_pages_existing'): void
+{
+    $address = $institution->primaryAddress();
+
+    if ($address === null) {
+        return;
+    }
+
+    $address->forceFill([
+        'google_place_id' => $placeId,
+        'google_maps_url' => 'https://www.google.com/maps/search/?api=1&query_place_id='.$placeId,
+    ])->save();
+}
+
 it('renders the dedicated institution contribution page', function () {
     $user = User::factory()->create();
 
@@ -74,6 +88,7 @@ it('renders the dedicated institution contribution page', function () {
         ->assertOk()
         ->assertSee(__('Add a New Institution'))
         ->assertSee(__('Address'))
+        ->assertSee(__('Donation Channels'))
         ->assertSee(__('Check the existing directory first'))
         ->assertSee(__('Before you submit, please check the existing institutions directory. If it already exists, submit an update instead of creating a new record.'))
         ->assertSee(__('Check Existing Institutions'))
@@ -776,6 +791,7 @@ it('shows the institution media uploads on the suggest update page only for main
     ]))
         ->assertOk()
         ->assertDontSee(__('View My Contributions'))
+        ->assertSee(__('Logo'))
         ->assertSee(__('Cover Image'))
         ->assertSee(__('Gallery'));
 
@@ -788,6 +804,7 @@ it('shows the institution media uploads on the suggest update page only for main
     ]))
         ->assertOk()
         ->assertDontSee(__('View My Contributions'))
+        ->assertSee(__('Logo'))
         ->assertSee(__('Cover Image'))
         ->assertSee(__('Gallery'));
 });
@@ -810,6 +827,9 @@ it('uses the institution location picker on the suggest update page when google 
     ]))
         ->assertOk()
         ->assertDontSee(__('Find the institution location'))
+        ->assertDontSee(__('Find the institution on Google Maps'))
+        ->assertSee(__('Update the location on Google Maps'))
+        ->assertSee(__('Only search again if the institution moved or the pinned location is wrong. Leave this untouched to keep the current address.'))
         ->assertSee(__('Search for an institution or address'));
 });
 
@@ -1464,6 +1484,7 @@ it('applies direct institution edits for owner maintainers from the suggest upda
         'name' => 'Masjid Lama',
         'status' => 'verified',
     ]);
+    giveContributionPagesInstitutionMapsPlace($institution);
     withGlobalOwnerContext(fn () => $institution->contactMethods()->delete());
 
     assignInstitutionOwner($user, $institution);
@@ -1487,6 +1508,7 @@ it('applies direct institution edits when an existing phone contact is present o
         'name' => 'Masjid Lama',
         'status' => 'verified',
     ]);
+    giveContributionPagesInstitutionMapsPlace($institution);
     withGlobalOwnerContext(function () use ($institution): void {
         $institution->contactMethods()->delete();
         $institution->contactMethods()->create([
@@ -1518,6 +1540,7 @@ it('applies direct institution address edits for owner maintainers from the sugg
     $institution = Institution::factory()->create([
         'status' => 'verified',
     ]);
+    giveContributionPagesInstitutionMapsPlace($institution);
     withGlobalOwnerContext(fn () => $institution->contactMethods()->delete());
 
     assignInstitutionOwner($user, $institution);
@@ -1543,6 +1566,7 @@ it('applies direct institution cover edits for owner maintainers from the sugges
     $institution = Institution::factory()->create([
         'status' => 'verified',
     ]);
+    giveContributionPagesInstitutionMapsPlace($institution);
 
     assignInstitutionOwner($user, $institution);
     $this->actingAs($user);
@@ -1570,6 +1594,7 @@ it('applies direct institution gallery edits for owner maintainers from the sugg
     $institution = Institution::factory()->create([
         'status' => 'verified',
     ]);
+    giveContributionPagesInstitutionMapsPlace($institution);
 
     assignInstitutionOwner($user, $institution);
     $this->actingAs($user);
@@ -1822,7 +1847,7 @@ it('normalizes submit-style organizer and location changes on the event update p
     $involvement = $event->fresh()->primaryOrganizerInvolvement;
     $updatedEvent = $event->fresh();
 
-    expect($involvement?->involveable_type)->toBe(Person::class)
+    expect($involvement?->involveable_type)->toBe((new Person)->getMorphClass())
         ->and($involvement?->involveable_id)->toBe((string) $person->getKey())
         ->and($updatedEvent?->institution_id)->toBeNull()
         ->and($updatedEvent?->default_venue_id)->toBe($venue->id)
@@ -1859,6 +1884,7 @@ it('creates pending update requests for non-maintainer suggestions', function ()
         'description' => 'Old description',
         'status' => 'verified',
     ]);
+    giveContributionPagesInstitutionMapsPlace($institution);
     withGlobalOwnerContext(fn () => $institution->contactMethods()->delete());
 
     $this->actingAs($user);

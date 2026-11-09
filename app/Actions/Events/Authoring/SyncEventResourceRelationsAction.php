@@ -6,6 +6,7 @@ use AIArmada\Events\Enums\RegistrationMode;
 use AIArmada\Events\Models\EventAccessPolicy;
 use App\Models\Event;
 use App\Services\EventKeyPersonSyncService;
+use App\Shared\Support\MorphAlias;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class SyncEventResourceRelationsAction
@@ -122,7 +123,7 @@ class SyncEventResourceRelationsAction
 
         return collect($rows)->filter(static fn (mixed $row): bool => is_array($row))->map(static fn (array $row): array => [
             'role_code' => $row['role_code'] ?? null,
-            'involveable_type' => $row['involveable_type'] ?? null,
+            'involveable_type' => MorphAlias::of(is_string($row['involveable_type'] ?? null) ? $row['involveable_type'] : null),
             'involveable_id' => $row['involveable_id'] ?? null,
             'display_name' => $row['display_name'] ?? null,
             'visibility' => $row['visibility'] ?? 'public',

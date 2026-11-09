@@ -27,7 +27,7 @@ it('creates a primary organizer involvement via setPrimaryOrganizer', function (
     $involvement = $event->fresh()->primaryOrganizerInvolvement;
 
     expect($involvement)->not->toBeNull()
-        ->and($involvement->involveable_type)->toBe(Institution::class)
+        ->and($involvement->involveable_type)->toBe((new Institution)->getMorphClass())
         ->and($involvement->involveable_id)->toBe((string) $institution->getKey())
         ->and($involvement->role_code)->toBe('organizer')
         ->and($involvement->is_primary)->toBeTrue()
@@ -92,7 +92,7 @@ it('updates the existing primary involvement when organizer changes', function (
     $involvement = $event->fresh()->primaryOrganizerInvolvement;
 
     expect($involvement->getKey())->toBe($firstId)
-        ->and($involvement->involveable_type)->toBe(Person::class)
+        ->and($involvement->involveable_type)->toBe((new Person)->getMorphClass())
         ->and($involvement->involveable_id)->toBe((string) $person->getKey());
 });
 
@@ -129,7 +129,7 @@ it('creates organizer involvement via submit-event flow with a person organizer'
     $involvement = $event->fresh()->primaryOrganizerInvolvement;
 
     expect($involvement)->not->toBeNull()
-        ->and($involvement->involveable_type)->toBe(Person::class)
+        ->and($involvement->involveable_type)->toBe((new Person)->getMorphClass())
         ->and($involvement->involveable_id)->toBe((string) $person->getKey())
         ->and($event->organizer)->toBeInstanceOf(Person::class);
 });

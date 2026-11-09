@@ -42,8 +42,30 @@ it('stores migrated lifecycle state under contributor keys', function (): void {
     $snapshot = $values['deleted_relations_snapshot'];
 
     expect($values)->not->toHaveKey('deleted_affiliate_tracking_snapshot')
-        ->and($snapshot)->toHaveKeys(['identity', 'reports', 'saved_searches', 'membership', 'directory', 'legacy', 'share_tracking'])
+        ->and($snapshot)->toHaveKeys([
+            'identity',
+            'reports',
+            'saved_searches',
+            'membership',
+            'directory',
+            'events',
+            'moderation',
+            'contributions',
+            'legacy',
+            'share_tracking',
+        ])
         ->and($snapshot)->not->toHaveKeys(['report_ids', 'handled_report_ids', 'social_accounts'])
+        ->and($snapshot['events'])->toHaveKeys([
+            'owned_event_ids',
+            'submitted_event_ids',
+            'event_submission_ids',
+            'verified_event_checkin_ids',
+            'registration_ids',
+            'event_checkin_ids',
+            'retained_fact_counts',
+        ])
+        ->and($snapshot['contributions'])->toHaveKeys(['proposer_ids', 'reviewer_ids'])
+        ->and($snapshot['moderation'])->toHaveKey('moderation_review_ids')
         ->and($snapshot['identity']['social_accounts'])->toHaveCount(1)
         ->and($snapshot['identity']['social_accounts'][0]['id'])->toBe($socialAccount->id)
         ->and($snapshot['reports']['report_ids'])->toContain((string) $report->id)
@@ -62,5 +84,5 @@ it('orders tagged contributors by priority and key', function (): void {
     $user = User::factory()->create();
 
     expect(array_keys(app(AccountLifecycle::class)->snapshot((string) $user->id)))
-        ->toBe(['identity', 'reports', 'saved_searches', 'membership', 'directory']);
+        ->toBe(['identity', 'reports', 'saved_searches', 'membership', 'directory', 'events', 'contributions', 'moderation']);
 });

@@ -170,7 +170,7 @@ it('records moderation review creation in audits', function () {
     $review = ModerationReview::query()->create([
         'actionable_type' => Event::class,
         'actionable_id' => $event->getKey(),
-        'actioned_by_type' => User::class,
+        'actioned_by_type' => (new User)->getMorphClass(),
         'actioned_by_id' => $administrator->getKey(),
         'type' => 'reject',
         'notes' => 'Schedule details are incomplete.',

@@ -595,7 +595,7 @@ function eventImageGenerationEventFixture(?Institution $institution = null): arr
     withGlobalOwnerContext(function () use ($event, $institution): void {
         $event->setPrimaryOrganizer($institution);
 
-        expect($event->primaryOrganizerInvolvement?->involveable_type)->toBe(Institution::class)
+        expect($event->primaryOrganizerInvolvement?->involveable_type)->toBe((new Institution)->getMorphClass())
             ->and($event->primaryOrganizerInvolvement?->involveable_id)->toBe((string) $institution->getKey());
     });
 

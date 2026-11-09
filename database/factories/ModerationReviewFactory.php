@@ -21,7 +21,7 @@ class ModerationReviewFactory extends Factory
         return [
             'actionable_type' => Event::class,
             'actionable_id' => Event::factory(),
-            'actioned_by_type' => User::class,
+            'actioned_by_type' => (new User)->getMorphClass(),
             'actioned_by_id' => User::factory(),
             'type' => fake()->randomElement(['approve', 'reject', 'changes_requested']),
             'notes' => fake()->optional()->sentence(),
