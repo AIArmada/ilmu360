@@ -9,11 +9,9 @@ use AIArmada\Membership\Enums\ApplicationStatus;
 use App\Features\Reports\Api\ReportTriageContract;
 use App\Filament\Resources\ContributionRequests\ContributionRequestResource;
 use App\Filament\Resources\MembershipApplications\MembershipApplicationResource;
-use App\Filament\Resources\Reports\ReportResource;
 use App\Models\ContributionRequest;
 use App\Models\Event;
 use App\Models\MembershipApplication;
-use App\Models\Report;
 use App\Models\User;
 use App\Support\Api\Admin\Concerns\ResolvesAccessibleResource;
 use Filament\Resources\Resource;
@@ -171,7 +169,9 @@ final readonly class AdminRecordActionService
             $actions = [...$actions, ...$this->eventWorkflowActions($recordKey, $actor)];
         }
 
-        if ($resourceClass === ReportResource::class && $record instanceof Report) {
+        $reportResourceClass = $this->registry->resolve('reports');
+
+        if ($reportResourceClass !== null && $resourceClass === $reportResourceClass) {
             $actions = [...$actions, ...$this->reportWorkflowActions($recordKey, $actor)];
         }
 

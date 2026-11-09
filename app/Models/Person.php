@@ -22,6 +22,7 @@ use App\Enums\SpeakerStatus;
 use App\Models\Concerns\HasDonationChannels;
 use App\Models\Concerns\HasLanguages;
 use App\Platform\Auditing\AuditsModelChanges;
+use App\Platform\Reporting\ReportModelClass;
 use App\Support\Search\PersonSearchService;
 use BackedEnum;
 use Carbon\CarbonImmutable;
@@ -533,11 +534,11 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
     }
 
     /**
-     * @return MorphMany<Report, $this>
+     * @return MorphMany<Model, $this>
      */
     public function reports(): MorphMany
     {
-        return $this->morphMany(Report::class, 'entity');
+        return $this->morphMany(ReportModelClass::resolve(), 'entity');
     }
 
     /**

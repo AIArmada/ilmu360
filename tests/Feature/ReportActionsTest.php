@@ -1,8 +1,8 @@
 <?php
 
-use App\Actions\Reports\ResolveReportCategoryOptionsAction;
-use App\Actions\Reports\ResolveReportEntityMetadataAction;
-use App\Actions\Reports\ResolveReportFormContextAction;
+use App\Features\Reports\Actions\ResolveReportCategoryOptionsAction;
+use App\Features\Reports\Actions\ResolveReportEntityMetadataAction;
+use App\Features\Reports\Actions\ResolveReportFormContextAction;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;

@@ -25,6 +25,7 @@ use App\Notifications\Auth\VerifyEmailNotification;
 use App\Notifications\Channels\DigestMailChannel;
 use App\Notifications\Channels\InboxChannel;
 use App\Platform\Auditing\AuditsModelChanges;
+use App\Platform\Reporting\ReportModelClass;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Auth\IntegrationFeedbackIdentity;
 use App\Shared\Auth\IntegrationFeedbackUser;
@@ -39,6 +40,7 @@ use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
@@ -381,19 +383,19 @@ class User extends Authenticatable implements AccountActor, AuditableContract, C
     }
 
     /**
-     * @return HasMany<Report, $this>
+     * @return HasMany<Model, $this>
      */
     public function reports(): HasMany
     {
-        return $this->hasMany(Report::class, 'reporter_id');
+        return $this->hasMany(ReportModelClass::resolve(), 'reporter_id');
     }
 
     /**
-     * @return HasMany<Report, $this>
+     * @return HasMany<Model, $this>
      */
     public function handledReports(): HasMany
     {
-        return $this->hasMany(Report::class, 'handled_by');
+        return $this->hasMany(ReportModelClass::resolve(), 'handled_by');
     }
 
     /**

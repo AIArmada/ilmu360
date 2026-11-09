@@ -7,6 +7,7 @@ use AIArmada\FilamentEvents\RelationManagers\EventsRelationManager as SeriesEven
 use AIArmada\FilamentEvents\Resources\EventResource;
 use AIArmada\FilamentEvents\Resources\EventTemplateResource;
 use AIArmada\FilamentEvents\Resources\EventTemplateResource\Pages\CreateEventTemplate;
+use App\Features\Reports\EntryPoints\Filament\Resources\Reports\ReportResource;
 use App\Filament\Resources\AiModelPricings\AiModelPricingResource;
 use App\Filament\Resources\AiUsageLogs\AiUsageLogResource;
 use App\Filament\Resources\ContributionRequests\ContributionRequestResource;
@@ -23,7 +24,6 @@ use App\Filament\Resources\Persons\RelationManagers\MemberInvitationsRelationMan
 use App\Filament\Resources\References\ReferenceResource;
 use App\Filament\Resources\References\RelationManagers\MemberInvitationsRelationManager as ReferenceMemberInvitationsRelationManager;
 use App\Filament\Resources\References\RelationManagers\MembersRelationManager as ReferenceMembersRelationManager;
-use App\Filament\Resources\Reports\ReportResource;
 use App\Filament\Resources\Series\SeriesResource;
 use App\Filament\Resources\Spaces\SpaceResource;
 use App\Filament\Resources\Venues\VenueResource;

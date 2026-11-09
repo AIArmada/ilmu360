@@ -3,8 +3,9 @@
 use App\Features\Feedback\Models\AppFeedback;
 use App\Features\Feedback\Models\AppFeedbackMessage;
 use App\Features\Feedback\Notifications\AppFeedbackRepliedNotification;
+use App\Features\Reports\Models\Report;
+use App\Features\Reports\Notifications\ReportResolvedNotification;
 use App\Models\Event;
-use App\Models\Report;
 use App\Models\User;
 use App\Notifications\Auth\ResetPasswordNotification;
 use App\Notifications\Auth\VerifyEmailNotification;
@@ -12,7 +13,6 @@ use App\Notifications\Auth\WelcomeNotification;
 use App\Notifications\EventEscalationNotification;
 use App\Notifications\EventSubmittedNotification;
 use App\Notifications\Membership\MemberInvitationNotification;
-use App\Notifications\ReportResolvedNotification;
 use App\Services\Notifications\NotificationSettingsManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 

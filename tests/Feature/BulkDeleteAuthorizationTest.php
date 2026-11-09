@@ -1,7 +1,7 @@
 <?php
 
-use App\Filament\Resources\Reports\Pages\ListReports;
-use App\Models\Report;
+use App\Features\Reports\EntryPoints\Filament\Resources\Reports\Pages\ListReports;
+use App\Features\Reports\Models\Report;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;

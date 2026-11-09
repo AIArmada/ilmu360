@@ -91,10 +91,6 @@ use App\Contracts\NullSignupAttributionSourceResolver;
 use App\Contracts\ShareTrackingContract;
 use App\Contracts\SignupAttributionSourceResolver;
 use App\Contracts\SpaceEligibilityResolver;
-use App\Features\Reports\Api\ReportAdminContract;
-use App\Features\Reports\Api\ReportCommands as ReportCommandsContract;
-use App\Features\Reports\Api\ReportReader;
-use App\Features\Reports\Api\ReportTriageContract;
 use App\Features\SavedSearches\Api\SavedSearchExecutor;
 use App\Http\Controllers\Mcp\OAuthRegisterController;
 use App\Listeners\ShareTracking\ReverseRegistrationShareOutcome;
@@ -116,7 +112,6 @@ use App\Models\ModerationReview;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Registration;
-use App\Models\Report;
 use App\Models\Series;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\ShareSourceAttributionReceipt;
@@ -184,10 +179,6 @@ use App\Shared\Reports\ReportSubjectResolver;
 use App\Shared\ShareTracking\SavedSearchShareOutcomes;
 use App\Shared\Signals\SignalRecorder;
 use App\Shared\Time\UserDateTimeFormatting;
-use App\Support\Api\Reports\DatabaseReportReader;
-use App\Support\Api\Reports\ReportAdmin;
-use App\Support\Api\Reports\ReportCommands as ReportCommandsService;
-use App\Support\Api\Reports\ReportTriage;
 use App\Support\Auth\AffiliateSignupAttributionSourceResolver;
 use App\Support\Auth\EloquentAccountDirectory;
 use App\Support\Auth\EloquentUserMorphType;
@@ -277,10 +268,6 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(SearchFilterNormalizer::class, EventSearchFilterNormalizer::class);
         $this->app->bind(SearchFilterCatalog::class, EventSearchFilterCatalog::class);
         $this->app->bind(SearchFilterRules::class, EventSearchFilterRules::class);
-        $this->app->bind(ReportCommandsContract::class, ReportCommandsService::class);
-        $this->app->bind(ReportReader::class, DatabaseReportReader::class);
-        $this->app->bind(ReportAdminContract::class, ReportAdmin::class);
-        $this->app->bind(ReportTriageContract::class, ReportTriage::class);
         $this->app->bind(SavedSearchExecutor::class, EventSavedSearchExecutor::class);
         $this->app->bind(SavedSearchShareOutcomes::class, SavedSearchOutcomeRecorder::class);
         $this->app->bind(SignalRecorder::class, ProductSignalsService::class);
@@ -533,7 +520,6 @@ class AppServiceProvider extends ServiceProvider
             'venue' => Venue::class,
             'donation_channel' => DonationChannel::class,
             'reference' => Reference::class,
-            'report' => Report::class,
             'inspiration' => Inspiration::class,
             'organization' => Organization::class,
             'inventory_location' => InventoryLocation::class,

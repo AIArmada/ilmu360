@@ -3,6 +3,11 @@
   "name": "Reports",
   "owns": {
     "table:reports": [
+      "App\\Features\\Reports\\Actions\\SubmitReportAction",
+      "App\\Features\\Reports\\Actions\\SaveReportAction",
+      "App\\Features\\Reports\\Actions\\DeleteReportAction",
+      "App\\Features\\Reports\\Actions\\DeleteReportsAction",
+      "App\\Features\\Reports\\Actions\\TriageReportAction",
       "App\\Features\\Reports\\Persistence\\ReportLifecycle"
     ]
   }

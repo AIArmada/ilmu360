@@ -46,7 +46,6 @@ use App\Filament\Resources\Inspirations\InspirationResource;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Filament\Resources\Persons\PersonResource;
 use App\Filament\Resources\References\ReferenceResource;
-use App\Filament\Resources\Reports\ReportResource;
 use App\Filament\Resources\Series\SeriesResource;
 use App\Filament\Resources\Spaces\SpaceResource;
 use App\Filament\Resources\Venues\VenueResource;
@@ -57,14 +56,14 @@ use App\Models\Inspiration;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Report;
 use App\Models\Series;
 use App\Models\Space;
 use App\Models\User;
 use App\Models\Venue;
+use App\Platform\Admin\Concerns\BuildsAdminFieldMetadata;
+use App\Platform\Reporting\ReportModelClass;
 use App\Services\ContributionEntityMutationService;
 use App\Shared\Prayer\EventPrayerTime;
-use App\Support\Api\Admin\Concerns\BuildsAdminFieldMetadata;
 use App\Support\Events\AdminEventFormStateBuilder;
 use App\Support\Institutions\InstitutionFacilities;
 use BackedEnum;
@@ -101,14 +100,13 @@ class AdminResourceMutationService
      */
     public function supports(string $resourceClass): bool
     {
-        return in_array($resourceClass, [
+        return $this->isReportResource($resourceClass) || in_array($resourceClass, [
             AddressAreaResource::class,
             DonationChannelResource::class,
             EventResource::class,
             InspirationResource::class,
             InstitutionResource::class,
             ReferenceResource::class,
-            ReportResource::class,
             SeriesResource::class,
             PersonResource::class,
             SpaceResource::class,
@@ -126,6 +124,26 @@ class AdminResourceMutationService
         $defaults = $updating && $record instanceof Model
             ? $this->defaultsForRecord($record)
             : $this->defaultsForCreate($resourceClass);
+
+        if ($this->isReportResource($resourceClass)) {
+            return [
+                'resource_key' => $resourceKey,
+                'operation' => $operation,
+                'method' => $updating ? 'PUT' : 'POST',
+                'endpoint' => $updating && $record instanceof Model
+                    ? route('api.admin.resources.update', ['resourceKey' => $resourceKey, 'recordKey' => $this->recordKey($record)], false)
+                    : route('api.admin.resources.store', ['resourceKey' => $resourceKey], false),
+                'content_type' => 'multipart/form-data',
+                'slug_behavior' => 'not_applicable',
+                'defaults' => $defaults,
+                'current_media' => $record instanceof Model && $record instanceof HasMedia ? $this->mediaState($record, ['evidence']) : null,
+                'fields' => $this->reportAdmin->fields(),
+                'catalogs' => [],
+                'conditional_rules' => [
+                    ['field' => 'description', 'required_when' => ['category' => ['other']]],
+                ],
+            ];
+        }
 
         return match ($resourceClass) {
             AddressAreaResource::class => [
@@ -229,23 +247,6 @@ class AdminResourceMutationService
                 'catalogs' => [],
                 'conditional_rules' => [],
             ],
-            ReportResource::class => [
-                'resource_key' => $resourceKey,
-                'operation' => $operation,
-                'method' => $updating ? 'PUT' : 'POST',
-                'endpoint' => $updating && $record instanceof Model
-                    ? route('api.admin.resources.update', ['resourceKey' => $resourceKey, 'recordKey' => $this->recordKey($record)], false)
-                    : route('api.admin.resources.store', ['resourceKey' => $resourceKey], false),
-                'content_type' => 'multipart/form-data',
-                'slug_behavior' => 'not_applicable',
-                'defaults' => $defaults,
-                'current_media' => $record instanceof Report ? $this->mediaState($record, ['evidence']) : null,
-                'fields' => $this->reportAdmin->fields(),
-                'catalogs' => [],
-                'conditional_rules' => [
-                    ['field' => 'description', 'required_when' => ['category' => ['other']]],
-                ],
-            ],
             SeriesResource::class => [
                 'resource_key' => $resourceKey,
                 'operation' => $operation,
@@ -315,6 +316,10 @@ class AdminResourceMutationService
      */
     public function rules(string $resourceClass, bool $updating = false): array
     {
+        if ($this->isReportResource($resourceClass)) {
+            return $this->reportAdmin->rules($updating);
+        }
+
         return match ($resourceClass) {
             AddressAreaResource::class => $this->addressAreaRules($updating),
             DonationChannelResource::class => $this->donationChannelRules($updating),
@@ -322,7 +327,6 @@ class AdminResourceMutationService
             InspirationResource::class => $this->inspirationRules($updating),
             InstitutionResource::class => $this->institutionRules($updating),
             ReferenceResource::class => $this->referenceRules($updating),
-            ReportResource::class => $this->reportAdmin->rules($updating),
             SeriesResource::class => $this->seriesRules($updating),
             PersonResource::class => $this->personRules($updating),
             SpaceResource::class => $this->spaceRules($updating),
@@ -342,10 +346,10 @@ class AdminResourceMutationService
             return $this->normalizeDonationChannelPayload($validated, $record);
         }
 
-        if ($resourceClass === ReportResource::class) {
+        if ($this->isReportResource($resourceClass)) {
             return $this->reportAdmin->normalize(
                 $validated,
-                $record instanceof Report ? (string) $record->getKey() : null,
+                $record instanceof Model ? (string) $record->getKey() : null,
             );
         }
 
@@ -391,6 +395,10 @@ class AdminResourceMutationService
      */
     public function store(string $resourceClass, array $validated, User $actor): Model
     {
+        if ($this->isReportResource($resourceClass)) {
+            return $this->saveReport($validated);
+        }
+
         return match ($resourceClass) {
             AddressAreaResource::class => $this->saveAddressAreaAction->handle($validated),
             DonationChannelResource::class => $this->saveDonationChannelAction->handle($validated),
@@ -398,7 +406,6 @@ class AdminResourceMutationService
             InspirationResource::class => $this->saveInspirationAction->handle($validated),
             InstitutionResource::class => $this->saveInstitutionAction->handle($validated, $actor),
             ReferenceResource::class => $this->saveReferenceAction->handle($validated),
-            ReportResource::class => $this->saveReport($validated),
             SeriesResource::class => $this->saveSeriesAction->handle($validated),
             PersonResource::class => $this->savePersonAction->handle($validated, $actor),
             SpaceResource::class => $this->saveSpaceAction->handle($validated),
@@ -413,6 +420,10 @@ class AdminResourceMutationService
      */
     public function update(string $resourceClass, Model $record, array $validated, User $actor): Model
     {
+        if ($this->isReportResource($resourceClass)) {
+            return $this->saveReport($validated, (string) $record->getKey());
+        }
+
         return match ($resourceClass) {
             AddressAreaResource::class => $record instanceof AddressArea
                 ? $this->saveAddressAreaAction->handle($validated, $record)
@@ -432,9 +443,6 @@ class AdminResourceMutationService
             ReferenceResource::class => $record instanceof Reference
                 ? $this->saveReferenceAction->handle($validated, $record)
                 : throw new \RuntimeException('Expected reference record.'),
-            ReportResource::class => $record instanceof Report
-                ? $this->saveReport($validated, (string) $record->getKey())
-                : throw new \RuntimeException('Expected report record.'),
             SeriesResource::class => $record instanceof Series
                 ? $this->saveSeriesAction->handle($validated, $record)
                 : throw new \RuntimeException('Expected series record.'),
@@ -479,6 +487,10 @@ class AdminResourceMutationService
      */
     private function defaultsForCreate(string $resourceClass): array
     {
+        if ($this->isReportResource($resourceClass)) {
+            return $this->reportAdmin->createDefaults();
+        }
+
         return match ($resourceClass) {
             AddressAreaResource::class => [
                 'country_id' => null,
@@ -540,7 +552,6 @@ class AdminResourceMutationService
                 'clear_back_cover' => false,
                 'clear_gallery' => false,
             ],
-            ReportResource::class => $this->reportAdmin->createDefaults(),
             SeriesResource::class => [
                 'title' => '',
                 'slug' => '',
@@ -591,7 +602,7 @@ class AdminResourceMutationService
      */
     private function defaultsForRecord(Model $record): array
     {
-        $defaults = $record instanceof AddressArea || $record instanceof DonationChannel || $record instanceof Inspiration || $record instanceof Report || $record instanceof Series || $record instanceof Space
+        $defaults = $record instanceof AddressArea || $record instanceof DonationChannel || $record instanceof Inspiration || $this->isReportModel($record) || $record instanceof Series || $record instanceof Space
             ? []
             : $this->contributionEntityMutationService->stateFor($record);
 
@@ -650,7 +661,7 @@ class AdminResourceMutationService
             ];
         }
 
-        if ($record instanceof Report) {
+        if ($this->isReportModel($record)) {
             $defaults = $this->reportAdmin->defaultsFor((string) $record->getKey());
         }
 
@@ -766,13 +777,26 @@ class AdminResourceMutationService
     /**
      * @param  array<string, mixed>  $validated
      */
-    private function saveReport(array $validated, ?string $reportId = null): Report
+    private function saveReport(array $validated, ?string $reportId = null): Model
     {
         $snapshot = $this->reportAdmin->save($validated, $reportId);
 
-        return Report::query()
+        return ReportModelClass::resolve()::query()
             ->with(['entity', 'reporter', 'handler', 'media'])
             ->findOrFail($snapshot->id);
+    }
+
+    /**
+     * @param  class-string  $resourceClass
+     */
+    private function isReportResource(string $resourceClass): bool
+    {
+        return $resourceClass::getModel() === ReportModelClass::resolve();
+    }
+
+    private function isReportModel(Model $record): bool
+    {
+        return $record::class === ReportModelClass::resolve();
     }
 
     /**

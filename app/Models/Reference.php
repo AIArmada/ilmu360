@@ -15,6 +15,7 @@ use App\Enums\MemberSubjectType;
 use App\Enums\ReferencePartType;
 use App\Enums\ReferenceType;
 use App\Platform\Auditing\AuditsModelChanges;
+use App\Platform\Reporting\ReportModelClass;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Database\Factories\ReferenceFactory;
@@ -997,11 +998,11 @@ class Reference extends PackageReference implements AuditableContract, Followabl
     }
 
     /**
-     * @return MorphMany<Report, $this>
+     * @return MorphMany<Model, $this>
      */
     public function reports(): MorphMany
     {
-        return $this->morphMany(Report::class, 'entity');
+        return $this->morphMany(ReportModelClass::resolve(), 'entity');
     }
 
     /**

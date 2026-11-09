@@ -25,8 +25,8 @@
     $eventStatusLabel = static fn (object|string $status): string => method_exists($status, 'getLabel')
         ? $status->getLabel()
         : str(class_basename($status))->headline()->toString();
-    $reportEntityMetadata = app(\App\Actions\Reports\ResolveReportEntityMetadataAction::class);
-    $reportCategoryOptions = app(\App\Actions\Reports\ResolveReportCategoryOptionsAction::class);
+    $reportEntityMetadata = app(\App\Features\Reports\Actions\ResolveReportEntityMetadataAction::class);
+    $reportCategoryOptions = app(\App\Features\Reports\Actions\ResolveReportCategoryOptionsAction::class);
 @endphp
 
 @section('title', __('My Contributions') . ' - ' . config('app.name'))

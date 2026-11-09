@@ -44,6 +44,7 @@ use App\Enums\TimingMode;
 use App\Models\Builders\EventBuilder;
 use App\Models\Concerns\HasDonationChannels;
 use App\Platform\Auditing\AuditsModelChanges;
+use App\Platform\Reporting\ReportModelClass;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerOffset;
 use App\Shared\Prayer\PrayerReference;
@@ -2226,11 +2227,11 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
     }
 
     /**
-     * @return MorphMany<Report, $this>
+     * @return MorphMany<Model, $this>
      */
     public function reports(): MorphMany
     {
-        return $this->morphMany(Report::class, 'entity');
+        return $this->morphMany(ReportModelClass::resolve(), 'entity');
     }
 
     /**

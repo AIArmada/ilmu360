@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use App\Features\Reports\Models\Report;
 use App\Models\DonationChannel;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
-use App\Models\Report;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 

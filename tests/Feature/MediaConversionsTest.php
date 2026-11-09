@@ -1,13 +1,13 @@
 <?php
 
 use AIArmada\Persons\Enums\Gender;
+use App\Features\Reports\Models\Report;
 use App\Models\DonationChannel;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\MembershipApplication;
 use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Report;
 use App\Models\Series;
 use App\Models\Venue;
 use App\Support\Media\MediaFileNamer;

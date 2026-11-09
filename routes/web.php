@@ -47,9 +47,7 @@ use App\Livewire\Pages\Events\Refund as EventRefund;
 use App\Livewire\Pages\Membership\ShowInvitation as ShowMemberInvitation;
 use App\Livewire\Pages\MembershipApplications\Create as CreateMembershipApplicationPage;
 use App\Livewire\Pages\MembershipApplications\Index as MembershipApplicationsIndex;
-use App\Livewire\Pages\Reports\Create as CreateReportPage;
 use App\Livewire\Pages\SubmitEvent\Create;
-use App\Shared\Reports\ReportSubjectType;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
@@ -206,10 +204,6 @@ Route::middleware('auth')->group(function () {
     Route::livewire('/sumbangan/{subjectType}/{subjectId}/kemas-kini', SuggestContributionUpdate::class)
         ->whereIn('subjectType', ContributionSubjectType::publicRouteSegments())
         ->name('contributions.suggest-update');
-
-    Route::livewire('/lapor/{subjectType}/{subjectId}', CreateReportPage::class)
-        ->whereIn('subjectType', ReportSubjectType::publicRouteSegments())
-        ->name('reports.create');
 });
 
 Route::middleware('auth')->get('/majlis/{event:slug}/pas/{pass}', EventPassController::class)

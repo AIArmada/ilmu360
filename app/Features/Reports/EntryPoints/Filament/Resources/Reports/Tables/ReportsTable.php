@@ -1,0 +1,90 @@
+<?php
+
+namespace App\Features\Reports\EntryPoints\Filament\Resources\Reports\Tables;
+
+use App\Features\Reports\Actions\DeleteReportsAction;
+use App\Features\Reports\Actions\ResolveReportCategoryOptionsAction;
+use App\Features\Reports\Actions\ResolveReportEntityMetadataAction;
+use App\Features\Reports\Models\Report;
+use App\Features\Reports\Support\ReportPresenter;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Notifications\Notification;
+use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
+
+class ReportsTable
+{
+    public static function configure(Table $table): Table
+    {
+        return $table
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['entity', 'reporter', 'handler']))
+            ->columns([
+                SpatieMediaLibraryImageColumn::make('evidence')
+                    ->label('Evidence')
+                    ->collection('evidence')
+                    ->conversion('thumb')
+                    ->square()
+                    ->size(52),
+                TextColumn::make('entity_type')
+                    ->label('Type')
+                    ->badge()
+                    ->sortable(),
+                TextColumn::make('entity_subject')
+                    ->label('Subject')
+                    ->state(fn (Report $record): string => ReportPresenter::entityTitle($record))
+                    ->url(fn (Report $record): ?string => ReportPresenter::entityAdminUrl($record))
+                    ->openUrlInNewTab(),
+                TextColumn::make('category')
+                    ->badge()
+                    ->sortable(),
+                TextColumn::make('status')
+                    ->badge()
+                    ->sortable(),
+                TextColumn::make('reporter.email')
+                    ->label('Reporter')
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('handler.email')
+                    ->label('Handled by')
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable(),
+            ])
+            ->filters([
+                SelectFilter::make('entity_type')
+                    ->options(app(ResolveReportEntityMetadataAction::class)->options()),
+                SelectFilter::make('category')
+                    ->options(app(ResolveReportCategoryOptionsAction::class)->handle()),
+                SelectFilter::make('status')
+                    ->options([
+                        'open' => 'Open',
+                        'triaged' => 'Triaged',
+                        'resolved' => 'Resolved',
+                        'dismissed' => 'Dismissed',
+                    ]),
+            ])
+            ->recordActions([
+                EditAction::make(),
+            ])
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make()
+                        ->authorizeIndividualRecords('delete')
+                        ->using(function (Collection $records): void {
+                            app(DeleteReportsAction::class)->handle($records->pluck('id')->all());
+
+                            Notification::make()
+                                ->success()
+                                ->title(__('Reports deleted'))
+                                ->send();
+                        }),
+                ]),
+            ]);
+    }
+}

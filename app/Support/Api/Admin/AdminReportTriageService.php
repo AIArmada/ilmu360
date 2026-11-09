@@ -9,12 +9,12 @@ use App\Features\Reports\Api\ReportReader;
 use App\Features\Reports\Api\ReportSnapshot;
 use App\Features\Reports\Api\ReportTriageContract;
 use App\Features\Reports\Api\TriageReportInput;
-use App\Filament\Resources\Reports\ReportResource;
-use App\Models\Report;
 use App\Models\User;
 use App\Support\Api\Admin\Concerns\ProvidesWorkflowResponse;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use RuntimeException;
 
 final readonly class AdminReportTriageService
 {
@@ -45,8 +45,8 @@ final readonly class AdminReportTriageService
 
         return [
             'data' => [
-                'resource' => $this->registry->metadata(ReportResource::class),
-                'record' => $this->registry->serializeRecordDetail(ReportResource::class, $report),
+                'resource' => $this->registry->metadata($this->reportResourceClass()),
+                'record' => $this->registry->serializeRecordDetail($this->reportResourceClass(), $report),
                 'schema' => [
                     'action' => 'triage_report',
                     'method' => 'POST',
@@ -109,13 +109,13 @@ final readonly class AdminReportTriageService
             actor: $actor,
         ));
 
-        return $this->workflowResponse(ReportResource::class, $this->resolveReport($recordKey));
+        return $this->workflowResponse($this->reportResourceClass(), $this->resolveReport($recordKey));
     }
 
     /**
      * @return array<string, array{label: string, description: string, requires_resolution_note: bool}>
      */
-    private function availableActionsFor(Report $report): array
+    private function availableActionsFor(Model $report): array
     {
         $snapshot = $this->reader->find((string) $report->getKey());
 
@@ -124,11 +124,19 @@ final readonly class AdminReportTriageService
         );
     }
 
-    private function resolveReport(string $recordKey): Report
+    private function resolveReport(string $recordKey): Model
     {
-        /** @var Report $report */
-        $report = $this->registry->resolveRecord(ReportResource::class, $recordKey);
+        return $this->registry->resolveRecord($this->reportResourceClass(), $recordKey);
+    }
 
-        return $report;
+    private function reportResourceClass(): string
+    {
+        $resourceClass = $this->registry->resolve('reports');
+
+        if ($resourceClass === null) {
+            throw new RuntimeException('The reports admin resource is not registered.');
+        }
+
+        return $resourceClass;
     }
 }

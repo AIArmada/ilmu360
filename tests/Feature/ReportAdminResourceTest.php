@@ -1,7 +1,7 @@
 <?php
 
+use App\Features\Reports\EntryPoints\Filament\Resources\Reports\ReportResource;
 use App\Filament\Resources\References\ReferenceResource;
-use App\Filament\Resources\Reports\ReportResource;
 use App\Models\DonationChannel;
 use App\Models\Reference;
 use App\Models\User;

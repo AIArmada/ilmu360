@@ -1,9 +1,9 @@
 <?php
 
 use App\Enums\EventVisibility;
+use App\Features\Reports\Models\Report;
 use App\Models\Event;
 use App\Models\Reference;
-use App\Models\Report;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Http\UploadedFile;

@@ -47,7 +47,6 @@ use App\Http\Controllers\Api\NotificationDestinationController;
 use App\Http\Controllers\Api\NotificationMessageController;
 use App\Http\Controllers\Api\NotificationSettingsController;
 use App\Http\Controllers\Api\RegistrationExportController;
-use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\UserRegistrationController;
 use App\Http\Controllers\ShareClaimController;
 use App\Http\Controllers\ShareController;
@@ -255,11 +254,6 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::put('/institution-workspace/{institutionId}/members/{memberId}', [InstitutionWorkspaceController::class, 'updateMemberRole'])->name('institution-workspace.members.update');
         Route::delete('/institution-workspace/{institutionId}/members/{memberId}', [InstitutionWorkspaceController::class, 'removeMember'])->name('institution-workspace.members.destroy');
     });
-
-    // Reports (per documentation B5b) - Rate limited
-    Route::post('/reports', [ReportController::class, 'store'])
-        ->middleware('throttle:reports')
-        ->name('api.reports.store');
 
     // User
     Route::get('/user', CurrentUserController::class)->name('api.user.show');

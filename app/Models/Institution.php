@@ -19,6 +19,7 @@ use App\Enums\MemberSubjectType;
 use App\Models\Concerns\HasDonationChannels;
 use App\Models\Concerns\HasLanguages;
 use App\Platform\Auditing\AuditsModelChanges;
+use App\Platform\Reporting\ReportModelClass;
 use App\Support\Institutions\InstitutionFacilities;
 use Carbon\CarbonInterface;
 use Database\Factories\InstitutionFactory;
@@ -606,11 +607,11 @@ class Institution extends Model implements AuditableContract, Followable, HasMed
     }
 
     /**
-     * @return MorphMany<Report, $this>
+     * @return MorphMany<Model, $this>
      */
     public function reports(): MorphMany
     {
-        return $this->morphMany(Report::class, 'entity');
+        return $this->morphMany(ReportModelClass::resolve(), 'entity');
     }
 
     /**
