@@ -6,19 +6,15 @@
 
 - Current checkpoint: the whole **ilmu360°** application conversion remains incomplete. Branch `refactor`.
 - Latest accepted implementation checkpoint `69244285` — saved-search atomic transport cutover + Phase 2/3 boundaries (EntryPoints, feature Routes, explicit Livewire alias, roots deleted, values/helpers homed). Previous accepted `80f1d408` — attribution orchestration. Full 5d.2c.3b evidence in history.
-- Done: GitHubIssues; Prayer; Saved Searches persistence, core and query/execution boundaries. Remaining Saved Searches work is transport and page composition.
+- Done: GitHubIssues; Prayer; Saved Searches persistence, core, query/execution boundaries, attribution orchestration, identity/helpers, atomic transport/page cutover.
 - Do not reintroduce `User::savedSearches()`, a mutable Event paginator across the execution boundary, duplicate key lists, or obsolete taxonomy/addressing aliases.
-- Latest passing evidence (tests/assertions): 5d.2c.3a affected SavedSearch|SearchFilter **165/606**, Signals **17/95**, docs alignment **1/9**, execute schema **1/20**; PHPStan level 6/ownership, boundaries, scoped Rector and Pint pass. Detailed logs are in history.
+- Latest passing evidence (5d.2c.3b): Boundary 9/64 + Api 35/156 + Page 27/99 + Ownership 5/19 + Wp2Lifecycle 25/225 + UiFeedback 4/13 + string-alias 1/4 green; architecture-check 0 violations; PHPStan level 6 0 errors; Pint clean; 7/7 routes unique uncached + cached with preserved middleware order; route cache cleared. Detailed logs in history.
 
 ## Next action — Feedback/reports (5d.2c.3b complete)
 
 - Saved Searches 5d.2c.3b is done and committed (`69244285`, DeepSeek-implemented + orchestrator-verified, mutual agreement at every commit). Remaining verification: scoped Rector on touched scopes (deferred — run before leaving the area).
 - Next: trace Feedback/reports (conversations, report lifecycle, review and notification adapters) with a fresh bounded DeepSeek research task, then convert in verified slices per stage gates.
-
-- Map the actual existing root `CreateSavedSearchAction` and `DeleteSavedSearchWithAttributionReversalAction` callers, then move their orchestration to the correct owning boundary. Preserve owner/actor/request provenance, outer transactions and rollback, and the API-versus-page/account-deletion distinction. Move real implementation; no pass-through wrappers.
-- Then resolve identity and generic HTTP/UI helpers through public boundaries. Only after those dependencies are complete, cut over HTTP/page entrypoints and routes atomically across the six API actions.
-- Preserve `/carian-tersimpan`, the explicit `pages.saved-searches.index` alias (used by ShareTrackingTest), snapshot binding/policy/auth, payloads/Signals, and cached/uncached behavior. Prove unique registration with same-environment uncached route snapshots.
-- Full transport and whole-app conversion remain open; this stage is not completion.
+- Full whole-app conversion remains open; 5d.2c.3b is complete.
 
 ## Execution ownership and required reading
 
