@@ -37,7 +37,7 @@
 ## Remaining application parts
 
 - [x] Saved Searches: persistence, core, query/execution boundaries, attribution orchestration, identity/generic helpers, atomic transport/page cutover (done `69244285`; evidence in history).
-- [ ] Feedback/reports: conversations, report lifecycle, review and notification adapters.
+- [ ] Feedback/reports: conversations, report lifecycle, review and notification adapters. **E0 ownership map done** (DeepSeek research, orchestrator-accepted): two features — `Feedback` (`app_feedback` + `app_feedback_messages`) and `Reports` (`reports`); `ModerationReview` stays with Events/package (no new moderation table). Hard prerequisites first (Slice 0 seams): identity actor/directory seam, media collection-sync contract, generic signals recorder, admin exclusion marker + Filament registry (unblock Feedback); report subject resolver + escalation contract, Platform auditing, Reports admin/MCP Api (unblock Reports). Temporary global adapters where Directory/Events APIs are pending — not feature exceptions.
 - [ ] Inspirations: app-owned table, Save action, Filament persistence and frontend/API readers.
 - [ ] Identity/accounts: User/social accounts, auth/OAuth/Fortify, account lifecycle/restoration and public identity contracts.
 - [ ] Platform/shared seams: media, geography/addressing, timezone, generic API responses, search and auditing integration; no concrete feature imports in Platform/Shared.
