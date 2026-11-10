@@ -2060,7 +2060,7 @@ class AdminResourceMutationService
             ],
             'institution_id' => ['nullable', 'uuid', 'exists:institutions,id'],
             'venue_id' => ['nullable', 'uuid', 'exists:venues,id'],
-            'submission_country_id' => ['nullable', 'uuid', 'exists:countries,id'],
+            'submission_country_id' => ['nullable', 'uuid', Rule::exists(ModelResolver::countryClass(), 'id')],
             'space_ids' => ['nullable', 'array'],
             'space_ids.*' => ['uuid', 'exists:venue_spaces,id'],
             'persons' => ['nullable', 'array'],

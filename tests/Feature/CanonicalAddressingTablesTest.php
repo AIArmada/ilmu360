@@ -4,9 +4,14 @@ declare(strict_types=1);
 
 use AIArmada\Authz\Models\Role;
 use App\Enums\ContributionSubjectType;
+use App\Enums\EventAgeGroup;
+use App\Enums\EventFormat;
+use App\Enums\EventGenderRestriction;
+use App\Enums\EventVisibility;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
+use App\Shared\Prayer\EventPrayerTime;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
@@ -98,6 +103,33 @@ it('validates admin address references against the configured addressing tables'
                 'administrative_district' => (string) $geo['district']->getKey(),
             ],
         ],
+    ])->assertCreated();
+});
+
+it('validates admin event submission country references against the configured addressing tables', function (): void {
+    $geo = createTestPackageGeography();
+    configureCanonicalAddressingTablesForRegression();
+
+    $institution = Institution::factory()->create([
+        'status' => 'verified',
+    ]);
+
+    Sanctum::actingAs(canonicalAddressingRegressionAdminUser());
+
+    $this->postJson('/api/v1/admin/events', [
+        'title' => 'Majlis Jadual Kanonik Admin',
+        'event_date' => '2026-05-09',
+        'prayer_time' => EventPrayerTime::SelepasMaghrib->value,
+        'timezone' => 'Asia/Kuala_Lumpur',
+        'event_format' => EventFormat::Physical->value,
+        'visibility' => EventVisibility::Public->value,
+        'gender' => EventGenderRestriction::All->value,
+        'age_group' => [EventAgeGroup::AllAges->value],
+        'event_category_ids' => [eventCategoryId('aktiviti_keagamaan')],
+        'primary_organizer_id' => (string) $institution->getKey(),
+        'institution_id' => (string) $institution->getKey(),
+        'submission_country_id' => (string) $geo['country']->getKey(),
+        'status' => 'draft',
     ])->assertCreated();
 });
 
