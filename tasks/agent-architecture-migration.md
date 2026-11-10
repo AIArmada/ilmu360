@@ -5,7 +5,7 @@
 ## Resume here
 
 - Current checkpoint: the whole **ilmu360°** application conversion remains incomplete. Branch `refactor`.
-- Latest accepted implementation checkpoint `7b80c6e4` — D1-S search seam (mutually agreed). Previous landings: `9e453d87` (D1-M), `8bc98be0` (D1-R), `1fb2521c` (D1-C), `c86259fe` (D1-T), `b5467eff` (D1-A). Follow-up queued: hardcoded `exists:countries,id` at AdminResourceMutationService:2063.
+- Latest accepted implementation checkpoint `cf63f822` — D1-P2 auth placement (mutually agreed). Previous landings: `7b80c6e4` (D1-S), `9e453d87` (D1-M), `8bc98be0` (D1-R), `1fb2521c` (D1-C), `c86259fe` (D1-T), `b5467eff` (D1-A). Follow-up queued: hardcoded `exists:countries,id` at AdminResourceMutationService:2063.
 - Done: GitHubIssues; Prayer; Saved Searches (persistence, core, query/execution, attribution, identity/helpers, atomic transport/page cutover); Feedback/Reports (seams, both features, admin/MCP composition); Inspirations; Identity I0–I4 (seams, lifecycle, foundation, Directory/Membership cutover, Events/Moderation/Contributions cutover + fixes).
 - Do not reintroduce `User::savedSearches()`, a mutable Event paginator across the execution boundary, duplicate key lists, or obsolete taxonomy/addressing aliases.
 - Latest passing evidence (Identity I6): strict-review gate — 463 tests / 4,554 assertions green; arch 0/8; Pint clean; PHPStan 6 + ownership 0 errors; routes 749 uncached / 736 cached identical (controller-class-only deltas); payload parity restored (`current_team_id`), `socialite.error` constraint restored, 404 preserved. Detailed logs in history.
