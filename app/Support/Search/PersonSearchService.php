@@ -3,8 +3,10 @@
 namespace App\Support\Search;
 
 use AIArmada\CommerceSupport\Support\StringSimilarity;
-use App\Contracts\PublicDiscoveryAdapter;
 use App\Models\Person;
+use App\Platform\Search\FuzzySearchPolicy;
+use App\Platform\Search\TypesenseHealthCheckService;
+use App\Shared\Discovery\PublicDiscoveryAdapter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;

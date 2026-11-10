@@ -151,6 +151,7 @@ use App\Platform\Media\MediaCollectionSync;
 use App\Platform\Media\MediaFileNamer;
 use App\Platform\Routing\PublicSlugRegistry;
 use App\Platform\Routing\PublicSlugResource;
+use App\Platform\Search\ResourceSearchAdapter;
 use App\Platform\Telemetry\ProductSignalRecorder;
 use App\Policies\AddressAreaPolicy;
 use App\Policies\AddressCountryPolicy;
@@ -247,6 +248,9 @@ use App\Support\Rewards\CompositeRewardSourceFactReader;
 use App\Support\Rewards\DigestRewardGratitudePlanner;
 use App\Support\Rewards\ShareCorrectionKeySource;
 use App\Support\Rewards\VouchersRewardBenefitCouponFulfillment;
+use App\Support\Search\Adapters\InstitutionResourceSearchAdapter;
+use App\Support\Search\Adapters\PersonResourceSearchAdapter;
+use App\Support\Search\Adapters\ReferenceResourceSearchAdapter;
 use App\Support\ShareTracking\GuestClaimLookup;
 use App\Support\ShareTracking\SavedSearchOutcomeRecorder;
 use App\Support\ShareTracking\ShareTrackingSignupRecorder;
@@ -362,6 +366,11 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(UserDateTimeFormatting::class, DefaultUserDateTimeFormatter::class);
         $this->app->bind(MediaCollectionSync::class, EloquentMediaCollectionSync::class);
         $this->app->tag([MediaDirectoryCacheListener::class], MediaChangeListener::TAG);
+        $this->app->tag([
+            PersonResourceSearchAdapter::class,
+            InstitutionResourceSearchAdapter::class,
+            ReferenceResourceSearchAdapter::class,
+        ], ResourceSearchAdapter::TAG);
         $this->app->scoped(SearchFilterLabels::class, DatabaseSearchFilterLabels::class);
         $this->app->bind(Js::class, ContentVersionedJs::class);
 

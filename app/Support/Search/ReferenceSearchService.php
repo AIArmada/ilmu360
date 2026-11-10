@@ -2,12 +2,13 @@
 
 namespace App\Support\Search;
 
-use AIArmada\CommerceSupport\Support\ConnectionDriver;
 use AIArmada\CommerceSupport\Support\StringSimilarity;
 use AIArmada\References\Enums\ReferenceContributorRole;
-use App\Contracts\PublicDiscoveryAdapter;
 use App\Models\Person;
 use App\Models\Reference;
+use App\Platform\Search\FuzzySearchPolicy;
+use App\Platform\Search\TypesenseHealthCheckService;
+use App\Shared\Discovery\PublicDiscoveryAdapter;
 use Illuminate\Contracts\Database\Query\Expression as ExpressionContract;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;

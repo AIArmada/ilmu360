@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Support\Search\FuzzySearchPolicy;
+use App\Platform\Search\FuzzySearchPolicy;
 
 it('keeps the application fuzzy comparability policy explicit', function (): void {
     expect(FuzzySearchPolicy::isComparable('salam', 'salem', 1))->toBeTrue()

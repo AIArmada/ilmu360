@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Support\Api\Member;
 
 use App\Models\User;
+use App\Platform\Search\ResourceSearchDispatcher;
 use App\Support\Api\ApiPagination;
-use App\Support\Api\ResourceSearchDispatcher;
 use App\Support\ApiDocumentation\ApiDocumentationUrlResolver;
 use App\Support\Timezone\UserDateTimeFormatter;
 use Carbon\CarbonInterface;

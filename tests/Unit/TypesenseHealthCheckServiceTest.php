@@ -1,6 +1,6 @@
 <?php
 
-use App\Support\Search\TypesenseHealthCheckService;
+use App\Platform\Search\TypesenseHealthCheckService;
 use Tests\TestCase;
 
 uses(TestCase::class);
