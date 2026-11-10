@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace App\Support\Authz;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Organizations\Models\Organization;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Membership\MembershipDirectory;
+use App\Shared\Membership\MembershipRecord;
 use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -46,14 +48,14 @@ final readonly class MemberDirectorySummary
     /**
      * @return Collection<int, Event>
      */
-    public function events(AccountActor $account): Collection
+    public function events(AccountActor $account, string $orderColumn = 'created_at', string $direction = 'desc'): Collection
     {
         return $this->subjects(
             $account,
             MembershipSubjectType::Event,
             Event::class,
-            'created_at',
-            'desc',
+            $orderColumn,
+            $direction,
             ['institution:id,name', 'venue:id,name'],
         );
     }
@@ -71,6 +73,27 @@ final readonly class MemberDirectorySummary
             'asc',
             ['parentReference.parentReference'],
         );
+    }
+
+    /**
+     * @return Collection<int, Organization>
+     */
+    public function organizations(AccountActor $account): Collection
+    {
+        return $this->subjects(
+            $account,
+            MembershipSubjectType::Organization,
+            Organization::class,
+            'name',
+        );
+    }
+
+    /**
+     * @return list<MembershipRecord>
+     */
+    public function memberships(AccountActor $account, MembershipSubjectType $subjectType): array
+    {
+        return $this->memberships->membershipsFor($account->actorId(), $subjectType);
     }
 
     /**

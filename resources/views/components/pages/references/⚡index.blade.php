@@ -53,11 +53,10 @@ new
                 return;
             }
 
-            $this->followingReferenceIds = $user->followingReferences()
-                ->pluck((new Reference)->qualifyColumn('id'))
-                ->map(static fn (mixed $id): string => (string) $id)
-                ->values()
-                ->all();
+            $this->followingReferenceIds = app(\App\Shared\Engagement\EngagementReader::class)->followedSubjectIds(
+                (string) $user->getKey(),
+                \App\Shared\Engagement\EngagementSubjectType::Reference,
+            );
         }
 
         #[Computed]
@@ -131,7 +130,7 @@ new
         {
             $user = auth()->user();
             $this->followingReferenceIds = $user instanceof User
-                ? OwnerContext::withOwner(null, fn (): array => $user->followingReferences()->pluck((new Reference)->qualifyColumn('id'))->map(static fn (mixed $id): string => (string) $id)->values()->all())
+                ? OwnerContext::withOwner(null, fn (): array => app(\App\Shared\Engagement\EngagementReader::class)->followedSubjectIds((string) $user->getKey(), \App\Shared\Engagement\EngagementSubjectType::Reference))
                 : [];
         }
 

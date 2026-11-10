@@ -132,9 +132,15 @@
                     ->all();
                 $currentLocale = app()->getLocale();
                 $authenticatedUser = auth()->user();
-                $hasInstitutionDashboardAccess = $authenticatedUser?->institutions()->exists() ?? false;
-                $hasPersonDashboardAccess = $authenticatedUser?->persons()->exists() ?? false;
-                $hasOrganizationDashboardAccess = $authenticatedUser?->organizations()->exists() ?? false;
+                $memberships = $authenticatedUser instanceof \App\Shared\Auth\AccountActor
+                    ? app(\App\Shared\Membership\MembershipDirectory::class)
+                    : null;
+                $membershipAccountId = $authenticatedUser instanceof \App\Shared\Auth\AccountActor
+                    ? $authenticatedUser->actorId()
+                    : null;
+                $hasInstitutionDashboardAccess = $memberships !== null && $memberships->subjectIdsFor($membershipAccountId, \App\Shared\Membership\MembershipSubjectType::Institution) !== [];
+                $hasPersonDashboardAccess = $memberships !== null && $memberships->subjectIdsFor($membershipAccountId, \App\Shared\Membership\MembershipSubjectType::Person) !== [];
+                $hasOrganizationDashboardAccess = $memberships !== null && $memberships->subjectIdsFor($membershipAccountId, \App\Shared\Membership\MembershipSubjectType::Organization) !== [];
                 $hasManagedWorkspaceAccess = $hasInstitutionDashboardAccess || $hasPersonDashboardAccess || $hasOrganizationDashboardAccess;
                 $authenticatedUserAvatarUrl = $authenticatedUser !== null
                     ? app(\App\Features\Identity\Api\SocialAccounts::class)->avatarUrl((string) $authenticatedUser->getKey())

@@ -57,7 +57,7 @@ it('renders the reference-inspired user dashboard with a real saved search panel
     $institution = Institution::factory()->create(['name' => 'Masjid Al-Hidayah']);
     $otherInstitution = Institution::factory()->create(['name' => 'Masjid Al-Furqan']);
 
-    $user->institutions()->attach($institution->id);
+    $institution->members()->attach($user->id);
 
     $savedEvent = Event::factory()->for($otherUser, 'owner')->for($institution)->create([
         'title' => 'Saved Dashboard Event',
@@ -353,7 +353,7 @@ it('renders the redesigned dashboard in Malay with reference-inspired sections',
     $institution = Institution::factory()->create();
     $otherUser = User::factory()->create();
 
-    $user->institutions()->attach($institution->id);
+    $institution->members()->attach($user->id);
 
     $goingEvent = Event::factory()->for($otherUser, 'owner')->for($institution)->create([
         'title' => 'Majlis Akan Hadir',
@@ -499,7 +499,7 @@ it('shows seven nearest majlis on the institution dashboard and links to the ded
     $institution = Institution::factory()->create(['name' => 'Masjid Senarai Majlis']);
     $otherInstitution = Institution::factory()->create(['name' => 'Masjid Luar']);
 
-    $user->institutions()->attach($institution->id);
+    $institution->members()->attach($user->id);
 
     foreach (range(1, 8) as $index) {
         Event::factory()->for($institution)->create([
@@ -848,7 +848,7 @@ it('highlights institution events that are waiting approval', function () {
     $user = User::factory()->create();
     $institution = Institution::factory()->create(['name' => 'Masjid Menunggu Kelulusan']);
 
-    $user->institutions()->attach($institution->id);
+    $institution->members()->attach($user->id);
 
     Event::factory()->for($institution)->create([
         'title' => 'Pending Institution Dashboard Event',
@@ -871,7 +871,7 @@ it('filters and sorts institution events on the dedicated event list page', func
     $institution = Institution::factory()->create(['name' => 'Masjid Tapis Majlis']);
     $otherInstitution = Institution::factory()->create();
 
-    $user->institutions()->attach($institution->id);
+    $institution->members()->attach($user->id);
 
     $zuluEvent = Event::factory()->for($institution)->create([
         'title' => 'Zulu Public Event',
@@ -990,7 +990,7 @@ it('paginates institution events on the dedicated event list page', function () 
     $user = User::factory()->create();
     $institution = Institution::factory()->create(['name' => 'Masjid Paginate']);
 
-    $user->institutions()->attach($institution->id);
+    $institution->members()->attach($user->id);
 
     $events = collect();
 
@@ -1047,7 +1047,7 @@ it('clearly distinguishes public and internal institution data for members', fun
     $attendee = User::factory()->create();
 
     $institution = Institution::factory()->create(['name' => 'Masjid Pemisahan Scope']);
-    $user->institutions()->attach($institution->id);
+    $institution->members()->attach($user->id);
 
     $publicEvent = Event::factory()->for($institution)->create([
         'title' => 'Public Institution Event',
@@ -1253,7 +1253,7 @@ it('forbids selecting institutions the user does not belong to', function () {
     $memberInstitution = Institution::factory()->create();
     $nonMemberInstitution = Institution::factory()->create();
 
-    $user->institutions()->attach($memberInstitution->id);
+    $memberInstitution->members()->attach($user->id);
 
     $this->actingAs($user)
         ->get(route('dashboard.institutions', ['institution' => $nonMemberInstitution->id]))

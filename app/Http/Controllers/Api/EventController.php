@@ -29,6 +29,7 @@ use App\Models\Series;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\Signals\ProductSignalsService;
+use App\Shared\Engagement\EngagementReader;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerReference;
 use App\Support\Api\ApiPagination;
@@ -632,9 +633,10 @@ class EventController extends Controller
             ->active()
             ->count();
 
-        $isGoing = $user->goingEvents()
-            ->whereKey($event->getKey())
-            ->exists();
+        $isGoing = app(EngagementReader::class)->isGoingToEvent(
+            (string) $user->getKey(),
+            (string) $event->getKey(),
+        );
 
         return response()->json([
             'data' => EventMeData::fromState(

@@ -6,6 +6,8 @@ use AIArmada\Membership\Enums\MemberRole;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
+use App\Shared\Membership\MembershipDirectory;
+use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -14,6 +16,10 @@ use Illuminate\Validation\ValidationException;
 
 final readonly class PublicSubmissionLockService
 {
+    public function __construct(
+        private MembershipDirectory $memberships,
+    ) {}
+
     public function institutionEligibility(Institution $institution): SubmissionLockEligibilityResult
     {
         /** @var Collection<int, User> $members */
@@ -191,8 +197,11 @@ final readonly class PublicSubmissionLockService
 
     public function syncForUser(User $user): void
     {
+        $accountId = (string) $user->getKey();
+
         /** @var list<string> $institutionIds */
-        $institutionIds = $user->institutions()
+        $institutionIds = Institution::query()
+            ->whereKey($this->memberships->subjectIdsFor($accountId, MembershipSubjectType::Institution))
             ->where('allow_public_event_submission', false)
             ->pluck('institutions.id')
             ->map(fn (mixed $id): string => (string) $id)
@@ -206,7 +215,8 @@ final readonly class PublicSubmissionLockService
         }
 
         /** @var list<string> $personIds */
-        $personIds = $user->persons()
+        $personIds = Person::query()
+            ->whereKey($this->memberships->subjectIdsFor($accountId, MembershipSubjectType::Person))
             ->where('allow_public_event_submission', false)
             ->pluck('persons.id')
             ->map(fn (mixed $id): string => (string) $id)

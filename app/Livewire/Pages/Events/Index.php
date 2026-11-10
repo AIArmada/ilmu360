@@ -34,6 +34,7 @@ use App\Platform\Location\LocationLevelLabels;
 use App\Services\EventSearchService;
 use App\Services\PublicScheduleDiscoveryService;
 use App\Services\ShareTrackingService;
+use App\Shared\Engagement\EngagementReader;
 use App\Shared\Location\VisitorCountryResolving;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Support\Auth\IntendedRedirect;
@@ -1810,10 +1811,8 @@ class Index extends Component implements HasForms
             return $this->savedEventIdsForFilterCache = [];
         }
 
-        return $this->savedEventIdsForFilterCache = $user->savedEventIds()
-            ->map(static fn (mixed $eventId): string => (string) $eventId)
-            ->values()
-            ->all();
+        return $this->savedEventIdsForFilterCache = app(EngagementReader::class)
+            ->savedEventIds((string) $user->getKey());
     }
 
     /**
@@ -1831,11 +1830,8 @@ class Index extends Component implements HasForms
             return $this->goingEventIdsForFilterCache = [];
         }
 
-        return $this->goingEventIdsForFilterCache = $user->goingEvents()
-            ->pluck('events.id')
-            ->map(static fn (mixed $eventId): string => (string) $eventId)
-            ->values()
-            ->all();
+        return $this->goingEventIdsForFilterCache = app(EngagementReader::class)
+            ->goingEventIds((string) $user->getKey());
     }
 
     /**

@@ -29,14 +29,11 @@ class AppConsentResolver implements ConsentResolver
             return new ConsentDecisionData(consented: true);
         }
 
-        if (! method_exists($recipient, 'notificationDestinations')) {
-            return new ConsentDecisionData(consented: true);
-        }
-
-        $hasActiveDestination = $recipient->notificationDestinations()
-            ->where('channel', $appChannel->value)
-            ->where('status', 'active')
-            ->exists();
+        $hasActiveDestination = app(AccountCommunications::class)->hasActiveDestinationForRecipient(
+            $recipient->getMorphClass(),
+            $recipientId,
+            $appChannel->value,
+        );
 
         return new ConsentDecisionData(
             consented: $hasActiveDestination,

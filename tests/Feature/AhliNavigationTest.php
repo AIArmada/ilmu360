@@ -17,7 +17,7 @@ it('removes the ahli workspace wrapper and makes events the ahli navigation anch
     $user = User::factory()->create();
     $institution = Institution::factory()->create();
 
-    $user->institutions()->attach($institution);
+    $institution->members()->attach($user->id);
 
     $this->actingAs($user)
         ->get(AhliDashboard::getUrl(panel: 'ahli'))

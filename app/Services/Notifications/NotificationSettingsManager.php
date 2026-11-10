@@ -12,6 +12,7 @@ use App\Enums\NotificationFamily;
 use App\Enums\NotificationRuleScope;
 use App\Enums\NotificationTrigger;
 use App\Models\User;
+use App\Support\Communications\AccountCommunications;
 use App\Support\Notifications\NotificationCatalog;
 use App\Support\Notifications\ResolvedNotificationPolicy;
 use Carbon\CarbonImmutable;
@@ -21,6 +22,10 @@ use Illuminate\Support\Collection;
 
 class NotificationSettingsManager
 {
+    public function __construct(
+        private readonly AccountCommunications $communications,
+    ) {}
+
     public function ensureUserConfiguration(User $user): void
     {
         $baseMatch = [
@@ -114,7 +119,7 @@ class NotificationSettingsManager
         $this->ensureUserConfiguration($user);
 
         /** @var CommunicationPreference $setting */
-        $setting = $user->notificationSetting()->firstOrFail();
+        $setting = $this->communications->basePreferenceQuery((string) $user->getKey())->firstOrFail();
         /** @var Collection<int, CommunicationPreference> $rules */
         $rules = $this->scopePreferencesFor($user)->get();
 
@@ -198,7 +203,7 @@ class NotificationSettingsManager
         $this->ensureUserConfiguration($user);
 
         /** @var CommunicationPreference $setting */
-        $setting = $user->notificationSetting()->firstOrFail();
+        $setting = $this->communications->basePreferenceQuery((string) $user->getKey())->firstOrFail();
 
         /** @var array<string, mixed> $settingsInput */
         $settingsInput = Arr::get($payload, 'settings', []);
@@ -278,7 +283,7 @@ class NotificationSettingsManager
         $this->ensureUserConfiguration($user);
 
         /** @var CommunicationPreference $setting */
-        $setting = $user->notificationSetting()->firstOrFail();
+        $setting = $this->communications->basePreferenceQuery((string) $user->getKey())->firstOrFail();
         $triggerDefinition = NotificationCatalog::triggerDefinition($trigger);
         $familyDefinition = NotificationCatalog::familyDefinition($triggerDefinition['family']);
 
@@ -393,7 +398,7 @@ class NotificationSettingsManager
     {
         $this->syncSystemDestinations($user);
 
-        return $user->notificationDestinations()
+        return $this->communications->destinationsQuery((string) $user->getKey())
             ->where('channel', $channel->value)
             ->where('status', 'active')
             ->orderByDesc('is_primary')
@@ -410,7 +415,7 @@ class NotificationSettingsManager
         $emailVerifiedAt = $this->userAttribute($user, 'email_verified_at');
 
         /** @var Collection<int, CommunicationDestination> $destinations */
-        $destinations = $user->notificationDestinations()->get();
+        $destinations = $this->communications->destinationsQuery((string) $user->getKey())->get();
 
         return [
             'email' => [

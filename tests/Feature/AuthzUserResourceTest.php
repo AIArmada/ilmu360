@@ -151,8 +151,8 @@ it('shows and applies protected scoped role overrides from the authz user edit p
     expect($ownerRoleId)->toBeString()
         ->and($adminRoleId)->toBeString();
 
-    Authz::withScope(app(MemberRoleScopes::class)->institution(), function () use ($targetUser): void {
-        setPermissionsTeamId($targetUser->institutions()->firstOrFail()->getKey());
+    Authz::withScope(app(MemberRoleScopes::class)->institution(), function () use ($targetUser, $institution): void {
+        setPermissionsTeamId($institution->getKey());
         $targetUser->syncRoles(['editor']);
     }, $targetUser);
 
@@ -306,7 +306,7 @@ it('shows authz user activity memberships follows submissions and saved searches
 
     app(EngagementManager::class)->bookmark($targetUser, $savedEvent);
     $targetUser->respond($goingEvent, 'going');
-    $targetUser->memberEvents()->attach($memberEvent->id, ['joined_at' => now()]);
+    $memberEvent->members()->attach($targetUser->id, ['joined_at' => now()]);
     $memberInstitution->members()->syncWithoutDetaching([$targetUser->id]);
     $memberPerson->members()->syncWithoutDetaching([$targetUser->id]);
 

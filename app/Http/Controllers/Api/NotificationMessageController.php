@@ -11,6 +11,7 @@ use App\Data\Api\Notification\NotificationReadAllResultData;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\Api\ApiPagination;
+use App\Support\Communications\AccountCommunications;
 use App\Support\Notifications\NotificationCatalog;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
@@ -36,7 +37,9 @@ class NotificationMessageController extends Controller
         $status = $request->string('status', 'unread')->toString();
         $perPage = ApiPagination::normalizePerPage($request->integer('per_page', 20), default: 20, max: 100);
 
-        $query = $user->notificationInboxes()
+        $communications = app(AccountCommunications::class);
+
+        $query = $communications->inboxQuery((string) $user->getKey())
             ->whereNull('archived_at')
             ->when($family !== 'all' && array_key_exists($family, NotificationCatalog::families()), fn ($builder) => $builder->where('family', $family))
             ->when($status === 'unread', fn ($builder) => $builder->whereNull('read_at'))
@@ -45,7 +48,7 @@ class NotificationMessageController extends Controller
         $notifications = $query->paginate($perPage);
         $unreadCount = $status === 'unread'
             ? $notifications->total()
-            : $user->notificationInboxes()->whereNull('archived_at')->whereNull('read_at')->count();
+            : $communications->inboxQuery((string) $user->getKey())->whereNull('archived_at')->whereNull('read_at')->count();
 
         return response()->json([
             'data' => collect($notifications->items())

@@ -14,6 +14,7 @@ use App\Notifications\EventEscalationNotification;
 use App\Notifications\EventSubmittedNotification;
 use App\Notifications\Membership\MemberInvitationNotification;
 use App\Services\Notifications\NotificationSettingsManager;
+use App\Support\Communications\AccountCommunications;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -27,13 +28,13 @@ it('routes mail notifications through the user email address and tracks destinat
     app(NotificationSettingsManager::class)->syncSystemDestinations($user);
 
     expect($user->routeNotificationForMail(new WelcomeNotification))->toBe('routing@example.test')
-        ->and($user->notificationDestinations()->where('channel', 'email')->value('status'))->toBe('inactive');
+        ->and(app(AccountCommunications::class)->destinationsQuery((string) $user->getKey())->where('channel', 'email')->value('status'))->toBe('inactive');
 
     $user->forceFill(['email_verified_at' => now()])->save();
     app(NotificationSettingsManager::class)->syncSystemDestinations($user->fresh() ?? $user);
 
     expect(($user->fresh() ?? $user)->routeNotificationForMail(new WelcomeNotification))->toBe('routing@example.test')
-        ->and(($user->fresh() ?? $user)->notificationDestinations()->where('channel', 'email')->value('status'))->toBe('active');
+        ->and(app(AccountCommunications::class)->destinationsQuery((string) ($user->fresh() ?? $user)->getKey())->where('channel', 'email')->value('status'))->toBe('active');
 });
 
 it('keeps the mail-capable notifications on the notifications-mail queue', function () {

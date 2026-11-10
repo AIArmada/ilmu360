@@ -5,6 +5,8 @@ use AIArmada\Engagement\Models\Follow;
 use App\Features\Inspirations\Models\Inspiration;
 use App\Models\Person;
 use App\Models\User;
+use App\Shared\Engagement\EngagementReader;
+use App\Shared\Engagement\EngagementSubjectType;
 use Livewire\Livewire;
 
 it('allows an authenticated user to follow a person', function () {
@@ -85,8 +87,13 @@ it('returns correct followingPersons relationship', function () {
     OwnerContext::withOwner(null, fn () => $user->follow($person1));
     OwnerContext::withOwner(null, fn () => $user->follow($person2));
 
-    expect($user->followingPersons)->toHaveCount(2);
-    expect($user->followingPersons->pluck('id')->toArray())->toContain($person1->id, $person2->id);
+    $ids = app(EngagementReader::class)->followedSubjectIds(
+        (string) $user->getKey(),
+        EngagementSubjectType::Person,
+    );
+
+    expect($ids)->toHaveCount(2);
+    expect($ids)->toContain((string) $person1->id, (string) $person2->id);
 });
 
 it('returns correct followers relationship on person', function () {

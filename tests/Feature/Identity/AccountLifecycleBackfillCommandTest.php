@@ -55,6 +55,15 @@ function legacyDeletedUserRow(string $userId): DeletedModel
     $legacySnapshot['contribution_request_proposer_ids'] = $snapshot['contributions']['proposer_ids'];
     $legacySnapshot['contribution_request_reviewer_ids'] = $snapshot['contributions']['reviewer_ids'];
 
+    foreach (['user_venue', 'event_saves', 'event_attendees', 'followings'] as $key) {
+        $legacySnapshot[$key] = $snapshot['engagement'][$key];
+    }
+
+    $legacySnapshot['ai_usage_logs'] = $snapshot['ai']['ai_usage_logs'];
+    $legacySnapshot['notification_setting'] = $snapshot['communications']['notification_setting'];
+    $legacySnapshot['notification_destinations'] = $snapshot['communications']['notification_destinations'];
+    $legacySnapshot['notification_inboxes'] = $snapshot['communications']['notification_inboxes'];
+
     $values['deleted_relations_snapshot'] = $legacySnapshot;
     $values['deleted_affiliate_tracking_snapshot'] = $snapshot['share_tracking'];
 
@@ -122,6 +131,9 @@ it('converts legacy snapshots into the contributor-keyed shape idempotently', fu
             'events',
             'moderation',
             'contributions',
+            'engagement',
+            'ai',
+            'communications',
             'legacy',
             'share_tracking',
         ])
@@ -152,6 +164,14 @@ it('converts legacy snapshots into the contributor-keyed shape idempotently', fu
             'moderation_review_ids',
             'contribution_request_proposer_ids',
             'contribution_request_reviewer_ids',
+            'user_venue',
+            'event_saves',
+            'event_attendees',
+            'followings',
+            'ai_usage_logs',
+            'notification_setting',
+            'notification_destinations',
+            'notification_inboxes',
         ])
         ->and($snapshot['reports'])->toHaveKeys(['report_ids', 'handled_report_ids'])
         ->and($snapshot['identity'])->toHaveKey('social_accounts')
@@ -160,7 +180,10 @@ it('converts legacy snapshots into the contributor-keyed shape idempotently', fu
         ->and($snapshot['directory'])->toHaveKeys(['verified_donation_channel_ids', 'verified_person_ids', 'verified_institution_ids', 'verified_reference_ids', 'verified_venue_ids'])
         ->and($snapshot['events'])->toHaveKeys(['owned_event_ids', 'submitted_event_ids', 'event_submission_ids', 'verified_event_checkin_ids', 'registrations', 'event_checkins'])
         ->and($snapshot['moderation'])->toHaveKey('moderation_review_ids')
-        ->and($snapshot['contributions'])->toHaveKeys(['proposer_ids', 'reviewer_ids']);
+        ->and($snapshot['contributions'])->toHaveKeys(['proposer_ids', 'reviewer_ids'])
+        ->and($snapshot['engagement'])->toHaveKeys(['user_venue', 'event_saves', 'event_attendees', 'followings'])
+        ->and($snapshot['ai'])->toHaveKey('ai_usage_logs')
+        ->and($snapshot['communications'])->toHaveKeys(['notification_setting', 'notification_destinations', 'notification_inboxes']);
 
     $this->artisan('identity:backfill-account-lifecycle-snapshots')
         ->expectsOutputToContain('Already migrated:          1')
@@ -186,7 +209,7 @@ it('adds membership and directory keys to snapshots captured before I3', functio
     $institution = Institution::factory()->create();
     $donationChannel = DonationChannel::factory()->create(['verified_by' => $user->id]);
 
-    $user->institutions()->attach($institution->id, ['joined_at' => now()]);
+    $institution->members()->attach($user->id, ['joined_at' => now()]);
     $user->delete();
 
     $deleted = DeletedModel::query()

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Support\Communications\AccountCommunications;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -21,7 +22,7 @@ class LocaleController extends Controller
         $user = $request->user();
 
         if ($user instanceof User) {
-            $user->notificationSetting()->update(['locale' => $locale]);
+            app(AccountCommunications::class)->updateBasePreference((string) $user->getKey(), ['locale' => $locale]);
         }
 
         return redirect()->back();

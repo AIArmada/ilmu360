@@ -2,6 +2,8 @@
 
 use App\Models\Event;
 use App\Models\Person;
+use App\Shared\Engagement\EngagementReader;
+use App\Shared\Engagement\EngagementSubjectType;
 use Illuminate\Database\Eloquent\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -17,7 +19,14 @@ new class extends Component {
             return null;
         }
 
-        return $user->goingEvents()
+        $ids = app(EngagementReader::class)->goingEventIds((string) $user->getKey());
+
+        if ($ids === []) {
+            return null;
+        }
+
+        return Event::query()
+            ->whereKey($ids)
             ->with(['institution', 'venue', 'persons'])
             ->where('starts_at', '>=', now())
             ->orderBy('starts_at')
@@ -35,7 +44,10 @@ new class extends Component {
 
         $nextId = $this->nextGoingEvent?->id;
 
-        return $user->goingEvents()
+        $ids = app(EngagementReader::class)->goingEventIds((string) $user->getKey());
+
+        return Event::query()
+            ->whereKey($ids)
             ->with(['institution', 'venue', 'persons'])
             ->where('starts_at', '>=', now())
             ->when($nextId, fn($q) => $q->where('events.id', '!=', $nextId))
@@ -53,9 +65,9 @@ new class extends Component {
             return new Collection();
         }
 
-        $followedPersonIds = $user->followingPersons()->pluck('persons.id');
+        $followedPersonIds = app(EngagementReader::class)->followedSubjectIds((string) $user->getKey(), EngagementSubjectType::Person);
 
-        if ($followedPersonIds->isEmpty()) {
+        if ($followedPersonIds === []) {
             return new Collection();
         }
 
@@ -77,7 +89,10 @@ new class extends Component {
             return new Collection();
         }
 
-        return $user->savedEvents()
+        $ids = app(EngagementReader::class)->savedEventIds((string) $user->getKey());
+
+        return Event::query()
+            ->whereKey($ids)
             ->with(['institution', 'venue', 'persons'])
             ->where('starts_at', '>=', now())
             ->orderBy('starts_at')
@@ -94,10 +109,19 @@ new class extends Component {
             return ['going' => 0, 'saved' => 0, 'following' => 0];
         }
 
+        $engagement = app(EngagementReader::class);
+        $accountId = (string) $user->getKey();
+
         return [
-            'going' => $user->goingEvents()->where('starts_at', '>=', now())->count(),
-            'saved' => $user->savedEvents()->where('starts_at', '>=', now())->count(),
-            'following' => $user->followingPersons()->count(),
+            'going' => Event::query()
+                ->whereKey($engagement->goingEventIds($accountId))
+                ->where('starts_at', '>=', now())
+                ->count(),
+            'saved' => Event::query()
+                ->whereKey($engagement->savedEventIds($accountId))
+                ->where('starts_at', '>=', now())
+                ->count(),
+            'following' => count($engagement->followedSubjectIds($accountId, EngagementSubjectType::Person)),
         ];
     }
 };

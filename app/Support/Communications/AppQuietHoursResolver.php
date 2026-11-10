@@ -92,10 +92,10 @@ class AppQuietHoursResolver implements QuietHoursResolver
 
         $user = $modelClass::query()->find($recipientId);
 
-        if ($user === null || ! method_exists($user, 'notificationSetting')) {
+        if ($user === null) {
             return null;
         }
 
-        return $user->notificationSetting()->first();
+        return app(AccountCommunications::class)->basePreferenceForRecipient($user->getMorphClass(), $recipientId);
     }
 }

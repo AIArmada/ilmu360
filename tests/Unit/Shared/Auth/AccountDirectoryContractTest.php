@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\Communications\Models\CommunicationPreference;
 use App\Models\User;
 use App\Shared\Auth\AccountDirectory;
 use App\Shared\Auth\AccountProfile;
@@ -19,7 +20,12 @@ it('returns an immutable profile for a known account', function (): void {
         'phone_verified_at' => null,
     ]);
 
-    $user->notificationSetting()->create([
+    CommunicationPreference::query()->forceCreate([
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->id,
+        'channel' => null,
+        'category' => null,
+        'scope_type' => null,
         'locale' => 'en',
         'timezone' => 'Asia/Kuala_Lumpur',
         'enabled_at' => now(),

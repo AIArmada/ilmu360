@@ -10,10 +10,11 @@ use App\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\User;
+use App\Shared\Membership\MembershipDirectory;
+use App\Shared\Membership\MembershipSubjectType;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -24,6 +25,10 @@ use RuntimeException;
 #[Group('InstitutionWorkspace', 'Authenticated institution workspace endpoints for member-management and institution-scoped event listings.')]
 class InstitutionWorkspaceController extends FrontendController
 {
+    public function __construct(
+        private readonly MembershipDirectory $memberships,
+    ) {}
+
     #[Endpoint(
         title: 'Get institution workspace',
         description: 'Returns the current user\'s institution workspace payload, including accessible institutions, the selected institution, events, members, and role options. When `institution_id` is omitted, the first accessible institution is selected automatically.',
@@ -267,11 +272,13 @@ class InstitutionWorkspaceController extends FrontendController
     }
 
     /**
-     * @return BelongsToMany<Institution, User>
+     * @return Builder<Institution>
      */
-    private function availableInstitutionsQuery(User $user): BelongsToMany
+    private function availableInstitutionsQuery(User $user): Builder
     {
-        return $user->institutions();
+        return Institution::query()->whereKey(
+            $this->memberships->subjectIdsFor((string) $user->getKey(), MembershipSubjectType::Institution),
+        );
     }
 
     private function normalizeInstitutionId(mixed $institutionId): ?string
@@ -327,17 +334,21 @@ class InstitutionWorkspaceController extends FrontendController
 
     private function userHasInstitutionManagementRole(User $user): bool
     {
-        return $user->institutions()
-            ->wherePivotIn('role', [MemberRole::Owner->value, MemberRole::Admin->value])
-            ->exists();
+        return $this->memberships->hasAnyMembershipRole(
+            (string) $user->getKey(),
+            MembershipSubjectType::Institution,
+            [MemberRole::Owner->value, MemberRole::Admin->value],
+        );
     }
 
     private function memberIsOwner(User $user): bool
     {
         if (! isset($user->pivot) || ! $user->pivot->role) {
-            return $user->institutions()
-                ->wherePivot('role', MemberRole::Owner->value)
-                ->exists();
+            return $this->memberships->hasAnyMembershipRole(
+                (string) $user->getKey(),
+                MembershipSubjectType::Institution,
+                [MemberRole::Owner->value],
+            );
         }
 
         return $user->pivot->role === MemberRole::Owner->value;

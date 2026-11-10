@@ -51,6 +51,9 @@ it('stores migrated lifecycle state under contributor keys', function (): void {
             'events',
             'moderation',
             'contributions',
+            'engagement',
+            'ai',
+            'communications',
             'legacy',
             'share_tracking',
         ])
@@ -72,7 +75,10 @@ it('stores migrated lifecycle state under contributor keys', function (): void {
         ->and($snapshot['reports']['handled_report_ids'])->toContain((string) $report->id)
         ->and($snapshot['saved_searches']['records'])->toHaveCount(1)
         ->and($snapshot['saved_searches']['records'][0]['id'])->toBe($savedSearch->id)
-        ->and($snapshot['legacy'])->toHaveKey('event_saves')
+        ->and($snapshot['engagement'])->toHaveKeys(['user_venue', 'event_saves', 'event_attendees', 'followings'])
+        ->and($snapshot['ai'])->toHaveKey('ai_usage_logs')
+        ->and($snapshot['communications'])->toHaveKeys(['notification_setting', 'notification_destinations', 'notification_inboxes'])
+        ->and($snapshot['legacy'])->toHaveKeys(['model_has_roles', 'model_has_permissions'])
         ->and(DB::table('user_prayer_institutions')->where('user_id', $userId)->count())->toBe(1);
 
     User::restoreDeletedUser($userId);
@@ -84,5 +90,5 @@ it('orders tagged contributors by priority and key', function (): void {
     $user = User::factory()->create();
 
     expect(array_keys(app(AccountLifecycle::class)->snapshot((string) $user->id)))
-        ->toBe(['identity', 'reports', 'saved_searches', 'membership', 'directory', 'events', 'contributions', 'moderation']);
+        ->toBe(['identity', 'reports', 'saved_searches', 'membership', 'directory', 'events', 'contributions', 'moderation', 'engagement', 'ai', 'communications']);
 });

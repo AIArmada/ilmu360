@@ -33,6 +33,7 @@ use App\Models\Reference;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\ShareTrackingService;
+use App\Shared\Engagement\EngagementReader;
 use App\States\EventStatus\Approved;
 use App\States\EventStatus\Cancelled;
 use App\States\EventStatus\EventStatus;
@@ -1072,7 +1073,10 @@ class Show extends Component
         }
 
         $this->isSaved = Bookmark::forBookmarker($user)->forBookmarkable($this->event)->active()->exists();
-        $this->isGoing = $user->goingEvents()->whereKey($this->event->getKey())->exists();
+        $this->isGoing = app(EngagementReader::class)->isGoingToEvent(
+            (string) $user->getKey(),
+            (string) $this->event->getKey(),
+        );
         $this->isCheckedIn = EventCheckin::query()
             ->where('event_id', $this->event->id)
             ->where('attendee_id', $user->id)

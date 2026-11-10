@@ -344,9 +344,9 @@ it('restores a deleted user together with key relationships and child records', 
     $venueJoinedAt = now()->subDays(3)->startOfSecond();
     $memberJoinedAt = now()->subDays(2)->startOfSecond();
 
-    $user->institutions()->attach($institution->id, ['joined_at' => $institutionJoinedAt]);
-    $user->persons()->attach($person->id, ['joined_at' => $personJoinedAt]);
-    $user->references()->attach($reference->id, ['joined_at' => $referenceJoinedAt]);
+    $institution->members()->attach($user->id, ['joined_at' => $institutionJoinedAt]);
+    $person->members()->attach($user->id, ['joined_at' => $personJoinedAt]);
+    $reference->members()->attach($user->id, ['joined_at' => $referenceJoinedAt]);
     OwnerContext::withOwner(null, function () use ($user, $venue, $venueJoinedAt): void {
         Follow::query()->create([
             'follower_type' => $user->getMorphClass(),
@@ -390,7 +390,7 @@ it('restores a deleted user together with key relationships and child records', 
     });
     app(EngagementManager::class)->bookmark($user, $sharedEvent);
     $user->respond($sharedEvent, 'going');
-    $user->memberEvents()->attach($sharedEvent->id, ['joined_at' => $memberJoinedAt]);
+    $sharedEvent->members()->attach($user->id, ['joined_at' => $memberJoinedAt]);
 
     $user->delete();
 
@@ -721,7 +721,7 @@ it('restores global and membership-scoped authorization rows from their owners',
         $user->assignRole('restore-global-role');
     }, $user);
 
-    $user->institutions()->attach($institution->id, ['role' => 'admin']);
+    $institution->members()->attach($user->id, ['role' => 'admin']);
 
     Authz::withScope($institution, function () use ($user, $institution): void {
         setPermissionsTeamId($institution->getKey());
@@ -785,7 +785,7 @@ it('re-syncs submission eligibility after restoring memberships', function (): v
     $user = User::factory()->create(['phone_verified_at' => null]);
     $institution = Institution::factory()->create(['allow_public_event_submission' => false]);
 
-    $user->institutions()->attach($institution->id, ['role' => 'owner']);
+    $institution->members()->attach($user->id, ['role' => 'owner']);
 
     $user->delete();
     User::restoreDeletedUser($user->id);
@@ -855,9 +855,9 @@ it('restores an api self-deleted user from the deleted users admin page', functi
     $venueJoinedAt = now()->subHours(18)->startOfSecond();
     $eventJoinedAt = now()->subHours(12)->startOfSecond();
 
-    $user->institutions()->attach($institution->id, ['joined_at' => $institutionJoinedAt]);
-    $user->persons()->attach($person->id, ['joined_at' => $personJoinedAt]);
-    $user->references()->attach($reference->id, ['joined_at' => $referenceJoinedAt]);
+    $institution->members()->attach($user->id, ['joined_at' => $institutionJoinedAt]);
+    $person->members()->attach($user->id, ['joined_at' => $personJoinedAt]);
+    $reference->members()->attach($user->id, ['joined_at' => $referenceJoinedAt]);
     OwnerContext::withOwner(null, function () use ($user, $venue, $venueJoinedAt): void {
         Follow::query()->create([
             'follower_type' => $user->getMorphClass(),
@@ -870,7 +870,7 @@ it('restores an api self-deleted user from the deleted users admin page', functi
     });
     app(EngagementManager::class)->bookmark($user, $sharedEvent);
     $user->respond($sharedEvent, 'going');
-    $user->memberEvents()->attach($sharedEvent->id, ['joined_at' => $eventJoinedAt]);
+    $sharedEvent->members()->attach($user->id, ['joined_at' => $eventJoinedAt]);
 
     $registration = Registration::factory()
         ->forRegistrant($user)

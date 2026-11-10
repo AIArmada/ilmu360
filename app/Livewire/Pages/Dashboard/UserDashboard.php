@@ -20,6 +20,10 @@ use App\Models\Registration;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
 use App\Services\ShareTrackingAnalyticsService;
+use App\Shared\Engagement\EngagementReader;
+use App\Shared\Engagement\EngagementSubjectType;
+use App\Shared\Events\AccountEventFacts;
+use App\Support\Communications\AccountCommunications;
 use App\Support\Rewards\PublishedRewardProgramVersionResolver;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use App\Support\Timezone\UserDateTimeFormatter;
@@ -178,11 +182,13 @@ class UserDashboard extends Component
     #[Computed]
     public function followingInstitutions(): Collection
     {
+        $user = $this->user();
+        $ids = app(EngagementReader::class)->followedSubjectIds((string) $user->getKey(), EngagementSubjectType::Institution);
+
         /** @var Collection<int, Institution> $institutions */
-        $institutions = $this->user()->followingInstitutions()
-            ->with(['media'])
-            ->orderBy('name')
-            ->get();
+        $institutions = $ids === []
+            ? new Collection
+            : Institution::query()->whereKey($ids)->with(['media'])->orderBy('name')->get();
 
         return $institutions;
     }
@@ -193,11 +199,13 @@ class UserDashboard extends Component
     #[Computed]
     public function followingReferences(): Collection
     {
+        $user = $this->user();
+        $ids = app(EngagementReader::class)->followedSubjectIds((string) $user->getKey(), EngagementSubjectType::Reference);
+
         /** @var Collection<int, Reference> $references */
-        $references = $this->user()->followingReferences()
-            ->with(['media'])
-            ->orderBy('title')
-            ->get();
+        $references = $ids === []
+            ? new Collection
+            : Reference::query()->whereKey($ids)->with(['media'])->orderBy('title')->get();
 
         return $references;
     }
@@ -208,11 +216,13 @@ class UserDashboard extends Component
     #[Computed]
     public function followingPersons(): Collection
     {
+        $user = $this->user();
+        $ids = app(EngagementReader::class)->followedSubjectIds((string) $user->getKey(), EngagementSubjectType::Person);
+
         /** @var Collection<int, Person> $persons */
-        $persons = $this->user()->followingPersons()
-            ->with(['media'])
-            ->orderBy('name')
-            ->get();
+        $persons = $ids === []
+            ? new Collection
+            : Person::query()->whereKey($ids)->with(['media'])->orderBy('name')->get();
 
         return $persons;
     }
@@ -234,8 +244,7 @@ class UserDashboard extends Component
     #[Computed]
     public function recentNotifications(): Collection
     {
-        return $this->user()
-            ->notificationInboxes()
+        return app(AccountCommunications::class)->inboxQuery((string) $this->user()->getKey())
             ->whereNull('archived_at')
             ->limit(3)
             ->get();
@@ -244,11 +253,7 @@ class UserDashboard extends Component
     #[Computed]
     public function unreadNotificationCount(): int
     {
-        return $this->user()
-            ->notificationInboxes()
-            ->whereNull('archived_at')
-            ->whereNull('read_at')
-            ->count();
+        return app(AccountCommunications::class)->unreadInboxCount((string) $this->user()->getKey());
     }
 
     #[Computed]
@@ -330,8 +335,8 @@ class UserDashboard extends Component
     public function registeredEvents(): Collection
     {
         /** @var Collection<int, Registration> $registrations */
-        $registrations = $this->user()
-            ->registrations()
+        $registrations = Registration::query()
+            ->whereKey(app(AccountEventFacts::class)->registrationIds((string) $this->user()->getKey()))
             ->active()
             ->with([
                 'event' => fn ($query) => $query->with($this->plannerEventRelations()),
@@ -634,7 +639,10 @@ class UserDashboard extends Component
      */
     protected function savedEventsQuery(User $user): Builder
     {
-        return $user->savedEvents()
+        $ids = app(EngagementReader::class)->savedEventIds((string) $user->getKey());
+
+        return Event::query()
+            ->whereKey($ids)
             ->active()
             ->orderBy('starts_at');
     }

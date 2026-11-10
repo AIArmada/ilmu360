@@ -6,6 +6,7 @@ namespace App\Mcp\Tools\Member;
 
 use AIArmada\Membership\Actions\CancelMembershipApplicationAction;
 use App\Models\MembershipApplication;
+use App\Shared\Membership\MembershipApplicationReader;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
 use Laravel\Mcp\Request;
@@ -39,8 +40,15 @@ class MemberCancelMembershipApplicationTool extends AbstractMemberTool
                 'application_id' => ['required', 'string'],
             ]);
 
-            $application = $actor->membershipApplications()
-                ->whereKey((string) $validated['application_id'])
+            $applicationId = app(MembershipApplicationReader::class)->findApplicationIdForApplicant(
+                (string) $actor->getKey(),
+                (string) $validated['application_id'],
+            );
+
+            abort_unless($applicationId !== null, 404);
+
+            $application = MembershipApplication::query()
+                ->whereKey($applicationId)
                 ->first();
 
             abort_unless($application instanceof MembershipApplication, 404);

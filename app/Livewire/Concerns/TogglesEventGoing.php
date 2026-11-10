@@ -10,6 +10,7 @@ use App\Enums\ShareOutcomeType;
 use App\Models\Event;
 use App\Models\User;
 use App\Services\ShareTrackingService;
+use App\Shared\Engagement\EngagementReader;
 use App\Support\Auth\IntendedRedirect;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Carbon\CarbonInterface;
@@ -44,7 +45,10 @@ trait TogglesEventGoing
             return;
         }
 
-        $isGoing = $user->goingEvents()->whereKey($event->getKey())->exists();
+        $isGoing = app(EngagementReader::class)->isGoingToEvent(
+            (string) $user->getKey(),
+            (string) $event->getKey(),
+        );
 
         if ($isGoing) {
             DB::transaction(function () use ($user, $event): void {
@@ -121,10 +125,6 @@ trait TogglesEventGoing
             return [];
         }
 
-        return $user->goingEvents()
-            ->pluck('events.id')
-            ->map(fn (mixed $eventId): string => (string) $eventId)
-            ->values()
-            ->all();
+        return app(EngagementReader::class)->goingEventIds((string) $user->getKey());
     }
 }

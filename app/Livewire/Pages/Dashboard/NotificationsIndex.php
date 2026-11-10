@@ -7,6 +7,7 @@ use AIArmada\Communications\Models\NotificationInbox;
 use App\Actions\Notifications\MarkAllNotificationMessagesReadAction;
 use App\Actions\Notifications\MarkNotificationMessageReadAction;
 use App\Models\User;
+use App\Support\Communications\AccountCommunications;
 use App\Support\Communications\EnumMapper;
 use App\Support\Notifications\NotificationCatalog;
 use Carbon\CarbonImmutable;
@@ -89,11 +90,7 @@ class NotificationsIndex extends Component
     #[Computed]
     public function unreadCount(): int
     {
-        return $this->currentUser()
-            ->notificationInboxes()
-            ->whereNull('archived_at')
-            ->whereNull('read_at')
-            ->count();
+        return app(AccountCommunications::class)->unreadInboxCount((string) $this->currentUser()->getKey());
     }
 
     /**
@@ -102,8 +99,7 @@ class NotificationsIndex extends Component
     #[Computed]
     public function notifications(): LengthAwarePaginator
     {
-        $query = $this->currentUser()
-            ->notificationInboxes()
+        $query = app(AccountCommunications::class)->inboxQuery((string) $this->currentUser()->getKey())
             ->whereNull('archived_at')
             ->orderByDesc('created_at')
             ->when($this->family !== 'all', function ($builder): void {

@@ -30,6 +30,9 @@ class BackfillAccountLifecycleSnapshots extends Command
         'events',
         'moderation',
         'contributions',
+        'engagement',
+        'ai',
+        'communications',
         'share_tracking',
         'legacy',
     ];
@@ -66,6 +69,14 @@ class BackfillAccountLifecycleSnapshots extends Command
         'contribution_request_proposer_ids',
         'contribution_request_reviewer_ids',
         'moderation_review_ids',
+        'user_venue',
+        'event_saves',
+        'event_attendees',
+        'followings',
+        'ai_usage_logs',
+        'notification_setting',
+        'notification_destinations',
+        'notification_inboxes',
     ];
 
     public function handle(): int
@@ -170,6 +181,9 @@ class BackfillAccountLifecycleSnapshots extends Command
             'events' => $this->eventsSnapshot($snapshot, $source),
             'moderation' => $this->moderationSnapshot($snapshot, $source),
             'contributions' => $this->contributionsSnapshot($snapshot, $source),
+            'engagement' => $this->engagementSnapshot($snapshot, $source),
+            'ai' => $this->aiSnapshot($snapshot, $source),
+            'communications' => $this->communicationsSnapshot($snapshot, $source),
             'legacy' => $legacy,
             'share_tracking' => $shareTracking,
         ];
@@ -327,6 +341,52 @@ class BackfillAccountLifecycleSnapshots extends Command
         $contributions['reviewer_ids'] ??= $this->stringIds($source['contribution_request_reviewer_ids'] ?? []);
 
         return $contributions;
+    }
+
+    /**
+     * @param  array<string, mixed>  $snapshot
+     * @param  array<string, mixed>  $source
+     * @return array<string, mixed>
+     */
+    private function engagementSnapshot(array $snapshot, array $source): array
+    {
+        $engagement = is_array($snapshot['engagement'] ?? null) ? $snapshot['engagement'] : [];
+
+        foreach (['user_venue', 'event_saves', 'event_attendees', 'followings'] as $key) {
+            $engagement[$key] ??= $this->rows($source[$key] ?? []);
+        }
+
+        return $engagement;
+    }
+
+    /**
+     * @param  array<string, mixed>  $snapshot
+     * @param  array<string, mixed>  $source
+     * @return array<string, mixed>
+     */
+    private function aiSnapshot(array $snapshot, array $source): array
+    {
+        $ai = is_array($snapshot['ai'] ?? null) ? $snapshot['ai'] : [];
+        $ai['ai_usage_logs'] ??= $this->rows($source['ai_usage_logs'] ?? []);
+
+        return $ai;
+    }
+
+    /**
+     * @param  array<string, mixed>  $snapshot
+     * @param  array<string, mixed>  $source
+     * @return array<string, mixed>
+     */
+    private function communicationsSnapshot(array $snapshot, array $source): array
+    {
+        $communications = is_array($snapshot['communications'] ?? null) ? $snapshot['communications'] : [];
+        $setting = $source['notification_setting'] ?? null;
+
+        $communications['notification_setting'] ??= is_array($setting) ? $setting : null;
+        $communications['notification_destinations'] ??= $this->rows($source['notification_destinations'] ?? []);
+        $communications['notification_inboxes'] ??= $this->rows($source['notification_inboxes'] ?? []);
+
+        return $communications;
     }
 
     /**

@@ -74,11 +74,10 @@ new
                 return;
             }
 
-            $this->followingPersonIds = $user->followingPersons()
-                ->pluck((new Person)->qualifyColumn('id'))
-                ->map(static fn (mixed $id): string => (string) $id)
-                ->values()
-                ->all();
+            $this->followingPersonIds = app(\App\Shared\Engagement\EngagementReader::class)->followedSubjectIds(
+                (string) $user->getKey(),
+                \App\Shared\Engagement\EngagementSubjectType::Person,
+            );
         }
 
         private function applySort(Builder $query): Builder
@@ -194,7 +193,7 @@ new
         {
             $user = auth()->user();
             $this->followingPersonIds = $user instanceof User
-                ? OwnerContext::withOwner(null, fn (): array => $user->followingPersons()->pluck((new Person)->qualifyColumn('id'))->map(static fn (mixed $id): string => (string) $id)->values()->all())
+                ? OwnerContext::withOwner(null, fn (): array => app(\App\Shared\Engagement\EngagementReader::class)->followedSubjectIds((string) $user->getKey(), \App\Shared\Engagement\EngagementSubjectType::Person))
                 : [];
         }
 

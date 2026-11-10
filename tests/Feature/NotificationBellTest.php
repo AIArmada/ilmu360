@@ -7,6 +7,7 @@ use AIArmada\Communications\Models\NotificationInbox;
 use App\Livewire\Components\NotificationBell;
 use App\Livewire\Pages\Dashboard\NotificationsIndex;
 use App\Models\User;
+use App\Support\Communications\AccountCommunications;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
@@ -173,7 +174,7 @@ it('marks every unread notification as read', function () {
         ->assertSet('unreadCount', 0)
         ->assertDispatched('notification-inbox-updated');
 
-    expect($user->notificationInboxes()->whereNull('read_at')->count())->toBe(0);
+    expect(app(AccountCommunications::class)->unreadInboxCount((string) $user->getKey()))->toBe(0);
 });
 
 it('notifies the bell when the full inbox marks a notification read', function () {

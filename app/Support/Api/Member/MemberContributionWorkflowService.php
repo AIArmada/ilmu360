@@ -18,6 +18,7 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
+use App\Shared\Contributions\ContributionRequestReader;
 use App\Support\Submission\ContributionSubjectPresenter;
 use BackedEnum;
 use Carbon\CarbonInterface;
@@ -41,10 +42,15 @@ final readonly class MemberContributionWorkflowService
      */
     public function list(User $actor): array
     {
-        $myRequests = $actor->contributionRequests()
-            ->with(['entity', 'proposer', 'reviewer'])
-            ->latest('created_at')
-            ->get();
+        $requestIds = app(ContributionRequestReader::class)->requestIdsForProposer((string) $actor->getKey());
+
+        $myRequests = $requestIds === []
+            ? ContributionRequest::query()->whereRaw('1 = 0')->get()
+            : ContributionRequest::query()
+                ->whereKey($requestIds)
+                ->with(['entity', 'proposer', 'reviewer'])
+                ->latest('created_at')
+                ->get();
 
         $pendingApprovals = $this->resolvePendingContributionApprovalsAction->handle($actor);
 

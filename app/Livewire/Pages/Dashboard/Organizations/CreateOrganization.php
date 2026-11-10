@@ -6,6 +6,8 @@ namespace App\Livewire\Pages\Dashboard\Organizations;
 
 use AIArmada\Organizations\Actions\CreateOrganizationAction;
 use App\Models\User;
+use App\Shared\Membership\MembershipDirectory;
+use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -24,7 +26,7 @@ final class CreateOrganization extends Component
         $user = auth()->user();
         abort_unless($user instanceof User, 403);
 
-        if ($user->organizations()->exists()) {
+        if ($this->hasOrganizationMembership($user)) {
             $this->redirectRoute('dashboard.organizations.index');
 
             return;
@@ -36,7 +38,7 @@ final class CreateOrganization extends Component
         $user = auth()->user();
         abort_unless($user instanceof User, 403);
 
-        if ($user->organizations()->exists()) {
+        if ($this->hasOrganizationMembership($user)) {
             return redirect()->route('dashboard.organizations.index');
         }
 
@@ -48,6 +50,14 @@ final class CreateOrganization extends Component
         $organization = $createOrganization->handle($user, $validated);
 
         return redirect()->route('dashboard.organizations.show', $organization);
+    }
+
+    private function hasOrganizationMembership(User $user): bool
+    {
+        return app(MembershipDirectory::class)->subjectIdsFor(
+            (string) $user->getKey(),
+            MembershipSubjectType::Organization,
+        ) !== [];
     }
 
     public function render(): View

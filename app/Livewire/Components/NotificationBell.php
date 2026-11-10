@@ -7,6 +7,7 @@ use AIArmada\Communications\Models\NotificationInbox;
 use App\Actions\Notifications\MarkAllNotificationMessagesReadAction;
 use App\Actions\Notifications\MarkNotificationMessageReadAction;
 use App\Models\User;
+use App\Support\Communications\AccountCommunications;
 use App\Support\Communications\EnumMapper;
 use App\Support\Notifications\NotificationCatalog;
 use App\Support\Timezone\UserDateTimeFormatter;
@@ -155,12 +156,8 @@ class NotificationBell extends Component
 
     private function resolveUnreadCount(User $user): int
     {
-        return OwnerContext::withOwner(null, function () use ($user): int {
-            return $user->notificationInboxes()
-                ->whereNull('archived_at')
-                ->whereNull('read_at')
-                ->count();
-        });
+        return OwnerContext::withOwner(null, fn (): int => app(AccountCommunications::class)
+            ->unreadInboxCount((string) $user->getKey()));
     }
 
     /**
@@ -184,7 +181,7 @@ class NotificationBell extends Component
 
         /** @var Collection<int, NotificationInbox> $messages */
         $messages = OwnerContext::withOwner(null, function () use ($user): Collection {
-            $query = $user->notificationInboxes()
+            $query = app(AccountCommunications::class)->inboxQuery((string) $user->getKey())
                 ->whereNull('archived_at')
                 ->orderByDesc('created_at')
                 ->limit(8);

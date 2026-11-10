@@ -7,45 +7,33 @@ use AIArmada\Authz\Models\Permission;
 use AIArmada\Authz\Models\Role;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Communications\Models\CommunicationDestination;
-use AIArmada\Communications\Models\CommunicationPreference;
-use AIArmada\Communications\Traits\HasInbox;
 use AIArmada\Engagement\Contracts\CanInteract;
-use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Engagement\Models\Follow;
 use AIArmada\Engagement\Traits\CanBookmark;
 use AIArmada\Engagement\Traits\CanFollow;
 use AIArmada\Engagement\Traits\CanRespond;
-use AIArmada\Organizations\Models\Organization;
-use App\Actions\Auth\ConfirmSignupAttributionAction;
-use App\Enums\NotificationChannel;
 use App\Models\Concerns\HasUserRestoration;
 use App\Notifications\Auth\ResetPasswordNotification;
 use App\Notifications\Auth\VerifyEmailNotification;
 use App\Notifications\Channels\DigestMailChannel;
 use App\Notifications\Channels\InboxChannel;
 use App\Platform\Auditing\AuditsModelChanges;
-use App\Platform\Reporting\ReportModelClass;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Auth\IntegrationFeedbackIdentity;
 use App\Shared\Auth\IntegrationFeedbackUser;
 use App\Shared\Auth\ResourceOwner;
 use App\Shared\Feedback\FeedbackActor;
-use App\Support\Submission\PublicSubmissionLockService;
+use App\Shared\Membership\MembershipDirectory;
+use App\Shared\Membership\MembershipSubjectType;
+use App\Support\Communications\AccountCommunications;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Auth\MustVerifyEmail;
 use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
 use Illuminate\Contracts\Translation\HasLocalePreference;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasManyThrough;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
-use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\Relations\MorphPivot;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -91,34 +79,16 @@ class User extends Authenticatable implements AccountActor, AuditableContract, C
     }
 
     /**
-     * Package inbox + Laravel Notifiable both define unreadNotifications().
-     * Prefer package NotificationInbox semantics; expose database notifications under a distinct name.
+     * Keep Laravel's notification routing while the account inbox is served by
+     * the communications boundary rather than a User relation.
      */
-    use HasInbox, Notifiable {
-        HasInbox::unreadNotifications insteadof Notifiable;
-        Notifiable::unreadNotifications as unreadDatabaseNotifications;
+    use Notifiable {
         Notifiable::routeNotificationFor as traitRouteNotificationFor;
     }
 
     public $incrementing = false;
 
     protected $keyType = 'string';
-
-    #[\Override]
-    protected static function booted(): void
-    {
-        static::updated(function (User $user): void {
-            if ($user->wasChanged(['email_verified_at', 'phone_verified_at'])) {
-                ConfirmSignupAttributionAction::run($user);
-            }
-
-            if (! $user->wasChanged('phone_verified_at')) {
-                return;
-            }
-
-            app(PublicSubmissionLockService::class)->syncForUser($user);
-        });
-    }
 
     /**
      * The attributes that are mass assignable.
@@ -213,26 +183,6 @@ class User extends Authenticatable implements AccountActor, AuditableContract, C
     }
 
     /**
-     * @return BelongsToMany<Institution, $this>
-     */
-    public function institutions(): BelongsToMany
-    {
-        return $this->belongsToMany(Institution::class, 'institution_members')
-            ->withPivot(['role', 'joined_at'])
-            ->withTimestamps();
-    }
-
-    /**
-     * @return BelongsToMany<Person, $this>
-     */
-    public function persons(): BelongsToMany
-    {
-        return $this->belongsToMany(Person::class, 'person_members')
-            ->withPivot(['role', 'joined_at'])
-            ->withTimestamps();
-    }
-
-    /**
      * @return MorphToMany<Role, $this, MorphPivot, 'pivot'>
      */
     public function globalRoles(): MorphToMany
@@ -261,213 +211,6 @@ class User extends Authenticatable implements AccountActor, AuditableContract, C
             ->withPivot($teamsKey)
             ->wherePivot($teamsKey)
             ->whereNull("{$rolesTable}.{$teamsKey}");
-    }
-
-    /**
-     * @return BelongsToMany<Reference, $this>
-     */
-    public function references(): BelongsToMany
-    {
-        return $this->belongsToMany(Reference::class, 'reference_members')
-            ->withPivot(['role', 'joined_at'])
-            ->withTimestamps();
-    }
-
-    /**
-     * @return MorphMany<Follow, $this>
-     */
-    public function venues(): MorphMany
-    {
-        return $this->follows()->where('followable_type', Venue::class);
-    }
-
-    /**
-     * @return HasManyThrough<Event, EventSubmission, $this>
-     */
-    public function submittedEvents(): HasManyThrough
-    {
-        return $this->hasManyThrough(Event::class, EventSubmission::class, 'submitter_id', 'id', 'id', 'event_id')
-            ->where((new EventSubmission)->getTable().'.submitter_type', $this->getMorphClass())
-            ->select((new Event)->getTable().'.*');
-    }
-
-    /**
-     * @return HasMany<EventSubmission, $this>
-     */
-    public function eventSubmissions(): HasMany
-    {
-        return $this->hasMany(EventSubmission::class, 'submitter_id')
-            ->where('submitter_type', $this->getMorphClass());
-    }
-
-    /**
-     * @return HasMany<ContributionRequest, $this>
-     */
-    public function contributionRequests(): HasMany
-    {
-        return $this->hasMany(ContributionRequest::class, 'proposer_id');
-    }
-
-    /**
-     * @return HasMany<ContributionRequest, $this>
-     */
-    public function reviewedContributionRequests(): HasMany
-    {
-        return $this->hasMany(ContributionRequest::class, 'reviewer_id');
-    }
-
-    /**
-     * @return HasMany<MembershipApplication, $this>
-     */
-    public function membershipApplications(): HasMany
-    {
-        return $this->hasMany(MembershipApplication::class, 'applicant_id');
-    }
-
-    /**
-     * @return HasMany<MembershipApplication, $this>
-     */
-    public function reviewedMembershipApplications(): HasMany
-    {
-        return $this->hasMany(MembershipApplication::class, 'reviewer_id');
-    }
-
-    /**
-     * @return HasMany<ModerationReview, $this>
-     */
-    public function moderationReviews(): HasMany
-    {
-        return $this->hasMany(ModerationReview::class, 'actioned_by_id');
-    }
-
-    /**
-     * @return HasMany<Model, $this>
-     */
-    public function reports(): HasMany
-    {
-        return $this->hasMany(ReportModelClass::resolve(), 'reporter_id');
-    }
-
-    /**
-     * @return HasMany<Model, $this>
-     */
-    public function handledReports(): HasMany
-    {
-        return $this->hasMany(ReportModelClass::resolve(), 'handled_by');
-    }
-
-    /**
-     * @return MorphMany<Registration, $this>
-     */
-    public function registrations(): MorphMany
-    {
-        return $this->morphMany(Registration::class, 'registrant');
-    }
-
-    /**
-     * @return HasMany<EventCheckin, $this>
-     */
-    public function eventCheckins(): HasMany
-    {
-        return $this->hasMany(EventCheckin::class, 'attendee_id');
-    }
-
-    /**
-     * @return HasMany<EventCheckin, $this>
-     */
-    public function verifiedEventCheckins(): HasMany
-    {
-        return $this->hasMany(EventCheckin::class, 'verified_by_user_id');
-    }
-
-    /**
-     * @return HasMany<AiUsageLog, $this>
-     */
-    public function aiUsageLogs(): HasMany
-    {
-        return $this->hasMany(AiUsageLog::class);
-    }
-
-    /**
-     * @return HasMany<Bookmark, $this>
-     */
-    public function eventBookmarks(): HasMany
-    {
-        return $this->hasMany(Bookmark::class, 'bookmarker_id')
-            ->where('bookmarker_type', $this->getMorphClass())
-            ->active()
-            ->where('bookmarkable_type', (new Event)->getMorphClass());
-    }
-
-    /**
-     * @return Collection<int, string>
-     */
-    public function savedEventIds(): Collection
-    {
-        return $this->eventBookmarks()->pluck('bookmarkable_id');
-    }
-
-    /**
-     * @return Builder<Event>
-     */
-    public function savedEvents(): Builder
-    {
-        return Event::query()->whereIn('id', $this->savedEventIds());
-    }
-
-    /**
-     * @return Collection<int, Event>
-     */
-    public function getSavedEventsAttribute(): Collection
-    {
-        return $this->savedEvents()->get();
-    }
-
-    /**
-     * @param  list<string>  $eventIds
-     */
-    /**
-     * @return MorphToMany<Person, $this>
-     */
-    public function followingPersons(): MorphToMany
-    {
-        $table = (new Follow)->getTable();
-
-        return $this->morphedByMany(Person::class, 'followable', $table, 'follower_id', 'followable_id')
-            ->where("{$table}.status", 'active');
-    }
-
-    /**
-     * @return MorphToMany<Institution, $this>
-     */
-    public function followingInstitutions(): MorphToMany
-    {
-        $table = (new Follow)->getTable();
-
-        return $this->morphedByMany(Institution::class, 'followable', $table, 'follower_id', 'followable_id')
-            ->where("{$table}.status", 'active');
-    }
-
-    /**
-     * @return MorphToMany<Reference, $this>
-     */
-    public function followingReferences(): MorphToMany
-    {
-        $table = (new Follow)->getTable();
-
-        return $this->morphedByMany(Reference::class, 'followable', $table, 'follower_id', 'followable_id')
-            ->where("{$table}.status", 'active');
-    }
-
-    /**
-     * @return MorphToMany<Series, $this>
-     */
-    public function followingSeries(): MorphToMany
-    {
-        $table = (new Follow)->getTable();
-
-        return $this->morphedByMany(Series::class, 'followable', $table, 'follower_id', 'followable_id')
-            ->where("{$table}.status", 'active');
     }
 
     /**
@@ -523,141 +266,21 @@ class User extends Authenticatable implements AccountActor, AuditableContract, C
         return $this->traitRouteNotificationFor($driver, $notification);
     }
 
-    /**
-     * @return BelongsToMany<Event, $this>
-     */
-    public function goingEvents(): BelongsToMany
-    {
-        $responsesTable = config('engagement.database.tables.responses', 'responses');
-
-        return $this->belongsToMany(
-            Event::class,
-            $responsesTable,
-            'responder_id',
-            'respondable_id',
-            'id',
-            'id',
-        )
-            ->where("{$responsesTable}.responder_type", $this->getMorphClass())
-            ->where("{$responsesTable}.respondable_type", (new Event)->getMorphClass())
-            ->where("{$responsesTable}.response_type", 'going')
-            ->where("{$responsesTable}.status", 'active');
-    }
-
-    /**
-     * @return BelongsToMany<Organization, $this>
-     */
-    public function organizations(): BelongsToMany
-    {
-        return $this->belongsToMany(
-            Organization::class,
-            (string) config('organizations.database.tables.members', 'organization_members'),
-            'user_id',
-            'organization_id',
-        )->withPivot(['role', 'joined_at'])->withTimestamps();
-    }
-
-    /**
-     * @return HasMany<Event, $this>
-     */
-    public function ownedEvents(): HasMany
-    {
-        return $this->hasMany(Event::class, 'owner_id')->where('owner_type', $this->getMorphClass());
-    }
-
-    /**
-     * @return HasMany<DonationChannel, $this>
-     */
-    public function verifiedDonationChannels(): HasMany
-    {
-        return $this->hasMany(DonationChannel::class, 'verified_by');
-    }
-
-    /**
-     * @return HasMany<Person, $this>
-     */
-    public function verifiedPersons(): HasMany
-    {
-        return $this->hasMany(Person::class, 'verified_by');
-    }
-
-    /**
-     * @return HasMany<Institution, $this>
-     */
-    public function verifiedInstitutions(): HasMany
-    {
-        return $this->hasMany(Institution::class, 'verified_by');
-    }
-
-    /**
-     * @return HasMany<Reference, $this>
-     */
-    public function verifiedReferences(): HasMany
-    {
-        return $this->hasMany(Reference::class, 'verified_by');
-    }
-
-    /**
-     * @return HasMany<Venue, $this>
-     */
-    public function verifiedVenues(): HasMany
-    {
-        return $this->hasMany(Venue::class, 'verified_by');
-    }
-
-    /**
-     * @return BelongsToMany<Event, $this>
-     */
-    public function memberEvents(): BelongsToMany
-    {
-        return $this->belongsToMany(Event::class, 'event_members')
-            ->withPivot(['role', 'joined_at'])
-            ->withTimestamps();
-    }
-
-    /**
-     * @return MorphOne<CommunicationPreference, $this>
-     */
-    public function notificationSetting(): MorphOne
-    {
-        return $this->morphOne(CommunicationPreference::class, 'recipient')
-            ->whereNull('channel')
-            ->whereNull('category')
-            ->whereNull('scope_type');
-    }
-
-    /**
-     * @return MorphMany<CommunicationDestination, $this>
-     */
-    public function notificationDestinations(): MorphMany
-    {
-        return $this->morphMany(CommunicationDestination::class, 'recipient');
-    }
-
     public function preferredLocale(): string
     {
-        $locale = $this->notificationSetting()->value('locale');
-
-        return is_string($locale) && $locale !== ''
-            ? $locale
-            : config('app.locale');
+        return app(AccountCommunications::class)->preferredLocale((string) $this->getKey());
     }
 
     public function preferredTimezone(): string
     {
-        $timezone = $this->notificationSetting()->value('timezone');
-
-        if (is_string($timezone) && $timezone !== '') {
-            return $timezone;
-        }
-
         // Auth guards may hand over partially loaded instances; a missing
         // key falls back instead of fataling under strict attributes.
         $stored = array_key_exists('timezone', $this->attributes) ? $this->attributes['timezone'] : null;
 
-        return is_string($stored) && $stored !== ''
-            ? $stored
-            : (string) config('app.timezone', 'UTC');
+        return app(AccountCommunications::class)->preferredTimezone(
+            (string) $this->getKey(),
+            is_string($stored) ? $stored : null,
+        );
     }
 
     #[\Override]
@@ -693,11 +316,7 @@ class User extends Authenticatable implements AccountActor, AuditableContract, C
      */
     public function routeNotificationForPush(?Notification $notification = null): Collection
     {
-        return $this->notificationDestinations()
-            ->where('channel', NotificationChannel::Push->value)
-            ->where('status', 'active')
-            ->orderByDesc('is_primary')
-            ->get();
+        return app(AccountCommunications::class)->pushDestinations((string) $this->getKey());
     }
 
     public function canAccessPanel(Panel $panel): bool
@@ -715,10 +334,21 @@ class User extends Authenticatable implements AccountActor, AuditableContract, C
 
     public function hasAhliPanelAccess(): bool
     {
-        return $this->institutions()->exists()
-            || $this->persons()->exists()
-            || $this->references()->exists()
-            || $this->memberEvents()->exists();
+        $accountId = (string) $this->getKey();
+        $memberships = app(MembershipDirectory::class);
+
+        foreach ([
+            MembershipSubjectType::Institution,
+            MembershipSubjectType::Person,
+            MembershipSubjectType::Reference,
+            MembershipSubjectType::Event,
+        ] as $subjectType) {
+            if ($memberships->subjectIdsFor($accountId, $subjectType) !== []) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function hasApplicationAdminAccess(): bool

@@ -23,6 +23,7 @@ use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
 use App\Platform\Ui\InteractsWithToasts;
+use App\Shared\Contributions\ContributionRequestReader;
 use App\Support\Events\PublicSchedulePolicy;
 use App\Support\Events\PublicScheduleSlug;
 use App\Support\Location\AddressHierarchyFormatter;
@@ -94,8 +95,10 @@ class Index extends Component implements HasForms
     {
         /** @var User $user */
         $user = auth()->user();
+        $requestIds = app(ContributionRequestReader::class)->requestIdsForProposer((string) $user->getKey());
 
-        return OwnerContext::withOwner(null, fn (): LengthAwarePaginator => $user->contributionRequests()
+        return OwnerContext::withOwner(null, fn (): LengthAwarePaginator => ContributionRequest::query()
+            ->whereKey($requestIds)
             ->where('type', ContributionRequestType::Create->value)
             ->with(['entity', 'reviewer'])
             ->latest('created_at')
@@ -110,8 +113,10 @@ class Index extends Component implements HasForms
     {
         /** @var User $user */
         $user = auth()->user();
+        $requestIds = app(ContributionRequestReader::class)->requestIdsForProposer((string) $user->getKey());
 
-        return OwnerContext::withOwner(null, fn (): LengthAwarePaginator => $user->contributionRequests()
+        return OwnerContext::withOwner(null, fn (): LengthAwarePaginator => ContributionRequest::query()
+            ->whereKey($requestIds)
             ->where('type', ContributionRequestType::Update->value)
             ->with(['entity', 'reviewer'])
             ->latest('created_at')

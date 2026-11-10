@@ -4,18 +4,10 @@ declare(strict_types=1);
 
 namespace App\Support\Authz;
 
-use AIArmada\Organizations\Models\Organization;
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\Reference;
-use App\Models\User;
 use App\Shared\Membership\MembershipDirectory;
 use App\Shared\Membership\MembershipRecord;
 use App\Shared\Membership\MembershipSubjectType;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\Pivot;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Interim membership read adapter over the current member pivots.
@@ -26,23 +18,30 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
  */
 final readonly class InterimMembershipDirectory implements MembershipDirectory
 {
+    /**
+     * @var array<string, array{0: string, 1: string}>
+     */
+    private const array MEMBER_TABLES = [
+        'institution' => ['institution_members', 'institution_id'],
+        'person' => ['person_members', 'person_id'],
+        'reference' => ['reference_members', 'reference_id'],
+        'event' => ['event_members', 'event_id'],
+    ];
+
     public function subjectIdsFor(
         string $accountId,
         MembershipSubjectType $subjectType,
         ?string $role = null,
     ): array {
-        $memberships = $this->membershipsQuery($accountId, $subjectType);
-
-        if (! $memberships instanceof BelongsToMany) {
-            return [];
-        }
+        [$table, $subjectKey] = $this->subjectTable($subjectType);
+        $query = DB::table($table)->where('user_id', $accountId);
 
         if (is_string($role) && $role !== '') {
-            $memberships->wherePivot('role', $role);
+            $query->where('role', $role);
         }
 
-        return $memberships
-            ->pluck($memberships->getRelated()->getQualifiedKeyName())
+        return $query
+            ->pluck($subjectKey)
             ->map(static fn (mixed $id): string => (string) $id)
             ->values()
             ->all();
@@ -59,14 +58,10 @@ final readonly class InterimMembershipDirectory implements MembershipDirectory
         $records = [];
 
         foreach ($subjectTypes as $type) {
-            $memberships = $this->membershipsQuery($accountId, $type);
+            [$table, $subjectKey] = $this->subjectTable($type);
 
-            if (! $memberships instanceof BelongsToMany) {
-                continue;
-            }
-
-            foreach ($memberships->get() as $member) {
-                $role = $this->pivotRole($member);
+            foreach (DB::table($table)->where('user_id', $accountId)->get([$subjectKey, 'role']) as $row) {
+                $role = $this->stringValue($row->role ?? null);
 
                 if ($role === null) {
                     continue;
@@ -74,7 +69,7 @@ final readonly class InterimMembershipDirectory implements MembershipDirectory
 
                 $records[] = new MembershipRecord(
                     subjectType: $type,
-                    subjectId: (string) $member->getKey(),
+                    subjectId: (string) ($row->{$subjectKey} ?? ''),
                     accountId: $accountId,
                     role: $role,
                 );
@@ -86,10 +81,12 @@ final readonly class InterimMembershipDirectory implements MembershipDirectory
 
     public function members(MembershipSubjectType $subjectType, string $subjectId): array
     {
+        [$table, $subjectKey] = $this->subjectTable($subjectType);
+
         $records = [];
 
-        foreach ($this->subjectMembersQuery($subjectType, $subjectId)->get() as $member) {
-            $role = $this->pivotRole($member);
+        foreach (DB::table($table)->where($subjectKey, $subjectId)->get(['user_id', 'role']) as $row) {
+            $role = $this->stringValue($row->role ?? null);
 
             if ($role === null) {
                 continue;
@@ -98,7 +95,7 @@ final readonly class InterimMembershipDirectory implements MembershipDirectory
             $records[] = new MembershipRecord(
                 subjectType: $subjectType,
                 subjectId: $subjectId,
-                accountId: (string) $member->getKey(),
+                accountId: (string) ($row->user_id ?? ''),
                 role: $role,
             );
         }
@@ -121,16 +118,17 @@ final readonly class InterimMembershipDirectory implements MembershipDirectory
         string $subjectId,
         array $roles,
     ): bool {
-        $members = $this->subjectMembersQuery($subjectType, $subjectId);
+        [$table, $subjectKey] = $this->subjectTable($subjectType);
         $roles = $this->normalizeRoles($roles);
 
         if ($roles === []) {
             return false;
         }
 
-        return $members
-            ->whereKey($accountId)
-            ->wherePivotIn('role', $roles)
+        return DB::table($table)
+            ->where('user_id', $accountId)
+            ->where($subjectKey, $subjectId)
+            ->whereIn('role', $roles)
             ->exists();
     }
 
@@ -139,58 +137,32 @@ final readonly class InterimMembershipDirectory implements MembershipDirectory
         MembershipSubjectType $subjectType,
         array $roles,
     ): bool {
-        $memberships = $this->membershipsQuery($accountId, $subjectType);
+        [$table] = $this->subjectTable($subjectType);
         $roles = $this->normalizeRoles($roles);
 
-        if (! $memberships instanceof BelongsToMany || $roles === []) {
+        if ($roles === []) {
             return false;
         }
 
-        return $memberships
-            ->wherePivotIn('role', $roles)
+        return DB::table($table)
+            ->where('user_id', $accountId)
+            ->whereIn('role', $roles)
             ->exists();
     }
 
     /**
-     * @return BelongsToMany<Model, User, Pivot, 'pivot'>|null
+     * @return array{0: string, 1: string}
      */
-    private function membershipsQuery(string $accountId, MembershipSubjectType $subjectType): ?BelongsToMany
+    private function subjectTable(MembershipSubjectType $subjectType): array
     {
-        $relation = $this->relationFor($subjectType);
-        $account = new User;
-        $account->setAttribute($account->getKeyName(), $accountId);
-
-        if (! method_exists($account, $relation)) {
-            return null;
+        if ($subjectType === MembershipSubjectType::Organization) {
+            return [
+                (string) config('organizations.database.tables.members', 'organization_members'),
+                'organization_id',
+            ];
         }
 
-        /** @var BelongsToMany<Model, User, Pivot, 'pivot'> $memberships */
-        $memberships = $account->{$relation}();
-
-        return $memberships;
-    }
-
-    /**
-     * @return BelongsToMany<Model, User, Pivot, 'pivot'>
-     */
-    private function subjectMembersQuery(
-        MembershipSubjectType $subjectType,
-        string $subjectId,
-    ): BelongsToMany {
-        $subject = match ($subjectType) {
-            MembershipSubjectType::Institution => new Institution,
-            MembershipSubjectType::Person => new Person,
-            MembershipSubjectType::Event => new Event,
-            MembershipSubjectType::Reference => new Reference,
-            MembershipSubjectType::Organization => new Organization,
-        };
-
-        $subject->setAttribute($subject->getKeyName(), $subjectId);
-
-        /** @var BelongsToMany<Model, User, Pivot, 'pivot'> $members */
-        $members = $subject->members();
-
-        return $members;
+        return self::MEMBER_TABLES[$subjectType->value];
     }
 
     /**
@@ -205,27 +177,8 @@ final readonly class InterimMembershipDirectory implements MembershipDirectory
         ));
     }
 
-    private function relationFor(MembershipSubjectType $subjectType): string
+    private function stringValue(mixed $value): ?string
     {
-        return match ($subjectType) {
-            MembershipSubjectType::Institution => 'institutions',
-            MembershipSubjectType::Person => 'persons',
-            MembershipSubjectType::Event => 'memberEvents',
-            MembershipSubjectType::Reference => 'references',
-            MembershipSubjectType::Organization => 'organizations',
-        };
-    }
-
-    private function pivotRole(Model $member): ?string
-    {
-        $pivot = $member->getRelationValue('pivot');
-
-        if (! $pivot instanceof Pivot) {
-            return null;
-        }
-
-        $role = $pivot->getAttribute('role');
-
-        return is_string($role) && $role !== '' ? $role : null;
+        return is_string($value) && $value !== '' ? $value : null;
     }
 }

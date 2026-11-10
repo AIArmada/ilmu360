@@ -9,6 +9,7 @@ use App\Enums\ShareOutcomeType;
 use App\Models\Event;
 use App\Models\User;
 use App\Services\ShareTrackingService;
+use App\Shared\Engagement\EngagementReader;
 use App\Support\Auth\IntendedRedirect;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Illuminate\Support\Facades\DB;
@@ -93,9 +94,6 @@ trait TogglesEventSave
             return [];
         }
 
-        return $user->savedEventIds()
-            ->map(fn (mixed $eventId): string => (string) $eventId)
-            ->values()
-            ->all();
+        return app(EngagementReader::class)->savedEventIds((string) $user->getKey());
     }
 }

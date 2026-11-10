@@ -9,16 +9,11 @@ use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\OwnerScope;
-use AIArmada\Engagement\Models\Bookmark;
-use AIArmada\Engagement\Models\Follow;
-use AIArmada\Engagement\Models\Response;
 use App\Features\Identity\Api\AccountLifecycle;
-use App\Models\Event;
 use App\Models\User;
 use App\Services\ShareTrackingService;
 use App\Support\ShareTracking\ShareTrackingFinance;
 use App\Support\ShareTracking\ShareTrackingProfile;
-use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -40,20 +35,16 @@ trait HasUserRestoration
                     $user->captureDeletedRelationsSnapshot();
                 }
 
-                // Contributors are ordered by priority. They currently cover
-                // social accounts (300), reports (200), saved searches (100),
+                // Contributors are ordered by priority. They cover social
+                // accounts (300), reports (200), saved searches (100),
                 // membership pivots and scoped roles (90), Directory verifier
                 // links (80), event ownership/submission/attendance links (70),
-                // contribution attribution (60), and moderation attribution
-                // (50), reproducing this hook's historical step order for the
-                // migrated writes. Event facts are retained; only personal
-                // links are detached.
+                // contribution attribution (60), moderation attribution (50),
+                // engagement (40), AI usage (30), and communications (20).
+                // Conventional authentication state, share tracking, and global
+                // authorization rows remain in this trait.
                 app(AccountLifecycle::class)->detach((string) $user->getKey());
                 $user->deleteAuthenticationState();
-                $user->venues()->each(fn (Follow $f): ?bool => $f->delete());
-                $user->eventBookmarks()->delete();
-                $user->responses()->where('response_type', 'going')->get()->each->delete();
-                $user->aiUsageLogs()->each(fn ($log) => $log->delete());
                 // Share cleanup revokes this claimant's guest-claim associations
                 // (rows preserved as revoked) and detaches their published
                 // short links. Claim rows and capability verifiers are
@@ -61,11 +52,6 @@ trait HasUserRestoration
                 // reactivates no claim, restores no secret, and replays no
                 // historical award or notification.
                 app(ShareTrackingService::class)->deleteUserTracking($user);
-                $user->notificationSetting()->delete();
-                $user->notificationDestinations()->each(fn ($destination) => $destination->delete());
-                $user->notificationInboxes()->each(fn ($inbox) => $inbox->delete());
-
-                Follow::forFollower($user)->delete();
             });
         });
     }
@@ -149,10 +135,9 @@ trait HasUserRestoration
         $accountId = (string) $restoredModel->getKey();
 
         OwnerContext::withOwner(null, function () use ($restoredModel, $snapshot, $contributorSnapshot, $legacy, $accountId): void {
-            $restoredModel->restoreManyToManyRelations($legacy);
             app(AccountLifecycle::class)->restore($accountId, $contributorSnapshot);
             $restoredModel->restoreDeletedAffiliateTrackingSnapshot($snapshot['share_tracking'] ?? null);
-            $restoredModel->restoreDeletedChildModels($legacy);
+            $restoredModel->restoreGlobalPermissionRows($legacy);
             app(AccountLifecycle::class)->afterRestore($accountId);
         });
     }
@@ -160,54 +145,8 @@ trait HasUserRestoration
     protected function captureDeletedRelationsSnapshot(): void
     {
         $legacy = [
-            'user_venue' => $this->venues()->get()->map(fn (Follow $f): array => [
-                'follower_type' => $f->follower_type,
-                'follower_id' => $f->follower_id,
-                'followable_type' => $f->followable_type,
-                'followable_id' => $f->followable_id,
-                'status' => $f->status,
-                'followed_at' => $f->followed_at?->toIso8601String(),
-                'created_at' => $f->created_at?->toIso8601String(),
-                'updated_at' => $f->updated_at?->toIso8601String(),
-            ])->all(),
-            'event_saves' => $this->eventBookmarks()->get()->map(fn (Bookmark $bookmark): array => [
-                'bookmarkable_id' => $bookmark->bookmarkable_id,
-                'bookmarker_type' => $bookmark->bookmarker_type,
-                'bookmarker_id' => $bookmark->bookmarker_id,
-                'bookmarked_at' => $bookmark->bookmarked_at?->toIso8601String(),
-                'created_at' => $bookmark->created_at?->toIso8601String(),
-                'updated_at' => $bookmark->updated_at?->toIso8601String(),
-            ])->all(),
-            'event_attendees' => $this->responses()->where('response_type', 'going')->get()->map(fn (Response $response): array => [
-                'event_id' => $response->respondable_id,
-                'response_type' => $response->response_type,
-                'created_at' => $response->created_at?->toIso8601String(),
-                'updated_at' => $response->updated_at?->toIso8601String(),
-            ])->all(),
             'model_has_roles' => $this->permissionRows('model_has_roles'),
             'model_has_permissions' => $this->permissionRows('model_has_permissions'),
-            'ai_usage_logs' => $this->aiUsageLogs()->get()->map->attributesToArray()->all(),
-            'notification_setting' => $this->notificationSetting?->attributesToArray(),
-            'notification_destinations' => $this->notificationDestinations()->get()->map->attributesToArray()->all(),
-            'notification_inboxes' => $this->notificationInboxes()->get()->map->attributesToArray()->all(),
-            'followings' => Follow::forFollower($this)
-                ->get()
-                ->map(function (Follow $follow): array {
-                    $status = $follow->getAttribute('status');
-
-                    return [
-                        'follower_type' => $follow->follower_type,
-                        'follower_id' => $follow->follower_id,
-                        'followable_id' => $follow->followable_id,
-                        'followable_type' => $follow->followable_type,
-                        'status' => $status,
-                        'followed_at' => $follow->followed_at?->toISOString(),
-                        'unfollowed_at' => $follow->unfollowed_at?->toISOString(),
-                        'notification_level' => $follow->notification_level,
-                        'source' => $follow->source,
-                    ];
-                })
-                ->all(),
         ];
 
         $this->deletedRelationsSnapshot = app(AccountLifecycle::class)->snapshot((string) $this->getKey()) + [
@@ -275,101 +214,20 @@ trait HasUserRestoration
     /**
      * @param  array<string, mixed>  $snapshot
      */
-    protected function restoreManyToManyRelations(array $snapshot): void
+    /**
+     * Global (team-null) authorization rows are conventional Authz state and
+     * remain outside the account lifecycle contributors.
+     *
+     * @param  array<string, mixed>  $snapshot
+     */
+    protected function restoreGlobalPermissionRows(array $snapshot): void
     {
-        collect((array) ($snapshot['event_saves'] ?? []))
-            ->pluck('bookmarkable_id')
-            ->filter(fn (mixed $id): bool => is_string($id) || is_int($id))
-            ->map(static fn (mixed $id): string => (string) $id)
-            ->values()
-            ->all();
-        $this->snapshotEventIds($snapshot, 'event_attendees');
-
-        foreach ($snapshot['user_venue'] ?? [] as $venueFollowData) {
-            if (filled($venueFollowData['followable_id'] ?? null)) {
-                OwnerContext::withOwner(null, function () use ($venueFollowData): void {
-                    Follow::query()->firstOrCreate(
-                        [
-                            'follower_type' => $venueFollowData['follower_type'] ?? $this->getMorphClass(),
-                            'follower_id' => $venueFollowData['follower_id'] ?? $this->getKey(),
-                            'followable_type' => $venueFollowData['followable_type'],
-                            'followable_id' => $venueFollowData['followable_id'],
-                        ],
-                        [
-                            'status' => $venueFollowData['status'] ?? 'active',
-                            'followed_at' => $venueFollowData['followed_at'] ?? now(),
-                        ]
-                    );
-                });
-            }
-        }
-        foreach ($snapshot['event_saves'] ?? [] as $data) {
-            OwnerContext::withOwner(null, function () use ($data): void {
-                Bookmark::query()->firstOrCreate(
-                    [
-                        'bookmarker_type' => $data['bookmarker_type'] ?? $this->getMorphClass(),
-                        'bookmarker_id' => $data['bookmarker_id'] ?? $this->getKey(),
-                        'bookmarkable_type' => (new Event)->getMorphClass(),
-                        'bookmarkable_id' => $data['bookmarkable_id'],
-                    ],
-                    [
-                        'status' => 'active',
-                        'bookmarked_at' => $data['bookmarked_at'] ?? now(),
-                    ]
-                );
-            });
-        }
-        foreach ($snapshot['event_attendees'] ?? [] as $goingData) {
-            OwnerContext::withOwner(null, function () use ($goingData): void {
-                $event = Event::query()->find($goingData['event_id'] ?? null);
-                if ($event instanceof Event) {
-                    $this->respond($event, $goingData['response_type'] ?? 'going');
-                }
-            });
-        }
         DB::table($this->permissionTable('model_has_roles'))->insertOrIgnore($this->snapshotRows($snapshot, 'model_has_roles'));
         DB::table($this->permissionTable('model_has_permissions'))->insertOrIgnore($this->snapshotRows($snapshot, 'model_has_permissions'));
-        if (($snapshot['followings'] ?? []) !== []) {
-            OwnerContext::withOwner(null, function () use ($snapshot): void {
-                $userId = $this->getKey();
-                $morphClass = (new User)->getMorphClass();
-                foreach ($snapshot['followings'] as $data) {
-                    Follow::query()->firstOrCreate(
-                        [
-                            'follower_type' => $data['follower_type'] ?? $morphClass,
-                            'follower_id' => $data['follower_id'] ?? $userId,
-                            'followable_type' => $data['followable_type'],
-                            'followable_id' => $data['followable_id'],
-                        ],
-                        [
-                            'status' => $data['status'] ?? 'active',
-                            'followed_at' => isset($data['followed_at']) ? CarbonImmutable::parse($data['followed_at']) : CarbonImmutable::now(),
-                            'notification_level' => $data['notification_level'] ?? 'all',
-                            'source' => $data['source'] ?? 'restore',
-                        ]
-                    );
-                }
-            });
-        }
 
         OwnerContext::withOwner(null, function (): void {});
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
-    }
-
-    /**
-     * @param  array<string, mixed>  $snapshot
-     * @return list<string>
-     */
-    private function snapshotEventIds(array $snapshot, string $key): array
-    {
-        return collect($this->snapshotRows($snapshot, $key))
-            ->pluck('event_id')
-            ->filter(fn (mixed $eventId): bool => is_string($eventId) || is_int($eventId))
-            ->map(static fn (mixed $eventId): string => (string) $eventId)
-            ->unique()
-            ->values()
-            ->all();
     }
 
     protected function restoreDeletedAffiliateTrackingSnapshot(mixed $record): void
@@ -404,56 +262,6 @@ trait HasUserRestoration
             $this->restoreShareChildren(AffiliateTouchpoint::class, $this->snapshotRowsForAffiliate($record['touchpoints'] ?? [], $affiliateId), $affiliateId);
             $this->restoreShareChildren(AffiliateConversion::class, $this->snapshotRowsForAffiliate($record['conversions'] ?? [], $affiliateId), $affiliateId);
         });
-    }
-
-    /**
-     * @param  array<string, mixed>  $snapshot
-     */
-    protected function restoreDeletedChildModels(array $snapshot): void
-    {
-        $this->restoreChildModels('aiUsageLogs', $this->snapshotRows($snapshot, 'ai_usage_logs'));
-        $this->restoreSingleChildModel('notificationSetting', $snapshot['notification_setting'] ?? null);
-        $this->restoreChildModels('notificationDestinations', $this->snapshotRows($snapshot, 'notification_destinations'));
-        $this->restoreChildModels('notificationInboxes', $this->snapshotRows($snapshot, 'notification_inboxes'));
-    }
-
-    /**
-     * @param  list<array<string, mixed>>  $records
-     */
-    protected function restoreChildModels(string $relationName, array $records): void
-    {
-        if ($records === []) {
-            return;
-        }
-
-        $modelClass = $this->{$relationName}()->getRelated()::class;
-
-        foreach ($records as $attributes) {
-            if (! is_array($attributes)) {
-                continue;
-            }
-
-            /** @var Model $model */
-            $model = new $modelClass;
-            $model->timestamps = false;
-            $model->forceFill($attributes);
-            $model->saveQuietly();
-        }
-    }
-
-    protected function restoreSingleChildModel(string $relationName, mixed $record): void
-    {
-        if (! is_array($record)) {
-            return;
-        }
-
-        $modelClass = $this->{$relationName}()->getRelated()::class;
-
-        /** @var Model $model */
-        $model = new $modelClass;
-        $model->timestamps = false;
-        $model->forceFill($record);
-        $model->saveQuietly();
     }
 
     /**

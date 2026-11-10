@@ -11,6 +11,7 @@ use App\Models\Institution;
 use App\Models\User;
 use App\Platform\Ui\InteractsWithToasts;
 use App\Services\Notifications\NotificationSettingsManager;
+use App\Support\Communications\AccountCommunications;
 use Carbon\CarbonInterface;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -383,7 +384,7 @@ class AccountSettings extends Component implements HasForms
     {
         $user = $this->currentUser();
 
-        $destination = $user->notificationDestinations()
+        $destination = app(AccountCommunications::class)->destinationsQuery((string) $user->getKey())
             ->whereKey($destinationId)
             ->where('channel', NotificationChannel::Push->value)
             ->first();

@@ -7,6 +7,7 @@ use AIArmada\Membership\Actions\CancelMembershipApplicationAction;
 use App\Models\MembershipApplication;
 use App\Models\User;
 use App\Platform\Ui\InteractsWithToasts;
+use App\Shared\Membership\MembershipApplicationReader;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
@@ -34,21 +35,29 @@ class Index extends Component
     {
         /** @var User $user */
         $user = auth()->user();
+        $applicationIds = app(MembershipApplicationReader::class)->applicationIdsForApplicant((string) $user->getKey());
 
-        return OwnerContext::withOwner(null, fn (): Collection => $user->membershipApplications()
-            ->with(['reviewer'])
-            ->latest('created_at')
-            ->get());
+        return OwnerContext::withOwner(null, fn (): Collection => $applicationIds === []
+            ? new Collection
+            : MembershipApplication::query()
+                ->whereKey($applicationIds)
+                ->with(['reviewer'])
+                ->latest('created_at')
+                ->get());
     }
 
     public function cancel(string $claimId, CancelMembershipApplicationAction $cancelMembershipApplicationAction): void
     {
         /** @var User $user */
         $user = auth()->user();
+        $applicationId = app(MembershipApplicationReader::class)->findApplicationIdForApplicant(
+            (string) $user->getKey(),
+            $claimId,
+        );
 
-        $claim = OwnerContext::withOwner(null, fn (): ?MembershipApplication => $user->membershipApplications()
-            ->whereKey($claimId)
-            ->first());
+        $claim = OwnerContext::withOwner(null, fn (): ?MembershipApplication => $applicationId === null
+            ? null
+            : MembershipApplication::query()->whereKey($applicationId)->first());
         abort_unless($claim instanceof MembershipApplication, 404);
 
         try {

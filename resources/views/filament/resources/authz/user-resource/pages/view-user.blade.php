@@ -137,23 +137,23 @@
             <div class="grid gap-4 md:grid-cols-4">
                 <div>
                     <div class="text-sm text-gray-500">Saved Events</div>
-                    <div class="text-2xl font-semibold text-gray-950 dark:text-white">{{ $user->savedEvents->count() }}</div>
+                    <div class="text-2xl font-semibold text-gray-950 dark:text-white">{{ $this->savedEvents->count() }}</div>
                 </div>
                 <div>
                     <div class="text-sm text-gray-500">Going Events</div>
-                    <div class="text-2xl font-semibold text-gray-950 dark:text-white">{{ $user->goingEvents->count() }}</div>
+                    <div class="text-2xl font-semibold text-gray-950 dark:text-white">{{ $this->goingEvents->count() }}</div>
                 </div>
                 <div>
                     <div class="text-sm text-gray-500">Check-ins</div>
-                    <div class="text-2xl font-semibold text-gray-950 dark:text-white">{{ $user->eventCheckins->count() }}</div>
+                    <div class="text-2xl font-semibold text-gray-950 dark:text-white">{{ $this->eventCheckins->count() }}</div>
                 </div>
                 <div>
                     <div class="text-sm text-gray-500">Registrations</div>
-                    <div class="text-2xl font-semibold text-gray-950 dark:text-white">{{ $user->registrations->count() }}</div>
+                    <div class="text-2xl font-semibold text-gray-950 dark:text-white">{{ $this->registrations->count() }}</div>
                 </div>
                 <div>
                     <div class="text-sm text-gray-500">Submitted Events</div>
-                    <div class="text-2xl font-semibold text-gray-950 dark:text-white">{{ $user->eventSubmissions->count() }}</div>
+                    <div class="text-2xl font-semibold text-gray-950 dark:text-white">{{ $this->eventSubmissions->count() }}</div>
                 </div>
                 <div>
                     <div class="text-sm text-gray-500">Memberships</div>
@@ -169,7 +169,7 @@
         <div class="grid gap-6 xl:grid-cols-2">
             <x-filament::section heading="Going Events">
                 <div class="space-y-4">
-                    @forelse ($user->goingEvents as $event)
+                    @forelse ($this->goingEvents as $event)
                         <div class="rounded-xl border border-gray-200 p-4 dark:border-white/10">
                             <div class="flex items-start justify-between gap-3">
                                 <a href="{{ $this->eventUrl($event) }}" class="font-medium text-primary-600 hover:underline">
@@ -195,7 +195,7 @@
 
             <x-filament::section heading="Saved Events">
                 <div class="space-y-4">
-                    @forelse ($user->savedEvents as $event)
+                    @forelse ($this->savedEvents as $event)
                         <div class="rounded-xl border border-gray-200 p-4 dark:border-white/10">
                             <div class="flex items-start justify-between gap-3">
                                 <a href="{{ $this->eventUrl($event) }}" class="font-medium text-primary-600 hover:underline">
@@ -221,7 +221,7 @@
 
             <x-filament::section heading="Check-ins">
                 <div class="space-y-4">
-                    @forelse ($user->eventCheckins as $checkin)
+                    @forelse ($this->eventCheckins as $checkin)
                         <div class="rounded-xl border border-gray-200 p-4 dark:border-white/10">
                             <div class="font-medium text-gray-950 dark:text-white">
                                 <a href="{{ $this->eventUrl($checkin->event) }}" class="text-primary-600 hover:underline">
@@ -248,7 +248,7 @@
         <div class="grid gap-6 xl:grid-cols-2">
             <x-filament::section heading="Event Registrations">
                 <div class="space-y-4">
-                    @forelse ($user->registrations as $registration)
+                    @forelse ($this->registrations as $registration)
                         <div class="rounded-xl border border-gray-200 p-4 dark:border-white/10">
                             <div class="flex items-start justify-between gap-3">
                                 <a href="{{ $this->eventUrl($registration->event) }}" class="font-medium text-primary-600 hover:underline">
@@ -271,7 +271,7 @@
 
             <x-filament::section heading="Submitted Events">
                 <div class="space-y-4">
-                    @forelse ($user->eventSubmissions as $submission)
+                    @forelse ($this->eventSubmissions as $submission)
                         <div class="rounded-xl border border-gray-200 p-4 dark:border-white/10">
                             <div class="flex items-start justify-between gap-3">
                                 <a href="{{ $this->eventUrl($submission->event) }}" class="font-medium text-primary-600 hover:underline">
@@ -296,7 +296,7 @@
         <div class="grid gap-6 xl:grid-cols-3">
             <x-filament::section heading="Following Institutions">
                 <div class="space-y-4">
-                    @forelse ($user->followingInstitutions as $institution)
+                    @forelse ($this->followingInstitutions as $institution)
                         <div class="rounded-xl border border-gray-200 p-4 dark:border-white/10">
                             <div class="flex items-start justify-between gap-3">
                                 <a href="{{ $this->institutionUrl($institution) }}" class="font-medium text-primary-600 hover:underline">
@@ -313,7 +313,7 @@
 
             <x-filament::section heading="Following Persons">
                 <div class="space-y-4">
-                    @forelse ($user->followingPersons as $person)
+                    @forelse ($this->followingPersons as $person)
                         <div class="rounded-xl border border-gray-200 p-4 dark:border-white/10">
                             <div class="flex items-start justify-between gap-3">
                                 <a href="{{ $this->personUrl($person) }}" class="font-medium text-primary-600 hover:underline">
@@ -330,7 +330,7 @@
 
             <x-filament::section heading="Following References">
                 <div class="space-y-4">
-                    @forelse ($user->followingReferences as $reference)
+                    @forelse ($this->followingReferences as $reference)
                         <div class="rounded-xl border border-gray-200 p-4 dark:border-white/10">
                             <div class="flex items-start justify-between gap-3">
                                 <a href="{{ $this->referenceUrl($reference) }}" class="font-medium text-primary-600 hover:underline">

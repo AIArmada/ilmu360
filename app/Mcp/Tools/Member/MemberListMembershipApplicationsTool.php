@@ -6,6 +6,7 @@ namespace App\Mcp\Tools\Member;
 
 use App\Models\MembershipApplication;
 use App\Models\User;
+use App\Shared\Membership\MembershipApplicationReader;
 use App\Support\Membership\MembershipApplicationPresenter;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
@@ -30,10 +31,15 @@ class MemberListMembershipApplicationsTool extends AbstractMemberTool
             $actor = $this->authorizeMember($request);
             $this->validateArguments($request, []);
 
-            $applications = $actor->membershipApplications()
-                ->with(['reviewer', 'media'])
-                ->latest('created_at')
-                ->get();
+            $applicationIds = app(MembershipApplicationReader::class)->applicationIdsForApplicant((string) $actor->getKey());
+
+            $applications = $applicationIds === []
+                ? MembershipApplication::query()->whereRaw('1 = 0')->with(['reviewer', 'media'])->get()
+                : MembershipApplication::query()
+                    ->whereKey($applicationIds)
+                    ->with(['reviewer', 'media'])
+                    ->latest('created_at')
+                    ->get();
 
             return [
                 'data' => $applications->map(fn (MembershipApplication $application): array => $this->applicationData($application, $actor))->all(),

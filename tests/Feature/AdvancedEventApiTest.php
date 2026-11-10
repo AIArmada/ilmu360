@@ -17,7 +17,7 @@ it('creates an advanced event with an institution primary organizer', function (
     $user = User::factory()->create();
     $institution = Institution::factory()->create(['name' => 'Masjid Test', 'status' => 'verified']);
 
-    $user->institutions()->syncWithoutDetaching([$institution->id]);
+    $institution->members()->syncWithoutDetaching([$user->id]);
 
     Sanctum::actingAs($user);
 
@@ -55,8 +55,8 @@ it('creates an advanced event with a person primary organizer', function () {
     $institution = Institution::factory()->create(['name' => 'Masjekt Test', 'status' => 'verified']);
     $person = Person::factory()->create(['name' => 'Ustaz Test', 'status' => 'verified']);
 
-    $user->institutions()->syncWithoutDetaching([$institution->id]);
-    $user->persons()->syncWithoutDetaching([$person->id]);
+    $institution->members()->syncWithoutDetaching([$user->id]);
+    $person->members()->syncWithoutDetaching([$user->id]);
 
     Sanctum::actingAs($user);
 
@@ -90,7 +90,7 @@ it('rejects advanced event creation with invalid primary organizer', function ()
     $user = User::factory()->create();
     $institution = Institution::factory()->create(['name' => 'Masjid Test', 'status' => 'verified']);
 
-    $user->institutions()->syncWithoutDetaching([$institution->id]);
+    $institution->members()->syncWithoutDetaching([$user->id]);
 
     Sanctum::actingAs($user);
 

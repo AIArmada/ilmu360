@@ -36,6 +36,7 @@ use App\Models\Reference;
 use App\Models\User;
 use App\Rules\ValidAreaAssignmentRoles;
 use App\Services\ContributionEntityMutationService;
+use App\Shared\Contributions\ContributionRequestReader;
 use App\Support\Api\Frontend\FrontendMediaSyncService;
 use App\Support\Events\EventContributionUpdateStateMapper;
 use App\Support\Location\GooglePlaceIdentity;
@@ -66,11 +67,15 @@ class ContributionController extends FrontendController
     public function index(Request $request, ResolvePendingContributionApprovalsAction $resolvePendingContributionApprovalsAction): JsonResponse
     {
         $user = $this->requireUser($request);
+        $requestIds = app(ContributionRequestReader::class)->requestIdsForProposer((string) $user->getKey());
 
-        $myRequests = $user->contributionRequests()
-            ->with(['entity', 'proposer', 'reviewer'])
-            ->latest('created_at')
-            ->get();
+        $myRequests = $requestIds === []
+            ? ContributionRequest::query()->whereRaw('1 = 0')->get()
+            : ContributionRequest::query()
+                ->whereKey($requestIds)
+                ->with(['entity', 'proposer', 'reviewer'])
+                ->latest('created_at')
+                ->get();
 
         $pendingApprovals = $resolvePendingContributionApprovalsAction->handle($user);
 

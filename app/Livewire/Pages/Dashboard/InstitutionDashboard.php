@@ -12,6 +12,8 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Models\User;
 use App\Platform\Ui\InteractsWithToasts;
+use App\Shared\Membership\MembershipDirectory;
+use App\Shared\Membership\MembershipSubjectType;
 use App\Support\Authz\MemberPermissionGate;
 use App\Support\Spaces\SpaceLocationPresenter;
 use App\Support\Submission\EntitySubmissionAccess;
@@ -30,7 +32,6 @@ use Filament\Tables\Table;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Collection;
 use Illuminate\Support\HtmlString;
 use Illuminate\Validation\ValidationException;
@@ -702,11 +703,16 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
     }
 
     /**
-     * @return BelongsToMany<Institution, User>
+     * @return Builder<Institution>
      */
-    protected function availableInstitutionsQuery(User $user): BelongsToMany
+    protected function availableInstitutionsQuery(User $user): Builder
     {
-        return $user->institutions();
+        return Institution::query()->whereKey(
+            app(MembershipDirectory::class)->subjectIdsFor(
+                (string) $user->getKey(),
+                MembershipSubjectType::Institution,
+            ),
+        );
     }
 
     /**

@@ -7,6 +7,7 @@ use AIArmada\Communications\Models\NotificationInbox;
 use AIArmada\Communications\Services\NotificationInboxService;
 use App\Models\User;
 use App\Services\Signals\ProductSignalsService;
+use App\Support\Communications\AccountCommunications;
 use Illuminate\Http\Request;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -17,13 +18,14 @@ final readonly class MarkNotificationMessageReadAction
     public function __construct(
         private ProductSignalsService $productSignalsService,
         private NotificationInboxService $notificationInboxService,
+        private AccountCommunications $communications,
     ) {}
 
     public function handle(User $user, string $messageId, ?Request $request = null): NotificationInbox
     {
         OwnerContext::setForRequest(null);
 
-        $message = $user->notificationInboxes()
+        $message = $this->communications->inboxQuery((string) $user->getKey())
             ->whereNull('archived_at')
             ->whereKey($messageId)
             ->firstOrFail();
@@ -32,7 +34,7 @@ final readonly class MarkNotificationMessageReadAction
 
         if ($wasUnread) {
             $this->notificationInboxService->markAsRead(
-                $user->notificationInboxes()->whereNull('archived_at'),
+                $this->communications->inboxRelationFor($user)->whereNull('archived_at'),
                 $messageId,
             );
         }

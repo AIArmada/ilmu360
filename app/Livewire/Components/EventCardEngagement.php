@@ -7,6 +7,7 @@ use App\Livewire\Concerns\TogglesEventGoing;
 use App\Livewire\Concerns\TogglesEventSave;
 use App\Models\Event;
 use App\Models\User;
+use App\Shared\Engagement\EngagementReader;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
@@ -111,7 +112,10 @@ class EventCardEngagement extends Component
             ->where('bookmarkable_id', $this->eventId)
             ->active()
             ->exists();
-        $this->isGoing = $user->goingEvents()->whereKey($this->eventId)->exists();
+        $this->isGoing = app(EngagementReader::class)->isGoingToEvent(
+            (string) $user->getKey(),
+            (string) $this->eventId,
+        );
     }
 
     public function render(): View

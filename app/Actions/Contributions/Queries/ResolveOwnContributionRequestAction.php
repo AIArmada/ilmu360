@@ -4,6 +4,7 @@ namespace App\Actions\Contributions\Queries;
 
 use App\Models\ContributionRequest;
 use App\Models\User;
+use App\Shared\Contributions\ContributionRequestReader;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class ResolveOwnContributionRequestAction
@@ -12,8 +13,13 @@ class ResolveOwnContributionRequestAction
 
     public function handle(User $user, string $requestId): ContributionRequest
     {
-        return $user->contributionRequests()
+        $ownedRequestId = app(ContributionRequestReader::class)->findRequestIdForProposer(
+            (string) $user->getKey(),
+            $requestId,
+        );
+
+        return ContributionRequest::query()
             ->with('entity')
-            ->findOrFail($requestId);
+            ->findOrFail($ownedRequestId);
     }
 }

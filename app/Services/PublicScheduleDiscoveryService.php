@@ -17,6 +17,8 @@ use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
 use App\Models\Venue;
+use App\Shared\Engagement\EngagementReader;
+use App\Shared\Engagement\EngagementSubjectType;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Support\Events\PublicSchedulePolicy;
 use App\Support\Events\PublicScheduleSlug;
@@ -140,9 +142,11 @@ final class PublicScheduleDiscoveryService
     /** @return Collection<int, PublicScheduleLeaf> */
     public function homepageSelection(?User $user): Collection
     {
-        $personIds = $user?->followingPersons()->pluck('persons.id')->all() ?? [];
-        $institutionIds = $user?->followingInstitutions()->pluck('institutions.id')->all() ?? [];
-        $referenceIds = $user?->followingReferences()->pluck('references.id')->all() ?? [];
+        $engagement = app(EngagementReader::class);
+        $accountId = $user?->getKey() !== null ? (string) $user->getKey() : null;
+        $personIds = $accountId !== null ? $engagement->followedSubjectIds($accountId, EngagementSubjectType::Person) : [];
+        $institutionIds = $accountId !== null ? $engagement->followedSubjectIds($accountId, EngagementSubjectType::Institution) : [];
+        $referenceIds = $accountId !== null ? $engagement->followedSubjectIds($accountId, EngagementSubjectType::Reference) : [];
         $hasFollows = $personIds !== [] || $institutionIds !== [] || $referenceIds !== [];
 
         $events = $this->homepageEventQuery($personIds, $institutionIds, $referenceIds)

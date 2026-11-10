@@ -7,6 +7,7 @@ use App\Data\Api\Notification\NotificationDestinationData as NotificationDestina
 use App\Enums\NotificationChannel;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\Communications\AccountCommunications;
 use Carbon\CarbonImmutable;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
@@ -125,7 +126,7 @@ class NotificationDestinationController extends Controller
      */
     private function findPushDestination(User $user, string $installation): ?CommunicationDestination
     {
-        $match = $user->notificationDestinations()
+        $match = app(AccountCommunications::class)->destinationsQuery((string) $user->getKey())
             ->where('channel', NotificationChannel::Push->value)
             ->get()
             ->first(fn (CommunicationDestination $destination): bool => $destination->address === $installation);

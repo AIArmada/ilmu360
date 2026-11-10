@@ -14,6 +14,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Models\User;
 use App\Services\ShareTrackingService;
+use App\Shared\Engagement\EngagementReader;
 use App\Support\Api\ApiPagination;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Dedoc\Scramble\Attributes\Endpoint;
@@ -35,8 +36,11 @@ class EventSaveController extends Controller
     )]
     public function index(Request $request): JsonResponse
     {
-        $savedEvents = $this->currentUser($request)
-            ->savedEvents()
+        $user = $this->currentUser($request);
+        $savedEventIds = app(EngagementReader::class)->savedEventIds((string) $user->getKey());
+
+        $savedEvents = Event::query()
+            ->whereKey($savedEventIds)
             ->with(['institution:id,name,slug', 'venue:id,name', 'persons:id,name,slug'])
             ->active()
             ->orderBy('starts_at')

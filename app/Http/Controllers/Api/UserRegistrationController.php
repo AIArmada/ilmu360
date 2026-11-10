@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Data\Api\UserRegistration\UserRegistrationItemData;
 use App\Http\Controllers\Controller;
 use App\Models\Registration;
+use App\Shared\Events\AccountEventFacts;
 use App\Support\Api\ApiPagination;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
@@ -24,8 +25,10 @@ class UserRegistrationController extends Controller
     )]
     public function index(Request $request): JsonResponse
     {
-        $registrations = $request->user()
-            ->registrations()
+        $user = $request->user();
+
+        $registrations = Registration::query()
+            ->whereKey(app(AccountEventFacts::class)->registrationIds((string) $user->getKey()))
             ->active()
             ->with([
                 'event' => fn ($query) => $query->with([

@@ -10,6 +10,7 @@ use App\Actions\Membership\SubmitMembershipApplicationAction;
 use App\Enums\MemberSubjectType;
 use App\Models\MembershipApplication;
 use App\Models\User;
+use App\Shared\Membership\MembershipApplicationReader;
 use App\Support\Api\Frontend\FrontendMediaSyncService;
 use App\Support\Membership\MembershipApplicationPresenter;
 use Dedoc\Scramble\Attributes\Endpoint;
@@ -31,11 +32,15 @@ class MembershipApplicationController extends FrontendController
     public function index(Request $request): JsonResponse
     {
         $user = $this->requireUser($request);
+        $applicationIds = app(MembershipApplicationReader::class)->applicationIdsForApplicant((string) $user->getKey());
 
-        $applications = $user->membershipApplications()
-            ->with(['reviewer', 'media'])
-            ->latest('created_at')
-            ->get();
+        $applications = $applicationIds === []
+            ? MembershipApplication::query()->whereRaw('1 = 0')->with(['reviewer', 'media'])->get()
+            : MembershipApplication::query()
+                ->whereKey($applicationIds)
+                ->with(['reviewer', 'media'])
+                ->latest('created_at')
+                ->get();
 
         return response()->json([
             'data' => $applications->map(fn (MembershipApplication $application): array => $this->applicationData($application, $user))->all(),
@@ -130,10 +135,16 @@ class MembershipApplicationController extends FrontendController
     public function cancel(string $applicationId, Request $request, CancelMembershipApplicationAction $cancelMembershipApplicationAction): JsonResponse
     {
         $user = $this->requireUser($request);
+        $applicationId = app(MembershipApplicationReader::class)->findApplicationIdForApplicant(
+            (string) $user->getKey(),
+            $applicationId,
+        );
 
-        $application = $user->membershipApplications()
-            ->with(['reviewer', 'media'])
+        abort_unless($applicationId !== null, 404);
+
+        $application = MembershipApplication::query()
             ->whereKey($applicationId)
+            ->with(['reviewer', 'media'])
             ->first();
 
         abort_unless($application instanceof MembershipApplication, 404);

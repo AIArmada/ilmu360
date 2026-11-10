@@ -55,7 +55,7 @@ it('allows ahli panel access to event members', function () {
     $user = User::factory()->create();
     $event = Event::factory()->create();
 
-    $user->memberEvents()->syncWithoutDetaching([$event->id => ['joined_at' => now()]]);
+    $event->members()->syncWithoutDetaching([$user->id => ['joined_at' => now()]]);
 
     expect($user->canAccessPanel(Panel::make()->id('ahli')))->toBeTrue();
 });

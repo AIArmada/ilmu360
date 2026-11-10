@@ -144,6 +144,7 @@ use App\Observers\ReferenceObserver;
 use App\Observers\ShareOutcomeCorrectionObserver;
 use App\Observers\ShareSourceAttributionReceiptObserver;
 use App\Observers\TitleCategoryObserver;
+use App\Observers\UserObserver;
 use App\Observers\VenueObserver;
 use App\Organizations\CurrentOrganizationResolver as AppCurrentOrganizationResolver;
 use App\Platform\Media\EloquentMediaCollectionSync;
@@ -171,13 +172,17 @@ use App\Services\Spaces\DefaultSpaceEligibilityResolver;
 use App\Shared\Auth\AccountDirectory;
 use App\Shared\Auth\AccountLifecycleContributor;
 use App\Shared\Auth\UserMorphType;
+use App\Shared\Contributions\ContributionRequestReader;
 use App\Shared\Directory\DirectoryCatalog;
 use App\Shared\Directory\SubmissionEligibilitySync;
 use App\Shared\Discovery\SearchFilterCatalog;
 use App\Shared\Discovery\SearchFilterLabels;
 use App\Shared\Discovery\SearchFilterNormalizer;
 use App\Shared\Discovery\SearchFilterRules;
+use App\Shared\Engagement\EngagementReader;
+use App\Shared\Events\AccountEventFacts;
 use App\Shared\Location\VisitorCountryResolving;
+use App\Shared\Membership\MembershipApplicationReader;
 use App\Shared\Membership\MembershipAuthorization;
 use App\Shared\Membership\MembershipDirectory;
 use App\Shared\Reports\ReportEscalation;
@@ -185,6 +190,7 @@ use App\Shared\Reports\ReportSubjectResolver;
 use App\Shared\ShareTracking\SavedSearchShareOutcomes;
 use App\Shared\Signals\SignalRecorder;
 use App\Shared\Time\UserDateTimeFormatting;
+use App\Support\Ai\AiAccountLifecycleContributor;
 use App\Support\Auth\AffiliateSignupAttributionSourceResolver;
 use App\Support\Auth\EloquentAccountDirectory;
 use App\Support\Auth\EloquentUserMorphType;
@@ -194,9 +200,11 @@ use App\Support\Communications\AppConsentResolver;
 use App\Support\Communications\AppPreferenceResolver;
 use App\Support\Communications\AppQuietHoursResolver;
 use App\Support\Communications\AppSuppressionResolver;
+use App\Support\Communications\CommunicationsAccountLifecycleContributor;
 use App\Support\Communications\ListSafePayloadRedactor;
 use App\Support\Communications\ProbeSafeDestinationResolver;
 use App\Support\Contributions\ContributionsAccountLifecycleContributor;
+use App\Support\Contributions\EloquentContributionRequestReader;
 use App\Support\Directory\DirectoryAccountLifecycleContributor;
 use App\Support\Directory\EloquentDirectoryCatalog;
 use App\Support\Discovery\DatabaseSearchFilterLabels;
@@ -204,12 +212,16 @@ use App\Support\Discovery\EventSavedSearchExecutor;
 use App\Support\Discovery\EventSearchFilterCatalog;
 use App\Support\Discovery\EventSearchFilterNormalizer;
 use App\Support\Discovery\EventSearchFilterRules;
+use App\Support\Engagement\EloquentEngagementReader;
+use App\Support\Engagement\EngagementAccountLifecycleContributor;
+use App\Support\Events\EloquentAccountEventFacts;
 use App\Support\Events\EventsAccountLifecycleContributor;
 use App\Support\Filament\ContentVersionedJs;
 use App\Support\Location\VisitorCountryResolver;
 use App\Support\Media\MediaFileNamer;
 use App\Support\Membership\AppMembershipApplicationNotifier;
 use App\Support\Membership\AppMembershipHook;
+use App\Support\Membership\EloquentMembershipApplicationReader;
 use App\Support\Membership\MembershipAccountLifecycleContributor;
 use App\Support\Moderation\ModerationAccountLifecycleContributor;
 use App\Support\Passport\PassportKeyProvisioner;
@@ -280,8 +292,12 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(UserMorphType::class, EloquentUserMorphType::class);
         $this->app->bind(MembershipDirectory::class, InterimMembershipDirectory::class);
         $this->app->bind(MembershipAuthorization::class, InterimMembershipAuthorization::class);
+        $this->app->bind(MembershipApplicationReader::class, EloquentMembershipApplicationReader::class);
         $this->app->bind(DirectoryCatalog::class, EloquentDirectoryCatalog::class);
         $this->app->bind(SubmissionEligibilitySync::class, PublicSubmissionEligibilitySync::class);
+        $this->app->bind(AccountEventFacts::class, EloquentAccountEventFacts::class);
+        $this->app->bind(ContributionRequestReader::class, EloquentContributionRequestReader::class);
+        $this->app->bind(EngagementReader::class, EloquentEngagementReader::class);
         $this->app->bind(GuestSubmissionClaims::class, ClaimGuestSubmissionsAction::class);
         $this->app->tag([
             MembershipAccountLifecycleContributor::class,
@@ -289,6 +305,9 @@ class AppServiceProvider extends ServiceProvider
             EventsAccountLifecycleContributor::class,
             ContributionsAccountLifecycleContributor::class,
             ModerationAccountLifecycleContributor::class,
+            EngagementAccountLifecycleContributor::class,
+            AiAccountLifecycleContributor::class,
+            CommunicationsAccountLifecycleContributor::class,
         ], AccountLifecycleContributor::TAG);
 
         $this->app->bind(ReportEscalation::class, GlobalReportEscalation::class);
@@ -456,6 +475,8 @@ class AppServiceProvider extends ServiceProvider
         }
 
         $this->registerModelObservers();
+
+        User::observe(UserObserver::class);
 
         // Event ownership is an application projection of the reusable
         // organization aggregate; the organizations package remains event-agnostic.

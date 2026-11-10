@@ -13,12 +13,14 @@ use AIArmada\Communications\Enums\NotificationFamily;
 use AIArmada\Communications\Enums\NotificationPriority;
 use AIArmada\Communications\Enums\NotificationTrigger as PackageNotificationTrigger;
 use AIArmada\Communications\Models\NotificationInbox;
+use AIArmada\Communications\Services\NotificationInboxService;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
 use App\Services\Notifications\EventNotificationService;
 use App\Services\Notifications\NotificationSettingsManager;
+use App\Support\Communications\AccountCommunications;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -109,7 +111,7 @@ it('localizes followed-content inbox notifications per recipient locale', functi
         ->and($englishInbox->title)->not->toBe($malayInbox->title);
 });
 
-it('marks package inbox messages read via HasInbox helpers', function () {
+it('marks package inbox messages read via the communications boundary', function () {
     $user = User::factory()->create();
 
     $inbox = createTestRecord(NotificationInbox::class, [
@@ -124,10 +126,10 @@ it('marks package inbox messages read via HasInbox helpers', function () {
         'read_at' => null,
     ]);
 
-    expect($user->unreadCount())->toBe(1);
+    expect(app(AccountCommunications::class)->unreadInboxCount((string) $user->getKey()))->toBe(1);
 
-    $user->markAsRead($inbox->id);
+    app(NotificationInboxService::class)->markAsRead($user, $inbox->id);
 
-    expect($user->fresh()->unreadCount())->toBe(0)
+    expect(app(AccountCommunications::class)->unreadInboxCount((string) ($user->fresh() ?? $user)->getKey()))->toBe(0)
         ->and($inbox->fresh()->read_at)->not->toBeNull();
 });

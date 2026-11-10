@@ -20,11 +20,11 @@ class AppPreferenceResolver implements PreferenceResolver
     ): bool {
         $recipient = $this->resolveUser($recipientType, $recipientId);
 
-        if ($recipient === null || ! method_exists($recipient, 'notificationSetting')) {
+        if ($recipient === null) {
             return true;
         }
 
-        $setting = $recipient->notificationSetting;
+        $setting = app(AccountCommunications::class)->basePreferenceForRecipient($recipient->getMorphClass(), $recipientId);
 
         if (! $setting instanceof CommunicationPreference) {
             return true;
@@ -59,11 +59,11 @@ class AppPreferenceResolver implements PreferenceResolver
     ): ?bool {
         $recipient = $this->resolveUser($recipientType, $recipientId);
 
-        if ($recipient === null || ! method_exists($recipient, 'notificationSetting')) {
+        if ($recipient === null) {
             return null;
         }
 
-        $setting = $recipient->notificationSetting;
+        $setting = app(AccountCommunications::class)->basePreferenceForRecipient($recipient->getMorphClass(), $recipientId);
 
         if (! $setting instanceof CommunicationPreference) {
             return null;
