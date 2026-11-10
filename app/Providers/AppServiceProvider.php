@@ -130,6 +130,7 @@ use App\Observers\AddressCountryObserver;
 use App\Observers\AddressObserver;
 use App\Observers\CommittedShareTouchpointObserver;
 use App\Observers\EventKeyPersonObserver;
+use App\Observers\EventLocationSyncObserver;
 use App\Observers\EventObserver;
 use App\Observers\EventOccurrenceFeaturedObserver;
 use App\Observers\EventOccurrenceObserver;
@@ -754,6 +755,7 @@ class AppServiceProvider extends ServiceProvider
             return;
         }
 
+        Event::observe(EventLocationSyncObserver::class);
         Event::observe(EventObserver::class);
         EventTerm::observe(EventTermObserver::class);
         Address::observe(AddressObserver::class);

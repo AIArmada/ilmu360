@@ -53,6 +53,7 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Platform\Directory\EntityRelationSync;
 use App\Platform\Location\AddressAssignments;
+use App\Platform\Media\MediaFileNamer;
 use App\Rules\ValidAreaAssignmentRoles;
 use App\Shared\Directory\Enums\InstitutionNameType;
 use App\Shared\Directory\Enums\InstitutionType;
@@ -65,6 +66,7 @@ use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
@@ -1583,7 +1585,8 @@ class ContributionEntityMutationService
 
     /**
      * Stable identity for matching a submitted donation row to its persisted
-     * channel, mirroring {@see sameDonationChannelIdentity()}.
+     * channel, mirroring {@see sameDonationChannelIdentity()}. The identity is
+     * hashed so staged fingerprints never embed account numbers in plaintext.
      *
      * @param  array<string, mixed>  $row
      */
@@ -1610,7 +1613,57 @@ class ContributionEntityMutationService
             return null;
         }
 
-        return $method.'|'.implode('|', $normalized);
+        return 'sha256:'.hash('sha256', $method.'|'.implode('|', $normalized));
+    }
+
+    /**
+     * Verify every submitted donation QR upload is still readable before
+     * anything is persisted, so an expired temporary file fails cleanly
+     * instead of crashing form validation or stranding a half-built request.
+     * Keys follow the raw repeater keys so errors render on their field.
+     */
+    public static function assertDonationQrUploadsFresh(mixed $donationRows): void
+    {
+        $rows = is_array($donationRows) ? $donationRows : [];
+        $failed = [];
+
+        foreach (SharedFormSchema::collectDonationQrUploads($rows) as $index => $file) {
+            $row = $rows[$index] ?? null;
+            $fingerprint = is_array($row) ? self::donationChannelFingerprint($row) : null;
+
+            try {
+                $fresh = $file->exists();
+            } catch (\Throwable) {
+                $fresh = false;
+            }
+
+            if (! $fresh || $fingerprint === null) {
+                $failed["data.donation_channels.{$index}.qr_upload"] = __('The QR upload expired or is invalid. Please upload the QR image again.');
+            }
+        }
+
+        if ($failed !== []) {
+            throw ValidationException::withMessages($failed);
+        }
+    }
+
+    /**
+     * Build a storage filename for a donation QR upload following the
+     * application media naming policy, with the extension sniffed from the
+     * file contents instead of trusting the client-provided name.
+     */
+    public static function safeDonationQrFileName(TemporaryUploadedFile $file, ?Model $subject = null): string
+    {
+        $extension = strtolower((string) $file->guessExtension());
+
+        if (! in_array($extension, ['jpg', 'jpeg', 'png', 'webp'], true)) {
+            $extension = 'png';
+        }
+
+        $base = MediaFileNamer::resolveBaseNameFromModel($subject);
+        $suffix = strtolower(substr((string) Str::ulid(), -8));
+
+        return "{$base}-{$suffix}.{$extension}";
     }
 
     /**
@@ -1647,7 +1700,8 @@ class ContributionEntityMutationService
             }
 
             $channel->addMediaFromString($contents)
-                ->usingFileName($file->getClientOriginalName() !== '' ? $file->getClientOriginalName() : 'qr.png')
+                ->usingFileName(self::safeDonationQrFileName($file, $channel))
+                ->usingName(MediaFileNamer::resolveDisplayNameFromModel($channel, 'qr', $file->getClientOriginalName()))
                 ->toMediaCollection('qr');
         }
 

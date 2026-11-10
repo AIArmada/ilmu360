@@ -49,20 +49,23 @@ class UserTimezoneResolver
             }
         }
 
-        $fallback = (string) config('app.timezone', config('app.default_user_timezone', 'UTC'));
-
-        if (self::isValid($fallback)) {
-            return [
-                'timezone' => $fallback,
-                'source' => 'app_fallback',
-            ];
-        }
-
+        // Display fallback for visitors without a profile/header/cookie/session
+        // timezone. app.timezone is the storage timezone (UTC), so it must not
+        // win over the configured default user timezone.
         $defaultUserTimezone = (string) config('app.default_user_timezone', 'UTC');
 
         if (self::isValid($defaultUserTimezone)) {
             return [
                 'timezone' => $defaultUserTimezone,
+                'source' => 'app_fallback',
+            ];
+        }
+
+        $fallback = (string) config('app.timezone', 'UTC');
+
+        if (self::isValid($fallback)) {
+            return [
+                'timezone' => $fallback,
                 'source' => 'app_fallback',
             ];
         }

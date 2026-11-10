@@ -29,6 +29,9 @@ class CancelContributionRequestAction
             'last_state_change_at' => $now,
         ])->save();
 
+        // Staged uploads never took effect, so drop them with the request.
+        $request->clearMediaCollection('pending_media');
+
         return $request->fresh(['entity', 'proposer', 'reviewer']) ?? $request;
     }
 }

@@ -895,6 +895,45 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
     }
 
     /**
+     * Keep the event-level primary location row aligned with the selected
+     * default venue. Direct event saves (e.g. the Filament edit form) only
+     * write events.default_venue_id, while the public detail page reads the
+     * event_locations row; without this sync the page keeps showing the old
+     * venue after a venue change or removal.
+     */
+    public function syncPrimaryLocationFromSelection(): void
+    {
+        $venueId = $this->getAttribute('default_venue_id');
+        $venueId = is_string($venueId) && $venueId !== '' ? $venueId : null;
+
+        $primaryLocation = $this->primaryLocation()->first();
+
+        if ($venueId === null) {
+            // Only clear a stale venue-backed primary row. A null-venue row
+            // can still carry an institution/space selection and must survive.
+            if (
+                $primaryLocation instanceof EventLocation
+                && $primaryLocation->getAttribute('venue_id') !== null
+            ) {
+                $this->syncLocation(null);
+                $this->unsetRelation('primaryLocation');
+            }
+
+            return;
+        }
+
+        if (
+            $primaryLocation instanceof EventLocation
+            && (string) $primaryLocation->getAttribute('venue_id') === $venueId
+        ) {
+            return;
+        }
+
+        $this->syncLocation($venueId);
+        $this->unsetRelation('primaryLocation');
+    }
+
+    /**
      * @param  list<string>  $spaceIds
      */
     public function syncLocation(?string $venueId = null, array $spaceIds = []): void

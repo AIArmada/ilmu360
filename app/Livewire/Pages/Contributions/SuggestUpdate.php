@@ -13,6 +13,7 @@ use App\Actions\Contributions\Submission\ResolveContributionChangedPayloadAction
 use App\Actions\Contributions\Submission\SubmitContributionUpdateRequestAction;
 use App\Actions\Institutions\MergeInstitutionMapsSelectionIntoFormAction;
 use App\Actions\Institutions\ResolveInstitutionMapsPlaceSelectionAction;
+use App\Actions\Institutions\WithInstitutionMapsIdentityLockAction;
 use App\Enums\ContributionSubjectType;
 use App\Forms\EventContributionFormSchema;
 use App\Forms\InstitutionContributionFormSchema;
@@ -33,6 +34,7 @@ use App\Platform\Ui\InteractsWithToasts;
 use App\Services\ContributionEntityMutationService;
 use App\Shared\Signals\SignalRecorder;
 use App\Support\Events\EventContributionUpdateStateMapper;
+use App\Support\Location\GooglePlacesConfiguration;
 use App\Support\Submission\ContributionSubjectPresenter;
 use Closure;
 use Filament\Actions\Concerns\InteractsWithActions;
@@ -46,9 +48,11 @@ use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use League\Flysystem\UnableToCheckFileExistence;
@@ -209,6 +213,8 @@ class SuggestUpdate extends Component implements HasActions, HasForms
         ResolveInstitutionMapsPlaceSelectionAction $resolveInstitutionMapsPlaceSelectionAction,
         MergeInstitutionMapsSelectionIntoFormAction $mergeInstitutionMapsSelectionIntoFormAction,
     ): array {
+        $this->hitMapsThrottle('select');
+
         if (! $this->entity instanceof Institution || $statePath !== 'data.address') {
             throw ValidationException::withMessages([
                 'data.address.google_place_id' => __('Select an institution from the Google Maps search.'),
@@ -295,6 +301,8 @@ class SuggestUpdate extends Component implements HasActions, HasForms
         FetchGooglePlaceDetailsAction $fetchGooglePlaceDetailsAction,
         FetchGooglePlacePhotoPreviewsAction $fetchGooglePlacePhotoPreviewsAction,
     ): array {
+        $this->hitMapsThrottle('photos');
+
         $verifiedSelection = $this->verifiedMapsSelection();
 
         if (! is_array($verifiedSelection)
@@ -337,6 +345,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
         NormalizeContributionSubmissionAction $normalizeContributionSubmissionAction,
         SubmitContributionUpdateRequestAction $submitContributionUpdateRequestAction,
         EnsureNoPendingContributionRequestAction $ensureNoPendingContributionRequestAction,
+        WithInstitutionMapsIdentityLockAction $mapsIdentityLockAction,
     ): void {
         OwnerContext::withOwner(null, function () use (
             $applyDirectContributionUpdateAction,
@@ -344,6 +353,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             $normalizeContributionSubmissionAction,
             $submitContributionUpdateRequestAction,
             $ensureNoPendingContributionRequestAction,
+            $mapsIdentityLockAction,
         ): void {
             $user = auth()->user();
 
@@ -353,71 +363,110 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 abort(403, $user->directoryFeedbackBanMessage());
             }
 
-            $ensureNoPendingContributionRequestAction->handle($this->entity);
+            // Fail expired QR uploads before getState(): Filament crashes on
+            // missing temporary files, and anything persisted first would
+            // strand partial state that blocks the contributor from retrying.
+            $rawDonationRows = $this->data['donation_channels'] ?? null;
+            ContributionEntityMutationService::assertDonationQrUploadsFresh($rawDonationRows);
 
             $formState = $this->contributionForm()->getState();
-            $donationQrUploads = SharedFormSchema::collectDonationQrUploads($formState['donation_channels'] ?? null);
-            $rawState = SharedFormSchema::withoutDonationQrUploads($formState);
-            $submittedDonationRows = is_array($rawState['donation_channels'] ?? null) ? $rawState['donation_channels'] : [];
-            $formState = $this->mergeVerifiedInstitutionMapsSelection($rawState);
-            $submissionState = $normalizeContributionSubmissionAction->handle($formState);
-            $state = $this->normalizeSubmissionState($submissionState['state']);
-            $changes = $resolveContributionChangedPayloadAction->handle(
-                $state,
-                $this->originalData + EventContributionUpdateStateMapper::provenanceOriginals($this->entity),
+            $donationQrUploads = SharedFormSchema::rekeyDonationRowsByRawKeys(
+                SharedFormSchema::collectDonationQrUploads($formState['donation_channels'] ?? null),
+                $rawDonationRows,
             );
-            $hasDirectEditMediaChange = $this->hasDirectEditMediaChange();
-            $hasNewMedia = $this->hasNewMedia();
+            $rawState = SharedFormSchema::withoutDonationQrUploads($formState);
+            $submittedDonationRows = SharedFormSchema::rekeyDonationRowsByRawKeys(
+                is_array($rawState['donation_channels'] ?? null) ? $rawState['donation_channels'] : [],
+                $rawDonationRows,
+            );
 
-            if ($changes === [] && ! $hasNewMedia && ! $hasDirectEditMediaChange && $donationQrUploads === []) {
-                $this->addError('data', __('Make at least one change before continuing.'));
+            $persist = function () use (
+                $formState,
+                $submittedDonationRows,
+                $donationQrUploads,
+                $applyDirectContributionUpdateAction,
+                $resolveContributionChangedPayloadAction,
+                $normalizeContributionSubmissionAction,
+                $submitContributionUpdateRequestAction,
+                $ensureNoPendingContributionRequestAction,
+                $user,
+            ): void {
+                $ensureNoPendingContributionRequestAction->handle($this->entity);
 
-                return;
-            }
+                $formState = $this->mergeVerifiedInstitutionMapsSelection($formState);
+                $submissionState = $normalizeContributionSubmissionAction->handle($formState);
+                $state = $this->normalizeSubmissionState($submissionState['state']);
+                $changes = $resolveContributionChangedPayloadAction->handle(
+                    $state,
+                    $this->originalData + EventContributionUpdateStateMapper::provenanceOriginals($this->entity),
+                );
+                $hasDirectEditMediaChange = $this->hasDirectEditMediaChange();
+                $hasNewMedia = $this->hasNewMedia();
 
-            if ($this->canDirectEdit()) {
-                if ($changes !== []) {
-                    $applyDirectContributionUpdateAction->handle($this->entity, $changes);
+                if ($changes === [] && ! $hasNewMedia && ! $hasDirectEditMediaChange && $donationQrUploads === []) {
+                    $this->addError('data', __('Make at least one change before continuing.'));
+
+                    return;
                 }
 
-                if ($hasDirectEditMediaChange) {
-                    $this->saveDirectEditMediaChanges();
+                if ($this->canDirectEdit()) {
+                    if ($changes !== []) {
+                        $applyDirectContributionUpdateAction->handle($this->entity, $changes);
+                    }
+
+                    if ($hasDirectEditMediaChange) {
+                        $this->saveDirectEditMediaChanges();
+                    }
+
+                    if ($donationQrUploads !== []) {
+                        app(ContributionEntityMutationService::class)->attachDonationQrUploads(
+                            $this->entity,
+                            $submittedDonationRows,
+                            $donationQrUploads,
+                        );
+                    }
+
+                    $this->clearVerifiedMapsSelection();
+                    $this->redirect($this->subjectPresentation['redirect_url'], navigate: true);
+
+                    return;
+                }
+
+                $request = $submitContributionUpdateRequestAction->handle(
+                    $this->entity,
+                    $user,
+                    $changes,
+                    $submissionState['proposer_note'],
+                );
+
+                if ($hasNewMedia) {
+                    // Non-privileged contributors cannot apply media directly. Stage the
+                    // uploaded media on the pending request so it is moderated like the
+                    // rest of the proposed changes.
+                    $this->stageDirectEditMediaChanges($request);
                 }
 
                 if ($donationQrUploads !== []) {
-                    app(ContributionEntityMutationService::class)->attachDonationQrUploads(
-                        $this->entity,
-                        $submittedDonationRows,
-                        $donationQrUploads,
-                    );
+                    $this->stageDonationQrUploads($request, $submittedDonationRows, $donationQrUploads);
                 }
 
                 $this->clearVerifiedMapsSelection();
-                $this->redirect($this->subjectPresentation['redirect_url'], navigate: true);
+                $this->redirect(route('contributions.index'), navigate: true);
+            };
+
+            if ($this->entity instanceof Institution) {
+                try {
+                    $mapsIdentityLockAction->handle($formState, $persist);
+                } catch (LockTimeoutException) {
+                    throw ValidationException::withMessages([
+                        'data.address.google_place_id' => __('The review service is busy. Please try again in a moment.'),
+                    ]);
+                }
 
                 return;
             }
 
-            $request = $submitContributionUpdateRequestAction->handle(
-                $this->entity,
-                $user,
-                $changes,
-                $submissionState['proposer_note'],
-            );
-
-            if ($hasNewMedia) {
-                // Non-privileged contributors cannot apply media directly. Stage the
-                // uploaded media on the pending request so it is moderated like the
-                // rest of the proposed changes.
-                $this->stageDirectEditMediaChanges($request);
-            }
-
-            if ($donationQrUploads !== []) {
-                $this->stageDonationQrUploads($request, $submittedDonationRows, $donationQrUploads);
-            }
-
-            $this->clearVerifiedMapsSelection();
-            $this->redirect(route('contributions.index'), navigate: true);
+            $persist();
         });
     }
 
@@ -610,11 +659,28 @@ class SuggestUpdate extends Component implements HasActions, HasForms
         return InstitutionContributionFormSchema::directEditComponents(
             addressStatePath: 'address',
             includeLocationPicker: true,
-            mediaFields: $this->directEditMediaFields,
+            mediaFields: $this->actionableDirectEditMediaFields(),
             includeWazeUrlField: false,
             includeMapsReselection: true,
             mapsReselectionRequired: ! is_string($storedPlaceId) || trim($storedPlaceId) === '',
         );
+    }
+
+    /**
+     * Media fields the current contributor may act on. Institution uploads are
+     * maintainers-only, matching the public API contract: without this, media
+     * added by someone else after mount would look like the visitor's own
+     * upload and get staged away from (or deleted off) the live entity.
+     *
+     * @return list<string>
+     */
+    private function actionableDirectEditMediaFields(): array
+    {
+        if ($this->entity instanceof Institution && ! $this->canDirectEdit()) {
+            return [];
+        }
+
+        return $this->directEditMediaFields;
     }
 
     /**
@@ -852,7 +918,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
 
     private function hasDirectEditMediaChange(): bool
     {
-        return array_any($this->directEditMediaFields, fn ($field) => $this->directEditMediaFieldChanged($field));
+        return array_any($this->actionableDirectEditMediaFields(), fn ($field) => $this->directEditMediaFieldChanged($field));
     }
 
     /**
@@ -871,7 +937,8 @@ class SuggestUpdate extends Component implements HasActions, HasForms
         // so they are detected as "new" without ever touching the displayed collection.
         $staged = $this->entity
             ->getMedia(self::VISITOR_MEDIA_HOLDING)
-            ->filter(static fn (Media $media): bool => ($media->custom_properties['contribution_field'] ?? null) === $field)
+            ->filter(fn (Media $media): bool => ($media->custom_properties['contribution_field'] ?? null) === $field
+                && ($media->custom_properties['contributed_by'] ?? null) === $this->visitorStagingOwnerKey())
             ->pluck('uuid')
             ->all();
 
@@ -882,7 +949,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
 
     private function hasNewMedia(): bool
     {
-        foreach ($this->directEditMediaFields as $field) {
+        foreach ($this->actionableDirectEditMediaFields() as $field) {
             if ($this->newMediaUuids($field) !== []) {
                 return true;
             }
@@ -935,7 +1002,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
 
     private function saveDirectEditMediaChanges(): void
     {
-        $mediaIdsBeforeSave = collect($this->directEditMediaFields)
+        $mediaIdsBeforeSave = collect($this->actionableDirectEditMediaFields())
             ->mapWithKeys(fn (string $field): array => [$field => $this->currentDirectEditMediaState($field)])
             ->all();
 
@@ -970,7 +1037,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
      */
     private function stageDirectEditMediaChanges(ContributionRequest $request): void
     {
-        foreach ($this->directEditMediaFields as $field) {
+        foreach ($this->actionableDirectEditMediaFields() as $field) {
             $newUuids = $this->newMediaUuids($field);
 
             if ($newUuids === []) {
@@ -1023,7 +1090,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             }
 
             $request->addMediaFromString($contents)
-                ->usingFileName($file->getClientOriginalName() !== '' ? $file->getClientOriginalName() : 'qr.png')
+                ->usingFileName(ContributionEntityMutationService::safeDonationQrFileName($file, $request))
                 ->withCustomProperties([
                     'contribution_field' => 'donation_qr',
                     'donation_fingerprint' => $fingerprint,
@@ -1081,7 +1148,10 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 ->storingConversionsOnDisk($component->getConversionsDisk() ?? '')
                 ->withCustomProperties(array_merge(
                     $component->getCustomProperties($file),
-                    ['contribution_field' => $component->getCollection()],
+                    [
+                        'contribution_field' => $component->getCollection(),
+                        'contributed_by' => $this->visitorStagingOwnerKey(),
+                    ],
                 ))
                 ->withManipulations($component->getManipulations())
                 ->withResponsiveImagesIf($component->hasResponsiveImages())
@@ -1137,12 +1207,26 @@ class SuggestUpdate extends Component implements HasActions, HasForms
         $originalPlaceId = data_get($this->originalData, 'address.google_place_id');
 
         if (! is_string($submittedPlaceId) || trim($submittedPlaceId) === '') {
-            throw ValidationException::withMessages([
-                'data.address.google_place_id' => __('Select and verify the institution on Google Maps before submitting.'),
-            ]);
+            // When Places is disabled the picker (and its field error block)
+            // is not rendered, so also surface the failure as a form error.
+            $message = __('Select and verify the institution on Google Maps before submitting.');
+            $messages = ['data.address.google_place_id' => $message];
+
+            if (! GooglePlacesConfiguration::isEnabled()) {
+                $messages['data'] = $message;
+            }
+
+            throw ValidationException::withMessages($messages);
         }
 
         if ($submittedPlaceId === $originalPlaceId) {
+            // The place is unchanged, so the verified Google identity block is
+            // authoritative from the stored record: hidden form fields are
+            // client-writable and must not be able to rewrite it.
+            $formState['address'] = $this->restoreStoredMapsIdentity(
+                is_array($formState['address'] ?? null) ? $formState['address'] : []
+            );
+
             return $formState;
         }
 
@@ -1203,6 +1287,45 @@ class SuggestUpdate extends Component implements HasActions, HasForms
     }
 
     /**
+     * Overwrite the client-submitted Google identity block with the stored
+     * values. Only keys present on the stored address are restored, so a
+     * legacy record without a resolved place never gains fabricated values.
+     *
+     * @param  array<string, mixed>  $formAddress
+     * @return array<string, mixed>
+     */
+    private function restoreStoredMapsIdentity(array $formAddress): array
+    {
+        $originalAddress = data_get($this->originalData, 'address');
+
+        if (! is_array($originalAddress)) {
+            return $formAddress;
+        }
+
+        foreach ([
+            'google_maps_url',
+            'google_place_id',
+            'google_feature_id',
+            'google_cid',
+            'google_entity_id',
+            'google_display_name',
+            'latitude',
+            'longitude',
+            'google_resolution_source',
+            'google_resolution_status',
+            'google_resolution_fingerprint',
+            'google_resolution_message',
+            'formatted_address',
+        ] as $key) {
+            if (array_key_exists($key, $originalAddress)) {
+                $formAddress[$key] = $originalAddress[$key];
+            }
+        }
+
+        return $formAddress;
+    }
+
+    /**
      * @return array<string, mixed>|null
      */
     private function verifiedMapsSelection(): ?array
@@ -1228,5 +1351,34 @@ class SuggestUpdate extends Component implements HasActions, HasForms
         }
 
         $this->verifiedMapsSelectionToken = null;
+    }
+
+    /**
+     * Rate-limit paid Google Maps calls per contributor. Human selection pace
+     * stays far below the cap; only abusive automation trips it.
+     */
+    private function hitMapsThrottle(string $action): void
+    {
+        $key = 'maps-'.$action.':'.(auth()->id() ?? session()->getId());
+
+        if (RateLimiter::tooManyAttempts($key, 30)) {
+            throw ValidationException::withMessages([
+                'data.address.google_place_id' => __('Please wait a moment before trying again.'),
+            ]);
+        }
+
+        RateLimiter::hit($key, 60);
+    }
+
+    /**
+     * Attribute staged visitor uploads to their contributor so one
+     * contributor's abandoned uploads can never be picked up by another
+     * contributor's later submission.
+     */
+    private function visitorStagingOwnerKey(): string
+    {
+        $userId = auth()->id();
+
+        return $userId === null ? 'session:'.session()->getId() : 'user:'.$userId;
     }
 }

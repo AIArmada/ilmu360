@@ -758,6 +758,67 @@ it('allows direct institution gallery uploads on public contribution update sugg
     expect($institution->fresh()?->getMedia('gallery'))->toHaveCount(1);
 });
 
+it('accepts SVG institution logos on public contribution update suggestions', function () {
+    Storage::fake('public');
+    config()->set('media-library.disk_name', 'public');
+
+    $owner = User::factory()->create();
+    $institution = Institution::factory()->create([
+        'status' => 'verified',
+    ]);
+
+    assignInstitutionOwnerForFrontendApi($owner, $institution);
+    Sanctum::actingAs($owner);
+
+    $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect width="120" height="120" fill="#185aa0"/></svg>';
+
+    $this->post(route('api.client.contributions.suggest.store', [
+        'subjectType' => 'institusi',
+        'subject' => $institution->slug,
+    ]), [
+        'logo' => UploadedFile::fake()->createWithContent('institution-logo.svg', $svg, 'image/svg+xml'),
+    ], [
+        'Accept' => 'application/json',
+    ])
+        ->assertOk()
+        ->assertJsonPath('data.mode', 'direct_edit');
+
+    expect($institution->fresh()?->getMedia('logo'))->toHaveCount(1);
+});
+
+it('rejects partially filled donation channels on public contribution update suggestions', function () {
+    $owner = User::factory()->create();
+    $institution = Institution::factory()->create([
+        'status' => 'verified',
+    ]);
+
+    assignInstitutionOwnerForFrontendApi($owner, $institution);
+    Sanctum::actingAs($owner);
+
+    $this->postJson(route('api.client.contributions.suggest.store', [
+        'subjectType' => 'institusi',
+        'subject' => $institution->slug,
+    ]), [
+        'donation_channels' => [
+            [
+                'recipient' => 'Jawatankuasa Masjid',
+                'method' => 'bank_account',
+                'bank_name' => 'Maybank',
+                'account_number' => '12345678',
+            ],
+            [
+                'recipient' => 'Jawatankuasa Surau',
+                'method' => 'ewallet',
+                'ewallet_provider' => 'tng',
+            ],
+        ],
+    ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['donation_channels.1.ewallet_handle']);
+
+    expect($institution->fresh()->donationChannels()->count())->toBe(0);
+});
+
 it('returns only region address keys in the person suggest context state', function () {
     $owner = User::factory()->create();
     $countryId = ensureFrontendApiMalaysiaCountryExists();

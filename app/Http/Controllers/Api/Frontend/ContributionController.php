@@ -49,8 +49,10 @@ use Dedoc\Scramble\Attributes\PathParameter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Fluent;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Validation\Validator;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 #[Group(
@@ -522,13 +524,17 @@ class ContributionController extends FrontendController
             ->only(array_merge(array_keys($publicInitialState), ['proposer_note']))
             ->all();
 
-        $validatedPayload = validator(
+        $suggestionValidator = validator(
             $payload,
             array_merge(
                 $contributionEntityMutationService->updateRulesFor($entity),
                 ['proposer_note' => ['sometimes', 'nullable', 'string', 'max:2000']],
             ),
-        )->validate();
+        );
+
+        $this->addDonationChannelIdentityRules($suggestionValidator, $payload);
+
+        $validatedPayload = $suggestionValidator->validate();
         $validatedPayload = $this->normalizeSuggestionPayload($entity, $validatedPayload);
 
         $submissionState = $normalizeContributionSubmissionAction->handle($validatedPayload);
@@ -800,6 +806,10 @@ class ContributionController extends FrontendController
             $rules['avatar'] = ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', "max:{$maxUploadSizeKb}"];
         }
 
+        if (in_array('logo', $directEditMediaFields, true)) {
+            $rules['logo'] = ['nullable', 'image:allow_svg', 'mimes:jpg,jpeg,png,webp,svg', "max:{$maxUploadSizeKb}"];
+        }
+
         if (in_array('cover', $directEditMediaFields, true)) {
             $rules['cover'] = $entity instanceof Event
                 ? ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'dimensions:ratio=16/9', "max:{$maxUploadSizeKb}"]
@@ -816,6 +826,65 @@ class ContributionController extends FrontendController
         }
 
         return $rules;
+    }
+
+    /**
+     * Require per-method donation identity fields that the base
+     * `sometimes`/`nullable` rules cannot express per item: a submitted
+     * channel must carry enough identity to sync. Mirrors
+     * ContributionEntityMutationService::normalizeDonationChannelRow().
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function addDonationChannelIdentityRules(Validator $validator, array $payload): void
+    {
+        $rows = $payload['donation_channels'] ?? null;
+
+        if (! is_array($rows)) {
+            return;
+        }
+
+        foreach ($rows as $index => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $method = is_string($row['method'] ?? null) ? trim($row['method']) : null;
+
+            if ($method === 'bank_account') {
+                $validator->sometimes(
+                    "donation_channels.{$index}.account_number",
+                    ['required', 'string', 'max:2000'],
+                    fn (): bool => true,
+                );
+            }
+
+            if ($method === 'duitnow') {
+                $validator->sometimes(
+                    "donation_channels.{$index}.duitnow_value",
+                    ['required', 'string', 'max:2000'],
+                    fn (): bool => true,
+                );
+            }
+
+            if ($method === 'ewallet') {
+                $validator->sometimes(
+                    "donation_channels.{$index}.ewallet_provider",
+                    ['required', 'string', 'max:255'],
+                    fn (): bool => true,
+                );
+                $validator->sometimes(
+                    "donation_channels.{$index}.ewallet_handle",
+                    ['required', 'string', 'max:255'],
+                    fn (Fluent $input): bool => blank($input->get("donation_channels.{$index}.ewallet_qr_payload")),
+                );
+                $validator->sometimes(
+                    "donation_channels.{$index}.ewallet_qr_payload",
+                    ['required', 'string', 'max:2000'],
+                    fn (Fluent $input): bool => blank($input->get("donation_channels.{$index}.ewallet_handle")),
+                );
+            }
+        }
     }
 
     /**
@@ -845,6 +914,10 @@ class ContributionController extends FrontendController
 
             if ($field === 'gallery') {
                 $contract[$field]['max_files'] = 10;
+            }
+
+            if ($entity instanceof Institution && $field === 'logo') {
+                $contract[$field]['accepted_mime_types'][] = 'image/svg+xml';
             }
         }
 

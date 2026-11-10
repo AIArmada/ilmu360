@@ -32,8 +32,9 @@ final class WithInstitutionMapsIdentityLockAction
         }
 
         $lockKey = 'contribution-create:institution-maps:'.hash('sha256', $identity);
+        $blockSeconds = max(1, (int) config('moderation.review_lock_block_seconds', 10));
 
-        return Cache::lock($lockKey, 300)->block(10, $operation);
+        return Cache::lock($lockKey, 300)->block($blockSeconds, $operation);
     }
 
     /**

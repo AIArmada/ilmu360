@@ -791,9 +791,9 @@ it('shows the institution media uploads on the suggest update page only for main
     ]))
         ->assertOk()
         ->assertDontSee(__('View My Contributions'))
-        ->assertSee(__('Logo'))
-        ->assertSee(__('Cover Image'))
-        ->assertSee(__('Gallery'));
+        ->assertDontSee(__('Logo'))
+        ->assertDontSee(__('Cover Image'))
+        ->assertDontSee(__('Gallery'));
 
     assignInstitutionOwner($owner, $institution);
     $this->actingAs($owner);

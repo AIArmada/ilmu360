@@ -37,7 +37,12 @@ class EditInstitution extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            DeleteAction::make(),
+            DeleteAction::make()
+                ->using(function (Model $record): bool {
+                    app(InstitutionWorkflow::class)->delete([(string) $record->getKey()]);
+
+                    return true;
+                }),
         ];
     }
 

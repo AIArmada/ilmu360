@@ -5,6 +5,8 @@ namespace App\Filament\Resources\ContributionRequests\Tables;
 use App\Actions\Contributions\Review\ApproveContributionRequestAction;
 use App\Actions\Contributions\Review\RejectContributionRequestAction;
 use App\Enums\ContributionRequestStatus;
+use App\Exceptions\ContributionRequestAlreadyReviewedException;
+use App\Exceptions\ContributionRequestNotPendingException;
 use App\Filament\Resources\ContributionRequests\ContributionRequestResource;
 use App\Filament\Resources\ContributionRequests\Support\ContributionRequestPresenter;
 use App\Models\ContributionRequest;
@@ -19,6 +21,8 @@ use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Contracts\Cache\LockTimeoutException;
+use Illuminate\Validation\ValidationException;
 
 class ContributionRequestsTable
 {
@@ -91,11 +95,43 @@ class ContributionRequestsTable
 
                         abort_unless($user instanceof User, 403);
 
-                        $approveContributionRequestAction->handle(
-                            $record,
-                            $user,
-                            filled($data['reviewer_note'] ?? null) ? (string) $data['reviewer_note'] : null,
-                        );
+                        try {
+                            $approveContributionRequestAction->handle(
+                                $record,
+                                $user,
+                                filled($data['reviewer_note'] ?? null) ? (string) $data['reviewer_note'] : null,
+                            );
+                        } catch (ContributionRequestAlreadyReviewedException $exception) {
+                            Notification::make()
+                                ->title($exception->getMessage())
+                                ->danger()
+                                ->send();
+
+                            return;
+                        } catch (ValidationException $exception) {
+                            $message = collect($exception->errors())->flatten()->first();
+
+                            Notification::make()
+                                ->title(is_string($message) && $message !== '' ? $message : __('Could not approve this request.'))
+                                ->danger()
+                                ->send();
+
+                            return;
+                        } catch (LockTimeoutException) {
+                            Notification::make()
+                                ->title(__('The review service is busy. Please try again in a moment.'))
+                                ->danger()
+                                ->send();
+
+                            return;
+                        } catch (ContributionRequestNotPendingException) {
+                            Notification::make()
+                                ->title(__('This request is no longer pending review. Please refresh to see its current status.'))
+                                ->danger()
+                                ->send();
+
+                            return;
+                        }
 
                         Notification::make()
                             ->title('Contribution request approved')
@@ -124,12 +160,21 @@ class ContributionRequestsTable
 
                         abort_unless($user instanceof User, 403);
 
-                        $rejectContributionRequestAction->handle(
-                            $record,
-                            $user,
-                            (string) $data['reason_code'],
-                            filled($data['reviewer_note'] ?? null) ? (string) $data['reviewer_note'] : null,
-                        );
+                        try {
+                            $rejectContributionRequestAction->handle(
+                                $record,
+                                $user,
+                                (string) $data['reason_code'],
+                                filled($data['reviewer_note'] ?? null) ? (string) $data['reviewer_note'] : null,
+                            );
+                        } catch (ContributionRequestNotPendingException) {
+                            Notification::make()
+                                ->title(__('This request is no longer pending review. Please refresh to see its current status.'))
+                                ->danger()
+                                ->send();
+
+                            return;
+                        }
 
                         Notification::make()
                             ->title('Contribution request rejected')

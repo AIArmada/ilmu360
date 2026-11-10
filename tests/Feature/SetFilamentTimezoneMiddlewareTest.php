@@ -88,14 +88,24 @@ it('uses existing session timezone when header and cookie are missing', function
     expect($result['resolved_timezone'])->toBe('Asia/Manila');
 });
 
-it('falls back to app timezone when provided values are invalid', function () {
+it('falls back to the default user timezone when provided values are invalid', function () {
     config()->set('app.timezone', 'UTC');
+    config()->set('app.default_user_timezone', 'Asia/Kuala_Lumpur');
 
     $result = runTimezoneMiddleware(
         header: 'Invalid/Header',
         cookie: 'Still/Invalid',
         session: 'Not/A-Real-Timezone',
     );
+
+    expect($result['resolved_timezone'])->toBe('Asia/Kuala_Lumpur');
+});
+
+it('falls back to the app timezone when the default user timezone is invalid', function () {
+    config()->set('app.timezone', 'UTC');
+    config()->set('app.default_user_timezone', 'Invalid/Default');
+
+    $result = runTimezoneMiddleware(header: 'Invalid/Header');
 
     expect($result['resolved_timezone'])->toBe('UTC');
 });
@@ -129,6 +139,7 @@ it('uses request timezone when authenticated user timezone is null', function ()
 
 it('does not persist fallback timezone to authenticated user when request timezone is missing', function () {
     config()->set('app.timezone', 'UTC');
+    config()->set('app.default_user_timezone', 'Asia/Kuala_Lumpur');
 
     $user = User::factory()->create([
         'timezone' => null,
@@ -138,7 +149,7 @@ it('does not persist fallback timezone to authenticated user when request timezo
 
     $result = runTimezoneMiddleware();
 
-    expect($result['resolved_timezone'])->toBe('UTC');
+    expect($result['resolved_timezone'])->toBe('Asia/Kuala_Lumpur');
     expect($user->fresh()?->timezone)->toBeNull();
 });
 

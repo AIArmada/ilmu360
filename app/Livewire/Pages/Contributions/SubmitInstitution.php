@@ -21,8 +21,10 @@ use Filament\Actions\Contracts\HasActions;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Schemas\Schema;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
@@ -103,6 +105,8 @@ class SubmitInstitution extends Component implements HasActions, HasForms
         ResolveInstitutionMapsPlaceSelectionAction $resolveInstitutionMapsPlaceSelectionAction,
         MergeInstitutionMapsSelectionIntoFormAction $mergeInstitutionMapsSelectionIntoFormAction,
     ): array {
+        $this->hitMapsThrottle('select');
+
         if ($statePath !== 'data.address') {
             throw ValidationException::withMessages([
                 'data.address.google_place_id' => __('Select an institution from the Google Maps search.'),
@@ -183,6 +187,8 @@ class SubmitInstitution extends Component implements HasActions, HasForms
         FetchGooglePlaceDetailsAction $fetchGooglePlaceDetailsAction,
         FetchGooglePlacePhotoPreviewsAction $fetchGooglePlacePhotoPreviewsAction,
     ): array {
+        $this->hitMapsThrottle('photos');
+
         $verifiedSelection = $this->verifiedMapsSelection();
 
         if (! is_array($verifiedSelection)
@@ -201,6 +207,23 @@ class SubmitInstitution extends Component implements HasActions, HasForms
         } catch (\Throwable) {
             return [];
         }
+    }
+
+    /**
+     * Rate-limit paid Google Maps calls per contributor. Human selection pace
+     * stays far below the cap; only abusive automation trips it.
+     */
+    private function hitMapsThrottle(string $action): void
+    {
+        $key = 'maps-'.$action.':'.(auth()->id() ?? session()->getId());
+
+        if (RateLimiter::tooManyAttempts($key, 30)) {
+            throw ValidationException::withMessages([
+                'data.address.google_place_id' => __('Please wait a moment before trying again.'),
+            ]);
+        }
+
+        RateLimiter::hit($key, 60);
     }
 
     public function submit(SubmitStagedContributionCreateAction $submitStagedContributionCreateAction): void
@@ -225,10 +248,23 @@ class SubmitInstitution extends Component implements HasActions, HasForms
             }
 
             $submittedName = data_get($this->data, 'name');
+
+            // Fail expired QR uploads before getState(): Filament crashes on
+            // missing temporary files, and the create wraps persistence in a
+            // transaction that would strand orphaned media files on disk.
+            $rawDonationRows = $this->data['donation_channels'] ?? null;
+            ContributionEntityMutationService::assertDonationQrUploadsFresh($rawDonationRows);
+
             $state = $this->contributionForm()->getState();
-            $donationQrUploads = SharedFormSchema::collectDonationQrUploads($state['donation_channels'] ?? null);
+            $donationQrUploads = SharedFormSchema::rekeyDonationRowsByRawKeys(
+                SharedFormSchema::collectDonationQrUploads($state['donation_channels'] ?? null),
+                $rawDonationRows,
+            );
             $state = SharedFormSchema::withoutDonationQrUploads($state);
-            $submittedDonationRows = is_array($state['donation_channels'] ?? null) ? $state['donation_channels'] : [];
+            $submittedDonationRows = SharedFormSchema::rekeyDonationRowsByRawKeys(
+                is_array($state['donation_channels'] ?? null) ? $state['donation_channels'] : [],
+                $rawDonationRows,
+            );
             $formAddress = is_array($state['address'] ?? null) ? $state['address'] : [];
             $verifiedAddress = is_array($verifiedSelection['address'] ?? null)
                 ? $verifiedSelection['address']
@@ -252,23 +288,29 @@ class SubmitInstitution extends Component implements HasActions, HasForms
                 'navigation_links',
             ]));
 
-            $submitStagedContributionCreateAction->handle(
-                ContributionSubjectType::Institution,
-                $state,
-                $user,
-                function (Institution $institution) use ($submittedDonationRows, $donationQrUploads): void {
-                    $this->contributionForm()->model($institution)->saveRelationships();
+            try {
+                $submitStagedContributionCreateAction->handle(
+                    ContributionSubjectType::Institution,
+                    $state,
+                    $user,
+                    function (Institution $institution) use ($submittedDonationRows, $donationQrUploads): void {
+                        $this->contributionForm()->model($institution)->saveRelationships();
 
-                    if ($donationQrUploads !== []) {
-                        app(ContributionEntityMutationService::class)->attachDonationQrUploads(
-                            $institution,
-                            $submittedDonationRows,
-                            $donationQrUploads,
-                        );
-                    }
-                },
-                'data',
-            );
+                        if ($donationQrUploads !== []) {
+                            app(ContributionEntityMutationService::class)->attachDonationQrUploads(
+                                $institution,
+                                $submittedDonationRows,
+                                $donationQrUploads,
+                            );
+                        }
+                    },
+                    'data',
+                );
+            } catch (LockTimeoutException) {
+                throw ValidationException::withMessages([
+                    'data.address.google_place_id' => __('The review service is busy. Please try again in a moment.'),
+                ]);
+            }
 
             if (is_string($submittedName) && filled($submittedName)) {
                 session()->flash('contribution_submission_name', $submittedName);

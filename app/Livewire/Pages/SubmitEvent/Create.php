@@ -548,6 +548,10 @@ class Create extends Component implements HasActions, HasForms
             $this->rejectInstitutionQuickAddMapsSelection($context['address_path']);
         }
 
+        // Count only attempts that reach the paid Place lookup: the address
+        // path is caller-supplied until the guards above accept it.
+        $this->hitQuickAddMapsThrottle('select', $context['address_path']);
+
         $previousSelection = is_array($record['selection'] ?? null)
             ? $record['selection']
             : null;
@@ -682,6 +686,8 @@ class Create extends Component implements HasActions, HasForms
             return [];
         }
 
+        $this->hitQuickAddMapsThrottle('photos', $addressStatePath);
+
         try {
             $place = $fetchGooglePlaceDetailsAction->handle($placeId, $addressStatePath.'.google_place_id');
 
@@ -787,6 +793,24 @@ class Create extends Component implements HasActions, HasForms
         throw ValidationException::withMessages([
             rtrim($addressStatePath, '.').'.google_place_id' => __('Select an institution from the Google Maps search.'),
         ]);
+    }
+
+    /**
+     * Mirror the contribution Maps throttle so quick-add shares the same
+     * per-user budget and one visitor cannot fan paid Place lookups out
+     * across entry points. Guests fall back to their session id.
+     */
+    private function hitQuickAddMapsThrottle(string $action, string $addressStatePath): void
+    {
+        $key = 'maps-'.$action.':'.(auth()->id() ?? session()->getId());
+
+        if (RateLimiter::tooManyAttempts($key, 30)) {
+            throw ValidationException::withMessages([
+                rtrim($addressStatePath, '.').'.google_place_id' => __('Please wait a moment before trying again.'),
+            ]);
+        }
+
+        RateLimiter::hit($key, 60);
     }
 
     public function submit(): mixed

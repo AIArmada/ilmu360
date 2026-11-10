@@ -49,6 +49,7 @@
         enabled: true,
         loading: true,
         resolving: false,
+        booted: false,
         errorMessage: null,
         selectedName: null,
         selectedAddress: null,
@@ -69,6 +70,7 @@
                 this.errorMessage = null;
                 await this.loadGoogleMaps();
                 await this.mountAutocomplete();
+                this.booted = true;
                 this.loading = false;
             } catch (error) {
                 console.error(error);
@@ -261,7 +263,10 @@
             this.$refs.mapCard.classList.remove('hidden');
         },
         disablePicker(message) {
-            this.enabled = this.requiredSelection;
+            // Once mounted, a failed selection must not brick the picker: keep
+            // it enabled so the contributor can search again or retry. Only an
+            // unavailable Maps library hides an optional picker.
+            this.enabled = this.requiredSelection || this.booted;
             this.loading = false;
             this.errorMessage = message;
         },
@@ -387,7 +392,6 @@
     >
         <p x-text="errorMessage"></p>
         <button
-            x-show="requiredSelection"
             type="button"
             @click="retry()"
             class="mt-2 font-semibold underline underline-offset-2"

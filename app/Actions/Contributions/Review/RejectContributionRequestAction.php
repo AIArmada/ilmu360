@@ -3,6 +3,7 @@
 namespace App\Actions\Contributions\Review;
 
 use App\Enums\ContributionRequestType;
+use App\Exceptions\ContributionRequestNotPendingException;
 use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Models\ContributionRequest;
 use App\Models\Institution;
@@ -10,8 +11,8 @@ use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
 use App\Services\Notifications\ContributionRequestNotificationService;
+use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
-use RuntimeException;
 
 class RejectContributionRequestAction
 {
@@ -28,34 +29,48 @@ class RejectContributionRequestAction
         ?string $reviewerNote = null,
     ): ContributionRequest {
         if (! $request->isPending()) {
-            throw new RuntimeException('Only pending contribution requests can be rejected.');
+            throw new ContributionRequestNotPendingException('Only pending contribution requests can be rejected.');
         }
 
         $now = now();
 
-        $request->forceFill([
-            'reviewer_id' => $reviewer->getKey(),
-            'reason_code' => $reasonCode,
-            'reviewer_note' => $reviewerNote,
-            'status' => 'rejected',
-            'reviewed_at' => $now,
-            'rejected_at' => $now,
-            'last_state_change_at' => $now,
-        ])->save();
+        DB::transaction(function () use ($request, $reviewer, $reasonCode, $reviewerNote, $now): void {
+            ContributionRequest::query()->whereKey($request->getKey())->lockForUpdate()->firstOrFail();
+            $request->refresh();
 
-        if ($request->type === ContributionRequestType::Create) {
-            $entity = $request->entity;
-
-            if ($entity instanceof Institution) {
-                app(InstitutionWorkflow::class)->changeStatus((string) $entity->getKey(), 'rejected');
-            } elseif ($entity instanceof Person || $entity instanceof Reference) {
-                $entity->forceFill([
-                    'status' => 'rejected',
-                    'rejected_at' => $now,
-                    'last_state_change_at' => $now,
-                ])->save();
+            if (! $request->isPending()) {
+                throw new ContributionRequestNotPendingException('Only pending contribution requests can be rejected.');
             }
-        }
+
+            $request->forceFill([
+                'reviewer_id' => $reviewer->getKey(),
+                'reason_code' => $reasonCode,
+                'reviewer_note' => $reviewerNote,
+                'status' => 'rejected',
+                'reviewed_at' => $now,
+                'rejected_at' => $now,
+                'last_state_change_at' => $now,
+            ])->save();
+
+            if ($request->type === ContributionRequestType::Create) {
+                $entity = $request->entity;
+
+                if ($entity instanceof Institution) {
+                    app(InstitutionWorkflow::class)->changeStatus((string) $entity->getKey(), 'rejected');
+                } elseif ($entity instanceof Person || $entity instanceof Reference) {
+                    $entity->forceFill([
+                        'status' => 'rejected',
+                        'rejected_at' => $now,
+                        'last_state_change_at' => $now,
+                    ])->save();
+                }
+            }
+        });
+
+        // Unapproved staged uploads must not linger on the rejected request.
+        // This runs after the state transition commits: media file deletion is
+        // immediate and cannot be rolled back with the rows.
+        $request->clearMediaCollection('pending_media');
 
         $freshRequest = $request->fresh(['entity', 'proposer', 'reviewer']) ?? $request;
 

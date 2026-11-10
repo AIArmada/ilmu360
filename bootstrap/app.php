@@ -5,6 +5,7 @@ declare(strict_types=1);
 use AIArmada\CommerceSupport\Exceptions\NoCurrentOwnerException;
 use AIArmada\CommerceSupport\Middleware\SetExplicitGlobalOwnerContext;
 use AIArmada\Organizations\Http\Middleware\CurrentOrganizationMiddleware;
+use App\Exceptions\ContributionRequestNotPendingException;
 use App\Http\Middleware\NormalizeApiJsonResponse;
 use App\Http\Middleware\SetFilamentTimezone;
 use App\Http\Middleware\SetLocale;
@@ -12,6 +13,7 @@ use App\Http\Middleware\TrackShareAttribution;
 use App\Platform\Api\ApiJsonResponseNormalizer;
 use App\Platform\Api\ApiResponseFactory;
 use App\Support\Location\PublicGeolocationPermission;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -66,6 +68,34 @@ return Application::configure(basePath: dirname(__DIR__))
                     'message' => $exception->getMessage(),
                 ],
             ], 403);
+        });
+
+        $exceptions->render(static function (LockTimeoutException $exception, Request $request): ?JsonResponse {
+            if (! ApiResponseFactory::isApiRequest($request) && ! $request->expectsJson()) {
+                return null;
+            }
+
+            return response()->json([
+                'message' => $exception->getMessage(),
+                'error' => [
+                    'code' => 'service_unavailable',
+                    'message' => $exception->getMessage(),
+                ],
+            ], 503, ['Retry-After' => (int) config('moderation.review_lock_block_seconds', 10)]);
+        });
+
+        $exceptions->render(static function (ContributionRequestNotPendingException $exception, Request $request): ?JsonResponse {
+            if (! ApiResponseFactory::isApiRequest($request) && ! $request->expectsJson()) {
+                return null;
+            }
+
+            return response()->json([
+                'message' => $exception->getMessage(),
+                'error' => [
+                    'code' => 'conflict',
+                    'message' => $exception->getMessage(),
+                ],
+            ], 409);
         });
 
         $exceptions->respond(static fn ($response, Throwable $exception, Request $request) => app(ApiJsonResponseNormalizer::class)->normalize($request, $response));

@@ -44,10 +44,15 @@ final readonly class SaveAdminEventAction
             $event = Event::query()->create($attributes);
         } else {
             $event->fill($attributes);
-            $event->save();
         }
 
+        // Sync before the event save so the location observer sees an already
+        // aligned row and leaves the explicit space selection untouched.
         $event->syncLocation($input['venue_id'], $input['space_ids']);
+
+        if (! $creating) {
+            $event->save();
+        }
 
         app(SyncEventScheduleAction::class)->execute($event, $preparedSchedule['schedule_kind'],
             startsAt: $schedule['starts_at'],

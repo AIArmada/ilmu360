@@ -40,6 +40,7 @@ use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
@@ -561,7 +562,10 @@ class SharedFormSchema
     /**
      * Collect donation QR uploads from submitted form state. The field uses
      * `storeFiles(false)`, so submitted values are temporary upload objects
-     * — only those are accepted, and string paths are never trusted.
+     * — only those are accepted, and string paths are never trusted. Filament
+     * stores single uploads under a generated file key
+     * (`['<fileKey>' => TemporaryUploadedFile]`), so the first entry wins
+     * regardless of numeric or string keys.
      *
      * @return array<int|string, TemporaryUploadedFile>
      */
@@ -579,7 +583,7 @@ class SharedFormSchema
             }
 
             $file = $row['qr_upload'] ?? null;
-            $file = is_array($file) ? ($file[0] ?? null) : $file;
+            $file = is_array($file) ? Arr::first($file) : $file;
 
             if ($file instanceof TemporaryUploadedFile) {
                 $uploads[$index] = $file;
@@ -609,6 +613,27 @@ class SharedFormSchema
         }
 
         return $state;
+    }
+
+    /**
+     * Re-key a dehydrated donation array by the raw repeater keys. Filament
+     * dehydrates repeater items with `array_values()`, so dehydrated rows are
+     * numerically indexed while the rendered fields keep their raw (usually
+     * UUID) keys. Mapping back lets error keys point at the rendered field.
+     *
+     * @param  array<int|string, mixed>  $dehydrated
+     * @return array<int|string, mixed>
+     */
+    public static function rekeyDonationRowsByRawKeys(array $dehydrated, mixed $rawRows): array
+    {
+        $rawKeys = is_array($rawRows) ? array_keys($rawRows) : [];
+        $rekeyed = [];
+
+        foreach (array_values($dehydrated) as $index => $value) {
+            $rekeyed[$rawKeys[$index] ?? $index] = $value;
+        }
+
+        return $rekeyed;
     }
 
     /**

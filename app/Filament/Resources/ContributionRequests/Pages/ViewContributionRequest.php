@@ -5,6 +5,8 @@ namespace App\Filament\Resources\ContributionRequests\Pages;
 use App\Actions\Contributions\Review\ApproveContributionRequestAction;
 use App\Actions\Contributions\Review\RejectContributionRequestAction;
 use App\Enums\ContributionRequestStatus;
+use App\Exceptions\ContributionRequestAlreadyReviewedException;
+use App\Exceptions\ContributionRequestNotPendingException;
 use App\Filament\Resources\ContributionRequests\ContributionRequestResource;
 use App\Filament\Resources\ContributionRequests\Support\ContributionRequestPresenter;
 use App\Models\ContributionRequest;
@@ -16,6 +18,8 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Contracts\Cache\LockTimeoutException;
+use Illuminate\Validation\ValidationException;
 
 class ViewContributionRequest extends ViewRecord
 {
@@ -58,11 +62,49 @@ class ViewContributionRequest extends ViewRecord
 
                 abort_unless($user instanceof User, 403);
 
-                $approveContributionRequestAction->handle(
-                    $this->requestRecord(),
-                    $user,
-                    filled($data['reviewer_note'] ?? null) ? (string) $data['reviewer_note'] : null,
-                );
+                try {
+                    $approveContributionRequestAction->handle(
+                        $this->requestRecord(),
+                        $user,
+                        filled($data['reviewer_note'] ?? null) ? (string) $data['reviewer_note'] : null,
+                    );
+                } catch (ContributionRequestAlreadyReviewedException $exception) {
+                    Notification::make()
+                        ->title($exception->getMessage())
+                        ->danger()
+                        ->send();
+
+                    $this->redirect(ContributionRequestResource::getUrl('view', ['record' => $this->requestRecord()]), navigate: true);
+
+                    return;
+                } catch (ValidationException $exception) {
+                    $message = collect($exception->errors())->flatten()->first();
+
+                    Notification::make()
+                        ->title(is_string($message) && $message !== '' ? $message : __('Could not approve this request.'))
+                        ->danger()
+                        ->send();
+
+                    return;
+                } catch (LockTimeoutException) {
+                    Notification::make()
+                        ->title(__('The review service is busy. Please try again in a moment.'))
+                        ->danger()
+                        ->send();
+
+                    $this->redirect(ContributionRequestResource::getUrl('view', ['record' => $this->requestRecord()]), navigate: true);
+
+                    return;
+                } catch (ContributionRequestNotPendingException) {
+                    Notification::make()
+                        ->title(__('This request is no longer pending review. Please refresh to see its current status.'))
+                        ->danger()
+                        ->send();
+
+                    $this->redirect(ContributionRequestResource::getUrl('view', ['record' => $this->requestRecord()]), navigate: true);
+
+                    return;
+                }
 
                 Notification::make()
                     ->title('Contribution request approved')
@@ -97,12 +139,23 @@ class ViewContributionRequest extends ViewRecord
 
                 abort_unless($user instanceof User, 403);
 
-                $rejectContributionRequestAction->handle(
-                    $this->requestRecord(),
-                    $user,
-                    (string) $data['reason_code'],
-                    filled($data['reviewer_note'] ?? null) ? (string) $data['reviewer_note'] : null,
-                );
+                try {
+                    $rejectContributionRequestAction->handle(
+                        $this->requestRecord(),
+                        $user,
+                        (string) $data['reason_code'],
+                        filled($data['reviewer_note'] ?? null) ? (string) $data['reviewer_note'] : null,
+                    );
+                } catch (ContributionRequestNotPendingException) {
+                    Notification::make()
+                        ->title(__('This request is no longer pending review. Please refresh to see its current status.'))
+                        ->danger()
+                        ->send();
+
+                    $this->redirect(ContributionRequestResource::getUrl('view', ['record' => $this->requestRecord()]), navigate: true);
+
+                    return;
+                }
 
                 Notification::make()
                     ->title('Contribution request rejected')

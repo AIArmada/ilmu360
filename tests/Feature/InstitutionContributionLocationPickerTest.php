@@ -9,21 +9,28 @@ use AIArmada\Addressing\Models\State;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Signals\Models\SignalEvent;
 use App\Actions\Contributions\Review\ApproveContributionRequestAction;
+use App\Actions\Contributions\Review\RejectContributionRequestAction;
 use App\Enums\ContributionSubjectType;
 use App\Forms\SharedFormSchema;
 use App\Livewire\Pages\Contributions\SubmitInstitution;
 use App\Livewire\Pages\Contributions\SubmitPerson;
 use App\Livewire\Pages\Contributions\SuggestUpdate;
 use App\Models\ContributionRequest;
+use App\Models\DonationChannel;
 use App\Models\Institution;
 use App\Models\User;
+use App\Services\ContributionEntityMutationService;
 use App\Shared\Directory\Enums\DonationChannelStatus;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Testing\File;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\Livewire;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 uses(RefreshDatabase::class);
 
@@ -644,6 +651,7 @@ it('renders the optional location reselect section on the institution update pag
     $institution = Institution::factory()->create([
         'status' => 'verified',
     ]);
+    withGlobalOwnerContext(fn (): null => addTestMember($institution, $user, MemberRole::Owner));
 
     $this->actingAs($user);
 
@@ -656,7 +664,7 @@ it('renders the optional location reselect section on the institution update pag
             __('Update the location on Google Maps'),
             __('Institution Profile'),
             __('Address'),
-            __('Media'),
+            __('Cover Image'),
             __('Donation Channels'),
         ])
         ->assertDontSee(__('Find the institution on Google Maps'))
@@ -672,6 +680,7 @@ it('keeps Media after Address on the institution update page when places is disa
     $institution = Institution::factory()->create([
         'status' => 'verified',
     ]);
+    withGlobalOwnerContext(fn (): null => addTestMember($institution, $user, MemberRole::Owner));
 
     $this->actingAs($user);
 
@@ -683,7 +692,7 @@ it('keeps Media after Address on the institution update page when places is disa
         ->assertSeeInOrder([
             __('Institution Profile'),
             __('Address'),
-            __('Media'),
+            __('Cover Image'),
             __('Donation Channels'),
         ])
         ->assertDontSee(__('Update the location on Google Maps'))
@@ -710,6 +719,89 @@ it('submits an institution name update without Maps re-verification', function (
         ->assertHasNoErrors();
 
     expect($institution->fresh()->name)->toBe('Masjid Baharu');
+});
+
+it('does not stage or delete live institution media on visitor text-only updates', function () {
+    Storage::fake('public');
+    config()->set('media-library.disk_name', 'public');
+
+    $visitor = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified']);
+    giveInstitutionStoredMapsPlace($institution);
+
+    $component = Livewire::actingAs($visitor)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->slug,
+        ]);
+
+    // A maintainer adds a logo after the visitor mounted the page.
+    $logo = fakeGeneratedImageUpload('owner-logo.png', 640, 640);
+    $institution->addMediaFromString((string) file_get_contents($logo->getRealPath()))
+        ->usingFileName('owner-logo.png')
+        ->toMediaCollection('logo');
+
+    $logoId = $institution->fresh()->getFirstMedia('logo')?->getKey();
+    expect($logoId)->not->toBeNull();
+
+    $component
+        ->set('data.name', 'Masjid Baharu')
+        ->call('submit')
+        ->assertHasNoErrors();
+
+    expect($institution->fresh()->getMedia('logo'))->toHaveCount(1)
+        ->and($institution->fresh()->getFirstMedia('logo')?->getKey())->toBe($logoId);
+
+    $request = ContributionRequest::query()
+        ->where('entity_id', $institution->getKey())
+        ->latest('id')
+        ->firstOrFail();
+
+    expect($request->getMedia('pending_media'))->toHaveCount(0);
+});
+
+it('handles donation QR uploads stored under Filament file keys', function () {
+    Storage::fake('public');
+    config()->set('media-library.disk_name', 'public');
+
+    $user = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified']);
+    giveInstitutionStoredMapsPlace($institution);
+
+    $component = Livewire::actingAs($user)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->slug,
+        ])
+        ->set('data.donation_channels', [[
+            'recipient' => 'Jawatankuasa Surau',
+            'method' => 'ewallet',
+            'ewallet_provider' => 'tng',
+            'ewallet_handle' => '0912345678',
+        ]])
+        ->upload('data.donation_channels.0.qr_upload', [File::fake()->image('keyed-qr.png', 600, 600)], true);
+
+    $uploaded = $component->get('data.donation_channels.0.qr_upload');
+    $tuf = is_array($uploaded) ? $uploaded[array_key_first($uploaded)] : $uploaded;
+    expect($tuf)->toBeInstanceOf(TemporaryUploadedFile::class);
+
+    // Production Filament state keys the file by its generated file key.
+    $keyedRows = [[
+        'recipient' => 'Jawatankuasa Surau',
+        'method' => 'ewallet',
+        'ewallet_provider' => 'tng',
+        'ewallet_handle' => '0912345678',
+        'qr_upload' => ['fileKey123' => $tuf],
+    ]];
+
+    expect(SharedFormSchema::collectDonationQrUploads($keyedRows))->toHaveCount(1);
+
+    ContributionEntityMutationService::assertDonationQrUploadsFresh($keyedRows);
+
+    Storage::disk('tmp-for-tests')->deleteDirectory('livewire-tmp');
+
+    expect(fn () => ContributionEntityMutationService::assertDonationQrUploadsFresh($keyedRows))
+        ->toThrow(ValidationException::class);
 });
 
 it('rejects an unverified Google place change on the institution update page', function () {
@@ -1229,7 +1321,8 @@ it('stores donation QR uploads when submitting a new institution', function () {
     $channel = $institution->donationChannels()->firstOrFail();
 
     expect($channel->getFirstMedia('qr'))->not->toBeNull()
-        ->and($channel->getFirstMedia('qr')->file_name)->toBe('donation-qr.png');
+        ->and($channel->getFirstMedia('qr')->file_name)->toMatch('/^tabung-masjid-[0-9a-z]{8}\.png$/')
+        ->and($channel->getFirstMedia('qr')->name)->toBe('QR Code - Tabung Masjid');
 });
 
 it('attaches donation QR uploads on direct institution edits', function () {
@@ -1259,7 +1352,7 @@ it('attaches donation QR uploads on direct institution edits', function () {
     $channel = $institution->fresh()->donationChannels()->firstOrFail();
 
     expect($channel->getFirstMedia('qr'))->not->toBeNull()
-        ->and($channel->getFirstMedia('qr')->file_name)->toBe('duitnow-qr.png');
+        ->and($channel->getFirstMedia('qr')->file_name)->toMatch('/^[a-z0-9_-]+-[0-9a-z]{8}\.png$/');
 });
 
 it('stages visitor donation QR uploads and attaches them on approval', function () {
@@ -1298,13 +1391,382 @@ it('stages visitor donation QR uploads and attaches them on approval', function 
 
     expect($staged)->toHaveCount(1)
         ->and($staged->first()->getCustomProperty('contribution_field'))->toBe('donation_qr')
-        ->and($staged->first()->getCustomProperty('donation_fingerprint'))->toBe('ewallet|tng|0912345678|');
+        ->and($staged->first()->getCustomProperty('donation_fingerprint'))->toBe('sha256:'.hash('sha256', 'ewallet|tng|0912345678|'));
 
     app(ApproveContributionRequestAction::class)->handle($request->fresh(), $reviewer);
 
     $channel = $institution->fresh()->donationChannels()->firstOrFail();
 
     expect($channel->getFirstMedia('qr'))->not->toBeNull()
-        ->and($channel->getFirstMedia('qr')->file_name)->toBe('visitor-qr.png')
+        ->and($channel->getFirstMedia('qr')->file_name)->toMatch('/^[a-z0-9_-]+-[0-9a-z]{8}\.png$/')
         ->and($request->fresh()->getMedia('pending_media'))->toHaveCount(0);
+});
+
+// --- Joint audit hardening: visitor media policy, QR atomicity, sync guards ---
+
+it('hides the institution media section from visitors on the update page', function () {
+    $owner = User::factory()->create();
+    $visitor = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified']);
+    giveInstitutionStoredMapsPlace($institution);
+    withGlobalOwnerContext(fn (): null => addTestMember($institution, $owner, MemberRole::Owner));
+
+    Livewire::actingAs($visitor)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->slug,
+        ])
+        ->assertDontSee(__('Logo'))
+        ->assertDontSee(__('Cover Image'))
+        ->assertDontSee(__('Gallery'));
+
+    Livewire::actingAs($owner)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->slug,
+        ])
+        ->assertSee(__('Logo'))
+        ->assertSee(__('Cover Image'))
+        ->assertSee(__('Gallery'));
+});
+
+it('does not create a pending request when the donation QR upload expires', function () {
+    Storage::fake('public');
+    config()->set('media-library.disk_name', 'public');
+
+    $visitor = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified']);
+    giveInstitutionStoredMapsPlace($institution);
+
+    $component = Livewire::actingAs($visitor)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->slug,
+        ])
+        ->set('data.donation_channels', [[
+            'recipient' => 'Jawatankuasa Surau',
+            'method' => 'ewallet',
+            'ewallet_provider' => 'tng',
+            'ewallet_handle' => '0912345678',
+        ]])
+        ->upload('data.donation_channels.0.qr_upload', [File::fake()->image('visitor-qr.png', 600, 600)], true);
+
+    // Expire the temporary upload before submitting. Livewire testing stores
+    // temporary uploads on the auto-faked `tmp-for-tests` disk.
+    Storage::disk('tmp-for-tests')->deleteDirectory('livewire-tmp');
+
+    $component->call('submit')
+        ->assertHasErrors(['data.donation_channels.0.qr_upload']);
+
+    expect(ContributionRequest::query()->where('entity_id', $institution->getKey())->count())->toBe(0);
+});
+
+it('maps dehydrated donation row indices back to raw repeater keys', function () {
+    $dehydrated = [
+        0 => ['recipient' => 'Tabung A'],
+        1 => ['recipient' => 'Tabung B'],
+    ];
+
+    expect(array_keys(SharedFormSchema::rekeyDonationRowsByRawKeys($dehydrated, [
+        'uuid-row-1' => ['recipient' => 'Tabung A'],
+        'uuid-row-2' => ['recipient' => 'Tabung B'],
+    ])))->toBe(['uuid-row-1', 'uuid-row-2']);
+
+    expect(array_keys(SharedFormSchema::rekeyDonationRowsByRawKeys($dehydrated, [
+        ['recipient' => 'Tabung A'],
+        ['recipient' => 'Tabung B'],
+    ])))->toBe([0, 1]);
+});
+
+it('requires an e-wallet handle or QR payload when submitting donations', function () {
+    $owner = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified']);
+    giveInstitutionStoredMapsPlace($institution);
+    withGlobalOwnerContext(fn (): null => addTestMember($institution, $owner, MemberRole::Owner));
+
+    Livewire::actingAs($owner)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->slug,
+        ])
+        ->set('data.donation_channels', [[
+            'recipient' => 'Jawatankuasa Surau',
+            'method' => 'ewallet',
+            'ewallet_provider' => 'tng',
+        ]])
+        ->call('submit')
+        ->assertHasErrors([
+            'data.donation_channels.0.ewallet_handle',
+            'data.donation_channels.0.ewallet_qr_payload',
+        ]);
+});
+
+it('stores an ewallet channel identified only by its QR payload', function () {
+    $owner = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified']);
+    giveInstitutionStoredMapsPlace($institution);
+    withGlobalOwnerContext(fn (): null => addTestMember($institution, $owner, MemberRole::Owner));
+
+    Livewire::actingAs($owner)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->slug,
+        ])
+        ->set('data.donation_channels', [[
+            'recipient' => 'Jawatankuasa Surau',
+            'method' => 'ewallet',
+            'ewallet_provider' => 'tng',
+            'ewallet_qr_payload' => 'https://qr.tngdigital.com.my/abc123',
+        ]])
+        ->call('submit')
+        ->assertHasNoErrors();
+
+    $channel = $institution->fresh()->donationChannels()->firstOrFail();
+
+    expect($channel->ewallet_provider)->toBe('tng')
+        ->and($channel->ewallet_qr_payload)->toBe('https://qr.tngdigital.com.my/abc123');
+});
+
+it('deletes the donation channel and its QR media when the row is removed', function () {
+    Storage::fake('public');
+    config()->set('media-library.disk_name', 'public');
+
+    $owner = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified']);
+    giveInstitutionStoredMapsPlace($institution);
+    withGlobalOwnerContext(fn (): null => addTestMember($institution, $owner, MemberRole::Owner));
+
+    Livewire::actingAs($owner)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->slug,
+        ])
+        ->set('data.donation_channels', [[
+            'recipient' => 'Jawatankuasa Masjid',
+            'method' => 'duitnow',
+            'duitnow_type' => 'business',
+            'duitnow_value' => '12345678',
+        ]])
+        ->upload('data.donation_channels.0.qr_upload', [File::fake()->image('duitnow-qr.png', 600, 600)], true)
+        ->call('submit')
+        ->assertHasNoErrors();
+
+    $channel = $institution->fresh()->donationChannels()->firstOrFail();
+    $qrMediaId = $channel->getFirstMedia('qr')?->getKey();
+
+    expect($qrMediaId)->not->toBeNull();
+
+    Livewire::actingAs($owner)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->slug,
+        ])
+        ->set('data.donation_channels', [])
+        ->call('submit')
+        ->assertHasNoErrors();
+
+    expect(DonationChannel::query()->whereKey($channel->getKey())->exists())->toBeFalse()
+        ->and(Media::query()->whereKey($qrMediaId)->exists())->toBeFalse();
+});
+
+it('restores tampered Google identity fields when the place is unchanged', function () {
+    $owner = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified']);
+    giveInstitutionStoredMapsPlace($institution);
+    withGlobalOwnerContext(fn (): null => addTestMember($institution, $owner, MemberRole::Owner));
+
+    $address = $institution->primaryAddress();
+    $address->forceFill(['google_cid' => '11885663895765773631'])->save();
+
+    Livewire::actingAs($owner)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->slug,
+        ])
+        ->set('data.name', 'Masjid Baharu')
+        ->set('data.address.google_cid', 'tampered-cid')
+        ->call('submit')
+        ->assertHasNoErrors();
+
+    expect($institution->fresh()->primaryAddress()?->google_cid)->toBe('11885663895765773631');
+});
+
+it('refuses to wipe all donation channels when every submitted row is invalid', function () {
+    $institution = Institution::factory()->create(['status' => 'verified']);
+    withGlobalOwnerContext(function () use ($institution): void {
+        $institution->donationChannels()->create([
+            'recipient' => 'Jawatankuasa Masjid',
+            'method' => 'bank_account',
+            'bank_name' => 'Maybank',
+            'account_number' => '12345678',
+        ]);
+    });
+
+    expect(fn () => app(ContributionEntityMutationService::class)->apply($institution, [
+        'donation_channels' => [[
+            'recipient' => 'Jawatankuasa Surau',
+            'method' => 'ewallet',
+            'ewallet_provider' => 'tng',
+        ]],
+    ]))->toThrow(ValidationException::class);
+
+    expect($institution->fresh()->donationChannels()->count())->toBe(1);
+});
+
+it('shows a form-level error when Maps is unavailable for a place-less institution', function () {
+    config()->set('services.google.maps_api_key');
+    config()->set('services.google.places_enabled', false);
+
+    $owner = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified']);
+    withGlobalOwnerContext(fn (): null => addTestMember($institution, $owner, MemberRole::Owner));
+
+    Livewire::actingAs($owner)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->slug,
+        ])
+        ->set('data.name', 'Masjid Baharu')
+        ->call('submit')
+        ->assertHasErrors(['data']);
+});
+
+it('throttles repeated Google place selections', function () {
+    ensureCountryForLocationPicker('MY', 'Malaysia');
+    ensureMalaysiaStateForLocationPicker();
+    configureVerifiedGoogleMaps();
+    fakeVerifiedInstitutionPlace(verifiedInstitutionPlace('place_throttle_x', [
+        'websiteUri' => null,
+    ]));
+
+    $owner = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified']);
+    giveInstitutionStoredMapsPlace($institution);
+    withGlobalOwnerContext(fn (): null => addTestMember($institution, $owner, MemberRole::Owner));
+
+    $test = Livewire::actingAs($owner)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->slug,
+        ]);
+
+    for ($i = 0; $i < 30; $i++) {
+        $test->call('applyPlaceSelection', 'data.address', ['placeId' => 'place_throttle_x']);
+    }
+
+    $test->call('applyPlaceSelection', 'data.address', ['placeId' => 'place_throttle_x'])
+        ->assertHasErrors(['data.address.google_place_id']);
+});
+
+it('clears staged donation QR media when a contribution request is rejected', function () {
+    Storage::fake('public');
+    config()->set('media-library.disk_name', 'public');
+
+    $visitor = User::factory()->create();
+    $reviewer = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified']);
+    giveInstitutionStoredMapsPlace($institution);
+
+    Livewire::actingAs($visitor)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->slug,
+        ])
+        ->set('data.donation_channels', [[
+            'recipient' => 'Jawatankuasa Surau',
+            'method' => 'ewallet',
+            'ewallet_provider' => 'tng',
+            'ewallet_handle' => '0912345678',
+        ]])
+        ->upload('data.donation_channels.0.qr_upload', [File::fake()->image('visitor-qr.png', 600, 600)], true)
+        ->call('submit')
+        ->assertHasNoErrors();
+
+    $request = ContributionRequest::query()
+        ->where('entity_id', $institution->getKey())
+        ->latest('id')
+        ->firstOrFail();
+
+    expect($request->getMedia('pending_media'))->toHaveCount(1);
+
+    app(RejectContributionRequestAction::class)->handle($request->fresh(), $reviewer, 'incorrect_information');
+
+    expect($request->fresh()->getMedia('pending_media'))->toHaveCount(0);
+});
+
+it('runs the institution update submit under the Maps identity lock', function () {
+    expect(config('moderation.review_lock_block_seconds'))->toBe(10);
+
+    config()->set('moderation.review_lock_block_seconds', 1);
+
+    $owner = User::factory()->create();
+    $institution = Institution::factory()->create([
+        'status' => 'verified',
+        'name' => 'Masjid Lama',
+    ]);
+    giveInstitutionStoredMapsPlace($institution);
+    withGlobalOwnerContext(fn (): null => addTestMember($institution, $owner, MemberRole::Owner));
+
+    // Hold the identity lock up front: a submit that truly runs under the
+    // lock must block on it instead of sailing through.
+    $heldLock = Cache::lock(
+        'contribution-create:institution-maps:'.hash('sha256', 'place:place_stored_existing'),
+        300,
+    );
+    $heldLock->acquire();
+
+    $busyMessage = __('The review service is busy. Please try again in a moment.');
+
+    try {
+        Livewire::actingAs($owner)
+            ->test(SuggestUpdate::class, [
+                'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+                'subjectId' => $institution->slug,
+            ])
+            ->set('data.name', 'Masjid Baharu')
+            ->call('submit')
+            ->assertHasErrors(['data.address.google_place_id' => fn (array $rules, array $messages): bool => in_array($busyMessage, $messages, true)]);
+    } catch (LockTimeoutException) {
+        $this->fail('Expected the submit to surface a busy validation error instead of the raw lock timeout.');
+    } finally {
+        $heldLock->release();
+    }
+
+    expect($institution->fresh()->name)->toBe('Masjid Lama');
+});
+
+it('shows a busy validation error when the Maps identity lock is held during institution submit', function () {
+    $country = ensureCountryForLocationPicker('MY', 'Malaysia');
+    $state = ensureMalaysiaStateForLocationPicker();
+    $district = createTestAddressArea('Petaling', 2, parent: $state['area'], country: $country, type: 'district');
+    createTestAddressArea('Shah Alam', 3, parent: $district, country: $country, type: 'subdistrict');
+
+    configureVerifiedGoogleMaps();
+    fakeVerifiedInstitutionPlace(verifiedInstitutionPlace('busy_create_place'));
+    config()->set('moderation.review_lock_block_seconds', 1);
+
+    $busyMessage = __('The review service is busy. Please try again in a moment.');
+
+    // The fixture carries google_cid 11885663895765773631, so the identity
+    // lock key is cid-based.
+    $heldLock = Cache::lock(
+        'contribution-create:institution-maps:'.hash('sha256', 'cid:11885663895765773631'),
+        300,
+    );
+    expect($heldLock->acquire())->toBeTrue();
+
+    try {
+        Livewire::actingAs(User::factory()->create())
+            ->test(SubmitInstitution::class)
+            ->call('applyPlaceSelection', 'data.address', ['placeId' => 'busy_create_place'])
+            ->assertHasNoErrors()
+            ->set('data.name', 'Busy Submit Institution')
+            ->set('data.type', 'masjid')
+            ->call('submit')
+            ->assertHasErrors(['data.address.google_place_id' => fn (array $rules, array $messages): bool => in_array($busyMessage, $messages, true)]);
+    } finally {
+        $heldLock->release();
+    }
+
+    expect(Institution::query()->where('name', 'Busy Submit Institution')->exists())->toBeFalse();
 });

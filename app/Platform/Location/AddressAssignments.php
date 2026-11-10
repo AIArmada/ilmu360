@@ -9,6 +9,7 @@ use AIArmada\Addressing\Models\AddressAreaAssignment;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 final class AddressAssignments
 {
@@ -72,7 +73,9 @@ final class AddressAssignments
             $areaId = trim($areaId);
 
             if ($role !== '' && $areaId !== '') {
-                $normalized[$role] = $areaId;
+                // Area ids are UUIDs; the database compares case-insensitively
+                // while PHP does not, so canonicalize the casing here.
+                $normalized[$role] = Str::isUuid($areaId) ? Str::lower($areaId) : $areaId;
             }
         }
 

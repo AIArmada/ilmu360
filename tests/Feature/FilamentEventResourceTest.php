@@ -1,24 +1,41 @@
 <?php
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
 use AIArmada\FilamentEvents\Resources\EventOccurrenceResource;
 use AIArmada\FilamentEvents\Resources\EventResource;
+use AIArmada\FilamentEvents\Resources\EventResource\Pages\EditEvent;
 use AIArmada\FilamentEvents\Resources\EventSessionResource;
 use AIArmada\FilamentSeating\RelationManagers\SeatMapsRelationManager;
 use AIArmada\FilamentTicketing\RelationManagers\TicketTypesRelationManager;
+use App\Enums\EventAgeGroup;
+use App\Enums\EventGenderRestriction;
 use App\Filament\Resources\Events\RelationManagers\ReferencesRelationManager;
 use App\Models\Event;
+use App\Models\Institution;
 use App\Models\User;
+use App\Models\Venue;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Filament\Actions\EditAction;
+use Filament\Facades\Filament;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
+use Illuminate\Routing\Events\RouteMatched;
+use Illuminate\Support\Facades\Event as EventFacade;
+use Livewire\Livewire;
 
 beforeEach(function (): void {
     $this->seed(PermissionSeeder::class);
     $this->seed(RoleSeeder::class);
+
+    // Livewire's test request broker disables HTTP middleware, so the app's
+    // explicit-global owner middleware never runs. Set it on the matched
+    // request so Filament resource queries resolve the same way as in HTTP.
+    EventFacade::listen(RouteMatched::class, function (): void {
+        OwnerContext::setForRequest(null);
+    });
 });
 
 it('exposes the event domain graph on the admin edit resource', function (): void {
@@ -125,4 +142,68 @@ it('exposes independent cover and schedule controls on occurrence and session re
         ->assertSee('Timezone')
         ->assertSee('Delivery mode')
         ->assertSee('Sort order');
+});
+
+it('syncs the event primary location when the admin form changes the venue', function (): void {
+    Filament::setCurrentPanel('admin');
+
+    $administrator = User::factory()->create();
+    $administrator->assignRole('super_admin');
+
+    $oldVenue = Venue::factory()->create();
+    $newVenue = Venue::factory()->create();
+    $event = Event::factory()->create([
+        'default_venue_id' => $oldVenue->getKey(),
+    ]);
+    $event->syncLocation((string) $oldVenue->getKey());
+
+    OwnerContext::withOwner(null, function () use ($administrator, $event, $newVenue): void {
+        Livewire::actingAs($administrator)
+            ->test(EditEvent::class, ['record' => $event->getRouteKey()])
+            ->fillForm([
+                'default_venue_id' => $newVenue->getKey(),
+                'gender' => EventGenderRestriction::All->value,
+                'age_group' => [EventAgeGroup::AllAges->value],
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+    });
+
+    $event->refresh();
+
+    expect($event->default_venue_id)->toBe((string) $newVenue->getKey())
+        ->and($event->primaryLocationVenueId())->toBe((string) $newVenue->getKey());
+});
+
+it('clears the event primary location when the admin form removes the venue', function (): void {
+    Filament::setCurrentPanel('admin');
+
+    $administrator = User::factory()->create();
+    $administrator->assignRole('super_admin');
+
+    $institution = Institution::factory()->create();
+    $venue = Venue::factory()->create();
+    $event = Event::factory()->create([
+        'institution_id' => $institution->getKey(),
+        'default_venue_id' => $venue->getKey(),
+    ]);
+    $event->syncLocation((string) $venue->getKey());
+
+    OwnerContext::withOwner(null, function () use ($administrator, $event): void {
+        Livewire::actingAs($administrator)
+            ->test(EditEvent::class, ['record' => $event->getRouteKey()])
+            ->fillForm([
+                'default_venue_id' => null,
+                'gender' => EventGenderRestriction::All->value,
+                'age_group' => [EventAgeGroup::AllAges->value],
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+    });
+
+    $event->refresh();
+
+    expect($event->default_venue_id)->toBeNull()
+        ->and($event->primaryLocation()->exists())->toBeFalse()
+        ->and($event->resolvedLocationName())->toBe($institution->name);
 });

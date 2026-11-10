@@ -180,7 +180,7 @@ class InstitutionContributionFormSchema
                         ->label(__('Donation Channels'))
                         ->schema([
                             TextInput::make('label')
-                                ->label(__('Label'))
+                                ->label(__('Donation channel label'))
                                 ->placeholder(__('e.g. Tabung Masjid, Dana Pembangunan'))
                                 ->maxLength(255),
                             TextInput::make('recipient')
@@ -227,10 +227,12 @@ class InstitutionContributionFormSchema
                             TextInput::make('ewallet_handle')
                                 ->label(__('E-Wallet Handle'))
                                 ->maxLength(255)
-                                ->visible(fn (Get $get): bool => $get('method') === 'ewallet'),
+                                ->visible(fn (Get $get): bool => $get('method') === 'ewallet')
+                                ->required(fn (Get $get): bool => $get('method') === 'ewallet' && blank($get('ewallet_qr_payload'))),
                             Textarea::make('ewallet_qr_payload')
                                 ->label(__('E-Wallet QR Payload'))
                                 ->visible(fn (Get $get): bool => $get('method') === 'ewallet')
+                                ->required(fn (Get $get): bool => $get('method') === 'ewallet' && blank($get('ewallet_handle')))
                                 ->columnSpanFull(),
                             Textarea::make('reference_note')
                                 ->label(__('Reference Note'))

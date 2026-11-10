@@ -1,8 +1,12 @@
 <?php
 
 use AIArmada\Signals\Models\SignalEvent;
+use App\Enums\ContributionRequestStatus;
+use App\Enums\ContributionRequestType;
+use App\Enums\ContributionSubjectType;
 use App\Forms\SharedFormSchema;
 use App\Livewire\Pages\SubmitEvent\Create;
+use App\Models\ContributionRequest;
 use App\Models\Institution;
 use App\Models\User;
 use App\Shared\Directory\Enums\InstitutionStatus;
@@ -10,6 +14,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 
@@ -324,4 +329,114 @@ it('fetches attributed photo previews from fresh Place details only while the qu
 
     Http::assertSentCount(3);
     Http::assertSent(fn (ClientRequest $request): bool => $request->hasHeader('X-Goog-Api-Key', 'test-server-key'));
+});
+
+it('throttles quick-add Maps place selections after 30 attempts', function () {
+    configureEventInstitutionQuickAddMaps();
+    fakeEventInstitutionQuickAddPlace(eventInstitutionQuickAddPlace('throttle_select_place'));
+
+    $opened = mountEventInstitutionQuickAdd('primary_organizer_institution_id');
+    $component = $opened['component'];
+    $field = $opened['addressPath'].'.google_place_id';
+    $selection = [
+        'placeId' => 'throttle_select_place',
+        'ownerStatePath' => $opened['ownerPath'],
+        'nonce' => $opened['nonce'],
+    ];
+
+    for ($attempt = 0; $attempt < 30; $attempt++) {
+        $component = $component
+            ->call('applyQuickAddInstitutionPlaceSelection', $opened['addressPath'], $selection)
+            ->assertHasNoErrors();
+    }
+
+    $component
+        ->call('applyQuickAddInstitutionPlaceSelection', $opened['addressPath'], $selection)
+        ->assertHasErrors([$field]);
+
+    expect(RateLimiter::tooManyAttempts('maps-select:'.auth()->id(), 30))->toBeTrue();
+
+    Http::assertSentCount(30);
+});
+
+it('throttles quick-add photo previews after 30 attempts', function () {
+    configureEventInstitutionQuickAddMaps();
+    fakeEventInstitutionQuickAddPlace(eventInstitutionQuickAddPlace('throttle_photo_place'));
+
+    $opened = mountEventInstitutionQuickAdd('location_institution_id');
+    $component = $opened['component']->call('applyQuickAddInstitutionPlaceSelection', $opened['addressPath'], [
+        'placeId' => 'throttle_photo_place',
+        'ownerStatePath' => $opened['ownerPath'],
+        'nonce' => $opened['nonce'],
+    ]);
+    $field = $opened['addressPath'].'.google_place_id';
+
+    for ($attempt = 0; $attempt < 30; $attempt++) {
+        $component = $component
+            ->call('loadQuickAddInstitutionPhotoPreviews', 'throttle_photo_place', $opened['addressPath'], $opened['ownerPath'])
+            ->assertReturned([]);
+    }
+
+    $component
+        ->call('loadQuickAddInstitutionPhotoPreviews', 'throttle_photo_place', $opened['addressPath'], $opened['ownerPath'])
+        ->assertHasErrors([$field]);
+
+    expect(RateLimiter::tooManyAttempts('maps-photos:'.auth()->id(), 30))->toBeTrue();
+
+    Http::assertSentCount(31);
+});
+
+it('keys the quick-add Maps throttle by session for guests', function () {
+    ensureTestMalaysiaCountry();
+    configureEventInstitutionQuickAddMaps();
+    fakeEventInstitutionQuickAddPlace(eventInstitutionQuickAddPlace('throttle_guest_place'));
+
+    $component = Livewire::test(Create::class)
+        ->mountFormComponentAction('primary_organizer_institution_id', 'createOption');
+    $nonce = $component->get('mountedActions.0.data.address.maps_selection_nonce');
+
+    $component->call('applyQuickAddInstitutionPlaceSelection', 'mountedActions.0.data.address', [
+        'placeId' => 'throttle_guest_place',
+        'ownerStatePath' => 'data.primary_organizer_institution_id',
+        'nonce' => is_string($nonce) ? $nonce : '',
+    ])->assertHasNoErrors();
+
+    expect(auth()->id())->toBeNull()
+        ->and(RateLimiter::attempts('maps-select:'.session()->getId()))->toBe(1);
+});
+
+it('blocks quick-add creation when a pending update claims the same Maps place', function () {
+    $geography = createTestPackageGeography();
+    $target = Institution::factory()->create(['status' => InstitutionStatus::Verified]);
+    ContributionRequest::factory()->create([
+        'type' => ContributionRequestType::Update,
+        'subject_type' => ContributionSubjectType::Institution,
+        'entity_type' => Institution::class,
+        'entity_id' => (string) $target->getKey(),
+        'status' => ContributionRequestStatus::Pending,
+        'proposed_data' => [
+            'address' => [
+                'country_id' => (string) $geography['country']->getKey(),
+                'google_cid' => '11885663895765773631',
+            ],
+        ],
+    ]);
+
+    configureEventInstitutionQuickAddMaps();
+    fakeEventInstitutionQuickAddPlace(eventInstitutionQuickAddPlace('pending_claim_place'));
+
+    $opened = mountEventInstitutionQuickAdd('location_institution_id');
+    $opened['component']
+        ->set('mountedActions.0.data.name', 'Claimed place institution')
+        ->set('mountedActions.0.data.type', 'masjid')
+        ->set('mountedActions.0.data.address.country_id', (string) $geography['country']->getKey())
+        ->call('applyQuickAddInstitutionPlaceSelection', $opened['addressPath'], [
+            'placeId' => 'pending_claim_place',
+            'ownerStatePath' => $opened['ownerPath'],
+            'nonce' => $opened['nonce'],
+        ])
+        ->callMountedFormComponentAction()
+        ->assertHasFormErrors(['name']);
+
+    expect(Institution::query()->count())->toBe(1);
 });
