@@ -1,5 +1,7 @@
 # Lessons
 
+- User rule (2026-11-10, verification cadence — applies to orchestrator, implementers AND reviewers): during development, verify with **Pest only**. Do NOT run PHPStan, Rector or Pint per slice — they are slow and are reserved for the **final** pass once the codebase is finalized, where they are used to correct syntax, typing, style, comments and static analysis. Architecture boundary scanner (`php tools/architecture-check.php`, seconds) may still run per slice. Reviewer briefs must forbid PHPStan/Rector/Pint during development too.
+
 - User rule (2026-11-10, reviewer pairing): identify which model the orchestrator is running as before choosing a reviewer, then pair against the opposite model at its top effort. DeepSeek V4.1 Flash (max) orchestrator → review with **Muse Ember 1.0 (max) through the Muse CLI** (`muse exec --model muse-ember-1.0 --reasoning-effort max --workspace <repo>`), because the orchestrator's `muse` provider rejects Ember despite listing it; Muse Spark 1.3 Contributor (xhigh) is a stated fallback only. Muse orchestrator → DeepSeek V4.1 Flash (max). Never self-review by delegating to the same model you are running as; if a same-model reviewer was already dispatched, cancel it and re-dispatch to the paired model.
 
 - User correction (2026-11-09, portable handoffs): reference skills by name and discover them through the current harness or environment; resolve their references from the discovered skill location instead of hardcoding a user's installation path.

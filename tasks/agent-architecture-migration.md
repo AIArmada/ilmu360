@@ -32,7 +32,8 @@
 - Preserve URLs/names, middleware order, payloads/status, actor/tenant rules, transactions, queue/retry/after-commit semantics and stored class/morph identities.
 - Move routes and remove old registration atomically. Verify policy/factory/binding/observer/listener/command/schedule/Livewire/Filament registrations and duplicate invocation counts.
 - Preserve existing Signals; evaluate tracking for real UI behavior changes.
-- Compare uncached route snapshots in the same environment; verify route/config cache behavior separately. Run affected parallel Pest once per meaningful revision and save output; run Pint, normal level-6 PHPStan (including the ownership rule) and scoped Rector for touched scopes; pass both architecture checks with no new baseline or blanket exceptions.
+- Compare uncached route snapshots in the same environment; verify route/config cache behavior separately. Run affected parallel Pest once per meaningful revision and save output; pass the architecture boundary scanner (`php tools/architecture-check.php`) with no new baseline or blanket exceptions.
+- **Verification cadence (user rule):** during development the only behavioural gate is **Pest**. Do NOT run PHPStan, Rector or Pint per slice, and do not require them from implementers or reviewers — they are slow. Reserve all three for the final pass after the codebase is finalized, where they fix typing, style, comments and static analysis.
 - No live data, deployment, sibling `commerce` source, dependency, or broad baseline/exception changes. Use isolated test settings.
 
 ## Remaining application parts
