@@ -145,6 +145,7 @@ use App\Observers\TitleCategoryObserver;
 use App\Observers\UserObserver;
 use App\Observers\VenueObserver;
 use App\Organizations\CurrentOrganizationResolver as AppCurrentOrganizationResolver;
+use App\Platform\Api\ApiErrorDetailsEnricher;
 use App\Platform\Auth\EloquentAccountAccess;
 use App\Platform\Auth\EloquentAccountDirectory;
 use App\Platform\Auth\EloquentAccountSettingsStore;
@@ -208,6 +209,7 @@ use App\Shared\ShareTracking\SignupRecorder;
 use App\Shared\Signals\SignalRecorder;
 use App\Shared\Time\UserDateTimeFormatting;
 use App\Support\Ai\AiAccountLifecycleContributor;
+use App\Support\Api\Admin\AdminValidateOnlyRemediationEnricher;
 use App\Support\Auth\AffiliateSignupAttributionSourceResolver;
 use App\Support\Auth\SignupAttributionContextResolverAdapter;
 use App\Support\Authz\InterimMembershipAuthorization;
@@ -365,6 +367,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(VisitorCountryResolving::class, VisitorCountryResolver::class);
         $this->app->bind(UserDateTimeFormatting::class, DefaultUserDateTimeFormatter::class);
         $this->app->bind(MediaCollectionSync::class, EloquentMediaCollectionSync::class);
+        $this->app->bind(ApiErrorDetailsEnricher::class, AdminValidateOnlyRemediationEnricher::class);
         $this->app->tag([MediaDirectoryCacheListener::class], MediaChangeListener::TAG);
         $this->app->tag([
             PersonResourceSearchAdapter::class,

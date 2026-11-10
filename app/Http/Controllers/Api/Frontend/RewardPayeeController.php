@@ -6,7 +6,7 @@ namespace App\Http\Controllers\Api\Frontend;
 
 use AIArmada\Rewards\Actions\RegisterRewardPayeeAction;
 use AIArmada\Rewards\Models\RewardPayee;
-use App\Support\Api\ApiPagination;
+use App\Platform\Api\ApiPagination;
 use App\Support\Rewards\RewardMemberPresenter;
 use App\Support\Rewards\RewardPayoutMethods;
 use Dedoc\Scramble\Attributes\Endpoint;

@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Support\Api\Member;
 
 use App\Models\User;
+use App\Platform\Api\ApiPagination;
 use App\Platform\Search\ResourceSearchDispatcher;
 use App\Platform\Time\UserDateTimeFormatter;
-use App\Support\Api\ApiPagination;
 use App\Support\ApiDocumentation\ApiDocumentationUrlResolver;
 use Carbon\CarbonInterface;
 use Filament\Resources\Resource;

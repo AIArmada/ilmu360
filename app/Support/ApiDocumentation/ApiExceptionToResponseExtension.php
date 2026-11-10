@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\ApiDocumentation;
 
-use App\Support\Api\ApiResponseFactory;
+use App\Platform\Api\ApiResponseFactory;
 use Dedoc\Scramble\Extensions\ExceptionToResponseExtension;
 use Dedoc\Scramble\Support\Generator\Reference;
 use Dedoc\Scramble\Support\Generator\Response;

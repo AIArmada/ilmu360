@@ -2,19 +2,18 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Api;
+namespace App\Platform\Api;
 
-use App\Models\User;
-use App\Support\Api\Admin\AdminResourceService;
-use App\Support\Api\Admin\AdminValidateOnlyRemediationPlanner;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Arr;
 use Symfony\Component\HttpFoundation\Response;
-use Throwable;
 
 final class ApiJsonResponseNormalizer
 {
+    public function __construct(
+        private readonly ApiErrorDetailsEnricher $errorDetailsEnricher,
+    ) {}
+
     public function normalize(Request $request, Response $response): Response
     {
         if (! ApiResponseFactory::isApiRequest($request) || ! $response instanceof JsonResponse) {
@@ -71,7 +70,7 @@ final class ApiJsonResponseNormalizer
         if ($validationErrors !== null) {
             $details = is_array($error['details'] ?? null) ? $error['details'] : [];
             $details['fields'] = $validationErrors;
-            $details = $this->withAdminValidateOnlyRemediation($request, $details, $validationErrors);
+            $details = $this->errorDetailsEnricher->enrich($request, $details, $validationErrors);
             $error['details'] = $details;
         }
 
@@ -79,56 +78,6 @@ final class ApiJsonResponseNormalizer
         $payload['error'] = $error;
 
         return $payload;
-    }
-
-    /**
-     * @param  array<string, mixed>  $details
-     * @param  array<string, mixed>  $validationErrors
-     * @return array<string, mixed>
-     */
-    private function withAdminValidateOnlyRemediation(Request $request, array $details, array $validationErrors): array
-    {
-        $routeName = $request->route()?->getName();
-
-        if (! $request->boolean('validate_only')
-            || ! in_array($routeName, ['api.admin.resources.store', 'api.admin.resources.update'], true)
-            || array_key_exists('fix_plan', $details)) {
-            return $details;
-        }
-
-        $resourceKey = $request->route('resourceKey');
-
-        if (! is_string($resourceKey) || trim($resourceKey) === '') {
-            return $details;
-        }
-
-        $recordKey = $request->route('recordKey');
-        $actor = $request->user();
-
-        try {
-            return array_merge(
-                $details,
-                app(AdminValidateOnlyRemediationPlanner::class)->build(
-                    payload: Arr::except($request->all(), ['validate_only']),
-                    schemaResponse: app(AdminResourceService::class)->writeSchema(
-                        resourceKey: $resourceKey,
-                        operation: $routeName === 'api.admin.resources.store' ? 'create' : 'update',
-                        recordKey: is_string($recordKey) ? $recordKey : null,
-                        actor: $actor instanceof User ? $actor : null,
-                    ),
-                    errors: $validationErrors,
-                ),
-            );
-        } catch (Throwable $exception) {
-            report($exception);
-
-            logger()->warning('Admin validate_only remediation enrichment failed.', [
-                'route_name' => $routeName,
-                'resource_key' => $resourceKey,
-            ]);
-
-            return $details;
-        }
     }
 
     /**

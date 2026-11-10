@@ -12,7 +12,7 @@ use AIArmada\Rewards\Enums\RewardBenefitItemStatus;
 use AIArmada\Rewards\Models\RewardBenefitGrant;
 use AIArmada\Rewards\Models\RewardBenefitItem;
 use AIArmada\Rewards\Support\RewardBenefitStockLedger;
-use App\Support\Api\ApiPagination;
+use App\Platform\Api\ApiPagination;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;

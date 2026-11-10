@@ -10,7 +10,7 @@ use App\Data\Api\Notification\NotificationMessageData as NotificationMessagePayl
 use App\Data\Api\Notification\NotificationReadAllResultData;
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Support\Api\ApiPagination;
+use App\Platform\Api\ApiPagination;
 use App\Support\Communications\AccountCommunications;
 use App\Support\Notifications\NotificationCatalog;
 use Dedoc\Scramble\Attributes\Endpoint;

@@ -10,7 +10,7 @@ use AIArmada\Rewards\Models\RewardEnrollmentAcceptance;
 use AIArmada\Rewards\Models\RewardProgram;
 use AIArmada\Rewards\Models\RewardProgramVersion;
 use AIArmada\Rewards\Support\RewardVersionResolver;
-use App\Support\Api\ApiPagination;
+use App\Platform\Api\ApiPagination;
 use App\Support\Rewards\RewardMemberPresenter;
 use Carbon\CarbonImmutable;
 use Dedoc\Scramble\Attributes\Endpoint;

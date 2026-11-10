@@ -9,7 +9,7 @@ use AIArmada\Rewards\Models\RewardAppeal;
 use AIArmada\Rewards\Models\RewardAward;
 use AIArmada\Rewards\Models\RewardAwardEntry;
 use AIArmada\Rewards\Models\RewardProgram;
-use App\Support\Api\ApiPagination;
+use App\Platform\Api\ApiPagination;
 use App\Support\Rewards\RewardMemberPresenter;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;

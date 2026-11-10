@@ -8,7 +8,7 @@ use AIArmada\Rewards\Actions\OpenRewardAppealAction;
 use AIArmada\Rewards\Models\RewardAppeal;
 use AIArmada\Rewards\Models\RewardAppealDecision;
 use AIArmada\Rewards\Models\RewardAward;
-use App\Support\Api\ApiPagination;
+use App\Platform\Api\ApiPagination;
 use App\Support\Rewards\RewardMemberPresenter;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
