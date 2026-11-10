@@ -680,3 +680,5 @@ D1-S search (`AGREE`): tagged dispatcher + 3 Directory adapters (order + fallbac
 
 D1-P2 auth placement (`cf63f822`, AGREE): 4 adapters moved pure-rename to Platform\Auth; attribution resolvers stay (ShareTracking-owned); AccountProfileData stays (would create Platform->feature dep). Landed late: audit found the P2 commit missing (only deletions had staged via the leftover cleanup) — re-verified and committed whole.
 Process correction: slice landings M/T/C/R/S never staged their old-path deletions (explicit-path staging missed them); a single cleanup commit (`f0eb2d07`) removed all 15 superseded paths after repo-wide zero-reference grep + arch/PHPStan/suite gates. Lesson: stage via `git add -A` then unstage non-slice paths, not the reverse.
+
+D1-P3 timezone (`aa5bd2df`, AGREE): 3 formatters/resolver moved (renames detected by git); 74 call sites import-only; binding now Platform default; Shared contract untouched. 11 Blade FQCN swaps hand-merged (user hunks preserved). Full symmetric 151/151 diff. Evidence: arch 0/8; Pint; PHPStan 6 + ownership 0; timezone/reference suites green.
