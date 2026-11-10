@@ -11,11 +11,11 @@ use App\Enums\EventKeyPersonRole;
 use App\Enums\InstitutionStatus;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
+use App\Platform\Time\UserDateTimeFormatter;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerOffset;
 use App\Shared\Prayer\PrayerReference;
 use App\Support\Events\EventDetailPresenter;
-use App\Support\Timezone\UserDateTimeFormatter;
 use Carbon\CarbonInterface;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 

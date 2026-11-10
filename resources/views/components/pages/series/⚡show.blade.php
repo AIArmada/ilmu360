@@ -227,11 +227,11 @@ new
     $resolveEventTimeDisplay = static function (\App\Models\Event $event): string {
         return $event->timing_display !== ''
             ? $event->timing_display
-            : \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'h:i A');
+            : \App\Platform\Time\UserDateTimeFormatter::format($event->starts_at, 'h:i A');
     };
 
     $resolveEventEndTimeDisplay = static function (\App\Models\Event $event): string {
-        return \App\Support\Timezone\UserDateTimeFormatter::format($event->ends_at, 'h:i A');
+        return \App\Platform\Time\UserDateTimeFormatter::format($event->ends_at, 'h:i A');
     };
 @endphp
 
@@ -614,11 +614,11 @@ new
                                             <div
                                                 class="flex w-[4.5rem] shrink-0 flex-col items-center justify-center bg-gradient-to-b {{ $isPendingEvent ? 'from-amber-600 to-amber-800' : ($isRemoteEvent ? 'from-sky-600 to-sky-800' : 'from-emerald-600 to-emerald-800') }} p-2.5 text-white sm:w-24 sm:p-3">
                                                 <span
-                                                    class="text-[10px] font-bold uppercase tracking-widest {{ $isPendingEvent ? 'text-amber-200/80' : ($isRemoteEvent ? 'text-sky-200/80' : 'text-emerald-200/80') }} sm:text-[11px]">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($event->starts_at, 'l') }}</span>
+                                                    class="text-[10px] font-bold uppercase tracking-widest {{ $isPendingEvent ? 'text-amber-200/80' : ($isRemoteEvent ? 'text-sky-200/80' : 'text-emerald-200/80') }} sm:text-[11px]">{{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($event->starts_at, 'l') }}</span>
                                                 <span
-                                                    class="font-heading text-2xl font-black leading-none sm:text-4xl">{{ \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'd') }}</span>
+                                                    class="font-heading text-2xl font-black leading-none sm:text-4xl">{{ \App\Platform\Time\UserDateTimeFormatter::format($event->starts_at, 'd') }}</span>
                                                 <span
-                                                    class="mt-0.5 text-[11px] font-bold tracking-wide {{ $isPendingEvent ? 'text-amber-200/80' : ($isRemoteEvent ? 'text-sky-200/80' : 'text-emerald-200/80') }} sm:text-[13px]">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($event->starts_at, 'F') }}</span>
+                                                    class="mt-0.5 text-[11px] font-bold tracking-wide {{ $isPendingEvent ? 'text-amber-200/80' : ($isRemoteEvent ? 'text-sky-200/80' : 'text-emerald-200/80') }} sm:text-[13px]">{{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($event->starts_at, 'F') }}</span>
                                             </div>
                                             {{-- Event details --}}
                                             <div class="flex flex-1 flex-col justify-center gap-2 p-4 sm:p-5">
@@ -723,11 +723,11 @@ new
                                             <div
                                                 class="flex w-[4.5rem] shrink-0 flex-col items-center justify-center bg-gradient-to-b {{ $isPendingEvent ? 'from-amber-600 to-amber-800' : ($isRemoteEvent ? 'from-sky-600 to-sky-800' : 'from-slate-500 to-slate-700') }} p-2.5 text-white sm:w-24 sm:p-3">
                                                 <span
-                                                    class="text-[10px] font-bold uppercase tracking-widest {{ $isPendingEvent ? 'text-amber-200/80' : ($isRemoteEvent ? 'text-sky-200/80' : 'text-slate-300/80') }} sm:text-[11px]">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($event->starts_at, 'l') }}</span>
+                                                    class="text-[10px] font-bold uppercase tracking-widest {{ $isPendingEvent ? 'text-amber-200/80' : ($isRemoteEvent ? 'text-sky-200/80' : 'text-slate-300/80') }} sm:text-[11px]">{{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($event->starts_at, 'l') }}</span>
                                                 <span
-                                                    class="font-heading text-2xl font-black leading-none sm:text-4xl">{{ \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'd') }}</span>
+                                                    class="font-heading text-2xl font-black leading-none sm:text-4xl">{{ \App\Platform\Time\UserDateTimeFormatter::format($event->starts_at, 'd') }}</span>
                                                 <span
-                                                    class="mt-0.5 text-[11px] font-bold tracking-wide {{ $isPendingEvent ? 'text-amber-200/80' : ($isRemoteEvent ? 'text-sky-200/80' : 'text-slate-300/80') }} sm:text-[13px]">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($event->starts_at, 'F') }}</span>
+                                                    class="mt-0.5 text-[11px] font-bold tracking-wide {{ $isPendingEvent ? 'text-amber-200/80' : ($isRemoteEvent ? 'text-sky-200/80' : 'text-slate-300/80') }} sm:text-[13px]">{{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($event->starts_at, 'F') }}</span>
                                             </div>
                                             <div class="flex flex-1 flex-col justify-center gap-2 p-4 sm:p-5">
                                                 <div class="flex items-center gap-2">

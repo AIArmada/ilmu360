@@ -771,8 +771,8 @@ vendor/bin/phpstan analyse --ansi
 
 ## Core Rules
 - Store all timestamps in UTC at the database layer.
-- Resolve viewer timezone at request-time using `App\Support\Timezone\UserTimezoneResolver`.
-- For display formatting in Blade/Livewire, use `App\Support\Timezone\UserDateTimeFormatter`.
+- Resolve viewer timezone at request-time using `App\Platform\Time\UserTimezoneResolver`.
+- For display formatting in Blade/Livewire, use `App\Platform\Time\UserDateTimeFormatter`.
 - Do not hardcode region timezones (for example `Asia/Kuala_Lumpur`) in public query/filter logic.
 
 ## Display Rules

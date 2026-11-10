@@ -11,7 +11,7 @@ use App\Services\PublicScheduleDiscoveryService;
 use App\Shared\Auth\IntendedRedirect;
 use App\Support\Events\EventDetailPresenter;
 use App\Support\Location\AddressHierarchyFormatter;
-use App\Support\Timezone\UserDateTimeFormatter;
+use App\Platform\Time\UserDateTimeFormatter;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;

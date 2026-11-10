@@ -7,7 +7,7 @@ namespace App\Services\Signals;
 use AIArmada\Signals\Models\SignalEvent;
 use App\Models\Event;
 use App\Models\EventSubmission;
-use App\Support\Timezone\UserDateTimeFormatter;
+use App\Platform\Time\UserDateTimeFormatter;
 use Illuminate\Support\Collection;
 
 /**

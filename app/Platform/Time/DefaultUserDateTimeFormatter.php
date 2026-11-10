@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Timezone;
+namespace App\Platform\Time;
 
 use App\Shared\Time\UserDateTimeFormatting;
 use Carbon\CarbonInterface;

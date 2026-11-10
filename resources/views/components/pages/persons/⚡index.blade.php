@@ -14,7 +14,7 @@ use App\Models\Person;
 use App\Models\User;
 use App\Shared\Auth\IntendedRedirect;
 use App\Support\Search\PersonSearchService;
-use App\Support\Timezone\UserDateTimeFormatter;
+use App\Platform\Time\UserDateTimeFormatter;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
 use Illuminate\Database\Eloquent\Builder;

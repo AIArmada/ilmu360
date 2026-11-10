@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Support\Timezone;
+namespace App\Platform\Time;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;

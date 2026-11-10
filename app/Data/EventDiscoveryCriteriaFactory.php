@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Data;
 
 use App\Enums\TimingMode;
-use App\Support\Timezone\UserDateTimeFormatter;
+use App\Platform\Time\UserDateTimeFormatter;
 use Carbon\CarbonImmutable;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Str;

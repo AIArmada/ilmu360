@@ -7,7 +7,7 @@ namespace App\Notifications;
 use AIArmada\Events\Models\EventOccurrence;
 use App\Filament\Pages\ModerationQueue;
 use App\Models\Event;
-use App\Support\Timezone\UserDateTimeFormatter;
+use App\Platform\Time\UserDateTimeFormatter;
 use Carbon\CarbonInterface;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Support\Timezone;
+namespace App\Platform\Time;
 
 use Carbon\CarbonInterface;
 use Illuminate\Http\Request;

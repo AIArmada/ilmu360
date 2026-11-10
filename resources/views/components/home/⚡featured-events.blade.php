@@ -118,10 +118,10 @@ new class extends Component
                                             class="shrink-0 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-center shadow-sm"
                                             data-testid="homepage-featured-card-date-badge">
                                             <div class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
-                                                {{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($event->starts_at, 'M') }}
+                                                {{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($event->starts_at, 'M') }}
                                             </div>
                                             <div class="mt-1 text-xl font-black leading-none text-slate-900">
-                                                {{ \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'd') }}
+                                                {{ \App\Platform\Time\UserDateTimeFormatter::format($event->starts_at, 'd') }}
                                             </div>
                                         </div>
                                     </div>
@@ -154,7 +154,7 @@ new class extends Component
                                                 class="truncate max-w-[120px]">{{ $event->venue?->name ?? $event->institution?->name ?? __('Online') }}</span>
                                         </div>
                                         <span class="text-sm font-semibold text-emerald-600">
-                                            {{ \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'h:i A') }}
+                                            {{ \App\Platform\Time\UserDateTimeFormatter::format($event->starts_at, 'h:i A') }}
                                         </span>
                                     </div>
                                 </div>

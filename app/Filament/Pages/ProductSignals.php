@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Filament\Pages;
 
 use AIArmada\FilamentSignals\Pages\LiveActivityReport;
+use App\Platform\Time\UserTimezoneResolver;
 use App\Services\Signals\ProductSignalsInsightsService;
-use App\Support\Timezone\UserTimezoneResolver;
 use BackedEnum;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;

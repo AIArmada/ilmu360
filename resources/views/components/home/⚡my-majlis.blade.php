@@ -7,7 +7,7 @@ use App\Shared\Engagement\EngagementSubjectType;
 use Illuminate\Database\Eloquent\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
-use App\Support\Timezone\UserDateTimeFormatter;
+use App\Platform\Time\UserDateTimeFormatter;
 
 new class extends Component {
     #[Computed]

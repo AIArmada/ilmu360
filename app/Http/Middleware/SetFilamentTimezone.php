@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware;
 
-use App\Support\Timezone\UserTimezoneResolver;
+use App\Platform\Time\UserTimezoneResolver;
 use Closure;
 use Filament\Support\Facades\FilamentTimezone;
 use Illuminate\Http\Request;

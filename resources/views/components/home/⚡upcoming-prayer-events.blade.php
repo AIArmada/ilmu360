@@ -2,7 +2,7 @@
 
 use App\Shared\Prayer\PrayerReference;
 use App\Models\Event;
-use App\Support\Timezone\UserDateTimeFormatter;
+use App\Platform\Time\UserDateTimeFormatter;
 use Illuminate\Database\Eloquent\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -92,7 +92,7 @@ new class extends Component {
                         <div class="flex items-start justify-between mb-4">
                             <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-xs font-bold text-slate-700 shadow-sm">
                                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                {{ \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'h:i A') }}
+                                {{ \App\Platform\Time\UserDateTimeFormatter::format($event->starts_at, 'h:i A') }}
                             </span>
                         </div>
                         
