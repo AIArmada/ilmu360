@@ -5,7 +5,7 @@
 ## Resume here
 
 - Current checkpoint: the whole **ilmu360°** application conversion remains incomplete. Branch `refactor`.
-- Latest accepted implementation checkpoint `8bc98be0` — D1-R routing registry + cutover (DISAGREE→dataset test→AGREE). Previous landings this batch: `1fb2521c` (D1-C), `c86259fe` (D1-T), `b5467eff` (D1-A). Follow-up queued: hardcoded `exists:countries,id` at AdminResourceMutationService:2063.
+- Latest accepted implementation checkpoint `f4d11b1d` — D1-A/C/T/R landed (T+C via post-hoc independent AGREE after runtime dropped the pre-commit reviews; process note recorded in history). Previous `a80cf669` — Identity I6. Follow-up queued: hardcoded `exists:countries,id` at AdminResourceMutationService:2063.
 - Done: GitHubIssues; Prayer; Saved Searches (persistence, core, query/execution, attribution, identity/helpers, atomic transport/page cutover); Feedback/Reports (seams, both features, admin/MCP composition); Inspirations; Identity I0–I4 (seams, lifecycle, foundation, Directory/Membership cutover, Events/Moderation/Contributions cutover + fixes).
 - Do not reintroduce `User::savedSearches()`, a mutable Event paginator across the execution boundary, duplicate key lists, or obsolete taxonomy/addressing aliases.
 - Latest passing evidence (Identity I6): strict-review gate — 463 tests / 4,554 assertions green; arch 0/8; Pint clean; PHPStan 6 + ownership 0 errors; routes 749 uncached / 736 cached identical (controller-class-only deltas); payload parity restored (`current_team_id`), `socialite.error` constraint restored, 404 preserved. Detailed logs in history.
@@ -13,7 +13,7 @@
 ## Next action — Platform/shared D1 seams (Identity complete)
 
 - I6 is done and committed (`a80cf669`, DeepSeek-implemented, strict-reviewed, orchestrator-verified, mutual agreement after 3 fixes). All stage gates passed.
-- Next: Platform/shared D1 seams (geography/addressing canonicalization per AGENTS.md, cache primitives, telemetry/auth/routing/search placement, remaining media/audio helpers) as verified slices — then Directory D1 move. Fresh bounded DeepSeek tasks; stage gates per slice as before.
+- Next: D1-M media (C landed) then D1-S search, P1–P3, then Directory D1. Fresh bounded DeepSeek tasks; stage gates per slice as before.
 - Full whole-app conversion remains open; Identity I0–I6 is complete.
 
 ## Execution ownership and required reading
