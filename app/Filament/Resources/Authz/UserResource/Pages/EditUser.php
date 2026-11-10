@@ -8,6 +8,7 @@ use AIArmada\Membership\Actions\ChangeMemberRoleAction;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Organizations\Models\Organization;
 use App\Enums\MemberSubjectType;
+use App\Features\Identity\Api\AccountAdministration;
 use App\Filament\Resources\Authz\UserResource;
 use App\Models\Event;
 use App\Models\Institution;
@@ -24,6 +25,7 @@ use Illuminate\Support\Str;
 
 class EditUser extends EditRecord
 {
+    #[\Override]
     protected static string $resource = UserResource::class;
 
     /** @var array<string, string> */
@@ -66,13 +68,11 @@ class EditUser extends EditRecord
         $verificationData = $this->verificationData($data);
         unset($data['email_verified_at'], $data['phone_verified_at']);
 
-        parent::handleRecordUpdate($record, $data);
+        $accountId = (string) $record->getKey();
 
-        if ($verificationData !== []) {
-            $record->forceFill($verificationData)->save();
-        }
+        app(AccountAdministration::class)->update($accountId, [...$data, ...$verificationData]);
 
-        return $record;
+        return User::query()->findOrFail($accountId);
     }
 
     /**

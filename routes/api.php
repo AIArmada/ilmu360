@@ -12,15 +12,12 @@ use App\Http\Controllers\Api\Admin\ManifestController as AdminManifestController
 use App\Http\Controllers\Api\Admin\MembershipApplicationReviewController as AdminMembershipApplicationReviewController;
 use App\Http\Controllers\Api\Admin\ReportTriageController as AdminReportTriageController;
 use App\Http\Controllers\Api\Admin\ResourceController as AdminResourceController;
-use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\CurrentUserController;
 use App\Http\Controllers\Api\Documentation\DocumentationController;
 use App\Http\Controllers\Api\EventCheckInController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\EventGoingController;
 use App\Http\Controllers\Api\EventRegistrationController;
 use App\Http\Controllers\Api\EventSaveController;
-use App\Http\Controllers\Api\Frontend\AccountSettingsController;
 use App\Http\Controllers\Api\Frontend\AccountSettingsMcpTokenController;
 use App\Http\Controllers\Api\Frontend\AdvancedEventController;
 use App\Http\Controllers\Api\Frontend\CatalogController;
@@ -55,22 +52,6 @@ use Illuminate\Support\Facades\Route;
 
 // Public API endpoints
 Route::prefix('v1')->group(function () {
-    Route::post('/auth/register', [AuthController::class, 'register'])
-        ->middleware('throttle:api-auth-register')
-        ->name('api.auth.register');
-    Route::post('/auth/login', [AuthController::class, 'login'])
-        ->middleware('throttle:api-auth-login')
-        ->name('api.auth.login');
-    Route::post('/auth/social/google', [AuthController::class, 'google'])
-        ->middleware('throttle:api-auth-social')
-        ->name('api.auth.social.google');
-    Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword'])
-        ->middleware('throttle:api-auth-password')
-        ->name('api.auth.forgot-password');
-    Route::post('/auth/reset-password', [AuthController::class, 'resetPassword'])
-        ->middleware('throttle:api-auth-password')
-        ->name('api.auth.reset-password');
-
     Route::name('api.client.')->group(function () {
         Route::get('/manifest', [ManifestController::class, 'manifest'])->name('manifest');
 
@@ -182,10 +163,6 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
             Route::put('/{resourceKey}/{recordKey}', [AdminResourceController::class, 'updateRecord'])->name('resources.update');
         });
 
-    Route::post('/auth/logout', [AuthController::class, 'logout'])->name('api.auth.logout');
-    Route::post('/auth/email/verification-notification', [AuthController::class, 'resendVerificationEmail'])
-        ->name('api.auth.verification-notification');
-
     Route::name('api.client.')->group(function () {
         Route::post('/organizations', [OrganizationController::class, 'store'])->name('organizations.store');
         Route::get('/organization-workspace', [OrganizationController::class, 'workspace'])
@@ -214,8 +191,6 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
             Route::get('/institution-roles', [CatalogController::class, 'institutionRoles'])->name('institution-roles');
         });
 
-        Route::get('/account-settings', [AccountSettingsController::class, 'show'])->name('account-settings.show');
-        Route::put('/account-settings', [AccountSettingsController::class, 'update'])->name('account-settings.update');
         Route::get('/account-settings/mcp-tokens', [AccountSettingsMcpTokenController::class, 'index'])->name('account-settings.mcp-tokens.index');
         Route::post('/account-settings/mcp-tokens', [AccountSettingsMcpTokenController::class, 'store'])->name('account-settings.mcp-tokens.store');
         Route::delete('/account-settings/mcp-tokens/{tokenId}', [AccountSettingsMcpTokenController::class, 'destroy'])->name('account-settings.mcp-tokens.destroy');
@@ -254,9 +229,6 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::delete('/institution-workspace/{institutionId}/members/{memberId}', [InstitutionWorkspaceController::class, 'removeMember'])->name('institution-workspace.members.destroy');
     });
 
-    // User
-    Route::get('/user', CurrentUserController::class)->name('api.user.show');
-    Route::delete('/user', [CurrentUserController::class, 'destroy'])->name('api.user.destroy');
     Route::get('/user/registrations', [UserRegistrationController::class, 'index'])
         ->name('api.user.registrations.index');
     Route::get('/me/events/going', [EventGoingController::class, 'index'])

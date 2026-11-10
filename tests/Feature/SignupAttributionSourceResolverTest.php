@@ -13,11 +13,11 @@ use AIArmada\Affiliates\States\Disabled;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\ShareTracking\ClaimGuestShareProfileAction;
 use App\Enums\ShareGuestClaimResult;
-use App\Features\Identity\Api\SignupAttributionSource;
 use App\Features\Identity\Api\SignupAttributionSourceType;
 use App\Models\ShareBrowserSelection;
 use App\Models\User;
 use App\Services\ShareTrackingService;
+use App\Shared\Auth\SignupAttributionSource;
 use App\Support\Auth\AffiliateSignupAttributionSourceResolver;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -148,7 +148,7 @@ it('resolves a tracked share across owner scopes without changing the ambient ow
         return $source;
     });
 
-    expect($source?->type)->toBe(SignupAttributionSourceType::ShareMember);
+    expect($source?->type)->toBe(SignupAttributionSourceType::ShareMember->value);
     expect($source?->referrerUserId)->toBe((string) $sharer->getKey());
 });
 
@@ -157,7 +157,7 @@ it('preserves an unclaimed guest share without inventing a referring account', f
 
     $source = app(AffiliateSignupAttributionSourceResolver::class)->resolve($fixture['request']);
 
-    expect($source?->type)->toBe(SignupAttributionSourceType::ShareGuest);
+    expect($source?->type)->toBe(SignupAttributionSourceType::ShareGuest->value);
     expect($source?->referrerUserId)->toBeNull();
     expect($source?->affiliateId)->toBe((string) $fixture['affiliate']->getKey());
     $this->assertDatabaseCount('affiliate_claims', 0);
@@ -171,7 +171,7 @@ it('resolves the existing explicit guest claimant without changing the guest pro
 
     $source = app(AffiliateSignupAttributionSourceResolver::class)->resolve($fixture['request']);
 
-    expect($source?->type)->toBe(SignupAttributionSourceType::ShareGuest);
+    expect($source?->type)->toBe(SignupAttributionSourceType::ShareGuest->value);
     expect($source?->referrerUserId)->toBe((string) $claimant->getKey());
     expect($fixture['affiliate']->fresh()?->owner_id)->toBeNull();
     $this->assertDatabaseCount('affiliate_claims', 1);
@@ -186,7 +186,7 @@ it('does not resolve a revoked guest claimant', function (): void {
 
     $source = app(AffiliateSignupAttributionSourceResolver::class)->resolve($fixture['request']);
 
-    expect($source?->type)->toBe(SignupAttributionSourceType::ShareGuest);
+    expect($source?->type)->toBe(SignupAttributionSourceType::ShareGuest->value);
     expect($source?->referrerUserId)->toBeNull();
 });
 
@@ -228,7 +228,7 @@ it('accepts a commercial code attribution that has no campaign link', function (
 
     $source = app(AffiliateSignupAttributionSourceResolver::class)->resolve($fixture['request']);
 
-    expect($source?->type)->toBe(SignupAttributionSourceType::CommercialAffiliate);
+    expect($source?->type)->toBe(SignupAttributionSourceType::CommercialAffiliate->value);
     expect($source?->affiliateLinkId)->toBeNull();
 });
 
@@ -242,7 +242,7 @@ it('prefers the current tracked share when explicit referral timestamps tie', fu
 
     $source = app(AffiliateSignupAttributionSourceResolver::class)->resolve($share['request']);
 
-    expect($source?->type)->toBe(SignupAttributionSourceType::ShareMember);
+    expect($source?->type)->toBe(SignupAttributionSourceType::ShareMember->value);
     expect($source?->referrerUserId)->toBe((string) $sharer->getKey());
     expect($source?->affiliateId)->toBe((string) $share['affiliate']->getKey());
 });
@@ -263,7 +263,7 @@ it('chooses a newer commercial referral over an older tracked share', function (
 
     $source = app(AffiliateSignupAttributionSourceResolver::class)->resolve($share['request']);
 
-    expect($source?->type)->toBe(SignupAttributionSourceType::CommercialAffiliate);
+    expect($source?->type)->toBe(SignupAttributionSourceType::CommercialAffiliate->value);
     expect($source?->referrerUserId)->toBe((string) $owner->getKey());
 });
 
@@ -283,7 +283,7 @@ it('chooses a newer share despite later passive commercial cookie maintenance', 
 
     $source = app(AffiliateSignupAttributionSourceResolver::class)->resolve($share['request']);
 
-    expect($source?->type)->toBe(SignupAttributionSourceType::ShareMember);
+    expect($source?->type)->toBe(SignupAttributionSourceType::ShareMember->value);
     expect($source?->referrerUserId)->toBe((string) $sharer->getKey());
 });
 
@@ -362,7 +362,7 @@ it('rejects a stale tracked share after its link is deactivated', function (): v
 
 it('round trips a frozen source without re-resolving its referring account', function (): void {
     $source = new SignupAttributionSource(
-        type: SignupAttributionSourceType::ShareMember,
+        type: SignupAttributionSourceType::ShareMember->value,
         referrerUserId: '019dd73d-319b-70c8-8a05-03900a49f4fe',
         affiliateId: '019dd73d-319b-70c8-8a05-03900a49f4ff',
         affiliateLinkId: '019dd73d-319b-70c8-8a05-03900a49f500',

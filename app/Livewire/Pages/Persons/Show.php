@@ -25,7 +25,7 @@ use App\Models\EventKeyPersonPivot;
 use App\Models\Person;
 use App\Services\PublicScheduleDiscoveryService;
 use App\Services\ShareTrackingService;
-use App\Support\Auth\IntendedRedirect;
+use App\Shared\Auth\IntendedRedirect;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use App\Support\Timezone\UserDateTimeFormatter;
 use Carbon\Carbon;

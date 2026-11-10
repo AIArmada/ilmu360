@@ -2,7 +2,7 @@
 
 use App\Features\Identity\Models\SocialAccount;
 use App\Models\User;
-use App\Support\Auth\OAuthTransactionStore;
+use App\Shared\Auth\OAuthTransactionStore;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Socialite\Facades\Socialite;

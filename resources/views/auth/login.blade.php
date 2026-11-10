@@ -3,7 +3,7 @@
 @section('title', __('Log in') . ' - ' . config('app.name'))
 
 @section('content')
-    @php($googleOauthConfigured = \App\Support\Auth\SocialiteProviderConfiguration::isConfigured('google'))
+    @php($googleOauthConfigured = \App\Shared\Auth\SocialiteProviderConfiguration::isConfigured('google'))
 
     <div class="space-y-6">
         {{-- Header --}}

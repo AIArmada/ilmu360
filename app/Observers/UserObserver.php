@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Observers;
 
-use App\Actions\Auth\ConfirmSignupAttributionAction;
+use App\Features\Identity\Api\SignupAttributionWorkflow;
 use App\Models\User;
 use App\Shared\Directory\SubmissionEligibilitySync;
 
@@ -18,12 +18,13 @@ final readonly class UserObserver
 {
     public function __construct(
         private SubmissionEligibilitySync $submissionEligibilitySync,
+        private SignupAttributionWorkflow $signupAttribution,
     ) {}
 
     public function updated(User $user): void
     {
         if ($user->wasChanged(['email_verified_at', 'phone_verified_at'])) {
-            ConfirmSignupAttributionAction::run($user);
+            $this->signupAttribution->confirmForAccount((string) $user->getKey());
         }
 
         if (! $user->wasChanged('phone_verified_at')) {

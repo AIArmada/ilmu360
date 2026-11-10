@@ -3,7 +3,7 @@
 use AIArmada\Communications\Models\CommunicationDestination;
 use App\Features\Identity\Api\AccountPreferences;
 use App\Features\Identity\Api\PrayerType;
-use App\Livewire\Pages\Dashboard\AccountSettings;
+use App\Features\Identity\EntryPoints\Livewire\Pages\Dashboard\AccountSettings;
 use App\Models\Institution;
 use App\Models\User;
 use App\Notifications\Auth\VerifyEmailNotification;

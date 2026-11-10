@@ -409,14 +409,14 @@
                             </div>
                         @else
                             <div class="flex items-center gap-2 hidden sm:flex">
-                                <a href="{{ \App\Support\Auth\IntendedRedirect::loginUrl(request()->fullUrl()) }}" wire:navigate
+                                <a href="{{ \App\Shared\Auth\IntendedRedirect::loginUrl(request()->fullUrl()) }}" wire:navigate
                                     class="{{ $guestLoginClass }}">
                                     <svg class="relative z-10 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 20v-1.5a4.5 4.5 0 0 0-4.5-4.5h-3A4.5 4.5 0 0 0 4 18.5V20M10 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8-4v6m3-3h-6" />
                                     </svg>
                                     <span class="relative z-10">{{ __('Log In') }}</span>
                                 </a>
-                                <a href="{{ \App\Support\Auth\IntendedRedirect::registerUrl(request()->fullUrl()) }}" wire:navigate
+                                <a href="{{ \App\Shared\Auth\IntendedRedirect::registerUrl(request()->fullUrl()) }}" wire:navigate
                                     class="{{ $guestRegisterClass }}">
                                     <span class="relative z-10">{{ __('Sign Up') }}</span>
                                     <svg class="relative z-10 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -489,11 +489,11 @@
                             </a>
                             @guest
                                 <div class="grid grid-cols-2 gap-3">
-                                    <a href="{{ \App\Support\Auth\IntendedRedirect::loginUrl(request()->fullUrl()) }}" wire:navigate
+                                    <a href="{{ \App\Shared\Auth\IntendedRedirect::loginUrl(request()->fullUrl()) }}" wire:navigate
                                         class="{{ $mobileMenuLoginClass }}">
                                         {{ __('Log In') }}
                                     </a>
-                                    <a href="{{ \App\Support\Auth\IntendedRedirect::registerUrl(request()->fullUrl()) }}" wire:navigate
+                                    <a href="{{ \App\Shared\Auth\IntendedRedirect::registerUrl(request()->fullUrl()) }}" wire:navigate
                                         class="living-majlis-header-button living-majlis-header-button--emerald flex min-h-11 items-center justify-center rounded-xl px-4 text-sm font-semibold">
                                         <span class="relative z-10">{{ __('Sign Up') }}</span>
                                     </a>

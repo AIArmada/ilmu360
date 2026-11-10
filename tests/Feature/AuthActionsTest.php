@@ -1,7 +1,7 @@
 <?php
 
-use App\Actions\Auth\AuthenticateApiUserAction;
-use App\Actions\Auth\ResolveSocialiteUserAction;
+use App\Features\Identity\Actions\AuthenticateApiUserAction;
+use App\Features\Identity\Actions\ResolveSocialiteUserAction;
 use App\Features\Identity\Models\SocialAccount;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -31,7 +31,7 @@ it('resolves an existing social account by provider id', function () {
 
     $result = app(ResolveSocialiteUserAction::class)->handle($provider, $socialUser);
 
-    expect($result['user']->is($user))->toBeTrue()
+    expect($result['profile']->id)->toBe((string) $user->getKey())
         ->and($result['created_account'])->toBeFalse();
 });
 
@@ -47,9 +47,8 @@ it('creates a new user when no social account or user exists', function () {
 
     $result = app(ResolveSocialiteUserAction::class)->handle('google', $socialUser);
 
-    expect($result['user'])->toBeInstanceOf(User::class)
-        ->and($result['user']->email)->toBe('ali@example.com')
-        ->and($result['user']->hasVerifiedEmail())->toBeTrue()
+    expect($result['profile']->email)->toBe('ali@example.com')
+        ->and($result['profile']->emailVerified)->toBeTrue()
         ->and($result['created_account'])->toBeTrue();
 
     expect(SocialAccount::query()
@@ -73,7 +72,7 @@ it('links existing user by email when social account is new', function () {
 
     $result = app(ResolveSocialiteUserAction::class)->handle('google', $socialUser);
 
-    expect($result['user']->is($user))->toBeTrue()
+    expect($result['profile']->id)->toBe((string) $user->getKey())
         ->and($result['created_account'])->toBeFalse();
 
     expect(SocialAccount::query()
@@ -97,9 +96,9 @@ it('does not link an unverified provider email to an existing user', function ()
 
     $result = app(ResolveSocialiteUserAction::class)->handle('google', $socialUser);
 
-    expect($result['user']->is($victim))->toBeFalse()
-        ->and($result['user']->email)->toBeNull()
-        ->and($result['user']->hasVerifiedEmail())->toBeFalse()
+    expect($result['profile']->id)->not->toBe((string) $victim->getKey())
+        ->and($result['profile']->email)->toBeNull()
+        ->and($result['profile']->emailVerified)->toBeFalse()
         ->and($result['created_account'])->toBeTrue();
 
     expect(SocialAccount::query()
@@ -123,7 +122,7 @@ it('accepts the Google provider verified_email claim', function () {
 
     $result = app(ResolveSocialiteUserAction::class)->handle('google', $socialUser);
 
-    expect($result['user']->is($user))->toBeTrue()
+    expect($result['profile']->id)->toBe((string) $user->getKey())
         ->and($user->fresh()?->hasVerifiedEmail())->toBeTrue();
 });
 
@@ -140,8 +139,8 @@ it('authenticates a user by email', function () {
         Request::create('/'),
     );
 
-    expect($result['user']->is($user))->toBeTrue()
-        ->and($result['access_token'])->toBeString();
+    expect($result->accountId)->toBe((string) $user->getKey())
+        ->and($result->accessToken)->toBeString();
 });
 
 it('authenticates a user by phone', function () {
@@ -158,8 +157,8 @@ it('authenticates a user by phone', function () {
         Request::create('/'),
     );
 
-    expect($result['user']->is($user))->toBeTrue()
-        ->and($result['access_token'])->toBeString();
+    expect($result->accountId)->toBe((string) $user->getKey())
+        ->and($result->accessToken)->toBeString();
 });
 
 it('throws validation exception for invalid credentials', function () {
@@ -176,11 +175,11 @@ it('throws validation exception for invalid credentials', function () {
     );
 })->throws(ValidationException::class);
 
-it('returns null for empty login string', function () {
-    $reflection = new ReflectionMethod(AuthenticateApiUserAction::class, 'resolveUser');
-    $action = app(AuthenticateApiUserAction::class);
-
-    $result = $reflection->invoke($action, '');
-
-    expect($result)->toBeNull();
-});
+it('rejects an empty login string', function () {
+    app(AuthenticateApiUserAction::class)->handle(
+        '',
+        'password123',
+        'test-device',
+        Request::create('/'),
+    );
+})->throws(ValidationException::class);

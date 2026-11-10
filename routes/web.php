@@ -3,7 +3,6 @@
 use App\Enums\ContributionSubjectType;
 use App\Enums\MemberSubjectType;
 use App\Http\Controllers\Api\RegistrationExportController;
-use App\Http\Controllers\Auth\SocialiteController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\NetworkDiagnosticsController;
 use App\Http\Controllers\Public\EventCheckoutResultController;
@@ -23,7 +22,6 @@ use App\Livewire\Pages\Contributions\SubmitInstitution;
 use App\Livewire\Pages\Contributions\SubmitPerson;
 use App\Livewire\Pages\Contributions\SubmitReference;
 use App\Livewire\Pages\Contributions\SuggestUpdate as SuggestContributionUpdate;
-use App\Livewire\Pages\Dashboard\AccountSettings;
 use App\Livewire\Pages\Dashboard\DakwahIndex;
 use App\Livewire\Pages\Dashboard\DakwahLinkShow;
 use App\Livewire\Pages\Dashboard\Events\CreateAdvanced;
@@ -65,20 +63,6 @@ Route::get('/jemputan/{token}', ReferralInviteLandingController::class)
     ->middleware(['throttle:share-tracking', TrackShareAttribution::class])
     ->where('token', '[A-Za-z0-9]+')
     ->name('referrals.invite.landing');
-
-// Socialite OAuth Routes
-Route::get('/oauth/{provider}/redirect', [SocialiteController::class, 'redirect'])
-    ->name('socialite.redirect')
-    ->whereIn('provider', ['google']);
-Route::get('/oauth/{provider}/callback', [SocialiteController::class, 'callback'])
-    ->name('socialite.callback')
-    ->whereIn('provider', ['google']);
-Route::get('/oauth/{provider}/complete', [SocialiteController::class, 'complete'])
-    ->name('socialite.complete')
-    ->whereIn('provider', ['google']);
-Route::get('/oauth/error/{code}', [SocialiteController::class, 'error'])
-    ->name('socialite.error')
-    ->where('code', '[a-z]+');
 
 Route::get('/kongsi/payload', [ShareController::class, 'payload'])
     ->middleware('throttle:share-tracking')
@@ -156,7 +140,6 @@ Route::middleware('auth')->group(function () {
     Route::livewire('/notifications', NotificationsIndex::class)->name('notifications');
     Route::livewire('/dashboard/rewards', RewardMemberIndex::class)->name('dashboard.rewards');
     Route::livewire('/dashboard/ajak-kawan', ReferralMemberIndex::class)->name('dashboard.referrals');
-    Route::livewire('/tetapan', AccountSettings::class)->name('account-settings');
     Route::livewire('/dashboard/institusi', InstitutionDashboard::class)->name('dashboard.institutions');
     Route::livewire('/dashboard/institusi/senarai-majlis', InstitutionDashboard::class)->name('dashboard.institutions.events');
     Route::livewire('/dashboard/institusi/tambah-majlis', Create::class)->name('dashboard.institutions.submit-event');

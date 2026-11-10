@@ -13,8 +13,8 @@ use AIArmada\Affiliates\Models\AffiliateOwnershipCapability;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\OwnerScope;
 use AIArmada\Rewards\Jobs\EvaluateRewardEntitlementJob;
-use App\Actions\Auth\LinkGuestSignupAttributionsAction;
 use App\Enums\ShareGuestClaimResult;
+use App\Features\Identity\Api\SignupAttributionWorkflow;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
@@ -41,13 +41,13 @@ use RuntimeException;
  * notification, and emits no share fact; it only records the association
  * that later evaluation (WP5 policy windows) may consult.
  */
-final class ClaimGuestShareProfileAction
+final readonly class ClaimGuestShareProfileAction
 {
     use AsAction;
 
     public function __construct(
-        private readonly AffiliatesShareTrackingService $shareTrackingService,
-        private readonly LinkGuestSignupAttributionsAction $linkGuestSignupAttributions,
+        private AffiliatesShareTrackingService $shareTrackingService,
+        private SignupAttributionWorkflow $signupAttribution,
     ) {}
 
     public function handle(User $claimant, string $presentedCapability, bool $confirmedConsent): ShareGuestClaimResult
@@ -173,7 +173,12 @@ final class ClaimGuestShareProfileAction
             return ShareGuestClaimResult::ClaimedByOther;
         }
 
-        $this->linkGuestSignupAttributions->handle($claim);
+        $this->signupAttribution->linkGuestReferralsForClaim(
+            (string) $claim->getKey(),
+            (string) $claim->affiliate_id,
+            (string) $claim->claimant_type,
+            (string) $claim->claimant_id,
+        );
 
         return ShareGuestClaimResult::Claimed;
     }

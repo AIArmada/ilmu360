@@ -11,16 +11,17 @@ use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\States\Active;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\OwnerScope;
-use App\Actions\Auth\RecordSignupAttributionAction;
 use App\Actions\ShareTracking\ClaimGuestShareProfileAction;
 use App\Enums\ShareGuestClaimResult;
 use App\Features\Identity\Api\SignupAttributionSource;
 use App\Features\Identity\Api\SignupAttributionSourceType;
+use App\Features\Identity\Api\SignupAttributionWorkflow;
 use App\Features\Identity\Models\SignupAttribution;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingAnalyticsService;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Services\ShareTrackingService;
+use App\Shared\Auth\SignupAttributionContext;
 use App\Support\Share\ShareProfileScope;
 use App\Support\ShareTracking\ShareTrackingProfile;
 use Illuminate\Database\Eloquent\Model;
@@ -86,15 +87,15 @@ it('claims reads and revokes guest history with ownership enabled', function (bo
     $link = AffiliateLink::query()->withoutGlobalScope(OwnerScope::class)->where('custom_slug', $payload['tracking_token'])->firstOrFail();
     $request = Request::create(route('share.claim.show'));
     $request->headers->set('X-Claim-Capability', $payload['guest_claim_capability']);
-    $context = [
-        'referral_invite_id' => null,
-        'affiliate_source' => (new SignupAttributionSource(
+    $context = new SignupAttributionContext(
+        affiliateSource: (new SignupAttributionSource(
             SignupAttributionSourceType::ShareGuest,
             affiliateId: (string) $link->affiliate_id,
             affiliateLinkId: (string) $link->getKey(),
         ))->toArray(),
-    ];
-    $beforeAttribution = RecordSignupAttributionAction::run($signupBefore, context: $context);
+    );
+    $workflow = app(SignupAttributionWorkflow::class);
+    $beforeAttribution = $workflow->recordForNewAccount((string) $signupBefore->getKey(), $context, true);
     expect($beforeAttribution->referrerAccountId)->toBeNull();
 
     OwnerContext::withOwner($unrelated, function () use ($claimant, $payload, $identityService, $request, $link, $unrelated): void {
@@ -113,7 +114,7 @@ it('claims reads and revokes guest history with ownership enabled', function (bo
 
     expect((string) SignupAttribution::query()->findOrFail($beforeAttribution->id)->referrer_user_id)->toBe((string) $claimant->getKey());
     $signupAfter = User::factory()->create();
-    $afterAttribution = OwnerContext::withOwner($unrelated, fn () => RecordSignupAttributionAction::run($signupAfter, context: $context));
+    $afterAttribution = OwnerContext::withOwner($unrelated, fn () => $workflow->recordForNewAccount((string) $signupAfter->getKey(), $context, true));
     expect((string) $afterAttribution->referrerAccountId)->toBe((string) $claimant->getKey());
 
     $claim = ShareProfileScope::guestClaims()->where('affiliate_id', $link->affiliate_id)->firstOrFail();

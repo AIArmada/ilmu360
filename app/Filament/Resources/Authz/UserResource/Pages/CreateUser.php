@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Authz\UserResource\Pages;
 
+use App\Features\Identity\Api\AccountAdministration;
 use App\Filament\Resources\Authz\UserResource;
 use App\Models\User;
 use Filament\Resources\Pages\CreateRecord;
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class CreateUser extends CreateRecord
 {
+    #[\Override]
     protected static string $resource = UserResource::class;
 
     /**
@@ -40,12 +42,8 @@ class CreateUser extends CreateRecord
         ]));
         unset($data['email_verified_at'], $data['phone_verified_at']);
 
-        $record = parent::handleRecordCreation($data);
+        $accountId = app(AccountAdministration::class)->create([...$data, ...$verificationData]);
 
-        if ($record instanceof User && $verificationData !== []) {
-            $record->forceFill($verificationData)->save();
-        }
-
-        return $record;
+        return User::query()->findOrFail($accountId);
     }
 }

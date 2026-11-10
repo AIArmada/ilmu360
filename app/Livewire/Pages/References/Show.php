@@ -19,7 +19,7 @@ use App\Models\Event;
 use App\Models\EventReferencePivot;
 use App\Models\Reference;
 use App\Services\ShareTrackingService;
-use App\Support\Auth\IntendedRedirect;
+use App\Shared\Auth\IntendedRedirect;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;

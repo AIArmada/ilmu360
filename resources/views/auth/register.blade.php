@@ -3,7 +3,7 @@
 @section('title', __('Register') . ' - ' . config('app.name'))
 
 @section('content')
-    @php($googleOauthConfigured = \App\Support\Auth\SocialiteProviderConfiguration::isConfigured('google'))
+    @php($googleOauthConfigured = \App\Shared\Auth\SocialiteProviderConfiguration::isConfigured('google'))
 
     {{-- Header --}}
     <div class="auth-animate-up auth-delay-1">

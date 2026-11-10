@@ -24,7 +24,7 @@
 
         <div class="space-x-1 rtl:space-x-reverse text-center text-sm text-slate-500">
             <span>{{ __('Remember your password?') }}</span>
-            <flux:link :href="\App\Support\Auth\IntendedRedirect::loginUrl($authRedirectTarget)" wire:navigate class="font-bold!">{{ __('Sign in') }}</flux:link>
+            <flux:link :href="\App\Shared\Auth\IntendedRedirect::loginUrl($authRedirectTarget)" wire:navigate class="font-bold!">{{ __('Sign in') }}</flux:link>
         </div>
     </div>
 </x-layouts.auth>

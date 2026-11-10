@@ -24,5 +24,10 @@ final readonly class AccountProfile
         public string $locale,
         public string $timezone,
         public DateTimeImmutable $createdAt,
+        public ?string $gender = null,
+        public ?string $dateOfBirth = null,
+        public ?DateTimeImmutable $emailVerifiedAt = null,
+        public ?DateTimeImmutable $phoneVerifiedAt = null,
+        public ?string $rawTimezone = null,
     ) {}
 }

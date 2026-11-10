@@ -12,18 +12,19 @@ use AIArmada\Referrals\Actions\RevokeReferralInvite;
 use AIArmada\Referrals\Enums\ReferralProgramStatus;
 use AIArmada\Referrals\Models\ReferralInvite;
 use AIArmada\Referrals\Models\ReferralReward;
-use App\Actions\Auth\CaptureSignupAttributionContextAction;
-use App\Actions\Auth\ConfirmSignupAttributionAction;
-use App\Actions\Auth\RecordSignupAttributionAction;
 use App\Actions\Referrals\ResolveReferralInviteLandingAction;
 use App\Actions\ShareTracking\ClaimGuestShareProfileAction;
 use App\Enums\ShareGuestClaimResult;
 use App\Features\Identity\Api\SignupAttributions;
+use App\Features\Identity\Api\SignupAttributionSnapshot;
 use App\Features\Identity\Api\SignupAttributionSource;
 use App\Features\Identity\Api\SignupAttributionSourceType;
 use App\Features\Identity\Api\SignupAttributionStatus;
+use App\Features\Identity\Api\SignupAttributionWorkflow;
 use App\Features\Identity\Models\SignupAttribution;
 use App\Models\User;
+use App\Shared\Auth\SignupAttributionContext;
+use App\Shared\Auth\SignupAttributionContextResolver;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
@@ -41,10 +42,22 @@ function confirmedSignupReferralAccountIds(User $referrer): array
     return app(SignupAttributions::class)->confirmedReferralAccountIds((string) $referrer->getKey());
 }
 
-/** @return array{referral_invite_id: ?string, affiliate_source: array<string, mixed>|null} */
-function signupAcquisitionContext(?SignupAttributionSource $source = null, ?ReferralInvite $invite = null): array
+function recordSignupAttribution(User $user, SignupAttributionContext $context = new SignupAttributionContext, bool $wasRecentlyCreated = true): ?SignupAttributionSnapshot
 {
-    return ['referral_invite_id' => $invite?->getKey(), 'affiliate_source' => $source?->toArray()];
+    return app(SignupAttributionWorkflow::class)->recordForNewAccount((string) $user->getKey(), $context, $wasRecentlyCreated);
+}
+
+function confirmSignupAttribution(User $user): ?SignupAttributionSnapshot
+{
+    return app(SignupAttributionWorkflow::class)->confirmForAccount((string) $user->getKey());
+}
+
+function signupAcquisitionContext(?SignupAttributionSource $source = null, ?ReferralInvite $invite = null): SignupAttributionContext
+{
+    return new SignupAttributionContext(
+        referralInviteId: $invite?->getKey(),
+        affiliateSource: $source?->toArray(),
+    );
 }
 
 /** @return array{ReferralInvite, User, string} */
@@ -67,11 +80,11 @@ function signupAcquisitionInvite(string $contact): array
 it('freezes a direct signup so later links and invitation confirmation cannot assign a referrer', function (): void {
     $user = User::factory()->unverified()->emailOnly()->create();
     $referrer = User::factory()->create();
-    $original = RecordSignupAttributionAction::run($user);
+    $original = recordSignupAttribution($user);
     $lateSource = new SignupAttributionSource(SignupAttributionSourceType::ShareMember, (string) $referrer->getKey());
 
-    $replayed = RecordSignupAttributionAction::run($user, context: signupAcquisitionContext($lateSource));
-    ConfirmSignupAttributionAction::run($user);
+    $replayed = recordSignupAttribution($user, signupAcquisitionContext($lateSource));
+    confirmSignupAttribution($user);
 
     expect($replayed?->id)->toBe($original?->id);
     expect(signupAttributionRecordFor($user))->source_type->toBe(SignupAttributionSourceType::Direct)
@@ -85,9 +98,9 @@ it('retains the commercial signup referrer when a later source would credit a di
     $carol = User::factory()->create();
     $bob = User::factory()->create();
     $source = new SignupAttributionSource(SignupAttributionSourceType::CommercialAffiliate, (string) $alice->getKey());
-    $original = RecordSignupAttributionAction::run($bob, context: signupAcquisitionContext($source));
+    $original = recordSignupAttribution($bob, signupAcquisitionContext($source));
 
-    RecordSignupAttributionAction::run($bob, context: signupAcquisitionContext(
+    recordSignupAttribution($bob, signupAcquisitionContext(
         new SignupAttributionSource(SignupAttributionSourceType::CommercialAffiliate, (string) $carol->getKey()),
     ));
 
@@ -104,8 +117,8 @@ it('does not infer signup attribution when an existing account accepts an invita
     $result = app(ResolveReferralInviteLandingAction::class)->handle($token, $existingUser);
 
     expect($result['outcome'])->toBe('accepted');
-    expect(RecordSignupAttributionAction::run($existingUser, context: signupAcquisitionContext(invite: $invite)))->toBeNull();
-    expect(ConfirmSignupAttributionAction::run($existingUser))->toBeNull();
+    expect(recordSignupAttribution($existingUser, signupAcquisitionContext(invite: $invite), false))->toBeNull();
+    expect(confirmSignupAttribution($existingUser))->toBeNull();
     expect(SignupAttribution::query()->count())->toBe(0);
 });
 
@@ -113,7 +126,7 @@ it('confirms the captured inviter only after the invited email is verified witho
     $this->travelTo(CarbonImmutable::parse('2026-10-28 12:00:00', 'UTC'));
     [$invite, $referrer] = signupAcquisitionInvite('new-invitee@example.test');
     $user = User::factory()->unverified()->emailOnly()->create(['email' => 'new-invitee@example.test']);
-    $attribution = RecordSignupAttributionAction::run($user, context: signupAcquisitionContext(invite: $invite));
+    $attribution = recordSignupAttribution($user, signupAcquisitionContext(invite: $invite));
 
     expect($attribution)->status->toBe(SignupAttributionStatus::Pending)->confirmedAt->toBeNull();
     expect(confirmedSignupReferralAccountIds($referrer))->toBe([]);
@@ -132,7 +145,7 @@ it('confirms the captured inviter only after the invited email is verified witho
 it('requires verification of the captured phone even when an unrelated email is verified', function (): void {
     [$invite] = signupAcquisitionInvite('+60123456789');
     $user = User::factory()->create(['phone' => '+60123456789', 'phone_verified_at' => null]);
-    $attribution = RecordSignupAttributionAction::run($user, context: signupAcquisitionContext(invite: $invite));
+    $attribution = recordSignupAttribution($user, signupAcquisitionContext(invite: $invite));
 
     expect($attribution?->status)->toBe(SignupAttributionStatus::Pending);
 
@@ -147,7 +160,7 @@ it('prefers a valid contact-matching invite over the captured share source', fun
     $user = User::factory()->emailOnly()->create(['email' => 'matching-invite@example.test']);
     $source = new SignupAttributionSource(SignupAttributionSourceType::ShareMember, (string) $otherSharer->getKey());
 
-    $attribution = RecordSignupAttributionAction::run($user, context: signupAcquisitionContext($source, $invite));
+    $attribution = recordSignupAttribution($user, signupAcquisitionContext($source, $invite));
 
     expect($attribution)->sourceType->toBe(SignupAttributionSourceType::ReferralInvite)
         ->referrerAccountId->toBe((string) $inviter->getKey())
@@ -161,7 +174,7 @@ it('uses the captured link when the invitation targets another contact', functio
     $user = User::factory()->emailOnly()->create();
     $source = new SignupAttributionSource(SignupAttributionSourceType::ShareMember, (string) $sharer->getKey());
 
-    $attribution = RecordSignupAttributionAction::run($user, context: signupAcquisitionContext($source, $invite));
+    $attribution = recordSignupAttribution($user, signupAcquisitionContext($source, $invite));
 
     expect($attribution)->sourceType->toBe(SignupAttributionSourceType::ShareMember)
         ->referrerAccountId->toBe((string) $sharer->getKey())
@@ -174,7 +187,7 @@ it('freezes a direct signup when a previously captured invite expires before acc
     $this->travel(31)->days();
     $user = User::factory()->emailOnly()->create(['email' => 'expired-signup@example.test']);
 
-    $attribution = RecordSignupAttributionAction::run($user, context: signupAcquisitionContext(invite: $invite));
+    $attribution = recordSignupAttribution($user, signupAcquisitionContext(invite: $invite));
 
     expect($attribution)->sourceType->toBe(SignupAttributionSourceType::Direct)->referrerAccountId->toBeNull();
 });
@@ -183,11 +196,11 @@ it('refuses revoked invitations and invalid public tokens as signup evidence', f
     [$invite] = signupAcquisitionInvite('revoked-signup@example.test');
     RevokeReferralInvite::run($invite, 'signup-test');
     $user = User::factory()->emailOnly()->create(['email' => 'revoked-signup@example.test']);
-    $attribution = RecordSignupAttributionAction::run($user, context: signupAcquisitionContext(invite: $invite));
-    $captured = CaptureSignupAttributionContextAction::run(Request::create('/', 'POST', ['referral_invite_token' => str_repeat('z', 32)]));
+    $attribution = recordSignupAttribution($user, signupAcquisitionContext(invite: $invite));
+    $captured = app(SignupAttributionContextResolver::class)->resolve(Request::create('/', 'POST', ['referral_invite_token' => str_repeat('z', 32)]));
 
     expect($attribution?->sourceType)->toBe(SignupAttributionSourceType::Direct);
-    expect($captured['referral_invite_id'])->toBeNull();
+    expect($captured->referralInviteId)->toBeNull();
 });
 
 it('links guest signup history through an explicit claim while preserving the source and excluding self referrals', function (): void {
@@ -198,8 +211,8 @@ it('links guest signup history through an explicit claim while preserving the so
     $guestSource = new SignupAttributionSource(SignupAttributionSourceType::ShareGuest, affiliateId: (string) $link->affiliate_id, affiliateLinkId: (string) $link->getKey());
     $claimant = User::factory()->create();
     $invitee = User::factory()->create();
-    $selfAttribution = RecordSignupAttributionAction::run($claimant, context: signupAcquisitionContext($guestSource));
-    $attribution = RecordSignupAttributionAction::run($invitee, context: signupAcquisitionContext($guestSource));
+    $selfAttribution = recordSignupAttribution($claimant, signupAcquisitionContext($guestSource));
+    $attribution = recordSignupAttribution($invitee, signupAcquisitionContext($guestSource));
 
     expect($attribution?->referrerAccountId)->toBeNull();
     expect(AffiliateClaim::query()->count())->toBe(0);
@@ -215,14 +228,14 @@ it('links guest signup history through an explicit claim while preserving the so
     expect(confirmedSignupReferralAccountIds($claimant))->toBe([(string) $invitee->getKey()]);
 
     $laterSignup = User::factory()->create();
-    $laterAttribution = RecordSignupAttributionAction::run($laterSignup, context: signupAcquisitionContext($guestSource));
+    $laterAttribution = recordSignupAttribution($laterSignup, signupAcquisitionContext($guestSource));
 
     expect($laterAttribution?->referrerAccountId)->toBe((string) $claimant->getKey());
 });
 
 it('rejects attempts to rewrite the recorded signup source through a model update', function (): void {
     $user = User::factory()->create();
-    RecordSignupAttributionAction::run($user);
+    recordSignupAttribution($user);
     $attribution = signupAttributionRecordFor($user);
 
     expect(fn () => $attribution->update(['source_type' => SignupAttributionSourceType::ShareMember]))
@@ -233,11 +246,11 @@ it('rejects attempts to rewrite the recorded signup source through a model updat
 it('does not confirm an invite using verification that exists only on a stale user instance', function (): void {
     [$invite] = signupAcquisitionInvite('stale-signup@example.test');
     $user = User::factory()->unverified()->emailOnly()->create(['email' => 'stale-signup@example.test']);
-    $attribution = RecordSignupAttributionAction::run($user, context: signupAcquisitionContext(invite: $invite));
+    $attribution = recordSignupAttribution($user, signupAcquisitionContext(invite: $invite));
     $staleUser = $user->fresh();
     $staleUser->forceFill(['email_verified_at' => now()]);
 
-    ConfirmSignupAttributionAction::run($staleUser);
+    confirmSignupAttribution($staleUser);
 
     expect(signupAttributionRecordFor($user))->status->toBe(SignupAttributionStatus::Pending)->confirmed_at->toBeNull();
 });

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Platform\Admin\FilamentPageRegistry;
 use App\Platform\Admin\FilamentResourceRegistry;
 use Illuminate\Support\ServiceProvider;
 
@@ -16,5 +17,6 @@ class AdminRegistryServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(FilamentResourceRegistry::class);
+        $this->app->singleton(FilamentPageRegistry::class);
     }
 }

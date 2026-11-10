@@ -2,11 +2,12 @@
 
 namespace App\Actions\Fortify;
 
-use App\Actions\Auth\RecordSignupAttributionAction;
 use App\Concerns\PasswordValidationRules;
+use App\Features\Identity\Api\SignupAttributionWorkflow;
 use App\Models\User;
 use App\Services\ShareTrackingService;
 use App\Services\Signals\ProductSignalsService;
+use App\Shared\Auth\SignupAttributionContextResolver;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -53,7 +54,11 @@ class CreateNewUser implements CreatesNewUsers
                 'password' => $input['password'],
             ])->save();
 
-            app(RecordSignupAttributionAction::class)->handle($user, request());
+            app(SignupAttributionWorkflow::class)->recordForNewAccount(
+                (string) $user->getKey(),
+                app(SignupAttributionContextResolver::class)->resolve(request()),
+                true,
+            );
             app(ShareTrackingService::class)->recordSignup($user, request());
             app(ProductSignalsService::class)->recordSignup($user, request());
 

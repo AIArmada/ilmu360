@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Listeners\Auth;
 
-use App\Actions\Auth\ClaimGuestSubmissionsNotice;
 use App\Features\Events\Api\GuestSubmissionClaims;
 use App\Models\User;
+use App\Shared\Auth\GuestSubmissionNotice;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
@@ -18,7 +18,7 @@ final class ClaimGuestSubmissionsOnVerified implements ShouldHandleEventsAfterCo
             return;
         }
 
-        ClaimGuestSubmissionsNotice::flash(
+        GuestSubmissionNotice::flash(
             app(GuestSubmissionClaims::class)->claimForAccount((string) $event->user->getKey())
         );
     }

@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Support\Auth;
 
+use AIArmada\Authz\Facades\Authz;
 use App\Models\User;
 use App\Shared\Auth\AccountDirectory;
 use App\Shared\Auth\AccountProfile;
+use App\Shared\Auth\AccountRecord;
 use App\Shared\Auth\GlobalRole;
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
@@ -44,19 +46,75 @@ final class EloquentAccountDirectory implements AccountDirectory
         }
 
         $createdAt = $user->getAttribute('created_at');
+        $dateOfBirth = $user->getAttribute('date_of_birth');
+        $emailVerifiedAt = $user->getAttribute('email_verified_at');
+        $phoneVerifiedAt = $user->getAttribute('phone_verified_at');
 
         return new AccountProfile(
             id: (string) $user->getKey(),
             name: (string) $user->getAttribute('name'),
             email: $this->nullableString($user->getAttribute('email')),
             phone: $this->nullableString($user->getAttribute('phone')),
-            emailVerified: $user->getAttribute('email_verified_at') !== null,
-            phoneVerified: $user->getAttribute('phone_verified_at') !== null,
+            emailVerified: $emailVerifiedAt !== null,
+            phoneVerified: $phoneVerifiedAt !== null,
             locale: $user->preferredLocale(),
             timezone: $user->preferredTimezone(),
             createdAt: $createdAt instanceof DateTimeInterface
                 ? CarbonImmutable::instance($createdAt)
                 : CarbonImmutable::now(),
+            gender: $this->nullableString($user->getAttribute('gender')),
+            dateOfBirth: $dateOfBirth instanceof DateTimeInterface
+                ? $dateOfBirth->format('Y-m-d')
+                : null,
+            emailVerifiedAt: $emailVerifiedAt instanceof DateTimeInterface
+                ? CarbonImmutable::instance($emailVerifiedAt)
+                : null,
+            phoneVerifiedAt: $phoneVerifiedAt instanceof DateTimeInterface
+                ? CarbonImmutable::instance($phoneVerifiedAt)
+                : null,
+            rawTimezone: $this->nullableString($user->getAttribute('timezone')),
+        );
+    }
+
+    public function record(string $accountId): ?AccountRecord
+    {
+        $user = User::query()->whereKey($accountId)->first();
+
+        if (! $user instanceof User) {
+            return null;
+        }
+
+        $profile = $this->profile($accountId);
+
+        if (! $profile instanceof AccountProfile) {
+            return null;
+        }
+
+        /** @var array<string, mixed> $attributes */
+        $attributes = $user->withoutRelations()->toArray();
+
+        return new AccountRecord(
+            profile: $profile,
+            attributes: $attributes,
+            roles: $this->roles($accountId),
+        );
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function roles(string $accountId): array
+    {
+        $user = User::query()->whereKey($accountId)->first();
+
+        if (! $user instanceof User) {
+            return [];
+        }
+
+        return Authz::withScope(
+            null,
+            fn (): array => $user->getRoleNames()->sort()->values()->all(),
+            $user,
         );
     }
 

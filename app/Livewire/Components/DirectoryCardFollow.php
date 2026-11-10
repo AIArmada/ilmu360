@@ -4,7 +4,7 @@ namespace App\Livewire\Components;
 
 use App\Actions\ToggleDirectoryFollowAction;
 use App\Models\User;
-use App\Support\Auth\IntendedRedirect;
+use App\Shared\Auth\IntendedRedirect;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Locked;
 use Livewire\Component;

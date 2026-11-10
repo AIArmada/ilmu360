@@ -46,6 +46,7 @@ it('registers an api user and returns a bearer token', function () {
         ->getJson('/api/v1/user')
         ->assertOk()
         ->assertJsonPath('data.email', 'mobile@example.test')
+        ->assertJsonPath('data.current_team_id', null)
         ->assertJsonPath('meta.request_id', fn (string $requestId) => filled($requestId));
 });
 
@@ -135,7 +136,6 @@ it('preserves the authenticated user endpoint payload contract', function () {
             ->assertJsonPath('meta.request_id', fn (string $requestId) => filled($requestId));
 
         $expectedPayload = $user->fresh()->toArray();
-        unset($expectedPayload['current_team_id']);
         $expectedPayload['daily_prayer_institution_ids'] = [$dailyPrayerInstitution->id];
         $expectedPayload['friday_prayer_institution_ids'] = [$fridayPrayerInstitution->id];
 

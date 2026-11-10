@@ -22,6 +22,7 @@ use AIArmada\FilamentSignals\FilamentSignalsPlugin;
 use AIArmada\FilamentTicketing\FilamentTicketingPlugin;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Filament\Pages\AdminDashboard;
+use App\Platform\Admin\FilamentPageRegistry;
 use App\Platform\Admin\FilamentResourceRegistry;
 use App\Providers\Filament\Concerns\ResolvesPanelDomain;
 use Filament\Http\Middleware\Authenticate;
@@ -50,6 +51,7 @@ class AdminPanelProvider extends PanelProvider
     {
         $adminDomain = $this->resolvePanelDomain('admin');
         $registeredResources = $this->app->make(FilamentResourceRegistry::class)->all();
+        $registeredPages = $this->app->make(FilamentPageRegistry::class)->all();
         $authzPlugin = FilamentAuthzPlugin::make()
             ->centralApp()
             ->userRoleScopeMode('global_only');
@@ -81,6 +83,7 @@ class AdminPanelProvider extends PanelProvider
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
                 AdminDashboard::class,
+                ...$registeredPages,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([

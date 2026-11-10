@@ -35,6 +35,18 @@ interface AccountDirectory
     public function profile(string $accountId): ?AccountProfile;
 
     /**
+     * Read raw serialized account attributes plus roles for transport payloads.
+     */
+    public function record(string $accountId): ?AccountRecord;
+
+    /**
+     * Global-role names for the account.
+     *
+     * @return list<string>
+     */
+    public function roles(string $accountId): array;
+
+    /**
      * Stable account type used for snapshots and audit attribution, or null
      * when the account does not exist.
      */

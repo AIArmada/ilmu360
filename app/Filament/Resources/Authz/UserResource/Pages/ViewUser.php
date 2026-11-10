@@ -7,6 +7,7 @@ namespace App\Filament\Resources\Authz\UserResource\Pages;
 use AIArmada\Authz\Facades\Authz;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\FilamentEvents\Resources\EventResource;
+use App\Features\Identity\Api\AccountAdministration;
 use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Features\SavedSearches\Api\SavedSearchSnapshot;
 use App\Filament\Resources\Authz\UserResource;
@@ -21,12 +22,14 @@ use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Registration;
 use App\Models\User;
+use App\Shared\Auth\AccountToken;
 use App\Shared\Engagement\EngagementReader;
 use App\Shared\Engagement\EngagementSubjectType;
 use App\Support\ApiDocumentation\ApiDocumentationUrlResolver;
 use App\Support\Authz\MemberDirectorySummary;
 use App\Support\Timezone\UserDateTimeFormatter;
 use BackedEnum;
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Filament\Actions\EditAction;
 use Filament\Notifications\Notification;
@@ -34,7 +37,6 @@ use Filament\Resources\Pages\ViewRecord;
 use Filament\Support\Enums\Width;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Str;
-use Laravel\Sanctum\PersonalAccessToken;
 use Livewire\Attributes\Computed;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -45,10 +47,13 @@ class ViewUser extends ViewRecord
         OwnerContext::setForRequest(null);
     }
 
+    #[\Override]
     protected static string $resource = UserResource::class;
 
+    #[\Override]
     protected Width|string|null $maxContentWidth = Width::Full;
 
+    #[\Override]
     protected string $view = 'filament.resources.authz.user-resource.pages.view-user';
 
     public string $apiTokenName = '';
@@ -72,9 +77,8 @@ class ViewUser extends ViewRecord
             'apiTokenName' => 'Token name',
         ]);
 
-        $this->newApiToken = $this->userRecord()
-            ->createToken(trim((string) $validated['apiTokenName']))
-            ->plainTextToken;
+        $this->newApiToken = app(AccountAdministration::class)
+            ->createToken((string) $this->userRecord()->getKey(), trim((string) $validated['apiTokenName']));
         $this->apiTokenName = '';
 
         Notification::make()
@@ -93,9 +97,7 @@ class ViewUser extends ViewRecord
             throw new NotFoundHttpException;
         }
 
-        $deleted = $this->userRecord()->tokens()->whereKey($normalizedTokenId)->delete();
-
-        if ($deleted === 0) {
+        if (! app(AccountAdministration::class)->revokeToken((string) $this->userRecord()->getKey(), $normalizedTokenId)) {
             throw new NotFoundHttpException;
         }
 
@@ -110,17 +112,16 @@ class ViewUser extends ViewRecord
      */
     public function apiTokens(): array
     {
-        return $this->userRecord()
-            ->tokens()
-            ->latest('created_at')
-            ->get(['id', 'name', 'created_at', 'last_used_at'])
-            ->map(fn (PersonalAccessToken $token): array => [
-                'id' => $token->getKey(),
+        return collect(app(AccountAdministration::class)->tokens((string) $this->userRecord()->getKey()))
+            ->map(fn (AccountToken $token): array => [
+                'id' => $token->id,
                 'name' => $token->name,
-                'created_at' => $this->formatTokenTimestamp($token->created_at),
-                'last_used_at' => $token->last_used_at instanceof CarbonInterface
-                    ? $this->formatTokenTimestamp($token->last_used_at)
-                    : null,
+                'created_at' => $this->formatTokenTimestamp(
+                    $token->createdAt instanceof \DateTimeImmutable ? CarbonImmutable::instance($token->createdAt) : null
+                ),
+                'last_used_at' => $this->formatTokenTimestamp(
+                    $token->lastUsedAt instanceof \DateTimeImmutable ? CarbonImmutable::instance($token->lastUsedAt) : null
+                ),
             ])
             ->all();
     }

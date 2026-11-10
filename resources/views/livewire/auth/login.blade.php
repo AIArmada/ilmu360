@@ -3,7 +3,7 @@
 @section('title', __('Log in') . ' - ' . config('app.name'))
 
 @section('content')
-    @php($googleOauthConfigured = \App\Support\Auth\SocialiteProviderConfiguration::isConfigured('google'))
+    @php($googleOauthConfigured = \App\Shared\Auth\SocialiteProviderConfiguration::isConfigured('google'))
     @php($authRedirectTarget = $redirectTarget ?? null)
     @php($emailAuthenticationEnabled = (bool) config('fortify.email_authentication_enabled', false))
 
@@ -15,7 +15,7 @@
 
         @if ($googleOauthConfigured)
             <div>
-                <a href="{{ \App\Support\Auth\IntendedRedirect::socialiteUrl('google', $authRedirectTarget) }}"
+                <a href="{{ \App\Shared\Auth\IntendedRedirect::socialiteUrl('google', $authRedirectTarget) }}"
                     class="group relative flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white/80 px-4 text-sm font-bold text-slate-700 shadow-sm transition-all duration-200 hover:border-emerald-200 hover:bg-emerald-50/50 hover:text-emerald-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 active:scale-[0.98]">
                     <svg class="h-5 w-5 shrink-0 transition-opacity opacity-80 group-hover:opacity-100" viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -60,7 +60,7 @@
                     <div class="flex items-center justify-between gap-4">
                         <label for="password" class="block text-sm font-semibold text-[#25384a]">{{ __('Password') }}</label>
                         @if (Route::has('password.request'))
-                            <a href="{{ route('password.request', \App\Support\Auth\IntendedRedirect::queryParameters($authRedirectTarget)) }}"
+                            <a href="{{ route('password.request', \App\Shared\Auth\IntendedRedirect::queryParameters($authRedirectTarget)) }}"
                                 class="text-xs font-semibold text-emerald-700 transition-colors decoration-2 underline-offset-4 hover:text-amber-600 hover:underline">
                                 {{ __('Forgot password?') }}
                             </a>
@@ -100,7 +100,7 @@
                 <div class="pt-1 text-center">
                     <p class="text-sm text-slate-500">
                         {{ __('Don\'t have an account?') }}
-                        <a href="{{ \App\Support\Auth\IntendedRedirect::registerUrl($authRedirectTarget) }}"
+                        <a href="{{ \App\Shared\Auth\IntendedRedirect::registerUrl($authRedirectTarget) }}"
                             class="ml-1 font-bold text-emerald-700 transition-colors decoration-2 underline-offset-4 hover:text-amber-600 hover:underline">
                             {{ __('Create one') }}
                         </a>
