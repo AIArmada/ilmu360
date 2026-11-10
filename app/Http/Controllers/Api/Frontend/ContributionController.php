@@ -35,10 +35,10 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
+use App\Platform\Media\MediaCollectionSync;
 use App\Rules\ValidAreaAssignmentRoles;
 use App\Services\ContributionEntityMutationService;
 use App\Shared\Contributions\ContributionRequestReader;
-use App\Support\Api\Frontend\FrontendMediaSyncService;
 use App\Support\Events\EventContributionUpdateStateMapper;
 use App\Support\Location\GooglePlaceIdentity;
 use App\Support\Submission\ContributionSubjectPresenter;
@@ -103,7 +103,7 @@ class ContributionController extends FrontendController
     public function storeInstitution(
         Request $request,
         SubmitStagedContributionCreateAction $submitStagedContributionCreateAction,
-        FrontendMediaSyncService $frontendMediaSyncService,
+        MediaCollectionSync $mediaCollectionSync,
         FetchGooglePlaceDetailsAction $fetchGooglePlaceDetailsAction,
         ResolveGooglePlaceSelectionAction $resolveGooglePlaceSelectionAction,
         DiscoverWebsiteSocialProfilesAction $discoverWebsiteSocialProfilesAction,
@@ -266,9 +266,9 @@ class ContributionController extends FrontendController
             ContributionSubjectType::Institution,
             $validated,
             $user,
-            function (Institution $institution) use ($request, $frontendMediaSyncService): void {
-                $frontendMediaSyncService->syncSingle($institution, $request->file('cover'), 'cover');
-                $frontendMediaSyncService->syncMultiple(
+            function (Institution $institution) use ($request, $mediaCollectionSync): void {
+                $mediaCollectionSync->syncSingle($institution, $request->file('cover'), 'cover');
+                $mediaCollectionSync->syncMultiple(
                     $institution,
                     is_array($request->file('gallery')) ? $request->file('gallery') : null,
                     'gallery',
@@ -303,7 +303,7 @@ class ContributionController extends FrontendController
     public function storePerson(
         Request $request,
         SubmitStagedContributionCreateAction $submitStagedContributionCreateAction,
-        FrontendMediaSyncService $frontendMediaSyncService,
+        MediaCollectionSync $mediaCollectionSync,
     ): JsonResponse {
         $user = $this->requireUser($request);
         $this->ensureDirectoryFeedbackAllowed($user);
@@ -354,10 +354,10 @@ class ContributionController extends FrontendController
             ContributionSubjectType::Person,
             $validated,
             $user,
-            function (Person $person) use ($request, $frontendMediaSyncService): void {
-                $frontendMediaSyncService->syncSingle($person, $request->file('avatar'), 'avatar');
-                $frontendMediaSyncService->syncSingle($person, $request->file('cover'), 'cover');
-                $frontendMediaSyncService->syncMultiple(
+            function (Person $person) use ($request, $mediaCollectionSync): void {
+                $mediaCollectionSync->syncSingle($person, $request->file('avatar'), 'avatar');
+                $mediaCollectionSync->syncSingle($person, $request->file('cover'), 'cover');
+                $mediaCollectionSync->syncMultiple(
                     $person,
                     is_array($request->file('gallery')) ? $request->file('gallery') : null,
                     'gallery',
@@ -480,7 +480,7 @@ class ContributionController extends FrontendController
         SubmitContributionUpdateRequestAction $submitContributionUpdateRequestAction,
         EnsureNoPendingContributionRequestAction $ensureNoPendingContributionRequestAction,
         ContributionSubjectPresenter $contributionSubjectPresenter,
-        FrontendMediaSyncService $frontendMediaSyncService,
+        MediaCollectionSync $mediaCollectionSync,
         ContributionEntityMutationService $contributionEntityMutationService,
     ): JsonResponse {
         $user = $this->requireUser($request);
@@ -569,7 +569,7 @@ class ContributionController extends FrontendController
             }
 
             if ($hasDirectEditMediaChange) {
-                $this->syncDirectEditMediaChanges($entity, $request, $frontendMediaSyncService, $directEditMediaFields);
+                $this->syncDirectEditMediaChanges($entity, $request, $mediaCollectionSync, $directEditMediaFields);
             }
 
             return response()->json([
@@ -857,7 +857,7 @@ class ContributionController extends FrontendController
     private function syncDirectEditMediaChanges(
         Event|Institution|Reference|Person $entity,
         Request $request,
-        FrontendMediaSyncService $frontendMediaSyncService,
+        MediaCollectionSync $mediaCollectionSync,
         array $directEditMediaFields,
     ): void {
         foreach ($directEditMediaFields as $field) {
@@ -866,7 +866,7 @@ class ContributionController extends FrontendController
             }
 
             if ($field === 'gallery') {
-                $frontendMediaSyncService->syncMultiple(
+                $mediaCollectionSync->syncMultiple(
                     $entity,
                     is_array($request->file('gallery')) ? $request->file('gallery') : null,
                     'gallery',
@@ -876,7 +876,7 @@ class ContributionController extends FrontendController
                 continue;
             }
 
-            $frontendMediaSyncService->syncSingle($entity, $request->file($field), $field);
+            $mediaCollectionSync->syncSingle($entity, $request->file($field), $field);
         }
     }
 

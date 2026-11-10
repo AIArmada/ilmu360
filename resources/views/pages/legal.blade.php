@@ -203,7 +203,7 @@
                                                 ['label' => 'TikTok', 'icon' => 'tiktok.svg', 'url' => 'https://www.tiktok.com/@ilmu.360'],
                                             ] as $social)
                                                 <a href="{{ $social['url'] }}" target="_blank" rel="noopener noreferrer" title="{{ $social['label'] }}" aria-label="{{ $social['label'] }}" class="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#dfe6da] bg-white px-4 text-sm font-semibold text-[#2d5447] transition hover:border-emerald-700/30 hover:text-emerald-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-800">
-                                                    <img src="{{ \App\Support\Media\SocialIcon::url($social['icon']) }}" alt="" class="h-5 w-5 object-contain" loading="lazy">
+                                                    <img src="{{ \App\Platform\Media\SocialIcon::url($social['icon']) }}" alt="" class="h-5 w-5 object-contain" loading="lazy">
                                                     {{ $social['label'] }}
                                                 </a>
                                             @endforeach

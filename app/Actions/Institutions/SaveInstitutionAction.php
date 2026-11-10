@@ -9,10 +9,10 @@ use App\Enums\InstitutionStatus;
 use App\Forms\SharedFormSchema;
 use App\Models\Institution;
 use App\Models\User;
+use App\Platform\Media\MediaCollectionSync;
 use App\Services\ContributionEntityMutationService;
 use App\Shared\Signals\SignalRecorder;
 use App\Support\Institutions\InstitutionFacilities;
-use App\Support\Media\ModelMediaSyncService;
 use App\Support\Submission\PublicSubmissionLockService;
 use BackedEnum;
 use Illuminate\Http\UploadedFile;
@@ -28,7 +28,7 @@ final readonly class SaveInstitutionAction
         private AddMemberAction $addMemberAction,
         private ContributionEntityMutationService $contributionEntityMutationService,
         private GenerateInstitutionSlugAction $generateInstitutionSlugAction,
-        private ModelMediaSyncService $mediaSyncService,
+        private MediaCollectionSync $mediaSyncService,
         private SignalRecorder $signals,
         private PublicSubmissionLockService $publicSubmissionLockService,
     ) {}

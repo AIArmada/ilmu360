@@ -11,8 +11,8 @@ use App\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\User;
+use App\Platform\Media\MediaCollectionSync;
 use App\Shared\Prayer\EventPrayerTime;
-use App\Support\Api\Frontend\FrontendMediaSyncService;
 use App\Support\Events\OrganizerResolver;
 use App\Support\Submission\SubmitterContactRules;
 use Dedoc\Scramble\Attributes\Endpoint;
@@ -44,7 +44,7 @@ class EventSubmissionController extends FrontendController
     public function store(
         Request $request,
         SubmitFrontendEventAction $submitFrontendEventAction,
-        FrontendMediaSyncService $frontendMediaSyncService,
+        MediaCollectionSync $mediaCollectionSync,
     ): JsonResponse {
         $user = $this->currentUser($request);
         $maxUploadSizeKb = (int) ceil(((int) config('media-library.max_file_size', 10 * 1024 * 1024)) / 1024);
@@ -121,10 +121,10 @@ class EventSubmissionController extends FrontendController
             submitter: $user,
             eventContainer: $eventContainer,
             scopedInstitution: $scopedInstitution,
-            persistRelationships: function (HasMedia $model) use ($request, $frontendMediaSyncService): void {
-                $frontendMediaSyncService->syncSingle($model, $request->file('cover'), 'cover');
-                $frontendMediaSyncService->syncSingle($model, $request->file('poster'), 'poster');
-                $frontendMediaSyncService->syncMultiple(
+            persistRelationships: function (HasMedia $model) use ($request, $mediaCollectionSync): void {
+                $mediaCollectionSync->syncSingle($model, $request->file('cover'), 'cover');
+                $mediaCollectionSync->syncSingle($model, $request->file('poster'), 'poster');
+                $mediaCollectionSync->syncMultiple(
                     $model,
                     is_array($request->file('gallery')) ? $request->file('gallery') : null,
                     'gallery',

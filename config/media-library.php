@@ -3,10 +3,10 @@
 declare(strict_types=1);
 
 use App\Jobs\Media\GenerateResponsiveImagesJob;
-use App\Observers\AuditedMediaObserver;
-use App\Support\Media\MediaFileNamer;
-use App\Support\Media\MediaPathGenerator;
-use App\Support\Media\MediaUrlGenerator;
+use App\Platform\Media\AuditedMediaObserver;
+use App\Platform\Media\MediaFileNamer;
+use App\Platform\Media\MediaPathGenerator;
+use App\Platform\Media\MediaUrlGenerator;
 use Spatie\ImageOptimizer\Optimizers\Avifenc;
 use Spatie\ImageOptimizer\Optimizers\Cwebp;
 use Spatie\ImageOptimizer\Optimizers\Gifsicle;

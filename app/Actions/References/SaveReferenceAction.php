@@ -7,8 +7,8 @@ use AIArmada\References\Rules\Isbn;
 use App\Enums\ReferencePartType;
 use App\Enums\ReferenceType;
 use App\Models\Reference;
+use App\Platform\Media\MediaCollectionSync;
 use App\Services\ContributionEntityMutationService;
-use App\Support\Media\ModelMediaSyncService;
 use BackedEnum;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
@@ -22,7 +22,7 @@ final readonly class SaveReferenceAction
 
     public function __construct(
         private ContributionEntityMutationService $contributionEntityMutationService,
-        private ModelMediaSyncService $mediaSyncService,
+        private MediaCollectionSync $mediaSyncService,
     ) {}
 
     /**

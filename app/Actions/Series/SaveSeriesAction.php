@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Series;
 
 use App\Models\Series;
-use App\Support\Media\ModelMediaSyncService;
+use App\Platform\Media\MediaCollectionSync;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -16,7 +16,7 @@ final readonly class SaveSeriesAction
     use AsAction;
 
     public function __construct(
-        private ModelMediaSyncService $mediaSyncService,
+        private MediaCollectionSync $mediaSyncService,
     ) {}
 
     /**

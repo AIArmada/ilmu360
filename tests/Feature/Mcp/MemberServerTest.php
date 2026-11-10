@@ -43,9 +43,9 @@ use App\Models\PassportUser;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
+use App\Platform\Media\MediaCollectionSync;
 use App\Support\Mcp\McpTokenManager;
 use App\Support\Mcp\MemberMcpDocumentationPreflight;
-use App\Support\Media\ModelMediaSyncService;
 use App\Support\Search\PersonSearchService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -903,14 +903,14 @@ it('does not leave a pending membership application when evidence persistence fa
     [$member] = institutionMemberMcpContext(role: 'admin');
     $target = Institution::factory()->create(['status' => 'verified']);
 
-    $mediaSync = Mockery::mock(ModelMediaSyncService::class);
+    $mediaSync = Mockery::mock(MediaCollectionSync::class);
     $mediaSync->shouldReceive('syncMultiple')
         ->once()
         ->andThrow(new RuntimeException('media persistence failed'));
     $mediaSync->shouldReceive('clearCollection')
         ->once()
         ->andReturnNull();
-    app()->instance(ModelMediaSyncService::class, $mediaSync);
+    app()->instance(MediaCollectionSync::class, $mediaSync);
 
     MemberServer::actingAs($member)
         ->tool(MemberSubmitMembershipApplicationTool::class, [

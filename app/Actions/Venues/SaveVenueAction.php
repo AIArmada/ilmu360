@@ -5,8 +5,8 @@ namespace App\Actions\Venues;
 use AIArmada\Events\Actions\SyncVenueFacilitiesAction;
 use App\Enums\VenueType;
 use App\Models\Venue;
+use App\Platform\Media\MediaCollectionSync;
 use App\Services\ContributionEntityMutationService;
-use App\Support\Media\ModelMediaSyncService;
 use BackedEnum;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
@@ -20,7 +20,7 @@ final readonly class SaveVenueAction
     public function __construct(
         private ContributionEntityMutationService $contributionEntityMutationService,
         private GenerateVenueSlugAction $generateVenueSlugAction,
-        private ModelMediaSyncService $mediaSyncService,
+        private MediaCollectionSync $mediaSyncService,
         private SyncVenueFacilitiesAction $syncVenueFacilitiesAction,
     ) {}
 

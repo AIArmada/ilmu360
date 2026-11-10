@@ -9,10 +9,10 @@ use App\Actions\Membership\SubmitMembershipApplicationAction;
 use App\Enums\MemberSubjectType;
 use App\Models\MembershipApplication;
 use App\Models\User;
+use App\Platform\Media\MediaCollectionSync;
 use App\Support\Api\Member\MemberResourceService;
 use App\Support\Mcp\McpAuthenticatedUserResolver;
 use App\Support\Mcp\McpFilePayloadNormalizer;
-use App\Support\Media\ModelMediaSyncService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
 use Illuminate\Validation\ValidationException;
@@ -39,7 +39,7 @@ class MemberSubmitMembershipApplicationTool extends AbstractMemberWriteTool
         private readonly SubmitMembershipApplicationAction $submitMembershipApplicationAction,
         private readonly DiscardMembershipApplicationAction $discardMembershipApplicationAction,
         private readonly McpFilePayloadNormalizer $filePayloadNormalizer,
-        private readonly ModelMediaSyncService $mediaSyncService,
+        private readonly MediaCollectionSync $mediaSyncService,
     ) {}
 
     public function handle(Request $request): ResponseFactory|Response

@@ -146,7 +146,9 @@ use App\Observers\UserObserver;
 use App\Observers\VenueObserver;
 use App\Organizations\CurrentOrganizationResolver as AppCurrentOrganizationResolver;
 use App\Platform\Media\EloquentMediaCollectionSync;
+use App\Platform\Media\MediaChangeListener;
 use App\Platform\Media\MediaCollectionSync;
+use App\Platform\Media\MediaFileNamer;
 use App\Platform\Routing\PublicSlugRegistry;
 use App\Platform\Routing\PublicSlugResource;
 use App\Platform\Telemetry\ProductSignalRecorder;
@@ -208,6 +210,7 @@ use App\Support\Auth\EloquentUserMorphType;
 use App\Support\Auth\SignupAttributionContextResolverAdapter;
 use App\Support\Authz\InterimMembershipAuthorization;
 use App\Support\Authz\InterimMembershipDirectory;
+use App\Support\Cache\MediaDirectoryCacheListener;
 use App\Support\Communications\AccountNotificationSettingsAdapter;
 use App\Support\Communications\AppConsentResolver;
 use App\Support\Communications\AppPreferenceResolver;
@@ -232,7 +235,6 @@ use App\Support\Events\EloquentAccountEventFacts;
 use App\Support\Events\EventsAccountLifecycleContributor;
 use App\Support\Filament\ContentVersionedJs;
 use App\Support\Location\VisitorCountryResolver;
-use App\Support\Media\MediaFileNamer;
 use App\Support\Membership\AppMembershipApplicationNotifier;
 use App\Support\Membership\AppMembershipHook;
 use App\Support\Membership\EloquentMembershipApplicationReader;
@@ -255,6 +257,8 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Support\Assets\Js;
 use Filament\Support\Colors\Color;
+use Filament\Support\Components\ComponentManager;
+use Filament\Support\Components\Contracts\ScopedComponentManager;
 use Filament\Support\Facades\FilamentAsset;
 use Filament\Support\Facades\FilamentColor;
 use Filament\Tables\Filters\SelectFilter;
@@ -292,7 +296,12 @@ class AppServiceProvider extends ServiceProvider
 {
     protected static bool $languageSwitchConfigured = false;
 
-    protected static bool $mediaUploadConfigured = false;
+    /**
+     * Filament stores component configuration on its container-scoped manager.
+     * Keying the guard by that manager re-registers after a rebuilt container
+     * (tests) while a long-lived Octane worker still registers only once.
+     */
+    protected static ?ScopedComponentManager $mediaUploadConfiguredFor = null;
 
     protected static bool $filamentColorsRegistered = false;
 
@@ -352,6 +361,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(VisitorCountryResolving::class, VisitorCountryResolver::class);
         $this->app->bind(UserDateTimeFormatting::class, DefaultUserDateTimeFormatter::class);
         $this->app->bind(MediaCollectionSync::class, EloquentMediaCollectionSync::class);
+        $this->app->tag([MediaDirectoryCacheListener::class], MediaChangeListener::TAG);
         $this->app->scoped(SearchFilterLabels::class, DatabaseSearchFilterLabels::class);
         $this->app->bind(Js::class, ContentVersionedJs::class);
 
@@ -636,7 +646,9 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('reward-fraud-steward', static fn (mixed $user): bool => $user instanceof User
             && $user->hasAnyRole(['super_admin', 'moderator']));
 
-        if (! self::$mediaUploadConfigured) {
+        $componentManager = ComponentManager::resolve();
+
+        if (self::$mediaUploadConfiguredFor !== $componentManager) {
             // Configure SpatieMediaLibraryFileUpload to use slug-based filenames globally.
             // This runs after the model is saved so $record always has a slug/name.
             SpatieMediaLibraryFileUpload::configureUsing(function (SpatieMediaLibraryFileUpload $upload): void {
@@ -707,7 +719,7 @@ class AppServiceProvider extends ServiceProvider
                     ]
                 );
             });
-            self::$mediaUploadConfigured = true;
+            self::$mediaUploadConfiguredFor = $componentManager;
         }
     }
 

@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use App\Support\Media\MediaFileNamer;
-use App\Support\Media\MediaPathGenerator;
+use App\Platform\Media\MediaFileNamer;
+use App\Platform\Media\MediaPathGenerator;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Storage;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;

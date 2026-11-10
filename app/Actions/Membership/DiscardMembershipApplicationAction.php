@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Membership;
 
 use App\Models\MembershipApplication;
-use App\Support\Media\ModelMediaSyncService;
+use App\Platform\Media\MediaCollectionSync;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
@@ -19,7 +19,7 @@ final readonly class DiscardMembershipApplicationAction
     use AsAction;
 
     public function __construct(
-        private ModelMediaSyncService $mediaSyncService,
+        private MediaCollectionSync $mediaSyncService,
     ) {}
 
     public function handle(MembershipApplication $application): void

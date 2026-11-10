@@ -6,7 +6,7 @@ use AIArmada\Seating\Models\SeatMap;
 use App\Actions\Events\Authoring\SyncEventResourceRelationsAction;
 use App\Models\Event;
 use App\Models\Series;
-use App\Support\Media\ModelMediaSyncService;
+use App\Platform\Media\MediaCollectionSync;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 
@@ -14,7 +14,7 @@ final readonly class AdminEventRelationsSynchronizer
 {
     public function __construct(
         private SyncEventResourceRelationsAction $syncEventResourceRelationsAction,
-        private ModelMediaSyncService $mediaSyncService,
+        private MediaCollectionSync $mediaSyncService,
     ) {}
 
     /**

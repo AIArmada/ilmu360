@@ -10,8 +10,8 @@ use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Series;
 use App\Models\Venue;
-use App\Support\Media\MediaFileNamer;
-use App\Support\Media\MediaPathGenerator;
+use App\Platform\Media\MediaFileNamer;
+use App\Platform\Media\MediaPathGenerator;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
@@ -592,6 +592,27 @@ it('has lazy loading set as default in media library config', function () {
 
 it('uses custom path generator', function () {
     expect(config('media-library.path_generator'))->toBe(MediaPathGenerator::class);
+});
+
+it('keeps morph aliases stable in media paths', function () {
+    $institution = Institution::factory()->create();
+    $institutionMedia = $institution->addMedia(fakeGeneratedImageUpload('logo.png', 800, 800))
+        ->toMediaCollection('logo');
+
+    $event = Event::factory()->create();
+    $eventMedia = $event->addMedia(fakeGeneratedImageUpload('cover.png', 1600, 900))
+        ->toMediaCollection('cover');
+
+    $pathGenerator = new MediaPathGenerator;
+    $institutionShard = substr((string) $institution->getKey(), 0, 4);
+    $eventShard = substr((string) $event->getKey(), 0, 4);
+
+    expect($institutionMedia->model_type)->toBe('institution')
+        ->and($eventMedia->model_type)->toBe('event')
+        ->and($pathGenerator->getPath($institutionMedia))
+        ->toBe("institutions/{$institutionShard}/{$institution->getKey()}/logo/")
+        ->and($pathGenerator->getPath($eventMedia))
+        ->toBe("events/{$eventShard}/{$event->getKey()}/cover/");
 });
 
 it('uses custom file namer', function () {

@@ -14,9 +14,9 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
+use App\Platform\Media\MediaCollectionSync;
 use App\Services\EventKeyPersonSyncService;
 use App\Support\Authz\OrganizationEventAccess;
-use App\Support\Media\ModelMediaSyncService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -33,7 +33,7 @@ class CreateEventWithInitialOccurrenceAction
     use AsAction;
 
     public function __construct(
-        private readonly ModelMediaSyncService $mediaSync,
+        private readonly MediaCollectionSync $mediaSync,
         private readonly EventKeyPersonSyncService $eventKeyPersonSync,
         private readonly SpaceEligibilityResolver $spaceEligibilityResolver,
     ) {}

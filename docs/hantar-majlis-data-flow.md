@@ -296,7 +296,7 @@ rolls the occurrence back too; the caller's event model is then refreshed in pla
 | Languages | `$event->syncLanguages(...)` (when provided) |
 | Classifications (domain/discipline/source/issue + categories) | `SyncEventClassificationsAction` |
 | Catalog references (pivot defaults, input-order `sort_order`) | owned once in the persist action for events and sessions alike |
-| Media (cover 16:9, poster 3:4, gallery — all **optional** on this form, §B.17) | injected `$persistRelationships` callback: Livewire saves the form's upload components; the API syncs via `FrontendMediaSyncService` |
+| Media (cover 16:9, poster 3:4, gallery — all **optional** on this form, §B.17) | injected `$persistRelationships` callback: Livewire saves the form's upload components; the API syncs via `MediaCollectionSync` |
 | `EventSubmission` (`status: pending`, `submitted_at`, `submission_data` incl. submitter name/notes, submitter morph; `target_type`/`target_id` stay null) | `EventSubmission::query()->create(...)` |
 
 References deserve emphasis because they regressed before: the persist action is the
@@ -540,7 +540,7 @@ submission (id/`auto_approved`).
 | `app/Data/Events/SubmitEventFormContext.php` | Per-request form scope (scoped institution/container/submitter/occurrence) |
 | `app/Support/Submission/SubmitEventOptionsProvider.php` | Stateless option queries (institutions/persons/venues/languages/tags/occurrences) |
 | `app/Support/Submission/SubmitEventPrefill.php` | Mount-time container/duplicate/scoped prefill defaults |
-| `app/Http/Controllers/Api/Frontend/EventSubmissionController.php` | API validation + media callback via `FrontendMediaSyncService` |
+| `app/Http/Controllers/Api/Frontend/EventSubmissionController.php` | API validation + media callback via `MediaCollectionSync` |
 | `app/Actions/Events/SubmitFrontendEventAction.php` | Pipeline: validate + derive + transact + shape result |
 | `app/Support/Submission/SubmissionContextResolver.php` | Scoped authorization, scoped normalization, organizer/country/target/occurrence resolution |
 | `app/Actions/Events/ValidateEventSubmissionInputAction.php` | Structural validation + normalization (rules/messages/defaults) |

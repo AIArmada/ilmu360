@@ -10,8 +10,8 @@ use App\Actions\Membership\SubmitMembershipApplicationAction;
 use App\Enums\MemberSubjectType;
 use App\Models\MembershipApplication;
 use App\Models\User;
+use App\Platform\Media\MediaCollectionSync;
 use App\Shared\Membership\MembershipApplicationReader;
-use App\Support\Api\Frontend\FrontendMediaSyncService;
 use App\Support\Membership\MembershipApplicationPresenter;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
@@ -60,7 +60,7 @@ class MembershipApplicationController extends FrontendController
         Request $request,
         SubmitMembershipApplicationAction $submitMembershipApplicationAction,
         DiscardMembershipApplicationAction $discardMembershipApplicationAction,
-        FrontendMediaSyncService $frontendMediaSyncService,
+        MediaCollectionSync $mediaCollectionSync,
     ): JsonResponse {
         $resolvedSubjectType = MemberSubjectType::fromRouteSegment($subjectType);
         abort_unless($resolvedSubjectType?->isClaimable(), 404);
@@ -89,7 +89,7 @@ class MembershipApplicationController extends FrontendController
                 (string) $validated['justification'],
             );
 
-            $frontendMediaSyncService->syncMultiple(
+            $mediaCollectionSync->syncMultiple(
                 $application,
                 is_array($request->file('evidence')) ? $request->file('evidence') : null,
                 'evidence',

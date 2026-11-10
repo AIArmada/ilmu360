@@ -271,7 +271,7 @@ Media architecture already implemented app-wide. Follow exactly when adding/modi
 
 - `spatie/laravel-medialibrary` v11 + `filament/spatie-laravel-media-library-plugin` v5
 - Config: `config/media-library.php`; upload policy: `app/Providers/AppServiceProvider.php` (static boot guards — keep for Octane)
-- Naming: `app/Support/Media/MediaFileNamer.php`; paths: `app/Support/Media/MediaPathGenerator.php`
+- Naming: `app/Platform/Media/MediaFileNamer.php`; paths: `app/Platform/Media/MediaPathGenerator.php`
 
 ## Global Upload Policy (Do Not Bypass)
 
@@ -285,7 +285,7 @@ All `SpatieMediaLibraryFileUpload` fields inherit: size from `media-library.max_
 ## Media Library Config (`config/media-library.php`)
 
 - `version_urls`, lazy loading (`default_loading_attribute_value`, `force_lazy_loading`), queued conversions (+ after commit), `FileBaseFileRemover`, image optimizers (JPEG/PNG/SVG/GIF/WebP/AVIF), generators (image/webp/avif/pdf/svg/video).
-- Custom `file_namer` (`MediaFileNamer`) and `path_generator` (`MediaPathGenerator`).
+- Custom `file_namer` (`App\Platform\Media\MediaFileNamer`) and `path_generator` (`App\Platform\Media\MediaPathGenerator`).
 
 ## Model Collection Matrix (Canonical)
 

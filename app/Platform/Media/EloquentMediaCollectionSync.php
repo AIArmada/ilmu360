@@ -4,32 +4,69 @@ declare(strict_types=1);
 
 namespace App\Platform\Media;
 
-use App\Support\Media\ModelMediaSyncService;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Str;
 use Spatie\MediaLibrary\HasMedia;
 
-/**
- * Delegates collection writes to the existing media library adapter so
- * naming, custom properties and Spatie conversion behaviour stay unchanged.
- */
 final class EloquentMediaCollectionSync implements MediaCollectionSync
 {
-    public function __construct(
-        private readonly ModelMediaSyncService $mediaSyncService,
-    ) {}
-
     public function clearCollection(HasMedia $model, string $collection): void
     {
-        $this->mediaSyncService->clearCollection($model, $collection);
+        $model->clearMediaCollection($collection);
     }
 
     public function syncSingle(HasMedia $model, ?UploadedFile $file, string $collection): void
     {
-        $this->mediaSyncService->syncSingle($model, $file, $collection);
+        if (! $file instanceof UploadedFile) {
+            return;
+        }
+
+        $model->clearMediaCollection($collection);
+        $this->addMedia($model, $file, $collection);
     }
 
+    /**
+     * @param  array<int, UploadedFile>|null  $files
+     */
     public function syncMultiple(HasMedia $model, ?array $files, string $collection, bool $replace = false): void
     {
-        $this->mediaSyncService->syncMultiple($model, $files, $collection, $replace);
+        if ($replace) {
+            $model->clearMediaCollection($collection);
+        }
+
+        foreach ($files ?? [] as $file) {
+            if (! $file instanceof UploadedFile) {
+                continue;
+            }
+
+            $this->addMedia($model, $file, $collection);
+        }
+    }
+
+    private function addMedia(HasMedia $model, UploadedFile $file, string $collection): void
+    {
+        $modelRecord = $model instanceof Model ? $model : null;
+        $extension = strtolower((string) ($file->extension() ?: $file->getClientOriginalExtension()));
+        $suffix = strtolower(substr((string) Str::ulid(), -8));
+        $fileName = MediaFileNamer::resolveBaseNameFromModel($modelRecord)."-{$suffix}";
+
+        if ($extension !== '') {
+            $fileName .= ".{$extension}";
+        }
+
+        $model
+            ->addMedia($file)
+            ->usingFileName($fileName)
+            ->usingName(MediaFileNamer::resolveDisplayNameFromModel(
+                $modelRecord,
+                $collection,
+                $file->getClientOriginalName(),
+            ))
+            ->withCustomProperties([
+                'collection' => $collection,
+                'original_file_name' => $file->getClientOriginalName(),
+            ])
+            ->toMediaCollection($collection);
     }
 }

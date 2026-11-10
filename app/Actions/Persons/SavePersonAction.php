@@ -8,8 +8,8 @@ use AIArmada\Persons\Enums\Gender;
 use App\Forms\SharedFormSchema;
 use App\Models\Person;
 use App\Models\User;
+use App\Platform\Media\MediaCollectionSync;
 use App\Services\ContributionEntityMutationService;
-use App\Support\Media\ModelMediaSyncService;
 use App\Support\Submission\PublicSubmissionLockService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
@@ -24,7 +24,7 @@ final readonly class SavePersonAction
         private AddMemberAction $addMemberAction,
         private ContributionEntityMutationService $contributionEntityMutationService,
         private GeneratePersonSlugAction $generatePersonSlugAction,
-        private ModelMediaSyncService $mediaSyncService,
+        private MediaCollectionSync $mediaSyncService,
         private PublicSubmissionLockService $publicSubmissionLockService,
     ) {}
 

@@ -221,8 +221,9 @@ Use this after major searchable payload changes or when bootstrapping a fresh se
 
 Core pieces:
 - Global upload defaults in `app/Providers/AppServiceProvider.php`.
-- Naming strategy: `app/Support/Media/MediaFileNamer.php`.
-- Path strategy: `app/Support/Media/MediaPathGenerator.php`.
+- Naming strategy: `app/Platform/Media/MediaFileNamer.php`.
+- Path strategy: `app/Platform/Media/MediaPathGenerator.php`.
+- Collection writes: `App\Platform\Media\MediaCollectionSync` (bound to `EloquentMediaCollectionSync`).
 
 Global behavior includes:
 - max upload size from media config

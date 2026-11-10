@@ -128,8 +128,8 @@ When adding or modifying media features, follow these rules exactly.
 - Filament integration: `filament/spatie-laravel-media-library-plugin` v5
 - Main config: `config/media-library.php`
 - Global upload policy: `app/Providers/AppServiceProvider.php`
-- Naming strategy: `app/Support/Media/MediaFileNamer.php`
-- Storage path strategy: `app/Support/Media/MediaPathGenerator.php`
+- Naming strategy: `app/Platform/Media/MediaFileNamer.php`
+- Storage path strategy: `app/Platform/Media/MediaPathGenerator.php`
 
 ## Global Upload Policy (Do Not Bypass)
 All `SpatieMediaLibraryFileUpload` fields are globally configured in `AppServiceProvider`.
@@ -204,8 +204,8 @@ Configured in `config/media-library.php`.
 - Generators enabled for image, webp, avif, pdf, svg, video
 
 ### Custom classes
-- `file_namer => App\Support\Media\MediaFileNamer::class`
-- `path_generator => App\Support\Media\MediaPathGenerator::class`
+- `file_namer => App\Platform\Media\MediaFileNamer::class`
+- `path_generator => App\Platform\Media\MediaPathGenerator::class`
 
 ## Model Collection Matrix (Canonical)
 

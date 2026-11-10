@@ -9,7 +9,7 @@ use App\Models\DonationChannel;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
-use App\Support\Media\ModelMediaSyncService;
+use App\Platform\Media\MediaCollectionSync;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\ValidationException;
@@ -20,7 +20,7 @@ final readonly class SaveDonationChannelAction
     use AsAction;
 
     public function __construct(
-        private ModelMediaSyncService $mediaSyncService,
+        private MediaCollectionSync $mediaSyncService,
     ) {}
 
     /**

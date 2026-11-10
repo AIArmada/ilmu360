@@ -1,6 +1,6 @@
 <?php
 
-use App\Support\Media\SocialIcon;
+use App\Platform\Media\SocialIcon;
 
 it('builds the public s3 url when a bucket is configured', function () {
     config([

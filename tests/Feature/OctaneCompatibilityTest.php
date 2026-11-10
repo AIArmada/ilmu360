@@ -3,7 +3,7 @@
 use AIArmada\FilamentSignals\FilamentSignalsPlugin;
 use AIArmada\FilamentSignals\Pages\PageViewsReport;
 use AIArmada\FilamentSignals\Pages\SignalsDashboard;
-use App\Observers\AuditedMediaObserver;
+use App\Platform\Media\AuditedMediaObserver;
 use App\Providers\Filament\AdminPanelProvider;
 use Filament\Panel;
 use Illuminate\Contracts\Console\Kernel;
