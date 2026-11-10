@@ -2,8 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Actions\References\GenerateReferenceSlugAction;
-use App\Models\Reference;
+use App\Features\Directory\Api\ReferenceWorkflow;
 use App\Platform\Cache\PublicListingsCache;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -18,27 +17,10 @@ class BackfillReferenceSlugs implements ShouldBeUnique, ShouldQueue
     public int $uniqueFor = 3600;
 
     public function handle(
-        GenerateReferenceSlugAction $generateReferenceSlugAction,
+        ReferenceWorkflow $referenceWorkflow,
         PublicListingsCache $publicListingsCache,
     ): void {
-        Reference::query()
-            ->orderBy('title')
-            ->orderBy('id')
-            ->chunk(100, function ($references) use ($generateReferenceSlugAction): void {
-                foreach ($references as $reference) {
-                    $slug = $generateReferenceSlugAction->forReference($reference);
-
-                    if ($reference->slug === $slug) {
-                        continue;
-                    }
-
-                    Reference::withoutTimestamps(function () use ($reference, $slug): void {
-                        $reference->forceFill([
-                            'slug' => $slug,
-                        ])->saveQuietly();
-                    });
-                }
-            });
+        $referenceWorkflow->backfillSlugs();
 
         $publicListingsCache->bustMajlisListing();
     }

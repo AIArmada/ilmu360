@@ -21,6 +21,7 @@ use App\Data\Api\Frontend\Search\VenueDetailData;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventVisibility;
 use App\Models\DonationChannel;
+use App\Features\Directory\Api\ReferenceQueries;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\Institution;
@@ -142,6 +143,7 @@ class SearchController extends FrontendController
         private readonly SlugOrUuidResolver $slugOrUuidResolver,
         private readonly AddressLocationScope $addressLocationScope,
         private readonly PublicDiscovery $publicDiscovery,
+        private readonly ReferenceQueries $referenceQueries,
     ) {}
 
     #[Group('Search', 'Public aggregate search endpoints across events, persons, and institutions.')]
@@ -795,15 +797,15 @@ class SearchController extends FrontendController
         );
 
         $referenceEventIds = $request->boolean('include_family')
-            ? $record->familyReferenceIds()
-            : $record->defaultEventReferenceIds();
+            ? $this->referenceQueries->familyReferenceIds((string) $record->getKey())
+            : $this->referenceQueries->defaultEventReferenceIds((string) $record->getKey());
 
         $upcomingPerPage = max(1, min($request->integer('upcoming_per_page', 10), 50));
         $upcomingEvents = $this->limitedEventPayloadWithTotal(
             Event::query()
                 ->active()
                 ->whereHas('references', function (Builder $referenceQuery) use ($referenceEventIds): void {
-                    Reference::applyPublicVisibility($referenceQuery)
+                    $this->referenceQueries->applyPublicVisibility($referenceQuery)
                         ->whereIn('references.id', $referenceEventIds);
                 })
                 ->where('starts_at', '>=', $now)
@@ -828,7 +830,7 @@ class SearchController extends FrontendController
             Event::query()
                 ->active()
                 ->whereHas('references', function (Builder $referenceQuery) use ($referenceEventIds): void {
-                    Reference::applyPublicVisibility($referenceQuery)
+                    $this->referenceQueries->applyPublicVisibility($referenceQuery)
                         ->whereIn('references.id', $referenceEventIds);
                 })
                 ->where('starts_at', '<', $now)
@@ -973,7 +975,7 @@ class SearchController extends FrontendController
                     'institution.media', 'institution.addresses.country', 'venue.addresses.country',
                     'persons.media', 'media',
                     'references' => /** @param BelongsToMany<Reference, Event, EventReferencePivot, 'pivot'> $references */ function (BelongsToMany $references): void {
-                        Reference::applyPublicVisibility($references->getQuery());
+                        $this->referenceQueries->applyPublicVisibility($references->getQuery());
                     },
                 ]),
             ])
@@ -1391,7 +1393,7 @@ class SearchController extends FrontendController
 
         return $query->active()
             ->selectSub(
-                Reference::constrainEventReferenceSubtree(Event::query()
+                $this->referenceQueries->constrainEventReferenceSubtree(Event::query()
                     ->whereNotNull('events.published_at')
                     ->where('events.status', 'approved')
                     ->where('events.visibility', EventVisibility::Public)

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Submission;
 
+use App\Features\Directory\Api\ReferenceQueries;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventReference;
 use AIArmada\Events\Models\EventSession;
@@ -33,7 +34,7 @@ final class SubmissionRelationSync
             $errors[SubmissionValues::prefixedKey('languages', $validationKeyPrefix)] = __('The selected language is invalid.');
         }
 
-        if ($referenceIds !== [] && array_diff($referenceIds, Reference::applyPublicVisibility(Reference::query())->whereIn('references.id', $referenceIds)->pluck('references.id')->all()) !== []) {
+        if ($referenceIds !== [] && array_diff($referenceIds, app(ReferenceQueries::class)->applyPublicVisibility(Reference::query())->whereIn('references.id', $referenceIds)->pluck('references.id')->all()) !== []) {
             $errors[SubmissionValues::prefixedKey('references', $validationKeyPrefix)] = __('The selected reference is unavailable.');
         }
 

@@ -8,7 +8,7 @@ use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventVisibility;
-use App\Enums\ReferenceType;
+use App\Shared\Directory\Enums\ReferenceType;
 use App\Mcp\Prompts\Concerns\BuildsEventImagePrompt;
 use App\Mcp\Servers\AdminServer;
 use App\Mcp\Servers\MemberServer;

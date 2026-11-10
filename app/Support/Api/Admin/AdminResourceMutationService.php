@@ -18,7 +18,7 @@ use AIArmada\Persons\Enums\Gender;
 use AIArmada\References\Enums\ReferenceRecordKind;
 use AIArmada\References\Rules\Isbn;
 use App\Actions\Events\Authoring\SaveAdminEventAction;
-use App\Actions\References\SaveReferenceAction;
+use App\Features\Directory\Api\ReferenceWorkflow;
 use App\Actions\Series\SaveSeriesAction;
 use App\Actions\Spaces\SaveSpaceAction;
 use App\Actions\Venues\SaveVenueAction;
@@ -29,8 +29,8 @@ use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventTaxonomyCode;
 use App\Enums\EventVisibility;
-use App\Enums\ReferencePartType;
-use App\Enums\ReferenceType;
+use App\Shared\Directory\Enums\ReferencePartType;
+use App\Shared\Directory\Enums\ReferenceType;
 use App\Enums\RegistrationScope;
 use App\Enums\VenueType;
 use App\Features\Directory\Api\DirectoryCommands;
@@ -88,7 +88,7 @@ class AdminResourceMutationService
         private readonly AdminEventFormStateBuilder $adminEventFormStateBuilder,
         private readonly InstitutionWorkflow $institutionWorkflow,
         private readonly PersonWorkflow $personWorkflow,
-        private readonly SaveReferenceAction $saveReferenceAction,
+        private readonly ReferenceWorkflow $referenceWorkflow,
         private readonly SaveSeriesAction $saveSeriesAction,
         private readonly SaveSpaceAction $saveSpaceAction,
         private readonly SaveVenueAction $saveVenueAction,
@@ -407,7 +407,7 @@ class AdminResourceMutationService
             DonationChannelResource::class => DonationChannel::query()->findOrFail($this->directoryCommands->create(DirectoryRecordType::DonationChannel, $validated, (string) $actor->getKey())->id),
             EventResource::class => $this->saveAdminEventAction->handle($validated, $actor),
             InstitutionResource::class => Institution::query()->findOrFail($this->institutionWorkflow->saveFromAdmin($validated, (string) $actor->getKey())),
-            ReferenceResource::class => $this->saveReferenceAction->handle($validated),
+            ReferenceResource::class => Reference::query()->withoutOwnerScope()->findOrFail($this->referenceWorkflow->saveFromAdmin($validated)),
             SeriesResource::class => $this->saveSeriesAction->handle($validated),
             PersonResource::class => Person::query()->findOrFail(
                 $this->personWorkflow->saveFromAdmin($validated, (string) $actor->getKey()),
@@ -450,7 +450,7 @@ class AdminResourceMutationService
                 ? Institution::query()->findOrFail($this->institutionWorkflow->saveFromAdmin($validated, (string) $actor->getKey(), (string) $record->getKey()))
                 : throw new \RuntimeException('Expected institution record.'),
             ReferenceResource::class => $record instanceof Reference
-                ? $this->saveReferenceAction->handle($validated, $record)
+                ? Reference::query()->withoutOwnerScope()->findOrFail($this->referenceWorkflow->saveFromAdmin($validated, (string) $record->getKey()))
                 : throw new \RuntimeException('Expected reference record.'),
             SeriesResource::class => $record instanceof Series
                 ? $this->saveSeriesAction->handle($validated, $record)

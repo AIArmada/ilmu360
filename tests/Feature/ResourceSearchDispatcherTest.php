@@ -1,5 +1,6 @@
 <?php
 
+use App\Features\Directory\Queries\ReferenceResourceSearchAdapter;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
@@ -7,7 +8,6 @@ use App\Platform\Search\ResourceSearchAdapter;
 use App\Platform\Search\ResourceSearchDispatcher;
 use App\Support\Search\Adapters\InstitutionResourceSearchAdapter;
 use App\Support\Search\Adapters\PersonResourceSearchAdapter;
-use App\Support\Search\Adapters\ReferenceResourceSearchAdapter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 

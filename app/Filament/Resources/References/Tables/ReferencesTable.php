@@ -2,7 +2,8 @@
 
 namespace App\Filament\Resources\References\Tables;
 
-use App\Enums\ReferenceType;
+use App\Features\Directory\Api\ReferenceWorkflow;
+use App\Shared\Directory\Enums\ReferenceType;
 use App\Models\Reference;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -12,6 +13,8 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 
 class ReferencesTable
 {
@@ -71,7 +74,17 @@ class ReferencesTable
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
-                        ->authorizeIndividualRecords('delete'),
+                        ->authorizeIndividualRecords('delete')
+                        ->action(function (DeleteBulkAction $action, Collection $records): void {
+                            app(ReferenceWorkflow::class)->delete(
+                                $records
+                                    ->map(static fn (Model $reference): string => (string) $reference->getKey())
+                                    ->values()
+                                    ->all(),
+                            );
+
+                            $action->success();
+                        }),
                 ]),
             ]);
     }

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Pages\Events;
 
+use App\Features\Directory\Api\ReferenceQueries;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Contracts\EngagementCounterService;
 use AIArmada\Engagement\Contracts\EngagementManager;
@@ -154,7 +155,7 @@ class Show extends Component
                 'series',
                 'references' => function (Relation $query) use ($event): void {
                     if (! $this->isEventOwner($event)) {
-                        Reference::applyPublicVisibility($query->getQuery());
+                        app(ReferenceQueries::class)->applyPublicVisibility($query->getQuery());
                         $query->where(config('events.database.tables.event_references', 'event_references').'.visibility', 'public');
                     }
 
@@ -487,7 +488,7 @@ class Show extends Component
             },
             'references.referenceable' => function (MorphTo $relation): void {
                 $relation->constrain([
-                    Reference::class => fn (Builder $query) => Reference::applyPublicVisibility($query)
+                    app(ReferenceQueries::class)->referenceModelClass() => fn (Builder $query) => app(ReferenceQueries::class)->applyPublicVisibility($query)
                         ->with(['authors', 'parentReference']),
                 ]);
             },

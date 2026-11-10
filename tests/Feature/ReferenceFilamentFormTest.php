@@ -1,8 +1,8 @@
 <?php
 
 use AIArmada\Signals\Models\SignalEvent;
-use App\Enums\ReferencePartType;
-use App\Enums\ReferenceType;
+use App\Shared\Directory\Enums\ReferencePartType;
+use App\Shared\Directory\Enums\ReferenceType;
 use App\Filament\Resources\References\Pages\CreateReference;
 use App\Filament\Resources\References\Pages\EditReference;
 use App\Forms\ReferenceFormSchema;

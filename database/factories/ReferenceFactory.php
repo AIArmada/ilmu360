@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
-use AIArmada\References\Enums\ReferenceContributorRole;
-use App\Enums\ReferenceType;
+use App\Features\Directory\Api\ReferenceWorkflow;
+use App\Shared\Directory\Enums\ReferenceType;
 use App\Models\Person;
 use App\Models\Reference;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -113,7 +113,7 @@ class ReferenceFactory extends Factory
                     ->values()
                     ->all();
 
-            $reference->syncContributors(ReferenceContributorRole::Author, (new Person)->getMorphClass(), $authorIds);
+            app(ReferenceWorkflow::class)->syncContributors((string) $reference->getKey(), $authorIds);
         });
     }
 }

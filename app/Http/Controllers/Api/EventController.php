@@ -21,9 +21,9 @@ use App\Enums\EventKeyPersonRole;
 use App\Enums\EventVisibility;
 use App\Enums\TimingMode;
 use App\Http\Controllers\Controller;
+use App\Features\Directory\Api\ReferenceQueries;
 use App\Models\Event;
 use App\Models\EventCheckin;
-use App\Models\Reference;
 use App\Models\Registration;
 use App\Models\Series;
 use App\Models\User;
@@ -56,6 +56,7 @@ class EventController extends Controller
 {
     public function __construct(
         private readonly SignalRecorder $signals,
+        private readonly ReferenceQueries $referenceQueries,
     ) {}
 
     /**
@@ -376,7 +377,7 @@ class EventController extends Controller
                 });
             }),
             AllowedFilter::callback('reference_ids', function (Builder $query, mixed $value): void {
-                $referenceIds = Reference::expandReferenceIdsForFiltering(
+                $referenceIds = $this->referenceQueries->expandReferenceIdsForFiltering(
                     collect($this->normalizeArrayFilter($value))
                         ->map(static fn (mixed $referenceId): string => $referenceId)
                         ->filter(static fn (string $referenceId): bool => $referenceId !== '')
@@ -391,7 +392,7 @@ class EventController extends Controller
                 $query->where(function (Builder $referenceFilter) use ($referenceIds): void {
                     $referenceFilter
                         ->whereHas('references', function (Builder $referenceQuery) use ($referenceIds): void {
-                            Reference::applyPublicVisibility($referenceQuery)
+                            $this->referenceQueries->applyPublicVisibility($referenceQuery)
                                 ->whereIn('references.id', $referenceIds);
                         })
                         ->orWhereHas('occurrences', function (Builder $occurrenceQuery) use ($referenceIds): void {
@@ -400,8 +401,8 @@ class EventController extends Controller
                                     $referenceRowQuery
                                         ->where('visibility', 'public')
                                         ->whereNull('event_session_id')
-                                        ->whereHasMorph('referenceable', [Reference::class], function (Builder $referenceQuery) use ($referenceIds): void {
-                                            Reference::applyPublicVisibility($referenceQuery)
+                                        ->whereHasMorph('referenceable', [$this->referenceQueries->referenceModelClass()], function (Builder $referenceQuery) use ($referenceIds): void {
+                                            $this->referenceQueries->applyPublicVisibility($referenceQuery)
                                                 ->whereIn('references.id', $referenceIds);
                                         });
                                 });

@@ -5,7 +5,7 @@ use App\Enums\EventChangeType;
 use App\Enums\EventFormat;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventVisibility;
-use App\Enums\ReferenceType;
+use App\Shared\Directory\Enums\ReferenceType;
 use App\Enums\TimingMode;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;

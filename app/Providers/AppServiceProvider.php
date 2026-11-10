@@ -197,6 +197,7 @@ use App\Shared\Communications\AccountNotificationSettings;
 use App\Shared\Contributions\ContributionRequestReader;
 use App\Shared\Directory\DirectoryCatalog;
 use App\Shared\Directory\PrayerInstitutionCatalog;
+use App\Shared\Directory\ReferenceScopedSearch;
 use App\Shared\Directory\SubmissionEligibilitySync;
 use App\Shared\Discovery\SearchFilterCatalog;
 use App\Shared\Discovery\SearchFilterLabels;
@@ -262,7 +263,7 @@ use App\Support\Rewards\ShareCorrectionKeySource;
 use App\Support\Rewards\VouchersRewardBenefitCouponFulfillment;
 use App\Support\Search\Adapters\InstitutionResourceSearchAdapter;
 use App\Support\Search\Adapters\PersonResourceSearchAdapter;
-use App\Support\Search\Adapters\ReferenceResourceSearchAdapter;
+use App\Support\Search\ReferenceSearchService;
 use App\Support\ShareTracking\GuestClaimLookup;
 use App\Support\ShareTracking\SavedSearchOutcomeRecorder;
 use App\Support\ShareTracking\ShareTrackingSignupRecorder;
@@ -383,8 +384,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->tag([
             PersonResourceSearchAdapter::class,
             InstitutionResourceSearchAdapter::class,
-            ReferenceResourceSearchAdapter::class,
         ], ResourceSearchAdapter::TAG);
+        $this->app->bind(ReferenceScopedSearch::class, ReferenceSearchService::class);
         $this->app->scoped(SearchFilterLabels::class, DatabaseSearchFilterLabels::class);
         $this->app->bind(Js::class, ContentVersionedJs::class);
 
@@ -825,13 +826,6 @@ class AppServiceProvider extends ServiceProvider
                 modelClass: Venue::class,
                 searchColumns: ['name', 'slug'],
                 labelAttribute: 'name',
-            ),
-            new PublicSlugResource(
-                parameter: 'reference',
-                routeName: 'references.show',
-                modelClass: Reference::class,
-                searchColumns: ['title', 'slug'],
-                labelAttribute: 'title',
             ),
         ]));
     }

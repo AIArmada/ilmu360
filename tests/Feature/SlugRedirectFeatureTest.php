@@ -8,9 +8,9 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Signals\Models\SignalEvent;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Actions\Events\Authoring\GenerateEventSlugAction;
-use App\Actions\References\GenerateReferenceSlugAction;
 use App\Actions\Venues\GenerateVenueSlugAction;
 use App\Features\Directory\Actions\Institutions\GenerateInstitutionSlugAction;
+use App\Features\Directory\Api\ReferenceWorkflow;
 use App\Features\Directory\Api\PersonWorkflow;
 use App\Filament\Resources\SlugRedirects\Pages\CreateSlugRedirect;
 use App\Filament\Resources\SlugRedirects\Pages\EditSlugRedirect;
@@ -116,7 +116,7 @@ it('creates a reference slug redirect when a visited title slug changes', functi
     ]);
 
     // afterCommit observer never fires: RefreshDatabase rolls back
-    app(GenerateReferenceSlugAction::class)->syncReferenceSlugsForTitle('Kitab Baru');
+    app(ReferenceWorkflow::class)->syncSlugsForTitle('Kitab Baru');
 
     $redirect = SlugRedirect::query()->where('source_path', $oldPath)->firstOrFail();
 

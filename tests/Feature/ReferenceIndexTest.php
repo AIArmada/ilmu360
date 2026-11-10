@@ -1,6 +1,6 @@
 <?php
 
-use App\Actions\References\SaveReferenceAction;
+use App\Features\Directory\Api\ReferenceWorkflow;
 use App\Models\Event;
 use App\Models\Person;
 use App\Models\Reference;
@@ -225,7 +225,7 @@ it('renders multiple reference authors on separate rows', function () {
     $firstAuthor = Person::factory()->create(['name' => 'Imam al-Nawawi']);
     $secondAuthor = Person::factory()->create(['name' => 'Ibn Hajar al-Asqalani']);
 
-    app(SaveReferenceAction::class)->handle([
+    app(ReferenceWorkflow::class)->saveFromAdmin([
         'title' => 'Rujukan Dua Penulis',
         'type' => 'book',
         'record_kind' => 'work',

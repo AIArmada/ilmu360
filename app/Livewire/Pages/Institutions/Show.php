@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Pages\Institutions;
 
+use App\Features\Directory\Api\ReferenceQueries;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\State;
 use AIArmada\CommerceSupport\Support\OwnerContext;
@@ -212,7 +213,7 @@ class Show extends Component
                 'persons.titleAssignments.title.category',
                 'keyPeople.person',
                 'references' => /** @param BelongsToMany<Reference, Event, EventReferencePivot, 'pivot'> $references */ function (BelongsToMany $references): void {
-                    Reference::applyPublicVisibility($references->getQuery());
+                    app(ReferenceQueries::class)->applyPublicVisibility($references->getQuery());
                 },
                 'media',
                 'institution.media',

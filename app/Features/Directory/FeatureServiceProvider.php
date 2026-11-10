@@ -12,14 +12,23 @@ use App\Features\Directory\Api\InstitutionSubmissionAccess;
 use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Features\Directory\Api\PersonSubmissionAccess;
 use App\Features\Directory\Api\PersonWorkflow;
+use App\Features\Directory\Api\ReferenceQueries;
+use App\Features\Directory\Api\ReferenceWorkflow;
 use App\Features\Directory\EntryPoints\Console\FlagStaleInactiveInstitutions;
 use App\Features\Directory\Listeners\MediaDirectoryCacheListener;
+use App\Features\Directory\Queries\ReferenceResourceSearchAdapter;
 use App\Features\Directory\Services\DirectoryReportSubjectResolver;
 use App\Features\Directory\Services\DonationChannelWorkflowService;
 use App\Features\Directory\Services\InstitutionWorkflowService;
 use App\Features\Directory\Services\PersonWorkflowService;
+use App\Features\Directory\Services\ReferenceQueryService;
+use App\Features\Directory\Services\ReferenceWorkflowService;
+use App\Features\Directory\Support\DirectoryModel;
 use App\Platform\FeatureModule;
 use App\Platform\Media\MediaChangeListener;
+use App\Platform\Routing\PublicSlugRegistry;
+use App\Platform\Routing\PublicSlugResource;
+use App\Platform\Search\ResourceSearchAdapter;
 
 /**
  * Directory owns institutions, speakers, references, venues, spaces and their
@@ -37,10 +46,13 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(InstitutionSubmissionAccess::class, InstitutionSubmissionAccessAction::class);
         $this->app->bind(PersonWorkflow::class, PersonWorkflowService::class);
         $this->app->bind(PersonSubmissionAccess::class, PersonSubmissionAccessAction::class);
+        $this->app->bind(ReferenceWorkflow::class, ReferenceWorkflowService::class);
+        $this->app->bind(ReferenceQueries::class, ReferenceQueryService::class);
         $this->app->bind(DirectoryReportSubjectProvider::class, DirectoryReportSubjectResolver::class);
         $this->app->bind(DonationChannelWorkflow::class, DonationChannelWorkflowService::class);
 
         $this->app->tag([MediaDirectoryCacheListener::class], MediaChangeListener::TAG);
+        $this->app->tag([ReferenceResourceSearchAdapter::class], ResourceSearchAdapter::TAG);
     }
 
     public function boot(): void
@@ -50,5 +62,13 @@ class FeatureServiceProvider extends FeatureModule
         $this->commands([
             FlagStaleInactiveInstitutions::class,
         ]);
+
+        $this->app->make(PublicSlugRegistry::class)->register(new PublicSlugResource(
+            parameter: 'reference',
+            routeName: 'references.show',
+            modelClass: DirectoryModel::reference(),
+            searchColumns: ['title', 'slug'],
+            labelAttribute: 'title',
+        ));
     }
 }

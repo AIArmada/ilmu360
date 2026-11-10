@@ -2,7 +2,7 @@
 
 namespace App\Observers;
 
-use App\Actions\References\GenerateReferenceSlugAction;
+use App\Features\Directory\Api\ReferenceWorkflow;
 use App\Models\Reference;
 use App\Platform\Cache\PublicListingsCache;
 use App\Platform\Models\Concerns\SyncsCurrentAndPreviousValues;
@@ -15,7 +15,7 @@ class ReferenceObserver implements ShouldHandleEventsAfterCommit
     use SyncsCurrentAndPreviousValues;
 
     public function __construct(
-        protected GenerateReferenceSlugAction $generateReferenceSlugAction,
+        protected ReferenceWorkflow $referenceWorkflow,
         protected SyncSlugRedirectAction $syncSlugRedirectAction,
         protected ReferenceSearchService $referenceSearchService,
         protected PublicListingsCache $publicListingsCache,
@@ -34,37 +34,25 @@ class ReferenceObserver implements ShouldHandleEventsAfterCommit
     public function updated(Reference $reference): void
     {
         $titleChanged = $reference->wasChanged('title');
-        $hierarchyChanged = $reference->wasChanged(['parent_id', 'record_kind', 'edition_number', 'edition_label', 'publisher', 'year', 'reference_parts']);
+        $changedAttributes = array_keys($reference->getChanges());
 
-        if ($reference->wasChanged(['record_kind', 'parent_id']) && ! $reference->isRootReference()) {
-            $reference->authorLinks()->delete();
-            $reference->unsetRelation('authorLinks');
-            $reference->unsetRelation('authors');
-
-            if ($reference->shouldBeSearchable()) {
-                $reference->searchable();
-            } else {
-                $reference->unsearchable();
-            }
-        }
-
-        if ($hierarchyChanged) {
-            $this->generateReferenceSlugAction->syncReferenceSlug($reference);
-            foreach ($reference->childReferences()->with('parentReference.parentReference')->get() as $child) {
-                $this->generateReferenceSlugAction->syncReferenceSlug($child);
-                if ($child->shouldBeSearchable()) {
-                    $child->searchable();
-                } else {
-                    $child->unsearchable();
-                }
-            }
+        if (array_intersect([
+            'parent_id',
+            'record_kind',
+            'edition_number',
+            'edition_label',
+            'publisher',
+            'year',
+            'reference_parts',
+        ], $changedAttributes) !== []) {
+            $this->referenceWorkflow->syncHierarchy((string) $reference->getKey(), $changedAttributes);
         }
 
         if ($titleChanged) {
             $this->syncCurrentAndPreviousString(
                 $reference->title,
                 $reference->getPrevious()['title'] ?? null,
-                fn (string $title): bool => $this->generateReferenceSlugAction->syncReferenceSlugsForTitle($title),
+                fn (string $title): bool => $this->referenceWorkflow->syncSlugsForTitle($title),
             );
         }
     }
@@ -72,7 +60,7 @@ class ReferenceObserver implements ShouldHandleEventsAfterCommit
     public function deleted(Reference $reference): void
     {
         $this->syncSlugRedirectAction->purgeForModel($reference);
-        $this->generateReferenceSlugAction->syncReferenceSlugsForTitle($reference->title);
+        $this->referenceWorkflow->syncSlugsForTitle($reference->title);
         $this->referenceSearchService->bustPublicSearchCache();
         $this->publicListingsCache->bustHomepageStats();
     }

@@ -8,6 +8,7 @@ use App\Models\Person;
 use App\Models\Reference;
 use App\Platform\Search\FuzzySearchPolicy;
 use App\Platform\Search\TypesenseHealthCheckService;
+use App\Shared\Directory\ReferenceScopedSearch;
 use App\Shared\Discovery\PublicDiscoveryAdapter;
 use Illuminate\Contracts\Database\Query\Expression as ExpressionContract;
 use Illuminate\Database\Eloquent\Builder;
@@ -17,7 +18,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
-class ReferenceSearchService implements PublicDiscoveryAdapter
+class ReferenceSearchService implements PublicDiscoveryAdapter, ReferenceScopedSearch
 {
     private const int PUBLIC_SEARCH_CACHE_TTL = 600;
 

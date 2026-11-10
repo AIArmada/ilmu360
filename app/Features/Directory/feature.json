@@ -68,6 +68,17 @@
     ],
     "table:affiliations": [
       "App\\Features\\Directory\\Actions\\Persons\\SyncPersonAffiliationsAction"
+    ],
+    "table:references": [
+      "App\\Features\\Directory\\Actions\\References\\ApplyReferenceContributionAction",
+      "App\\Features\\Directory\\Actions\\References\\BackfillReferenceSlugsAction",
+      "App\\Features\\Directory\\Actions\\References\\ChangeReferenceStatusAction",
+      "App\\Features\\Directory\\Actions\\References\\DeleteReferenceAction",
+      "App\\Features\\Directory\\Actions\\References\\GenerateReferenceSlugAction",
+      "App\\Features\\Directory\\Actions\\References\\SaveReferenceAction"
+    ],
+    "table:reference_contributors": [
+      "App\\Features\\Directory\\Actions\\References\\SyncReferenceContributorsAction"
     ]
   },
   "aliases": {
@@ -77,6 +88,8 @@
     "donation_channel": "table:donation_channels",
     "person": "table:persons",
     "person_name": "table:person_names",
-    "affiliation": "table:affiliations"
+    "affiliation": "table:affiliations",
+    "reference": "table:references",
+    "reference_contributor": "table:reference_contributors"
   }
 }

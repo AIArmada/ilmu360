@@ -6,7 +6,6 @@ use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Contributions\Submission\EnsureUniqueContributionCreateAction;
 use App\Actions\Institutions\WithInstitutionMapsIdentityLockAction;
-use App\Actions\References\SaveReferenceAction;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
@@ -14,6 +13,7 @@ use App\Exceptions\ContributionRequestAlreadyReviewedException;
 use App\Exceptions\ContributionRequestNotPendingException;
 use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Features\Directory\Api\PersonWorkflow;
+use App\Features\Directory\Api\ReferenceWorkflow;
 use App\Models\ContributionRequest;
 use App\Models\Event;
 use App\Models\Institution;
@@ -41,7 +41,7 @@ class ApproveContributionRequestAction
         private readonly AddMemberAction $addMemberAction,
         private readonly InstitutionWorkflow $institutionWorkflow,
         private readonly PersonWorkflow $personWorkflow,
-        private readonly SaveReferenceAction $saveReferenceAction,
+        private readonly ReferenceWorkflow $referenceWorkflow,
         private readonly EnsureUniqueContributionCreateAction $ensureUniqueContributionCreateAction,
         private readonly WithInstitutionMapsIdentityLockAction $withInstitutionMapsIdentityLockAction,
     ) {}
@@ -277,11 +277,7 @@ class ApproveContributionRequestAction
         }
 
         if ($entity instanceof Reference) {
-            $entity->forceFill([
-                'status' => 'verified',
-                'verified_at' => now(),
-                'last_state_change_at' => now(),
-            ])->save();
+            $this->referenceWorkflow->changeStatus((string) $entity->getKey(), 'verified');
 
             return $entity;
         }
@@ -380,10 +376,9 @@ class ApproveContributionRequestAction
      */
     private function createReferenceFromRequest(array $payload): Reference
     {
-        return $this->saveReferenceAction->handle([
-            ...$payload,
-            'status' => 'verified',
-        ]);
+        $referenceId = $this->referenceWorkflow->createVerifiedFromContribution($payload);
+
+        return Reference::query()->withoutOwnerScope()->findOrFail($referenceId);
     }
 
     /**

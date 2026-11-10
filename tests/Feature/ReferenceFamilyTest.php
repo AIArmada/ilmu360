@@ -1,8 +1,8 @@
 <?php
 
 use App\Enums\EventVisibility;
-use App\Enums\ReferencePartType;
-use App\Enums\ReferenceType;
+use App\Shared\Directory\Enums\ReferencePartType;
+use App\Shared\Directory\Enums\ReferenceType;
 use App\Models\Event;
 use App\Models\Reference;
 use App\Support\Api\Frontend\FrontendCatalogService;

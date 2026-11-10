@@ -4,7 +4,7 @@ use AIArmada\Addressing\Models\Address;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Enums\EventFormat;
 use App\Enums\EventKeyPersonRole;
-use App\Enums\ReferenceType;
+use App\Shared\Directory\Enums\ReferenceType;
 use App\Enums\TimingMode;
 use App\Livewire\Pages\Persons\Show;
 use App\Models\Event;

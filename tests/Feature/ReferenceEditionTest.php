@@ -1,8 +1,8 @@
 <?php
 
 use AIArmada\Events\Actions\CreateEventOccurrenceAction;
-use App\Actions\References\SaveReferenceAction;
-use App\Enums\ReferenceType;
+use App\Features\Directory\Api\ReferenceWorkflow;
+use App\Shared\Directory\Enums\ReferenceType;
 use App\Models\Event;
 use App\Models\Reference;
 use App\Observers\ReferenceObserver;
@@ -10,6 +10,14 @@ use Database\Seeders\LanguageSeeder;
 use Illuminate\Validation\ValidationException;
 use Laravel\Scout\EngineManager;
 use Laravel\Scout\Engines\NullEngine;
+
+
+function saveEditionReferenceForTest(array $data, ?Reference $reference = null): Reference
+{
+    $referenceId = app(ReferenceWorkflow::class)->saveFromAdmin($data, $reference?->getKey());
+
+    return Reference::query()->findOrFail($referenceId);
+}
 
 beforeEach(function (): void {
     config()->set('scout.driver', 'null');
@@ -51,7 +59,7 @@ it('rejects invalid hierarchy changes without orphaning children', function (): 
 it('persists bibliographic fields with normalized valid ISBNs through the save boundary', function (string $isbn, string $normalized): void {
     $this->seed(LanguageSeeder::class);
 
-    $reference = app(SaveReferenceAction::class)->handle([
+    $reference = saveEditionReferenceForTest([
         'title' => 'Kitab Ujian', 'type' => 'book', 'record_kind' => 'work',
         'isbn' => $isbn, 'language' => 'ar', 'url' => 'https://example.com/book',
         'publication_year' => '2020', 'status' => 'pending',
@@ -70,7 +78,7 @@ it('persists bibliographic fields with normalized valid ISBNs through the save b
 
 it('rejects invalid bibliographic input as field validation errors', function (string $field, mixed $value): void {
     try {
-        app(SaveReferenceAction::class)->handle(['title' => 'Invalid book', 'type' => 'book', $field => $value]);
+        saveEditionReferenceForTest(['title' => 'Invalid book', 'type' => 'book', $field => $value]);
         $this->fail('Expected a validation error.');
     } catch (ValidationException $exception) {
         expect($exception->errors())->toHaveKey($field);

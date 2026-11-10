@@ -17,7 +17,6 @@ use AIArmada\Events\Models\VenueFacility;
 use AIArmada\Persons\Enums\AssignmentStatus;
 use AIArmada\Persons\Enums\Gender;
 use AIArmada\Persons\Enums\PersonNameType;
-use AIArmada\References\Enums\ReferenceContributorRole;
 use AIArmada\References\Enums\ReferenceRecordKind;
 use AIArmada\References\Rules\Isbn;
 use App\Actions\Events\Authoring\SyncEventClassificationsAction;
@@ -30,11 +29,12 @@ use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventTaxonomyCode;
 use App\Enums\EventVisibility;
-use App\Enums\ReferencePartType;
-use App\Enums\ReferenceType;
+use App\Shared\Directory\Enums\ReferencePartType;
+use App\Shared\Directory\Enums\ReferenceType;
 use App\Enums\TimingMode;
 use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Features\Directory\Api\PersonWorkflow;
+use App\Features\Directory\Api\ReferenceWorkflow;
 use App\Forms\SharedFormSchema;
 use App\Models\DonationChannel;
 use App\Models\Event;
@@ -76,6 +76,7 @@ class ContributionEntityMutationService
         private readonly EntityRelationSync $entityRelationSync,
         private readonly InstitutionWorkflow $institutionWorkflow,
         private readonly PersonWorkflow $personWorkflow,
+        private readonly ReferenceWorkflow $referenceWorkflow,
     ) {}
 
     /** @return array<string, mixed> */
@@ -419,12 +420,9 @@ class ContributionEntityMutationService
      */
     public function createReference(array $payload, User $proposer): Reference
     {
-        $reference = new Reference;
-        $reference->status = 'pending';
+        $referenceId = $this->referenceWorkflow->createFromContribution($payload);
 
-        $this->applyReference($reference, $payload);
-
-        return $reference;
+        return Reference::query()->withoutOwnerScope()->findOrFail($referenceId);
     }
 
     /**
@@ -436,7 +434,7 @@ class ContributionEntityMutationService
         return match (true) {
             $entity instanceof Institution => $this->applyInstitution($entity, $payload),
             $entity instanceof Person => $this->applyPerson($entity, $payload),
-            $entity instanceof Reference => $this->applyReference($entity, $payload),
+            $entity instanceof Reference => $this->referenceWorkflow->applyContribution((string) $entity->getKey(), $payload),
             $entity instanceof Event => $this->applyEvent($entity, $payload),
             default => throw new RuntimeException('Unsupported contribution entity type.'),
         };
@@ -458,19 +456,6 @@ class ContributionEntityMutationService
     private function applyPerson(Person $person, array $payload): array
     {
         return $this->personWorkflow->applyContribution((string) $person->getKey(), $payload);
-    }
-
-    private function normalizeReferenceType(mixed $value): string
-    {
-        if ($value instanceof ReferenceType) {
-            return $value->value;
-        }
-
-        if (is_string($value) && ReferenceType::tryFrom($value) instanceof ReferenceType) {
-            return $value;
-        }
-
-        return ReferenceType::Book->value;
     }
 
     private function normalizeOptionalString(mixed $value): ?string
@@ -505,39 +490,6 @@ class ContributionEntityMutationService
         }
 
         return is_numeric($metaValue) ? (float) $metaValue : null;
-    }
-
-    /**
-     * @param  array<string, mixed>  $payload
-     * @return array<string, mixed>
-     */
-    private function applyReference(Reference $reference, array $payload): array
-    {
-        $reference->fill([
-            'title' => $payload['title'] ?? $reference->title,
-            'type' => array_key_exists('type', $payload) ? $this->normalizeReferenceType($payload['type']) : $reference->type,
-            'parent_id' => array_key_exists('parent_id', $payload) ? $this->normalizeOptionalString($payload['parent_id']) : $reference->parent_id,
-            'record_kind' => $payload['record_kind'] ?? $reference->record_kind,
-            'edition_number' => array_key_exists('edition_number', $payload) ? $payload['edition_number'] : $reference->edition_number,
-            'edition_label' => array_key_exists('edition_label', $payload) ? $this->normalizeOptionalString($payload['edition_label']) : $reference->edition_label,
-            'isbn' => array_key_exists('isbn', $payload) ? $this->normalizeOptionalString($payload['isbn']) : $reference->isbn,
-            'language' => array_key_exists('language', $payload) ? $this->normalizeOptionalString($payload['language']) : $reference->language,
-
-            'part_type' => array_key_exists('part_type', $payload) ? $this->normalizeOptionalString($payload['part_type']) : $reference->partTypeValue(),
-            'part_number' => array_key_exists('part_number', $payload) ? $this->normalizeOptionalString($payload['part_number']) : $reference->partNumberValue(),
-            'part_label' => array_key_exists('part_label', $payload) ? $this->normalizeOptionalString($payload['part_label']) : $reference->partLabelValue(),
-            'year' => array_key_exists('publication_year', $payload) ? (filled($payload['publication_year']) ? (int) $payload['publication_year'] : null) : $reference->year,
-            'publisher' => array_key_exists('publisher', $payload) ? $this->normalizeOptionalString($payload['publisher']) : $reference->publisher,
-            'description' => array_key_exists('description', $payload) ? $payload['description'] : $reference->description,
-            'url' => array_key_exists('url', $payload) ? $this->normalizeOptionalString($payload['url']) : $reference->url,
-        ]);
-
-        $dirty = $reference->getDirty();
-        $reference->save();
-
-        $this->syncReferenceRelations($reference, array_intersect_key($payload, ['social_media' => true, 'author_ids' => true]));
-
-        return $dirty;
     }
 
     /**
@@ -1010,23 +962,7 @@ class ContributionEntityMutationService
      */
     public function syncReferenceRelations(Reference $reference, array $payload): void
     {
-        if (array_key_exists('social_media', $payload)) {
-            $this->syncSocialMedia($reference, $payload['social_media']);
-        }
-
-        if (array_key_exists('author_ids', $payload) && $reference->isRootReference()) {
-            $authorIds = [];
-
-            foreach (is_array($payload['author_ids']) ? $payload['author_ids'] : [] as $authorId) {
-                $normalized = is_string($authorId) ? trim($authorId) : '';
-
-                if ($normalized !== '' && ! in_array($normalized, $authorIds, true)) {
-                    $authorIds[] = $normalized;
-                }
-            }
-
-            $reference->syncContributors(ReferenceContributorRole::Author, (new Person)->getMorphClass(), $authorIds);
-        }
+        $this->referenceWorkflow->syncRelations((string) $reference->getKey(), $payload);
     }
 
     /**

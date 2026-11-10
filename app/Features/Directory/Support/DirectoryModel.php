@@ -51,6 +51,22 @@ final class DirectoryModel
         return MorphModelResolver::resolve('affiliation');
     }
 
+    public static function reference(): string
+    {
+        return MorphModelResolver::resolve('reference');
+    }
+
+    /**
+     * Reference records are global; bypass the owner scope for reads that do
+     * not have request context (observers, jobs, console).
+     *
+     * @return Builder<Model>
+     */
+    public static function referenceQuery(): Builder
+    {
+        return self::query('reference')->withoutOwnerScope();
+    }
+
     /**
      * @return Builder<Model>
      */

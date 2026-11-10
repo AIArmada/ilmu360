@@ -5,6 +5,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\ToggleDirectoryFollowAction;
 
 use App\Enums\EventVisibility;
+use App\Features\Directory\Api\ReferenceQueries;
 use App\Models\Event;
 use App\Models\Reference;
 use App\Models\User;
@@ -152,7 +153,7 @@ new
                 ->select('references.*')
                 ->selectSub($this->nextPublicEventQuery()->select('events.id'), 'next_event_id')
                 ->selectSub(
-                    Reference::constrainEventReferenceSubtree(Event::query()->active())
+                    app(ReferenceQueries::class)->constrainEventReferenceSubtree(Event::query()->active())
                         ->join("{$occurrencesTable} as upcoming_event_occurrences", 'upcoming_event_occurrences.event_id', '=', 'events.id')
                         ->whereIn('upcoming_event_occurrences.status', Event::PUBLIC_SCHEDULE_STATUSES)
                         ->whereIn('upcoming_event_occurrences.visibility', Event::PUBLIC_SCHEDULE_VISIBILITIES)
@@ -250,7 +251,7 @@ new
         {
             $occurrencesTable = config('events.database.tables.event_occurrences', 'event_occurrences');
 
-            return Reference::constrainEventReferenceSubtree(Event::query())
+            return app(ReferenceQueries::class)->constrainEventReferenceSubtree(Event::query())
                 ->join("{$occurrencesTable} as next_event_occurrences", 'next_event_occurrences.event_id', '=', 'events.id')
                 ->where('next_event_occurrences.starts_at', '>=', now())
                 ->whereNotNull('events.published_at')

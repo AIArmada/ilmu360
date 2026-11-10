@@ -5,6 +5,7 @@ namespace App\States\EventStatus\Transitions;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Features\Directory\Api\PersonWorkflow;
+use App\Features\Directory\Api\ReferenceWorkflow;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\ModerationReview;
@@ -163,7 +164,7 @@ class ApproveEvent extends Transition implements HasColor, HasIcon, HasLabel
             ->where('status', 'pending')
             ->get()
             ->each(function (Reference $reference): void {
-                $reference->forceFill(['status' => 'verified'])->save();
+                app(ReferenceWorkflow::class)->changeStatus((string) $reference->getKey(), 'verified');
             });
 
         Log::info('Auto-verified pending related records', [

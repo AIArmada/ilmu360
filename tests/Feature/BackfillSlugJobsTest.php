@@ -1,12 +1,12 @@
 <?php
 
 use App\Actions\Events\Authoring\GenerateEventSlugAction;
-use App\Actions\References\GenerateReferenceSlugAction;
 use App\Actions\Venues\GenerateVenueSlugAction;
 use App\Jobs\BackfillEventSlugs;
 use App\Jobs\BackfillReferenceSlugs;
 use App\Jobs\BackfillVenueSlugs;
 use App\Models\Event;
+use App\Features\Directory\Api\ReferenceWorkflow;
 use App\Models\Reference;
 use App\Models\Venue;
 use App\Platform\Cache\PublicListingsCache;
@@ -70,7 +70,7 @@ it('backfills reference slugs', function () {
     ]);
 
     app(BackfillReferenceSlugs::class)->handle(
-        app(GenerateReferenceSlugAction::class),
+        app(ReferenceWorkflow::class),
         app(PublicListingsCache::class),
     );
 

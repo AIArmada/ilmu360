@@ -10,6 +10,7 @@ use AIArmada\Events\Models\VenueSpace;
 use App\Data\Api\Frontend\Search\ReferenceDetailMediaData;
 use App\Enums\EventChangeSeverity;
 use App\Enums\EventChangeType;
+use App\Features\Directory\Api\ReferenceQueries;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\EventKeyPerson;
@@ -48,6 +49,9 @@ class EventPayloadData extends Data
 
     public static function fromModel(Event $event): self
     {
+        $referenceQueries = app(ReferenceQueries::class);
+        $referenceModelClass = $referenceQueries->referenceModelClass();
+
         $event->loadMissing([
             'latestPublishedChangeAnnouncement.replacementEvent',
             'latestPublishedReplacementAnnouncement.replacementEvent',
@@ -65,9 +69,9 @@ class EventPayloadData extends Data
             'displayOccurrence.references' => static function (Relation $query): void {
                 $query->where('visibility', 'public')->orderBy('sort_order');
             },
-            'displayOccurrence.references.referenceable' => static function (MorphTo $relation): void {
+            'displayOccurrence.references.referenceable' => static function (MorphTo $relation) use ($referenceQueries, $referenceModelClass): void {
                 $relation->constrain([
-                    Reference::class => static fn (Builder $query): Builder => Reference::applyPublicVisibility($query)
+                    $referenceModelClass => static fn (Builder $query): Builder => $referenceQueries->applyPublicVisibility($query)
                         ->with(['media', 'authors', 'parentReference']),
                 ]);
             },

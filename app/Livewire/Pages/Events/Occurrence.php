@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Livewire\Pages\Events;
 
+use App\Features\Directory\Api\ReferenceQueries;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventOccurrence;
 use App\Models\Event;
-use App\Models\Reference;
 use App\Services\PublicScheduleDiscoveryService;
 use App\Services\ShareTrackingService;
 use App\Support\Events\PublicSchedulePolicy;
@@ -166,7 +166,7 @@ class Occurrence extends Show
             'languages',
             'references' => function (Relation $query) use ($event): void {
                 if (! $this->isEventOwner($event)) {
-                    Reference::applyPublicVisibility($query->getQuery());
+                    app(ReferenceQueries::class)->applyPublicVisibility($query->getQuery());
                     $query->where(config('events.database.tables.event_references', 'event_references').'.visibility', 'public');
                 }
 

@@ -1,7 +1,7 @@
 <?php
 
 use AIArmada\CommerceSupport\Support\UniqueSlug;
-use App\Actions\References\GenerateReferenceSlugAction;
+use App\Features\Directory\Api\ReferenceWorkflow;
 use App\Models\Reference;
 
 it('treats an empty ignore key as null when building a unique slug', function (): void {
@@ -15,7 +15,7 @@ it('treats an empty ignore key as null when building a unique slug', function ()
 });
 
 it('generates a reference slug for records without a key', function (): void {
-    $slug = app(GenerateReferenceSlugAction::class)->handle('Riyadhus Solihin', '');
+    $slug = app(ReferenceWorkflow::class)->buildSlug('Riyadhus Solihin', '');
 
     expect($slug)->toBe('riyadhus-solihin');
 });

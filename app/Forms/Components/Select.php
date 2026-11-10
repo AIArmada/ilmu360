@@ -2,7 +2,7 @@
 
 namespace App\Forms\Components;
 
-use App\Enums\ReferenceType;
+use App\Shared\Directory\Enums\ReferenceType;
 use App\Models\Reference;
 use Closure;
 use Filament\Forms\Components\Select as FilamentSelect;

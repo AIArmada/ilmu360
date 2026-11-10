@@ -11,10 +11,10 @@ use AIArmada\Events\Models\EventSession;
 use AIArmada\Persons\Enums\AssignmentStatus;
 use App\Data\EventDiscoveryCriteriaFactory;
 use App\Data\PublicScheduleLeaf;
+use App\Features\Directory\Api\ReferenceQueries;
 use App\Models\Builders\EventBuilder;
 use App\Models\Event;
 use App\Models\Person;
-use App\Models\Reference;
 use App\Models\User;
 use App\Models\Venue;
 use App\Platform\Time\UserDateTimeFormatter;
@@ -38,6 +38,7 @@ final class PublicScheduleDiscoveryService
     public function __construct(
         private readonly PostgresEventDiscovery $eventDiscovery,
         private readonly EventSearchRelationProvider $relationProvider,
+        private readonly ReferenceQueries $referenceQueries,
         private readonly EventDiscoveryCriteriaFactory $criteriaFactory = new EventDiscoveryCriteriaFactory,
     ) {}
 
@@ -243,7 +244,7 @@ final class PublicScheduleDiscoveryService
 
         if ($referenceIds !== []) {
             $query->orWhereHas('references', function (Builder $query) use ($referenceIds): void {
-                Reference::applyPublicVisibility($query)->whereIn('references.id', $referenceIds);
+                $this->referenceQueries->applyPublicVisibility($query)->whereIn('references.id', $referenceIds);
             });
         }
     }

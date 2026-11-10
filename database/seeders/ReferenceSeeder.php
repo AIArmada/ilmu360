@@ -5,13 +5,12 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\References\Enums\ReferenceContributorRole;
 use AIArmada\References\Enums\ReferenceRecordKind;
-use App\Actions\References\GenerateReferenceSlugAction;
-use App\Enums\ReferencePartType;
-use App\Enums\ReferenceType;
+use App\Shared\Directory\Enums\ReferencePartType;
+use App\Shared\Directory\Enums\ReferenceType;
 use App\Enums\SpeakerStatus;
 use App\Features\Directory\Api\PersonWorkflow;
+use App\Features\Directory\Api\ReferenceWorkflow;
 use App\Models\Person;
 use App\Models\Reference;
 use Illuminate\Database\Seeder;
@@ -1789,7 +1788,7 @@ class ReferenceSeeder extends Seeder
                 $authorIds[] = (string) $this->findOrCreateAuthor($authorName)->getKey();
             }
 
-            $reference->syncContributors(ReferenceContributorRole::Author, (new Person)->getMorphClass(), $authorIds);
+            app(ReferenceWorkflow::class)->syncContributors((string) $reference->getKey(), $authorIds);
         }
 
         $this->importMedia($row, $reference);
@@ -1971,7 +1970,7 @@ class ReferenceSeeder extends Seeder
             return $candidate;
         }
 
-        return app(GenerateReferenceSlugAction::class)->handle($title, (string) ($reference->getKey() ?? null));
+        return app(ReferenceWorkflow::class)->buildSlug($title, (string) ($reference->getKey() ?? null));
     }
 
     private function parseYear(mixed $value): ?int

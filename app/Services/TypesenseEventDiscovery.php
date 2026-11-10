@@ -8,8 +8,8 @@ use AIArmada\Events\Contracts\EventSearchRelationProvider;
 use App\Contracts\EventCategoryCatalog;
 use App\Contracts\EventDiscoveryAdapter;
 use App\Data\EventDiscoveryCriteria;
+use App\Features\Directory\Api\ReferenceQueries;
 use App\Models\Event;
-use App\Models\Reference;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Support\EventDiscovery\EventDiscoveryFilterSet;
 use Carbon\CarbonInterface;
@@ -23,6 +23,7 @@ class TypesenseEventDiscovery implements EventDiscoveryAdapter
         private readonly EventDiscoveryFilterSet $filterSet,
         private readonly EventCategoryCatalog $categoryCatalog,
         private readonly EventSearchRelationProvider $relationProvider,
+        private readonly ReferenceQueries $referenceQueries,
     ) {}
 
     /** @return LengthAwarePaginator<int, Event> */
@@ -441,6 +442,6 @@ class TypesenseEventDiscovery implements EventDiscoveryAdapter
     {
         $referenceIds = $this->uuidFilterValues($value);
 
-        return Reference::expandReferenceIdsForFiltering($referenceIds);
+        return $this->referenceQueries->expandReferenceIdsForFiltering($referenceIds);
     }
 }

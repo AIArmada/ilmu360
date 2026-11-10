@@ -19,6 +19,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
 
 class ReferenceResource extends Resource
@@ -30,6 +31,18 @@ class ReferenceResource extends Resource
     protected static string|UnitEnum|null $navigationGroup = 'Directory';
 
     protected static ?string $recordTitleAttribute = 'title';
+
+    /**
+     * References are global records; do not require ambient owner context when
+     * Filament resolves records before the page boots.
+     *
+     * @return Builder<Reference>
+     */
+    #[\Override]
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->withoutOwnerScope();
+    }
 
     #[\Override]
     public static function form(Schema $schema): Schema

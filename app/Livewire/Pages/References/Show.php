@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Pages\References;
 
+use App\Features\Directory\Api\ReferenceQueries;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\State;
 use AIArmada\CommerceSupport\Support\OwnerContext;
@@ -186,7 +187,7 @@ class Show extends Component
             'venue.addresses.areaAssignments' => fn (HasMany $relation): HasMany => $this->joinAreaName($relation),
         ];
 
-        $referenceIds = $this->reference->defaultEventReferenceIds();
+        $referenceIds = app(ReferenceQueries::class)->defaultEventReferenceIds((string) $this->reference->getKey());
         /** @var EventBuilder $query */
         $query = Event::query()->where(function (Builder $referenceFilter) use ($referenceIds): void {
             $referenceFilter
@@ -200,8 +201,8 @@ class Show extends Component
                         ->whereHas('references', function (Builder $referenceRows) use ($referenceIds): void {
                             $referenceRows
                                 ->where('visibility', 'public')
-                                ->whereHasMorph('referenceable', [Reference::class], function (Builder $references) use ($referenceIds): void {
-                                    Reference::applyPublicVisibility($references)
+                                ->whereHasMorph('referenceable', [app(ReferenceQueries::class)->referenceModelClass()], function (Builder $references) use ($referenceIds): void {
+                                    app(ReferenceQueries::class)->applyPublicVisibility($references)
                                         ->whereIn('references.id', $referenceIds);
                                 });
                         });
@@ -217,7 +218,7 @@ class Show extends Component
                 'persons.titleAssignments.title.category',
                 'keyPeople.person',
                 'references' => /** @param BelongsToMany<Reference, Event, EventReferencePivot, 'pivot'> $references */ function (BelongsToMany $references): void {
-                    Reference::applyPublicVisibility($references->getQuery());
+                    app(ReferenceQueries::class)->applyPublicVisibility($references->getQuery());
                 },
                 'media',
                 'institution.media',
@@ -236,7 +237,7 @@ class Show extends Component
      */
     protected function filterScheduleLeaves(Collection $leaves): Collection
     {
-        $referenceIds = $this->reference->defaultEventReferenceIds();
+        $referenceIds = app(ReferenceQueries::class)->defaultEventReferenceIds((string) $this->reference->getKey());
 
         return $leaves
             ->map(function (PublicScheduleLeaf $leaf) use ($referenceIds): ?PublicScheduleLeaf {

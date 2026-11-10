@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Filament\Resources\References\Pages;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use App\Features\Directory\Api\ReferenceWorkflow;
 use App\Filament\Resources\References\ReferenceResource;
 use App\Forms\ReferenceFormSchema;
 use App\Models\Reference;
-use App\Services\ContributionEntityMutationService;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
@@ -35,19 +35,13 @@ class CreateReference extends CreateRecord
     protected function handleRecordCreation(array $data): Model
     {
         try {
-            ReferenceFormSchema::validateDirectInput($data);
+            return OwnerContext::withOwner(null, function () use ($data): Model {
+                ReferenceFormSchema::validateDirectInput($data);
 
-            $hasAuthors = array_key_exists('author_ids', $data);
-            $authorIds = $data['author_ids'] ?? null;
-            unset($data['author_ids']);
+                $referenceId = app(ReferenceWorkflow::class)->saveFromAdmin($data);
 
-            $record = parent::handleRecordCreation($data);
-
-            if ($hasAuthors && $record instanceof Reference) {
-                app(ContributionEntityMutationService::class)->syncReferenceRelations($record, ['author_ids' => $authorIds]);
-            }
-
-            return $record;
+                return Reference::query()->withoutOwnerScope()->findOrFail($referenceId);
+            });
         } catch (ValidationException $exception) {
             ReferenceFormSchema::throwSchemaErrors($exception, $this->form);
         }

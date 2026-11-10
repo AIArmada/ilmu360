@@ -2,23 +2,25 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Search\Adapters;
+namespace App\Features\Directory\Queries;
 
-use App\Models\Reference;
+use App\Features\Directory\Support\DirectoryModel;
 use App\Platform\Search\ResourceSearchAdapter;
-use App\Support\Search\ReferenceSearchService;
+use App\Shared\Directory\ReferenceScopedSearch;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 final readonly class ReferenceResourceSearchAdapter implements ResourceSearchAdapter
 {
     public function __construct(
-        private ReferenceSearchService $searchService,
+        private ReferenceScopedSearch $searchService,
     ) {}
 
     public function supports(Model $model): bool
     {
-        return $model instanceof Reference;
+        $referenceClass = DirectoryModel::reference();
+
+        return $model instanceof $referenceClass;
     }
 
     /**
@@ -27,9 +29,6 @@ final readonly class ReferenceResourceSearchAdapter implements ResourceSearchAda
      */
     public function matchingIds(Builder $query, string $search): array
     {
-        /** @var Builder<Reference> $referenceQuery */
-        $referenceQuery = $query;
-
-        return $this->searchService->scopedSearchIds($referenceQuery, $search);
+        return $this->searchService->scopedSearchIds($query, $search);
     }
 }

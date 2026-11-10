@@ -4,9 +4,9 @@ namespace App\Forms;
 
 use AIArmada\References\Enums\ReferenceRecordKind;
 use AIArmada\References\Rules\Isbn;
-use App\Actions\References\SaveReferenceAction;
-use App\Enums\ReferencePartType;
-use App\Enums\ReferenceType;
+use App\Features\Directory\Api\ReferenceWorkflow;
+use App\Shared\Directory\Enums\ReferencePartType;
+use App\Shared\Directory\Enums\ReferenceType;
 use App\Models\Reference;
 use App\Models\User;
 use App\Shared\Signals\SignalRecorder;
@@ -163,7 +163,8 @@ class ReferenceFormSchema
     public static function createPending(array $data, ?Schema $schema = null): string
     {
         try {
-            $reference = app(SaveReferenceAction::class)->handle([...$data, 'status' => 'pending']);
+            $referenceId = app(ReferenceWorkflow::class)->createFromForm([...$data, 'status' => 'pending']);
+            $reference = Reference::query()->withoutOwnerScope()->findOrFail($referenceId);
         } catch (ValidationException $exception) {
             if ($schema instanceof Schema) {
                 self::throwSchemaErrors($exception, $schema);

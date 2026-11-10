@@ -68,20 +68,42 @@ it('reads directory details by id or slug and serves form options', function ():
         ->and($options->get($institutionId)?->label)->toBe($institution->display_name);
 });
 
+it('reads reference details and options through the directory reader', function (): void {
+    $reference = Reference::factory()->create([
+        'title' => 'Kitab Seam',
+        'slug' => 'kitab-seam',
+        'status' => 'verified',
+    ]);
+
+    $reader = app(DirectoryReader::class);
+    $detail = $reader->find(DirectoryRecordType::Reference, (string) $reference->slug);
+    $options = collect($reader->options(DirectoryRecordType::Reference, 'Kitab Seam'))->keyBy('id');
+
+    expect($detail?->id)->toBe((string) $reference->getKey())
+        ->and($detail?->title)->toBe($reference->displayTitle())
+        ->and($detail?->publicUrl)->toBe(route('references.show', $reference))
+        ->and($options->has((string) $reference->getKey()))->toBeTrue();
+});
+
 it('composes directory and event report subjects without importing models', function (): void {
     $institution = Institution::factory()->create(['name' => 'Masjid Laporan']);
+    $reference = Reference::factory()->create(['title' => 'Kitab Laporan', 'status' => 'verified']);
     $event = Event::factory()->create(['title' => 'Majlis Laporan']);
 
     $resolver = app(ReportSubjectResolver::class);
     $institutionSubject = $resolver->find('institution', (string) $institution->getKey());
+    $referenceSubject = $resolver->find('reference', (string) $reference->getKey());
     $eventSubject = $resolver->find('event', (string) $event->getKey());
 
     expect($resolver->validKeys())->toBe(['event', 'institution', 'person', 'reference', 'donation_channel'])
         ->and($institutionSubject?->title)->toBe('Masjid Laporan')
         ->and($institutionSubject?->publicUrl)->toBe(route('institutions.show', $institution))
+        ->and($referenceSubject?->title)->toBe('Kitab Laporan')
+        ->and($referenceSubject?->publicUrl)->toBe(route('references.show', $reference))
         ->and($eventSubject?->title)->toBe('Majlis Laporan')
         ->and($eventSubject?->publicUrl)->toBe(route('events.show', $event))
         ->and($resolver->exists('institution', (string) $institution->getKey()))->toBeTrue()
+        ->and($resolver->exists('reference', (string) $reference->getKey()))->toBeTrue()
         ->and($resolver->find('unknown_subject', 'id'))->toBeNull();
 });
 

@@ -15,10 +15,10 @@ use App\Data\EventDiscoveryCriteria;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventVisibility;
 use App\Enums\TimingMode;
+use App\Features\Directory\Api\ReferenceQueries;
 use App\Models\Builders\EventBuilder;
 use App\Models\Event;
 use App\Models\Institution;
-use App\Models\Reference;
 use App\Models\Venue;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Shared\Prayer\EventPrayerTime;
@@ -48,6 +48,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
         private ReferenceSearchService $referenceSearch,
         private EventCategoryCatalog $categoryCatalog,
         private EventSearchRelationProvider $relationProvider,
+        private ReferenceQueries $referenceQueries,
     ) {}
 
     /** @return LengthAwarePaginator<int, Event> */
@@ -407,7 +408,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
 
         if ($referenceFilter['ids'] !== []) {
             $queryBuilder->whereHas('references', function (Builder $referenceQuery) use ($referenceFilter): void {
-                Reference::applyPublicVisibility($referenceQuery)
+                $this->referenceQueries->applyPublicVisibility($referenceQuery)
                     ->whereIn('references.id', $referenceFilter['ids']);
             });
         } elseif ($referenceFilter['has_author_filter'] || $referenceFilter['has_id_filter']) {
@@ -623,7 +624,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
 
             if ($referenceIds !== []) {
                 $nestedQuery->orWhereHas('references', function (Builder $referenceQuery) use ($referenceIds): void {
-                    Reference::applyPublicVisibility($referenceQuery)
+                    $this->referenceQueries->applyPublicVisibility($referenceQuery)
                         ->whereIn('references.id', $referenceIds);
                 });
             }
@@ -1020,7 +1021,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
     {
         $referenceIds = $this->uuidFilterValues($value);
 
-        return Reference::expandReferenceIdsForFiltering($referenceIds);
+        return $this->referenceQueries->expandReferenceIdsForFiltering($referenceIds);
     }
 
     /**

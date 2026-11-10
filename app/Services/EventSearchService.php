@@ -6,6 +6,7 @@ use AIArmada\Events\Contracts\EventSearchRelationProvider;
 use App\Contracts\EventCategoryCatalog;
 use App\Data\EventDiscoveryCriteria;
 use App\Data\EventDiscoveryCriteriaFactory;
+use App\Features\Directory\Api\ReferenceQueries;
 use App\Models\Event;
 use App\Platform\Search\TypesenseHealthCheckService;
 use App\Support\EventDiscovery\EventDiscoveryFilterSet;
@@ -28,6 +29,7 @@ class EventSearchService
         private readonly ReferenceSearchService $referenceSearch,
         private readonly EventCategoryCatalog $categoryCatalog,
         private readonly EventSearchRelationProvider $relationProvider,
+        private readonly ReferenceQueries $referenceQueries,
         private readonly FuzzyEventMatcher $fuzzyMatcher = new FuzzyEventMatcher,
         private readonly EventDiscoveryCriteriaFactory $criteriaFactory = new EventDiscoveryCriteriaFactory,
         private readonly EventDiscoveryFilterSet $filterSet = new EventDiscoveryFilterSet,
@@ -84,6 +86,7 @@ class EventSearchService
             referenceSearch: $this->referenceSearch,
             categoryCatalog: $this->categoryCatalog,
             relationProvider: $this->relationProvider,
+            referenceQueries: $this->referenceQueries,
         );
     }
 
@@ -93,6 +96,7 @@ class EventSearchService
             filterSet: $this->filterSet,
             categoryCatalog: $this->categoryCatalog,
             relationProvider: $this->relationProvider,
+            referenceQueries: $this->referenceQueries,
         );
     }
 

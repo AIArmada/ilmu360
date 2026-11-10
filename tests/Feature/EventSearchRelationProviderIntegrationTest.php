@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Contracts\EventCategoryCatalog;
 use App\Data\EventDiscoveryCriteriaFactory;
+use App\Features\Directory\Api\ReferenceQueries;
 use App\Models\Event;
 use App\Services\PostgresEventDiscovery;
 use App\Services\TypesenseEventDiscovery;
@@ -32,6 +33,7 @@ it('makes PostgreSQL discovery consume the injected relation provider', function
         referenceSearch: app(ReferenceSearchService::class),
         categoryCatalog: app(EventCategoryCatalog::class),
         relationProvider: $provider,
+        referenceQueries: app(ReferenceQueries::class),
     );
 
     $results = $discovery->search($criteria);
@@ -56,6 +58,7 @@ it('makes Typesense discovery consume the injected relation provider', function 
         filterSet: new EventDiscoveryFilterSet,
         categoryCatalog: app(EventCategoryCatalog::class),
         relationProvider: $provider,
+        referenceQueries: app(ReferenceQueries::class),
     );
 
     $results = $discovery->search($criteria);

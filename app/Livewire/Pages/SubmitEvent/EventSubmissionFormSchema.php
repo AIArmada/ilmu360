@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Pages\SubmitEvent;
 
+use App\Features\Directory\Api\ReferenceQueries;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTaxonomy;
@@ -798,7 +799,7 @@ final class EventSubmissionFormSchema
                         ->closeOnSelect()
                         ->searchable()
                         ->native(false)
-                        ->relationship('references', 'title', fn (Builder $query) => Reference::applyPublicVisibility($query)->with('parentReference.parentReference'))
+                        ->relationship('references', 'title', fn (Builder $query) => app(ReferenceQueries::class)->applyPublicVisibility($query)->with('parentReference.parentReference'))
                         ->getSearchResultsUsing(fn (string $search): array => ReferenceFormSchema::searchOptions($search))
                         ->getOptionLabelsUsing(fn (array $values): array => ReferenceFormSchema::selectedLabels($values))
                         ->createOptionForm(ReferenceFormSchema::quickCreateComponents())

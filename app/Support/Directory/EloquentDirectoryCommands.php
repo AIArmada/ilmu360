@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Support\Directory;
 
-use App\Actions\References\SaveReferenceAction;
 use App\Actions\Spaces\SaveSpaceAction;
 use App\Actions\Venues\SaveVenueAction;
 use App\Features\Directory\Api\DirectoryCommands;
@@ -14,6 +13,7 @@ use App\Features\Directory\Api\DirectoryRecordType;
 use App\Features\Directory\Api\DonationChannelWorkflow;
 use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Features\Directory\Api\PersonWorkflow;
+use App\Features\Directory\Api\ReferenceWorkflow;
 use App\Models\DonationChannel;
 use App\Models\Institution;
 use App\Models\Person;
@@ -41,7 +41,7 @@ final readonly class EloquentDirectoryCommands implements DirectoryCommands
     public function __construct(
         private InstitutionWorkflow $institutionWorkflow,
         private PersonWorkflow $personWorkflow,
-        private SaveReferenceAction $saveReference,
+        private ReferenceWorkflow $referenceWorkflow,
         private SaveVenueAction $saveVenue,
         private SaveSpaceAction $saveSpace,
         private DonationChannelWorkflow $donationChannelWorkflow,
@@ -62,7 +62,7 @@ final readonly class EloquentDirectoryCommands implements DirectoryCommands
             DirectoryRecordType::Person => Person::query()->findOrFail(
                 $this->personWorkflow->saveFromAdmin($attributes, (string) $actor->getKey()),
             ),
-            DirectoryRecordType::Reference => $this->saveReference->handle($attributes),
+            DirectoryRecordType::Reference => Reference::query()->withoutOwnerScope()->findOrFail($this->referenceWorkflow->saveFromAdmin($attributes)),
             DirectoryRecordType::Venue => $this->saveVenue->handle($attributes),
             DirectoryRecordType::Space => $this->saveSpace->handle($attributes),
             DirectoryRecordType::DonationChannel => DonationChannel::query()->findOrFail($this->donationChannelWorkflow->save($attributes)),
@@ -94,6 +94,12 @@ final readonly class EloquentDirectoryCommands implements DirectoryCommands
             return;
         }
 
+        if ($type === DirectoryRecordType::Reference) {
+            $this->referenceWorkflow->delete([(string) $record->getKey()]);
+
+            return;
+        }
+
         $record->delete();
     }
 
@@ -112,6 +118,10 @@ final readonly class EloquentDirectoryCommands implements DirectoryCommands
 
         if ($type === DirectoryRecordType::Person) {
             return $this->personWorkflow->applyContribution((string) $record->getKey(), $attributes);
+        }
+
+        if ($type === DirectoryRecordType::Reference) {
+            return $this->referenceWorkflow->applyContribution((string) $record->getKey(), $attributes);
         }
 
         return $this->entityMutations->apply($record, $attributes);
@@ -135,7 +145,7 @@ final readonly class EloquentDirectoryCommands implements DirectoryCommands
                 ? $this->personWorkflow->syncRelations((string) $record->getKey(), $relations)
                 : throw new RuntimeException('Expected speaker record.'),
             DirectoryRecordType::Reference => $record instanceof Reference
-                ? $this->entityMutations->syncReferenceRelations($record, $relations)
+                ? $this->referenceWorkflow->syncRelations((string) $record->getKey(), $relations)
                 : throw new RuntimeException('Expected reference record.'),
             DirectoryRecordType::Venue => $record instanceof Venue
                 ? $this->entityMutations->syncVenueRelations($record, $relations)
@@ -164,7 +174,7 @@ final readonly class EloquentDirectoryCommands implements DirectoryCommands
                 )
                 : throw new RuntimeException('Expected speaker record.'),
             DirectoryRecordType::Reference => $record instanceof Reference
-                ? $this->saveReference->handle($attributes, $record)
+                ? Reference::query()->withoutOwnerScope()->findOrFail($this->referenceWorkflow->saveFromAdmin($attributes, (string) $record->getKey()))
                 : throw new RuntimeException('Expected reference record.'),
             DirectoryRecordType::Venue => $record instanceof Venue
                 ? $this->saveVenue->handle($attributes, $record)

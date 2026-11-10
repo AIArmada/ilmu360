@@ -14,7 +14,7 @@ use AIArmada\Seating\Enums\SeatingMode;
 use App\Actions\Events\Scheduling\SyncEventScheduleAction;
 use App\Enums\EventFormat;
 use App\Enums\EventKeyPersonRole;
-use App\Enums\ReferenceType;
+use App\Shared\Directory\Enums\ReferenceType;
 use App\Enums\TimingMode;
 use App\Livewire\Pages\Events\Show;
 use App\Models\Event;

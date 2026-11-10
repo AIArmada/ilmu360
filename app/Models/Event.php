@@ -39,7 +39,7 @@ use App\Enums\EventKeyPersonRole;
 use App\Enums\EventTaxonomyCode;
 use App\Enums\EventVisibility;
 use App\Enums\MemberSubjectType;
-use App\Enums\ReferenceType;
+use App\Shared\Directory\Enums\ReferenceType;
 use App\Enums\TimingMode;
 use App\Models\Builders\EventBuilder;
 use App\Models\Concerns\HasDonationChannels;

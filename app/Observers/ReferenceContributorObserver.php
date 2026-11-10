@@ -3,7 +3,7 @@
 namespace App\Observers;
 
 use AIArmada\References\Models\ReferenceContributor;
-use App\Models\Reference;
+use App\Features\Directory\Api\ReferenceWorkflow;
 use App\Platform\Cache\PublicListingsCache;
 use App\Support\Search\ReferenceSearchService;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
@@ -11,6 +11,7 @@ use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 class ReferenceContributorObserver implements ShouldHandleEventsAfterCommit
 {
     public function __construct(
+        protected ReferenceWorkflow $referenceWorkflow,
         protected ReferenceSearchService $referenceSearchService,
         protected PublicListingsCache $publicListingsCache,
     ) {}
@@ -30,10 +31,6 @@ class ReferenceContributorObserver implements ShouldHandleEventsAfterCommit
         $this->referenceSearchService->bustPublicSearchCache();
         $this->publicListingsCache->bustHomepageStats();
 
-        $reference = Reference::query()->whereKey($contributor->reference_id)->first();
-
-        if ($reference instanceof Reference) {
-            $reference->reindexFamily();
-        }
+        $this->referenceWorkflow->reindexSearchFamily((string) $contributor->reference_id);
     }
 }

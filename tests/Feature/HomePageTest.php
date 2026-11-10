@@ -10,7 +10,7 @@ use AIArmada\Events\Models\EventTimeExpression;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
-use App\Enums\ReferenceType;
+use App\Shared\Directory\Enums\ReferenceType;
 use App\Enums\TimingMode;
 use App\Livewire\Components\EventFilters;
 use App\Models\Event;

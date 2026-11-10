@@ -1,6 +1,6 @@
 <?php
 
-use App\Actions\References\SaveReferenceAction;
+use App\Features\Directory\Api\ReferenceWorkflow;
 use App\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\Person;
@@ -158,13 +158,14 @@ it('renders each reference author on its own line in the hero', function () {
     $firstAuthor = Person::factory()->create(['name' => 'Imam al-Nawawi']);
     $secondAuthor = Person::factory()->create(['name' => 'Ibn Hajar al-Asqalani']);
 
-    $reference = app(SaveReferenceAction::class)->handle([
+    $referenceId = app(ReferenceWorkflow::class)->saveFromAdmin([
         'title' => 'Authored Work',
         'type' => 'book',
         'record_kind' => 'work',
         'author_ids' => [(string) $firstAuthor->getKey(), (string) $secondAuthor->getKey()],
         'status' => 'verified',
     ]);
+    $reference = Reference::query()->findOrFail($referenceId);
 
     $this->get(route('references.show', $reference))
         ->assertSuccessful()

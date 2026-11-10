@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Filament\Resources\References\Pages;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use App\Features\Directory\Api\ReferenceWorkflow;
 use App\Filament\Resources\References\ReferenceResource;
 use App\Forms\ReferenceFormSchema;
 use App\Models\Reference;
-use App\Services\ContributionEntityMutationService;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
@@ -31,11 +31,18 @@ class EditReference extends EditRecord
         });
     }
 
+    /**
+     * @return array<int, DeleteAction>
+     */
     #[\Override]
     protected function getHeaderActions(): array
     {
         return [
-            DeleteAction::make(),
+            DeleteAction::make()
+                ->action(function (DeleteAction $action, Reference $record): void {
+                    app(ReferenceWorkflow::class)->delete([(string) $record->getKey()]);
+                    $action->success();
+                }),
         ];
     }
 
@@ -44,19 +51,14 @@ class EditReference extends EditRecord
     protected function handleRecordUpdate(Model $record, array $data): Model
     {
         try {
-            ReferenceFormSchema::validateDirectInput($data);
+            return OwnerContext::withOwner(null, function () use ($data, $record): Model {
+                ReferenceFormSchema::validateDirectInput($data);
 
-            $hasAuthors = array_key_exists('author_ids', $data);
-            $authorIds = $data['author_ids'] ?? null;
-            unset($data['author_ids']);
+                app(ReferenceWorkflow::class)->saveFromAdmin($data, (string) $record->getKey());
+                $record->refresh();
 
-            $record = parent::handleRecordUpdate($record, $data);
-
-            if ($hasAuthors && $record instanceof Reference) {
-                app(ContributionEntityMutationService::class)->syncReferenceRelations($record, ['author_ids' => $authorIds]);
-            }
-
-            return $record;
+                return $record;
+            });
         } catch (ValidationException $exception) {
             ReferenceFormSchema::throwSchemaErrors($exception, $this->form);
         }

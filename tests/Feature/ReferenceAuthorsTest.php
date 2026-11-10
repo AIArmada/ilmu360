@@ -5,7 +5,7 @@ use AIArmada\References\Models\ReferenceContributor;
 use AIArmada\Signals\Models\SignalEvent;
 use App\Actions\Contributions\Review\ApproveContributionRequestAction;
 use App\Actions\Contributions\Submission\SubmitContributionUpdateRequestAction;
-use App\Actions\References\SaveReferenceAction;
+use App\Features\Directory\Api\ReferenceWorkflow;
 use App\Data\Api\Frontend\Search\ReferenceListData;
 use App\Enums\SpeakerStatus;
 use App\Filament\Resources\References\Pages\CreateReference;
@@ -31,11 +31,18 @@ function referenceAuthorPerson(string $name, string $status = 'verified'): Perso
     ]);
 }
 
+function saveReferenceForTest(array $data, ?Reference $reference = null): Reference
+{
+    $referenceId = app(ReferenceWorkflow::class)->saveFromAdmin($data, $reference?->getKey());
+
+    return Reference::query()->findOrFail($referenceId);
+}
+
 it('stores authors as an unordered set on works through the save boundary', function (): void {
     $first = referenceAuthorPerson('Imam al-Nawawi');
     $second = referenceAuthorPerson('Ibn Hajar al-Asqalani');
 
-    $reference = app(SaveReferenceAction::class)->handle([
+    $reference = saveReferenceForTest([
         'title' => 'Authored Work',
         'type' => 'book',
         'record_kind' => 'work',
@@ -53,7 +60,7 @@ it('stores authors as an unordered set on works through the save boundary', func
 it('supports unknown authors and clears authors with explicit null', function (): void {
     $author = referenceAuthorPerson('Cleared Author');
 
-    $reference = app(SaveReferenceAction::class)->handle([
+    $reference = saveReferenceForTest([
         'title' => 'Unknown Authors Work',
         'type' => 'article',
         'record_kind' => 'work',
@@ -63,7 +70,7 @@ it('supports unknown authors and clears authors with explicit null', function ()
     expect($reference->effectiveAuthorsStructured())->toBe([])
         ->and($reference->effectiveAuthorNames())->toBe('');
 
-    app(SaveReferenceAction::class)->handle([
+    saveReferenceForTest([
         'title' => 'Unknown Authors Work',
         'author_ids' => [(string) $author->getKey()],
         'status' => 'verified',
@@ -71,7 +78,7 @@ it('supports unknown authors and clears authors with explicit null', function ()
 
     expect($reference->fresh()->authorIdsValue())->toBe([(string) $author->getKey()]);
 
-    app(SaveReferenceAction::class)->handle([
+    saveReferenceForTest([
         'title' => 'Unknown Authors Work',
         'author_ids' => null,
         'status' => 'verified',
@@ -84,13 +91,13 @@ it('supports unknown authors and clears authors with explicit null', function ()
 it('rejects unknown and non-visible author ids', function (): void {
     $rejected = referenceAuthorPerson('Rejected Author', 'rejected');
 
-    expect(fn (): Reference => app(SaveReferenceAction::class)->handle([
+    expect(fn (): Reference => saveReferenceForTest([
         'title' => 'Bad Author Work',
         'author_ids' => [(string) $rejected->getKey()],
         'status' => 'verified',
     ]))->toThrow(ValidationException::class);
 
-    expect(fn (): Reference => app(SaveReferenceAction::class)->handle([
+    expect(fn (): Reference => saveReferenceForTest([
         'title' => 'Bad Author Work',
         'author_ids' => ['00000000-0000-0000-0000-000000000000'],
         'status' => 'verified',
@@ -100,7 +107,7 @@ it('rejects unknown and non-visible author ids', function (): void {
 it('inherits effective authors from the root work without storing child links', function (): void {
     $author = referenceAuthorPerson('Root Work Author');
 
-    $work = app(SaveReferenceAction::class)->handle([
+    $work = saveReferenceForTest([
         'title' => 'Inheritance Work',
         'type' => 'book',
         'record_kind' => 'work',
@@ -108,7 +115,7 @@ it('inherits effective authors from the root work without storing child links', 
         'status' => 'verified',
     ]);
 
-    $edition = app(SaveReferenceAction::class)->handle([
+    $edition = saveReferenceForTest([
         'title' => 'Inheritance Work',
         'type' => 'book',
         'record_kind' => 'edition',
@@ -118,7 +125,7 @@ it('inherits effective authors from the root work without storing child links', 
         'status' => 'verified',
     ]);
 
-    $part = app(SaveReferenceAction::class)->handle([
+    $part = saveReferenceForTest([
         'title' => 'Inheritance Work',
         'type' => 'book',
         'record_kind' => 'part',
@@ -140,7 +147,7 @@ it('drops stored author links when a work becomes a child record', function (): 
     $author = referenceAuthorPerson('Converted Author');
     $parent = Reference::factory()->create(['title' => 'Conversion Parent', 'type' => 'book']);
 
-    $reference = app(SaveReferenceAction::class)->handle([
+    $reference = saveReferenceForTest([
         'title' => 'Conversion Candidate',
         'type' => 'book',
         'record_kind' => 'work',
@@ -170,7 +177,7 @@ it('drops stored author links when a work becomes a child with a simultaneous ti
         'type' => 'book',
     ]);
 
-    $reference = app(SaveReferenceAction::class)->handle([
+    $reference = saveReferenceForTest([
         'title' => 'Simultaneous Candidate',
         'type' => 'book',
         'record_kind' => 'work',
@@ -202,7 +209,7 @@ it('drops stored author links when a work becomes a child with a simultaneous ti
 it('validates reference language codes against the languages catalog', function (): void {
     $this->seed(LanguageSeeder::class);
 
-    $reference = app(SaveReferenceAction::class)->handle([
+    $reference = saveReferenceForTest([
         'title' => 'Catalog Language Work',
         'language' => 'ar',
         'status' => 'verified',
@@ -210,7 +217,7 @@ it('validates reference language codes against the languages catalog', function 
 
     expect($reference->language)->toBe('ar');
 
-    $cleared = app(SaveReferenceAction::class)->handle([
+    $cleared = saveReferenceForTest([
         'title' => 'Catalog Language Work',
         'language' => '',
         'status' => 'verified',
@@ -218,7 +225,7 @@ it('validates reference language codes against the languages catalog', function 
 
     expect($cleared->language)->toBeNull();
 
-    expect(fn (): Reference => app(SaveReferenceAction::class)->handle([
+    expect(fn (): Reference => saveReferenceForTest([
         'title' => 'Bad Language Work',
         'language' => 'xx',
         'status' => 'verified',

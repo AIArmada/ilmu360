@@ -10,10 +10,10 @@ use AIArmada\References\Enums\ReferenceContributorRole;
 use AIArmada\References\Enums\ReferenceRecordKind;
 use AIArmada\References\Models\Reference as PackageReference;
 use AIArmada\References\Models\ReferenceContributor;
-use App\Actions\References\GenerateReferenceSlugAction;
 use App\Enums\MemberSubjectType;
-use App\Enums\ReferencePartType;
-use App\Enums\ReferenceType;
+use App\Features\Directory\Api\ReferenceWorkflow;
+use App\Shared\Directory\Enums\ReferencePartType;
+use App\Shared\Directory\Enums\ReferenceType;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Platform\Reporting\ReportModelClass;
 use App\Shared\Support\RelatedModels;
@@ -70,6 +70,9 @@ class Reference extends PackageReference implements AuditableContract, Followabl
     /** @var list<string> */
     public const array PUBLIC_STATUSES = ['verified', 'pending'];
 
+    #[\Override]
+    protected $table = 'references';
+
     /** @use HasFactory<ReferenceFactory> */
     use HasFactory;
 
@@ -83,6 +86,12 @@ class Reference extends PackageReference implements AuditableContract, Followabl
     }
 
     #[\Override]
+    public function getTable(): string
+    {
+        return $this->table;
+    }
+
+    #[\Override]
     protected static function bootHasSlug(): void {}
 
     #[\Override]
@@ -92,7 +101,7 @@ class Reference extends PackageReference implements AuditableContract, Followabl
             $reference->normalizeReferencePartFields();
 
             if (blank($reference->slug)) {
-                $reference->slug = app(GenerateReferenceSlugAction::class)->handle($reference->displayTitle(), (string) $reference->getKey());
+                $reference->slug = app(ReferenceWorkflow::class)->buildSlug($reference->displayTitle(), (string) $reference->getKey());
             }
 
             if ($reference->isDirty('status')) {
@@ -674,38 +683,6 @@ class Reference extends PackageReference implements AuditableContract, Followabl
     public function defaultEventReferenceIds(): array
     {
         return $this->exists ? self::expandReferenceIdsForFiltering([(string) $this->getKey()]) : [];
-    }
-
-    /**
-     * Reindex this record's whole work family (works own authorship, so
-     * contributor changes on a work affect every inherited descendant).
-     */
-    public function reindexFamily(): void
-    {
-        $rootId = $this->isRootReference()
-            ? (string) $this->getKey()
-            : ($this->familyRootId() ?? (string) $this->getKey());
-
-        $ids = [$rootId];
-        $frontier = [$rootId];
-
-        for ($depth = 0; $depth < 2 && $frontier !== []; $depth++) {
-            $children = self::query()->whereIn('parent_id', $frontier)
-                ->pluck('id')
-                ->map(static fn (mixed $id): string => (string) $id)
-                ->all();
-            $children = array_values(array_diff($children, $ids));
-            $ids = [...$ids, ...$children];
-            $frontier = $children;
-        }
-
-        foreach (self::query()->whereKey($ids)->withEffectiveAuthors()->get() as $member) {
-            if ($member->shouldBeSearchable()) {
-                $member->searchable();
-            } else {
-                $member->unsearchable();
-            }
-        }
     }
 
     public function editionDisplayLabel(): string

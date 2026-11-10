@@ -6,6 +6,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\References\Models\ReferenceContributor;
 use App\Actions\Events\Authoring\GenerateEventSlugAction;
 use App\Features\Directory\Api\PersonWorkflow;
+use App\Features\Directory\Api\ReferenceWorkflow;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Platform\Cache\PublicDirectoryCacheVersion;
@@ -23,6 +24,7 @@ class PersonObserver implements ShouldHandleEventsAfterCommit
     public function __construct(
         protected GenerateEventSlugAction $generateEventSlugAction,
         protected PersonWorkflow $personWorkflow,
+        protected ReferenceWorkflow $referenceWorkflow,
         protected SyncSlugRedirectAction $syncSlugRedirectAction,
         protected PublicDirectoryCacheVersion $publicDirectoryCacheVersion,
         protected PublicListingsCache $publicListingsCache,
@@ -103,11 +105,7 @@ class PersonObserver implements ShouldHandleEventsAfterCommit
         }
 
         foreach (array_values(array_unique($rootIds)) as $rootId) {
-            $root = Reference::query()->whereKey($rootId)->first();
-
-            if ($root instanceof Reference) {
-                $root->reindexFamily();
-            }
+            $this->referenceWorkflow->reindexSearchFamily($rootId);
         }
     }
 }
