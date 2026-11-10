@@ -96,7 +96,7 @@ it('returns correct followingPersons relationship', function () {
     expect($ids)->toContain((string) $person1->id, (string) $person2->id);
 });
 
-it('returns correct followers relationship on person', function () {
+it('keeps follower records readable through engagement queries', function () {
     $user1 = User::factory()->create();
     $user2 = User::factory()->create();
     $person = Person::factory()->create(['status' => 'verified']);
@@ -104,10 +104,10 @@ it('returns correct followers relationship on person', function () {
     OwnerContext::withOwner(null, fn () => $user1->follow($person));
     OwnerContext::withOwner(null, fn () => $user2->follow($person));
 
-    expect($person->followers)->toHaveCount(2);
-    expect(OwnerContext::withOwner(null, fn () => $person->isFollowedBy($user1)))->toBeTrue();
-    expect(OwnerContext::withOwner(null, fn () => $person->isFollowedBy($user2)))->toBeTrue();
-    expect(OwnerContext::withOwner(null, fn () => $person->isFollowedBy(null)))->toBeFalse();
+    expect($person->follows()->active()->count())->toBe(2);
+    expect(OwnerContext::withOwner(null, fn () => $user1->isFollowing($person)))->toBeTrue();
+    expect(OwnerContext::withOwner(null, fn () => $user2->isFollowing($person)))->toBeTrue();
+    expect($user1->isFollowing(null))->toBeFalse();
 });
 
 it('cleans up followings when user is deleted', function () {

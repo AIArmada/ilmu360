@@ -3,6 +3,7 @@
 namespace App\Services\Notifications;
 
 use AIArmada\Communications\Contracts\CommunicationManager;
+use AIArmada\Engagement\Models\Follow;
 use AIArmada\Events\Models\EventSubmission;
 use App\Enums\EventChangeSeverity;
 use App\Enums\EventChangeType;
@@ -550,7 +551,7 @@ class EventNotificationService
 
     protected function notifyFollowedContentPublication(Event $event): void
     {
-        $event->loadMissing('personKeyPeople.person.followers');
+        $event->loadMissing('personKeyPeople.person.follows.follower');
 
         $this->dispatchFollowedEntityNotifications(
             trigger: NotificationTrigger::FollowedPersonEvent,
@@ -564,7 +565,7 @@ class EventNotificationService
         );
 
         if ($event->institution !== null) {
-            $event->loadMissing('institution.followers');
+            $event->loadMissing('institution.follows.follower');
             $this->dispatchFollowedEntityNotifications(
                 trigger: NotificationTrigger::FollowedInstitutionEvent,
                 event: $event,
@@ -576,11 +577,12 @@ class EventNotificationService
         $this->dispatchFollowedEntityNotifications(
             trigger: NotificationTrigger::FollowedSeriesEvent,
             event: $event,
-            followables: $event->series()->with('followers')->get(),
+            followables: $event->series()->with('follows.follower')->get(),
             labelResolver: static fn (mixed $series): ?string => $series?->title,
         );
 
         $references = $event->references()
+            ->with('follows.follower')
             ->get()
             ->unique('id')
             ->values();
@@ -665,12 +667,16 @@ class EventNotificationService
         foreach ($followables as $followable) {
             $labels = [];
 
-            if (! method_exists($followable, 'followers')) {
+            if (! method_exists($followable, 'follows')) {
                 continue;
             }
 
-            /** @var Collection<int, User> $followers */
-            $followers = $followable->followers()->get();
+            $followers = $followable->follows()
+                ->active()
+                ->with('follower')
+                ->get()
+                ->map(static fn (Follow $follow): ?User => $follow->follower instanceof User ? $follow->follower : null)
+                ->filter(static fn (?User $follower): bool => $follower instanceof User);
 
             foreach ($followers as $follower) {
                 $users[$follower->id]['user'] = $follower;

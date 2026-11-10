@@ -333,7 +333,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
             ])
             ->withCount([
                 'members',
-                'followers',
+                'follows as followers_count' => fn (Builder $query): Builder => $query->where('status', 'active'),
             ])
             ->orderBy('name')
             ->get();

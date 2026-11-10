@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use AIArmada\Events\Models\EventInvolvement;
+use App\Shared\Support\RelatedModels;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /** @extends EventInvolvement<Event> */
@@ -39,7 +40,7 @@ class EventKeyPerson extends EventInvolvement
      */
     public function person(): BelongsTo
     {
-        return $this->belongsTo(Person::class, 'involveable_id');
+        return $this->belongsTo(RelatedModels::person(), 'involveable_id');
     }
 
     public function getResolvedNameAttribute(): string

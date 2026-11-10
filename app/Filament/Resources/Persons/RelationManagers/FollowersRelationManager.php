@@ -4,27 +4,32 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Persons\RelationManagers;
 
+use AIArmada\Engagement\Enums\FollowStatus;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class FollowersRelationManager extends RelationManager
 {
-    protected static string $relationship = 'followers';
+    protected static string $relationship = 'follows';
 
     protected static ?string $title = 'Followers';
 
     public function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->where('status', FollowStatus::Active->value))
             ->columns([
-                TextColumn::make('name')
+                TextColumn::make('follower.name')
+                    ->label('Name')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('email')
+                TextColumn::make('follower.email')
+                    ->label('Email')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('pivot.created_at')
+                TextColumn::make('created_at')
                     ->label('Followed At')
                     ->dateTime()
                     ->sortable(),

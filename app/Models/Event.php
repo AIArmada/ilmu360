@@ -50,6 +50,7 @@ use App\Shared\Auth\AccountActor;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerOffset;
 use App\Shared\Prayer\PrayerReference;
+use App\Shared\Support\RelatedModels;
 use App\States\EventStatus\EventStatus;
 use App\States\EventStatus\Pending;
 use App\Support\Authz\MemberPermissionGate;
@@ -1704,7 +1705,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
      */
     public function institution(): BelongsTo
     {
-        return $this->belongsTo(Institution::class);
+        return $this->belongsTo(RelatedModels::institution());
     }
 
     /**
@@ -1712,7 +1713,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
      */
     public function venue(): BelongsTo
     {
-        return $this->belongsTo(Venue::class, 'default_venue_id');
+        return $this->belongsTo(RelatedModels::venue(), 'default_venue_id');
     }
 
     /**
@@ -1759,7 +1760,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
         $locations = PrimaryLocationSql::table();
 
         return $this->hasOneThrough(
-            Venue::class,
+            RelatedModels::venue(),
             EventLocation::class,
             'event_id',
             'id',
@@ -1932,7 +1933,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
      */
     public function persons(): BelongsToMany
     {
-        return $this->belongsToMany(Person::class, 'event_involvements', 'event_id', 'involveable_id')
+        return $this->belongsToMany(RelatedModels::person(), 'event_involvements', 'event_id', 'involveable_id')
             ->using(EventKeyPersonPivot::class)
             ->withPivotValue('involveable_type', 'person')
             ->withPivotValue('role_code', EventKeyPersonRole::Speaker->value)
@@ -1953,7 +1954,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
     public function references(): BelongsToMany
     {
         return $this->belongsToMany(
-            Reference::class,
+            RelatedModels::reference(),
             config('events.database.tables.event_references', 'event_references'),
             'event_id',
             'referenceable_id',

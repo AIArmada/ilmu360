@@ -23,6 +23,7 @@ use App\Models\Concerns\HasDonationChannels;
 use App\Models\Concerns\HasLanguages;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Platform\Reporting\ReportModelClass;
+use App\Shared\Support\RelatedModels;
 use App\Support\Search\PersonSearchService;
 use BackedEnum;
 use Carbon\CarbonImmutable;
@@ -487,7 +488,7 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
      */
     public function events(): BelongsToMany
     {
-        return $this->belongsToMany(Event::class, 'event_involvements', 'involveable_id', 'event_id')
+        return $this->belongsToMany(RelatedModels::event(), 'event_involvements', 'involveable_id', 'event_id')
             ->using(EventKeyPersonPivot::class)
             ->wherePivot('involveable_type', 'person')
             ->withPivot(['id', 'involveable_type', 'role_code', 'sort_order', 'notes'])
@@ -510,7 +511,7 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
      */
     public function eventKeyPeople(): HasMany
     {
-        return $this->hasMany(EventKeyPerson::class, 'involveable_id')
+        return $this->hasMany(RelatedModels::eventKeyPerson(), 'involveable_id')
             ->where('involveable_type', 'person');
     }
 
@@ -530,7 +531,7 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
      */
     public function verifier(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'verified_by');
+        return $this->belongsTo(RelatedModels::user(), 'verified_by');
     }
 
     /**
@@ -769,28 +770,8 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
         return $this->morphMany(Follow::class, 'followable');
     }
 
-    /**
-     * @return MorphToMany<User, $this>
-     */
-    public function followers(): MorphToMany
-    {
-        $table = (new Follow)->getTable();
-
-        return $this->morphToMany(User::class, 'followable', $table, 'followable_id', 'follower_id')
-            ->where("{$table}.status", 'active');
-    }
-
     public function followersCount(): int
     {
         return $this->follows()->active()->count();
-    }
-
-    public function isFollowedBy(?User $user): bool
-    {
-        if (! $user instanceof User) {
-            return false;
-        }
-
-        return $this->follows()->active()->where('follower_id', $user->getKey())->exists();
     }
 }

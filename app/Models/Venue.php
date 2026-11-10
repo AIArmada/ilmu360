@@ -10,6 +10,7 @@ use AIArmada\Events\Models\VenueFacility;
 use App\Enums\InstitutionVenueRole;
 use App\Enums\VenueType;
 use App\Platform\Auditing\AuditsModelChanges;
+use App\Shared\Support\RelatedModels;
 use Carbon\CarbonImmutable;
 use Database\Factories\VenueFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -113,7 +114,7 @@ class Venue extends PackageVenue implements AuditableContract
      */
     public function events(): HasMany
     {
-        return $this->hasMany(Event::class, 'default_venue_id');
+        return $this->hasMany(RelatedModels::event(), 'default_venue_id');
     }
 
     /**
@@ -254,6 +255,6 @@ class Venue extends PackageVenue implements AuditableContract
      */
     public function verifier(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'verified_by');
+        return $this->belongsTo(RelatedModels::user(), 'verified_by');
     }
 }

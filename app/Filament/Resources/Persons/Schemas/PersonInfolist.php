@@ -408,7 +408,12 @@ class PersonInfolist
                                             ->label('Jumlah Majlis')
                                             ->state(function (Person $record): int {
                                                 if (! array_key_exists('events_count', $record->getAttributes())) {
-                                                    $record->loadCount(['events', 'followers', 'members', 'reports']);
+                                                    $record->loadCount([
+                                                        'events',
+                                                        'follows as followers_count' => fn ($query) => $query->where('status', 'active'),
+                                                        'members',
+                                                        'reports',
+                                                    ]);
                                                 }
 
                                                 return (int) $record->getAttribute('events_count');

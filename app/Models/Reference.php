@@ -16,6 +16,7 @@ use App\Enums\ReferencePartType;
 use App\Enums\ReferenceType;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Platform\Reporting\ReportModelClass;
+use App\Shared\Support\RelatedModels;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Database\Factories\ReferenceFactory;
@@ -967,7 +968,7 @@ class Reference extends PackageReference implements AuditableContract, Followabl
      */
     public function verifier(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'verified_by');
+        return $this->belongsTo(RelatedModels::user(), 'verified_by');
     }
 
     /**
@@ -976,7 +977,7 @@ class Reference extends PackageReference implements AuditableContract, Followabl
     public function events(): BelongsToMany
     {
         return $this->morphToMany(
-            Event::class,
+            RelatedModels::event(),
             'referenceable',
             config('events.database.tables.event_references', 'event_references'),
             'referenceable_id',
@@ -993,7 +994,7 @@ class Reference extends PackageReference implements AuditableContract, Followabl
      */
     public function memberInvitations(): HasMany
     {
-        return $this->hasMany(MemberInvitation::class, 'subject_id')
+        return $this->hasMany(RelatedModels::memberInvitation(), 'subject_id')
             ->where('subject_type', MemberSubjectType::Reference->value);
     }
 
@@ -1055,28 +1056,8 @@ class Reference extends PackageReference implements AuditableContract, Followabl
         return $this->morphMany(Follow::class, 'followable');
     }
 
-    /**
-     * @return MorphToMany<User, $this>
-     */
-    public function followers(): MorphToMany
-    {
-        $table = (new Follow)->getTable();
-
-        return $this->morphToMany(User::class, 'followable', $table, 'followable_id', 'follower_id')
-            ->where("{$table}.status", 'active');
-    }
-
     public function followersCount(): int
     {
         return $this->follows()->active()->count();
-    }
-
-    public function isFollowedBy(?User $user): bool
-    {
-        if (! $user instanceof User) {
-            return false;
-        }
-
-        return $this->follows()->active()->where('follower_id', $user->getKey())->exists();
     }
 }

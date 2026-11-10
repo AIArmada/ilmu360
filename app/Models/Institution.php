@@ -20,6 +20,7 @@ use App\Models\Concerns\HasDonationChannels;
 use App\Models\Concerns\HasLanguages;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Platform\Reporting\ReportModelClass;
+use App\Shared\Support\RelatedModels;
 use App\Support\Institutions\InstitutionFacilities;
 use Carbon\CarbonInterface;
 use Database\Factories\InstitutionFactory;
@@ -32,7 +33,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
-use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -567,7 +567,7 @@ class Institution extends Model implements AuditableContract, Followable, HasMed
      */
     public function events(): HasMany
     {
-        return $this->hasMany(Event::class);
+        return $this->hasMany(RelatedModels::event());
     }
 
     /**
@@ -594,7 +594,7 @@ class Institution extends Model implements AuditableContract, Followable, HasMed
      */
     public function verifier(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'verified_by');
+        return $this->belongsTo(RelatedModels::user(), 'verified_by');
     }
 
     /**
@@ -602,7 +602,7 @@ class Institution extends Model implements AuditableContract, Followable, HasMed
      */
     public function memberInvitations(): HasMany
     {
-        return $this->hasMany(MemberInvitation::class, 'subject_id')
+        return $this->hasMany(RelatedModels::memberInvitation(), 'subject_id')
             ->where('subject_type', MemberSubjectType::Institution->value);
     }
 
@@ -788,28 +788,8 @@ class Institution extends Model implements AuditableContract, Followable, HasMed
         return $this->morphMany(Follow::class, 'followable');
     }
 
-    /**
-     * @return MorphToMany<User, $this>
-     */
-    public function followers(): MorphToMany
-    {
-        $table = (new Follow)->getTable();
-
-        return $this->morphToMany(User::class, 'followable', $table, 'followable_id', 'follower_id')
-            ->where("{$table}.status", 'active');
-    }
-
     public function followersCount(): int
     {
         return $this->follows()->active()->count();
-    }
-
-    public function isFollowedBy(?User $user): bool
-    {
-        if (! $user instanceof User) {
-            return false;
-        }
-
-        return $this->follows()->active()->where('follower_id', $user->getKey())->exists();
     }
 }

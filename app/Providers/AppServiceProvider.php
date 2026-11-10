@@ -634,6 +634,7 @@ class AppServiceProvider extends ServiceProvider
             'space' => Space::class,
             'venue' => Venue::class,
             'donation_channel' => DonationChannel::class,
+            'language' => Language::class,
             'reference' => Reference::class,
             'organization' => Organization::class,
             'inventory_location' => InventoryLocation::class,

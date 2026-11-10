@@ -258,7 +258,13 @@ class InstitutionInfolist
                                             ->label('Jumlah Majlis')
                                             ->state(function ($record): int {
                                                 if (! array_key_exists('events_count', $record->getAttributes())) {
-                                                    $record->loadCount(['events', 'members', 'persons', 'followers', 'reports']);
+                                                    $record->loadCount([
+                                                        'events',
+                                                        'members',
+                                                        'persons',
+                                                        'follows as followers_count' => fn ($query) => $query->where('status', 'active'),
+                                                        'reports',
+                                                    ]);
                                                 }
 
                                                 return (int) $record->getAttribute('events_count');

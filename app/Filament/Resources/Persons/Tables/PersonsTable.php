@@ -35,8 +35,10 @@ class PersonsTable
                     ->sortable(),
                 TextColumn::make('followers_count')
                     ->label('Followers')
-                    ->counts('followers')
-                    ->sortable(),
+                    ->state(fn (Person $record): int => $record->followersCount())
+                    ->sortable(query: fn (Builder $query, string $direction): Builder => $query
+                        ->withCount(['follows as followers_count' => fn (Builder $followQuery): Builder => $followQuery->where('status', 'active')])
+                        ->orderBy('followers_count', $direction)),
                 TextColumn::make('status')
                     ->badge()
                     ->sortable(),

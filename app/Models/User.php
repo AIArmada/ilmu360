@@ -34,6 +34,7 @@ use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
 use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphPivot;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -228,6 +229,10 @@ class User extends Authenticatable implements AccountActor, AuditableContract, C
 
     public function isFollowing(mixed $subject): bool
     {
+        if (! $subject instanceof Model) {
+            return false;
+        }
+
         return OwnerContext::withOwner(null, fn (): bool => $this->traitIsFollowing($subject));
     }
 
