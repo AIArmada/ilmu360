@@ -2,7 +2,7 @@
 
 namespace App\Platform\Api\Search;
 
-use App\Enums\InstitutionType;
+use App\Shared\Directory\Enums\InstitutionType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;

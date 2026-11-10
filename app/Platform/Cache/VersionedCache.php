@@ -13,9 +13,9 @@ use Illuminate\Support\Facades\Cache;
  * Remembers values under a version-specific key so bumping the shared version
  * invalidates the whole namespace without deleting individual entries.
  */
-final class VersionedCache
+final readonly class VersionedCache
 {
-    public function __construct(private readonly CacheVersionStore $versions) {}
+    public function __construct(private CacheVersionStore $versions) {}
 
     /**
      * @template TValue

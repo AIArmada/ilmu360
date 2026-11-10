@@ -1,6 +1,6 @@
 <?php
 
-use App\Actions\Location\NormalizeGoogleMapsInputAction;
+use App\Platform\Location\NormalizeGoogleMapsInputAction;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;

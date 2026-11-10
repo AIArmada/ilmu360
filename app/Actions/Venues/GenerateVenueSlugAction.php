@@ -6,9 +6,9 @@ use AIArmada\Addressing\Support\LocationSlugSegments;
 use AIArmada\CommerceSupport\Support\CanonicalSlug;
 use AIArmada\CommerceSupport\Support\StableModelOrder;
 use AIArmada\CommerceSupport\Support\UniqueSlug;
-use App\Actions\Slugs\SyncSlugRedirectAction;
 use App\Models\Venue;
-use App\Support\Location\AddressAssignments;
+use App\Platform\Location\AddressAssignments;
+use App\Platform\Routing\SyncSlugRedirectAction;
 use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;
 

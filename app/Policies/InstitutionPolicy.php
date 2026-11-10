@@ -1,105 +1,109 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Policies;
 
-use App\Enums\InstitutionStatus;
 use App\Models\Institution;
-use App\Models\User;
-use App\Support\Authz\MemberPermissionGate;
+use App\Shared\Auth\AccountActor;
+use App\Shared\Directory\Enums\InstitutionStatus;
+use App\Shared\Membership\MembershipAuthorization;
+use App\Shared\Membership\MembershipSubjectType;
 
 class InstitutionPolicy
 {
-    /**
-     * Determine whether the user can view any models.
-     */
-    public function viewAny(?User $user): bool
+    public function __construct(private readonly MembershipAuthorization $authorization) {}
+
+    public function viewAny(?AccountActor $user): bool
     {
-        return true; // Public can view institutions list
+        return true;
     }
 
-    /**
-     * Determine whether the user can view the model.
-     */
-    public function view(?User $user, Institution $institution): bool
+    public function view(?AccountActor $user, Institution $institution): bool
     {
-        // Verified and pending institutions are publicly viewable
         if (in_array($institution->status, InstitutionStatus::publiclyVisible(), true)) {
             return true;
         }
 
-        if (! $user instanceof User) {
+        if (! $user instanceof AccountActor) {
             return false;
         }
 
-        // Admins can view any institution
         if ($user->hasAnyRole(['super_admin', 'admin', 'moderator'])) {
             return true;
         }
 
-        return app(MemberPermissionGate::class)->canInstitution($user, 'institution.view', $institution);
+        return $this->authorization->can(
+            $user->actorId(),
+            'institution.view',
+            MembershipSubjectType::Institution,
+            (string) $institution->getKey(),
+        );
     }
 
-    /**
-     * Determine whether the user can create models.
-     */
-    public function create(User $user): bool
+    public function create(AccountActor $user): bool
     {
-        // Any authenticated user can create an institution
         return true;
     }
 
-    /**
-     * Determine whether the user can update the model.
-     */
-    public function update(User $user, Institution $institution): bool
+    public function update(AccountActor $user, Institution $institution): bool
     {
-        // Admins can update any institution
         if ($user->hasAnyRole(['super_admin', 'admin', 'moderator'])) {
             return true;
         }
 
-        return app(MemberPermissionGate::class)->canInstitution($user, 'institution.update', $institution);
+        return $this->authorization->can(
+            $user->actorId(),
+            'institution.update',
+            MembershipSubjectType::Institution,
+            (string) $institution->getKey(),
+        );
     }
 
-    /**
-     * Determine whether the user can delete the model.
-     */
-    public function delete(User $user, Institution $institution): bool
+    public function delete(AccountActor $user, Institution $institution): bool
     {
-        // Only super admins and institution owners can delete
         if ($user->hasRole('super_admin')) {
             return true;
         }
 
-        return app(MemberPermissionGate::class)->canInstitution($user, 'institution.delete', $institution);
+        return $this->authorization->can(
+            $user->actorId(),
+            'institution.delete',
+            MembershipSubjectType::Institution,
+            (string) $institution->getKey(),
+        );
     }
 
-    public function deleteAny(User $user): bool
+    public function deleteAny(AccountActor $user): bool
     {
         return $user->hasRole('super_admin');
     }
 
-    /**
-     * Determine whether the user can manage members.
-     */
-    public function manageMembers(User $user, Institution $institution): bool
+    public function manageMembers(AccountActor $user, Institution $institution): bool
     {
         if ($user->hasRole('super_admin')) {
             return true;
         }
 
-        return app(MemberPermissionGate::class)->canInstitution($user, 'institution.manage-members', $institution);
+        return $this->authorization->can(
+            $user->actorId(),
+            'institution.manage-members',
+            MembershipSubjectType::Institution,
+            (string) $institution->getKey(),
+        );
     }
 
-    /**
-     * Determine whether the user can manage donation channels.
-     */
-    public function manageDonationChannels(User $user, Institution $institution): bool
+    public function manageDonationChannels(AccountActor $user, Institution $institution): bool
     {
         if ($user->hasRole('super_admin')) {
             return true;
         }
 
-        return app(MemberPermissionGate::class)->canInstitution($user, 'institution.manage-donation-channels', $institution);
+        return $this->authorization->can(
+            $user->actorId(),
+            'institution.manage-donation-channels',
+            MembershipSubjectType::Institution,
+            (string) $institution->getKey(),
+        );
     }
 }

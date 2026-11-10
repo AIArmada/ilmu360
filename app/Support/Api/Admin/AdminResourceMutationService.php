@@ -17,28 +17,26 @@ use AIArmada\FilamentEvents\Resources\EventResource;
 use AIArmada\Persons\Enums\Gender;
 use AIArmada\References\Enums\ReferenceRecordKind;
 use AIArmada\References\Rules\Isbn;
-use App\Actions\DonationChannels\SaveDonationChannelAction;
 use App\Actions\Events\Authoring\SaveAdminEventAction;
-use App\Actions\Institutions\SaveInstitutionAction;
 use App\Actions\Persons\SavePersonAction;
 use App\Actions\References\SaveReferenceAction;
 use App\Actions\Series\SaveSeriesAction;
 use App\Actions\Spaces\SaveSpaceAction;
 use App\Actions\Venues\SaveVenueAction;
 use App\Contracts\EventCategoryCatalog;
-use App\Enums\DonationChannelStatus;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventTaxonomyCode;
 use App\Enums\EventVisibility;
-use App\Enums\InstitutionStatus;
-use App\Enums\InstitutionType;
 use App\Enums\ReferencePartType;
 use App\Enums\ReferenceType;
 use App\Enums\RegistrationScope;
 use App\Enums\VenueType;
+use App\Features\Directory\Api\DirectoryCommands;
+use App\Features\Directory\Api\DirectoryRecordType;
+use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Features\Inspirations\Api\InspirationAdminContract;
 use App\Features\Reports\Api\ReportAdminContract;
 use App\Filament\Resources\DonationChannels\DonationChannelResource;
@@ -61,9 +59,12 @@ use App\Models\Venue;
 use App\Platform\Admin\Concerns\BuildsAdminFieldMetadata;
 use App\Platform\Reporting\ReportModelClass;
 use App\Services\ContributionEntityMutationService;
+use App\Shared\Directory\Enums\DonationChannelStatus;
+use App\Shared\Directory\Enums\InstitutionStatus;
+use App\Shared\Directory\Enums\InstitutionType;
+use App\Shared\Directory\InstitutionFacilities;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Support\Events\AdminEventFormStateBuilder;
-use App\Support\Institutions\InstitutionFacilities;
 use BackedEnum;
 use Closure;
 use Illuminate\Database\Eloquent\Model;
@@ -82,10 +83,10 @@ class AdminResourceMutationService
         private readonly InspirationAdminContract $inspirationAdmin,
         private readonly ReportAdminContract $reportAdmin,
         private readonly SaveAddressAreaAction $saveAddressAreaAction,
-        private readonly SaveDonationChannelAction $saveDonationChannelAction,
+        private readonly DirectoryCommands $directoryCommands,
         private readonly SaveAdminEventAction $saveAdminEventAction,
         private readonly AdminEventFormStateBuilder $adminEventFormStateBuilder,
-        private readonly SaveInstitutionAction $saveInstitutionAction,
+        private readonly InstitutionWorkflow $institutionWorkflow,
         private readonly SaveReferenceAction $saveReferenceAction,
         private readonly SaveSeriesAction $saveSeriesAction,
         private readonly SavePersonAction $savePersonAction,
@@ -403,9 +404,9 @@ class AdminResourceMutationService
 
         return match ($resourceClass) {
             AddressAreaResource::class => $this->saveAddressAreaAction->handle($validated),
-            DonationChannelResource::class => $this->saveDonationChannelAction->handle($validated),
+            DonationChannelResource::class => DonationChannel::query()->findOrFail($this->directoryCommands->create(DirectoryRecordType::DonationChannel, $validated, (string) $actor->getKey())->id),
             EventResource::class => $this->saveAdminEventAction->handle($validated, $actor),
-            InstitutionResource::class => $this->saveInstitutionAction->handle($validated, $actor),
+            InstitutionResource::class => Institution::query()->findOrFail($this->institutionWorkflow->saveFromAdmin($validated, (string) $actor->getKey())),
             ReferenceResource::class => $this->saveReferenceAction->handle($validated),
             SeriesResource::class => $this->saveSeriesAction->handle($validated),
             PersonResource::class => $this->savePersonAction->handle($validated, $actor),
@@ -438,13 +439,13 @@ class AdminResourceMutationService
                 ? $this->saveAddressAreaAction->handle($validated, $record)
                 : throw new \RuntimeException('Expected address area record.'),
             DonationChannelResource::class => $record instanceof DonationChannel
-                ? $this->saveDonationChannelAction->handle($validated, $record)
+                ? DonationChannel::query()->findOrFail($this->directoryCommands->update(DirectoryRecordType::DonationChannel, (string) $record->getKey(), $validated, (string) $actor->getKey())->id)
                 : throw new \RuntimeException('Expected donation channel record.'),
             EventResource::class => $record instanceof Event
                 ? $this->saveAdminEventAction->handle($validated, $actor, $record)
                 : throw new \RuntimeException('Expected event record.'),
             InstitutionResource::class => $record instanceof Institution
-                ? $this->saveInstitutionAction->handle($validated, $actor, $record)
+                ? Institution::query()->findOrFail($this->institutionWorkflow->saveFromAdmin($validated, (string) $actor->getKey(), (string) $record->getKey()))
                 : throw new \RuntimeException('Expected institution record.'),
             ReferenceResource::class => $record instanceof Reference
                 ? $this->saveReferenceAction->handle($validated, $record)

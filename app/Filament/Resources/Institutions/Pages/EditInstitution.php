@@ -5,7 +5,7 @@ namespace App\Filament\Resources\Institutions\Pages;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Support\AddressCountryResolver;
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Actions\Institutions\SaveInstitutionAction;
+use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Forms\SharedFormSchema;
 use App\Models\Institution;
@@ -73,12 +73,15 @@ class EditInstitution extends EditRecord
             }
         }
 
-        return OwnerContext::withOwner(null, fn (): Institution => app(SaveInstitutionAction::class)->handle(
-            $data,
-            $actor,
-            $record,
-            'data.allow_public_event_submission',
-        ));
+        return OwnerContext::withOwner(null, function () use ($data, $actor, $record): Institution {
+            $institutionId = app(InstitutionWorkflow::class)->saveFromAdmin(
+                $data,
+                (string) $actor->getKey(),
+                (string) $record->getKey(),
+            );
+
+            return Institution::query()->findOrFail($institutionId);
+        });
     }
 
     #[On(PublicSubmissionUiEvents::REFRESH_TOGGLE)]

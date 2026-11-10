@@ -3,10 +3,10 @@
 namespace App\Observers;
 
 use App\Actions\References\GenerateReferenceSlugAction;
-use App\Actions\Slugs\SyncSlugRedirectAction;
 use App\Models\Reference;
-use App\Observers\Concerns\SyncsCurrentAndPreviousValues;
 use App\Platform\Cache\PublicListingsCache;
+use App\Platform\Models\Concerns\SyncsCurrentAndPreviousValues;
+use App\Platform\Routing\SyncSlugRedirectAction;
 use App\Support\Search\ReferenceSearchService;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 

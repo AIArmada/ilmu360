@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Models\Person;
+use App\Platform\Search\AbstractIndexToScout;
 
 class IndexPersonsToTypesense extends AbstractIndexToScout
 {

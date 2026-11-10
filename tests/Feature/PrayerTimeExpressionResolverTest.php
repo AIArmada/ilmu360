@@ -3,7 +3,6 @@
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventSession;
 use AIArmada\Events\Models\EventTimeExpression;
-use App\Enums\InstitutionVenueRole;
 use App\Features\Prayer\Actions\ResolvePrayerStartClockAction;
 use App\Features\Prayer\Api\PrayerQuery;
 use App\Features\Prayer\Persistence\PrayerTimesCache;
@@ -13,6 +12,7 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Venue;
 use App\Services\PrayerTimeExpressionResolver;
+use App\Shared\Directory\Enums\InstitutionVenueRole;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerOffset;
 use App\Support\Prayer\PrayerLocation;

@@ -2,9 +2,9 @@
 
 namespace Database\Factories;
 
-use App\Enums\DonationChannelStatus;
 use App\Models\DonationChannel;
 use App\Models\Institution;
+use App\Shared\Directory\Enums\DonationChannelStatus;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

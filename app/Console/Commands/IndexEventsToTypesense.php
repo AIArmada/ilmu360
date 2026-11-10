@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Models\Event;
+use App\Platform\Search\AbstractIndexToScout;
 
 class IndexEventsToTypesense extends AbstractIndexToScout
 {

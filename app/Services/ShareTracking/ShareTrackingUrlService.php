@@ -10,7 +10,7 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Series;
-use App\Support\Models\SlugOrUuidResolver;
+use App\Platform\Models\SlugOrUuidResolver;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;

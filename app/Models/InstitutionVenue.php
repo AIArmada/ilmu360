@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Enums\InstitutionVenueRole;
+use App\Shared\Directory\Enums\InstitutionVenueRole;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Pivot;

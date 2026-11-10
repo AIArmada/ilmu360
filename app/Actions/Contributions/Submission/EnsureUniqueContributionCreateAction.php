@@ -3,12 +3,12 @@
 namespace App\Actions\Contributions\Submission;
 
 use App\Enums\ContributionSubjectType;
-use App\Enums\InstitutionStatus;
 use App\Forms\SharedFormSchema;
 use App\Models\Institution;
 use App\Models\Person;
-use App\Support\Location\AddressAssignments;
-use App\Support\Location\GooglePlaceIdentity;
+use App\Platform\Location\AddressAssignments;
+use App\Platform\Location\GooglePlaceIdentity;
+use App\Shared\Directory\Enums\InstitutionStatus;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;

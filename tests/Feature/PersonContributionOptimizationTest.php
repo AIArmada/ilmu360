@@ -2,7 +2,6 @@
 
 use AIArmada\Persons\Models\Title;
 use App\Enums\ContributionSubjectType;
-use App\Enums\InstitutionNameType;
 use App\Forms\InstitutionFormSchema;
 use App\Livewire\Pages\Contributions\SuggestUpdate;
 use App\Models\Institution;
@@ -10,6 +9,7 @@ use App\Models\InstitutionName;
 use App\Models\Person;
 use App\Models\User;
 use App\Services\ContributionEntityMutationService;
+use App\Shared\Directory\Enums\InstitutionNameType;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;

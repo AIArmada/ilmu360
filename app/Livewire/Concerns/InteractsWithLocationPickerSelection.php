@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Livewire\Concerns;
 
-use App\Actions\Location\FetchGooglePlaceDetailsAction;
-use App\Actions\Location\ResolveGooglePlaceSelectionAction;
 use App\Forms\SharedFormSchema;
-use App\Support\Location\GooglePlaceIdentity;
+use App\Platform\Location\FetchGooglePlaceDetailsAction;
+use App\Platform\Location\GooglePlaceIdentity;
+use App\Platform\Location\ResolveGooglePlaceSelectionAction;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 

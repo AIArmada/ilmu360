@@ -3,6 +3,7 @@
 namespace App\Support\Submission;
 
 use AIArmada\Membership\Enums\MemberRole;
+use App\Features\Directory\Api\InstitutionSubmissionAccess;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
@@ -18,25 +19,16 @@ final readonly class PublicSubmissionLockService
 {
     public function __construct(
         private MembershipDirectory $memberships,
+        private InstitutionSubmissionAccess $institutions,
     ) {}
 
     public function institutionEligibility(Institution $institution): SubmissionLockEligibilityResult
     {
-        /** @var Collection<int, User> $members */
-        $members = $institution->relationLoaded('members')
-            ? $institution->getRelation('members')
-            : $institution->members()->get();
+        $eligibility = $this->institutions->eligibility((string) $institution->getKey());
 
-        if (! $institution->relationLoaded('members')) {
-            $institution->setRelation('members', $members);
-        }
-
-        return $this->resolveEligibility(
-            $members,
-            __('Tiada ahli institusi yang didaftarkan.'),
-            __('Tiada ahli institusi dengan peranan owner/admin.'),
-            __('Peranan owner/admin memerlukan nombor telefon yang telah disahkan.'),
-        );
+        return $eligibility->eligible
+            ? SubmissionLockEligibilityResult::eligible()
+            : SubmissionLockEligibilityResult::ineligible($eligibility->reasons);
     }
 
     public function personEligibility(Person $person): SubmissionLockEligibilityResult
@@ -60,23 +52,7 @@ final readonly class PublicSubmissionLockService
 
     public function lockInstitution(Institution $institution, User $actor): void
     {
-        $this->ensureGlobalLockPermission($actor);
-
-        $eligibility = $this->institutionEligibility($institution);
-
-        if (! $eligibility->eligible) {
-            throw ValidationException::withMessages([
-                'lock_public_submission' => $eligibility->reasons,
-            ]);
-        }
-
-        $institution->forceFill([
-            'allow_public_event_submission' => false,
-            'public_submission_locked_at' => Carbon::now(),
-            'public_submission_locked_by' => $actor->getKey(),
-        ])->save();
-
-        Cache::forget('submit_institutions');
+        $this->institutions->lock((string) $institution->getKey(), (string) $actor->getKey());
     }
 
     public function lockPerson(Person $person, User $actor): void
@@ -102,13 +78,7 @@ final readonly class PublicSubmissionLockService
 
     public function unlockInstitution(Institution $institution, User $actor): void
     {
-        $this->ensureGlobalLockPermission($actor);
-
-        $institution->forceFill([
-            'allow_public_event_submission' => true,
-        ])->save();
-
-        Cache::forget('submit_institutions');
+        $this->institutions->unlock((string) $institution->getKey(), (string) $actor->getKey());
     }
 
     public function unlockPerson(Person $person, User $actor): void
@@ -124,23 +94,7 @@ final readonly class PublicSubmissionLockService
 
     public function ensureInstitutionUnlockedIfIneligible(Institution $institution): bool
     {
-        if ($institution->allow_public_event_submission) {
-            return false;
-        }
-
-        $eligibility = $this->institutionEligibility($institution);
-
-        if ($eligibility->eligible) {
-            return false;
-        }
-
-        $institution->forceFill([
-            'allow_public_event_submission' => true,
-        ])->save();
-
-        Cache::forget('submit_institutions');
-
-        return true;
+        return $this->institutions->reopenIfIneligible((string) $institution->getKey());
     }
 
     public function ensurePersonUnlockedIfIneligible(Person $person): bool
@@ -169,15 +123,7 @@ final readonly class PublicSubmissionLockService
      */
     public function sweepLockedEntities(): array
     {
-        $institutionsReopened = 0;
-
-        Institution::query()
-            ->where('allow_public_event_submission', false)
-            ->each(function (Institution $institution) use (&$institutionsReopened): void {
-                if ($this->ensureInstitutionUnlockedIfIneligible($institution)) {
-                    $institutionsReopened++;
-                }
-            });
+        $institutionsReopened = $this->institutions->sweep();
 
         $personsReopened = 0;
 
@@ -199,20 +145,7 @@ final readonly class PublicSubmissionLockService
     {
         $accountId = (string) $user->getKey();
 
-        /** @var list<string> $institutionIds */
-        $institutionIds = Institution::query()
-            ->whereKey($this->memberships->subjectIdsFor($accountId, MembershipSubjectType::Institution))
-            ->where('allow_public_event_submission', false)
-            ->pluck('institutions.id')
-            ->map(fn (mixed $id): string => (string) $id)
-            ->values()
-            ->all();
-
-        if ($institutionIds !== []) {
-            Institution::query()
-                ->whereIn('id', $institutionIds)
-                ->each(fn (Institution $institution): bool => $this->ensureInstitutionUnlockedIfIneligible($institution));
-        }
+        $this->institutions->syncForAccount($accountId);
 
         /** @var list<string> $personIds */
         $personIds = Person::query()

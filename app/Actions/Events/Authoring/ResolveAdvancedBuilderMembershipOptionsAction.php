@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Actions\Events\Authoring;
 
-use App\Enums\InstitutionStatus;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
+use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Shared\Membership\MembershipDirectory;
 use App\Shared\Membership\MembershipSubjectType;
 use Lorisleiva\Actions\Concerns\AsAction;

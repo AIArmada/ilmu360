@@ -1,7 +1,7 @@
 <?php
 
 use App\Actions\Institutions\InferInstitutionTypeAction;
-use App\Enums\InstitutionType;
+use App\Shared\Directory\Enums\InstitutionType;
 
 it('maps supported Google place types to institution categories', function (string $googleType, InstitutionType $expected): void {
     expect(InferInstitutionTypeAction::run(['primaryType' => $googleType]))->toBe($expected);

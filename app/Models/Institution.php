@@ -12,16 +12,16 @@ use AIArmada\Events\Enums\FacilityAvailability;
 use AIArmada\Events\Models\FacilityType;
 use AIArmada\Events\Models\VenueFacility;
 use AIArmada\Membership\Traits\HasMembers;
-use App\Enums\InstitutionStatus;
-use App\Enums\InstitutionType;
-use App\Enums\InstitutionVenueRole;
-use App\Enums\MemberSubjectType;
+use App\Actions\Institutions\DeleteInstitutionVenueLinksAction;
 use App\Models\Concerns\HasDonationChannels;
-use App\Models\Concerns\HasLanguages;
 use App\Platform\Auditing\AuditsModelChanges;
+use App\Platform\Models\Concerns\HasLanguages;
 use App\Platform\Reporting\ReportModelClass;
+use App\Shared\Directory\Enums\InstitutionStatus;
+use App\Shared\Directory\Enums\InstitutionType;
+use App\Shared\Directory\Enums\InstitutionVenueRole;
+use App\Shared\Directory\InstitutionFacilities;
 use App\Shared\Support\RelatedModels;
-use App\Support\Institutions\InstitutionFacilities;
 use Carbon\CarbonInterface;
 use Database\Factories\InstitutionFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -62,13 +62,19 @@ class Institution extends Model implements AuditableContract, Followable, HasMed
      */
     use AuditsModelChanges, HasAddresses, HasContactMethods, HasDonationChannels, HasFactory, HasLanguages, HasMembers, HasSocialProfiles, HasUuids, InteractsWithMedia, KeepsDeletedModels, ParsesPostgresTimestamps, Searchable;
 
+    #[\Override]
     public $incrementing = false;
 
+    #[\Override]
     protected $keyType = 'string';
+
+    #[\Override]
+    protected $table = 'institutions';
 
     /**
      * @var list<string>
      */
+    #[\Override]
     protected $fillable = [
         'type',
         'name',
@@ -222,20 +228,11 @@ class Institution extends Model implements AuditableContract, Followable, HasMed
             $deleted = parent::delete();
 
             if ($deleted) {
-                $this->deleteInstitutionVenueLinks();
+                app(DeleteInstitutionVenueLinksAction::class)->handle((string) $this->getKey());
             }
 
             return $deleted;
         });
-    }
-
-    /**
-     * Remove this institution's venue bridge rows only; linked venues,
-     * spaces, and institutions are never touched.
-     */
-    private function deleteInstitutionVenueLinks(): void
-    {
-        InstitutionVenue::query()->where('institution_id', $this->getKey())->delete();
     }
 
     public function shouldBeSearchable(): bool
@@ -603,7 +600,7 @@ class Institution extends Model implements AuditableContract, Followable, HasMed
     public function memberInvitations(): HasMany
     {
         return $this->hasMany(RelatedModels::memberInvitation(), 'subject_id')
-            ->where('subject_type', MemberSubjectType::Institution->value);
+            ->where('subject_type', $this->getMorphClass());
     }
 
     /**
@@ -617,6 +614,12 @@ class Institution extends Model implements AuditableContract, Followable, HasMed
     /**
      * Register media collections for Spatie Media Library.
      */
+    #[\Override]
+    public function getTable(): string
+    {
+        return $this->table;
+    }
+
     public function registerMediaCollections(): void
     {
         $this->addMediaCollection('logo')

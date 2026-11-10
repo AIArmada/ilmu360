@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Support\ShareTracking;
 
-use App\Enums\InstitutionStatus;
 use App\Enums\ShareSubjectType;
 use App\Enums\SpeakerStatus;
 use App\Models\Event;
@@ -13,6 +12,7 @@ use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Series;
 use App\Services\ShareTracking\ShareTrackingUrlService;
+use App\Shared\Directory\Enums\InstitutionStatus;
 use InvalidArgumentException;
 
 /**

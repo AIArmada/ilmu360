@@ -3,12 +3,12 @@
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use App\Enums\EventTaxonomyCode;
-use App\Enums\InstitutionStatus;
 use App\Forms\EventContributionFormSchema;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Venue;
+use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Shared\Prayer\EventPrayerTime;
 use Filament\Forms\Components\Select;
 use Filament\Schemas\Schema;

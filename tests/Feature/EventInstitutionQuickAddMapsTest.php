@@ -1,11 +1,11 @@
 <?php
 
 use AIArmada\Signals\Models\SignalEvent;
-use App\Enums\InstitutionStatus;
 use App\Forms\SharedFormSchema;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Institution;
 use App\Models\User;
+use App\Shared\Directory\Enums\InstitutionStatus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Support\Facades\Cache;

@@ -11,6 +11,7 @@ use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressAreaAssignment;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\State;
+use App\Platform\Location\AddressAssignments;
 
 /**
  * Build the package value object behind block + summary rendering.

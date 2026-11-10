@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Actions\Institutions;
 
-use App\Forms\SharedFormSchema;
-use App\Support\Location\GooglePlaceIdentity;
+use App\Platform\Addressing\AddressFormState;
+use App\Platform\Location\GooglePlaceIdentity;
 use Closure;
 use Illuminate\Support\Facades\Cache;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -42,7 +42,7 @@ final class WithInstitutionMapsIdentityLockAction
     private function identity(array $state): ?string
     {
         $address = is_array($state['address'] ?? null)
-            ? SharedFormSchema::prepareAddressPersistenceData($state['address'])
+            ? AddressFormState::prepareAddressPersistenceData($state['address'])
             : [];
 
         $cid = GooglePlaceIdentity::canonicalCid($address['google_cid'] ?? null)

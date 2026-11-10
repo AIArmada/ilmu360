@@ -21,9 +21,9 @@ use App\Models\Space;
 use App\Models\User;
 use App\Models\Venue;
 use App\Platform\Models\MorphModelResolver;
+use App\Platform\Models\SlugOrUuidResolver;
 use App\Shared\Directory\DirectoryOption;
 use App\Support\Api\Frontend\FrontendCatalogService;
-use App\Support\Models\SlugOrUuidResolver;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Model;
 

@@ -6,11 +6,11 @@ namespace App\Actions\Institutions;
 
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
-use App\Actions\Location\DiscoverWebsiteSocialProfilesAction;
-use App\Actions\Location\FetchGooglePlaceDetailsAction;
-use App\Actions\Location\ResolveGooglePlaceSelectionAction;
-use App\Forms\SharedFormSchema;
-use App\Support\Location\GooglePlaceIdentity;
+use App\Platform\Addressing\AddressAreaRoles;
+use App\Platform\Location\DiscoverWebsiteSocialProfilesAction;
+use App\Platform\Location\FetchGooglePlaceDetailsAction;
+use App\Platform\Location\GooglePlaceIdentity;
+use App\Platform\Location\ResolveGooglePlaceSelectionAction;
 use Illuminate\Support\Arr;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -69,10 +69,10 @@ final class ResolveInstitutionMapsPlaceSelectionAction
             'navigation_links',
         ]));
         $resolvedAddress['area_assignments'] = array_merge(
-            array_fill_keys(SharedFormSchema::entryAreaRoles(), null),
+            array_fill_keys(AddressAreaRoles::entryRoles(), null),
             $resolvedAddress['area_assignments'] ?? [],
         );
-        $resolvedAddress['cascade_reset_guard'] = SharedFormSchema::publicLocationPickerCascadeResetGuard();
+        $resolvedAddress['cascade_reset_guard'] = AddressAreaRoles::cascadeResetGuard();
 
         $websiteUrl = $this->webUrl($place['websiteUri'] ?? null);
         $phone = $this->webText($place['internationalPhoneNumber'] ?? $place['nationalPhoneNumber'] ?? null);

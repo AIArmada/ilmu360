@@ -2,8 +2,8 @@
 
 namespace App\Forms;
 
-use App\Enums\InstitutionNameType;
-use App\Enums\InstitutionType;
+use App\Shared\Directory\Enums\InstitutionNameType;
+use App\Shared\Directory\Enums\InstitutionType;
 use App\Support\Location\GooglePlacesConfiguration;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;

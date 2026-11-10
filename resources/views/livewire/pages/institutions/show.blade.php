@@ -5,7 +5,7 @@
 
 @section('title', $institution->name . ' - ' . config('app.name'))
 @section('meta_description', \Illuminate\Support\Str::limit(trim(strip_tags((string) $institution->description)) ?: __('Lihat profil, lokasi, saluran sumbangan, dan majlis akan datang oleh :name di :app.', ['name' => $institution->name, 'app' => config('app.name')]), 160))
-@section('meta_robots', $institution->status === \App\Enums\InstitutionStatus::Verified ? 'index, follow' : 'noindex, nofollow')
+@section('meta_robots', $institution->status === \App\Shared\Directory\Enums\InstitutionStatus::Verified ? 'index, follow' : 'noindex, nofollow')
 @section('og_url', route('institutions.show', $institution))
 @section('og_image', $institutionShareImageUrl)
 @section('og_image_alt', __('Profil institusi :name', ['name' => $institution->name]))
@@ -234,7 +234,7 @@
                             <div>
                                 <h1 data-institution-hero-title class="max-w-3xl break-words font-heading text-4xl font-bold leading-[1.05] tracking-[-0.035em] text-emerald-950 sm:text-5xl lg:text-6xl">
                                     {{ $institution->name }}
-                                    @if($institution->status === \App\Enums\InstitutionStatus::Verified)
+                                    @if($institution->status === \App\Shared\Directory\Enums\InstitutionStatus::Verified)
                                         <x-ui.verified-badge class="text-emerald-600" data-testid="verified-badge" />
                                     @endif
                                 </h1>
@@ -656,7 +656,7 @@
                 @endif
 
                 @php
-                    $sortedDonationChannels = $donationChannels->where('status', \App\Enums\DonationChannelStatus::Verified)->sortByDesc('is_default')->values();
+                    $sortedDonationChannels = $donationChannels->where('status', \App\Shared\Directory\Enums\DonationChannelStatus::Verified)->sortByDesc('is_default')->values();
                 @endphp
                 @if($sortedDonationChannels->isNotEmpty())
                     <section

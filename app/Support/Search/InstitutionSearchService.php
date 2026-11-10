@@ -3,21 +3,19 @@
 namespace App\Support\Search;
 
 use AIArmada\CommerceSupport\Support\StringSimilarity;
-use App\Enums\InstitutionStatus;
 use App\Models\Institution;
 use App\Models\InstitutionName;
+use App\Platform\Cache\InstitutionSearchCache;
 use App\Platform\Search\FuzzySearchPolicy;
 use App\Platform\Search\TypesenseHealthCheckService;
+use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Shared\Discovery\PublicDiscoveryAdapter;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class InstitutionSearchService implements PublicDiscoveryAdapter
 {
-    private const int PUBLIC_SEARCH_CACHE_TTL = 600;
-
-    private const string PUBLIC_SEARCH_CACHE_VERSION_KEY = 'institution_search_public_version_v2';
+    public function __construct(private readonly ?InstitutionSearchCache $cache = null) {}
 
     /**
      * @param  Builder<Institution>  $query
@@ -148,7 +146,7 @@ class InstitutionSearchService implements PublicDiscoveryAdapter
         );
 
         /** @var list<string> $ids */
-        $ids = Cache::remember($cacheKey, self::PUBLIC_SEARCH_CACHE_TTL, function () use ($normalizedSearch): array {
+        $ids = $this->cache()->remember($cacheKey, function () use ($normalizedSearch): array {
             if ($this->shouldUseTypesenseSearch() && app(TypesenseHealthCheckService::class)->isAvailable()) {
                 try {
                     return $this->searchIdsWithScout($normalizedSearch, [
@@ -222,7 +220,7 @@ class InstitutionSearchService implements PublicDiscoveryAdapter
         );
 
         /** @var list<string> $ids */
-        $ids = Cache::remember($cacheKey, self::PUBLIC_SEARCH_CACHE_TTL, function () use ($minimumScore, $normalizedSearch): array {
+        $ids = $this->cache()->remember($cacheKey, function () use ($minimumScore, $normalizedSearch): array {
             if ($this->shouldUseTypesenseSearch() && app(TypesenseHealthCheckService::class)->isAvailable()) {
                 try {
                     return $this->searchIdsWithScout($normalizedSearch, [
@@ -554,13 +552,14 @@ class InstitutionSearchService implements PublicDiscoveryAdapter
         return (string) config('scout.driver');
     }
 
+    private function cache(): InstitutionSearchCache
+    {
+        return $this->cache ?? app(InstitutionSearchCache::class);
+    }
+
     public function bustPublicSearchCache(): void
     {
-        Cache::put(
-            self::PUBLIC_SEARCH_CACHE_VERSION_KEY,
-            $this->publicSearchCacheVersion() + 1,
-            now()->addDays(30),
-        );
+        $this->cache()->bumpVersion();
     }
 
     public function normalizedSearch(string $search): ?string
@@ -572,7 +571,7 @@ class InstitutionSearchService implements PublicDiscoveryAdapter
 
     private function publicSearchCacheVersion(): int
     {
-        return (int) Cache::get(self::PUBLIC_SEARCH_CACHE_VERSION_KEY, 1);
+        return $this->cache()->version();
     }
 
     private function fuzzyScore(string $search, string $candidate): float

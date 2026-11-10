@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Support\Directory;
 
+use App\Features\Directory\Api\DonationChannelWorkflow;
+use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Models\DonationChannel;
 use App\Models\Institution;
 use App\Models\Person;
@@ -11,7 +13,6 @@ use App\Models\Reference;
 use App\Models\Venue;
 use App\Shared\Auth\AccountLifecycleContributor;
 use App\Shared\Directory\SubmissionEligibilitySync;
-use Illuminate\Database\Eloquent\Model;
 
 /**
  * Preserves Directory verification attribution and submission eligibility
@@ -27,18 +28,18 @@ use Illuminate\Database\Eloquent\Model;
 final readonly class DirectoryAccountLifecycleContributor implements AccountLifecycleContributor
 {
     /**
-     * @var array<string, array{class-string<Model>, string}>
+     * @var array<string, array{string, string}>
      */
     private const array VERIFIER_LINKS = [
-        'verified_donation_channel_ids' => [DonationChannel::class, 'verified_by'],
         'verified_person_ids' => [Person::class, 'verified_by'],
-        'verified_institution_ids' => [Institution::class, 'verified_by'],
         'verified_reference_ids' => [Reference::class, 'verified_by'],
         'verified_venue_ids' => [Venue::class, 'verified_by'],
     ];
 
     public function __construct(
         private SubmissionEligibilitySync $eligibilitySync,
+        private InstitutionWorkflow $institutionWorkflow,
+        private DonationChannelWorkflow $donationChannelWorkflow,
     ) {}
 
     public function key(): string
@@ -55,6 +56,13 @@ final readonly class DirectoryAccountLifecycleContributor implements AccountLife
     {
         $snapshot = [];
 
+        $snapshot['verified_institution_ids'] = $this->stringIds(
+            Institution::query()->where('verified_by', $accountId)->pluck('id')->all(),
+        );
+        $snapshot['verified_donation_channel_ids'] = $this->stringIds(
+            DonationChannel::query()->where('verified_by', $accountId)->pluck('id')->all(),
+        );
+
         foreach (self::VERIFIER_LINKS as $key => [$modelClass, $column]) {
             $snapshot[$key] = $modelClass::query()
                 ->where($column, $accountId)
@@ -69,6 +77,9 @@ final readonly class DirectoryAccountLifecycleContributor implements AccountLife
 
     public function detach(string $accountId): void
     {
+        $this->institutionWorkflow->detachVerifier($accountId);
+        $this->donationChannelWorkflow->detachVerifier($accountId);
+
         foreach (self::VERIFIER_LINKS as [$modelClass, $column]) {
             $modelClass::query()
                 ->where($column, $accountId)
@@ -78,6 +89,9 @@ final readonly class DirectoryAccountLifecycleContributor implements AccountLife
 
     public function restore(string $accountId, array $snapshot): void
     {
+        $this->institutionWorkflow->restoreVerifier($accountId, $this->stringIds($snapshot['verified_institution_ids'] ?? []));
+        $this->donationChannelWorkflow->restoreVerifier($accountId, $this->stringIds($snapshot['verified_donation_channel_ids'] ?? []));
+
         foreach (self::VERIFIER_LINKS as $key => [$modelClass, $column]) {
             $ids = $this->stringIds($snapshot[$key] ?? []);
 

@@ -2,10 +2,10 @@
 
 namespace App\Actions\Institutions;
 
-use App\Enums\InstitutionVenueRole;
 use App\Models\Institution;
 use App\Models\InstitutionVenue;
 use App\Models\Venue;
+use App\Shared\Directory\Enums\InstitutionVenueRole;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;

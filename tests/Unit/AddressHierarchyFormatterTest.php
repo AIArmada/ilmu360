@@ -3,7 +3,7 @@
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressAreaAssignment;
-use App\Support\Location\AddressAssignments;
+use App\Platform\Location\AddressAssignments;
 use App\Support\Location\AddressHierarchyFormatter;
 use Illuminate\Database\Eloquent\Collection;
 use Tests\TestCase;

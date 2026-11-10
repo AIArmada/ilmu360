@@ -2,10 +2,10 @@
 
 namespace App\Data\Api\Frontend\Search;
 
-use App\Enums\InstitutionType;
 use App\Models\Institution;
 use App\Models\InstitutionName;
 use App\Models\User;
+use App\Shared\Directory\Enums\InstitutionType;
 use Filament\Support\Contracts\HasLabel;
 use Spatie\LaravelData\Data;
 

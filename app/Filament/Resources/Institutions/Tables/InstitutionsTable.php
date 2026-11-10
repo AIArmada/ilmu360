@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Institutions\Tables;
 
-use App\Enums\InstitutionStatus;
+use App\Shared\Directory\Enums\InstitutionStatus;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;

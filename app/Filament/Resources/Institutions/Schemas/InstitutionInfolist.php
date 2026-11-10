@@ -3,9 +3,9 @@
 namespace App\Filament\Resources\Institutions\Schemas;
 
 use AIArmada\Contacting\Enums\SocialPlatform;
-use App\Enums\InstitutionStatus;
 use App\Models\Institution;
-use App\Support\Location\AddressAssignments;
+use App\Platform\Location\AddressAssignments;
+use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Support\Location\AddressHierarchyFormatter;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\RepeatableEntry;

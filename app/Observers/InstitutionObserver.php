@@ -2,12 +2,12 @@
 
 namespace App\Observers;
 
-use App\Actions\Institutions\GenerateInstitutionSlugAction;
-use App\Actions\Slugs\SyncSlugRedirectAction;
+use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Models\Institution;
-use App\Observers\Concerns\SyncsCurrentAndPreviousValues;
+use App\Platform\Cache\PublicDirectoryCacheVersion;
 use App\Platform\Cache\PublicListingsCache;
-use App\Support\Cache\PublicDirectoryCacheVersion;
+use App\Platform\Models\Concerns\SyncsCurrentAndPreviousValues;
+use App\Platform\Routing\SyncSlugRedirectAction;
 use App\Support\Search\InstitutionSearchService;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
@@ -16,7 +16,7 @@ class InstitutionObserver implements ShouldHandleEventsAfterCommit
     use SyncsCurrentAndPreviousValues;
 
     public function __construct(
-        protected GenerateInstitutionSlugAction $generateInstitutionSlugAction,
+        protected InstitutionWorkflow $institutionWorkflow,
         protected SyncSlugRedirectAction $syncSlugRedirectAction,
         protected PublicDirectoryCacheVersion $publicDirectoryCacheVersion,
         protected PublicListingsCache $publicListingsCache,
@@ -40,7 +40,7 @@ class InstitutionObserver implements ShouldHandleEventsAfterCommit
             $this->syncCurrentAndPreviousString(
                 $institution->name,
                 $institution->wasChanged('name') ? ($institution->getPrevious()['name'] ?? null) : null,
-                fn (string $name): bool => $this->generateInstitutionSlugAction->syncInstitutionSlugsForName($name, $exceptInstitutionId),
+                fn (string $name): bool => $this->institutionWorkflow->syncSlugsForName($name, $exceptInstitutionId),
             );
         }
 
@@ -55,7 +55,7 @@ class InstitutionObserver implements ShouldHandleEventsAfterCommit
         // Bridge rows are removed synchronously inside Institution::delete();
         // this after-commit observer keeps derived side effects only.
         $this->syncSlugRedirectAction->purgeForModel($institution);
-        $this->generateInstitutionSlugAction->syncInstitutionSlugsForName($institution->name);
+        $this->institutionWorkflow->syncSlugsForName($institution->name);
         $this->publicListingsCache->bustHomepageStats();
         $this->publicListingsCache->bustMajlisListing();
         $this->publicDirectoryCacheVersion->bumpInstitution();

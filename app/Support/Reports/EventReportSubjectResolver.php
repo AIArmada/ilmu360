@@ -6,11 +6,11 @@ namespace App\Support\Reports;
 
 use AIArmada\FilamentEvents\Resources\EventResource;
 use App\Models\Event;
+use App\Platform\Models\SlugOrUuidResolver;
 use App\Shared\Reports\ReportSubject;
 use App\Shared\Reports\ReportSubjectPresentation;
 use App\Shared\Reports\ReportSubjectResolver;
 use App\Shared\Reports\ReportSubjectType;
-use App\Support\Models\SlugOrUuidResolver;
 use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
 

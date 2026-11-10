@@ -2,13 +2,8 @@
 
 namespace App\Services;
 
-use AIArmada\Addressing\Actions\SyncAddressAreaAssignmentsAction;
 use AIArmada\Addressing\Models\Address;
-use AIArmada\Addressing\Models\AddressArea;
-use AIArmada\Addressing\Models\AddressCountry;
-use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
-use AIArmada\Addressing\Support\AddressAreaStateBridge;
 use AIArmada\Addressing\Support\AddressCountryResolver;
 use AIArmada\Addressing\Support\ModelResolver;
 use AIArmada\Contacting\Enums\ContactMethodType;
@@ -32,7 +27,6 @@ use AIArmada\References\Enums\ReferenceRecordKind;
 use AIArmada\References\Rules\Isbn;
 use App\Actions\Events\Authoring\SyncEventClassificationsAction;
 use App\Actions\Events\Scheduling\SyncEventScheduleAction;
-use App\Actions\Institutions\GenerateInstitutionSlugAction;
 use App\Actions\Persons\GeneratePersonSlugAction;
 use App\Contracts\EventCategoryCatalog;
 use App\Contracts\SpaceEligibilityResolver;
@@ -42,12 +36,10 @@ use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventTaxonomyCode;
 use App\Enums\EventVisibility;
-use App\Enums\InstitutionNameType;
-use App\Enums\InstitutionStatus;
-use App\Enums\InstitutionType;
 use App\Enums\ReferencePartType;
 use App\Enums\ReferenceType;
 use App\Enums\TimingMode;
+use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Forms\SharedFormSchema;
 use App\Models\Affiliation;
 use App\Models\DonationChannel;
@@ -59,18 +51,20 @@ use App\Models\Reference;
 use App\Models\Series;
 use App\Models\User;
 use App\Models\Venue;
+use App\Platform\Directory\EntityRelationSync;
+use App\Platform\Location\AddressAssignments;
 use App\Rules\ValidAreaAssignmentRoles;
+use App\Shared\Directory\Enums\InstitutionNameType;
+use App\Shared\Directory\Enums\InstitutionType;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerOffset;
 use App\Shared\Support\MorphAlias;
 use App\Support\Events\AdminEventTimeMapper;
-use App\Support\Location\AddressAssignments;
 use BackedEnum;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
@@ -82,10 +76,11 @@ class ContributionEntityMutationService
     public function __construct(
         private readonly EventKeyPersonSyncService $eventKeyPersonSyncService,
         private readonly AddMemberAction $addMemberAction,
-        private readonly GenerateInstitutionSlugAction $generateInstitutionSlugAction,
         private readonly GeneratePersonSlugAction $generatePersonSlugAction,
         private readonly AddressCountryResolver $addressingCountryResolver,
         private readonly SpaceEligibilityResolver $spaceEligibilityResolver,
+        private readonly EntityRelationSync $entityRelationSync,
+        private readonly InstitutionWorkflow $institutionWorkflow,
     ) {}
 
     /** @return array<string, mixed> */
@@ -409,23 +404,9 @@ class ContributionEntityMutationService
      */
     public function createInstitution(array $payload, User $proposer): Institution
     {
-        $institution = Institution::create([
-            'name' => (string) ($payload['name'] ?? 'Institution'),
-            'slug' => $this->generateInstitutionSlugAction->handle(
-                (string) ($payload['name'] ?? 'Institution'),
-                is_array($payload['address'] ?? null) ? $payload['address'] : [],
-            ),
-            'type' => $this->normalizeInstitutionType($payload['type'] ?? null),
-            'description' => $payload['description'] ?? null,
-            'status' => InstitutionStatus::Pending,
-            'allow_public_event_submission' => true,
-        ]);
+        $institutionId = $this->institutionWorkflow->createFromContribution($payload, (string) $proposer->getKey());
 
-        $this->syncInstitutionNames($institution, $payload);
-        $this->syncInstitutionRelations($institution, $payload);
-        $this->generateInstitutionSlugAction->syncInstitutionSlug($institution);
-
-        return $institution;
+        return Institution::query()->findOrFail($institutionId);
     }
 
     /**
@@ -489,22 +470,7 @@ class ContributionEntityMutationService
      */
     private function applyInstitution(Institution $institution, array $payload): array
     {
-        $institution->fill([
-            'name' => $payload['name'] ?? $institution->name,
-            'type' => array_key_exists('type', $payload)
-                ? $this->normalizeInstitutionType($payload['type'])
-                : ($institution->type instanceof BackedEnum ? $institution->type->value : $institution->type),
-            'description' => array_key_exists('description', $payload) ? $payload['description'] : $institution->description,
-        ]);
-
-        $dirty = $institution->getDirty();
-        $institution->save();
-
-        $this->syncInstitutionNames($institution, $payload);
-        $this->syncInstitutionRelations($institution, $payload);
-        $this->generateInstitutionSlugAction->syncInstitutionSlug($institution);
-
-        return $dirty;
+        return $this->institutionWorkflow->applyContribution((string) $institution->getKey(), $payload);
     }
 
     /**
@@ -530,19 +496,6 @@ class ContributionEntityMutationService
         $this->generatePersonSlugAction->syncPersonSlug($person);
 
         return $dirty;
-    }
-
-    private function normalizeInstitutionType(mixed $value): string
-    {
-        if ($value instanceof InstitutionType) {
-            return $value->value;
-        }
-
-        if (is_string($value) && InstitutionType::tryFrom($value) instanceof InstitutionType) {
-            return $value;
-        }
-
-        return InstitutionType::Masjid->value;
     }
 
     private function normalizeGender(mixed $value): string
@@ -1049,30 +1002,11 @@ class ContributionEntityMutationService
     {
         $names = $payload['names'] ?? null;
 
-        if ($names === null || ! is_array($names)) {
+        if (! is_array($names)) {
             return;
         }
 
-        $institution->names()->delete();
-
-        $primarySelected = false;
-
-        foreach ($names as $i => $name) {
-            $isPrimary = (bool) ($name['is_primary'] ?? $i === 0) && ! $primarySelected;
-
-            if ($isPrimary) {
-                $primarySelected = true;
-            }
-
-            $institution->names()->create([
-                'name_type' => $name['name_type'] ?? InstitutionNameType::Nickname,
-                'full_name' => trim((string) ($name['full_name'] ?? '')),
-                'language_code' => $name['language_code'] ?? 'ms',
-                'is_primary' => $isPrimary,
-            ]);
-        }
-
-        $institution->unsetRelation('names');
+        $this->institutionWorkflow->syncNames((string) $institution->getKey(), $names);
     }
 
     /**
@@ -1080,21 +1014,7 @@ class ContributionEntityMutationService
      */
     public function syncInstitutionRelations(Institution $institution, array $payload): void
     {
-        if (array_key_exists('address', $payload)) {
-            $this->syncAddress($institution, $payload['address'], allowCountryOnly: true);
-        }
-
-        if (array_key_exists('contactMethods', $payload)) {
-            $this->syncContactMethods($institution, $payload['contactMethods']);
-        }
-
-        if (array_key_exists('social_media', $payload)) {
-            $this->syncSocialMedia($institution, $payload['social_media']);
-        }
-
-        if (array_key_exists('donation_channels', $payload)) {
-            $this->syncDonationChannels($institution, $payload['donation_channels']);
-        }
+        $this->institutionWorkflow->syncRelations((string) $institution->getKey(), $payload);
     }
 
     /**
@@ -1210,11 +1130,10 @@ class ContributionEntityMutationService
         $retainedIds = [];
         $primaryId = null;
 
-        $pivot = $person->institutions()->newPivotStatement()
+        Affiliation::query()
             ->where('affiliatable_id', $person->getKey())
-            ->where('affiliatable_type', $person->getMorphClass());
-
-        $pivot->update(['is_primary' => false, 'updated_at' => now()]);
+            ->where('affiliatable_type', $person->getMorphClass())
+            ->update(['is_primary' => false, 'updated_at' => now()]);
 
         foreach ($rows as $row) {
             if (! is_array($row)) {
@@ -1234,7 +1153,11 @@ class ContributionEntityMutationService
             $position = $this->normalizeOptionalString($row['position'] ?? null);
 
             if (in_array($institutionId, $currentIds, true)) {
-                $person->institutions()->updateExistingPivot($institutionId, ['position' => $position]);
+                Affiliation::query()
+                    ->where('affiliatable_id', $person->getKey())
+                    ->where('affiliatable_type', $person->getMorphClass())
+                    ->where('institution_id', $institutionId)
+                    ->update(['position' => $position, 'updated_at' => now()]);
             } else {
                 Affiliation::query()->create([
                     'affiliatable_type' => $person->getMorphClass(),
@@ -1252,10 +1175,14 @@ class ContributionEntityMutationService
         }
 
         if ($primaryId !== null) {
-            $person->institutions()->updateExistingPivot($primaryId, ['is_primary' => true]);
+            Affiliation::query()
+                ->where('affiliatable_id', $person->getKey())
+                ->where('affiliatable_type', $person->getMorphClass())
+                ->where('institution_id', $primaryId)
+                ->update(['is_primary' => true, 'updated_at' => now()]);
         }
 
-        $delete = $person->institutions()->newPivotStatement()
+        $delete = Affiliation::query()
             ->where('affiliatable_id', $person->getKey())
             ->where('affiliatable_type', $person->getMorphClass());
 
@@ -1356,7 +1283,11 @@ class ContributionEntityMutationService
 
         if ($institutionId === null) {
             if ($currentAffiliation instanceof Institution) {
-                $person->institutions()->detach($currentAffiliation->getKey());
+                Affiliation::query()
+                    ->where('affiliatable_id', $person->getKey())
+                    ->where('affiliatable_type', $person->getMorphClass())
+                    ->where('institution_id', $currentAffiliation->getKey())
+                    ->delete();
             }
 
             $this->recordPersonAffiliationAudit($person, $beforeAffiliations);
@@ -1369,11 +1300,14 @@ class ContributionEntityMutationService
             : self::institutionPivotPosition($currentAffiliation);
 
         if ($currentAffiliation instanceof Institution && (string) $currentAffiliation->getKey() !== $institutionId) {
-            $person->institutions()->detach($currentAffiliation->getKey());
+            Affiliation::query()
+                ->where('affiliatable_id', $person->getKey())
+                ->where('affiliatable_type', $person->getMorphClass())
+                ->where('institution_id', $currentAffiliation->getKey())
+                ->delete();
         }
 
-        $person->institutions()
-            ->newPivotStatement()
+        Affiliation::query()
             ->where('affiliatable_id', $person->getKey())
             ->where('affiliatable_type', $person->getMorphClass())
             ->where('institution_id', '!=', $institutionId)
@@ -1387,10 +1321,15 @@ class ContributionEntityMutationService
             ->exists();
 
         if ($alreadyAttached) {
-            $person->institutions()->updateExistingPivot($institutionId, [
-                'position' => $position,
-                'is_primary' => true,
-            ]);
+            Affiliation::query()
+                ->where('affiliatable_id', $person->getKey())
+                ->where('affiliatable_type', $person->getMorphClass())
+                ->where('institution_id', $institutionId)
+                ->update([
+                    'position' => $position,
+                    'is_primary' => true,
+                    'updated_at' => now(),
+                ]);
 
             $this->recordPersonAffiliationAudit($person, $beforeAffiliations);
 
@@ -1518,277 +1457,7 @@ class ContributionEntityMutationService
 
     private function syncAddress(Model $model, mixed $addressPayload, bool $allowCountryOnly = false): void
     {
-        if (! method_exists($model, 'primaryAddress') || ! method_exists($model, 'attachAddress')) {
-            return;
-        }
-
-        $payload = is_array($addressPayload) ? $addressPayload : [];
-        $hasContent = collect([
-            $payload['line1'] ?? null,
-            $payload['line2'] ?? null,
-            $payload['postcode'] ?? null,
-            $payload['area_assignments'] ?? [],
-            $payload['latitude'] ?? null,
-            $payload['longitude'] ?? null,
-            $payload['google_maps_url'] ?? null,
-            $payload['google_place_id'] ?? null,
-            $payload['waze_url'] ?? null,
-            $allowCountryOnly ? ($payload['country_id'] ?? $payload['country_code'] ?? $payload['country_key'] ?? null) : null,
-        ])->contains(fn (mixed $value): bool => filled($value));
-
-        /** @var Address|null $existingAddress */
-        $existingAddress = $model->primaryAddress();
-
-        if (! $hasContent) {
-            if ($existingAddress instanceof Address && method_exists($model, 'addresses')) {
-                $model->addresses()->detach($existingAddress->getKey());
-                $existingAddress->delete();
-            }
-
-            return;
-        }
-
-        $countryProvided = SharedFormSchema::countrySelectionProvided($payload);
-        $payload = SharedFormSchema::prepareAddressPersistenceData($payload);
-
-        $payload = $this->syncCanonicalRegionText($payload);
-
-        $countryId = $this->normalizeUuid($payload['country_id'] ?? null);
-
-        if ($countryId === null && ! $countryProvided) {
-            $countryId = $this->normalizeUuid($existingAddress?->country_id)
-                ?? $this->addressingCountryResolver->resolveId($existingAddress?->country_code);
-        }
-
-        if ($countryId === null) {
-            throw ValidationException::withMessages([
-                'address.country_id' => $countryProvided
-                    ? __('The selected country is invalid.')
-                    : __('The address country is required.'),
-            ]);
-        }
-
-        $stateChanged = $existingAddress instanceof Address
-            && $this->normalizeUuid($payload['state_id'] ?? null) !== null
-            && $this->normalizeUuid($payload['state_id'] ?? null) !== $this->normalizeUuid($existingAddress->state_id);
-
-        $countryChanged = $existingAddress instanceof Address
-            && $countryId !== $this->normalizeUuid($existingAddress->country_id);
-
-        if ($stateChanged && ! array_key_exists('city_id', $payload)) {
-            $payload['city_id'] = null;
-            $payload['city'] = null;
-        }
-
-        if ($existingAddress instanceof Address) {
-            foreach ([
-                'line1',
-                'line2',
-                'postcode',
-                'state_id',
-                'city_id',
-                'state',
-                'city',
-                'latitude',
-                'longitude',
-                'google_maps_url',
-                'google_place_id',
-                'google_feature_id',
-                'google_cid',
-                'google_entity_id',
-                'formatted_address',
-                'components',
-                'metadata',
-                'navigation_links',
-                'waze_url',
-            ] as $field) {
-                if (! array_key_exists($field, $payload)) {
-                    $payload[$field] = $existingAddress->{$field};
-                }
-            }
-
-        }
-
-        $assignmentsProvided = array_key_exists('area_assignments', $payload);
-        $assignments = AddressAssignments::normalize((array) ($payload['area_assignments'] ?? []));
-        $latitude = $payload['latitude'] ?? null;
-        $longitude = $payload['longitude'] ?? null;
-        $googlePlaceId = $payload['google_place_id'] ?? null;
-        $googleFeatureId = $payload['google_feature_id'] ?? null;
-        $googleCid = $payload['google_cid'] ?? null;
-        $googleEntityId = $payload['google_entity_id'] ?? null;
-        $addressMetadata = $this->resolveAddressMetadata(
-            $countryId,
-            $assignments,
-        );
-
-        $attributes = [
-            'country_id' => $countryId,
-            'state_id' => $this->normalizeUuid($payload['state_id'] ?? null),
-            'city_id' => $this->normalizeUuid($payload['city_id'] ?? null),
-            'line1' => $payload['line1'] ?? null,
-            'line2' => $payload['line2'] ?? null,
-            'postcode' => $payload['postcode'] ?? null,
-            'country' => $addressMetadata['country'],
-            'country_code' => $addressMetadata['country_code'],
-            'state' => $payload['state'] ?? $addressMetadata['state'],
-            'city' => $payload['city'] ?? $addressMetadata['city'],
-            'latitude' => $latitude !== null && $latitude !== '' ? (float) $latitude : null,
-            'longitude' => $longitude !== null && $longitude !== '' ? (float) $longitude : null,
-            'google_maps_url' => $payload['google_maps_url'] ?? null,
-            'google_place_id' => $googlePlaceId,
-            'google_feature_id' => $googleFeatureId,
-            'google_cid' => $googleCid,
-            'google_entity_id' => $googleEntityId,
-            'formatted_address' => $payload['formatted_address'] ?? null,
-            'components' => $payload['components'] ?? [],
-            'metadata' => $payload['metadata'] ?? [],
-            'navigation_links' => $payload['navigation_links'] ?? [],
-            'waze_url' => $payload['waze_url'] ?? null,
-        ];
-
-        if ($existingAddress instanceof Address) {
-            $existingAddress->fill($attributes)->save();
-
-            if ($assignmentsProvided || $stateChanged || $countryChanged) {
-                app(SyncAddressAreaAssignmentsAction::class)->execute(
-                    $existingAddress,
-                    $assignmentsProvided ? $assignments : AddressAssignments::forAddress($existingAddress),
-                    $attributes['state_id'],
-                    ['source' => 'ilmu360'],
-                );
-            }
-
-            return;
-        }
-
-        $address = Address::query()->create($attributes);
-
-        $model->attachAddress($address, type: 'primary', isPrimary: true);
-        app(SyncAddressAreaAssignmentsAction::class)->execute($address, $assignments, $attributes['state_id'], ['source' => 'ilmu360']);
-    }
-
-    /**
-     * @param  array<string, string>  $assignments
-     * @return array{country: ?string, country_code: ?string, state: ?string, city: ?string}
-     */
-    private function resolveAddressMetadata(
-        ?string $countryId,
-        array $assignments,
-    ): array {
-        $country = $countryId !== null
-            ? AddressCountry::query()->find($countryId)
-            : null;
-        $areaIds = array_values(array_unique(array_filter($assignments, is_string(...))));
-        $areasById = $areaIds === []
-            ? collect()
-            : AddressArea::query()->whereIn('id', $areaIds)->get()->keyBy(fn (AddressArea $area): string => (string) $area->getKey());
-
-        // Resolve the legacy parent chain in batches. The bridge below still
-        // handles provider relationship trees, while this avoids one query per
-        // selected area for the common parent_id hierarchy.
-        while (true) {
-            $pendingParentIds = $areasById
-                ->pluck('parent_id')
-                ->filter(fn (mixed $id): bool => is_string($id) && $id !== '')
-                ->unique()
-                ->values()
-                ->all();
-            $missingParentIds = array_values(array_diff($pendingParentIds, $areasById->keys()->all()));
-
-            if ($missingParentIds === []) {
-                break;
-            }
-
-            $parents = AddressArea::query()->whereIn('id', $missingParentIds)->get();
-
-            if ($parents->isEmpty()) {
-                break;
-            }
-
-            $areasById = $areasById->union($parents->keyBy(fn (AddressArea $area): string => (string) $area->getKey()));
-        }
-
-        $areas = collect($areaIds)
-            ->map(fn (string $areaId): ?AddressArea => $areasById->get($areaId))
-            ->filter(fn (?AddressArea $area): bool => $area instanceof AddressArea)
-            ->values();
-
-        $stateName = null;
-        $stateNames = [];
-
-        foreach ($areas->reverse() as $area) {
-            $stateId = AddressAreaStateBridge::stateIdForArea((string) $area->getKey());
-
-            if ($stateId !== null) {
-                if (! array_key_exists($stateId, $stateNames)) {
-                    $stateNames[$stateId] = State::query()->whereKey($stateId)->value('name');
-                }
-
-                $stateName = is_string($stateNames[$stateId] ?? null) ? $stateNames[$stateId] : null;
-
-                if ($stateName !== null && $stateName !== '') {
-                    break;
-                }
-            }
-
-            $parent = $area;
-
-            while (is_string($parent->parent_id) && $parent->parent_id !== '') {
-                $parent = $areasById->get($parent->parent_id);
-
-                if (! $parent instanceof AddressArea) {
-                    break;
-                }
-
-                if (in_array($parent->type, ['state', 'wilayah_persekutuan'], true)) {
-                    $stateName = $parent->name;
-                    break 2;
-                }
-            }
-        }
-
-        $locality = $areas->reverse()->first();
-
-        return [
-            'country' => $country?->name,
-            'country_code' => $country?->iso2,
-            'state' => is_string($stateName) && $stateName !== '' ? $stateName : null,
-            'city' => $locality?->name,
-        ];
-    }
-
-    /**
-     * Keep denormalized region text aligned with canonical form selections.
-     *
-     * A select can submit a new state/city ID while the legacy text inputs are
-     * hidden and therefore absent from the payload. Never retain stale text in
-     * that case because it is also used by public slugs and fallbacks.
-     *
-     * @param  array<string, mixed>  $payload
-     * @return array<string, mixed>
-     */
-    private function syncCanonicalRegionText(array $payload): array
-    {
-        $stateId = $this->normalizeUuid($payload['state_id'] ?? null);
-        $cityId = $this->normalizeUuid($payload['city_id'] ?? null);
-
-        if ($stateId !== null) {
-            $payload['state'] = State::query()->whereKey($stateId)->value('name');
-
-            if ($cityId !== null) {
-                $payload['city'] = City::query()
-                    ->whereKey($cityId)
-                    ->where('state_id', $stateId)
-                    ->value('name');
-            } else {
-                $payload['city'] = null;
-            }
-        } elseif ($cityId !== null) {
-            $payload['city'] = City::query()->whereKey($cityId)->value('name');
-        }
-
-        return $payload;
+        $this->entityRelationSync->syncAddress($model, $addressPayload, $allowCountryOnly);
     }
 
     /**
@@ -1881,21 +1550,6 @@ class ContributionEntityMutationService
         );
     }
 
-    private function normalizeUuid(mixed $value): ?string
-    {
-        if (! is_string($value) && ! is_int($value)) {
-            return null;
-        }
-
-        $trimmed = trim((string) $value);
-
-        if ($trimmed === '') {
-            return null;
-        }
-
-        return Str::isUuid($trimmed) || ctype_digit($trimmed) ? $trimmed : null;
-    }
-
     /**
      * @param  list<string|int>|null  $allowedValues
      * @return array<string, mixed>
@@ -1919,238 +1573,12 @@ class ContributionEntityMutationService
 
     private function syncContactMethods(Model $model, mixed $contactPayload): void
     {
-        if (! method_exists($model, 'contactMethods')) {
-            return;
-        }
-
-        $contacts = collect(is_array($contactPayload) ? $contactPayload : [])
-            ->values()
-            ->map(function (mixed $contact, int $index): ?array {
-                if (! is_array($contact)) {
-                    return null;
-                }
-
-                $type = $this->normalizeContactMethodType($contact['type'] ?? $contact['category'] ?? null);
-                $value = match ($type) {
-                    ContactMethodType::Phone, ContactMethodType::Whatsapp, ContactMethodType::Mobile => is_string($contact['phone_value'] ?? null)
-                        ? trim($contact['phone_value'])
-                        : (is_string($contact['value'] ?? null) ? trim($contact['value']) : null),
-                    default => is_string($contact['value'] ?? null)
-                        ? trim($contact['value'])
-                        : null,
-                };
-                $purpose = $this->normalizeContactPurpose($contact['purpose'] ?? null);
-
-                if (! $type instanceof ContactMethodType || $value === null || $value === '') {
-                    return null;
-                }
-
-                return [
-                    'type' => $type->value,
-                    'purpose' => $purpose->value,
-                    'value' => $value,
-                    'is_primary' => (bool) ($contact['is_primary'] ?? false),
-                    'is_public' => (bool) ($contact['is_public'] ?? true),
-                    'sort_order' => is_numeric($contact['sort_order'] ?? $contact['order_column'] ?? null)
-                        ? (int) ($contact['sort_order'] ?? $contact['order_column'])
-                        : $index + 1,
-                ];
-            })
-            ->filter()
-            ->values();
-
-        $model->contactMethods()->delete();
-
-        $contacts->each(fn (array $contact): ContactMethod => $model->contactMethods()->create($contact));
-    }
-
-    private function normalizeContactMethodType(mixed $value): ?ContactMethodType
-    {
-        if ($value instanceof ContactMethodType) {
-            return $value;
-        }
-
-        if (! is_string($value)) {
-            return null;
-        }
-
-        return ContactMethodType::tryFrom(trim($value));
-    }
-
-    private function normalizeContactPurpose(mixed $value): ContactPurpose
-    {
-        if ($value instanceof ContactPurpose) {
-            return $value;
-        }
-
-        if (! is_string($value)) {
-            return ContactPurpose::General;
-        }
-
-        return ContactPurpose::tryFrom(trim($value)) ?? ContactPurpose::General;
+        $this->entityRelationSync->syncContactMethods($model, $contactPayload);
     }
 
     private function syncSocialMedia(Model $model, mixed $socialMediaPayload): void
     {
-        if (! method_exists($model, 'socialProfiles')) {
-            return;
-        }
-
-        $entries = collect(is_array($socialMediaPayload) ? $socialMediaPayload : [])
-            ->values()
-            ->map(function (mixed $entry, int $index): ?array {
-                if (! is_array($entry)) {
-                    return null;
-                }
-
-                $platform = is_string($entry['platform'] ?? null) ? trim($entry['platform']) : null;
-                $handle = is_string($entry['handle'] ?? $entry['username'] ?? null) ? trim($entry['handle'] ?? $entry['username']) : null;
-                $url = is_string($entry['url'] ?? null) ? trim($entry['url']) : null;
-
-                if ($platform === null || $platform === '' || ($handle === null || $handle === '') && ($url === null || $url === '')) {
-                    return null;
-                }
-
-                return [
-                    'platform' => $platform,
-                    'purpose' => ContactPurpose::General->value,
-                    'handle' => $handle !== '' ? $handle : null,
-                    'url' => $url !== '' ? $url : null,
-                    'is_primary' => (bool) ($entry['is_primary'] ?? false),
-                    'is_public' => (bool) ($entry['is_public'] ?? true),
-                    'sort_order' => is_numeric($entry['sort_order'] ?? $entry['order_column'] ?? null)
-                        ? (int) ($entry['sort_order'] ?? $entry['order_column'])
-                        : $index + 1,
-                ];
-            })
-            ->filter()
-            ->values();
-
-        $model->socialProfiles()->delete();
-
-        $entries->each(fn (array $entry): SocialProfile => $model->socialProfiles()->create($entry));
-    }
-
-    private function syncDonationChannels(Model $model, mixed $donationChannelsPayload): void
-    {
-        if (! method_exists($model, 'donationChannels')) {
-            return;
-        }
-
-        $rows = collect(is_array($donationChannelsPayload) ? $donationChannelsPayload : [])
-            ->values()
-            ->map(fn (mixed $row): ?array => is_array($row) ? $this->normalizeDonationChannelRow($row) : null)
-            ->filter()
-            ->values();
-
-        $existing = $model->donationChannels()->get();
-        $matchedIds = [];
-
-        foreach ($rows as $row) {
-            $match = $existing->first(fn (DonationChannel $channel): bool => ! in_array($channel->getKey(), $matchedIds, true)
-                && $this->sameDonationChannelIdentity($channel, $row));
-
-            if (! $match instanceof DonationChannel) {
-                $matchedIds[] = $model->donationChannels()->create($row)->getKey();
-
-                continue;
-            }
-
-            $match->fill($row)->save();
-            $matchedIds[] = $match->getKey();
-        }
-
-        if ($matchedIds === []) {
-            $model->donationChannels()->delete();
-
-            return;
-        }
-
-        $model->donationChannels()->whereKeyNot($matchedIds)->delete();
-    }
-
-    /**
-     * @param  array<string, mixed>  $row
-     * @return array<string, mixed>|null
-     */
-    private function normalizeDonationChannelRow(array $row): ?array
-    {
-        $method = is_string($row['method'] ?? null) ? trim($row['method']) : null;
-        $recipient = is_string($row['recipient'] ?? null) ? trim($row['recipient']) : null;
-
-        if (! in_array($method, ['bank_account', 'duitnow', 'ewallet'], true) || $recipient === null || $recipient === '') {
-            return null;
-        }
-
-        $accountPresent = match ($method) {
-            'bank_account' => $this->normalizedNullableString($row['account_number'] ?? null) !== null,
-            'duitnow' => $this->normalizedNullableString($row['duitnow_value'] ?? null) !== null,
-            default => $this->normalizedNullableString($row['ewallet_provider'] ?? null) !== null
-                && ($this->normalizedNullableString($row['ewallet_handle'] ?? null) !== null
-                    || $this->normalizedNullableString($row['ewallet_qr_payload'] ?? null) !== null),
-        };
-
-        if (! $accountPresent) {
-            return null;
-        }
-
-        return [
-            'label' => $this->normalizedNullableString($row['label'] ?? null),
-            'recipient' => $recipient,
-            'method' => $method,
-            'bank_code' => $this->normalizedNullableString($row['bank_code'] ?? null),
-            'bank_name' => $this->normalizedNullableString($row['bank_name'] ?? null),
-            'account_number' => $this->normalizedNullableString($row['account_number'] ?? null),
-            'duitnow_type' => $this->normalizedNullableString($row['duitnow_type'] ?? null),
-            'duitnow_value' => $this->normalizedNullableString($row['duitnow_value'] ?? null),
-            'ewallet_provider' => $this->normalizedNullableString($row['ewallet_provider'] ?? null),
-            'ewallet_handle' => $this->normalizedNullableString($row['ewallet_handle'] ?? null),
-            'ewallet_qr_payload' => $this->normalizedNullableString($row['ewallet_qr_payload'] ?? null),
-            'reference_note' => $this->normalizedNullableString($row['reference_note'] ?? null),
-            'is_default' => (bool) ($row['is_default'] ?? false),
-        ];
-    }
-
-    /**
-     * @param  array<string, mixed>  $row
-     */
-    private function sameDonationChannelIdentity(DonationChannel $channel, array $row): bool
-    {
-        if ($channel->method !== ($row['method'] ?? null)) {
-            return false;
-        }
-
-        return match ($channel->method) {
-            'bank_account' => $this->sameDonationIdentityPart($channel->bank_code, $row['bank_code'] ?? null)
-                && $this->sameDonationIdentityPart($channel->bank_name, $row['bank_name'] ?? null)
-                && $this->sameDonationIdentityPart($channel->account_number, $row['account_number'] ?? null),
-            'duitnow' => $this->sameDonationIdentityPart($channel->duitnow_type, $row['duitnow_type'] ?? null)
-                && $this->sameDonationIdentityPart($channel->duitnow_value, $row['duitnow_value'] ?? null),
-            'ewallet' => $this->sameDonationIdentityPart($channel->ewallet_provider, $row['ewallet_provider'] ?? null)
-                && $this->sameDonationIdentityPart($channel->ewallet_handle, $row['ewallet_handle'] ?? null)
-                && $this->sameDonationIdentityPart($channel->ewallet_qr_payload, $row['ewallet_qr_payload'] ?? null),
-            default => false,
-        };
-    }
-
-    private function sameDonationIdentityPart(mixed $left, mixed $right): bool
-    {
-        $normalize = static fn (mixed $value): ?string => is_string($value) && trim($value) !== ''
-            ? mb_strtolower(trim($value))
-            : null;
-
-        return $normalize($left) === $normalize($right);
-    }
-
-    private function normalizedNullableString(mixed $value): ?string
-    {
-        if (! is_string($value)) {
-            return null;
-        }
-
-        $value = trim($value);
-
-        return $value === '' ? null : $value;
+        $this->entityRelationSync->syncSocialMedia($model, $socialMediaPayload);
     }
 
     /**

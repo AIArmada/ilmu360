@@ -34,6 +34,17 @@ final class PublicSlugRegistry
         }
     }
 
+    public function register(PublicSlugResource $resource): void
+    {
+        if (isset($this->byModelClass[$resource->modelClass])) {
+            return;
+        }
+
+        $this->resources[] = $resource;
+        $this->byParameter[$resource->parameter] = $resource;
+        $this->byModelClass[$resource->modelClass] = $resource;
+    }
+
     /**
      * @return list<PublicSlugResource>
      */

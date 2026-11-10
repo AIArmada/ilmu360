@@ -2,7 +2,7 @@
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Models\Reference;
-use App\Support\Models\SlugOrUuidResolver;
+use App\Platform\Models\SlugOrUuidResolver;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 

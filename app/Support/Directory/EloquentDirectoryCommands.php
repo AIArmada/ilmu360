@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Support\Directory;
 
-use App\Actions\DonationChannels\SaveDonationChannelAction;
-use App\Actions\Institutions\SaveInstitutionAction;
 use App\Actions\Persons\SavePersonAction;
 use App\Actions\References\SaveReferenceAction;
 use App\Actions\Spaces\SaveSpaceAction;
@@ -14,6 +12,8 @@ use App\Features\Directory\Api\DirectoryCommands;
 use App\Features\Directory\Api\DirectoryDetail;
 use App\Features\Directory\Api\DirectoryReader;
 use App\Features\Directory\Api\DirectoryRecordType;
+use App\Features\Directory\Api\DonationChannelWorkflow;
+use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Models\DonationChannel;
 use App\Models\Institution;
 use App\Models\Person;
@@ -39,12 +39,12 @@ use RuntimeException;
 final readonly class EloquentDirectoryCommands implements DirectoryCommands
 {
     public function __construct(
-        private SaveInstitutionAction $saveInstitution,
+        private InstitutionWorkflow $institutionWorkflow,
         private SavePersonAction $savePerson,
         private SaveReferenceAction $saveReference,
         private SaveVenueAction $saveVenue,
         private SaveSpaceAction $saveSpace,
-        private SaveDonationChannelAction $saveDonationChannel,
+        private DonationChannelWorkflow $donationChannelWorkflow,
         private ContributionEntityMutationService $entityMutations,
         private DirectoryReader $reader,
     ) {}
@@ -58,12 +58,12 @@ final readonly class EloquentDirectoryCommands implements DirectoryCommands
         Gate::forUser($actor)->authorize('create', $modelClass);
 
         $model = match ($type) {
-            DirectoryRecordType::Institution => $this->saveInstitution->handle($attributes, $actor),
+            DirectoryRecordType::Institution => Institution::query()->findOrFail($this->institutionWorkflow->saveFromAdmin($attributes, (string) $actor->getKey())),
             DirectoryRecordType::Person => $this->savePerson->handle($attributes, $actor),
             DirectoryRecordType::Reference => $this->saveReference->handle($attributes),
             DirectoryRecordType::Venue => $this->saveVenue->handle($attributes),
             DirectoryRecordType::Space => $this->saveSpace->handle($attributes),
-            DirectoryRecordType::DonationChannel => $this->saveDonationChannel->handle($attributes),
+            DirectoryRecordType::DonationChannel => DonationChannel::query()->findOrFail($this->donationChannelWorkflow->save($attributes)),
         };
 
         return $this->detail($type, $model);
@@ -144,7 +144,7 @@ final readonly class EloquentDirectoryCommands implements DirectoryCommands
     {
         return match ($type) {
             DirectoryRecordType::Institution => $record instanceof Institution
-                ? $this->saveInstitution->handle($attributes, $actor, $record)
+                ? Institution::query()->findOrFail($this->institutionWorkflow->saveFromAdmin($attributes, (string) $actor->getKey(), (string) $record->getKey()))
                 : throw new RuntimeException('Expected institution record.'),
             DirectoryRecordType::Person => $record instanceof Person
                 ? $this->savePerson->handle($attributes, $actor, $record)
@@ -159,7 +159,7 @@ final readonly class EloquentDirectoryCommands implements DirectoryCommands
                 ? $this->saveSpace->handle($attributes, $record)
                 : throw new RuntimeException('Expected space record.'),
             DirectoryRecordType::DonationChannel => $record instanceof DonationChannel
-                ? $this->saveDonationChannel->handle($attributes, $record)
+                ? DonationChannel::query()->findOrFail($this->donationChannelWorkflow->save($attributes, (string) $record->getKey()))
                 : throw new RuntimeException('Expected donation channel record.'),
         };
     }

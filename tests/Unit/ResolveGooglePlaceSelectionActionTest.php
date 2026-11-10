@@ -11,7 +11,7 @@ use AIArmada\Addressing\Models\PostalCode;
 use AIArmada\Addressing\Models\ResolutionGap;
 use AIArmada\Addressing\Models\State;
 use AIArmada\Addressing\Support\AddressAreaHierarchyResolver;
-use App\Actions\Location\ResolveGooglePlaceSelectionAction;
+use App\Platform\Location\ResolveGooglePlaceSelectionAction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;

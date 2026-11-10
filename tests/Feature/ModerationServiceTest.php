@@ -3,7 +3,6 @@
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Moderation\Enums\ModerationActionType;
 use AIArmada\Signals\Models\SignalEvent;
-use App\Enums\InstitutionStatus;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\Institution;
@@ -14,6 +13,7 @@ use App\Models\Venue;
 use App\Notifications\EventSubmittedNotification;
 use App\Services\EventKeyPersonSyncService;
 use App\Services\ModerationService;
+use App\Shared\Directory\Enums\InstitutionStatus;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;

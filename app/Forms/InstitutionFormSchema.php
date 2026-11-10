@@ -3,17 +3,13 @@
 namespace App\Forms;
 
 use AIArmada\Addressing\Models\AddressCountry;
-use AIArmada\Membership\Actions\AddMemberAction;
-use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Contributions\Submission\EnsureUniqueContributionCreateAction;
-use App\Actions\Institutions\GenerateInstitutionSlugAction;
 use App\Actions\Institutions\WithInstitutionMapsIdentityLockAction;
 use App\Enums\ContributionSubjectType;
-use App\Enums\InstitutionNameType;
-use App\Enums\InstitutionStatus;
-use App\Enums\InstitutionType;
+use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Models\Institution;
-use App\Models\User;
+use App\Shared\Directory\Enums\InstitutionNameType;
+use App\Shared\Directory\Enums\InstitutionType;
 use App\Support\Cache\SelectionCatalogCache;
 use App\Support\Language\MalaysiaLanguageCatalog;
 use App\Support\Location\GooglePlacesConfiguration;
@@ -215,48 +211,25 @@ class InstitutionFormSchema
                 );
             }
 
-            $institution = Institution::create([
-                'name' => $data['name'],
-                'slug' => app(GenerateInstitutionSlugAction::class)->handle((string) $data['name'], $addressData),
-                'type' => $data['type'],
-                'description' => $data['description'] ?? null,
-                'status' => InstitutionStatus::Pending,
-            ]);
-
-            $names = is_array($data['names'] ?? null) ? $data['names'] : [];
-
-            $primarySelected = false;
-
-            foreach ($names as $name) {
-                $isPrimary = (bool) ($name['is_primary'] ?? true) && ! $primarySelected;
-
-                if ($isPrimary) {
-                    $primarySelected = true;
-                }
-
-                $institution->names()->create([
-                    'name_type' => $name['name_type'] ?? InstitutionNameType::Nickname,
-                    'full_name' => trim((string) ($name['full_name'] ?? '')),
-                    'language_code' => $name['language_code'] ?? 'ms',
-                    'is_primary' => $isPrimary,
-                ]);
-            }
-
-            $creator = auth()->user();
-
-            if ($creator instanceof User) {
-                AddMemberAction::run($institution, $creator, MemberRole::Owner);
-            }
+            $payload = array_merge(array_diff_key($data, array_flip([
+                'logo',
+                'cover',
+                'gallery',
+                'clear_logo',
+                'clear_cover',
+                'clear_gallery',
+            ])), ['address' => $addressData]);
+            $creatorId = auth()->id();
+            $institutionId = app(InstitutionWorkflow::class)->createFromForm(
+                $payload,
+                $creatorId !== null ? (string) $creatorId : null,
+            );
+            $institution = Institution::query()->findOrFail($institutionId);
 
             // Save media uploads (cover, gallery) via Filament's relationship-saving mechanism
             $schema?->model($institution)->saveRelationships();
 
-            SharedFormSchema::createContactsFromData($institution, $data);
-            SharedFormSchema::createAddressFromData($institution, $addressData, allowCountryOnly: true);
-            SharedFormSchema::createSocialMediaFromData($institution, $data);
-            app(GenerateInstitutionSlugAction::class)->syncInstitutionSlug($institution);
-
-            return (string) $institution->getKey();
+            return $institutionId;
         });
 
         if (! $requireVerifiedMapsSelection) {

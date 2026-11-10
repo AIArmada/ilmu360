@@ -3,7 +3,6 @@
 use AIArmada\Events\States\RegistrationStatus\Confirmed;
 use AIArmada\Events\States\RegistrationStatus\Pending;
 use AIArmada\Membership\Enums\InvitationStatus;
-use App\Enums\DonationChannelStatus;
 use App\Features\Reports\Models\Report;
 use App\Models\DonationChannel;
 use App\Models\Event;
@@ -12,6 +11,7 @@ use App\Models\MemberInvitation;
 use App\Models\Person;
 use App\Models\Registration;
 use App\Models\User;
+use App\Shared\Directory\Enums\DonationChannelStatus;
 use Illuminate\Database\Eloquent\MassAssignmentException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 

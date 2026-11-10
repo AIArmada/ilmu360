@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Support\Directory;
 
-use App\Enums\InstitutionStatus;
 use App\Models\Institution;
 use App\Shared\Directory\DirectoryOption;
+use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Shared\Directory\PrayerInstitutionCatalog;
 use Illuminate\Database\Eloquent\Builder;
 

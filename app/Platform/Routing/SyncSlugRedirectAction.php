@@ -1,0 +1,144 @@
+<?php
+
+namespace App\Platform\Routing;
+
+use AIArmada\CommerceSupport\Contracts\SlugRedirectRecorder;
+use AIArmada\Signals\Models\SignalEvent;
+use AIArmada\Signals\Models\TrackedProperty;
+use App\Models\SlugRedirect;
+use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+
+final readonly class SyncSlugRedirectAction implements SlugRedirectRecorder
+{
+    public function __construct(
+        private PublicSlugRegistry $publicSlugRegistry,
+    ) {}
+
+    public function record(Model $model, ?string $previousSlug): bool
+    {
+        return $this->handle($model, $previousSlug);
+    }
+
+    public function handle(Model $model, ?string $previousSlug): bool
+    {
+        $resource = $this->publicSlugRegistry->resourceForModel($model);
+        $currentSlug = $this->normalizeSlug($model->getAttribute('slug'));
+
+        if (! $resource instanceof PublicSlugResource || $currentSlug === null) {
+            return false;
+        }
+
+        $destinationPath = $resource->pathForSlug($currentSlug);
+
+        SlugRedirect::query()
+            ->where('source_path', $destinationPath)
+            ->delete();
+
+        $didChange = $this->queryForModel($model)->update([
+            'destination_slug' => $currentSlug,
+            'destination_path' => $destinationPath,
+            'updated_at' => now(),
+        ]) > 0;
+
+        $previousSlug = $this->normalizeSlug($previousSlug);
+
+        if ($previousSlug === null || $previousSlug === $currentSlug) {
+            return $didChange;
+        }
+
+        $sourcePath = $resource->pathForSlug($previousSlug);
+
+        if ($sourcePath === $destinationPath) {
+            return $didChange;
+        }
+
+        $firstVisitedAt = $this->firstVisitedAt($sourcePath);
+
+        if ($resource->requiresVisitedSource && ! ($firstVisitedAt instanceof CarbonImmutable)) {
+            return $didChange;
+        }
+
+        SlugRedirect::query()->updateOrCreate(
+            ['source_path' => $sourcePath],
+            [
+                'redirectable_type' => $model->getMorphClass(),
+                'redirectable_id' => (string) $model->getKey(),
+                'source_slug' => $previousSlug,
+                'destination_slug' => $currentSlug,
+                'destination_path' => $destinationPath,
+                'first_visited_at' => $firstVisitedAt,
+            ],
+        );
+
+        return true;
+    }
+
+    public function markRedirectUsed(SlugRedirect $slugRedirect): void
+    {
+        $slugRedirect->forceFill([
+            'last_redirected_at' => now(),
+            'redirect_count' => $slugRedirect->redirect_count + 1,
+        ])->saveQuietly();
+    }
+
+    public function purgeForModel(Model $model): void
+    {
+        $this->queryForModel($model)->delete();
+    }
+
+    /**
+     * @return Builder<SlugRedirect>
+     */
+    private function queryForModel(Model $model): Builder
+    {
+        return SlugRedirect::query()
+            ->where('redirectable_type', $model->getMorphClass())
+            ->where('redirectable_id', (string) $model->getKey());
+    }
+
+    private function firstVisitedAt(string $path): ?CarbonImmutable
+    {
+        $trackedProperty = TrackedProperty::query()
+            ->withoutOwnerScope()
+            ->whereNull('owner_type')
+            ->whereNull('owner_id')
+            ->where('slug', (string) config('signals.integrations.browser.tracked_property.slug', 'ilmu360'))
+            ->first();
+
+        if (! $trackedProperty instanceof TrackedProperty) {
+            return null;
+        }
+
+        /** @var CarbonImmutable|string|null $occurredAt */
+        $occurredAt = SignalEvent::query()
+            ->withoutOwnerScope()
+            ->where('tracked_property_id', (string) $trackedProperty->getKey())
+            ->where('event_name', (string) config('signals.defaults.page_view_event_name', 'page_view'))
+            ->where('path', $path)
+            ->orderBy('occurred_at')
+            ->value('occurred_at');
+
+        if ($occurredAt instanceof CarbonImmutable) {
+            return $occurredAt;
+        }
+
+        if (is_string($occurredAt) && trim($occurredAt) !== '') {
+            return CarbonImmutable::parse($occurredAt);
+        }
+
+        return null;
+    }
+
+    private function normalizeSlug(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+
+        return $trimmed !== '' ? $trimmed : null;
+    }
+}

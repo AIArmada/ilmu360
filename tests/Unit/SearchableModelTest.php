@@ -1,10 +1,10 @@
 <?php
 
-use App\Enums\InstitutionNameType;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
+use App\Shared\Directory\Enums\InstitutionNameType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

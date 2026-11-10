@@ -3,6 +3,7 @@
 namespace App\States\EventStatus\Transitions;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\ModerationReview;
@@ -148,18 +149,9 @@ class ApproveEvent extends Transition implements HasColor, HasIcon, HasLabel
             $institutionIds->push($event->institution_id);
         }
 
-        Institution::query()
-            ->whereIn('id', $institutionIds->unique()->values())
-            ->where('status', 'pending')
-            ->get()
-            ->each(function (Institution $institution): void {
-                $now = now();
-                $institution->forceFill([
-                    'status' => 'verified',
-                    'verified_at' => $now,
-                    'last_state_change_at' => $now,
-                ])->save();
-            });
+        app(InstitutionWorkflow::class)->verifyPending(
+            $institutionIds->unique()->values()->map(static fn (mixed $id): string => (string) $id)->all(),
+        );
 
         // Verify venue
         $venueId = $event->default_venue_id;

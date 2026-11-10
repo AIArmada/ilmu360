@@ -7,7 +7,7 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
-use App\Support\Models\SlugOrUuidResolver;
+use App\Platform\Models\SlugOrUuidResolver;
 use Illuminate\Database\Eloquent\Builder;
 use Lorisleiva\Actions\Concerns\AsAction;
 

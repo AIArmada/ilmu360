@@ -25,15 +25,19 @@ class InstitutionImportExclusion extends Model
 {
     use HasUuids;
 
+    #[\Override]
     public $incrementing = false;
 
+    #[\Override]
     protected $keyType = 'string';
 
+    #[\Override]
     protected $table = 'institution_import_exclusions';
 
     /**
      * @var list<string>
      */
+    #[\Override]
     protected $fillable = [
         'source',
         'external_ref',
@@ -47,6 +51,12 @@ class InstitutionImportExclusion extends Model
         return [
             'deleted_at' => 'immutable_datetime',
         ];
+    }
+
+    #[\Override]
+    public function getTable(): string
+    {
+        return $this->table;
     }
 
     public static function forIdentity(string $source, string $externalRef): ?static

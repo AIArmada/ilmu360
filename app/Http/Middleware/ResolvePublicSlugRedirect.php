@@ -3,9 +3,9 @@
 namespace App\Http\Middleware;
 
 use App\Actions\Slugs\ResolvePublicSlugAction;
-use App\Actions\Slugs\SyncSlugRedirectAction;
 use App\Models\SlugRedirect;
 use App\Platform\Routing\PublicSlugRegistry;
+use App\Platform\Routing\SyncSlugRedirectAction;
 use Closure;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;

@@ -5,12 +5,12 @@ namespace App\Observers;
 use AIArmada\CommerceSupport\Support\CanonicalSlug;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\Events\Authoring\GenerateEventSlugAction;
-use App\Actions\Slugs\SyncSlugRedirectAction;
 use App\Jobs\RenderShareCardJob;
 use App\Models\Event;
-use App\Observers\Concerns\SyncsCurrentAndPreviousValues;
+use App\Platform\Cache\PublicDirectoryCacheVersion;
 use App\Platform\Cache\PublicListingsCache;
-use App\Support\Cache\PublicDirectoryCacheVersion;
+use App\Platform\Models\Concerns\SyncsCurrentAndPreviousValues;
+use App\Platform\Routing\SyncSlugRedirectAction;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
 class EventObserver implements ShouldHandleEventsAfterCommit

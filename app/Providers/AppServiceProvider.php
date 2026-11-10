@@ -93,7 +93,6 @@ use App\Contracts\SpaceEligibilityResolver;
 use App\Features\Directory\Api\DirectoryAdminContract;
 use App\Features\Directory\Api\DirectoryCommands;
 use App\Features\Directory\Api\DirectoryReader;
-use App\Features\Directory\Api\DirectoryReportSubjectProvider;
 use App\Features\Events\Api\GuestSubmissionClaims;
 use App\Features\SavedSearches\Api\SavedSearchExecutor;
 use App\Http\Controllers\Mcp\OAuthRegisterController;
@@ -107,6 +106,8 @@ use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\EventSubmission;
 use App\Models\Institution;
+use App\Models\InstitutionImportExclusion;
+use App\Models\InstitutionName;
 use App\Models\Language;
 use App\Models\MediaLink;
 use App\Models\MemberInvitation;
@@ -155,7 +156,6 @@ use App\Platform\Auth\EloquentAccountDirectory;
 use App\Platform\Auth\EloquentAccountSettingsStore;
 use App\Platform\Auth\EloquentUserMorphType;
 use App\Platform\Media\EloquentMediaCollectionSync;
-use App\Platform\Media\MediaChangeListener;
 use App\Platform\Media\MediaCollectionSync;
 use App\Platform\Media\MediaFileNamer;
 use App\Platform\Routing\PublicSlugRegistry;
@@ -218,7 +218,6 @@ use App\Support\Auth\AffiliateSignupAttributionSourceResolver;
 use App\Support\Auth\SignupAttributionContextResolverAdapter;
 use App\Support\Authz\InterimMembershipAuthorization;
 use App\Support\Authz\InterimMembershipDirectory;
-use App\Support\Cache\MediaDirectoryCacheListener;
 use App\Support\Communications\AccountNotificationSettingsAdapter;
 use App\Support\Communications\AppConsentResolver;
 use App\Support\Communications\AppPreferenceResolver;
@@ -230,7 +229,6 @@ use App\Support\Communications\ProbeSafeDestinationResolver;
 use App\Support\Contributions\ContributionsAccountLifecycleContributor;
 use App\Support\Contributions\EloquentContributionRequestReader;
 use App\Support\Directory\DirectoryAccountLifecycleContributor;
-use App\Support\Directory\DirectoryReportSubjectResolver;
 use App\Support\Directory\EloquentDirectoryAdmin;
 use App\Support\Directory\EloquentDirectoryCatalog;
 use App\Support\Directory\EloquentDirectoryCommands;
@@ -351,7 +349,6 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(DirectoryReader::class, EloquentDirectoryReader::class);
         $this->app->bind(DirectoryCommands::class, EloquentDirectoryCommands::class);
         $this->app->bind(DirectoryAdminContract::class, EloquentDirectoryAdmin::class);
-        $this->app->bind(DirectoryReportSubjectProvider::class, DirectoryReportSubjectResolver::class);
         $this->app->bind(SubmissionEligibilitySync::class, PublicSubmissionEligibilitySync::class);
         $this->app->bind(AccountEventFacts::class, EloquentAccountEventFacts::class);
         $this->app->bind(ContributionRequestReader::class, EloquentContributionRequestReader::class);
@@ -380,7 +377,6 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(UserDateTimeFormatting::class, DefaultUserDateTimeFormatter::class);
         $this->app->bind(MediaCollectionSync::class, EloquentMediaCollectionSync::class);
         $this->app->bind(ApiErrorDetailsEnricher::class, AdminValidateOnlyRemediationEnricher::class);
-        $this->app->tag([MediaDirectoryCacheListener::class], MediaChangeListener::TAG);
         $this->app->tag([
             PersonResourceSearchAdapter::class,
             InstitutionResourceSearchAdapter::class,
@@ -624,8 +620,11 @@ class AppServiceProvider extends ServiceProvider
             'event_registration_participant' => EventRegistrationParticipant::class,
             'membership_application' => MembershipApplication::class,
             'moderation_review' => ModerationReview::class,
-            'institution' => Institution::class,
             'media_link' => MediaLink::class,
+            'institution' => Institution::class,
+            'institution_name' => InstitutionName::class,
+            'institution_import_exclusion' => InstitutionImportExclusion::class,
+            'donation_channel' => DonationChannel::class,
             'member_invitation' => MemberInvitation::class,
             'registration' => Registration::class,
             'person' => Person::class,
@@ -633,7 +632,6 @@ class AppServiceProvider extends ServiceProvider
             'social_media' => SocialProfile::class,
             'space' => Space::class,
             'venue' => Venue::class,
-            'donation_channel' => DonationChannel::class,
             'language' => Language::class,
             'reference' => Reference::class,
             'organization' => Organization::class,
@@ -759,6 +757,8 @@ class AppServiceProvider extends ServiceProvider
         Event::observe(EventObserver::class);
         EventTerm::observe(EventTermObserver::class);
         Address::observe(AddressObserver::class);
+        Institution::observe(InstitutionObserver::class);
+        Institution::observe(InstitutionImportExclusionObserver::class);
         AddressArea::observe(AddressAreaObserver::class);
         AddressAreaRelationship::observe(AddressAreaRelationshipObserver::class);
         Addressable::observe(AddressableObserver::class);
@@ -770,8 +770,6 @@ class AppServiceProvider extends ServiceProvider
         EventOccurrence::observe(EventOccurrenceFeaturedObserver::class);
         EventTimeExpression::observe(EventTimeExpressionObserver::class);
         EventTaxonomy::observe(EventTaxonomyObserver::class);
-        Institution::observe(InstitutionObserver::class);
-        Institution::observe(InstitutionImportExclusionObserver::class);
         Language::observe(LanguageObserver::class);
         CommerceLanguage::observe(LanguageObserver::class);
         Person::observe(PersonObserver::class);

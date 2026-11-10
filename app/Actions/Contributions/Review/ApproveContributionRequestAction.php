@@ -4,13 +4,12 @@ namespace App\Actions\Contributions\Review;
 
 use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Actions\Institutions\GenerateInstitutionSlugAction;
 use App\Actions\Persons\GeneratePersonSlugAction;
 use App\Actions\References\SaveReferenceAction;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
-use App\Enums\InstitutionStatus;
+use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Forms\SharedFormSchema;
 use App\Models\ContributionRequest;
 use App\Models\Event;
@@ -35,7 +34,7 @@ class ApproveContributionRequestAction
         private readonly ContributionEntityMutationService $entityMutationService,
         private readonly ContributionRequestNotificationService $contributionRequestNotificationService,
         private readonly AddMemberAction $addMemberAction,
-        private readonly GenerateInstitutionSlugAction $generateInstitutionSlugAction,
+        private readonly InstitutionWorkflow $institutionWorkflow,
         private readonly GeneratePersonSlugAction $generatePersonSlugAction,
         private readonly SaveReferenceAction $saveReferenceAction,
     ) {}
@@ -84,7 +83,14 @@ class ApproveContributionRequestAction
 
         $entity = $request->entity;
 
-        if ($entity instanceof Institution || $entity instanceof Person || $entity instanceof Reference) {
+        if ($entity instanceof Institution) {
+            app(InstitutionWorkflow::class)->changeStatus((string) $entity->getKey(), 'verified');
+            $this->attachAsOwnerIfSupported($request->proposer, $entity);
+
+            return $entity;
+        }
+
+        if ($entity instanceof Person || $entity instanceof Reference) {
             $entity->forceFill([
                 'status' => 'verified',
                 'verified_at' => now(),
@@ -166,26 +172,9 @@ class ApproveContributionRequestAction
      */
     private function createInstitutionFromRequest(array $payload): Institution
     {
-        $address = $this->addressPayload($payload);
+        $institutionId = $this->institutionWorkflow->createVerifiedFromContribution($payload);
 
-        $institution = Institution::create([
-            'name' => (string) ($payload['name'] ?? 'Institution'),
-            'slug' => $this->generateInstitutionSlugAction->handle(
-                (string) ($payload['name'] ?? 'Institution'),
-                $address,
-            ),
-            'type' => (string) ($payload['type'] ?? 'masjid'),
-            'description' => $payload['description'] ?? null,
-            'status' => InstitutionStatus::Verified,
-            'verified_at' => now(),
-            'last_state_change_at' => now(),
-            'allow_public_event_submission' => true,
-        ]);
-
-        SharedFormSchema::createAddressFromData($institution, $address, allowCountryOnly: true);
-        $this->generateInstitutionSlugAction->syncInstitutionSlug($institution);
-
-        return $institution;
+        return Institution::query()->findOrFail($institutionId);
     }
 
     /**

@@ -1,5 +1,36 @@
 {
   "schema": 2,
   "name": "Directory",
-  "owns": {}
+  "owns": {
+    "table:institutions": [
+      "App\\Features\\Directory\\Actions\\Institutions\\ApplyInstitutionContributionAction",
+      "App\\Features\\Directory\\Actions\\Institutions\\CreateInstitutionAction",
+      "App\\Features\\Directory\\Actions\\Institutions\\FlagStaleInactiveInstitutionsAction",
+      "App\\Features\\Directory\\Actions\\Institutions\\GenerateInstitutionSlugAction",
+      "App\\Features\\Directory\\Actions\\Institutions\\SaveInstitutionAction",
+      "App\\Features\\Directory\\Actions\\Institutions\\VerifyPendingInstitutionsAction",
+      "App\\Features\\Directory\\Actions\\Institutions\\InstitutionSubmissionAccessAction",
+      "App\\Features\\Directory\\Actions\\Institutions\\ChangeInstitutionStatusAction",
+      "App\\Features\\Directory\\Actions\\Institutions\\DetachInstitutionVerifierAction",
+      "App\\Features\\Directory\\Actions\\Institutions\\RestoreInstitutionVerifierAction"
+    ],
+    "table:institution_names": [
+      "App\\Features\\Directory\\Actions\\Institutions\\EnforceSinglePrimaryInstitutionNameAction",
+      "App\\Features\\Directory\\Actions\\Institutions\\SyncInstitutionNamesAction"
+    ],
+    "table:institution_import_exclusions": [
+      "App\\Features\\Directory\\Actions\\Institutions\\RecordInstitutionImportExclusionAction"
+    ],
+    "table:donation_channels": [
+      "App\\Features\\Directory\\Actions\\DonationChannels\\DemoteDefaultDonationChannelsAction",
+      "App\\Features\\Directory\\Actions\\DonationChannels\\SaveDonationChannelAction",
+      "App\\Features\\Directory\\Actions\\DonationChannels\\TransitionDonationChannelStatusAction",
+      "App\\Features\\Directory\\Actions\\Institutions\\SyncInstitutionDonationChannelsAction",
+      "App\\Features\\Directory\\Actions\\DonationChannels\\DetachDonationChannelVerifierAction",
+      "App\\Features\\Directory\\Actions\\DonationChannels\\RestoreDonationChannelVerifierAction"
+    ],
+    "store:institution-submission": [
+      "App\\Features\\Directory\\Persistence\\InstitutionSubmissionCache"
+    ]
+  }
 }

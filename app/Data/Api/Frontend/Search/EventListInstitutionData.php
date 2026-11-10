@@ -2,8 +2,8 @@
 
 namespace App\Data\Api\Frontend\Search;
 
-use App\Enums\InstitutionType;
 use App\Models\Institution;
+use App\Shared\Directory\Enums\InstitutionType;
 use Spatie\LaravelData\Data;
 
 class EventListInstitutionData extends Data

@@ -1,8 +1,8 @@
 <?php
 
-use App\Enums\InstitutionStatus;
 use App\Models\Institution;
 use App\Models\InstitutionImportExclusion;
+use App\Shared\Directory\Enums\InstitutionStatus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);

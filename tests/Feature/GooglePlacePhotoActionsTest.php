@@ -1,6 +1,6 @@
 <?php
 
-use App\Actions\Location\FetchGooglePlacePhotoPreviewsAction;
+use App\Platform\Location\FetchGooglePlacePhotoPreviewsAction;
 use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Support\Facades\Http;
 

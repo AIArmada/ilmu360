@@ -1,7 +1,7 @@
 <?php
 
-use App\Enums\InstitutionStatus;
 use App\Models\Institution;
+use App\Shared\Directory\Enums\InstitutionStatus;
 use Carbon\CarbonInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 

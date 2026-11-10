@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use App\Enums\DonationChannelStatus;
 use App\Models\DonationChannel;
 use App\Models\Institution;
 use App\Models\Person;
+use App\Shared\Directory\Enums\DonationChannelStatus;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;

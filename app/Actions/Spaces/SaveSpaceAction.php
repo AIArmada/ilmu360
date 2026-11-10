@@ -9,6 +9,7 @@ use App\Models\Institution;
 use App\Models\Space;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\Pivot;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -101,20 +102,47 @@ final class SaveSpaceAction
                 ['institutions.id', 'institutions.name'],
             );
 
-            if ($hasInstitutionSpaceOverrideField) {
-                $space->institutions()->sync(collect($institutionIds)->mapWithKeys(
+            $links = $hasInstitutionSpaceOverrideField
+                ? collect($institutionIds)->mapWithKeys(
                     fn (string $institutionId): array => [$institutionId => [
                         'capacity' => array_key_exists($institutionId, $overrides)
                             ? $overrides[$institutionId]
                             : ($preserveExistingCapacities ? ($existingCapacities[$institutionId] ?? null) : null),
                     ]],
-                )->all());
-            } else {
-                $space->institutions()->sync(collect($institutionIds)->mapWithKeys(
+                )->all()
+                : collect($institutionIds)->mapWithKeys(
                     fn (string $institutionId): array => [$institutionId => [
                         'capacity' => $existingCapacities[$institutionId] ?? null,
                     ]],
-                )->all());
+                )->all();
+
+            DB::table('institution_space')
+                ->where('space_id', $space->getKey())
+                ->when($links !== [], fn ($query) => $query->whereNotIn('institution_id', array_keys($links)))
+                ->delete();
+
+            foreach ($links as $institutionId => $pivot) {
+                $exists = DB::table('institution_space')
+                    ->where('space_id', $space->getKey())
+                    ->where('institution_id', $institutionId)
+                    ->exists();
+
+                if ($exists) {
+                    DB::table('institution_space')
+                        ->where('space_id', $space->getKey())
+                        ->where('institution_id', $institutionId)
+                        ->update(['capacity' => $pivot['capacity'], 'updated_at' => now()]);
+
+                    continue;
+                }
+
+                DB::table('institution_space')->insert([
+                    'space_id' => $space->getKey(),
+                    'institution_id' => $institutionId,
+                    'capacity' => $pivot['capacity'],
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
             }
         }
 

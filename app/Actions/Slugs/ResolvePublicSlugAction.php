@@ -3,9 +3,9 @@
 namespace App\Actions\Slugs;
 
 use App\Models\SlugRedirect;
+use App\Platform\Models\SlugOrUuidResolver;
 use App\Platform\Routing\PublicSlugRegistry;
 use App\Platform\Routing\PublicSlugResource;
-use App\Support\Models\SlugOrUuidResolver;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 

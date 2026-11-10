@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Models\Reference;
+use App\Platform\Search\AbstractIndexToScout;
 
 class IndexReferencesToTypesense extends AbstractIndexToScout
 {

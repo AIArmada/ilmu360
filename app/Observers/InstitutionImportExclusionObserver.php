@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Observers;
 
+use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Models\Institution;
-use App\Models\InstitutionImportExclusion;
 
 /**
  * Synchronously records source-backed institution deletions as permanent
@@ -33,15 +33,10 @@ class InstitutionImportExclusionObserver
             return;
         }
 
-        InstitutionImportExclusion::query()->firstOrCreate(
-            [
-                'source' => $source,
-                'external_ref' => $externalRef,
-            ],
-            [
-                'institution_id' => (string) $institution->getKey(),
-                'deleted_at' => now(),
-            ],
+        app(InstitutionWorkflow::class)->recordImportExclusion(
+            $source,
+            $externalRef,
+            (string) $institution->getKey(),
         );
     }
 }

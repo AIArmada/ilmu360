@@ -2,11 +2,11 @@
 
 namespace App\Filament\Resources\DonationChannels\Tables;
 
-use App\Enums\DonationChannelStatus;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Filament\Resources\Persons\PersonResource;
 use App\Models\Institution;
 use App\Models\Person;
+use App\Shared\Directory\Enums\DonationChannelStatus;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;

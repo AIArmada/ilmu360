@@ -3,6 +3,7 @@
 namespace App\Actions\Contributions\Review;
 
 use App\Enums\ContributionRequestType;
+use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Models\ContributionRequest;
 use App\Models\Institution;
 use App\Models\Person;
@@ -45,7 +46,9 @@ class RejectContributionRequestAction
         if ($request->type === ContributionRequestType::Create) {
             $entity = $request->entity;
 
-            if ($entity instanceof Institution || $entity instanceof Person || $entity instanceof Reference) {
+            if ($entity instanceof Institution) {
+                app(InstitutionWorkflow::class)->changeStatus((string) $entity->getKey(), 'rejected');
+            } elseif ($entity instanceof Person || $entity instanceof Reference) {
                 $entity->forceFill([
                     'status' => 'rejected',
                     'rejected_at' => $now,

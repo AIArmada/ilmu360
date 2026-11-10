@@ -3,7 +3,6 @@
 namespace App\Forms;
 
 use AIArmada\Addressing\Actions\SyncAddressAreaAssignmentsAction;
-use AIArmada\Addressing\Contracts\CountryAddressProfile;
 use AIArmada\Addressing\Data\AddressLevelDefinition;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
@@ -17,15 +16,16 @@ use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Contacting\Support\SocialProfileConfig;
-use App\Actions\Location\NormalizeGoogleMapsInputAction;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Venue;
+use App\Platform\Addressing\AddressAreaRoles;
+use App\Platform\Addressing\AddressFormState;
+use App\Platform\Location\AddressAssignments;
 use App\Platform\Location\LocationLevelLabels;
 use App\Support\Cache\SelectionCatalogCache;
-use App\Support\Location\AddressAssignments;
 use App\Support\Location\LocationSlugResolver;
 use Closure;
 use Filament\Forms\Components\Hidden;
@@ -40,7 +40,6 @@ use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
@@ -71,9 +70,6 @@ class SharedFormSchema
     /** @var array<string, string|null> */
     private static array $countryIdsByParent = [];
 
-    /** @var list<string>|null */
-    private static ?array $entryAreaRoles = null;
-
     private static function ensureCacheScope(): void
     {
         $scope = spl_object_hash(app()).':'.(app()->bound('request') ? spl_object_hash(request()) : 'console');
@@ -90,7 +86,6 @@ class SharedFormSchema
         self::$areaSlugs = [];
         self::$countryIdsByState = [];
         self::$countryIdsByParent = [];
-        self::$entryAreaRoles = null;
     }
 
     /**
@@ -848,37 +843,7 @@ class SharedFormSchema
      */
     public static function normalizeAddressFormState(array $data): array
     {
-        if (! self::shouldNormalizeGoogleMaps($data)) {
-            return array_merge($data, [
-                'google_place_id' => $data['google_place_id'] ?? null,
-                'google_feature_id' => $data['google_feature_id'] ?? null,
-                'google_cid' => $data['google_cid'] ?? null,
-                'google_entity_id' => $data['google_entity_id'] ?? null,
-                'google_display_name' => $data['google_display_name'] ?? null,
-                'lat' => $data['latitude'] ?? ($data['lat'] ?? null),
-                'lng' => $data['longitude'] ?? ($data['lng'] ?? null),
-                'google_resolution_source' => null,
-                'google_resolution_status' => null,
-                'google_resolution_fingerprint' => null,
-                'google_resolution_message' => null,
-            ]);
-        }
-
-        return array_merge($data, app(NormalizeGoogleMapsInputAction::class)->handle([
-            'google_maps_url' => $data['google_maps_url'] ?? null,
-            'google_place_id' => $data['google_place_id'] ?? null,
-            'google_feature_id' => $data['google_feature_id'] ?? null,
-            'google_cid' => $data['google_cid'] ?? null,
-            'google_entity_id' => $data['google_entity_id'] ?? null,
-            'country_code' => $data['country_code'] ?? null,
-            'google_display_name' => $data['google_display_name'] ?? null,
-            'lat' => $data['latitude'] ?? ($data['lat'] ?? null),
-            'lng' => $data['longitude'] ?? ($data['lng'] ?? null),
-            'google_maps_remote_lookup_enabled' => $data['google_maps_remote_lookup_enabled'] ?? null,
-            'google_resolution_source' => $data['google_resolution_source'] ?? null,
-            'google_resolution_status' => $data['google_resolution_status'] ?? null,
-            'google_resolution_fingerprint' => $data['google_resolution_fingerprint'] ?? null,
-        ]));
+        return AddressFormState::normalizeAddressFormState($data);
     }
 
     /**
@@ -887,47 +852,7 @@ class SharedFormSchema
      */
     public static function prepareAddressPersistenceData(array $data): array
     {
-        $normalized = self::normalizeAddressFormState($data);
-        $normalized = self::normalizeRegionalSelections($normalized, $data);
-        $payload = [];
-
-        if (self::countrySelectionProvided($data)) {
-            $payload['country_id'] = self::normalizeCountrySelection($normalized);
-        }
-
-        foreach (['state_id', 'city_id'] as $field) {
-            if (array_key_exists($field, $data) || array_key_exists($field, $normalized)) {
-                $payload[$field] = $normalized[$field] ?? null;
-            }
-        }
-
-        if (array_key_exists('area_assignments', $data) || array_key_exists('area_assignments', $normalized)) {
-            $payload['area_assignments'] = AddressAssignments::normalize((array) ($normalized['area_assignments'] ?? $data['area_assignments'] ?? []));
-        }
-
-        foreach (['line1', 'line2', 'postcode', 'state', 'city', 'waze_url'] as $field) {
-            if (array_key_exists($field, $data)) {
-                $payload[$field] = $normalized[$field] ?? null;
-            }
-        }
-
-        foreach (['formatted_address', 'components', 'metadata', 'navigation_links'] as $field) {
-            if (array_key_exists($field, $data)) {
-                $payload[$field] = $data[$field];
-            }
-        }
-
-        if (self::hasGoogleMapsInput($data)) {
-            $payload['latitude'] = $normalized['lat'] ?? null;
-            $payload['longitude'] = $normalized['lng'] ?? null;
-            $payload['google_maps_url'] = $normalized['google_maps_url'] ?? null;
-            $payload['google_place_id'] = $normalized['google_place_id'] ?? null;
-            $payload['google_feature_id'] = $normalized['google_feature_id'] ?? $data['google_feature_id'] ?? null;
-            $payload['google_cid'] = $normalized['google_cid'] ?? $data['google_cid'] ?? null;
-            $payload['google_entity_id'] = $normalized['google_entity_id'] ?? $data['google_entity_id'] ?? null;
-        }
-
-        return self::hydrateAddressAreaLabels($payload);
+        return AddressFormState::prepareAddressPersistenceData($data);
     }
 
     /**
@@ -935,19 +860,7 @@ class SharedFormSchema
      */
     public static function countrySelectionProvided(array $data): bool
     {
-        foreach (['country_id', 'country_code', 'country_key'] as $field) {
-            $value = $data[$field] ?? null;
-
-            if (is_int($value)) {
-                return true;
-            }
-
-            if (is_string($value) && trim($value) !== '') {
-                return true;
-            }
-        }
-
-        return false;
+        return AddressFormState::countrySelectionProvided($data);
     }
 
     /**
@@ -955,42 +868,7 @@ class SharedFormSchema
      */
     public static function normalizeCountrySelection(array $data, bool $enabledOnly = false): ?string
     {
-        $countryId = self::normalizeLocationId($data['country_id'] ?? null);
-
-        if ($countryId !== null && AddressCountry::query()->whereKey($countryId)->exists()) {
-            return $countryId;
-        }
-
-        $countryCode = $data['country_code'] ?? null;
-
-        if (is_string($countryCode) && preg_match('/^[A-Za-z]{2}$/', trim($countryCode)) === 1) {
-            $resolvedId = AddressCountry::query()
-                ->where('iso2', mb_strtoupper(trim($countryCode)))
-                ->value('id');
-
-            return is_string($resolvedId) ? $resolvedId : null;
-        }
-
-        return null;
-    }
-
-    /**
-     * @param  array<string, mixed>  $data
-     */
-    private static function hasGoogleMapsInput(array $data): bool
-    {
-        return array_any([
-            'google_maps_url',
-            'google_place_id',
-            'google_feature_id',
-            'google_cid',
-            'google_entity_id',
-            'google_display_name',
-            'latitude',
-            'longitude',
-            'lat',
-            'lng',
-        ], fn ($field) => array_key_exists($field, $data));
+        return AddressFormState::normalizeCountrySelection($data, $enabledOnly);
     }
 
     /**
@@ -1525,7 +1403,7 @@ class SharedFormSchema
 
     public static function publicLocationPickerCascadeResetGuard(): int
     {
-        return 2;
+        return AddressAreaRoles::cascadeResetGuard();
     }
 
     /**
@@ -1714,37 +1592,7 @@ class SharedFormSchema
      */
     public static function entryAreaRoles(): array
     {
-        self::ensureCacheScope();
-
-        if (self::$entryAreaRoles !== null) {
-            return self::$entryAreaRoles;
-        }
-
-        $roles = [];
-
-        foreach (config('addressing.geography.providers', []) as $providerClass) {
-            if (! is_string($providerClass)) {
-                continue;
-            }
-
-            $provider = app($providerClass);
-
-            if (! $provider instanceof CountryAddressProfile) {
-                continue;
-            }
-
-            foreach ($provider->addressHierarchies() as $hierarchy) {
-                foreach ($hierarchy->levels as $level) {
-                    if ($level->kind === 'state') {
-                        continue;
-                    }
-
-                    $roles[] = CountryAddressProfileResolver::roleForLevel($hierarchy, $level);
-                }
-            }
-        }
-
-        return self::$entryAreaRoles = array_values(array_unique($roles));
+        return AddressAreaRoles::entryRoles();
     }
 
     /**
@@ -1942,133 +1790,6 @@ class SharedFormSchema
 
     public static function normalizeLocationId(mixed $value): ?string
     {
-        if (! is_string($value) && ! is_int($value)) {
-            return null;
-        }
-
-        $trimmed = trim((string) $value);
-
-        if ($trimmed === '') {
-            return null;
-        }
-
-        if (Str::isUuid($trimmed) || ctype_digit($trimmed)) {
-            return $trimmed;
-        }
-
-        return null;
-    }
-
-    /**
-     * @param  array<string, mixed>  $normalized
-     * @param  array<string, mixed>  $original
-     * @return array<string, mixed>
-     */
-    private static function normalizeRegionalSelections(array $normalized, array $original): array
-    {
-        $stateId = self::normalizeLocationId($normalized['state_id'] ?? $original['state_id'] ?? null);
-        $cityId = self::normalizeLocationId($normalized['city_id'] ?? $original['city_id'] ?? null);
-        $assignments = AddressAssignments::normalize((array) ($normalized['area_assignments'] ?? $original['area_assignments'] ?? []));
-
-        $countryId = self::normalizeCountrySelection($normalized)
-            ?? self::normalizeCountrySelection($original);
-
-        if ($cityId !== null) {
-            $cityQuery = City::query()->whereKey($cityId);
-
-            if ($stateId !== null) {
-                $cityQuery->where('state_id', $stateId);
-            }
-
-            if ($countryId !== null) {
-                $cityQuery->where('country_id', $countryId);
-            }
-
-            if (! $cityQuery->exists()) {
-                throw ValidationException::withMessages([
-                    'address.city_id' => __('The selected city does not belong to the selected state or country.'),
-                ]);
-            }
-        }
-
-        foreach ($assignments as $role => $areaId) {
-            $areaQuery = AddressArea::query()->whereKey($areaId);
-
-            if ($countryId !== null) {
-                $areaQuery->where('country_id', $countryId);
-            }
-
-            if (! $areaQuery->exists()) {
-                throw ValidationException::withMessages([
-                    'address.area_assignments.'.$role => __('The selected area does not belong to the selected country.'),
-                ]);
-            }
-        }
-
-        if ($stateId !== null) {
-            $stateQuery = State::query()->whereKey($stateId);
-
-            if ($countryId !== null) {
-                $stateQuery->where('country_id', $countryId);
-            }
-
-            if (! $stateQuery->exists()) {
-                throw ValidationException::withMessages([
-                    'address.state_id' => __('The selected state does not belong to the selected country.'),
-                ]);
-            }
-
-            $normalized['state_id'] = $stateId;
-        }
-        if ($cityId !== null) {
-            $normalized['city_id'] = $cityId;
-        }
-
-        if (array_key_exists('area_assignments', $original) || array_key_exists('area_assignments', $normalized)) {
-            $normalized['area_assignments'] = $assignments;
-        }
-
-        return $normalized;
-    }
-
-    /**
-     * @param  array<string, mixed>  $payload
-     * @return array<string, mixed>
-     */
-    private static function hydrateAddressAreaLabels(array $payload): array
-    {
-        $country = isset($payload['country_id']) && is_string($payload['country_id'])
-            ? AddressCountry::query()->find($payload['country_id'])
-            : null;
-        $state = isset($payload['state_id']) && is_string($payload['state_id'])
-            ? State::query()->find($payload['state_id'])
-            : null;
-        $city = isset($payload['city_id']) && is_string($payload['city_id'])
-            ? City::query()->find($payload['city_id'])
-            : null;
-        $areas = collect(AddressAssignments::normalize((array) ($payload['area_assignments'] ?? [])))
-            ->map(static fn (string $areaId): ?AddressArea => AddressArea::query()->find($areaId));
-
-        if ($country instanceof AddressCountry) {
-            $payload['country'] = $country->name;
-            $payload['country_code'] = $country->iso2;
-        }
-
-        if ($state instanceof State) {
-            $payload['state'] = $state->name;
-        }
-
-        if ($city instanceof City) {
-            $payload['city'] = $city->name;
-        } elseif (empty($payload['city'])) {
-            foreach ($areas->reverse() as $area) {
-                if ($area instanceof AddressArea) {
-                    $payload['city'] = $area->name;
-                    break;
-                }
-            }
-        }
-
-        return $payload;
+        return AddressFormState::normalizeLocationId($value);
     }
 }

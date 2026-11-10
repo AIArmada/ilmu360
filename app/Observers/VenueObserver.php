@@ -2,11 +2,11 @@
 
 namespace App\Observers;
 
-use App\Actions\Slugs\SyncSlugRedirectAction;
 use App\Actions\Venues\GenerateVenueSlugAction;
 use App\Models\Venue;
-use App\Observers\Concerns\SyncsCurrentAndPreviousValues;
 use App\Platform\Cache\PublicListingsCache;
+use App\Platform\Models\Concerns\SyncsCurrentAndPreviousValues;
+use App\Platform\Routing\SyncSlugRedirectAction;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
 class VenueObserver implements ShouldHandleEventsAfterCommit

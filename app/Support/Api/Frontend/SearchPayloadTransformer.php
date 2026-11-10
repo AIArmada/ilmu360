@@ -9,7 +9,7 @@ use AIArmada\Contacting\Models\ContactMethod;
 use AIArmada\Contacting\Models\SocialProfile;
 use App\Data\Api\Frontend\Search\CountryData;
 use App\Enums\EventKeyPersonRole;
-use App\Support\Location\AddressAssignments;
+use App\Platform\Location\AddressAssignments;
 use App\Support\Location\AddressHierarchyFormatter;
 use BackedEnum;
 use Illuminate\Support\Str;

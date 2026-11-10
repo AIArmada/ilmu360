@@ -1,6 +1,6 @@
 <?php
 
-use App\Support\Location\GooglePlaceIdentity;
+use App\Platform\Location\GooglePlaceIdentity;
 
 it('preserves google CID precision through the full unsigned 64-bit range', function () {
     expect(GooglePlaceIdentity::cidFromFeatureId('0x808f778c55555555:0xffffffffffffffff'))

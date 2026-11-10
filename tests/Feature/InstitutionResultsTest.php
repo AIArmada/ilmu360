@@ -1,10 +1,10 @@
 <?php
 
-use App\Enums\InstitutionNameType;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\User;
 use App\Platform\Time\UserDateTimeFormatter;
+use App\Shared\Directory\Enums\InstitutionNameType;
 use App\Support\Search\InstitutionSearchService;
 use Carbon\CarbonImmutable;
 use Livewire\Livewire;

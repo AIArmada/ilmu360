@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Observers;
 
 use App\Models\EventKeyPerson;
+use App\Platform\Cache\PublicDirectoryCacheVersion;
 use App\Platform\Cache\PublicListingsCache;
-use App\Support\Cache\PublicDirectoryCacheVersion;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
 class EventKeyPersonObserver implements ShouldHandleEventsAfterCommit

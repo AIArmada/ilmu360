@@ -3,11 +3,11 @@
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Persons\Enums\PersonNameType;
 use AIArmada\Persons\Models\PersonName;
-use App\Enums\InstitutionNameType;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Platform\Search\TypesenseHealthCheckService;
+use App\Shared\Directory\Enums\InstitutionNameType;
 use App\Support\Search\InstitutionSearchService;
 use App\Support\Search\PersonSearchService;
 use App\Support\Search\ReferenceSearchService;

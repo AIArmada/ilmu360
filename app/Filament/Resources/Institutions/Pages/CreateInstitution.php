@@ -3,8 +3,9 @@
 namespace App\Filament\Resources\Institutions\Pages;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Actions\Institutions\SaveInstitutionAction;
+use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Filament\Resources\Institutions\InstitutionResource;
+use App\Models\Institution;
 use App\Models\User;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
@@ -38,10 +39,13 @@ class CreateInstitution extends CreateRecord
             abort(403);
         }
 
-        return OwnerContext::withOwner(null, fn (): Model => app(SaveInstitutionAction::class)->handle(
-            $data,
-            $user,
-            validationErrorKey: 'data.allow_public_event_submission',
-        ));
+        return OwnerContext::withOwner(null, function () use ($data, $user): Model {
+            $institutionId = app(InstitutionWorkflow::class)->saveFromAdmin(
+                $data,
+                (string) $user->getKey(),
+            );
+
+            return Institution::query()->findOrFail($institutionId);
+        });
     }
 }

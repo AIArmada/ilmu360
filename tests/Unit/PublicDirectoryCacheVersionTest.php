@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use App\Models\Institution;
 use App\Models\Person;
-use App\Support\Cache\PublicDirectoryCacheVersion;
+use App\Platform\Cache\PublicDirectoryCacheVersion;
 use Illuminate\Support\Facades\Cache;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Tests\TestCase;

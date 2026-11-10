@@ -4,13 +4,13 @@ namespace App\Support\Membership;
 
 use AIArmada\Membership\Enums\ApplicationStatus;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Enums\InstitutionType;
 use App\Enums\MemberSubjectType;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Filament\Resources\Persons\PersonResource;
 use App\Models\Institution;
 use App\Models\MembershipApplication;
 use App\Models\Person;
+use App\Shared\Directory\Enums\InstitutionType;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;

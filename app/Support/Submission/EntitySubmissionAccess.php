@@ -5,11 +5,11 @@ namespace App\Support\Submission;
 use AIArmada\Addressing\Data\AddressLocationData;
 use AIArmada\Addressing\Support\AddressLocationScope;
 use App\Enums\EventFormat;
-use App\Enums\InstitutionStatus;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
 use App\Models\Venue;
+use App\Shared\Directory\Enums\InstitutionStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\ValidationException;
 

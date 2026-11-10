@@ -5,15 +5,15 @@ namespace App\Observers;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Support\AddressCountryResolver;
 use App\Actions\Events\Authoring\GenerateEventSlugAction;
-use App\Actions\Institutions\GenerateInstitutionSlugAction;
 use App\Actions\Persons\GeneratePersonSlugAction;
 use App\Actions\Venues\GenerateVenueSlugAction;
+use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Venue;
+use App\Platform\Cache\PublicDirectoryCacheVersion;
 use App\Platform\Cache\PublicListingsCache;
-use App\Support\Cache\PublicDirectoryCacheVersion;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
@@ -21,7 +21,7 @@ class AddressObserver implements ShouldHandleEventsAfterCommit
 {
     public function __construct(
         protected GenerateEventSlugAction $generateEventSlugAction,
-        protected GenerateInstitutionSlugAction $generateInstitutionSlugAction,
+        protected InstitutionWorkflow $institutionWorkflow,
         protected GeneratePersonSlugAction $generatePersonSlugAction,
         protected GenerateVenueSlugAction $generateVenueSlugAction,
         protected PublicDirectoryCacheVersion $publicDirectoryCacheVersion,
@@ -66,7 +66,7 @@ class AddressObserver implements ShouldHandleEventsAfterCommit
             $addressable = $link->addressable;
 
             if ($addressable instanceof Institution) {
-                $this->generateInstitutionSlugAction->syncInstitutionSlugsForName($addressable->name);
+                $this->institutionWorkflow->syncSlugsForName($addressable->name);
                 $this->syncSearchableModel($addressable);
                 $this->syncSearchableEvents($addressable->events()->get(['events.*']));
                 $this->publicListingsCache->bustMajlisListing();

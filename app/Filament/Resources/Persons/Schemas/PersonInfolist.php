@@ -8,7 +8,7 @@ use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Persons\Enums\Gender;
 use App\Enums\SpeakerStatus;
 use App\Models\Person;
-use App\Support\Location\AddressAssignments;
+use App\Platform\Location\AddressAssignments;
 use App\Support\Location\AddressHierarchyFormatter;
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
 use Filament\Infolists\Components\IconEntry;

@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Enums\InstitutionNameType;
+use App\Features\Directory\Api\InstitutionWorkflow;
+use App\Shared\Directory\Enums\InstitutionNameType;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -22,6 +23,10 @@ class InstitutionName extends Model
 {
     use HasUuids;
 
+    #[\Override]
+    protected $table = 'institution_names';
+
+    #[\Override]
     protected $fillable = [
         'institution_id',
         'name_type',
@@ -33,14 +38,11 @@ class InstitutionName extends Model
     protected static function booted(): void
     {
         static::saved(function (InstitutionName $name): void {
-            if (! $name->is_primary) {
-                return;
-            }
-
-            static::query()
-                ->where('institution_id', $name->institution_id)
-                ->whereKeyNot($name->getKey())
-                ->update(['is_primary' => false]);
+            app(InstitutionWorkflow::class)->enforceSinglePrimaryName(
+                (string) $name->getKey(),
+                (string) $name->institution_id,
+                (bool) $name->is_primary,
+            );
         });
     }
 
@@ -50,6 +52,12 @@ class InstitutionName extends Model
             'name_type' => InstitutionNameType::class,
             'is_primary' => 'boolean',
         ];
+    }
+
+    #[\Override]
+    public function getTable(): string
+    {
+        return $this->table;
     }
 
     /** @return BelongsTo<Institution, $this> */

@@ -2,9 +2,10 @@
 
 namespace App\Models;
 
-use App\Enums\DonationChannelStatus;
+use App\Features\Directory\Api\DonationChannelWorkflow;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Platform\Reporting\ReportModelClass;
+use App\Shared\Directory\Enums\DonationChannelStatus;
 use Carbon\CarbonImmutable;
 use Database\Factories\DonationChannelFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -14,7 +15,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use InvalidArgumentException;
-use LogicException;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
@@ -30,15 +30,19 @@ class DonationChannel extends Model implements AuditableContract, HasMedia
     /** @use HasFactory<DonationChannelFactory> */
     use AuditsModelChanges, HasFactory, HasUuids, InteractsWithMedia;
 
+    #[\Override]
     protected $table = 'donation_channels';
 
+    #[\Override]
     public $incrementing = false;
 
+    #[\Override]
     protected $keyType = 'string';
 
     /**
      * @var list<string>
      */
+    #[\Override]
     protected $hidden = [
         'account_number',
         'duitnow_value',
@@ -47,6 +51,7 @@ class DonationChannel extends Model implements AuditableContract, HasMedia
     /**
      * @var list<string>
      */
+    #[\Override]
     protected $fillable = [
         'donatable_type',
         'donatable_id',
@@ -86,49 +91,23 @@ class DonationChannel extends Model implements AuditableContract, HasMedia
      */
     public function transitionStatus(DonationChannelStatus $status): static
     {
-        if (! $this->exists) {
-            throw new LogicException('A new donation channel must be saved before it can transition.');
-        }
+        app(DonationChannelWorkflow::class)->transition((string) $this->getKey(), $status->value);
 
-        $currentStatus = $this->status;
-
-        if (! $currentStatus instanceof DonationChannelStatus) {
-            throw new LogicException('A persisted donation channel must have a valid status before it can transition.');
-        }
-
-        if ($status === DonationChannelStatus::Verified) {
-            $this->verified_by ??= auth()->id();
-        }
-
-        if ($currentStatus === $status) {
-            $now = CarbonImmutable::now();
-            $this->applyStatusTimestamp($status, $now);
-            $this->last_state_change_at ??= $now;
-
-            if ($this->isDirty()) {
-                $this->save();
-            }
-
-            return $this;
-        }
-
-        $now = CarbonImmutable::now();
-        $this->setAttribute('status', $status);
-        $this->applyStatusTimestamp($status, $now, true);
-        $this->last_state_change_at = $now;
-        $this->save();
-
-        return $this;
+        return $this->refresh();
     }
 
     /**
      * Verify the donation channel and record the verifying actor when available.
      */
-    public function verify(?User $verifier = null): static
+    public function verify(?Model $verifier = null): static
     {
-        $this->verified_by ??= $verifier?->getKey() ?? auth()->id();
+        app(DonationChannelWorkflow::class)->transition(
+            (string) $this->getKey(),
+            DonationChannelStatus::Verified->value,
+            $verifier?->getKey() ?? auth()->id(),
+        );
 
-        return $this->transitionStatus(DonationChannelStatus::Verified);
+        return $this->refresh();
     }
 
     /**
@@ -167,39 +146,8 @@ class DonationChannel extends Model implements AuditableContract, HasMedia
         });
 
         static::saved(function (self $channel): void {
-            if (! $channel->is_default) {
-                return;
-            }
-
-            if (blank($channel->donatable_type) || blank($channel->donatable_id)) {
-                return;
-            }
-
-            self::query()
-                ->where('donatable_type', $channel->donatable_type)
-                ->where('donatable_id', $channel->donatable_id)
-                ->whereKeyNot($channel->getKey())
-                ->where('is_default', true)
-                ->update([
-                    'is_default' => false,
-                    'updated_at' => now(),
-                ]);
+            app(DonationChannelWorkflow::class)->demoteDefault((string) $channel->getKey());
         });
-    }
-
-    private function resolveStatus(mixed $status): DonationChannelStatus
-    {
-        if ($status instanceof DonationChannelStatus) {
-            return $status;
-        }
-
-        $resolved = is_string($status) ? DonationChannelStatus::tryFrom($status) : null;
-
-        if (! $resolved instanceof DonationChannelStatus) {
-            throw new InvalidArgumentException(sprintf('The donation channel status [%s] is invalid.', is_scalar($status) ? (string) $status : gettype($status)));
-        }
-
-        return $resolved;
     }
 
     private function applyStatusTimestamp(DonationChannelStatus $status, CarbonImmutable $at, bool $overwrite = false): void
@@ -218,6 +166,21 @@ class DonationChannel extends Model implements AuditableContract, HasMedia
         if ($overwrite || $this->getAttribute($attribute) === null) {
             $this->setAttribute($attribute, $at);
         }
+    }
+
+    private function resolveStatus(mixed $status): DonationChannelStatus
+    {
+        if ($status instanceof DonationChannelStatus) {
+            return $status;
+        }
+
+        $resolved = is_string($status) ? DonationChannelStatus::tryFrom($status) : null;
+
+        if (! $resolved instanceof DonationChannelStatus) {
+            throw new InvalidArgumentException(sprintf('The donation channel status [%s] is invalid.', is_scalar($status) ? (string) $status : gettype($status)));
+        }
+
+        return $resolved;
     }
 
     /**
@@ -281,6 +244,12 @@ class DonationChannel extends Model implements AuditableContract, HasMedia
     /**
      * Register media collections for Spatie Media Library.
      */
+    #[\Override]
+    public function getTable(): string
+    {
+        return $this->table;
+    }
+
     public function registerMediaCollections(): void
     {
         $this->addMediaCollection('qr')
