@@ -15,14 +15,14 @@
             ->values()
         : collect();
     $sessionTime = $session->starts_at
-        ? \App\Support\Timezone\UserDateTimeFormatter::format($session->starts_at, 'h:i A')
+        ? \App\Platform\Time\UserDateTimeFormatter::format($session->starts_at, 'h:i A')
         : __('TBC');
     if ($session->ends_at) {
-        $sessionViewerTimezone = \App\Support\Timezone\UserTimezoneResolver::resolve();
+        $sessionViewerTimezone = \App\Platform\Time\UserTimezoneResolver::resolve();
         $sessionSameLocalDay = $session->starts_at
             ? $session->starts_at->copy()->timezone($sessionViewerTimezone)->isSameDay($session->ends_at->copy()->timezone($sessionViewerTimezone))
             : true;
-        $sessionTime .= ' — ' . \App\Support\Timezone\UserDateTimeFormatter::format($session->ends_at, $sessionSameLocalDay ? 'h:i A' : 'j M, h:i A');
+        $sessionTime .= ' — ' . \App\Platform\Time\UserDateTimeFormatter::format($session->ends_at, $sessionSameLocalDay ? 'h:i A' : 'j M, h:i A');
     }
     $sessionLocation = $detail->primaryLocationFor($session);
     $sessionLocationLabel = $detail->locationLabel($sessionLocation);

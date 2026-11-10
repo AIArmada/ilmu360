@@ -24,11 +24,11 @@
                 </div>
                 <div>
                     <div class="text-sm text-gray-500">Email Verified At</div>
-                    <div class="font-medium text-gray-950 dark:text-white">{{ \App\Support\Timezone\UserDateTimeFormatter::format($user->email_verified_at, 'd M Y H:i') ?: '-' }}</div>
+                    <div class="font-medium text-gray-950 dark:text-white">{{ \App\Platform\Time\UserDateTimeFormatter::format($user->email_verified_at, 'd M Y H:i') ?: '-' }}</div>
                 </div>
                 <div>
                     <div class="text-sm text-gray-500">Phone Verified At</div>
-                    <div class="font-medium text-gray-950 dark:text-white">{{ \App\Support\Timezone\UserDateTimeFormatter::format($user->phone_verified_at, 'd M Y H:i') ?: '-' }}</div>
+                    <div class="font-medium text-gray-950 dark:text-white">{{ \App\Platform\Time\UserDateTimeFormatter::format($user->phone_verified_at, 'd M Y H:i') ?: '-' }}</div>
                 </div>
                 <div class="md:col-span-3">
                     <div class="text-sm text-gray-500">Global Roles</div>
@@ -178,7 +178,7 @@
                                 <x-filament::badge :color="$this->eventStatusBadgeColor($event->status)">{{ $this->humanLabel($event->status) }}</x-filament::badge>
                             </div>
                             <div class="mt-3 text-sm text-gray-500">
-                                Starts: {{ \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'd M Y H:i') ?: '-' }}
+                                Starts: {{ \App\Platform\Time\UserDateTimeFormatter::format($event->starts_at, 'd M Y H:i') ?: '-' }}
                             </div>
                             <div class="text-sm text-gray-500">
                                 Institution: {{ $event->institution?->name ?: '-' }}
@@ -204,7 +204,7 @@
                                 <x-filament::badge :color="$this->eventStatusBadgeColor($event->status)">{{ $this->humanLabel($event->status) }}</x-filament::badge>
                             </div>
                             <div class="mt-3 text-sm text-gray-500">
-                                Starts: {{ \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'd M Y H:i') ?: '-' }}
+                                Starts: {{ \App\Platform\Time\UserDateTimeFormatter::format($event->starts_at, 'd M Y H:i') ?: '-' }}
                             </div>
                             <div class="text-sm text-gray-500">
                                 Institution: {{ $event->institution?->name ?: '-' }}
@@ -229,7 +229,7 @@
                                 </a>
                             </div>
                             <div class="mt-3 text-sm text-gray-500">
-                                Checked In At: {{ \App\Support\Timezone\UserDateTimeFormatter::format($checkin->checked_in_at, 'd M Y H:i') ?: '-' }}
+                                Checked In At: {{ \App\Platform\Time\UserDateTimeFormatter::format($checkin->checked_in_at, 'd M Y H:i') ?: '-' }}
                             </div>
                             <div class="text-sm text-gray-500">
                                 Source: {{ $this->humanLabel($checkin->check_in_source) }}
@@ -260,7 +260,7 @@
                                 Event: {{ $registration->event?->title ?: '-' }}
                             </div>
                             <div class="text-sm text-gray-500">
-                                Registered At: {{ \App\Support\Timezone\UserDateTimeFormatter::format($registration->created_at, 'd M Y H:i') ?: '-' }}
+                                Registered At: {{ \App\Platform\Time\UserDateTimeFormatter::format($registration->created_at, 'd M Y H:i') ?: '-' }}
                             </div>
                         </div>
                     @empty
@@ -280,7 +280,7 @@
                                 <x-filament::badge :color="$this->eventStatusBadgeColor($submission->event?->status)">{{ $this->humanLabel($submission->event?->status) }}</x-filament::badge>
                             </div>
                             <div class="mt-3 text-sm text-gray-500">
-                                Submitted At: {{ \App\Support\Timezone\UserDateTimeFormatter::format($submission->created_at, 'd M Y H:i') ?: '-' }}
+                                Submitted At: {{ \App\Platform\Time\UserDateTimeFormatter::format($submission->created_at, 'd M Y H:i') ?: '-' }}
                             </div>
                             <div class="text-sm text-gray-500">
                                 Notes: {{ data_get($submission->submission_data, 'notes') ?: '-' }}
@@ -392,7 +392,7 @@
                                 <x-filament::badge :color="$this->eventStatusBadgeColor($event->status)">{{ $this->humanLabel($event->status) }}</x-filament::badge>
                             </div>
                             <div class="mt-3 text-sm text-gray-500">
-                                Starts: {{ \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'd M Y H:i') ?: '-' }}
+                                Starts: {{ \App\Platform\Time\UserDateTimeFormatter::format($event->starts_at, 'd M Y H:i') ?: '-' }}
                             </div>
                             <div class="text-sm text-gray-500">
                                 Institution: {{ $event->institution?->name ?: '-' }}
@@ -423,7 +423,7 @@
                             Filters: {{ $this->formatSavedSearchFilters(is_array($savedSearch->filters) ? $savedSearch->filters : null) }}
                         </div>
                         <div class="text-sm text-gray-500">
-                            Created At: {{ \App\Support\Timezone\UserDateTimeFormatter::format($savedSearch->createdAt, 'd M Y H:i') ?: '-' }}
+                            Created At: {{ \App\Platform\Time\UserDateTimeFormatter::format($savedSearch->createdAt, 'd M Y H:i') ?: '-' }}
                         </div>
                     </div>
                 @empty

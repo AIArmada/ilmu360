@@ -8,14 +8,14 @@
         : ($eventCoverUrl !== '' ? $eventCoverUrl : null);
     $occurrenceExpression = $detail->timeExpressionsFor($occurrence)->first();
     $occurrenceTime = $occurrence->starts_at
-        ? \App\Support\Timezone\UserDateTimeFormatter::format($occurrence->starts_at, 'h:i A')
+        ? \App\Platform\Time\UserDateTimeFormatter::format($occurrence->starts_at, 'h:i A')
         : __('TBC');
     if ($occurrence->ends_at) {
-        $occurrenceViewerTimezone = \App\Support\Timezone\UserTimezoneResolver::resolve();
+        $occurrenceViewerTimezone = \App\Platform\Time\UserTimezoneResolver::resolve();
         $occurrenceSameLocalDay = $occurrence->starts_at
             ? $occurrence->starts_at->copy()->timezone($occurrenceViewerTimezone)->isSameDay($occurrence->ends_at->copy()->timezone($occurrenceViewerTimezone))
             : true;
-        $occurrenceTime .= ' — ' . \App\Support\Timezone\UserDateTimeFormatter::format($occurrence->ends_at, $occurrenceSameLocalDay ? 'h:i A' : 'j M, h:i A');
+        $occurrenceTime .= ' — ' . \App\Platform\Time\UserDateTimeFormatter::format($occurrence->ends_at, $occurrenceSameLocalDay ? 'h:i A' : 'j M, h:i A');
     }
     $occurrenceLocation = $detail->primaryLocationFor($occurrence);
     $occurrenceLocationLabel = $detail->locationLabel($occurrenceLocation);
@@ -36,7 +36,7 @@
                     <div class="flex items-center justify-between"><span class="font-mono text-xs font-bold tracking-[0.18em] text-[#f2c867]">●</span><span class="size-2 rounded-full bg-[#f2c867]"></span></div>
                     <div>
                         <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-[#f2c867]">{{ __('Tarikh') }}</p>
-                        @if($occurrence->starts_at)<p class="mt-2 font-heading text-3xl font-semibold leading-none">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($occurrence->starts_at, 'd M') }}</p><p class="mt-1 text-sm text-white/70">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($occurrence->starts_at, 'Y') }}</p>@else<p class="mt-2 font-heading text-2xl font-semibold">{{ __('TBC') }}</p>@endif
+                        @if($occurrence->starts_at)<p class="mt-2 font-heading text-3xl font-semibold leading-none">{{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($occurrence->starts_at, 'd M') }}</p><p class="mt-1 text-sm text-white/70">{{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($occurrence->starts_at, 'Y') }}</p>@else<p class="mt-2 font-heading text-2xl font-semibold">{{ __('TBC') }}</p>@endif
                     </div>
                 </div>
             @endif

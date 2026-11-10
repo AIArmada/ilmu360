@@ -133,21 +133,21 @@
             <div
                 class="flex size-11 shrink-0 flex-col items-center justify-center rounded-xl bg-gradient-to-b from-emerald-400 to-emerald-600 shadow-inner">
                 <span
-                    class="text-base font-bold leading-none text-white">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($event->starts_at, 'j') }}</span>
+                    class="text-base font-bold leading-none text-white">{{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($event->starts_at, 'j') }}</span>
                 <span
-                    class="text-[8px] font-bold uppercase tracking-widest text-emerald-50">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($event->starts_at, 'M') }}</span>
+                    class="text-[8px] font-bold uppercase tracking-widest text-emerald-50">{{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($event->starts_at, 'M') }}</span>
             </div>
             <div>
                 <p class="text-sm font-bold text-white">
-                    {{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($event->starts_at, 'l, j F Y') }}
+                    {{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($event->starts_at, 'l, j F Y') }}
                 </p>
                 <p class="mt-0.5 text-xs font-medium text-emerald-200/80">
                     @if($event->isPrayerRelative())
                         {{ $event->timing_display }}
-                        @if($event->ends_at) — {{ \App\Support\Timezone\UserDateTimeFormatter::format($event->ends_at, 'g:i A') }}@endif
+                        @if($event->ends_at) — {{ \App\Platform\Time\UserDateTimeFormatter::format($event->ends_at, 'g:i A') }}@endif
                     @else
-                        {{ \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'g:i A') }}
-                        @if($event->ends_at) — {{ \App\Support\Timezone\UserDateTimeFormatter::format($event->ends_at, 'g:i A') }}@endif
+                        {{ \App\Platform\Time\UserDateTimeFormatter::format($event->starts_at, 'g:i A') }}
+                        @if($event->ends_at) — {{ \App\Platform\Time\UserDateTimeFormatter::format($event->ends_at, 'g:i A') }}@endif
                     @endif
                 </p>
             </div>

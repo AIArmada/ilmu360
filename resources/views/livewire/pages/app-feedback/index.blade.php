@@ -171,7 +171,7 @@
                 <article id="maklum-balas-{{ $selected->id }}" class="mt-6 scroll-mt-24 rounded-2xl border border-emerald-200 bg-white p-5 shadow-sm">
                     <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">{{ __('app-feedback.history.view') }}</p>
                     <h3 class="mt-2 text-lg font-semibold text-slate-900">{{ $selected->title }}</h3>
-                    <p class="mt-1 text-xs text-slate-500">{{ \App\Support\Timezone\UserDateTimeFormatter::format($selected->created_at, 'd M Y, h:i A') }}</p>
+                    <p class="mt-1 text-xs text-slate-500">{{ \App\Platform\Time\UserDateTimeFormatter::format($selected->created_at, 'd M Y, h:i A') }}</p>
                     <div class="mt-3 flex flex-wrap gap-2">
                         <span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $badgeClass($selected->category->getColor()) }}">{{ $selected->category->getLabel() }}</span>
                         <span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $badgeClass($selected->status->getColor()) }}">{{ $selected->status->getLabel() }}</span>
@@ -201,7 +201,7 @@
                                     <span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $badgeClass($feedback->status->getColor()) }}">{{ $feedback->status->getLabel() }}</span>
                                 </div>
                                 <h3 class="mt-3 break-words text-base font-semibold text-slate-900 sm:text-lg">{{ $feedback->title }}</h3>
-                                <p class="mt-1 text-xs text-slate-500">{{ \App\Support\Timezone\UserDateTimeFormatter::format($feedback->created_at, 'd M Y, h:i A') }}</p>
+                                <p class="mt-1 text-xs text-slate-500">{{ \App\Platform\Time\UserDateTimeFormatter::format($feedback->created_at, 'd M Y, h:i A') }}</p>
                             </div>
                             <a href="{{ route('app-feedback.index', ['lihat' => $feedback->id]) }}#maklum-balas-{{ $feedback->id }}"
                                 wire:navigate

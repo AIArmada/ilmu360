@@ -5,7 +5,7 @@
             <div class="rounded-xl bg-slate-50 p-3">
                 <p class="text-[11px] font-semibold uppercase tracking-[0.14em] {{ $message->author_role === 'maintainer' ? 'text-emerald-700' : 'text-slate-500' }}">
                     {{ $message->author_role === 'maintainer' ? __('app-feedback.history.maintainer') : __('app-feedback.history.you') }}
-                    · {{ \App\Support\Timezone\UserDateTimeFormatter::format($message->created_at, 'd M Y, h:i A') }}
+                    · {{ \App\Platform\Time\UserDateTimeFormatter::format($message->created_at, 'd M Y, h:i A') }}
                 </p>
                 <p class="mt-1 whitespace-pre-line text-sm leading-6 text-slate-700">{{ $message->body }}</p>
             </div>

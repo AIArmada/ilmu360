@@ -59,9 +59,9 @@
         }
 
         return [
-            'day' => \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'd'),
-            'month' => \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($event->starts_at, 'M'),
-            'weekday' => \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($event->starts_at, 'D'),
+            'day' => \App\Platform\Time\UserDateTimeFormatter::format($event->starts_at, 'd'),
+            'month' => \App\Platform\Time\UserDateTimeFormatter::translatedFormat($event->starts_at, 'M'),
+            'weekday' => \App\Platform\Time\UserDateTimeFormatter::translatedFormat($event->starts_at, 'D'),
         ];
     };
     $eventTimeLabel = static function (\App\Models\Event $event): string {
@@ -73,13 +73,13 @@
             return (string) $event->timing_display;
         }
 
-        $start = \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'h:i A');
+        $start = \App\Platform\Time\UserDateTimeFormatter::format($event->starts_at, 'h:i A');
 
         if (! $event->ends_at instanceof \Carbon\CarbonInterface) {
             return $start;
         }
 
-        return $start.' - '.\App\Support\Timezone\UserDateTimeFormatter::format($event->ends_at, 'h:i A');
+        return $start.' - '.\App\Platform\Time\UserDateTimeFormatter::format($event->ends_at, 'h:i A');
     };
     $eventLocationLabel = static fn (\App\Models\Event $event): string => \App\Support\Spaces\SpaceLocationPresenter::name($event->primaryLocation)
         ?? $event->venue?->name

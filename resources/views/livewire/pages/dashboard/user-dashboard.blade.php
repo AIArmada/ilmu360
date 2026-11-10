@@ -145,7 +145,7 @@
                                     </svg>
                                 </span>
                                 <span class="min-w-0 flex-1 truncate text-sm font-medium text-slate-700">{{ $savedSearch->name }}</span>
-                                <span class="hidden text-xs text-slate-500 md:inline">{{ __('Disimpan pada :date', ['date' => \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($savedSearch->createdAt, 'j M Y')]) }}</span>
+                                <span class="hidden text-xs text-slate-500 md:inline">{{ __('Disimpan pada :date', ['date' => \App\Platform\Time\UserDateTimeFormatter::translatedFormat($savedSearch->createdAt, 'j M Y')]) }}</span>
                                 <svg class="size-5 shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 6h.01M12 12h.01M12 18h.01" />
                                 </svg>

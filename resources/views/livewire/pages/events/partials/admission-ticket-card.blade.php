@@ -31,7 +31,7 @@
         @if($ticketCapacityRemaining !== null)<span class="{{ $ticketCapacityFull ? 'text-rose-600' : 'text-slate-500' }}">{{ $ticketCapacityFull ? __('Tempat penuh') : __('Tinggal :count tempat', ['count' => $ticketCapacityRemaining]) }}</span>@endif
     </div>
     @if($ticketSections->isNotEmpty())<p class="mt-3 text-xs font-semibold text-slate-500">{{ __('Seksyen') }}: {{ $ticketSections->implode(', ') }}</p>@endif
-    @if($ticket->sales_starts_at || $ticket->sales_ends_at)<p class="mt-3 border-t border-slate-200 pt-3 text-xs text-slate-500">@if($ticket->sales_starts_at){{ __('Dibuka') }} {{ \App\Support\Timezone\UserDateTimeFormatter::format($ticket->sales_starts_at, 'j M, h:i A') }}@endif @if($ticket->sales_ends_at) · {{ __('Tutup') }} {{ \App\Support\Timezone\UserDateTimeFormatter::format($ticket->sales_ends_at, 'j M, h:i A') }}@endif</p>@endif
+    @if($ticket->sales_starts_at || $ticket->sales_ends_at)<p class="mt-3 border-t border-slate-200 pt-3 text-xs text-slate-500">@if($ticket->sales_starts_at){{ __('Dibuka') }} {{ \App\Platform\Time\UserDateTimeFormatter::format($ticket->sales_starts_at, 'j M, h:i A') }}@endif @if($ticket->sales_ends_at) · {{ __('Tutup') }} {{ \App\Platform\Time\UserDateTimeFormatter::format($ticket->sales_ends_at, 'j M, h:i A') }}@endif</p>@endif
     @php
         $ticketSalesOpen = $detail->ticketSalesOpen($ticket);
         $ticketHasStock = ! $ticketEntry['inventory_configured'] || $ticketEntry['inventory_available'] === null || $ticketEntry['inventory_available'] > 0;

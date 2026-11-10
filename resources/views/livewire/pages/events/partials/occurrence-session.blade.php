@@ -5,20 +5,20 @@
         ? $sessionStartLocal->isSameDay($sessionEndLocal)
         : true;
     $sessionTime = $sessionStartLocal
-        ? \App\Support\Timezone\UserDateTimeFormatter::format($sessionStartLocal, 'h:i A')
+        ? \App\Platform\Time\UserDateTimeFormatter::format($sessionStartLocal, 'h:i A')
         : __('TBC');
     if ($sessionEndLocal) {
-        $sessionTime .= ' — '.\App\Support\Timezone\UserDateTimeFormatter::format($sessionEndLocal, $sessionSingleDay ? 'h:i A' : 'j M, h:i A');
+        $sessionTime .= ' — '.\App\Platform\Time\UserDateTimeFormatter::format($sessionEndLocal, $sessionSingleDay ? 'h:i A' : 'j M, h:i A');
     }
     $sessionDayLabel = $sessionStartLocal
-        ? \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($sessionStartLocal, 'D')
+        ? \App\Platform\Time\UserDateTimeFormatter::translatedFormat($sessionStartLocal, 'D')
         : null;
     $sessionDateNumber = $sessionStartLocal?->format('j');
     $sessionMonthLabel = $sessionStartLocal
-        ? \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($sessionStartLocal, 'M')
+        ? \App\Platform\Time\UserDateTimeFormatter::translatedFormat($sessionStartLocal, 'M')
         : null;
     $sessionFullDate = $sessionStartLocal
-        ? \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($sessionStartLocal, 'l, j F Y')
+        ? \App\Platform\Time\UserDateTimeFormatter::translatedFormat($sessionStartLocal, 'l, j F Y')
         : null;
     $sessionExpression = $detail->timeExpressionsFor($session)->first();
     $sessionPeople = $session->relationLoaded('involvements')

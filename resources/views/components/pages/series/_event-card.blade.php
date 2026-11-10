@@ -19,9 +19,9 @@
         <div
             class="absolute top-2 left-2 inline-flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm rounded-lg px-2 py-1 shadow-sm border border-white/50 min-w-[3rem]">
             <span
-                class="text-xs font-bold text-slate-400 uppercase tracking-wider">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($event->starts_at, 'M') }}</span>
+                class="text-xs font-bold text-slate-400 uppercase tracking-wider">{{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($event->starts_at, 'M') }}</span>
             <span
-                class="text-lg font-black text-slate-900 leading-none">{{ \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'd') }}</span>
+                class="text-lg font-black text-slate-900 leading-none">{{ \App\Platform\Time\UserDateTimeFormatter::format($event->starts_at, 'd') }}</span>
         </div>
         @if($isPast)
             <div
@@ -45,7 +45,7 @@
         <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-slate-500 mb-4">
             <span class="flex items-center gap-1.5">
                 <flux:icon.clock class="size-4 {{ $isPast ? 'text-slate-400' : 'text-emerald-500' }}" />
-                {{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($event->starts_at, 'l, j M Y · h:i A') }}
+                {{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($event->starts_at, 'l, j M Y · h:i A') }}
             </span>
 
             @php

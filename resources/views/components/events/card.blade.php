@@ -88,10 +88,10 @@
     $cardSessions = collect($sessions);
     $eventCardImageAspectRatio = $event->card_image_aspect_ratio;
     $eventCardFrameClass = $eventCardImageAspectRatio === '3:4' ? 'aspect-[3/4] sm:aspect-video' : 'aspect-video';
-    $eventDate = $cardStartsAt ? \App\Support\Timezone\UserDateTimeFormatter::format($cardStartsAt, 'd') : '--';
-    $eventMonth = $cardStartsAt ? \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($cardStartsAt, 'M') : '';
+    $eventDate = $cardStartsAt ? \App\Platform\Time\UserDateTimeFormatter::format($cardStartsAt, 'd') : '--';
+    $eventMonth = $cardStartsAt ? \App\Platform\Time\UserDateTimeFormatter::translatedFormat($cardStartsAt, 'M') : '';
     $eventTime = $timingText !== null ? (string) $timingText : ($cardStartsAt ? (string) $event->timing_display : '');
-    $viewerTimezone = \App\Support\Timezone\UserDateTimeFormatter::resolveTimezone();
+    $viewerTimezone = \App\Platform\Time\UserDateTimeFormatter::resolveTimezone();
 
     if ($timingText === null
         && $eventTime !== ''
@@ -100,7 +100,7 @@
         && $event->ends_at->gt($cardStartsAt)
         && $event->ends_at->copy()->timezone($viewerTimezone)->isSameDay($cardStartsAt->copy()->timezone($viewerTimezone))
     ) {
-        $eventTime .= ' — '.\App\Support\Timezone\UserDateTimeFormatter::format($event->ends_at, 'g:i A');
+        $eventTime .= ' — '.\App\Platform\Time\UserDateTimeFormatter::format($event->ends_at, 'g:i A');
     }
 
     if ($cardFormat === \App\Enums\EventFormat::Online) {
@@ -217,11 +217,11 @@
 
                         $sessionTiming = filled($sessionTimingLabel)
                             ? __((string) $sessionTimingLabel)
-                            : \App\Support\Timezone\UserDateTimeFormatter::format($session->starts_at, 'g:i A');
+                            : \App\Platform\Time\UserDateTimeFormatter::format($session->starts_at, 'g:i A');
                     @endphp
                     <li>
                         <a href="{{ $sessionUrl }}" wire:navigate class="flex items-start gap-2 rounded-lg px-1.5 py-1 text-xs leading-5 text-slate-600 transition-colors hover:bg-emerald-50 hover:text-emerald-800">
-                            <span class="shrink-0 font-semibold text-emerald-700">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($session->starts_at, 'j M') }} · {{ $sessionTiming }}</span>
+                            <span class="shrink-0 font-semibold text-emerald-700">{{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($session->starts_at, 'j M') }} · {{ $sessionTiming }}</span>
                             <span class="line-clamp-2">{{ $session->title }}</span>
                         </a>
                     </li>

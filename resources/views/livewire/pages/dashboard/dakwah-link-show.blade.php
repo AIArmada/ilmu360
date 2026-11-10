@@ -57,7 +57,7 @@
                                 <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $subjectBadgeClass }}">{{ $subjectLabel }}</span>
                                 <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
                                     @if($measurementsAvailable)
-                                        {{ $link->lastSharedAt ? __('Shared') . ' ' . \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($link->lastSharedAt, 'j M Y, g:i A') : __('No recorded shares') }}
+                                        {{ $link->lastSharedAt ? __('Shared') . ' ' . \App\Platform\Time\UserDateTimeFormatter::translatedFormat($link->lastSharedAt, 'j M Y, g:i A') : __('No recorded shares') }}
                                     @else
                                         {{ __('Measurements withheld') }}
                                     @endif
@@ -149,7 +149,7 @@
                                     <div wire:key="dakwah-day-{{ $day['date'] }}" class="rounded-3xl border border-slate-200 bg-slate-50/70 p-4">
                                         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                                             <div>
-                                                <p class="text-sm font-semibold text-slate-900">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat(\Illuminate\Support\Carbon::parse($day['date'], \App\Support\Timezone\UserDateTimeFormatter::resolveTimezone()), 'l, j M Y') }}</p>
+                                                <p class="text-sm font-semibold text-slate-900">{{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat(\Illuminate\Support\Carbon::parse($day['date'], \App\Platform\Time\UserDateTimeFormatter::resolveTimezone()), 'l, j M Y') }}</p>
                                             </div>
                                             <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
                                                 <div class="rounded-2xl bg-white px-3 py-2">
@@ -203,7 +203,7 @@
                                                 </p>
                                             </div>
                                             <div class="text-right">
-                                                <p class="mt-1 text-sm font-semibold text-slate-600">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($visit->occurredAt, 'j M Y, g:i A') }}</p>
+                                                <p class="mt-1 text-sm font-semibold text-slate-600">{{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($visit->occurredAt, 'j M Y, g:i A') }}</p>
                                             </div>
                                         </div>
                                     </article>
@@ -258,19 +258,19 @@
                                 <div class="rounded-3xl border border-slate-200 bg-slate-50/70 p-4">
                                     <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">{{ __('First attributed visit') }}</p>
                                     <p class="mt-2 text-sm font-semibold text-slate-900">
-                                        {{ $activityWindow['first_seen_at'] ? \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($activityWindow['first_seen_at'], 'j M Y, g:i A') : __('Not yet available') }}
+                                        {{ $activityWindow['first_seen_at'] ? \App\Platform\Time\UserDateTimeFormatter::translatedFormat($activityWindow['first_seen_at'], 'j M Y, g:i A') : __('Not yet available') }}
                                     </p>
                                 </div>
                                 <div class="rounded-3xl border border-slate-200 bg-slate-50/70 p-4">
                                     <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">{{ __('Latest visit') }}</p>
                                     <p class="mt-2 text-sm font-semibold text-slate-900">
-                                        {{ $activityWindow['last_visit_at'] ? \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($activityWindow['last_visit_at'], 'j M Y, g:i A') : __('Not yet available') }}
+                                        {{ $activityWindow['last_visit_at'] ? \App\Platform\Time\UserDateTimeFormatter::translatedFormat($activityWindow['last_visit_at'], 'j M Y, g:i A') : __('Not yet available') }}
                                     </p>
                                 </div>
                                 <div class="rounded-3xl border border-slate-200 bg-slate-50/70 p-4">
                                     <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">{{ __('Latest response') }}</p>
                                     <p class="mt-2 text-sm font-semibold text-slate-900">
-                                        {{ $activityWindow['last_outcome_at'] ? \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($activityWindow['last_outcome_at'], 'j M Y, g:i A') : __('Not yet available') }}
+                                        {{ $activityWindow['last_outcome_at'] ? \App\Platform\Time\UserDateTimeFormatter::translatedFormat($activityWindow['last_outcome_at'], 'j M Y, g:i A') : __('Not yet available') }}
                                     </p>
                                 </div>
                             </div>
@@ -307,7 +307,7 @@
                                         <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
                                             <div>
                                                 <p class="text-sm font-semibold text-slate-900">{{ collect($outcomeBreakdown)->firstWhere('outcome_type', $outcome->outcomeType)['label'] ?? str((string) $outcome->outcomeType)->replace('_', ' ')->headline()->toString() }}</p>
-                                                <p class="mt-1 text-xs text-slate-500">{{ __('Recorded at') }} {{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($outcome->occurredAt, 'j M Y, g:i A') }}</p>
+                                                <p class="mt-1 text-xs text-slate-500">{{ __('Recorded at') }} {{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($outcome->occurredAt, 'j M Y, g:i A') }}</p>
                                             </div>
                                         </div>
                                     </article>

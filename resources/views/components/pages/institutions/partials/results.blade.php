@@ -104,7 +104,7 @@
                     <div class="p-6 pb-0 pt-6 relative flex-1 flex flex-col">
                         <h3 class="font-heading text-lg font-bold text-slate-900 group-hover:text-emerald-700 transition-colors mb-2 leading-tight">
                             {{ $institution->name }}
-                            @if($institution->status === \App\Enums\InstitutionStatus::Verified)
+                            @if($institution->status === \App\Shared\Directory\Enums\InstitutionStatus::Verified)
                                 <x-ui.verified-badge class="text-emerald-600" data-testid="verified-badge" />
                             @endif
                         </h3>
@@ -136,7 +136,7 @@
                             <span class="min-w-0">
                                 <span class="block text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">{{ __('Next event') }}</span>
                                 <span class="mt-1 block truncate text-[11px] font-semibold text-slate-700 transition-colors group-hover/next:font-bold group-hover/next:text-emerald-800 sm:text-xs">
-                                    {{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($nextEventStartsAt, 'j M') }}
+                                    {{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($nextEventStartsAt, 'j M') }}
                                     <span class="text-slate-300" aria-hidden="true">·</span>
                                     {{ $institution->next_event_title }}
                                 </span>

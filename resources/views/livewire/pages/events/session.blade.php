@@ -84,15 +84,15 @@
     $occurrenceReferences = $detail->referencesFor($occurrence);
     $eventReferences = $event->relationLoaded('references') ? $event->references : collect();
     $ownInvolvements = $session->relationLoaded('involvements') ? $session->involvements : collect();
-    $viewerTimezone = \App\Support\Timezone\UserTimezoneResolver::resolve();
+    $viewerTimezone = \App\Platform\Time\UserTimezoneResolver::resolve();
     $sessionSameLocalDay = $session->starts_at && $session->ends_at
         ? $session->starts_at->copy()->timezone($viewerTimezone)->isSameDay($session->ends_at->copy()->timezone($viewerTimezone))
         : true;
     $sessionTime = $session->starts_at
-        ? \App\Support\Timezone\UserDateTimeFormatter::format($session->starts_at, 'h:i A')
+        ? \App\Platform\Time\UserDateTimeFormatter::format($session->starts_at, 'h:i A')
         : __('TBC');
     if ($session->ends_at) {
-        $sessionTime .= ' — '.\App\Support\Timezone\UserDateTimeFormatter::format($session->ends_at, $sessionSameLocalDay ? 'h:i A' : 'j M, h:i A');
+        $sessionTime .= ' — '.\App\Platform\Time\UserDateTimeFormatter::format($session->ends_at, $sessionSameLocalDay ? 'h:i A' : 'j M, h:i A');
     }
     $organizer = $event->organizer ?? $event->institution;
     $organizerHref = $organizer instanceof \App\Models\Institution
@@ -138,7 +138,7 @@
                     <span class="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2">
                         <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         @if($session->starts_at)
-                            {{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($session->starts_at, 'l, j F Y') }} · {{ $sessionTime }}
+                            {{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($session->starts_at, 'l, j F Y') }} · {{ $sessionTime }}
                         @else
                             {{ __('TBC') }}
                         @endif

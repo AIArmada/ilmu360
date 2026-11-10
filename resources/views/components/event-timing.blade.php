@@ -6,7 +6,7 @@
 
 @php
     use App\Enums\TimingMode;
-    use App\Support\Timezone\UserDateTimeFormatter;
+    use App\Platform\Time\UserDateTimeFormatter;
     
     $isPrayerRelative = $event->timing_mode === TimingMode::PrayerRelative;
     $prayerDisplayText = $event->prayer_display_text;

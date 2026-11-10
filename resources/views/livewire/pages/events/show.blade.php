@@ -27,7 +27,7 @@
 
 @php
     $detail = $this->detail;
-    $viewerTimezone = \App\Support\Timezone\UserTimezoneResolver::resolve();
+    $viewerTimezone = \App\Platform\Time\UserTimezoneResolver::resolve();
     $occurrences = $detail->occurrences();
     $occurrenceCount = $occurrences->count();
     $firstOccurrence = $occurrences->first();
@@ -188,10 +188,10 @@
 
     // ── Hero fact band ───────────────────────────────────────────────
     $firstDateLabel = $firstOccurrence?->starts_at
-        ? \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($firstOccurrence->starts_at->copy()->timezone($viewerTimezone), 'j M Y')
+        ? \App\Platform\Time\UserDateTimeFormatter::translatedFormat($firstOccurrence->starts_at->copy()->timezone($viewerTimezone), 'j M Y')
         : __('Akan dikemas kini');
     $lastDateLabel = $lastOccurrence?->starts_at
-        ? \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($lastOccurrence->starts_at->copy()->timezone($viewerTimezone), 'j M Y')
+        ? \App\Platform\Time\UserDateTimeFormatter::translatedFormat($lastOccurrence->starts_at->copy()->timezone($viewerTimezone), 'j M Y')
         : null;
     $heroFacts = collect([
         ['label' => $occurrenceCount > 1 ? __('Tarikh pertama') : __('Tarikh'), 'value' => $firstDateLabel],
