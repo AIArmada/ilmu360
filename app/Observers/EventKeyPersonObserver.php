@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Observers;
 
 use App\Models\EventKeyPerson;
+use App\Platform\Cache\PublicListingsCache;
 use App\Support\Cache\PublicDirectoryCacheVersion;
-use App\Support\Cache\PublicListingsCache;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
 class EventKeyPersonObserver implements ShouldHandleEventsAfterCommit
@@ -19,18 +19,18 @@ class EventKeyPersonObserver implements ShouldHandleEventsAfterCommit
     public function created(EventKeyPerson $eventKeyPerson): void
     {
         $this->publicListingsCache->bustHomepageStats();
-        $this->publicDirectoryCacheVersion->bumpForEventKeyPerson($eventKeyPerson);
+        $this->publicDirectoryCacheVersion->bumpForEventKeyPerson();
     }
 
     public function updated(EventKeyPerson $eventKeyPerson): void
     {
         $this->publicListingsCache->bustHomepageStats();
-        $this->publicDirectoryCacheVersion->bumpForEventKeyPerson($eventKeyPerson);
+        $this->publicDirectoryCacheVersion->bumpForEventKeyPerson();
     }
 
     public function deleted(EventKeyPerson $eventKeyPerson): void
     {
         $this->publicListingsCache->bustHomepageStats();
-        $this->publicDirectoryCacheVersion->bumpForEventKeyPerson($eventKeyPerson);
+        $this->publicDirectoryCacheVersion->bumpForEventKeyPerson();
     }
 }

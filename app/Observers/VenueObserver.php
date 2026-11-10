@@ -6,7 +6,7 @@ use App\Actions\Slugs\SyncSlugRedirectAction;
 use App\Actions\Venues\GenerateVenueSlugAction;
 use App\Models\Venue;
 use App\Observers\Concerns\SyncsCurrentAndPreviousValues;
-use App\Support\Cache\PublicListingsCache;
+use App\Platform\Cache\PublicListingsCache;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
 class VenueObserver implements ShouldHandleEventsAfterCommit

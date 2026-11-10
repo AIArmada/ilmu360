@@ -8,9 +8,9 @@ use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Events\Contracts\EventTaxonomyHierarchy;
 use AIArmada\Persons\Models\Title;
 use App\Models\Language;
+use App\Platform\Cache\CacheVersionStore;
+use App\Platform\Cache\VersionedCache;
 use Closure;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Str;
 
 final class SelectionCatalogCache
 {
@@ -24,7 +24,11 @@ final class SelectionCatalogCache
 
     private const string EVENT_CATEGORIES_VERSION_KEY = 'selection_catalog:event_categories:version:v1';
 
-    public function __construct(private readonly EventTaxonomyHierarchy $eventTaxonomyHierarchy) {}
+    public function __construct(
+        private readonly EventTaxonomyHierarchy $eventTaxonomyHierarchy,
+        private readonly CacheVersionStore $cacheVersions,
+        private readonly VersionedCache $versionedCache,
+    ) {}
 
     /**
      * @return array<string, string>
@@ -185,12 +189,12 @@ final class SelectionCatalogCache
 
     public function bustTitles(): void
     {
-        $this->bump(self::TITLES_VERSION_KEY);
+        $this->cacheVersions->bump(self::TITLES_VERSION_KEY);
     }
 
     public function bustLanguages(): void
     {
-        $this->bump(self::LANGUAGES_VERSION_KEY);
+        $this->cacheVersions->bump(self::LANGUAGES_VERSION_KEY);
     }
 
     /**
@@ -199,11 +203,10 @@ final class SelectionCatalogCache
      */
     public function rememberAddressOptions(string $key, Closure $resolver): array
     {
-        $version = $this->version(self::ADDRESS_VERSION_KEY);
-
         /** @var array<int|string, string> $options */
-        $options = Cache::remember(
-            "selection_catalog:address:{$key}:{$version}",
+        $options = $this->versionedCache->remember(
+            self::ADDRESS_VERSION_KEY,
+            "selection_catalog:address:{$key}",
             self::CATALOG_TTL_SECONDS,
             $resolver,
         );
@@ -214,11 +217,10 @@ final class SelectionCatalogCache
     /** @param Closure(): ?string $resolver */
     public function rememberAddressValue(string $key, Closure $resolver): ?string
     {
-        $version = $this->version(self::ADDRESS_VERSION_KEY);
-
         /** @var string|null $value */
-        $value = Cache::remember(
-            "selection_catalog:address:value:{$key}:{$version}",
+        $value = $this->versionedCache->remember(
+            self::ADDRESS_VERSION_KEY,
+            "selection_catalog:address:value:{$key}",
             self::CATALOG_TTL_SECONDS,
             $resolver,
         );
@@ -229,11 +231,10 @@ final class SelectionCatalogCache
     /** @return array<string, string> */
     public function eventCategoryOptions(): array
     {
-        $version = $this->version(self::EVENT_CATEGORIES_VERSION_KEY);
-
         /** @var array<string, string> $options */
-        $options = Cache::remember(
-            "selection_catalog:event_categories:{$version}",
+        $options = $this->versionedCache->remember(
+            self::EVENT_CATEGORIES_VERSION_KEY,
+            'selection_catalog:event_categories',
             self::CATALOG_TTL_SECONDS,
             fn (): array => $this->eventTaxonomyHierarchy->options('event_category'),
         );
@@ -243,12 +244,12 @@ final class SelectionCatalogCache
 
     public function bustAddress(): void
     {
-        $this->bump(self::ADDRESS_VERSION_KEY);
+        $this->cacheVersions->bump(self::ADDRESS_VERSION_KEY);
     }
 
     public function bustEventCategories(): void
     {
-        $this->bump(self::EVENT_CATEGORIES_VERSION_KEY);
+        $this->cacheVersions->bump(self::EVENT_CATEGORIES_VERSION_KEY);
     }
 
     public function bustAll(): void
@@ -264,24 +265,27 @@ final class SelectionCatalogCache
      */
     private function titleRows(): array
     {
-        $version = $this->version(self::TITLES_VERSION_KEY);
-
         /** @var list<array{id: string, name: string, short_form: string|null}> $rows */
-        $rows = Cache::remember("selection_catalog:titles:rows:{$version}", self::CATALOG_TTL_SECONDS, static fn (): array => Title::query()
-            ->with('category')
-            ->get()
-            ->sortBy(fn (Title $title): array => [
-                $title->category->sort_order,
-                $title->sort_order,
-                $title->name,
-            ])
-            ->map(static fn (Title $title): array => [
-                'id' => (string) $title->getKey(),
-                'name' => (string) $title->name,
-                'short_form' => $title->short_form !== null ? (string) $title->short_form : null,
-            ])
-            ->values()
-            ->all());
+        $rows = $this->versionedCache->remember(
+            self::TITLES_VERSION_KEY,
+            'selection_catalog:titles:rows',
+            self::CATALOG_TTL_SECONDS,
+            static fn (): array => Title::query()
+                ->with('category')
+                ->get()
+                ->sortBy(fn (Title $title): array => [
+                    $title->category->sort_order,
+                    $title->sort_order,
+                    $title->name,
+                ])
+                ->map(static fn (Title $title): array => [
+                    'id' => (string) $title->getKey(),
+                    'name' => (string) $title->name,
+                    'short_form' => $title->short_form !== null ? (string) $title->short_form : null,
+                ])
+                ->values()
+                ->all(),
+        );
 
         return $rows;
     }
@@ -291,34 +295,24 @@ final class SelectionCatalogCache
      */
     private function languageRows(): array
     {
-        $version = $this->version(self::LANGUAGES_VERSION_KEY);
-
         /** @var list<array{id: string, code: string, name: string, native: string|null}> $rows */
-        $rows = Cache::remember("selection_catalog:languages:rows:{$version}", self::CATALOG_TTL_SECONDS, static fn (): array => Language::query()
-            ->orderBy('name')
-            ->get(['id', 'code', 'name', 'native'])
-            ->map(static fn (Language $language): array => [
-                'id' => (string) $language->getKey(),
-                'code' => (string) $language->code,
-                'name' => (string) $language->name,
-                'native' => $language->native !== null ? (string) $language->native : null,
-            ])
-            ->values()
-            ->all());
+        $rows = $this->versionedCache->remember(
+            self::LANGUAGES_VERSION_KEY,
+            'selection_catalog:languages:rows',
+            self::CATALOG_TTL_SECONDS,
+            static fn (): array => Language::query()
+                ->orderBy('name')
+                ->get(['id', 'code', 'name', 'native'])
+                ->map(static fn (Language $language): array => [
+                    'id' => (string) $language->getKey(),
+                    'code' => (string) $language->code,
+                    'name' => (string) $language->name,
+                    'native' => $language->native !== null ? (string) $language->native : null,
+                ])
+                ->values()
+                ->all(),
+        );
 
         return $rows;
-    }
-
-    private function version(string $key): string
-    {
-        /** @var string $version */
-        $version = Cache::rememberForever($key, static fn (): string => (string) Str::ulid());
-
-        return $version;
-    }
-
-    private function bump(string $key): void
-    {
-        Cache::forever($key, (string) Str::ulid());
     }
 }

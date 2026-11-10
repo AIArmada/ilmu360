@@ -1,10 +1,12 @@
 <?php
 
-namespace App\Support\Cache;
+declare(strict_types=1);
+
+namespace App\Platform\Cache;
 
 use Illuminate\Support\Facades\Cache;
 
-class PublicListingsCache
+final class PublicListingsCache
 {
     public function bustHomepageStats(): void
     {

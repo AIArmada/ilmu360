@@ -8,7 +8,7 @@ use App\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\Reference;
 use App\Models\User;
-use App\Support\Auth\IntendedRedirect;
+use App\Shared\Auth\IntendedRedirect;
 use App\Support\Search\ReferenceSearchService;
 use App\Support\Timezone\UserDateTimeFormatter;
 use Carbon\CarbonImmutable;

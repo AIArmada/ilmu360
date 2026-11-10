@@ -6,7 +6,7 @@ use App\Actions\References\GenerateReferenceSlugAction;
 use App\Actions\Slugs\SyncSlugRedirectAction;
 use App\Models\Reference;
 use App\Observers\Concerns\SyncsCurrentAndPreviousValues;
-use App\Support\Cache\PublicListingsCache;
+use App\Platform\Cache\PublicListingsCache;
 use App\Support\Search\ReferenceSearchService;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 

@@ -12,8 +12,8 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Venue;
+use App\Platform\Cache\PublicListingsCache;
 use App\Support\Cache\PublicDirectoryCacheVersion;
-use App\Support\Cache\PublicListingsCache;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 

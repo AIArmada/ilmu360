@@ -4,7 +4,7 @@ namespace App\Observers;
 
 use AIArmada\References\Models\ReferenceContributor;
 use App\Models\Reference;
-use App\Support\Cache\PublicListingsCache;
+use App\Platform\Cache\PublicListingsCache;
 use App\Support\Search\ReferenceSearchService;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 

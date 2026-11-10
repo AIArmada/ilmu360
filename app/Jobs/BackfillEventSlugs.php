@@ -4,7 +4,7 @@ namespace App\Jobs;
 
 use App\Actions\Events\Authoring\GenerateEventSlugAction;
 use App\Models\Event;
-use App\Support\Cache\PublicListingsCache;
+use App\Platform\Cache\PublicListingsCache;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;

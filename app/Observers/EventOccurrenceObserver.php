@@ -7,7 +7,7 @@ namespace App\Observers;
 use AIArmada\Events\Models\EventOccurrence;
 use App\Jobs\RenderShareCardJob;
 use App\Models\Event;
-use App\Support\Cache\PublicListingsCache;
+use App\Platform\Cache\PublicListingsCache;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 use Illuminate\Validation\ValidationException;
 

@@ -9,8 +9,8 @@ use App\Actions\Slugs\SyncSlugRedirectAction;
 use App\Jobs\RenderShareCardJob;
 use App\Models\Event;
 use App\Observers\Concerns\SyncsCurrentAndPreviousValues;
+use App\Platform\Cache\PublicListingsCache;
 use App\Support\Cache\PublicDirectoryCacheVersion;
-use App\Support\Cache\PublicListingsCache;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
 class EventObserver implements ShouldHandleEventsAfterCommit
@@ -46,7 +46,7 @@ class EventObserver implements ShouldHandleEventsAfterCommit
     {
         $this->publicListingsCache->bustHomepageStats();
         $this->publicListingsCache->bustMajlisListing();
-        $this->publicDirectoryCacheVersion->bumpForEvent($event);
+        $this->publicDirectoryCacheVersion->bumpForEvent();
 
         if ($event->isPubliclyReachable()) {
             RenderShareCardJob::prewarmForEvent($event->getKey());
@@ -57,7 +57,7 @@ class EventObserver implements ShouldHandleEventsAfterCommit
     {
         $this->publicListingsCache->bustHomepageStats();
         $this->publicListingsCache->bustMajlisListing();
-        $this->publicDirectoryCacheVersion->bumpForEvent($event);
+        $this->publicDirectoryCacheVersion->bumpForEvent();
 
         if ($event->wasChanged('slug')) {
             /**
@@ -136,6 +136,6 @@ class EventObserver implements ShouldHandleEventsAfterCommit
         $this->generateEventSlugAction->syncEventSlugsForTitle($event->title);
         $this->publicListingsCache->bustHomepageStats();
         $this->publicListingsCache->bustMajlisListing();
-        $this->publicDirectoryCacheVersion->bumpForEvent($event);
+        $this->publicDirectoryCacheVersion->bumpForEvent();
     }
 }

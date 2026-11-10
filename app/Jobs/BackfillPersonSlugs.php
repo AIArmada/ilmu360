@@ -5,7 +5,7 @@ namespace App\Jobs;
 use App\Actions\Events\Authoring\GenerateEventSlugAction;
 use App\Actions\Persons\GeneratePersonSlugAction;
 use App\Models\Person;
-use App\Support\Cache\PublicListingsCache;
+use App\Platform\Cache\PublicListingsCache;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;

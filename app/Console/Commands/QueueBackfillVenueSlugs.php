@@ -4,7 +4,7 @@ namespace App\Console\Commands;
 
 use App\Jobs\BackfillVenueSlugs;
 use App\Models\Venue;
-use App\Support\Cache\PublicListingsCache;
+use App\Platform\Cache\PublicListingsCache;
 use Illuminate\Bus\Batch;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Bus;

@@ -7,7 +7,7 @@ use App\Models\Institution;
 use App\Models\User;
 use App\Platform\Location\LocationLevelLabels;
 use App\Shared\Location\VisitorCountryResolving;
-use App\Support\Auth\IntendedRedirect;
+use App\Shared\Auth\IntendedRedirect;
 use App\Support\Location\LocationSlugResolver;
 use App\Support\Search\InstitutionDirectoryQuery;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;

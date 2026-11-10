@@ -9,7 +9,7 @@ use App\Jobs\BackfillVenueSlugs;
 use App\Models\Event;
 use App\Models\Reference;
 use App\Models\Venue;
-use App\Support\Cache\PublicListingsCache;
+use App\Platform\Cache\PublicListingsCache;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Queue;

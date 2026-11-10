@@ -6,8 +6,8 @@ use App\Actions\Institutions\GenerateInstitutionSlugAction;
 use App\Actions\Slugs\SyncSlugRedirectAction;
 use App\Models\Institution;
 use App\Observers\Concerns\SyncsCurrentAndPreviousValues;
+use App\Platform\Cache\PublicListingsCache;
 use App\Support\Cache\PublicDirectoryCacheVersion;
-use App\Support\Cache\PublicListingsCache;
 use App\Support\Search\InstitutionSearchService;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 

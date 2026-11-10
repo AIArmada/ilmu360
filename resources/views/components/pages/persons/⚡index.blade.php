@@ -12,7 +12,7 @@ use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\Person;
 use App\Models\User;
-use App\Support\Auth\IntendedRedirect;
+use App\Shared\Auth\IntendedRedirect;
 use App\Support\Search\PersonSearchService;
 use App\Support\Timezone\UserDateTimeFormatter;
 use Carbon\CarbonImmutable;

@@ -8,7 +8,7 @@ use App\Models\Event;
 use App\Models\Person;
 use App\Models\User;
 use App\Services\PublicScheduleDiscoveryService;
-use App\Support\Auth\IntendedRedirect;
+use App\Shared\Auth\IntendedRedirect;
 use App\Support\Events\EventDetailPresenter;
 use App\Support\Location\AddressHierarchyFormatter;
 use App\Support\Timezone\UserDateTimeFormatter;
