@@ -52,7 +52,7 @@ use AIArmada\Orders\Models\OrderPayment;
 use AIArmada\Orders\Models\OrderRefund;
 use AIArmada\Organizations\Contracts\CurrentOrganizationResolver;
 use AIArmada\Organizations\Models\Organization;
-use AIArmada\Persons\Models\PersonName;
+use AIArmada\Persons\Models\PersonName as PackagePersonName;
 use AIArmada\Persons\Models\Title;
 use AIArmada\Persons\Models\TitleAssignment;
 use AIArmada\Persons\Models\TitleCategory;
@@ -98,6 +98,7 @@ use App\Features\SavedSearches\Api\SavedSearchExecutor;
 use App\Http\Controllers\Mcp\OAuthRegisterController;
 use App\Listeners\ShareTracking\ReverseRegistrationShareOutcome;
 use App\Listeners\ShareTracking\ReverseScheduleCancellationShareOutcome;
+use App\Models\Affiliation;
 use App\Models\AiModelPricing;
 use App\Models\Audit as FilamentAudit;
 use App\Models\ContributionRequest;
@@ -114,6 +115,7 @@ use App\Models\MemberInvitation;
 use App\Models\MembershipApplication;
 use App\Models\ModerationReview;
 use App\Models\Person;
+use App\Models\PersonName;
 use App\Models\Reference;
 use App\Models\Registration;
 use App\Models\Series;
@@ -629,6 +631,8 @@ class AppServiceProvider extends ServiceProvider
             'member_invitation' => MemberInvitation::class,
             'registration' => Registration::class,
             'person' => Person::class,
+            'person_name' => PersonName::class,
+            'affiliation' => Affiliation::class,
             'series' => Series::class,
             'social_media' => SocialProfile::class,
             'space' => Space::class,
@@ -776,6 +780,7 @@ class AppServiceProvider extends ServiceProvider
         CommerceLanguage::observe(LanguageObserver::class);
         Person::observe(PersonObserver::class);
         PersonName::observe(PersonNameObserver::class);
+        PackagePersonName::observe(PersonNameObserver::class);
         Title::observe(PersonTitleObserver::class);
         TitleAssignment::observe(PersonTitleObserver::class);
         TitleCategory::observe(TitleCategoryObserver::class);

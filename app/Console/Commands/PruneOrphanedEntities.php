@@ -2,9 +2,11 @@
 
 namespace App\Console\Commands;
 
+use App\Features\Directory\Api\PersonWorkflow;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Venue;
+use Closure;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -68,6 +70,7 @@ class PruneOrphanedEntities extends Command
                 ->where('created_at', '<', $threshold)
                 ->whereDoesntHave('events'),
             $dryRun,
+            fn (array $personIds): int => app(PersonWorkflow::class)->delete($personIds),
         );
 
         $totalPruned += $this->pruneModel(
@@ -91,8 +94,9 @@ class PruneOrphanedEntities extends Command
      * @template TModel of Model
      *
      * @param  Builder<TModel>  $query
+     * @param  (Closure(list<string>): int)|null  $deleteUsing
      */
-    private function pruneModel(string $label, Builder $query, bool $dryRun): int
+    private function pruneModel(string $label, Builder $query, bool $dryRun, ?Closure $deleteUsing = null): int
     {
         $count = $query->count();
 
@@ -108,7 +112,16 @@ class PruneOrphanedEntities extends Command
             return 0;
         }
 
-        $query->each(fn (Model $model): ?bool => $model->delete());
+        if ($deleteUsing !== null) {
+            $model = $query->getModel();
+            /** @var list<string> $ids */
+            $ids = (clone $query)->pluck($model->getQualifiedKeyName())
+                ->map(static fn (mixed $id): string => (string) $id)
+                ->all();
+            $deleteUsing($ids);
+        } else {
+            $query->each(fn (Model $model): ?bool => $model->delete());
+        }
 
         $this->line("  {$label}: {$count} pruned.");
 

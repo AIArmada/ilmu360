@@ -7,13 +7,17 @@ namespace App\Filament\Resources\Persons\Pages;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Support\AddressCountryResolver;
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use App\Features\Directory\Api\PersonWorkflow;
 use App\Filament\Resources\Persons\PersonResource;
 use App\Forms\SharedFormSchema;
 use App\Models\Person;
-use App\Services\ContributionEntityMutationService;
 use App\Support\Persons\PersonBioContent;
+use Filament\Actions\Action;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\ViewAction;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Arr;
 
 class EditPerson extends EditRecord
 {
@@ -72,15 +76,42 @@ class EditPerson extends EditRecord
             }
         }
 
-        $record = parent::handleRecordUpdate($record, $data);
+        $actorId = auth()->id();
 
-        if ($record instanceof Person && is_array($address)) {
-            app(ContributionEntityMutationService::class)->syncPersonRelations($record, [
-                'address' => $address,
-            ]);
-        }
+        app(PersonWorkflow::class)->saveFromAdmin([
+            ...Arr::only($data, [
+                'name',
+                'middle_name',
+                'family_name',
+                'gender',
+                'bio',
+                'status',
+                'speaker_status',
+                'is_featured',
+                'allow_public_event_submission',
+            ]),
+            'address' => $address,
+        ], (string) $actorId, (string) $record->getKey());
+
+        $record->refresh();
 
         return $record;
+    }
+
+    /**
+     * @return array<int, Action>
+     */
+    #[\Override]
+    protected function getHeaderActions(): array
+    {
+        return [
+            ViewAction::make(),
+            DeleteAction::make()
+                ->action(function (DeleteAction $action, Person $record): void {
+                    app(PersonWorkflow::class)->delete([(string) $record->getKey()]);
+                    $action->success();
+                }),
+        ];
     }
 
     /**

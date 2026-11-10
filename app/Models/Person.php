@@ -14,7 +14,6 @@ use AIArmada\Membership\Models\MembershipInvitation;
 use AIArmada\Membership\Traits\HasMembers;
 use AIArmada\Persons\Enums\Gender;
 use AIArmada\Persons\Models\CredentialAssignment;
-use AIArmada\Persons\Models\PersonName;
 use AIArmada\Persons\Models\TitleAssignment;
 use AIArmada\References\Models\ReferenceContributor;
 use App\Enums\EventKeyPersonRole;
@@ -23,6 +22,9 @@ use App\Models\Concerns\HasDonationChannels;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Platform\Models\Concerns\HasLanguages;
 use App\Platform\Reporting\ReportModelClass;
+use App\Shared\Auditing\RecordsCustomAuditDifferences;
+use App\Shared\Auditing\RecordsCustomAuditEvents;
+use App\Shared\Directory\SyncsLanguages;
 use App\Shared\Support\RelatedModels;
 use App\Support\Search\PersonSearchService;
 use BackedEnum;
@@ -63,9 +65,12 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property Carbon|null $updated_at
  * @property SpeakerStatus $speaker_status
  */
-class Person extends \AIArmada\Persons\Models\Person implements AuditableContract, Followable, HasMedia, MembershipMutationGuard
+class Person extends \AIArmada\Persons\Models\Person implements AuditableContract, Followable, HasMedia, MembershipMutationGuard, RecordsCustomAuditDifferences, RecordsCustomAuditEvents, SyncsLanguages
 {
     public const string PUBLIC_DIRECTORY_SESSION_KEY = 'public_persons_directory_seed';
+
+    #[\Override]
+    protected $table = 'persons';
 
     /** @use HasMembers<User> */
     use AuditsModelChanges,
@@ -578,13 +583,10 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
             ->withTimestamps();
     }
 
-    /**
-     * @return HasMany<PersonName, $this>
-     */
     #[\Override]
-    public function names(): HasMany
+    public function getTable(): string
     {
-        return $this->hasMany(PersonName::class, 'person_id');
+        return $this->table;
     }
 
     /**

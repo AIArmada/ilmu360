@@ -20,6 +20,9 @@ use Carbon\CarbonImmutable;
  */
 class Affiliation extends BaseAffiliation
 {
+    #[\Override]
+    protected $table = 'affiliations';
+
     /** @var list<string> */
     protected $fillable = [
         'affiliatable_type',
@@ -31,4 +34,10 @@ class Affiliation extends BaseAffiliation
         'left_at',
         'is_primary',
     ];
+
+    #[\Override]
+    public function getTable(): string
+    {
+        return $this->table;
+    }
 }

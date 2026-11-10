@@ -4,6 +4,7 @@ namespace App\States\EventStatus\Transitions;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Directory\Api\InstitutionWorkflow;
+use App\Features\Directory\Api\PersonWorkflow;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\ModerationReview;
@@ -126,18 +127,9 @@ class ApproveEvent extends Transition implements HasColor, HasIcon, HasLabel
         }
 
         // Verify linked person profiles across all event roles.
-        Person::query()
-            ->whereIn('id', $personIds->unique()->values())
-            ->where('status', 'pending')
-            ->get()
-            ->each(function (Person $person): void {
-                $now = now();
-                $person->forceFill([
-                    'status' => 'verified',
-                    'verified_at' => $now,
-                    'last_state_change_at' => $now,
-                ])->save();
-            });
+        app(PersonWorkflow::class)->verifyPending(
+            $personIds->unique()->values()->map(static fn (mixed $id): string => (string) $id)->all(),
+        );
 
         $institutionIds = collect();
 

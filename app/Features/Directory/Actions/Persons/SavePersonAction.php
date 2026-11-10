@@ -1,47 +1,55 @@
 <?php
 
-namespace App\Actions\Persons;
+declare(strict_types=1);
+
+namespace App\Features\Directory\Actions\Persons;
 
 use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Persons\Enums\Gender;
-use App\Forms\SharedFormSchema;
-use App\Models\Person;
-use App\Models\User;
-use App\Platform\Media\MediaCollectionSync;
-use App\Services\ContributionEntityMutationService;
-use App\Support\Submission\PublicSubmissionLockService;
-use Illuminate\Http\UploadedFile;
+use App\Features\Directory\Api\PersonSubmissionAccess;
+use App\Features\Directory\Support\DirectoryModel;
+use App\Platform\Addressing\AddressFormState;
+use App\Shared\Auth\AccountActor;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
+/**
+ * Save a person through the admin/API form path.
+ */
 final readonly class SavePersonAction
 {
     use AsAction;
 
     public function __construct(
         private AddMemberAction $addMemberAction,
-        private ContributionEntityMutationService $contributionEntityMutationService,
         private GeneratePersonSlugAction $generatePersonSlugAction,
-        private MediaCollectionSync $mediaSyncService,
-        private PublicSubmissionLockService $publicSubmissionLockService,
+        private SyncPersonMediaAction $syncPersonMedia,
+        private SyncPersonRelationsAction $syncPersonRelations,
+        private PersonSubmissionAccess $submissionAccess,
     ) {}
 
     /**
      * @param  array<string, mixed>  $data
      */
-    public function handle(array $data, User $actor, ?Person $person = null, string $validationErrorKey = 'allow_public_event_submission'): Person
-    {
-        $creating = ! $person instanceof Person;
-        $person ??= new Person;
+    public function handle(
+        array $data,
+        Model&AccountActor $actor,
+        ?Model $person = null,
+        string $validationErrorKey = 'allow_public_event_submission',
+        bool $assignOwner = true,
+    ): Model {
+        $creating = ! $person instanceof Model;
+        $person ??= DirectoryModel::new('person');
 
         $address = is_array($data['address'] ?? null) ? $data['address'] : [];
         $addressProvided = array_key_exists('address', $data) && is_array($data['address'] ?? null);
 
         if ($addressProvided) {
-            $countryProvided = SharedFormSchema::countrySelectionProvided($address);
-            $address = SharedFormSchema::prepareAddressPersistenceData($address);
+            $countryProvided = AddressFormState::countrySelectionProvided($address);
+            $address = AddressFormState::prepareAddressPersistenceData($address);
 
             if (! $countryProvided) {
                 throw ValidationException::withMessages([
@@ -58,18 +66,28 @@ final readonly class SavePersonAction
             $data['address'] = $address;
         }
 
-        $currentPublicSubmission = $creating ? true : (bool) $person->allow_public_event_submission;
+        $currentPublicSubmission = $creating ? true : (bool) $person->getAttribute('allow_public_event_submission');
         $requestedPublicSubmission = $creating
             ? true
             : (array_key_exists('allow_public_event_submission', $data) ? (bool) $data['allow_public_event_submission'] : $currentPublicSubmission);
         $attributes = [
-            'name' => $this->normalizeRequiredString($data['name'] ?? $person->name, 'Person'),
-            'middle_name' => $this->normalizeOptionalString($data['middle_name'] ?? $person->middle_name),
-            'family_name' => $this->normalizeOptionalString($data['family_name'] ?? $person->family_name),
-            'gender' => $this->normalizeGender($data['gender'] ?? $person->gender ?? null),
-            'bio' => array_key_exists('bio', $data) ? $data['bio'] : $person->bio,
-            'status' => array_key_exists('status', $data) ? (string) $data['status'] : ($creating ? 'pending' : (string) $person->status),
+            'name' => $this->normalizeRequiredString($data['name'] ?? $person->getAttribute('name'), 'Person'),
+            'middle_name' => $this->normalizeOptionalString($data['middle_name'] ?? $person->getAttribute('middle_name')),
+            'family_name' => $this->normalizeOptionalString($data['family_name'] ?? $person->getAttribute('family_name')),
+            'gender' => $this->normalizeGender($data['gender'] ?? $person->getAttribute('gender') ?? null),
+            'bio' => array_key_exists('bio', $data) ? $data['bio'] : $person->getAttribute('bio'),
+            'status' => array_key_exists('status', $data)
+                ? (string) $data['status']
+                : ($creating ? 'pending' : (string) $person->getAttribute('status')),
         ];
+
+        if (array_key_exists('is_featured', $data)) {
+            $attributes['is_featured'] = (bool) $data['is_featured'];
+        }
+
+        if (array_key_exists('speaker_status', $data)) {
+            $attributes['speaker_status'] = $data['speaker_status'];
+        }
 
         if ($creating) {
             $attributes['slug'] = $this->generatePersonSlugAction->handle($attributes['name'], array_merge($data, [
@@ -77,14 +95,17 @@ final readonly class SavePersonAction
             ]));
             $attributes['allow_public_event_submission'] = true;
 
-            $person = Person::create($attributes);
-            $this->addMemberAction->handle($person, $actor, MemberRole::Owner);
+            $person = DirectoryModel::query('person')->create($attributes);
+
+            if ($assignOwner) {
+                $this->addMemberAction->handle($person, $actor, MemberRole::Owner);
+            }
         } else {
             $person->fill($attributes);
             $person->save();
         }
 
-        $this->contributionEntityMutationService->syncPersonRelations($person, Arr::only($data, [
+        $this->syncPersonRelations->handle($person, Arr::only($data, [
             'address',
             'contactMethods',
             'social_media',
@@ -92,7 +113,7 @@ final readonly class SavePersonAction
             'names',
             'institutions',
         ]));
-        $this->syncMedia($person, $data);
+        $this->syncPersonMedia->handle($person, $data);
 
         if (! $creating) {
             $this->syncPublicSubmissionToggle($person, $actor, $currentPublicSubmission, $requestedPublicSubmission, $validationErrorKey);
@@ -110,8 +131,8 @@ final readonly class SavePersonAction
     }
 
     private function syncPublicSubmissionToggle(
-        Person $person,
-        User $actor,
+        Model $person,
+        Model&AccountActor $actor,
         bool $currentPublicSubmission,
         bool $requestedPublicSubmission,
         string $validationErrorKey,
@@ -120,13 +141,16 @@ final readonly class SavePersonAction
             return;
         }
 
+        $personId = (string) $person->getKey();
+        $actorId = (string) $actor->getKey();
+
         if ($requestedPublicSubmission) {
-            $this->publicSubmissionLockService->unlockPerson($person, $actor);
+            $this->submissionAccess->unlock($personId, $actorId);
 
             return;
         }
 
-        $eligibility = $this->publicSubmissionLockService->personEligibility($person);
+        $eligibility = $this->submissionAccess->eligibility($personId);
 
         if (! $eligibility->eligible) {
             throw ValidationException::withMessages([
@@ -134,56 +158,7 @@ final readonly class SavePersonAction
             ]);
         }
 
-        $this->publicSubmissionLockService->lockPerson($person, $actor);
-    }
-
-    /**
-     * @param  array<string, mixed>  $data
-     */
-    private function syncMedia(Person $person, array $data): void
-    {
-        if (($data['clear_avatar'] ?? false) === true) {
-            $this->mediaSyncService->clearCollection($person, 'avatar');
-        }
-
-        if (($data['clear_cover'] ?? false) === true) {
-            $this->mediaSyncService->clearCollection($person, 'cover');
-        }
-
-        if (($data['clear_main'] ?? false) === true) {
-            $this->mediaSyncService->clearCollection($person, 'main');
-        }
-
-        if (($data['clear_gallery'] ?? false) === true) {
-            $this->mediaSyncService->clearCollection($person, 'gallery');
-        }
-
-        $avatar = $data['avatar'] ?? null;
-        $main = $data['main'] ?? null;
-        $cover = $data['cover'] ?? null;
-        $gallery = $data['gallery'] ?? null;
-
-        $this->mediaSyncService->syncSingle(
-            $person,
-            $avatar instanceof UploadedFile ? $avatar : null,
-            'avatar',
-        );
-        $this->mediaSyncService->syncSingle(
-            $person,
-            $main instanceof UploadedFile ? $main : null,
-            'main',
-        );
-        $this->mediaSyncService->syncSingle(
-            $person,
-            $cover instanceof UploadedFile ? $cover : null,
-            'cover',
-        );
-        $this->mediaSyncService->syncMultiple(
-            $person,
-            is_array($gallery) ? $gallery : null,
-            'gallery',
-            replace: is_array($gallery),
-        );
+        $this->submissionAccess->lock($personId, $actorId);
     }
 
     private function normalizeGender(mixed $value): string

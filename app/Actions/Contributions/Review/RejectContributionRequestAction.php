@@ -5,6 +5,7 @@ namespace App\Actions\Contributions\Review;
 use App\Enums\ContributionRequestType;
 use App\Exceptions\ContributionRequestNotPendingException;
 use App\Features\Directory\Api\InstitutionWorkflow;
+use App\Features\Directory\Api\PersonWorkflow;
 use App\Models\ContributionRequest;
 use App\Models\Institution;
 use App\Models\Person;
@@ -20,6 +21,7 @@ class RejectContributionRequestAction
 
     public function __construct(
         private readonly ContributionRequestNotificationService $contributionRequestNotificationService,
+        private readonly PersonWorkflow $personWorkflow,
     ) {}
 
     public function handle(
@@ -57,7 +59,9 @@ class RejectContributionRequestAction
 
                 if ($entity instanceof Institution) {
                     app(InstitutionWorkflow::class)->changeStatus((string) $entity->getKey(), 'rejected');
-                } elseif ($entity instanceof Person || $entity instanceof Reference) {
+                } elseif ($entity instanceof Person) {
+                    $this->personWorkflow->changeStatus((string) $entity->getKey(), 'rejected');
+                } elseif ($entity instanceof Reference) {
                     $entity->forceFill([
                         'status' => 'rejected',
                         'rejected_at' => $now,

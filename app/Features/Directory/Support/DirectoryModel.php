@@ -36,6 +36,21 @@ final class DirectoryModel
         return MorphModelResolver::resolve('donation_channel');
     }
 
+    public static function person(): string
+    {
+        return MorphModelResolver::resolve('person');
+    }
+
+    public static function personName(): string
+    {
+        return MorphModelResolver::resolve('person_name');
+    }
+
+    public static function affiliation(): string
+    {
+        return MorphModelResolver::resolve('affiliation');
+    }
+
     /**
      * @return Builder<Model>
      */

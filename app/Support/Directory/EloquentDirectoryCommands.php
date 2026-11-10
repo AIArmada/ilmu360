@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Support\Directory;
 
-use App\Actions\Persons\SavePersonAction;
 use App\Actions\References\SaveReferenceAction;
 use App\Actions\Spaces\SaveSpaceAction;
 use App\Actions\Venues\SaveVenueAction;
@@ -14,6 +13,7 @@ use App\Features\Directory\Api\DirectoryReader;
 use App\Features\Directory\Api\DirectoryRecordType;
 use App\Features\Directory\Api\DonationChannelWorkflow;
 use App\Features\Directory\Api\InstitutionWorkflow;
+use App\Features\Directory\Api\PersonWorkflow;
 use App\Models\DonationChannel;
 use App\Models\Institution;
 use App\Models\Person;
@@ -40,7 +40,7 @@ final readonly class EloquentDirectoryCommands implements DirectoryCommands
 {
     public function __construct(
         private InstitutionWorkflow $institutionWorkflow,
-        private SavePersonAction $savePerson,
+        private PersonWorkflow $personWorkflow,
         private SaveReferenceAction $saveReference,
         private SaveVenueAction $saveVenue,
         private SaveSpaceAction $saveSpace,
@@ -59,7 +59,9 @@ final readonly class EloquentDirectoryCommands implements DirectoryCommands
 
         $model = match ($type) {
             DirectoryRecordType::Institution => Institution::query()->findOrFail($this->institutionWorkflow->saveFromAdmin($attributes, (string) $actor->getKey())),
-            DirectoryRecordType::Person => $this->savePerson->handle($attributes, $actor),
+            DirectoryRecordType::Person => Person::query()->findOrFail(
+                $this->personWorkflow->saveFromAdmin($attributes, (string) $actor->getKey()),
+            ),
             DirectoryRecordType::Reference => $this->saveReference->handle($attributes),
             DirectoryRecordType::Venue => $this->saveVenue->handle($attributes),
             DirectoryRecordType::Space => $this->saveSpace->handle($attributes),
@@ -86,6 +88,12 @@ final readonly class EloquentDirectoryCommands implements DirectoryCommands
 
         Gate::forUser($actor)->authorize('delete', $record);
 
+        if ($type === DirectoryRecordType::Person) {
+            $this->personWorkflow->delete([(string) $record->getKey()]);
+
+            return;
+        }
+
         $record->delete();
     }
 
@@ -100,6 +108,10 @@ final readonly class EloquentDirectoryCommands implements DirectoryCommands
             DirectoryRecordType::Reference,
         ], true)) {
             throw new InvalidArgumentException("Contribution apply is not supported for [{$type->value}].");
+        }
+
+        if ($type === DirectoryRecordType::Person) {
+            return $this->personWorkflow->applyContribution((string) $record->getKey(), $attributes);
         }
 
         return $this->entityMutations->apply($record, $attributes);
@@ -120,7 +132,7 @@ final readonly class EloquentDirectoryCommands implements DirectoryCommands
                 ? $this->entityMutations->syncInstitutionRelations($record, $relations)
                 : throw new RuntimeException('Expected institution record.'),
             DirectoryRecordType::Person => $record instanceof Person
-                ? $this->entityMutations->syncPersonRelations($record, $relations)
+                ? $this->personWorkflow->syncRelations((string) $record->getKey(), $relations)
                 : throw new RuntimeException('Expected speaker record.'),
             DirectoryRecordType::Reference => $record instanceof Reference
                 ? $this->entityMutations->syncReferenceRelations($record, $relations)
@@ -147,7 +159,9 @@ final readonly class EloquentDirectoryCommands implements DirectoryCommands
                 ? Institution::query()->findOrFail($this->institutionWorkflow->saveFromAdmin($attributes, (string) $actor->getKey(), (string) $record->getKey()))
                 : throw new RuntimeException('Expected institution record.'),
             DirectoryRecordType::Person => $record instanceof Person
-                ? $this->savePerson->handle($attributes, $actor, $record)
+                ? Person::query()->findOrFail(
+                    $this->personWorkflow->saveFromAdmin($attributes, (string) $actor->getKey(), (string) $record->getKey()),
+                )
                 : throw new RuntimeException('Expected speaker record.'),
             DirectoryRecordType::Reference => $record instanceof Reference
                 ? $this->saveReference->handle($attributes, $record)

@@ -3,8 +3,8 @@
 namespace App\Forms;
 
 use AIArmada\Persons\Enums\Gender;
-use App\Actions\Persons\GeneratePersonSlugAction;
 use App\Enums\SpeakerStatus;
+use App\Features\Directory\Api\PersonWorkflow;
 use App\Models\Person;
 use App\Models\User;
 use App\Shared\Signals\SignalRecorder;
@@ -85,15 +85,15 @@ class ReferenceAuthorFormSchema
                 }
             }
 
-            $person = Person::create([
+            $personId = app(PersonWorkflow::class)->createAuthor([
                 'name' => $name,
                 'gender' => $gender?->value,
                 'bio' => $data['bio'] ?? null,
-                'slug' => app(GeneratePersonSlugAction::class)->handle($name, $data),
-                'status' => 'pending',
                 'speaker_status' => SpeakerStatus::Inactive->value,
                 'allow_public_event_submission' => false,
             ]);
+
+            $person = Person::query()->findOrFail($personId);
 
             $signalRequest = request();
             $signalUser = $signalRequest->user();

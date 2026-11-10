@@ -2,7 +2,7 @@
 
 namespace App\Support\Persons;
 
-use App\Actions\ReorderFeaturedPersonsAction;
+use App\Features\Directory\Api\PersonWorkflow;
 
 trait ReordersFeaturedPersons
 {
@@ -13,7 +13,7 @@ trait ReordersFeaturedPersons
             return;
         }
 
-        app(ReorderFeaturedPersonsAction::class)->handle($order);
+        app(PersonWorkflow::class)->reorderFeatured($order);
         $this->flushCachedTableRecords();
     }
 }

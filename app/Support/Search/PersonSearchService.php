@@ -3,16 +3,17 @@
 namespace App\Support\Search;
 
 use AIArmada\CommerceSupport\Support\StringSimilarity;
+use App\Features\Directory\Api\PersonWorkflow;
 use App\Models\Person;
 use App\Platform\Search\FuzzySearchPolicy;
 use App\Platform\Search\TypesenseHealthCheckService;
+use App\Shared\Directory\PersonSearchText;
 use App\Shared\Discovery\PublicDiscoveryAdapter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Str;
 
 class PersonSearchService implements PublicDiscoveryAdapter
 {
@@ -20,22 +21,19 @@ class PersonSearchService implements PublicDiscoveryAdapter
 
     private const string PUBLIC_SEARCH_CACHE_VERSION_KEY = 'person_search_public_version_v2';
 
+    public function __construct(
+        private readonly ?PersonWorkflow $personWorkflow = null,
+    ) {}
+
     public function buildSearchableName(
         ?string $name,
     ): string {
-        return StringSimilarity::normalize(Person::formatDisplayedName($name));
+        return PersonSearchText::searchableName($name);
     }
 
     public function buildSearchableText(Person $person): string
     {
-        $alternativeNames = $person->relationLoaded('names')
-            ? $person->getRelation('names')->pluck('full_name')->all()
-            : $person->names()->pluck('full_name')->all();
-
-        return $this->buildSearchableName(implode(' ', array_filter([
-            $person->formatted_name,
-            ...$alternativeNames,
-        ])));
+        return PersonSearchText::searchableText($person);
     }
 
     /**
@@ -44,20 +42,7 @@ class PersonSearchService implements PublicDiscoveryAdapter
     public function buildSearchTerms(
         ?string $name,
     ): array {
-        $searchableName = $this->buildSearchableName($name);
-
-        if ($searchableName === '') {
-            return [];
-        }
-
-        /** @var list<string> $terms */
-        $terms = collect(explode(' ', $searchableName))
-            ->filter(static fn (string $term): bool => $term !== '')
-            ->unique()
-            ->values()
-            ->all();
-
-        return $terms;
+        return PersonSearchText::terms($name);
     }
 
     /**
@@ -546,55 +531,17 @@ class PersonSearchService implements PublicDiscoveryAdapter
 
     public function syncIndex(Person $person): void
     {
-        if (! $this->hasPersonSearchTermsTable()) {
-            return;
-        }
-
-        DB::table('person_search_terms')
-            ->where('person_id', $person->getKey())
-            ->delete();
-
-        $terms = $this->buildSearchTerms(
-            $this->buildSearchableText($person),
-        );
-
-        if ($terms === []) {
-            return;
-        }
-
-        DB::table('person_search_terms')->insert(
-            collect($terms)
-                ->map(fn (string $term): array => [
-                    'id' => (string) Str::uuid(),
-                    'person_id' => (string) $person->getKey(),
-                    'term' => $term,
-                ])
-                ->all()
-        );
+        $this->workflow()->syncSearchProjection((string) $person->getKey(), false);
     }
 
     public function syncPersonRecord(Person $person): void
     {
-        $this->syncPersonRecordWithOptions($person, true);
+        $this->workflow()->syncSearchProjection((string) $person->getKey());
     }
 
     public function reindexAll(int $chunkSize = 100): int
     {
-        $processed = 0;
-
-        Person::query()
-            ->with(['names', 'titleAssignments.title.category'])
-            ->select(['id', 'name', 'middle_name', 'family_name'])
-            ->chunkById(max(1, $chunkSize), function ($persons) use (&$processed): void {
-                foreach ($persons as $person) {
-                    $this->syncPersonRecordWithOptions($person, false);
-                    $processed++;
-                }
-            });
-
-        $this->bustPublicSearchCache();
-
-        return $processed;
+        return $this->workflow()->reindexSearch($chunkSize);
     }
 
     public function searchIndexSchemaReady(): bool
@@ -602,38 +549,19 @@ class PersonSearchService implements PublicDiscoveryAdapter
         return $this->hasSearchableNameColumn() && $this->hasPersonSearchTermsTable();
     }
 
-    private function syncPersonRecordWithOptions(Person $person, bool $bustCache): void
-    {
-        if ($this->hasSearchableNameColumn()) {
-            DB::table('persons')
-                ->where('id', $person->getKey())
-                ->update([
-                    'searchable_name' => $this->buildSearchableText($person),
-                ]);
-        }
-
-        $this->syncIndex($person);
-
-        if ($bustCache) {
-            $this->bustPublicSearchCache();
-        }
-    }
-
     public function purgeIndex(Person $person): void
     {
-        if (! $this->hasPersonSearchTermsTable()) {
-            return;
-        }
-
-        DB::table('person_search_terms')
-            ->where('person_id', $person->getKey())
-            ->delete();
+        $this->workflow()->purgeSearchProjection((string) $person->getKey(), false);
     }
 
     public function purgePersonRecord(Person $person): void
     {
-        $this->purgeIndex($person);
-        $this->bustPublicSearchCache();
+        $this->workflow()->purgeSearchProjection((string) $person->getKey());
+    }
+
+    private function workflow(): PersonWorkflow
+    {
+        return $this->personWorkflow ?? app(PersonWorkflow::class);
     }
 
     public function bustPublicSearchCache(): void

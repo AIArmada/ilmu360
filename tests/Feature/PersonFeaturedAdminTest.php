@@ -1,6 +1,6 @@
 <?php
 
-use App\Actions\ReorderFeaturedPersonsAction;
+use App\Features\Directory\Api\PersonWorkflow;
 use App\Filament\Resources\Persons\Pages\EditPerson;
 use App\Filament\Resources\Persons\Pages\ListPersons;
 use App\Filament\Resources\Persons\PersonResource;
@@ -104,7 +104,7 @@ it('preserves hidden featured positions and audits filtered reordering', functio
     $administrator->assignRole('admin');
     $this->actingAs($administrator);
 
-    app(ReorderFeaturedPersonsAction::class)->handle([$people[3]->id, $people[2]->id]);
+    app(PersonWorkflow::class)->reorderFeatured([$people[3]->id, $people[2]->id]);
 
     $expected = [$people[0]->id, $people[1]->id, $people[3]->id, $people[2]->id];
     expect(Person::query()->featured()->ordered()->pluck('id')->all())->toBe($expected);
@@ -122,7 +122,7 @@ it('rejects duplicate and unfeatured reorder submissions without changing positi
     $this->actingAs($administrator);
 
     foreach ([[$person->id, $person->id], [$plain->id]] as $order) {
-        expect(fn () => app(ReorderFeaturedPersonsAction::class)->handle($order))
+        expect(fn () => app(PersonWorkflow::class)->reorderFeatured($order))
             ->toThrow(ValidationException::class);
     }
     expect($person->fresh()->order_column)->toBe(10);

@@ -33,12 +33,50 @@
     ],
     "store:institution-submission": [
       "App\\Features\\Directory\\Persistence\\InstitutionSubmissionCache"
+    ],
+    "store:person-submission": [
+      "App\\Features\\Directory\\Persistence\\PersonSubmissionCache"
+    ],
+    "store:person-search": [
+      "App\\Features\\Directory\\Persistence\\PersonSearchCache"
+    ],
+    "table:persons": [
+      "App\\Features\\Directory\\Actions\\Persons\\ApplyPersonContributionAction",
+      "App\\Features\\Directory\\Actions\\Persons\\BackfillPersonSlugsAction",
+      "App\\Features\\Directory\\Actions\\Persons\\ChangePersonStatusAction",
+      "App\\Features\\Directory\\Actions\\Persons\\CreatePersonAction",
+      "App\\Features\\Directory\\Actions\\Persons\\DeletePersonAction",
+      "App\\Features\\Directory\\Actions\\Persons\\DetachPersonVerifierAction",
+      "App\\Features\\Directory\\Actions\\Persons\\GeneratePersonSlugAction",
+      "App\\Features\\Directory\\Actions\\Persons\\PersonSubmissionAccessAction",
+      "App\\Features\\Directory\\Actions\\Persons\\ReorderFeaturedPersonsAction",
+      "App\\Features\\Directory\\Actions\\Persons\\RestorePersonVerifierAction",
+      "App\\Features\\Directory\\Actions\\Persons\\SavePersonAction",
+      "App\\Features\\Directory\\Actions\\Persons\\SyncPersonAffiliationsAction",
+      "App\\Features\\Directory\\Actions\\Persons\\SyncPersonMediaAction",
+      "App\\Features\\Directory\\Actions\\Persons\\SyncPersonNamesAction",
+      "App\\Features\\Directory\\Actions\\Persons\\SyncPersonRelationsAction",
+      "App\\Features\\Directory\\Actions\\Persons\\SyncPersonSearchProjectionAction",
+      "App\\Features\\Directory\\Actions\\Persons\\SyncPersonTitleAssignmentsAction",
+      "App\\Features\\Directory\\Actions\\Persons\\VerifyPendingPersonsAction"
+    ],
+    "table:person_names": [
+      "App\\Features\\Directory\\Actions\\Persons\\SyncPersonNamesAction"
+    ],
+    "table:person_search_terms": [
+      "App\\Features\\Directory\\Actions\\Persons\\SyncPersonSearchProjectionAction"
+    ],
+    "table:affiliations": [
+      "App\\Features\\Directory\\Actions\\Persons\\SyncPersonAffiliationsAction"
     ]
   },
   "aliases": {
     "institution": "table:institutions",
     "institution_name": "table:institution_names",
     "institution_import_exclusion": "table:institution_import_exclusions",
-    "donation_channel": "table:donation_channels"
+    "donation_channel": "table:donation_channels",
+    "person": "table:persons",
+    "person_name": "table:person_names",
+    "affiliation": "table:affiliations"
   }
 }

@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Persons\RelationManagers;
 
 use AIArmada\FilamentPersons\Resources\PersonResource\RelationManagers\AffiliationsRelationManager as PackageAffiliationsRelationManager;
+use App\Features\Directory\Api\PersonWorkflow;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Models\Institution;
+use App\Models\Person;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -16,6 +18,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 class AffiliationsRelationManager extends PackageAffiliationsRelationManager
 {
@@ -68,17 +71,62 @@ class AffiliationsRelationManager extends PackageAffiliationsRelationManager
                             ->label('Institution')
                             ->options(static::getInstitutionOptions())
                             ->searchable()
-                            ->preload(),
+                            ->preload()
+                            ->required(),
                         TextInput::make('position')
                             ->maxLength(50),
                         DatePicker::make('joined_at'),
                         DatePicker::make('left_at'),
                         Checkbox::make('is_primary'),
-                    ]),
+                    ])
+                    ->action(function (CreateAction $action, array $data): void {
+                        $owner = $this->getOwnerRecord();
+
+                        if (! $owner instanceof Person) {
+                            return;
+                        }
+
+                        app(PersonWorkflow::class)->attachAffiliation(
+                            (string) $owner->getKey(),
+                            (string) $data['institution_id'],
+                            $data,
+                        );
+
+                        $action->success();
+                    }),
             ])
             ->actions([
-                EditAction::make(),
-                DeleteAction::make(),
+                EditAction::make()
+                    ->action(function (EditAction $action, Model $record, array $data): void {
+                        $owner = $this->getOwnerRecord();
+
+                        if (! $owner instanceof Person) {
+                            return;
+                        }
+
+                        app(PersonWorkflow::class)->updateAffiliation(
+                            (string) $owner->getKey(),
+                            (string) $record->getKey(),
+                            $data,
+                        );
+
+                        $action->success();
+                    }),
+                DeleteAction::make()
+                    ->action(function (DeleteAction $action, Model $record): void {
+                        $owner = $this->getOwnerRecord();
+
+                        if (! $owner instanceof Person) {
+                            return;
+                        }
+
+                        app(PersonWorkflow::class)->deleteAffiliations(
+                            (string) $owner->getKey(),
+                            [(string) $record->getKey()],
+                        );
+
+                        $action->success();
+                    }),
             ]);
     }
 }

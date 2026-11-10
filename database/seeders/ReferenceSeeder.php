@@ -7,11 +7,11 @@ namespace Database\Seeders;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\References\Enums\ReferenceContributorRole;
 use AIArmada\References\Enums\ReferenceRecordKind;
-use App\Actions\Persons\GeneratePersonSlugAction;
 use App\Actions\References\GenerateReferenceSlugAction;
 use App\Enums\ReferencePartType;
 use App\Enums\ReferenceType;
 use App\Enums\SpeakerStatus;
+use App\Features\Directory\Api\PersonWorkflow;
 use App\Models\Person;
 use App\Models\Reference;
 use Illuminate\Database\Seeder;
@@ -1895,7 +1895,7 @@ class ReferenceSeeder extends Seeder
         $person->forceFill([
             'id' => (string) Str::orderedUuid(),
             'name' => $name,
-            'slug' => app(GeneratePersonSlugAction::class)->handle($name),
+            'slug' => app(PersonWorkflow::class)->buildSlug($name),
             'status' => 'verified',
             'speaker_status' => SpeakerStatus::Inactive->value,
             'allow_public_event_submission' => false,

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Persons\RelationManagers;
 
+use App\Features\Directory\Api\PersonWorkflow;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Models\Person;
 use Filament\Actions\AttachAction;
 use Filament\Actions\BulkActionGroup;
+use App\Features\Directory\Api\InstitutionWorkflow;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\DetachAction;
 use Filament\Actions\DetachBulkAction;
@@ -20,8 +22,9 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
+use Throwable;
 
 class InstitutionsRelationManager extends RelationManager
 {
@@ -76,13 +79,21 @@ class InstitutionsRelationManager extends RelationManager
                         DatePicker::make('joined_at')
                             ->label('Joined At'),
                     ])
-                    ->mutateDataUsing(static function (array $data): array {
-                        $data['id'] ??= (string) Str::uuid();
+                    ->action(function (AttachAction $action, array $data): void {
+                        $owner = $this->getOwnerRecord();
+                        $institutionId = $data['recordId'] ?? null;
 
-                        return $data;
-                    })
-                    ->before(function (AttachAction $action): void {
-                        $this->clearOtherPrimaryAffiliations($action->getRecord(), $action->getData());
+                        if (! $owner instanceof Person || ! is_string($institutionId) || $institutionId === '') {
+                            return;
+                        }
+
+                        app(PersonWorkflow::class)->attachAffiliation(
+                            (string) $owner->getKey(),
+                            $institutionId,
+                            $data,
+                        );
+
+                        $action->success();
                     }),
             ])
             ->recordActions([
@@ -92,57 +103,81 @@ class InstitutionsRelationManager extends RelationManager
                         Toggle::make('is_primary'),
                         DatePicker::make('joined_at'),
                     ])
-                    ->before(function (EditAction $action): void {
-                        $this->clearOtherPrimaryAffiliations($action->getRecord(), $action->getData());
+                    ->action(function (EditAction $action, Model $record, array $data): void {
+                        $owner = $this->getOwnerRecord();
+
+                        if (! $owner instanceof Person) {
+                            return;
+                        }
+
+                        app(PersonWorkflow::class)->updateAffiliationForInstitution(
+                            (string) $owner->getKey(),
+                            (string) $record->getKey(),
+                            $data,
+                        );
+
+                        $action->success();
                     }),
-                DetachAction::make(),
+                DetachAction::make()
+                    ->action(function (DetachAction $action, Model $record): void {
+                        $owner = $this->getOwnerRecord();
+
+                        if (! $owner instanceof Person) {
+                            return;
+                        }
+
+                        app(PersonWorkflow::class)->detachAffiliations(
+                            (string) $owner->getKey(),
+                            [(string) $record->getKey()],
+                        );
+
+                        $action->success();
+                    }),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DetachBulkAction::make(),
+                    DetachBulkAction::make()
+                        ->action(function (DetachBulkAction $action, Collection $records): void {
+                            $owner = $this->getOwnerRecord();
+
+                            if (! $owner instanceof Person) {
+                                return;
+                            }
+
+                            app(PersonWorkflow::class)->detachAffiliations(
+                                (string) $owner->getKey(),
+                                $records
+                                    ->map(static fn (Model $record): string => (string) $record->getKey())
+                                    ->values()
+                                    ->all(),
+                            );
+
+                            $action->success();
+                        }),
                     DeleteBulkAction::make()
-                        ->authorizeIndividualRecords('delete'),
+                        ->authorizeIndividualRecords('delete')
+                        ->using(function (DeleteBulkAction $action, Collection $records): void {
+                            try {
+                                $deleted = app(InstitutionWorkflow::class)->delete(
+                                    $records->modelKeys(),
+                                );
+                            } catch (Throwable $exception) {
+                                report($exception);
+
+                                $action->reportCompleteBulkProcessingFailure();
+
+                                return;
+                            }
+
+                            if ($deleted > 0) {
+                                $action->reportBulkProcessingSuccessfulRecordsCount($deleted);
+                            }
+
+                            if ($deleted < $records->count()) {
+                                $action->reportBulkProcessingFailure();
+                            }
+                        }),
                 ]),
-            ]);
-    }
-
-    /**
-     * Filament updates belongs-to-many pivot rows directly, so the affiliation
-     * model observer cannot enforce this invariant for these actions. This must
-     * run before the write: the partial unique index on primary affiliations
-     * rejects the new primary while another primary row still exists.
-     *
-     * @param  Model|array<string, mixed>|null  $record
-     * @param  array<string, mixed>  $data
-     */
-    private function clearOtherPrimaryAffiliations(Model|array|null $record, array $data): void
-    {
-        if (! (bool) ($data['is_primary'] ?? false)) {
-            return;
-        }
-
-        $excludeInstitutionId = $record instanceof Model
-            ? $record->getKey()
-            : ($data['recordId'] ?? null);
-
-        if ($excludeInstitutionId === null || $excludeInstitutionId === '') {
-            return;
-        }
-
-        $owner = $this->getOwnerRecord();
-
-        if (! $owner instanceof Person) {
-            return;
-        }
-
-        $owner->institutions()
-            ->newPivotStatement()
-            ->where('affiliatable_id', $owner->getKey())
-            ->where('affiliatable_type', $owner->getMorphClass())
-            ->where('institution_id', '!=', $excludeInstitutionId)
-            ->update([
-                'is_primary' => false,
-                'updated_at' => now(),
             ]);
     }
 }

@@ -14,20 +14,14 @@ use AIArmada\Contacting\Models\SocialProfile;
 use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\Events\Models\FacilityType;
 use AIArmada\Events\Models\VenueFacility;
-use AIArmada\Membership\Actions\AddMemberAction;
-use AIArmada\Membership\Enums\MemberRole;
-use AIArmada\Persons\Enums\AffiliationType;
 use AIArmada\Persons\Enums\AssignmentStatus;
 use AIArmada\Persons\Enums\Gender;
 use AIArmada\Persons\Enums\PersonNameType;
-use AIArmada\Persons\Models\PersonName;
-use AIArmada\Persons\Models\TitleAssignment;
 use AIArmada\References\Enums\ReferenceContributorRole;
 use AIArmada\References\Enums\ReferenceRecordKind;
 use AIArmada\References\Rules\Isbn;
 use App\Actions\Events\Authoring\SyncEventClassificationsAction;
 use App\Actions\Events\Scheduling\SyncEventScheduleAction;
-use App\Actions\Persons\GeneratePersonSlugAction;
 use App\Contracts\EventCategoryCatalog;
 use App\Contracts\SpaceEligibilityResolver;
 use App\Enums\EventAgeGroup;
@@ -40,8 +34,8 @@ use App\Enums\ReferencePartType;
 use App\Enums\ReferenceType;
 use App\Enums\TimingMode;
 use App\Features\Directory\Api\InstitutionWorkflow;
+use App\Features\Directory\Api\PersonWorkflow;
 use App\Forms\SharedFormSchema;
-use App\Models\Affiliation;
 use App\Models\DonationChannel;
 use App\Models\Event;
 use App\Models\Institution;
@@ -77,12 +71,11 @@ class ContributionEntityMutationService
 {
     public function __construct(
         private readonly EventKeyPersonSyncService $eventKeyPersonSyncService,
-        private readonly AddMemberAction $addMemberAction,
-        private readonly GeneratePersonSlugAction $generatePersonSlugAction,
         private readonly AddressCountryResolver $addressingCountryResolver,
         private readonly SpaceEligibilityResolver $spaceEligibilityResolver,
         private readonly EntityRelationSync $entityRelationSync,
         private readonly InstitutionWorkflow $institutionWorkflow,
+        private readonly PersonWorkflow $personWorkflow,
     ) {}
 
     /** @return array<string, mixed> */
@@ -416,26 +409,9 @@ class ContributionEntityMutationService
      */
     public function createPerson(array $payload, User $proposer): Person
     {
-        $person = Person::create([
-            'name' => (string) ($payload['name'] ?? 'Person'),
-            'middle_name' => $payload['middle_name'] ?? null,
-            'family_name' => $payload['family_name'] ?? null,
-            'gender' => $this->normalizeGender($payload['gender'] ?? null),
-            'bio' => $payload['bio'] ?? null,
-            'slug' => $this->generatePersonSlugAction->handle(
-                (string) ($payload['name'] ?? 'Person'),
-                $payload,
-            ),
-            'status' => 'pending',
-            'allow_public_event_submission' => true,
-        ]);
+        $personId = $this->personWorkflow->createFromContribution($payload, (string) $proposer->getKey());
 
-        $this->addMemberAction->handle($person, $proposer, MemberRole::Owner);
-
-        $this->syncPersonRelations($person, $payload);
-        $this->generatePersonSlugAction->syncPersonSlug($person);
-
-        return $person;
+        return Person::query()->findOrFail($personId);
     }
 
     /**
@@ -481,36 +457,7 @@ class ContributionEntityMutationService
      */
     private function applyPerson(Person $person, array $payload): array
     {
-        $person->fill([
-            'name' => $payload['name'] ?? $person->name,
-            'middle_name' => array_key_exists('middle_name', $payload) ? $payload['middle_name'] : $person->middle_name,
-            'family_name' => array_key_exists('family_name', $payload) ? $payload['family_name'] : $person->family_name,
-            'gender' => array_key_exists('gender', $payload)
-                ? $this->normalizeGender($payload['gender'])
-                : $person->gender,
-            'bio' => array_key_exists('bio', $payload) ? $payload['bio'] : $person->bio,
-        ]);
-
-        $dirty = $person->getDirty();
-        $person->save();
-
-        $this->syncPersonRelations($person, $payload);
-        $this->generatePersonSlugAction->syncPersonSlug($person);
-
-        return $dirty;
-    }
-
-    private function normalizeGender(mixed $value): string
-    {
-        if ($value instanceof Gender) {
-            return $value->value;
-        }
-
-        if (is_string($value) && Gender::tryFrom($value) instanceof Gender) {
-            return $value;
-        }
-
-        return Gender::Male->value;
+        return $this->personWorkflow->applyContribution((string) $person->getKey(), $payload);
     }
 
     private function normalizeReferenceType(mixed $value): string
@@ -826,14 +773,14 @@ class ContributionEntityMutationService
             'name' => $person->name,
             'family_name' => $person->family_name,
             'middle_name' => $person->middle_name,
-            'names' => $person->names->map(fn (PersonName $name): array => [
+            'names' => $person->names->map(fn (Model $name): array => [
                 'id' => (string) $name->getKey(),
                 'name_type' => $name->name_type instanceof PersonNameType ? $name->name_type->value : (string) $name->name_type,
                 'full_name' => $name->full_name,
                 'language_code' => $name->language_code,
                 'is_primary' => (bool) $name->is_primary,
             ])->values()->all(),
-            'title_assignments' => $person->titleAssignments->map(fn (TitleAssignment $assignment): array => [
+            'title_assignments' => $person->titleAssignments->map(fn (Model $assignment): array => [
                 'id' => (string) $assignment->getKey(),
                 'title_id' => (string) $assignment->title_id,
                 'date_awarded' => $assignment->date_awarded?->format('Y-m-d'),
@@ -854,6 +801,22 @@ class ContributionEntityMutationService
             'contactMethods' => $this->contactMethodsState($person->contactMethods),
             'social_media' => $this->socialMediaState($person->socialProfiles),
         ];
+    }
+
+    private static function institutionPivotPosition(?Institution $institution): ?string
+    {
+        if (! $institution instanceof Institution) {
+            return null;
+        }
+
+        $position = data_get($institution->getRelations(), 'pivot.position');
+
+        return is_string($position) && $position !== '' ? $position : null;
+    }
+
+    private static function institutionPivotIsPrimary(Institution $institution): bool
+    {
+        return (bool) data_get($institution->getRelations(), 'pivot.is_primary', false);
     }
 
     /**
@@ -1024,395 +987,22 @@ class ContributionEntityMutationService
      */
     public function syncPersonRelations(Person $person, array $payload): void
     {
-        if (array_key_exists('names', $payload)) {
-            $this->syncPersonNames($person, $payload['names']);
-        }
-
-        if (array_key_exists('institutions', $payload)) {
-            $this->syncPersonAffiliations($person, $payload['institutions']);
-        } elseif (array_key_exists('institution_id', $payload) || array_key_exists('institution_position', $payload)) {
-            $this->syncPersonAffiliation($person, $payload);
-        }
-
-        if (array_key_exists('title_ids', $payload)) {
-            $this->syncPersonTitleIds($person, $payload['title_ids']);
-        } elseif (array_key_exists('title_assignments', $payload)) {
-            $this->syncPersonTitleAssignments($person, $payload['title_assignments']);
-        }
-
-        $addressPayload = $this->personAddressPayload($payload);
-
-        if (is_array($addressPayload)) {
-            $addressPayload = $this->preserveHiddenPersonAddressFields($person, $addressPayload);
-            $this->syncAddress($person, $addressPayload, allowCountryOnly: true);
-        }
-
-        if (array_key_exists('contactMethods', $payload)) {
-            $this->syncContactMethods($person, $payload['contactMethods']);
-        }
-
-        if (array_key_exists('social_media', $payload)) {
-            $this->syncSocialMedia($person, $payload['social_media']);
-        }
-
-        if (array_key_exists('language_ids', $payload)) {
-            $person->syncLanguages($this->normalizeStringArray(
-                is_iterable($payload['language_ids']) ? $payload['language_ids'] : [],
-            ));
-        }
-
-        $this->syncPersonAffiliation($person, $payload);
+        $this->personWorkflow->syncRelations((string) $person->getKey(), $payload);
     }
 
     public function syncPersonNames(Person $person, mixed $namesPayload): void
     {
-        $existing = $person->names()->get()->keyBy(fn (PersonName $name): string => (string) $name->getKey());
-        $retainedIds = [];
-        $primarySelected = false;
-
-        foreach (is_array($namesPayload) ? $namesPayload : [] as $namePayload) {
-            if (! is_array($namePayload)) {
-                continue;
-            }
-
-            $fullName = trim((string) ($namePayload['full_name'] ?? ''));
-            if ($fullName === '') {
-                continue;
-            }
-
-            $nameType = $namePayload['name_type'] ?? PersonNameType::Display->value;
-            $nameType = $nameType instanceof PersonNameType
-                ? $nameType->value
-                : (string) $nameType;
-            $isPrimary = (bool) ($namePayload['is_primary'] ?? false) && ! $primarySelected;
-
-            if ($isPrimary) {
-                $primarySelected = true;
-            }
-
-            $attributes = [
-                'name_type' => $nameType,
-                'full_name' => $fullName,
-                'language_code' => trim((string) ($namePayload['language_code'] ?? 'ms')) ?: 'ms',
-                'is_primary' => $isPrimary,
-            ];
-            $nameId = is_string($namePayload['id'] ?? null) ? $namePayload['id'] : null;
-            $name = $nameId !== null ? $existing->get($nameId) : null;
-
-            if ($name instanceof PersonName) {
-                $name->update($attributes);
-                $retainedIds[] = (string) $name->getKey();
-            } else {
-                $created = $person->names()->create($attributes);
-                $retainedIds[] = (string) $created->getKey();
-            }
-        }
-
-        $existing->reject(fn (PersonName $name): bool => in_array((string) $name->getKey(), $retainedIds, true))
-            ->each->delete();
+        $this->personWorkflow->syncNames((string) $person->getKey(), $namesPayload);
     }
 
     public function syncPersonAffiliations(Person $person, mixed $institutionsPayload): void
     {
-        $beforeAffiliations = $this->personAffiliationAuditState($person);
-        $current = $person->institutions()->get()->keyBy(fn (Institution $institution): string => (string) $institution->getKey());
-        $currentIds = $current->keys()->all();
-        $rows = is_array($institutionsPayload) ? $institutionsPayload : [];
-        $requestedIds = collect($rows)
-            ->filter(static fn (mixed $row): bool => is_array($row))
-            ->map(fn (array $row): ?string => $this->normalizeOptionalString($row['institution_id'] ?? null))
-            ->filter()
-            ->unique()
-            ->values()
-            ->all();
-
-        $current = $current->union(
-            Institution::query()->whereKey($requestedIds)->get()->keyBy(fn (Institution $institution): string => (string) $institution->getKey()),
-        );
-        $retainedIds = [];
-        $primaryId = null;
-
-        Affiliation::query()
-            ->where('affiliatable_id', $person->getKey())
-            ->where('affiliatable_type', $person->getMorphClass())
-            ->update(['is_primary' => false, 'updated_at' => now()]);
-
-        foreach ($rows as $row) {
-            if (! is_array($row)) {
-                continue;
-            }
-
-            $institutionId = $this->normalizeOptionalString($row['institution_id'] ?? null);
-            if ($institutionId === null || $current->get($institutionId) === null) {
-                continue;
-            }
-
-            $retainedIds[] = $institutionId;
-            if ($primaryId === null && (bool) ($row['is_primary'] ?? false)) {
-                $primaryId = $institutionId;
-            }
-
-            $position = $this->normalizeOptionalString($row['position'] ?? null);
-
-            if (in_array($institutionId, $currentIds, true)) {
-                Affiliation::query()
-                    ->where('affiliatable_id', $person->getKey())
-                    ->where('affiliatable_type', $person->getMorphClass())
-                    ->where('institution_id', $institutionId)
-                    ->update(['position' => $position, 'updated_at' => now()]);
-            } else {
-                Affiliation::query()->create([
-                    'affiliatable_type' => $person->getMorphClass(),
-                    'affiliatable_id' => $person->getKey(),
-                    'institution_id' => $institutionId,
-                    'affiliation_type' => AffiliationType::Member,
-                    'position' => $position,
-                    'is_primary' => false,
-                ]);
-            }
-        }
-
-        if ($primaryId === null && $retainedIds !== []) {
-            $primaryId = $retainedIds[0];
-        }
-
-        if ($primaryId !== null) {
-            Affiliation::query()
-                ->where('affiliatable_id', $person->getKey())
-                ->where('affiliatable_type', $person->getMorphClass())
-                ->where('institution_id', $primaryId)
-                ->update(['is_primary' => true, 'updated_at' => now()]);
-        }
-
-        $delete = Affiliation::query()
-            ->where('affiliatable_id', $person->getKey())
-            ->where('affiliatable_type', $person->getMorphClass());
-
-        if ($retainedIds === []) {
-            $delete->delete();
-        } else {
-            $delete->whereNotIn('institution_id', $retainedIds)->delete();
-        }
-
-        $this->recordPersonAffiliationAudit($person, $beforeAffiliations);
+        $this->personWorkflow->syncAffiliations((string) $person->getKey(), $institutionsPayload);
     }
 
     public function syncPersonTitleAssignments(Person $person, mixed $assignmentsPayload): void
     {
-        $existing = $person->titleAssignments()->get()->keyBy(fn (TitleAssignment $assignment): string => (string) $assignment->getKey());
-        $retainedIds = [];
-
-        foreach (is_array($assignmentsPayload) ? $assignmentsPayload : [] as $assignmentPayload) {
-            if (! is_array($assignmentPayload)) {
-                continue;
-            }
-
-            $titleId = is_string($assignmentPayload['title_id'] ?? null) ? $assignmentPayload['title_id'] : null;
-            if ($titleId === null || $titleId === '') {
-                continue;
-            }
-
-            $status = $assignmentPayload['status'] ?? AssignmentStatus::Active->value;
-            $status = $status instanceof AssignmentStatus ? $status->value : (string) $status;
-            $attributes = [
-                'title_id' => $titleId,
-                'date_awarded' => $assignmentPayload['date_awarded'] ?? null,
-                'date_expired' => $assignmentPayload['date_expired'] ?? null,
-                'status' => $status,
-            ];
-            $assignmentId = is_string($assignmentPayload['id'] ?? null) ? $assignmentPayload['id'] : null;
-            $assignment = $assignmentId !== null ? $existing->get($assignmentId) : null;
-
-            if ($assignment instanceof TitleAssignment) {
-                $assignment->update($attributes);
-                $retainedIds[] = (string) $assignment->getKey();
-            } else {
-                $created = $person->titleAssignments()->create($attributes);
-                $retainedIds[] = (string) $created->getKey();
-            }
-        }
-
-        $existing->reject(fn (TitleAssignment $assignment): bool => in_array((string) $assignment->getKey(), $retainedIds, true))
-            ->each->delete();
-    }
-
-    /**
-     * @param  list<mixed>|mixed  $titleIds
-     */
-    private function syncPersonTitleIds(Person $person, mixed $titleIds): void
-    {
-        $existingByTitleId = $person->titleAssignments()
-            ->get()
-            ->keyBy(fn (TitleAssignment $assignment): string => (string) $assignment->title_id);
-        $assignments = is_array($titleIds)
-            ? array_map(function (mixed $titleId) use ($existingByTitleId): array {
-                $titleId = (string) $titleId;
-                $assignment = $existingByTitleId->get($titleId);
-
-                return [
-                    'id' => $assignment instanceof TitleAssignment ? (string) $assignment->getKey() : null,
-                    'title_id' => $titleId,
-                ];
-            }, $titleIds)
-            : [];
-
-        $this->syncPersonTitleAssignments($person, $assignments);
-    }
-
-    /**
-     * @param  array<string, mixed>  $payload
-     */
-    private function syncPersonAffiliation(Person $person, array $payload): void
-    {
-        $institutionId = array_key_exists('institution_id', $payload)
-            ? $this->normalizeOptionalString($payload['institution_id'])
-            : null;
-        $institutionPosition = array_key_exists('institution_position', $payload)
-            ? $this->normalizeOptionalString($payload['institution_position'])
-            : null;
-
-        if ($institutionId === null && $institutionPosition === null) {
-            return;
-        }
-
-        $beforeAffiliations = $this->personAffiliationAuditState($person);
-        $currentAffiliation = $this->currentPersonAffiliation($person);
-        $currentAffiliationId = $currentAffiliation?->getKey();
-
-        $institutionId = array_key_exists('institution_id', $payload)
-            ? $this->normalizeOptionalString($payload['institution_id'])
-            : (is_string($currentAffiliationId) ? $currentAffiliationId : null);
-
-        if ($institutionId === null) {
-            if ($currentAffiliation instanceof Institution) {
-                Affiliation::query()
-                    ->where('affiliatable_id', $person->getKey())
-                    ->where('affiliatable_type', $person->getMorphClass())
-                    ->where('institution_id', $currentAffiliation->getKey())
-                    ->delete();
-            }
-
-            $this->recordPersonAffiliationAudit($person, $beforeAffiliations);
-
-            return;
-        }
-
-        $position = array_key_exists('institution_position', $payload)
-            ? $this->normalizeOptionalString($payload['institution_position'])
-            : self::institutionPivotPosition($currentAffiliation);
-
-        if ($currentAffiliation instanceof Institution && (string) $currentAffiliation->getKey() !== $institutionId) {
-            Affiliation::query()
-                ->where('affiliatable_id', $person->getKey())
-                ->where('affiliatable_type', $person->getMorphClass())
-                ->where('institution_id', $currentAffiliation->getKey())
-                ->delete();
-        }
-
-        Affiliation::query()
-            ->where('affiliatable_id', $person->getKey())
-            ->where('affiliatable_type', $person->getMorphClass())
-            ->where('institution_id', '!=', $institutionId)
-            ->update([
-                'is_primary' => false,
-                'updated_at' => now(),
-            ]);
-
-        $alreadyAttached = $person->institutions()
-            ->where('institutions.id', $institutionId)
-            ->exists();
-
-        if ($alreadyAttached) {
-            Affiliation::query()
-                ->where('affiliatable_id', $person->getKey())
-                ->where('affiliatable_type', $person->getMorphClass())
-                ->where('institution_id', $institutionId)
-                ->update([
-                    'position' => $position,
-                    'is_primary' => true,
-                    'updated_at' => now(),
-                ]);
-
-            $this->recordPersonAffiliationAudit($person, $beforeAffiliations);
-
-            return;
-        }
-
-        Affiliation::query()->create([
-            'affiliatable_type' => $person->getMorphClass(),
-            'affiliatable_id' => $person->getKey(),
-            'institution_id' => $institutionId,
-            'affiliation_type' => AffiliationType::Member,
-            'position' => $position,
-            'is_primary' => true,
-        ]);
-
-        $this->recordPersonAffiliationAudit($person, $beforeAffiliations);
-    }
-
-    private static function institutionPivotPosition(?Institution $institution): ?string
-    {
-        if (! $institution instanceof Institution) {
-            return null;
-        }
-
-        $position = data_get($institution->getRelations(), 'pivot.position');
-
-        return is_string($position) && $position !== '' ? $position : null;
-    }
-
-    private static function institutionPivotIsPrimary(Institution $institution): bool
-    {
-        return (bool) data_get($institution->getRelations(), 'pivot.is_primary', false);
-    }
-
-    private function currentPersonAffiliation(Person $person): ?Institution
-    {
-        /** @var Institution|null $institution */
-        $institution = $person->institutions()
-            ->orderByPivot('is_primary', 'desc')
-            ->orderBy('institutions.name')
-            ->first();
-
-        return $institution;
-    }
-
-    /**
-     * @return list<array{id: string, name: string, position: ?string, is_primary: bool}>
-     */
-    private function personAffiliationAuditState(Person $person): array
-    {
-        return $person->institutions()
-            ->orderByPivot('is_primary', 'desc')
-            ->orderBy('institutions.name')
-            ->get()
-            ->map(static fn (Institution $institution): array => [
-                'id' => (string) $institution->getKey(),
-                'name' => $institution->name,
-                'position' => self::institutionPivotPosition($institution),
-                'is_primary' => self::institutionPivotIsPrimary($institution),
-            ])
-            ->values()
-            ->all();
-    }
-
-    /**
-     * @param  list<array{id: string, name: string, position: ?string, is_primary: bool}>  $beforeAffiliations
-     */
-    private function recordPersonAffiliationAudit(Person $person, array $beforeAffiliations): void
-    {
-        $person->load('institutions');
-        $afterAffiliations = $this->personAffiliationAuditState($person);
-
-        if ($beforeAffiliations === $afterAffiliations) {
-            return;
-        }
-
-        $person->recordCustomAuditDifferences(
-            'sync',
-            ['institutions' => $beforeAffiliations],
-            ['institutions' => $afterAffiliations],
-        );
+        $this->personWorkflow->syncTitleAssignments((string) $person->getKey(), $assignmentsPayload);
     }
 
     /**
@@ -1460,84 +1050,6 @@ class ContributionEntityMutationService
     private function syncAddress(Model $model, mixed $addressPayload, bool $allowCountryOnly = false): void
     {
         $this->entityRelationSync->syncAddress($model, $addressPayload, $allowCountryOnly);
-    }
-
-    /**
-     * @param  array<string, mixed>  $payload
-     * @return array<string, mixed>|null
-     */
-    private function personAddressPayload(array $payload): ?array
-    {
-        if (array_key_exists('address', $payload)) {
-            return is_array($payload['address']) ? $payload['address'] : [];
-        }
-
-        $addressKeys = [
-            'country_id',
-            'country_code',
-            'country_key',
-            'area_assignments',
-            'line1',
-            'line2',
-            'postcode',
-            'latitude',
-            'longitude',
-            'google_maps_url',
-            'google_place_id',
-            'google_feature_id',
-            'google_cid',
-            'google_entity_id',
-            'waze_url',
-        ];
-
-        if (! collect($addressKeys)->contains(fn (string $key): bool => array_key_exists($key, $payload))) {
-            return null;
-        }
-
-        $address = [];
-
-        foreach ($addressKeys as $key) {
-            if (array_key_exists($key, $payload)) {
-                $address[$key] = $payload[$key];
-            }
-        }
-
-        return $address;
-    }
-
-    /**
-     * @param  array<string, mixed>  $addressPayload
-     * @return array<string, mixed>
-     */
-    private function preserveHiddenPersonAddressFields(Person $person, array $addressPayload): array
-    {
-        $person->loadMissing('addresses');
-
-        $existingAddress = $person->primaryAddress();
-
-        if (! $existingAddress instanceof Address) {
-            return $addressPayload;
-        }
-
-        foreach ([
-            'line1',
-            'line2',
-            'postcode',
-            'latitude',
-            'longitude',
-            'google_maps_url',
-            'google_place_id',
-            'google_feature_id',
-            'google_cid',
-            'google_entity_id',
-            'waze_url',
-        ] as $field) {
-            if (! array_key_exists($field, $addressPayload) || $addressPayload[$field] === null) {
-                $addressPayload[$field] = $existingAddress->{$field};
-            }
-        }
-
-        return $addressPayload;
     }
 
     /**

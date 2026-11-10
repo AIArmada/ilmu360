@@ -4,7 +4,6 @@ use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressCountry;
 use App\Actions\Contributions\Review\ApproveContributionRequestAction;
 use App\Actions\Events\Authoring\GenerateEventSlugAction;
-use App\Actions\Persons\GeneratePersonSlugAction;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
@@ -12,6 +11,7 @@ use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventVisibility;
+use App\Features\Directory\Api\PersonWorkflow;
 use App\Filament\Resources\Persons\Pages\CreatePerson;
 use App\Forms\PersonFormSchema;
 use App\Jobs\BackfillPersonSlugs;
@@ -75,7 +75,7 @@ it('keeps text-only regions during person address persistence', function () {
 it('uses canonical state and city names when person slug text is absent', function () {
     $geography = createTestPackageGeography(cityName: 'Shah Alam');
 
-    expect(app(GeneratePersonSlugAction::class)->handle('Penceramah Canonical Lokasi', [
+    expect(app(PersonWorkflow::class)->buildSlug('Penceramah Canonical Lokasi', [
         'country_id' => (string) $geography['country']->getKey(),
         'state_id' => (string) $geography['state']->getKey(),
         'city_id' => (string) $geography['city']->getKey(),
@@ -349,7 +349,7 @@ it('backfills existing person slugs through the queued job logic', function () {
 
     app(BackfillPersonSlugs::class)->handle(
         app(GenerateEventSlugAction::class),
-        app(GeneratePersonSlugAction::class),
+        app(PersonWorkflow::class),
         app(PublicListingsCache::class),
     );
 
@@ -420,13 +420,13 @@ it('queues the person slug backfill command', function () {
 
 it('uses a country suffix only when person country data is present', function () {
     $country = createPersonSlugCountry();
-    $generator = app(GeneratePersonSlugAction::class);
+    $generator = app(PersonWorkflow::class);
 
-    expect($generator->handle('Ustaz Tanpa Negara'))->toBe('ustaz-tanpa-negara')
-        ->and($generator->handle('Ustaz Malaysia', [
+    expect($generator->buildSlug('Ustaz Tanpa Negara'))->toBe('ustaz-tanpa-negara')
+        ->and($generator->buildSlug('Ustaz Malaysia', [
             'country_id' => (string) $country->getKey(),
         ]))->toBe('ustaz-malaysia-my')
-        ->and($generator->handle('Ustaz Singapura', [
+        ->and($generator->buildSlug('Ustaz Singapura', [
             'country_code' => 'SG',
         ]))->toBe('ustaz-singapura-sg');
 });

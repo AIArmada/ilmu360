@@ -18,7 +18,6 @@ use AIArmada\Persons\Enums\Gender;
 use AIArmada\References\Enums\ReferenceRecordKind;
 use AIArmada\References\Rules\Isbn;
 use App\Actions\Events\Authoring\SaveAdminEventAction;
-use App\Actions\Persons\SavePersonAction;
 use App\Actions\References\SaveReferenceAction;
 use App\Actions\Series\SaveSeriesAction;
 use App\Actions\Spaces\SaveSpaceAction;
@@ -37,6 +36,7 @@ use App\Enums\VenueType;
 use App\Features\Directory\Api\DirectoryCommands;
 use App\Features\Directory\Api\DirectoryRecordType;
 use App\Features\Directory\Api\InstitutionWorkflow;
+use App\Features\Directory\Api\PersonWorkflow;
 use App\Features\Inspirations\Api\InspirationAdminContract;
 use App\Features\Reports\Api\ReportAdminContract;
 use App\Filament\Resources\DonationChannels\DonationChannelResource;
@@ -87,9 +87,9 @@ class AdminResourceMutationService
         private readonly SaveAdminEventAction $saveAdminEventAction,
         private readonly AdminEventFormStateBuilder $adminEventFormStateBuilder,
         private readonly InstitutionWorkflow $institutionWorkflow,
+        private readonly PersonWorkflow $personWorkflow,
         private readonly SaveReferenceAction $saveReferenceAction,
         private readonly SaveSeriesAction $saveSeriesAction,
-        private readonly SavePersonAction $savePersonAction,
         private readonly SaveSpaceAction $saveSpaceAction,
         private readonly SaveVenueAction $saveVenueAction,
     ) {}
@@ -409,7 +409,9 @@ class AdminResourceMutationService
             InstitutionResource::class => Institution::query()->findOrFail($this->institutionWorkflow->saveFromAdmin($validated, (string) $actor->getKey())),
             ReferenceResource::class => $this->saveReferenceAction->handle($validated),
             SeriesResource::class => $this->saveSeriesAction->handle($validated),
-            PersonResource::class => $this->savePersonAction->handle($validated, $actor),
+            PersonResource::class => Person::query()->findOrFail(
+                $this->personWorkflow->saveFromAdmin($validated, (string) $actor->getKey()),
+            ),
             SpaceResource::class => $this->saveSpaceAction->handle($validated),
             VenueResource::class => $this->saveVenueAction->handle($validated),
             default => throw new \RuntimeException('Unsupported admin write resource.'),
@@ -454,7 +456,9 @@ class AdminResourceMutationService
                 ? $this->saveSeriesAction->handle($validated, $record)
                 : throw new \RuntimeException('Expected series record.'),
             PersonResource::class => $record instanceof Person
-                ? $this->savePersonAction->handle($validated, $actor, $record)
+                ? Person::query()->findOrFail(
+                    $this->personWorkflow->saveFromAdmin($validated, (string) $actor->getKey(), (string) $record->getKey()),
+                )
                 : throw new \RuntimeException('Expected person record.'),
             SpaceResource::class => $record instanceof Space
                 ? $this->saveSpaceAction->handle($validated, $record)

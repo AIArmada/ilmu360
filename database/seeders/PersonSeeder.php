@@ -10,8 +10,8 @@ use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Persons\Enums\AssignmentStatus;
 use AIArmada\Persons\Enums\PersonNameType;
 use AIArmada\Persons\Models\Title;
-use App\Actions\Persons\GeneratePersonSlugAction;
 use App\Enums\SpeakerStatus;
+use App\Features\Directory\Api\PersonWorkflow;
 use App\Models\Person;
 use App\Models\User;
 use Database\Seeders\Concerns\SeedsPackageAddresses;
@@ -569,7 +569,7 @@ class PersonSeeder extends Seeder
                         'family_name' => $familyName,
                     ],
                     [
-                        'slug' => app(GeneratePersonSlugAction::class)->handle($name, [
+                        'slug' => app(PersonWorkflow::class)->buildSlug($name, [
                             'middle_name' => $middleName,
                             'family_name' => $familyName,
                         ]),

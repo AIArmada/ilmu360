@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Persons\Tables;
 
 use AIArmada\FilamentPersons\Resources\PersonResource\Tables\PersonsTable as PackagePersonsTable;
 use App\Enums\SpeakerStatus;
+use App\Features\Directory\Api\PersonWorkflow;
 use App\Models\Person;
 use App\Models\User;
 use Filament\Actions\BulkActionGroup;
@@ -15,6 +16,8 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 
 class PersonsTable
 {
@@ -100,7 +103,17 @@ class PersonsTable
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
-                        ->authorizeIndividualRecords('delete'),
+                        ->authorizeIndividualRecords('delete')
+                        ->action(function (DeleteBulkAction $action, Collection $records): void {
+                            app(PersonWorkflow::class)->delete(
+                                $records
+                                    ->map(static fn (Model $person): string => (string) $person->getKey())
+                                    ->values()
+                                    ->all(),
+                            );
+
+                            $action->success();
+                        }),
                 ]),
             ]);
 

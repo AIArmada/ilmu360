@@ -1,17 +1,24 @@
 <?php
 
-namespace App\Actions\Persons;
+declare(strict_types=1);
+
+namespace App\Features\Directory\Actions\Persons;
 
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Support\LocationSlugSegments;
 use AIArmada\CommerceSupport\Support\CanonicalSlug;
 use AIArmada\CommerceSupport\Support\StableModelOrder;
 use AIArmada\CommerceSupport\Support\UniqueSlug;
-use App\Models\Person;
+use App\Features\Directory\Support\DirectoryModel;
 use App\Platform\Routing\SyncSlugRedirectAction;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;
 
+/**
+ * Directory-owned person slug generation and redirect synchronization.
+ */
 class GeneratePersonSlugAction
 {
     use AsAction;
@@ -28,15 +35,15 @@ class GeneratePersonSlugAction
             return false;
         }
 
-        $persons = Person::query()
+        $persons = DirectoryModel::query('person')
             ->where('persons.name', $normalizedName)
             ->with(['addresses'])
             ->get();
 
-        return StableModelOrder::sync($persons, fn (Person $person): bool => $this->syncPersonSlug($person));
+        return StableModelOrder::sync($persons, fn (Model $person): bool => $this->syncPersonSlug($person));
     }
 
-    public function syncPersonSlug(Person $person): bool
+    public function syncPersonSlug(Model $person): bool
     {
         $slug = $this->forPerson($person);
 
@@ -48,25 +55,27 @@ class GeneratePersonSlugAction
      * When no addresses remain, the deleted address's location is reused so
      * the public slug keeps its country suffix instead of collapsing to the
      * bare name.
+     *
+     * @param  array<string, mixed>  $deletedAddress
      */
-    public function syncPersonSlugAfterAddressDeleted(Person $person, Address $deletedAddress): bool
+    public function syncPersonSlugAfterAddressDeleted(Model $person, array $deletedAddress): bool
     {
         $person->unsetRelation('addresses');
         $person->load(['addresses']);
 
-        if ($person->primaryAddress() !== null) {
+        if ($this->primaryAddress($person) instanceof Address) {
             return $this->syncPersonSlug($person);
         }
 
         $slug = $this->handle(
-            $person->name,
+            (string) $person->getAttribute('name'),
             [
-                'city' => $deletedAddress->city,
-                'state' => $deletedAddress->state,
-                'country_id' => $deletedAddress->country_id,
-                'country_code' => $deletedAddress->country_code,
-                'family_name' => $person->family_name,
-                'middle_name' => $person->middle_name,
+                'city' => $deletedAddress['city'] ?? null,
+                'state' => $deletedAddress['state'] ?? null,
+                'country_id' => $deletedAddress['country_id'] ?? null,
+                'country_code' => $deletedAddress['country_code'] ?? null,
+                'family_name' => $person->getAttribute('family_name'),
+                'middle_name' => $person->getAttribute('middle_name'),
             ],
             (string) $person->getKey(),
         );
@@ -94,7 +103,7 @@ class GeneratePersonSlugAction
         $locationSuffix = $this->locationSuffix($payload);
 
         return UniqueSlug::build(
-            Person::class,
+            DirectoryModel::person(),
             $nameSlug,
             [],
             $locationSuffix,
@@ -102,25 +111,41 @@ class GeneratePersonSlugAction
         );
     }
 
-    public function forPerson(Person $person): string
+    public function forPerson(Model $person): string
     {
         $person->unsetRelation('addresses');
         $person->load(['addresses']);
 
-        $address = $person->primaryAddress();
+        $address = $this->primaryAddress($person);
 
         return $this->handle(
-            $person->name,
+            (string) $person->getAttribute('name'),
             [
-                'city' => $address?->city,
-                'state' => $address?->state,
-                'country_id' => $address?->country_id,
-                'country_code' => $address?->country_code,
-                'family_name' => $person->family_name,
-                'middle_name' => $person->middle_name,
+                'city' => $address?->getAttribute('city'),
+                'state' => $address?->getAttribute('state'),
+                'country_id' => $address?->getAttribute('country_id'),
+                'country_code' => $address?->getAttribute('country_code'),
+                'family_name' => $person->getAttribute('family_name'),
+                'middle_name' => $person->getAttribute('middle_name'),
             ],
             (string) $person->getKey(),
         );
+    }
+
+    private function primaryAddress(Model $person): ?Address
+    {
+        $addresses = $person->getRelation('addresses');
+
+        if (! $addresses instanceof Collection) {
+            return null;
+        }
+
+        $address = $addresses->first(
+            static fn (mixed $address): bool => $address instanceof Address
+                && (bool) $address->getRelationValue('pivot')?->getAttribute('is_primary'),
+        );
+
+        return $address instanceof Address ? $address : null;
     }
 
     /**
@@ -133,10 +158,10 @@ class GeneratePersonSlugAction
 
     private function displayName(string $name, mixed $middleName = null, mixed $familyName = null): string
     {
-        return Person::formatDisplayedName(
-            $name,
-            is_string($middleName) ? $middleName : null,
-            is_string($familyName) ? $familyName : null,
-        );
+        return trim(implode(' ', array_filter([
+            trim($name),
+            is_string($middleName) ? trim($middleName) : '',
+            is_string($familyName) ? trim($familyName) : '',
+        ], static fn (string $part): bool => $part !== '')));
     }
 }

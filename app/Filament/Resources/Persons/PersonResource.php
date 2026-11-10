@@ -7,6 +7,7 @@ namespace App\Filament\Resources\Persons;
 use AIArmada\FilamentEvents\RelationManagers\EventsRelationManager;
 use AIArmada\FilamentPersons\Resources\PersonResource as PackagePersonResource;
 use AIArmada\FilamentPersons\Resources\PersonResource\RelationManagers\AffiliationsRelationManager as PackageAffiliationsRelationManager;
+use AIArmada\FilamentPersons\Resources\PersonResource\RelationManagers\NamesRelationManager as PackageNamesRelationManager;
 use App\Filament\Resources\Persons\Pages\CreatePerson;
 use App\Filament\Resources\Persons\Pages\EditPerson;
 use App\Filament\Resources\Persons\Pages\ListPersons;
@@ -67,7 +68,9 @@ class PersonResource extends PackagePersonResource
         return [
             ...array_filter(parent::getRelations(), fn (string $class): bool => ! in_array($class, [
                 PackageAffiliationsRelationManager::class,
+                PackageNamesRelationManager::class,
             ], true)),
+            RelationManagers\NamesRelationManager::class,
             MembersRelationManager::class,
             MemberInvitationsRelationManager::class,
             FollowersRelationManager::class,

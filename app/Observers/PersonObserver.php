@@ -5,7 +5,7 @@ namespace App\Observers;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\References\Models\ReferenceContributor;
 use App\Actions\Events\Authoring\GenerateEventSlugAction;
-use App\Actions\Persons\GeneratePersonSlugAction;
+use App\Features\Directory\Api\PersonWorkflow;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Platform\Cache\PublicDirectoryCacheVersion;
@@ -22,7 +22,7 @@ class PersonObserver implements ShouldHandleEventsAfterCommit
 
     public function __construct(
         protected GenerateEventSlugAction $generateEventSlugAction,
-        protected GeneratePersonSlugAction $generatePersonSlugAction,
+        protected PersonWorkflow $personWorkflow,
         protected SyncSlugRedirectAction $syncSlugRedirectAction,
         protected PublicDirectoryCacheVersion $publicDirectoryCacheVersion,
         protected PublicListingsCache $publicListingsCache,
@@ -49,7 +49,7 @@ class PersonObserver implements ShouldHandleEventsAfterCommit
                 $this->syncCurrentAndPreviousString(
                     $person->name,
                     $person->wasChanged('name') ? ($person->getPrevious()['name'] ?? null) : null,
-                    fn (string $name): bool => $this->generatePersonSlugAction->syncPersonSlugsForName($name),
+                    fn (string $name): bool => $this->personWorkflow->syncSlugsForName($name),
                     fn (string $name): bool => $this->generateEventSlugAction->syncEventSlugsForPersonName($name),
                 );
             });
@@ -69,7 +69,7 @@ class PersonObserver implements ShouldHandleEventsAfterCommit
     public function deleted(Person $person): void
     {
         $this->syncSlugRedirectAction->purgeForModel($person);
-        $this->generatePersonSlugAction->syncPersonSlugsForName($person->name);
+        $this->personWorkflow->syncSlugsForName($person->name);
         $this->generateEventSlugAction->syncEventSlugsForPersonId((string) $person->getKey());
         $this->generateEventSlugAction->syncEventSlugsForPersonName($person->name);
         $this->personSearchService->purgePersonRecord($person);

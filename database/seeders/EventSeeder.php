@@ -13,7 +13,6 @@ use AIArmada\Events\Models\EventRole;
 use App\Actions\Events\Authoring\GenerateEventSlugAction;
 use App\Actions\Events\Authoring\SyncEventClassificationsAction;
 use App\Actions\Events\Scheduling\SyncEventScheduleAction;
-use App\Actions\Persons\GeneratePersonSlugAction;
 use App\Contracts\EventCategoryCatalog;
 use App\Contracts\EventCategoryPolicyResolver;
 use App\Enums\EventAgeGroup;
@@ -27,6 +26,7 @@ use App\Enums\TaxonomyTerm\DomainTermCode;
 use App\Enums\TaxonomyTerm\IssueTermCode;
 use App\Enums\TaxonomyTerm\SourceTermCode;
 use App\Enums\TimingMode;
+use App\Features\Directory\Api\PersonWorkflow;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Language;
@@ -526,9 +526,7 @@ class EventSeeder extends Seeder
             $organizerPerson = $organizerInvolveable instanceof Person ? $organizerInvolveable : null;
 
             if ($organizerPerson instanceof Person && $organizerPerson->name === $personName) {
-                app(GeneratePersonSlugAction::class)->syncPersonSlug(
-                    $organizerPerson->loadMissing('addresses.country'),
-                );
+                app(PersonWorkflow::class)->syncSlug((string) $organizerPerson->loadMissing('addresses.country')->getKey());
                 app(GenerateEventSlugAction::class)->syncEventSlugsForPersonId((string) $organizerPerson->getKey());
                 $this->schedulePersonIds[$personName] = (string) $organizerPerson->getKey();
 
@@ -543,9 +541,7 @@ class EventSeeder extends Seeder
                 $existingPerson instanceof Person
                 && $existingPerson->name === $personName
             ) {
-                app(GeneratePersonSlugAction::class)->syncPersonSlug(
-                    $existingPerson->loadMissing('addresses.country'),
-                );
+                app(PersonWorkflow::class)->syncSlug((string) $existingPerson->loadMissing('addresses.country')->getKey());
                 app(GenerateEventSlugAction::class)->syncEventSlugsForPersonId((string) $existingPerson->getKey());
                 $this->schedulePersonIds[$personName] = (string) $existingPerson->getKey();
 

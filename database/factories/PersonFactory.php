@@ -14,8 +14,8 @@ use AIArmada\Persons\Enums\PersonNameType;
 use AIArmada\Persons\Models\PersonName;
 use AIArmada\Persons\Models\Title;
 use AIArmada\Persons\Models\TitleAssignment;
-use App\Actions\Persons\GeneratePersonSlugAction;
 use App\Enums\SpeakerStatus;
+use App\Features\Directory\Api\PersonWorkflow;
 use App\Models\Affiliation;
 use App\Models\Institution;
 use App\Models\Language;
@@ -115,7 +115,7 @@ class PersonFactory extends Factory
 
                 $person->refresh();
                 $person->forceFill([
-                    'slug' => app(GeneratePersonSlugAction::class)->forPerson($person),
+                    'slug' => app(PersonWorkflow::class)->slugForPerson((string) $person->getKey()),
                 ])->saveQuietly();
 
                 $person->contactMethods()->create([

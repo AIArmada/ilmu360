@@ -8,10 +8,10 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Signals\Models\SignalEvent;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Actions\Events\Authoring\GenerateEventSlugAction;
-use App\Actions\Persons\GeneratePersonSlugAction;
 use App\Actions\References\GenerateReferenceSlugAction;
 use App\Actions\Venues\GenerateVenueSlugAction;
 use App\Features\Directory\Actions\Institutions\GenerateInstitutionSlugAction;
+use App\Features\Directory\Api\PersonWorkflow;
 use App\Filament\Resources\SlugRedirects\Pages\CreateSlugRedirect;
 use App\Filament\Resources\SlugRedirects\Pages\EditSlugRedirect;
 use App\Filament\Resources\SlugRedirects\Pages\ListSlugRedirects;
@@ -90,7 +90,7 @@ it('creates a person slug redirect when a visited slug changes', function () {
     ]);
 
     // afterCommit observer never fires: RefreshDatabase rolls back
-    app(GeneratePersonSlugAction::class)->syncPersonSlugsForName('Ustaz Baru');
+    app(PersonWorkflow::class)->syncSlugsForName('Ustaz Baru');
 
     $redirect = SlugRedirect::query()->where('source_path', $oldPath)->firstOrFail();
 
@@ -230,7 +230,7 @@ it('redirects old event slugs when a related person slug changes', function () {
     ]);
 
     // afterCommit observer never fires: RefreshDatabase rolls back
-    app(GeneratePersonSlugAction::class)->syncPersonSlugsForName('Habib Umar Abdullah');
+    app(PersonWorkflow::class)->syncSlugsForName('Habib Umar Abdullah');
     app(GenerateEventSlugAction::class)->syncEventSlugsForPersonName('Habib Umar Abdullah');
 
     $redirect = SlugRedirect::query()->where('source_path', $oldPath)->firstOrFail();

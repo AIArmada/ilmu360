@@ -6,7 +6,6 @@ use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Contributions\Submission\EnsureUniqueContributionCreateAction;
 use App\Actions\Institutions\WithInstitutionMapsIdentityLockAction;
-use App\Actions\Persons\GeneratePersonSlugAction;
 use App\Actions\References\SaveReferenceAction;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
@@ -14,7 +13,7 @@ use App\Enums\ContributionSubjectType;
 use App\Exceptions\ContributionRequestAlreadyReviewedException;
 use App\Exceptions\ContributionRequestNotPendingException;
 use App\Features\Directory\Api\InstitutionWorkflow;
-use App\Forms\SharedFormSchema;
+use App\Features\Directory\Api\PersonWorkflow;
 use App\Models\ContributionRequest;
 use App\Models\Event;
 use App\Models\Institution;
@@ -41,7 +40,7 @@ class ApproveContributionRequestAction
         private readonly ContributionRequestNotificationService $contributionRequestNotificationService,
         private readonly AddMemberAction $addMemberAction,
         private readonly InstitutionWorkflow $institutionWorkflow,
-        private readonly GeneratePersonSlugAction $generatePersonSlugAction,
+        private readonly PersonWorkflow $personWorkflow,
         private readonly SaveReferenceAction $saveReferenceAction,
         private readonly EnsureUniqueContributionCreateAction $ensureUniqueContributionCreateAction,
         private readonly WithInstitutionMapsIdentityLockAction $withInstitutionMapsIdentityLockAction,
@@ -270,16 +269,19 @@ class ApproveContributionRequestAction
             return $entity;
         }
 
-        if ($entity instanceof Person || $entity instanceof Reference) {
+        if ($entity instanceof Person) {
+            $this->personWorkflow->changeStatus((string) $entity->getKey(), 'verified');
+            $this->attachAsOwnerIfSupported($request->proposer, $entity);
+
+            return $entity;
+        }
+
+        if ($entity instanceof Reference) {
             $entity->forceFill([
                 'status' => 'verified',
                 'verified_at' => now(),
                 'last_state_change_at' => now(),
             ])->save();
-
-            if (! $entity instanceof Reference) {
-                $this->attachAsOwnerIfSupported($request->proposer, $entity);
-            }
 
             return $entity;
         }
@@ -363,21 +365,11 @@ class ApproveContributionRequestAction
     private function createPersonFromRequest(ContributionRequest $request, array $payload): Person
     {
         $address = $this->addressPayload($payload);
-
-        $person = Person::create([
-            'name' => (string) ($payload['name'] ?? 'Person'),
-            'middle_name' => $payload['middle_name'] ?? null,
-            'family_name' => $payload['family_name'] ?? null,
-            'gender' => (string) ($payload['gender'] ?? 'male'),
-            'bio' => $payload['bio'] ?? null,
-            'slug' => $this->generatePersonSlugAction->handle((string) ($payload['name'] ?? 'Person'), $payload),
-            'status' => 'verified',
-            'verified_at' => now(),
-            'last_state_change_at' => now(),
-            'allow_public_event_submission' => true,
+        $personId = $this->personWorkflow->createVerifiedFromContribution([
+            ...$payload,
+            'address' => $address,
         ]);
-
-        SharedFormSchema::createAddressFromData($person, $address, allowCountryOnly: true);
+        $person = Person::query()->findOrFail($personId);
         $this->attachAsOwnerIfSupported($request->proposer, $person);
 
         return $person;
