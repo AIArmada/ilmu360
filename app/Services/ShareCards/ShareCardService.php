@@ -162,6 +162,19 @@ final readonly class ShareCardService
             return $event->primaryOccurrence;
         }
 
+        // Detail pages already load their public schedule set; resolving from
+        // it keeps share-card metadata from re-querying the same rows.
+        if ($event->relationLoaded('occurrences')) {
+            $loaded = $event->occurrences->first(
+                fn (EventOccurrence $candidate): bool => (string) $candidate->getKey() === $key
+                    || $this->occurrenceKey($candidate) === $key,
+            );
+
+            if ($loaded instanceof EventOccurrence) {
+                return $loaded;
+            }
+        }
+
         // Occurrence ids are UUIDs: only a well-formed UUID may reach the
         // key lookup, so a malformed key 404s honestly on every driver
         // instead of raising a uuid syntax error on PostgreSQL.

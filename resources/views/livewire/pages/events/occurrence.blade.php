@@ -34,13 +34,6 @@
 @push('head')
     <link rel="canonical" href="{{ $occurrenceCanonicalUrl }}">
     <meta property="article:published_time" content="{{ $occurrence->starts_at?->toIso8601String() }}">
-    <x-event-json-ld
-        :event="$event"
-        :url="$occurrenceCanonicalUrl"
-        :name="$occurrence->title ?: $event->title"
-        :starts-at="$occurrence->starts_at"
-        :ends-at="$occurrence->ends_at"
-    />
 @endpush
 
 @include('partials.filament-assets', [
@@ -72,7 +65,7 @@
     $hasLocationContent = ! $isOnlineOnly && ($venueDisplayName || $locationSpace || $primaryAddress);
     $lat = $primaryAddress?->latitude;
     $lng = $primaryAddress?->longitude;
-    $mapQuery = implode(', ', array_filter([
+    $mapQuery = implode(', ', array_unique(array_filter([
         $locationVenue?->name,
         $detail->locationLabel($location),
         $primaryAddress?->line1,
@@ -81,7 +74,7 @@
         $addressDisplayLines['regional'] ?? null,
         $primaryAddress?->city,
         $primaryAddress?->state,
-    ]));
+    ], static fn (mixed $part): bool => filled($part))));
     $normalizedMapQuery = null;
     $locationMapUrl = $primaryAddress?->google_maps_url;
     if (filled($locationMapUrl)) {
@@ -331,6 +324,18 @@
     ])->filter(fn (string $label, string $provider): bool => filled($this->shareLinks[$provider] ?? null));
     $checkInOffered = $this->checkInOffered;
 @endphp
+
+@push('head')
+    <x-event-json-ld
+        :event="$event"
+        :url="$occurrenceCanonicalUrl"
+        :name="$occurrence->title ?: $event->title"
+        :starts-at="$occurrence->starts_at"
+        :ends-at="$occurrence->ends_at"
+        :venue="$locationVenue"
+        :address="$primaryAddress"
+    />
+@endpush
 
 <div
     class="event-detail-page min-h-screen bg-[#f4f0e7] text-[#14342e]"

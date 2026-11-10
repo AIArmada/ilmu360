@@ -132,6 +132,18 @@ it('renders scoped occurrence and session pages while preserving the programme h
         'title' => 'Programme Day One',
         'slug' => 'day-one',
     ]);
+
+    // A second date makes the event URL a real programme hub, distinct from
+    // the date page; a single-date event renders the date page at both URLs.
+    app(CreateEventOccurrenceAction::class)->handle($event, [
+        'title' => 'Programme Day Two',
+        'slug' => 'day-two',
+        'starts_at' => now()->addDays(3),
+        'ends_at' => now()->addDays(3)->addHours(2),
+        'status' => 'published',
+        'visibility' => 'public',
+    ]);
+
     $session = app(CreateEventSessionAction::class)->handle($occurrence, [
         'title' => 'Tafsir Al-Kahfi',
         'slug' => 'tafsir-al-kahfi',
@@ -148,7 +160,8 @@ it('renders scoped occurrence and session pages while preserving the programme h
         ->assertOk()
         ->assertSee('Programme Day One')
         ->assertSee('Tafsir Al-Kahfi')
-        ->assertSee('View programme');
+        ->assertSee('Program penuh')
+        ->assertSee('Semua tarikh dan sesi');
 
     $this->get(route('events.session', [
         'event' => $event,
@@ -158,7 +171,8 @@ it('renders scoped occurrence and session pages while preserving the programme h
         ->assertOk()
         ->assertSee('Tafsir Al-Kahfi')
         ->assertSee('Programme Day One')
-        ->assertSee('View occurrence');
+        ->assertSee('Lihat tarikh')
+        ->assertSee('Buka halaman majlis');
 
     $this->get(route('events.show', $event))
         ->assertOk()

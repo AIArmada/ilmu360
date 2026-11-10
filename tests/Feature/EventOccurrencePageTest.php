@@ -77,7 +77,10 @@ it('renders the occurrence page with a bounded enriched query budget', function 
         ->assertSee('Jalan USJ 1/1, Subang Jaya')
         ->assertSee('47600, Petaling')
         ->assertSee('Petaling, Selangor')
-        ->assertSee('Buka Peta');
+        // The redesigned location card embeds the map and offers turn-by-turn
+        // navigation instead of the old "Buka Peta" link.
+        ->assertSee('output=embed', false)
+        ->assertSee('Navigasi ke sini');
 
     // Enriched child view: event identity + shared public info + selected leaf
     // commerce. Siblings must not widen the budget (see N+1 guard below).
@@ -269,7 +272,8 @@ it('hides the onsite location section for online-only events', function (): void
         'occurrenceSlug' => PublicScheduleSlug::occurrence($this->occurrence),
     ]))
         ->assertOk()
-        ->assertDontSee('Buka Peta')
+        ->assertDontSee('output=embed', false)
+        ->assertDontSee('Navigasi ke sini')
         ->assertDontSee('Dewan Al-Ikhlas Test');
 });
 
@@ -646,12 +650,26 @@ it('does not substitute the parent address for an addressless scoped venue', fun
         'visibility' => 'public',
     ]);
 
-    $this->get(route('events.'.$page, $parameters))
+    $response = $this->get(route('events.'.$page, $parameters))
         ->assertOk()
         ->assertSee('Addressless Scoped Venue')
-        ->assertSee('query=Addressless+Scoped+Venue', false)
+        ->assertDontSee('Addressless+Scoped+Venue%2C+Addressless+Scoped+Venue', false)
         ->assertDontSee('Subang Jaya')
         ->assertDontSee('query=3.1%2C101.6', false);
+
+    if ($page === 'session') {
+        // The session page keeps the classic "Buka Peta" search link.
+        $response
+            ->assertSee('query=Addressless+Scoped+Venue', false)
+            ->assertSee('Buka Peta');
+    } else {
+        // The occurrence page embeds the map and links turn-by-turn navigation;
+        // both search the scoped venue name, never the parent address.
+        $response
+            ->assertSee('q=Addressless+Scoped+Venue', false)
+            ->assertSee('destination=Addressless+Scoped+Venue', false)
+            ->assertSee('Navigasi ke sini');
+    }
 })->with(['occurrence', 'session']);
 
 it('keeps hidden session time expressions off the parent date display', function (): void {
@@ -711,8 +729,8 @@ it('hides placeholder sessions without title or time from the occurrence page', 
     ]))
         ->assertOk()
         ->assertSee('Sesi Lengkap Berjadual')
-        ->assertSee('1 segmen')
-        ->assertDontSee('2 segmen')
-        ->assertDontSee('3 segmen')
+        ->assertSee('1 sesi')
+        ->assertDontSee('2 sesi')
+        ->assertDontSee('3 sesi')
         ->assertDontSee('Sesi Tanpa Masa');
 });

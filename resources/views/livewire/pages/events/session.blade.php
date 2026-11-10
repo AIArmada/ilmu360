@@ -34,7 +34,7 @@
     $hasLocationContent = ! $isOnlineOnly && ($venueDisplayName || $locationSpace || $primaryAddress);
     $lat = $primaryAddress?->latitude;
     $lng = $primaryAddress?->longitude;
-    $mapQuery = implode(', ', array_filter([
+    $mapQuery = implode(', ', array_unique(array_filter([
         $locationVenue?->name ?? $locationInstitution?->display_name,
         $detail->locationLabel($location),
         $primaryAddress?->line1,
@@ -43,7 +43,7 @@
         $addressDisplayLines['regional'] ?? null,
         $primaryAddress?->city,
         $primaryAddress?->state,
-    ]));
+    ], static fn (mixed $part): bool => filled($part))));
     $normalizedMapQuery = null;
     $locationMapUrl = $primaryAddress?->google_maps_url;
     if (filled($locationMapUrl)) {

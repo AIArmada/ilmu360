@@ -32,6 +32,8 @@ class EventJsonLd extends Component
         public ?string $name = null,
         public ?CarbonInterface $startsAt = null,
         public ?CarbonInterface $endsAt = null,
+        public ?Venue $venue = null,
+        public ?Address $address = null,
     ) {}
 
     /**
@@ -51,7 +53,7 @@ class EventJsonLd extends Component
     public function jsonLd(): array
     {
         $event = $this->event;
-        $venue = $event->venue;
+        $venue = $this->venue ?? $event->venue;
         $institution = $event->institution;
 
         $jsonLd = [
@@ -67,7 +69,11 @@ class EventJsonLd extends Component
         ];
 
         if ($venue instanceof Venue) {
-            $venueAddress = $venue->primaryAddress();
+            // A date/session page can carry its own scoped venue, whose
+            // address (or absence) must win over the parent event's venue.
+            $venueAddress = $this->venue instanceof Venue
+                ? $this->address
+                : $venue->primaryAddress();
             $region = '';
 
             if ($venueAddress instanceof Address && is_string($venueAddress->state)) {
@@ -79,7 +85,7 @@ class EventJsonLd extends Component
                 'name' => $venue->name,
                 'address' => [
                     '@type' => 'PostalAddress',
-                    'streetAddress' => $venue->primaryAddress()?->line1,
+                    'streetAddress' => $venueAddress?->line1,
                     'addressLocality' => $venueAddress?->city,
                     'addressRegion' => $region,
                     'addressCountry' => $venueAddress?->country_code,

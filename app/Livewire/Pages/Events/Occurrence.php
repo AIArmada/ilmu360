@@ -151,6 +151,8 @@ class Occurrence extends Show
             'institution.contactMethods',
             'venue.media',
             'venue.contactMethods',
+            'venue.addresses.areaAssignments.area',
+            'institution.addresses.areaAssignments.area',
             'persons' => function (Relation $query) use ($event): void {
                 if (! $this->isEventOwner($event)) {
                     $query->where('event_involvements.visibility', 'public');
