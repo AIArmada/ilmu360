@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Public;
 use App\Actions\Referrals\ResolveReferralInviteLandingAction;
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Services\Signals\ProductSignalsService;
+use App\Shared\Signals\SignalRecorder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
@@ -36,10 +36,16 @@ final class ReferralInviteLandingController extends Controller
 
         if ($outcome === 'accepted' && $result['invite'] !== null) {
             try {
-                app(ProductSignalsService::class)->recordReferralInviteAccepted(
-                    $result['invite'],
-                    $user,
-                    $request,
+                app(SignalRecorder::class)->record(
+                    eventName: 'referrals.invite_accepted',
+                    eventCategory: 'engagement',
+                    actorId: (string) $user->getKey(),
+                    properties: [
+                        'program_id' => (string) $result['invite']->program_id,
+                        'invite_id' => (string) $result['invite']->getKey(),
+                        'surface' => 'invite-landing',
+                    ],
+                    request: $request,
                 );
             } catch (Throwable $exception) {
                 Log::warning('The referral invite was accepted but its product signal could not be recorded.', [

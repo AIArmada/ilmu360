@@ -5,7 +5,7 @@ namespace App\Actions\Notifications;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Communications\Services\NotificationInboxService;
 use App\Models\User;
-use App\Services\Signals\ProductSignalsService;
+use App\Shared\Signals\SignalRecorder;
 use App\Support\Communications\AccountCommunications;
 use Illuminate\Http\Request;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -15,7 +15,7 @@ final readonly class MarkAllNotificationMessagesReadAction
     use AsAction;
 
     public function __construct(
-        private ProductSignalsService $productSignalsService,
+        private SignalRecorder $signals,
         private NotificationInboxService $notificationInboxService,
         private AccountCommunications $communications,
     ) {}
@@ -36,7 +36,17 @@ final readonly class MarkAllNotificationMessagesReadAction
             );
         }
 
-        $this->productSignalsService->recordNotificationsReadAll($user, $updated, $request ?? request());
+        if ($updated > 0) {
+            $this->signals->record(
+                eventName: 'notification.read_all',
+                eventCategory: 'notification',
+                actorId: (string) $user->getKey(),
+                properties: [
+                    'updated_count' => $updated,
+                ],
+                request: $request ?? request(),
+            );
+        }
 
         return $updated;
     }

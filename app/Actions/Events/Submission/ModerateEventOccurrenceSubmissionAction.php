@@ -18,7 +18,7 @@ use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\User;
 use App\Notifications\EventOccurrenceReviewedNotification;
-use App\Services\Signals\ProductSignalsService;
+use App\Shared\Signals\SignalRecorder;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
@@ -28,7 +28,7 @@ final readonly class ModerateEventOccurrenceSubmissionAction
 {
     public function __construct(
         private ReverseShareOutcomeAction $reverseShareOutcome,
-        private ProductSignalsService $productSignals,
+        private SignalRecorder $signals,
     ) {}
 
     public function approve(EventSubmission $submission, User $moderator, ?string $note = null): void
@@ -65,15 +65,14 @@ final readonly class ModerateEventOccurrenceSubmissionAction
             return [$submission, $event, $occurrence];
         });
 
-        $this->productSignals->recordOccurrenceModerationTransition(
-            event: $event,
-            submission: $submission,
-            occurrence: $occurrence,
-            action: 'approved',
-            moderator: $moderator,
-            previousStatus: SubmissionPending::name(),
-            currentStatus: SubmissionApproved::name(),
-            request: request(),
+        $this->recordOccurrenceModerationSignal(
+            $event,
+            $submission,
+            $occurrence,
+            'approved',
+            $moderator,
+            SubmissionPending::name(),
+            SubmissionApproved::name(),
             note: $note,
         );
 
@@ -112,20 +111,49 @@ final readonly class ModerateEventOccurrenceSubmissionAction
             return [$submission, $event, $occurrence];
         });
 
-        $this->productSignals->recordOccurrenceModerationTransition(
-            event: $event,
-            submission: $submission,
-            occurrence: $occurrence,
-            action: 'rejected',
-            moderator: $moderator,
-            previousStatus: SubmissionPending::name(),
-            currentStatus: SubmissionRejected::name(),
-            request: request(),
+        $this->recordOccurrenceModerationSignal(
+            $event,
+            $submission,
+            $occurrence,
+            'rejected',
+            $moderator,
+            SubmissionPending::name(),
+            SubmissionRejected::name(),
             reasonCode: $reason,
             note: $note,
         );
 
         $this->notifySubmitter($submission, $event, $occurrence, approved: false, reason: $reason, note: $note);
+    }
+
+    private function recordOccurrenceModerationSignal(
+        Event $event,
+        EventSubmission $submission,
+        EventOccurrence $occurrence,
+        string $action,
+        User $moderator,
+        string $previousStatus,
+        string $currentStatus,
+        ?string $reasonCode = null,
+        ?string $note = null,
+    ): void {
+        $this->signals->record(
+            eventName: 'moderation.event.occurrence_'.$action,
+            eventCategory: 'moderation',
+            actorId: (string) $moderator->getKey(),
+            properties: [
+                'event_id' => (string) $event->getKey(),
+                'event_occurrence_id' => (string) $occurrence->getKey(),
+                'submission_id' => (string) $submission->getKey(),
+                'moderation_action' => $action,
+                'previous_status' => $previousStatus,
+                'current_status' => $currentStatus,
+                'moderator_id' => (string) $moderator->getKey(),
+                'reason_code' => $reasonCode,
+                'has_note' => filled($note),
+            ],
+            request: request(),
+        );
     }
 
     /**

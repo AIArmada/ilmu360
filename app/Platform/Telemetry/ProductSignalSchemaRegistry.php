@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Services\Signals;
+namespace App\Platform\Telemetry;
 
 final class ProductSignalSchemaRegistry
 {

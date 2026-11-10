@@ -15,7 +15,7 @@ use App\Livewire\Concerns\InteractsWithLocationPickerSelection;
 use App\Models\Institution;
 use App\Models\User;
 use App\Services\ContributionEntityMutationService;
-use App\Services\Signals\ProductSignalsService;
+use App\Shared\Signals\SignalRecorder;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -146,11 +146,15 @@ class SubmitInstitution extends Component implements HasActions, HasForms
         $user = auth()->user();
 
         if ($user instanceof User) {
-            app(ProductSignalsService::class)->recordInstitutionMapsPlaceSelected(
-                $user,
-                $selectionData['website_url'] !== null,
-                count($selectionData['autofilled_social_profiles']),
-                request(),
+            app(SignalRecorder::class)->record(
+                eventName: 'contribution.institution_maps_place_selected',
+                eventCategory: 'contribution',
+                actorId: (string) $user->getKey(),
+                properties: [
+                    'has_website' => $selectionData['website_url'] !== null,
+                    'social_profile_count' => count($selectionData['autofilled_social_profiles']),
+                ],
+                request: request(),
             );
         }
 

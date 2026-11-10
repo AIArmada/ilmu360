@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Api;
 
 use App\Models\User;
-use App\Support\Signals\ProductSignalsClientContext;
+use App\Platform\Telemetry\ProductSignalsClientContext;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;

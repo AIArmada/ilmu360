@@ -11,6 +11,10 @@ use App\Support\Timezone\UserDateTimeFormatter;
 use Illuminate\Support\Collection;
 
 /**
+ * Read-side reporting for the Events dashboard scorecard. This belongs to the
+ * Events feature, not Platform\Telemetry, and deliberately stays here until the
+ * Events migration owns the scorecard reads.
+ *
  * @phpstan-type ProductSignalsSummary array{events: int, web_events: int, api_events: int, mobile_events: int, unattributed_events: int}
  * @phpstan-type ProductSignalsBreakdownRow array{key: string, label: string, count: int, share: float}
  * @phpstan-type ProductSignalsRecentRow array{

@@ -10,7 +10,7 @@ use App\Forms\SharedFormSchema;
 use App\Models\Institution;
 use App\Models\User;
 use App\Services\ContributionEntityMutationService;
-use App\Services\Signals\ProductSignalsService;
+use App\Shared\Signals\SignalRecorder;
 use App\Support\Institutions\InstitutionFacilities;
 use App\Support\Media\ModelMediaSyncService;
 use App\Support\Submission\PublicSubmissionLockService;
@@ -29,7 +29,7 @@ final readonly class SaveInstitutionAction
         private ContributionEntityMutationService $contributionEntityMutationService,
         private GenerateInstitutionSlugAction $generateInstitutionSlugAction,
         private ModelMediaSyncService $mediaSyncService,
-        private ProductSignalsService $productSignalsService,
+        private SignalRecorder $signals,
         private PublicSubmissionLockService $publicSubmissionLockService,
     ) {}
 
@@ -297,14 +297,41 @@ final readonly class SaveInstitutionAction
         }
 
         $request = request();
+        $institutionId = (string) $institution->getKey();
+        $actorId = (string) $actor->getKey();
 
-        $institution->getConnection()->afterCommit(function () use ($institution, $previousFacilities, $currentFacilities, $actor, $request): void {
-            $this->productSignalsService->recordInstitutionFacilitiesUpdated(
-                $institution,
-                $previousFacilities,
-                $currentFacilities,
-                $actor,
-                $request,
+        $institution->getConnection()->afterCommit(function () use ($institutionId, $previousFacilities, $currentFacilities, $actorId, $request): void {
+            $previous = $previousFacilities ?? [];
+            $current = $currentFacilities ?? [];
+
+            $changed = [];
+
+            foreach (array_unique([...array_keys($previous), ...array_keys($current)]) as $code) {
+                if (($previous[$code] ?? null) !== ($current[$code] ?? null)) {
+                    $changed[] = $code;
+                }
+            }
+
+            sort($changed);
+
+            if ($changed === []) {
+                return;
+            }
+
+            $enabledCount = count(array_filter($current));
+
+            $this->signals->record(
+                eventName: 'admin.institution_facilities.updated',
+                eventCategory: 'admin',
+                actorId: $actorId,
+                properties: [
+                    'institution_id' => $institutionId,
+                    'changed_codes' => $changed,
+                    'enabled_count' => $enabledCount,
+                    'disabled_count' => count($current) - $enabledCount,
+                    'cleared' => $currentFacilities === null,
+                ],
+                request: $request,
             );
         });
     }

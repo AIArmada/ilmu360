@@ -27,8 +27,8 @@ use App\Models\Institution;
 use App\Models\Language;
 use App\Models\User;
 use App\Services\Ai\EventMediaExtractionService;
-use App\Services\Signals\ProductSignalsService;
 use App\Shared\Prayer\EventPrayerTime;
+use App\Shared\Signals\SignalRecorder;
 use App\States\EventStatus\Approved;
 use App\States\EventStatus\Cancelled;
 use App\States\EventStatus\EventStatus;
@@ -584,11 +584,15 @@ class Create extends Component implements HasActions, HasForms
         $user = auth()->user();
 
         if ($user instanceof User) {
-            app(ProductSignalsService::class)->recordInstitutionMapsPlaceSelected(
-                $user,
-                $selectionData['website_url'] !== null,
-                count($selectionData['autofilled_social_profiles']),
-                request(),
+            app(SignalRecorder::class)->record(
+                eventName: 'contribution.institution_maps_place_selected',
+                eventCategory: 'contribution',
+                actorId: (string) $user->getKey(),
+                properties: [
+                    'has_website' => $selectionData['website_url'] !== null,
+                    'social_profile_count' => count($selectionData['autofilled_social_profiles']),
+                ],
+                request: request(),
             );
         }
 

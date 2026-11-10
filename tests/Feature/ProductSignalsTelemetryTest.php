@@ -13,7 +13,7 @@ use App\Features\SavedSearches\Models\SavedSearch;
 use App\Livewire\Pages\Dashboard\NotificationsIndex;
 use App\Models\Event;
 use App\Models\User;
-use App\Services\Signals\ProductSignalSchemaRegistry;
+use App\Platform\Telemetry\ProductSignalSchemaRegistry;
 use Illuminate\Auth\Events\Verified;
 use Laravel\Sanctum\Sanctum;
 use Livewire\Livewire;

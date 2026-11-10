@@ -6,8 +6,8 @@ use App\Concerns\PasswordValidationRules;
 use App\Features\Identity\Api\SignupAttributionWorkflow;
 use App\Models\User;
 use App\Services\ShareTrackingService;
-use App\Services\Signals\ProductSignalsService;
 use App\Shared\Auth\SignupAttributionContextResolver;
+use App\Shared\Signals\SignalRecorder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -60,7 +60,16 @@ class CreateNewUser implements CreatesNewUsers
                 true,
             );
             app(ShareTrackingService::class)->recordSignup($user, request());
-            app(ProductSignalsService::class)->recordSignup($user, request());
+            app(SignalRecorder::class)->record(
+                eventName: 'auth.signup.completed',
+                eventCategory: 'auth',
+                actorId: (string) $user->getKey(),
+                properties: [
+                    'has_email' => filled($user->email),
+                    'has_phone' => filled($user->phone),
+                ],
+                request: request(),
+            );
 
             return $user;
         });

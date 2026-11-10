@@ -28,11 +28,12 @@ use App\Models\Registration;
 use App\Models\Series;
 use App\Models\User;
 use App\Models\Venue;
-use App\Services\Signals\ProductSignalsService;
 use App\Shared\Engagement\EngagementReader;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerReference;
+use App\Shared\Signals\SignalRecorder;
 use App\Support\Api\ApiPagination;
+use App\Support\Discovery\SearchSignal;
 use App\Support\Events\PrimaryLocationSql;
 use App\Support\Events\PrimaryOccurrenceSql;
 use App\Support\Timezone\UserDateTimeFormatter;
@@ -54,7 +55,7 @@ use Spatie\QueryBuilder\QueryBuilder;
 class EventController extends Controller
 {
     public function __construct(
-        private readonly ProductSignalsService $productSignalsService,
+        private readonly SignalRecorder $signals,
     ) {}
 
     /**
@@ -528,14 +529,22 @@ class EventController extends Controller
 
         $user = $request->user();
 
-        $this->productSignalsService->recordSearchExecuted(
-            user: $user instanceof User ? $user : null,
-            request: $request,
-            surface: 'api.events.index',
+        $signal = SearchSignal::payload(
             query: is_string(data_get($request->query(), 'filter.search')) ? data_get($request->query(), 'filter.search') : null,
             filters: is_array($request->query('filter')) ? $request->query('filter') : [],
+            surface: 'api.events.index',
             resultCount: $events->total(),
         );
+
+        if ($signal !== null) {
+            $this->signals->record(
+                eventName: $signal['event_name'],
+                eventCategory: $signal['event_category'],
+                actorId: $user instanceof User ? (string) $user->getKey() : null,
+                properties: $signal['properties'],
+                request: $request,
+            );
+        }
 
         return response()->json($payload);
     }

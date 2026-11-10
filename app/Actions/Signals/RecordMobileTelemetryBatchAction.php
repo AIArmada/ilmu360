@@ -8,7 +8,7 @@ use AIArmada\Signals\Contracts\SignalEventIngestor;
 use AIArmada\Signals\Models\TrackedProperty;
 use AIArmada\Signals\Services\SignalsIngestionRequestValidator;
 use App\Models\User;
-use App\Support\Signals\ProductSignalsClientContext;
+use App\Platform\Telemetry\ProductSignalsClientContext;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Throwable;

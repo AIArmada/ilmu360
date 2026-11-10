@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Signals;
+namespace App\Platform\Telemetry;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;

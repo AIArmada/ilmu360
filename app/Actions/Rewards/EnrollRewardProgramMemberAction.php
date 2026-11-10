@@ -8,7 +8,7 @@ use AIArmada\Rewards\Actions\EnrollRewardMemberAction;
 use AIArmada\Rewards\Models\RewardEnrollment;
 use AIArmada\Rewards\Models\RewardProgram;
 use App\Models\User;
-use App\Services\Signals\ProductSignalsService;
+use App\Shared\Signals\SignalRecorder;
 use App\Support\Rewards\PublishedRewardProgramVersionResolver;
 use Illuminate\Support\Facades\Gate;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -47,12 +47,17 @@ final class EnrollRewardProgramMemberAction
         EvaluatePreclaimShareOutcomesAction::run($program, $user, $version);
 
         if (! $wasEnrolled) {
-            app(ProductSignalsService::class)->recordRewardProgramEnrolled(
-                program: $program,
-                enrollment: $enrollment,
-                user: $user,
+            app(SignalRecorder::class)->record(
+                eventName: 'rewards.program_enrolled',
+                eventCategory: 'engagement',
+                actorId: (string) $user->getKey(),
+                properties: [
+                    'program_id' => (string) $program->getKey(),
+                    'program_family' => $program->family_key,
+                    'enrollment_id' => (string) $enrollment->getKey(),
+                    'surface' => $surface,
+                ],
                 request: request(),
-                surface: $surface,
             );
         }
 

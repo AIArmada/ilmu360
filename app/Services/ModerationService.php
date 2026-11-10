@@ -7,7 +7,7 @@ use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\User;
-use App\Services\Signals\ProductSignalsService;
+use App\Shared\Signals\SignalRecorder;
 use App\States\EventStatus\Approved;
 use App\States\EventStatus\Cancelled;
 use App\States\EventStatus\Draft;
@@ -25,6 +25,7 @@ class ModerationService
 {
     public function __construct(
         private readonly ReverseShareOutcomeAction $reverseShareOutcome,
+        private readonly SignalRecorder $signals,
     ) {}
 
     /**
@@ -36,7 +37,7 @@ class ModerationService
         $event->status->transitionTo(Pending::class);
         $event->refresh();
 
-        app(ProductSignalsService::class)->recordModerationTransition($event, 'submitted', previousStatus: $previousStatus, request: request());
+        $this->recordModerationSignal($event, 'submitted', previousStatus: $previousStatus);
     }
 
     /**
@@ -51,7 +52,7 @@ class ModerationService
         $event->status->transitionTo(Approved::class, $moderator, $note);
         $event->refresh();
 
-        app(ProductSignalsService::class)->recordModerationTransition($event, 'approved', $moderator, $previousStatus, note: $note, request: request());
+        $this->recordModerationSignal($event, 'approved', $moderator, $previousStatus, note: $note);
     }
 
     /**
@@ -67,7 +68,7 @@ class ModerationService
         $event->status->transitionTo(NeedsChanges::class, $moderator, $reasonCode, $note);
         $event->refresh();
 
-        app(ProductSignalsService::class)->recordModerationTransition($event, 'needs_changes_requested', $moderator, $previousStatus, $reasonCode, $note, request());
+        $this->recordModerationSignal($event, 'needs_changes_requested', $moderator, $previousStatus, $reasonCode, $note);
     }
 
     /**
@@ -105,7 +106,7 @@ class ModerationService
                 });
         });
 
-        app(ProductSignalsService::class)->recordModerationTransition($event, 'rejected', $moderator, $previousStatus, $reasonCode, $note, request());
+        $this->recordModerationSignal($event, 'rejected', $moderator, $previousStatus, $reasonCode, $note);
     }
 
     /**
@@ -135,7 +136,7 @@ class ModerationService
             );
         });
 
-        app(ProductSignalsService::class)->recordModerationTransition($event, 'cancelled', $moderator, $previousStatus, note: $note, request: request());
+        $this->recordModerationSignal($event, 'cancelled', $moderator, $previousStatus, note: $note);
     }
 
     /**
@@ -150,7 +151,7 @@ class ModerationService
         $event->status->transitionTo(Pending::class, $moderator, $note);
         $event->refresh();
 
-        app(ProductSignalsService::class)->recordModerationTransition($event, 'reconsidered', $moderator, $previousStatus, note: $note, request: request());
+        $this->recordModerationSignal($event, 'reconsidered', $moderator, $previousStatus, note: $note);
     }
 
     /**
@@ -165,7 +166,7 @@ class ModerationService
         $event->status->transitionTo(Draft::class, $moderator, $note);
         $event->refresh();
 
-        app(ProductSignalsService::class)->recordModerationTransition($event, 'reverted_to_draft', $moderator, $previousStatus, note: $note, request: request());
+        $this->recordModerationSignal($event, 'reverted_to_draft', $moderator, $previousStatus, note: $note);
     }
 
     /**
@@ -181,7 +182,32 @@ class ModerationService
         $event->status->transitionTo(Pending::class, $moderator, $note, $reasonCode);
         $event->refresh();
 
-        app(ProductSignalsService::class)->recordModerationTransition($event, 'remoderated', $moderator, $previousStatus, $reasonCode, $note, request());
+        $this->recordModerationSignal($event, 'remoderated', $moderator, $previousStatus, $reasonCode, $note);
+    }
+
+    private function recordModerationSignal(
+        Event $event,
+        string $action,
+        ?User $moderator = null,
+        ?string $previousStatus = null,
+        ?string $reasonCode = null,
+        ?string $note = null,
+    ): void {
+        $this->signals->record(
+            eventName: 'moderation.event.'.$action,
+            eventCategory: 'moderation',
+            actorId: $moderator !== null ? (string) $moderator->getKey() : null,
+            properties: [
+                'event_id' => (string) $event->getKey(),
+                'moderation_action' => $action,
+                'previous_status' => $previousStatus,
+                'current_status' => (string) $event->status,
+                'moderator_id' => $moderator !== null ? (string) $moderator->getKey() : null,
+                'reason_code' => $reasonCode,
+                'has_note' => filled($note),
+            ],
+            request: request(),
+        );
     }
 
     /**

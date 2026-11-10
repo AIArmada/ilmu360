@@ -6,7 +6,8 @@ use AIArmada\Persons\Enums\Gender;
 use App\Actions\Persons\GeneratePersonSlugAction;
 use App\Enums\SpeakerStatus;
 use App\Models\Person;
-use App\Services\Signals\ProductSignalsService;
+use App\Models\User;
+use App\Shared\Signals\SignalRecorder;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -94,7 +95,20 @@ class ReferenceAuthorFormSchema
                 'allow_public_event_submission' => false,
             ]);
 
-            app(ProductSignalsService::class)->recordAuthorQuickCreated($person, request());
+            $signalRequest = request();
+            $signalUser = $signalRequest->user();
+
+            app(SignalRecorder::class)->record(
+                eventName: 'author.quick_created',
+                eventCategory: 'contribution',
+                actorId: $signalUser instanceof User ? (string) $signalUser->getKey() : null,
+                properties: [
+                    'person_id' => (string) $person->getKey(),
+                    'status' => (string) $person->status,
+                    'source' => 'reference_author_picker',
+                ],
+                request: $signalRequest,
+            );
 
             return (string) $person->getKey();
         });

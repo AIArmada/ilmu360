@@ -30,7 +30,7 @@ use App\Models\Reference;
 use App\Models\User;
 use App\Platform\Ui\InteractsWithToasts;
 use App\Services\ContributionEntityMutationService;
-use App\Services\Signals\ProductSignalsService;
+use App\Shared\Signals\SignalRecorder;
 use App\Support\Events\EventContributionUpdateStateMapper;
 use App\Support\Location\GooglePlaceIdentity;
 use App\Support\Submission\ContributionSubjectPresenter;
@@ -258,11 +258,15 @@ class SuggestUpdate extends Component implements HasActions, HasForms
         $user = auth()->user();
 
         if ($user instanceof User) {
-            app(ProductSignalsService::class)->recordInstitutionMapsPlaceSelected(
-                $user,
-                $selectionData['website_url'] !== null,
-                count($selectionData['autofilled_social_profiles']),
-                request(),
+            app(SignalRecorder::class)->record(
+                eventName: 'contribution.institution_maps_place_selected',
+                eventCategory: 'contribution',
+                actorId: (string) $user->getKey(),
+                properties: [
+                    'has_website' => $selectionData['website_url'] !== null,
+                    'social_profile_count' => count($selectionData['autofilled_social_profiles']),
+                ],
+                request: request(),
             );
         }
 

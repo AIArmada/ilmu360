@@ -6,11 +6,11 @@ namespace App\Support\Auth;
 
 use App\Actions\Fortify\CreateNewUser;
 use App\Models\User;
-use App\Services\Signals\ProductSignalsService;
 use App\Shared\Auth\AccountAccess;
 use App\Shared\Auth\AccountDirectory;
 use App\Shared\Auth\AccountProfile;
 use App\Shared\Auth\AccountSession;
+use App\Shared\Signals\SignalRecorder;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Contracts\Auth\Authenticatable;
@@ -24,7 +24,7 @@ final readonly class EloquentAccountAccess implements AccountAccess
     public function __construct(
         private CreateNewUser $createNewUser,
         private AccountDirectory $accounts,
-        private ProductSignalsService $signals,
+        private SignalRecorder $signals,
     ) {}
 
     public function register(array $input): AccountProfile
@@ -101,7 +101,12 @@ final readonly class EloquentAccountAccess implements AccountAccess
             'password' => $password,
         ])->save();
 
-        $this->signals->recordPasswordResetCompleted($user, $request ?? request());
+        $this->signals->record(
+            eventName: 'auth.password_reset.completed',
+            eventCategory: 'auth',
+            actorId: (string) $user->getKey(),
+            request: $request ?? request(),
+        );
 
         $user->forceFill([
             'remember_token' => Str::random(60),

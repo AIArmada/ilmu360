@@ -2,14 +2,14 @@
 
 namespace App\Forms;
 
-use AIArmada\CommerceSupport\Support\ConnectionDriver;
 use AIArmada\References\Enums\ReferenceRecordKind;
 use AIArmada\References\Rules\Isbn;
 use App\Actions\References\SaveReferenceAction;
 use App\Enums\ReferencePartType;
 use App\Enums\ReferenceType;
 use App\Models\Reference;
-use App\Services\Signals\ProductSignalsService;
+use App\Models\User;
+use App\Shared\Signals\SignalRecorder;
 use App\Support\Cache\SelectionCatalogCache;
 use BackedEnum;
 use Filament\Forms\Components\Placeholder;
@@ -171,7 +171,22 @@ class ReferenceFormSchema
             throw $exception;
         }
         $schema?->model($reference)->saveRelationships();
-        app(ProductSignalsService::class)->recordReferenceQuickCreated($reference, request());
+        $signalRequest = request();
+        $signalUser = $signalRequest->user();
+
+        app(SignalRecorder::class)->record(
+            eventName: 'reference.quick_created',
+            eventCategory: 'contribution',
+            actorId: $signalUser instanceof User ? (string) $signalUser->getKey() : null,
+            properties: [
+                'reference_id' => (string) $reference->getKey(),
+                'record_kind' => $reference->recordKindValue(),
+                'parent_id' => $reference->parentIdValue(),
+                'status' => (string) $reference->status,
+                'source' => 'event_reference_picker',
+            ],
+            request: $signalRequest,
+        );
 
         return (string) $reference->getKey();
     }

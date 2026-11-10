@@ -14,7 +14,7 @@ use AIArmada\Referrals\Models\ReferralInvite;
 use AIArmada\Referrals\Models\ReferralProgram;
 use AIArmada\Referrals\Support\ReferralContactNormalizer;
 use App\Models\User;
-use App\Services\Signals\ProductSignalsService;
+use App\Shared\Signals\SignalRecorder;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
@@ -106,11 +106,16 @@ class ReferralMemberIndex extends Component
 
         if ($result->invite->wasRecentlyCreated) {
             try {
-                app(ProductSignalsService::class)->recordReferralInviteCreated(
-                    $result->invite,
-                    $user,
-                    request(),
-                    'member-portal',
+                app(SignalRecorder::class)->record(
+                    eventName: 'referrals.invite_created',
+                    eventCategory: 'engagement',
+                    actorId: (string) $user->getKey(),
+                    properties: [
+                        'program_id' => (string) $result->invite->program_id,
+                        'invite_id' => (string) $result->invite->getKey(),
+                        'surface' => 'member-portal',
+                    ],
+                    request: request(),
                 );
             } catch (Throwable $exception) {
                 Log::warning('The referral invite was created but its product signal could not be recorded.', [

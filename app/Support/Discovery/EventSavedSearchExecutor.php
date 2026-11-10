@@ -10,8 +10,8 @@ use App\Features\SavedSearches\Api\SavedSearchSnapshot;
 use App\Models\Event;
 use App\Models\User;
 use App\Services\EventSearchService;
-use App\Services\Signals\ProductSignalsService;
 use App\Shared\Discovery\SearchFilterKeys;
+use App\Shared\Signals\SignalRecorder;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -20,7 +20,7 @@ final readonly class EventSavedSearchExecutor implements SavedSearchExecutor
 {
     public function __construct(
         private EventSearchService $searchService,
-        private ProductSignalsService $productSignalsService,
+        private SignalRecorder $signals,
         private Request $request,
     ) {}
 
@@ -44,19 +44,27 @@ final readonly class EventSavedSearchExecutor implements SavedSearchExecutor
 
         $user = $this->request->user();
 
-        $this->productSignalsService->recordSearchExecuted(
-            user: $user instanceof User ? $user : null,
-            request: $this->request,
-            surface: 'saved_search.execute',
+        $signal = SearchSignal::payload(
             query: is_string($savedSearch->query) ? $savedSearch->query : null,
             filters: array_merge($filters, array_filter([
                 'lat' => $savedSearch->lat,
                 'lng' => $savedSearch->lng,
                 'radius_km' => $savedSearch->radiusKm,
             ], static fn (mixed $value): bool => $value !== null)),
+            surface: 'saved_search.execute',
             resultCount: $events->total(),
             savedSearchId: $savedSearch->id,
         );
+
+        if ($signal !== null) {
+            $this->signals->record(
+                eventName: $signal['event_name'],
+                eventCategory: $signal['event_category'],
+                actorId: $user instanceof User ? (string) $user->getKey() : null,
+                properties: $signal['properties'],
+                request: $this->request,
+            );
+        }
 
         return $this->result($events);
     }

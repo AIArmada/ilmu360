@@ -963,7 +963,7 @@ function packageAssessments(): array
             'summary' => 'Signals is healthy and live, but the app adds a fairly thick curation layer on top.',
             'evidence' => [
                 'app/Services/Signals/SignalsTracker.php',
-                'app/Services/Signals/ProductSignalsService.php',
+                'app/Platform/Telemetry/ProductSignalRecorder.php',
                 'app/Services/Signals/AffiliateSignalsBridge.php',
                 'app/Providers/AppServiceProvider.php',
             ],

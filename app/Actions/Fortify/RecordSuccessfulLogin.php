@@ -6,8 +6,8 @@ namespace App\Actions\Fortify;
 
 use App\Features\Events\Api\GuestSubmissionClaims;
 use App\Models\User;
-use App\Services\Signals\ProductSignalsService;
 use App\Shared\Auth\GuestSubmissionNotice;
+use App\Shared\Signals\SignalRecorder;
 use Closure;
 use Illuminate\Http\Request;
 
@@ -20,7 +20,16 @@ final class RecordSuccessfulLogin
         $user = $request->user();
 
         if ($user instanceof User) {
-            app(ProductSignalsService::class)->recordLogin($user, $request, 'password');
+            app(SignalRecorder::class)->record(
+                eventName: 'auth.login',
+                eventCategory: 'auth',
+                actorId: (string) $user->getKey(),
+                properties: [
+                    'method' => 'password',
+                    'created_account' => false,
+                ],
+                request: $request,
+            );
 
             GuestSubmissionNotice::flash(
                 app(GuestSubmissionClaims::class)->claimForAccount((string) $user->getKey())
