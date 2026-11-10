@@ -5,9 +5,9 @@ namespace App\Actions\Slugs;
 use AIArmada\CommerceSupport\Contracts\SlugRedirectRecorder;
 use AIArmada\Signals\Models\SignalEvent;
 use AIArmada\Signals\Models\TrackedProperty;
-use App\Models\Event;
 use App\Models\SlugRedirect;
-use App\Support\Slugs\PublicSlugPathResolver;
+use App\Platform\Routing\PublicSlugRegistry;
+use App\Platform\Routing\PublicSlugResource;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Model;
 final readonly class SyncSlugRedirectAction implements SlugRedirectRecorder
 {
     public function __construct(
-        private PublicSlugPathResolver $publicSlugPathResolver,
+        private PublicSlugRegistry $publicSlugRegistry,
     ) {}
 
     public function record(Model $model, ?string $previousSlug): bool
@@ -25,12 +25,14 @@ final readonly class SyncSlugRedirectAction implements SlugRedirectRecorder
 
     public function handle(Model $model, ?string $previousSlug): bool
     {
+        $resource = $this->publicSlugRegistry->resourceForModel($model);
         $currentSlug = $this->normalizeSlug($model->getAttribute('slug'));
-        $destinationPath = $this->publicSlugPathResolver->pathForModel($model);
 
-        if ($currentSlug === null || $destinationPath === null) {
+        if (! $resource instanceof PublicSlugResource || $currentSlug === null) {
             return false;
         }
+
+        $destinationPath = $resource->pathForSlug($currentSlug);
 
         SlugRedirect::query()
             ->where('source_path', $destinationPath)
@@ -48,21 +50,15 @@ final readonly class SyncSlugRedirectAction implements SlugRedirectRecorder
             return $didChange;
         }
 
-        $parameter = $this->publicSlugPathResolver->parameterForModel($model);
+        $sourcePath = $resource->pathForSlug($previousSlug);
 
-        if ($parameter === null) {
-            return $didChange;
-        }
-
-        $sourcePath = $this->publicSlugPathResolver->pathForParameter($parameter, $previousSlug);
-
-        if ($sourcePath === null || $sourcePath === $destinationPath) {
+        if ($sourcePath === $destinationPath) {
             return $didChange;
         }
 
         $firstVisitedAt = $this->firstVisitedAt($sourcePath);
 
-        if (! ($model instanceof Event) && ! ($firstVisitedAt instanceof CarbonImmutable)) {
+        if ($resource->requiresVisitedSource && ! ($firstVisitedAt instanceof CarbonImmutable)) {
             return $didChange;
         }
 

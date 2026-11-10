@@ -16,8 +16,10 @@ use App\Actions\Venues\GenerateVenueSlugAction;
 use App\Filament\Resources\SlugRedirects\Pages\CreateSlugRedirect;
 use App\Filament\Resources\SlugRedirects\Pages\EditSlugRedirect;
 use App\Filament\Resources\SlugRedirects\Pages\ListSlugRedirects;
+use App\Filament\Resources\SlugRedirects\Schemas\SlugRedirectForm;
 use App\Forms\VenueFormSchema;
 use App\Models\Event;
+use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\SlugRedirect;
@@ -523,6 +525,78 @@ it('allows administrators to delete slug redirects in the admin resource', funct
         ->assertHasNoTableActionErrors();
 
     expect(SlugRedirect::query()->find($redirect->getKey()))->toBeNull();
+});
+
+it('searches and labels slug redirect subjects by their registered type', function () {
+    $institution = Institution::factory()->create([
+        'name' => 'Masjid Carian Jenis',
+        'status' => 'verified',
+    ]);
+    $person = Person::factory()->create([
+        'name' => 'Ustaz Carian Jenis',
+        'status' => 'verified',
+    ]);
+
+    expect(SlugRedirectForm::redirectableSearchResults('institution', 'Masjid Carian'))
+        ->toHaveKey((string) $institution->getKey())
+        ->and(SlugRedirectForm::redirectableSearchResults('person', 'Ustaz Carian'))
+        ->toHaveKey((string) $person->getKey())
+        ->and(SlugRedirectForm::redirectableOptionLabel('institution', $institution->getKey()))
+        ->toBe($institution->name.' ('.$institution->slug.')');
+});
+
+it('searches and labels every registered slug subject type', function (): void {
+    $institution = Institution::factory()->create([
+        'name' => 'Masjid Semua Jenis',
+        'status' => 'verified',
+    ]);
+    $person = Person::factory()->create([
+        'name' => 'Ustazah Semua Jenis',
+        'status' => 'verified',
+    ]);
+    $event = createSlugRedirectEvent(
+        id: '00000000-0000-0000-0000-000000000072',
+        title: 'Kuliah Semua Jenis',
+        slug: 'kuliah-semua-jenis-13-4-26',
+        startsAt: Carbon::parse('2026-04-13 20:00:00', 'Asia/Kuala_Lumpur')->utc(),
+    );
+    $reference = Reference::query()->create([
+        'title' => 'Kitab Semua Jenis',
+        'type' => 'book',
+        'status' => 'verified',
+    ]);
+    $geography = createSlugRedirectGeography();
+    $venueId = VenueFormSchema::createOptionUsing([
+        'name' => 'Dewan Semua Jenis',
+        'type' => 'dewan',
+        'address' => slugRedirectAddressPayload($geography),
+    ]);
+    $venue = Venue::query()->findOrFail($venueId);
+
+    $cases = [
+        ['institution', 'Masjid Semua', $institution->getKey(), $institution->name],
+        ['person', 'Ustazah Semua', $person->getKey(), $person->formatted_name],
+        ['event', 'Kuliah Semua', $event->getKey(), $event->title],
+        ['reference', 'Kitab Semua', $reference->getKey(), $reference->title],
+        ['venue', 'Dewan Semua', $venue->getKey(), $venue->name],
+    ];
+
+    foreach ($cases as [$type, $term, $id, $label]) {
+        $results = SlugRedirectForm::redirectableSearchResults($type, $term);
+
+        expect($results)->toHaveKey((string) $id);
+
+        $record = match ($type) {
+            'institution' => Institution::query()->findOrFail($id),
+            'person' => Person::query()->findOrFail($id),
+            'event' => Event::query()->findOrFail($id),
+            'reference' => Reference::query()->findOrFail($id),
+            default => Venue::query()->findOrFail($id),
+        };
+
+        expect(SlugRedirectForm::redirectableOptionLabel($type, $id))
+            ->toBe($label.' ('.$record->slug.')');
+    }
 });
 
 function createSlugRedirectCountry(

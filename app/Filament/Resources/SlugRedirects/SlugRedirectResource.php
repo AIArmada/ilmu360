@@ -10,14 +10,14 @@ use App\Filament\Resources\SlugRedirects\Schemas\SlugRedirectForm;
 use App\Filament\Resources\SlugRedirects\Schemas\SlugRedirectInfolist;
 use App\Filament\Resources\SlugRedirects\Tables\SlugRedirectsTable;
 use App\Models\SlugRedirect;
-use App\Support\Slugs\PublicSlugPathResolver;
+use App\Platform\Routing\PublicSlugRegistry;
+use App\Platform\Routing\PublicSlugResource;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -103,10 +103,10 @@ class SlugRedirectResource extends Resource
             ? self::normalizeSlug($redirectable->getAttribute('slug'))
             : null;
         $destinationPath = $redirectable instanceof Model
-            ? app(PublicSlugPathResolver::class)->pathForModel($redirectable)
+            ? app(PublicSlugRegistry::class)->pathForModel($redirectable)
             : null;
         $sourcePath = ($type !== null && $sourceSlug !== null)
-            ? app(PublicSlugPathResolver::class)->pathForParameter($type, $sourceSlug)
+            ? app(PublicSlugRegistry::class)->pathForParameter($type, $sourceSlug)
             : null;
 
         if ($redirectable instanceof Model && $destinationSlug === null) {
@@ -155,40 +155,35 @@ class SlugRedirectResource extends Resource
 
     private static function normalizeRedirectableType(mixed $type): ?string
     {
-        if (! is_string($type) || trim($type) === '') {
+        $resource = self::redirectableResource($type);
+
+        if (! $resource instanceof PublicSlugResource) {
             return null;
         }
 
-        $type = trim($type);
-
-        if (Relation::getMorphedModel($type) !== null) {
-            return $type;
-        }
-
-        if (class_exists($type) && is_subclass_of($type, Model::class)) {
-            $model = new $type;
-
-            return $model->getMorphClass();
-        }
-
-        return null;
+        return (new $resource->modelClass)->getMorphClass();
     }
 
     private static function resolveRedirectable(?string $type, mixed $redirectableId): ?Model
     {
-        if ($type === null || blank($redirectableId)) {
+        $resource = self::redirectableResource($type);
+
+        if (! $resource instanceof PublicSlugResource || blank($redirectableId)) {
             return null;
         }
 
-        $modelClass = Relation::getMorphedModel($type);
-
-        if (! is_string($modelClass) || ! is_subclass_of($modelClass, Model::class)) {
-            return null;
-        }
-
-        $record = $modelClass::query()->find($redirectableId);
+        $record = $resource->modelClass::query()->find($redirectableId);
 
         return $record instanceof Model ? $record : null;
+    }
+
+    private static function redirectableResource(mixed $type): ?PublicSlugResource
+    {
+        if (! is_string($type) || trim($type) === '') {
+            return null;
+        }
+
+        return app(PublicSlugRegistry::class)->resourceForType(trim($type));
     }
 
     private static function normalizeSlug(mixed $value): ?string

@@ -147,6 +147,8 @@ use App\Observers\VenueObserver;
 use App\Organizations\CurrentOrganizationResolver as AppCurrentOrganizationResolver;
 use App\Platform\Media\EloquentMediaCollectionSync;
 use App\Platform\Media\MediaCollectionSync;
+use App\Platform\Routing\PublicSlugRegistry;
+use App\Platform\Routing\PublicSlugResource;
 use App\Platform\Telemetry\ProductSignalRecorder;
 use App\Policies\AddressAreaPolicy;
 use App\Policies\AddressCountryPolicy;
@@ -297,6 +299,14 @@ class AppServiceProvider extends ServiceProvider
     protected static bool $publicSlugBindingsRegistered = false;
 
     /**
+     * Route parameters whose bindings must exist before any feature registers routes.
+     * The registry itself is resolved lazily inside each binding callback.
+     *
+     * @var list<string>
+     */
+    private const PUBLIC_SLUG_PARAMETERS = ['event', 'institution', 'person', 'venue', 'reference'];
+
+    /**
      * Register any application services.
      */
     #[\Override]
@@ -348,6 +358,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(EventCategoryCatalog::class, DefaultEventCategoryCatalog::class);
         $this->app->singleton(EventCategoryPolicyResolver::class, EventCategoryPolicy::class);
         $this->app->singleton(SpaceEligibilityResolver::class, DefaultSpaceEligibilityResolver::class);
+
+        $this->registerPublicSlugRegistry();
 
         $this->app->singleton(PrettyPrinter::class, PrettyPrinter\Standard::class);
         $this->app->bind(McpOAuthRegisterController::class, OAuthRegisterController::class);
@@ -740,9 +752,51 @@ class AppServiceProvider extends ServiceProvider
         app()->instance($registrationKey, true);
     }
 
+    private function registerPublicSlugRegistry(): void
+    {
+        $this->app->singleton(PublicSlugRegistry::class, static fn (): PublicSlugRegistry => new PublicSlugRegistry([
+            new PublicSlugResource(
+                parameter: 'event',
+                routeName: 'events.show',
+                modelClass: Event::class,
+                requiresVisitedSource: false,
+                searchColumns: ['title', 'slug'],
+                labelAttribute: 'title',
+            ),
+            new PublicSlugResource(
+                parameter: 'institution',
+                routeName: 'institutions.show',
+                modelClass: Institution::class,
+                searchColumns: ['name', 'slug'],
+                labelAttribute: 'name',
+            ),
+            new PublicSlugResource(
+                parameter: 'person',
+                routeName: 'persons.show',
+                modelClass: Person::class,
+                searchColumns: ['name', 'slug'],
+                labelAttribute: 'formatted_name',
+            ),
+            new PublicSlugResource(
+                parameter: 'venue',
+                routeName: 'venues.show',
+                modelClass: Venue::class,
+                searchColumns: ['name', 'slug'],
+                labelAttribute: 'name',
+            ),
+            new PublicSlugResource(
+                parameter: 'reference',
+                routeName: 'references.show',
+                modelClass: Reference::class,
+                searchColumns: ['title', 'slug'],
+                labelAttribute: 'title',
+            ),
+        ]));
+    }
+
     private function registerPublicSlugBindings(): void
     {
-        foreach (['event', 'institution', 'person', 'venue', 'reference'] as $publicSlugParameter) {
+        foreach (self::PUBLIC_SLUG_PARAMETERS as $publicSlugParameter) {
             Route::bind($publicSlugParameter, function (mixed $value) use ($publicSlugParameter) {
                 if (! is_string($value) || trim($value) === '') {
                     throw new ModelNotFoundException;

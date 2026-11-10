@@ -2,21 +2,17 @@
 
 namespace App\Actions\Slugs;
 
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\Reference;
 use App\Models\SlugRedirect;
-use App\Models\Venue;
+use App\Platform\Routing\PublicSlugRegistry;
+use App\Platform\Routing\PublicSlugResource;
 use App\Support\Models\SlugOrUuidResolver;
-use App\Support\Slugs\PublicSlugPathResolver;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 final readonly class ResolvePublicSlugAction
 {
     public function __construct(
-        private PublicSlugPathResolver $publicSlugPathResolver,
+        private PublicSlugRegistry $publicSlugRegistry,
         private SlugOrUuidResolver $slugOrUuidResolver,
     ) {}
 
@@ -25,7 +21,8 @@ final readonly class ResolvePublicSlugAction
      */
     public function handle(string $parameter, string $value): array
     {
-        $resolvedModel = $this->resolveCurrentModel($parameter, $value);
+        $resource = $this->publicSlugRegistry->resourceForParameter($parameter);
+        $resolvedModel = $this->resolveCurrentModel($resource, $value);
 
         if ($resolvedModel instanceof Model) {
             return [
@@ -35,7 +32,7 @@ final readonly class ResolvePublicSlugAction
             ];
         }
 
-        $sourcePath = $this->publicSlugPathResolver->pathForParameter($parameter, $value);
+        $sourcePath = $this->publicSlugRegistry->pathForParameter($parameter, $value);
 
         if ($sourcePath !== null) {
             $slugRedirect = SlugRedirect::query()
@@ -45,7 +42,7 @@ final readonly class ResolvePublicSlugAction
 
             $redirectable = $slugRedirect?->redirectable;
             $redirectTo = $redirectable instanceof Model
-                ? $this->publicSlugPathResolver->pathForModel($redirectable)
+                ? $this->publicSlugRegistry->pathForModel($redirectable)
                 : null;
 
             if ($slugRedirect instanceof SlugRedirect && $redirectable instanceof Model && $redirectTo !== null) {
@@ -57,23 +54,17 @@ final readonly class ResolvePublicSlugAction
             }
         }
 
-        $this->throwNotFound($parameter, $value);
+        $this->throwNotFound($resource, $value);
     }
 
-    private function resolveCurrentModel(string $parameter, string $value): ?Model
+    private function resolveCurrentModel(?PublicSlugResource $resource, string $value): ?Model
     {
-        return match ($parameter) {
-            'event' => $this->resolveBySlugOrUuid(new Event, $value),
-            'institution' => $this->resolveBySlugOrUuid(new Institution, $value),
-            'person' => $this->resolveBySlugOrUuid(new Person, $value),
-            'venue' => $this->resolveBySlugOrUuid(new Venue, $value),
-            'reference' => $this->resolveBySlugOrUuid(new Reference, $value),
-            default => null,
-        };
-    }
+        if (! $resource instanceof PublicSlugResource) {
+            return null;
+        }
 
-    private function resolveBySlugOrUuid(Model $model, string $value): ?Model
-    {
+        $model = new $resource->modelClass;
+
         return $this->slugOrUuidResolver->first(
             $model->newQuery(),
             $model->qualifyColumn('slug'),
@@ -81,16 +72,9 @@ final readonly class ResolvePublicSlugAction
         );
     }
 
-    private function throwNotFound(string $parameter, string $value): never
+    private function throwNotFound(?PublicSlugResource $resource, string $value): never
     {
-        $modelClass = match ($parameter) {
-            'event' => Event::class,
-            'institution' => Institution::class,
-            'person' => Person::class,
-            'venue' => Venue::class,
-            'reference' => Reference::class,
-            default => Model::class,
-        };
+        $modelClass = $resource instanceof PublicSlugResource ? $resource->modelClass : Model::class;
 
         throw (new ModelNotFoundException)->setModel($modelClass, [$value]);
     }

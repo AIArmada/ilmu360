@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Actions\Slugs\ResolvePublicSlugAction;
 use App\Actions\Slugs\SyncSlugRedirectAction;
 use App\Models\SlugRedirect;
+use App\Platform\Routing\PublicSlugRegistry;
 use Closure;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -15,6 +16,7 @@ class ResolvePublicSlugRedirect
     public function __construct(
         private readonly ResolvePublicSlugAction $resolvePublicSlugAction,
         private readonly SyncSlugRedirectAction $syncSlugRedirectAction,
+        private readonly PublicSlugRegistry $publicSlugRegistry,
     ) {}
 
     /**
@@ -30,7 +32,7 @@ class ResolvePublicSlugRedirect
             return $next($request);
         }
 
-        foreach (['event', 'institution', 'person', 'venue', 'reference'] as $parameter) {
+        foreach ($this->publicSlugRegistry->parameters() as $parameter) {
             if (! $route->hasParameter($parameter)) {
                 continue;
             }

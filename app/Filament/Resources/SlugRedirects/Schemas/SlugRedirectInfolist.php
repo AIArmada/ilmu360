@@ -2,12 +2,9 @@
 
 namespace App\Filament\Resources\SlugRedirects\Schemas;
 
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\Reference;
 use App\Models\SlugRedirect;
-use App\Models\Venue;
+use App\Platform\Routing\PublicSlugRegistry;
+use App\Platform\Routing\PublicSlugResource;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
@@ -67,13 +64,14 @@ class SlugRedirectInfolist
 
     private static function subjectLabel(?Model $model): string
     {
-        return match (true) {
-            $model instanceof Event => $model->title,
-            $model instanceof Institution => $model->name,
-            $model instanceof Person => $model->formatted_name,
-            $model instanceof Reference => $model->title,
-            $model instanceof Venue => $model->name,
-            default => 'Deleted record',
-        };
+        if (! $model instanceof Model) {
+            return 'Deleted record';
+        }
+
+        $registry = app(PublicSlugRegistry::class);
+
+        return $registry->resourceForModel($model) instanceof PublicSlugResource
+            ? $registry->labelFor($model)
+            : 'Deleted record';
     }
 }

@@ -2,13 +2,9 @@
 
 namespace App\Filament\Resources\SlugRedirects\Schemas;
 
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\Reference;
 use App\Models\SlugRedirect;
-use App\Models\Venue;
-use App\Support\Slugs\PublicSlugPathResolver;
+use App\Platform\Routing\PublicSlugRegistry;
+use App\Platform\Routing\PublicSlugResource;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
@@ -17,8 +13,9 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Support\Str;
 
 class SlugRedirectForm
 {
@@ -86,13 +83,11 @@ class SlugRedirectForm
      */
     public static function redirectableTypeOptions(): array
     {
-        return [
-            'event' => 'Event',
-            'institution' => 'Institution',
-            'person' => 'Person',
-            'venue' => 'Venue',
-            'reference' => 'Reference',
-        ];
+        return collect(app(PublicSlugRegistry::class)->resources())
+            ->mapWithKeys(static fn (PublicSlugResource $resource): array => [
+                $resource->parameter => Str::headline($resource->parameter),
+            ])
+            ->all();
     }
 
     /**
@@ -100,44 +95,33 @@ class SlugRedirectForm
      */
     public static function redirectableSearchResults(mixed $type, ?string $search = null): array
     {
-        $modelClass = self::redirectableModelClass($type);
+        $resource = self::redirectableResource($type);
 
-        if ($modelClass === null) {
+        if (! $resource instanceof PublicSlugResource) {
             return [];
         }
 
-        $query = $modelClass::query();
+        $query = (new $resource->modelClass)->newQuery();
         $term = trim((string) $search);
 
-        if ($term !== '') {
-            match ($type) {
-                'event' => $query->where(function ($query) use ($term): void {
-                    $query
-                        ->whereLike('title', "%{$term}%")
-                        ->orWhereLike('slug', "%{$term}%");
-                }),
-                'reference' => $query->where(function ($query) use ($term): void {
-                    $query
-                        ->whereLike('title', "%{$term}%")
-                        ->orWhereLike('slug', "%{$term}%");
-                }),
-                'person' => $query->where(function ($query) use ($term): void {
-                    $query
-                        ->whereLike('name', "%{$term}%")
-                        ->orWhereLike('slug', "%{$term}%");
-                }),
-                default => $query->where(function ($query) use ($term): void {
-                    $query
-                        ->whereLike('name', "%{$term}%")
-                        ->orWhereLike('slug', "%{$term}%");
-                }),
-            };
+        if ($term !== '' && $resource->searchColumns !== []) {
+            $query->where(static function (Builder $query) use ($term, $resource): void {
+                foreach ($resource->searchColumns as $index => $column) {
+                    if ($index === 0) {
+                        $query->whereLike($column, "%{$term}%");
+
+                        continue;
+                    }
+
+                    $query->orWhereLike($column, "%{$term}%");
+                }
+            });
         }
 
         return $query
             ->limit(50)
             ->get()
-            ->mapWithKeys(fn (Model $record): array => [
+            ->mapWithKeys(static fn (Model $record): array => [
                 (string) $record->getKey() => self::redirectableLabel($record),
             ])
             ->all();
@@ -145,13 +129,13 @@ class SlugRedirectForm
 
     public static function redirectableOptionLabel(mixed $type, mixed $value): ?string
     {
-        $modelClass = self::redirectableModelClass($type);
+        $resource = self::redirectableResource($type);
 
-        if ($modelClass === null || blank($value)) {
+        if (! $resource instanceof PublicSlugResource || blank($value)) {
             return null;
         }
 
-        $record = $modelClass::query()->find($value);
+        $record = $resource->modelClass::query()->find($value);
 
         if (! $record instanceof Model) {
             return "Deleted record ({$value})";
@@ -169,7 +153,7 @@ class SlugRedirectForm
             return 'Select a subject and enter a source slug to preview the public path.';
         }
 
-        return app(PublicSlugPathResolver::class)->pathForParameter($type, $slug)
+        return app(PublicSlugRegistry::class)->pathForParameter($type, $slug)
             ?? 'The selected subject type does not expose a public slug route.';
     }
 
@@ -184,58 +168,39 @@ class SlugRedirectForm
             return 'Select a subject to preview its current canonical destination URL.';
         }
 
-        return app(PublicSlugPathResolver::class)->pathForModel($model)
+        return app(PublicSlugRegistry::class)->pathForModel($model)
             ?? 'The selected subject does not currently have a canonical public slug path.';
     }
 
-    private static function redirectableModelClass(mixed $type): ?string
+    private static function redirectableResource(mixed $type): ?PublicSlugResource
     {
         if (! is_string($type) || trim($type) === '') {
             return null;
         }
 
-        $type = trim($type);
-
-        if (class_exists($type) && is_subclass_of($type, Model::class)) {
-            /** @var class-string<Model> $type */
-            return $type;
-        }
-
-        $modelClass = Relation::getMorphedModel($type);
-
-        return is_string($modelClass) && is_subclass_of($modelClass, Model::class)
-            ? $modelClass
-            : null;
+        return app(PublicSlugRegistry::class)->resourceForType(trim($type));
     }
 
     private static function selectedRedirectableModel(mixed $type, mixed $id): ?Model
     {
-        $modelClass = self::redirectableModelClass($type);
+        $resource = self::redirectableResource($type);
 
-        if ($modelClass === null || blank($id)) {
+        if (! $resource instanceof PublicSlugResource || blank($id)) {
             return null;
         }
 
-        $record = $modelClass::query()->find($id);
+        $record = $resource->modelClass::query()->find($id);
 
         return $record instanceof Model ? $record : null;
     }
 
     private static function redirectableLabel(Model $record): string
     {
-        $name = match (true) {
-            $record instanceof Event => $record->title,
-            $record instanceof Institution => $record->name,
-            $record instanceof Person => $record->formatted_name,
-            $record instanceof Venue => $record->name,
-            $record instanceof Reference => $record->title,
-            default => class_basename($record::class).' #'.$record->getKey(),
-        };
-
+        $label = app(PublicSlugRegistry::class)->labelFor($record);
         $slug = $record->getAttribute('slug');
 
-        return filled($slug)
-            ? "{$name} ({$slug})"
-            : $name;
+        return is_string($slug) && trim($slug) !== ''
+            ? "{$label} (".trim($slug).')'
+            : $label;
     }
 }
