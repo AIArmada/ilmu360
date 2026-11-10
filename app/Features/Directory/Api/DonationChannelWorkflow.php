@@ -24,4 +24,11 @@ interface DonationChannelWorkflow
      * @param  list<string>  $channelIds
      */
     public function restoreVerifier(string $accountId, array $channelIds): void;
+
+    /**
+     * Delete donation channels through the owning feature; returns the deleted count.
+     *
+     * @param  list<string>  $channelIds
+     */
+    public function delete(array $channelIds): int;
 }

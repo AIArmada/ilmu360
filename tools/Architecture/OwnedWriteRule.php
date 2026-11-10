@@ -31,7 +31,7 @@ use PHPStan\Type\Type;
 /** @implements Rule<Node\Expr> */
 final class OwnedWriteRule implements Rule
 {
-    /** @var array{features: array<string, string>, owners: array<string, string>, writes: array<string, list<string>>} */
+    /** @var array{features: array<string, string>, owners: array<string, string>, writes: array<string, list<string>>, aliases: array<string, array<string, string>>} */
     private array $catalog;
 
     /** @var array<class-string, string|null> */
@@ -94,7 +94,8 @@ final class OwnedWriteRule implements Rule
         $feature = preg_match('~^app/Features/([^/]+)/~', $relative, $match) ? $match[1] : null;
         $class = $scope->getClassReflection()?->getName();
         $resources = $class === null ? [] : ($this->catalog['writes'][$class] ?? []);
-        $resource = $database ? $this->tableResource($node) : null;
+        $resource = $database ? $this->tableResource($node, $feature) : null;
+        $resource ??= $this->aliasResource($node, $feature);
         $modelClasses = $type->getObjectClassNames();
         $relatedTypes = [
             $type->getTemplateType(Builder::class, 'TModel'),
@@ -155,7 +156,7 @@ final class OwnedWriteRule implements Rule
         return false;
     }
 
-    private function tableResource(Node\Expr $node): ?string
+    private function tableResource(Node\Expr $node, ?string $feature = null): ?string
     {
         while ($node instanceof Node\Expr\MethodCall || $node instanceof Node\Expr\NullsafeMethodCall || $node instanceof Node\Expr\StaticCall) {
             if ($node->name instanceof Node\Identifier && in_array(strtolower($node->name->toString()), ['table', 'from'], true)
@@ -163,12 +164,39 @@ final class OwnedWriteRule implements Rule
                 return 'table:'.$node->args[0]->value->value;
             }
             if ($node instanceof Node\Expr\StaticCall) {
+                // Chained alias writes, e.g. DirectoryModel::query('institution')->where(...)->delete().
+                $aliasResource = $this->aliasResource($node, $feature);
+                if ($aliasResource !== null) {
+                    return $aliasResource;
+                }
                 break;
             }
             $node = $node->var;
         }
 
         return null;
+    }
+
+    private function aliasResource(Node\Expr $node, ?string $feature): ?string
+    {
+        if ($feature === null || ! $node instanceof Node\Expr\StaticCall) {
+            return null;
+        }
+        if (! $node->class instanceof Node\Name || ! $node->name instanceof Node\Identifier) {
+            return null;
+        }
+        if (! in_array(strtolower($node->name->toString()), ['query', 'new'], true)) {
+            return null;
+        }
+        if (! str_ends_with($node->class->toString(), 'DirectoryModel')) {
+            return null;
+        }
+        $argument = $node->args[0]->value ?? null;
+        if (! $argument instanceof Node\Scalar\String_) {
+            return null;
+        }
+
+        return $this->catalog['aliases'][$feature][$argument->value] ?? null;
     }
 
     private function modelResource(string $model): ?string

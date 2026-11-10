@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\DonationChannels\Tables;
 
+use App\Features\Directory\Api\DonationChannelWorkflow;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Filament\Resources\Persons\PersonResource;
 use App\Models\Institution;
@@ -14,6 +15,8 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Collection;
+use Throwable;
 
 class DonationChannelsTable
 {
@@ -87,7 +90,28 @@ class DonationChannelsTable
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
-                        ->authorizeIndividualRecords('delete'),
+                        ->authorizeIndividualRecords('delete')
+                        ->using(function (DeleteBulkAction $action, Collection $records): void {
+                            try {
+                                $deleted = app(DonationChannelWorkflow::class)->delete(
+                                    $records->modelKeys(),
+                                );
+                            } catch (Throwable $exception) {
+                                report($exception);
+
+                                $action->reportCompleteBulkProcessingFailure();
+
+                                return;
+                            }
+
+                            if ($deleted > 0) {
+                                $action->reportBulkProcessingSuccessfulRecordsCount($deleted);
+                            }
+
+                            if ($deleted < $records->count()) {
+                                $action->reportBulkProcessingFailure();
+                            }
+                        }),
                 ]),
             ]);
     }

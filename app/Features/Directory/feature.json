@@ -12,7 +12,8 @@
       "App\\Features\\Directory\\Actions\\Institutions\\InstitutionSubmissionAccessAction",
       "App\\Features\\Directory\\Actions\\Institutions\\ChangeInstitutionStatusAction",
       "App\\Features\\Directory\\Actions\\Institutions\\DetachInstitutionVerifierAction",
-      "App\\Features\\Directory\\Actions\\Institutions\\RestoreInstitutionVerifierAction"
+      "App\\Features\\Directory\\Actions\\Institutions\\RestoreInstitutionVerifierAction",
+      "App\\Features\\Directory\\Actions\\Institutions\\DeleteInstitutionAction"
     ],
     "table:institution_names": [
       "App\\Features\\Directory\\Actions\\Institutions\\EnforceSinglePrimaryInstitutionNameAction",
@@ -27,10 +28,17 @@
       "App\\Features\\Directory\\Actions\\DonationChannels\\TransitionDonationChannelStatusAction",
       "App\\Features\\Directory\\Actions\\Institutions\\SyncInstitutionDonationChannelsAction",
       "App\\Features\\Directory\\Actions\\DonationChannels\\DetachDonationChannelVerifierAction",
-      "App\\Features\\Directory\\Actions\\DonationChannels\\RestoreDonationChannelVerifierAction"
+      "App\\Features\\Directory\\Actions\\DonationChannels\\RestoreDonationChannelVerifierAction",
+      "App\\Features\\Directory\\Actions\\DonationChannels\\DeleteDonationChannelAction"
     ],
     "store:institution-submission": [
       "App\\Features\\Directory\\Persistence\\InstitutionSubmissionCache"
     ]
+  },
+  "aliases": {
+    "institution": "table:institutions",
+    "institution_name": "table:institution_names",
+    "institution_import_exclusion": "table:institution_import_exclusions",
+    "donation_channel": "table:donation_channels"
   }
 }

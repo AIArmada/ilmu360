@@ -7,6 +7,7 @@ namespace App\Features\Directory\Services;
 use App\Features\Directory\Actions\Institutions\ApplyInstitutionContributionAction;
 use App\Features\Directory\Actions\Institutions\ChangeInstitutionStatusAction;
 use App\Features\Directory\Actions\Institutions\CreateInstitutionAction;
+use App\Features\Directory\Actions\Institutions\DeleteInstitutionAction;
 use App\Features\Directory\Actions\Institutions\DetachInstitutionVerifierAction;
 use App\Features\Directory\Actions\Institutions\EnforceSinglePrimaryInstitutionNameAction;
 use App\Features\Directory\Actions\Institutions\GenerateInstitutionSlugAction;
@@ -40,6 +41,7 @@ final readonly class InstitutionWorkflowService implements InstitutionWorkflow
         private EnforceSinglePrimaryInstitutionNameAction $enforceSinglePrimaryName,
         private SaveInstitutionAction $saveInstitution,
         private ChangeInstitutionStatusAction $changeInstitutionStatus,
+        private DeleteInstitutionAction $deleteInstitution,
         private DetachInstitutionVerifierAction $detachVerifier,
         private RestoreInstitutionVerifierAction $restoreVerifier,
     ) {}
@@ -154,6 +156,18 @@ final readonly class InstitutionWorkflowService implements InstitutionWorkflow
         $name->setAttribute('is_primary', $isPrimary);
         $name->setAttribute('institution_id', $institutionId);
         $this->enforceSinglePrimaryName->handle($name);
+    }
+
+    public function delete(array $institutionIds): int
+    {
+        $deleted = 0;
+
+        foreach (DirectoryModel::query('institution')->whereKey($institutionIds)->get() as $institution) {
+            $this->deleteInstitution->handle($institution);
+            $deleted++;
+        }
+
+        return $deleted;
     }
 
     private function institution(string $institutionId): Model

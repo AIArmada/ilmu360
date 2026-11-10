@@ -9,10 +9,10 @@ use RuntimeException;
 /** Source-controlled ownership metadata; no database, container or parser dependency. */
 final class FeatureCatalog
 {
-    /** @return array{features: array<string, string>, owners: array<string, string>, writes: array<string, list<string>>} */
+    /** @return array{features: array<string, string>, owners: array<string, string>, writes: array<string, list<string>>, aliases: array<string, array<string, string>>} */
     public static function load(string $root): array
     {
-        $features = $owners = $writes = [];
+        $features = $owners = $writes = $aliases = [];
         $paths = glob($root.'/app/Features/*', GLOB_ONLYDIR) ?: [];
         sort($paths, SORT_STRING);
 
@@ -52,8 +52,20 @@ final class FeatureCatalog
                     $writes[$class][] = $resource;
                 }
             }
+
+            $declaredAliases = $data['aliases'] ?? [];
+            if (! is_array($declaredAliases)) {
+                throw new RuntimeException("{$path}: aliases must be an object mapping alias to owned resource.");
+            }
+            foreach ($declaredAliases as $alias => $aliasResource) {
+                if (! is_string($alias) || ! preg_match('/^[a-z][a-z0-9_]*$/D', $alias)
+                    || ! is_string($aliasResource) || ! isset($data['owns'][$aliasResource])) {
+                    throw new RuntimeException("{$path}: alias [{$alias}] must map to a resource owned by this feature.");
+                }
+                $aliases[$name][$alias] = $aliasResource;
+            }
         }
 
-        return ['features' => $features, 'owners' => $owners, 'writes' => $writes];
+        return ['features' => $features, 'owners' => $owners, 'writes' => $writes, 'aliases' => $aliases];
     }
 }

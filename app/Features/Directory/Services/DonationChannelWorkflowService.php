@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Directory\Services;
 
+use App\Features\Directory\Actions\DonationChannels\DeleteDonationChannelAction;
 use App\Features\Directory\Actions\DonationChannels\DemoteDefaultDonationChannelsAction;
 use App\Features\Directory\Actions\DonationChannels\DetachDonationChannelVerifierAction;
 use App\Features\Directory\Actions\DonationChannels\RestoreDonationChannelVerifierAction;
@@ -23,6 +24,7 @@ final readonly class DonationChannelWorkflowService implements DonationChannelWo
         private SaveDonationChannelAction $saveChannel,
         private DetachDonationChannelVerifierAction $detachVerifier,
         private RestoreDonationChannelVerifierAction $restoreVerifier,
+        private DeleteDonationChannelAction $deleteChannel,
     ) {}
 
     public function save(array $data, ?string $channelId = null): string
@@ -74,5 +76,17 @@ final readonly class DonationChannelWorkflowService implements DonationChannelWo
     public function restoreVerifier(string $accountId, array $channelIds): void
     {
         $this->restoreVerifier->handle($accountId, $channelIds);
+    }
+
+    public function delete(array $channelIds): int
+    {
+        $deleted = 0;
+
+        foreach (DirectoryModel::query('donation_channel')->whereKey($channelIds)->get() as $channel) {
+            $this->deleteChannel->handle($channel);
+            $deleted++;
+        }
+
+        return $deleted;
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Institutions\Tables;
 
+use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -13,6 +14,8 @@ use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Collection;
+use Throwable;
 
 class InstitutionsTable
 {
@@ -63,7 +66,28 @@ class InstitutionsTable
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
-                        ->authorizeIndividualRecords('delete'),
+                        ->authorizeIndividualRecords('delete')
+                        ->using(function (DeleteBulkAction $action, Collection $records): void {
+                            try {
+                                $deleted = app(InstitutionWorkflow::class)->delete(
+                                    $records->modelKeys(),
+                                );
+                            } catch (Throwable $exception) {
+                                report($exception);
+
+                                $action->reportCompleteBulkProcessingFailure();
+
+                                return;
+                            }
+
+                            if ($deleted > 0) {
+                                $action->reportBulkProcessingSuccessfulRecordsCount($deleted);
+                            }
+
+                            if ($deleted < $records->count()) {
+                                $action->reportBulkProcessingFailure();
+                            }
+                        }),
                 ]),
             ]);
     }

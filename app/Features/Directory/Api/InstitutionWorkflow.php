@@ -80,4 +80,11 @@ interface InstitutionWorkflow
     public function recordImportExclusion(string $source, string $externalRef, string $institutionId): void;
 
     public function enforceSinglePrimaryName(string $nameId, string $institutionId, bool $isPrimary): void;
+
+    /**
+     * Delete institutions through the owning feature; returns the deleted count.
+     *
+     * @param  list<string>  $institutionIds
+     */
+    public function delete(array $institutionIds): int;
 }

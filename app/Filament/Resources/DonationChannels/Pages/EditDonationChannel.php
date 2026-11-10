@@ -25,7 +25,12 @@ class EditDonationChannel extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            DeleteAction::make(),
+            DeleteAction::make()
+                ->using(function (Model $record): bool {
+                    app(DonationChannelWorkflow::class)->delete([(string) $record->getKey()]);
+
+                    return true;
+                }),
         ];
     }
 }
