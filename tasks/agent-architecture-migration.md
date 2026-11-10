@@ -5,12 +5,12 @@
 ## Resume here
 
 - Current checkpoint: the whole **ilmu360°** application conversion remains incomplete. Branch `refactor`.
-- Latest accepted implementation checkpoint `ba653602` — Directory S0 boundary/strangler (mutually agreed; GlobalReportSubjectResolver gone). Previous batch: A (`b5467eff`), T (`c86259fe`), C (`1fb2521c`), R (`8bc98be0`), S (`7b80c6e4`), M (`9e453d87`), P1 (`6e0514e2`), P2 (`cf63f822`), P3 (`aa5bd2df`), countries follow-up (`ec672fe4`).
+- Latest accepted implementation checkpoint `49b02796` — Directory S0b relation adapter (Muse-reviewed, AGREE). Previous: `ba653602` — S0 boundary.
 - Done: GitHubIssues; Prayer; Saved Searches (persistence, core, query/execution, attribution, identity/helpers, atomic transport/page cutover); Feedback/Reports (seams, both features, admin/MCP composition); Inspirations; Identity I0–I6 (seams, lifecycle, foundation, Directory/Membership + Events/Moderation/Contributions cutovers, reverse-relation migration, transport cutover); Platform D1 seams (A/C/M/R/T/S/P1/P2/P3); Directory S0 boundary.
 - Do not reintroduce `User::savedSearches()`, a mutable Event paginator across the execution boundary, duplicate key lists, or obsolete taxonomy/addressing aliases.
 - Latest passing evidence (Directory S0): arch 0/**9 features**; DirectorySeams 10/10 + affected batch 41/41 green; Pint clean; PHPStan 6 + ownership 0 errors; routes identical. Per-slice D1 logs in history.
 
-## Next action — Directory D1 (S0 landed, S0b in review)
+## Next action — Directory D1 packages (S0/S0b landed)
 
 - Identity I0–I6, Saved Searches, Feedback/Reports, Inspirations all committed per plan. Platform D1 batch landed: A, C, M, R, T, S, P1, P2, P3 (evidence in history).
 - D1 reconcile plan accepted (research-only, no edits): all Platform/Shared prerequisites satisfied; two temporary adapters remain necessary (morph-alias cross-feature model resolver; composite report-subject resolver). Slice order: S0 boundary/strangler + S0b relation adapter → packages S1→S6. Language ruling corrected: shared catalog, not Directory-owned. Donation channels pulled forward into S1 (or short-lived writer port).
@@ -42,7 +42,7 @@
 - [x] Inspirations: app-owned table, Save action, Filament via named actions, reader/card + admin contract, public endpoint, feature routes + provider (done `8ac9d8b8`, mutually agreed; dormant `last_state_change_at` preserved).
 - [x] Identity/accounts: I0–I6 done (seams, lifecycle, foundation, Directory/Membership cutover, Events/Moderation/Contributions cutover + fixes, reverse-relation migration, transport cutover); `User` conventional with auth scaffolding only.
 - [x] Platform/shared seams: D1-A/C/M/R/T/S + P1/P2/P3 landed (addressing canonicalization, cache primitives, media fold, routing registry, telemetry recorder, search dispatcher, API responses, auth placement, timezone). Remaining: Directory D1 move.
-- [ ] Directory: S0 boundary/strangler landed (`ba653602`); S0b relations in review; then packages S1 institutions (+bridges/donation channels) → S2 persons → S3 references → S4 venues/spaces → S5 bridges → S6a donation channels (if not folded) / S6b languages as shared catalog. Rulings: literal `$table` + explicit `getTable()` for config-overridden package models; `MediaLink` → Events; `person_search_terms` → Directory projection; `ContributionEntityMutationService` stays out; Series stays Events; languages are cross-feature (Platform/Shared), not Directory-owned. Temporary adapters: morph-alias resolver + composite report-subject resolver.
+- [ ] Directory: S0 + S0b landed (`ba653602`, `49b02796`); next S1 institutions (+bridges/donation channels) → S2 persons → S3 references → S4 venues/spaces → S5 bridges → S6a donation channels (if not folded) / S6b languages as shared catalog. Rulings: literal `$table` + explicit `getTable()` for config-overridden package models; `MediaLink` → Events; `person_search_terms` → Directory projection; `ContributionEntityMutationService` stays out; Series stays Events; languages are cross-feature (Platform/Shared), not Directory-owned. Temporary adapters: morph-alias resolver + composite report-subject resolver.
 - [ ] Organizations: current-owner context, workspace, readiness/access contracts; package remains canonical persistence owner.
 - [ ] Membership: applications/invitations and institution/person/reference/event membership pivots, roles and atomic ownership transfer.
 - [ ] Events authoring/submission/scheduling: events, occurrences/sessions, series/items, classifications, involvements, references, lifecycle and slugs.
