@@ -42,6 +42,8 @@ final readonly class CreateInstitutionAction
             'type' => $this->normalizeType($payload['type'] ?? null),
             'description' => $payload['description'] ?? null,
             'status' => $verified ? InstitutionStatus::Verified : InstitutionStatus::Pending,
+            'verified_at' => $verified ? now() : null,
+            'last_state_change_at' => $verified ? now() : null,
             'allow_public_event_submission' => true,
         ]);
 

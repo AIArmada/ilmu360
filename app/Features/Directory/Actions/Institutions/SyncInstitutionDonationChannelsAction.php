@@ -7,6 +7,7 @@ namespace App\Features\Directory\Actions\Institutions;
 use App\Features\Directory\Actions\DonationChannels\SaveDonationChannelAction;
 use App\Features\Directory\Support\DirectoryModel;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Reconcile the institution's donation channels with a submitted row set.
@@ -17,11 +18,24 @@ final readonly class SyncInstitutionDonationChannelsAction
 
     public function handle(Model $institution, mixed $donationChannelsPayload): void
     {
-        $rows = collect(is_array($donationChannelsPayload) ? $donationChannelsPayload : [])
+        $submittedRows = collect(is_array($donationChannelsPayload) ? $donationChannelsPayload : [])
+            ->values();
+
+        $rows = $submittedRows
+            ->filter(fn (mixed $value): bool => is_array($value))
             ->values()
-            ->map(fn (mixed $row): ?array => is_array($row) ? $this->normalizeRow($row) : null)
+            ->map(fn (array $row): ?array => $this->normalizeRow($row))
             ->filter()
             ->values();
+
+        // Every submitted row must normalize: a partially filled row is a
+        // caller error, not an empty row, and dropping it silently would lose
+        // data the contributor believes was saved.
+        if ($submittedRows->count() !== $rows->count()) {
+            throw ValidationException::withMessages([
+                'data.donation_channels' => __('Every donation channel must be complete before submitting.'),
+            ]);
+        }
 
         $institutionId = (string) $institution->getKey();
         $existing = DirectoryModel::query('donation_channel')
@@ -48,11 +62,14 @@ final readonly class SyncInstitutionDonationChannelsAction
             $matchedIds[] = $match->getKey();
         }
 
+        // Delete through the models so Spatie media cleanup and model audits
+        // run for removed channels instead of orphaning their QR media.
         if ($matchedIds === []) {
             DirectoryModel::query('donation_channel')
                 ->where('donatable_type', $institution->getMorphClass())
                 ->where('donatable_id', $institutionId)
-                ->delete();
+                ->get()
+                ->each->delete();
 
             return;
         }
@@ -61,7 +78,8 @@ final readonly class SyncInstitutionDonationChannelsAction
             ->where('donatable_type', $institution->getMorphClass())
             ->where('donatable_id', $institutionId)
             ->whereKeyNot($matchedIds)
-            ->delete();
+            ->get()
+            ->each->delete();
     }
 
     /**
