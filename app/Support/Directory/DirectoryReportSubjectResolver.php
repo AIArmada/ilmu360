@@ -2,44 +2,48 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Reports;
+namespace App\Support\Directory;
 
-use AIArmada\FilamentEvents\Resources\EventResource;
+use App\Features\Directory\Api\DirectoryReportSubjectProvider;
 use App\Filament\Resources\DonationChannels\DonationChannelResource;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Filament\Resources\Persons\PersonResource;
 use App\Filament\Resources\References\ReferenceResource;
 use App\Models\DonationChannel;
-use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
+use App\Platform\Models\MorphModelResolver;
 use App\Shared\Reports\ReportSubject;
 use App\Shared\Reports\ReportSubjectPresentation;
-use App\Shared\Reports\ReportSubjectResolver;
 use App\Shared\Reports\ReportSubjectType;
 use App\Support\Models\SlugOrUuidResolver;
 use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
 
 /**
- * @internal Interim global adapter until Directory and Events expose their own
- * report subject APIs. Reports depend only on the Shared contract, so this
- * model-aware implementation is reused as a temporary seam rather than a
- * feature exception.
+ * Interim Directory-only report subject provider.
+ *
+ * Reports composes it with the interim Events provider until Events exposes its
+ * own subject API. Querying through morph aliases keeps the adapter free of
+ * feature-private imports when the models move.
+ *
+ * @internal
  */
-final readonly class GlobalReportSubjectResolver implements ReportSubjectResolver
+final readonly class DirectoryReportSubjectResolver implements DirectoryReportSubjectProvider
 {
     public function __construct(
         private SlugOrUuidResolver $slugOrUuidResolver,
     ) {}
 
-    /**
-     * @return list<string>
-     */
     public function validKeys(): array
     {
-        return ReportSubjectType::keys();
+        return [
+            ReportSubjectType::Institution->value,
+            ReportSubjectType::Person->value,
+            ReportSubjectType::Reference->value,
+            ReportSubjectType::DonationChannel->value,
+        ];
     }
 
     public function label(string $typeKey): string
@@ -51,7 +55,7 @@ final readonly class GlobalReportSubjectResolver implements ReportSubjectResolve
     {
         $type = ReportSubjectType::tryFrom($typeKey);
 
-        if (! $type instanceof ReportSubjectType || trim($entityId) === '') {
+        if (! $type instanceof ReportSubjectType || $type === ReportSubjectType::Event || trim($entityId) === '') {
             return false;
         }
 
@@ -62,7 +66,7 @@ final readonly class GlobalReportSubjectResolver implements ReportSubjectResolve
     {
         $type = ReportSubjectType::tryFrom($typeKey);
 
-        if (! $type instanceof ReportSubjectType || trim($entityId) === '') {
+        if (! $type instanceof ReportSubjectType || $type === ReportSubjectType::Event || trim($entityId) === '') {
             return null;
         }
 
@@ -75,16 +79,16 @@ final readonly class GlobalReportSubjectResolver implements ReportSubjectResolve
     {
         $type = ReportSubjectType::tryFrom($typeKey);
 
-        if (! $type instanceof ReportSubjectType || trim($identifier) === '') {
+        if (! $type instanceof ReportSubjectType || $type === ReportSubjectType::Event || trim($identifier) === '') {
             return null;
         }
 
+        $modelClass = $this->modelClass($type);
         $model = match ($type) {
-            ReportSubjectType::Event => $this->slugOrUuidResolver->first(Event::query(), 'events.slug', $identifier),
-            ReportSubjectType::Institution => $this->slugOrUuidResolver->first(Institution::query(), 'institutions.slug', $identifier),
-            ReportSubjectType::Person => $this->slugOrUuidResolver->first(Person::query(), 'persons.slug', $identifier),
-            ReportSubjectType::Reference => $this->slugOrUuidResolver->first(Reference::query(), 'references.slug', $identifier),
-            ReportSubjectType::DonationChannel => DonationChannel::query()->find($identifier),
+            ReportSubjectType::Institution => $this->slugOrUuidResolver->first($modelClass::query(), 'institutions.slug', $identifier),
+            ReportSubjectType::Person => $this->slugOrUuidResolver->first($modelClass::query(), 'persons.slug', $identifier),
+            ReportSubjectType::Reference => $this->slugOrUuidResolver->first($modelClass::query(), 'references.slug', $identifier),
+            ReportSubjectType::DonationChannel => $modelClass::query()->find($identifier),
         };
 
         return $model instanceof Model ? $this->subject($type, $model) : null;
@@ -108,18 +112,21 @@ final readonly class GlobalReportSubjectResolver implements ReportSubjectResolve
 
     private function type(string $typeKey): ReportSubjectType
     {
-        return ReportSubjectType::tryFrom($typeKey)
-            ?? throw new InvalidArgumentException("Unsupported entity type [{$typeKey}]");
+        $type = ReportSubjectType::tryFrom($typeKey);
+
+        return $type instanceof ReportSubjectType && $type !== ReportSubjectType::Event
+            ? $type
+            : throw new InvalidArgumentException("Unsupported Directory report subject [{$typeKey}]");
     }
 
     private function labelFor(ReportSubjectType $type): string
     {
         return match ($type) {
-            ReportSubjectType::Event => __('Event'),
             ReportSubjectType::Institution => __('Institution'),
             ReportSubjectType::Person => __('Speaker'),
             ReportSubjectType::Reference => __('Reference'),
             ReportSubjectType::DonationChannel => __('Donation Channel'),
+            ReportSubjectType::Event => throw new InvalidArgumentException('Events are not a Directory report subject.'),
         };
     }
 
@@ -128,13 +135,13 @@ final readonly class GlobalReportSubjectResolver implements ReportSubjectResolve
      */
     private function modelClass(ReportSubjectType $type): string
     {
-        return match ($type) {
-            ReportSubjectType::Event => Event::class,
-            ReportSubjectType::Institution => Institution::class,
-            ReportSubjectType::Person => Person::class,
-            ReportSubjectType::Reference => Reference::class,
-            ReportSubjectType::DonationChannel => DonationChannel::class,
-        };
+        return MorphModelResolver::resolve(match ($type) {
+            ReportSubjectType::Institution => 'institution',
+            ReportSubjectType::Person => 'person',
+            ReportSubjectType::Reference => 'reference',
+            ReportSubjectType::DonationChannel => 'donation_channel',
+            ReportSubjectType::Event => throw new InvalidArgumentException('Events are not a Directory report subject.'),
+        });
     }
 
     private function subject(ReportSubjectType $type, Model $model): ReportSubject
@@ -149,14 +156,13 @@ final readonly class GlobalReportSubjectResolver implements ReportSubjectResolve
             slug: $this->slug($model),
             publicUrl: $this->publicUrl($model),
             adminUrl: $this->adminUrl($model),
-            imageUrl: $this->imageUrl($model),
+            imageUrl: $model instanceof Person ? $model->public_main_url : null,
         );
     }
 
     private function title(Model $model, string $fallbackTitle): string
     {
         return match (true) {
-            $model instanceof Event => filled($model->title) ? (string) $model->title : $fallbackTitle,
             $model instanceof Institution => filled($model->name) ? (string) $model->name : $fallbackTitle,
             $model instanceof Person => filled($model->formatted_name) ? (string) $model->formatted_name : $fallbackTitle,
             $model instanceof Reference => filled($model->title) ? (string) $model->title : $fallbackTitle,
@@ -170,7 +176,6 @@ final readonly class GlobalReportSubjectResolver implements ReportSubjectResolve
     private function slug(Model $model): ?string
     {
         return match (true) {
-            $model instanceof Event => (string) $model->slug,
             $model instanceof Institution => (string) $model->slug,
             $model instanceof Person => (string) $model->slug,
             $model instanceof Reference => (string) $model->slug,
@@ -181,7 +186,6 @@ final readonly class GlobalReportSubjectResolver implements ReportSubjectResolve
     private function publicUrl(Model $model): ?string
     {
         return match (true) {
-            $model instanceof Event => route('events.show', $model),
             $model instanceof Institution => route('institutions.show', $model),
             $model instanceof Person => route('persons.show', $model),
             $model instanceof Reference => route('references.show', $model),
@@ -192,17 +196,11 @@ final readonly class GlobalReportSubjectResolver implements ReportSubjectResolve
     private function adminUrl(Model $model): ?string
     {
         return match (true) {
-            $model instanceof Event => EventResource::getUrl('view', ['record' => $model], panel: 'admin'),
             $model instanceof Institution => InstitutionResource::getUrl('edit', ['record' => $model], panel: 'admin'),
             $model instanceof Person => PersonResource::getUrl('edit', ['record' => $model], panel: 'admin'),
             $model instanceof Reference => ReferenceResource::getUrl('edit', ['record' => $model], panel: 'admin'),
             $model instanceof DonationChannel => DonationChannelResource::getUrl('edit', ['record' => $model], panel: 'admin'),
             default => null,
         };
-    }
-
-    private function imageUrl(Model $model): ?string
-    {
-        return $model instanceof Person ? $model->public_main_url : null;
     }
 }
