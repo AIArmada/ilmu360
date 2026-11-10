@@ -5,9 +5,7 @@
 ## Resume here
 
 - Current checkpoint: the whole **ilmu360°** application conversion remains incomplete. Branch `refactor`.
-- Latest accepted implementation checkpoint `d236c3dd` — Directory S1 institutions + donation channels ownership (Muse ACCEPT + two orchestrator fixes). Previous: `49b02796` — S0b.
-
-- Deferred follow-ups (Directory S1): teach `OwnedWriteRule` the `DirectoryModel::query('alias')` alias→table mapping; route Filament `DeleteBulkAction` for institutions/donation channels through Directory workflow.
+- Latest accepted implementation checkpoint `dd5f0b39` — S1 follow-ups closed (owner-routed Filament deletes + precise alias write rule), Muse-reviewed AGREE. Previous: `97892644` — S1 docs.
 - Done: GitHubIssues; Prayer; Saved Searches (persistence, core, query/execution, attribution, identity/helpers, atomic transport/page cutover); Feedback/Reports (seams, both features, admin/MCP composition); Inspirations; Identity I0–I6 (seams, lifecycle, foundation, Directory/Membership + Events/Moderation/Contributions cutovers, reverse-relation migration, transport cutover); Platform D1 seams (A/C/M/R/T/S/P1/P2/P3); Directory S0 boundary.
 - Do not reintroduce `User::savedSearches()`, a mutable Event paginator across the execution boundary, duplicate key lists, or obsolete taxonomy/addressing aliases.
 - Latest passing evidence (Directory S0): arch 0/**9 features**; DirectorySeams 10/10 + affected batch 41/41 green; Pint clean; PHPStan 6 + ownership 0 errors; routes identical. Per-slice D1 logs in history.
