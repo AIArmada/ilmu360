@@ -6,11 +6,11 @@
 
 - Current checkpoint: the whole **ilmu360°** application conversion remains incomplete. Branch `refactor`.
 - Latest accepted implementation checkpoint `ba653602` — Directory S0 boundary/strangler (mutually agreed; GlobalReportSubjectResolver gone). Previous batch: A (`b5467eff`), T (`c86259fe`), C (`1fb2521c`), R (`8bc98be0`), S (`7b80c6e4`), M (`9e453d87`), P1 (`6e0514e2`), P2 (`cf63f822`), P3 (`aa5bd2df`), countries follow-up (`ec672fe4`).
-- Done: GitHubIssues; Prayer; Saved Searches (persistence, core, query/execution, attribution, identity/helpers, atomic transport/page cutover); Feedback/Reports (seams, both features, admin/MCP composition); Inspirations; Identity I0–I4 (seams, lifecycle, foundation, Directory/Membership cutover, Events/Moderation/Contributions cutover + fixes).
+- Done: GitHubIssues; Prayer; Saved Searches (persistence, core, query/execution, attribution, identity/helpers, atomic transport/page cutover); Feedback/Reports (seams, both features, admin/MCP composition); Inspirations; Identity I0–I6 (seams, lifecycle, foundation, Directory/Membership + Events/Moderation/Contributions cutovers, reverse-relation migration, transport cutover); Platform D1 seams (A/C/M/R/T/S/P1/P2/P3); Directory S0 boundary.
 - Do not reintroduce `User::savedSearches()`, a mutable Event paginator across the execution boundary, duplicate key lists, or obsolete taxonomy/addressing aliases.
-- Latest passing evidence (D1-A follow-up): regression test green (500 pre-fix, 201 post-fix); PHPStan 6 + ownership 0 errors; arch 0/8; full D1 batch suites green per slice logs. Detailed logs in history.
+- Latest passing evidence (Directory S0): arch 0/**9 features**; DirectorySeams 10/10 + affected batch 41/41 green; Pint clean; PHPStan 6 + ownership 0 errors; routes identical. Per-slice D1 logs in history.
 
-## Next action — Directory D1 (platform seams landed)
+## Next action — Directory D1 (S0 landed, S0b in review)
 
 - Identity I0–I6, Saved Searches, Feedback/Reports, Inspirations all committed per plan. Platform D1 batch landed: A, C, M, R, T, S, P1, P2, P3 (evidence in history).
 - D1 reconcile plan accepted (research-only, no edits): all Platform/Shared prerequisites satisfied; two temporary adapters remain necessary (morph-alias cross-feature model resolver; composite report-subject resolver). Slice order: S0 boundary/strangler + S0b relation adapter → packages S1→S6. Language ruling corrected: shared catalog, not Directory-owned. Donation channels pulled forward into S1 (or short-lived writer port).
@@ -37,7 +37,7 @@
 ## Remaining application parts
 
 - [x] Saved Searches: persistence, core, query/execution boundaries, attribution orchestration, identity/generic helpers, atomic transport/page cutover (done `69244285`; evidence in history).
-- [x] Feedback/reports: Slice 0 seams, Slice 1 Feedback feature, Slice 2a Reports move + composition, Slice 3 cleanup verified (arch 0/5, PHPStan 0, routes 738/736, AppFeedback 88/429 + report/lifecycle/admin suites green). `ModerationReview` stays with Events/package. Interim seams: GlobalReportSubjectResolver/GlobalReportEscalation until Directory/Events APIs exist.
+- [x] Feedback/reports: Slice 0 seams, Slice 1 Feedback feature, Slice 2a Reports move + composition, Slice 3 cleanup verified (arch 0/5, PHPStan 0, routes 738/736, AppFeedback 88/429 + report/lifecycle/admin suites green). `ModerationReview` stays with Events/package. Interim seams: `GlobalReportEscalation` only (Event-only); `GlobalReportSubjectResolver` replaced by Composite/Event/Directory resolvers in Directory S0.
 - [x] Inspirations: app-owned table, Save action, Filament via named actions, reader/card + admin contract, public endpoint, feature routes + provider (done `8ac9d8b8`, mutually agreed; dormant `last_state_change_at` preserved).
 - [x] Identity/accounts: I0–I6 done (seams, lifecycle, foundation, Directory/Membership cutover, Events/Moderation/Contributions cutover + fixes, reverse-relation migration, transport cutover); `User` conventional with auth scaffolding only.
 - [x] Platform/shared seams: D1-A/C/M/R/T/S + P1/P2/P3 landed (addressing canonicalization, cache primitives, media fold, routing registry, telemetry recorder, search dispatcher, API responses, auth placement, timezone). Remaining: Directory D1 move.
