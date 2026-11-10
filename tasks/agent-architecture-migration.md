@@ -5,15 +5,15 @@
 ## Resume here
 
 - Current checkpoint: the whole **ilmu360°** application conversion remains incomplete. Branch `refactor`.
-- Latest accepted implementation checkpoint `0b786c9d` — Identity I4 cutover + fixes (mutually agreed; retention instead of deletion, applicant-key fix, FQCN→alias migration). Previous `d147047f` — I3.
+- Latest accepted implementation checkpoint `96f612d6` — Identity I5 migration (mutually agreed; 4 pre-existing label failures verified unrelated). Previous `0b786c9d` — I4.
 - Done: GitHubIssues; Prayer; Saved Searches (persistence, core, query/execution, attribution, identity/helpers, atomic transport/page cutover); Feedback/Reports (seams, both features, admin/MCP composition); Inspirations; Identity I0–I4 (seams, lifecycle, foundation, Directory/Membership cutover, Events/Moderation/Contributions cutover + fixes).
 - Do not reintroduce `User::savedSearches()`, a mutable Event paginator across the execution boundary, duplicate key lists, or obsolete taxonomy/addressing aliases.
 - Latest passing evidence (Identity I4): final batch 470/470 (2,654 assertions); PHPStan level 6 0 errors; architecture-check 0 violations (8 features); Pint clean; scoped Rector: 1 dead-docblock fix applied, Fillable/Table/Hidden attribute conversions rejected (checker requires literal `$table`), migration string literals kept as historical record; routes 738 identical uncached, cache cleared. Detailed logs in history.
 
-## Next action — Identity I5 + I6 (I4 complete)
+## Next action — Identity I6 + final (I5 complete)
 
 - I4 is done and committed (`0b786c9d`, DeepSeek-implemented + orchestrator-verified, mutual agreement). All stage gates passed including the previously deferred scoped Rector (now closed: see evidence line).
-- Next: I5 User reverse-relation + typed-hook migration (Membership/Directory/Events/Contributions/Engagement/Communications/AI consumers to feature APIs), then I6 transport/entry-point cutover + final verification. Fresh bounded DeepSeek tasks; stage gates per slice as before.
+- Next: I6 transport/entry-point cutover (Socialite, account settings, API auth/current-user/account, DeletedUsers) — move entry points to Identity, keep Fortify routes conventional — then final verification. Fresh bounded DeepSeek tasks; stage gates per slice as before.
 - Full whole-app conversion remains open; Identity I4 is complete.
 
 ## Execution ownership and required reading
@@ -39,7 +39,7 @@
 - [x] Saved Searches: persistence, core, query/execution boundaries, attribution orchestration, identity/generic helpers, atomic transport/page cutover (done `69244285`; evidence in history).
 - [x] Feedback/reports: Slice 0 seams, Slice 1 Feedback feature, Slice 2a Reports move + composition, Slice 3 cleanup verified (arch 0/5, PHPStan 0, routes 738/736, AppFeedback 88/429 + report/lifecycle/admin suites green). `ModerationReview` stays with Events/package. Interim seams: GlobalReportSubjectResolver/GlobalReportEscalation until Directory/Events APIs exist.
 - [x] Inspirations: app-owned table, Save action, Filament via named actions, reader/card + admin contract, public endpoint, feature routes + provider (done `8ac9d8b8`, mutually agreed; dormant `last_state_change_at` preserved).
-- [ ] Identity/accounts: I0–I4 done (seams, lifecycle, foundation, Directory/Membership cutover, Events/Moderation/Contributions cutover + fixes; `User` conventional, no `table:users`). Remaining: I5 reverse-relation migration, I6 transport cutover + final.
+- [ ] Identity/accounts: I0–I5 done (seams, lifecycle, foundation, Directory/Membership cutover, Events/Moderation/Contributions cutover + fixes, reverse-relation migration); `User` conventional with auth scaffolding only. Remaining: I6 transport cutover + final.
 - [ ] Platform/shared seams: media, geography/addressing, timezone, generic API responses, search and auditing integration; no concrete feature imports in Platform/Shared.
 - [ ] Directory: institutions/names/import exclusions, persons/names/titles/affiliations, references/contributors, venues/spaces, institution bridges, donation channels and languages. **D0 ownership map done** (DeepSeek research, orchestrator-accepted): one `App\Features\Directory` capability; hard prerequisites before any move are (a) minimal Identity/Membership seam (User reverse relations + `HasUserRestoration` Directory writes routed through public APIs, `event_involvements` FQCN→morph-alias migration) and (b) Platform/Shared D1 (media, auditing, geography/addressing split, cache, telemetry/auth/routing/search seams). Rulings: literal `$table` on feature models (drop unused env overrides); `MediaLink` → Events, not Directory; `person_search_terms`/`searchable_name` → Directory projection; `ContributionEntityMutationService` stays out; Series stays Events.
 - [ ] Organizations: current-owner context, workspace, readiness/access contracts; package remains canonical persistence owner.
