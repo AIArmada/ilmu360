@@ -684,3 +684,5 @@ Process correction: slice landings M/T/C/R/S never staged their old-path deletio
 D1-P3 timezone (`aa5bd2df`, AGREE): 3 formatters/resolver moved (renames detected by git); 74 call sites import-only; binding now Platform default; Shared contract untouched. 11 Blade FQCN swaps hand-merged (user hunks preserved). Full symmetric 151/151 diff. Evidence: arch 0/8; Pint; PHPStan 6 + ownership 0; timezone/reference suites green.
 
 D1-P1 API responses (`6e0514e2`, AGREE): factory/pagination/normalizer to Platform\Api; ApiErrorDetailsEnricher + Null + admin adapter (lazy, cost preserved); 13 controllers + services + bootstrap cut over; old paths deleted (zero refs). Reviewer commit-scope note checked: ContributionController carries only user concurrent work, no P1 import — excluded entirely. Evidence: arch 0/8; Pint; PHPStan 6 + ownership 0; AdminApi 90/1158 + ScrambleDocs 17/398; routes 738.
+
+D1-A follow-up (`ec672fe4`, AGREE): last hardcoded exists:countries,id → ModelResolver::countryClass() + regression test (500 pre-fix under renamed tables, 201 post-fix). Staged exactly 2 files.
