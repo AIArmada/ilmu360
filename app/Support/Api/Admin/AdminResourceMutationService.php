@@ -5,6 +5,7 @@ namespace App\Support\Api\Admin;
 use AIArmada\Addressing\Actions\SaveAddressAreaAction;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Addressing\Support\ModelResolver;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Enums\SocialPlatform;
@@ -1907,11 +1908,11 @@ class AdminResourceMutationService
             'allow_public_event_submission' => $updating ? ['sometimes', 'boolean'] : ['prohibited'],
             'address' => $addressRule,
             'address.country_id' => $updating
-                ? ['nullable', 'uuid', 'exists:'.config('addressing.tables.countries', 'countries').',id']
-                : ['required', 'uuid', 'exists:'.config('addressing.tables.countries', 'countries').',id'],
+                ? ['nullable', 'uuid', Rule::exists(ModelResolver::countryClass(), 'id')]
+                : ['required', 'uuid', Rule::exists(ModelResolver::countryClass(), 'id')],
             'address.area_assignments' => ['sometimes', 'array'],
-            'address.area_assignments.*' => ['nullable', 'uuid', 'exists:'.config('addressing.tables.areas', 'address_areas').',id'],
-            'address.state_id' => ['nullable', 'uuid', 'exists:'.config('addressing.tables.states', 'states').',id'],
+            'address.area_assignments.*' => ['nullable', 'uuid', Rule::exists(ModelResolver::areaClass(), 'id')],
+            'address.state_id' => ['nullable', 'uuid', Rule::exists(ModelResolver::stateClass(), 'id')],
             'address.line1' => ['nullable', 'string', 'max:255'],
             'address.line2' => ['nullable', 'string', 'max:255'],
             'address.postcode' => ['nullable', 'string', 'max:16'],
@@ -2188,11 +2189,11 @@ class AdminResourceMutationService
             'allow_public_event_submission' => $updating ? ['sometimes', 'boolean'] : ['prohibited'],
             'address' => $addressRule,
             'address.country_id' => $updating
-                ? ['nullable', 'uuid', 'exists:'.config('addressing.tables.countries', 'countries').',id']
-                : ['required', 'uuid', 'exists:'.config('addressing.tables.countries', 'countries').',id'],
+                ? ['nullable', 'uuid', Rule::exists(ModelResolver::countryClass(), 'id')]
+                : ['required', 'uuid', Rule::exists(ModelResolver::countryClass(), 'id')],
             'address.area_assignments' => ['sometimes', 'array'],
-            'address.area_assignments.*' => ['nullable', 'uuid', 'exists:'.config('addressing.tables.areas', 'address_areas').',id'],
-            'address.state_id' => ['nullable', 'uuid', 'exists:'.config('addressing.tables.states', 'states').',id'],
+            'address.area_assignments.*' => ['nullable', 'uuid', Rule::exists(ModelResolver::areaClass(), 'id')],
+            'address.state_id' => ['nullable', 'uuid', Rule::exists(ModelResolver::stateClass(), 'id')],
             'address.line1' => ['prohibited'],
             'address.line2' => ['prohibited'],
             'address.postcode' => ['prohibited'],
@@ -2272,10 +2273,10 @@ class AdminResourceMutationService
             'address.country_id' => [
                 $updating ? 'sometimes' : 'required',
                 'uuid',
-                'exists:'.config('addressing.tables.countries', 'countries').',id',
+                Rule::exists(ModelResolver::countryClass(), 'id'),
             ],
             'address.area_assignments' => ['sometimes', 'array'],
-            'address.area_assignments.*' => ['nullable', 'uuid', 'exists:'.config('addressing.tables.areas', 'address_areas').',id'],
+            'address.area_assignments.*' => ['nullable', 'uuid', Rule::exists(ModelResolver::areaClass(), 'id')],
             'address.line1' => ['nullable', 'string', 'max:255'],
             'address.line2' => ['nullable', 'string', 'max:255'],
             'address.postcode' => ['nullable', 'string', 'max:16'],

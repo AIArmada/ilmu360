@@ -4,6 +4,7 @@ namespace App\Livewire\Concerns;
 
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressAreaAssignment;
+use AIArmada\Addressing\Support\AddressingTableResolver;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 trait JoinsHierarchyAreaName
@@ -15,7 +16,7 @@ trait JoinsHierarchyAreaName
     private function joinAreaName(HasMany $relation): HasMany
     {
         $assignmentsTable = (new AddressAreaAssignment)->getTable();
-        $areasTable = config('addressing.tables.address_areas', 'address_areas');
+        $areasTable = AddressingTableResolver::resolve('areas');
 
         return $relation
             ->addSelect("{$assignmentsTable}.*")

@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\Addressing\Support\AddressingTableResolver;
 use AIArmada\Events\Models\EventLocation;
 use App\Data\Api\Frontend\Search\EventListData;
 use App\Models\Event;
@@ -14,7 +15,7 @@ uses(RefreshDatabase::class);
 
 function detachHardeningVenueAddresses(Venue $venue): void
 {
-    DB::table(config('addressing.tables.addressables', 'addressables'))
+    DB::table(AddressingTableResolver::resolve('addressables'))
         ->where('addressable_type', $venue->getMorphClass())
         ->where('addressable_id', (string) $venue->getKey())
         ->delete();

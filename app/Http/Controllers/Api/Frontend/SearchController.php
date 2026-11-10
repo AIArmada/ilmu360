@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Frontend;
 
 use AIArmada\Addressing\Data\AddressLocationData;
+use AIArmada\Addressing\Support\AddressingTableResolver;
 use AIArmada\Addressing\Support\AddressLocationScope;
 use App\Data\Api\Frontend\Search\EventListData;
 use App\Data\Api\Frontend\Search\InstitutionDetailData;
@@ -1118,8 +1119,8 @@ class SearchController extends FrontendController
     private function applyInstitutionNearbyScope(Builder $query, float $lat, float $lng, int $radiusKm): void
     {
         $addressMorphType = (new Institution)->getMorphClass();
-        $addressablesTable = config('addressing.tables.addressables', 'addressables');
-        $addressesTable = config('addressing.tables.addresses', 'addresses');
+        $addressablesTable = AddressingTableResolver::resolve('addressables');
+        $addressesTable = AddressingTableResolver::resolve('addresses');
         $distanceSql = '(6371 * acos(cos(radians(?)) * cos(radians(institution_addresses.latitude)) * cos(radians(institution_addresses.longitude) - radians(?)) + sin(radians(?)) * sin(radians(institution_addresses.latitude))))';
 
         if ($query->getQuery()->columns === null) {

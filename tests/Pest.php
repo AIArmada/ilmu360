@@ -8,6 +8,7 @@ use AIArmada\Addressing\Models\AddressAreaStateLink;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
+use AIArmada\Addressing\Support\AddressingTableResolver;
 use AIArmada\CommerceSupport\Models\Timezone;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Enums\ScheduleKind;
@@ -791,7 +792,7 @@ function ensureTestAddressCountry(
     foreach ($timezones as $timezoneName) {
         $timezone = Timezone::query()->firstOrCreate(['name' => $timezoneName]);
 
-        DB::table(config('addressing.tables.country_timezone_links', 'country_timezone_links'))->insertOrIgnore([
+        DB::table(AddressingTableResolver::resolve('country_timezone_links'))->insertOrIgnore([
             'id' => (string) Str::uuid(),
             'country_id' => $country->getKey(),
             'timezone_id' => $timezone->getKey(),

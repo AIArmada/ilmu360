@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Frontend;
 
+use AIArmada\Addressing\Support\ModelResolver;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Persons\Enums\Gender;
@@ -122,11 +123,11 @@ class ContributionController extends FrontendController
             'names.*.is_primary' => ['nullable', 'boolean'],
             'description' => ['nullable'],
             'address' => ['present', 'array'],
-            'address.country_id' => ['nullable', 'uuid', 'exists:'.config('addressing.tables.countries', 'countries').',id'],
-            'address.state_id' => ['nullable', 'uuid', 'exists:'.config('addressing.tables.states', 'states').',id'],
-            'address.city_id' => ['nullable', 'uuid', 'exists:'.config('addressing.tables.cities', 'cities').',id'],
+            'address.country_id' => ['nullable', 'uuid', Rule::exists(ModelResolver::countryClass(), 'id')],
+            'address.state_id' => ['nullable', 'uuid', Rule::exists(ModelResolver::stateClass(), 'id')],
+            'address.city_id' => ['nullable', 'uuid', Rule::exists(ModelResolver::cityClass(), 'id')],
             'address.area_assignments' => ['sometimes', 'array', new ValidAreaAssignmentRoles],
-            'address.area_assignments.*' => ['nullable', 'uuid', 'exists:address_areas,id'],
+            'address.area_assignments.*' => ['nullable', 'uuid', Rule::exists(ModelResolver::areaClass(), 'id')],
             'address.line1' => ['nullable', 'string', 'max:255'],
             'address.line2' => ['nullable', 'string', 'max:255'],
             'address.postcode' => ['nullable', 'string', 'max:16'],
@@ -315,11 +316,11 @@ class ContributionController extends FrontendController
             'institution_id' => ['nullable', 'uuid', 'exists:institutions,id'],
             'institution_position' => ['nullable', 'string', 'max:255'],
             'address' => ['required', 'array'],
-            'address.country_id' => ['required', 'uuid', 'exists:'.config('addressing.tables.countries', 'countries').',id'],
+            'address.country_id' => ['required', 'uuid', Rule::exists(ModelResolver::countryClass(), 'id')],
             'address.state_id' => ['prohibited'],
             'address.city_id' => ['prohibited'],
             'address.area_assignments' => ['sometimes', 'array', new ValidAreaAssignmentRoles],
-            'address.area_assignments.*' => ['nullable', 'uuid', 'exists:address_areas,id'],
+            'address.area_assignments.*' => ['nullable', 'uuid', Rule::exists(ModelResolver::areaClass(), 'id')],
             'address.line1' => ['prohibited'],
             'address.line2' => ['prohibited'],
             'address.postcode' => ['prohibited'],
