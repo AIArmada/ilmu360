@@ -10,10 +10,12 @@ use App\Models\Reference;
 use App\Models\User;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Membership\MembershipDirectory;
+use App\Shared\Membership\MembershipPermissionEvaluator;
 use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 
-final readonly class MemberPermissionGate
+final readonly class MemberPermissionGate implements MembershipPermissionEvaluator
 {
     private const array ROLE_WEIGHT = [
         'owner' => 100,
@@ -101,6 +103,90 @@ final readonly class MemberPermissionGate
         return $this->memberCan(MembershipSubjectType::Reference, (string) $reference->getKey(), $user, $permission);
     }
 
+    public function canOnSubject(
+        string $accountId,
+        string $permission,
+        MembershipSubjectType $subjectType,
+        string $subjectId,
+    ): bool {
+        $account = User::query()->find($accountId);
+        $subject = $this->subject($subjectType, $subjectId);
+
+        if (! $account instanceof User || ! $subject instanceof Model) {
+            return false;
+        }
+
+        return match (true) {
+            $subject instanceof Institution => $this->canInstitution($account, $permission, $subject),
+            $subject instanceof Person => $this->canPerson($account, $permission, $subject),
+            $subject instanceof Event => $this->canEvent($account, $permission, $subject),
+            $subject instanceof Reference => $this->canReference($account, $permission, $subject),
+            default => $this->canOrganization($account, $permission, $subject),
+        };
+    }
+
+    public function canThroughPersonSubject(string $accountId, string $permission, string $eventId): bool
+    {
+        $account = User::query()->find($accountId);
+        $event = Event::query()->find($eventId);
+
+        return $account instanceof User
+            && $event instanceof Event
+            && $this->canEventThroughPerson($account, $permission, $event);
+    }
+
+    public function hasAnyOnSubjectType(
+        string $accountId,
+        string $permission,
+        MembershipSubjectType $subjectType,
+    ): bool {
+        $account = User::query()->find($accountId);
+
+        if (! $account instanceof User) {
+            return false;
+        }
+
+        return match ($subjectType) {
+            MembershipSubjectType::Institution => $this->hasAnyInstitutionPermission($account, $permission),
+            MembershipSubjectType::Person => $this->hasAnyPersonPermission($account, $permission),
+            MembershipSubjectType::Event => $this->hasAnyEventPermission($account, $permission),
+            MembershipSubjectType::Reference => $this->hasAnyReferencePermission($account, $permission),
+            MembershipSubjectType::Organization => $this->hasAnyOrganizationPermission($account, $permission),
+        };
+    }
+
+    public function memberAccountIdsWithPermission(
+        MembershipSubjectType $subjectType,
+        string $subjectId,
+        string $permission,
+    ): array {
+        $subject = $this->subject($subjectType, $subjectId);
+
+        if (! $subject instanceof Model) {
+            return [];
+        }
+
+        return match (true) {
+            $subject instanceof Institution => $this->accountIds(
+                $this->institutionMembersWithPermission($subject, $permission),
+            ),
+            $subject instanceof Person => $this->accountIds(
+                $this->personMembersWithPermission($subject, $permission),
+            ),
+            $subject instanceof Event => $this->accountIds(
+                $this->eventMembersWithPermission($subject, $permission),
+            ),
+            $subject instanceof Reference => $this->permittedAccountIds(
+                $subject->members()->get(),
+                fn (User $member): bool => $this->canReference($member, $permission, $subject),
+            ),
+            default => $this->permittedAccountIds(
+                $subject->members()->get(),
+                fn (User $member): bool => $this->canOrganization($member, $permission, $subject),
+            ),
+        };
+    }
+
     public function hasAnyInstitutionPermission(AccountActor $user, string $permission): bool
     {
         return $this->hasAnyMembershipWithPermission($user, MembershipSubjectType::Institution, $permission);
@@ -158,6 +244,49 @@ final readonly class MemberPermissionGate
     public function eventMembersWithPermission(Event $event, string $permission): Collection
     {
         return $this->membersWithPermission(MembershipSubjectType::Event, (string) $event->getKey(), $permission);
+    }
+
+    private function subject(
+        MembershipSubjectType $subjectType,
+        string $subjectId,
+    ): Institution|Person|Event|Reference|Organization|null {
+        return match ($subjectType) {
+            MembershipSubjectType::Institution => Institution::query()->find($subjectId),
+            MembershipSubjectType::Person => Person::query()->find($subjectId),
+            MembershipSubjectType::Event => Event::query()->find($subjectId),
+            MembershipSubjectType::Reference => Reference::query()->find($subjectId),
+            MembershipSubjectType::Organization => Organization::query()->find($subjectId),
+        };
+    }
+
+    /**
+     * @param  Collection<int, User>  $members
+     * @return list<string>
+     */
+    private function accountIds(Collection $members): array
+    {
+        return $members
+            ->map(static fn (User $member): string => (string) $member->getKey())
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  Collection<int, Model>  $members
+     * @param  callable(User): bool  $allows
+     * @return list<string>
+     */
+    private function permittedAccountIds(Collection $members, callable $allows): array
+    {
+        $accountIds = [];
+
+        foreach ($members as $member) {
+            if ($member instanceof User && $allows($member)) {
+                $accountIds[] = (string) $member->getKey();
+            }
+        }
+
+        return $accountIds;
     }
 
     /**

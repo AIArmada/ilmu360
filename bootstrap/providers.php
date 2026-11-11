@@ -10,6 +10,8 @@ use App\Features\Feedback\FeatureServiceProvider as FeedbackServiceProvider;
 use App\Features\GitHubIssues\FeatureServiceProvider as GitHubIssuesServiceProvider;
 use App\Features\Identity\FeatureServiceProvider as IdentityServiceProvider;
 use App\Features\Inspirations\FeatureServiceProvider as InspirationsServiceProvider;
+use App\Features\Membership\FeatureServiceProvider as MembershipServiceProvider;
+use App\Features\Organizations\FeatureServiceProvider as OrganizationsServiceProvider;
 use App\Features\Prayer\FeatureServiceProvider;
 use App\Features\Reports\FeatureServiceProvider as ReportsServiceProvider;
 use App\Features\SavedSearches\FeatureServiceProvider as SavedSearchesServiceProvider;
@@ -38,6 +40,8 @@ return [
     GitHubIssuesServiceProvider::class,
     IdentityServiceProvider::class,
     InspirationsServiceProvider::class,
+    MembershipServiceProvider::class,
+    OrganizationsServiceProvider::class,
     FeatureServiceProvider::class,
     ReportsServiceProvider::class,
     SavedSearchesServiceProvider::class,

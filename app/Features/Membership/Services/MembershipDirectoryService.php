@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Authz;
+namespace App\Features\Membership\Services;
 
 use App\Shared\Membership\MembershipDirectory;
 use App\Shared\Membership\MembershipRecord;
@@ -10,13 +10,13 @@ use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Interim membership read adapter over the current member pivots.
+ * Membership read adapter over the current member pivots.
  *
- * The Membership capability will own these pivots once extracted. Until then
- * this adapter is the shared read surface for membership state; it must not
- * become a second write path.
+ * The Membership feature will own these pivots once M1 lands. Until then this
+ * is the shared read surface for membership state and must not become a second
+ * write path.
  */
-final readonly class InterimMembershipDirectory implements MembershipDirectory
+final readonly class MembershipDirectoryService implements MembershipDirectory
 {
     /**
      * @var array<string, array{0: string, 1: string}>
