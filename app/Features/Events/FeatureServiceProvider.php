@@ -62,6 +62,10 @@ use App\Shared\Events\EventCategoryPolicyResolver;
  *   updates; those stay with their own feature migrations.
  * - event_taxonomies/event_terms are created by the package synchronizer that
  *   SyncEventClassificationsAction invokes.
+ * - admission setup (registration/pricing modes, access policy, occurrence
+ *   ticket types and optional seating) is written by
+ *   ConfigureEventAdmissionAction. Ticket, seating and occurrence tables stay
+ *   package-canonical and unclaimed.
  * - vendor Filament event resources (until E4) and events package cascades
  *   remain external writers for series; app-owned series authoring and
  *   deletion go through the SeriesAuthoring boundary.

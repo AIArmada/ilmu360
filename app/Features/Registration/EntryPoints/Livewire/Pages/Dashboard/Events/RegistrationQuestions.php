@@ -2,23 +2,25 @@
 
 declare(strict_types=1);
 
-namespace App\Livewire\Pages\Dashboard\Events;
+namespace App\Features\Registration\EntryPoints\Livewire\Pages\Dashboard\Events;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Actions\ArchiveEventRegistrationQuestionAction;
 use AIArmada\Events\Actions\CreateEventRegistrationQuestionAction;
 use AIArmada\Events\Actions\UpdateEventRegistrationQuestionAction;
 use AIArmada\Events\Enums\EventRegistrationQuestionType;
+use AIArmada\Events\Models\Event;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventRegistrationQuestion;
 use AIArmada\Events\Models\EventSession;
-use App\Models\Event;
-use App\Models\User;
+use App\Platform\Models\MorphModelResolver;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Platform\Ui\InteractsWithToasts;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
@@ -59,8 +61,8 @@ final class RegistrationQuestions extends Component
 
     public function mount(Event $event): void
     {
-        $this->authorizeEvent($event);
         $this->eventId = (string) $event->getKey();
+        $this->authorizeEvent($this->selectedEvent());
         $this->questionForm = $this->defaultQuestionForm();
     }
 
@@ -359,15 +361,22 @@ final class RegistrationQuestions extends Component
 
     private function authorizeEvent(Event $event): void
     {
-        $user = auth()->user();
-        abort_unless($user instanceof User, 403);
-        abort_unless($user->can('update', $event), 403);
+        $actorId = auth()->id();
+        abort_unless(is_string($actorId) && $actorId !== '', 403);
+
+        $userClass = MorphModelResolver::resolve('user');
+        $actor = $userClass::query()->find($actorId);
+
+        abort_unless($actor instanceof Authenticatable, 403);
+        abort_unless(Gate::forUser($actor)->allows('update', $event), 403);
     }
 
     private function selectedEvent(): Event
     {
+        $eventClass = MorphModelResolver::resolve('event');
+
         /** @var Event $event */
-        $event = Event::query()->whereKey($this->eventId)->firstOrFail();
+        $event = $eventClass::query()->whereKey($this->eventId)->firstOrFail();
 
         return $event;
     }

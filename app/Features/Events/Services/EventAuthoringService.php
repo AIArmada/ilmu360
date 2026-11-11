@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Services;
 
+use AIArmada\Events\Enums\RegistrationMode;
 use AIArmada\Events\Enums\ScheduleKind;
+use AIArmada\Events\Models\Event;
+use AIArmada\Ticketing\Enums\PricingMode;
+use App\Features\Events\Actions\Authoring\ConfigureEventAdmissionAction;
 use App\Features\Events\Actions\Authoring\GenerateEventSlugAction;
 use App\Features\Events\Actions\Authoring\PersistEventAuthoringAction;
 use App\Features\Events\Actions\Authoring\SyncEventClassificationsAction;
@@ -41,6 +45,7 @@ final readonly class EventAuthoringService implements EventAuthoring
         private SyncEventLanguagesAction $syncLanguages,
         private SyncEventOrganizerAction $syncOrganizer,
         private AdminEventFormStateBuilder $formState,
+        private ConfigureEventAdmissionAction $configureEventAdmission,
     ) {}
 
     public function saveAdminEvent(array $data, ?string $eventId = null): AdminEventSaveResult
@@ -180,6 +185,30 @@ final readonly class EventAuthoringService implements EventAuthoring
     public function syncPrimaryOrganizer(string $eventId, ?string $organizerType, ?string $organizerId): void
     {
         $this->syncOrganizer->handle($eventId, $organizerType, $organizerId);
+    }
+
+    public function configureAdmission(string $eventId, array $data): void
+    {
+        $registrationMode = $data['registration_mode'] ?? RegistrationMode::None;
+        $registrationMode = $registrationMode instanceof RegistrationMode
+            ? $registrationMode
+            : RegistrationMode::from((string) $registrationMode);
+
+        $pricingMode = $data['pricing_mode'] ?? PricingMode::Free;
+        $pricingMode = $pricingMode instanceof PricingMode
+            ? $pricingMode
+            : PricingMode::from((string) $pricingMode);
+
+        /** @var Event $event */
+        $event = $this->resolveEvent($eventId);
+
+        $this->configureEventAdmission->handle(
+            event: $event,
+            registrationMode: $registrationMode,
+            pricingMode: $pricingMode,
+            tickets: (array) ($data['tickets'] ?? []),
+            seating: (array) ($data['seating'] ?? []),
+        );
     }
 
     public function normalizePrayerDateString(mixed $value): ?string

@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Events\Registration;
+namespace App\Features\Events\Actions\Authoring;
 
 use AIArmada\CommerceSupport\Support\MoneyNormalizer;
 use AIArmada\Events\Actions\EnsureTicketTypeForOccurrenceAction;
 use AIArmada\Events\Enums\RegistrationMode;
+use AIArmada\Events\Models\Event;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Seating\Enums\SeatingMode;
 use AIArmada\Seating\Models\Seat;
@@ -15,12 +16,19 @@ use AIArmada\Seating\Models\SeatSection;
 use AIArmada\Ticketing\Enums\PricingMode;
 use AIArmada\Ticketing\Models\TicketType;
 use AIArmada\Ticketing\Models\TicketTypeSeatingOption;
-use App\Models\Event;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
-final class ConfigureEventRegistrationAction
+/**
+ * Events-owned admission setup for an existing event.
+ *
+ * Writes the event/occurrence admission flags, the event access policy, the
+ * occurrence ticket types and, when a ticket requires allocation, the seat map,
+ * sections, seats and general-admission seating options. Ticket, seating and
+ * occurrence rows stay package-canonical; Events owns the setup workflow.
+ */
+final class ConfigureEventAdmissionAction
 {
     use AsAction;
 
@@ -87,17 +95,20 @@ final class ConfigureEventRegistrationAction
             'issue_passes_for_free' => true,
         ])->save();
 
-        $event->accessPolicy()->updateOrCreate(
-            ['event_id' => $event->getKey()],
-            [
-                'registration_required' => $registrationMode === RegistrationMode::Required,
-                'payment_required' => $pricingMode === PricingMode::Paid,
-                'ticket_required' => $registrationMode !== RegistrationMode::None,
-                'seating_required' => $requiresSeating,
-                'capacity' => $totalQuota > 0 ? $totalQuota : null,
-                'walk_in_allowed' => $registrationMode === RegistrationMode::None,
-            ],
-        );
+        $event->accessPolicies()
+            ->whereNull('event_occurrence_id')
+            ->whereNull('event_session_id')
+            ->updateOrCreate(
+                ['event_id' => $event->getKey()],
+                [
+                    'registration_required' => $registrationMode === RegistrationMode::Required,
+                    'payment_required' => $pricingMode === PricingMode::Paid,
+                    'ticket_required' => $registrationMode !== RegistrationMode::None,
+                    'seating_required' => $requiresSeating,
+                    'capacity' => $totalQuota > 0 ? $totalQuota : null,
+                    'walk_in_allowed' => $registrationMode === RegistrationMode::None,
+                ],
+            );
 
         if ($requiresSeating) {
             $seatMap = $this->createSeatMap($event, $seating);

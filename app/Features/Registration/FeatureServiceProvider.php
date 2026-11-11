@@ -28,7 +28,9 @@ use App\Platform\FeatureModule;
  *   answers, items and attendances for direct deletes, but root keeps the
  *   hook until R6 verifies every delete path and the participant-only
  *   attendance edge.
- * - registration questions, paid checkout orchestration, registration
+ * - the dashboard registration-questions workspace is a Registration entry
+ *   point that delegates question writes to the package actions; admission
+ *   setup remains Events-owned. Paid checkout orchestration, registration
  *   exports and attendance/check-in paths stay in their root or vendor homes
  *   until R2-R5.
  */

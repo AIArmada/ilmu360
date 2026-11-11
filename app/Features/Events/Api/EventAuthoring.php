@@ -97,6 +97,18 @@ interface EventAuthoring
 
     public function syncPrimaryOrganizer(string $eventId, ?string $organizerType, ?string $organizerId): void;
 
+    /**
+     * Apply the admission setup for an existing event.
+     *
+     * Supported `$data` keys: `registration_mode` and `pricing_mode` (package
+     * enum instances or their scalar values), `tickets` and optional
+     * `seating`. Ticket types, seat maps and access-policy rows are written by
+     * the Events admission action; the event is resolved by identifier.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public function configureAdmission(string $eventId, array $data): void;
+
     public function normalizePrayerDateString(mixed $value): ?string;
 
     public function normalizeEventDateString(mixed $date, string $timezone): ?string;

@@ -27,7 +27,6 @@ use App\Livewire\Pages\Dashboard\Events\CreateAdvanced;
 use App\Livewire\Pages\Dashboard\Events\OfflineAdmissions as EventOfflineAdmissions;
 use App\Livewire\Pages\Dashboard\Events\Participants as EventParticipants;
 use App\Livewire\Pages\Dashboard\Events\Refunds as EventRefunds;
-use App\Livewire\Pages\Dashboard\Events\RegistrationQuestions as EventRegistrationQuestions;
 use App\Livewire\Pages\Dashboard\InstitutionDashboard;
 use App\Livewire\Pages\Dashboard\NotificationsIndex;
 use App\Livewire\Pages\Dashboard\PersonDashboard;
@@ -136,7 +135,6 @@ Route::middleware('auth')->group(function () {
     Route::livewire('/dashboard/institusi/tambah-majlis', Create::class)->name('dashboard.institutions.submit-event');
     Route::livewire('/dashboard/penceramah/{person:slug}', PersonDashboard::class)->name('dashboard.persons');
     Route::livewire('/dashboard/majlis/cipta-lanjutan', CreateAdvanced::class)->name('dashboard.events.create-advanced');
-    Route::livewire('/dashboard/majlis/{event}/pendaftaran', EventRegistrationQuestions::class)->name('dashboard.events.registration-questions');
     Route::livewire('/dashboard/majlis/{event}/peserta', EventParticipants::class)->name('dashboard.events.participants');
     Route::livewire('/dashboard/majlis/{event}/kemasukan', EventOfflineAdmissions::class)->name('dashboard.events.offline-admissions');
     Route::livewire('/dashboard/majlis/{event}/bayaran-balik', EventRefunds::class)->name('dashboard.events.refunds');

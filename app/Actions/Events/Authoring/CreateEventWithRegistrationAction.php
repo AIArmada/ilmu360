@@ -9,7 +9,7 @@ use AIArmada\Events\Enums\RegistrationMode;
 use AIArmada\Organizations\Models\Organization;
 use AIArmada\Seating\Enums\SeatingMode;
 use AIArmada\Ticketing\Enums\PricingMode;
-use App\Actions\Events\Registration\ConfigureEventRegistrationAction;
+use App\Features\Events\Api\EventAuthoring;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
@@ -24,7 +24,7 @@ final class CreateEventWithRegistrationAction
 
     public function __construct(
         private readonly CreateEventWithInitialOccurrenceAction $createEventWithInitialOccurrence,
-        private readonly ConfigureEventRegistrationAction $configureEventRegistration,
+        private readonly EventAuthoring $eventAuthoring,
     ) {}
 
     /**
@@ -77,13 +77,25 @@ final class CreateEventWithRegistrationAction
                 locationVenueId: $locationVenueId,
             );
 
-            return OwnerContext::withOwner($event->owner, fn (): Event => $this->configureEventRegistration->handle(
-                event: $event,
-                registrationMode: $registrationMode,
-                pricingMode: $pricingMode,
-                tickets: $tickets,
-                seating: $seating,
-            ));
+            return OwnerContext::withOwner($event->owner, function () use (
+                $event,
+                $registrationMode,
+                $pricingMode,
+                $tickets,
+                $seating,
+            ): Event {
+                $this->eventAuthoring->configureAdmission(
+                    (string) $event->getKey(),
+                    [
+                        'registration_mode' => $registrationMode,
+                        'pricing_mode' => $pricingMode,
+                        'tickets' => $tickets,
+                        'seating' => $seating,
+                    ],
+                );
+
+                return $event->fresh(['primaryOccurrence', 'ticketTypes', 'accessPolicies']) ?? $event;
+            });
         });
     }
 

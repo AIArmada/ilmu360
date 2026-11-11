@@ -10,7 +10,8 @@
       "App\\Features\\Events\\Actions\\Submission\\PersistNewEventSubmissionAction",
       "App\\Features\\Events\\Actions\\Submission\\CompleteEventSubmissionWritesAction",
       "App\\Features\\Events\\Actions\\Submission\\ClaimGuestSubmissionsAction",
-      "App\\Features\\Events\\Actions\\Delete\\DeleteEventAction"
+      "App\\Features\\Events\\Actions\\Delete\\DeleteEventAction",
+      "App\\Features\\Events\\Actions\\Authoring\\ConfigureEventAdmissionAction"
     ],
     "table:event_series_items": [
       "App\\Features\\Events\\Actions\\Series\\DeleteSeriesAction",
@@ -55,7 +56,8 @@
     "table:event_access_policies": [
       "App\\Features\\Events\\Actions\\Authoring\\SyncEventResourceRelationsAction",
       "App\\Features\\Events\\Actions\\Submission\\CompleteEventSubmissionWritesAction",
-      "App\\Features\\Events\\Actions\\Delete\\CleanupEventAction"
+      "App\\Features\\Events\\Actions\\Delete\\CleanupEventAction",
+      "App\\Features\\Events\\Actions\\Authoring\\ConfigureEventAdmissionAction"
     ],
     "table:event_links": [
       "App\\Features\\Events\\Actions\\Authoring\\SyncEventProjectionsAction",
