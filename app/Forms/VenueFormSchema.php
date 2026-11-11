@@ -3,8 +3,8 @@
 namespace App\Forms;
 
 use AIArmada\Addressing\Support\AddressCountryResolver;
-use App\Actions\Venues\GenerateVenueSlugAction;
-use App\Enums\VenueType;
+use App\Shared\Directory\Enums\VenueType;
+use App\Features\Directory\Api\VenueWorkflow;
 use App\Models\Venue;
 use App\Support\Location\GooglePlacesConfiguration;
 use Filament\Forms\Components\Select;
@@ -15,7 +15,6 @@ use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class VenueFormSchema
 {
@@ -90,28 +89,14 @@ class VenueFormSchema
     public static function createOptionUsing(array $data, ?Schema $schema = null): string
     {
         return DB::transaction(function () use ($data, $schema): string {
-            $addressData = is_array($data['address'] ?? null) ? $data['address'] : $data;
+            $venueId = app(VenueWorkflow::class)->createFromForm($data);
+            $venue = Venue::query()->findOrFail($venueId);
 
-            // Prevent VenueObserver from overriding the slug before the address is linked.
-            $venue = Venue::withoutEvents(fn () => Venue::create([
-                'id' => (string) Str::uuid(),
-                'name' => $data['name'],
-                'slug' => app(GenerateVenueSlugAction::class)->handle((string) $data['name'], $addressData),
-                'venue_type' => $data['type'],
-                'status' => 'pending',
-                'visibility' => 'public',
-            ]));
-
-            // Save media uploads (cover, gallery) via Filament's relationship-saving mechanism
+            // Save media uploads (main, cover, gallery) via Filament's
+            // relationship-saving mechanism.
             $schema?->model($venue)->saveRelationships();
 
-            SharedFormSchema::createAddressFromData($venue, $addressData, allowCountryOnly: true);
-            SharedFormSchema::createSocialMediaFromData($venue, $data);
-
-            // Re-sync slug now that the address is linked (the created event fires before the pivot is set up).
-            app(GenerateVenueSlugAction::class)->syncVenueSlug($venue);
-
-            return (string) $venue->getKey();
+            return $venueId;
         });
     }
 

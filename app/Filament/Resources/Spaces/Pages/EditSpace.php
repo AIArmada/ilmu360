@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Spaces\Pages;
 
 use AIArmada\FilamentCommerceSupport\Concerns\AuditsRelatedStateChanges;
-use App\Actions\Spaces\SaveSpaceAction;
+use App\Features\Directory\Api\SpaceWorkflow;
 use App\Filament\Resources\Spaces\SpaceResource;
 use App\Models\Institution;
 use App\Models\Space;
@@ -25,14 +25,21 @@ class EditSpace extends EditRecord
             throw new \RuntimeException('Expected Filament record to be a Space instance.');
         }
 
-        return app(SaveSpaceAction::class)->handle($data, $record);
+        $spaceId = app(SpaceWorkflow::class)->saveFromAdmin($data, (string) $record->getKey());
+
+        return Space::query()->findOrFail($spaceId);
     }
 
     #[\Override]
     protected function getHeaderActions(): array
     {
         return [
-            DeleteAction::make(),
+            DeleteAction::make()
+                ->action(function (DeleteAction $action, Space $record): void {
+                    app(SpaceWorkflow::class)->delete([(string) $record->getKey()]);
+
+                    $action->success();
+                }),
         ];
     }
 

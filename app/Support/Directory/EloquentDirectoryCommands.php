@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Support\Directory;
 
-use App\Actions\Spaces\SaveSpaceAction;
-use App\Actions\Venues\SaveVenueAction;
 use App\Features\Directory\Api\DirectoryCommands;
 use App\Features\Directory\Api\DirectoryDetail;
 use App\Features\Directory\Api\DirectoryReader;
@@ -14,6 +12,8 @@ use App\Features\Directory\Api\DonationChannelWorkflow;
 use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Features\Directory\Api\PersonWorkflow;
 use App\Features\Directory\Api\ReferenceWorkflow;
+use App\Features\Directory\Api\SpaceWorkflow;
+use App\Features\Directory\Api\VenueWorkflow;
 use App\Models\DonationChannel;
 use App\Models\Institution;
 use App\Models\Person;
@@ -42,8 +42,8 @@ final readonly class EloquentDirectoryCommands implements DirectoryCommands
         private InstitutionWorkflow $institutionWorkflow,
         private PersonWorkflow $personWorkflow,
         private ReferenceWorkflow $referenceWorkflow,
-        private SaveVenueAction $saveVenue,
-        private SaveSpaceAction $saveSpace,
+        private VenueWorkflow $venueWorkflow,
+        private SpaceWorkflow $spaceWorkflow,
         private DonationChannelWorkflow $donationChannelWorkflow,
         private ContributionEntityMutationService $entityMutations,
         private DirectoryReader $reader,
@@ -63,8 +63,8 @@ final readonly class EloquentDirectoryCommands implements DirectoryCommands
                 $this->personWorkflow->saveFromAdmin($attributes, (string) $actor->getKey()),
             ),
             DirectoryRecordType::Reference => Reference::query()->withoutOwnerScope()->findOrFail($this->referenceWorkflow->saveFromAdmin($attributes)),
-            DirectoryRecordType::Venue => $this->saveVenue->handle($attributes),
-            DirectoryRecordType::Space => $this->saveSpace->handle($attributes),
+            DirectoryRecordType::Venue => Venue::query()->findOrFail($this->venueWorkflow->saveFromAdmin($attributes)),
+            DirectoryRecordType::Space => Space::query()->findOrFail($this->spaceWorkflow->saveFromAdmin($attributes)),
             DirectoryRecordType::DonationChannel => DonationChannel::query()->findOrFail($this->donationChannelWorkflow->save($attributes)),
         };
 
@@ -100,6 +100,18 @@ final readonly class EloquentDirectoryCommands implements DirectoryCommands
             return;
         }
 
+        if ($type === DirectoryRecordType::Venue) {
+            $this->venueWorkflow->delete([(string) $record->getKey()]);
+
+            return;
+        }
+
+        if ($type === DirectoryRecordType::Space) {
+            $this->spaceWorkflow->delete([(string) $record->getKey()]);
+
+            return;
+        }
+
         $record->delete();
     }
 
@@ -129,6 +141,21 @@ final readonly class EloquentDirectoryCommands implements DirectoryCommands
 
     public function changeStatus(DirectoryRecordType $type, string $recordId, string $status, string $actorId): DirectoryDetail
     {
+        if ($type === DirectoryRecordType::Venue || $type === DirectoryRecordType::Space) {
+            $actor = $this->actor($actorId);
+            $record = $this->record($type, $recordId);
+
+            Gate::forUser($actor)->authorize('update', $record);
+
+            if ($type === DirectoryRecordType::Venue) {
+                $this->venueWorkflow->changeStatus($recordId, $status);
+            } else {
+                $this->spaceWorkflow->changeStatus($recordId, $status);
+            }
+
+            return $this->detail($type, $record);
+        }
+
         return $this->update($type, $recordId, ['status' => $status], $actorId);
     }
 
@@ -148,7 +175,7 @@ final readonly class EloquentDirectoryCommands implements DirectoryCommands
                 ? $this->referenceWorkflow->syncRelations((string) $record->getKey(), $relations)
                 : throw new RuntimeException('Expected reference record.'),
             DirectoryRecordType::Venue => $record instanceof Venue
-                ? $this->entityMutations->syncVenueRelations($record, $relations)
+                ? $this->venueWorkflow->syncRelations((string) $record->getKey(), $relations)
                 : throw new RuntimeException('Expected venue record.'),
             DirectoryRecordType::Space, DirectoryRecordType::DonationChannel => throw new InvalidArgumentException(
                 "Relation synchronization is not supported for [{$type->value}]."
@@ -177,10 +204,10 @@ final readonly class EloquentDirectoryCommands implements DirectoryCommands
                 ? Reference::query()->withoutOwnerScope()->findOrFail($this->referenceWorkflow->saveFromAdmin($attributes, (string) $record->getKey()))
                 : throw new RuntimeException('Expected reference record.'),
             DirectoryRecordType::Venue => $record instanceof Venue
-                ? $this->saveVenue->handle($attributes, $record)
+                ? Venue::query()->findOrFail($this->venueWorkflow->saveFromAdmin($attributes, (string) $record->getKey()))
                 : throw new RuntimeException('Expected venue record.'),
             DirectoryRecordType::Space => $record instanceof Space
-                ? $this->saveSpace->handle($attributes, $record)
+                ? Space::query()->findOrFail($this->spaceWorkflow->saveFromAdmin($attributes, (string) $record->getKey()))
                 : throw new RuntimeException('Expected space record.'),
             DirectoryRecordType::DonationChannel => $record instanceof DonationChannel
                 ? DonationChannel::query()->findOrFail($this->donationChannelWorkflow->save($attributes, (string) $record->getKey()))

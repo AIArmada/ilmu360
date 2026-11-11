@@ -14,6 +14,8 @@ use App\Features\Directory\Api\PersonSubmissionAccess;
 use App\Features\Directory\Api\PersonWorkflow;
 use App\Features\Directory\Api\ReferenceQueries;
 use App\Features\Directory\Api\ReferenceWorkflow;
+use App\Features\Directory\Api\SpaceWorkflow;
+use App\Features\Directory\Api\VenueWorkflow;
 use App\Features\Directory\EntryPoints\Console\FlagStaleInactiveInstitutions;
 use App\Features\Directory\Listeners\MediaDirectoryCacheListener;
 use App\Features\Directory\Queries\ReferenceResourceSearchAdapter;
@@ -23,6 +25,8 @@ use App\Features\Directory\Services\InstitutionWorkflowService;
 use App\Features\Directory\Services\PersonWorkflowService;
 use App\Features\Directory\Services\ReferenceQueryService;
 use App\Features\Directory\Services\ReferenceWorkflowService;
+use App\Features\Directory\Services\SpaceWorkflowService;
+use App\Features\Directory\Services\VenueWorkflowService;
 use App\Features\Directory\Support\DirectoryModel;
 use App\Platform\FeatureModule;
 use App\Platform\Media\MediaChangeListener;
@@ -48,6 +52,8 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(PersonSubmissionAccess::class, PersonSubmissionAccessAction::class);
         $this->app->bind(ReferenceWorkflow::class, ReferenceWorkflowService::class);
         $this->app->bind(ReferenceQueries::class, ReferenceQueryService::class);
+        $this->app->bind(VenueWorkflow::class, VenueWorkflowService::class);
+        $this->app->bind(SpaceWorkflow::class, SpaceWorkflowService::class);
         $this->app->bind(DirectoryReportSubjectProvider::class, DirectoryReportSubjectResolver::class);
         $this->app->bind(DonationChannelWorkflow::class, DonationChannelWorkflowService::class);
 
@@ -62,6 +68,14 @@ class FeatureServiceProvider extends FeatureModule
         $this->commands([
             FlagStaleInactiveInstitutions::class,
         ]);
+
+        $this->app->make(PublicSlugRegistry::class)->register(new PublicSlugResource(
+            parameter: 'venue',
+            routeName: 'venues.show',
+            modelClass: DirectoryModel::venue(),
+            searchColumns: ['name', 'slug'],
+            labelAttribute: 'name',
+        ));
 
         $this->app->make(PublicSlugRegistry::class)->register(new PublicSlugResource(
             parameter: 'reference',

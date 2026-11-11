@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Venues\RelationManagers;
 
-use App\Actions\Spaces\SaveSpaceAction;
+use App\Features\Directory\Api\SpaceWorkflow;
 use App\Filament\Resources\Spaces\Schemas\SpaceForm;
 use App\Models\Space;
 use Filament\Actions\CreateAction;
@@ -40,17 +40,28 @@ final class SpacesRelationManager extends RelationManager
             ])
             ->headerActions([
                 CreateAction::make()
-                    ->using(fn (array $data): Space => app(SaveSpaceAction::class)->handle([
-                        ...$data,
-                        'venue_id' => (string) $this->getOwnerRecord()->getKey(),
-                    ])),
+                    ->using(function (array $data): Space {
+                        $spaceId = app(SpaceWorkflow::class)->saveFromAdmin([
+                            ...$data,
+                            'venue_id' => (string) $this->getOwnerRecord()->getKey(),
+                        ]);
+
+                        return Space::query()->findOrFail($spaceId);
+                    }),
             ])
             ->recordActions([
                 EditAction::make()
                     ->using(function (array $data, Space $record): Space {
-                        return app(SaveSpaceAction::class)->handle($data, $record);
+                        $spaceId = app(SpaceWorkflow::class)->saveFromAdmin($data, (string) $record->getKey());
+
+                        return Space::query()->findOrFail($spaceId);
                     }),
-                DeleteAction::make(),
+                DeleteAction::make()
+                    ->action(function (DeleteAction $action, Space $record): void {
+                        app(SpaceWorkflow::class)->delete([(string) $record->getKey()]);
+
+                        $action->success();
+                    }),
             ]);
     }
 }

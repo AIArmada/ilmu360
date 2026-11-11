@@ -56,6 +56,16 @@ final class DirectoryModel
         return MorphModelResolver::resolve('reference');
     }
 
+    public static function venue(): string
+    {
+        return MorphModelResolver::resolve('venue');
+    }
+
+    public static function space(): string
+    {
+        return MorphModelResolver::resolve('space');
+    }
+
     /**
      * Reference records are global; bypass the owner scope for reads that do
      * not have request context (observers, jobs, console).

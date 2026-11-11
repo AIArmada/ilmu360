@@ -8,7 +8,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Signals\Models\SignalEvent;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Actions\Events\Authoring\GenerateEventSlugAction;
-use App\Actions\Venues\GenerateVenueSlugAction;
+use App\Features\Directory\Actions\Venues\GenerateVenueSlugAction;
 use App\Features\Directory\Actions\Institutions\GenerateInstitutionSlugAction;
 use App\Features\Directory\Api\ReferenceWorkflow;
 use App\Features\Directory\Api\PersonWorkflow;

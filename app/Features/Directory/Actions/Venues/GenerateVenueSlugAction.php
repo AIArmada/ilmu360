@@ -1,17 +1,23 @@
 <?php
 
-namespace App\Actions\Venues;
+declare(strict_types=1);
+
+namespace App\Features\Directory\Actions\Venues;
 
 use AIArmada\Addressing\Support\LocationSlugSegments;
 use AIArmada\CommerceSupport\Support\CanonicalSlug;
 use AIArmada\CommerceSupport\Support\StableModelOrder;
 use AIArmada\CommerceSupport\Support\UniqueSlug;
-use App\Models\Venue;
+use App\Features\Directory\Support\DirectoryModel;
 use App\Platform\Location\AddressAssignments;
 use App\Platform\Routing\SyncSlugRedirectAction;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;
 
+/**
+ * Directory-owned venue slug generation and redirect synchronization.
+ */
 class GenerateVenueSlugAction
 {
     use AsAction;
@@ -28,15 +34,15 @@ class GenerateVenueSlugAction
             return false;
         }
 
-        $venues = Venue::query()
+        $venues = DirectoryModel::query('venue')
             ->where('venues.name', $normalizedName)
             ->with(['addresses'])
             ->get();
 
-        return StableModelOrder::sync($venues, fn (Venue $venue): bool => $this->syncVenueSlug($venue));
+        return StableModelOrder::sync($venues, fn (Model $venue): bool => $this->syncVenueSlug($venue));
     }
 
-    public function syncVenueSlug(Venue $venue): bool
+    public function syncVenueSlug(Model $venue): bool
     {
         $slug = $this->forVenue($venue);
 
@@ -58,7 +64,7 @@ class GenerateVenueSlugAction
         $locationSuffix = $this->locationSuffix($address);
 
         return UniqueSlug::build(
-            Venue::class,
+            DirectoryModel::venue(),
             $nameSlug,
             [],
             $locationSuffix,
@@ -66,20 +72,20 @@ class GenerateVenueSlugAction
         );
     }
 
-    public function forVenue(Venue $venue): string
+    public function forVenue(Model $venue): string
     {
         $venue->unsetRelation('addresses');
         $venue->load(['addresses']);
 
-        $address = $venue->primaryAddress();
+        $address = method_exists($venue, 'primaryAddress') ? $venue->primaryAddress() : null;
 
         return $this->handle(
-            $venue->name,
+            (string) $venue->getAttribute('name'),
             [
-                'country_id' => $address?->country_id,
-                'country_code' => $address?->country_code,
-                'state' => $address?->state,
-                'city' => $address?->city,
+                'country_id' => $address?->getAttribute('country_id'),
+                'country_code' => $address?->getAttribute('country_code'),
+                'state' => $address?->getAttribute('state'),
+                'city' => $address?->getAttribute('city'),
                 'area_assignments' => AddressAssignments::forAddress($address),
             ],
             (string) $venue->getKey(),

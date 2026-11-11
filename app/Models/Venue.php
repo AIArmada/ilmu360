@@ -7,7 +7,8 @@ use AIArmada\Contacting\Concerns\HasContactMethods;
 use AIArmada\Contacting\Concerns\HasSocialProfiles;
 use AIArmada\Events\Models\Venue as PackageVenue;
 use AIArmada\Events\Models\VenueFacility;
-use App\Enums\VenueType;
+use App\Actions\Institutions\DeleteInstitutionVenueLinksAction;
+use App\Shared\Directory\Enums\VenueType;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Shared\Directory\Enums\InstitutionVenueRole;
 use App\Shared\Support\RelatedModels;
@@ -47,6 +48,9 @@ class Venue extends PackageVenue implements AuditableContract
     /** @use HasFactory<VenueFactory> */
     use AuditsModelChanges, HasAddresses, HasContactMethods, HasFactory, HasSocialProfiles, KeepsDeletedModels;
 
+    #[\Override]
+    protected $table = 'venues';
+
     public $incrementing = false;
 
     protected $keyType = 'string';
@@ -84,6 +88,12 @@ class Venue extends PackageVenue implements AuditableContract
     protected static function newFactory(): VenueFactory
     {
         return VenueFactory::new();
+    }
+
+    #[\Override]
+    public function getTable(): string
+    {
+        return $this->table;
     }
 
     #[\Override]
@@ -172,20 +182,11 @@ class Venue extends PackageVenue implements AuditableContract
             $deleted = parent::delete();
 
             if ($deleted) {
-                $this->deleteInstitutionVenueLinks();
+                app(DeleteInstitutionVenueLinksAction::class)->forVenue((string) $this->getKey());
             }
 
             return $deleted;
         });
-    }
-
-    /**
-     * Remove this venue's institution bridge rows only; linked institutions,
-     * spaces, and venues are never touched.
-     */
-    private function deleteInstitutionVenueLinks(): void
-    {
-        InstitutionVenue::query()->where('venue_id', $this->getKey())->delete();
     }
 
     public function getPublicMainUrlAttribute(): string

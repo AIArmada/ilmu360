@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Spaces\Pages;
 
 use AIArmada\FilamentCommerceSupport\Concerns\AuditsRelatedStateChanges;
-use App\Actions\Spaces\SaveSpaceAction;
+use App\Features\Directory\Api\SpaceWorkflow;
 use App\Filament\Resources\Spaces\SpaceResource;
 use App\Models\Institution;
 use App\Models\Space;
@@ -20,7 +20,9 @@ class CreateSpace extends CreateRecord
 
     protected function handleRecordCreation(array $data): Model
     {
-        return app(SaveSpaceAction::class)->handle($data);
+        $spaceId = app(SpaceWorkflow::class)->saveFromAdmin($data);
+
+        return Space::query()->findOrFail($spaceId);
     }
 
     protected function afterCreate(): void

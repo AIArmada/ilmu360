@@ -2,11 +2,9 @@
 
 namespace App\Jobs;
 
-use App\Actions\Venues\GenerateVenueSlugAction;
-use App\Models\Venue;
+use App\Features\Directory\Api\VenueWorkflow;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
-use Illuminate\Support\Collection;
 
 class BackfillVenueSlugs implements ShouldQueue
 {
@@ -19,34 +17,8 @@ class BackfillVenueSlugs implements ShouldQueue
      */
     public function __construct(public array $venueIds = []) {}
 
-    public function handle(GenerateVenueSlugAction $generateVenueSlugAction): void
+    public function handle(VenueWorkflow $venueWorkflow): void
     {
-        $query = Venue::query()
-            ->with([
-                'addresses.country',
-            ])
-            ->orderBy('name')
-            ->orderBy('id');
-
-        if ($this->venueIds !== []) {
-            $query->whereIn('id', $this->venueIds);
-        }
-
-        /** @var Collection<int, Venue> $venues */
-        $venues = $query->get();
-
-        foreach ($venues as $venue) {
-            $slug = $generateVenueSlugAction->forVenue($venue);
-
-            if ($venue->slug === $slug) {
-                continue;
-            }
-
-            Venue::withoutTimestamps(function () use ($venue, $slug): void {
-                $venue->forceFill([
-                    'slug' => $slug,
-                ])->saveQuietly();
-            });
-        }
+        $venueWorkflow->backfillSlugs($this->venueIds);
     }
 }

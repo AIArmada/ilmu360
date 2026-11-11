@@ -341,7 +341,7 @@ Use these heuristics before guessing which top-level resource to search:
   - `sekolah`
   - `kolej`
   - `universiti`
-- Search `venues` first when the noun matches a venue type from `App\Enums\VenueType`:
+- Search `venues` first when the noun matches a venue type from `App\Shared\Directory\Enums\VenueType`:
   - `dewan`
   - `auditorium`
   - `stadium`

@@ -15,4 +15,12 @@ final readonly class DeleteInstitutionVenueLinksAction
     {
         InstitutionVenue::query()->where('institution_id', $institutionId)->delete();
     }
+
+    /**
+     * Remove a venue's institution bridge rows without touching institutions.
+     */
+    public function forVenue(string $venueId): void
+    {
+        InstitutionVenue::query()->where('venue_id', $venueId)->delete();
+    }
 }

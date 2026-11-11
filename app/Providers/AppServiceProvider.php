@@ -820,13 +820,6 @@ class AppServiceProvider extends ServiceProvider
                 searchColumns: ['name', 'slug'],
                 labelAttribute: 'formatted_name',
             ),
-            new PublicSlugResource(
-                parameter: 'venue',
-                routeName: 'venues.show',
-                modelClass: Venue::class,
-                searchColumns: ['name', 'slug'],
-                labelAttribute: 'name',
-            ),
         ]));
     }
 

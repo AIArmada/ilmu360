@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Mcp\Prompts;
 
-use App\Enums\VenueType;
+use App\Shared\Directory\Enums\VenueType;
 use App\Shared\Directory\Enums\InstitutionType;
 use App\Support\Mcp\VerifiedDocumentationCatalog;
 use Illuminate\Support\Str;

@@ -1,12 +1,12 @@
 <?php
 
 use App\Actions\Events\Authoring\GenerateEventSlugAction;
-use App\Actions\Venues\GenerateVenueSlugAction;
 use App\Jobs\BackfillEventSlugs;
 use App\Jobs\BackfillReferenceSlugs;
 use App\Jobs\BackfillVenueSlugs;
 use App\Models\Event;
 use App\Features\Directory\Api\ReferenceWorkflow;
+use App\Features\Directory\Api\VenueWorkflow;
 use App\Models\Reference;
 use App\Models\Venue;
 use App\Platform\Cache\PublicListingsCache;
@@ -57,7 +57,7 @@ it('backfills venue slugs', function () {
     ]);
 
     app(BackfillVenueSlugs::class)->handle(
-        app(GenerateVenueSlugAction::class),
+        app(VenueWorkflow::class),
     );
 
     expect($venue->fresh()->slug)->not->toBe('legacy-venue-slug');

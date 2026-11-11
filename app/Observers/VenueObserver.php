@@ -2,7 +2,7 @@
 
 namespace App\Observers;
 
-use App\Actions\Venues\GenerateVenueSlugAction;
+use App\Features\Directory\Api\VenueWorkflow;
 use App\Models\Venue;
 use App\Platform\Cache\PublicListingsCache;
 use App\Platform\Models\Concerns\SyncsCurrentAndPreviousValues;
@@ -14,7 +14,7 @@ class VenueObserver implements ShouldHandleEventsAfterCommit
     use SyncsCurrentAndPreviousValues;
 
     public function __construct(
-        protected GenerateVenueSlugAction $generateVenueSlugAction,
+        protected VenueWorkflow $venueWorkflow,
         protected SyncSlugRedirectAction $syncSlugRedirectAction,
         protected PublicListingsCache $publicListingsCache
     ) {}
@@ -29,7 +29,7 @@ class VenueObserver implements ShouldHandleEventsAfterCommit
             $this->syncCurrentAndPreviousString(
                 $venue->name,
                 $venue->wasChanged('name') ? ($venue->getPrevious()['name'] ?? null) : null,
-                fn (string $name): bool => $this->generateVenueSlugAction->syncVenueSlugsForName($name),
+                fn (string $name): bool => $this->venueWorkflow->syncSlugsForName($name),
             );
         }
 
@@ -41,7 +41,7 @@ class VenueObserver implements ShouldHandleEventsAfterCommit
         // Bridge rows are removed synchronously inside Venue::delete();
         // this after-commit observer keeps derived side effects only.
         $this->syncSlugRedirectAction->purgeForModel($venue);
-        $this->generateVenueSlugAction->syncVenueSlugsForName($venue->name);
+        $this->venueWorkflow->syncSlugsForName($venue->name);
         $this->publicListingsCache->bustMajlisListing();
     }
 }

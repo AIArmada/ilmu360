@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Spaces\Tables;
 
 use App\Filament\Resources\Spaces\SpaceResource;
+use App\Features\Directory\Api\SpaceWorkflow;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -12,6 +13,8 @@ use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 
 class SpacesTable
 {
@@ -60,7 +63,17 @@ class SpacesTable
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
-                        ->authorizeIndividualRecords('delete'),
+                        ->authorizeIndividualRecords('delete')
+                        ->action(function (DeleteBulkAction $action, Collection $records): void {
+                            app(SpaceWorkflow::class)->delete(
+                                $records
+                                    ->map(static fn (Model $space): string => (string) $space->getKey())
+                                    ->values()
+                                    ->all(),
+                            );
+
+                            $action->success();
+                        }),
                 ]),
             ]);
     }

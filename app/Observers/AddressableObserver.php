@@ -5,9 +5,9 @@ namespace App\Observers;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\Addressable;
 use App\Actions\Events\Authoring\GenerateEventSlugAction;
-use App\Actions\Venues\GenerateVenueSlugAction;
 use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Features\Directory\Api\PersonWorkflow;
+use App\Features\Directory\Api\VenueWorkflow;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
@@ -23,7 +23,7 @@ class AddressableObserver implements ShouldHandleEventsAfterCommit
         private readonly GenerateEventSlugAction $generateEventSlugAction,
         private readonly InstitutionWorkflow $institutionWorkflow,
         private readonly PersonWorkflow $personWorkflow,
-        private readonly GenerateVenueSlugAction $generateVenueSlugAction,
+        private readonly VenueWorkflow $venueWorkflow,
         private readonly PublicDirectoryCacheVersion $publicDirectoryCacheVersion,
         private readonly PublicListingsCache $publicListingsCache,
     ) {}
@@ -88,7 +88,7 @@ class AddressableObserver implements ShouldHandleEventsAfterCommit
         }
 
         if ($subject instanceof Venue) {
-            $this->generateVenueSlugAction->syncVenueSlugsForName($subject->name);
+            $this->venueWorkflow->syncSlugsForName($subject->name);
             $this->syncSearchableEvents($subject->events()->get(['events.*']));
             $this->publicListingsCache->bustMajlisListing();
         }

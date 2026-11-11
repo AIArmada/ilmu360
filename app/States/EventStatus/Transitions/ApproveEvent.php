@@ -6,6 +6,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Features\Directory\Api\PersonWorkflow;
 use App\Features\Directory\Api\ReferenceWorkflow;
+use App\Features\Directory\Api\VenueWorkflow;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\ModerationReview;
@@ -155,7 +156,7 @@ class ApproveEvent extends Transition implements HasColor, HasIcon, HasLabel
                 ->where('status', 'pending')
                 ->get()
                 ->each(function (Venue $venue): void {
-                    $venue->forceFill(['status' => 'verified'])->save();
+                    app(VenueWorkflow::class)->changeStatus((string) $venue->getKey(), 'verified');
                 });
         }
 

@@ -291,7 +291,7 @@ new
                         $address = $venue->primaryAddress();
                         $locationDisplay = $formatVenueLocation($address);
                         $venueType = $venue->venue_type;
-                        $typeLabel = $venueType instanceof \App\Enums\VenueType
+                        $typeLabel = $venueType instanceof \App\Shared\Directory\Enums\VenueType
                             ? $venueType->getLabel()
                             : (filled($venueType) ? \Illuminate\Support\Str::headline((string) $venueType) : __('Venue'));
                     @endphp

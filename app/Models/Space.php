@@ -25,6 +25,15 @@ class Space extends VenueSpace implements AuditableContract
 {
     use AuditsModelChanges;
 
+    #[\Override]
+    protected $table = 'venue_spaces';
+
+    #[\Override]
+    public function getTable(): string
+    {
+        return $this->table;
+    }
+
     protected static function booted(): void
     {
         // The app event-reference guard registers BEFORE the parent

@@ -965,24 +965,6 @@ class ContributionEntityMutationService
         $this->referenceWorkflow->syncRelations((string) $reference->getKey(), $payload);
     }
 
-    /**
-     * @param  array<string, mixed>  $payload
-     */
-    public function syncVenueRelations(Venue $venue, array $payload): void
-    {
-        if (array_key_exists('address', $payload)) {
-            $this->syncAddress($venue, $payload['address'], allowCountryOnly: true);
-        }
-
-        if (array_key_exists('contactMethods', $payload)) {
-            $this->syncContactMethods($venue, $payload['contactMethods']);
-        }
-
-        if (array_key_exists('social_media', $payload)) {
-            $this->syncSocialMedia($venue, $payload['social_media']);
-        }
-    }
-
     private function syncAddress(Model $model, mixed $addressPayload, bool $allowCountryOnly = false): void
     {
         $this->entityRelationSync->syncAddress($model, $addressPayload, $allowCountryOnly);

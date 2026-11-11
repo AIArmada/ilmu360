@@ -2,7 +2,7 @@
 
 use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\VenueSpaceType;
-use App\Actions\Spaces\SaveSpaceAction;
+use App\Features\Directory\Actions\Spaces\SaveSpaceAction;
 use App\Contracts\SpaceEligibilityResolver;
 use App\Data\Api\Event\EventPayloadData;
 use App\Models\Event;

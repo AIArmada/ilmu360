@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Features\Directory\Api\PersonWorkflow;
+use App\Features\Directory\Api\VenueWorkflow;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Venue;
@@ -80,6 +81,7 @@ class PruneOrphanedEntities extends Command
                 ->where('created_at', '<', $threshold)
                 ->whereDoesntHave('events'),
             $dryRun,
+            fn (array $venueIds): int => app(VenueWorkflow::class)->delete($venueIds),
         );
 
         $this->newLine();

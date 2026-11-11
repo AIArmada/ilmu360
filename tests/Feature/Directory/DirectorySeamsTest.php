@@ -6,12 +6,17 @@ use App\Features\Directory\Api\DirectoryCommands;
 use App\Features\Directory\Api\DirectoryReader;
 use App\Features\Directory\Api\DirectoryRecordType;
 use App\Features\Directory\Api\DirectoryReportSubjectProvider;
+use App\Features\Directory\Api\SpaceWorkflow;
+use App\Features\Directory\Api\VenueWorkflow;
 use App\Features\Directory\Services\DirectoryReportSubjectResolver;
+use App\Features\Directory\Services\SpaceWorkflowService;
+use App\Features\Directory\Services\VenueWorkflowService;
 use App\Models\DonationChannel;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
+use App\Models\Space;
 use App\Models\User;
 use App\Models\Venue;
 use App\Platform\Models\MorphModelResolver;
@@ -31,6 +36,8 @@ it('binds the directory seams to their interim adapters', function (): void {
         ->and(app(DirectoryCommands::class))->toBeInstanceOf(EloquentDirectoryCommands::class)
         ->and(app(DirectoryAdminContract::class))->toBeInstanceOf(EloquentDirectoryAdmin::class)
         ->and(app(DirectoryReportSubjectProvider::class))->toBeInstanceOf(DirectoryReportSubjectResolver::class)
+        ->and(app(VenueWorkflow::class))->toBeInstanceOf(VenueWorkflowService::class)
+        ->and(app(SpaceWorkflow::class))->toBeInstanceOf(SpaceWorkflowService::class)
         ->and(app(ReportSubjectResolver::class))->toBeInstanceOf(CompositeReportSubjectResolver::class)
         ->and(app(SubmissionEligibilitySync::class))->toBeInstanceOf(PublicSubmissionEligibilitySync::class);
 });
@@ -40,6 +47,7 @@ it('resolves registered morph aliases and rejects unknown ones', function (): vo
         ->and(MorphModelResolver::resolve('person'))->toBe(Person::class)
         ->and(MorphModelResolver::resolve('reference'))->toBe(Reference::class)
         ->and(MorphModelResolver::resolve('venue'))->toBe(Venue::class)
+        ->and(MorphModelResolver::resolve('space'))->toBe(Space::class)
         ->and(MorphModelResolver::resolve('donation_channel'))->toBe(DonationChannel::class)
         ->and(fn () => MorphModelResolver::resolve('not_a_registered_alias'))->toThrow(RuntimeException::class);
 });

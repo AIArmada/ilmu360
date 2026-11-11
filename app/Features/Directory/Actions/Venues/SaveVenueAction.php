@@ -1,56 +1,65 @@
 <?php
 
-namespace App\Actions\Venues;
+declare(strict_types=1);
 
-use AIArmada\Events\Actions\SyncVenueFacilitiesAction;
-use App\Enums\VenueType;
-use App\Models\Venue;
-use App\Platform\Media\MediaCollectionSync;
-use App\Services\ContributionEntityMutationService;
+namespace App\Features\Directory\Actions\Venues;
+
+use App\Shared\Directory\Enums\VenueType;
+use App\Features\Directory\Support\DirectoryModel;
 use BackedEnum;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;
 
+/**
+ * Create or update a venue through the owning Directory feature.
+ */
 final readonly class SaveVenueAction
 {
     use AsAction;
 
     public function __construct(
-        private ContributionEntityMutationService $contributionEntityMutationService,
         private GenerateVenueSlugAction $generateVenueSlugAction,
-        private MediaCollectionSync $mediaSyncService,
-        private SyncVenueFacilitiesAction $syncVenueFacilitiesAction,
+        private SyncVenueMediaAction $syncVenueMedia,
+        private SyncVenueFacilitiesAction $syncVenueFacilities,
+        private SyncVenueRelationsAction $syncVenueRelations,
     ) {}
 
     /**
      * @param  array<string, mixed>  $data
      */
-    public function handle(array $data, ?Venue $venue = null): Venue
+    public function handle(array $data, ?Model $venue = null): Model
     {
-        $creating = ! $venue instanceof Venue;
-        $venue ??= new Venue;
+        $creating = ! $venue instanceof Model;
+        $venue ??= DirectoryModel::new('venue');
+
+        if (! $creating) {
+            DirectoryModel::assert($venue, 'venue');
+        }
 
         $address = is_array($data['address'] ?? null) ? $data['address'] : [];
 
         $venue->fill([
-            'name' => $this->normalizeRequiredString($data['name'] ?? $venue->name, 'Venue'),
+            'name' => $this->normalizeRequiredString($data['name'] ?? $venue->getAttribute('name'), 'Venue'),
             'venue_type' => array_key_exists('type', $data)
                 ? $this->normalizeVenueType($data['type'] ?? null)
-                : $this->normalizeVenueType($venue->venue_type),
-            'description' => array_key_exists('description', $data) ? $data['description'] : $venue->description,
-            'status' => array_key_exists('status', $data) ? (string) $data['status'] : ($creating ? 'verified' : (string) $venue->status),
-            'visibility' => array_key_exists('visibility', $data) ? (string) $data['visibility'] : ($creating ? 'public' : (string) ($venue->visibility ?? 'public')),
+                : $this->normalizeVenueType($venue->getAttribute('venue_type')),
+            'description' => array_key_exists('description', $data) ? $data['description'] : $venue->getAttribute('description'),
+            'status' => array_key_exists('status', $data) ? (string) $data['status'] : ($creating ? 'verified' : (string) $venue->getAttribute('status')),
+            'visibility' => array_key_exists('visibility', $data) ? (string) $data['visibility'] : ($creating ? 'public' : (string) ($venue->getAttribute('visibility') ?? 'public')),
         ]);
+
+        $venueClass = DirectoryModel::venue();
 
         if ($creating) {
             if (! $venue->getKey()) {
-                $venue->{$venue->getKeyName()} = (string) Str::uuid();
+                $venue->setAttribute($venue->getKeyName(), (string) Str::uuid());
             }
 
-            $venue->slug = $this->generateVenueSlugAction->handle($venue->name, $address);
-            Venue::withoutEvents(fn () => $venue->save());
+            $venue->setAttribute('slug', $this->generateVenueSlugAction->handle((string) $venue->getAttribute('name'), $address));
+            $venueClass::withoutEvents(fn () => $venue->save());
         } else {
             $venue->save();
         }
@@ -65,15 +74,19 @@ final readonly class SaveVenueAction
             $relationPayload['social_media'] = $data['socialProfiles'];
         }
 
-        $this->contributionEntityMutationService->syncVenueRelations($venue, $relationPayload);
+        $this->syncVenueRelations->handle($venue, $relationPayload);
         $this->syncVenueFacilities($venue, $data);
-        $this->syncMedia($venue, $data);
 
-        // ponytail: slug was calculated before address was linked; re-sync now that address exists.
+        if ($this->containsMediaPayload($data)) {
+            $this->syncVenueMedia->handle($venue, $data);
+        }
+
+        // Slug was calculated before the address was linked; re-sync now that
+        // the address exists.
         if ($creating) {
             $venue = $venue->fresh(['addresses']) ?? $venue;
-            $venue->slug = $this->generateVenueSlugAction->forVenue($venue);
-            Venue::withoutEvents(fn () => $venue->saveQuietly());
+            $venue->setAttribute('slug', $this->generateVenueSlugAction->forVenue($venue));
+            $venueClass::withoutEvents(fn () => $venue->saveQuietly());
         }
 
         return $venue->fresh([
@@ -87,46 +100,20 @@ final readonly class SaveVenueAction
     /**
      * @param  array<string, mixed>  $data
      */
-    private function syncMedia(Venue $venue, array $data): void
+    private function containsMediaPayload(array $data): bool
     {
-        if (($data['clear_main'] ?? false) === true) {
-            $this->mediaSyncService->clearCollection($venue, 'main');
-        }
-
-        if (($data['clear_cover'] ?? false) === true) {
-            $this->mediaSyncService->clearCollection($venue, 'cover');
-        }
-
-        if (($data['clear_gallery'] ?? false) === true) {
-            $this->mediaSyncService->clearCollection($venue, 'gallery');
-        }
-
-        $main = $data['main'] ?? null;
-        $cover = $data['cover'] ?? null;
-        $gallery = $data['gallery'] ?? null;
-
-        $this->mediaSyncService->syncSingle(
-            $venue,
-            $main instanceof UploadedFile ? $main : null,
-            'main',
-        );
-        $this->mediaSyncService->syncSingle(
-            $venue,
-            $cover instanceof UploadedFile ? $cover : null,
-            'cover',
-        );
-        $this->mediaSyncService->syncMultiple(
-            $venue,
-            is_array($gallery) ? $gallery : null,
-            'gallery',
-            replace: is_array($gallery),
-        );
+        return ($data['clear_main'] ?? false) === true
+            || ($data['clear_cover'] ?? false) === true
+            || ($data['clear_gallery'] ?? false) === true
+            || ($data['main'] ?? null) instanceof UploadedFile
+            || ($data['cover'] ?? null) instanceof UploadedFile
+            || is_array($data['gallery'] ?? null);
     }
 
     /**
      * @param  array<string, mixed>  $data
      */
-    private function syncVenueFacilities(Venue $venue, array $data): void
+    private function syncVenueFacilities(Model $venue, array $data): void
     {
         if (! array_key_exists('facilities', $data)) {
             return;
@@ -147,7 +134,7 @@ final readonly class SaveVenueAction
             static fn (mixed $code): bool => is_string($code) && trim($code) !== '',
         )));
 
-        $this->syncVenueFacilitiesAction->handle(
+        $this->syncVenueFacilities->handle(
             $venue,
             array_map(static fn (string $code): array => ['code' => $code], $codes),
         );
