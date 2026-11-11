@@ -6,6 +6,7 @@ use AIArmada\Events\Enums\RegistrationMode;
 use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventAccessPolicy;
 use App\Features\Events\Services\EventKeyPersonSyncService;
+use App\Features\Registration\Api\AdmissionFacts;
 use App\Shared\Support\MorphAlias;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -15,6 +16,7 @@ class SyncEventResourceRelationsAction
 
     public function __construct(
         private readonly EventKeyPersonSyncService $eventKeyPersonSyncService,
+        private readonly AdmissionFacts $admissionFacts,
     ) {}
 
     /**
@@ -27,7 +29,7 @@ class SyncEventResourceRelationsAction
         bool $lockRegistrationMode = true,
         bool $syncKeyPeople = true,
     ): array {
-        $eventHasRegistrations = $event->registrations()->exists();
+        $eventHasRegistrations = $this->admissionFacts->hasRegistrations((string) $event->getKey());
         $requestedRegistrationRequired = filter_var(
             $state['registration_required'] ?? false,
             FILTER_VALIDATE_BOOL,

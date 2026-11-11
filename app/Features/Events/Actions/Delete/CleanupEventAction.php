@@ -16,11 +16,15 @@ use App\Shared\Membership\MembershipSubjectType;
  *
  * Direct deletes here: membership pivots (through the Membership boundary),
  * event involvements/key people, access policies, reference records,
- * bookmarks, going responses, registrations, check-ins, submissions,
- * moderation reviews, change announcements and media links. The event-scoped
- * package tables without app write paths (links, audiences, languages,
- * locations, classifications, time expressions, series items) are still
- * removed by the vendor EventDeleteCascade in the model's `deleted` hook.
+ * bookmarks, going responses, submissions, moderation reviews, change
+ * announcements and media links. Registration, attendance and check-in rows
+ * must also be deleted here: the vendor EventDeleteCascade cannot replace
+ * these deletes because the root Event model invokes it from the `deleted`
+ * hook, after the event row is gone, and the cascade's owner-scoped child
+ * queries filter through `whereHas('event')`, so they match no rows.
+ * The event-scoped package tables without app write paths (links, audiences,
+ * languages, locations, classifications, time expressions, series items) are
+ * still removed by that vendor cascade.
  */
 final readonly class CleanupEventAction implements EventDeletion
 {

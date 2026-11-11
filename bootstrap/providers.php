@@ -13,6 +13,7 @@ use App\Features\Inspirations\FeatureServiceProvider as InspirationsServiceProvi
 use App\Features\Membership\FeatureServiceProvider as MembershipServiceProvider;
 use App\Features\Organizations\FeatureServiceProvider as OrganizationsServiceProvider;
 use App\Features\Prayer\FeatureServiceProvider;
+use App\Features\Registration\FeatureServiceProvider as RegistrationServiceProvider;
 use App\Features\Reports\FeatureServiceProvider as ReportsServiceProvider;
 use App\Features\SavedSearches\FeatureServiceProvider as SavedSearchesServiceProvider;
 use App\Providers\AdminRegistryServiceProvider;
@@ -43,6 +44,7 @@ return [
     MembershipServiceProvider::class,
     OrganizationsServiceProvider::class,
     FeatureServiceProvider::class,
+    RegistrationServiceProvider::class,
     ReportsServiceProvider::class,
     SavedSearchesServiceProvider::class,
     BlazeServiceProvider::class,
