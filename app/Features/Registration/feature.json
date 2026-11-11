@@ -13,6 +13,12 @@
     ],
     "table:event_registration_items": [
       "App\\Features\\Registration\\Actions\\RegisterFreeAdmissionAction"
+    ],
+    "table:event_attendances": [
+      "App\\Features\\Registration\\Actions\\RecordSelfCheckInAction"
+    ],
+    "table:event_attendance_logs": [
+      "App\\Features\\Registration\\Actions\\RecordSelfCheckInAction"
     ]
   }
 }

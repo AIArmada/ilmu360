@@ -5,18 +5,21 @@ declare(strict_types=1);
 namespace App\Support\ShareTracking;
 
 use App\Enums\ShareOutcomeType;
+use App\Models\EventCheckin;
 use App\Models\User;
 use App\Platform\Models\MorphModelResolver;
 use App\Services\ShareTrackingService;
 use App\Shared\ShareTracking\ParticipationAttribution;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 
 /**
  * Root adapter for Registration's share-attribution boundary.
  *
  * Share tracking stays root-owned during the Registration migration; this
- * adapter keeps the canonical business key and metadata keys unchanged so the
- * feature does not import the tracking service or its enum.
+ * adapter keeps the canonical business keys, metadata keys and occurrence
+ * times unchanged so the feature does not import the tracking service or its
+ * enum.
  */
 final readonly class ShareTrackingParticipationAttribution implements ParticipationAttribution
 {
@@ -33,12 +36,9 @@ final readonly class ShareTrackingParticipationAttribution implements Participat
         ?object $request = null,
         array $businessMetadata = [],
     ): void {
-        $eventClass = MorphModelResolver::resolve('event');
-        $registrationClass = MorphModelResolver::resolve('registration');
-
-        $subject = $eventClass::query()->find($eventId);
-        $registration = $registrationClass::query()->find($registrationId);
-        $actor = $actorId !== null ? User::query()->find($actorId) : null;
+        $subject = $this->findEvent($eventId);
+        $registration = MorphModelResolver::resolve('registration')::query()->find($registrationId);
+        $actor = $this->findActor($actorId);
 
         $metadata = [
             'registration_id' => $registrationId,
@@ -55,10 +55,75 @@ final readonly class ShareTrackingParticipationAttribution implements Participat
             type: ShareOutcomeType::EventRegistration,
             businessKey: ShareOutcomeBusinessKey::eventRegistration($registrationId),
             subject: $subject,
-            actor: $actor instanceof User ? $actor : null,
+            actor: $actor,
             request: $request instanceof Request ? $request : request(),
             metadata: $metadata,
             occurredAt: $registration?->created_at ?? now(),
         );
+    }
+
+    public function recordCheckIn(
+        string $checkinId,
+        string $eventId,
+        ?string $actorId,
+        ?object $request = null,
+    ): void {
+        $checkin = $this->findCheckin($checkinId);
+
+        $this->shareTracking->recordOutcome(
+            type: ShareOutcomeType::EventCheckin,
+            businessKey: ShareOutcomeBusinessKey::eventCheckin($checkinId),
+            subject: $this->findEvent($eventId),
+            actor: $this->findActor($actorId),
+            request: $request instanceof Request ? $request : request(),
+            metadata: $this->checkinMetadata($checkin),
+            occurredAt: $checkin->created_at ?? now(),
+        );
+    }
+
+    public function recordInheritedCheckIn(
+        string $checkinId,
+        string $eventId,
+        ?string $actorId,
+        string $registrationId,
+    ): void {
+        $checkin = $this->findCheckin($checkinId);
+
+        $this->shareTracking->recordInheritedOutcome(
+            type: ShareOutcomeType::EventCheckin,
+            businessKey: ShareOutcomeBusinessKey::eventCheckin($checkinId),
+            sourceBusinessKey: ShareOutcomeBusinessKey::eventRegistration($registrationId),
+            subject: $this->findEvent($eventId),
+            actor: $this->findActor($actorId),
+            metadata: $this->checkinMetadata($checkin),
+            occurredAt: $checkin->created_at ?? now(),
+        );
+    }
+
+    private function findEvent(string $eventId): ?Model
+    {
+        return MorphModelResolver::resolve('event')::query()->find($eventId);
+    }
+
+    private function findActor(?string $actorId): ?User
+    {
+        return $actorId !== null ? User::query()->find($actorId) : null;
+    }
+
+    private function findCheckin(string $checkinId): EventCheckin
+    {
+        return EventCheckin::query()->findOrFail($checkinId);
+    }
+
+    /**
+     * @return array{checkin_id: string, event_registration_id: string|null, check_in_source: string|null}
+     */
+    private function checkinMetadata(EventCheckin $checkin): array
+    {
+        return [
+            'checkin_id' => $checkin->getKey(),
+            'event_registration_id' => $checkin->event_registration_id,
+            'check_in_source' => $checkin->check_in_source,
+        ];
     }
 }

@@ -163,7 +163,7 @@ Effort: **Low** for migration (nothing to migrate). **High** for adding paid tic
 - `Registration` model → `EventRegistration` + `EventRegistrationParticipant`
 - `EventCheckin` model → `EventAttendance` + `EventAttendanceLog`
 - `RegisterForEventAction` → events package actions + checkout pipeline for paid events
-- `RecordEventCheckInAction` → package equivalents
+- `RecordSelfCheckInAction` → app aggregate over the package check-in service
 
 ### Key decisions:
 1. **Payment gateway**: Use CHIP (Malaysia-focused, supports FPX/eWallet). The app is Malaysia-centric. CHIP is the natural fit. Stripe as backup for international users.

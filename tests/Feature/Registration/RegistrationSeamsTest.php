@@ -5,18 +5,24 @@ declare(strict_types=1);
 use AIArmada\Events\Models\EventAttendanceLog;
 use AIArmada\Events\Models\EventRegistrationAnswer;
 use AIArmada\Events\Models\EventRegistrationItem;
+use App\Features\Registration\Actions\RecordSelfCheckInAction;
 use App\Features\Registration\Actions\RegisterFreeAdmissionAction;
 use App\Features\Registration\Api\AdmissionFacts;
 use App\Features\Registration\Api\AdmissionRegistration;
+use App\Features\Registration\Api\AttendanceCommands;
+use App\Features\Registration\Api\AttendanceState;
 use App\Features\Registration\FeatureServiceProvider as RegistrationFeatureServiceProvider;
 use App\Features\Registration\Queries\DatabaseAdmissionFacts;
+use App\Features\Registration\Queries\ResolveAttendanceState;
 use App\Models\Event;
 use App\Models\EventCheckin;
 use App\Models\Registration;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
 use App\Platform\FeatureCatalog;
+use App\Shared\Registration\CheckInNotifier;
 use App\Shared\ShareTracking\ParticipationAttribution;
+use App\Support\Registration\EventNotificationCheckInNotifier;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use App\Support\ShareTracking\ShareTrackingParticipationAttribution;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -115,13 +121,19 @@ it('discovers the registration feature manifest and provider exactly once', func
         ->and($catalog['owners']['table:event_registration_answers'])->toBe('Registration')
         ->and($catalog['owners']['table:event_registration_items'])->toBe('Registration')
         ->and($catalog['owners'])->not->toHaveKey('table:event_registration_questions')
-        ->and($catalog['owners'])->not->toHaveKey('table:event_attendances')
-        ->and($catalog['owners'])->not->toHaveKey('table:event_attendance_logs')
+        ->and($catalog['owners'])->toHaveKey('table:event_attendances')
+        ->and($catalog['owners']['table:event_attendances'])->toBe('Registration')
+        ->and($catalog['owners'])->toHaveKey('table:event_attendance_logs')
+        ->and($catalog['owners']['table:event_attendance_logs'])->toBe('Registration')
         ->and($catalog['writes'][RegisterFreeAdmissionAction::class])->toEqualCanonicalizing([
             'table:event_registrations',
             'table:event_registration_participants',
             'table:event_registration_answers',
             'table:event_registration_items',
+        ])
+        ->and($catalog['writes'][RecordSelfCheckInAction::class])->toEqualCanonicalizing([
+            'table:event_attendances',
+            'table:event_attendance_logs',
         ])
         ->and(array_keys($providers, RegistrationFeatureServiceProvider::class, true))->toHaveCount(1)
         ->and(app()->getLoadedProviders())->toHaveKey(RegistrationFeatureServiceProvider::class);
@@ -130,6 +142,58 @@ it('discovers the registration feature manifest and provider exactly once', func
 it('binds the admission registration boundary to the free admission action', function (): void {
     expect(app(AdmissionRegistration::class))->toBeInstanceOf(RegisterFreeAdmissionAction::class)
         ->and(app(ParticipationAttribution::class))->toBeInstanceOf(ShareTrackingParticipationAttribution::class);
+});
+
+it('binds the attendance boundaries to their feature implementations', function (): void {
+    expect(app(AttendanceCommands::class))->toBeInstanceOf(RecordSelfCheckInAction::class)
+        ->and(app(AttendanceState::class))->toBeInstanceOf(ResolveAttendanceState::class)
+        ->and(app(CheckInNotifier::class))->toBeInstanceOf(EventNotificationCheckInNotifier::class);
+});
+
+it('records self check-in through the scalar attendance boundary', function (): void {
+    $user = User::factory()->create();
+    $event = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDay(),
+        'starts_at' => now('Asia/Kuala_Lumpur')->addHour()->utc(),
+        'timezone' => 'Asia/Kuala_Lumpur',
+    ]);
+
+    $event->accessPolicy()->delete();
+
+    $state = app(AttendanceState::class)->forUser(
+        (string) $event->getKey(),
+        (string) $user->getKey(),
+    );
+
+    expect($state)->toMatchArray([
+        'available' => true,
+        'reason' => null,
+        'method' => 'self_reported',
+        'registration_id' => null,
+    ]);
+
+    $created = app(AttendanceCommands::class)->recordSelfCheckIn(
+        eventId: (string) $event->getKey(),
+        userId: (string) $user->getKey(),
+        registrationId: $state['registration_id'],
+        method: $state['method'],
+    );
+
+    expect($created['status'])->toBe('created')
+        ->and($created['checkin_id'])->not->toBe('')
+        ->and(EventCheckin::query()->whereKey($created['checkin_id'])->exists())->toBeTrue();
+
+    $duplicate = app(AttendanceCommands::class)->recordSelfCheckIn(
+        eventId: (string) $event->getKey(),
+        userId: (string) $user->getKey(),
+        registrationId: $state['registration_id'],
+        method: $state['method'],
+    );
+
+    expect($duplicate['status'])->toBe('duplicate')
+        ->and($duplicate['checkin_id'])->toBe($created['checkin_id']);
 });
 
 it('registers free admission through the scalar boundary', function (): void {

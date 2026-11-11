@@ -13,12 +13,12 @@ use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventRegistration;
 use AIArmada\Events\Models\EventSession;
 use AIArmada\Persons\Enums\AssignmentStatus;
-use App\Actions\Events\Attendance\RecordEventCheckInAction;
-use App\Actions\Events\Attendance\ResolveEventCheckInStateAction;
 use App\Actions\Events\Engagement\MarkEventGoingAction;
 use App\Actions\Events\Engagement\RemoveEventGoingAction;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Data\PublicScheduleLeaf;
+use App\Features\Registration\Api\AttendanceCommands;
+use App\Features\Registration\Api\AttendanceState;
 use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Enums\ShareOutcomeType;
@@ -849,12 +849,12 @@ class Show extends Component
             return;
         }
 
-        $checkinResult = app(RecordEventCheckInAction::class)->handle(
-            $this->event,
-            $user,
-            $state['registration_id'],
-            $state['method'],
-            request(),
+        $checkinResult = app(AttendanceCommands::class)->recordSelfCheckIn(
+            eventId: (string) $this->event->getKey(),
+            userId: (string) $user->getKey(),
+            registrationId: $state['registration_id'],
+            method: $state['method'],
+            request: request(),
         );
 
         if ($checkinResult['status'] === 'duplicate') {
@@ -1288,9 +1288,9 @@ class Show extends Component
      */
     protected function resolveCheckInState(User $user): array
     {
-        return app(ResolveEventCheckInStateAction::class)->handle(
-            $this->event->loadMissing('accessPolicy'),
-            $user,
+        return app(AttendanceState::class)->forUser(
+            (string) $this->event->getKey(),
+            (string) $user->getKey(),
         );
     }
 }

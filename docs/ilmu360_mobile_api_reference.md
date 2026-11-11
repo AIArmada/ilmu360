@@ -1317,7 +1317,7 @@ Notes:
 
 Notes:
 
-- Check-in uses the shared `ResolveEventCheckInStateAction`, so API and web eligibility rules now match.
+- Check-in uses the shared `ResolveAttendanceState`, so API and web eligibility rules now match.
 - Current check-in availability and checked-in state live under `data.check_in` in `GET /events/{event}/me`.
 - If the event requires registration, the check-in state returns `registered_self_checkin` and the relevant `registration_id`.
 - Duplicate check-ins return HTTP `200` with `data.status = "duplicate"` instead of creating another row.

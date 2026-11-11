@@ -101,6 +101,7 @@ use App\Models\Audit as FilamentAudit;
 use App\Models\ContributionRequest;
 use App\Models\DonationChannel;
 use App\Models\Event;
+use App\Models\EventCheckin;
 use App\Models\EventKeyPerson;
 use App\Models\EventSubmission;
 use App\Models\Institution;
@@ -207,6 +208,7 @@ use App\Shared\Membership\MembershipPermissionEvaluator;
 use App\Shared\Membership\MembershipSubjectCatalog;
 use App\Shared\Reports\ReportEscalation;
 use App\Shared\Reports\ReportSubjectResolver;
+use App\Shared\Registration\CheckInNotifier;
 use App\Shared\ShareTracking\GuestClaims;
 use App\Shared\ShareTracking\ParticipationAttribution;
 use App\Shared\ShareTracking\SavedSearchShareOutcomes;
@@ -254,6 +256,7 @@ use App\Support\Moderation\ModerationAccountLifecycleContributor;
 use App\Support\Passport\PassportKeyProvisioner;
 use App\Support\Reports\CompositeReportSubjectResolver;
 use App\Support\Reports\GlobalReportEscalation;
+use App\Support\Registration\EventNotificationCheckInNotifier;
 use App\Support\Rewards\CompositeRewardSourceFactReader;
 use App\Support\Rewards\DigestRewardGratitudePlanner;
 use App\Support\Rewards\ShareCorrectionKeySource;
@@ -342,6 +345,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(GuestClaims::class, GuestClaimLookup::class);
         $this->app->bind(SignupRecorder::class, ShareTrackingSignupRecorder::class);
         $this->app->bind(ParticipationAttribution::class, ShareTrackingParticipationAttribution::class);
+        $this->app->bind(CheckInNotifier::class, EventNotificationCheckInNotifier::class);
         $this->app->bind(AccountNotificationSettings::class, AccountNotificationSettingsAdapter::class);
         $this->app->bind(PrayerInstitutionCatalog::class, EloquentPrayerInstitutionCatalog::class);
         $this->app->bind(UserMorphType::class, EloquentUserMorphType::class);
@@ -607,6 +611,7 @@ class AppServiceProvider extends ServiceProvider
             'event_occurrence' => EventOccurrence::class,
             'event_submission' => EventSubmission::class,
             'event_session' => EventSession::class,
+            'checkin' => EventCheckin::class,
             'checkout_session' => CheckoutSession::class,
             'order' => Order::class,
             'order_item' => OrderItem::class,

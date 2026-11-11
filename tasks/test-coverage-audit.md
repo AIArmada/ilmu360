@@ -84,8 +84,8 @@
 | `GenerateEventCoverImageAction` | **UNCOVERED** | |
 | `MarkEventGoingAction` | **UNCOVERED** | |
 | `RemoveEventGoingAction` | **UNCOVERED** | |
-| `RecordEventCheckInAction` | **UNCOVERED** | |
-| `ResolveEventCheckInStateAction` | **UNCOVERED** | |
+| `RecordSelfCheckInAction` | **UNCOVERED** | |
+| `ResolveAttendanceState` | **UNCOVERED** | |
 
 #### Fortify (1/4 — 25%)
 | Action | Status | Notes |

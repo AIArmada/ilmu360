@@ -895,11 +895,11 @@ Observers registered in `AppServiceProvider::registerModelObservers()` (13) + `A
 | `PersistValidatedEventSubmissionAction` | **Write event to DB** (core persistence) |
 | `PrepareAdvancedParentProgramSubmissionAction` | Prepare parent program for session submission |
 | `PublishEventChangeAnnouncement` | Publish change announcement |
-| `RecordEventCheckInAction` | Record attendance check-in |
+| `RecordSelfCheckInAction` | Record self check-in |
 | `RemoveEventGoingAction` | Remove going status |
 | `ResolveAdvancedBuilderContextAction` | Resolve builder context |
 | `ResolveAdvancedBuilderMembershipOptionsAction` | Membership options |
-| `ResolveEventCheckInStateAction` | Resolve check-in availability |
+| `ResolveAttendanceState` | Resolve attendance availability |
 | `SaveAdminEventAction` | Save event from admin |
 | `SubmitFrontendEventAction` | **Orchestrate full event submission** |
 | `SyncEventClassificationsAction` | Sync category/domain/discipline/source/issue terms |

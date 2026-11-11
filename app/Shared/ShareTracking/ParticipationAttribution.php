@@ -27,4 +27,28 @@ interface ParticipationAttribution
         ?object $request = null,
         array $businessMetadata = [],
     ): void;
+
+    /**
+     * Records a direct self-check-in outcome.
+     *
+     * The implementation owns the canonical business key, metadata keys and
+     * occurrence time derived from the attendance record.
+     */
+    public function recordCheckIn(
+        string $checkinId,
+        string $eventId,
+        ?string $actorId,
+        ?object $request = null,
+    ): void;
+
+    /**
+     * Records a self-check-in outcome that inherits provenance from its
+     * registration instead of resolving a fresh request attribution.
+     */
+    public function recordInheritedCheckIn(
+        string $checkinId,
+        string $eventId,
+        ?string $actorId,
+        string $registrationId,
+    ): void;
 }

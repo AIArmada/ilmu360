@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Actions\Events\Attendance\RecordEventCheckInAction;
-use App\Actions\Events\Attendance\ResolveEventCheckInStateAction;
 use App\Data\Api\EventCheckIn\EventCheckInData;
+use App\Features\Registration\Api\AttendanceCommands;
+use App\Features\Registration\Api\AttendanceState;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
+use App\Models\EventCheckin;
 use App\Models\User;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
@@ -24,11 +25,14 @@ class EventCheckInController extends Controller
     public function store(
         Request $request,
         Event $event,
-        ResolveEventCheckInStateAction $resolveEventCheckInStateAction,
-        RecordEventCheckInAction $recordEventCheckInAction,
+        AttendanceState $attendanceState,
+        AttendanceCommands $attendanceCommands,
     ): JsonResponse {
         $user = $this->currentUser($request);
-        $state = $resolveEventCheckInStateAction->handle($event->loadMissing('accessPolicy'), $user);
+        $state = $attendanceState->forUser(
+            (string) $event->getKey(),
+            (string) $user->getKey(),
+        );
 
         if (! $state['available']) {
             return response()->json([
@@ -39,13 +43,15 @@ class EventCheckInController extends Controller
             ], 403);
         }
 
-        $result = $recordEventCheckInAction->handle(
-            $event,
-            $user,
-            $state['registration_id'],
-            $state['method'],
-            $request,
+        $result = $attendanceCommands->recordSelfCheckIn(
+            eventId: (string) $event->getKey(),
+            userId: (string) $user->getKey(),
+            registrationId: $state['registration_id'],
+            method: $state['method'],
+            request: $request,
         );
+
+        $checkin = EventCheckin::query()->findOrFail($result['checkin_id']);
 
         $statusCode = $result['status'] === 'created' ? 201 : 200;
         $message = $result['status'] === 'created'
@@ -56,7 +62,7 @@ class EventCheckInController extends Controller
             'message' => $message,
             'data' => [
                 'status' => $result['status'],
-                'checkin' => EventCheckInData::fromModel($result['checkin'])->toArray(),
+                'checkin' => EventCheckInData::fromModel($checkin)->toArray(),
             ],
             'meta' => [
                 'request_id' => $request->header('X-Request-ID', (string) Str::uuid()),

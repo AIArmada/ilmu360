@@ -1,15 +1,25 @@
 <?php
 
-namespace App\Actions\Events\Attendance;
+declare(strict_types=1);
 
+namespace App\Features\Registration\Queries;
+
+use AIArmada\Events\Models\Event as PackageEvent;
+use App\Features\Registration\Api\AttendanceState;
+use App\Platform\Models\MorphModelResolver;
 use App\Shared\Events\Enums\EventVisibility;
-use App\Models\Event;
-use App\Models\Registration;
-use App\Models\User;
 use Carbon\CarbonInterface;
 use Lorisleiva\Actions\Concerns\AsAction;
 
-final class ResolveEventCheckInStateAction
+/**
+ * Resolves self-check-in availability for the Registration feature.
+ *
+ * Event and user identities resolve through morph aliases so the query does
+ * not depend on the root namespace while those models are still being moved.
+ * The decision matrix, messages and returned shape are unchanged from the
+ * original root action.
+ */
+final readonly class ResolveAttendanceState implements AttendanceState
 {
     use AsAction;
 
@@ -21,9 +31,20 @@ final class ResolveEventCheckInStateAction
      *   registration_id: string|null
      * }
      */
-    public function handle(Event $event, User $user): array
+    public function forUser(string $eventId, string $userId): array
     {
-        if (! $event->hasOccurrences() || $event->published_at === null || $event->visibility !== EventVisibility::Public || ! in_array((string) $event->status, Event::ENGAGEABLE_STATUSES, true)) {
+        $eventClass = MorphModelResolver::resolve('event');
+        $registrationClass = MorphModelResolver::resolve('registration');
+        $userClass = MorphModelResolver::resolve('user');
+
+        /** @var PackageEvent $event */
+        $event = $eventClass::query()->findOrFail($eventId);
+        $user = $userClass::query()->findOrFail($userId);
+
+        /** @var list<string> $engageableStatuses */
+        $engageableStatuses = constant($eventClass.'::ENGAGEABLE_STATUSES');
+
+        if (! $event->occurrences()->exists() || $event->published_at === null || $event->getAttribute('visibility') !== EventVisibility::Public || ! in_array((string) $event->getAttribute('status'), $engageableStatuses, true)) {
             return [
                 'available' => false,
                 'reason' => __('Majlis ini tidak tersedia untuk check-in.'),
@@ -46,7 +67,9 @@ final class ResolveEventCheckInStateAction
             ];
         }
 
-        if ($event->primaryOccurrence && in_array((string) $event->primaryOccurrence->status, ['postponed', 'rescheduled'], true)) {
+        $primaryOccurrence = $event->primaryOccurrence;
+
+        if ($primaryOccurrence !== null && in_array((string) $primaryOccurrence->getAttribute('status'), ['postponed', 'rescheduled'], true)) {
             return [
                 'available' => false,
                 'reason' => __('Tarikh majlis belum disahkan untuk check-in.'),
@@ -55,7 +78,7 @@ final class ResolveEventCheckInStateAction
             ];
         }
 
-        $startsAt = $event->starts_at;
+        $startsAt = $event->getAttribute('starts_at');
 
         if (! $startsAt instanceof CarbonInterface) {
             return [
@@ -100,15 +123,15 @@ final class ResolveEventCheckInStateAction
             ];
         }
 
-        /** @var Registration|null $registration */
-        $registration = Registration::query()
-            ->where('event_id', $event->id)
-            ->forUser($user)
-            ->active()
+        $registration = $registrationClass::query()
+            ->where('event_id', $event->getKey())
+            ->where('registrant_type', $user->getMorphClass())
+            ->where('registrant_id', (string) $user->getKey())
+            ->where('status', '!=', 'cancelled')
             ->latest('created_at')
             ->first();
 
-        if (! $registration instanceof Registration) {
+        if ($registration === null) {
             return [
                 'available' => false,
                 'reason' => __('Majlis ini memerlukan pendaftaran sebelum check-in.'),
@@ -121,7 +144,7 @@ final class ResolveEventCheckInStateAction
             'available' => true,
             'reason' => null,
             'method' => 'registered_self_checkin',
-            'registration_id' => $registration->id,
+            'registration_id' => (string) $registration->getKey(),
         ];
     }
 }

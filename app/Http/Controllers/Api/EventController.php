@@ -7,7 +7,7 @@ use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Engagement\Models\Response;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTimeExpression;
-use App\Actions\Events\Attendance\ResolveEventCheckInStateAction;
+use App\Features\Registration\Api\AttendanceState;
 use App\Shared\Events\EventCategoryCatalog;
 use App\Data\Api\Event\EventMeData;
 use App\Data\Api\Event\EventPayloadData;
@@ -605,7 +605,7 @@ class EventController extends Controller
         title: 'Get current user event state',
         description: 'Returns the authenticated user\'s saved, going, registration, and check-in state for the target active public or unlisted event in one response.',
     )]
-    public function me(Request $request, Event $event, ResolveEventCheckInStateAction $resolveEventCheckInStateAction): JsonResponse
+    public function me(Request $request, Event $event, AttendanceState $attendanceState): JsonResponse
     {
         $this->abortUnlessStateVisibleEvent($event);
 
@@ -622,7 +622,10 @@ class EventController extends Controller
             ? EventRegistrationData::fromModel($registration)
             : null;
 
-        $checkInState = $resolveEventCheckInStateAction->handle($event->loadMissing('accessPolicy'), $user);
+        $checkInState = $attendanceState->forUser(
+            (string) $event->getKey(),
+            (string) $user->getKey(),
+        );
 
         $isCheckedIn = EventCheckin::query()
             ->where('event_id', $event->getKey())
