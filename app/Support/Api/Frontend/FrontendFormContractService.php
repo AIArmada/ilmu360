@@ -3,12 +3,12 @@
 namespace App\Support\Api\Frontend;
 
 use AIArmada\Persons\Enums\Gender;
-use App\Contracts\EventCategoryCatalog;
-use App\Enums\EventAgeGroup;
-use App\Enums\EventFormat;
-use App\Enums\EventGenderRestriction;
-use App\Enums\EventTaxonomyCode;
-use App\Enums\EventVisibility;
+use App\Shared\Events\EventCategoryCatalog;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Taxonomy\EventTaxonomyCode;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Enums\MemberSubjectType;
 use App\Enums\RegistrationScope;
 use App\Features\GitHubIssues\Api\GitHubIssueReportContract;

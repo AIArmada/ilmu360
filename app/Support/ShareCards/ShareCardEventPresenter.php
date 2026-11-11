@@ -6,8 +6,8 @@ namespace App\Support\ShareCards;
 
 use AIArmada\Events\Models\EventOccurrence;
 use App\Contracts\ShareCards\ShareCardRenderInput;
-use App\Enums\EventChangeType;
-use App\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\EventChangeType;
+use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Platform\Time\UserDateTimeFormatter;

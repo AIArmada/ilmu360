@@ -2,24 +2,27 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Reports;
+namespace App\Features\Events\Services;
 
 use AIArmada\FilamentEvents\Resources\EventResource;
-use App\Models\Event;
+use App\Features\Events\Api\EventReportSubjectProvider;
+use App\Features\Events\Support\EventModel;
 use App\Platform\Models\SlugOrUuidResolver;
 use App\Shared\Reports\ReportSubject;
 use App\Shared\Reports\ReportSubjectPresentation;
-use App\Shared\Reports\ReportSubjectResolver;
 use App\Shared\Reports\ReportSubjectType;
 use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
 
 /**
- * @internal Interim Events report-subject provider until Events exposes its own
- * public subject API. Reports depends only on the Shared contract and composes
- * this provider with Directory's provider.
+ * Interim Events report-subject provider.
+ *
+ * Reports composes it with Directory's provider. Querying through the event
+ * morph alias keeps this adapter free of the private root event model.
+ *
+ * @internal
  */
-final readonly class EventReportSubjectResolver implements ReportSubjectResolver
+final readonly class EventReportSubjectResolver implements EventReportSubjectProvider
 {
     public function __construct(
         private SlugOrUuidResolver $slugOrUuidResolver,
@@ -41,7 +44,7 @@ final readonly class EventReportSubjectResolver implements ReportSubjectResolver
     {
         return $this->typeOrNull($typeKey) === ReportSubjectType::Event
             && trim($entityId) !== ''
-            && Event::query()->whereKey($entityId)->exists();
+            && EventModel::query('event')->whereKey($entityId)->exists();
     }
 
     public function find(string $typeKey, string $entityId): ?ReportSubject
@@ -50,9 +53,9 @@ final readonly class EventReportSubjectResolver implements ReportSubjectResolver
             return null;
         }
 
-        $event = Event::query()->find($entityId);
+        $event = EventModel::query('event')->find($entityId);
 
-        return $event instanceof Event ? $this->subject($event) : null;
+        return $event instanceof Model ? $this->subject($event) : null;
     }
 
     public function resolve(string $typeKey, string $identifier): ?ReportSubject
@@ -61,7 +64,7 @@ final readonly class EventReportSubjectResolver implements ReportSubjectResolver
             return null;
         }
 
-        $event = $this->slugOrUuidResolver->first(Event::query(), 'events.slug', $identifier);
+        $event = $this->slugOrUuidResolver->first(EventModel::query('event'), 'events.slug', $identifier);
 
         return $event instanceof Model ? $this->subject($event) : null;
     }

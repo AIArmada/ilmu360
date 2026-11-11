@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Support\State;
+namespace App\Platform\State;
 
 use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasDescription;

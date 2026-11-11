@@ -3,7 +3,7 @@
 use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Engagement\Models\Response;
 use AIArmada\Seating\Enums\SeatingMode;
-use App\Enums\EventVisibility;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;

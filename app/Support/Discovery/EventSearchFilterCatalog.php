@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Support\Discovery;
 
-use App\Contracts\EventCategoryCatalog;
-use App\Enums\EventAgeGroup;
-use App\Enums\EventFormat;
-use App\Enums\EventGenderRestriction;
-use App\Enums\EventKeyPersonRole;
-use App\Enums\TimingMode;
+use App\Shared\Events\EventCategoryCatalog;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\TimingMode;
 use App\Shared\Discovery\SearchFilterCatalog;
 use App\Shared\Prayer\EventPrayerTime;
 

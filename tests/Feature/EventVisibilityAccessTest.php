@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\EventVisibility;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Livewire\Pages\Events\Show;
 use App\Models\Event;
 use App\Models\EventSubmission;

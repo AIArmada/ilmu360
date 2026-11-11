@@ -3,11 +3,11 @@
 use AIArmada\Authz\Models\Role;
 use AIArmada\Events\Enums\ScheduleKind;
 use App\Actions\Events\Scheduling\SyncEventScheduleAction;
-use App\Enums\EventAgeGroup;
-use App\Enums\EventFormat;
-use App\Enums\EventGenderRestriction;
-use App\Enums\EventKeyPersonRole;
-use App\Enums\EventVisibility;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Directory\Enums\ReferenceType;
 use App\Mcp\Prompts\Concerns\BuildsEventImagePrompt;
 use App\Mcp\Servers\AdminServer;

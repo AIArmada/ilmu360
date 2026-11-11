@@ -2,7 +2,7 @@
 
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
-use App\Enums\EventTaxonomyCode;
+use App\Shared\Taxonomy\EventTaxonomyCode;
 use App\Forms\EventContributionFormSchema;
 use App\Models\Institution;
 use App\Models\Person;

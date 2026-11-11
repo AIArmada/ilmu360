@@ -34,7 +34,7 @@
         : (array) ($event->age_group ?? []);
     $occurrenceGenderValue = $occurrenceAudiences->firstWhere('audience_type', 'gender')?->value;
     $occurrenceGender = $occurrenceOwnsSubmissionContent
-        ? \App\Enums\EventGenderRestriction::tryFrom((string) $occurrenceGenderValue)
+        ? \App\Shared\Events\Enums\EventGenderRestriction::tryFrom((string) $occurrenceGenderValue)
         : ($genderRestriction ?? $event->gender);
     $audienceLabels = $occurrenceOwnsSubmissionContent
         ? $occurrenceAudiences
@@ -51,7 +51,7 @@
     $sharedAgeLabels = collect($occurrenceAgeValues)
         ->map(fn (mixed $value): ?string => $value instanceof \BackedEnum
             ? $value->getLabel()
-            : \App\Enums\EventAgeGroup::tryFrom((string) $value)?->getLabel())
+            : \App\Shared\Events\Enums\EventAgeGroup::tryFrom((string) $value)?->getLabel())
         ->filter()
         ->values();
     $sharedMuslimOnly = $occurrenceOwnsSubmissionContent
@@ -62,8 +62,8 @@
     // Attendance is a welcome, not a spec sheet: one soft card of tinted
     // pills states who the majlis is for without reading like a policy table.
     $sharedGenderChipLabel = match ($occurrenceGender) {
-        \App\Enums\EventGenderRestriction::WomenOnly => __('Women'),
-        \App\Enums\EventGenderRestriction::MenOnly => __('Men'),
+        \App\Shared\Events\Enums\EventGenderRestriction::WomenOnly => __('Women'),
+        \App\Shared\Events\Enums\EventGenderRestriction::MenOnly => __('Men'),
         default => null,
     };
     $sharedDetailIcons = [
@@ -268,7 +268,7 @@
 
         <div class="grid gap-3 sm:grid-cols-2">
             @foreach($sharedKeyPeople as $role => $keyPeople)
-                @php($roleLabel = \App\Enums\EventKeyPersonRole::tryFrom((string) $role)?->getLabel() ?? \Illuminate\Support\Str::headline((string) $role))
+                @php($roleLabel = \App\Shared\Events\Enums\EventKeyPersonRole::tryFrom((string) $role)?->getLabel() ?? \Illuminate\Support\Str::headline((string) $role))
                 <div class="mi-paper rounded-[20px] border border-[#e6dccb] bg-[#fffdf9] p-5">
                     <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8a5f13]">{{ $roleLabel }}</p>
                     <div class="mt-3.5 space-y-2.5">

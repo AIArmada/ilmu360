@@ -2,9 +2,9 @@
 
 namespace App\Livewire\Components;
 
-use App\Enums\EventAgeGroup;
-use App\Enums\EventGenderRestriction;
-use App\Enums\TimingMode;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\TimingMode;
 use App\Livewire\Pages\Events\Index as EventsIndex;
 use App\Shared\Location\VisitorCountryResolving;
 use App\Shared\Prayer\EventPrayerTime;

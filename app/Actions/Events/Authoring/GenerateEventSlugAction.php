@@ -5,7 +5,7 @@ namespace App\Actions\Events\Authoring;
 use AIArmada\CommerceSupport\Support\CanonicalSlug;
 use AIArmada\CommerceSupport\Support\StableModelOrder;
 use AIArmada\CommerceSupport\Support\UniqueSlug;
-use App\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;

@@ -79,20 +79,18 @@ use AIArmada\Rewards\Support\PointLedgerRewardReservationResolver;
 use AIArmada\Rewards\Support\RewardBenefitCatalogService;
 use AIArmada\Signals\Models\TrackedProperty;
 use AIArmada\Ticketing\Models\TicketType;
-use App\Actions\Events\Submission\ClaimGuestSubmissionsAction;
 use App\Actions\Slugs\ResolvePublicSlugAction;
 use App\Ai\Listeners\RecordAiUsage;
 use App\Checkout\ShareCheckoutStepContributor;
 use App\Contracts\CaptchaVerifier;
-use App\Contracts\EventCategoryCatalog;
-use App\Contracts\EventCategoryPolicyResolver;
+use App\Shared\Events\EventCategoryCatalog;
+use App\Shared\Events\EventCategoryPolicyResolver;
 use App\Contracts\NullCaptchaVerifier;
 use App\Contracts\ShareTrackingContract;
 use App\Contracts\SpaceEligibilityResolver;
 use App\Features\Directory\Api\DirectoryAdminContract;
 use App\Features\Directory\Api\DirectoryCommands;
 use App\Features\Directory\Api\DirectoryReader;
-use App\Features\Events\Api\GuestSubmissionClaims;
 use App\Features\SavedSearches\Api\SavedSearchExecutor;
 use App\Http\Controllers\Mcp\OAuthRegisterController;
 use App\Listeners\ShareTracking\ReverseRegistrationShareOutcome;
@@ -358,7 +356,6 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(AccountEventFacts::class, EloquentAccountEventFacts::class);
         $this->app->bind(ContributionRequestReader::class, EloquentContributionRequestReader::class);
         $this->app->bind(EngagementReader::class, EloquentEngagementReader::class);
-        $this->app->bind(GuestSubmissionClaims::class, ClaimGuestSubmissionsAction::class);
         $this->app->tag([
             DirectoryAccountLifecycleContributor::class,
             EventsAccountLifecycleContributor::class,
@@ -795,14 +792,6 @@ class AppServiceProvider extends ServiceProvider
     private function registerPublicSlugRegistry(): void
     {
         $this->app->singleton(PublicSlugRegistry::class, static fn (): PublicSlugRegistry => new PublicSlugRegistry([
-            new PublicSlugResource(
-                parameter: 'event',
-                routeName: 'events.show',
-                modelClass: Event::class,
-                requiresVisitedSource: false,
-                searchColumns: ['title', 'slug'],
-                labelAttribute: 'title',
-            ),
             new PublicSlugResource(
                 parameter: 'institution',
                 routeName: 'institutions.show',

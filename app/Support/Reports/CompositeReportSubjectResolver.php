@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support\Reports;
 
 use App\Features\Directory\Api\DirectoryReportSubjectProvider;
+use App\Features\Events\Api\EventReportSubjectProvider;
 use App\Shared\Reports\ReportSubject;
 use App\Shared\Reports\ReportSubjectPresentation;
 use App\Shared\Reports\ReportSubjectResolver;
@@ -14,14 +15,14 @@ use InvalidArgumentException;
 /**
  * Reports composition over feature-owned report subject providers.
  *
- * Directory supplies its four resource types; the interim Events provider
- * supplies event until Events exposes its own API.
+ * Directory supplies its four resource types; Events supplies the event
+ * subject through its own public provider.
  */
 final readonly class CompositeReportSubjectResolver implements ReportSubjectResolver
 {
     public function __construct(
         private DirectoryReportSubjectProvider $directorySubjects,
-        private EventReportSubjectResolver $eventSubjects,
+        private EventReportSubjectProvider $eventSubjects,
     ) {}
 
     public function validKeys(): array

@@ -3,11 +3,11 @@
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Enums\SocialPlatform;
-use App\Enums\EventFormat;
-use App\Enums\EventKeyPersonRole;
-use App\Enums\EventVisibility;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Directory\Enums\ReferenceType;
-use App\Enums\TimingMode;
+use App\Shared\Events\Enums\TimingMode;
 use App\Features\Inspirations\Models\Inspiration;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Models\Affiliation;

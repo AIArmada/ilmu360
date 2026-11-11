@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Events;
 
-use App\Contracts\EventCategoryCatalog;
+use App\Shared\Events\EventCategoryCatalog;
 use App\Models\Event;
 use Illuminate\Http\Request;
 

@@ -3,8 +3,8 @@
 use AIArmada\Events\Models\EventRole;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
-use App\Contracts\EventCategoryCatalog;
-use App\Enums\EventKeyPersonRole;
+use App\Shared\Events\EventCategoryCatalog;
+use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Enums\TaxonomyTerm\DisciplineTermCode;
 use App\Enums\TaxonomyTerm\DomainTermCode;
 use Database\Seeders\AIArmada\FoundationSeeder;

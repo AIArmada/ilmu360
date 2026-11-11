@@ -58,7 +58,7 @@
         ?? ($ownLocation?->venue_id !== null ? null : $event->resolvedLocationAddress());
     $addressDisplayLines = \App\Support\Location\AddressHierarchyFormatter::displayLines($primaryAddress);
     $venueDisplayName = $locationVenue?->name ?? $detail->locationLabel($location) ?? $event->resolvedLocationName();
-    $isOnlineOnly = (string) $occurrence->delivery_mode === \App\Enums\EventFormat::Online->value
+    $isOnlineOnly = (string) $occurrence->delivery_mode === \App\Shared\Events\Enums\EventFormat::Online->value
         && $location === null
         && $locationVenue === null
         && $primaryAddress === null;
@@ -182,7 +182,7 @@
         ->unique()
         ->values();
     $genderValue = $audienceRows->firstWhere('audience_type', 'gender')?->value;
-    $genderRestriction = \App\Enums\EventGenderRestriction::tryFrom((string) $genderValue);
+    $genderRestriction = \App\Shared\Events\Enums\EventGenderRestriction::tryFrom((string) $genderValue);
     $muslimOnly = $audienceRows->contains(fn ($audience): bool => $audience->audience_type === 'religion' && $audience->value === 'muslim_only');
     $keyPeopleByRole = $this->keyPeopleByRole;
     $galleryImages = $this->galleryImages;
@@ -190,8 +190,8 @@
     $occurrenceDisplayTitle = trim((string) ($occurrence->title ?: $event->title));
     $occurrenceCancelled = (string) $occurrence->status === 'cancelled';
     $occurrenceFormatLabel = match ((string) $occurrence->delivery_mode) {
-        \App\Enums\EventFormat::Online->value => __('Dalam talian'),
-        \App\Enums\EventFormat::Hybrid->value => __('Hibrid'),
+        \App\Shared\Events\Enums\EventFormat::Online->value => __('Dalam talian'),
+        \App\Shared\Events\Enums\EventFormat::Hybrid->value => __('Hibrid'),
         default => __('Fizikal'),
     };
     $occurrenceStartLocal = $occurrence->starts_at?->copy()->timezone($viewerTimezone);

@@ -1,7 +1,7 @@
 <?php
 
 use AIArmada\FilamentEvents\Resources\EventResource\Pages\EditEvent;
-use App\Enums\EventVisibility;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Filament\Pages\AdminDashboard;
 use App\Filament\Pages\ModerationQueue;
 use App\Filament\Resources\Institutions\InstitutionResource;

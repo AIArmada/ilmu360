@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Language;

@@ -46,6 +46,24 @@ final class PublicSlugRegistry
     }
 
     /**
+     * Register a surface ahead of the resources already present.
+     *
+     * Feature providers boot in registration order, so features that need the
+     * canonical public-slug order (event, institution, person, venue, reference)
+     * prepend their surface instead of depending on provider ordering.
+     */
+    public function prepend(PublicSlugResource $resource): void
+    {
+        if (isset($this->byModelClass[$resource->modelClass])) {
+            return;
+        }
+
+        array_unshift($this->resources, $resource);
+        $this->byParameter[$resource->parameter] = $resource;
+        $this->byModelClass[$resource->modelClass] = $resource;
+    }
+
+    /**
      * @return list<PublicSlugResource>
      */
     public function resources(): array

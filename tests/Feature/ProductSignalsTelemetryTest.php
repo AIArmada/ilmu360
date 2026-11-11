@@ -8,7 +8,7 @@ use AIArmada\Signals\Contracts\SignalEventIngestor;
 use AIArmada\Signals\Models\SignalEvent;
 use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
-use App\Enums\EventVisibility;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Features\SavedSearches\Models\SavedSearch;
 use App\Livewire\Pages\Dashboard\NotificationsIndex;
 use App\Models\Event;

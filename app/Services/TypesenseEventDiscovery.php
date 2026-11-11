@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
-use App\Contracts\EventCategoryCatalog;
+use App\Shared\Events\EventCategoryCatalog;
 use App\Contracts\EventDiscoveryAdapter;
 use App\Data\EventDiscoveryCriteria;
 use App\Features\Directory\Api\ReferenceQueries;

@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\EventFormat;
+use App\Shared\Events\Enums\EventFormat;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Space;
 use App\Models\Venue;

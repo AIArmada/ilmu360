@@ -1,7 +1,7 @@
 <?php
 
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
-use App\Contracts\EventCategoryCatalog;
+use App\Shared\Events\EventCategoryCatalog;
 use App\Data\EventDiscoveryCriteriaFactory;
 use App\Services\TypesenseEventDiscovery;
 use App\Support\EventDiscovery\EventDiscoveryFilterSet;

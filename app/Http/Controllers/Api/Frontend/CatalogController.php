@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api\Frontend;
 
-use App\Enums\EventTaxonomyCode;
+use App\Shared\Taxonomy\EventTaxonomyCode;
 use App\Enums\MemberSubjectType;
 use App\Support\Api\Frontend\FrontendCatalogService;
 use Dedoc\Scramble\Attributes\Endpoint;

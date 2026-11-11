@@ -6,10 +6,10 @@ namespace App\Support\Api\Admin;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\FilamentEvents\Resources\EventResource;
-use App\Contracts\EventCategoryCatalog;
-use App\Enums\EventFormat;
-use App\Enums\EventVisibility;
-use App\Enums\TimingMode;
+use App\Shared\Events\EventCategoryCatalog;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventVisibility;
+use App\Shared\Events\Enums\TimingMode;
 use App\Filament\Resources\Persons\PersonResource;
 use App\Models\Event;
 use App\Models\User;

@@ -4,7 +4,7 @@ use AIArmada\Authz\Models\Role;
 use AIArmada\Events\Models\EventTerm;
 use AIArmada\FilamentEvents\Resources\EventTermResource\Pages\CreateEventTerm;
 use AIArmada\FilamentEvents\Resources\EventTermResource\Pages\EditEventTerm;
-use App\Enums\EventTaxonomyCode;
+use App\Shared\Taxonomy\EventTaxonomyCode;
 use App\Filament\Resources\EventTerms\TermDomainMappingExtension;
 use App\Models\User;
 use App\Support\Submission\SubmitEventOptionsProvider;

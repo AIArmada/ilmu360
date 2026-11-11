@@ -3,8 +3,8 @@
 use AIArmada\Communications\Enums\NotificationTrigger;
 use AIArmada\Engagement\Contracts\EngagementManager;
 use App\Actions\Events\Changes\PublishEventChangeAnnouncementAction;
-use App\Enums\EventChangeType;
-use App\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\EventChangeType;
+use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Models\Event;
 use App\Models\EventCheckin;
 use App\Models\Institution;

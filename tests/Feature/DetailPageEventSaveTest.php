@@ -2,7 +2,7 @@
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Models\Bookmark;
-use App\Enums\EventVisibility;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Reference;

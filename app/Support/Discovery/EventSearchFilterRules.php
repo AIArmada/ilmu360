@@ -7,7 +7,7 @@ namespace App\Support\Discovery;
 use AIArmada\Addressing\Support\ModelResolver;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
-use App\Enums\EventTaxonomyCode;
+use App\Shared\Taxonomy\EventTaxonomyCode;
 use App\Shared\Discovery\SearchFilterCatalog;
 use App\Shared\Discovery\SearchFilterKeys;
 use App\Shared\Discovery\SearchFilterRules;

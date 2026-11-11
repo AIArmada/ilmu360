@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api\Frontend;
 
 use AIArmada\Membership\Enums\MemberRole;
-use App\Enums\EventVisibility;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Models\Event;
 use App\Models\Institution;

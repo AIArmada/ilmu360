@@ -2,7 +2,7 @@
 
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Organizations\Actions\CreateOrganizationAction;
-use App\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Features\Membership\Api\MembershipApplications;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Membership\Api\MembershipInvitations;

@@ -2,8 +2,8 @@
 
 use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Events\Models\EventTerm;
-use App\Enums\EventFormat;
-use App\Enums\EventTaxonomyCode;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Taxonomy\EventTaxonomyCode;
 use App\Shared\Directory\Enums\ReferenceType;
 use App\Shared\Prayer\EventPrayerTime;
 use Database\Seeders\AIArmada\EventRoleSeeder;

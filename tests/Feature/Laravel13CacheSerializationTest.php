@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventAgeGroup;
 use App\Livewire\Pages\Events\Index;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;

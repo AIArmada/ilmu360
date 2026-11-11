@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\States\EventStatus;
 
 use App\Models\Event;
-use App\Support\State\StateMetadata;
+use App\Platform\State\StateMetadata;
 use Spatie\ModelStates\State;
 use Spatie\ModelStates\StateConfig;
 

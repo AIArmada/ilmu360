@@ -4,7 +4,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 
 use App\Actions\ToggleDirectoryFollowAction;
 
-use App\Enums\EventVisibility;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Features\Directory\Api\ReferenceQueries;
 use App\Models\Event;
 use App\Models\Reference;

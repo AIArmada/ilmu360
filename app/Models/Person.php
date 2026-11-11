@@ -16,7 +16,7 @@ use AIArmada\Persons\Enums\Gender;
 use AIArmada\Persons\Models\CredentialAssignment;
 use AIArmada\Persons\Models\TitleAssignment;
 use AIArmada\References\Models\ReferenceContributor;
-use App\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Enums\SpeakerStatus;
 use App\Models\Concerns\HasDonationChannels;
 use App\Platform\Auditing\AuditsModelChanges;

@@ -8,7 +8,7 @@ use App\Actions\Events\Engagement\RemoveEventGoingAction;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Data\Api\EventEngagement\EventEngagementListItemData;
 use App\Data\Api\EventGoing\EventGoingStateData;
-use App\Enums\EventVisibility;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Enums\ShareOutcomeType;
 use App\Http\Controllers\Controller;
 use App\Models\Event;

@@ -2,7 +2,7 @@
 
 namespace App\Policies;
 
-use App\Enums\EventVisibility;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\Person;
 use App\Models\User;

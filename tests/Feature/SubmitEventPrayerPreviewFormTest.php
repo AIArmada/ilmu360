@@ -2,7 +2,7 @@
 
 use AIArmada\Events\Models\EventTimeExpression;
 use App\Actions\Events\Authoring\SaveAdminEventAction;
-use App\Enums\EventFormat;
+use App\Shared\Events\Enums\EventFormat;
 use App\Features\Prayer\Api\PrayerTimesDTO;
 use App\Features\Prayer\EntryPoints\Jobs\RefreshPrayerTimes;
 use App\Features\Prayer\Persistence\PrayerTimesCache;

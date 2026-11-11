@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\TimingMode;
+use App\Shared\Events\Enums\TimingMode;
 use App\Models\Event;
 
 it('coerces factory windows where the end precedes the start', function (): void {

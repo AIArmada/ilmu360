@@ -2,7 +2,7 @@
 
 namespace App\Support\Search;
 
-use App\Enums\EventVisibility;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\Institution;
 use Illuminate\Database\Eloquent\Builder;

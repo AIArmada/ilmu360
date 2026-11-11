@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Contracts\EventCategoryCatalog;
+use App\Shared\Events\EventCategoryCatalog;
 use App\Features\SavedSearches\Models\SavedSearch;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;

@@ -9,7 +9,7 @@ use App\Actions\Events\Authoring\SyncEventClassificationsAction;
 use App\Data\EventDiscoveryCriteriaFactory;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionSubjectType;
-use App\Enums\EventFormat;
+use App\Shared\Events\Enums\EventFormat;
 use App\Features\Prayer\Api\PrayerTimesDTO;
 use App\Features\Prayer\Persistence\PrayerTimesCache;
 use App\Livewire\Pages\Contributions\SuggestUpdate;

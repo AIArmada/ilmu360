@@ -10,7 +10,7 @@ use App\Actions\Events\Authoring\ResolveAdvancedBuilderContextAction;
 use App\Actions\Events\Authoring\ResolveAdvancedBuilderMembershipOptionsAction;
 use App\Actions\Events\Authoring\SyncEventResourceRelationsAction;
 use App\Actions\Events\Scheduling\SyncEventScheduleAction;
-use App\Enums\TimingMode;
+use App\Shared\Events\Enums\TimingMode;
 use App\Features\Prayer\Api\HardcodedPrayerFallback;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;

@@ -1,7 +1,7 @@
 <?php
 
 use App\Data\EventDiscoveryCriteriaFactory;
-use App\Enums\TimingMode;
+use App\Shared\Events\Enums\TimingMode;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Services\PostgresEventDiscovery;

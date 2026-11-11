@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\EventFormat;
+use App\Shared\Events\Enums\EventFormat;
 use App\Livewire\Pages\SubmitEvent\Create;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Filament\Forms\Components\Select;

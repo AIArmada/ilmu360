@@ -5,7 +5,7 @@ use AIArmada\Events\Models\EventClassification;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use App\Actions\Events\Authoring\SyncEventClassificationsAction;
-use App\Enums\EventTaxonomyCode;
+use App\Shared\Taxonomy\EventTaxonomyCode;
 use App\Models\Event;
 
 it('writes package classifications from domain and discipline fields', function () {

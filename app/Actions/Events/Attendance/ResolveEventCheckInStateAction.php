@@ -2,7 +2,7 @@
 
 namespace App\Actions\Events\Attendance;
 
-use App\Enums\EventVisibility;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;

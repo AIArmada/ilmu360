@@ -10,7 +10,7 @@ use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
 use App\Enums\EventChangeSeverity;
-use App\Enums\EventChangeType;
+use App\Shared\Events\Enums\EventChangeType;
 use App\Enums\MemberSubjectType;
 use App\Features\GitHubIssues\Api\GitHubIssueReportContract;
 use App\Mcp\Prompts\MemberDocumentationToolRoutingPrompt;

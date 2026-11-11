@@ -6,12 +6,12 @@ namespace App\Support\Mcp;
 
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Events\Models\EventAccessPolicy;
-use App\Enums\EventAgeGroup;
-use App\Enums\EventFormat;
-use App\Enums\EventGenderRestriction;
-use App\Enums\EventKeyPersonRole;
-use App\Enums\EventTaxonomyCode;
-use App\Enums\EventVisibility;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventKeyPersonRole;
+use App\Shared\Taxonomy\EventTaxonomyCode;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Directory\Enums\ReferenceType;
 use App\Models\DonationChannel;
 use App\Models\Event;

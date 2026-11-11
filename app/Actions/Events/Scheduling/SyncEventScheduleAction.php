@@ -6,7 +6,7 @@ use AIArmada\Events\Actions\SyncPrimaryEventOccurrenceAction;
 use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTimeExpression;
-use App\Enums\TimingMode;
+use App\Shared\Events\Enums\TimingMode;
 use App\Features\Prayer\Api\HardcodedPrayerFallback;
 use App\Models\Event;
 use App\Services\PrayerTimeExpressionResolver;

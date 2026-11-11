@@ -8,7 +8,7 @@ use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Contacting\Models\ContactMethod;
 use AIArmada\Contacting\Models\SocialProfile;
 use App\Data\Api\Frontend\Search\CountryData;
-use App\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Platform\Location\AddressAssignments;
 use App\Support\Location\AddressHierarchyFormatter;
 use BackedEnum;

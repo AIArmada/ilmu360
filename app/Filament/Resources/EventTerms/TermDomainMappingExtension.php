@@ -7,7 +7,7 @@ namespace App\Filament\Resources\EventTerms;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use AIArmada\FilamentEvents\Contracts\TermFormExtension;
-use App\Enums\EventTaxonomyCode;
+use App\Shared\Taxonomy\EventTaxonomyCode;
 use Filament\Forms\Components\Select;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Section;

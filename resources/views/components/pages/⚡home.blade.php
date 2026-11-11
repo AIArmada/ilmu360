@@ -109,7 +109,7 @@ new
             foreach ($this->featuredEvents as $leaf) {
                 $event = $leaf->event;
 
-                if ((string) $event->delivery_mode === \App\Enums\EventFormat::Online->value) {
+                if ((string) $event->delivery_mode === \App\Shared\Events\Enums\EventFormat::Online->value) {
                     continue;
                 }
 

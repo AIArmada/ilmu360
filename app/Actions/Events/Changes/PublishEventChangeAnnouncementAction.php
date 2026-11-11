@@ -5,7 +5,7 @@ namespace App\Actions\Events\Changes;
 use AIArmada\Events\Contracts\EventLifecycleWorkflow;
 use App\Actions\ShareTracking\ReverseEventParticipationOutcomesAction;
 use App\Enums\EventChangeSeverity;
-use App\Enums\EventChangeType;
+use App\Shared\Events\Enums\EventChangeType;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\EventKeyPerson;

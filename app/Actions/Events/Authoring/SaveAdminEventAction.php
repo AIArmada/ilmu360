@@ -3,7 +3,7 @@
 namespace App\Actions\Events\Authoring;
 
 use App\Actions\Events\Scheduling\SyncEventScheduleAction;
-use App\Enums\TimingMode;
+use App\Shared\Events\Enums\TimingMode;
 use App\Models\Event;
 use App\Models\User;
 use App\Services\ModerationService;

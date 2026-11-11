@@ -8,7 +8,7 @@ use AIArmada\Engagement\Models\Bookmark;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Data\Api\EventEngagement\EventEngagementListItemData;
 use App\Data\Api\EventSave\EventSaveStateData;
-use App\Enums\EventVisibility;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Enums\ShareOutcomeType;
 use App\Http\Controllers\Controller;
 use App\Models\Event;

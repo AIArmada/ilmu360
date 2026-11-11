@@ -2,10 +2,10 @@
 
 use AIArmada\Addressing\Models\Address;
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Enums\EventFormat;
-use App\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Shared\Directory\Enums\ReferenceType;
-use App\Enums\TimingMode;
+use App\Shared\Events\Enums\TimingMode;
 use App\Livewire\Pages\Persons\Show;
 use App\Models\Event;
 use App\Models\EventKeyPerson;

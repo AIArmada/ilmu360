@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Services;
 
 use AIArmada\Events\Models\EventTermPolicy;
-use App\Contracts\EventCategoryCatalog;
-use App\Contracts\EventCategoryPolicyResolver;
+use App\Shared\Events\EventCategoryCatalog;
+use App\Shared\Events\EventCategoryPolicyResolver;
 
 final class EventCategoryPolicy implements EventCategoryPolicyResolver
 {

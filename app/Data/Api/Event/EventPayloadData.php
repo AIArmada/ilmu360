@@ -9,7 +9,7 @@ use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Events\Models\VenueSpace;
 use App\Data\Api\Frontend\Search\ReferenceDetailMediaData;
 use App\Enums\EventChangeSeverity;
-use App\Enums\EventChangeType;
+use App\Shared\Events\Enums\EventChangeType;
 use App\Features\Directory\Api\ReferenceQueries;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;

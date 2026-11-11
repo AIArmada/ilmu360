@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Contracts\EventCategoryCatalog;
+use App\Shared\Events\EventCategoryCatalog;
 use App\Data\EventDiscoveryCriteriaFactory;
 use App\Features\Directory\Api\ReferenceQueries;
 use App\Models\Event;

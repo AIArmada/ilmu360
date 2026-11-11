@@ -3,7 +3,7 @@
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Enums\EventTaxonomyCode;
+use App\Shared\Taxonomy\EventTaxonomyCode;
 use App\Enums\MemberSubjectType;
 use App\Models\Institution;
 use App\Models\Reference;

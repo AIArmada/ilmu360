@@ -4,7 +4,7 @@ namespace App\Support\Submission;
 
 use AIArmada\Addressing\Data\AddressLocationData;
 use AIArmada\Addressing\Support\AddressLocationScope;
-use App\Enums\EventFormat;
+use App\Shared\Events\Enums\EventFormat;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;

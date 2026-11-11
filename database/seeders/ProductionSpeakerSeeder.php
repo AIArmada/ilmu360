@@ -18,7 +18,7 @@ use AIArmada\Persons\Enums\PersonNameType;
 use AIArmada\Persons\Models\PersonName;
 use AIArmada\Persons\Models\Title;
 use AIArmada\Persons\Models\TitleAssignment;
-use App\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Enums\SpeakerStatus;
 use App\Models\Event;
 use App\Models\EventKeyPerson;

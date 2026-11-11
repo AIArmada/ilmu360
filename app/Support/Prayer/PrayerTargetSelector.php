@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Prayer;
 
-use App\Enums\EventFormat;
+use App\Shared\Events\Enums\EventFormat;
 use App\Models\Institution;
 use App\Models\Person;
 use BackedEnum;

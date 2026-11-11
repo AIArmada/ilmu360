@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventAgeGroup;
 use App\Livewire\Pages\SubmitEvent\Create;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Filament\Forms\Components\Select;

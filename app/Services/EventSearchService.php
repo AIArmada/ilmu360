@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
-use App\Contracts\EventCategoryCatalog;
+use App\Shared\Events\EventCategoryCatalog;
 use App\Data\EventDiscoveryCriteria;
 use App\Data\EventDiscoveryCriteriaFactory;
 use App\Features\Directory\Api\ReferenceQueries;

@@ -6,7 +6,7 @@ namespace App\Support\Submission;
 
 use AIArmada\Events\Models\EventOccurrence;
 use App\Contracts\SpaceEligibilityResolver;
-use App\Enums\EventFormat;
+use App\Shared\Events\Enums\EventFormat;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;

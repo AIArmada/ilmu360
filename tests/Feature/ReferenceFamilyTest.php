@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\EventVisibility;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Directory\Enums\ReferencePartType;
 use App\Shared\Directory\Enums\ReferenceType;
 use App\Models\Event;

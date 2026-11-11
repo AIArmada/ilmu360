@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Support\Submission;
 
-use App\Contracts\EventCategoryCatalog;
-use App\Enums\EventFormat;
-use App\Enums\EventGenderRestriction;
-use App\Enums\EventKeyPersonRole;
-use App\Enums\EventTaxonomyCode;
-use App\Enums\EventVisibility;
+use App\Shared\Events\EventCategoryCatalog;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventKeyPersonRole;
+use App\Shared\Taxonomy\EventTaxonomyCode;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Livewire\Pages\SubmitEvent\EventSubmissionFormSchema;
 use App\Models\Event;
 use App\Models\EventKeyPerson;

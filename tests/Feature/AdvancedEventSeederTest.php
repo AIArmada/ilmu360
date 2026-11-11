@@ -4,7 +4,7 @@ use AIArmada\Events\Models\EventInvolvement;
 use AIArmada\Events\Models\EventRole;
 use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Events\Models\VenueSpaceType;
-use App\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;

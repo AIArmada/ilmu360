@@ -67,7 +67,7 @@ Always use `spatie/eloquent-sortable` (never manual sort columns): model `implem
 
 All event classification uses the events package taxonomy store — `EventTaxonomy` + `EventTerm` + `EventClassification`, read via `$event->classifications()`. There is no Spatie-tags layer: no `Tag` model, no `taggables` writes, no `/tags` alias (removed; it 404s).
 
-- Vocabulary: `App\Enums\EventTaxonomyCode` (`domain`, `discipline`, `source`, `issue` → label/description/color/icon) plus `EventCategoryCatalog` (hierarchical event categories); seed terms live in `App\Enums\TaxonomyTerm\*TermCode`.
+- Vocabulary: `App\Shared\Taxonomy\EventTaxonomyCode` (`domain`, `discipline`, `source`, `issue` → label/description/color/icon) plus `EventCategoryCatalog` (hierarchical event categories); seed terms live in `App\Enums\TaxonomyTerm\*TermCode`.
 - Sync: app `SyncEventClassificationsAction` (vocabulary adapter) → package synchronizer; payload keys `domain_tags` / `discipline_tags` / `source_tags` / `issue_tags` (+ `taxonomy_term_ids`, `event_category_ids`).
 - Catalog: `/taxonomy-terms/{type}` is the canonical options endpoint (via `FrontendCatalogService::taxonomyTerms()`); user-created terms are `firstOrCreate`d active with `sort_order` 0.
 

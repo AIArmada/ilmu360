@@ -1,7 +1,7 @@
 <?php
 
-use App\Enums\EventFormat;
-use App\Enums\EventVisibility;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Enums\RegistrationScope;
 use App\Models\Event;
 use App\Models\Institution;

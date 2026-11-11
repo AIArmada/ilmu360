@@ -3,7 +3,7 @@
 use AIArmada\Addressing\Models\State;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
-use App\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Features\SavedSearches\EntryPoints\Livewire\Pages\SavedSearches\Index as SavedSearchesIndex;
 use App\Features\SavedSearches\Models\SavedSearch;
 use App\Models\Institution;

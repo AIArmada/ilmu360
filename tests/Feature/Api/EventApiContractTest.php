@@ -1,12 +1,12 @@
 <?php
 
 use App\Enums\EventChangeSeverity;
-use App\Enums\EventChangeType;
-use App\Enums\EventFormat;
-use App\Enums\EventKeyPersonRole;
-use App\Enums\EventVisibility;
+use App\Shared\Events\Enums\EventChangeType;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Directory\Enums\ReferenceType;
-use App\Enums\TimingMode;
+use App\Shared\Events\Enums\TimingMode;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\Institution;

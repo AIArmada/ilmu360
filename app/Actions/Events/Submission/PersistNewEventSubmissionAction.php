@@ -10,7 +10,7 @@ use App\Actions\Events\Authoring\GenerateEventSlugAction;
 use App\Actions\Events\Authoring\SyncEventClassificationsAction;
 use App\Actions\Events\Scheduling\ResolveInstitutionalPrayerSlotGroupAction;
 use App\Data\Events\ValidatedEventSubmission;
-use App\Enums\EventVisibility;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\Institution;

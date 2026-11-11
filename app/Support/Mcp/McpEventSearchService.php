@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Support\Mcp;
 
 use App\Data\Api\Frontend\Search\EventListData;
-use App\Enums\TimingMode;
+use App\Shared\Events\Enums\TimingMode;
 use App\Models\Event;
 use App\Services\EventSearchService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;

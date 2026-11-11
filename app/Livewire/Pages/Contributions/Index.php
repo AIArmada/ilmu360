@@ -9,7 +9,7 @@ use AIArmada\Events\Models\EventReference;
 use App\Actions\Contributions\Queries\ResolveOwnContributionRequestAction;
 use App\Actions\Contributions\Submission\CancelContributionRequestAction;
 use App\Enums\ContributionRequestType;
-use App\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Enums\MemberSubjectType;
 use App\Features\Reports\Api\ReportPage;
 use App\Features\Reports\Api\ReportReader;

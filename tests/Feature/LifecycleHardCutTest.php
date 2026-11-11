@@ -10,7 +10,7 @@ use App\Contracts\ShareTrackingContract;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
-use App\Enums\EventVisibility;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Features\GitHubIssues\Api\GitHubIssueReporterContract;
 use App\Features\GitHubIssues\Services\NullGitHubIssueReporter;
 use App\Features\Inspirations\Models\Inspiration;

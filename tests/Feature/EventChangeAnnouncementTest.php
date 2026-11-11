@@ -4,7 +4,7 @@ use AIArmada\Communications\Models\NotificationInbox;
 use AIArmada\Engagement\Contracts\EngagementManager;
 use App\Actions\Events\Changes\PublishEventChangeAnnouncementAction;
 use App\Enums\EventChangeSeverity;
-use App\Enums\EventChangeType;
+use App\Shared\Events\Enums\EventChangeType;
 use App\Enums\NotificationPriority;
 use App\Enums\NotificationTrigger;
 use App\Models\Event;

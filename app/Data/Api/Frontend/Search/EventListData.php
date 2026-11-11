@@ -2,7 +2,7 @@
 
 namespace App\Data\Api\Frontend\Search;
 
-use App\Enums\EventFormat;
+use App\Shared\Events\Enums\EventFormat;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;

@@ -6,7 +6,7 @@ namespace App\Actions\Events\Scheduling;
 
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTimeExpression;
-use App\Contracts\EventCategoryCatalog;
+use App\Shared\Events\EventCategoryCatalog;
 use App\Data\Events\ValidatedEventSubmission;
 use App\Models\Event;
 use App\Models\Institution;

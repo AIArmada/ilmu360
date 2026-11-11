@@ -1,7 +1,7 @@
 <?php
 
-use App\Enums\EventKeyPersonRole;
-use App\Enums\EventVisibility;
+use App\Shared\Events\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Livewire\Pages\Events\Index as EventsIndex;
 use App\Livewire\Pages\Persons\Show as PersonShow;
 use App\Models\Event;

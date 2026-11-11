@@ -73,16 +73,16 @@
         ->all();
     $personLabels = $this->personOptionLabels($selectedPersonLabelIds);
     $referenceLabels = $this->referenceOptionLabels($selectedReferenceIds);
-    $keyPersonRoleLabels = \App\Enums\EventKeyPersonRole::nonSpeakerOptions();
+    $keyPersonRoleLabels = \App\Shared\Events\Enums\EventKeyPersonRole::nonSpeakerOptions();
     $eventCategoryLabels = $this->eventCategoryOptions;
-    $eventFormatLabels = collect(\App\Enums\EventFormat::cases())
-        ->mapWithKeys(fn (\App\Enums\EventFormat $format): array => [$format->value => $format->getLabel()])
+    $eventFormatLabels = collect(\App\Shared\Events\Enums\EventFormat::cases())
+        ->mapWithKeys(fn (\App\Shared\Events\Enums\EventFormat $format): array => [$format->value => $format->getLabel()])
         ->all();
-    $ageGroupLabels = collect(\App\Enums\EventAgeGroup::cases())
-        ->mapWithKeys(fn (\App\Enums\EventAgeGroup $group): array => [$group->value => $group->getLabel()])
+    $ageGroupLabels = collect(\App\Shared\Events\Enums\EventAgeGroup::cases())
+        ->mapWithKeys(fn (\App\Shared\Events\Enums\EventAgeGroup $group): array => [$group->value => $group->getLabel()])
         ->all();
-    $genderLabels = collect(\App\Enums\EventGenderRestriction::cases())
-        ->mapWithKeys(fn (\App\Enums\EventGenderRestriction $restriction): array => [$restriction->value => $restriction->getLabel()])
+    $genderLabels = collect(\App\Shared\Events\Enums\EventGenderRestriction::cases())
+        ->mapWithKeys(fn (\App\Shared\Events\Enums\EventGenderRestriction $restriction): array => [$restriction->value => $restriction->getLabel()])
         ->all();
     $domainLabels = $this->termOptionLabels('domain', $selectedDomainTagIds);
     $disciplineLabels = $this->termOptionLabels('discipline', $selectedDisciplineTagIds);
@@ -97,7 +97,7 @@
         ->filter(static fn (mixed $value): bool => is_string($value) && $value !== '')
         ->map(static fn (string $value): string => \App\Shared\Prayer\EventPrayerTime::tryFrom($value)?->getLabel() ?? $value)
         ->all();
-    $timingModeLabel = \App\Enums\TimingMode::tryFrom((string) $timingMode)?->label();
+    $timingModeLabel = \App\Shared\Events\Enums\TimingMode::tryFrom((string) $timingMode)?->label();
     $activeFilterCount = $this->activeFilterCount();
     $hasActiveFilters = $activeFilterCount > 0;
     $savedOnly = $this->saved_only === true;
@@ -696,10 +696,10 @@
                                         $primaryOccurrence = $scheduleLeaf->occurrence;
                                         $scheduleTitle = $scheduleLeaf->title();
                                         $eventChangeBadgeLabel = $event->public_change_badge_label;
-                                        $eventFormat = $event->delivery_mode instanceof \App\Enums\EventFormat
+                                        $eventFormat = $event->delivery_mode instanceof \App\Shared\Events\Enums\EventFormat
                                             ? $event->delivery_mode
-                                            : \App\Enums\EventFormat::tryFrom((string) $event->delivery_mode);
-                                        $formatValue = $eventFormat?->value ?? \App\Enums\EventFormat::Physical->value;
+                                            : \App\Shared\Events\Enums\EventFormat::tryFrom((string) $event->delivery_mode);
+                                        $formatValue = $eventFormat?->value ?? \App\Shared\Events\Enums\EventFormat::Physical->value;
                                         $formatLabel = $eventFormat?->getLabel() ?? __('Physical');
                                         $scheduleLocation = $primaryOccurrence->locations->first()
                                             ?? $scheduleLeaf->sessions->first()?->locations->first()
@@ -722,7 +722,7 @@
                                         $locationSecondaryText = \App\Support\Location\AddressHierarchyFormatter::formatShort($addressModel) ?: null;
 
                                         if ($locationPrimaryText === null && $locationSecondaryText === null) {
-                                            $locationPrimaryText = $formatValue === \App\Enums\EventFormat::Online->value ? __('Online') : __('Location pending');
+                                            $locationPrimaryText = $formatValue === \App\Shared\Events\Enums\EventFormat::Online->value ? __('Online') : __('Location pending');
                                         }
 
                                         $cardStart = $scheduleLeaf->startsAt();

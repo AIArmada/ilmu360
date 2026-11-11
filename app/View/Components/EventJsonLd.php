@@ -4,7 +4,7 @@ namespace App\View\Components;
 
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Events\Models\EventAccessPolicy;
-use App\Enums\EventChangeType;
+use App\Shared\Events\Enums\EventChangeType;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\Institution;

@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\TimingMode;
+use App\Shared\Events\Enums\TimingMode;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerOffset;
 use App\Shared\Prayer\PrayerReference;

@@ -75,9 +75,9 @@ new class extends Component
                 @foreach($this->events as $event)
                     @php
                         $eventCoverAspectClass = 'aspect-[16/9]';
-                        $eventGender = $event->gender instanceof \App\Enums\EventGenderRestriction
+                        $eventGender = $event->gender instanceof \App\Shared\Events\Enums\EventGenderRestriction
                             ? $event->gender
-                            : \App\Enums\EventGenderRestriction::tryFrom((string) $event->gender);
+                            : \App\Shared\Events\Enums\EventGenderRestriction::tryFrom((string) $event->gender);
                     @endphp
                     <div wire:key="featured-{{ $event->id }}" class="flex-shrink-0">
                         <article class="w-80 lg:w-96 snap-start">

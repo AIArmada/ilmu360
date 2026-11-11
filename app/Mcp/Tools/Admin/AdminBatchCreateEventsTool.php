@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tools\Admin;
 
-use App\Contracts\EventCategoryCatalog;
-use App\Enums\EventAgeGroup;
-use App\Enums\EventFormat;
-use App\Enums\EventGenderRestriction;
-use App\Enums\EventVisibility;
+use App\Shared\Events\EventCategoryCatalog;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Enums\RegistrationScope;
 use App\Models\Institution;
 use App\Models\Person;

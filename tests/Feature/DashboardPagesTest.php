@@ -5,7 +5,7 @@ use AIArmada\Communications\Models\NotificationInbox;
 use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\FilamentEvents\Resources\EventResource;
 use App\Enums\ContributionSubjectType;
-use App\Enums\EventVisibility;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Enums\MemberSubjectType;
 use App\Features\SavedSearches\Models\SavedSearch;
 use App\Livewire\Pages\Dashboard\InstitutionDashboard;
