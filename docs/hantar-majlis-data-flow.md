@@ -557,7 +557,7 @@ submission (id/`auto_approved`).
 | `app/States/EventStatus/Transitions/ApproveEvent.php` | ≥1-occurrence publish gate + moderator entity verification |
 | `app/Support/Events/EventDetailPresenter.php` | Read/display logic (`allowsWalkIn`, `scheduleMode`) |
 | `app/Support/Events/EventTicketingPolicy.php` | Has-ticketing check (all 3 levels) |
-| `app/Support/Commerce/EventCommerceModes.php` | Commerce-mode catalog (ADR-013) |
+| `app/Shared/Commerce/EventCommerceModes.php` | Commerce-mode catalog (ADR-013) |
 | `resources/views/components/pages/submit-event/` | Form, review preview, landing, and success views |
 
 ## Regression coverage and verification status

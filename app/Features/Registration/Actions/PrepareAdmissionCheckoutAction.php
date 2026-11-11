@@ -2,52 +2,121 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Events\Commerce;
+namespace App\Features\Registration\Actions;
 
 use AIArmada\Affiliates\Actions\Conversions\RecordAffiliateConversion;
 use AIArmada\Cart\Contracts\CartManagerInterface;
 use AIArmada\Checkout\Contracts\CheckoutServiceInterface;
 use AIArmada\Checkout\Models\CheckoutSession;
+use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Support\EventTicketScope;
 use AIArmada\Ticketing\Actions\AddTicketTypeToCartAction;
 use AIArmada\Ticketing\Models\TicketType;
-use App\Models\Event;
-use App\Models\User;
-use App\Services\ShareTrackingService;
-use App\Support\Commerce\EventCommerceModes;
+use App\Features\Registration\Api\AdmissionCheckout;
+use App\Platform\Models\MorphModelResolver;
+use App\Shared\Commerce\EventCommerceModes;
+use App\Shared\ShareTracking\ActiveAttribution;
 use Carbon\CarbonInterface;
-use Illuminate\Http\Request;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 /**
- * Builds an account-owned event checkout without making the event domain know
- * which cart, discount, inventory, or payment provider implementation is in use.
+ * Owns paid admission checkout preparation.
+ *
+ * The root checkout transport keeps the Livewire page, the provider payment
+ * handoff and the post-payment redirect/result flow. This action resolves
+ * caller identities through morph aliases, revalidates the checkout start
+ * guards, builds the package cart and checkout session, and freezes the
+ * affiliate and share decisions the payment callback inherits. Carts,
+ * checkout sessions and affiliate tables stay package-canonical and
+ * unclaimed.
  */
-final class PrepareEventCheckoutAction
+final class PrepareAdmissionCheckoutAction implements AdmissionCheckout
 {
     public function __construct(
         private readonly CartManagerInterface $cartManager,
         private readonly AddTicketTypeToCartAction $addTicketTypeToCart,
         private readonly CheckoutServiceInterface $checkoutService,
-        private readonly ShareTrackingService $shareTracking,
+        private readonly ActiveAttribution $activeAttribution,
         private readonly RecordAffiliateConversion $recordAffiliateConversion,
+        private readonly RecordFreeCheckoutMetadataAction $freeCheckoutMetadata,
     ) {}
+
+    /**
+     * @param  list<string>  $registrationIds
+     * @param  array<string, mixed>  $agreement
+     */
+    public function recordCheckoutMetadata(array $registrationIds, string $batchId, array $agreement): void
+    {
+        $this->freeCheckoutMetadata->recordCheckoutMetadata(
+            registrationIds: $registrationIds,
+            batchId: $batchId,
+            agreement: $agreement,
+        );
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $participants
+     * @param  array<string, mixed>  $agreement
+     * @return array{session_id: string, created: bool, status: string, payment_redirect_url: string|null}
+     */
+    public function prepare(
+        string $eventId,
+        string $ticketTypeId,
+        int $quantity,
+        array $participants,
+        string $buyerId,
+        array $agreement = [],
+        ?string $discountCode = null,
+        ?string $idempotencyKey = null,
+        ?object $request = null,
+    ): array {
+        $eventClass = MorphModelResolver::resolve('event');
+        $userClass = MorphModelResolver::resolve('user');
+
+        /** @var PackageEvent $event */
+        $event = $eventClass::query()->findOrFail($eventId);
+
+        /** @var Model $buyer */
+        $buyer = $userClass::query()->findOrFail($buyerId);
+
+        $ticketType = TicketType::query()->with('ticketable')->findOrFail($ticketTypeId);
+
+        $session = $this->handle(
+            event: $event,
+            ticketType: $ticketType,
+            quantity: $quantity,
+            participants: $participants,
+            buyer: $buyer,
+            agreement: $agreement,
+            discountCode: $discountCode,
+            idempotencyKey: $idempotencyKey,
+            request: $request,
+        );
+
+        return [
+            'session_id' => (string) $session->getKey(),
+            'created' => $session->wasRecentlyCreated,
+            'status' => $session->status->name(),
+            'payment_redirect_url' => $session->payment_redirect_url,
+        ];
+    }
 
     /**
      * @param  array<int, array<string, mixed>>  $participants
      * @param  array<string, mixed>  $agreement
      */
-    public function handle(
-        Event $event,
+    private function handle(
+        PackageEvent $event,
         TicketType $ticketType,
         int $quantity,
         array $participants,
-        User $buyer,
+        Model $buyer,
         array $agreement = [],
         ?string $discountCode = null,
         ?string $idempotencyKey = null,
-        ?Request $request = null,
+        ?object $request = null,
     ): CheckoutSession {
         $this->ensureCheckoutCanStart($event, $ticketType, $quantity, $participants);
 
@@ -69,7 +138,8 @@ final class PrepareEventCheckoutAction
             $currency,
             $request,
         ): CheckoutSession {
-            User::query()->whereKey($buyer->getKey())->lockForUpdate()->firstOrFail();
+            $userClass = MorphModelResolver::resolve('user');
+            $userClass::query()->whereKey($buyer->getKey())->lockForUpdate()->firstOrFail();
 
             if ($idempotencyKey !== null) {
                 $existing = $this->findExistingCheckout($buyer, $idempotencyKey);
@@ -101,17 +171,17 @@ final class PrepareEventCheckoutAction
      * @param  array<string, mixed>  $scopeIds
      */
     private function createCheckoutSession(
-        Event $event,
+        PackageEvent $event,
         TicketType $ticketType,
         int $quantity,
         array $participants,
-        User $buyer,
+        Model $buyer,
         array $agreement,
         ?string $normalizedDiscountCode,
         ?string $idempotencyKey,
         array $scopeIds,
         string $currency,
-        ?Request $request,
+        ?object $request,
     ): CheckoutSession {
         $cart = $this->cartManager->getCartInstance(
             (string) config('events.features.commerce.checkout.cart_instance', 'event-checkout'),
@@ -173,7 +243,7 @@ final class PrepareEventCheckoutAction
         // the external payment handoff, so payment-confirmation callbacks
         // inherit this persisted decision instead of reading callback
         // request cookies or a late token.
-        $attribution = $this->shareTracking->resolveActiveAttribution($request ?? request());
+        $attributionId = $this->activeAttribution->resolveId($request);
         $occurredAt = $session->created_at instanceof CarbonInterface ? $session->created_at : now();
 
         $paymentData = $session->payment_data ?? [];
@@ -189,7 +259,7 @@ final class PrepareEventCheckoutAction
         ];
         $paymentData['share_provenance'] = [
             'intent_id' => (string) $session->getKey(),
-            'attribution_id' => $attribution?->id,
+            'attribution_id' => $attributionId,
             'occurred_at' => $occurredAt->toIso8601String(),
         ];
         $paymentData['affiliate_commission'] = [
@@ -206,9 +276,9 @@ final class PrepareEventCheckoutAction
         $session->forceFill([
             'currency' => $currency,
             'billing_data' => array_filter([
-                'name' => $buyer->name,
-                'email' => $buyer->email,
-                'phone' => $buyer->phone,
+                'name' => $buyer->getAttribute('name'),
+                'email' => $buyer->getAttribute('email'),
+                'phone' => $buyer->getAttribute('phone'),
             ], static fn (mixed $value): bool => is_string($value) && trim($value) !== ''),
             'selected_payment_gateway' => (string) config(
                 'checkout.payment.default_gateway',
@@ -224,7 +294,7 @@ final class PrepareEventCheckoutAction
      * @param  array<int, array<string, mixed>>  $participants
      */
     private function ensureCheckoutCanStart(
-        Event $event,
+        PackageEvent $event,
         TicketType $ticketType,
         int $quantity,
         array $participants,
@@ -308,7 +378,7 @@ final class PrepareEventCheckoutAction
         return $normalized;
     }
 
-    private function findExistingCheckout(User $buyer, string $idempotencyKey): ?CheckoutSession
+    private function findExistingCheckout(Model $buyer, string $idempotencyKey): ?CheckoutSession
     {
         return CheckoutSession::query()
             ->where('payment_data->event_checkout->idempotency_key', $idempotencyKey)

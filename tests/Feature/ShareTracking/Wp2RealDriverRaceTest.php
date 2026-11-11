@@ -29,9 +29,9 @@ use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\Inventory\Models\InventoryLocation;
 use AIArmada\Seating\Enums\SeatingMode;
 use AIArmada\Ticketing\Models\TicketType;
-use App\Actions\Events\Commerce\PrepareEventCheckoutAction;
 use App\Enums\ShareEffectStatus;
 use App\Enums\ShareOutcomeType;
+use App\Features\Registration\Api\AdmissionCheckout;
 use App\Models\Event;
 use App\Models\ShareBrowserSelection;
 use App\Models\ShareEffectReceipt;
@@ -646,9 +646,9 @@ function wp2PrepareRaceCase(TestCase $testCase): void
         $retryRequest = Request::create((string) config('app.url'), 'GET');
         $retryRequest->cookies->set((string) config('share-tracking.cookie.name', 'i360_share'), (string) $cookie);
 
-        $retry = OwnerContext::withOwner(null, fn (): CheckoutSession => app(PrepareEventCheckoutAction::class)->handle(
-            event: $event->fresh(),
-            ticketType: TicketType::query()->whereKey($ticket->getKey())->firstOrFail(),
+        $retryPrepared = OwnerContext::withOwner(null, fn (): array => app(AdmissionCheckout::class)->prepare(
+            eventId: (string) $event->getKey(),
+            ticketTypeId: (string) $ticket->getKey(),
             quantity: 1,
             participants: [[
                 'name' => 'Different Context',
@@ -658,13 +658,16 @@ function wp2PrepareRaceCase(TestCase $testCase): void
                 'participant_type' => $buyer->getMorphClass(),
                 'participant_id' => (string) $buyer->getKey(),
             ]],
-            buyer: $buyer->fresh(),
+            buyerId: (string) $buyer->getKey(),
             agreement: ['version' => 'event-participation-v1'],
             idempotencyKey: 'wp2-prepare-race',
             request: $retryRequest,
         ));
 
+        $retry = CheckoutSession::query()->findOrFail($retryPrepared['session_id']);
+
         expect((string) $retry->getKey())->toBe($sessionId)
+            ->and($retryPrepared['created'])->toBeFalse()
             ->and(CheckoutSession::query()->count())->toBe(1)
             ->and($retry->payment_data)->toBe($originalSnapshot);
     } finally {

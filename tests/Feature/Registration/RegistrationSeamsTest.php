@@ -7,6 +7,7 @@ use AIArmada\Events\Models\EventRegistrationAnswer;
 use AIArmada\Events\Models\EventRegistrationItem;
 use App\Features\Registration\Actions\ConfirmOfflineAdmissionAction;
 use App\Features\Registration\Actions\IssueOfflineAdmissionAction;
+use App\Features\Registration\Actions\PrepareAdmissionCheckoutAction;
 use App\Features\Registration\Actions\RecordEventParticipantCheckInAction;
 use App\Features\Registration\Actions\RecordFreeCheckoutMetadataAction;
 use App\Features\Registration\Actions\RecordSelfCheckInAction;
@@ -170,8 +171,8 @@ it('binds the admission registration boundary to the free admission action', fun
         ->and(app(ParticipationAttribution::class))->toBeInstanceOf(ShareTrackingParticipationAttribution::class);
 });
 
-it('binds the free checkout metadata boundary to its feature action', function (): void {
-    expect(app(AdmissionCheckout::class))->toBeInstanceOf(RecordFreeCheckoutMetadataAction::class);
+it('binds the event checkout boundary to its feature action', function (): void {
+    expect(app(AdmissionCheckout::class))->toBeInstanceOf(PrepareAdmissionCheckoutAction::class);
 });
 
 it('binds the admission issuance boundary to the offline admission action', function (): void {

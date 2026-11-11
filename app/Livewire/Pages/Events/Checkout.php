@@ -12,12 +12,11 @@ use AIArmada\Events\Enums\EventRegistrationQuestionType;
 use AIArmada\Events\Models\EventRegistrationQuestion;
 use AIArmada\Events\Support\EventTicketScope;
 use AIArmada\Ticketing\Models\TicketType;
-use App\Actions\Events\Commerce\PrepareEventCheckoutAction;
 use App\Features\Registration\Api\AdmissionCheckout;
 use App\Features\Registration\Api\AdmissionRegistration;
 use App\Models\Event;
 use App\Models\User;
-use App\Support\Commerce\EventCommerceModes;
+use App\Shared\Commerce\EventCommerceModes;
 use App\Support\Events\EventTicketingPolicy;
 use App\Support\Events\ParticipantIdentity;
 use Illuminate\Contracts\View\View;
@@ -169,9 +168,8 @@ final class Checkout extends Component
     }
 
     public function submit(
-        PrepareEventCheckoutAction $prepareCheckout,
         AdmissionRegistration $admissions,
-        AdmissionCheckout $checkoutMetadata,
+        AdmissionCheckout $checkout,
         CheckoutServiceInterface $checkoutService,
         EventTicketingPolicy $ticketingPolicy,
     ): void {
@@ -198,11 +196,10 @@ final class Checkout extends Component
 
             Cache::lock('event-checkout:'.$this->checkoutAttemptKey, 120)->block(10, function () use (
                 $agreement,
-                $checkoutMetadata,
+                $checkout,
                 $checkoutService,
                 $event,
                 $participants,
-                $prepareCheckout,
                 $admissions,
                 $ticket,
                 $user,
@@ -221,7 +218,7 @@ final class Checkout extends Component
 
                     $batchId = (string) str()->uuid();
 
-                    $checkoutMetadata->recordCheckoutMetadata(
+                    $checkout->recordCheckoutMetadata(
                         registrationIds: array_map(
                             static fn (array $registrationResult): string => $registrationResult['registration_id'],
                             $result['registrations'],
@@ -241,22 +238,25 @@ final class Checkout extends Component
                     return;
                 }
 
-                $session = OwnerContext::withOwner(null, fn (): CheckoutSession => $prepareCheckout->handle(
-                    event: $event,
-                    ticketType: $ticket,
+                $prepared = OwnerContext::withOwner(null, fn (): array => $checkout->prepare(
+                    eventId: (string) $event->getKey(),
+                    ticketTypeId: (string) $ticket->getKey(),
                     quantity: $this->quantity,
                     participants: $participants,
-                    buyer: $user,
+                    buyerId: (string) $user->getKey(),
                     agreement: $agreement,
                     discountCode: $this->discountCode,
                     idempotencyKey: $this->checkoutAttemptKey,
                     request: request(),
                 ));
 
+                $session = OwnerContext::withOwner(null, fn (): CheckoutSession => CheckoutSession::query()
+                    ->findOrFail($prepared['session_id']));
+
                 // Replayed submissions reuse the durable session and must not
                 // submit a second provider payment. A still-pending session is
                 // the only safe one to enter into processing.
-                if (! $session->wasRecentlyCreated && $session->status->name() !== 'pending') {
+                if (! $prepared['created'] && $prepared['status'] !== 'pending') {
                     if ($session->payment_redirect_url !== null) {
                         $this->redirect($session->payment_redirect_url, navigate: false);
                     } elseif ($session->getKey() !== null) {

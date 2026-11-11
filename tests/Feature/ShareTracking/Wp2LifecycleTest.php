@@ -17,6 +17,7 @@ use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\Services\FraudDetectionService;
 use AIArmada\Affiliates\States\ConversionStatus;
+use AIArmada\Checkout\Models\CheckoutSession;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Models\Follow;
 use AIArmada\Engagement\Models\Response;
@@ -29,13 +30,13 @@ use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Orders\Contracts\OrderServiceInterface;
 use AIArmada\Seating\Enums\SeatingMode;
 use AIArmada\Ticketing\Models\TicketType;
-use App\Actions\Events\Commerce\PrepareEventCheckoutAction;
 use App\Actions\ShareTracking\ReverseEventParticipationOutcomesAction;
 use App\Checkout\RecordCheckoutShareProvenanceStep;
 use App\Enums\ShareEffectStatus;
 use App\Enums\ShareOutcomeType;
 use App\Features\Registration\Actions\RecordEventParticipantCheckInAction;
 use App\Features\Registration\Actions\UpdateEventParticipantAttendanceAction;
+use App\Features\Registration\Api\AdmissionCheckout;
 use App\Features\Registration\Api\AdmissionRegistration;
 use App\Features\SavedSearches\Models\SavedSearch;
 use App\Livewire\Pages\Dashboard\Events\OfflineAdmissions;
@@ -189,6 +190,40 @@ function wp2lcCheckoutParticipant(string $name, bool $isPurchaser, ?string $emai
     }
 
     return $participant;
+}
+
+/**
+ * Prepares the paid checkout through the Registration boundary and returns
+ * the re-fetched authoritative session, matching the root transport flow.
+ *
+ * @param  array<int, array<string, mixed>>  $participants
+ * @param  array<string, mixed>  $agreement
+ */
+function wp2lcPrepareCheckout(
+    Event $event,
+    TicketType $ticketType,
+    int $quantity,
+    array $participants,
+    User $buyer,
+    array $agreement = [],
+    ?string $discountCode = null,
+    ?string $idempotencyKey = null,
+    ?object $request = null,
+): CheckoutSession {
+    $prepared = OwnerContext::withOwner(null, fn (): array => app(AdmissionCheckout::class)->prepare(
+        eventId: (string) $event->getKey(),
+        ticketTypeId: (string) $ticketType->getKey(),
+        quantity: $quantity,
+        participants: $participants,
+        buyerId: (string) $buyer->getKey(),
+        agreement: $agreement,
+        discountCode: $discountCode,
+        idempotencyKey: $idempotencyKey,
+        request: $request,
+    ));
+
+    return OwnerContext::withOwner(null, fn (): CheckoutSession => CheckoutSession::query()
+        ->findOrFail($prepared['session_id']));
 }
 
 it('records self check-in and its outcome in one transaction', function (): void {
@@ -730,7 +765,7 @@ it('freezes the paid-checkout intent decision once and never on retry', function
     $attributedRequest = Request::create(route('events.show', $event), 'GET');
     $attributedRequest->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
 
-    $session = OwnerContext::withOwner(null, fn () => app(PrepareEventCheckoutAction::class)->handle(
+    $session = wp2lcPrepareCheckout(
         event: $event,
         ticketType: $ticket,
         quantity: 1,
@@ -740,7 +775,7 @@ it('freezes the paid-checkout intent decision once and never on retry', function
         discountCode: null,
         idempotencyKey: 'wp2-checkout-probe',
         request: $attributedRequest,
-    ));
+    );
 
     $provenance = data_get($session->payment_data, 'share_provenance');
 
@@ -751,7 +786,7 @@ it('freezes the paid-checkout intent decision once and never on retry', function
 
     // The idempotent retry reuses the durable session untouched: a later
     // unattributed request can never rewrite the frozen decision.
-    $replay = OwnerContext::withOwner(null, fn () => app(PrepareEventCheckoutAction::class)->handle(
+    $replay = wp2lcPrepareCheckout(
         event: $event,
         ticketType: $ticket,
         quantity: 1,
@@ -761,7 +796,7 @@ it('freezes the paid-checkout intent decision once and never on retry', function
         discountCode: null,
         idempotencyKey: 'wp2-checkout-probe',
         request: new Request,
-    ));
+    );
 
     expect((string) $replay->getKey())->toBe((string) $session->getKey())
         ->and(data_get($replay->fresh()->payment_data, 'share_provenance'))->toBe($provenance);
@@ -788,7 +823,7 @@ it('inherits the frozen checkout decision for paid order registrations', functio
         wp2lcCheckoutParticipant('Checkout Guest', false, $guestEmail),
     ];
 
-    $session = OwnerContext::withOwner(null, fn () => app(PrepareEventCheckoutAction::class)->handle(
+    $session = wp2lcPrepareCheckout(
         event: $event,
         ticketType: $ticket,
         quantity: 2,
@@ -798,7 +833,7 @@ it('inherits the frozen checkout decision for paid order registrations', functio
         discountCode: null,
         idempotencyKey: 'wp2-checkout-inherit',
         request: $attributedRequest,
-    ));
+    );
 
     $persistedAttributionId = data_get($session->payment_data, 'share_provenance.attribution_id');
     $persistedOccurredAt = data_get($session->payment_data, 'share_provenance.occurred_at');
@@ -1160,7 +1195,7 @@ it('freezes missing checkout provenance unattributed and blocks later repair cre
     $attributedRequest = Request::create(route('events.show', $event), 'GET');
     $attributedRequest->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
 
-    $session = OwnerContext::withOwner(null, fn () => app(PrepareEventCheckoutAction::class)->handle(
+    $session = wp2lcPrepareCheckout(
         event: $event,
         ticketType: $ticket,
         quantity: 1,
@@ -1172,7 +1207,7 @@ it('freezes missing checkout provenance unattributed and blocks later repair cre
         agreement: ['version' => 'event-participation-v1'],
         idempotencyKey: 'wp2-checkout-missing',
         request: $attributedRequest,
-    ));
+    );
 
     $persistedAttributionId = data_get($session->payment_data, 'share_provenance.attribution_id');
     expect($persistedAttributionId)->not->toBeNull();
@@ -1247,7 +1282,7 @@ it('freezes mismatched checkout intents unattributed and blocks later repair cre
     $attributedRequest = Request::create(route('events.show', $event), 'GET');
     $attributedRequest->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
 
-    $session = OwnerContext::withOwner(null, fn () => app(PrepareEventCheckoutAction::class)->handle(
+    $session = wp2lcPrepareCheckout(
         event: $event,
         ticketType: $ticket,
         quantity: 1,
@@ -1259,7 +1294,7 @@ it('freezes mismatched checkout intents unattributed and blocks later repair cre
         agreement: ['version' => 'event-participation-v1'],
         idempotencyKey: 'wp2-checkout-mismatch',
         request: $attributedRequest,
-    ));
+    );
 
     $persistedAttributionId = data_get($session->payment_data, 'share_provenance.attribution_id');
     expect($persistedAttributionId)->not->toBeNull();
@@ -1330,7 +1365,7 @@ it('uses the trusted intent timestamp for corrupt checkout provenance clocks', f
     $attributedRequest = Request::create(route('events.show', $event), 'GET');
     $attributedRequest->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
 
-    $session = OwnerContext::withOwner(null, fn () => app(PrepareEventCheckoutAction::class)->handle(
+    $session = wp2lcPrepareCheckout(
         event: $event,
         ticketType: $ticket,
         quantity: 1,
@@ -1342,7 +1377,7 @@ it('uses the trusted intent timestamp for corrupt checkout provenance clocks', f
         agreement: ['version' => 'event-participation-v1'],
         idempotencyKey: 'wp2-checkout-clock',
         request: $attributedRequest,
-    ));
+    );
 
     $order = OwnerContext::withOwner(null, fn () => app(OrderServiceInterface::class)->createOrder(
         orderData: [
@@ -1405,7 +1440,7 @@ it('freezes paid registrations unattributed when scope cancels before fulfillmen
     $attributedRequest = Request::create(route('events.show', $event), 'GET');
     $attributedRequest->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
 
-    $session = OwnerContext::withOwner(null, fn () => app(PrepareEventCheckoutAction::class)->handle(
+    $session = wp2lcPrepareCheckout(
         event: $event,
         ticketType: $ticket,
         quantity: 1,
@@ -1417,7 +1452,7 @@ it('freezes paid registrations unattributed when scope cancels before fulfillmen
         agreement: ['version' => 'event-participation-v1'],
         idempotencyKey: 'wp2-checkout-scopecancel',
         request: $attributedRequest,
-    ));
+    );
 
     $order = OwnerContext::withOwner(null, fn () => app(OrderServiceInterface::class)->createOrder(
         orderData: [

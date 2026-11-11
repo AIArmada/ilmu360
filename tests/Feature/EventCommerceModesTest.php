@@ -1,7 +1,7 @@
 <?php
 
 use AIArmada\Ticketing\Enums\PricingMode;
-use App\Support\Commerce\EventCommerceModes;
+use App\Shared\Commerce\EventCommerceModes;
 
 it('exposes package-native commerce modes including paid and mixed', function () {
     $keys = collect(EventCommerceModes::catalog())->pluck('key')->all();

@@ -6,7 +6,6 @@ namespace App\Features\Registration\Actions;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventRegistration;
-use App\Features\Registration\Api\AdmissionCheckout;
 use App\Platform\Models\MorphModelResolver;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -19,7 +18,7 @@ use Lorisleiva\Actions\Concerns\AsAction;
  * recursive so per-participant checkout metadata (such as a protected identity
  * document) and unrelated registration metadata survive unchanged.
  */
-final class RecordFreeCheckoutMetadataAction implements AdmissionCheckout
+final class RecordFreeCheckoutMetadataAction
 {
     use AsAction;
 

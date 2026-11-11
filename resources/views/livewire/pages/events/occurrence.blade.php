@@ -672,7 +672,7 @@
                                 </a>
                             @endif
 
-                            @if($occurrencePaymentRequired && ! \App\Support\Commerce\EventCommerceModes::publicPaidCheckoutEnabled())
+                            @if($occurrencePaymentRequired && ! \App\Shared\Commerce\EventCommerceModes::publicPaidCheckoutEnabled())
                                 <div class="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-900">{{ __('Maklumat tiket dipaparkan di sini. Pembelian tiket dalam talian belum tersedia untuk majlis ini.') }}</div>
                             @endif
                         </div>

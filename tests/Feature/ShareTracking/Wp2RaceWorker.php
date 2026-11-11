@@ -7,12 +7,13 @@ declare(strict_types=1);
 // immediately when merely included, so test runners and autoloaders never
 // execute it.
 
+use AIArmada\Checkout\Models\CheckoutSession;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Ticketing\Models\TicketType;
-use App\Actions\Events\Commerce\PrepareEventCheckoutAction;
 use App\Actions\ShareTracking\DispatchShareEffectReceiptsAction;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Enums\ShareOutcomeType;
+use App\Features\Registration\Api\AdmissionCheckout;
 use App\Models\Event;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\ShareSourceAttributionReceipt;
@@ -278,17 +279,19 @@ try {
                 $cookie = $payload['cookie'] ?? null;
                 $participants = is_array($payload['participants'] ?? null) ? $payload['participants'] : [];
 
-                $session = app(PrepareEventCheckoutAction::class)->handle(
-                    event: $event,
-                    ticketType: $ticket,
+                $prepared = app(AdmissionCheckout::class)->prepare(
+                    eventId: (string) $event->getKey(),
+                    ticketTypeId: (string) $ticket->getKey(),
                     quantity: (int) ($payload['quantity'] ?? 1),
                     participants: $participants,
-                    buyer: $buyer,
+                    buyerId: (string) $buyer->getKey(),
                     agreement: ['version' => 'event-participation-v1'],
                     discountCode: null,
                     idempotencyKey: (string) ($payload['key'] ?? ''),
                     request: $buildRequest(is_string($cookie) ? $cookie : null),
                 );
+
+                $session = CheckoutSession::query()->findOrFail($prepared['session_id']);
 
                 return [
                     'session_id' => (string) $session->getKey(),

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Registration;
 
 use App\Features\Registration\Actions\IssueOfflineAdmissionAction;
+use App\Features\Registration\Actions\PrepareAdmissionCheckoutAction;
 use App\Features\Registration\Actions\RecordFreeCheckoutMetadataAction;
 use App\Features\Registration\Actions\RecordSelfCheckInAction;
 use App\Features\Registration\Actions\RegisterFreeAdmissionAction;
@@ -57,6 +58,15 @@ use App\Platform\FeatureModule;
  * keeps batch-id generation, the direct-free redirect, idempotency and the
  * paid checkout pipeline.
  *
+ * R4a2 claims paid checkout preparation. PrepareAdmissionCheckoutAction
+ * implements the AdmissionCheckout boundary: it resolves event/buyer through
+ * morph aliases, revalidates the checkout start guards, builds the package
+ * cart and checkout session, and freezes affiliate and share provenance for
+ * the payment callback. Carts, checkout sessions and affiliate tables stay
+ * package-canonical and unclaimed. The root checkout transport keeps the
+ * Livewire page, provider payment handoff, redirects and results, and the
+ * free-metadata path delegates unchanged to RecordFreeCheckoutMetadataAction.
+ *
  * The following root/package writers remain and are recorded for the later
  * migration slices:
  *
@@ -93,7 +103,7 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(AdmissionFacts::class, DatabaseAdmissionFacts::class);
         $this->app->bind(AdmissionIssuance::class, IssueOfflineAdmissionAction::class);
         $this->app->bind(AdmissionRegistration::class, RegisterFreeAdmissionAction::class);
-        $this->app->bind(AdmissionCheckout::class, RecordFreeCheckoutMetadataAction::class);
+        $this->app->bind(AdmissionCheckout::class, PrepareAdmissionCheckoutAction::class);
         $this->app->bind(AttendanceCommands::class, RecordSelfCheckInAction::class);
         $this->app->bind(AttendanceState::class, ResolveAttendanceState::class);
     }

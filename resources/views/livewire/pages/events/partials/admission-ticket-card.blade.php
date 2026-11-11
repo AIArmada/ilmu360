@@ -41,7 +41,7 @@
             && $ticketSalesOpen
             && $ticketHasStock
             && ! $ticketCapacityFull
-            && ((int) ($ticket->price ?? 0) === 0 || \App\Support\Commerce\EventCommerceModes::publicPaidCheckoutEnabled());
+            && ((int) ($ticket->price ?? 0) === 0 || \App\Shared\Commerce\EventCommerceModes::publicPaidCheckoutEnabled());
     @endphp
     @if($ticketCanCheckout)
         <a href="{{ route('events.checkout', ['event' => $event, 'ticket' => $ticket->getKey()]) }}"
