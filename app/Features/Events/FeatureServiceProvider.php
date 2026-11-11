@@ -55,6 +55,12 @@ use App\Shared\Events\EventCategoryPolicyResolver;
  * - vendor Filament event resources (until E4) and events package cascades
  *   remain external writers for series; app-owned series authoring and
  *   deletion go through the SeriesAuthoring boundary.
+ * - the E4a schedule workspace writes occurrences/sessions through
+ *   Actions/Schedule (SaveOccurrenceAction, SaveSessionAction), but
+ *   `event_occurrences`/`event_sessions` stay unclaimed in feature.json: vendor
+ *   Filament schedule pages, package actions invoked by submission persist
+ *   actions and root Event observers still write them. E4b claims those tables
+ *   after the Filament/observer cutover.
  */
 class FeatureServiceProvider extends FeatureModule
 {

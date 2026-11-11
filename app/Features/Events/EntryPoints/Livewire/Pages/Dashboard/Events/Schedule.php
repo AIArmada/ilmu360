@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace App\Livewire\Pages\Dashboard\Events;
+namespace App\Features\Events\EntryPoints\Livewire\Pages\Dashboard\Events;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Events\Actions\CreateEventOccurrenceAction;
-use AIArmada\Events\Actions\CreateEventSessionAction;
-use AIArmada\Events\Actions\UpdateEventOccurrenceAction;
-use AIArmada\Events\Actions\UpdateEventSessionAction;
+use AIArmada\Events\Models\Event;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
-use App\Models\Event;
-use App\Models\User;
+use App\Features\Events\Actions\Schedule\SaveOccurrenceAction;
+use App\Features\Events\Actions\Schedule\SaveSessionAction;
+use App\Features\Events\Support\EventModel;
 use App\Platform\Ui\InteractsWithToasts;
 use Carbon\CarbonImmutable;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
@@ -56,9 +56,10 @@ final class Schedule extends Component
 
     public function mount(Event $event): void
     {
-        $this->authorizeSchedule($event);
-
         $this->eventId = (string) $event->getKey();
+        $event = $this->selectedEvent();
+
+        $this->authorizeSchedule($event);
         $this->occurrenceForm = $this->defaultOccurrenceForm($event);
         $this->sessionForm = $this->defaultSessionForm($event);
     }
@@ -102,10 +103,8 @@ final class Schedule extends Component
         $this->resetValidation();
     }
 
-    public function saveOccurrence(
-        CreateEventOccurrenceAction $createOccurrence,
-        UpdateEventOccurrenceAction $updateOccurrence,
-    ): void {
+    public function saveOccurrence(SaveOccurrenceAction $saveOccurrence): void
+    {
         $event = $this->selectedEvent();
         $this->authorizeSchedule($event);
         $validated = $this->validate($this->occurrenceRules());
@@ -121,11 +120,10 @@ final class Schedule extends Component
 
         try {
             if ($this->editingOccurrenceId !== null) {
-                $occurrence = $this->occurrenceForEvent($event, $this->editingOccurrenceId);
-                $updateOccurrence->handle($occurrence, $attributes);
+                $saveOccurrence->handle($event, $attributes, $this->editingOccurrenceId);
                 $message = __('Occurrence updated successfully.');
             } else {
-                $createOccurrence->handle($event, [
+                $saveOccurrence->handle($event, [
                     ...$attributes,
                     'visibility' => $this->eventVisibility($event),
                     'delivery_mode' => (string) ($event->delivery_mode ?: 'physical'),
@@ -195,10 +193,8 @@ final class Schedule extends Component
         $this->resetValidation();
     }
 
-    public function saveSession(
-        CreateEventSessionAction $createSession,
-        UpdateEventSessionAction $updateSession,
-    ): void {
+    public function saveSession(SaveSessionAction $saveSession): void
+    {
         $event = $this->selectedEvent();
         $this->authorizeSchedule($event);
         $validated = $this->validate($this->sessionRules());
@@ -216,12 +212,10 @@ final class Schedule extends Component
 
         try {
             if ($this->editingSessionId !== null) {
-                $session = $this->sessionForEvent($event, $this->editingSessionId);
-                $updateSession->handle($session, $attributes);
+                $saveSession->handle($event, $this->sessionOccurrenceId, $attributes, $this->editingSessionId);
                 $message = __('Session updated successfully.');
             } else {
-                $occurrence = $this->occurrenceForEvent($event, $this->sessionOccurrenceId);
-                $createSession->handle($occurrence, [
+                $saveSession->handle($event, $this->sessionOccurrenceId, [
                     ...$attributes,
                     'visibility' => $this->eventVisibility($event),
                     'delivery_mode' => (string) ($event->delivery_mode ?: 'physical'),
@@ -327,15 +321,18 @@ final class Schedule extends Component
 
     private function authorizeSchedule(Event $event): void
     {
-        $user = auth()->user();
-        abort_unless($user instanceof User, 403);
-        abort_unless($user->can('update', $event), 403);
+        $actorId = auth()->id();
+        abort_unless(is_string($actorId) && $actorId !== '', 403);
+
+        $actor = EventModel::query('user')->find($actorId);
+        abort_unless($actor instanceof Authenticatable, 403);
+        abort_unless(Gate::forUser($actor)->allows('update', $event), 403);
     }
 
     private function selectedEvent(): Event
     {
         /** @var Event $event */
-        $event = Event::query()->whereKey($this->eventId)->firstOrFail();
+        $event = EventModel::query('event')->whereKey($this->eventId)->firstOrFail();
 
         return $event;
     }
